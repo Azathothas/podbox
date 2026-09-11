@@ -4,7 +4,8 @@
 #
 # ⛔ WHY THIS EXISTS. NTFS carries no POSIX mode bit, so a checkout on Windows
 # holds every file at 0644 and `core.fileMode` is false there. A copy of that
-# checkout into Linux therefore arrives with 393 scripts that the shell refuses
+# checkout into Linux therefore arrives with every one of them unrunnable, and
+# the shell refuses each
 # with "Permission denied", and the first line of the failure names the script
 # rather than the transfer. Measured on 2026-09-11 with
 # `wsl-toolkit run --workspace .` from a Windows checkout.

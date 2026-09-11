@@ -152,8 +152,8 @@ the copy took about 4 s.** The image pull is the larger cost on a cold base.
 
 ### ⛔ Five traps this host produced, each on 2026-09-11
 
-- ⛔ **A Windows checkout carries no executable bit, so 393 scripts arrive
-  unrunnable.** NTFS holds no POSIX mode and `core.fileMode` is false there.
+- ⛔ **A Windows checkout carries no executable bit, so every script arrives
+  unrunnable.** Measured on 2026-09-11: **396 of 396** had to be repaired. NTFS holds no POSIX mode and `core.fileMode` is false there.
   The first failure reads `./scripts/common/bootstrap-env.sh: Permission
   denied`, which names the script and not the transfer.
   ⭐ [`../scripts/common/restore-modes.sh`](../scripts/common/restore-modes.sh)

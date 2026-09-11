@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # dev.sh - get a fresh session to the point of writing code as fast as possible.
 #
-# ⭐ EVERY SESSION RUNS IN A NEW MACHINE AND PAYS THE SAME COLD COST TWICE OVER:
-# the tools the last session installed are gone, and `target/` is empty, so the
-# whole dependency graph, `ring` and its C included, is compiled again. Measured
-# on 2026-09-09 and recorded in `experiments/results/session-startup.txt`.
+# ⭐ A SESSION IN A CONTAINER PAYS THE SAME COLD COST TWICE OVER: the tools the
+# last session installed are gone, and `target/` is empty, so the whole
+# dependency graph, `ring` and its C included, is compiled again. Measured on
+# 2026-09-09 and recorded in `experiments/results/session-startup.txt`.
+#
+# ⛔ THIS IS THE LINUX LANE AND IT IS NOT THE ONLY ONE. `./scripts/session-start.sh`
+# reads the machine and picks the lane; on Windows the same check is
+# `sh scripts/windows/run-in-base.sh`. `docs/containers.md` holds all three.
 #
 # ⛔ THE POINT IS THAT NONE OF IT BLOCKS THE READING. `AGENTS.md` opens by
 # sending a session to `TODO/PROGRESS.md` and the routing table, which is minutes
@@ -125,9 +129,10 @@ dev.sh: the environment and the build are running in the background.
 ⭐ Do not wait for it. Read these now, in this order, which is what
    AGENTS.md's routing table says and needs no toolchain:
 
-     1. TODO/PROGRESS.md          the state, the work order, the open questions
-     2. AGENTS.md            the router, and the absolutes
-     3. the TODO/ entry your task names, in full
+     1. AGENTS.md            the router, and the absolutes
+     2. TODO/PROGRESS.md     the state, the work order, the open questions
+     3. TODO/RESUME.md       what the last session left in flight
+     4. the TODO/ entry your task names, in full
 
    By the time that reading is done this will have finished.
 EOF

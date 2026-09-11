@@ -46,7 +46,9 @@ the distribution `wsl-toolkit-podbox`, and `wsl.exe` is never called.
 
 Fixed a defect that made the project gate unusable on Windows:
 `scripts/check-todo.py` compared a host-separated relative path against
-`git ls-files` output, so all 203 links in the tree were reported as untracked.
+`git ls-files` output. The separators differ there, so, measured on
+2026-09-11, **203 of the 248 links the check then resolved** were reported as
+untracked and the gate could not be run on Windows at all.
 
 Added the rule set the operator settled for this home: Simplified Technical
 English for every word written anywhere, CodeGraph before `grep`, the

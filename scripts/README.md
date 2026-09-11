@@ -508,7 +508,7 @@ carries the measurement behind each.
 
 ⛔ **NTFS carries no POSIX mode bit**, so a checkout on Windows holds every file
 at 0644 and `core.fileMode` is false there. A copy of that checkout into Linux
-arrives with **393 scripts** the shell refuses, and the first failure names the
+arrives with every one of them unrunnable, and the first failure names the
 script rather than the transfer.
 
 ```sh
