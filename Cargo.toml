@@ -93,7 +93,7 @@ flate2 = { version = "1", default-features = false, features = ["rust_backend"] 
 # ⭐ `bloat-archive-zstd.txt` against `bloat-archive.txt` settles the entry's
 # open question: zstd costs one page over the gzip pair, so a named refusal for
 # a zstd layer saves nothing worth having.
-ruzstd = "0.7"
+ruzstd = "0.9"
 
 # T-0908, `experiments/results/bloat-digest.txt` and `bloat-json.txt`. The four
 # OCI types are structs here rather than `oci-spec`, which wanted three times
