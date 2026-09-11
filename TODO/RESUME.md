@@ -13,7 +13,8 @@ clean and the CI green.
 
 ## The resume point
 
-Task 1, item 1: write the six new operator rules into the files that own them.
+Task 3: verify the one orientation script end to end, then the session-end
+protocol from [RULES.md](RULES.md) section 3.
 
 ## In flight
 
@@ -21,21 +22,22 @@ Nothing is half-written. No source file is open.
 
 ## The state of the tree
 
-Clean at the start, at `b27b3d9`. The gate on `main` was green.
-Four pull requests change the corpus and must not be merged. Two pull requests
-break the build and need a code fix.
+The host gate is green. `./scripts/check-todo.py` is green.
+⚠ `cargo test --workspace` is NOT deterministic: 5 of 12 runs failed on
+2026-09-11 and [T-0215](image.md) carries the measurement.
 
 ## Settled this session
 
 The operator ruled on four questions. Each ruling is written into the entry
-that owns it.
+that owns it and is listed in [PROGRESS.md](PROGRESS.md).
 
-| question | the ruling |
-| --- | --- |
-| the corpus pull requests | close them, and fence `references/` off from every updater |
-| the ownership memo | it lives on the host, beside the container record |
-| the identity calls | honest failure by default, and a flag turns on the lie |
-| the host CA bundle | keep the current behaviour |
+## What this session left for the machine
+
+⛔ **`podman-machine-default` was stopped when this session found it and this
+session started it.** It must be stopped again at the end.
+[`../docs/containers.md`](../docs/containers.md) holds the rest.
+
+⭐ The distribution `wsl-toolkit-podbox` is meant to persist. Leave it.
 
 ## The paste
 

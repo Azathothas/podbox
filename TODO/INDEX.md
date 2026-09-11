@@ -54,6 +54,7 @@ the blocker named and what would clear it.
 | [deps](deps.md) | the whole tree | `TOOL.md` section 3.5 |
 | [packaging](packaging.md) | the artefact | `TOOL.md` section 3.4, section 5 M7 |
 | [milestones](milestones.md) | the gates | `TOOL.md` section 5 |
+| [podvm](podvm.md) | the machine tier | `https://github.com/talaria0101/vm-research`, its podvm-spec document |
 | [gate](gate.md) | `scripts/` | `docs/methodology/gate.md` |
 
 ## Entries
@@ -87,6 +88,7 @@ the blocker named and what would clear it.
 | [T-0212](image.md) | P0 | image | done | The platform is decided at run time, and the store holds more than one |
 | [T-0213](image.md) | P0 | image | done | A registry with no certificate, or one nothing trusts, and the refusal kept |
 | [T-0214](image.md) | P2 | image | done | A blob body cut off mid-stream is not retried, and the bounded retry is around the wrong thing |
+| [T-0215](image.md) | P0 | image | open | Four lock tests fail in two runs of five, and the gate has never said so |
 | [T-0301](extract.md) | P0 | extract | done | Extract in-process, at entry level, never through system `tar` |
 | [T-0302](extract.md) | P0 | extract | done | Ownership-neutral extraction plus the sidecar |
 | [T-0303](extract.md) | P0 | extract | done | Whiteouts are matched on the basename, never with a path glob |
@@ -106,6 +108,7 @@ the blocker named and what would clear it.
 | [T-0410](complete.md) | P0 | complete | done | Supply `/etc/nsswitch.conf`, or the supplied `/etc/passwd` is a no-op |
 | [T-0411](complete.md) | P1 | complete | done | A payload whose package sources are `http://`, on a runtime where tcp/80 hangs |
 | [T-0412](complete.md) | P1 | complete | done | A fixup that has to run INSIDE the rootfs, and podbox runs it from outside |
+| [T-0413](complete.md) | P1 | complete | open | No `/proc` inside a chroot, and the shell feature that quietly stops working |
 | [T-0501](enter.md) | P0 | enter | done | Open every descriptor before the root changes |
 | [T-0502](enter.md) | P0 | enter | done | Resolve the program inside the new root, in the process that changed it |
 | [T-0503](enter.md) | P1 | enter | partial | Probe `/dev/ptmx`, and refuse `-t` by name where it is absent |
@@ -117,7 +120,7 @@ the blocker named and what would clear it.
 | [T-0603](supervise.md) | P1 | supervise | done | `PR_SET_PDEATHSIG` fires on the creating thread's exit |
 | [T-0604](supervise.md) | P1 | supervise | done | Running state is launcher state |
 | [T-0605](supervise.md) | P2 | supervise | done | Capture logs at spawn, from the descriptors opened in step 2 |
-| [T-0606](supervise.md) | P0 | supervise | blocked | The notification tier: probe three legs, refuse the tier, never fall back per call |
+| [T-0606](supervise.md) | P0 | supervise | open | The notification tier: probe three legs, refuse the tier, never fall back per call |
 | [T-0607](supervise.md) | P0 | supervise | done | The lifecycle, twenty times, twenty passes |
 | [T-0608](supervise.md) | P1 | supervise | done | A detached container that reads `exited` with no launcher, seen twice and not reproduced |
 | [T-0701](interpose.md) | P0 | interpose | done | The cdylib build constraints |
@@ -139,6 +142,7 @@ the blocker named and what would clear it.
 | [T-0806](cli.md) | P0 | cli | done | Never prompt, never wait unbounded, and check space before every large write |
 | [T-0807](cli.md) | P2 | cli | done | `podbox images --format` refuses a template no verb can answer, before it looks at the store |
 | [T-0808](cli.md) | P1 | cli | open | Drive every row of the parity table through the shipped binary |
+| [T-0809](cli.md) | P1 | cli | open | The spawn that fails with the wrong reason, and the one field that fixes it |
 | [T-0901](deps.md) | P1 | deps | done | Sweep: syscalls |
 | [T-0902](deps.md) | P2 | deps | done | Sweep: seccomp BPF |
 | [T-0903](deps.md) | P3 | deps | done | Sweep: Landlock |
@@ -147,7 +151,7 @@ the blocker named and what would clear it.
 | [T-0906](deps.md) | P1 | deps | done | Sweep: HTTP |
 | [T-0907](deps.md) | P0 | deps | done | Sweep: tar, gzip, zstd |
 | [T-0908](deps.md) | P1 | deps | done | Sweep: digests, JSON, argument parsing, ELF |
-| [T-0909](deps.md) | P1 | deps | blocked | Vendor the memfd and userland-exec rungs, and fix the fork's regression here |
+| [T-0909](deps.md) | P1 | deps | open | Vendor the memfd and userland-exec rungs, and fix the fork's regression here |
 | [T-0910](deps.md) | P0 | deps | done | The `cargo bloat` baseline, committed, and checked at the gate |
 | [T-0911](deps.md) | P0 | deps | done | The syscall table and the kernel structs come from a crate, per architecture |
 | [T-0912](deps.md) | P2 | deps | done | The powerpc gate is the crate's and it is stale, so podbox can clear it |
@@ -167,6 +171,8 @@ the blocker named and what would clear it.
 | [T-1108](milestones.md) | P2 | milestones | open | M7 packaging |
 | [T-1109](milestones.md) | P1 | milestones | partial | The negative tests, which are tests |
 | [T-1110](milestones.md) | P0 | milestones | open | M6's acceptance: a payload the interposer is the only reason works |
+| [T-1111](milestones.md) | P1 | milestones | open | The nix acceptance: a real payload the chroot tier is exactly the answer for |
+| [T-1112](milestones.md) | P3 | milestones | open | A disposable guest that is not Linux |
 | [T-1201](gate.md) | P0 | gate | done | The gate reaches every file this project wrote |
 | [T-1202](gate.md) | P0 | gate | done | Every check is planted against, and a plant that stops reaching its subject says so |
 | [T-1203](gate.md) | P1 | gate | done | A measurement taken on one host is a property of that host |
@@ -174,10 +180,16 @@ the blocker named and what would clear it.
 | [T-1205](gate.md) | P1 | gate | done | The gate holds experiment numbers unique, because four Proves already collide |
 | [T-1206](gate.md) | P0 | gate | done | CI installs the toolchain the build config names, and nine commits proved nobody was holding it |
 | [T-1207](gate.md) | P1 | gate | open | The one crate that runs inside other people's processes is the one the gate does not check |
+| [T-1301](podvm.md) | P0 | podvm | open | The machine tier is probed leg by leg, and a present file is not a working one |
+| [T-1302](podvm.md) | P1 | podvm | open | One binary, one parity table, and a VM-only flag that cannot collide |
+| [T-1303](podvm.md) | P1 | podvm | open | The image is a rootfs directory, and an initramfs with no console is a silent machine |
+| [T-1304](podvm.md) | P1 | podvm | open | The exec protocol is a serial pair with a nonce, and every wait is bounded |
+| [T-1305](podvm.md) | P2 | podvm | open | The fleet and the fork, and the file-size ceiling that bounds both |
+| [T-1306](podvm.md) | P1 | podvm | open | The non-goals are refusals the code makes, not notes in a document |
 
 ## Counts
 
-114 items: 22 open, 3 partial, 2 blocked, 87 done.
+125 items: 35 open, 3 partial, 0 blocked, 87 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -185,11 +197,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 4 | 1 | 1 | 44 | 50 |
-| P1 | 9 | 2 | 1 | 32 | 44 |
-| P2 | 6 | 0 | 0 | 10 | 16 |
-| P3 | 3 | 0 | 0 | 1 | 4 |
-| **All** | **22** | **3** | **2** | **87** | **114** |
+| P0 | 7 | 1 | 0 | 44 | 52 |
+| P1 | 17 | 2 | 0 | 32 | 51 |
+| P2 | 7 | 0 | 0 | 10 | 17 |
+| P3 | 4 | 0 | 0 | 1 | 5 |
+| **All** | **35** | **3** | **0** | **87** | **125** |
 
 ## How the current ordering is derived
 

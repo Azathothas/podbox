@@ -781,8 +781,23 @@ Approach:    Three questions, and the first is the operator's to rule:
                 it stops being harmless if podbox ever reads the memo to decide
                 something on the host, which nothing does today and which this
                 entry should forbid in writing.
-Decision:    Not taken. ⚠ Question 1 is a trade the operator should rule rather
-             than inherit, and it is question 2 of PROGRESS.md's open list.
+Decision:    **The memo lives on the host, beside the container record. Ruled by
+             the operator on 2026-09-11.** The payload cannot read it, forge it,
+             truncate it or delete it, so the forgery question closes instead of
+             being argued about each time somebody reads the entry.
+             ⛔ **The cost is real and it is in the spawn path, not at `chown`
+             time.** `podbox exec` re-enters the chroot, so every entry must be
+             handed a descriptor to the memo, and an entry that is not handed
+             one must REFUSE rather than start with no memo: a second process
+             that silently has no ownership record answers a `stat` with the
+             real uid and contradicts the first process.
+             ⛔ **Nothing on the host may read the memo to decide anything.** It
+             is the payload's own view of ownership and it is not evidence. That
+             was true while the record was forgeable and it stays true now, so
+             the rule does not depend on where the file sits.
+             ⚠ Question 2 is unchanged and is not the operator's: a lookup that
+             cannot answer says so, and the caller falls back to the real
+             `stat`, marked degraded. ⛔ Never a stale record.
 Prove:       `experiments/105-interpose-ownership.sh` gains a check G: write
              more records than the ceiling admits, then read back a pair
              recorded before it, and assert the answer is either correct or a
@@ -838,7 +853,26 @@ Approach:    Measure first, on the matrix `experiments/125-across-distributions.
              3. **Neither by default**, with a flag. ⚠ A flag is not a ruling:
                 it is two rulings and a way to pick, and the default is still
                 the decision.
-Decision:    Not taken. It is question 3 of PROGRESS.md's open list.
+Decision:    **Answer 3, and the default is the honest refusal. Ruled by the
+             operator on 2026-09-11.** The call fails as the runtime fails it,
+             the diagnostic names the mechanism and the errno, and a flag turns
+             on the fakeroot behaviour for a payload that needs it.
+             ⚠ **The entry's own warning about answer 3 is accepted rather than
+             dismissed: a flag is two rulings and a way to pick.** Both rulings
+             are therefore written here. The default is honest because
+             [cli.md](cli.md) T-0804 forbids output that implies a property the
+             runtime does not provide. The flag exists because a payload that
+             treats a failed drop as fatal cannot otherwise run at all, and
+             refusing every such payload is a third behaviour nobody chose.
+             ⛔ **The flag marks the container degraded and `--strict` refuses
+             it**, which is the same shape T-0407 already carries for the host
+             CA bundle. ⛔ A run under the flag says so in the banner, because
+             this entry exists to stop podbox and its own output disagreeing
+             about who the payload is.
+             ⚠ The measurement in `Approach` is still owed and still decides the
+             SHAPE of the honest refusal: which errno each call returns on a
+             real target, and what the common callers do with it. It no longer
+             decides the default.
 Prove:       `./experiments/106-interpose-identity.sh`, which runs a payload
              that calls `setuid(1000)` and then `getuid()` under the object on
              both libcs, asserts whichever of the three answers the ruling

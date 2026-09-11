@@ -578,3 +578,47 @@ Decision:    Not taken.
 Prove:       `./experiments/325-parity-drive.sh`, which exits 0 only when every
              row of `podbox system info --format '{{json .Parity}}'` was driven
              or reported as unreachable here, and prints the count of each.
+
+---
+
+### T-0809 The spawn that fails with the wrong reason, and the one field that fixes it
+
+Source:      `https://github.com/talaria0101/sandbox-insights`, its walls document, wall 2; T-0805 above
+Category:    cli
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     A payload inside podbox spawns a child, the spawn fails, and the
+             message says the operation is not permitted. ⛔ **That one string
+             covers at least two different refused calls**, and reading it as the
+             wrong one has cost whole architectures.
+Premise:     ⭐ **Measured, with the matrix committed, by somebody else.** Go's
+             `os/exec` issues `setgroups` in the child whenever a credential is
+             set, and one guard meant to suppress it does not take when its
+             enabling field is set with no mappings beside it. On a runtime that
+             denies `setgroups`, the spawn fails.
+             ⚠ **The ambiguity is what makes it expensive.** A spawn that asks
+             for namespace clone flags AND a credential fails with the identical
+             string whichever call was refused: the clone runs first, the
+             `setgroups` runs in the child before the `execve`, and both surface
+             the same way. Reading it as "namespaces are denied" is the recorded
+             mistake.
+             ⭐ The remedy is one field and it changes nothing else. Dropping the
+             credential entirely is not required and has other effects.
+Approach:    podbox does not spawn this way: it is Rust and it declares its own
+             syscalls. ⛔ **The payload does, and podbox is what the payload's
+             operator reads.** So this is a diagnostic row and not a code change:
+             T-0805's four-part message gains an entry mapping the observed
+             string plus a denied `setgroups` leg to the mechanism and the
+             one-field remedy.
+             ⚠ The discriminator is already probed: [probe.md](probe.md)
+             separates a refused clone from a refused `setgroups`, so podbox can
+             say which wall the payload met rather than repeating the payload's
+             own ambiguous string.
+Decision:    Diagnose, never patch. ⛔ podbox does not rewrite a payload's
+             process attributes: that is a behaviour change inside somebody
+             else's program, which is a larger thing than
+             [complete.md](complete.md) T-0407's trust change, and it is not this
+             tool's to make. It names the wall and the remedy.
+Prove:       `./experiments/151-spawn-ambiguity.sh` asserts podbox distinguishes a refused clone from a refused `setgroups` behind one identical payload message, and that the diagnostic names the field

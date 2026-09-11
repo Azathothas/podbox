@@ -279,7 +279,7 @@ Source:      `TOOL.md` section 4.1, section 6.6; `references/multikernel__sandlo
 Category:    supervise
 Priority:    P0
 Effort:      L
-Status:      blocked
+Status:      open
 
 Problem:     `supervise` is the only rung whose failure is silent by default. Its
              listener keeps working after its argument-reading channel dies, and
@@ -337,11 +337,19 @@ Decision:    Refuse the whole tier when any leg is missing, rather than offering
              and only the mediation is gone. There is no output that
              distinguishes it from the working case, which is why the refusal has
              to happen before the tier is entered.
-Status note: **blocked** on `supervise` being reachable at all. On the target
-             both read channels are denied, so the tier is refused there and the
-             probe is what has to ship. The entry stays open because the probe is
-             M0 work and the refusal has to be a measured verdict rather than an
-             assumption about a machine.
+Status note: **open, and it was wrongly marked blocked.** Reconciled on
+             2026-09-11. ⛔ `docs/methodology/sessions.md` defines blocked as
+             "somebody outside this session must act", and nobody does. The
+             deliverable here is podbox's OWN three-leg probe and the tier
+             refusal it drives, and both are writable today against a target
+             where every leg is denied.
+             ⚠ What the corpus settles is the OUTCOME on that target, not
+             whether the work can start: both read channels are denied there and
+             `ptrace` is filtered, so the tier is refused. ⛔ That refusal still
+             has to be a measured verdict from the probe rather than a constant
+             in the code, because the next runtime may permit a leg this one
+             does not. Treating "the answer is known" as "the work is blocked"
+             is what kept this entry closed to work for two sessions.
 Prove:       `podbox probe --json | jq -e '.tiers.supervise.legs | length == 3 and (map(select(.ok == false)) | length == 0 or (.[0].refused == true))'`
 
 ---

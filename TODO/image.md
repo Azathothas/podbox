@@ -1116,3 +1116,81 @@ assert the loop against a fault this project invented rather than the one it
 met; and then for `no_pull 0`, which the sweep can reach without the retry ever
 running. What it names now is the pair that is actually asserted: the acceptance
 pulling every row, and the unit test for the restart.
+
+---
+
+### T-0215 Four lock tests fail in two runs of five, and the gate has never said so
+
+Source:      `crates/podbox-image/src/store.rs`; `crates/podbox-probe/src/sys.rs`
+Category:    image
+Priority:    P0
+Effort:      M
+Status:      open
+
+Problem:     ⛔ **`cargo test --workspace` is not deterministic, and the tests
+             that are not deterministic are the lock tests.** Measured on
+             2026-09-11 inside `docker.io/library/rust:1.98.1-bookworm`:
+             **5 of 12 runs failed**, and four different tests were involved:
+
+             ```text
+             run  2  a_fork_while_the_lock_is_held_does_not_extend_it
+             run  4  a_fork_while_the_lock_is_held_does_not_extend_it
+             run  5  an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+             run  5  two_holders_of_one_image_both_have_to_go_before_it_is_free
+             run  7  a_spawned_process_does_not_inherit_the_lock
+             run  9  a_spawned_process_does_not_inherit_the_lock
+             run  9  two_holders_of_one_image_both_have_to_go_before_it_is_free
+             ```
+
+             ⛔ **What it costs if it is a product defect and not a test one**:
+             `in_use` is what `prune` asks before it deletes an image's blobs,
+             and the launcher's held lock is the only thing that answers. A
+             wrong `false` deletes the blobs a running container is about to
+             execute out of, which is the defect T-0211 and I4 were paid for.
+Premise:     ⭐ **The shape is measured and it points at concurrency, not at any
+             one test.** Same host, same image, same binary:
+
+             | how it was run | failures |
+             | --- | --- |
+             | the named test alone, single thread, 30 runs | 0 |
+             | the whole `podbox-image` lib suite, default threads, 15 runs | 0 |
+             | the whole lib suite, single thread, 15 runs | 0 |
+             | `cargo test --workspace`, 12 runs | ⛔ **5** |
+
+             ⚠ **Only the workspace run reproduces it**, which is the only shape
+             that runs several crates' test binaries at once. So the trigger is
+             load or cross-binary timing, and not an ordering inside one suite.
+             ⚠ **Two candidate mechanisms, and NEITHER is proved.** Writing
+             either one down as the cause would be the fabrication this
+             repository's third absolute forbids.
+             1. `crates/podbox-probe/src/sys.rs` holds `FORK_CLOSE`, a
+                PROCESS-GLOBAL array of sixteen slots naming fds to shed in a
+                forked child. `cargo test` runs tests as threads in one process,
+                so every test in a binary shares that one table.
+                `stop_closing_in_children` clears EVERY slot holding a given fd
+                NUMBER, and an fd number is reused the moment it is closed.
+             2. `Lock` manages a raw fd by hand and its `Drop` ignores the
+                result of `close`. A descriptor closed twice anywhere in the
+                process makes a later `close` release somebody else's file, and
+                an `flock` is released by closing the descriptor that holds it.
+Approach:    ⛔ **Establish the blast radius before fixing anything.** The first
+             question is not how to fix it; it is whether a single-threaded
+             podbox process can reach it at all. A race that only a test harness
+             with many threads in one process can produce is a test defect and is
+             fixed in the test; one that a launcher and a `prune` can produce is
+             a P0 in the product, and the two fixes are different.
+             1. Reproduce under a loop, capture the failing assertion and the fd
+                numbers involved, and record the run.
+             2. Decide by MEASUREMENT which of the two mechanisms above is live,
+                by instrumenting the one that is cheapest to observe: the slot
+                table already has an atomic per slot.
+             3. ⚠ Whatever the cause, the gate is the second finding: CI ran
+                `cargo test --workspace` and reported green, so a check that
+                fails two runs in five has been reporting success. A single run
+                is not evidence for a racy suite.
+Decision:    Not taken, and it must not be taken before step 2. ⚠ The tempting
+             fix is to serialise the lock tests, which makes the suite green and
+             answers nothing. ⛔ If mechanism 1 is live, a global table keyed on a
+             REUSABLE fd number is wrong in production too, and the green suite
+             would hide it.
+Prove:       `./experiments/153-store-lock-race.sh` runs the workspace suite a recorded number of times, reports the failure count with its conditions, and exits 1 while any run fails. ⛔ It reports the count even when the count is zero, because a racy check that happened to pass is not a check that passed

@@ -457,7 +457,7 @@ Source:      `TOOL.md` section 3.5; [reference-map.md](reference-map.md)
 Category:    deps
 Priority:    P1
 Effort:      M
-Status:      blocked
+Status:      open
 
 Problem:     These sit on a seam podbox will move, and one of them is a fork
              maintained because the original is not. A registry dependency on an
@@ -509,8 +509,20 @@ Decision:    Vendor `userland-execve` and write podbox's own three-syscall memfd
              smaller re-implemented than carried, and carrying it would import a
              regression this tree would then have to patch out
              (the `MFD_CLOEXEC` stub above) for no gain.
-Status note: **blocked** on the `memfd-exec` licence, for the vendoring half
-             only. The userland-exec half is not blocked and can proceed.
+Status note: **open.** The `blocked` label came off on 2026-09-11, and it never
+             fitted. ⛔ The `Decision` above already rules that neither
+             `memfd-exec` tree is vendored, whatever its licence resolves to, so
+             the licence is a fact this entry no longer needs. An entry blocked
+             on evidence for a path it has decided not to take is an entry that
+             blocks itself.
+             ⚠ What remains is all doable now: vendor
+             `io12/userland-execve-rust` under
+             [`../docs/methodology/vendoring.md`](../docs/methodology/vendoring.md),
+             and write podbox's own `memfd_create` plus `fexecve` path with the
+             `is_exe` probe and `MFD_CLOEXEC` taken as mechanisms rather than as
+             code. ⚠ Carry the 10 MB synthetic-stack figure from the tracker:
+             M5 builds a C toolchain in ten distributions and `cc1plus`
+             overflowed 1 MB.
              ⛔ Nothing is opened on anybody's repository to unblock it. What
              would clear it is a licence file appearing in either tree at a later
              commit, checked at the next reconciliation.

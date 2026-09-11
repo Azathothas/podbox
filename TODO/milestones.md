@@ -638,3 +638,93 @@ Prove:       `./experiments/245-interpose-sweep.sh`, printing `rows`, `ran`,
              `virtualized`, `declined` and `host_not_runtime`, and clause 1 of
              `./experiments/250-negative-tests.sh` no longer printing SKIPPED.
 
+
+---
+
+### T-1111 The nix acceptance: a real payload the chroot tier is exactly the answer for
+
+Source:      `https://github.com/talaria0101/nix-experiment`, its REPORT document
+Category:    milestones
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     M5 drives package managers across ten distributions and M6 drives
+             the interposer. ⛔ **Neither drives a payload that a consumer
+             actually wanted and could not otherwise have**, which is the only
+             evidence that says podbox is worth running rather than correct.
+Premise:     ⭐ **Somebody already did this by hand, on a runtime of this class,
+             and the answer they arrived at is what podbox is.** Every route with
+             a namespace, a mount or a `ptrace` in it failed. The working
+             solution was a plain `chroot` over a hand-assembled rootfs with
+             regular-file device stand-ins, a host CA bundle and
+             ownership-neutral extraction.
+             ⭐ **podbox already ships every one of those pieces.**
+             `crates/podbox-complete/src/devices.rs` fills `/dev/urandom` with a
+             megabyte read once from the host's `getrandom`, which is the same
+             fix that report reached by failure after an empty file made a
+             downloader throw. [complete.md](complete.md) T-0407 is the CA
+             bundle, [extract.md](extract.md) is the ownership sidecar, and
+             [enter.md](enter.md) is the root change.
+             ⚠ **Two pieces are NOT in place**, and they are what this entry
+             measures: no procfs inside the chroot
+             ([complete.md](complete.md) T-0413), and no pty at all where
+             `/dev/ptmx` is absent ([enter.md](enter.md) T-0503). ⛔ The second
+             is decisive for this payload: a pipe-era build tool works and a
+             pty-era one cannot, on any runtime with no `/dev/ptmx`.
+Approach:    Drive the whole pipeline through the shipped binary and record what
+             podbox needed that the hand-built rootfs needed: fetch over TLS,
+             evaluate, build locally, and run the artefact.
+             ⛔ **Unpatched, or a named decline.** The value of this acceptance is
+             that it either runs with no hand patching or it says exactly which
+             piece is missing. A row that passes because the operator
+             pre-assembled the rootfs measures nothing.
+             ⚠ The negative row matters as much as the positive one: a build that
+             asks for a namespace must fail with podbox naming the wall, which is
+             the message [cli.md](cli.md) T-0809 makes unambiguous.
+Decision:    Not taken. ⚠ The version pinning is the question. The report pins a
+             build tool and a package set to the last pair whose whole pipeline
+             works with no pty. ⛔ Rule whether this acceptance pins that same
+             pair, which measures podbox against a known-good target, or tracks
+             the current pair, which measures the wall instead and fails by
+             design until T-0503 has an answer.
+Prove:       `./experiments/152-nix-acceptance.sh` exits 0 with the built artefact's own output, or exits 1 naming the single missing piece. ⛔ It may not exit 0 against a pre-assembled rootfs
+
+---
+
+### T-1112 A disposable guest that is not Linux
+
+Source:      `https://github.com/carlbomsdata/winquick`; [podvm.md](podvm.md)
+Category:    milestones
+Priority:    P3
+Effort:      L
+Status:      open
+
+Problem:     podbox turns an OCI reference into a process. Every rung it has
+             assumes the payload is Linux, because every rung except the machine
+             tier shares the host kernel. ⭐ **The machine tier does not**, and
+             that is the one place where a guest of another operating system is a
+             possibility rather than a category error.
+Premise:     ⚠ **Recorded as a direction, and nothing here is measured.** An
+             existing tool runs disposable Windows guests under an emulator on
+             one host architecture, keeps a base image and its caches between
+             runs, discards the guest's own writes, and returns the guest
+             command's output streams and exit code unchanged. That contract is
+             the one [podvm.md](podvm.md) T-1304 specifies for a Linux guest.
+             ⚠ Its own page says the host support is one platform and that the
+             rest is a plan. ⛔ So what is read here is the SHAPE and not any
+             number.
+Approach:    Do not start this before [podvm.md](podvm.md) T-1301 through T-1304
+             are closed. The exec protocol, the image model and the probe are the
+             same work, and doing them twice is how a second parity table
+             appears.
+             ⚠ What is genuinely new is the platform field. podbox already treats
+             the platform as runtime data rather than a compile-time constant,
+             which is the invariant in
+             [`../docs/architecture.md`](../docs/architecture.md) that makes this
+             expressible at all.
+Decision:    Not taken, and deliberately so. ⛔ It is recorded here so that it is
+             not rediscovered as a new idea, and it is P3 so that it cannot
+             displace M6 or M7. [RULES.md](RULES.md) section 5 is why it is open
+             rather than absent: nothing closes as out of scope.
+Prove:       `podbox run --platform windows/amd64 IMAGE cmd /c ver` returns the guest's own version string and its exit code, or podbox refuses by name with the leg that is missing

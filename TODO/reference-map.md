@@ -192,6 +192,41 @@ invalidates every citation already written.
 | `references/mhx__dwarfs` | `tree/test` | 8.4 MB of test corpora |
 | `references/apptainer__apptainer` | `tree/e2e` | 5.4 MB of end-to-end tests |
 
+## ⭐ Read at the URL, and not in the corpus
+
+Four repositories were studied on 2026-09-11 and none of them is vendored here.
+They are recorded because [podvm.md](podvm.md), [milestones.md](milestones.md)
+T-1111 and T-1112, [complete.md](complete.md) T-0413 and [cli.md](cli.md) T-0809
+all derive from them, and an entry whose source nobody can find is an entry
+nobody can check.
+
+⛔ **None of them is cited by `path:line`, and that is deliberate.** A citation
+this gate can resolve has to point inside the tree, and these are not in it.
+Each entry names the repository and the document, and a reader opens the URL.
+
+| repository | licence, read on 2026-09-11 | what may be done with it |
+| --- | --- | --- |
+| `https://github.com/talaria0101/sandbox-insights` | 0BSD, stated by the repository's own licence field | ⭐ vendorable. Read only so far; nothing here needed a copy |
+| `https://github.com/talaria0101/nix-experiment` | 0BSD, the same | ⭐ vendorable. The same |
+| `https://github.com/talaria0101/vm-research` | ⚠ **unresolved.** The repository has no licence file and its licence field is null | ⛔ **do not vendor.** Read at the URL only |
+| `https://github.com/Azathothas/sandbox-insights` | ⚠ **unresolved.** Its licence field reports `NOASSERTION` | ⛔ **do not vendor.** Read at the URL only |
+| `https://github.com/carlbomsdata/winquick` | Apache-2.0 | vendorable with its notice. ⚠ Nothing here needs a copy: [milestones.md](milestones.md) T-1112 reads its SHAPE and takes no code |
+
+⚠ **Two of the five carry no licence, so under default copyright nothing may be
+copied from them.** That is the same determination this file already makes for
+the two `memfd-exec` trees, and it is made the same way: the repository's own
+statement, read at the source, before anything is used.
+
+⭐ **What is taken from all five is a MECHANISM, never a line of text.** A
+mechanism is a fact about a kernel or a tool, and a fact is not anybody's to
+license. Every entry that derives from one states it in this project's own
+words, with the measurement it rests on named as somebody else's.
+
+⛔ **So every number read from them is somebody else's number, taken on somebody
+else's host.** [`../docs/methodology/experiments.md`](../docs/methodology/experiments.md)
+is what turns one into a measurement here: reproduce the mechanism, and expect
+the number to differ.
+
 ## Gaps
 
 ⛔ **A silently skipped source is the failure the procedure exists to prevent.**
