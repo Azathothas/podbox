@@ -1,0 +1,24 @@
+== conditions
+date              2026-09-09T18:52:21Z
+host kernel       6.18.44-fc-v24
+podbox            podbox 0.1.0
+image             ghcr.io/pkgforge-dev/archlinux:latest
+iterations asked  20
+
+== the loop: create, start, ps, exec, stop, rm
+  ⛔ no sleep anywhere; every wait is on a condition with a bound
+  consecutive passes: 20 of 20
+
+== T-0604: a launcher that is killed leaves `dead`, not a made-up code
+  run -d rc=0, a launcher pid was recorded: yes
+  after killing the launcher: [deadprobe dead]
+  exit code reported:         [-]   a time was noticed: yes
+  podbox wait on it:          rc=125 (want non-zero)
+
+== T-0603: the spawn path never grew a thread
+  the launcher's threads: 1 (want 1)
+
+== T-0605: the log was captured, from descriptors opened before the chroot
+  podbox logs logprobe: [out err ]
+
+  containers left behind: 0 (want 0)

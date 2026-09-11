@@ -1,0 +1,42 @@
+# Dependency updates for podbox.
+#
+# ⛔ THIS FILE EXISTS BECAUSE ITS ABSENCE WAS A REAL DEFECT. The workflows here
+# pin every action to a commit, which is the right practice and also turns an
+# unattended pin into a fossil when an action changes its runtime. Pinning
+# without an updater is not hardening, it is deferral.
+#
+# ⭐ Dependabot rewrites each pinned SHA and version comment together, so the
+# two cannot drift apart.
+
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      # ⚠ Weekly, not daily. A daily cadence on a repository this size produces
+      # more pull requests than anyone reads, and unread updates are worse than
+      # none: they train you to merge without looking.
+      interval: weekly
+    groups:
+      # ⛔ Ungrouped, one action bump becomes one pull request each, and each
+      # costs a full CI run.
+      actions:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 3
+    commit-message:
+      # ⛔ No tool attribution anywhere in this repository's history.
+      # docs/conventions/git.md.
+      prefix: ci
+    labels:
+      - dependencies

@@ -1,0 +1,402 @@
+//! `podbox system info`, and `podbox info` as docker spells it.
+//!
+//! [`TODO/cli.md`](../../../TODO/cli.md) T-0801.
+//!
+//! ⭐ **This verb exists so the parity table is reachable from a program.** An
+//! agent that knows docker needs to be able to ask what this podbox will and
+//! will not do BEFORE it runs anything, and the answer has to be data:
+//!
+//! ```sh
+//! podbox system info --format '{{json .Parity}}' | jq -r '.[] | select(.status=="None") | .verb'
+//! ```
+//!
+//! ⛔ **podbox has no daemon**, so docker's server half of `info` is not
+//! withheld and not faked: what stands in its place is the rung this machine
+//! permits, measured, and what that rung does not provide.
+
+use crate::{format, parity};
+use podbox_image::error::{EXIT_CLI_ERROR, EXIT_FLAG_ERROR};
+
+pub const SYSTEM_USAGE: &str = "\
+usage: podbox system info [--format T]
+       podbox system install-names [--dir D] [--force]
+       podbox system abi <object> <libc>
+       podbox info [--format T]
+
+  abi          ⭐ may <object> be preloaded into a payload served by <libc>?
+               Answered by READING both, never by loading one:
+               DT_NEEDED against the libc's own SONAME, then every imported
+               symbol and every imported symbol VERSION, from .dynsym and
+               never .symtab (TODO/interpose.md T-0709).
+               Exit 0 it may, 1 it may not and the reason is on stderr, 2 a
+               file could not be read.
+
+  Fields: .Parity .ParityRows .ExitCodes .Version .Rung .EnteredRung
+          .StrictOk .Store .Banner .Platform .Kernel .Verbs .VerbsNative
+          .VerbsDegraded .VerbsStub .VerbsNone
+
+  --format T   {{.Field}} placeholders, plus `{{json .Field}}`. .Parity is
+               already a JSON document, so both spellings print it.
+
+  ⛔ podbox has no daemon, so there is no client/server split to report. The
+    rung this machine permits stands where docker prints a server version,
+    and it is measured rather than assumed.
+
+  ⛔ .Rung and .EnteredRung are TWO ANSWERS and a caller needs both. .Rung is
+    what this machine would permit; .EnteredRung is the sequence `podbox run`
+    actually performs, which is a chroot on every machine. Reporting the first
+    as if it were the second is the defect TODO/cli.md T-0804 was opened for.
+
+  ⚠ .ExitCodes is docker's exit-code contract as data: one object per case,
+    with `case`, `code` and `what`. Measured against docker rather than read,
+    by experiments/330-exit-codes.sh (TODO/cli.md T-0802).
+
+  ⚠ .Parity is the verb and flag parity table (TOOL.md section 6.8) as data:
+    one object per row, with `verb`, `flag`, `status` and `note`. `status` is
+    one of Native, Degraded, Stub, None and there is no fifth.
+";
+
+/// Fields whose value is already a JSON document, so `{{json .X}}` prints it
+/// rather than quoting it. ⚠ A subset of [`FIELDS`], never a second list.
+const DOCUMENTS: &[&str] = &["Parity", "ExitCodes"];
+
+pub const FIELDS: &[&str] = &[
+    "Parity",
+    "ParityRows",
+    // ⭐ T-0802. docker's exit codes as data, for the same reason the parity
+    // table is data: a caller decides from it, and a measurement asserts
+    // against it rather than against a number typed into a shell script.
+    "ExitCodes",
+    "Version",
+    "Rung",
+    // ⭐ T-0804 rule 4, as DATA. `podbox_enter::ENTERED_RUNG` is the one
+    // constant the banner is built from, and a script that had only `.Rung` to
+    // read could print "the rung podbox uses" and name a rung podbox does not
+    // enter with -- which `experiments/240-distro-sweep.sh` did.
+    "EnteredRung",
+    "StrictOk",
+    "Store",
+    "Banner",
+    "Platform",
+    "Kernel",
+    "Verbs",
+    "VerbsNative",
+    "VerbsDegraded",
+    "VerbsStub",
+    "VerbsNone",
+];
+
+/// Whether this machine's `<store>/config` suppresses the mode banner.
+///
+/// ⚠ Reads `printed` where no store can be opened rather than refusing: the
+/// banner's default is on, and a machine with no store has not suppressed it.
+fn banner_state() -> String {
+    match podbox_image::open_store() {
+        Ok(s) if crate::complete::banner_quiet(&s) => format!(
+            "suppressed by {}/{} ({} = quiet)",
+            s.root().display(),
+            crate::complete::CONFIG_FILE,
+            crate::complete::BANNER_KEY
+        ),
+        _ => "printed on every run and exec".to_string(),
+    }
+}
+
+/// `podbox system <sub>`.
+pub fn system(args: &[String]) -> i32 {
+    let rest = if args.len() > 1 { &args[1..] } else { &[] };
+    match args.first().map(String::as_str) {
+        Some("info") => info(rest),
+        Some("install-names") => crate::names::install(rest),
+        Some("abi") => abi(rest),
+        Some("-h") | Some("--help") | None => {
+            print!("{SYSTEM_USAGE}");
+            0
+        }
+        Some(other) => {
+            // ⛔ The table answers, not this match arm. `podbox system df` gets
+            // the reason `system` is Degraded rather than a bare "no".
+            eprintln!(
+                "podbox system: {other:?} is not implemented. `podbox system info` is, \
+                 and `podbox system info --format '{{{{json .Parity}}}}'` lists every \
+                 verb podbox has and every one it does not"
+            );
+            podbox_image::error::EXIT_RUNTIME_ERROR
+        }
+    }
+}
+
+/// `podbox system abi <object> <libc>`.
+///
+/// ⭐ **[`TODO/interpose.md`](../../../TODO/interpose.md) T-0709's answer, made
+/// drivable.** The selection is a reader, so the way to assert it is to point
+/// it at two real files and compare its prediction with what the loader then
+/// does -- which is what `experiments/80-interposer-abi.sh` does, against the
+/// same objects it builds for its own checks.
+///
+/// ⛔ Three exit codes and the third is not a failure: 0 admitted, 1 refused
+/// with the reason on stderr, 2 a file podbox could not read.
+pub fn abi(args: &[String]) -> i32 {
+    let mut paths: Vec<&str> = Vec::new();
+    for a in args {
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{SYSTEM_USAGE}");
+                return 0;
+            }
+            other if other.starts_with('-') => {
+                eprintln!("podbox system abi: unknown option {other:?}");
+                return EXIT_FLAG_ERROR;
+            }
+            other => paths.push(other),
+        }
+    }
+    if paths.len() != 2 {
+        eprintln!("podbox system abi: two paths are required: <object> <libc>");
+        eprint!("{SYSTEM_USAGE}");
+        return EXIT_CLI_ERROR;
+    }
+    let read = |p: &str| podbox_enter::abi::Elf::read(p);
+    let (object, libc) = match (read(paths[0]), read(paths[1])) {
+        (Ok(o), Ok(l)) => (o, l),
+        (Err(e), _) | (_, Err(e)) => {
+            eprintln!("podbox system abi: {e}");
+            // ⛔ 2, and it means "could not be measured". A file podbox cannot
+            // read is not a file podbox has refused.
+            return 2;
+        }
+    };
+    match podbox_enter::abi::admits(&object, &libc) {
+        podbox_enter::abi::Verdict::Admitted => {
+            println!(
+                "admitted: {} may be preloaded into a payload served by {} ({}, {} \
+                 imports checked against {} definitions)",
+                object.path,
+                libc.path,
+                libc.flavour().word(),
+                object.imported.len(),
+                libc.defined.len()
+            );
+            0
+        }
+        podbox_enter::abi::Verdict::Refused(why) => {
+            eprintln!("refused: {why}");
+            1
+        }
+    }
+}
+
+pub fn info(args: &[String]) -> i32 {
+    let mut template: Option<String> = None;
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{SYSTEM_USAGE}");
+                return 0;
+            }
+            "-f" | "--format" => match it.next() {
+                Some(t) => template = Some(t.clone()),
+                None => {
+                    eprintln!("podbox system info: --format needs a template");
+                    return EXIT_FLAG_ERROR;
+                }
+            },
+            other if other.starts_with("--format=") => {
+                template = Some(other["--format=".len()..].to_string())
+            }
+            other => {
+                eprintln!("podbox system info: unknown option {other:?}");
+                eprint!("{SYSTEM_USAGE}");
+                return EXIT_FLAG_ERROR;
+            }
+        }
+    }
+    // ⛔ The caller's own input is checked before anything about the machine is
+    // measured, so a typo is not paid for with a probe.
+    if let Some(t) = &template {
+        if let Err(bad) = format::check_with_documents(t, FIELDS, DOCUMENTS) {
+            eprintln!("podbox system info: {bad}");
+            return EXIT_CLI_ERROR;
+        }
+    }
+
+    let fields = collect();
+    match template {
+        Some(t) => match format::render_with_documents(&t, &fields, DOCUMENTS) {
+            Ok(line) => {
+                println!("{line}");
+                0
+            }
+            Err(bad) => {
+                eprintln!("podbox system info: {bad}");
+                EXIT_CLI_ERROR
+            }
+        },
+        None => {
+            print!("{}", human(&fields));
+            0
+        }
+    }
+}
+
+/// Everything `info` can report, measured once.
+///
+/// ⚠ The measuring is HERE and the assembling is in [`fields_from`], so a test
+/// can assert the field names without running 50 probe children of whatever
+/// binary it happens to be. `podbox_probe::run` re-execs argv[0], and under
+/// `cargo test` argv[0] is the test harness.
+fn collect() -> Vec<(&'static str, String)> {
+    let findings = podbox_probe::run();
+    let selection = podbox_probe::select::Selection::choose(&findings);
+    let store = podbox_image::open_store()
+        .map(|s| s.root().display().to_string())
+        .unwrap_or_else(|e| format!("unavailable: {e}"));
+    fields_from(
+        selection.rung.word(),
+        selection.exit_code(podbox_probe::select::Strictness::Refuse) == 0,
+        store,
+    )
+}
+
+fn fields_from(rung: &str, strict_ok: bool, store: String) -> Vec<(&'static str, String)> {
+    let count = |s: parity::Status| {
+        parity::TABLE
+            .iter()
+            .filter(|r| r.flag.is_none() && r.status == s)
+            .count()
+            .to_string()
+    };
+    vec![
+        ("Parity", parity::json()),
+        ("ParityRows", parity::TABLE.len().to_string()),
+        ("ExitCodes", podbox_probe::exit::json()),
+        ("Version", env!("CARGO_PKG_VERSION").to_string()),
+        ("Rung", rung.to_string()),
+        ("EnteredRung", podbox_enter::ENTERED_RUNG.word().to_string()),
+        ("StrictOk", strict_ok.to_string()),
+        ("Store", store),
+        // ⭐ T-0804 rule 1: the banner is suppressible by CONFIG and never by
+        // the command line, and whether a machine has suppressed it is itself
+        // reported. A silent banner nobody can tell from an absent one is the
+        // `sandlock` shape this rule exists to refuse.
+        ("Banner", banner_state()),
+        (
+            "Platform",
+            podbox_image::platform::Platform::host().to_string(),
+        ),
+        ("Kernel", kernel_release()),
+        (
+            "Verbs",
+            parity::TABLE
+                .iter()
+                .filter(|r| r.flag.is_none())
+                .count()
+                .to_string(),
+        ),
+        ("VerbsNative", count(parity::Status::Native)),
+        ("VerbsDegraded", count(parity::Status::Degraded)),
+        ("VerbsStub", count(parity::Status::Stub)),
+        ("VerbsNone", count(parity::Status::None)),
+    ]
+}
+
+/// ⚠ Read from `/proc`, and a dash where it cannot be read. AGENTS.md
+/// absolute 3: a dash where a value is unknown, never a plausible-looking one.
+fn kernel_release() -> String {
+    std::fs::read_to_string("/proc/sys/kernel/osrelease")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|_| "-".into())
+}
+
+fn pick(fields: &[(&str, String)], key: &str) -> String {
+    fields
+        .iter()
+        .find(|(k, _)| *k == key)
+        .map(|(_, v)| v.clone())
+        .unwrap_or_default()
+}
+
+fn human(fields: &[(&str, String)]) -> String {
+    let mut out = String::new();
+    out.push_str(&format!(
+        "podbox {}\n  rung          {}   (--strict would {})\n  entered with  {}\n  \
+         platform      {}\n  kernel        {}\n  store         {}\n\n",
+        pick(fields, "Version"),
+        pick(fields, "Rung"),
+        if pick(fields, "StrictOk") == "true" {
+            "pass"
+        } else {
+            "refuse"
+        },
+        pick(fields, "EnteredRung"),
+        pick(fields, "Platform"),
+        pick(fields, "Kernel"),
+        pick(fields, "Store"),
+    ));
+    out.push_str(&format!(
+        "parity (TOOL.md section 6.8): {} rows, {} verbs\n  \
+         Native {}   Degraded {}   Stub {}   None {}\n\n",
+        pick(fields, "ParityRows"),
+        pick(fields, "Verbs"),
+        pick(fields, "VerbsNative"),
+        pick(fields, "VerbsDegraded"),
+        pick(fields, "VerbsStub"),
+        pick(fields, "VerbsNone"),
+    ));
+    out.push_str(&parity::text());
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// ⛔ Every declared field is built, and every built field is declared. A
+    /// name in one list and not the other is a field that `--format` accepts
+    /// and renders blank, which is the wrong answer that looks right.
+    #[test]
+    fn the_declared_fields_are_the_built_ones() {
+        let built: Vec<&str> = fields_from("chroot", false, "/nowhere".into())
+            .iter()
+            .map(|(k, _)| *k)
+            .collect();
+        assert_eq!(built, FIELDS);
+        for d in DOCUMENTS {
+            assert!(FIELDS.contains(d), "{d} is a document and not a field");
+        }
+    }
+
+    /// ⭐ T-0804 rule 4, as an assertion. `.EnteredRung` is
+    /// [`podbox_enter::ENTERED_RUNG`] and NOT the rung the probe selected, so a
+    /// script reading it cannot print a rung podbox does not enter with. ⚠ The
+    /// argument here is deliberately a rung podbox does not implement, so the
+    /// test fails if the field is ever wired to the wrong one.
+    #[test]
+    fn the_entered_rung_is_the_sequence_and_not_the_selection() {
+        let fields = fields_from("namespace", true, "/nowhere".into());
+        assert_eq!(pick(&fields, "Rung"), "namespace");
+        assert_eq!(
+            pick(&fields, "EnteredRung"),
+            podbox_enter::ENTERED_RUNG.word()
+        );
+        assert_ne!(pick(&fields, "EnteredRung"), pick(&fields, "Rung"));
+    }
+
+    /// ⭐ T-0801's `Prove`, without a shell: the template it names renders the
+    /// table, and what comes out parses as an array of the right shape.
+    #[test]
+    fn the_acceptance_template_renders_the_whole_table() {
+        let fields = vec![("Parity", parity::json())];
+        let out = format::render_with_documents("{{json .Parity}}", &fields, DOCUMENTS).unwrap();
+        let doc: serde_json::Value = serde_json::from_str(&out).unwrap();
+        let arr = doc.as_array().unwrap();
+        assert!(arr.len() >= 60, "{} rows", arr.len());
+        assert!(arr.iter().all(|r| {
+            matches!(
+                r["status"].as_str(),
+                Some("Native") | Some("Degraded") | Some("Stub") | Some("None")
+            )
+        }));
+    }
+}

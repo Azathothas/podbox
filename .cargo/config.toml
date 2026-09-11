@@ -1,0 +1,61 @@
+# The artefact is a single static binary. TOOL.md section 3.4, section 7 M7.
+#
+# ⛔ crt-static is set per target, not globally. Setting it under [build] also
+# applies it to build scripts and proc macros compiled for the host, which is
+# not what is wanted and is a link failure on some hosts.
+
+[build]
+target = "x86_64-unknown-linux-musl"
+
+[target.x86_64-unknown-linux-musl]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+# ⭐ `zig cc` as the C cross-compiler for the shipping target.
+#
+# ⚠ NO LONGER INERT. `TODO/image.md` T-0201 landed `rustls` and its `ring`
+# provider, which compiles 17 `.c` files and 90 `.S` files behind a build
+# script, so this is the toolchain that builds them. Removing these two lines
+# now breaks the build rather than changing nothing.
+#
+# ⚠ The LINK is still the host `cc`, deliberately. Making zig the linker as
+# well fails on `duplicate symbol: _start`, because zig's driver adds its own
+# `crt1.o` despite rustc's `-nostartfiles`. scripts/zig-cc.sh carries that
+# measurement and the `-fno-sanitize=undefined` it takes instead.
+#
+# `relative = true` resolves against the repository root, so the same config
+# works from any subdirectory. `force` is left at its default, so a machine
+# with its own cross toolchain wins by exporting the variable itself.
+# scripts/zig-cc.sh says why zig rather than musl-tools; scripts/common/bootstrap-env.sh
+# installs it, pinned and checksummed.
+# ⭐ EVERY TARGET, not just the host's. TODO/deps.md T-0911 and
+# TODO/packaging.md: podbox is a multi-architecture runtime, so a C dependency
+# has to cross-compile for every architecture podbox claims, and `ring` is that
+# dependency. `scripts/zig-cc.sh` translates the rust triple to zig's for all of
+# them; these entries are what point cc-rs at it per target.
+#
+# ⚠ The variable name is the target with `-` replaced by `_`, which is cc-rs's
+# convention and not cargo's. A missing entry is not a warning: the build script
+# falls back to the host `cc` and fails with a message about the C compiler
+# rather than about the missing entry.
+[env]
+CC_x86_64_unknown_linux_musl = { value = "scripts/zig-cc.sh", relative = true }
+AR_x86_64_unknown_linux_musl = { value = "scripts/zig-ar.sh", relative = true }
+CC_aarch64_unknown_linux_musl = { value = "scripts/zig-cc.sh", relative = true }
+AR_aarch64_unknown_linux_musl = { value = "scripts/zig-ar.sh", relative = true }
+CC_riscv64gc_unknown_linux_musl = { value = "scripts/zig-cc.sh", relative = true }
+AR_riscv64gc_unknown_linux_musl = { value = "scripts/zig-ar.sh", relative = true }
+CC_loongarch64_unknown_linux_musl = { value = "scripts/zig-cc.sh", relative = true }
+AR_loongarch64_unknown_linux_musl = { value = "scripts/zig-ar.sh", relative = true }
+CC_armv7_unknown_linux_musleabihf = { value = "scripts/zig-cc.sh", relative = true }
+AR_armv7_unknown_linux_musleabihf = { value = "scripts/zig-ar.sh", relative = true }
+CC_i686_unknown_linux_musl = { value = "scripts/zig-cc.sh", relative = true }
+AR_i686_unknown_linux_musl = { value = "scripts/zig-ar.sh", relative = true }
+# ⭐ TODO/deps.md T-0912. The architecture that did not build until podbox
+# stopped taking its syscall trap from a crate that gates it behind nightly.
+CC_powerpc64le_unknown_linux_musl = { value = "scripts/zig-cc.sh", relative = true }
+AR_powerpc64le_unknown_linux_musl = { value = "scripts/zig-ar.sh", relative = true }
+# ⚠ `s390x` is CHECK-ONLY here and the gnu triple is why: rustup has no
+# prebuilt `s390x-unknown-linux-musl` std, so there is no static binary to run
+# under `qemu-s390x-static` from this host. T-0912 carries what that costs.
+CC_s390x_unknown_linux_gnu = { value = "scripts/zig-cc.sh", relative = true }
+AR_s390x_unknown_linux_gnu = { value = "scripts/zig-ar.sh", relative = true }

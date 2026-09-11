@@ -1,0 +1,24 @@
+# podbox image acquisition against docker, TODO/milestones.md T-1102
+# taken 2026-09-09T18:54:47Z on kernel 6.18.44-fc-v24
+# TODO/image.md T-0201 and T-0202 carry clauses 2 to 4.
+reference         ghcr.io/pkgforge-dev/archlinux:latest
+podbox_digest     sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+docker_digest     sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+digests_match     yes
+tag_moved         no
+blobs_stored      7
+blobs_mismatched  0
+second_pull_fetched 0
+http_refused_rc   1
+
+## the second pull, verbatim
+  latest: Pulling from pkgforge-dev/archlinux
+  fccd9a525e0c: Already exists
+  8f1a3f638556: Already exists
+  f9b891f38f9e: Already exists
+  2dacb2369e13: Already exists
+  Digest: sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+  Status: Image is up to date for ghcr.io/pkgforge-dev/archlinux:latest
+
+## the http:// refusal, verbatim
+  podbox: "http://registry.invalid/library/archlinux:latest" names http://, and registry.invalid is not configured as an insecure registry. podbox does not downgrade a connection on its own: tcp/80 is black-holed on the runtimes podbox targets, so an automatic fallback hangs rather than failing (T-0201). Permit it deliberately with `--insecure-registry registry.invalid`, with $PODBOX_INSECURE_REGISTRIES, or with a line in the registries config file: podbox speaks HTTPS only and will not downgrade. tcp/80 egress is broken on the runtime podbox targets, so a plain-HTTP fallback hangs instead of failing (TODO/image.md T-0201)

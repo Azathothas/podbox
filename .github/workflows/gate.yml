@@ -1,0 +1,198 @@
+name: gate
+
+# The gate. docs/methodology/gate.md is what it answers to, and
+# docs/methodology/work-todo.md requires the reader script to run as one:
+# a count that disagrees with the rows cannot reach a commit.
+#
+# ⛔ Every step reads an exit code from the process that produced it, unpiped.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  todo:
+    name: TODO index and citations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # Asserts the counts against the rows, that no status disagrees between
+      # the index and its entry, that every reference resolves, and that every
+      # cited path and line exists. The last of those is why the corpus is
+      # tracked in the tree rather than on a side branch.
+      - name: check-todo
+        run: ./scripts/check-todo.py
+
+      # The writer must be a no-op on a tree the reader already passed. If it
+      # changes anything, the committed counts were not derived from the rows.
+      - name: todo-count is idempotent
+        run: |
+          ./scripts/todo-count.py
+          git diff --exit-code -- TODO/
+
+      # ⭐ The step that makes the one above mean something. check-todo.py
+      # reports success identically whether its assertions passed or whether it
+      # examined nothing, and the second is the state this repository shipped
+      # its first commit in. plant.sh breaks each check on purpose and asserts
+      # it goes red with that check's own message.
+      #
+      # ⛔ It plants into tracked files and restores them from a copy, so it
+      # refuses to start on a dirty tree. Run it after checkout and before
+      # anything that writes.
+      - name: every check can fail
+        run: ./scripts/plant.sh
+
+      - name: maintained repository checks
+        run: |
+          set -eu
+          for check in check-docs check-markers check-one-home check-placeholders check-control-bytes check-changelog check-attribution; do
+            sh "scripts/common/$check.sh"
+          done
+          sh scripts/common/check-no-secrets.sh --public
+          sh scripts/common/mine-repo.sh --selftest
+          sh scripts/common/check-twins.sh
+
+      - name: root licence is the selected canonical 0BSD text
+        env:
+          PINNED_SHA256: ab2a8e7ccc6f759fb357ab23cb18807659f2411436cf2cbe77624888d15e314f
+        run: echo "$PINNED_SHA256  LICENSE" | sha256sum -c -
+
+  build:
+    name: static build, no PT_INTERP
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # ⭐ ONE PATH. The same script a session runs in a fresh container, with
+      # only the components this job needs. A workflow that installs its own
+      # way is a second setup that drifts from the one anybody debugging the
+      # repository actually uses.
+      #
+      # ⛔ `zig` is not optional and its absence is not a skip. `.cargo/config.toml`
+      # names `scripts/zig-cc.sh` as `CC_<target>` for every target podbox
+      # builds for, and `rustls`'s `ring` compiles C behind a build script, so
+      # `cargo build` without zig dies in `ring`'s build script with
+      # "zig is not on PATH" and exit 101. Check 18 of `scripts/check-todo.py`
+      # holds every cargo-running job here to that component list.
+      - name: bootstrap
+        run: ./scripts/common/bootstrap-env.sh rust bloat cc zig tools
+
+      - name: build
+        run: cargo build --release --target x86_64-unknown-linux-musl
+
+      # TOOL.md section 5 M-1 and M7. The artefact is a single static binary, and a
+      # PT_INTERP would mean it is not.
+      - name: no PT_INTERP
+        run: |
+          readelf -l target/x86_64-unknown-linux-musl/release/podbox
+          test "$(readelf -l target/x86_64-unknown-linux-musl/release/podbox | grep -c INTERP)" -eq 0
+
+      # T-0910's ceiling and its breakdown. A dependency that lands quietly
+      # fails here rather than being noticed at release.
+      #
+      # ⛔ The script owns the number. This step used to carry its own copy of
+      # it, which is a value in two places: raising one and not the other lets
+      # a build through that the other would have refused. check-todo.py's
+      # check 17 holds that there is exactly one declaration.
+      #
+      # ⚠ cargo-bloat comes from the bootstrap step above on purpose: the
+      # measurement script exits 2 without it, and a skip is not a pass.
+
+      # ⚠ Area `ci`, not `baseline`. The baseline is a committed reading from
+      # one machine on one day; a runner re-taking it would overwrite that
+      # reading with its own and call the result the same thing. `ci` writes
+      # its own file and differences it against the committed baseline, which
+      # is what a caller wants to see and is the script's whole purpose.
+      # ⛔ The delta is printed, never asserted: a different rustc on a
+      # different machine produces a different number, and that is a reading
+      # from that machine rather than a regression. The CEILING is the gate.
+      - name: binary size ceiling and breakdown
+        run: ./experiments/110-bloat-delta.sh ci
+
+      # The interposer is the one artefact that is not crt-static, and it is
+      # built separately for exactly that reason.
+      - name: interposer, one object per libc
+        run: ./scripts/build-interpose.sh
+
+  lint:
+    name: fmt, clippy, shell
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # ⛔ `zig` for the same reason the build job needs it: `cargo clippy` runs
+      # `ring`'s build script, which compiles C with `scripts/zig-cc.sh`. A
+      # lint job without it fails in a dependency rather than on a lint.
+      - name: bootstrap
+        run: ./scripts/common/bootstrap-env.sh rust cc zig tools
+
+      - name: toolchain
+        run: rustup component add rustfmt clippy
+
+      - name: fmt
+        run: |
+          cargo fmt --all -- --check
+          cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check
+
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: interposer clippy
+        env:
+          RUSTFLAGS: -C target-feature=-crt-static
+        run: cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
+
+      # docs/conventions/prose.md: no em dashes, nothing outside the five
+      # allowed markers, and a density ceiling, over every tracked text file.
+      # ⚠ references/ is excluded: it is somebody else's prose, unmodified, and
+      # this project's conventions do not reach it.
+      - name: markers and prose
+        run: |
+          ./scripts/common/check-markers.sh || rc=$?
+          exit "${rc:-0}"
+
+      - name: shell scripts parse
+        run: |
+          rc=0
+          for f in scripts/*.sh scripts/common/*.sh experiments/*.sh; do
+            bash -n "$f" || rc=1
+          done
+          exit "$rc"
+
+      # The two count scripts are Python. Named as such so the step above does
+      # not try to parse them as shell, which it did while they were `.sh`.
+      - name: count scripts compile
+        run: python3 -m py_compile scripts/check-todo.py scripts/todo-count.py
+
+  test:
+    name: workspace and interposer tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: bootstrap
+        run: ./scripts/common/bootstrap-env.sh rust cc zig tools
+
+      - name: workspace tests
+        run: cargo test --workspace
+
+      - name: interposer tests
+        env:
+          RUSTFLAGS: -C target-feature=-crt-static
+        run: cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu
