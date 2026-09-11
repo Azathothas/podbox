@@ -108,9 +108,19 @@ if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; th
 	if [ -z "$gname" ] || [ -z "$gmail" ]; then
 		note_problem "the git identity is unset. Read it from the history, then set it in this repository."
 	fi
-	if [ "$branch" != "main" ]; then
-		note_problem "not on main. TODO/RULES.md section 2 settles the branch and it is not open."
-	fi
+	# ⚠ Two different states, and they need two different next steps. A
+	# `publish/*` branch is the one protection forces, and finding one OPEN means
+	# a previous session did not finish its merge. Anything else is the branch
+	# rule being broken. TODO/RULES.md section 2 carries both.
+	case "$branch" in
+	main) ;;
+	publish/*)
+		note_problem "on $branch, which is a publish branch a previous session left open. Merge it or delete it before starting work: gh pr merge --rebase --delete-branch"
+		;;
+	*)
+		note_problem "on $branch. Work happens on main. TODO/RULES.md section 2 settles this and it is not open."
+		;;
+	esac
 else
 	note_problem "git is absent, or this directory is not a checkout"
 fi
