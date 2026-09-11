@@ -65,11 +65,135 @@ at the link. What matters at this level is that the two exist, that a caller
 can ask for either, and that "the version I ran" is now a question with two
 answers.
 
+⚠ **That rule bans a copy of upstream's manual. It does not ban this project's
+own procedure.** The section below names an instance, an image, a set of
+exclusions and the failures this repository met on this host. None of it is
+upstream's to change, and a reader who deletes it as a duplicate has removed
+the part that only this project knows.
+
 ⭐ **It also answers whether a machine can run an isolated Linux job at all**,
 in one command, rather than leaving a session to infer it from three.
 [`hosted-sessions.md`](hosted-sessions.md) is why that matters: the commonest
 false claim about a provisioned machine is that it cannot do something whose
 daemon was merely never started.
+
+---
+
+## ⭐ The procedure on a Windows host
+
+⛔ **Never call `wsl.exe`, and never write another wrapper for it.** A payload
+handed to `wsl.exe` as an argument is expanded before the guest sees it, and
+the guest then parses the result a second time. `wsl-toolkit` sends every
+payload on stdin or as a file. ⛔ `wsl --shutdown` is machine-wide: it stops
+every distribution on the host, including the one that holds somebody else's
+container engine.
+
+⭐ **One instance, and it is `podbox`.** The flag `--instance podbox` names the
+distribution `wsl-toolkit-podbox` and gives it its own state directory. A
+pointer file in the checkout makes that the default for every call from inside
+the tree:
+
+```json
+{ "schema": "wsl-toolkit-pointer/1", "instance": "podbox" }
+```
+
+**The distribution persists and a container inside it does not.** The base
+holds the engine, the image cache and the job records across sessions. Every
+job runs in a container that is removed when it exits, so nothing a job
+installs is there next time. That split is deliberate: it is the same shape the
+hosted Linux environment has, so one set of scripts serves both.
+
+### The three lanes
+
+| the host | where the work runs |
+| --- | --- |
+| Linux | directly. [`../scripts/common/bootstrap-env.sh`](../scripts/common/bootstrap-env.sh) installs what is missing. |
+| a container | the same as Linux. The container is already the machine. |
+| Windows | the record and document checks run on the host. The build, the tests and every Linux measurement run in a container inside `wsl-toolkit-podbox`. |
+
+⛔ **`scripts/session-start.sh` picks the lane. Do not pick it by hand.** It
+reports the host, the time and the tools, then runs the right bootstrap. A
+session that guesses the lane is a session that runs the Debian bootstrap
+against an Arch base.
+
+### Bringing the base up
+
+```powershell
+wsl-toolkit --instance podbox base status --probe
+wsl-toolkit --instance podbox base ensure --probe
+```
+
+**`base ensure` needs a container engine on the Windows host**, because it
+builds the distribution from an OCI image. Measured on 2026-09-11: with
+`podman-machine-default` stopped, `base ensure` exited 2 and named the engine
+rather than the image. `podman machine start` cleared it.
+
+⛔ **That machine is not this project's.** Start it, use it, and put it back to
+the state it was found in. `podman machine list --format json` reports
+`Running` before and after.
+
+### Running a job
+
+```powershell
+wsl-toolkit --instance podbox run --image docker.io/library/rust:1.98.1-bookworm --workspace . --exclude .codegraph --exclude target --exclude .dev --script .\job.sh --timeout 45m --tick 120s
+```
+
+| the choice | why |
+| --- | --- |
+| `--exclude .codegraph` | the local index is 230 MiB and is not an input to anything |
+| `--exclude target` | build output, and it is the wrong architecture on a Windows host |
+| `--exclude .dev` | the background build's own log and state |
+| `.git` is **kept** | `check-attribution`, `check-markers` and `restore-modes` all read the index |
+| `references/` is **kept** | `check-todo.py` resolves every cited path and line in it |
+| `--script`, never `-c` | the file travels as bytes. A command travels through two parsers. |
+
+**Measured on 2026-09-11: the workspace is 8,406 entries and 164.6 MiB, and
+the copy took about 4 s.** The image pull is the larger cost on a cold base.
+
+### ⛔ Five traps this host produced, each on 2026-09-11
+
+- ⛔ **A Windows checkout carries no executable bit, so 393 scripts arrive
+  unrunnable.** NTFS holds no POSIX mode and `core.fileMode` is false there.
+  The first failure reads `./scripts/common/bootstrap-env.sh: Permission
+  denied`, which names the script and not the transfer.
+  ⭐ [`../scripts/common/restore-modes.sh`](../scripts/common/restore-modes.sh)
+  repairs it from the git index, which is the only record of which files are
+  meant to run. ⛔ Never `chmod -R +x`: that marks data executable and nothing
+  reports it.
+- ⛔ **`/mnt/c` is mounted inside the base and it is writable.** A delete there
+  destroys the real checkout on Windows. Read from it. Never write to it, and
+  never point a build's output at it.
+- ⚠ **A payload sent from PowerShell arrives with CRLF.** A POSIX shell then
+  reads the carriage return as part of the last word, and `2>/dev/null` becomes
+  a file called `/dev/null` followed by a carriage return. Write the payload
+  with LF, or send it as a file.
+- ⚠ **`python3` on this host is a Microsoft Store stub.** It prints an
+  installation notice and exits without running anything. The real interpreter
+  is `py`, at 3.13.15. A check that shells out to `python3` on Windows measures
+  the stub.
+- ⚠ **Python reads a script from stdin using the host code page, not UTF-8.**
+  A marker character in the source is mangled before the program starts.
+  Export `PYTHONIOENCODING=utf-8`, or pass a file.
+
+### ⛔ Decommissioning
+
+A session leaves the machine as it found it.
+
+| what | what to do at the end |
+| --- | --- |
+| the base distribution | ⭐ **keep it.** It is persistent on purpose, and rebuilding it costs about 31 s plus the rootfs pull. |
+| a job's containers and directories | `wsl-toolkit --instance podbox gc --apply --older-than 24h` |
+| `podman-machine-default` | stop it, if this session started it |
+| anything else on the machine | ⛔ not this session's to touch |
+
+```powershell
+wsl-toolkit --instance podbox resources
+wsl-toolkit --instance podbox gc --apply --older-than 24h
+```
+
+**`gc` reports by default and `--apply` acts.** It spares a container that is
+running and anything belonging to an open job record, so a job still in flight
+survives a collection somebody else started.
 
 ---
 

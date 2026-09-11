@@ -1,7 +1,12 @@
 # prose.md
 
-How documents are written here. The mechanical half is checked by a linter; the
-rest is a reading.
+How this project writes. A linter checks the mechanical half. A reader checks
+the rest.
+
+⭐ **The scope is every word, not only the documents.** It covers a document, a
+code comment, a commit message, a TODO entry, a script's own help text, and
+what an agent writes in the chat. A rule that stops at the file boundary is a
+rule that lets the same agent write one way and speak another.
 
 ---
 
@@ -13,6 +18,46 @@ Every claim backed by a command a reader can run or a path a reader can open.
 
 Write for an agent with no memory of the session that wrote the file, and for a
 person who is looking for one fact.
+
+---
+
+## ⭐ Simplified Technical English
+
+⛔ **Write in ASD-STE100 Simplified Technical English.** It is the aerospace
+maintenance standard for text that a non-native reader and a machine must both
+read correctly. The audience here is the same shape: an agent with no memory,
+and a person who wants one fact.
+
+The constraints that do the work:
+
+| the constraint | what it stops |
+| --- | --- |
+| one word, one meaning, one part of speech | `time`, `record` and `file` each read as two different things in one page |
+| the active voice, with the actor named | "the file is removed" hides who removes it and when |
+| simple present, simple past, simple future | a perfect tense states a sequence that the reader must then reconstruct |
+| one instruction in one sentence | a compound step is a step a reader does half of |
+| 20 words in a procedure, 25 in a description | a longer sentence carries a condition the reader drops |
+| six sentences in a paragraph | past that, a reader scans instead of reads |
+| keep `the` and `a` | dropped articles turn a sentence into a noun cluster |
+| three words in a noun cluster, at most | `container image layer ownership record` names nothing |
+| a warning goes before its step | a warning after the step is a report of the damage |
+
+⭐ **A technical name is always approved.** `pivot_root`, `LD_PRELOAD`,
+`EPERM` and `x86_64-unknown-linux-musl` are the exact names of the things they
+name, and a plainer word for one of them would be wrong. The standard limits
+the general vocabulary, never the terminology.
+
+⚠ **This applies to what is written from now on, and to a page when it is
+next touched.** ⛔ It is not an instruction to rewrite the tree. A page moves
+toward the standard in the change that edits it for another reason, which is
+[the amend-in-place rule](#amend-in-place-do-not-stack-banners) doing two jobs
+at once. A sweep that rewrote every page for style alone would produce a large
+diff that no reviewer can check against the meaning it started with.
+
+⛔ **No check holds this, and none can.** A linter can count words in a
+sentence; it cannot tell a hidden actor from a named one. The reading is the
+enforcement, and [`../methodology/reviews.md`](../methodology/reviews.md) is
+where it happens.
 
 ---
 

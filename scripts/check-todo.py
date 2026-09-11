@@ -320,7 +320,13 @@ def check_tree(files):
                     if not exists:
                         err(f"{rel}:{n}", f"link target {href} does not resolve")
                     else:
-                        trel = os.path.relpath(target, ROOT)
+                        # ⛔ `git ls-files` answers with forward slashes on
+                        # every platform and `os.path.relpath` answers with the
+                        # host separator. On Windows the two never matched, so
+                        # every link in the tree was reported as untracked: 203
+                        # false problems, measured on 2026-09-11. The separator
+                        # is normalised to git's.
+                        trel = os.path.relpath(target, ROOT).replace(os.sep, "/")
                         if os.path.isfile(target) and trel not in files:
                             err(f"{rel}:{n}",
                                 f"links to {href}, which exists here and is NOT "

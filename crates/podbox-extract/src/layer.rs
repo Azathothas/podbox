@@ -53,7 +53,7 @@ pub fn open(path: &std::path::Path, c: Compression) -> Result<Box<dyn Read>> {
         Compression::None => Box::new(r),
         Compression::Gzip => Box::new(flate2::read::GzDecoder::new(r)),
         Compression::Zstd => Box::new(
-            ruzstd::StreamingDecoder::new(r)
+            ruzstd::decoding::StreamingDecoder::new(r)
                 .map_err(|e| Error::Compression(format!("this zstd layer cannot be read: {e}")))?,
         ),
     })

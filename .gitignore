@@ -114,3 +114,13 @@ __pycache__/
 
 # scripts/dev.sh state: the background build log and its stamp.
 .dev/
+
+# ⭐ The CodeGraph index. It is one machine's SQLite database, 230 MiB on the
+# tree it was built over, and `./scripts/session-start.sh` rebuilds it. The
+# directory carries its own ignore file; this line keeps the directory itself
+# out of `git status`, which is what an agent reads to decide the tree is clean.
+.codegraph/
+
+# ⚠ The staged payload that `scripts/windows/run-in-base.sh` writes beside the
+# checkout and removes on exit. A cancelled run leaves one behind.
+.podbox-job.sh

@@ -9,17 +9,23 @@ the corpus and its licence determinations.
 
 ## 1. Starting a session
 
-1. Read [PROGRESS.md](PROGRESS.md). Its state line, its counts and its "start
-   here next" are the whole handover.
-2. Run the gate before touching anything, so a failure found later is yours:
+1. Run `./scripts/session-start.sh`. It reports the machine, the UTC instant,
+   the tools and the lane, syncs the CodeGraph index, and starts the setup.
+2. Read [PROGRESS.md](PROGRESS.md). Its state line, its counts and its "start
+   here next" are the whole handover. Then read [RESUME.md](RESUME.md), which
+   says what the last session had open when it stopped.
+3. Run the gate before touching anything, so a failure found later is yours:
 
    ```sh
    ./scripts/check-todo.py
    ```
 
-3. Read the entry you are about to work, and the reference lines it cites.
+4. Read the entry you are about to work, and the reference lines it cites.
    ⭐ **Do not re-read the corpus.** The entries carry what to do and which
    reference to open at which line. That is what M-1 was paid for.
+5. ⛔ **Ask CodeGraph before `grep`.** It answers what exists and where, with
+   the source and the call paths, in one call. A text search then confirms one
+   line. `docs/agent-tooling.md` carries the two commands.
 
 ## 2. The branch
 
@@ -55,13 +61,23 @@ say so.
 
 ## 3. Ending a session
 
-Per `docs/methodology/sessions.md`:
+⛔ **A session ends on one of two triggers and on nothing else:** five entries
+of effort `L` are finished in earnest, or the operator says to end it.
+`docs/methodology/sessions.md` holds both and what "in earnest" means. ⚠ A
+budget worry is not a trigger, and an entry is never deferred for one.
 
-1. [PROGRESS.md](PROGRESS.md) **rewritten**, carrying the state line, the
+Then, per `docs/methodology/sessions.md`:
+
+1. ⭐ **Three deep review passes at least**, over every file this session
+   touched. Section 10 holds the three questions.
+2. [PROGRESS.md](PROGRESS.md) **rewritten**, carrying the state line, the
    measured baseline, the counts, what this session did, what is in progress,
    the work order, and the open questions. It carries no history.
-2. The summary table, in chat and saved.
-3. The next session's prompt, in chat only.
+3. [RESUME.md](RESUME.md) refreshed, and the tree clean with the gate green.
+4. The machine put back as it was found. `docs/containers.md` holds what a
+   Windows host owes here.
+5. The summary table, in chat and saved.
+6. The next session's prompt, in chat only, inside a fenced block.
 
 ⛔ **The record is part of the change.** The entry, the index and
 `PROGRESS.md` are edited in the same commit as the work, never after it.
@@ -150,10 +166,10 @@ that are not resolved and are therefore not vendored.
 - ⭐ **Write in place.** Amend the document. Never append a corrections section
   or a dated box under the old text.
 
-## 10. Three deep review passes
+## 10. Three deep review passes, at least
 
-⭐ Before anything is called done, three passes, **each asking a different
-question**. One pass repeated three times is one pass.
+⭐ Before anything is called done, three passes or more, **each asking a
+different question**. One pass repeated three times is one pass.
 
 1. Is each claim **true**, checked against the source at the captured commit or
    against a run?

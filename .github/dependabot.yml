@@ -40,3 +40,60 @@ updates:
       prefix: ci
     labels:
       - dependencies
+
+  # ⛔ THE CORPUS IS EVIDENCE AND IT IS NEVER UPDATED.
+  #
+  # `references/` holds thirty third-party trees, pinned at the commit each was
+  # read at. `scripts/check-todo.py` asserts that every `path:line` cited in
+  # `TODO/` still resolves inside them, so a bump moves a line under a citation
+  # and turns a measured claim into a wrong one. `docs/methodology/references.md`
+  # is the rule; `TODO/reference-map.md` carries the provenance.
+  #
+  # ⛔ FOUR PULL REQUESTS AGAINST THE CORPUS REACHED THIS REPOSITORY BEFORE THIS
+  # FENCE EXISTED, on 2026-09-11, and none of them was a version update: they
+  # were SECURITY updates, which no schedule and no limit here controls.
+  #
+  # ⚠ `open-pull-requests-limit: 0` DOES NOT STOP THEM. Read from GitHub's own
+  # options reference on 2026-09-11: that option is marked "Version updates
+  # only", and the page states that security update pull requests are not
+  # subject to the limit and do not count toward it. `ignore` is marked
+  # "Version updates" AND "Security updates", so `ignore` is the fence and the
+  # limit is only there to stop the scheduled half as well.
+  #
+  # ⚠ A vulnerability reported inside `references/` is not a vulnerability in
+  # anything podbox ships. Nothing here is built, linked or executed.
+  - package-ecosystem: cargo
+    directories:
+      - "/references/**"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: gomod
+    directories:
+      - "/references/**"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: pip
+    directories:
+      - "/references/**"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: npm
+    directories:
+      - "/references/**"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
