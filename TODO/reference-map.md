@@ -21,6 +21,12 @@ rewritten: **154 MB of working tree** and **29 MB of git objects** (`du -sh
 objects). ⭐ Before the rewrite the object figure was 51 MB, and the difference
 is the artefact debt [PROGRESS.md](PROGRESS.md) records as cleared, not the
 corpus.
+⚠ **Re-measured on 2026-09-11, after eleven more trees were mined:**
+`references/` is **166 MB over 7,815 tracked files**, and `.git` is **38 MB**
+(`git count-objects -vH` reports 35.55 MiB of pack). ⭐ The eleven added about
+191,000 lines, and one of them contributed none of it: `Obirvalger__vml` ships
+its dependencies so it can build offline, and its `tree/vendor` was **439 MB
+across 19,335 files** before the trim recorded below.
 
 Each directory holds `PROVENANCE.md` (the commit, the route, and what could not
 be fetched), `api/` (issues and pull requests in both states, comments, review
@@ -206,6 +212,26 @@ Per `docs/methodology/references.md`, exactly one per reference.
 | `references/Azathothas__TEMPLATE` | **adopt (the methodology)** | `docs/` is copied from it verbatim and binds |
 | `references/Azathothas__bit-cli` | **adopt (the work model)** | The shape of `INDEX.md`, `RULES.md`, `PROGRESS.md` and this file |
 | `references/VHSgunzo__userland-execve` | **refused (does not exist)** | Recorded so no session re-derives the 404 |
+
+
+⭐ **The eleven mined on 2026-09-11.** Their reasoning is
+[`../docs/history/2026-09-11-reference-sweep.md`](../docs/history/2026-09-11-reference-sweep.md),
+which also states **the depth reached per tree**, because a reference read at
+one depth cannot support a claim that needs another.
+
+| Tree | Verdict | Why |
+| --- | --- | --- |
+| `references/talaria0101__sandbox-insights` | **adopt** | The probe discipline, the bogus-argument discriminator with its controls, and the four walls |
+| `references/talaria0101__vm-research` | **adopt** | The machine tier, the serial exec protocol, and the fleet and fork mechanisms. [podvm.md](podvm.md) |
+| `references/talaria0101__nix-experiment` | **adopt** | The litmus payload and its version forensics. [milestones.md](milestones.md) T-1111 |
+| `references/Azathothas__sandbox-insights` | **adopt** | The seven-plane model, the layer contract, and twelve open questions that each carry a closure test |
+| `references/Azathothas__memfd-ng` | **filed elsewhere** | [deps.md](deps.md) T-0909 owns it. ⚠ Its source is unread, and that entry is where the reading is owed |
+| `references/cubic-vm__cubic` | **anti-pattern exhibit** | Its open issue 448 is an argument-splitting defect podbox would repeat. [podvm.md](podvm.md) T-1302 takes the other shape |
+| `references/hust-open-atom-club__Vex` | **confirms** | A Docker-like verb set over saved emulator configurations. Independent evidence for the parity rule |
+| `references/Obirvalger__vml` | **confirms** | A machine is a directory with a manifest. ⛔ Hardware acceleration assumed throughout |
+| `references/gevico__tcg-rs` | **filed elsewhere** | [podvm.md](podvm.md) T-1307. A pure-Rust translator is interesting and it carries a RISC-V guest only |
+| `references/qemu-rs__qemu-rs` | ⛔ **refused** | GPL-2.0-or-later, a plugin binding rather than a manager, and its own tracker records the maintenance question |
+| `references/carlbomsdata__winquick` | **filed elsewhere** | [milestones.md](milestones.md) T-1112 reads its shape and takes no code |
 
 ## What was deleted, and why
 

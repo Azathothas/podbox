@@ -60,10 +60,15 @@ inside `wsl-toolkit-podbox`. Measured on 2026-09-11: **1 m 19 s**, warm.
 Then read what **this task** routes you to, below. Not everything, and not less.
 
 ⛔ **Do not re-read the corpus.** `references/` was read under
-[`methodology/references.md`](docs/methodology/references.md): three passes plus the
-issue and pull-request tracker, per tree. Every entry in `TODO/` carries what to
-do and which reference to open at which line. Re-reading it is the most
-expensive way to learn what an entry already tells you.
+[`methodology/references.md`](docs/methodology/references.md), and every entry in
+`TODO/` carries what to do and which reference to open at which line. Re-reading
+it is the most expensive way to learn what an entry already tells you.
+⚠ **The depth is not uniform, so check it before leaning on a tree.** The
+original trees were read at three passes plus the issue and pull-request
+tracker. The eleven mined on 2026-09-11 were not: their depth is stated per tree
+in [`history/2026-09-11-reference-sweep.md`](docs/history/2026-09-11-reference-sweep.md),
+and three of them were read at one pass. ⭐ A reference read at one depth cannot
+support a claim that needs another, and the sweep says which is which.
 
 ---
 
