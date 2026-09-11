@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cubic - Linux VMs in one command</title>
+  <meta name="description" content="Cubic spins up Linux virtual machines on Linux, macOS and Windows with a single command. Official Linux distribution images, no privileged system service, built on QEMU.">
+  <link rel="icon" href="logo-mark.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Cubic - Linux VMs in one command">
+  <meta property="og:description" content="Cubic spins up Linux virtual machines on Linux, macOS and Windows with a single command. Official Linux distribution images, no privileged system service, built on QEMU.">
+  <meta property="og:url" content="https://cubic-vm.github.io/cubic/">
+  <meta property="og:image" content="https://cubic-vm.github.io/cubic/cubic.gif">
+  <meta name="twitter:card" content="summary_large_image">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f6f6f7;
+      --border: #e3e3e6;
+      --fg: #18181b;
+      --muted: #5c5c66;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--sans);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      max-width: 115rem;
+      margin: 0 auto;
+      padding: 48px 48px 56px;
+    }
+
+    /* Brand */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: var(--fg);
+    }
+    .brand .logo { width: 72px; height: 72px; display: block; }
+
+    /* Hero: masthead, badges, demo, description, install, top to bottom */
+    .hero {
+      max-width: 76.5rem;
+      margin: 0 auto;
+      padding: 24px 0;
+    }
+    .masthead {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 22px;
+    }
+    /* Sized to span the gif width below, with headroom for wider default fonts */
+    .brand b,
+    .masthead h1 {
+      font-size: clamp(1.8rem, calc(6.1vw - 15px), 4.1rem);
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      color: var(--fg);
+    }
+    .masthead h1 {
+      margin: 0;
+      padding-left: 22px;
+      border-left: 1px solid var(--fg);
+    }
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; }
+    .badges img { display: block; height: 20px; }
+    .intro {
+      color: var(--muted);
+      font-size: clamp(1.1rem, 1.35vw, 1.25rem);
+      margin: 0 0 16px;
+      text-align: justify;
+      -webkit-hyphens: none;
+      hyphens: none;
+    }
+    .intro:last-of-type { margin-bottom: 26px; }
+    .cta { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn {
+      display: inline-block;
+      padding: 14px 26px;
+      border-radius: 11px;
+      font-weight: 600;
+      font-size: clamp(1.1rem, 1.35vw, 1.25rem);
+      white-space: nowrap;
+      text-decoration: none;
+      border: 1px solid var(--fg);
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-primary { background: var(--fg); color: #ffffff; border-color: var(--fg); }
+    .btn-primary:hover { background: #000000; border-color: #000000; }
+    .btn-secondary { background: transparent; color: var(--fg); border-color: var(--fg); }
+    .btn-secondary:hover { background: var(--surface); }
+
+    .demo { margin: 26px 0 40px; }
+    .demo > img {
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: block;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.14);
+    }
+
+    /* Install */
+    .install {
+      margin-top: 40px;
+      padding-top: 40px;
+      border-top: 1px solid var(--border);
+    }
+    .install h2 {
+      margin: 0 0 10px;
+      font-size: 1.5rem;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: var(--fg);
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .tab {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-weight: 600;
+      font-size: clamp(1.1rem, 1.35vw, 1.25rem);
+      padding: 6px 12px;
+      margin-bottom: -1px;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .tab:hover { color: var(--fg); }
+    .tab[aria-selected="true"] {
+      color: var(--fg);
+      border-bottom-color: var(--fg);
+    }
+    .store-link {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: clamp(1.1rem, 1.35vw, 1.25rem);
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .cmd { position: relative; }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: var(--fg);
+      color: #ffffff;
+      border-radius: 10px;
+      padding: 12px 52px 12px 14px;
+      font-size: clamp(1.1rem, 1.35vw, 1.25rem);
+      line-height: 1.55;
+    }
+    code { font-family: var(--mono); }
+    .copy {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: transparent;
+      color: #ffffff;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font: inherit;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .copy:hover { background: rgba(255, 255, 255, 0.14); }
+    .copy.copied { background: #ffffff; color: var(--fg); border-color: #ffffff; }
+
+    @media (max-width: 1100px) {
+      .page { padding: 24px 24px 28px; }
+      .hero { text-align: center; }
+      .masthead { justify-content: center; }
+      .badges { justify-content: center; }
+      .cta { justify-content: center; }
+      .tabs { flex-wrap: wrap; justify-content: center; }
+      .install pre { text-align: left; }
+    }
+
+    /* Too narrow for one header line, stack the name over the tagline */
+    @media (max-width: 760px) {
+      .masthead { flex-direction: column; gap: 14px; }
+      .masthead h1 { padding-left: 0; border-left: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <main class="hero">
+      <header class="masthead">
+        <a class="brand" href="https://github.com/cubic-vm/cubic" target="_blank" rel="noopener">
+          <img class="logo" src="logo-mark.svg" alt="Cubic logo" width="72" height="72">
+          <b>Cubic</b>
+        </a>
+        <h1>Linux VMs in one command</h1>
+      </header>
+      <div class="badges">
+        <a href="https://github.com/cubic-vm/cubic" target="_blank" rel="noopener"><img src="https://img.shields.io/github/stars/cubic-vm/cubic?style=flat&amp;label=stars" alt="GitHub stars"></a>
+        <a href="https://crates.io/crates/cubic" target="_blank" rel="noopener"><img src="https://img.shields.io/crates/v/cubic.svg?label=crates.io" alt="Latest version on crates.io"></a>
+        <a href="https://snapcraft.io/cubic" target="_blank" rel="noopener"><img src="https://snapcraft.io/cubic/badge.svg" alt="Snap Store"></a>
+      </div>
+      <div class="demo">
+        <img src="cubic.gif" alt="Cubic demo: creating and entering a Linux VM" width="1224" height="600" fetchpriority="high">
+      </div>
+
+      <p class="intro">
+        Cubic spins up Linux virtual machines on Linux, macOS and Windows with
+        a single command.
+      </p>
+      <p class="intro">
+        Every distribution comes as an official image and is ready to use
+        within seconds, so you skip the long installation. Cubic keeps things
+        simple and secure by acting as lightweight glue over proven tools. No
+        privileged system service is required and every VM runs as your normal
+        user. Cubic is built on top of QEMU, EDK2, official Linux distribution
+        images and cloud-init.
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/cubic-vm/cubic" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-secondary" href="docs/">Documentation</a>
+      </div>
+
+      <section class="install">
+        <h2>Try Cubic</h2>
+        <div class="tabs" role="tablist" aria-label="Installation instructions">
+          <button class="tab" id="tab-ubuntu" role="tab" aria-selected="true" aria-controls="panel-ubuntu" type="button">Ubuntu</button>
+          <button class="tab" id="tab-macos" role="tab" aria-selected="false" aria-controls="panel-macos" type="button">macOS</button>
+          <button class="tab" id="tab-windows" role="tab" aria-selected="false" aria-controls="panel-windows" type="button">Windows</button>
+          <button class="tab" id="tab-cargo" role="tab" aria-selected="false" aria-controls="panel-cargo" type="button">Cargo</button>
+        </div>
+        <div class="panel" id="panel-ubuntu" role="tabpanel" aria-labelledby="tab-ubuntu">
+          <div class="cmd">
+            <pre><code>sudo snap install cubic &amp;&amp; sudo snap connect cubic:kvm</code></pre>
+            <button class="copy" type="button" aria-label="Copy command">Copy</button>
+          </div>
+          <a class="store-link" href="https://snapcraft.io/cubic" target="_blank" rel="noopener">View on the Snap Store</a>
+        </div>
+        <div class="panel" id="panel-macos" role="tabpanel" aria-labelledby="tab-macos" hidden>
+          <div class="cmd">
+            <pre><code>brew install cubic-vm/cubic/cubic</code></pre>
+            <button class="copy" type="button" aria-label="Copy command">Copy</button>
+          </div>
+          <a class="store-link" href="https://github.com/cubic-vm/homebrew-cubic" target="_blank" rel="noopener">View the Homebrew tap</a>
+        </div>
+        <div class="panel" id="panel-windows" role="tabpanel" aria-labelledby="tab-windows" hidden>
+          <div class="cmd">
+            <pre><code>winget install cubic-vm.cubic</code></pre>
+            <button class="copy" type="button" aria-label="Copy command">Copy</button>
+          </div>
+          <a class="store-link" href="https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/cubic-vm/cubic" target="_blank" rel="noopener">View the winget manifest</a>
+        </div>
+        <div class="panel" id="panel-cargo" role="tabpanel" aria-labelledby="tab-cargo" hidden>
+          <div class="cmd">
+            <pre><code>cargo install cubic</code></pre>
+            <button class="copy" type="button" aria-label="Copy command">Copy</button>
+          </div>
+          <a class="store-link" href="https://crates.io/crates/cubic" target="_blank" rel="noopener">View on crates.io</a>
+        </div>
+      </section>
+    </main>
+
+  </div>
+
+  <script>
+    var tabs = document.querySelectorAll(".tab");
+
+    function selectTab(selectedTab) {
+      tabs.forEach(function (tab) {
+        var selected = tab === selectedTab;
+        tab.setAttribute("aria-selected", selected ? "true" : "false");
+        document.getElementById(tab.getAttribute("aria-controls")).hidden = !selected;
+      });
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        selectTab(tab);
+      });
+    });
+
+    function detectOs() {
+      var platform = "";
+      if (navigator.userAgentData && navigator.userAgentData.platform) {
+        platform = navigator.userAgentData.platform;
+      } else if (navigator.userAgent) {
+        platform = navigator.userAgent;
+      }
+      platform = platform.toLowerCase();
+      if (platform.indexOf("mac") !== -1) return "macos";
+      if (platform.indexOf("win") !== -1) return "windows";
+      if (platform.indexOf("linux") !== -1 || platform.indexOf("android") !== -1) return "ubuntu";
+      return "cargo";
+    }
+
+    selectTab(document.getElementById("tab-" + detectOs()));
+
+    document.querySelectorAll(".copy").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var text = btn.previousElementSibling.innerText.trim();
+
+        function showResult(label, copied) {
+          btn.textContent = label;
+          btn.classList.toggle("copied", copied);
+          setTimeout(function () {
+            btn.textContent = "Copy";
+            btn.classList.remove("copied");
+          }, 1500);
+        }
+
+        navigator.clipboard.writeText(text).then(function () {
+          showResult("Copied", true);
+        }, function () {
+          showResult("Failed", false);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use crate::config::QemuConfig;
+use crate::config::validation::{parse_config_json, sanitize_config_name};
+use crate::error::{VexError, VexResult};
+
+pub fn config_dir() -> VexResult<PathBuf> {
+    let dir = match std::env::var("VEX_CONFIG_DIR") {
+        Ok(path) if !path.is_empty() => PathBuf::from(path),
+        _ => {
+            let home = dirs::home_dir().ok_or_else(|| VexError::IoError {
+                path: PathBuf::from("~"),
+                operation: "resolve home directory".to_string(),
+                source: std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "failed to get user home directory",
+                ),
+            })?;
+            home.join(".vex").join("configs")
+        }
+    };
+
+    fs::create_dir_all(&dir).map_err(|e| VexError::IoError {
+        path: dir.clone(),
+        operation: "create config directory".to_string(),
+        source: e,
+    })?;
+    Ok(dir)
+}
+
+/// `$VEX_CONFIG_DIR` (non-empty) or `~/.vex`. Sibling to `configs/` in
+/// default mode; coincides with `config_dir()` in env mode — a P3 carry-
+/// over of the `VEX_CONFIG_DIR` double meaning, scheduled for 0.4.2.
+pub fn vex_root_dir() -> VexResult<PathBuf> {
+    let dir = match std::env::var("VEX_CONFIG_DIR") {
+        Ok(path) if !path.is_empty() => PathBuf::from(path),
+        _ => {
+            let home = dirs::home_dir().ok_or_else(|| VexError::IoError {
+                path: PathBuf::from("~"),
+                operation: "resolve home directory".to_string(),
+                source: std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "failed to get user home directory",
+                ),
+            })?;
+            home.join(".vex")
+        }
+    };
+    fs::create_dir_all(&dir).map_err(|e| VexError::IoError {
+        path: dir.clone(),
+        operation: "create vex root directory".to_string(),
+        source: e,
+    })?;
+    Ok(dir)
+}
+
+pub fn config_file(name: &str) -> VexResult<PathBuf> {
+    let dir = config_dir()?;
+    Ok(dir.join(format!("{}.json", name)))
+}
+
+pub fn resource_cache_dir() -> VexResult<PathBuf> {
+    let dir = match std::env::var("VEX_RESOURCE_CACHE_DIR") {
+        Ok(path) if !path.is_empty() => PathBuf::from(path),
+        _ => {
+            // Mirror the env-resolution logic of config_dir without invoking it
+            // (config_dir() would mkdir its own target, which is the wrong scope here).
+            let base = match std::env::var("VEX_CONFIG_DIR") {
+                Ok(path) if !path.is_empty() => PathBuf::from(path),
+                _ => {
+                    let home = dirs::home_dir().ok_or_else(|| VexError::IoError {
+                        path: PathBuf::from("~"),
+                        operation: "resolve home directory".to_string(),
+                        source: std::io::Error::new(
+                            std::io::ErrorKind::NotFound,
+                            "failed to get user home directory",
+                        ),
+                    })?;
+                    home.join(".vex").join("configs")
+                }
+            };
+            base.parent()
+                .map(|p| p.join("resources"))
+                .unwrap_or_else(|| base.join("..").join("resources"))
+        }
+    };
+
+    fs::create_dir_all(&dir).map_err(|e| VexError::IoError {
+        path: dir.clone(),
+        operation: "create resource cache directory".to_string(),
+        source: e,
+    })?;
+    Ok(dir)
+}
+
+pub fn load_config(name: &str) -> VexResult<QemuConfig> {
+    sanitize_config_name(name)?;
+    let dir = config_dir()?;
+    load_config_from_dir(&dir, name)
+}
+
+pub(crate) fn load_config_from_dir(dir: &Path, name: &str) -> VexResult<QemuConfig> {
+    let path = dir.join(format!("{}.json", name));
+    if !path.exists() {
+        return Err(VexError::ConfigNotFound {
+            name: name.to_string(),
+        });
+    }
+    let content = fs::read_to_string(&path).map_err(|e| VexError::IoError {
+        path: path.clone(),
+        operation: "read config file".to_string(),
+        source: e,
+    })?;
+    parse_config_json(&content)
+}

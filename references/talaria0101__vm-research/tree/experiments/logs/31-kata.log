@@ -1,0 +1,17 @@
+## conditions
+date: 2026-09-09T09:17:29Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: kata
+--- [S] kvm module deps in the amd64 hypervisor impl (tag 4.1.0):
+11:	tdxKvmParameterPath = "/sys/module/kvm_intel/parameters/tdx"
+13:	snpKvmParameterPath = "/sys/module/kvm_amd/parameters/sev_snp"
+18:	// TDX is supported and enabled when the kvm module 'tdx' parameter is set to 'Y'
+24:	// SEV-SNP is supported and enabled when the kvm module `sev_snp` parameter is set to `Y`
+--- [S] kata-ctl host check gating on /dev/kvm:
+--- [V] census cross-ref:
+devkvm-node: ls: cannot access '/dev/kvm': No such file or directory
+mknod(chr 10:232)        rc=-1   errno=1 (Operation not permitted)
+--- verdict: hypervisor requires /dev/kvm [S]; node absent+uncreatable [V] => BLOCKED

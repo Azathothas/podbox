@@ -1,0 +1,141 @@
+## conditions
+date: 2026-09-09T09:13:00Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: pullrun
+pullrun version 0.7.9
+Run a workload. Accepts either a content-addressed digest (sha256:...)
+or an image:tag reference (e.g. alpine:latest) which will be pulled first.
+
+The default backend is "container" on Linux and "vm" on macOS.
+Use --backend=vm explicitly on Linux to run inside a Firecracker micro-VM.
+The kernel is loaded from ~/.pullrun/kernels/ by default, or from
+an OCI image via --kernel-image=<ref>.
+
+Usage:
+  pullrun run [IMAGE_REF|DIGEST] [flags]
+
+Flags:
+      --allow-inbound strings        Allow inbound port (e.g. 8080)
+      --allow-outbound strings       Allow outbound: tcp:host:port
+  -a, --attach                       Attach to workload: streams stdout/stderr (vm) or polls for exit code (container)
+      --backend string               Backend: container, vm, sandbox (default "container")
+      --cmd strings                  Override entrypoint command
+      --config strings               Mount a config at /<name> (format: name or name=/custom/path)
+      --cpu uint                     CPU millicores (1000 = 1 vCPU) (default 1000)
+  -e, --env strings                  Environment variables (KEY=VALUE)
+      --health-cmd string            Health check command (e.g. 'curl -f http://localhost:80' or 'ls /tmp/healthy')
+      --health-interval uint32       Health check interval (seconds) (default 30)
+      --health-retries uint32        Consecutive failures before marking unhealthy (default 3)
+      --health-start-period uint32   Grace period before health checks start (seconds)
+      --health-timeout uint32        Health check timeout (seconds) (default 30)
+  -h, --help                         help for run
+      --kernel-image string          OCI reference for the kernel image (optional on macOS when ~/.pullrun/kernels/ has one, e.g. 'pullrun/kernel-asahi:6.19.14')
+      --memory uint                  Memory limit in bytes (default 536870912)
+      --name string                  Workload name (auto-generated if empty)
+      --net string                   Network mode: isolated|host|none|slirp (default "isolated")
+      --platform string              Target platform for pull (e.g. linux/amd64, linux/arm64)
+  -p, --publish strings              Publish host:container port (e.g. 8080:80, or just 8080)
+      --registry string              Registry to pull the workload image from (default: docker.io; use 'localhost:5000' for local registries)
+      --restart string               Restart policy: no, on-failure, always, unless-stopped (default "no")
+      --secret strings               Mount a secret at /run/secrets/<name> (format: name or name=/custom/path)
+  -t, --tty                          Allocate a pseudo-TTY for the workload
+  -v, --volume strings               Bind mount (source:destination[:options]), e.g. /host/path:/container/path:ro
+
+Global Flags:
+      --direct          Use direct mode (spawn runtime as child) (default true)
+      --server string   Control plane address (disables direct mode)
+      --socket string   Runtime socket path (UDS on Unix, TCP host:port on Windows) (default "/tmp/pullrun.sock")
+--- container mode: pullrun run alpine:3.22 echo hi
+pulled docker.io/library/alpine:3.22 -> da79acee022386a5c502004a68a5a18076c26277ca6d71f7c37aaa157306cd5b
+[2m2026-09-09T09:13:00.099442Z[0m [32m INFO[0m [2mpullrun_exec::container[0m[2m:[0m creating container [3mid[0m[2m=[0mwl-2043e2879a6a [3mimage_root[0m[2m=[0mda79acee022386a5c502004a68a5a18076c26277ca6d71f7c37aaa157306cd5b
+[2m2026-09-09T09:13:00.099842Z[0m [32m INFO[0m [2mpullrun_oci::materializer[0m[2m:[0m materializing bundle [3mmanifest_digest[0m[2m=[0mda79acee022386a5c502004a68a5a18076c26277ca6d71f7c37aaa157306cd5b [3mrootfs[0m[2m=[0m/state/home/.local/share/pullrun/bundles/wl-2043e2879a6a/rootfs
+[2m2026-09-09T09:13:00.133580Z[0m [32m INFO[0m [2mpullrun_exec::container[0m[2m:[0m container created [3mid[0m[2m=[0mwl-2043e2879a6a
+[2m2026-09-09T09:13:00.133877Z[0m [32m INFO[0m [2mpullrun_exec::container[0m[2m:[0m starting container [3mid[0m[2m=[0mwl-2043e2879a6a
+Error: run workload: rpc error: code = Internal desc = start failed: execution failed: runc run failed for wl-2043e2879a6a (check runc logs)
+Usage:
+  pullrun run [IMAGE_REF|DIGEST] [flags]
+
+Flags:
+      --allow-inbound strings        Allow inbound port (e.g. 8080)
+      --allow-outbound strings       Allow outbound: tcp:host:port
+  -a, --attach                       Attach to workload: streams stdout/stderr (vm) or polls for exit code (container)
+      --backend string               Backend: container, vm, sandbox (default "container")
+      --cmd strings                  Override entrypoint command
+      --config strings               Mount a config at /<name> (format: name or name=/custom/path)
+      --cpu uint                     CPU millicores (1000 = 1 vCPU) (default 1000)
+  -e, --env strings                  Environment variables (KEY=VALUE)
+      --health-cmd string            Health check command (e.g. 'curl -f http://localhost:80' or 'ls /tmp/healthy')
+      --health-interval uint32       Health check interval (seconds) (default 30)
+      --health-retries uint32        Consecutive failures before marking unhealthy (default 3)
+      --health-start-period uint32   Grace period before health checks start (seconds)
+      --health-timeout uint32        Health check timeout (seconds) (default 30)
+  -h, --help                         help for run
+      --kernel-image string          OCI reference for the kernel image (optional on macOS when ~/.pullrun/kernels/ has one, e.g. 'pullrun/kernel-asahi:6.19.14')
+      --memory uint                  Memory limit in bytes (default 536870912)
+      --name string                  Workload name (auto-generated if empty)
+      --net string                   Network mode: isolated|host|none|slirp (default "isolated")
+      --platform string              Target platform for pull (e.g. linux/amd64, linux/arm64)
+  -p, --publish strings              Publish host:container port (e.g. 8080:80, or just 8080)
+      --registry string              Registry to pull the workload image from (default: docker.io; use 'localhost:5000' for local registries)
+      --restart string               Restart policy: no, on-failure, always, unless-stopped (default "no")
+      --secret strings               Mount a secret at /run/secrets/<name> (format: name or name=/custom/path)
+  -t, --tty                          Allocate a pseudo-TTY for the workload
+  -v, --volume strings               Bind mount (source:destination[:options]), e.g. /host/path:/container/path:ro
+
+Global Flags:
+      --direct          Use direct mode (spawn runtime as child) (default true)
+      --server string   Control plane address (disables direct mode)
+      --socket string   Runtime socket path (UDS on Unix, TCP host:port on Windows) (default "/tmp/pullrun.sock")
+
+Error: run workload: rpc error: code = Internal desc = start failed: execution failed: runc run failed for wl-2043e2879a6a (check runc logs)
+--- rc=1
+--- vm mode (flag from run --help, if any)
+pulled docker.io/library/alpine:3.22 -> da79acee022386a5c502004a68a5a18076c26277ca6d71f7c37aaa157306cd5b
+[2m2026-09-09T09:13:00.146522Z[0m [32m INFO[0m [2mpullrun_vm::oci_kernel[0m[2m:[0m pulling kernel image [3mimage[0m[2m=[0mpullrun/kernel-asahi:6.19.14
+[2m2026-09-09T09:13:00.480147Z[0m [32m INFO[0m [2mpullrun_oci::puller[0m[2m:[0m pulling OCI image [3mimage_ref[0m[2m=[0m"pullrun/kernel-asahi:6.19.14" [3mregistry[0m[2m=[0mregistry-1.docker.io [3mrepository[0m[2m=[0mpullrun/kernel-asahi [3mtag[0m[2m=[0m6.19.14 [3mplatform[0m[2m=[0mNone
+Error: run workload: rpc error: code = Internal desc = stage kernel pullrun/kernel-asahi:6.19.14: OCI pull failed: Invalid manifest: manifest fetch failed: {"errors":[{"code":"UNAUTHORIZED","message":"authentication required","detail":[{"Type":"repository","Class":"","Name":"pullrun/kernel-asahi","Action":"pull"}]}]}
+
+Usage:
+  pullrun run [IMAGE_REF|DIGEST] [flags]
+
+Flags:
+      --allow-inbound strings        Allow inbound port (e.g. 8080)
+      --allow-outbound strings       Allow outbound: tcp:host:port
+  -a, --attach                       Attach to workload: streams stdout/stderr (vm) or polls for exit code (container)
+      --backend string               Backend: container, vm, sandbox (default "container")
+      --cmd strings                  Override entrypoint command
+      --config strings               Mount a config at /<name> (format: name or name=/custom/path)
+      --cpu uint                     CPU millicores (1000 = 1 vCPU) (default 1000)
+  -e, --env strings                  Environment variables (KEY=VALUE)
+      --health-cmd string            Health check command (e.g. 'curl -f http://localhost:80' or 'ls /tmp/healthy')
+      --health-interval uint32       Health check interval (seconds) (default 30)
+      --health-retries uint32        Consecutive failures before marking unhealthy (default 3)
+      --health-start-period uint32   Grace period before health checks start (seconds)
+      --health-timeout uint32        Health check timeout (seconds) (default 30)
+  -h, --help                         help for run
+      --kernel-image string          OCI reference for the kernel image (optional on macOS when ~/.pullrun/kernels/ has one, e.g. 'pullrun/kernel-asahi:6.19.14')
+      --memory uint                  Memory limit in bytes (default 536870912)
+      --name string                  Workload name (auto-generated if empty)
+      --net string                   Network mode: isolated|host|none|slirp (default "isolated")
+      --platform string              Target platform for pull (e.g. linux/amd64, linux/arm64)
+  -p, --publish strings              Publish host:container port (e.g. 8080:80, or just 8080)
+      --registry string              Registry to pull the workload image from (default: docker.io; use 'localhost:5000' for local registries)
+      --restart string               Restart policy: no, on-failure, always, unless-stopped (default "no")
+      --secret strings               Mount a secret at /run/secrets/<name> (format: name or name=/custom/path)
+  -t, --tty                          Allocate a pseudo-TTY for the workload
+  -v, --volume strings               Bind mount (source:destination[:options]), e.g. /host/path:/container/path:ro
+
+Global Flags:
+      --direct          Use direct mode (spawn runtime as child) (default true)
+      --server string   Control plane address (disables direct mode)
+      --socket string   Runtime socket path (UDS on Unix, TCP host:port on Windows) (default "/tmp/pullrun.sock")
+
+Error: run workload: rpc error: code = Internal desc = stage kernel pullrun/kernel-asahi:6.19.14: OCI pull failed: Invalid manifest: manifest fetch failed: {"errors":[{"code":"UNAUTHORIZED","message":"authentication required","detail":[{"Type":"repository","Class":"","Name":"pullrun/kernel-asahi","Action":"pull"}]}]}
+
+--- rc=1
+--- decision: container rc=1 vm rc=1
+time="2026-09-09T09:13:29Z" level=error msg="runc run failed: unable to set hostname without a private UTS namespace"
+rc=0

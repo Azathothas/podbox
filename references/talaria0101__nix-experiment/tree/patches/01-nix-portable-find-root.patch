@@ -1,0 +1,26 @@
+nix-portable v012 self-extracting launcher patch (SIZE-PRESERVING!)
+====================================================================
+Problem: the launcher runs `find / -mindepth 1 -maxdepth 1 ...` to collect
+bind sources, but this sandbox denies readdir() on "/" (ls / -> Permission
+denied; direct paths still work). find prints "Permission denied" and the
+bind list ends up empty.
+
+Constraint: nix-portable is a bash script with a zip payload appended.
+The zip member offsets are absolute; ANY change in file size breaks
+extraction ("unzip: short read"). The patch must keep total byte size
+identical (pad with trailing spaces on the line).
+
+Transformation (exact, byte-for-byte):
+  OLD (82 bytes incl \n):
+    pathsTopLevel="$(find / -mindepth 1 -maxdepth 1 -not -name nix -not -name dev)"
+  NEW (same 82 bytes):
+    pathsTopLevel="/bin /etc /home /lib /lib64 /opt /proc /sbin /tmp /usr" + 10 spaces
+
+  (applied via python; see scripts/01-patch-nix-portable.py)
+
+NOTE: even patched, nix-portable CANNOT run on this host:
+  - default/direct mode: nix fails "opening pseudoterminal master: No such file or directory"
+  - NP_RUNTIME=bwrap:   bwrap: Failed to make / slave: Operation not permitted  (mount() blocked)
+  - NP_RUNTIME=proot:   proot: ptrace(TRACEME): Operation not permitted        (ptrace blocked)
+  - NP_RUNTIME=userns:  unshare(CLONE_NEWUSER) blocked
+See logs/01-*.log

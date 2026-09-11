@@ -1,0 +1,24 @@
+[netns] inside private netns (in-process, no exec)
+[netns] veth create rc=0 (OK)
+[netns] addresses set on both ends
+[dbg] veth0 flags=1003
+[dbg] veth1 flags=1043
+[dbg] routes:
+  Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT                                                       
+  veth0	0000C80A	00000000	0001	0	0	0	00FFFFFF	0	0	0                                                                              
+  veth1	0000C80A	00000000	0001	0	0	0	00FFFFFF	0	0	0                                                                              
+[netns] hdr: 08 00 ck=0c20  first16: 0800200c0000000008090a0b0c0d0e0f
+[netns] sendto=64 (ok)
+[netns] rx icmp type=8 from=100007f checksum_field=0000 recomputed=200c INVALID
+[netns] rx icmp type=0 from=100007f checksum_field=0000 recomputed=280c INVALID
+[netns] ICMP echo to 127.0.0.1 over private veth: REPLY RECEIVED (0.000s)
+[snmp] Icmp: InMsgs InErrors InCsumErrors InDestUnreachs InTimeExcds InParmProbs InSrcQuenchs InRedirects InEchos InEchoReps InTimestamps InTimestampReps InAddrMasks InAddrMaskReps OutMsgs OutErrors OutRateLimitGlobal OutRateLimitHost OutDestUnreachs OutTimeExcds OutParmProbs OutSrcQuenchs OutRedirects OutEchos OutEchoReps OutTimestamps OutTimestampReps OutAddrMasks OutAddrMaskReps
+[snmp] Icmp: 2 0 0 0 0 0 0 0 1 1 0 0 0 0 2 0 0 0 0 0 0 0 0 1 1 0 0 0 0
+[snmp] IcmpMsg: InType0 InType8 OutType0 OutType8
+[snmp] IcmpMsg: 1 1 1 1
+[netns] hdr: 08 00 ck=0c20  first16: 0800200c0000000008090a0b0c0d0e0f
+[netns] sendto=64 (ok)
+[netns] rx icmp type=8 from=200c80a checksum_field=0000 recomputed=200c INVALID
+[netns] rx icmp type=0 from=200c80a checksum_field=0000 recomputed=280c INVALID
+[netns] ICMP echo to 10.200.0.2 over private veth: REPLY RECEIVED (0.000s)
+[p] child exit=0

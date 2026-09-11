@@ -1,0 +1,20 @@
+## conditions
+## conditions
+date: 2026-09-09T13:10:45Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: microvm-fleet
+fleet: 8 guests x (1 vcpu, 128M, -M microvm, tcg)
+### guests booted with proof: 8/8
+### wall seconds for the whole fleet: 1.965634757
+### aggregate: 4.06 boots/s
+VMR-GUEST-UPTIME: 0.83 0.00
+VMR-GUEST-UPTIME: 0.85 0.00
+VMR-GUEST-UPTIME: 0.86 0.00
+VMR-GUEST-UPTIME: 0.83 0.00
+VMR-GUEST-UPTIME: 0.85 0.00
+VMR-GUEST-UPTIME: 0.85 0.00
+VMR-GUEST-UPTIME: 0.91 0.00
+VMR-GUEST-UPTIME: 0.81 0.00

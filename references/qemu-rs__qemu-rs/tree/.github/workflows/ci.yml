@@ -1,0 +1,340 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check_linux:
+    name: Check Build (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy rustfmt
+
+      - uses: actions/checkout@v4
+
+      - name: Install Cargo-Hack
+        run: |
+          cargo install cargo-hack
+
+      - name: Check Code
+        run: |
+          ./scripts/check.sh
+
+  check_macos:
+    name: Check Build (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy rustfmt
+
+      - uses: actions/checkout@v4
+
+      - name: Install Cargo-Hack
+        run: |
+          cargo install cargo-hack
+
+      - name: Check Code
+        run: |
+          ./scripts/check.sh
+
+  check_windows:
+    name: Check Build (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy rustfmt
+
+      - uses: actions/checkout@v4
+
+      - name: Install Cargo-Hack
+        run: |
+          cargo install cargo-hack
+
+      - name: Check Code
+        shell: pwsh
+        run: |
+          ./scripts/check.ps1
+
+  test_plugins_linux:
+    name: Build and Test Plugins API v${{ matrix.version }} (Linux)
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+
+    strategy:
+      matrix:
+        include:
+          - version: 1
+            commit: 1332b8dd434674480f0feb2cdf3bbaebb85b4240
+          - version: 2
+            commit: c25df57ae8f9fe1c72eee2dab37d76d904ac382e
+          - version: 3
+            commit: 7de77d37880d7267a491cb32a1b2232017d1e545
+          - version: 4
+            commit: 595cd9ce2ec9330882c991a647d5bc2a5640f380
+          - version: 5
+            commit: f8b2f64e2336a28bf0d50b6ef8a7d8c013e9bcf3
+          - version: 6
+            commit: 98b060da3a4f92b2a994ead5b16a87e783baf77c
+
+    env:
+      QEMU_COMMIT_HASH: ${{ matrix.commit }}
+
+    steps:
+      - name: Set up Sources List
+        run: |
+          cat <<EOF > /etc/apt/sources.list.d/ubuntu.sources
+          Types: deb
+          URIs: http://archive.ubuntu.com/ubuntu/
+          Suites: noble noble-updates noble-backports
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb
+          URIs: http://security.ubuntu.com/ubuntu/
+          Suites: noble-security
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb-src
+          URIs: http://archive.ubuntu.com/ubuntu/
+          Suites: noble noble-updates noble-backports
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb-src
+          URIs: http://security.ubuntu.com/ubuntu/
+          Suites: noble-security
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          EOF
+      
+      - name: Create APT Script
+        run: |
+          cat <<EOF > install-apt-packages.sh
+          apt -y update
+          apt -y install git curl build-essential
+          apt -y source qemu
+          apt -y build-dep qemu
+          EOF
+          chmod +x install-apt-packages.sh
+
+      - name: Cache apt packages  
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('install-deps.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
+      - name: Install APT Packages
+        run: |
+          ./install-apt-packages.sh
+
+      - name: Cache QEMU
+        id: qemu-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            qemu-upstream
+          key: ${{ runner.os }}-qemu-v${{ matrix.version }}-${{ matrix.commit }}
+
+      - name: Clone QEMU
+        if: steps.qemu-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://gitlab.com/qemu/qemu qemu-upstream
+          git -C qemu-upstream checkout "${QEMU_COMMIT_HASH}"
+
+      - name: Build QEMU
+        if: steps.qemu-cache.outputs.cache-hit != 'true'
+        run: |
+          cd qemu-upstream
+          ./configure --enable-plugins --target-list="x86_64-linux-user x86_64-softmmu"
+          make -C build -j$(nproc)
+          make -C build install
+
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - uses: actions/checkout@v4
+
+      - name: Test QEMU Install
+        run: |
+          qemu-x86_64 --help
+
+      - name: Run Tracer
+        run: |
+          cargo build --manifest-path=plugins/tracer/Cargo.toml -r --features=plugin-api-v${{ matrix.version }} --no-default-features
+          cargo run --manifest-path=plugins/tracer-driver/Cargo.toml -r --features=plugin-api-v${{ matrix.version }} --no-default-features -- -P target/release/libtracer.so -a /bin/ls -- -lah 2> err.txt > out.txt
+          tail -n 100 err.txt
+          tail -n 100 out.txt
+          # Ensure out.txt contains at least one line that starts with '{"Instruction":'
+          grep -E '^\{"Instruction":' out.txt
+
+      - name: Build and Test Tiny
+        run: |
+          cargo build --manifest-path=plugins/tiny/Cargo.toml -r --features=plugin-api-v${{ matrix.version }} --no-default-features
+          qemu-x86_64 -plugin target/release/libtiny.so /bin/ls -lah 2> err.txt > out.txt
+          tail -n 100 err.txt
+          tail -n 100 out.txt
+          # Ensure out.txt contains at least one line of the format <hex numebr>: string
+          grep -E '^[0-9a-fA-F]+:' out.txt
+
+  test_plugins_macos:
+    name: Build Plugins API v${{ matrix.version }} (macOS)
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        include:
+          # - version: 1
+          #   commit: 1332b8dd434674480f0feb2cdf3bbaebb85b4240
+          # - version: 2
+          #   commit: c25df57ae8f9fe1c72eee2dab37d76d904ac382e
+          # - version: 3
+          #   commit: 7de77d37880d7267a491cb32a1b2232017d1e545
+          # - version: 4
+          #   commit: 595cd9ce2ec9330882c991a647d5bc2a5640f380
+          - version: 5
+            commit: f8b2f64e2336a28bf0d50b6ef8a7d8c013e9bcf3
+
+    env:
+      QEMU_COMMIT_HASH: ${{ matrix.commit }}
+      FEDORA_CLOUDIMG_URL: "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2"
+
+    steps:
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - uses: actions/checkout@v4
+
+      - name: Install QEMU Build Dependencies
+        run: |
+          brew update
+          brew install pkg-config glib pixman gettext meson ninja python coreutils sphinx-doc
+
+      - name: Cache QEMU
+        id: qemu-cache-macos
+        uses: actions/cache@v3
+        with:
+          path: |
+            qemu-upstream
+          key: macos-qemu-v${{ matrix.version }}-${{ matrix.commit }}
+
+      - name: Clone QEMU
+        if: steps.qemu-cache-macos.outputs.cache-hit != 'true'
+        run: |
+          git clone https://gitlab.com/qemu/qemu qemu-upstream
+          git -C qemu-upstream checkout "${QEMU_COMMIT_HASH}"
+
+      - name: Build QEMU from source (softmmu)
+        if: steps.qemu-cache-macos.outputs.cache-hit != 'true'
+        run: |
+          cd qemu-upstream
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python3 -m pip install sphinx sphinx_rtd_theme
+          ./configure --enable-plugins --target-list="x86_64-softmmu"
+          make -C build -j"$(sysctl -n hw.logicalcpu)"
+
+      - name: Test QEMU Install
+        run: |
+          ls qemu-upstream/build
+          qemu-upstream/build/qemu-system-x86_64-unsigned --version
+
+      - name: Cache Fedora Cloud Image
+        id: fedora-cache
+        uses: actions/cache@v3
+        with:
+          path: Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2
+          key: fedora-Cloud-42-1.1
+
+      - name: Download Cloud Image
+        if: steps.fedora-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -L -o Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2 ${{ env.FEDORA_CLOUDIMG_URL }}
+
+      - name: Build And Test Tiny System
+        run: |
+          cargo build -r --manifest-path=plugins/tiny-system/Cargo.toml
+          timeout --preserve-status 180 qemu-upstream/build/qemu-system-x86_64-unsigned -machine type=q35 -m 2G -nographic -drive if=virtio,format=qcow2,file=Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2 -drive if=virtio,format=raw,file=.github/rsrc/seed.img -plugin target/release/libtiny_system.dylib 2> err.txt > out.txt || exit 0
+          tail -n 100 out.txt
+          tail -n 100 err.txt
+          # Make sure out.txt contains "on_vcpu_resume" which shows the plugin was loaded and ran
+          grep "on_vcpu_resume" out.txt
+
+  test_plugins_windows:
+    name: Build and Test Plugins (Windows)
+    runs-on: windows-latest
+
+    env:
+      QEMU_VERSION: "11.0.0-1"
+      RUSTUP_URL: "https://win.rustup.rs/x86_64"
+      FEDORA_CLOUDIMG_URL: "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2"
+
+    steps:
+      - name: Set QEMU Version
+        run: |
+          echo "QEMU_VERSION=$QEMU_VERSION" >> $GITHUB_ENV
+
+      # Cache MSYS2 
+      - name: Cache MSYS2 packages
+        id: msys2-cache
+        uses: actions/cache@v3
+        with:
+          path: C:\msys-custom
+          key: ${{ runner.os }}-msys2-${{ env.QEMU_VERSION }}
+
+      - name: Install MSYS2 and QEMU
+        uses: msys2/setup-msys2@v2
+        if: steps.msys2-cache.outputs.cache-hit != 'true'
+        with:
+          msystem: UCRT64
+          update: true
+          install: git mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-qemu=${{ env.QEMU_VERSION }}
+          location: C:\msys-custom
+
+      - name: Download and Install Rust
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -Uri ${{ env.RUSTUP_URL }} -OutFile rustup-init.exe
+          ./rustup-init.exe --default-toolchain nightly --default-host x86_64-pc-windows-gnu -y
+
+      - name: Test QEMU
+        run: |
+          C:\msys-custom\msys64\ucrt64\bin\qemu-system-x86_64.exe --version
+
+      - uses: actions/checkout@v4
+
+      - name: Cache Fedora Cloud Image
+        id: fedora-cache
+        uses: actions/cache@v3
+        with:
+          path: Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2
+          key: Fedora-Cloud-42-1.1
+
+      - name: Download Cloud Image
+        if: steps.fedora-cache.outputs.cache-hit != 'true'
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -Uri ${{ env.FEDORA_CLOUDIMG_URL }} -OutFile Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2
+
+      - name: Build and Test Tiny
+        run: |
+          cargo build --manifest-path=plugins/tiny-system/Cargo.toml -r
+          $process = Start-Process PowerShell.exe -NoNewWindow -RedirectStandardOutput out.txt -RedirectStandardError err.txt -PassThru -ArgumentList "-Command", "C:\msys-custom\msys64\ucrt64\bin\qemu-system-x86_64.exe -machine type=q35 -m 2G -nographic -device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::2222-:22 -drive if=virtio,format=qcow2,file=Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2 -drive if=virtio,format=raw,file=.github/rsrc/seed.img -plugin target/release/tiny_system.dll"
+          echo "Sleeping 180.0 seconds until booted (boot process took 118s first time)"
+          Start-Sleep -Seconds 180.0
+          echo "Stopping process"
+          Stop-Process -Id $process.id -ErrorAction SilentlyContinue
+          Get-Content -Tail 100 out.txt
+          Get-Content -Tail 100 err.txt
+          # Make sure out.txt contains "on_vcpu_resume" which shows the plugin was loaded and ran
+          Select-String -Path out.txt -Pattern "on_vcpu_resume"

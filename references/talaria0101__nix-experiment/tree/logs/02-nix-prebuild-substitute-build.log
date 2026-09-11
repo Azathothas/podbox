@@ -1,0 +1,9 @@
+=== nix build nixpkgs#hello (substitute-only, no local build) ===
+error: opening file "/": Permission denied
+
+real	0m0.011s
+user	0m0.006s
+sys	0m0.005s
+exit: 1
+
+=== store contents ===

@@ -478,3 +478,63 @@ Prove:       `./scripts/plant.sh` gains a case that introduces a clippy failure
              and an unformatted line in `crates/podbox-interpose` and asserts
              `./scripts/dev.sh check` goes red naming that crate, which it does
              not today.
+
+
+---
+
+### T-1208 A closed entry carries its recorded run, and the gate can see it
+
+Source:      [RULES.md](RULES.md) section 5; the reconciliation of 2026-09-11
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     [RULES.md](RULES.md) section 5 says an entry closes in place with
+             its `Prove` command actually run and the output recorded underneath.
+             **Nothing asserts it.** `scripts/check-todo.py` checks the counts,
+             the rows, the fields and every citation, and it does not check the
+             one thing that makes a closed entry mean anything.
+Premise:     **Measured on 2026-09-11 across all 87 closed entries**, and the
+             number is small, which is the good news:
+             86 carry a record of the run. **One did not**: T-0408 in
+             [complete.md](complete.md) had a `Prove` line and nothing after it,
+             and it has been reopened.
+             **The harder half is that the record has two shapes**, and a
+             reader looking for one of them under-counts badly. 80 entries open
+             the record with a bold `Done` paragraph. Six record the run in
+             prose after the `Prove` line instead, naming the test, the driven
+             command or the measured count: T-0801 in [cli.md](cli.md), T-0204
+             and T-0211 in [image.md](image.md), T-1103 in
+             [milestones.md](milestones.md), and T-0107 and T-0108 in
+             [probe.md](probe.md).
+             **Both shapes satisfy the rule as written.** Section 5 asks for
+             the output recorded underneath and does not name a format. So the
+             defect is not in those six entries; it is that the rule is not
+             machine-checkable, and a rule nothing checks drifts.
+             A first count of this got the answer badly wrong, which is the
+             argument for a checked rule rather than a careful reader: a grep for
+             the marker with a trailing space missed every record written
+             `Done.` with no date, and reported 31 entries as unrecorded when the
+             true number was one.
+Approach:    Fix the rule first, then check it. Give section 5 one stated shape
+             for the closure record, amend the six entries above into it in the
+             same change, and then add the check:
+             1. every entry whose `Status` is `done` has content after its
+                `Prove` field;
+             2. that content names something checkable, which is at least one
+                backticked command, path or number;
+             3. the plant, in `scripts/plant.sh`: delete the record from one
+                closed entry and assert the gate goes red naming that entry.
+             A check with no plant is not a check, and [T-1202](gate.md)
+             is the rule that says so.
+Decision:    Not taken on the shape itself. Two are defensible: keep the bold
+             `Done` paragraph and convert the six, or accept any content after
+             `Prove` and check only that it exists and cites something.
+             The first is stricter and rewrites six entries that are not wrong;
+             the second checks less and rewrites nothing. Take one, record the
+             rejected one, and continue.
+             A date on the `Status` line is **not** part of this. 21 closed
+             entries carry `done` with no date and 66 carry one; section 5 asks
+             for neither, so making it a rule here would invent one.
+Prove:       `./scripts/check-todo.py` reports a `closure_records` coverage count equal to the number of closed entries, and the plant for it goes red naming the entry whose record was removed

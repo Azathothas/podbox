@@ -879,3 +879,45 @@ Prove:       `./experiments/106-interpose-identity.sh`, which runs a payload
              picks, and asserts the BANNER says the same thing the call did --
              because the failure this entry exists to prevent is podbox and its
              own output disagreeing about who the payload is.
+
+
+---
+
+### T-0712 A reach matrix holds its arguments constant, or it measures two things
+
+Source:      `references/talaria0101__sandbox-insights/tree/scripts/ldpreload/victim_dyn.c`,
+             `references/talaria0101__sandbox-insights/tree/scripts/ldpreload/victim_static.c`,
+             and `references/talaria0101__sandbox-insights/tree/experiments/logs/35-interposition-reach.log`
+Category:    interpose
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     [T-1110](milestones.md) drives a payload matrix across payload
+             classes, and [T-0706](interpose.md) owns the named decline for the
+             classes the tier cannot reach. **A matrix that changes two things
+             between its rows measures neither**, and the fixture podbox would
+             copy has exactly that defect.
+Premise:     **Read at the line, and the header disagrees with the code.**
+             That fixture's header and its README both say the three victims run
+             "the same two syscalls each". The syscalls are the same and the
+             ARGUMENTS are not: the dynamic victim asks for an **unmapped** gid
+             42, while the static and the Go victim both ask for gid 0, which is
+             **mapped**.
+             **The reach result still stands**: no `SHIM:` line appears for
+             the static or the Go victim in the log, so neither is reached, and
+             that is what the fixture was built to show.
+             **The wall result does not.** The log line
+             `victim_static: lchown -> 0` reads as a static payload clearing the
+             ownership wall, and it is nothing of the kind: it asked for a gid
+             that is mapped. A reader taking that row as evidence would conclude
+             that static payloads escape wall 1.
+Approach:    podbox's own matrix holds the argument constant across every row and
+             varies **only** the payload class. One unmapped target for every
+             row, so "reached" and "cleared" are two columns of the same table
+             rather than two experiments.
+             Two columns, not one verdict: **seen** by the interposer, and
+             **cleared** by it. The dynamic row is the only one that can be yes
+             to both, and saying so is the point of the table.
+Decision:    Not taken.
+Prove:       `./experiments/245-interpose-sweep.sh` prints `seen` and `cleared` as separate columns, and every row's `lchown` target gid is identical and unmapped

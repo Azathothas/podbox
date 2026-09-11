@@ -1,0 +1,12 @@
+# heavy, re-generatable artifacts (scripts recreate all of these)
+chroot/rootfs*/
+chroot/dl/
+store-demo/
+vm/stage/
+vm/dl/
+vm/root/
+vm/initramfs.cpio.gz
+nix-portable-patched
+nix-prebuild-*.tar.xz*
+result
+chroot/nix-pty-shim.so

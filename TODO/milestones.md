@@ -641,9 +641,10 @@ Prove:       `./experiments/245-interpose-sweep.sh`, printing `rows`, `ran`,
 
 ---
 
-### T-1111 The nix acceptance: a real payload the chroot tier is exactly the answer for
+### T-1111 M8 the nix acceptance: a real payload the chroot tier is exactly the answer for
 
-Source:      `https://github.com/talaria0101/nix-experiment`, its REPORT document
+Source:      `references/talaria0101__nix-experiment/tree/REPORT.md`, plus that
+             tree's latest-nix-shim design document and its claim-scope review
 Category:    milestones
 Priority:    P1
 Effort:      L
@@ -653,19 +654,31 @@ Problem:     M5 drives package managers across ten distributions and M6 drives
              the interposer. ⛔ **Neither drives a payload that a consumer
              actually wanted and could not otherwise have**, which is the only
              evidence that says podbox is worth running rather than correct.
+             ⭐ **This is M8**, and it sits after M7 on purpose: it drives the
+             SHIPPED binary, so it is the last gate rather than an early one.
 Premise:     ⭐ **Somebody already did this by hand, on a runtime of this class,
              and the answer they arrived at is what podbox is.** Every route with
-             a namespace, a mount or a `ptrace` in it failed. The working
-             solution was a plain `chroot` over a hand-assembled rootfs with
-             regular-file device stand-ins, a host CA bundle and
+             a namespace, a mount or a `ptrace` in it failed: a portable
+             launcher wanted a pty, `bwrap` wanted `mount`, `proot` wanted
+             `ptrace`, and the user-namespace route wanted `unshare`. The
+             working solution was a plain `chroot` over a hand-assembled rootfs
+             with regular-file device stand-ins, a host CA bundle and
              ownership-neutral extraction.
              ⭐ **podbox already ships every one of those pieces.**
-             `crates/podbox-complete/src/devices.rs` fills `/dev/urandom` with a
-             megabyte read once from the host's `getrandom`, which is the same
-             fix that report reached by failure after an empty file made a
-             downloader throw. [complete.md](complete.md) T-0407 is the CA
-             bundle, [extract.md](extract.md) is the ownership sidecar, and
+             `crates/podbox-complete/src/devices.rs:50` fills `/dev/urandom`
+             with `FILLED_BYTES`, one MiB read once from the host's
+             `getrandom(2)`. [complete.md](complete.md) T-0407 is the CA bundle,
+             [extract.md](extract.md) is the ownership sidecar, and
              [enter.md](enter.md) is the root change.
+             ⚠ **The two entropy fixes are not the same fix, and the difference
+             is worth keeping.** That experiment wrote **4 KiB copied from the
+             host's `/dev/urandom`**, reached by failure after an *empty* file
+             made `std::random_device` in gcc-7.3's libstdc++ throw during the
+             first download. podbox's is larger and comes from `getrandom(2)`,
+             which is the better source. ⛔ An `LD_PRELOAD` entropy shim was
+             tried there and did **not** work: libstdc++ opens the file through
+             `syscall()` and no libc interposer sees that. The file is the fix,
+             and that is wall 3 appearing in a real payload.
              ⚠ **Two pieces are NOT in place**, and they are what this entry
              measures: no procfs inside the chroot
              ([complete.md](complete.md) T-0413), and no pty at all where
@@ -679,15 +692,42 @@ Approach:    Drive the whole pipeline through the shipped binary and record what
              that it either runs with no hand patching or it says exactly which
              piece is missing. A row that passes because the operator
              pre-assembled the rootfs measures nothing.
-             ⚠ The negative row matters as much as the positive one: a build that
-             asks for a namespace must fail with podbox naming the wall, which is
-             the message [cli.md](cli.md) T-0809 makes unambiguous.
-Decision:    Not taken. ⚠ The version pinning is the question. The report pins a
-             build tool and a package set to the last pair whose whole pipeline
-             works with no pty. ⛔ Rule whether this acceptance pins that same
-             pair, which measures podbox against a known-good target, or tracks
-             the current pair, which measures the wall instead and fails by
-             design until T-0503 has an answer.
+             The acceptance rows, and each is a separate verdict:
+             1. **register** the binary-tarball closure in the package database;
+             2. **fetch** the package set over TLS, which needs the CA bundle
+                and DNS;
+             3. **evaluate** it;
+             4. **build** locally with the sandbox setting off, which is the row
+                the pipe-era tool is pinned for;
+             5. **run** the built artefact inside the root;
+             6. ⛔ the **negative row**: a build that asks for a namespace must
+                fail with podbox naming the wall. On that host the payload's own
+                message is `setgroups failed: Operation not permitted`, and
+                [cli.md](cli.md) T-0809 is what makes podbox's version of it
+                unambiguous;
+             7. ⚠ the **procfs row**: the package set's fixup hooks use bash
+                process substitution, `done < <(find ...)`, which needs
+                `/dev/fd/N` and therefore procfs. A scan of all 38 setup hooks
+                at that package-set version found exactly four that do it, so
+                the row either disables those four and says so, or T-0413
+                supplies a procfs and it does not have to.
+Decision:    ⭐ **Pin the known-good pair.** The acceptance pins the build tool
+             and the package set to the last pair whose whole pipeline runs with
+             no pty, because that measures **podbox** against a target known to
+             be reachable. Tracking the current pair measures the wall instead,
+             fails by design until T-0503 has an answer, and tells a reader
+             nothing about whether podbox regressed.
+             ⚠ **Rejected:** tracking the current pair. It is the more honest
+             test of the environment and the less useful test of this tool, and
+             the wall it would measure is already T-0503's subject.
+             ⭐ The pin is forced by two upstream gates, both verified at the
+             source: the build tool calls `posix_openpt()` unconditionally in
+             `startBuilder()` from 2.3.0 onward, with no setting to disable it;
+             and the package set gates on a minimum tool version, `"2.2"` at
+             22.05 and `"2.3"` at 22.11, while 23.11 additionally needs a
+             builtin that arrived in 2.4. ⛔ So **2.2.2 with 22.05** is the
+             newest release pair, and it is a pin with a reason rather than a
+             preference.
 Prove:       `./experiments/152-nix-acceptance.sh` exits 0 with the built artefact's own output, or exits 1 naming the single missing piece. ⛔ It may not exit 0 against a pre-assembled rootfs
 
 ---

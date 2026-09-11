@@ -1,0 +1,24 @@
+[package]
+name = "winquick"
+version = "0.5.0"
+edition = "2021"
+description = "Run commands inside a real, disposable Windows environment"
+repository = "https://github.com/carlbomsdata/winquick"
+homepage = "https://winquick.io"
+readme = "README.md"
+keywords = ["windows", "virtualization", "testing", "qemu", "hypervisor"]
+license = "Apache-2.0"
+categories = ["command-line-utilities", "development-tools::testing", "virtualization"]
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+fatfs = "0.3"
+fscommon = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true

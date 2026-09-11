@@ -1,0 +1,15 @@
+{
+  "title": "Root Without Reach: Capability-Directed Containers, Tracing, and MicroVMs in a Restricted Linux Sandbox",
+  "author": "Sandbox Insights contributors",
+  "date": "10 September 2026",
+  "subject": "Systems and Security",
+  "keywords": [
+    "Linux sandbox",
+    "user namespaces",
+    "seccomp user notification",
+    "Landlock",
+    "QEMU TCG",
+    "container runtime",
+    "system-call tracing"
+  ]
+}

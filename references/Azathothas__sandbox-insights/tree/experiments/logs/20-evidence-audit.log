@@ -1,0 +1,45 @@
+## question: does every evidence row resolve to a repository-local literal anchor and condition?
+date_utc=2026-09-10T12:50:23.1713872Z
+PASS N-001 OBSERVED docs/observations.md
+PASS N-002 OBSERVED docs/observations.md
+PASS N-003 OBSERVED docs/observations.md
+PASS F-001 OBSERVED docs/observations.md
+PASS F-002 OBSERVED docs/observations.md
+PASS F-003 OBSERVED docs/observations.md
+PASS F-004 LIMIT docs/observations.md
+PASS M-001 OBSERVED docs/observations.md
+PASS M-002 OBSERVED docs/observations.md
+PASS M-003 OPEN docs/observations.md
+PASS I-001 OBSERVED docs/observations.md
+PASS I-002 OBSERVED docs/observations.md
+PASS I-003 OBSERVED docs/observations.md
+PASS I-004 DESIGN docs/capability-model.md
+PASS I-005 LIMIT docs/capability-model.md
+PASS W-001 OBSERVED docs/observations.md
+PASS W-002 OBSERVED docs/observations.md
+PASS W-003 OBSERVED docs/observations.md
+PASS D-001 OBSERVED docs/observations.md
+PASS D-002 OBSERVED docs/observations.md
+PASS D-003 OBSERVED docs/observations.md
+PASS D-004 OBSERVED docs/observations.md
+PASS T-001 OBSERVED docs/observations.md
+PASS T-002 OBSERVED docs/observations.md
+PASS T-003 OBSERVED docs/observations.md
+PASS T-004 OBSERVED docs/observations.md
+PASS T-005 LIMIT docs/observations.md
+PASS T-006 DESIGN docs/capability-model.md
+PASS T-007 OBSERVED docs/observations.md
+PASS T-008 DESIGN docs/capability-model.md
+PASS V-001 OBSERVED docs/observations.md
+PASS V-002 OBSERVED docs/observations.md
+PASS V-003 OBSERVED docs/observations.md
+PASS V-004 OBSERVED docs/observations.md
+PASS V-005 DERIVED docs/observations.md
+PASS V-006 LIMIT docs/observations.md
+PASS V-007 LIMIT docs/observations.md
+PASS A-001 DESIGN docs/architecture.md
+PASS A-002 DESIGN docs/architecture.md
+PASS A-003 DESIGN docs/architecture.md
+PASS A-004 OPEN docs/open-questions.md
+SUMMARY PASS evidence=41
+exit=0

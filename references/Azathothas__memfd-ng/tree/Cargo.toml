@@ -1,0 +1,48 @@
+[package]
+name = "memfd-ng"
+version = "0.1.1"
+edition = "2021"
+rust-version = "1.65"
+license = "0BSD"
+description = "Execute ELF binaries from memory on Linux and FreeBSD"
+repository = "https://github.com/Azathothas/memfd-ng"
+readme = "README.md"
+keywords = ["memfd", "exec", "fexecve", "memory", "process"]
+categories = ["os::unix-apis"]
+
+[workspace]
+members = ["ffi"]
+
+[dependencies]
+libc = "0.2.189"
+
+[dev-dependencies]
+libc = "0.2"
+
+[[bin]]
+name = "memfd-run"
+path = "src/bin/memfd-run.rs"
+required-features = ["cli"]
+
+[features]
+# Compile the environment hooks that integration tests use. The hooks are
+# MEMFD_NG_TEST_NO_EXECVEAT, MEMFD_NG_TEST_NO_PROC,
+# MEMFD_NG_TEST_NO_OTMPFILE, MEMFD_NG_TEST_NO_NAMED_STAGE, and
+# MEMFD_NG_TEST_NO_SYSDIRS. This feature is disabled by default.
+test-hooks = []
+# Build the memfd-run command. This feature is disabled by default.
+cli = []
+
+[[bench]]
+name = "spawn"
+harness = false
+
+[profile.release]
+lto = true
+debug = false
+opt-level = "z"
+strip = "symbols"
+codegen-units = 1
+
+[profile.dev]
+opt-level = 1

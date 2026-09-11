@@ -1,0 +1,331 @@
+[alt]
+url = "http://ftp.altlinux.org/pub/distributions/ALTLinux/images/Sisyphus/cloud/{{arch}}/alt-sisyphus-cloud-{{arch}}.qcow2"
+description = "ALT Linux Sisyphus"
+change = ["update-all", "delete"]
+
+[alt-dev]
+url = "http://ftp.altlinux.org/pub/people/obirvalger/cloud-images/alt-sisyphus-dev-x86_64.qcow2"
+description = "Unofficial ALT build for developnent and testing"
+change = ["update-all", "delete"]
+
+[alt-dev-gui]
+url = "http://ftp.altlinux.org/pub/people/obirvalger/cloud-images/alt-sisyphus-gui-x86_64.qcow2"
+description = "Unofficial ALT build for developnent and testing with lxqt de"
+properties = ["gui"]
+change = ["update-all", "delete"]
+
+[alt-p11-dev-gui]
+url = "http://ftp.altlinux.org/pub/people/obirvalger/cloud-images/alt-p11-gui-x86_64.qcow2"
+description = "Unofficial ALT build for developnent and testing with lxqt de"
+properties = ["gui"]
+change = ["update-all", "delete"]
+
+[alt-p11]
+url = "http://ftp.altlinux.org/pub/distributions/ALTLinux/images/p11/cloud/{{arch}}/alt-p11-cloud-{{arch}}.qcow2"
+description = "ALT Linux p11"
+change = ["update-all", "delete"]
+
+[alt-p10]
+url = "http://ftp.altlinux.org/pub/distributions/ALTLinux/images/p10/cloud/{{arch}}/alt-p10-cloud-{{arch}}.qcow2"
+description = "ALT Linux p10"
+change = ["update-all", "delete"]
+
+[alt-p9]
+url = "http://ftp.altlinux.org/pub/distributions/ALTLinux/images/p9/cloud/{{arch}}/alt-p9-cloud-{{arch}}.qcow2"
+description = "ALT Linux p9"
+change = ["update-all", "delete"]
+
+[alt-sisyphus]
+url = "http://ftp.altlinux.org/pub/distributions/ALTLinux/images/Sisyphus/cloud/{{arch}}/alt-sisyphus-cloud-{{arch}}.qcow2"
+description = "ALT Linux Sisyphus"
+change = ["update-all", "delete"]
+
+[alt-gui]
+url = "http://ftp.altlinux.org/pub/distributions/ALTLinux/images/p11/cloud/{{arch}}/alt-workstation-11.1-p11-cloud-{{arch}}.qcow2"
+description = "ALT Linux p11 gui"
+properties = ["gui"]
+change = ["update-all", "delete"]
+
+[arch]
+description = "Archlinux"
+url = ""
+get-url-prog = "vml-get-arch"
+change = ["update-all", "delete"]
+
+[ubuntu]
+url = "https://cloud-images.ubuntu.com/resolute/current/resolute-server-cloudimg-{{arch}}.img"
+description = "latest Ubuntu release (26.04)"
+change = ["update-all", "delete"]
+
+[ubuntu.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[ubuntu-lts]
+url = "https://cloud-images.ubuntu.com/resolute/current/resolute-server-cloudimg-{{arch}}.img"
+description = "latest LTS Ubuntu release (26.04)"
+change = ["update-all", "delete"]
+
+[ubuntu-lts.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[ubuntu-resolute]
+url = "https://cloud-images.ubuntu.com/resolute/current/resolute-server-cloudimg-{{arch}}.img"
+description = "Ubuntu 26.04 Resolute Raccoon"
+change = ["update-all", "delete"]
+
+[ubuntu-resolute.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[ubuntu-stonking]
+url = "https://cloud-images.ubuntu.com/stonking/current/stonking-server-cloudimg-{{arch}}.img"
+description = "Ubuntu 26.10 Stonking Stingray (daily)"
+change = ["update-all", "delete"]
+
+[ubuntu-stonking.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[ubuntu-questing]
+url = "https://cloud-images.ubuntu.com/questing/current/questing-server-cloudimg-{{arch}}.img"
+description = "Ubuntu 25.10 Questing Quokka"
+change = ["update-all", "delete"]
+
+[ubuntu-questing.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[ubuntu-noble]
+url = "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-{{arch}}.img"
+description = "Ubuntu 24.04 Noble Numbat"
+change = ["update-all", "delete"]
+
+[ubuntu-noble.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[ubuntu-jammy]
+url = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-{{arch}}.img"
+description = "Ubuntu 22.04 Jammy Jellyfish"
+change = ["update-all", "delete"]
+
+[ubuntu-jammy.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[ubuntu-focal]
+url = "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-{{arch}}.img"
+description = "Ubuntu 20.04 Focal Fossa"
+change = ["update-all", "delete"]
+
+[ubuntu-focal.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[ubuntu-bionic]
+url = "https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-{{arch}}.img"
+description = "Ubuntu 18.04 Bionic Beaver"
+change = ["update-all", "delete"]
+
+[ubuntu-bionic.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[debian]
+url = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-{{arch}}.qcow2"
+description = "Debian stable"
+change = ["update-all", "delete"]
+
+[debian.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[debian-14]
+url = "https://cloud.debian.org/images/cloud/forky/daily/latest/debian-14-genericcloud-{{arch}}-daily.qcow2"
+description = "Debian forky (testing)"
+change = ["update-all", "delete"]
+
+[debian-14.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[debian-13]
+url = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-{{arch}}.qcow2"
+description = "Debian trixie (stable)"
+change = ["update-all", "delete"]
+
+[debian-13.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[debian-12]
+url = "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-{{arch}}.qcow2"
+description = "Debian bookworm (oldstable)"
+change = ["update-all", "delete"]
+
+[debian-12.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[debian-11]
+url = "https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-genericcloud-{{arch}}.qcow2"
+description = "Debian bullseye (oldoldstable)"
+change = ["update-all", "delete"]
+
+[debian-11.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[debian-10]
+url = "https://cloud.debian.org/images/cloud/buster/latest/debian-10-genericcloud-{{arch}}.qcow2"
+description = "Debian buster (oldoldoldstable)"
+change = ["update-all", "delete"]
+
+[debian-10.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[debian-9]
+url = "https://cdimage.debian.org/cdimage/openstack/current-9/debian-9-openstack-{{arch}}.qcow2"
+description = "Debian stretch (oldoldoldoldstable)"
+change = ["update-all", "delete"]
+
+[debian-9.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"
+
+[alma]
+url = "https://repo.almalinux.org/almalinux/10/cloud/{{arch}}/images/AlmaLinux-10-GenericCloud-latest.{{arch}}.qcow2"
+description = "AlmaLinux latest (10)"
+change = ["update-all", "delete"]
+
+[alma-10]
+url = "https://repo.almalinux.org/almalinux/10/cloud/{{arch}}/images/AlmaLinux-10-GenericCloud-latest.{{arch}}.qcow2"
+description = "AlmaLinux 10"
+change = ["update-all", "delete"]
+
+[alma-9]
+url = "https://repo.almalinux.org/almalinux/9/cloud/{{arch}}/images/AlmaLinux-9-GenericCloud-latest.{{arch}}.qcow2"
+description = "AlmaLinux 9"
+change = ["update-all", "delete"]
+
+[alma-8]
+url = "https://repo.almalinux.org/almalinux/8/cloud/{{arch}}/images/AlmaLinux-8-GenericCloud-latest.{{arch}}.qcow2"
+description = "AlmaLinux 8"
+change = ["update-all", "delete"]
+
+[rocky]
+url = "https://dl.rockylinux.org/pub/rocky/10/images/{{arch}}/Rocky-10-GenericCloud-Base.latest.{{arch}}.qcow2"
+description = "Rocky Linux latest (10)"
+change = ["update-all", "delete"]
+
+[rocky-10]
+url = "https://dl.rockylinux.org/pub/rocky/10/images/{{arch}}/Rocky-10-GenericCloud-Base.latest.{{arch}}.qcow2"
+description = "Rocky Linux 10"
+change = ["update-all", "delete"]
+
+[rocky-9]
+url = "https://dl.rockylinux.org/pub/rocky/9/images/{{arch}}/Rocky-9-GenericCloud.latest.{{arch}}.qcow2"
+description = "Rocky Linux 9"
+change = ["update-all", "delete"]
+
+[rocky-8]
+url = "https://dl.rockylinux.org/pub/rocky/8/images/{{arch}}/Rocky-8-GenericCloud.latest.{{arch}}.qcow2"
+description = "Rocky Linux 8"
+change = ["update-all", "delete"]
+
+[centos]
+url = "https://cloud.centos.org/centos/10-stream/{{ arch }}/images/CentOS-Stream-GenericCloud-10-latest.{{ arch }}.qcow2"
+description = "CentOS latest stream (10)"
+change = ["update-all", "delete"]
+
+[centos-stream]
+url = "https://cloud.centos.org/centos/10-stream/{{ arch }}/images/CentOS-Stream-GenericCloud-10-latest.{{ arch }}.qcow2"
+description = "CentOS latest stream (10)"
+change = ["update-all", "delete"]
+
+[centos-10-stream]
+url = "https://cloud.centos.org/centos/10-stream/{{ arch }}/images/CentOS-Stream-GenericCloud-10-latest.{{ arch }}.qcow2"
+description = "CentOS 10-stream"
+change = ["update-all", "delete"]
+
+[centos-9-stream]
+url = "https://cloud.centos.org/centos/9-stream/{{ arch }}/images/CentOS-Stream-GenericCloud-9-latest.{{ arch }}.qcow2"
+description = "CentOS 9-stream"
+change = ["update-all", "delete"]
+
+[centos-8-stream]
+url = ""
+get-url-prog = "vml-get-centos"
+description = "CentOS 8-stream"
+change = ["update-all", "delete"]
+
+[centos-8]
+url = ""
+get-url-prog = "vml-get-centos"
+description = "CentOS 8"
+change = ["update-all", "delete"]
+
+[centos-7]
+url = "https://cloud.centos.org/centos/7/images/CentOS-7-{{arch}}-GenericCloud.qcow2"
+description = "CentOS 7"
+change = ["update-all", "delete"]
+
+[fedora]
+url = "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/{{arch}}/images/Fedora-Cloud-Base-Generic-44-1.7.{{arch}}.qcow2"
+description = "latest Fedora release (44)"
+change = ["update-all", "delete"]
+
+[fedora-rawhide]
+url = ""
+get-url-prog = "vml-get-fedora-rawhide"
+description = "Fedora Rawhide"
+change = ["update-all", "delete"]
+
+[fedora-44]
+url = "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/{{arch}}/images/Fedora-Cloud-Base-Generic-44-1.7.{{arch}}.qcow2"
+description = "Fedora 44"
+change = ["update-all", "delete"]
+
+[fedora-43]
+url = "https://download.fedoraproject.org/pub/fedora/linux/releases/43/Cloud/{{arch}}/images/Fedora-Cloud-Base-Generic-43-1.6.{{arch}}.qcow2"
+description = "Fedora 43"
+change = ["update-all", "delete"]
+
+[fedora-42]
+url = "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/{{arch}}/images/Fedora-Cloud-Base-Generic-42-1.1.{{arch}}.qcow2"
+description = "Fedora 42"
+change = ["update-all", "delete"]
+
+[fedora-41]
+url = "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/{{arch}}/images/Fedora-Cloud-Base-Generic-41-1.4.{{arch}}.qcow2"
+description = "Fedora 41"
+change = ["update-all", "delete"]
+
+[opensuse]
+url = "https://download.opensuse.org/repositories/Virtualization:/Appliances:/Images:/openSUSE-Tumbleweed/openSUSE_Tumbleweed{% if arch == 'aarch64' %}_ARM{% endif %}/openSUSE-Tumbleweed-Minimal-VM.{{arch}}-Cloud.qcow2"
+description = "openSUSE Tumbleweed"
+change = ["update-all", "delete"]
+
+[opensuse-leap]
+url = "https://download.opensuse.org/distribution/leap/16.0/appliances/Leap-16.0-Minimal-VM.{{arch}}-Cloud.qcow2"
+description = "openSUSE Leap 16"
+change = ["update-all", "delete"]
+
+[opensuse-tumbleweed]
+url = "https://download.opensuse.org/repositories/Virtualization:/Appliances:/Images:/openSUSE-Tumbleweed/openSUSE_Tumbleweed{% if arch == 'aarch64' %}_ARM{% endif %}/openSUSE-Tumbleweed-Minimal-VM.{{arch}}-Cloud.qcow2"
+description = "openSUSE Tumbleweed"
+change = ["update-all", "delete"]
+
+[gentoo]
+url = ""
+get-url-prog = "vml-get-gentoo"
+description = "Gentoo"
+properties = ["efi"]
+change = ["update-all", "delete"]
+
+[gentoo.arch-mapping]
+x86_64 = "amd64"
+aarch64 = "arm64"

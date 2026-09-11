@@ -1,0 +1,390 @@
+## conditions
+date: 2026-09-09T13:07:15Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: firecracker-artifacts
+sha256(vmlinux-6.1.102)=49ba99a5299444ac59dda2efc3569cc2d58a5d72ea6475a6bfc37aa0bf322e54 size=40774472
+sha256(initramfs.cpio)=3b791dc0786ccfcf622dd85c519ed39a89adadf568feec2c019b579ed663ba8c size=2194944
+initramfs-full: 2967476 bytes
+[    0.000000] Linux version 6.1.102 (root@0792cc542139) (gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, GNU ld (GNU Binutils for Ubuntu) 2.38) #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024
+[    0.000000] Command line: console=ttyS0 reboot=k panic=-1 acpi=off rdinit=/bin/sh
+[    0.000000] KASLR disabled
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable
+[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x00000000000fffff] reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x000000001fffffff] usable
+[    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x000000fd00000000-0x000000ffffffffff] reserved
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] ACPI: MPS support code is not built-in, using acpi=off or acpi=noirq or pci=noacpi may have problem
+[    0.000000] SMBIOS 2.8 present.
+[    0.000000] DMI: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.16.3-20240910_120124-localhost 04/01/2014
+[    0.000000] tsc: Fast TSC calibration using PIT
+[    0.000000] tsc: Detected 3800.032 MHz processor
+[    0.006940] last_pfn = 0x20000 max_arch_pfn = 0x400000000
+[    0.007428] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT  
+[    0.008547] Using GB pages for direct mapping
+[    0.010627] RAMDISK: [mem 0x1fd03000-0x1ffd7fff]
+[    0.011099] No NUMA configuration found
+[    0.011110] Faking a node at [mem 0x0000000000000000-0x000000001fffffff]
+[    0.011539] NODE_DATA(0) allocated [mem 0x1ffde000-0x1fffffff]
+[    0.012995] Zone ranges:
+[    0.013009]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.013062]   DMA32    [mem 0x0000000001000000-0x000000001fffffff]
+[    0.013067]   Normal   empty
+[    0.013078] Movable zone start for each node
+[    0.013098] Early memory node ranges
+[    0.013115]   node   0: [mem 0x0000000000001000-0x000000000009efff]
+[    0.013202]   node   0: [mem 0x0000000000100000-0x000000001fffffff]
+[    0.013370] Initmem setup node 0 [mem 0x0000000000001000-0x000000001fffffff]
+[    0.013995] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.014363] On node 0, zone DMA: 97 pages in unavailable ranges
+[    0.019188] No local APIC present
+[    0.019195] APIC: disable apic facility
+[    0.019200] APIC: switched to apic NOOP
+[    0.019287] smpboot: Allowing 1 CPUs, 0 hotplug CPUs
+[    0.019774] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.019800] PM: hibernation: Registered nosave memory: [mem 0x0009f000-0x0009ffff]
+[    0.019806] PM: hibernation: Registered nosave memory: [mem 0x000a0000-0x000fffff]
+[    0.019869] [mem 0x20000000-0xfffbffff] available for PCI devices
+[    0.019883] Booting paravirtualized kernel on bare hardware
+[    0.020029] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645519600211568 ns
+[    0.020363] setup_percpu: NR_CPUS:64 nr_cpumask_bits:1 nr_cpu_ids:1 nr_node_ids:1
+[    0.023299] percpu: Embedded 44 pages/cpu s147880 r0 d32344 u2097152
+[    0.024696] Fallback order for Node 0: 0 
+[    0.024879] Built 1 zonelists, mobility grouping on.  Total pages: 128768
+[    0.024889] Policy zone: DMA32
+[    0.025006] Kernel command line: console=ttyS0 reboot=k panic=-1 acpi=off rdinit=/bin/sh
+[    0.027297] random: crng init done
+[    0.028003] Dentry cache hash table entries: 65536 (order: 7, 524288 bytes, linear)
+[    0.028331] Inode-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    0.029378] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.034717] Memory: 236236K/523896K available (12289K kernel code, 1073K rwdata, 2116K rodata, 2532K init, 2404K bss, 37480K reserved, 0K cma-reserved)
+[    0.038134] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.043463] Dynamic Preempt: none
+[    0.045424] rcu: Preemptible hierarchical RCU implementation.
+[    0.045444] rcu: 	RCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=1.
+[    0.045510] 	Trampoline variant of Tasks RCU enabled.
+[    0.045515] 	Tracing variant of Tasks RCU enabled.
+[    0.045593] rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+[    0.045613] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1
+[    0.046141] NR_IRQS: 4352, nr_irqs: 24, preallocated irqs: 16
+[    0.049829] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.052778] Console: colour dummy device 80x25
+[    0.072510] printk: console [ttyS0] enabled
+[    0.073567] APIC disabled via kernel command line
+[    0.075949] APIC: Keep in PIC mode(8259)
+[    0.076368] clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x6d8ceb7b918, max_idle_ns: 881590485102 ns
+[    0.077095] Calibrating delay loop (skipped), value calculated using timer frequency.. 7600.06 BogoMIPS (lpj=15200128)
+[    0.078281] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.086287] Last level iTLB entries: 4KB 0, 2MB 0, 4MB 0
+[    0.086640] Last level dTLB entries: 4KB 0, 2MB 0, 4MB 0, 1GB 0
+[    0.087645] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.088324] Spectre V2 : Mitigation: Retpolines
+[    0.088555] Spectre V2 : Spectre v2 / SpectreRSB mitigation: Filling RSB on context switch
+[    0.088996] Spectre V2 : Spectre v2 / SpectreRSB : Filling RSB on VMEXIT
+[    0.089423] Speculative Store Bypass: Vulnerable
+[    0.090523] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.093632] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.094010] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.094317] x86/fpu: Supporting XSAVE feature 0x008: 'MPX bounds registers'
+[    0.094659] x86/fpu: Supporting XSAVE feature 0x010: 'MPX CSR'
+[    0.094973] x86/fpu: Supporting XSAVE feature 0x200: 'Protection Keys User registers'
+[    0.095455] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.095821] x86/fpu: xstate_offset[3]:  960, xstate_sizes[3]:   64
+[    0.096179] x86/fpu: xstate_offset[4]: 1024, xstate_sizes[4]:   64
+[    0.097288] x86/fpu: xstate_offset[9]: 2688, xstate_sizes[9]:    8
+[    0.097587] x86/fpu: Enabled xstate features 0x21f, context size is 2696 bytes, using 'standard' format.
+[    0.247407] Freeing SMP alternatives memory: 40K
+[    0.248038] pid_max: default: 32768 minimum: 301
+[    0.252118] LSM: Security Framework initializing
+[    0.253021] SELinux:  Initializing.
+[    0.253212] SELinux: CONFIG_SECURITY_SELINUX_CHECKREQPROT_VALUE is non-zero.  This is deprecated and will be rejected in a future kernel release.
+[    0.253849] SELinux: https://github.com/SELinuxProject/selinux-kernel/wiki/DEPRECATE-checkreqprot
+[    0.256877] Mount-cache hash table entries: 1024 (order: 1, 8192 bytes, linear)
+[    0.257025] Mountpoint-cache hash table entries: 1024 (order: 1, 8192 bytes, linear)
+[    0.275595] smpboot: weird, boot CPU (#0) not listed by the BIOS
+[    0.275943] smpboot: SMP disabled
+[    0.280986] cblist_init_generic: Setting adjustable number of callback queues.
+[    0.281349] cblist_init_generic: Setting shift to 0 and lim to 1.
+[    0.281813] cblist_init_generic: Setting adjustable number of callback queues.
+[    0.282156] cblist_init_generic: Setting shift to 0 and lim to 1.
+[    0.282708] Performance Events: 
+[    0.282852] no APIC, boot with the "lapic" boot parameter to force-enable it.
+[    0.283338] no hardware sampling interrupt available.
+[    0.283710] PMU not available due to virtualization, using software events only.
+[    0.284485] signal: max sigframe size: 3632
+[    0.285255] rcu: Hierarchical SRCU implementation.
+[    0.285508] rcu: 	Max phase no-delay instances is 1000.
+[    0.287197] NMI watchdog: Perf NMI watchdog permanently disabled
+[    0.288926] smp: Bringing up secondary CPUs ...
+[    0.289293] smp: Brought up 1 node, 1 CPU
+[    0.289508] smpboot: Max logical packages: 1
+[    0.289750] smpboot: Total of 1 processors activated (7600.06 BogoMIPS)
+[    0.299418] node 0 deferred pages initialised in 4ms
+[    0.308182] devtmpfs: initialized
+[    0.310631] x86/mm: Memory block size: 128MB
+[    0.314820] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+[    0.315558] futex hash table entries: 256 (order: 2, 16384 bytes, linear)
+[    0.320849] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.322845] audit: initializing netlink subsys (disabled)
+[    0.325698] thermal_sys: Registered thermal governor 'fair_share'
+[    0.325722] thermal_sys: Registered thermal governor 'step_wise'
+[    0.326010] thermal_sys: Registered thermal governor 'user_space'
+[    0.327396] audit: type=2000 audit(1788959235.248:1): state=initialized audit_enabled=0 res=1
+[    0.328295] cpuidle: using governor ladder
+[    0.328583] cpuidle: using governor menu
+[    0.339212] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    0.339549] HugeTLB: 16380 KiB vmemmap can be freed for a 1.00 GiB page
+[    0.339858] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.340168] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.345173] ACPI: Interpreter disabled.
+[    0.345744] iommu: Default domain type: Translated 
+[    0.345988] iommu: DMA domain TLB invalidation policy: lazy mode 
+[    0.347001] SCSI subsystem initialized
+[    0.347362] pps_core: LinuxPPS API ver. 1 registered
+[    0.347597] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.348060] PTP clock support registered
+[    0.353966] NetLabel: Initializing
+[    0.354154] NetLabel:  domain hash size = 128
+[    0.354359] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    0.355179] NetLabel:  unlabeled traffic allowed by default
+[    0.357814] clocksource: Switched to clocksource tsc-early
+[    0.358654] VFS: Disk quotas dquot_6.6.0
+[    0.358936] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    0.360586] pnp: PnP ACPI: disabled
+[    0.369615] NET: Registered PF_INET protocol family
+[    0.370555] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.374382] tcp_listen_portaddr_hash hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    0.374893] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.375290] TCP established hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.375763] TCP bind hash table entries: 4096 (order: 5, 131072 bytes, linear)
+[    0.376194] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.377516] MPTCP token hash table entries: 512 (order: 1, 12288 bytes, linear)
+[    0.378011] UDP hash table entries: 256 (order: 1, 8192 bytes, linear)
+[    0.378428] UDP-Lite hash table entries: 256 (order: 1, 8192 bytes, linear)
+[    0.379567] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.381628] RPC: Registered named UNIX socket transport module.
+[    0.381938] RPC: Registered udp transport module.
+[    0.382155] RPC: Registered tcp transport module.
+[    0.382396] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.382725] NET: Registered PF_XDP protocol family
+[    0.384339] platform rtc_cmos: registered platform RTC device (no PNP device found)
+[    0.388880] Unpacking initramfs...
+[    0.394555] Initialise system trusted keyrings
+[    0.395333] Key type blacklist registered
+[    0.401317] workingset: timestamp_bits=36 max_order=17 bucket_order=0
+[    0.407407] zbud: loaded
+[    0.414121] Freeing initrd memory: 2900K
+[    0.423861] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.425796] NFS: Registering the id_resolver key type
+[    0.426113] Key type id_resolver registered
+[    0.426323] Key type id_legacy registered
+[    0.426753] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.427527] SGI XFS with ACLs, security attributes, quota, no debug enabled
+[    0.465349] Key type asymmetric registered
+[    0.465711] Asymmetric key parser 'x509' registered
+[    0.466225] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 251)
+[    0.468143] io scheduler mq-deadline registered
+[    0.468462] io scheduler kyber registered
+[    0.469186] io scheduler bfq registered
+[    0.471778] Serial: 8250/16550 driver, 1 ports, IRQ sharing disabled
+[    0.473187] serial8250: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    0.501709] loop: module loaded
+[    0.502695] Loading iSCSI transport class v2.0-870.
+[    0.505360] iscsi: registered transport (tcp)
+[    0.506080] fail to initialize ptp_kvm
+[    0.506228] hid: raw HID events driver (C) Jiri Kosina
+[    0.509657] Initializing XFRM netlink socket
+[    0.510448] NET: Registered PF_INET6 protocol family
+[    0.519566] Segment Routing with IPv6
+[    0.519879] In-situ OAM (IOAM) with IPv6
+[    0.532516] bpfilter: Loaded bpfilter_umh pid 124
+[    0.553118] NET: Registered PF_PACKET protocol family
+[    0.553849] Bridge firewalling registered
+[    0.554618] Key type dns_resolver registered
+[    0.555254] NET: Registered PF_VSOCK protocol family
+[    0.555982] IPI shorthand broadcast: enabled
+[    0.556479] sched_clock: Marking stable (529830065, 22817854)->(550357676, 2290243)
+[    0.557902] registered taskstats version 1
+[    0.567009] Loading compiled-in X.509 certificates
+[    0.568446] zswap: loaded using pool lzo/zbud
+[    0.569749] Key type .fscrypt registered
+[    0.569964] Key type fscrypt-provisioning registered
+[    0.572208] Key type encrypted registered
+[    0.580031] clk: Disabling unused clocks
+[    0.621834] Freeing unused kernel image (initmem) memory: 2532K
+[    0.622297] Write protecting the kernel read-only data: 18432k
+[    0.624067] Freeing unused kernel image (text/rodata gap) memory: 2044K
+[    0.625163] Freeing unused kernel image (rodata/data gap) memory: 1980K
+[    0.625628] Run /bin/sh as init process
+me -a
+id
+echo VMR-FC-ARTIFACTS-OK
+
+
+BusyBox v1.30.1 (Ubuntu 1:1.30.1-7ubuntu3.1) built-in shell (ash)
+Enter 'help' for a list of built-in commands.
+
+/bin/sh: can't access tty; job control turned off
+/ # me -a
+/bin/sh: me: not found
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n[    1.417017] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x6d8ceb7b918, max_idle_ns: 881590485102 ns
+[    1.417843] clocksource: Switched to clocksource tsc
+
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6n
+/ # uname -a
+Linux (none) 6.1.102 #1 SMP PREEMPT_DYNAMIC Tue Sep  3 09:03:50 UTC 2024 x86_64 GNU/Linux
+/ # id
+uid=0 gid=0
+/ # echo VMR-FC-ARTIFACTS-OK
+VMR-FC-ARTIFACTS-OK
+/ # [6npoweroff -f
+/bin/sh: poweroff: not found
+/ # [6nqemu-system-x86_64: terminating on signal 15 from pid 308 (timeout)
+--- rc=124 wall=180s

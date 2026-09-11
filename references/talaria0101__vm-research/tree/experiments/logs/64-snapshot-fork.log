@@ -1,0 +1,16 @@
+## conditions
+## conditions
+date: 2026-09-09T13:12:20Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: snapshot-fork
+parent: 1 vcpu, 128M, -M microvm tcg; snapshot via migrate exec:cat
+snapshot: 0.8s, file size pending
+-rw-r--r-- 1 0 0 76401119 Sep  9 13:12 /workspace/vm-research/experiments/work/vmr-snap.bin
+--- resuming 3 clones
+clone-1: wall=12.708326099s resumed_ticks=7
+clone-2: wall=12.760830389s resumed_ticks=7
+clone-3: wall=12.770081439s resumed_ticks=7
+--- clones resumed and ran: 3/3

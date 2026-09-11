@@ -35,6 +35,16 @@ scratch/
 *.log
 logs/
 
+# references/ is EVIDENCE, and a log there is the evidence itself.
+# Measured on 2026-09-11: the two rules above are unanchored, so they matched
+# every `logs/` directory in the corpus and excluded 83 committed experiment
+# logs across four reference trees. A citation into one of them resolved on
+# this disk and would not have resolved in a fresh clone, which is the defect
+# scripts/check-todo.py exists to catch. It caught this one.
+!references/**/logs/
+!references/**/logs/**
+!references/**/*.log
+
 # -- coverage and test output -----------------------------------------------
 coverage/
 .coverage

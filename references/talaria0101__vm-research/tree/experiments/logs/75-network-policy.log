@@ -1,0 +1,23 @@
+## conditions
+date: 2026-09-10T05:21:33Z
+host: Linux-6.18.39-gentoo-dist-bin-x86_64-AMD_Ryzen_7_7700_8-Core_Processor-with-glibc2.43
+
+bind TCP 127.0.0.1:80: DENIED errno=13 (Permission denied)
+bind TCP 127.0.0.1:443: DENIED errno=13 (Permission denied)
+bind TCP 127.0.0.1:8080: DENIED errno=13 (Permission denied)
+bind TCP 127.0.0.1:65002: DENIED errno=13 (Permission denied)
+bind TCP 0.0.0.0:65003: DENIED errno=13 (Permission denied)
+bind TCP 192.168.1.64:65004 (host wlan IP): DENIED errno=13 (Permission denied)
+connect TCP 127.0.0.1:65005 (own listener): DENIED errno=13 (Permission denied)
+connect TCP 192.168.1.64:443 (host wlan IP, closed port): DENIED errno=111 (Connection refused)
+connect TCP 10.0.2.2:443 (private RFC1918): DENIED errno=None (None)
+connect TCP fastly:80 (http): OK
+connect TCP fastly:443 (https): OK
+connect TCP 1.1.1.1:80: OK
+connect TCP 1.1.1.1:443: OK
+bind UDP 127.0.0.1:65006: OK
+bind UDP 0.0.0.0:65007: OK
+bind AF_UNIX path: OK
+SOCK_RAW IPPROTO_ICMP: DENIED errno=1 (Operation not permitted)
+
+interpretation: see docs/seccomp.md section 'network policy mechanism'

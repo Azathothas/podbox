@@ -1,0 +1,43 @@
+## conditions
+date: 2026-09-09T09:28:08Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: lima
+limactl version <unknown>
+--- limactl create template://alpine
+time="2026-09-09T09:28:08Z" level=info msg="Attempting to download the image" arch=x86_64 digest="sha512:849196e26640b33fb1f106d46cebdf341c715f7f49363564eacece8097464b6af7041618e94c4eb1a006394663252a86c0fb3158fee5d0ffb094899730679a71" location="https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/cloud/nocloud_alpine-3.23.4-x86_64-uefi-cloudinit-r0.qcow2"
+Downloading the image (nocloud_alpine-3.23.4-x86_64-uefi-cloudinit-r0.qcow2)
+time="2026-09-09T09:28:17Z" level=info msg="Downloaded the image from `https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/cloud/nocloud_alpine-3.23.4-x86_64-uefi-cloudinit-r0.qcow2`"
+time="2026-09-09T09:28:17Z" level=info msg="Resize instance alpine-tcg's disk from 214MiB to 100GiB"
+time="2026-09-09T09:28:17Z" level=info msg="Run `limactl start alpine-tcg` to start the instance."
+rc(create)=0
+--- limactl start alpine-tcg (TCG boot; wall time measured)
+time="2026-09-09T09:28:17Z" level=warning msg="unable to determine host timezone, falling back to default value"
+time="2026-09-09T09:28:17Z" level=warning msg="treating lima version `<unknown>` from `/workspace/vm-research/experiments/work/lima-home/alpine-tcg/lima-version` as very latest release"
+time="2026-09-09T09:28:17Z" level=info msg="Using the existing instance `alpine-tcg`"
+time="2026-09-09T09:28:17Z" level=warning msg="unable to determine host timezone, falling back to default value"
+time="2026-09-09T09:28:17Z" level=warning msg="treating lima version `<unknown>` from `/workspace/vm-research/experiments/work/lima-home/alpine-tcg/lima-version` as very latest release"
+time="2026-09-09T09:28:17Z" level=info msg="Starting the instance `alpine-tcg` with internal VM driver `qemu`"
+time="2026-09-09T09:28:17Z" level=warning msg="[hostagent] unable to determine host timezone, falling back to default value"
+time="2026-09-09T09:28:17Z" level=warning msg="[hostagent] treating lima version `<unknown>` from `/workspace/vm-research/experiments/work/lima-home/alpine-tcg/lima-version` as very latest release"
+time="2026-09-09T09:28:18Z" level=info msg="[hostagent] hostagent socket created at /workspace/vm-research/experiments/work/lima-home/alpine-tcg/ha.sock"
+time="2026-09-09T09:28:18Z" level=warning msg="[hostagent] /dev/kvm is not available. Disabling KVM. Expect very poor performance." error="stat /dev/kvm: no such file or directory"
+time="2026-09-09T09:28:18Z" level=warning msg="[hostagent] /dev/kvm is not available. Disabling KVM. Expect very poor performance." error="stat /dev/kvm: no such file or directory"
+time="2026-09-09T09:28:18Z" level=info msg="[hostagent] Using system firmware (`/usr/share/qemu/edk2-x86_64-code.fd`)"
+time="2026-09-09T09:28:18Z" level=info msg="[hostagent] Starting QEMU (hint: to watch the boot progress, see `/workspace/vm-research/experiments/work/lima-home/alpine-tcg/serial*.log`)"
+time="2026-09-09T09:28:18Z" level=info msg="SSH Local Port: 40543"
+time="2026-09-09T09:28:18Z" level=info msg="[hostagent] Waiting for the essential requirement 1 of 3: `ssh`"
+time="2026-09-09T09:28:18Z" level=info msg="[hostagent] Driver stopped due to error: `exit status 1`"
+time="2026-09-09T09:28:18Z" level=info msg="[hostagent] Shutting down the host agent"
+time="2026-09-09T09:28:18Z" level=info msg="[hostagent] Shutting down QEMU with the power button"
+time="2026-09-09T09:28:18Z" level=warning msg="[hostagent] failed to open the QMP socket `/workspace/vm-research/experiments/work/lima-home/alpine-tcg/qmp.sock`, forcibly killing QEMU" error="dial unix /workspace/vm-research/experiments/work/lima-home/alpine-tcg/qmp.sock: connect: connection refused"
+time="2026-09-09T09:28:18Z" level=info msg="[hostagent] QEMU has already exited"
+time="2026-09-09T09:28:18Z" level=fatal msg="exiting, status={Running:false Degraded:false Exiting:true Errors:[] SSHLocalPort:0 CloudInitProgress:<nil> PortForward:<nil> Vsock:<nil>} (hint: see `/workspace/vm-research/experiments/work/lima-home/alpine-tcg/ha.stderr.log`)"
+rc(start)=1 wall=1s
+--- limactl shell uname
+time="2026-09-09T09:28:18Z" level=warning msg="unable to determine host timezone, falling back to default value"
+time="2026-09-09T09:28:18Z" level=warning msg="treating lima version `<unknown>` from `/workspace/vm-research/experiments/work/lima-home/alpine-tcg/lima-version` as very latest release"
+time="2026-09-09T09:28:18Z" level=fatal msg="instance `alpine-tcg` is stopped, run `limactl start alpine-tcg` to start the instance"
+rc(shell)=1

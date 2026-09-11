@@ -1,0 +1,20 @@
+### pty-shim PoC: nix-style pty usage with and without the shim
+### harness mimics startBuilder/commonChildInit: posix_openpt -> ptsname_r ->
+### unlockpt -> open(slave) -> tcgetattr/tcsetattr(raw) -> fork/setsid/dup2 -> exec sh
+
+=== WITHOUT shim (the wall every nix >= 2.3 hits on this host):
+posix_openpt: No such file or directory
+
+=== WITH shim:
+harness: emulated slave path = /dev/.nix-pty-emu/0
+pty-shim-works-from-execed-child
+harness: eof after 33 bytes, child exit=0
+exit: 0
+
+=== bonus: /proc/self/exe shim on real nix 2.3.18 (previously: error reading /proc/self/exe):
+nix-instantiate (Nix) 2.3.18
+
+=== shim-embedded build progress: builder executed and produced correct output
+### (nix 2.3.18, emulated pty; output file written by the exec'd builder):
+-rw-r--r-- 1 0 0 15 Sep 11 05:49 chroot/rootfs/nix/store/zflpw74f1n07qxb0yx1ygjmvaj9d80gp-pty-shim-poc
+pty-shim-works

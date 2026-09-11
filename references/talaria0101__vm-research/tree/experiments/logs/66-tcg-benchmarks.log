@@ -1,0 +1,18 @@
+## conditions
+## conditions
+date: 2026-09-09T13:26:10Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: tcg-bench
+boot-1 wall: 1.576014374 s
+boot-2 wall: 1.614713021 s
+boot-3 wall: 1.638155557 s
+host md5sum-16M wall: .026236799 s digest=2c7ab85a893283e98c931e9511add182
+VMR-MD5-16M-SECS: 0.08
+VMR-MD5-DIGEST: 2c7ab85a893283e98c931e9511add182
+VMR-MD5-16M-SECS: 0.08
+VMR-MD5-DIGEST: 2c7ab85a893283e98c931e9511add182
+VMR-MD5-16M-SECS: 0.07
+VMR-MD5-DIGEST: 2c7ab85a893283e98c931e9511add182

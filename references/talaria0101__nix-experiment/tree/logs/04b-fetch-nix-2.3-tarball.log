@@ -1,0 +1,12 @@
+URL: nar/1pjc9y521mng2h7ngqrjhxfbjza1lwkndwwcjy8w0c304jssgwhi.nar.xz
+Compression: xz
+FileSize: 27225892
+/bin/bash: line 10: chroot/dl/tarball.nar: No such file or directory
+ls: cannot access 'chroot/dl/nix-2.3.18-x86_64-linux.tar.xz': No such file or directory
+chroot/dl/nix-2.3.18-x86_64-linux.tar.xz: cannot open `chroot/dl/nix-2.3.18-x86_64-linux.tar.xz' (No such file or directory)
+nar url: https://cache.nixos.org/nar/1pjc9y521mng2h7ngqrjhxfbjza1lwkndwwcjy8w0c304jssgwhi.nar.xz
+-rw-r--r-- 1 0 0 27225892 Sep 11 02:59 chroot/dl/tarball.nar
+error: more arguments are required
+Try '/tmp/nixprebuild/2.35.2/bin/nix --help' for more information.
+-rw-r--r-- 1 0 0 0 Sep 11 02:59 chroot/dl/nix-2.3.18-x86_64-linux.tar.xz
+chroot/dl/nix-2.3.18-x86_64-linux.tar.xz: empty

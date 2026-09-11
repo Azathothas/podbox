@@ -1,0 +1,22 @@
+## conditions
+date: 2026-09-10T15:19:53Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+cpu: AMD Ryzen 7 7700 8-Core Processor / 16 threads
+mem: 30Gi
+uid: 0  caps: 000001ffffffffff  seccomp: 2
+1
+uid_map:          0          0          1 
+subject: senotif-primitives
+
+PASS P1 self-install of SECCOMP_FILTER_FLAG_NEW_LISTENER + P2 handoff over SCM_RIGHTS
+PASS P3 CONTINUE shepherding (every syscall continued to run)
+PASS P6 /proc/<pid>/mem read while tracee blocked: execve path=[/bin/true]
+tracee (/bin/true under a notify-everything filter) exited 0 — shepherded to completion
+P4-TRACEE: getuid returned 4242 — the forged value reached the tracee
+PASS P4 forged return: kernel accepted NOTIF_SEND without CONTINUE; the tracee read 4242
+TRACEE-ADDFD-READ: [/workspace/sandbox-insights/work/senotif_probe]
+PASS P5 SECCOMP_IOCTL_NOTIF_ADDFD installed a real fd (tracee read it)
+boundary: ptrace(TRACEME) inside a self-filtered tracee: Operation not permitted — an outer ERRNO filter
+  outranks USER_NOTIF, so denied syscalls NEVER notify and can never be mediated
+
+5 passed, 0 failed

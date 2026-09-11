@@ -1,0 +1,6 @@
+plane,operation,epoch,result,interpretation
+syscall,fsopen,2026-09-09,executed,new mount entry point reached syscall body
+syscall,fsopen,2026-09-10,EPERM,pre-entry denial after policy transition
+syscall,clone3-namespace,2026-09-10,executed,separate namespace path remained available
+network,tcp-connect-external-80,early,EPERM,connection denied
+network,tcp-connect-external-80,later,allowed,verdict changed during observation window

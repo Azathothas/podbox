@@ -1,0 +1,5 @@
+=== nixpkgs#hello with local registry override ===
+error: opening file "/": Permission denied
+exit: 1
+=== registry list ===
+error: opening file "/": Permission denied

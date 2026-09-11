@@ -1,0 +1,10 @@
+=== retry nixpkgs#hello (registry path) ===
+error: opening file "/": Permission denied
+exit: 1
+
+=== why can't result/bin/hello run? ===
+/bin/bash: line 11: ./result/bin/hello: No such file or directory
+run exit: 127
+
+=== registry file used ===
+error: opening file "/": Permission denied

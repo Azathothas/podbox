@@ -1,0 +1,22 @@
+## conditions
+date: 2026-09-10T15:19:53Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+cpu: AMD Ryzen 7 7700 8-Core Processor / 16 threads
+mem: 30Gi
+uid: 0  caps: 000001ffffffffff  seccomp: 2
+1
+uid_map:          0          0          1 
+subject: namespace-gap
+
+parent raw-icmp-socket: Operation not permitted
+
+## clone3(CLONE_NEWUSER|CLONE_NEWNET), child probes in-process
+raw-icmp-socket: OK (netns-owner CAP_NET_RAW effective in-process)
+uid_map in child: [] (EMPTY — unwritable: procfs mount provenance)
+clone3 NEWUSER|NEWNET: child spawned rc=0
+
+## clone3(CLONE_NEWPID), child reports its own pid
+child getpid(): 1 (private PID tree: PID 1)
+
+## the exec boundary: capabilities granted in the namespace die at execve
+post-exec: uid=65534 (unmapped) — exec dropped the granted capability set

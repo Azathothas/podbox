@@ -1,0 +1,113 @@
+use crate::models::UserName;
+
+#[derive(Default)]
+pub struct UserDataFactory;
+
+impl UserDataFactory {
+    pub fn create(&self, user: &UserName, pubkey: &str, execute: Option<&str>) -> String {
+        let execute = execute
+            .map(|execute| {
+                format!(
+                    "runcmd:\n\u{20}\u{20}- \"{}\"\n",
+                    execute
+                        .replace('\\', "\\\\")
+                        .replace('"', "\\\"")
+                        .replace('\n', "\\n")
+                        .replace('\r', "\\r")
+                        .replace('\t', "\\t")
+                )
+            })
+            .unwrap_or_default();
+
+        format!(
+            "\
+            #cloud-config\n\
+            users:\n\
+            \u{20}\u{20}- name: {user}\n\
+            \u{20}\u{20}\u{20}\u{20}lock_passwd: true\n\
+            \u{20}\u{20}\u{20}\u{20}ssh_authorized_keys: [{pubkey}]\n\
+            \u{20}\u{20}\u{20}\u{20}shell: /bin/bash\n\
+            \u{20}\u{20}\u{20}\u{20}sudo: ALL=(ALL) NOPASSWD:ALL\n\
+            resize_rootfs: noblock\n\
+            ssh_genkeytypes: [ed25519]\n\
+            write_files:\n\
+            \u{20}\u{20}- path: /etc/ssh/sshd_config.d/10-cubic.conf\n\
+            \u{20}\u{20}\u{20}\u{20}content: \"AcceptEnv *\\n\"\n\
+            {execute}"
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    pub use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_write_user_data_without_execute() {
+        let actual =
+            UserDataFactory::default().create(&UserName::from_str("tux").unwrap(), "pubkey", None);
+        let expected = r#"#cloud-config
+users:
+  - name: tux
+    lock_passwd: true
+    ssh_authorized_keys: [pubkey]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+resize_rootfs: noblock
+ssh_genkeytypes: [ed25519]
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-cubic.conf
+    content: "AcceptEnv *\n"
+"#;
+        assert_eq!(
+            actual, expected,
+            "\nActual: {actual}\nExpected: {expected}\n"
+        )
+    }
+
+    #[test]
+    fn test_write_user_data_with_execute() {
+        let actual = UserDataFactory::default().create(
+            &UserName::from_str("tux").unwrap(),
+            "pubkey",
+            Some("\"sudo apt install vim\""),
+        );
+        let expected = r#"#cloud-config
+users:
+  - name: tux
+    lock_passwd: true
+    ssh_authorized_keys: [pubkey]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+resize_rootfs: noblock
+ssh_genkeytypes: [ed25519]
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-cubic.conf
+    content: "AcceptEnv *\n"
+runcmd:
+  - "\"sudo apt install vim\""
+"#;
+        assert_eq!(
+            actual, expected,
+            "\nActual: {actual}\nExpected: {expected}\n"
+        )
+    }
+
+    #[test]
+    fn test_write_user_data_escapes_execute() {
+        let actual = UserDataFactory::default().create(
+            &UserName::from_str("tux").unwrap(),
+            "pubkey",
+            Some("a\\b\t\"c\"\nd\re"),
+        );
+
+        let expected_runcmd = r#"runcmd:
+  - "a\\b\t\"c\"\nd\re"
+"#;
+        assert!(
+            actual.ends_with(expected_runcmd),
+            "\nActual: {actual}\nExpected suffix: {expected_runcmd}\n"
+        )
+    }
+}

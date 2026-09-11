@@ -1,0 +1,12 @@
+## question: do repository-local benchmark samples derive the reported TCG/native interval?
+date_utc=2026-09-10T12:50:23.2384387Z
+native_mops=721.4,754.8
+chroot_mops=845.9,866.8
+microvm_tcg_mops=35.1,35.1
+ratio_min=20.55
+ratio_max=24.70
+checksums=165be307
+PASS sample counts=2/2/2
+PASS checksum control
+PASS ratio within 20-25x interval
+exit=0

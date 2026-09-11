@@ -1,0 +1,4 @@
+downloading nix 2.2.2 binary tarball...
+store paths extracted: 30
+/usr/x86_64-pc-linux-gnu/binutils-bin/2.46.1/ld: cannot open output file chroot/rootfs/usr/lib/nix-pty-shim.so: No such file or directory
+collect2: error: ld returned 1 exit status

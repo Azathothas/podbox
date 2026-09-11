@@ -1,0 +1,8 @@
+1) no registries at all (user reg moved away, flake-registry=''):
+error: opening file "/": Permission denied
+2) flake with inputs.nixpkgs.url = github:... (the real-world pattern):
+warning: creating lock file "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/flake-demo/flake.lock": 
+• Added input 'nixpkgs':
+    'github:NixOS/nixpkgs/ac62194c3917d5f474c1a844b6fd6da2db95077d?narHash=sha256-16KkgfdYqjaeRGBaYsNrhPRRENs0qzkQVUooNHtoy2w%3D' (2026-01-02)
+exit: 0
+lrwxrwxrwx 1 0 0 56 Sep 11 02:40 result -> /nix/store/na5dnb0l6rjkzrbld3xn4188dd8nknhh-hello-2.12.1

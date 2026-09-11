@@ -1,0 +1,63 @@
+## conditions
+date: 2026-09-09T09:47:22Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: smolbsd
+00bc6e00f9c850b9ede8046016410fe259390895
+image: /workspace/vm-research/experiments/work/build-amd64.img (536870912 bytes)
+➡️ using QEMU version 10.2.3
+➡️ using kernel kernels/netbsd-SMOL
+➡️ using console: viocon
+➡️ using disk image build-amd64.img
+🔚 ^D to stop the vm, ^A-X to kill it
+qemu-system-x86_64: warning: TCG doesn't support requested feature: CPUID[eax=80000007h].EDX.invtsc [bit 8]
+[   1.0000000] smolBSD 11.0_STABLE (SMOL)      Notice: this software is protected by copyright
+[   1.0000000] Detecting hardware...| (QBOOT    000000000000)
+/-\|/-\|/-\|/[   1.0437725]  done.
+[   1.0515676] kernel boot time: 422ms
+Created tmpfs /dev (1851392 byte, 3584 inodes)
+[   1.8376087] entropy: best effort
+Setting tty flags.
+add net default: gateway 10.0.2.2
+/dev/dk0 on / type ext2fs (read-only, local)
+net.inet.tcp.sendbuf_max: 262144 -> 16777216
+net.inet.tcp.recvbuf_max: 262144 -> 16777216
+kern.sbmax: 262144 -> 16777216
+Starting local daemons:.
+.: tmp/build*: not found
+Enter pathname of shell or RETURN for /bin/sh: 
+# uname -a; echo VMR-SMOLBSD-OK
+smolBSD  11.0_STABLE smolBSD 11.0_STABLE (SMOL) #17: Wed Aug 12 07:01:53 CEST 2026  imil@tatooine:/home/imil/src/github.com/NetBSD-src/sys/arch/amd64/compile/obj/SMOL amd64
+VMR-SMOLBSD-OK
+# /sbin/shutdown -p now
+Shutdown NOW!
+shutdown: [pid 3025]
+# wall: You have write permission turned off; no reply possible
+shutdown: poweroff by root: 
+
+System shutdown time has arrived
+
+About to run shutdown hooks...
+cron not running? (check /var/run/cron.pid).
+inetd not running? (check /var/run/inetd.pid).
+rndctl: open seed file to save: Read-only file system
+Forcibly unmounting /etc/openssl
+Forcibly unmounting /tmp
+Removing block-type swap devices
+Wed Sep  9 09:52:54 UTC 2026
+
+Done running shutdown hooks.
+[ 345.2227846] syncing disks... done
+[ 345.2629864] com0: detached
+[ 345.2629864] dk0 at ld0 (buildroot) deleted
+[ 345.2629864] dk0: detached
+
+[ 345.2629864] The operating system has halted.
+[ 345.2629864] Please press any key to reboot.
+
+qemu-system-x86_64: terminating on signal 15 from pid 11017 (timeout)
+--- rc=124 wall=420s
+--- boot markers:
+netbsd-marker-lines: 3

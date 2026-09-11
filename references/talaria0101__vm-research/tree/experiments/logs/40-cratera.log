@@ -1,0 +1,45 @@
+## conditions
+date: 2026-09-09T09:07:24Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: cratera
+
+[1m═══════════════════════════════════════════════════════════════[0m
+ [1mCratera System Doctor & Sandbox Diagnostic Suite[0m
+[1m═══════════════════════════════════════════════════════════════[0m
+
+[1m[1/5] Hardware Virtualization (KVM):[0m
+  [31m✗[0m /dev/kvm not found. Host does not have hardware virtualization enabled.
+  [32m✓[0m CPU Virtualization: AMD-V detected
+  [33m![0m SMT sysfs not present; cannot verify Hyper-Threading
+  [33m![0m CPU vulnerability sysfs not present; cannot verify Spectre/L1TF/MDS
+  [32m✓[0m KSM not present (equivalent to disabled)
+
+[1m[2/5] Host Sandbox & Security Boundaries:[0m
+  [32m✓[0m API bind is loopback (127.0.0.1:3100)
+  [33m![0m Jailer user UID 20001 not configured on host
+    [2mTip: Run ./scripts/host-setup.sh to provision UID/GID 20001 for Jailer[0m
+  [33m![0m Unified cgroups v2 hierarchy not detected
+  [31m✗[0m Work directory '/var/tmp/cratera' creation failed: Permission denied (os error 13)
+
+[1m[3/5] MicroVM Runtime Assets:[0m
+  [31m✗[0m Firecracker binary missing at: images/firecracker
+    [2mFix: Run ./scripts/fetch-runtime.sh[0m
+  [31m✗[0m Linux guest kernel missing at: images/vmlinux.bin
+    [2mFix: Run ./scripts/fetch-runtime.sh[0m
+
+[1m[4/5] Root Filesystem (Rootfs):[0m
+  [31m✗[0m Rootfs image missing (searched rootfs.squashfs, rootfs.ext4)
+    [2mFix: Run ./scripts/build-rootfs.sh or cratera build[0m
+
+[1m[5/5] Multi-Language Manifest (languages.toml):[0m
+  [33m![0m Manifest file 'languages.toml' not found on disk; using built-in defaults
+
+[1m───────────────────────────────────────────────────────────────[0m
+ [33m[1m! Diagnostic Notice: Some components require attention.[0m
+[1m───────────────────────────────────────────────────────────────[0m
+
+--- exit(rc of doctor; doctor returns 0 even with failures): 0
+--- decision:

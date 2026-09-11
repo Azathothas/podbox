@@ -1,0 +1,12 @@
+## conditions
+## conditions
+date: 2026-09-09T13:23:54Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: guest-guest-udp
+path: A slirp -> host udp 9002 (hostfwd bind) -> B slirp hostfwd -> B nc:7000/udp
+--- PING payloads seen by guest B: 1
+PING-from-A-seq1
+--- A state: 1 done-marker

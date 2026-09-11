@@ -1,0 +1,5 @@
+### attempt-01 nix-portable v012
+### host: Linux sandbox 6.18.39-gentoo-dist-bin #1 SMP PREEMPT_DYNAMIC Sat Jul 18 18:23:53 -00 2026 x86_64 AMD Ryzen 7 7700 8-Core Processor AuthenticAMD GNU/Linux
+Fri Sep 11 02:21:42 UTC 2026
+-rw-r--r-- 1 0 0 68062412 Sep 11 02:21 nix-portable-x86_64
+nix-portable-x86_64: Bourne-Again shell script, ASCII text executable

@@ -1,0 +1,34 @@
+name: freebsd
+
+# Runtime verification on a real FreeBSD VM. On FreeBSD the crate runs a memfd
+# image through fexecve(2) (a kernel facility, not a procfs workaround). The
+# Linux-only test files compile without tests on FreeBSD. The portable process
+# tests, command-line tests, and C interface tests run on FreeBSD.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  freebsd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and run the portable suite in a FreeBSD 14.2 VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.2"
+          usesh: true
+          copyback: false
+          prepare: |
+            pkg install -y rust
+          run: |
+            set -e
+            cargo build
+            cargo build --features cli
+            cargo build -p memfd-ng-ffi
+            cargo test --no-fail-fast
+            cargo test --no-fail-fast --features test-hooks
+            cargo test --no-fail-fast --features cli
+            cargo test -p memfd-ng-ffi --no-fail-fast

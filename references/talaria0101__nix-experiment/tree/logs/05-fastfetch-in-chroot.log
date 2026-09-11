@@ -1,0 +1,9 @@
+### fastfetch build+run inside chroot (nix 2.2.2 + nixpkgs 22.05, cmake)
+/nix/store/bwv95bgl85hnba9bah1knfgrf4hzpvv3-fastfetch-1.12.2
+OS: Nix chroot on seccomp-sandboxed host x86_64
+Kernel: 6.18.39-gentoo-dist-bin
+Uptime: 1 day, 3 hours, 16 mins
+Shell: sh
+Locale: C.UTF-8
+fastfetch 1.12.2 (x86_64)
+exit: 0

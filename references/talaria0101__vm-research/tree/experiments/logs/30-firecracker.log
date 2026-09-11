@@ -1,0 +1,31 @@
+## conditions
+date: 2026-09-09T08:59:40Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: firecracker
+binary: /workspace/vm-research/experiments/work/firecracker-1.16.1/release-v1.16.1-x86_64/firecracker-v1.16.1-x86_64
+Firecracker v1.16.1
+
+2026-09-09T08:59:41.718546094 [anonymous-instance:main] Firecracker exiting successfully. exit_code=0
+2026-09-09T08:59:41.732244077 [anonymous-instance:main] Running Firecracker v1.16.1
+2026-09-09T08:59:41.733097101 [anonymous-instance:main] Listening on API socket ("/tmp/fc.sock").
+2026-09-09T08:59:41.733289562 [anonymous-instance:fc_api] API server started.
+--- PUT /logger
+2026-09-09T08:59:41.837048397 [anonymous-instance:fc_api] The API server received a Put request on "/logger" with body "{\"log_path\":\"/tmp/fc.log\",\"level\":\"Debug\",\"show_level\":true,\"show_log_origin\":true}".
+
+--- PUT /boot-source
+
+--- PUT /machine-config
+
+--- PUT /actions InstanceStart
+{"fault_message":"Start microvm error: Kvm error: Error creating KVM object: No such file or directory (os error 2) Make sure the user launching the firecracker process is \\\nconfigured on the /dev/kvm file's ACL."}
+--- firecracker.log tail (its own account)
+2026-09-09T08:59:41.843957165 [anonymous-instance:fc_api:DEBUG:src/firecracker/src/api_server/mod.rs:116] Total previous API call duration: 48 us.
+2026-09-09T08:59:41.847201172 [anonymous-instance:fc_api:INFO:src/firecracker/src/api_server/parsed_request.rs:76] The API server received a Put request on "/actions" with body "{\"action_type\":\"InstanceStart\"}".
+2026-09-09T08:59:41.847227152 [anonymous-instance:main:DEBUG:src/vmm/src/builder.rs:386] event_start: build microvm for boot
+2026-09-09T08:59:41.847308962 [anonymous-instance:fc_api:ERROR:src/firecracker/src/api_server/parsed_request.rs:225] Received Error. Status code: 400 Bad Request. Message: Start microvm error: Kvm error: Error creating KVM object: No such file or directory (os error 2) Make sure the user launching the firecracker process is \
+configured on the /dev/kvm file's ACL.
+2026-09-09T08:59:41.847386143 [anonymous-instance:fc_api:DEBUG:src/firecracker/src/api_server/mod.rs:116] Total previous API call duration: 187 us.
+--- decision:

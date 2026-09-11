@@ -1,0 +1,63 @@
+[package]
+name = "cubic"
+version = "0.0.0-dev"
+authors = ["Roger Knecht <rknecht@pm.me>"]
+license = "MIT OR Apache-2.0"
+description = "Cubic spins up Linux virtual machines on Linux, macOS and Windows with a single command."
+readme = "README.md"
+homepage = "https://cubic-vm.org"
+repository = "https://github.com/cubic-vm/cubic"
+keywords = ["cli", "vm", "qemu", "virtual-machine", "cloud-init"]
+categories = ["command-line-utilities"]
+edition = "2024"
+rust-version = "1.92"
+
+[dependencies]
+bytes = "1"
+clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
+crossterm = { version = "0", default-features = false, features = ["windows"] }
+getrandom = { version = "0.4", features = ["sys_rng"] }
+regex = "1"
+rcgen = { version = "0", default-features = false, features = ["pem", "ring"] }
+reqwest = { version = "0", default-features = false, features = ["rustls-tls"] }
+russh = { version = "0", default-features = false, features = ["ring", "rsa"] }
+rustls = { version = "0", default-features = false, features = ["ring", "std"] }
+russh-sftp = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+sysinfo = { version = "0", default-features = false, features = ["disk", "system"] }
+thiserror = "2"
+tokio = { version = "1", default-features = false, features = [
+    "fs",
+    "io-std",
+    "io-util",
+    "macros",
+    "net",
+    "rt",
+    "time",
+] }
+tokio-rustls = { version = "0", default-features = false, features = ["ring"] }
+tokio-util = { version = "0", default-features = false, features = ["codec", "io"] }
+toml = "1"
+
+[profile.release]
+opt-level = 'z'
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true
+
+[package.metadata.deb]
+maintainer = "Roger Knecht <rknecht@pm.me>"
+copyright = "2026, Roger Knecht <rknecht@pm.me>"
+license-file = ["LICENSE-APACHE", "0", "LICENSE-MIT", "0"]
+extended-description = """A lightweight command-line manager for virtual machines ."""
+depends = "qemu-system-x86, qemu-system-arm"
+section = "utility"
+priority = "optional"
+assets = [
+    ["target/release/cubic", "usr/bin/", "755"],
+    { source = "README.md", dest = "usr/share/doc/cubic/README", mode = "644"},
+]

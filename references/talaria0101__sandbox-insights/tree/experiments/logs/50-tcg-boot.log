@@ -1,0 +1,19 @@
+## conditions
+date: 2026-09-10T15:19:53Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+cpu: AMD Ryzen 7 7700 8-Core Processor / 16 threads
+mem: 30Gi
+uid: 0  caps: 000001ffffffffff  seccomp: 2
+1
+uid_map:          0          0          1 
+subject: tcg-boot
+qemu: QEMU emulator version 10.2.3
+
+[vfetch] vmlinuz-virt <- https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt
+[vfetch] busybox.apk <- https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/busybox-static-1.37.0-r20.apk
+tar: Ignoring unknown extended header keyword 'APK-TOOLS.checksum.SHA1'
+qemu-system-x86_64: terminating on signal 15 from pid 3502 (bash)
+time-to-marker: 2.36s (guest userspace reached; qemu killed by the driver — acpi=off halts, never exits)
+## serial console tail:
+VMR-BOOT-OK kernel=6.12.94-0-virt pid=1
+

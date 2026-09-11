@@ -1,0 +1,47 @@
+## conditions
+date: 2026-09-09T09:07:25Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: forkd
+Zero-to-first-fork in one command. Preflights the host, heals what's missing with your consent (guest kernel download, tap device, per-child netns), bakes a Python snapshot from Docker (or pulls one from the hub when Docker is absent), then forks N children and prints per-child timings.
+
+Run as: sudo -E forkd quickstart
+
+Usage: forkd quickstart [OPTIONS]
+
+Options:
+  -n, --n <N>
+          How many children to fork for the demo
+          
+          [default: 10]
+
+      --image <IMAGE>
+          Docker image the parent snapshot is baked from. Ignored when Docker is unavailable (hub pull route)
+          
+          [default: python:3.12-slim]
+
+  -y, --yes
+          Answer yes to all setup prompts (kernel download, tap creation, netns provisioning) — for non-interactive use
+
+  -h, --help
+          Print help (see a summary with '-h')
+--- quickstart (preflight + first fork attempt)
+==> forkd quickstart — host preflight
+  [32m✓[0m  platform      Linux version 6.18.39-gentoo-dist-bin
+  [32m✓[0m  hw virt       svm (CPU supports virtualization)
+  [31m✗[0m  kvm           /dev/kvm does not exist
+                       [90m→ enable KVM (Intel: kvm_intel; AMD: kvm_amd) or run on bare metal[0m
+  [31m✗[0m  firecracker   not on PATH
+                       [90m→ install via scripts/setup-host.sh, or curl from https://github.com/firecracker-microvm/firecracker/releases[0m
+  [33m⚠[0m  kernel image  no vmlinux found in common locations
+                       [90m→ sudo scripts/install-guest-kernel.sh   (or override the URL: curl -L https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.13/x86_64/vmlinux-6.1.141 -o /var/lib/forkd/kernels/vmlinux)[0m
+  [33m⚠[0m  tap device    forkd-tap0 not present
+                       [90m→ quickstart sets this up (with your consent)[0m
+  [33m⚠[0m  docker        daemon unreachable
+                       [90m→ sudo systemctl start docker[0m
+
+  pass=2  warn=3  fail=2  skip=0
+Error: quickstart preflight failed — fix the ✗ items above (scripts/setup-host.sh covers most of them) and re-run
+--- exit: 1

@@ -1,0 +1,15 @@
+=== first run (default runtime auto-detect) ===
+find: /: Permission denied
+exit: 1
+
+=== explicit runtime: proot ===
+find: /: Permission denied
+exit: 1
+
+=== explicit runtime: userns ===
+find: /: Permission denied
+exit: 1
+
+=== explicit runtime: bwrap ===
+find: /: Permission denied
+exit: 1

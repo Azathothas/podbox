@@ -1,0 +1,24 @@
+## conditions
+## conditions
+date: 2026-09-09T10:15:50Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: qemu-tcg-microvm
+kernel: https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 12eb24189f3eb30bd0dcd919248caaa054ed4e87b799a53fdcc3999f157933e4)
+machine: microvm (virtio-mmio, no PCI/ISA legacy beyond serial)
+control: experiments/logs/20-qemu-tcg-pc-boot.log
+c[?7l[2J[0mSeaBIOS (version rel-1.17.0-0-gb52ca86e094d-prebuilt.qemu.org)
+Booting from ROM...
+c[?7l[2JVMR-BOOT-OK kernel=6.12.94-0-virt
+VMR-GUEST-UNAME: Linux (none) 6.12.94-0-virt #1-Alpine SMP PREEMPT_DYNAMIC 2026-06-20 16:46:16 x86_64 Linux
+VMR-GUEST-CPU: model name	: QEMU Virtual CPU version 2.5+
+VMR-GUEST-HYPERVISOR-FLAG: 2
+VMR-GUEST-MEM: MemTotal:         480444 kB
+VMR-GUEST-UPTIME: 0.67 0.33
+VMR-PROOF-END
+[    0.701259] reboot: Power down
+### qemu exit: 0
+### wall seconds to qemu exit: 1.414563570
+### markers: BOOT=1 PROOF=1

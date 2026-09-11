@@ -1,0 +1,35 @@
+## conditions
+date: 2026-09-09T08:54:01Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+uid/gid: 0/0   caps_eff: 000001ffffffffff
+seccomp: 2
+1 (2=filter mode)
+uid_map:          0       1000          1 
+namespaces:  ->  cgroup -> cgroup:[4026531835] ipc -> ipc:[4026531839] mnt -> mnt:[4026534247] net -> net:[4026531833] pid -> pid:[4026534249] pid_for_children -> pid:[4026534249] time -> time:[4026531834] time_for_children -> time:[4026531834] user -> user:[4026534245] uts -> uts:[4026534248] 
+
+## static census
+devkvm-node: ls: cannot access '/dev/kvm': No such file or directory
+devtun-node: ls: cannot access '/dev/net/tun': No such file or directory
+dev-dir:     
+proc-misc-kvm: 232 kvm
+proc-misc-tun: 200 tun
+proc-modules: kvm_amd 217088;kvm 1302528;tun 69632;
+cpu-flags-virt: 1 matched
+hypervisor-flag: 0 (0 = we are on bare metal, inside a container on it)
+
+## dynamic census (syscall probe; EPERM with full caps => seccomp filter)
+mknod(chr 10:232)        rc=-1   errno=1 (Operation not permitted)
+mount(tmpfs)             rc=-1   errno=1 (Operation not permitted)
+umount2                  rc=-1   errno=1 (Operation not permitted)
+unshare(CLONE_NEWNS)     rc=-1   errno=1 (Operation not permitted)
+unshare(CLONE_NEWUSER)   rc=-1   errno=1 (Operation not permitted)
+ptrace(TRACEME)          rc=-1   errno=1 (Operation not permitted)
+open(/proc/self/mem)     rc=-1   errno=13 (Permission denied)
+open(/dev/kvm)           rc=-1   errno=2 (No such file or directory)
+open(/dev/net/tun)       rc=-1   errno=2 (No such file or directory)
+mmap+RWX mprotect        rc=0    errno=0 (ok)
+mmap(512MiB anon)        rc=-639631360 errno=0 (Success)
+bpf                      rc=-1   errno=1 (Operation not permitted)
+keyctl                   rc=-1   errno=1 (Operation not permitted)
+open_by_handle_at        rc=-1   errno=1 (Operation not permitted)
+clone3(NULL)             rc=-1   errno=22 (Invalid argument)

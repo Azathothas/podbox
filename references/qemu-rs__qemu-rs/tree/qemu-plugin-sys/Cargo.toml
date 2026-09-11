@@ -1,0 +1,36 @@
+[package]
+name = "qemu-plugin-sys"
+authors.workspace = true
+categories.workspace = true
+description = "Low level bindings to the QEMU plugin API"
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+publish.workspace = true
+readme.workspace = true
+repository.workspace = true
+version.workspace = true
+rust-version.workspace = true
+
+[build-dependencies]
+anyhow = "1.0.99"
+
+[lints.rust]
+non_snake_case = "allow"
+
+[features]
+default = ["plugin-api-v6"]
+# Use the V0 plugin API, which is defined starting in version 4.2.0
+plugin-api-v0 = []
+# Use the V1 plugin API, which is defined starting in version 6.0.0
+plugin-api-v1 = []
+# Use the V2 plugin API, which is defined starting in version 9.0.0
+plugin-api-v2 = []
+# Use the V3 plugin API, which is defined starting in version 9.1.0
+plugin-api-v3 = []
+# Use the V4 plugin API, which is defined starting in version 9.2.0
+plugin-api-v4 = []
+# Use the V5 plugin API, which is defined starting in version 10.1.0
+plugin-api-v5 = []
+# Use the V6 plugin API, which is defined starting in version 10.2.0
+plugin-api-v6 = []

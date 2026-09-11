@@ -1,0 +1,29 @@
+# Dependabot configuration.
+# It updates the Cargo crates and the GitHub Actions once each week.
+# Grouped updates keep the pull-request count low.
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      cargo-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    ignore:
+      # dtolnay/rust-toolchain selects a toolchain by ref (@stable, @1.65),
+      # not by version tag. The msrv job pins @1.65 on purpose. Dependabot must
+      # not change it.
+      - dependency-name: "dtolnay/rust-toolchain"

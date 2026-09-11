@@ -1,0 +1,5 @@
+-rw-r--r-- 1 0 0 23607712 Sep 11 03:12 chroot/dl/nix-2.2.2-x86_64-linux.tar.bz2
+chroot/dl/nix-2.2.2-x86_64-linux.tar.bz2: bzip2 compressed data, block size = 900k
+xz: (stdin): File format not recognized
+tar: Child returned status 1
+tar: Error is not recoverable: exiting now

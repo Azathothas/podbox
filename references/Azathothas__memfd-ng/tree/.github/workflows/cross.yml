@@ -1,0 +1,86 @@
+name: cross
+
+# Compile and link the full suite for every major Linux architecture. Then run
+# QEMU-safe protocol and FFI ABI coverage. Linux cannot reliably run a nested
+# foreign child from a QEMU user-mode test process: replacing that process can
+# lose its anonymous CLOEXEC image descriptor and its emulated pipe state.
+# Child-process behaviour remains covered by the native Linux and FreeBSD jobs.
+#
+# The standard binfmt setup does not include big-endian PowerPC. This workflow
+# registers all handlers and checks the PowerPC handlers.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  qemu:
+    name: ${{ matrix.arch }} (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: aarch64,  target: aarch64-unknown-linux-gnu,     gcc: gcc-aarch64-linux-gnu,     cc: aarch64-linux-gnu-gcc,     sysroot: /usr/aarch64-linux-gnu }
+          - { arch: armv7,    target: armv7-unknown-linux-gnueabihf,  gcc: gcc-arm-linux-gnueabihf,   cc: arm-linux-gnueabihf-gcc,   sysroot: /usr/arm-linux-gnueabihf }
+          - { arch: riscv64,  target: riscv64gc-unknown-linux-gnu,    gcc: gcc-riscv64-linux-gnu,     cc: riscv64-linux-gnu-gcc,     sysroot: /usr/riscv64-linux-gnu }
+          - { arch: s390x,    target: s390x-unknown-linux-gnu,        gcc: gcc-s390x-linux-gnu,       cc: s390x-linux-gnu-gcc,       sysroot: /usr/s390x-linux-gnu, bigendian: true }
+          - { arch: ppc64le,  target: powerpc64le-unknown-linux-gnu,  gcc: gcc-powerpc64le-linux-gnu, cc: powerpc64le-linux-gnu-gcc, sysroot: /usr/powerpc64le-linux-gnu }
+          - { arch: ppc64,    target: powerpc64-unknown-linux-gnu,    gcc: gcc-powerpc64-linux-gnu,   cc: powerpc64-linux-gnu-gcc,   sysroot: /usr/powerpc64-linux-gnu, bigendian: true, ppc: true }
+          - { arch: ppc,      target: powerpc-unknown-linux-gnu,      gcc: gcc-powerpc-linux-gnu,     cc: powerpc-linux-gnu-gcc,     sysroot: /usr/powerpc-linux-gnu, bigendian: true, ppc: true }
+    env:
+      CARGO_BUILD_TARGET: ${{ matrix.target }}
+      QEMU_LD_PREFIX: ${{ matrix.sysroot }}
+      MEMFD_NG_TEST_CC: ${{ matrix.cc }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install the cross gcc (linker + fixture compiler)
+        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.gcc }}
+
+      - name: Point rustc at the cross linker
+        run: |
+          triple_uc=$(echo "${{ matrix.target }}" | tr 'a-z-' 'A-Z_')
+          echo "CARGO_TARGET_${triple_uc}_LINKER=${{ matrix.cc }}" >> "$GITHUB_ENV"
+
+      - name: Register binfmt_misc for every arch with the F flag
+        # multiarch/qemu-user-static covers big-endian PowerPC, which the
+        # standard action does not. The F flag preloads the interpreter, which
+        # a memfd execveat (no path on disk) needs.
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Assert the qemu handler is registered (ppc edge case)
+        run: |
+          set -e
+          reg=/proc/sys/fs/binfmt_misc
+          case "${{ matrix.arch }}" in
+            aarch64) h=qemu-aarch64 ;;
+            armv7)   h=qemu-arm ;;
+            riscv64) h=qemu-riscv64 ;;
+            s390x)   h=qemu-s390x ;;
+            ppc64le) h=qemu-ppc64le ;;
+            ppc64)   h=qemu-ppc64 ;;
+            ppc)     h=qemu-ppc ;;
+          esac
+          if [ ! -e "$reg/$h" ]; then
+            echo "binfmt handler $h is not registered"; ls "$reg"; exit 1
+          fi
+          grep -q 'flags:.*F' "$reg/$h" || { echo "$h lacks the F flag"; cat "$reg/$h"; exit 1; }
+          echo "$h registered:"; cat "$reg/$h"
+
+      - name: Compile and link the full workspace
+        run: cargo test --workspace --all-features --no-run
+
+      - name: Pipe protocol tests
+        run: cargo test --features test-hooks --test fuzz_pipe
+
+      - name: FFI ABI smoke test
+        run: cargo test -p memfd-ng-ffi abi_version_and_version_string -- --exact

@@ -1,0 +1,62 @@
+=== patched run NP_DEBUG=2 ===
++ ln -s busybox /state/home/.nix-portable/busybox/bin/uuencode
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/vconfig ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/vconfig
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/vi ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/vi
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/vlock ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/vlock
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/volname ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/volname
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/watch ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/watch
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/watchdog ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/watchdog
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/wc ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/wc
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/wget ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/wget
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/which ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/which
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/whoami ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/whoami
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/whois ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/whois
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/xargs ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/xargs
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/xxd ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/xxd
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/xz ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/xz
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/xzcat ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/xzcat
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/yes ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/yes
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/zcat ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/zcat
++ for bin in $busyBins
++ '[' '!' -e /state/home/.nix-portable/busybox/bin/zcip ']'
++ ln -s busybox /state/home/.nix-portable/busybox/bin/zcip
++ export PATH=/state/home/.nix-portable/busybox/bin
++ PATH=/state/home/.nix-portable/busybox/bin
++ unzip -qqoj /home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/nix-portable-patched nix/store/lh50gzywqz5p9r2wn2sivvyh9ma6gkh7-zstd/bin/zstd -d /state/home/.nix-portable/bin
+unzip: short read
++ declare -p
+exit: 1

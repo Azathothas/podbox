@@ -1,0 +1,17 @@
+## conditions
+date: 2026-09-09T10:03:21Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: boxlite
+--- python available: Python 3.14.7 vs published wheels cp310/cp311 (abi mismatch => binary path impossible)
+--- [S] README isolation lines (pinned v0.10.0):
+| **Isolation & security** | a hardware-virtualized VM per box (KVM / Hypervisor.framework) · OS sandbox (seccomp / sandbox-exec) · CPU, memory & resource limits · egress allow-list (`allow_net`) · secret injection — real values never enter the VM · env sanitization |
+             (KVM/Hypervisor.framework + seccomp/sandbox-exec)
+- Hardware isolation (KVM/Hypervisor.framework)
+| Linux          | KVM enabled (`/dev/kvm` accessible)            |
+--- [V] census cross-ref:
+devkvm-node: ls: cannot access '/dev/kvm': No such file or directory
+mknod(chr 10:232)        rc=-1   errno=1 (Operation not permitted)
+--- verdict: KVM on Linux [S]; node absent+uncreatable [V] => BLOCKED

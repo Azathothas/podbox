@@ -1,0 +1,129 @@
+# NOTE user your own path
+vms-dir = "~/vml"
+
+log-level = "info"
+
+nameservers = ["8.8.8.8"]
+
+# treat vml-common.toml files in parent dirs as additional configs
+config-hierarchy = true
+
+
+[commands]
+clean.program = "~/.config/vml/scripts/cleanup.sh"
+
+create.pull = true
+
+# Do this when create vm that already exists: fail, ignore, replace
+create.exists = "fail"
+
+# Pulls image after adding to the images config
+image.add.pull = true
+
+list.all = false
+
+list.fold = false
+
+remove.interactive = true
+
+remove.verbose = false
+
+rsync.check = true
+
+start.wait-ssh = { on = true, attempts = 60, repeat = 12, sleep = 10, timeout = 100000 }
+
+# Ssh to vms after start
+start.ssh = false
+
+# Do this when start vm that already running: fail, ignore, restart
+start.running = "fail"
+
+
+[default]
+memory = "2G"
+
+display = "none"
+
+# Create user with password login for login to desktop environment
+# gui.user = ""
+# Password hash. This can be generated using mkpasswd for example
+# gui.passwd = ""
+
+nproc = 2
+
+# ssh.authorized-keys = []
+
+ssh.options = [
+    "StrictHostKeyChecking=no",
+    "ControlMaster=no",
+    "UserKnownHostsFile=/dev/null",
+    "LogLevel=ERROR",
+]
+
+ssh.port-user-network = "random"
+
+ssh.port = 22
+
+# Use 0.0.0.0 if you want to bind ssh port to all ip addresses
+ssh.host-user-network = "127.0.0.1"
+
+ssh.user = "root"
+
+# Path to private key or "none" or "create"
+ssh.key = "create"
+
+cloud-init = true
+
+# NOTE if not set create image from vm specifications
+# cloud-init-image = "~/my-seed.img"
+
+# net.type = "none"
+
+# net.type = "tap"
+# net.address = "192.168.0.2"
+# net.tap = "tap0"
+# net.gateway = "192.168.0.1"
+# net.mac = "fe:aa:00:ff:ee:00"
+# net.nameservers = ["8.8.8.8"]
+
+net.type = "user"
+
+nic-model = "virtio-net-pci"
+
+# Do not run qemu in the background, could be used with some script in prepend
+nodaemonize = false
+
+minimum-disk-size = "30G"
+
+# Prepend qemu command. Using ["echo"] will just print qemu command e.g.
+modify-command.qemu.prepend = []
+
+# Append qemu command, to add qemu flags
+modify-command.qemu.append = []
+
+
+[images]
+
+default = "alt-sisyphus"
+
+directory = "~/.local/share/vml/images"
+
+# List of read only directories with images
+other-directories-ro = []
+
+update-after-days = 60
+# Uncomment to enable automatically update images when creating new vm
+# update-on-create = true
+
+
+[openssh-config]
+
+# This config could be used to run programs respecting ssh config (such as ssh,
+# rsync, scp) directly with vm. For example `ssh fst` instead of `vml ssh fst`.
+# To do it include main-config in yours ssh config. Write at the beginnig of
+# the `~/.ssh/config` file following string:
+# Include ~/.local/share/vml/openssh/main-config
+main-config = "~/.local/share/vml/openssh/main-config"
+
+# Place to store individual vms ssh configs
+vm-configs-dir = "~/.local/share/vml/openssh/vm-configs"

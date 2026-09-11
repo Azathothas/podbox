@@ -1,0 +1,9 @@
+=== trivial build, explicit system ===
+warning: the group 'nixbld' specified in 'build-users-group' does not exist
+this derivation will be built:
+  /nix/store/76w21n1f03fs5kw8fnffphx7qrqffw6r-hello.drv
+warning: the group 'nixbld' specified in 'build-users-group' does not exist
+error: creating directory "/nix/var/nix/userpool": Permission denied
+exit: 1
+
+=== result ===

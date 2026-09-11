@@ -1,0 +1,15 @@
+## conditions
+## conditions
+date: 2026-09-10T05:17:23Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: fork-latency
+guest: 128M microvm; snapshot migrate exec:file; clones -incoming exec:cat
+snapshot completed
+snapshot wall: 1.02s; U0=4.59; size=76331612
+--- clones (uptime delta = restore latency)
+clone-1: first-tick uptime=6.67 restore-latency≈2.08s wall=60.01s
+clone-2: first-tick uptime=6.67 restore-latency≈2.08s wall=60.01s
+clone-3: first-tick uptime=6.65 restore-latency≈2.06s wall=60.00s

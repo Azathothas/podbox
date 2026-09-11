@@ -7,7 +7,7 @@ and musl, but placement, the complete entry-point set, ownership-memo policy and
 end-to-end acceptance remain open. M7 packaging has not started. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-125 entries: 35 open, 3 partial, 0 blocked, 87 done.
+131 entries: 42 open, 4 partial, 0 blocked, 85 done.
 
 ## Baseline
 

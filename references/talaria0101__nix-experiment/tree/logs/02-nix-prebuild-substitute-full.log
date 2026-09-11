@@ -1,0 +1,7 @@
+=== full run: build hello from github flake ref ===
+exit: 0
+
+lrwxrwxrwx 1 0 0 56 Sep 11 02:30 result -> /nix/store/na5dnb0l6rjkzrbld3xn4188dd8nknhh-hello-2.12.1
+/nix/store/na5dnb0l6rjkzrbld3xn4188dd8nknhh-hello-2.12.1
+result/bin/hello exists
+23M	store-demo

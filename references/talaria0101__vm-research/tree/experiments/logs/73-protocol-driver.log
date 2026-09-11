@@ -1,0 +1,21 @@
+initramfs ready: 78446651 bytes
+ready: True (16300 bytes in 8s)
+handshake: shell reads console input
+[exec rc=None] -rwxr-xr-x    1 root     root           139 Sep 10 05:12 [1;32m/init[m
+
+/root/:
+total 4
+drwx------    2 root     root            60 Sep 10 05:12 [1;34m.[m
+drwxr-xr-x   19 root     root           420 Sep 10 05:12 [1;34m..[m
+-rw-r--r--    1 root     root           610 Sep 10 05:12 [0;0mbench.c[m
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+staVMR_4035e0_E 0
+~ # [6n
+[exec rc=0] Linux (none) 6.12.94-0-virt #1-Alpine SMP PREEMPT_DYNAMIC 2026-06-20 16:46:16 x86_64 Linux
+[exec rc=0] uid=0(root) gid=0(root)
+[exec rc=0] gcc (Alpine 14.2.0) 14.2.0
+[exec rc=0] COMPILE-OK
+[exec rc=0] bench 1.61s 18.6 Mops/s checksum=165be307 acc=840.4928 N=30000000
+PROTOCOL-POC-DONE

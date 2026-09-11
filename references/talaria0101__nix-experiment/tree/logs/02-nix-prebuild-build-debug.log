@@ -1,0 +1,24 @@
+=== build with explicit sandbox=false + debug ===
+warning: the group 'nixbld' specified in 'build-users-group' does not exist
+evaluating file '«nix-internal»/derivation-internal.nix'
+error:
+       … while calling the 'derivationStrict' builtin
+         at «nix-internal»/derivation-internal.nix:37:12:
+           36|
+           37|   strict = derivationStrict drvAttrs;
+             |            ^
+           38|
+
+       … while evaluating derivation 'hello'
+         whose name attribute is located at «string»:1:14
+
+       … while evaluating attribute 'system' of derivation 'hello'
+         at «string»:1:28:
+            1| derivation { name="hello"; system=builtins.currentSystem; builder="/bin/sh"; args=["-c" "echo hi > $out"]; }
+             |                            ^
+
+       error: attribute 'currentSystem' missing
+       at «string»:1:35:
+            1| derivation { name="hello"; system=builtins.currentSystem; builder="/bin/sh"; args=["-c" "echo hi > $out"]; }
+             |                                   ^
+exit: 1

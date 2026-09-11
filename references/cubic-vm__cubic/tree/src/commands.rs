@@ -1,0 +1,79 @@
+mod accel_arg;
+mod all_images_arg;
+mod all_info_arg;
+mod all_instances_arg;
+mod clone_command;
+mod command_dispatcher;
+mod completions_command;
+mod console_command;
+mod context;
+mod create_command;
+mod delete_command;
+mod env_args;
+mod exec_command;
+mod image;
+mod instance_arg;
+mod list_image_command;
+mod list_instance_command;
+mod list_port_command;
+mod modify_command;
+mod prune_command;
+mod rename_command;
+mod restart_command;
+mod restore_command;
+mod run_command;
+mod scp_command;
+mod show_command;
+mod show_image_command;
+mod show_instance_command;
+mod snapshot_command;
+mod ssh_command;
+mod start_command;
+mod stop_command;
+mod verbosity;
+mod yes_arg;
+
+pub use accel_arg::*;
+pub use all_images_arg::*;
+pub use all_info_arg::*;
+pub use all_instances_arg::*;
+pub use clone_command::*;
+pub use command_dispatcher::*;
+pub use completions_command::*;
+pub use console_command::*;
+pub use context::*;
+pub use create_command::*;
+pub use delete_command::*;
+pub use env_args::*;
+pub use exec_command::*;
+pub use image::*;
+pub use instance_arg::*;
+pub use list_image_command::*;
+pub use list_instance_command::*;
+pub use list_port_command::*;
+pub use modify_command::*;
+pub use prune_command::*;
+pub use rename_command::*;
+pub use restart_command::*;
+pub use restore_command::*;
+pub use run_command::*;
+pub use scp_command::*;
+pub use show_command::*;
+pub use show_image_command::*;
+pub use show_instance_command::*;
+pub use snapshot_command::*;
+pub use ssh_command::*;
+pub use start_command::*;
+pub use stop_command::*;
+pub use verbosity::*;
+pub use yes_arg::*;
+
+use crate::error::Result;
+use crate::view::Console;
+use std::sync::Arc;
+
+// The runtime is single threaded, so the returned futures never need Send.
+#[allow(async_fn_in_trait)]
+trait Command {
+    async fn run(&self, console: &Arc<Console>, context: &Context) -> Result<u8>;
+}

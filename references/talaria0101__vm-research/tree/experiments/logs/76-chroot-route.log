@@ -1,0 +1,28 @@
+## conditions
+## conditions
+date: 2026-09-10T05:52:56Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: chroot-route
+appliance: alpine 3.22.5 minirootfs + own /etc/passwd (work/alpine-chroot)
+=== inside chroot
+root:x:0:0:root:/root:/bin/sh
+--- /proc mount test:
+mount: permission denied (are you root?)
+mount rc=0
+--- /dev/null test:
+devnull rc=0
+--- ps:
+PID   USER     TIME  COMMAND
+--- apk add gcc (in-chroot, over network):
+OK: 172 MiB in 29 packages
+gcc (Alpine 14.2.0) 14.2.0
+CHROOT-COMPILE-OK
+bench 0.04s 845.9 Mops/s checksum=165be307 acc=840.4928 N=30000000
+bench 0.03s 866.8 Mops/s checksum=165be307 acc=840.4928 N=30000000
+=== session done
+session rc=0
+--- session rc=0
+second chroot: Not a directory

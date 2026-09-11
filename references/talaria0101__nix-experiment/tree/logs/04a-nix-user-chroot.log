@@ -1,0 +1,18 @@
+=== nix-user-chroot run (dir pre-created) ===
+
+thread 'main' (4921) panicked at src/main.rs:406:70:
+unshare failed: EPERM
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+exit: 101
+
+=== why: the tool's mechanism (from src/main.rs) ===
+14:    mount::{mount, umount, MsFlags},
+15:    sched::{unshare, CloneFlags},
+26:fn bind_mount(source: &Path, dest: &Path) {
+27:    if let Err(e) = mount(
+35:            "failed to bind mount {} to {}: {}",
+43:/// When constructing the chroot, the mounts we make either mirror the
+44:/// directory structure in `/` or are explicit user provided mounts that do
+45:/// not necessarily have a source location that mirrors the mount location
+62:    /// For example to mount `/home/foo/bar` to `/bin/bar` you would pass an
+80:    fn explicit_mount_with_dest_file_name(

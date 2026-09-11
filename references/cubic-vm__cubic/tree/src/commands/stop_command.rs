@@ -1,0 +1,158 @@
+use crate::actions::{LoadInstanceAction, StopInstanceAction};
+use crate::commands::{self, Command};
+use crate::error::Result;
+use crate::view::{Console, Spinner};
+use clap::Parser;
+use std::sync::Arc;
+use std::time::Duration;
+
+/// Stop VM instances
+///
+/// Examples:
+///
+///   Stop the VM instance 'my-instance':
+///   $ cubic stop my-instance
+///
+///   Stop and wait until the VM instance 'my-instance' has stopped:
+///   $ cubic stop --wait my-instance
+///
+///   Stop all VM instances:
+///   $ cubic stop --all --wait
+///
+///   Force-kill the VM instance 'my-instance':
+///   $ cubic stop --kill my-instance
+///
+#[derive(Parser)]
+#[clap(verbatim_doc_comment)]
+pub struct StopCommand {
+    #[clap(flatten)]
+    pub all: commands::AllInstancesArg,
+    /// Wait for the virtual machine instance to be stopped
+    #[clap(short, long, default_value_t = false)]
+    pub wait: bool,
+    /// Kill the virtual machine instance
+    #[clap(short, long, default_value_t = false)]
+    pub kill: bool,
+    #[clap(flatten)]
+    pub instances: commands::InstancesArg,
+}
+
+impl Command for StopCommand {
+    async fn run(&self, console: &Arc<Console>, context: &commands::Context) -> Result<u8> {
+        let instance_store = context.get_instance_store();
+
+        if !self.all.value {
+            self.instances.require_names()?;
+        }
+
+        let stop_instances = if self.all.value {
+            instance_store.get_instances()
+        } else {
+            self.instances.get_names()
+        };
+
+        // Only stop instances that are running
+        let mut stopping = Vec::new();
+        for name in &stop_instances {
+            let instance = LoadInstanceAction::new().run(context, console, name)?;
+            if instance_store.is_running(&instance) {
+                stopping.push(instance);
+            }
+        }
+
+        let names = stopping
+            .iter()
+            .map(|instance| instance.name.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _spinner = Spinner::new(Arc::clone(console), format!("Stopping {names}"));
+
+        // Stop instances
+        let mut actions = Vec::new();
+        for instance in &stopping {
+            let mut action = StopInstanceAction::new(instance);
+            action.run(instance_store, self.kill)?;
+            actions.push(action);
+        }
+
+        if self.wait {
+            while actions.iter().any(|action| !action.is_done(instance_store)) {
+                tokio::time::sleep(Duration::from_secs(1)).await
+            }
+        }
+
+        Ok(0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::Error;
+    use crate::instance::InstanceStoreMock;
+    use crate::models::{Environment, UserName};
+    use crate::platform::SystemMock;
+    use std::str::FromStr;
+    use std::sync::Arc;
+
+    #[test]
+    fn test_reject_path_traversal() {
+        assert!(StopCommand::try_parse_from(["stop", "../../etc"]).is_err());
+    }
+
+    #[tokio::test]
+    async fn test_reject_empty_instance_list_without_all() {
+        let system = SystemMock::new();
+        let console = &Console::new(Arc::new(system));
+        let env = Environment::new(
+            UserName::from_str("myuser").unwrap(),
+            String::new(),
+            String::new(),
+        );
+        let context = commands::Context::new(
+            Arc::new(SystemMock::new()),
+            env,
+            Box::new(InstanceStoreMock::new(Vec::new())),
+        );
+
+        assert!(matches!(
+            StopCommand {
+                all: false.into(),
+                wait: false,
+                kill: false,
+                instances: Vec::new().into(),
+            }
+            .run(console, &context)
+            .await,
+            Err(Error::MissingInstanceName)
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_allow_empty_instance_list_with_all() {
+        let system = SystemMock::new();
+        let console = &Console::new(Arc::new(system));
+        let env = Environment::new(
+            UserName::from_str("myuser").unwrap(),
+            String::new(),
+            String::new(),
+        );
+        let context = commands::Context::new(
+            Arc::new(SystemMock::new()),
+            env,
+            Box::new(InstanceStoreMock::new(Vec::new())),
+        );
+
+        assert!(
+            StopCommand {
+                all: true.into(),
+                wait: false,
+                kill: false,
+                instances: Vec::new().into(),
+            }
+            .run(console, &context)
+            .await
+            .is_ok()
+        );
+    }
+}

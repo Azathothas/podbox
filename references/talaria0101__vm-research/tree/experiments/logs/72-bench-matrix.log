@@ -1,0 +1,24 @@
+## conditions
+## conditions
+date: 2026-09-10T03:13:06Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: bench-matrix
+bench: 30M iterations xorshift32+dbl+FNV, -O2; checksum 165be307 expected everywhere
+[host] bench 0.04s 721.4 Mops/s checksum=165be307 acc=840.4928 N=30000000
+[host] bench 0.04s 754.8 Mops/s checksum=165be307 acc=840.4928 N=30000000
+[prep] gcc in rootfs: /workspace/vm-research/experiments/work/alpine-gcc-root/usr/bin/gcc
+[microvm-alpine] VMR-GCC: gcc (Alpine 14.2.0) 14.2.0
+[microvm-alpine] VMR-COMPILE-OK
+[microvm-alpine] bench 0.85s 35.1 Mops/s checksum=165be307 acc=840.4928 N=30000000
+[microvm-alpine] bench 0.85s 35.1 Mops/s checksum=165be307 acc=840.4928 N=30000000
+[pc-alpine] VMR-GCC: gcc (Alpine 14.2.0) 14.2.0
+[pc-alpine] VMR-COMPILE-OK
+[pc-alpine] bench 0.95s 31.4 Mops/s checksum=165be307 acc=840.4928 N=30000000
+[pc-alpine] bench 0.85s 35.1 Mops/s checksum=165be307 acc=840.4928 N=30000000
+[nanos] bench 0.91s 33.1 Mops/s checksum=165be307 acc=840.4928 N=30000000
+[firecracker-kernel] bench 0.87s 34.3 Mops/s checksum=165be307 acc=840.4928 N=30000000
+[firecracker-kernel] bench 0.85s 35.3 Mops/s checksum=165be307 acc=840.4928 N=30000000
+=== matrix summary ===

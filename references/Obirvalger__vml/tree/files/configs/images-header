@@ -1,0 +1,31 @@
+# This file updated from a vml binary. Comments are not saved. Images are
+# stored in the sorted by name order.
+
+# Changes in an image controlled by the `change` array for any image.
+
+# If `delete` present in changes, absent of the image in new (vml binary)
+# images cause its deletion from this file.
+
+# If `update-<field>` is present in changes, the field would be updated.
+
+# If `update-all` is present in changes it will update all fields of the image.
+
+# The `keep-<field>` used to keep the filed from updating if update-all
+# present. Note, to keep any field, `keep-change` should also be present in
+# change, otherwise `change` would be updated and then `keep-<field>` would be
+# removed. For example to keep description from updating `change` could be set
+# like this.
+# change: ["update-all", "keep-description", "keep-change"]
+
+# Images identifies by name and stores the following data:
+#  description - optional,
+#  url - mandatory,
+#  change: optional,
+#  update-after-days: optional,
+#
+# For example:
+# [alt]
+# description = "ALT Linux Sisyphus"
+# url = "http://ftp.altlinux.org/pub/distributions/ALTLinux/images/Sisyphus/cloud/alt-sisyphus-cloud-x86_64.qcow2"
+# change = ["update-all", "delete", "keep-change", "keep-update-after-days"]
+# update-after-days = 60

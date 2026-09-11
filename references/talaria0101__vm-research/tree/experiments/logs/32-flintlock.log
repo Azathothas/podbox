@@ -1,0 +1,13 @@
+## conditions
+date: 2026-09-09T09:14:13Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: flintlock
+--- deb download (flintlockd only, no containerd here — the dependency chain itself is evidence)
+find: ‘/workspace/vm-research/experiments/work/flintlock’: No such file or directory
+--- [S] backend requires (source, pinned v0.15.1):
+--- [V] census cross-ref (firecracker blocked first-hand: see 30-):
+{"fault_message":"Start microvm error: Kvm error: Error creating KVM object: No such file or directory (os error 2) Make sure the user launching the firecracker process is \\\nconfigured on the /dev/kvm file's ACL."}
+2026-09-09T08:59:41.847308962 [anonymous-instance:fc_api:ERROR:src/firecracker/src/api_server/parsed_request.rs:225] Received Error. Status code: 400 Bad Request. Message: Start microvm error: Kvm error: Error creating KVM object: No such file or directory (os error 2) Make sure the user launching the firecracker process is \

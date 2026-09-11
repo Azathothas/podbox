@@ -72,7 +72,17 @@ Approach:    Add a `machine` group to `podbox probe`, with one leg per fact and
                 memory image and a guest over it dies with `SIGXFSZ`;
              4. `/dev/net/tun`, opened the same way;
              5. the writable space for an image, blocks and inodes both, per
-                [RULES.md](RULES.md) section 8.
+                [RULES.md](RULES.md) section 8;
+             6. ⭐ **ask the emulator which accelerator it will actually use**,
+                rather than deciding from leg 2. `qemu-system-x86_64 -accel
+                help` lists what this build supports, and an accelerator a
+                build was compiled without is as absent as a missing node.
+                ⚠ **`references/cubic-vm__cubic` reached this independently**,
+                which is what makes it worth copying: its pull request #538 is
+                `feat: ask qemu which accelerator works on the host` and its
+                issue #6 is `Only use KVM if available`. That project has no
+                connection to this one and no restricted host to defend
+                against, and it still ended up probing rather than assuming.
              ⛔ Never infer a leg from another leg. The specification records a
              runtime where the host drivers are listed in `/proc/misc` and the
              device nodes are absent and uncreatable, so the driver's presence
@@ -122,6 +132,25 @@ Decision:    Not taken. ⚠ Two candidate shapes and the trade is real: a tier
              alias is what an agent's existing scripts already produce. They are
              not exclusive, and the entry should rule whether BOTH are offered
              or only one.
+             ⛔ **One thing IS settled, and it is about the escape hatch rather
+             than the tier flag.** A machine tier needs a way to pass an
+             argument straight to the emulator, and
+             `references/cubic-vm__cubic` ships the defect that shape invites:
+             its open issue #448 records that the passthrough **splits its
+             string on a single space**, so any argument whose value contains a
+             space is torn into pieces and the emulator rejects the result. The
+             report names the splitting line in that project's own source, and
+             the user-visible effect is that quoting on the command line does
+             not survive.
+             ⭐ **podbox takes the repeatable-flag shape**: one token per
+             occurrence, repeated as many times as needed, and no splitting of
+             anything. ⚠ **Rejected:** splitting on whitespace with a shell word
+             splitter, which is what that report suggests as its first option.
+             It is friendlier to type and it puts a quoting parser between the
+             caller and the emulator, so a mis-parse becomes podbox's bug in a
+             place podbox cannot test exhaustively. ⛔ docker and podman both
+             take the repeatable form for this class of flag, and
+             [cli.md](cli.md) is the parity rule that settles ties.
 Prove:       `podbox --help` and `podvm --help` list one set of verbs, and `./experiments/145-podvm-parity.sh` drives every row from the flag rather than from the table
 
 ---
@@ -279,3 +308,118 @@ Decision:    A non-goal is a measured verdict with a date, never a constant.
              which leg failed, so a reader can tell "this runtime refuses it"
              from "podbox does not implement it".
 Prove:       `./experiments/149-podvm-non-goals.sh` asserts each refusal names its leg and its errno, and that a leg the host permits turns the refusal off
+
+---
+
+### T-1307 The five Rust VM tools, ruled one by one, so nobody surveys them again
+
+Source:      [reference-map.md](reference-map.md); the sweep at
+             [`../docs/history/2026-09-11-reference-sweep.md`](../docs/history/2026-09-11-reference-sweep.md)
+Category:    podvm
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     Five Rust projects were named as candidate microVM managers for the
+             machine tier. **A candidate list nobody rules on is a list the
+             next session surveys again.** Each needs one verdict, with the
+             reason recorded, so the survey is paid for once.
+Premise:     **Read on 2026-09-11, and not one of the five is a microVM
+             manager for a capability-denied host.**
+             `references/hust-open-atom-club__Vex` is a Docker-like command line
+             that saves, shares and launches named `qemu-system-*`
+             configurations. It composes command lines and boots nothing itself.
+             `references/cubic-vm__cubic` boots official distribution cloud
+             images with `cloud-init`, and it **accelerates every machine with
+             KVM, Hypervisor or WHPX** - the one facility the target denies.
+             `references/Obirvalger__vml` presents machines as directories with
+             a `vml.toml` and requires `kvm` plus `rsync`, `socat` and
+             `cloud-localds`.
+             `references/gevico__tcg-rs` is a Rust reimplementation of QEMU's
+             TCG: a RISC-V guest translated to x86-64 host code, with 816 tests
+             and a differential test against QEMU. RISC-V guest only, so it
+             cannot carry an x86-64 payload today.
+             `references/qemu-rs__qemu-rs` is **not a manager at all**: it is a
+             Rust binding to QEMU's TCG **plugin** C API. And
+             `references/qemu-rs__qemu-rs/tree/Cargo.toml:7` declares
+             `GPL-2.0-or-later`, which `TOOL.md` section 3.3 already settles
+             against for this tree.
+Approach:    One row per tool in [reference-map.md](reference-map.md), which is
+             written, plus the two mechanisms that survive the reading:
+             1. **ask the emulator which accelerator works, never assume
+                one.** `cubic` reached this independently: its pull request #538
+                is `feat: ask qemu which accelerator works on the host` and its
+                issue #6 is `Only use KVM if available`. T-1301 is where podbox
+                does it;
+             2. the named-configuration shape from `Vex`, which is what a
+                `podvm` machine profile is, and which T-1303 already carries.
+             Take no code from any of the five. Four permit it and the fifth
+             does not, and none of the four has a line podbox needs.
+Decision:    `Vex` **confirms** and `vml` **confirms**: independent evidence
+             for the parity rule and for the machine-as-a-directory shape, no
+             new work. `cubic` is an **anti-pattern exhibit**, kept for T-1302's
+             defect. `tcg-rs` is **filed** here, below. `qemu-rs` is
+             **refused**, and the licence alone settles it.
+             **`tcg-rs` is filed rather than refused**, and the reason is
+             worth keeping: the target permits RWX `mmap`/`mprotect`, which is
+             exactly what a translator's code buffer needs, so a pure-Rust TCG
+             could in principle run where QEMU runs and would remove the QEMU
+             dependency entirely. It is a RISC-V guest today, so it is years
+             from useful here. Revisit only when it carries an x86-64 guest.
+Prove:       `./scripts/check-todo.py` resolves every row, and each of the five names its verdict and the tree line that settles its licence
+
+---
+
+### T-1308 One TCG number is a claim about one benchmark, and the range is 3x to 21x
+
+Source:      `references/talaria0101__vm-research/tree/experiments/logs/66-tcg-benchmarks.log`
+             and `references/talaria0101__vm-research/tree/experiments/logs/72-bench-matrix.log`;
+             `references/talaria0101__sandbox-insights/tree/experiments/logs/55-tcg-exec-and-bench.log`;
+             `references/Azathothas__sandbox-insights/tree/docs/open-questions.md`
+Category:    podvm
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     [T-1301](podvm.md) selects the machine tier and the selection is a
+             cost decision, so podbox will have to tell an operator what the
+             tier costs. **Every source that states one number states a
+             different one**, and a reader who takes any of them as "the TCG
+             tax" will be wrong by up to seven times.
+Premise:     **Measured, four times, on one host class, and the spread is
+             real.** Every checksum matched on every platform in both trees, so
+             none of these measures a different computation.
+             md5 of 16 MiB: host 0.026 s against guest 0.07 to 0.08 s, which is
+             about **3x**.
+             A tight integer loop of 30 M iterations: host 854.1 Mops/s against
+             guest 274.7 Mops/s, which is **3.1x**.
+             A dependent double chain: host 708.8 Mops/s against guest
+             78.4 Mops/s, which is **9.0x**.
+             xorshift32 with double accumulation and FNV mixing, 30 M
+             iterations: host 721.4 to 754.8 Mops/s against guest 31.4 to
+             35.3 Mops/s, which is about **21x**.
+             **A document in that corpus states "20-25x" as its decision-table
+             speed row and repeats it in its recommendation**, from the last
+             measurement alone. Both of its own numbers are right and they
+             measure different things.
+             Two of the four trees already say so. One writes that any
+             single-number multiplier is "a claim about a benchmark and a
+             moment, not about emulation". The other files it as an open
+             question and names the closure test.
+Approach:    Adopt that closure test rather than inventing one: integer,
+             syscall, memory-bandwidth, compilation and I/O workloads, reported
+             as a distribution rather than a point, with same-day native and
+             chroot controls taken on the same host in the same run.
+             Every row prints a checksum and the run is refused if two
+             platforms disagree, because a platform that computed something else
+             must say so rather than look fast.
+             podbox quotes the **range and the workload**, never a single
+             figure: the four-part diagnostic [cli.md](cli.md) T-0805 defines
+             has room for it.
+Decision:    **podbox never prints a bare multiplier.** Where the machine tier
+             is selected the banner names the workload class and the measured
+             range for it, or it names nothing. **Rejected:** carrying the
+             "20-25x" figure as a default, which is a real measurement of
+             somebody else's benchmark on somebody else's host and would be read
+             here as a property of emulation.
+Prove:       `./experiments/154-tcg-workload-spread.sh` prints one row per workload class with its checksum and its ratio, and exits 1 if any two platforms disagree on a checksum

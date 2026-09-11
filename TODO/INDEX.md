@@ -84,7 +84,7 @@ the blocker named and what would clear it.
 | [T-0208](image.md) | P2 | image | open | `--platform`, and a store that can hold two variants of one tag |
 | [T-0209](image.md) | P2 | image | open | Registry authentication, without a credential ever entering this tree |
 | [T-0210](image.md) | P1 | image | done | The store's concurrency contract, written down and driven |
-| [T-0211](image.md) | P1 | image | done | An image lock outlives its holder whenever anything forks |
+| [T-0211](image.md) | P1 | image | partial | An image lock outlives its holder whenever anything forks |
 | [T-0212](image.md) | P0 | image | done | The platform is decided at run time, and the store holds more than one |
 | [T-0213](image.md) | P0 | image | done | A registry with no certificate, or one nothing trusts, and the refusal kept |
 | [T-0214](image.md) | P2 | image | done | A blob body cut off mid-stream is not retried, and the bounded retry is around the wrong thing |
@@ -103,12 +103,14 @@ the blocker named and what would clear it.
 | [T-0405](complete.md) | P1 | complete | done | `/etc/mtab` is a symlink, and writing through it escapes the rootfs |
 | [T-0406](complete.md) | P1 | complete | done | pacman: `DownloadUser` and the keyring |
 | [T-0407](complete.md) | P1 | complete | done | apt: the sandbox user, https sources and the CA bundle |
-| [T-0408](complete.md) | P2 | complete | done | zypper: fix the RIS index, not `repos.d` |
+| [T-0408](complete.md) | P2 | complete | open | zypper: fix the RIS index, not `repos.d` |
 | [T-0409](complete.md) | P2 | complete | done | Ownership failures from `dpkg`, `rpm` and `xbps` are warnings |
 | [T-0410](complete.md) | P0 | complete | done | Supply `/etc/nsswitch.conf`, or the supplied `/etc/passwd` is a no-op |
 | [T-0411](complete.md) | P1 | complete | done | A payload whose package sources are `http://`, on a runtime where tcp/80 hangs |
 | [T-0412](complete.md) | P1 | complete | done | A fixup that has to run INSIDE the rootfs, and podbox runs it from outside |
 | [T-0413](complete.md) | P1 | complete | open | No `/proc` inside a chroot, and the shell feature that quietly stops working |
+| [T-0414](complete.md) | P1 | complete | open | Two walls only one instance of the class has shown, and podbox has probed neither |
+| [T-0415](complete.md) | P1 | complete | open | A device stand-in is checked by type, because an absent one becomes a growing file |
 | [T-0501](enter.md) | P0 | enter | done | Open every descriptor before the root changes |
 | [T-0502](enter.md) | P0 | enter | done | Resolve the program inside the new root, in the process that changed it |
 | [T-0503](enter.md) | P1 | enter | partial | Probe `/dev/ptmx`, and refuse `-t` by name where it is absent |
@@ -134,6 +136,7 @@ the blocker named and what would clear it.
 | [T-0709](interpose.md) | P0 | interpose | done | Select the interposer by `DT_NEEDED`, and refuse on the version predicate |
 | [T-0710](interpose.md) | P1 | interpose | open | The ownership memo lives where the payload can edit it, and answers by linear scan |
 | [T-0711](interpose.md) | P1 | interpose | open | The identity calls, and podbox's honesty rules point the other way from fakeroot's |
+| [T-0712](interpose.md) | P2 | interpose | open | A reach matrix holds its arguments constant, or it measures two things |
 | [T-0801](cli.md) | P0 | cli | done | The verb and flag parity table |
 | [T-0802](cli.md) | P0 | cli | done | docker's exit codes, unaltered |
 | [T-0803](cli.md) | P1 | cli | done | Answer to `docker` and `podman` on PATH |
@@ -171,7 +174,7 @@ the blocker named and what would clear it.
 | [T-1108](milestones.md) | P2 | milestones | open | M7 packaging |
 | [T-1109](milestones.md) | P1 | milestones | partial | The negative tests, which are tests |
 | [T-1110](milestones.md) | P0 | milestones | open | M6's acceptance: a payload the interposer is the only reason works |
-| [T-1111](milestones.md) | P1 | milestones | open | The nix acceptance: a real payload the chroot tier is exactly the answer for |
+| [T-1111](milestones.md) | P1 | milestones | open | M8 the nix acceptance: a real payload the chroot tier is exactly the answer for |
 | [T-1112](milestones.md) | P3 | milestones | open | A disposable guest that is not Linux |
 | [T-1201](gate.md) | P0 | gate | done | The gate reaches every file this project wrote |
 | [T-1202](gate.md) | P0 | gate | done | Every check is planted against, and a plant that stops reaching its subject says so |
@@ -180,16 +183,19 @@ the blocker named and what would clear it.
 | [T-1205](gate.md) | P1 | gate | done | The gate holds experiment numbers unique, because four Proves already collide |
 | [T-1206](gate.md) | P0 | gate | done | CI installs the toolchain the build config names, and nine commits proved nobody was holding it |
 | [T-1207](gate.md) | P1 | gate | open | The one crate that runs inside other people's processes is the one the gate does not check |
+| [T-1208](gate.md) | P1 | gate | open | A closed entry carries its recorded run, and the gate can see it |
 | [T-1301](podvm.md) | P0 | podvm | open | The machine tier is probed leg by leg, and a present file is not a working one |
 | [T-1302](podvm.md) | P1 | podvm | open | One binary, one parity table, and a VM-only flag that cannot collide |
 | [T-1303](podvm.md) | P1 | podvm | open | The image is a rootfs directory, and an initramfs with no console is a silent machine |
 | [T-1304](podvm.md) | P1 | podvm | open | The exec protocol is a serial pair with a nonce, and every wait is bounded |
 | [T-1305](podvm.md) | P2 | podvm | open | The fleet and the fork, and the file-size ceiling that bounds both |
 | [T-1306](podvm.md) | P1 | podvm | open | The non-goals are refusals the code makes, not notes in a document |
+| [T-1307](podvm.md) | P2 | podvm | open | The five Rust VM tools, ruled one by one, so nobody surveys them again |
+| [T-1308](podvm.md) | P1 | podvm | open | One TCG number is a claim about one benchmark, and the range is 3x to 21x |
 
 ## Counts
 
-125 items: 35 open, 3 partial, 0 blocked, 87 done.
+131 items: 42 open, 4 partial, 0 blocked, 85 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -198,10 +204,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 7 | 1 | 0 | 44 | 52 |
-| P1 | 17 | 2 | 0 | 32 | 51 |
-| P2 | 7 | 0 | 0 | 10 | 17 |
+| P1 | 21 | 3 | 0 | 31 | 55 |
+| P2 | 10 | 0 | 0 | 9 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **35** | **3** | **0** | **87** | **125** |
+| **All** | **42** | **4** | **0** | **85** | **131** |
 
 ## How the current ordering is derived
 

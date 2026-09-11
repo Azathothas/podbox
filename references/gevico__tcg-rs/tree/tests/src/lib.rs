@@ -1,0 +1,16 @@
+#[cfg(test)]
+mod backend;
+#[cfg(test)]
+mod core;
+#[cfg(test)]
+mod decode;
+#[cfg(test)]
+mod exec;
+#[cfg(test)]
+mod frontend;
+#[cfg(test)]
+mod integration;
+#[cfg(test)]
+mod linux_user;
+#[cfg(test)]
+mod tools;

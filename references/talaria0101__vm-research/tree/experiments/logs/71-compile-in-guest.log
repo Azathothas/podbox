@@ -1,0 +1,18 @@
+## conditions
+## conditions
+date: 2026-09-09T17:38:08Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: compile-in-guest
+guest root: alpine-minirootfs-3.22.5-x86_64; apk gcc over slirp https; machine pc,acpi=off (microvm UART drops userspace writes)
+sha256(minirootfs)=4b4daa9fe2fc696c4919c4412a4c3d3e770d8fb70292a004a2c72f5096175282
+probe: 45008 bytes static-musl
+initramfs-alpine: 9087924 bytes
+--- wall=1504s
+spawnp(/bin/echo) rc=0 errno=0 ()
+spawnp(/usr/libexec/gcc/x86_64-alpine-linux-musl/14.2.0/cc1) rc=0 errno=0 ()
+VMR-GCC-COMPILE-OK
+VMR-COMPILE-OK
+bench 1.00s 29.9 Mops/s checksum=165be307 acc=840.4928 N=30000000

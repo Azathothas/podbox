@@ -1,0 +1,32 @@
+/target
+**/*.rs.bk
+
+# Never commit Microsoft software or anything derived from it.
+*.iso
+*.wim
+*.esd
+*.vhd
+*.vhdx
+*.qcow2
+*.img
+
+# Built helper binaries; produced by scripts/build-ntfs-helpers.sh
+/vendor/
+
+# Release output
+/dist/
+
+# Local scratch
+/tmp/
+/scratch/
+winquick-artifacts/
+
+# .NET build output from examples/ and guest/
+bin/
+obj/
+
+# Local working instructions, not published
+CLAUDE.md
+
+# Isolated worktrees created for background agents.
+.claude/worktrees/

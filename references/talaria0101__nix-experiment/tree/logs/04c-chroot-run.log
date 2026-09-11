@@ -1,0 +1,47 @@
+=== sanity ===
+uid=0(root) gid=0(root) groups=65534,65534,65534,65534,65534,65534,65534,65534,0(root)
+Linux sandbox 6.18.39-gentoo-dist-bin #1 SMP PREEMPT_DYNAMIC Sat Jul 18 18:23:53 -00 2026 x86_64 Linux
+-rw-r--r--    1 root     root          9164 Sep 11 06:18 /nix/.reginfo
+nix 2.2.2 at: /nix/store/hbhdjn5ik3byg642d1m11k3k3s0kn3py-nix-2.2.2/bin
+nix-store (Nix) 2.2.2
+nix-instantiate (Nix) 2.2.2
+=== register binary-tarball closure in the nix DB ===
+GC Warning: pthread_getattr_np or pthread_attr_getstack failed for main thread
+GC Warning: Couldn't read /proc/stat
+DB-REGISTERED
+=== nixpkgs-22.05 eval via fetchTarball (needs TLS+DNS) ===
+GC Warning: pthread_getattr_np or pthread_attr_getstack failed for main thread
+GC Warning: Couldn't read /proc/stat
+warning: you did not specify '--add-root'; the result might be removed by the garbage collector
+/nix/store/01k08imxbcsf2z268skpp8m2bdijzm9l-hello-forced-local-2.12.drv
+=== BUILD (local compile; sandbox=false, pipe-based builder output) ===
+GC Warning: pthread_getattr_np or pthread_attr_getstack failed for main thread
+GC Warning: Couldn't read /proc/stat
+/nix/store/i4pfn82f4d7slfhay5428v8cbr1iklm1-hello-forced-local-2.12
+=== RUN the artifact inside the chroot ===
+Hello, world!
+=== fastfetch: nix-build from source (cmake) and run ===
+GC Warning: pthread_getattr_np or pthread_attr_getstack failed for main thread
+GC Warning: Couldn't read /proc/stat
+/nix/store/bwv95bgl85hnba9bah1knfgrf4hzpvv3-fastfetch-1.12.2
+Kernel: 6.18.39-gentoo-dist-bin
+Uptime: 1 day, 8 hours, 26 mins
+Shell: sh
+Locale: C.UTF-8
+fastfetch 1.12.2 (x86_64)
+=== pty-shim PoC: emulated pty with/without shim (needs store patchelf from fastfetch build) ===
+--- without shim:
+posix_openpt: No such file or directory
+--- with shim:
+harness: emulated slave path = /dev/.nix-pty-emu/0
+pty-shim-works-from-execed-child
+harness: eof after 33 bytes, child exit=0
+poc exit: 0
+--- /proc/self/exe shim on real nix 2.3.18 (if closure present):
+(2.3.18 closure not present; skipped)
+=== negative test: sandboxed build must fail (mount ns blocked) ===
+GC Warning: pthread_getattr_np or pthread_attr_getstack failed for main thread
+GC Warning: Couldn't read /proc/stat
+error: setgroups failed: Operation not permitted
+error: unable to start build process
+CHROOT-EXPERIMENT-DONE

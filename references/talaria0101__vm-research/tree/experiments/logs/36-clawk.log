@@ -1,0 +1,24 @@
+## conditions
+date: 2026-09-09T09:07:25Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: clawk
+clawk v0.4.0 (a67d04f10215, 2026-08-13T20:16:57Z) linux/amd64
+--- vm boot attempt (cwd mode, no runner attached)
+Start a sandbox VM (defaults to the cwd-derived sandbox)
+
+Usage:
+  clawk up [<name>] [flags]
+
+Flags:
+  -h, --help   help for up
+
+Global Flags:
+      --image string      OCI image for new sandboxes (registry ref or docker-save tarball path; overrides clawk.mod)
+      --kernel string     guest kernel override for new sandboxes (local vmlinux path or http(s) URL; overrides clawk.mod). Default: the Kata kernel
+      --no-global         ignore the host-wide clawk.mod (~/.config/clawk/clawk.mod) — the repo's own config only, for a reproducible run
+      --provider string   VM provider for new sandboxes: vz (default; macOS, Apple Virtualization.framework + userspace networking via gvproxy) or firecracker (Linux)
+sandbox "clawk-cwd" not found
+--- exit: 1

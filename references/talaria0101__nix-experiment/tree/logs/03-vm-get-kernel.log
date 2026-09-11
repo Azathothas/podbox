@@ -1,0 +1,4 @@
+kernel apk: linux-virt-6.12.109-r0.apk
+busybox-static apk: busybox-static-1.37.0-r20.apk
+./boot/vmlinuz-virt
+./bin/busybox.static

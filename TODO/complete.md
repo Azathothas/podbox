@@ -472,7 +472,7 @@ Source:      `TOOL.md` section 6.4, section 8
 Category:    complete
 Priority:    P2
 Effort:      S
-Status:      done
+Status:      open
 
 Problem:     A naive edit to `/etc/zypp/repos.d/` reverts. `refresh-services`
              regenerates that directory from the RIS index and overwrites
@@ -487,6 +487,21 @@ Decision:    Edit the source of the generated file. The alternative, disabling
 Prove:       `podbox run --rm registry.opensuse.org/opensuse/leap:latest sh -c 'zypper -n refresh && zypper -n install gcc >/dev/null && gcc --version'`
 
 ---
+
+Status note: **Reopened on 2026-09-11 by reconciliation, and it never met the
+             bar.** [RULES.md](RULES.md) section 5 closes an entry in place with
+             its `Prove` command **actually run and the output recorded
+             underneath**. This entry carries a `Prove` line and nothing after
+             it: no run, no output, and no date on its `Status` line either,
+             where every other closed entry in this file carries one.
+             ⚠ **The approach is not in doubt and is not being relitigated.**
+             Editing the service definitions under the RIS index rather than the
+             generated `repos.d` is still the decision. What is missing is the
+             evidence that it works, which is one container run against the
+             distribution named in `Prove`.
+             ⛔ It is reopened rather than deleted or excused, because a closed
+             entry nobody ran is worse than an open one: the next session reads
+             the count and believes the row.
 
 ### T-0409 Ownership failures from `dpkg`, `rpm` and `xbps` are warnings
 
@@ -955,3 +970,95 @@ Decision:    Not taken. ⚠ Part 2 is where the trade is: an absent `/proc` fail
              honesty rule if the fixture is not bounded carefully. Rule what the
              fixture may contain before any of it is written.
 Prove:       `./experiments/155-proc-absence.sh` asserts the banner names the missing procfs, and that a payload using process substitution fails with a message naming `/proc` rather than the script line
+
+
+---
+
+### T-0414 Two walls only one instance of the class has shown, and podbox has probed neither
+
+Source:      `references/talaria0101__nix-experiment/tree/notes/seccomp-probe-output.txt`
+             and `references/talaria0101__nix-experiment/tree/REPORT.md`
+Category:    complete
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     [probe.md](probe.md) asks what the runtime permits, and its question
+             list came from two instances of the target class. **A third
+             instance shows two denials neither of the others has**, and podbox
+             asks about neither, so on that host it would fail with a message
+             pointing somewhere else.
+Premise:     **Measured on that host, by a probe whose output is committed.**
+             1. **`readdir("/")` answers `EACCES`.** The root directory cannot
+                be listed, while opening an entry **by name** works. A real
+                launcher died on exactly this: it ran
+                `find / -mindepth 1 -maxdepth 1` to collect its bind sources and
+                bailed with `find: /: Permission denied`. podbox enumerates
+                paths in several places and a failure there would read as a
+                missing file rather than a listing denial.
+             2. **`/dev/ptmx` does not exist and devpts can never be
+                mounted**, so there are **no ptys at all** on that host. That is
+                [enter.md](enter.md) T-0503's subject and this entry is where the
+                probe leg for it lives.
+             Also measured there and worth the probe: `mkdir` and `creat` at
+             the top level of `/` are denied, so a rootfs cannot be assembled at
+             `/` and must live inside a writable path.
+             The same probe swept 24 device majors at minor 0 and **only char
+             0:0 succeeded**, which is the whiteout special case. That confirms
+             the paired-witness rule [probe.md](probe.md) already carries.
+Approach:    Three probe legs, each a separate verdict, in the census's own
+             shape: list the root, open an entry in it by name, and create a
+             file at its top level. Then one leg for `/dev/ptmx`, which is a
+             `stat` and an `open`, not an inference from the absence of
+             `/dev/pts`.
+             Each leg reports the operation's own errno from the child that
+             made the call, and "could not run" stays distinct from "denied".
+Decision:    Not taken. The remedy for the listing denial is a design
+             question, not a probe question: podbox either avoids enumerating a
+             directory it was handed, or names the denial. The probe comes first
+             because the remedy depends on how widely it bites.
+Prove:       `./experiments/155-proc-absence.sh` gains a root-listing clause and a `/dev/ptmx` clause, each printing its own errno, and exits 2 rather than 1 where a leg could not run
+
+---
+
+### T-0415 A device stand-in is checked by type, because an absent one becomes a growing file
+
+Source:      `references/Azathothas__sandbox-insights/tree/docs/capability-model.md`;
+             `references/talaria0101__sandbox-insights/tree/experiments/logs/60-chroot-appliance.log`
+Category:    complete
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     `crates/podbox-complete/src/devices.rs` writes regular-file
+             stand-ins where `mknod` is refused. **Nothing checks afterwards
+             what those paths actually are**, and the failure mode when one is
+             missing is silent and unbounded.
+Premise:     **If `/dev/null` is absent, a shell redirection creates a growing
+             regular file with that name.** Nothing fails, nothing is logged, and
+             the workload writes into it until the filesystem is full. On a
+             64 MiB temporary filesystem that presents as unrelated hangs and
+             lost output rather than as a full disk.
+             **This project has already paid for the same class of defect from
+             the other direction.** `crates/podbox-supervise/src/lib.rs` records
+             that reading `/dev/urandom` to EOF has no end and allocated 13 GB
+             before the kill. A file that should be a device and a device that
+             should be a file are the same mistake twice.
+             **A source in the corpus states the opposite of its own log, and
+             that is why the check is by type rather than by belief.** A chroot
+             experiment's header asserts that redirection to `/dev/null` fails
+             because the node cannot exist; its committed log shows the failure
+             branch never fired, so the redirection succeeded. Whether the
+             image ships one is the image's business, so podbox must look rather
+             than assume in either direction.
+Approach:    After completion, `lstat` every path the device table names and
+             assert the type podbox intended. A regular-file stand-in is a
+             regular file **on purpose**, so the check is that it is the
+             intended kind and not that it is a device.
+             The banner already says which completions are active; this adds
+             the one word that makes it checkable, so a reader can tell a
+             deliberate stand-in from an absent node.
+             Refuse to start where a path the table names is a directory or a
+             symlink out of the root, which is the case a later layer can create.
+Decision:    Not taken.
+Prove:       `./experiments/155-proc-absence.sh` gains a clause asserting every device-table path's type after completion, and a planted directory at one of them makes `podbox create` refuse with that path named

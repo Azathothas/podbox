@@ -52,18 +52,26 @@ single conflicting change would have made it a merge nobody had reviewed.
 before anything else: fast-forward where the history allows it, merge where it
 does not, verify the union is reachable from `main`, and only then delete.
 
-### ⛔ `main` is protected, so the LAST step is a pull request
+### ⭐ `main` accepts a direct push, and a branch is the fallback
 
-⚠ **A direct push is refused, and it is refused for the operator too.** Read
-from the repository on 2026-09-11: `main` requires a pull request, requires all
-four gate jobs to pass, requires the branch to be up to date, and has
-`enforce_admins` enabled. Approving reviews required: **0**.
+⭐ **Settled by the operator on 2026-09-11: push straight to `main`, and
+create no branches.** `enforce_admins` was turned off on that date and a direct
+push was verified against the live repository. The operator's reason is stated
+and it is not a preference about mechanism: extra branches pollute the
+repository.
 
-⭐ **That does not reopen the rule above, and the distinction is the whole
-point.** The rule is about where work LIVES. Work still happens on `main`, and
-a session still commits to `main`. What protection forces is a branch that
-exists only to carry finished commits through the gate, and that lives for one
-pull request.
+```sh
+git push origin main
+```
+
+⚠ **The gate still runs, and it still has to be green.** Protection keeps
+the four required checks and keeps `allow_force_pushes` off. What changed is
+who may push through them, not whether they run. ⛔ A force push is still
+refused; do not try one.
+
+⛔ **The pull-request route is the fallback, not the route.** If a later
+session finds a direct push refused, protection has been restored, and the
+repair is one throwaway branch that lives for one pull request:
 
 ```sh
 git switch -c "publish/$(date -u +%Y%m%dT%H%M%SZ)"
@@ -80,7 +88,7 @@ disabled on this repository, so rebase is the only method that keeps them.
 merge, and the local `main` is fast-forwarded onto the result before anything
 else is done.
 
-⛔ **The branch is never where work continues.** A session that finds a
+⛔ **A branch is never where work continues.** A session that finds a
 `publish/*` branch still open has found a session that did not finish, and the
 repair is to merge or delete it, not to add to it.
 

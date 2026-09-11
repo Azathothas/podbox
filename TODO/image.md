@@ -703,7 +703,7 @@ Source:      Found by `cargo test --workspace` failing intermittently at the clo
 Category:    image
 Priority:    P1
 Effort:      S
-Status:      done 2026-09-09
+Status:      partial 2026-09-09
 
 Problem:     `Store::hold` opens the image lock **without** `O_CLOEXEC`, which
              is [T-0204](image.md)'s mechanism and is right: the guard has to
@@ -806,6 +806,34 @@ Decision:    Fix the inheritance, not the test. Marking the test `#[serial]` or
 Prove:       `cargo test -p podbox-image a_fork_while_the_lock_is_held_does_not_extend_it` and `cargo test -p podbox-image a_spawned_process_does_not_inherit_the_lock` both pass; the first fails with the `sys::close_in_children` registration removed from `Store::hold` and the second with `O_CLOEXEC` removed from `Lock::open`, and neither mutation fails both
 
 ---
+
+Status note: **Moved from `done` to `partial` on 2026-09-11 by reconciliation,
+             and the reason is a contradiction inside this file.**
+             Two things were found together and either alone would be minor.
+             1. The entry records **no run**. It carries a `Prove` line and
+                nothing after it, where [RULES.md](RULES.md) section 5 asks for
+                the command actually run and the output recorded underneath.
+                `experiments/156-closure-records.sh` is what found it, and it
+                was the only closed entry in the tree in that state.
+             2. **Both tests its `Prove` names are in [T-0215](image.md)'s
+                measured-intermittent set.**
+                `a_fork_while_the_lock_is_held_does_not_extend_it` and
+                `a_spawned_process_does_not_inherit_the_lock` are two of the
+                four store lock tests that failed **5 of 12**
+                `cargo test --workspace` runs on 2026-09-11. So the evidence
+                this entry would have recorded is evidence
+                [T-0215](image.md) has already shown is not reliable.
+             **The implementation is not in doubt**, which is why this is
+             `partial` and not `open`. `sys::close_in_children`, the
+             `FORK_CLOSE` slot table and the `O_CLOEXEC` on `Lock::open` are in
+             the tree and the mutations named above are real. What is missing is
+             a sound closing measurement.
+             **What closes it:** [T-0215](image.md) first, because until the
+             race is understood a green run of these two tests is a coin toss
+             rather than a proof. Then run the `Prove` above **in a loop**, and
+             record the pass count out of the attempts rather than a single
+             green, which is exactly the mistake the baseline in
+             [PROGRESS.md](PROGRESS.md) already records against this suite.
 
 ### T-0212 The platform is decided at run time, and the store holds more than one
 

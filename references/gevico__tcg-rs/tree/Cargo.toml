@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "core",
+    "backend",
+    "frontend",
+    "decode",
+    "disas",
+    "exec",
+    "linux-user",
+    "tests",
+    "tools/irdump",
+    "tools/irbackend",
+]
+resolver = "2"

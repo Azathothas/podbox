@@ -1,0 +1,106 @@
+---
+name: cubic
+version: git
+license: MIT OR Apache-2.0
+website: https://cubic-vm.org
+source-code: https://github.com/cubic-vm/cubic
+issues: https://github.com/cubic-vm/cubic/issues
+summary: Run Linux VMs with a single command on Linux, macOS and Windows.
+description: |
+  Cubic spins up Linux virtual machines on Linux, macOS and Windows with a
+  single command.
+
+  Every distribution comes as an official image and is ready to use within
+  seconds, so you skip the long installation. Cubic keeps things simple and
+  secure by acting as lightweight glue over proven tools. No privileged system
+  service is required and every VM runs as your normal user. Cubic is built on
+  top of QEMU, EDK2, official Linux distribution images and cloud-init.
+base: core24
+platforms:
+  amd64:
+  arm64:
+    build-on:
+      - amd64
+      - arm64
+    build-for:
+      - arm64
+package-repositories:
+  - type: apt
+    architectures: [amd64]
+    formats: [deb, deb-src]
+    components: [main]
+    suites: [noble, noble-updates, noble-backports]
+    key-id: F6ECB3762474EDA9D21B7022871920D1991BC93C
+    url: http://archive.ubuntu.com/ubuntu
+
+  - type: apt
+    architectures: [amd64]
+    formats: [deb, deb-src]
+    components: [main]
+    suites: [noble-security]
+    key-id: F6ECB3762474EDA9D21B7022871920D1991BC93C
+    url: http://security.ubuntu.com/ubuntu
+
+  - type: apt
+    architectures: [arm64]
+    formats: [deb, deb-src]
+    components: [main]
+    suites: [noble, noble-updates, noble-backports, noble-security]
+    key-id: F6ECB3762474EDA9D21B7022871920D1991BC93C
+    url: http://ports.ubuntu.com/ubuntu-ports
+
+confinement: strict
+parts:
+  cubic:
+    plugin: dump
+    source: .
+    source-type: local
+    stage:
+      - cubic
+  runtime-dependencies:
+    plugin: nil
+    stage-packages:
+      - qemu-utils:$CRAFT_ARCH_BUILD_FOR
+      - qemu-system-x86:$CRAFT_ARCH_BUILD_FOR
+      - qemu-system-arm:$CRAFT_ARCH_BUILD_FOR
+      - qemu-efi-aarch64:$CRAFT_ARCH_BUILD_FOR
+      - ovmf:$CRAFT_ARCH_BUILD_FOR
+    override-build: |
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/*/libicudata*
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/*/libgallium*
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/*/libLLVM*
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/bin/qemu-pr-helper
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/bin/qemu-io
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/bin/qemu-nbd
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/bin/qemu-storage-daemon
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/bin/qemu-system-x86_64-microvm
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/bin/qemu-system-i386
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/bin/qemu-system-arm
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/share/qemu/openbios-ppc
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/share/qemu/openbios-sparc32
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/share/qemu/openbios-sparc64
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/ipxe
+      rm -rf $SNAPCRAFT_PART_INSTALL/usr/share/seabios
+  cleanup:
+    after:
+      - cubic
+      - runtime-dependencies
+    plugin: nil
+    build-snaps:
+      - core24
+    override-prime: |
+      set -eux
+      for snap in "core24"; do
+          cd "/snap/$snap/current" && find . -type f,l -exec rm -f "$CRAFT_PRIME/{}" \;
+      done
+apps:
+  cubic:
+    command: cubic
+    plugs:
+      - kvm
+      - network
+      - network-bind
+      - home
+      - ssh-keys
+    environment:
+      LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libproxy

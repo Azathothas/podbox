@@ -1,0 +1,25 @@
+## conditions
+date: 2026-09-10T15:19:51Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+cpu: AMD Ryzen 7 7700 8-Core Processor / 16 threads
+mem: 30Gi
+uid: 0  caps: 000001ffffffffff  seccomp: 2
+1
+uid_map:          0          0          1 
+subject: network-policy
+
+## network policy census (errno per row; denials are results)
+## date: 2026-09-10T15:19:51Z
+
+### bind
+bind tcp 127.0.0.1:0 (loopback)              errno=13 (Permission denied)
+bind tcp 0.0.0.0:0 (wildcard)                errno=13 (Permission denied)
+bind udp 127.0.0.1:0 (loopback)              OK
+bind udp 0.0.0.0:0 (wildcard)                OK
+bind af_unix                                 OK
+
+### connect (TCP)
+connect 127.0.0.1:443 (loopback)             OK (ECONNREFUSED — kernel answered: policy allowed the connect)
+connect 127.0.0.1:80 (loopback)              OK (ECONNREFUSED — kernel answered: policy allowed the connect)
+connect external :443                        OK (connected)
+connect external :80                         OK (connected)

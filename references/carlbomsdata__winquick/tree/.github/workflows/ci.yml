@@ -1,0 +1,176 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  # Formatting and lints do not vary by host, so they run once rather than three
+  # times.
+  check:
+    name: format and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --locked
+
+  # Every host WinQuick claims must build and pass its unit tests here. A host
+  # that does not compile is not a supported host, whatever the README says.
+  #
+  # The unit suite is pure host logic: no hypervisor, no Windows image, no
+  # network. Everything that needs a real guest lives in tests/integration.sh,
+  # which needs nested virtualisation these runners do not have and runs on real
+  # hardware instead.
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - name: Linux x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          # The GNU target, because that is what the Windows archive is built
+          # from -- see scripts/release-windows.sh for why the MSVC one cannot
+          # currently be linked. Testing a target nobody ships would prove
+          # nothing about the product.
+          - name: Windows x86_64
+            os: windows-2022
+            target: x86_64-pc-windows-gnu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+
+      # The mingw-w64 that ships on the runner has no `libbcryptprimitives.a`,
+      # which Rust's std wants, so it cannot link the GNU target. MSYS2's
+      # toolchain does have it, and is the one `scripts/release-windows.sh`
+      # builds with, so CI uses the same compiler the archive comes from.
+      - uses: msys2/setup-msys2@v2
+        id: msys2
+        if: matrix.target == 'x86_64-pc-windows-gnu'
+        with:
+          msystem: MINGW64
+          update: false
+          install: mingw-w64-x86_64-toolchain
+      - name: link with the MSYS2 mingw toolchain
+        if: matrix.target == 'x86_64-pc-windows-gnu'
+        shell: bash
+        run: |
+          mingw="${{ steps.msys2.outputs.msys2-location }}/mingw64/bin"
+          echo "$mingw" >> "$GITHUB_PATH"
+          echo "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=$mingw/gcc.exe" >> "$GITHUB_ENV"
+
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+      - run: cargo test --release --locked --target ${{ matrix.target }}
+      - name: the binary runs and reports itself
+        run: cargo run --release --locked --target ${{ matrix.target }} -- --version
+
+  # Linux on arm64 builds and runs its tests natively. It used to be a bare
+  # `cargo check` on an x86_64 runner, because hosted arm64 runners were not
+  # free; they are, for public repositories, so the target is now exercised
+  # rather than merely compiled. This says nothing about the Linux *guest*,
+  # which still has no bare-metal proof -- see the host table in the readme.
+  cross:
+    name: Linux arm64
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked
+      - run: cargo test --release --locked
+      - name: the binary runs and reports itself
+        run: cargo run --release --locked -- --version
+
+  # A release that cannot be packaged is not a release. These run the real
+  # release scripts, which also build the patched ntfsprogs and hivex helpers
+  # from source, so a broken patch or a moved upstream tarball shows up here
+  # rather than on release day.
+  package:
+    name: package ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    needs: [check, build]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-arm64
+            os: macos-latest
+          - name: linux-x86_64
+            os: ubuntu-latest
+          # Named for what the archive is called, which release-linux.sh takes
+          # from `uname -m`.
+          - name: linux-aarch64
+            os: ubuntu-24.04-arm
+          - name: windows-x86_64
+            os: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: read the version from Cargo.toml
+        shell: bash
+        run: echo "VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)" >> "$GITHUB_ENV"
+
+      # libhivex-bin for the runtime; the autotools for building this project's
+      # patched ntfsprogs from source, which a bare Ubuntu cannot do -- measured
+      # on a clean image, where `libtool` was absent and the build stopped.
+      - name: install packaging dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libhivex-bin build-essential autoconf automake libtool file
+
+      # The Windows helpers are built under MSYS2, which is a build-time
+      # dependency only: nothing in the archive links against it.
+      - uses: msys2/setup-msys2@v2
+        if: runner.os == 'Windows'
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            base-devel zip mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-libxml2 perl autoconf automake libtool
+
+      - name: package
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then ./scripts/release.sh "$VERSION"
+          else ./scripts/release-linux.sh "$VERSION"; fi
+
+      - name: package
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          # rustup installs outside MSYS2's own prefix.
+          export PATH="$PATH:/c/Users/runneradmin/.cargo/bin"
+          ./scripts/release-windows.sh "$VERSION"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: winquick-${{ matrix.name }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error

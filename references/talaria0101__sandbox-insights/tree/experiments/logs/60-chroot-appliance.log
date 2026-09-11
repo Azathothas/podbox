@@ -1,0 +1,29 @@
+## conditions
+date: 2026-09-10T15:20:03Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+cpu: AMD Ryzen 7 7700 8-Core Processor / 16 threads
+mem: 30Gi
+uid: 0  caps: 000001ffffffffff  seccomp: 2
+1
+uid_map:          0          0          1 
+subject: chroot-appliance
+
+[vfetch] minirootfs.tar.gz cached, hash ok
+## host bench: elapsed=0.037s mops=817.1 checksum=69d0fd33 iters=30000000
+
+## in-appliance (chroot, native code, no kernel boundary):
+elapsed=0.034s mops=880.0 checksum=69d0fd33 iters=30000000
+chroot bench rc: 0
+
+## what the appliance lacks, measured from inside:
+ps:
+PID   USER     TIME  COMMAND
+redirection to /dev/null:
+identity inside:
+uid=0(root) gid=0(root) groups=65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),0(root)
+own /etc/passwd (rootfs ships one):
+root:x:0:0:root:/root:/bin/sh
+bin:x:1:1:bin:/bin:/sbin/nologin
+
+## the escape PRECONDITION (not an escape): a second chroot from inside
+VMR-CHROOT-TWICE-OK uid-0-chroots-again-precondition-holds

@@ -1,0 +1,26 @@
+## conditions
+date: 2026-09-10T15:19:52Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+cpu: AMD Ryzen 7 7700 8-Core Processor / 16 threads
+mem: 30Gi
+uid: 0  caps: 000001ffffffffff  seccomp: 2
+1
+uid_map:          0          0          1 
+subject: go-spawn-matrix
+go: go version go1.26.5-X:nodwarf5 linux/amd64
+
+## Go os/exec spawn matrix against setgroups-denied runtime
+## (results below; identical failure string from setgroups and
+##  from a refused clone is the ambiguity this matrix documents)
+nil SysProcAttr                                OK
+{} no Credential                               OK
+Credential{0,0}                                FAIL fork/exec /bin/true: operation not permitted
+Credential{0,0} + EnableSetgroups              FAIL fork/exec /bin/true: operation not permitted
+Credential{0,0,NoSetGroups:true}               OK
+Credential{0,0,NoSetGroups:true}+Pdeathsig     OK
+Cloneflags(CLONE_NEWNS) only                   OK
+Cloneflags(CLONE_NEWNS|NEWUTS) only            OK
+Cloneflags(CLONE_NEWNS) + Credential{0,0}      FAIL fork/exec /bin/true: operation not permitted
+Cloneflags(CLONE_NEWNS) + Credential{0,0,NoSetGroups} OK
+
+3 of 10 rows failed (rows that fail are the setgroups callers)

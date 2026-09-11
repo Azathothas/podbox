@@ -1,0 +1,106 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  gate:
+    name: gate (x86_64-gnu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: rustfmt
+        run: cargo fmt --all --check
+      - name: clippy (workspace, all targets, all features, deny warnings)
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - name: tests (default features)
+        run: cargo test --no-fail-fast
+      - name: tests (test hooks)
+        run: cargo test --no-fail-fast --features test-hooks
+      - name: tests (cli feature)
+        run: cargo test --no-fail-fast --features cli
+      - name: FFI tests (Rust side)
+        run: cargo test -p memfd-ng-ffi --no-fail-fast
+      - name: C interface integration test
+        run: ./scripts/ffi-smoke.sh
+      - name: release build
+        run: cargo build --release --features cli
+      - name: minimal-driver stripped size
+        run: |
+          size=$(stat -c %s target/release/memfd-run)
+          echo "memfd-run stripped: $size bytes ($((size / 1024)) KiB)"
+      - name: bench (spawn latency + perf-regression guard)
+        run: cargo bench -- 100
+
+  musl:
+    name: musl static (x86_64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - name: install musl toolchain
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: tests (musl, static)
+        env:
+          MEMFD_NG_TEST_CC: musl-gcc
+        run: |
+          cargo test --target x86_64-unknown-linux-musl --no-fail-fast
+          cargo test --target x86_64-unknown-linux-musl --no-fail-fast --features test-hooks
+          cargo test --target x86_64-unknown-linux-musl --no-fail-fast --features cli
+
+  msrv:
+    name: msrv (1.65)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.65
+      - name: build the library and features on the stated MSRV
+        run: |
+          cargo +1.65 build
+          cargo +1.65 build --features test-hooks
+          cargo +1.65 build --features cli
+          cargo +1.65 build -p memfd-ng-ffi
+
+  package:
+    name: crates.io package dry run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: validate memfd-ng package
+        run: cargo publish --dry-run -p memfd-ng
+      - name: validate memfd-ng-ffi package contents
+        # Cargo cannot resolve the versioned memfd-ng dependency from crates.io
+        # until the root crate is published. The workspace jobs build and test
+        # the FFI crate; this command verifies its package file set.
+        run: cargo package --list -p memfd-ng-ffi
+
+  compile-check:
+    name: compile-check (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-freebsd
+          - aarch64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: cargo check (lib + all features)
+        run: |
+          cargo check --target ${{ matrix.target }} --all-features
+          cargo check --target ${{ matrix.target }} -p memfd-ng-ffi

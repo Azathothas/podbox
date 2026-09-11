@@ -1,0 +1,11 @@
+### attempt-02 containerbase/nix-prebuild 2.35.2
+Fri Sep 11 02:25:53 UTC 2026
+-rw-r--r-- 1 0 0 11150188 Sep 11 02:25 nix-prebuild-2.35.2-x86_64.tar.xz
+-rw-r--r-- 1 0 0      128 Sep 11 02:25 nix-prebuild-2.35.2-x86_64.tar.xz.sha512
+sha512sum: nix-prebuild-2.35.2-x86_64.tar.xz.sha512: no properly formatted checksum lines found
+872019c96b60e52d061588a0dddbc34dced56d9c45064252bd4464b54b96d0197e02410ee52dfba0c62e4b4d1725dccff94e259dc3f255bb2b4a7463f868a300  nix-prebuild-2.35.2-x86_64.tar.xz
+2.35.2/
+2.35.2/bin/
+2.35.2/bin/nix
+...
+3

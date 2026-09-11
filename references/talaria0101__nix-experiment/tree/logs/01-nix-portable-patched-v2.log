@@ -1,0 +1,27 @@
+=== patched (size-preserving v2) run, auto runtime ===
+last auto selected runtime:
+testing nix --store
+this derivation will be built:
+  /nix/store/mbwnbda8s0f5rlpprm2km8m69gkq94nm-foo.drv
+error: opening pseudoterminal master: No such file or directory
+nix --store failed -> testing bwrap
+bwrap: Failed to make / slave: Operation not permitted
+bwrap doesn't work on this system -> will use proot
+NP_RUNTIME: proot
+base command will be: /state/home/.nix-portable/bin/proot -r /state/home/.nix-portable/emptyroot -b /dev:/dev -b /state/home/.nix-portable/nix:/nix -b /bin:/bin -b /etc:/etc -b /home:/home -b /lib:/lib -b /lib64:/lib64 -b /opt:/opt -b /proc:/proc -b /sbin:/sbin -b /tmp:/tmp -b /usr:/usr -b /etc/nsswitch.conf:/etc/nsswitch.conf -b /etc/resolv.conf:/etc/resolv.conf -b /state/home:/state/home -b /etc/ssl/certs/ca-certificates.crt:/state/home/.nix-portable/ca-bundle.crt
+extracting missing store paths
+registering new store paths to DB
+running command: /state/home/.nix-portable/bin/proot -r /state/home/.nix-portable/emptyroot -b /dev:/dev -b /state/home/.nix-portable/nix:/nix -b /bin:/bin -b /etc:/etc -b /home:/home -b /lib:/lib -b /lib64:/lib64 -b /opt:/opt -b /proc:/proc -b /sbin:/sbin -b /tmp:/tmp -b /usr:/usr -b /etc/nsswitch.conf:/etc/nsswitch.conf -b /etc/resolv.conf:/etc/resolv.conf -b /state/home:/state/home -b /etc/ssl/certs/ca-certificates.crt:/state/home/.nix-portable/ca-bundle.crt /state/home/.nix-portable/nix/store/j823gnvpxh1fjibycmldrspkk3pgivwp-nix-2.20.6/bin/nix-store --load-db
+Testing if nix can build stuff without sandbox
+proot error: ptrace(TRACEME): Operation not permitted
+proot error: execve("/nix/store/j823gnvpxh1fjibycmldrspkk3pgivwp-nix-2.20.6/bin/nix"): Operation not permitted
+proot info: possible causes:
+  * the program is a script but its interpreter (eg. /bin/sh) was not found;
+  * the program is an ELF but its interpreter (eg. ld-linux.so) was not found;
+  * the program is a foreign binary but qemu was not specified;
+  * qemu does not work correctly (if specified);
+  * the loader was not found or doesn't work.
+fatal error: see `proot --help`.
+proot error: can't chmod '/tmp/proot-2079-eCfoiH': No such file or directory
+Fatal error: nix is unable to build packages
+exit: 1

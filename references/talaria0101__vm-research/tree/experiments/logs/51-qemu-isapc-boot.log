@@ -1,0 +1,56 @@
+## conditions
+## conditions
+date: 2026-09-09T10:03:37Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: qemu-tcg-isapc
+qemu-system-x86_64: warning: cpu type qemu64-x86_64-cpu is deprecated for isapc machine
+c[?7l[2J[0mSeaBIOS (version rel-1.17.0-0-gb52ca86e094d-prebuilt.qemu.org)
+Booting from ROM..c[?7l[2J[    0.137002] BUG: kernel NULL pointer dereference, address: 0000000000000004
+[    0.137950] #PF: supervisor read access in kernel mode
+[    0.138236] #PF: error_code(0x0000) - not-present page
+[    0.138570] PGD 0 P4D 0 
+[    0.138777] Oops: Oops: 0000 [#1] PREEMPT SMP NOPTI
+[    0.139191] CPU: 0 UID: 0 PID: 0 Comm: swapper/0 Not tainted 6.12.94-0-virt #1-Alpine
+[    0.139639] Hardware name: Bochs Bochs, BIOS Bochs 01/01/2011
+[    0.139991] RIP: 0010:setup_IO_APIC+0x4d1/0xd10
+[    0.140407] Code: d0 31 f6 31 ff e8 ef e9 ff ff 31 f6 31 ff 89 45 80 e8 03 eb ff ff 8b 1d e5 11 9e ff 44 8b 25 e2 11 9e ff 48 c7 c7 90 85 1e b4 <41> 8b 77 04 8b 4d 80 89 c2 89 85 70 ff ff ff 41 89 d9 45 89 e0 e8
+[    0.141428] RSP: 0000:ffffffffb4803e18 EFLAGS: 00010046
+[    0.141700] RAX: 0000000000000000 RBX: 00000000ffffffff RCX: 0000000000000000
+[    0.142051] RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffffffffb41e8590
+[    0.142419] RBP: ffffffffb4803eb8 R08: 0000000000000000 R09: 0000000000000000
+[    0.142770] R10: 0000000000000000 R11: 0000000000000000 R12: 00000000ffffffff
+[    0.143114] R13: ffff9b88410c2258 R14: 5ab51d712e8bb980 R15: 0000000000000000
+[    0.143543] FS:  0000000000000000(0000) GS:ffff9b884f800000(0000) knlGS:0000000000000000
+[    0.143937] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[    0.144222] CR2: 0000000000000004 CR3: 000000000b836000 CR4: 00000000000000b0
+[    0.144734] Call Trace:
+[    0.145149]  <TASK>
+[    0.145414]  apic_intr_mode_init+0x1ba/0x1e0
+[    0.145660]  x86_late_time_init+0x3e/0xa0
+[    0.145869]  start_kernel+0x6ab/0x750
+[    0.146062]  x86_64_start_reservations+0x24/0x30
+[    0.146299]  x86_64_start_kernel+0x75/0x80
+[    0.146499]  common_startup_64+0x13b/0x148
+[    0.146760]  </TASK>
+[    0.146916] Modules linked in:
+[    0.147216] CR2: 0000000000000004
+[    0.147588] ---[ end trace 0000000000000000 ]---
+[    0.147884] RIP: 0010:setup_IO_APIC+0x4d1/0xd10
+[    0.148110] Code: d0 31 f6 31 ff e8 ef e9 ff ff 31 f6 31 ff 89 45 80 e8 03 eb ff ff 8b 1d e5 11 9e ff 44 8b 25 e2 11 9e ff 48 c7 c7 90 85 1e b4 <41> 8b 77 04 8b 4d 80 89 c2 89 85 70 ff ff ff 41 89 d9 45 89 e0 e8
+[    0.149114] RSP: 0000:ffffffffb4803e18 EFLAGS: 00010046
+[    0.149401] RAX: 0000000000000000 RBX: 00000000ffffffff RCX: 0000000000000000
+[    0.149748] RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffffffffb41e8590
+[    0.150094] RBP: ffffffffb4803eb8 R08: 0000000000000000 R09: 0000000000000000
+[    0.150464] R10: 0000000000000000 R11: 0000000000000000 R12: 00000000ffffffff
+[    0.150805] R13: ffff9b88410c2258 R14: 5ab51d712e8bb980 R15: 0000000000000000
+[    0.151153] FS:  0000000000000000(0000) GS:ffff9b884f800000(0000) knlGS:0000000000000000
+[    0.151588] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[    0.151865] CR2: 0000000000000004 CR3: 000000000b836000 CR4: 00000000000000b0
+[    0.152328] Kernel panic - not syncing: Attempted to kill the idle task!
+[    0.153027] ---[ end Kernel panic - not syncing: Attempted to kill the idle task! ]---
+qemu-system-x86_64: terminating on signal 15 from pid 11625 (timeout)
+### qemu exit: 124
+### markers: BOOT=0 PROOF=0

@@ -1,0 +1,22 @@
+## conditions
+date: 2026-09-10T15:19:52Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+cpu: AMD Ryzen 7 7700 8-Core Processor / 16 threads
+mem: 30Gi
+uid: 0  caps: 000001ffffffffff  seccomp: 2
+1
+uid_map:          0          0          1 
+subject: interposition-reach
+
+## same shim, three payload classes
+
+### dynamic C (lchown/open through libc)
+SHIM: open("/tmp/.ldpreload-victim") intercepted
+SHIM: lchown("/tmp/.ldpreload-victim", 0, 42) intercepted
+victim_dyn: lchown -> -1 errno=22 (Invalid argument)
+
+### static C (no dynamic loader -> preload machinery never runs)
+victim_static: lchown -> 0
+
+### Go (os package issues raw syscalls, with or without cgo)
+victim_go: Lchown -> true (interposer sees none of this)

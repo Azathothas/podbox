@@ -1,0 +1,18 @@
+## conditions
+## conditions
+date: 2026-09-10T05:55:11Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: container-research-crossval
+pivot_root: Operation not permitted
+process_vm_readv(self): Operation not permitted
+fsopen: Operation not permitted
+write /tmp: OK
+write /dev/shm: OK
+write /workspace: OK
+write /state: OK
+write /var/tmp: (absent)
+write /etc: DENIED
+write /usr: DENIED

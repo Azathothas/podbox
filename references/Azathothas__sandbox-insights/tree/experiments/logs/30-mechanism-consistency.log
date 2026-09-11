@@ -1,0 +1,12 @@
+## question: do the core mechanisms agree across the local agent-facing documents and data?
+date_utc=2026-09-10T12:50:23.1919060Z
+PASS identity mapping retained
+PASS path allowlist retained
+PASS mount stages separated
+PASS trace event contract complete
+PASS outer filter blind spot disclosed
+PASS TCG boundary precise
+PASS policy transition recorded
+PASS route selector fails closed
+PASS Markdown declared canonical
+exit=0

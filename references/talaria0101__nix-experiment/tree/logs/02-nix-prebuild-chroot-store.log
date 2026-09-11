@@ -1,0 +1,17 @@
+=== nix with local store at arbitrary path ===
+warning: 'ping' is a deprecated alias for 'info'
+warning: the group 'nixbld' specified in 'build-users-group' does not exist
+Store URL: local
+Version: 2.35.2
+Trusted: 1
+ping exit: 0
+
+=== eval a trivial expression against that store ===
+warning: the group 'nixbld' specified in 'build-users-group' does not exist
+"2"
+eval exit: 0
+
+=== nix build of trivial drv (sandbox=false) ===
+warning: the group 'nixbld' specified in 'build-users-group' does not exist
+error: opening file "/": Permission denied
+build exit: 0

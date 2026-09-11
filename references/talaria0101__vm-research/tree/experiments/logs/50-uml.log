@@ -1,0 +1,17 @@
+## conditions
+date: 2026-09-09T09:58:47Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: uml
+User Mode Linux v7.1.3
+	available at http://user-mode-linux.sourceforge.net/
+Core dump limits :
+	soft - 0
+	hard - NONE
+Checking environment variables for a tempdir.../tmp
+Checking if /tmp is on tmpfs...OK
+Checking PROT_EXEC mmap in /tmp...OK
+Checking that ptrace can change system call numbers...ptrace: Operation not permitted
+check_ptrace : expected SIGSTOP, got status = 9--- rc=1 wall=0s

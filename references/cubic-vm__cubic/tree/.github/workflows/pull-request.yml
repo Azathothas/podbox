@@ -1,0 +1,89 @@
+---
+name: Pull Request Checks
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release/v*'
+
+jobs:
+  check:
+    name: Check
+    strategy:
+      matrix:
+        include:
+          - check: rustup component add rustfmt && cargo fmt --check
+          - check: rustup component add clippy && cargo clippy --version && cargo clippy --locked -- -D warnings
+          - check: cargo install cargo-audit --locked && cargo audit
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        run: |
+            rustup toolchain install 1.92.0
+            rustup override set 1.92.0
+
+      - name: Run Check
+        run: ${{ matrix.check }}
+
+  lint:
+    name: File Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Tools
+        run: sudo apt-get update && sudo apt-get install -y yamllint shellcheck
+
+      - name: Lint YAML
+        run: yamllint --strict .
+
+      - name: Lint Shell Scripts
+        run: shellcheck .github/scripts/*.sh scripts/*.sh
+
+  commits:
+    name: Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Commit Messages
+        run: >
+          bash .github/scripts/check-pr-commits.sh
+          "${{ github.event.pull_request.base.sha }}"
+          "${{ github.event.pull_request.head.sha }}"
+
+  build:
+    name: Build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        run: |
+          rustup toolchain install 1.92.0
+          rustup override set 1.92.0
+
+      - name: Build Source Code
+        run: cargo build --locked
+
+      - name: Run Tests
+        run: cargo test --locked
+
+      - name: Run Source Code
+        run: cargo run --locked -- --help

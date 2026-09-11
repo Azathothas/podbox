@@ -1,0 +1,18 @@
+## conditions
+date: 2026-09-09T09:17:30Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: microsandbox
+--- [S] README requirement line (pinned v0.6.17 tag):
+> - <img height="14" src="https://api.iconify.design/simple-icons:apple.svg?color=%23A770EF" alt="macOS"> **macOS**: Apple Silicon.
+> - <img height="14" src="https://api.iconify.design/simple-icons:linux.svg?color=%23A770EF" alt="Linux"> **Linux**: KVM enabled.
+> - <img height="14" src="https://api.iconify.design/simple-icons:windows.svg?color=%23A770EF" alt="Windows"> **Windows**: WHP enabled.
+--- [S] libkrun device open (libkrun source, v5.x):
+--- [S] libkrun vstate.rs: Kvm::new() opens /dev/kvm (main @ 2026-09-09):
+422:        let kvm = Kvm::new().expect("Error creating the Kvm object");
+--- [V] census cross-ref:
+devkvm-node: ls: cannot access '/dev/kvm': No such file or directory
+mknod(chr 10:232)        rc=-1   errno=1 (Operation not permitted)
+--- verdict: libkrun opens /dev/kvm [S]; node absent+uncreatable [V] => BLOCKED

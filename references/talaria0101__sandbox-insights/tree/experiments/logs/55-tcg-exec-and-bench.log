@@ -1,0 +1,23 @@
+## conditions
+date: 2026-09-10T15:20:00Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+cpu: AMD Ryzen 7 7700 8-Core Processor / 16 threads
+mem: 30Gi
+uid: 0  caps: 000001ffffffffff  seccomp: 2
+1
+uid_map:          0          0          1 
+subject: tcg-exec-bench
+
+## host bench (integer-dominated):
+elapsed=0.035s mops=854.1 checksum=69d0fd33 iters=30000000
+## host bench_fp (dependent double chain):
+elapsed=0.042s mops=708.8 checksum=6fdd6151 acc=1.908553e+08 iters=30000000
+## guest readiness: ok
+## guest bench (integer + FP-heavy):
+elapsed=0.109s mops=274.7 checksum=69d0fd33 iters=30000000
+elapsed=0.383s mops=78.4 checksum=6fdd6151 acc=1.908553e+08 iters=30000000
+## guest exec exit code: 0
+## checksum comparison (integer bench): host=69d0fd33 guest=69d0fd33 -> IDENTICAL
+## in-guest mops: integer=274.7 fp-heavy=78.4
+## cross-platform run validated
+qemu-system-x86_64: terminating on signal 15 from pid 3608 (bash)

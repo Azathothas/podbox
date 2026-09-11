@@ -1,0 +1,29 @@
+## conditions
+## conditions
+date: 2026-09-09T08:56:31Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: qemu-tcg-pc
+kernel: https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 12eb24189f3eb30bd0dcd919248caaa054ed4e87b799a53fdcc3999f157933e4)
+initramfs: custom busybox-static (sha256-of-apk 488ad6efd04b5a722719e79f8e0dcc2c24afd6758867af3ce41b04839e60c74b)
+measured: wall seconds to end marker from guest serial
+c[?7l[2J[0mSeaBIOS (version 1.16.3-20240910_120124-localhost)
+
+
+iPXE (http://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+1EFD0D90+1EF30D90 CA00
+Press Ctrl-B to configure iPXE (PCI 00:03.0)...                                                                               
+
+
+Booting from ROM..c[?7l[2JVMR-BOOT-OK kernel=6.12.94-0-virt
+VMR-GUEST-UNAME: Linux (none) 6.12.94-0-virt #1-Alpine SMP PREEMPT_DYNAMIC 2026-06-20 16:46:16 x86_64 Linux
+VMR-GUEST-CPU: model name	: QEMU Virtual CPU version 2.5+
+VMR-GUEST-HYPERVISOR-FLAG: 2
+VMR-GUEST-MEM: MemTotal:         480320 kB
+VMR-GUEST-UPTIME: 1.79 0.72
+VMR-PROOF-END
+[    1.852561] reboot: Power down
+### qemu exit: 0 (0 under -no-reboot = guest powered off)
+### wall seconds to qemu exit: 3.138788217
+### markers: BOOT=1 PROOF=1

@@ -1,0 +1,22 @@
+=== eval debug: where does 'opening file /' come from? ===
+locking path "/state/home/.cache/nix/fetcher-locks/80ea0011378445c79ccadf8e73e53520916b63d710ff9ffe0a36e5570c596d0b"
+lock acquired on "/state/home/.cache/nix/fetcher-locks/80ea0011378445c79ccadf8e73e53520916b63d710ff9ffe0a36e5570c596d0b.lock"
+downloading 'https://api.github.com/repos/NixOS/nixpkgs/commits/nixos-25.05'...
+acquiring write lock on "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/store-demo/nix-store/nix/var/nix/temproots/2476"
+locking path "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/store-demo/nix-store/nix/store/7mjcpmjj11ciqm1pscc4v786hiqjwqlb-source"
+lock acquired on "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/store-demo/nix-store/nix/store/7mjcpmjj11ciqm1pscc4v786hiqjwqlb-source.lock"
+lock released on "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/store-demo/nix-store/nix/store/7mjcpmjj11ciqm1pscc4v786hiqjwqlb-source.lock"
+downloading 'https://github.com/NixOS/nixpkgs/archive/ac62194c3917d5f474c1a844b6fd6da2db95077d.tar.gz'...
+lock released on "/state/home/.cache/nix/fetcher-locks/80ea0011378445c79ccadf8e73e53520916b63d710ff9ffe0a36e5570c596d0b.lock"
+old lock file: {
+computing lock file node ''
+new lock file: {
+copying '«github:NixOS/nixpkgs/ac62194c3917d5f474c1a844b6fd6da2db95077d»/pkgs/stdenv/generic/source-stdenv.sh' to the store...
+locking path "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/store-demo/nix-store/nix/store/vj1c3wf9c11a0qs6p3ymfvrnsdgsdcbq-source-stdenv.sh"
+lock acquired on "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/store-demo/nix-store/nix/store/vj1c3wf9c11a0qs6p3ymfvrnsdgsdcbq-source-stdenv.sh.lock"
+lock released on "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/store-demo/nix-store/nix/store/vj1c3wf9c11a0qs6p3ymfvrnsdgsdcbq-source-stdenv.sh.lock"
+copying '«github:NixOS/nixpkgs/ac62194c3917d5f474c1a844b6fd6da2db95077d»/pkgs/stdenv/generic/default-builder.sh' to the store...
+locking path "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/store-demo/nix-store/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh"
+lock acquired on "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/store-demo/nix-store/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh.lock"
+lock released on "/home/qaidvoid/.local/state/errand/8duorsa/home/nix-experiment/store-demo/nix-store/nix/store/shkw4qm9qcw5sc5n1k5jznc83ny02r39-default-builder.sh.lock"
+exit: 0

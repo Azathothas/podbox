@@ -1,0 +1,18 @@
+## conditions
+date: 2026-09-09T10:10:08Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: preloop
+--- version:
+preloop 0.32.5
+--- [V] kvm references in the binary:
+ to the kvm group failed (
+$); the VM pool cannot open /dev/kvm
+` system account (kvm group for /dev/kvm);
+--- local run attempt:
+[preloop] Starting local background engine...
+Error: engine exited before becoming ready: exit status: 1
+--- rc=0
+--- verdict: engine exits before ready; VM pool documented as /dev/kvm-dependent => BLOCKED

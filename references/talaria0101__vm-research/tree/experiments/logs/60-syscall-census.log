@@ -1,0 +1,48 @@
+## conditions
+date: 2026-09-09T10:35:45Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: seccomp-census
+[nested] entered
+fsopen(tmpfs)                          rc=3 errno=0 (ok)
+  fsconfig(create)                     rc=0 errno=0 (ok)
+  fsmount                              rc=4 errno=0 (ok)
+  move_mount(tmpfs->/tmp/vmr-mp)       rc=-1 errno=1 (Operation not permitted)
+fsopen(devtmpfs)                       rc=5 errno=0 (ok)
+  fsconfig(create devtmpfs)            rc=-1 errno=1 (Operation not permitted)
+open_tree(clone /dev/null)             rc=-1 errno=22 (Invalid argument)
+open_by_handle_at(kvm@devtmpfs sb)     rc=-1 errno=1 (Operation not permitted)
+unshare(NEWUSER)                       rc=-1 errno=1 (Operation not permitted)
+[nested] uid=65534 euid=65534
+[nested] open(/dev/kvm) -> No such file or directory
+[nested] fsopen(tmpfs)                 rc=6 errno=0 (ok)
+[nested] fsconfig(create tmpfs)        rc=0 errno=0 (ok)
+[nested] fsmount                       rc=7 errno=0 (ok)
+[nested] move_mount(tmpfs at /tmp/mp)  rc=-1 errno=1 (Operation not permitted)
+[nested] mknod(kvm 10:232 on OWN tmpfs) rc=-1 errno=1 (Operation not permitted)
+[nested] open(forged node) -> No such file or directory
+[nested] fsopen(devtmpfs)              rc=8 errno=0 (ok)
+[nested] fsconfig(create devtmpfs)     rc=-1 errno=1 (Operation not permitted)
+[nested] fsopen(sysfs)                 rc=-1 errno=1 (Operation not permitted)
+fsopen(tmpfs)                          rc=3 errno=0 (ok)
+  fsconfig(create)                     rc=0 errno=0 (ok)
+  fsmount                              rc=4 errno=0 (ok)
+  move_mount(tmpfs->/tmp/vmr-mp)       rc=-1 errno=1 (Operation not permitted)
+fsopen(devtmpfs)                       rc=5 errno=0 (ok)
+  fsconfig(create devtmpfs)            rc=-1 errno=1 (Operation not permitted)
+open_tree(clone /dev/null)             rc=-1 errno=22 (Invalid argument)
+open_by_handle_at(kvm@devtmpfs sb)     rc=-1 errno=1 (Operation not permitted)
+unshare(NEWUSER)                       rc=-1 errno=1 (Operation not permitted)
+clone(glibc->clone3)(NEWUSER|NEWNS)    rc=17247 errno=0 (ok)
+  child exited status=0
+perf_event_open                        rc=-1 errno=1 (Operation not permitted)
+kexec_load                             rc=-1 errno=1 (Operation not permitted)
+iopl(3)                                rc=-1 errno=1 (Operation not permitted)
+userfaultfd                            rc=-1 errno=1 (Operation not permitted)
+setns(self mnt)                        rc=-1 errno=1 (Operation not permitted)
+--- broad sweep (fork-isolated; EPERM where kernel would not EPERM = filtered)
+--- done
+--- broad sweep: syscalls that answer EPERM where kernel would not
+--- done

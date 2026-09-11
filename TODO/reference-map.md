@@ -98,6 +98,17 @@ copied into this repository.
 | `references/multikernel__sandlock` | `841265d` | Apache-2.0 | `tree/LICENSE`, `api/repo.json` | read; kept as an exhibit |
 | `references/containers__storage` | `83cf574` | Apache-2.0 | `tree/LICENSE`, `tree/NOTICE`, `api/repo.json` | read; mechanism only |
 | `references/containers__podman` | `7d39ce8` | Apache-2.0 | `tree/LICENSE`, `api/repo.json` | read; mechanism only |
+| `references/talaria0101__sandbox-insights` | `0889f5f` | 0BSD | `tree/LICENSE`, `api/repo.json` | vendor and patch; mechanism only so far |
+| `references/talaria0101__nix-experiment` | `d8835f2` | 0BSD | `tree/LICENSE`, `api/repo.json` | vendor and patch; mechanism only so far |
+| `references/Azathothas__sandbox-insights` | `bcf415c` | 0BSD | `tree/LICENSE`, full Zero-Clause BSD text. ⚠ `api/repo.json` says `NOASSERTION` and is **wrong** | vendor and patch; mechanism only so far |
+| `references/talaria0101__vm-research` | `7697b9b` | ⛔ **none stated** | no licence file; `api/repo.json` `.license` is null | ⛔ **read only; copy nothing.** Tracked by operator ruling, 2026-09-11 |
+| `references/Azathothas__memfd-ng` | `5da5803` | 0BSD | `api/repo.json` | vendor and patch. The operator's own crate; [deps.md](deps.md) T-0909 |
+| `references/hust-open-atom-club__Vex` | `ebee4c7` | MIT | `tree/LICENSE`, `api/repo.json` | read; shape only. [podvm.md](podvm.md) T-1307 |
+| `references/cubic-vm__cubic` | `4f21a70` | MIT OR Apache-2.0 | `tree/Cargo.toml`, `tree/LICENSE-MIT`, `tree/LICENSE-APACHE`. ⚠ `api/repo.json` says Apache-2.0 alone | read; kept as an exhibit. [podvm.md](podvm.md) T-1307 |
+| `references/Obirvalger__vml` | `688496c` | MIT | `tree/LICENSE`, `api/repo.json` | read; shape only. [podvm.md](podvm.md) T-1307 |
+| `references/gevico__tcg-rs` | `88c020b` | MIT | `tree/LICENSE`, `api/repo.json` | read; filed for later. [podvm.md](podvm.md) T-1307 |
+| `references/qemu-rs__qemu-rs` | `4854135` | ⛔ **GPL-2.0-or-later** | `tree/Cargo.toml:7`, inherited by both member crates. ⚠ `api/repo.json` says `MIT` and is **wrong** | ⛔ **read only; copy nothing.** Copyleft, and podbox is 0BSD |
+| `references/carlbomsdata__winquick` | `095dd47` | Apache-2.0 | `tree/LICENSE`, `api/repo.json` | vendor with notice; shape only. [milestones.md](milestones.md) T-1112 |
 | `references/Azathothas__TEMPLATE` | `6206166` | 0BSD | `tree/LICENSE`, `api/repo.json` | copied verbatim into `docs/` and `scripts/common/` |
 | `references/Azathothas__container-research` | `0f155e3` | 0BSD | `tree/LICENSE`, `api/repo.json` | copied: `experiments/` seeded from it |
 | `references/apptainer__apptainer` | `6099bb1` | BSD-3-Clause plus others | `tree/LICENSE.md`, which says "Apptainer is subject to the Licenses detailed below" and enumerates several. `api/repo.json` reports `NOASSERTION` | read only, and per-file if that ever changes |
@@ -113,31 +124,51 @@ copied into this repository.
 | `references/ylang-ylang__dockless` | `ed35b5d` | ⚠ **none found** | No licence file, no manifest key, and no statement in `tree/README.md` | ⛔ read only. The CLI posture is adopted as a design; no line is copied |
 | `references/VHSgunzo__userland-execve` | none | n/a | **The repository does not exist.** `PROVENANCE.md` records the 404 beside a reachable control | nothing. See below |
 
-### The three that are not resolved, and what would resolve them
+### ⭐ The three that were not resolved, and the rulings that closed them
 
-⛔ **None of these is "probably fine", and none is vendored in this state.**
+⭐ **All three were settled by the operator on 2026-09-11.** Each was read at
+the source first, and the reading changed one of the three answers.
 
-1. **`memfd-exec`, both the fork and its upstream.** The only MIT statement in
-   either tree is the `license` key in `Cargo.toml`. There is no licence file
-   and GitHub classifies neither. A manifest key is a declaration by the
-   author and it is what crates.io publishes under, which is weaker evidence
-   than a licence file and is not nothing. **What would resolve it:** a licence
-   file appearing in either tree at a later commit. Until then `T-0909` carries
-   the blocker and the memfd rung is written against `io12/userland-execve-rust`,
-   whose MIT is unambiguous, plus podbox's own `memfd_create` and `fexecve`
-   calls, which are three syscalls.
+1. **`memfd-exec`, both the fork and its upstream. ⛔ RULED: do not vendor
+   either.** The only MIT statement in either tree is the `license` key at
+   `references/VHSgunzo__memfd-exec/tree/Cargo.toml:5` and
+   `references/novafacing__memfd-exec/tree/Cargo.toml:5`; neither ships a
+   licence file and GitHub classifies neither. ⭐ **The ruling does not rest on
+   that ambiguity.** The operator maintains
+   [`Azathothas/memfd-ng`](https://github.com/Azathothas/memfd-ng), 0BSD, which
+   is this project's own licence, and which does the same job with an
+   allocation-free tmpfs ladder fallback. The corpus carries it at
+   `references/Azathothas__memfd-ng`. [deps.md](deps.md) T-0909 keeps its
+   Decision to write podbox's own three-syscall path and now has a second
+   candidate to measure against it rather than a licence question to wait on.
 
-2. **`dockless` has no licence statement of any kind.** Under default copyright
-   that means no permission to copy. Its value here is a **posture**, which
-   `T-0801` records as a design decision in podbox's own words.
+2. **`dockless` has no licence statement of any kind. ⭐ RULED: keep the tree,
+   study it, copy nothing, re-implement where it is useful.** Under default
+   copyright there is no permission to copy, and the tree stays in the corpus so
+   every citation already written still resolves. Its value here is a
+   **posture**, which `T-0801` records as a design decision in podbox's own
+   words.
 
-3. **`VHSgunzo/userland-execve` does not exist.** `TOOL.md` section 3.5 calls it "the
-   second fork to vendor". `references/VHSgunzo__userland-execve/PROVENANCE.md`
-   records the 404 with a reachable control beside it, and
+3. **`VHSgunzo/userland-execve` does not exist. ⭐ RULED: keep the row as a
+   corrected citation.** `TOOL.md` section 3.5 calls it "the second fork to
+   vendor". `references/VHSgunzo__userland-execve/PROVENANCE.md` records the 404
+   with a reachable control beside it, and
    `references/VHSgunzo__ulexec/tree/Cargo.toml:29` shows that `ulexec` depends
    on the original crate, `userland-execve = "0.2.0"`, whose repository
    crates.io gives as `io12/userland-execve-rust`. That tree is in the corpus
-   and its licence is clean.
+   and its licence is clean. ⛔ The row is not deleted: a previous session cited
+   a repository that does not exist, and that disagreement is the finding.
+
+### ⛔ Two badges that were wrong, and the trees that settled them
+
+⭐ **A licence is read from the tree, never from the code host's badge.** Both
+of these were recorded from the badge by an earlier reading and both were wrong
+in a way that changed the answer.
+
+| tree | the badge said | the tree says | effect |
+| --- | --- | --- | --- |
+| `references/Azathothas__sandbox-insights` | `NOASSERTION` | `tree/LICENSE` carries the full Zero-Clause BSD text, headed `Zero-Clause BSD` | ⭐ **0BSD, vendorable.** The badge is `NOASSERTION` only because the heading is not the canonical string its classifier matches |
+| `references/qemu-rs__qemu-rs` | `MIT` | `tree/Cargo.toml:7` declares `license = "GPL-2.0-or-later"`, and both member crates take `license.workspace = true` | ⛔ **copyleft, and not vendorable into a 0BSD binary.** The same reasoning `TOOL.md` section 3.3 applies to lilipod's GPL-3.0 |
 
 ## Verdicts
 
@@ -191,33 +222,45 @@ invalidates every citation already written.
 | `references/Azathothas__bit-cli` | `tree/vendor` | 11 MB. `tree/TODO/` is what this reference is here for |
 | `references/mhx__dwarfs` | `tree/test` | 8.4 MB of test corpora |
 | `references/apptainer__apptainer` | `tree/e2e` | 5.4 MB of end-to-end tests |
+| `references/Obirvalger__vml` | `tree/vendor` | **439 MB across 19,335 files** of vendored crates, which that project ships so it can build offline. The tree drops from 19,402 files to 67. Everything cited here is in `tree/src/` and `tree/README.md` |
+| `references/qemu-rs__qemu-rs` | `tree/.github/rsrc/id_rsa` | ⛔ **a private-key file in that project's CI resources.** It stays out by `.gitignore`, and deliberately: `AGENTS.md` absolute 9 says a secret never enters this tree, not expired, not redacted-looking and not in an example. Nothing here cites it |
 
-## ⭐ Read at the URL, and not in the corpus
+## ⭐ The ten mined on 2026-09-11, and what each one is
 
-Four repositories were studied on 2026-09-11 and none of them is vendored here.
-They are recorded because [podvm.md](podvm.md), [milestones.md](milestones.md)
-T-1111 and T-1112, [complete.md](complete.md) T-0413 and [cli.md](cli.md) T-0809
-all derive from them, and an entry whose source nobody can find is an entry
-nobody can check.
+⭐ **All ten are in the corpus**, fetched with `scripts/common/mine-repo.sh`,
+each with its `api/` tracker and its `tree/` at a captured commit, each
+reporting **0 gaps**. ⛔ An earlier reading kept four of them outside the tree
+and read them at their URLs; `../docs/methodology/references.md` section 4 says
+an untracked corpus exists on one machine only, and the operator ruled on
+2026-09-11 that the trees are tracked here even where the upstream carries no
+licence.
 
-⛔ **None of them is cited by `path:line`, and that is deliberate.** A citation
-this gate can resolve has to point inside the tree, and these are not in it.
-Each entry names the repository and the document, and a reader opens the URL.
+⚠ **The tracker pass returned almost nothing for the first four, and that is
+itself the finding.** Zero issues, zero pull requests, zero comments, zero
+review comments, zero releases, zero tags and zero discussions across all four:
+they are solo research dumps with no maintainer argument to mine. The six tools
+below are the opposite, and three of them carry real decisions.
 
-| repository | licence, read on 2026-09-11 | what may be done with it |
-| --- | --- | --- |
-| `https://github.com/talaria0101/sandbox-insights` | 0BSD, stated by the repository's own licence field | ⭐ vendorable. Read only so far; nothing here needed a copy |
-| `https://github.com/talaria0101/nix-experiment` | 0BSD, the same | ⭐ vendorable. The same |
-| `https://github.com/talaria0101/vm-research` | ⚠ **unresolved.** The repository has no licence file and its licence field is null | ⛔ **do not vendor.** Read at the URL only |
-| `https://github.com/Azathothas/sandbox-insights` | ⚠ **unresolved.** Its licence field reports `NOASSERTION` | ⛔ **do not vendor.** Read at the URL only |
-| `https://github.com/carlbomsdata/winquick` | Apache-2.0 | vendorable with its notice. ⚠ Nothing here needs a copy: [milestones.md](milestones.md) T-1112 reads its SHAPE and takes no code |
+| repository | commit | licence, read in the tree | what may be done with it |
+| --- | --- | --- | --- |
+| `talaria0101/sandbox-insights` | `0889f5f` | 0BSD, `tree/LICENSE` | ⭐ vendorable. Nothing here needed a copy |
+| `talaria0101/nix-experiment` | `d8835f2` | 0BSD, `tree/LICENSE` | ⭐ vendorable. Nothing here needed a copy |
+| `Azathothas/sandbox-insights` | `bcf415c` | ⭐ **0BSD**, `tree/LICENSE`, full Zero-Clause BSD text | ⭐ vendorable. The badge said `NOASSERTION` and was wrong |
+| `talaria0101/vm-research` | `7697b9b` | ⛔ **none.** No licence file, and the badge is null | ⛔ **copy nothing.** Tracked as evidence by operator ruling; take mechanisms only |
+| `Azathothas/memfd-ng` | `5da5803` | 0BSD | ⭐ vendorable, and it is the operator's own. [deps.md](deps.md) T-0909 measures it |
+| `hust-open-atom-club/Vex` | — | MIT, `tree/LICENSE` | ⭐ vendorable. ⚠ Wanted for its **shape**: a Docker-like CLI over saved `qemu-system-*` configurations |
+| `cubic-vm/cubic` | — | ⭐ **`MIT OR Apache-2.0`**, `tree/Cargo.toml`, both files present | ⭐ vendorable. The badge said Apache-2.0 alone. Wanted for its verb set and one shipped defect |
+| `Obirvalger/vml` | — | MIT, `tree/LICENSE` | ⭐ vendorable. Wanted for the machine-as-a-directory shape |
+| `gevico/tcg-rs` | — | MIT, `tree/LICENSE` | ⭐ vendorable. ⚠ An emulator engine, not a manager. [podvm.md](podvm.md) T-1307 |
+| `qemu-rs/qemu-rs` | — | ⛔ **GPL-2.0-or-later**, `tree/Cargo.toml:7` | ⛔ **do not vendor.** Refused; [podvm.md](podvm.md) T-1307 carries the reason |
+| `carlbomsdata/winquick` | — | Apache-2.0 | vendorable with its notice. [milestones.md](milestones.md) T-1112 reads its SHAPE and takes no code |
 
-⚠ **Two of the five carry no licence, so under default copyright nothing may be
-copied from them.** That is the same determination this file already makes for
-the two `memfd-exec` trees, and it is made the same way: the repository's own
-statement, read at the source, before anything is used.
+⛔ **Two of the eleven carry no permission to copy** — `vm-research` because it
+states no licence, `qemu-rs` because it states a copyleft one. That
+determination is made the same way for both: the repository's own statement,
+read in the tree, before anything is used.
 
-⭐ **What is taken from all five is a MECHANISM, never a line of text.** A
+⭐ **What is taken from all of them is a MECHANISM, never a line of text.** A
 mechanism is a fact about a kernel or a tool, and a fact is not anybody's to
 license. Every entry that derives from one states it in this project's own
 words, with the measurement it rests on named as somebody else's.

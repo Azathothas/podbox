@@ -1,0 +1,141 @@
+# Changelog
+
+All notable changes to Vex are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.4.1] - 2026-05-21
+
+### Added
+- **Snippet library system**: a curated set of 42 builtin QEMU argument
+  snippets (Memory, CPU, Machine, Storage, Network, Display, Debug,
+  Kernel) plus a `~/.vex/snippets.json` user library for custom entries.
+  User snippets merge with builtins, with user entries overriding by name.
+- **TUI Edit mode**: press `e` on a configuration to edit it in-place,
+  or `n` to create a new one. Fields: name, QEMU binary, description,
+  and args (with reorder, delete, add, and in-place token editing).
+  Resources remain CLI-managed.
+- **TUI Snippets drawer** (Edit mode, right pane): merged snippets
+  grouped by category with fold/unfold, filter, and `→` to insert into
+  the current args position.
+- **TUI Library mode** (`Ctrl+L`): full-screen snippet manager. Browse
+  every snippet with a details panel; press `n` / `e` / `d` to create,
+  edit, or delete user snippets. Persists to `~/.vex/snippets.json`
+  via atomic write (temp-file + rename).
+- **Args token editing**: in Edit mode and Library snippet edit, press
+  `Enter` on an arg to edit its string in place, or `a` to add a new
+  empty arg and immediately start editing it. `Enter` / `Esc` commit.
+
+### Changed
+- **Edit mode `Tab` semantics**: `Tab` switches between the Editor and
+  Snippets panes; field cycling within the Editor uses `↑` / `↓`. (Edit
+  mode is new in 0.4.1, so this is documented for completeness.)
+
+### Notes
+- Snippets file uses `schema_version: 1`. Forward-compatible
+  deserialization is planned for a later release.
+- Builtin snippets are read-only; `e` / `d` on a builtin shows a hint
+  pointing to `n` instead.
+- Carry-over from 0.4.0 development: help overlay is panic-safe on
+  tiny terminals, right-pane scroll clamps and writes back, Ctrl+C
+  always quits regardless of mode/overlay.
+
+## [0.4.0] - 2026-05-17
+
+### Added
+- New `vex tui` subcommand: interactive terminal UI for browsing and
+  launching configurations.
+- Browse mode with two-pane layout (list + details, equivalent to
+  `vex print` for the right pane).
+- Keyboard navigation: j/k/↑↓ to move, g/G for first/last, Tab to
+  switch focus.
+- Right-pane scrolling for long configurations.
+- Filter mode (`/`): live substring filter on name + description.
+- Help overlay (`?`): in-TUI keybinding reference.
+- Refresh (`r`): re-scan configurations directory without leaving TUI.
+- Enter to launch QEMU; pre-flight resource validation prevents
+  terminal switch on missing files; status bar surfaces exit codes
+  and launch errors after return.
+- Panic hook restores terminal state on unexpected crashes.
+- Polished UI: top status bar with configuration counts, card-style
+  detail view, rounded borders, and bracket-style key hints.
+- Internal: `prepare_command` extracted from `exec_command` for
+  CLI/TUI reuse.
+
+### Internal
+- New dependencies: ratatui 0.28, crossterm 0.28 (no async runtime).
+- Test count: 308 → 386 (TUI L1 state-machine + L2 render snapshots
+  via TestBackend + L3 headless via `run_state_machine`).
+
+## [0.3.2] - 2026-05-09
+
+### Fixed
+- `vex cache prune` no longer deletes cached objects that are referenced
+  only by `resources[*].path` without a `sha256` (the case when remote
+  configs publish url-only resources and `--fetch-resources` populates
+  the cache without backfilling the hash).
+- `vex pull --fetch-resources` and `vex hub install --fetch-resources`
+  now backfill `sha256` and `size` on the downloaded resource so that
+  cache reference tracking works without the path-fallback above.
+- `vex hub list` no longer prefixes `latest_tag` with `v`, which produced
+  invalid identifiers like `vlatest` or `vv1` that users could not pass
+  back into `vex hub install`.
+
+## [0.3.1] - 2026-05-09
+
+### Fixed
+- `vex hub info` and `vex hub install` now resolve omitted tags via
+  `index.json`'s `latest_tag` field instead of assuming a `latest.json`
+  alias, matching the protocol contract in `docs/HUB_PROTOCOL.md`.
+- `vex hub install --as <NAME>` now validates the local name before
+  constructing the config path, preventing path traversal via values
+  like `../evil`.
+
+## [0.3.0] - 2026-05-08
+
+### Added
+- Resource binding on `QemuConfig`: `ResourceRef { path, kind, sha256, size, url }` with `ResourceKind` (Image / Firmware / Other).
+- `${res:KEY}` placeholder substitution in `vex exec`, replaced after `${ENV}` substitution; unknown keys raise `UnknownResourceReference`.
+- `vex exec` now verifies that every bound resource file exists before launching QEMU.
+- `vex save` flags `--image KEY=PATH`, `--firmware KEY=PATH`, `--resource KEY=PATH` (all repeatable), plus `--no-checksum` to skip the default sha256 + size capture.
+- `vex resource` subcommand group: `add` (with `--kind`, `--no-checksum`, `--allow-missing`, `-f`), `rm`, `list`.
+- `vex cache` subcommand group: `list`, `info <hash|prefix>`, `rm <hash> [-f]`, `prune [--dry-run]`. Cache layout is content-addressed at `<root>/<sha[0..2]>/<sha[2..]>`.
+- `vex hub` subcommand group: `search <keyword>`, `info <id/name[:tag]>`, `install <spec> [--as NAME] [--fetch-resources] [--resource-dir DIR] [-f]`, `list [--kind KIND]`.
+- `vex pull` flags `--fetch-resources` and `--resource-dir`, downloading referenced resources into the unified cache and rewriting local `path` to the cache location.
+- Environment variable `VEX_RESOURCE_CACHE_DIR` overrides the default resource cache location.
+- Environment variable `VEX_HUB_URL` selects the Vex Hub base URL (default: `https://hub.vex.example/`, placeholder).
+- HTTP fetch layer: `remote::fetch::fetch_to_file` and `fetch_to_cache` (streaming, 30s timeout, content-addressed, sha256-verified when expected hash is known).
+- Hub HTTP client (read-only) with `fetch_index` / `fetch_published_config`.
+- `docs/HUB_PROTOCOL.md` defining the Hub HTTP protocol v1.
+- Shell-completion overlays: cache-hash completion for `vex cache rm|info` and config-name completion for `vex resource add|rm|list`.
+- 10 new `VexError` variants: `UnknownResourceReference`, `ResourceFileNotFound`, `ResourceChecksumMismatch`, `ResourceNotPublishable`, `ResourceFetchFailed`, `UnsupportedResourceScheme`, `SchemaVersionUnsupported`, `HubRequestFailed`, `HubIndexParseFailed`, `HubEntryNotFound`.
+
+### Changed
+- `PublishedConfig::new` produces `schema_version: 2`. `vex push` writes v2.
+- `load_published_config` dispatches by `schema_version` (v2 / v1 / legacy bare `QemuConfig`); read-side never silently upgrades v1 to v2.
+- `vex push` runs `validate_publishable` before clone; resources missing both `url` and `sha256` are rejected with `ResourceNotPublishable`.
+- `vex pull` default cache directory now resolves through `resource_cache_dir()`, sharing the cache with `vex hub install`.
+
+### Dependencies
+- Added: `sha2` 0.10
+- Added: `ureq` 2.10 (with `tls` feature)
+
+## [0.2.0] - <unreleased>
+
+### Added
+- `vex push <id/name>[:tag] <local_name>` and `vex pull <id/name>[:tag]` for sharing configurations through a Git registry.
+- `RemoteSpec` parser with id / name / tag segment validation.
+- `PublishedConfig` schema v1 (`{ schema_version, id, name, tag, config }`), with `latest.json` auto-refresh on tagged push.
+- Environment variables `VEX_REMOTE_URL`, `VEX_REMOTE_BRANCH`, `VEX_REMOTE_GIT_NAME`, `VEX_REMOTE_GIT_EMAIL`.
+- Tolerant read path: fall back to plain `QemuConfig` JSON if the remote file predates the v1 envelope.
+
+## [0.1.0] - <unreleased>
+
+### Added
+- Initial release: local QEMU configuration management.
+- Commands: `save`, `rename`, `rm`, `list`, `print`, `exec`, `edit`, `completions`.
+- `${ENV}` placeholder substitution for QEMU args at exec time.
+- QEMU version capture on save and mismatch warning on exec.
+- `VEX_CONFIG_DIR` environment variable; default `~/.vex/configs`.
+- Bash / Zsh / Fish dynamic completion for saved configuration names.

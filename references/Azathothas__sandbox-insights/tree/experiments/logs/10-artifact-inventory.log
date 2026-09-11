@@ -1,0 +1,21 @@
+## question: is the agent-first standalone artifact complete and locally anchored?
+date_utc=2026-09-10T12:50:22.9855129Z
+powershell=7.6.5
+PASS exists README.md
+PASS exists AGENTS.md
+PASS exists LICENSE
+PASS exists docs/observations.md
+PASS exists docs/capability-model.md
+PASS exists docs/evidence-model.md
+PASS exists docs/research-method.md
+PASS exists docs/architecture.md
+PASS exists docs/failure-field-guide.md
+PASS exists docs/open-questions.md
+PASS exists experiments/README.md
+PASS exists experiments/evidence-ledger.csv
+PASS exists experiments/data/benchmark-samples.csv
+PASS exists experiments/data/policy-transitions.csv
+PASS exists paper/paper.md
+PASS license=0BSD
+PASS no embedded 40-character external revisions
+exit=0

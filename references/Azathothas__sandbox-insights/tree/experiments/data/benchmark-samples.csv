@@ -1,0 +1,7 @@
+route,sample,mops_per_second,checksum,scope
+native,1,721.4,165be307,comparison
+native,2,754.8,165be307,comparison
+chroot,1,845.9,165be307,comparison
+chroot,2,866.8,165be307,comparison
+microvm-tcg,1,35.1,165be307,comparison
+microvm-tcg,2,35.1,165be307,comparison

@@ -1,0 +1,248 @@
+@echo off
+rem WinQuick guest agent -- mailbox protocol v1.
+rem
+rem Started through the cmd.exe AutoRun hook, so it runs as soon as the shell
+rem does. WQ_ACTIVE stops it re-entering when the workload spawns its own
+rem cmd.exe.
+rem
+rem The agent never shuts the machine down. It announces readiness, then waits
+rem for work. The host decides when the VM dies. That is what lets a booted
+rem guest be captured once and restored for every later run.
+if defined WQ_ACTIVE goto :eof
+set WQ_ACTIVE=1
+
+rem Volumes are not necessarily mounted by the time the shell starts, and how
+rem long that takes depends on how much of Windows is installed. Retry rather
+rem than giving up on the first look: a desktop-capable image enumerates more
+rem devices and is reliably slower than the minimal one.
+set WQTRIES=0
+:wqprobe
+set WQ=
+for %%d in (D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
+  if not defined WQ if exist %%d:\WQMARK.TXT set WQ=%%d:
+)
+if defined WQ goto wqfound
+set /a WQTRIES+=1
+if %WQTRIES% LSS 20000 goto wqprobe
+echo [winquick] FATAL: mailbox volume not found
+goto :eof
+:wqfound
+
+rem Windows only synchronises a FAT volume with the underlying disk at mount and
+rem dismount. Without this the host would never see our writes and we would never
+rem see the host's. The volume GUID is stable for the life of the filesystem, so
+rem stash it and use it to re-create the mount point on demand.
+for /f "tokens=*" %%v in ('mountvol %WQ% /L') do set WQVOL=%%v
+
+rem Capability volumes (PowerShell, .NET) are attached as extra disks. Drive
+rem letters are not guaranteed, so probe for known layouts rather than assuming.
+set WQPSDRV=
+set WQPSVOL=
+set WQDOTNETDRV=
+set WQDOTNETVOL=
+for %%d in (D E F G H I J K L M N O P) do (
+  if not defined WQPSDRV if exist %%d:\pwsh\pwsh.exe set WQPSDRV=%%d:
+  if not defined WQDOTNETDRV if exist %%d:\dotnet\dotnet.exe set WQDOTNETDRV=%%d:
+)
+set WQPS=
+set WQDOTNET=
+if defined WQPSDRV set WQPS=%WQPSDRV%\pwsh
+if defined WQDOTNETDRV set WQDOTNET=%WQDOTNETDRV%\dotnet
+rem Remember the volume identities while they are still mounted. These volumes
+rem are replaced by a fresh clone on every run, exactly like the workspace, so
+rem they get the same dismount-before-freeze, remount-before-exec treatment --
+rem see the block above WQREADY.TXT.
+if defined WQPSDRV for /f "tokens=*" %%v in ('mountvol %WQPSDRV% /L') do set WQPSVOL=%%v
+if defined WQDOTNETDRV for /f "tokens=*" %%v in ('mountvol %WQDOTNETDRV% /L') do set WQDOTNETVOL=%%v
+if defined WQPS set PATH=%WQPS%;%PATH%
+if defined WQDOTNET (
+  set PATH=%WQDOTNET%;%PATH%
+  set DOTNET_ROOT=%WQDOTNET%
+  rem Keep the CLI quiet and self-contained: no telemetry, no first-run banner,
+  rem and a writable home on C: rather than wherever it would otherwise guess.
+  set DOTNET_CLI_TELEMETRY_OPTOUT=1
+  set DOTNET_NOLOGO=1
+  set DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+  set DOTNET_CLI_HOME=C:\dotnet-home
+  if not exist C:\dotnet-home mkdir C:\dotnet-home
+)
+
+rem Tool volumes: a user-brought toolchain (a compiler, Go, Node, a portable
+rem CLI). Each carries WQPATH.TXT at its root listing the directories to put on
+rem PATH. Generic on purpose -- the agent does not care what the tool is.
+rem
+rem A `call` per drive, not an inline loop: accumulating into WQTOOLS inside a
+rem parenthesised `for` would need delayed expansion, which changes how `!` is
+rem handled and is not worth the risk in a script that carries arbitrary
+rem commands. See the :wqtool subroutine at the end.
+set WQTOOLS=
+for %%d in (D E F G H I J K L M N O P Q R S T U V W X Y Z) do if exist %%d:\WQPATH.TXT call :wqtool %%d
+
+rem The workspace, artifact and package-cache volumes all change contents between
+rem runs, so remember their identities now and re-read them just before executing.
+set WQWS=
+set WQWSVOL=
+set WQART=
+set WQARTVOL=
+set WQNUGET=
+set WQNUGETVOL=
+for %%d in (D E F G H I J K L M N O P) do (
+  if not defined WQWS if exist %%d:\WQWORK.TXT set WQWS=%%d:
+  if not defined WQART if exist %%d:\WQARTS.TXT set WQART=%%d:
+  if not defined WQNUGET if exist %%d:\WQNUGET.TXT set WQNUGET=%%d:
+)
+if defined WQWS for /f "tokens=*" %%v in ('mountvol %WQWS% /L') do set WQWSVOL=%%v
+if defined WQART for /f "tokens=*" %%v in ('mountvol %WQART% /L') do set WQARTVOL=%%v
+if defined WQNUGET for /f "tokens=*" %%v in ('mountvol %WQNUGET% /L') do set WQNUGETVOL=%%v
+rem Packages come from the host-managed cache. The guest gets a throwaway clone of
+rem it, so anything a build writes here is discarded with the rest of the run.
+if defined WQNUGET set NUGET_PACKAGES=%WQNUGET%\packages
+
+rem Let go of every volume whose backing file this run will replace.
+rem
+rem A capability volume used to stay mounted for the life of the guest, which
+rem meant it was still mounted when the prepared state was frozen. The restored
+rem guest then came back holding a filesystem cache for a disk that had been
+rem swapped underneath it, and hung -- not just for pwsh, but for `cmd /c echo`,
+rem measured on Windows/WHPX as 5 runs out of 5 timing out where the same guest
+rem without a capability did 100 out of 100 in about two seconds. The same guest
+rem with an *unmountable* extra disk attached was fine, which is what pins this
+rem on the mount rather than on the device.
+rem
+rem The mailbox and the workspace have always done this. Capabilities now do too.
+if defined WQPSVOL mountvol %WQPSDRV% /P >nul 2>&1
+if defined WQDOTNETVOL mountvol %WQDOTNETDRV% /P >nul 2>&1
+if defined WQNUGETVOL mountvol %WQNUGET% /P >nul 2>&1
+rem Tool volumes are cloned per run like the others, so they get the same
+rem dismount-before-freeze treatment or the restored guest hangs on a stale view.
+for %%t in (%WQTOOLS%) do mountvol %%t: /P >nul 2>&1
+
+>%WQ%\WQREADY.TXT echo 1
+mountvol %WQ% /P >nul 2>&1
+
+:wait
+mountvol %WQ% %WQVOL% >nul 2>&1
+if exist %WQ%\WQGO.TXT goto exec
+mountvol %WQ% /P >nul 2>&1
+goto wait
+
+:exec
+rem The go flag carries this run's token, and reading it is the only thing that
+rem has to be atomic. A desktop session writes into this volume while we are
+rem mounted, so a mount taken mid-write can show a file that exists but has no
+rem contents yet. Seeing that, go back and look again rather than running with
+rem an empty token: the host would reject the answer for a command that had
+rem already taken effect, and a click reported as failed is worse than a slow one.
+rem `for /f` and not `set /p`: on an empty file `set /p` falls back to reading
+rem the console and blocks the agent forever, which is exactly the case this
+rem check exists to handle.
+set WQNONCE=
+for /f "usebackq delims=" %%t in ("%WQ%\WQGO.TXT") do if not defined WQNONCE set WQNONCE=%%t
+if not defined WQNONCE (
+  mountvol %WQ% /P >nul 2>&1
+  goto wait
+)
+del %WQ%\WQGO.TXT >nul 2>&1
+
+rem Flush that delete before the command starts, or the host never sees it.
+rem
+rem Windows synchronises this FAT volume with the disk at mount and dismount and
+rem at no other time -- the same fact the wait loop above is built on. A delete
+rem made while the volume is mounted therefore stays in the guest's cache until
+rem the dismount at the end of this block, which does not happen until the
+rem command has finished. So the go flag was still sitting in the image for the
+rem whole run, and the host, which reads the image directly, could only conclude
+rem that this guest had never taken the command.
+rem
+rem That is not a race the workload sometimes wins. It is every command that
+rem outlives the host's first-contact window, every time. It cost a healthy
+rem prepared guest, five rebuilds and a cold boot on any run slower than ten
+rem seconds -- measured at 182 s for a 60 s timeout, against 60 s once flushed.
+rem
+rem The round trip below is the same one the wait loop does per turn, and it
+rem puts the acknowledgement on the disk before the command is started.
+mountvol %WQ% /P >nul 2>&1
+mountvol %WQ% %WQVOL% >nul 2>&1
+
+rem Same cache problem as the mailbox: the guest is holding a stale view of the
+rem workspace from before it was frozen. Dismount and remount to see this run's
+rem files, then surface them at a predictable path.
+rem Capability volumes first: the command about to run may be pwsh or dotnet.
+if defined WQPSVOL (
+  mountvol %WQPSDRV% /P >nul 2>&1
+  mountvol %WQPSDRV% %WQPSVOL% >nul 2>&1
+)
+if defined WQDOTNETVOL (
+  mountvol %WQDOTNETDRV% /P >nul 2>&1
+  mountvol %WQDOTNETDRV% %WQDOTNETVOL% >nul 2>&1
+)
+if defined WQNUGETVOL (
+  mountvol %WQNUGET% /P >nul 2>&1
+  mountvol %WQNUGET% %WQNUGETVOL% >nul 2>&1
+)
+rem Remount each tool volume so this run sees its own clone, not the frozen view.
+for %%t in (%WQTOOLS%) do call :wqremount %%t
+if defined WQWSVOL (
+  mountvol %WQWS% /P >nul 2>&1
+  mountvol %WQWS% %WQWSVOL% >nul 2>&1
+  if exist %WQWS%\workspace (
+    if not exist C:\workspace mklink /J C:\workspace %WQWS%\workspace >nul 2>&1
+    cd /d C:\workspace >nul 2>&1
+  )
+)
+rem The token is echoed back with the exit code so the host can prove this run
+rem actually read this run's command. If the guest were holding a stale view of
+rem the mailbox it would otherwise run an empty batch and report a confident,
+rem wrong success. The host writes the command first and arms the flag second,
+rem so a flag we can read means the command behind it is this run's.
+rem A child cmd.exe, not `call`: the workload must not be able to end the agent
+rem with `exit`, and its errorlevel has to come back cleanly.
+rem
+rem stdin comes from NUL. The mailbox carries a command out and its output back;
+rem it has no channel for standard input, so there is nothing to forward from the
+rem host. Left inheriting the agent's console, a workload that reads stdin --
+rem `findstr`, `sort`, a build tool prompting "overwrite? [y/n]", `set /p` --
+rem blocks on input that can never arrive and runs to the timeout. From NUL it
+rem gets end-of-file immediately, which is how the same command behaves in CI and
+rem under any redirected pipeline. This does not forward host stdin; it stops a
+rem stdin-reading command from hanging.
+cmd /c %WQ%\WQCMD.CMD < NUL > %WQ%\WQOUT.TXT 2> %WQ%\WQERR.TXT
+set WQRC=%errorlevel%
+rem Artifacts are collected even when the command failed - a failed build's logs
+rem are usually the thing you wanted. The command's exit code is already saved.
+if defined WQARTVOL if exist %WQ%\WQART.CMD (
+  call %WQ%\WQART.CMD > %WQART%\WQARTLOG.TXT 2>&1
+  mountvol %WQART% /P >nul 2>&1
+)
+rem `echo %WQRC%>file` would parse as a stdin redirect. Redirect first instead.
+>%WQ%\WQCODE.TXT echo %WQRC% %WQNONCE%
+mountvol %WQ% /P >nul 2>&1
+goto wait
+
+rem --- tool-volume subroutines ---------------------------------------------
+rem Reached only by `call`; the exec path loops back with `goto wait` and never
+rem falls through to here. `call` gives each a fresh expansion of %WQTOOLS%, so
+rem no delayed expansion is needed.
+
+rem :wqtool <driveLetter> -- record the drive and its volume GUID, and put its
+rem WQPATH.TXT directories on PATH. `.` in the manifest means the volume root.
+:wqtool
+set WQTOOLS=%WQTOOLS% %1
+for /f "tokens=*" %%v in ('mountvol %1: /L') do set WQTV_%1=%%v
+for /f "usebackq delims=" %%l in ("%1:\WQPATH.TXT") do call :wqpath %1 "%%l"
+goto :eof
+
+rem :wqpath <driveLetter> "<subdir>"
+:wqpath
+set "SUB=%~2"
+if "%SUB%"=="." (set "PATH=%1:\;%PATH%") else (set "PATH=%1:\%SUB%;%PATH%")
+goto :eof
+
+rem :wqremount <driveLetter> -- dismount and remount so this run sees its clone.
+rem The GUID was stashed in WQTV_<letter>; `call set` reads it without delayed
+rem expansion.
+:wqremount
+mountvol %1: /P >nul 2>&1
+call set "WQG=%%WQTV_%1%%"
+mountvol %1: %WQG% >nul 2>&1
+goto :eof

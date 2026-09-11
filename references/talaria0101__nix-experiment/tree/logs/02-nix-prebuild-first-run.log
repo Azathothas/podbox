@@ -1,0 +1,13 @@
+=== nix --version ===
+nix (Nix) 2.35.2
+exit: 0
+
+=== try creating /nix on host ===
+mkdir: cannot create directory ‘/nix’: Permission denied
+mkdir: cannot create directory ‘/nix’: Permission denied
+mkdir: cannot create directory ‘/nix’: Permission denied
+
+=== nix store ping (default /nix store) ===
+warning: 'ping' is a deprecated alias for 'info'
+error: experimental Nix feature 'nix-command' is disabled; add '--extra-experimental-features nix-command' to enable it
+exit: 1

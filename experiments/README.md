@@ -76,6 +76,7 @@ decisions podbox has to make. Each writes its transcript to
 ./experiments/130-probe-parity.sh               # M0's acceptance: the rung in both environments, and the rows
 ./experiments/140-space-precheck.sh             # blocks AND inodes, on two real tmpfs mounts
 ./experiments/150-image-acquisition.sh          # M1's acceptance: podbox's digest against docker's
+./experiments/156-closure-records.sh            # does every closed entry carry its recorded run?
 ./experiments/160-store-gc.sh                   # a GC under a holder, and the containment check
 ./experiments/170-probe-cache.sh                # the probe cache, and the key the specification got wrong
 ./experiments/210-store-concurrency.sh          # the store's contract, against 8 real concurrent processes

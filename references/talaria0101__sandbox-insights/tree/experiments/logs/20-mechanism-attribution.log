@@ -1,0 +1,28 @@
+## conditions
+date: 2026-09-10T15:19:52Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+cpu: AMD Ryzen 7 7700 8-Core Processor / 16 threads
+mem: 30Gi
+uid: 0  caps: 000001ffffffffff  seccomp: 2
+1
+uid_map:          0          0          1 
+subject: mechanism-attribution
+
+## bogus-argument attribution (one child per probe)
+## convention: EPERM for a bogus argument = refused pre-entry (filter);
+##            path/pid-shaped errno = executed (kernel-internal denial)
+
+mount(2, bogus target)                   errno=1 (Operation not permitted)  <- refused pre-entry
+umount2(2, bogus target)                 errno=1 (Operation not permitted)  <- refused pre-entry
+pivot_root(2, bogus paths)               errno=1 (Operation not permitted)  <- refused pre-entry
+fsopen(tmpfs) [new mount API]            errno=1 (Operation not permitted)  <- refused pre-entry
+open_tree(bogus)                         errno=1 (Operation not permitted)  <- refused pre-entry
+move_mount(-> bogus dest)                errno=1 (Operation not permitted)  <- refused pre-entry
+setns(bogus fd)                          errno=1 (Operation not permitted)  <- refused pre-entry
+process_vm_readv(bogus pid)              errno=1 (Operation not permitted)  <- refused pre-entry
+
+## controls (must be argument-shaped, or the prober is broken)
+pidfd_getfd(-1,-1)                       errno=9 (Bad file descriptor)  <- executed, kernel-internal denial
+kcmp(-1,-1,...)                          errno=3 (No such process)  <- executed, kernel-internal denial
+membarrier(bogus) [entry ctrl]           errno=22 (Invalid argument)  <- executed, kernel-internal denial
+mprotect(0,0,0) [entry ctrl]             OK (executed)

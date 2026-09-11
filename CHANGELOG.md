@@ -6,6 +6,45 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-11T18:05:26Z: the references are mined, and two licence badges were wrong
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
+deployment.
+
+Eleven repositories were mined with `scripts/common/mine-repo.sh`, each with its
+tracker and its tree at a captured commit, each reporting zero gaps. Four had
+been read at their URLs and kept out of the corpus; they are tracked now, which
+is what [`docs/methodology/references.md`](docs/methodology/references.md)
+section 4 requires. [`docs/history/2026-09-11-reference-sweep.md`](docs/history/2026-09-11-reference-sweep.md)
+is the write-up and it opens with what the sweep did not establish.
+
+⛔ **Two licence determinations were taken from a code host's badge and both
+were wrong.** One tree reported `NOASSERTION` and carries the full Zero-Clause
+BSD text, so it is vendorable. One reported `MIT` and declares
+`GPL-2.0-or-later` in its manifest, so it is refused. A licence is read in the
+tree.
+
+⭐ **The `.gitignore` was excluding the evidence the sweep rests on.** Two
+unanchored rules, `*.log` and `logs/`, matched every experiment log directory in
+the corpus and kept **83 committed logs** out of the tree. A citation into one
+resolved on this disk and would not have resolved in a fresh clone.
+`scripts/check-todo.py` caught it.
+
+⭐ **The TCG cost is a range, not a number.** Four measurements on one host
+class span 3x to 21x across four workloads, and a document in the corpus states
+one of them as the general figure. [`TODO/podvm.md`](TODO/podvm.md) T-1308 is the
+entry, and podbox will never print a bare multiplier.
+
+All 86 closed entries were reconciled against
+[`TODO/RULES.md`](TODO/RULES.md) section 5.
+`experiments/156-closure-records.sh` is the instrument. Two entries moved back:
+one was closed with no run recorded at all, and one was closed on two tests that
+[`TODO/image.md`](TODO/image.md) T-0215 has since measured as failing 5 of 12
+runs.
+
+Four licence questions were settled by the operator, and the nix acceptance is
+now milestone M8 with its acceptance rows and its version pin.
+
 ### 2026-09-11T16:49:16Z: the machine tier is specified, and nothing is blocked
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no

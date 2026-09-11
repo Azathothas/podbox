@@ -1,0 +1,19 @@
+unshare(CLONE_NEWUSER)       FAIL (errno=Operation not permitted)
+unshare(CLONE_NEWNS)         FAIL (errno=Operation not permitted)
+mount(tmpfs /tmp)            FAIL (errno=Operation not permitted)
+chown(file,100,100)          FAIL (errno=Invalid argument)
+setuid(65534)                FAIL (errno=Invalid argument)
+setgroups(0)                 FAIL (errno=Operation not permitted)
+mknod(char dev)              OK    (char 0:0 only; 1:3,1:5,1:8,5:1,5:2 denied)
+setxattr(user)               OK
+keyctl(0,...)                FAIL (errno=Operation not permitted)
+bpf(...)                     FAIL (errno=Operation not permitted)
+perf_event_open              FAIL (errno=Operation not permitted)
+ptrace(TRACEME)              FAIL (errno=Operation not permitted)
+
+extra probes:
+chroot("/tmp/ctest")         OK
+open("/dev/ptmx")            ENOENT (device absent; devpts unmountable)
+mknod majors 0..511 min0     only char 0:0 allowed
+readdir("/"), mkdir("/x")    EACCES/EPERM (root dir locked down)
+getrandom(2)                 works (8 bytes OK)

@@ -1,0 +1,58 @@
+## conditions
+date: 2026-09-10T15:19:51Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux
+cpu: AMD Ryzen 7 7700 8-Core Processor / 16 threads
+mem: 30Gi
+uid: 0  caps: 000001ffffffffff  seccomp: 2
+1
+uid_map:          0          0          1 
+subject: environment-census
+glibc: ldd (Gentoo 2.43-r2 (patchset 3)) 2.43
+
+## identity
+uid=0 gid=0 euid=0
+/proc/self/uid_map:
+         0          0          1
+/proc/self/gid_map:
+         0          0          1
+/proc/self/setgroups:
+deny
+CapEff:	000001ffffffffff
+CapBnd:	000001ffffffffff
+NoNewPrivs:	1
+Seccomp:	2
+user-ns: user:[4026536275]
+mnt-ns: mnt:[4026536276]
+
+## mechanism census (each probe in its own child)
+unshare(CLONE_NEWNS)                   DENIED errno=1 (Operation not permitted)
+unshare(CLONE_NEWUSER)                 DENIED errno=1 (Operation not permitted)
+unshare(CLONE_NEWNET)                  DENIED errno=1 (Operation not permitted)
+mount(tmpfs, /tmp)                     DENIED errno=1 (Operation not permitted)
+pivot_root(bogus)                      DENIED errno=1 (Operation not permitted)
+ptrace(PTRACE_TRACEME)                 DENIED errno=1 (Operation not permitted)
+bpf(0)                                 DENIED errno=1 (Operation not permitted)
+keyctl(0)                              DENIED errno=1 (Operation not permitted)
+open_by_handle_at(bogus)               DENIED errno=1 (Operation not permitted)
+setns(bogus fd)                        DENIED errno=1 (Operation not permitted)
+mknod(chr 10:232 kvm)                  DENIED errno=1 (Operation not permitted)
+mknod(chr 0:0 whiteout)                OK
+chown(f, 0, 42 unmapped)               errno=22 (Invalid argument)  <- executed, argument-shaped
+setuid(1000)                           errno=22 (Invalid argument)  <- executed, argument-shaped
+setgroups(0)                           DENIED errno=1 (Operation not permitted)
+open /proc/self/mem RD                 OK
+open /proc/self/mem WR                 DENIED errno=13 (Permission denied)
+open /proc/1/mem RD                    OK
+openat /dev (dir)                      DENIED errno=13 (Permission denied)
+open /dev/kvm                          errno=2 (No such file or directory)  <- executed, argument-shaped
+landlock_create_ruleset                OK
+fsopen(tmpfs)                          DENIED errno=1 (Operation not permitted)
+openat2(bogus path)                    errno=22 (Invalid argument)  <- executed, argument-shaped
+io_uring_setup(0)                      OK
+clone3(NULL)                           OK
+kcmp(-1,-1) [control]                  OK
+mprotect RWX                           OK
+memfd_create                           OK
+
+## device and filesystem shape
+host-drivers: kvm=present tun=present (from /proc/misc; nodes are a separate question)

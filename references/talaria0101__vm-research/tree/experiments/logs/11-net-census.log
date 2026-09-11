@@ -1,0 +1,15 @@
+## conditions
+date: 2026-09-09T09:29:44Z
+host: Linux 6.18.39-gentoo-dist-bin x86_64 GNU/Linux / AMD Ryzen 7 7700 8-Core Processor
+mem: 30Gi  cpus: 16
+qemu: QEMU emulator version 10.2.3
+accel: tcg (kvm unavailable, see experiments/10-probe-environment.log)
+subject: net-census
+bind+listen loopback:22: DENIED ([Errno 13] Permission denied)
+bind+listen loopback:40543: DENIED ([Errno 13] Permission denied)
+bind+listen loopback:65002: DENIED ([Errno 13] Permission denied)
+bind+listen wildcard:65003: DENIED ([Errno 13] Permission denied)
+loopback connect: DENIED ([Errno 13] Permission denied)
+external connect 1.1.1.1:443: OK
+udp bind loopback:65005: OK
+--- interpretation: outbound TCP allowed; bind and loopback connect denied
