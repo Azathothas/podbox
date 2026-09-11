@@ -7,37 +7,36 @@ the work order.
 
 ## The task
 
-Session of 2026-09-11. Update the orientation rules after the move to the new
-home. Reconcile the entries. Research four external repositories. Get the tree
-clean and the CI green.
+Session of 2026-09-11 ended cleanly. Nothing is in flight.
 
 ## The resume point
 
-Task 3: verify the one orientation script end to end, then the session-end
-protocol from [RULES.md](RULES.md) section 3.
+[PROGRESS.md](PROGRESS.md)'s work order, item 1: [T-0215](image.md).
 
 ## In flight
 
-Nothing is half-written. No source file is open.
+Nothing. No file is half-written and no branch is open.
 
 ## The state of the tree
 
-The host gate is green. `./scripts/check-todo.py` is green.
-⚠ `cargo test --workspace` is NOT deterministic: 5 of 12 runs failed on
-2026-09-11 and [T-0215](image.md) carries the measurement.
+Clean, on `main`, level with `origin/main`. The host gate is green,
+`./scripts/check-todo.py` is green, and the hosted gate on `main` is green on
+all four jobs.
 
-## Settled this session
+⚠ **One check is intermittent and it is not fixed.**
+`cargo test --workspace` failed 5 of 12 runs on 2026-09-11, across four store
+lock tests. [T-0215](image.md) carries the measurement. A red run of
+`workspace and interposer tests` is that race until somebody proves otherwise,
+and the operator's standing instruction is to re-run it.
 
-The operator ruled on four questions. Each ruling is written into the entry
-that owns it and is listed in [PROGRESS.md](PROGRESS.md).
+## The machine
 
-## What this session left for the machine
+⭐ The distribution `wsl-toolkit-podbox` persists on purpose, with a warm image
+cache. Leave it.
 
-⛔ **`podman-machine-default` was stopped when this session found it and this
-session started it.** It must be stopped again at the end.
-[`../docs/containers.md`](../docs/containers.md) holds the rest.
-
-⭐ The distribution `wsl-toolkit-podbox` is meant to persist. Leave it.
+⛔ `podman-machine-default` is not this project's. It was stopped when the last
+session found it and it was stopped again at the end. `eph-pgb` was never
+touched.
 
 ## The paste
 
