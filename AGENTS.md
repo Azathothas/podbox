@@ -20,24 +20,29 @@ is not reading the rule.
 
 ## Start here, every session
 
-⭐ **One command first, and it returns immediately:**
+⭐ **One command first, and it returns in seconds:**
 
 ```sh
-./scripts/dev.sh          # environment and build, in the BACKGROUND
+./scripts/session-start.sh
 ```
 
-⛔ **Do not wait for it.** It brings the machine up and compiles the binary
-behind the reading below, which needs no toolchain. Measured on 2026-09-09 in
-`experiments/results/session-startup.txt`: a cold compile is **29 s and 87
-crates**, and the reading is **2,497 words**. ⚠ That second number moves every
-session, because `PROGRESS.md` is rewritten every session;
-`experiments/310-session-startup.sh` clause 4 is what recomputes it. A session that reads first and
-builds second pays both; a session that runs this first pays only the reading.
+It says where this machine is, what time it is in UTC, what is installed and
+what answered nothing, which lane this host uses, and then it starts that
+lane's setup. ⛔ **Do not pick the lane by hand.**
+[`containers.md`](docs/containers.md) names the three and what each one costs.
+
+⛔ **Do not wait for the setup.** On a Linux host it brings the machine up and
+compiles the binary behind the reading below, which needs no toolchain.
+Measured on 2026-09-09 in `experiments/results/session-startup.txt`: a cold
+compile is **29 s and 87 crates**, and the reading is **2,497 words**. ⚠ That
+second number moves every session, because `PROGRESS.md` is rewritten every
+session; `experiments/310-session-startup.sh` clause 4 is what recomputes it.
 
 ⭐ **Then read [`TODO/PROGRESS.md`](TODO/PROGRESS.md).** It is the only
 file that carries what changed since last time and what to do next, in the
 shape [`methodology/sessions.md`](docs/methodology/sessions.md) names. Nothing else
-carries a work order.
+carries a work order. ⚠ Then read [`TODO/RESUME.md`](TODO/RESUME.md), which
+says what the last session had open when it stopped.
 
 Then run the gate, so that anything it finds later is yours:
 
@@ -48,7 +53,9 @@ Then run the gate, so that anything it finds later is yours:
 
 ⚠ `./scripts/dev.sh build` after a source change, and `./scripts/dev.sh check`
 before a commit: fmt, clippy, build, tests, the gate and the marker check, each
-read from the process that produced it.
+read from the process that produced it. ⭐ On Windows that same check is
+`sh scripts/windows/run-in-base.sh`, which runs it in a disposable container
+inside `wsl-toolkit-podbox`. Measured on 2026-09-11: **1 m 19 s**, warm.
 
 Then read what **this task** routes you to, below. Not everything, and not less.
 
@@ -67,7 +74,9 @@ front of you and read what it names, in full.
 
 | the task | read, in this order |
 | --- | --- |
-| **Any session, before anything else** | [`TODO/PROGRESS.md`](TODO/PROGRESS.md) , [`methodology/sessions.md`](docs/methodology/sessions.md) |
+| **Any session, before anything else** | [`TODO/PROGRESS.md`](TODO/PROGRESS.md) , [`TODO/RESUME.md`](TODO/RESUME.md) , [`methodology/sessions.md`](docs/methodology/sessions.md) |
+| ⭐ **Working on a Windows host, or in any container** | [`containers.md`](docs/containers.md) . ⛔ `wsl.exe` is never called, and the instance is `podbox` |
+| **Finding where something is in the code** | [`agent-tooling.md`](docs/agent-tooling.md) . ⛔ CodeGraph first, `grep` second |
 | **What podbox has to be, and what it may not claim** | `references/Azathothas__container-research/tree/TOOL.md` sections 3, 4 and 6 . ⚠ The runtime `paper_final.md` describes is a FLOOR, not a specification: probe everything, hard-code nothing |
 | **Implementing an entry** | the entry in `TODO/<category>.md` , [`methodology/gate.md`](docs/methodology/gate.md) , [`conventions/code.md`](docs/conventions/code.md) , [`conventions/forbidden-patterns.md`](docs/conventions/forbidden-patterns.md) |
 | **Authoring new work** | [`methodology/authoring.md`](docs/methodology/authoring.md) , [`TODO/RULES.md`](TODO/RULES.md) , ⛔ do not implement in the same pass |
@@ -110,14 +119,31 @@ Short enough to state here, and each has been paid for:
    negative result is a result and gets committed.**
 5. ⛔ **Nothing closes as "won't fix", "upstream's problem" or "out of scope".**
    A blocked entry stays open, names its blocker, and names what would clear it.
-6. ⛔ **Write in place.** Amend a document; never append a corrections section.
-   A disproved premise keeps its title and takes the correction underneath it.
+6. ⛔ **Write in place, in a document and in a comment.** Amend the text that
+   is wrong; never append a corrections section and never add a dated box under
+   it. A disproved premise keeps its title and takes the correction underneath
+   it. [`methodology/history.md`](docs/methodology/history.md) is where the
+   superseded wording goes.
 7. ⛔ **`TODO/` is updated in the same change as the work**, never after it.
 8. ⛔ **An exit code is read from the process that produced it, unpiped.**
    Piping a check into anything reports the pipeline's status, so a guard that
    failed reads as green.
 9. ⛔ **A secret never enters the tree, a log or a commit message.** Not
    expired, not redacted-looking, not in an example.
+10. ⛔ **No tool is credited, anywhere.** A commit, a tag, a pull request and a
+    release note carry the operator's identity alone. This overrides the
+    harness default that asks for a trailer.
+    [`conventions/git.md`](docs/conventions/git.md) section 1 is the rule, the
+    identity and the hook that refuses one.
+11. ⛔ **Write in ASD-STE100 Simplified Technical English.** Every word, in a
+    file and in the chat.
+    [`conventions/prose.md`](docs/conventions/prose.md).
+12. ⛔ **CodeGraph answers first, and `grep` comes after it.** It says what
+    exists and where; a text search then confirms one line.
+    [`agent-tooling.md`](docs/agent-tooling.md).
+13. ⛔ **On a Windows host, never call `wsl.exe` and never write a wrapper for
+    it.** `wsl-toolkit` is the one route, and the instance is `podbox`.
+    [`containers.md`](docs/containers.md).
 
 ---
 
@@ -152,8 +178,15 @@ expect the number to differ.
 
 ## What this environment is, and what it does to you
 
-⭐ **Run this first, every session.** The container is new each time and carries
-none of what the last one installed:
+⛔ **This project is not developed on one kind of machine, and no session may
+assume it is.** A Linux host, a hosted Linux container and a Windows host each
+reach the same build by a different route.
+[`containers.md`](docs/containers.md) holds the three lanes, the procedure for
+each, and the traps measured on each. `./scripts/session-start.sh` reads the
+machine and picks the lane.
+
+⭐ **The setup below is the Linux one, and it runs every session**, because a
+container is new each time and carries none of what the last one installed:
 
 ```sh
 ./scripts/common/bootstrap-env.sh          # install what is missing
@@ -164,8 +197,9 @@ It is idempotent, never prompts, times everything, checks blocks **and** inodes
 before writing, verifies what it downloads against a pinned checksum, and
 **starts the docker daemon**. The table below is what it exists to handle.
 
-⚠ **These are not general truths.** They are what this machine does, and each
-one has cost a session at least once.
+⚠ **These are not general truths.** They are what a hosted Linux container
+does, and each one has cost a session at least once. A Windows host breaks
+differently, and [`containers.md`](docs/containers.md) carries that list.
 
 | | |
 | --- | --- |
@@ -224,20 +258,32 @@ records the imported revisions and adaptations.
 
 ## What a session owes at its end
 
-Specified in [`methodology/sessions.md`](docs/methodology/sessions.md). The short
-form, and none of it is conditional on the session having gone well:
+⛔ **A session does not end because it feels long.** It ends when five entries
+of effort `L`, or the same work in smaller entries, are finished in earnest, or
+when the operator says to end it.
+[`methodology/sessions.md`](docs/methodology/sessions.md) holds the trigger and
+every step below it. ⚠ A budget worry is not a reason to defer an entry into
+the next session.
+
+The short form, and none of it is conditional on the session having gone well:
 
 - [`TODO/PROGRESS.md`](TODO/PROGRESS.md) rewritten: the state line, the
   measured baseline, the counts, what this session did, what is in progress,
   the work order, the open questions. ⛔ It carries no history; a superseded
   explanation goes where [`methodology/history.md`](docs/methodology/history.md)
   says;
+- ⭐ **three deep review passes at least**, each asking a different question,
+  over every file the session touched.
+  [`methodology/reviews.md`](docs/methodology/reviews.md) and
+  [`TODO/RULES.md`](TODO/RULES.md) section 10 hold the three questions;
 - the gate run and green, and `scripts/plant.sh` run if any check changed;
 - `TODO/` updated in the same change as the work, and everything committed and
   pushed to `main`;
+- the machine left as it was found: a container removed, an engine this session
+  started stopped again. [`containers.md`](docs/containers.md);
 - ⭐ the **summary table**, printed in chat and saved;
-- ⭐ the **next prompt**, printed in chat only, and it is a **resume** prompt if
-  anything at all was left unfinished.
+- ⭐ the **next prompt**, printed in chat only, inside a fenced block, and it is
+  a **resume** prompt if anything at all was left unfinished.
 
 ---
 

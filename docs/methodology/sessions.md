@@ -110,24 +110,51 @@ the project's rules say which. ⛔ What is not fine is not having one.
 
 ---
 
+## ⭐ When a session may end
+
+⛔ **Two triggers, and nothing else is one.**
+
+| trigger | what it means |
+| --- | --- |
+| the work | five entries of effort `L`, or the same amount of work in smaller entries, finished in earnest |
+| the operator | they say to end it, or they ask for the end-of-session protocol by name |
+
+⛔ **A budget worry is not a trigger.** Neither is a long transcript, a hard
+entry, or a wish to hand over cleanly. An entry that is hard is worked; an
+entry that is blocked is recorded as blocked and a different one is started.
+[A wall is a routing problem](#-a-wall-is-a-routing-problem-not-a-verdict) is
+the rule that governs the second case.
+
+⚠ **"Finished in earnest" is the entry's own `Prove` command, run, with the
+output recorded underneath it.** An entry that is described as done and whose
+`Prove` was never run is not finished, and counting it toward the five is how
+a session ends with less work in it than it reports.
+
+---
+
 ## Ending
 
 In this order.
 
 1. **Finish or checkpoint the current task.** A half-finished change is
    recorded as partial, with what is done and what is not, never left silent.
-2. **Run the gate.** All three parts. [`gate.md`](gate.md).
-3. **Update the record in the same change as the work.** ⛔ The record is part
+2. ⭐ **Three deep review passes at least, over every file this session
+   touched.** Each pass asks a different question, because one question asked
+   three times is one pass. [`reviews.md`](reviews.md) holds the questions.
+3. **Run the gate.** All three parts. [`gate.md`](gate.md).
+4. **Update the record in the same change as the work.** ⛔ The record is part
    of the change, not a report about it. A session that fixes something and
    leaves the record saying it is open has not finished; it has made the next
    session read a lie first.
-4. **Update the documentation the work changed**, in the same change.
-5. **Write the handoff**, in stage mode, or close the entry with its evidence,
+5. **Update the documentation the work changed**, in the same change.
+6. **Write the handoff**, in stage mode, or close the entry with its evidence,
    in todo mode.
-6. **Print the summary table.** Below.
-7. **Print the next prompt.** Below.
-8. **Tear down** anything this session created on a remote system.
-   [`../security/remote-ops.md`](../security/remote-ops.md).
+7. **Print the summary table.** Below.
+8. **Print the next prompt.** Below.
+9. **Tear down** anything this session created on a remote system, and put a
+   local machine back as it was found.
+   [`../security/remote-ops.md`](../security/remote-ops.md) and
+   [`../containers.md`](../containers.md).
 
 ---
 
@@ -140,16 +167,17 @@ It is **for the operator**, and it goes in chat. Prose is not a summary; a wall
 of paragraphs is what this rule exists to stop. One markdown table, before and
 after, ⛔ **every cell grounded in something you can point at.**
 
-| row | from |
-| --- | --- |
-| Elapsed | the recorded start instant to now |
-| Commits | the git log over this session's range |
-| Work | how many assigned items **completed, deferred, failed**. Counted, not described. |
-| Changes | files touched, lines added and removed |
-| Size | the tree's line count, and the delta |
-| Checks | the gate's result, and what it was at the start |
-| Cost | if the work spends money or bandwidth, the number, split by what it was spent on |
-| Health | debts cleared and introduced, tree clean or dirty, deployed version |
+| row | from | how it is taken |
+| --- | --- | --- |
+| Elapsed | the recorded start instant to now | ⛔ both instants read with `date -u`, and the difference computed. Never estimated. |
+| Commits | the git log over this session's range | `git log --oneline <start>..HEAD` |
+| Work | how many assigned items **completed, deferred, failed**. Counted, not described. | the entry ids, each with its status |
+| Changes | files touched, lines added and removed | `git diff --stat <start>..HEAD` |
+| Size | the tree's line count, and the delta | ⭐ `scc` where it is installed, and `git diff --shortstat` where it is not. ⚠ Name which one produced the number: counters disagree about blank and comment lines. |
+| Checks | the gate's result, and what it was at the start | the gate, run, unpiped |
+| CI | the hosted run's state on `main`, and the open pull requests | the code host's own report |
+| Cost | if the work spends money or bandwidth, the number, split by what it was spent on | the tool that spent it |
+| Health | debts cleared and introduced, tree clean or dirty, the machine put back | `git status --short`, and the engine's own listing |
 
 ⛔ **It has to be able to say that nothing moved.** A summary that can only
 report improvement is fabricated progress with a table around it. "Nothing

@@ -35,7 +35,10 @@ judging the tree.
 
 | tool | what it does |
 | --- | --- |
+| ⭐ [`../scripts/session-start.sh`](../scripts/session-start.sh) | the one command a session runs first: where, when, what is installed, which lane, then that lane's setup. [`containers.md`](containers.md) holds the lanes. |
 | [`../scripts/doctor/`](../scripts/doctor/) | the environment probe. What host, what shell, what tools, what the repository is. A probe, not a gate. |
+| [`../scripts/common/restore-modes.sh`](../scripts/common/restore-modes.sh) | put the executable bit back on a tree that arrived from a filesystem which cannot hold one. It reads the git index and sets nothing else. |
+| [`../scripts/windows/run-in-base.sh`](../scripts/windows/run-in-base.sh) | run one Linux job against this checkout, from Windows, in a disposable container inside `wsl-toolkit-podbox` |
 | [`../scripts/common/check-gate`](../scripts/common/) | runs every check below and prints one verdict |
 | [`../scripts/common/check-docs`](../scripts/common/) | links resolve, fenced blocks parse, orphan pages |
 | [`../scripts/common/check-markers`](../scripts/common/) | only the five defined characters, and not too many of them |
@@ -91,7 +94,8 @@ anything. ⛔ Probe by RUNNING the tool, not by finding it.
 | lint PowerShell | [`PSScriptAnalyzer`](https://github.com/PowerShell/PSScriptAnalyzer) | the same, on the half a POSIX linter cannot see |
 | time a command honestly | [`hyperfine`](https://github.com/sharkdp/hyperfine) | a single `time` run is not a measurement. [`methodology/experiments.md`](methodology/experiments.md) says what one owes. |
 | count lines of code | [`scc`](https://github.com/boyter/scc) or [`tokei`](https://github.com/XAMPPRocky/tokei) | ⚠ counters disagree about blank and comment lines, so name which one produced a number |
-| search a tree | [`rg`](https://github.com/BurntSushi/ripgrep) | it locates; it does not confirm. Open the file. |
+| ⭐ find where something is in the code | [`codegraph`](https://github.com/colbymchenry/codegraph) | ⛔ **it answers before `grep` does.** One call returns the relevant symbols' source, the call paths between them, and the dynamic-dispatch hops a text search cannot follow. `codegraph sync` first, then `codegraph explore "<question>"`. |
+| search a tree for one string | [`rg`](https://github.com/BurntSushi/ripgrep) | ⚠ second, not first. It locates a line and confirms nothing, and it cannot see a call. Use it after CodeGraph has said what exists, and open the file. |
 | run something on Linux from Windows | `wsl-toolkit`, above | never install a distro by hand and leave it registered. [`containers.md`](containers.md). |
 
 ---

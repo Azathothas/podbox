@@ -23,6 +23,24 @@ use crate::error::{Error, Result};
 /// hashed with the wrong function.
 pub const SHA256: &str = "sha256";
 
+/// Lower-case hex for a digest's own bytes.
+///
+/// ⛔ Written here rather than taken from the hash crate's `LowerHex`. That
+/// trait is implemented on the crate's output type, and `sha2` 0.11 changed
+/// that type from `generic-array` to `hybrid-array`, which does not carry it.
+/// A formatting call against a dependency's type is a compile error on a
+/// version bump; a function over `&[u8]` is not.
+fn hex_of(bytes: &[u8]) -> String {
+    use fmt::Write as _;
+    let mut s = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+        // ⚠ `write!` into a `String` cannot fail, and the result is read so
+        // that a later refactor cannot turn this into an ignored one.
+        let _ = write!(s, "{b:02x}");
+    }
+    s
+}
+
 /// `<algorithm>:<hex>`, parsed once and carried whole.
 #[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Digest {
@@ -74,7 +92,7 @@ impl Digest {
         h.update(bytes);
         Digest {
             algorithm: SHA256.to_string(),
-            hex: format!("{:x}", h.finalize()),
+            hex: hex_of(&h.finalize()),
         }
     }
 
@@ -138,7 +156,7 @@ impl<W: Write> Verifier<W> {
     pub fn digest(&self) -> Digest {
         Digest {
             algorithm: SHA256.to_string(),
-            hex: format!("{:x}", self.hasher.clone().finalize()),
+            hex: hex_of(&self.hasher.clone().finalize()),
         }
     }
 
@@ -151,7 +169,7 @@ impl<W: Write> Verifier<W> {
     pub fn finish(self, what: &str, want: &Digest, want_size: Option<u64>) -> Result<W> {
         let got = Digest {
             algorithm: SHA256.to_string(),
-            hex: format!("{:x}", self.hasher.finalize()),
+            hex: hex_of(&self.hasher.finalize()),
         };
         if got != *want {
             return Err(Error::DigestMismatch {

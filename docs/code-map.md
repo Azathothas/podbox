@@ -22,7 +22,10 @@ objects.
 
 | Path | Responsibility |
 | --- | --- |
+| `scripts/session-start.sh` | The one command a session runs first: machine, UTC instant, tools, lane, then that lane's setup |
 | `scripts/dev.sh` | Fast local build and complete contributor check |
+| `scripts/windows/run-in-base.sh` | The Windows half of `dev.sh`: one Linux job in a disposable container inside `wsl-toolkit-podbox` |
+| `scripts/common/restore-modes.sh` | Executable-bit repair, read from the git index, for a tree copied off a filesystem with no mode bit |
 | `scripts/check-todo.py` | Independent TODO, citation, corpus, and gate consistency reader |
 | `scripts/todo-count.py` | TODO status writer and count derivation |
 | `scripts/plant.sh` | Mutation harness proving the project-specific gate can fail |
