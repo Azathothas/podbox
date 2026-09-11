@@ -248,14 +248,14 @@ below are the opposite, and three of them carry real decisions.
 | `Azathothas/sandbox-insights` | `bcf415c` | ⭐ **0BSD**, `tree/LICENSE`, full Zero-Clause BSD text | ⭐ vendorable. The badge said `NOASSERTION` and was wrong |
 | `talaria0101/vm-research` | `7697b9b` | ⛔ **none.** No licence file, and the badge is null | ⛔ **copy nothing.** Tracked as evidence by operator ruling; take mechanisms only |
 | `Azathothas/memfd-ng` | `5da5803` | 0BSD | ⭐ vendorable, and it is the operator's own. [deps.md](deps.md) T-0909 measures it |
-| `hust-open-atom-club/Vex` | — | MIT, `tree/LICENSE` | ⭐ vendorable. ⚠ Wanted for its **shape**: a Docker-like CLI over saved `qemu-system-*` configurations |
-| `cubic-vm/cubic` | — | ⭐ **`MIT OR Apache-2.0`**, `tree/Cargo.toml`, both files present | ⭐ vendorable. The badge said Apache-2.0 alone. Wanted for its verb set and one shipped defect |
-| `Obirvalger/vml` | — | MIT, `tree/LICENSE` | ⭐ vendorable. Wanted for the machine-as-a-directory shape |
-| `gevico/tcg-rs` | — | MIT, `tree/LICENSE` | ⭐ vendorable. ⚠ An emulator engine, not a manager. [podvm.md](podvm.md) T-1307 |
-| `qemu-rs/qemu-rs` | — | ⛔ **GPL-2.0-or-later**, `tree/Cargo.toml:7` | ⛔ **do not vendor.** Refused; [podvm.md](podvm.md) T-1307 carries the reason |
-| `carlbomsdata/winquick` | — | Apache-2.0 | vendorable with its notice. [milestones.md](milestones.md) T-1112 reads its SHAPE and takes no code |
+| `hust-open-atom-club/Vex` | - | MIT, `tree/LICENSE` | ⭐ vendorable. ⚠ Wanted for its **shape**: a Docker-like CLI over saved `qemu-system-*` configurations |
+| `cubic-vm/cubic` | - | ⭐ **`MIT OR Apache-2.0`**, `tree/Cargo.toml`, both files present | ⭐ vendorable. The badge said Apache-2.0 alone. Wanted for its verb set and one shipped defect |
+| `Obirvalger/vml` | - | MIT, `tree/LICENSE` | ⭐ vendorable. Wanted for the machine-as-a-directory shape |
+| `gevico/tcg-rs` | - | MIT, `tree/LICENSE` | ⭐ vendorable. ⚠ An emulator engine, not a manager. [podvm.md](podvm.md) T-1307 |
+| `qemu-rs/qemu-rs` | - | ⛔ **GPL-2.0-or-later**, `tree/Cargo.toml:7` | ⛔ **do not vendor.** Refused; [podvm.md](podvm.md) T-1307 carries the reason |
+| `carlbomsdata/winquick` | - | Apache-2.0 | vendorable with its notice. [milestones.md](milestones.md) T-1112 reads its SHAPE and takes no code |
 
-⛔ **Two of the eleven carry no permission to copy** — `vm-research` because it
+⛔ **Two of the eleven carry no permission to copy** - `vm-research` because it
 states no licence, `qemu-rs` because it states a copyleft one. That
 determination is made the same way for both: the repository's own statement,
 read in the tree, before anything is used.

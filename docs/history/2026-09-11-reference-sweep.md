@@ -65,13 +65,13 @@ support a claim that needs another.
 | `talaria0101/vm-research` | `7697b9b` | 98 | passes 1 to 3. All six documents, the crossvalidation and serial-protocol scripts, ten logs. ⚠ The 38 subject scripts were read by their README rows, not opened one by one |
 | `talaria0101/nix-experiment` | `d8835f2` | 51 | ⭐ all four passes. Report, shim design, three reviews, the chroot builder, the probe output, the decisive logs |
 | `Azathothas/sandbox-insights` | `bcf415c` | 34 | passes 1, 2 and 4. Every prose document. ⚠ The paper, the four PowerShell experiments and the evidence ledger were not opened |
-| `Azathothas/memfd-ng` | `5da5803` | — | pass 1 only. Metadata and licence. ⚠ Its source is unread; T-0909 is where that is owed |
-| `hust-open-atom-club/Vex` | — | 89 | passes 1 and 3. README and tracker, 13 issues and 21 pull requests |
-| `cubic-vm/cubic` | — | 211 | passes 1 and 3. README and tracker, 87 issues and 477 pull requests |
-| `Obirvalger/vml` | — | 19,402 | pass 1 only. README and tracker. ⚠ Its `vendor/` is untouched |
-| `gevico/tcg-rs` | — | 140 | passes 1 and 4. README and crate table. Empty tracker |
-| `qemu-rs/qemu-rs` | — | 63 | passes 1 and 3. Licence, README, and the three decisive issues |
-| `carlbomsdata/winquick` | — | 263 | pass 1 only. Metadata and licence |
+| `Azathothas/memfd-ng` | `5da5803` | - | pass 1 only. Metadata and licence. ⚠ Its source is unread; T-0909 is where that is owed |
+| `hust-open-atom-club/Vex` | - | 89 | passes 1 and 3. README and tracker, 13 issues and 21 pull requests |
+| `cubic-vm/cubic` | - | 211 | passes 1 and 3. README and tracker, 87 issues and 477 pull requests |
+| `Obirvalger/vml` | - | 19,402 | pass 1 only. README and tracker. ⚠ Its `vendor/` is untouched |
+| `gevico/tcg-rs` | - | 140 | passes 1 and 4. README and crate table. Empty tracker |
+| `qemu-rs/qemu-rs` | - | 63 | passes 1 and 3. Licence, README, and the three decisive issues |
+| `carlbomsdata/winquick` | - | 263 | pass 1 only. Metadata and licence |
 
 ---
 
@@ -105,14 +105,14 @@ Four measurements of "the TCG tax" on one host class:
 
 | workload | host | guest | ratio | source |
 | --- | --- | --- | --- | --- |
-| md5 of 16 MiB | 0.026 s | 0.07 to 0.08 s | **~3×** | vm-research `logs/66-tcg-benchmarks.log` |
-| tight integer loop, 30 M iterations | 854.1 Mops/s | 274.7 Mops/s | **3.1×** | sandbox-insights `logs/55-tcg-exec-and-bench.log` |
-| dependent double chain | 708.8 Mops/s | 78.4 Mops/s | **9.0×** | the same log |
-| xorshift32 + double + FNV, 30 M | 721.4 to 754.8 Mops/s | 31.4 to 35.3 Mops/s | **~21×** | vm-research `logs/72-bench-matrix.log` |
+| md5 of 16 MiB | 0.026 s | 0.07 to 0.08 s | **~3x** | vm-research `logs/66-tcg-benchmarks.log` |
+| tight integer loop, 30 M iterations | 854.1 Mops/s | 274.7 Mops/s | **3.1x** | sandbox-insights `logs/55-tcg-exec-and-bench.log` |
+| dependent double chain | 708.8 Mops/s | 78.4 Mops/s | **9.0x** | the same log |
+| xorshift32 + double + FNV, 30 M | 721.4 to 754.8 Mops/s | 31.4 to 35.3 Mops/s | **~21x** | vm-research `logs/72-bench-matrix.log` |
 
-⛔ **The range is 3× to 21× across four workloads on one host class.** Yet
-`vm-research/docs/comparison.md` states "TCG: ~20-25× under native" as the
-speed row of its decision table, and repeats "you pay 20-25× compute" in its
+⛔ **The range is 3x to 21x across four workloads on one host class.** Yet
+`vm-research/docs/comparison.md` states "TCG: ~20-25x under native" as the
+speed row of its decision table, and repeats "you pay 20-25x compute" in its
 recommendation. Both of its own figures are correct and they measure different
 things.
 
@@ -126,7 +126,7 @@ I/O workloads, and report distributions with same-day controls.
 and `165be307`), so none of these is measuring a different computation. The
 spread is real.
 
-→ [podvm.md](../../TODO/podvm.md) T-1308.
+-> [podvm.md](../../TODO/podvm.md) T-1308.
 
 ### F2. ⛔ The target contract moved three times under observation
 
@@ -156,7 +156,7 @@ vector, and invalidate when any canary changes.
 
 ⚠ **Two properties appear only in the nix tree and podbox has never probed
 them**: `readdir("/")` denied, and no `/dev/ptmx` anywhere.
-→ [complete.md](../../TODO/complete.md) T-0414.
+-> [complete.md](../../TODO/complete.md) T-0414.
 
 ### F3. ⭐ The nix litmus test is a milestone, and its two walls are already entries
 
@@ -168,12 +168,12 @@ namespace, a mount or a `ptrace` in it failed.
 The version forensics, verified in that tree's own review B by reading
 `lib/minver.nix` at each tag and by `grep -c posix_openpt` on `build.cc`:
 
-- ⛔ **Nix ≥ 2.3.0 calls `posix_openpt()` in `startBuilder()` unconditionally.**
-  No setting disables it. On a host with no `/dev/ptmx` **no Nix ≥ 2.3 can
+- ⛔ **Nix >= 2.3.0 calls `posix_openpt()` in `startBuilder()` unconditionally.**
+  No setting disables it. On a host with no `/dev/ptmx` **no Nix >= 2.3 can
   build**, on the host or in a chroot.
-- Nix ≤ 2.2.2 captures builder output through a pipe.
+- Nix <= 2.2.2 captures builder output through a pipe.
 - nixpkgs 22.05 gates at `"2.2"`; 22.11 gates at `"2.3"`; 23.11 additionally
-  needs `builtins.isPath`, which is Nix ≥ 2.4.
+  needs `builtins.isPath`, which is Nix >= 2.4.
 - ⭐ So **nix 2.2.2 + nixpkgs 22.05** is the newest release pair whose whole
   pipeline runs with no pty.
 
@@ -192,7 +192,7 @@ is the better one, and the two are not the same fix.
 libstdc++ opens the file through `syscall()` and no libc interposer sees that.
 This is wall 3 appearing in a real payload, and it is why the file is the fix.
 
-→ [milestones.md](../../TODO/milestones.md) T-1113, the M8 milestone.
+-> [milestones.md](../../TODO/milestones.md) T-1113, the M8 milestone.
 
 ### F4. ⛔ None of the five VM tools is a microVM manager for this environment
 
@@ -213,17 +213,17 @@ This is wall 3 appearing in a real payload, and it is why the file is the fix.
    pull request #538 is `feat: ask qemu which accelerator works on the host`,
    and its issue #6 is `Only use KVM if available`. That is the probe-do-not-
    assume rule, reached independently by a project with no connection to this
-   one. → T-1301.
+   one. -> T-1301.
 2. ⛔ **`cubic` issue #448, open, is a defect podbox would repeat.** Its
    `--qemu-args` passthrough splits the string on a single space, so any
    argument whose value contains a space is torn apart and QEMU rejects the
    result. The report names `src/qemu/qemu_system.rs` line 154. podbox will need
-   the same escape hatch. → T-1302.
+   the same escape hatch. -> T-1302.
 
 ⚠ **`tcg-rs` is filed, not refused.** The target permits RWX `mmap`/`mprotect`,
 which is what a JIT needs, so a pure-Rust TCG could in principle run where QEMU
 runs. It is years from useful for podbox and the row exists so no future
-session re-derives that. → T-1307.
+session re-derives that. -> T-1307.
 
 ### F5. ⛔ `qemu-rs` is refused, and the tracker is why
 
@@ -254,7 +254,7 @@ without the tracker nobody would know the crate is mid-upheaval.
    a **mapped** one. The shim-visibility result stands, because no `SHIM:` line
    appears for the static and Go victims. ⛔ But `victim_static: lchown -> 0` in
    the log is **not** evidence that a static payload escapes the ownership wall,
-   and a careless reader would take it as such. → [interpose.md](../../TODO/interpose.md) T-0712.
+   and a careless reader would take it as such. -> [interpose.md](../../TODO/interpose.md) T-0712.
 2. ⚠ **A chroot appliance's `/dev/null` claim is contradicted by its own log.**
    `60-chroot-appliance.sh` asserts that redirection fails because `/dev/null`
    cannot be a device. Its log shows the `|| echo " FAILS"` branch never fired,
@@ -262,7 +262,7 @@ without the tracker nobody would know the crate is mid-upheaval.
    exist"; the experiment header does not. ⭐ `Azathothas/sandbox-insights`
    states the real rule: if `/dev/null` is absent, shell redirection creates a
    **growing regular file** with that name, so validate the file type before
-   the workload starts. → [complete.md](../../TODO/complete.md) T-0415.
+   the workload starts. -> [complete.md](../../TODO/complete.md) T-0415.
 
 ---
 
@@ -277,7 +277,7 @@ without the tracker nobody would know the crate is mid-upheaval.
 | a disposable child per probe, and the CHILD prints its own errno | the numbers |
 | exit 0 matched, 1 contradicted, 2 could not run | the PowerShell gate shape |
 | the four-leg seccomp-notification contract, refused if any leg is missing | a fallback-per-call supervisor, which turns a dry run into mutation |
-| the serial FIFO pair, nonce readiness, line-anchored CR-tolerant markers | the 20-25× figure |
+| the serial FIFO pair, nonce readiness, line-anchored CR-tolerant markers | the 20-25x figure |
 | the layer contract: order, whiteouts, links, containment, preflight | `cloud-init`-based image assembly |
 | the strict root-entry order: validate, open descriptors, `chroot`, `chdir`, resolve, `exec` | hardware acceleration in any form |
 

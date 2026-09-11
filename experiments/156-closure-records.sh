@@ -18,7 +18,7 @@
 #   sh experiments/156-closure-records.sh --list     report, and name every entry
 #
 # Inputs: TODO/*.md in this checkout, which is the pinned input. Tools: awk.
-# Exit: 0 every closed entry carries a record · 1 at least one does not ·
+# Exit: 0 every closed entry carries a record, 1 at least one does not,
 #       2 could not run.
 set -u
 
