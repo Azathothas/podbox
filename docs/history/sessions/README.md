@@ -13,3 +13,4 @@ chat**, per [`../../methodology/sessions.md`](../../methodology/sessions.md).
 is the only place that has one.
 
 - [`2026-09-11-orientation.md`](2026-09-11-orientation.md)
+- [`2026-09-11-reference-sweep.md`](2026-09-11-reference-sweep.md)
