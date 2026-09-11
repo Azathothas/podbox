@@ -66,7 +66,12 @@ def main(argv):
             print(f"todo-count: {set_status!r} is not one of {STATUSES}", file=sys.stderr)
             return 2
 
-    with open(INDEX, encoding="utf-8") as fh:
+    # ⛔ `newline=""` on every read and write in this file. Without it Python
+    # translates on the host's convention, so a run on Windows rewrites a tracked
+    # LF document as CRLF. `.gitattributes` says `eol=lf`, so git normalises on
+    # read and `git status` stays clean while the bytes on disk are wrong; a tool
+    # that reads the file directly then sees a different document on each host.
+    with open(INDEX, encoding="utf-8", newline="") as fh:
         lines = fh.read().splitlines()
 
     # -- move one status, in the row and in the entry ------------------------
@@ -86,7 +91,7 @@ def main(argv):
             if not name.endswith(".md"):
                 continue
             path = os.path.join(TODO, name)
-            with open(path, encoding="utf-8") as fh:
+            with open(path, encoding="utf-8", newline="") as fh:
                 text = fh.read()
             if not re.search(rf"^### {set_id} ", text, re.M):
                 continue
@@ -97,7 +102,7 @@ def main(argv):
             new, k = re.subn(r"^(Status: +)\*{0,2}[a-z]+\*{0,2}",
                              lambda mm: mm.group(1) + set_status, body, count=1, flags=re.M)
             if k:
-                with open(path, "w", encoding="utf-8") as fh:
+                with open(path, "w", encoding="utf-8", newline="") as fh:
                     fh.write(text[:head] + new + text[nxt:])
                 hits += k
         if hits == 0:
@@ -159,7 +164,7 @@ def main(argv):
     while end < len(lines) and not lines[end].startswith("## "):
         end += 1
     new = lines[:start + 1] + [""] + block + [""] + lines[end:]
-    with open(INDEX, "w", encoding="utf-8") as fh:
+    with open(INDEX, "w", encoding="utf-8", newline="") as fh:
         fh.write("\n".join(new).rstrip("\n") + "\n")
     print(f"todo-count: wrote {total} items: {derived['open']} open, "
           f"{derived['partial']} partial, {derived['blocked']} blocked, "

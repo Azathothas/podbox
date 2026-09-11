@@ -454,6 +454,77 @@ to check, and nothing checked them.
 neither broken these rules nor satisfied them, and reporting green over an
 absent file is how a check quietly stops applying.
 
+## ⭐ The three that start a session, and the lane each one picks
+
+⚠ **These write, and they are not checks.** The contract above is for checks.
+Each of these is held to the header rule and the exit-code rule, and
+deliberately not to "read only".
+
+### `session-start.sh`
+
+⭐ **The one command a session runs first.** It reports where the machine is,
+what the UTC instant is, what is installed and what merely resolves, and which
+lane this host uses. Then it runs that lane's setup and returns.
+
+```sh
+./scripts/session-start.sh           # report, then start the environment
+./scripts/session-start.sh --check   # report only, change nothing
+```
+
+⛔ **The lane is this script's decision.** A session that picks by hand runs the
+Debian bootstrap against an Arch base, or calls `wsl.exe` on a host where
+[`../docs/containers.md`](../docs/containers.md) forbids it.
+
+⚠ **It reads a version by RUNNING each tool, never by finding it.** Measured on
+this Windows host on 2026-09-11: `python3` resolves and answers nothing, because
+it is a Microsoft Store stub; `py` is a real 3.13.15. A probe that reported the
+name on `PATH` would have reported a working interpreter.
+
+⚠ **Three tools spell the question differently.** `zig version` and `go version`
+take no dashes, and asking them `--version` reports a working tool as one that
+answered nothing.
+
+### `windows/run-in-base.sh`
+
+⭐ **The Windows half of [`dev.sh`](dev.sh).** The tree is copied into a
+disposable container inside the distribution `wsl-toolkit-podbox`, the job runs
+there, and the container is removed when it exits. No host directory is
+mounted, so nothing the job does can reach the checkout.
+
+```sh
+sh scripts/windows/run-in-base.sh              # the complete check
+sh scripts/windows/run-in-base.sh JOB.sh       # that script, inside /work
+```
+
+Measured on 2026-09-11: the complete check is **1 m 19 s** with a warm base and
+a warm image, over a workspace of **8,406 entries and 164.6 MiB**.
+
+⛔ It repairs two things before the job, and both have the same cause.
+`common/restore-modes.sh` puts the executable bit back, and every payload has
+its carriage returns stripped. [`../docs/containers.md`](../docs/containers.md)
+carries the measurement behind each.
+
+### `common/restore-modes.sh`
+
+⛔ **NTFS carries no POSIX mode bit**, so a checkout on Windows holds every file
+at 0644 and `core.fileMode` is false there. A copy of that checkout into Linux
+arrives with **393 scripts** the shell refuses, and the first failure names the
+script rather than the transfer.
+
+```sh
+sh scripts/common/restore-modes.sh          # repair, and report
+sh scripts/common/restore-modes.sh --check  # report only, change nothing
+```
+
+⭐ **The git index is the authority and nothing else is consulted.** It records
+mode 100755 for exactly the files that are meant to run, on every platform.
+⛔ A `chmod -R +x` over a directory would make data executable and nobody would
+notice.
+
+⚠ **With no index it refuses rather than guessing.** A workspace copied without
+`.git` cannot be repaired, and a guess at which files run is worse than the
+failure it repairs.
+
 ## The one helper, which is not a check
 
 ⚠ **A helper writes; a check reports.** The five-point contract above is for
