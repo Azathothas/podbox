@@ -909,3 +909,49 @@ $ ./experiments/240-distro-sweep.sh opensuse-leap
     looks a certificate up there by the hash of its subject …
   podbox: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` exited 0
 ```
+
+---
+
+### T-0413 No `/proc` inside a chroot, and the shell feature that quietly stops working
+
+Source:      `https://github.com/talaria0101/nix-experiment`, its REPORT document, section 5.3; [enter.md](enter.md)
+Category:    complete
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     A chroot has no `/proc` unless something mounts one, and `mount` is
+             refused on every runtime podbox targets. podbox already knows this
+             in one place: `crates/podbox-complete/src/net.rs` says so while
+             resolving a symlink. ⛔ **Nothing tells the payload**, and the
+             failure it produces does not name `/proc`.
+Premise:     ⭐ **Measured by somebody driving a real payload to completion.**
+             Bash process substitution is implemented with `/dev/fd/N`, which is
+             a symlink into `/proc/self/fd`. With no procfs the redirection
+             fails, and the message names the script and the line rather than
+             the missing filesystem.
+             ⚠ The report found it in four build hooks of one package set and
+             had to disable each by name. ⭐ The general shape is worth more than
+             the four names: any payload that reads `/proc/self/` at run time
+             takes this path, and a package build is where it is most likely.
+             ⚠ A second instance in the same report: a statically linked binary
+             that locates itself by reading `/proc/self/exe` fails inside the
+             chroot for the same reason, and the failure reads as a corrupt
+             installation.
+Approach:    Two parts, and the first is the one that pays.
+             1. ⭐ **Say it in the banner.** [probe.md](probe.md) T-0108 already
+                owns a mode banner that names what the mode does not provide. A
+                chroot with no procfs is exactly that, and a payload author who
+                reads one line before the build is one who does not spend an
+                hour on a build hook.
+             2. Measure what a static `/proc` fixture can honestly carry. ⚠ Some
+                of it is answerable without a kernel filesystem and some is not:
+                a directory holding descriptor entries cannot follow a
+                descriptor, so a fixture that looks like procfs and answers
+                wrongly is worse than one that is absent.
+             ⛔ Never mount, and never claim to have mounted.
+Decision:    Not taken. ⚠ Part 2 is where the trade is: an absent `/proc` fails
+             loudly and a partial one fails quietly, which inverts podbox's
+             honesty rule if the fixture is not bounded carefully. Rule what the
+             fixture may contain before any of it is written.
+Prove:       `./experiments/155-proc-absence.sh` asserts the banner names the missing procfs, and that a payload using process substitution fails with a message naming `/proc` rather than the script line

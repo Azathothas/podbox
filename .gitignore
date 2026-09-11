@@ -119,7 +119,13 @@ __pycache__/
 # tree it was built over, and `./scripts/session-start.sh` rebuilds it. The
 # directory carries its own ignore file; this line keeps the directory itself
 # out of `git status`, which is what an agent reads to decide the tree is clean.
-.codegraph/
+#
+# ⛔ ANCHORED WITH A LEADING SLASH, so it matches this repository's own index
+# and nothing else. Unanchored, the pattern also matched
+# `references/Azathothas__bit-cli/tree/.codegraph/`, which is a TRACKED corpus
+# file. Git does not untrack what it already tracks, so nothing was lost, but
+# an ignore rule over evidence is a rule waiting to drop it.
+/.codegraph/
 
 # ⚠ The staged payload that `scripts/windows/run-in-base.sh` writes beside the
 # checkout and removes on exit. A cancelled run leaves one behind.

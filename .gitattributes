@@ -91,3 +91,18 @@ Cargo.lock          linguist-generated=true
 go.sum              linguist-generated=true
 poetry.lock         linguist-generated=true
 uv.lock             linguist-generated=true
+
+# ⛔ THE CORPUS IS BYTE-EXACT EVIDENCE AND NO FILTER MAY TOUCH IT.
+#
+# `references/` holds thirty third-party trees, each captured at the commit it
+# was read at, and `scripts/check-todo.py` asserts that every `path:line` cited
+# from `TODO/` still resolves inside them. A normalising filter rewrites a file
+# on the way in, which moves a line under a citation and changes evidence.
+#
+# ⚠ MEASURED ON 2026-09-11, AND IT WAS ALREADY HAPPENING. Some committed blobs
+# in the corpus carry CRLF, and the rules above declare `.md`, `.gitignore` and
+# `.bat` normalised. The stored bytes and the filtered bytes therefore differ,
+# so git reports those files as modified on any machine whose stat cache is
+# cold, and a `git add` there would rewrite them. `-text` turns the filter off
+# in both directions, so the working tree, the index and a copy all agree.
+references/**   -text
