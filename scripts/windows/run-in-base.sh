@@ -103,10 +103,14 @@ trap cleanup EXIT HUP INT TERM
 # ⚠ The exclusions are a decision, and docs/containers.md carries the table.
 # .git and references/ are KEPT: the checks read the index and resolve every
 # cited path and line in the corpus.
+# ⛔ `codegraph.db` BY NAME, never the `.codegraph` directory. An exclusion of
+# the directory also matched a TRACKED corpus file under `references/`, so the
+# copy arrived one file short and the guest read the tree as dirty.
+# `plant.sh` refuses to start on a dirty tree.
 wsl-toolkit --instance "$INSTANCE" run \
 	--image "$IMAGE" \
 	--workspace . \
-	--exclude .codegraph \
+	--exclude codegraph.db \
 	--exclude target \
 	--exclude .dev \
 	--script "$work/wrapper.lf.sh" \

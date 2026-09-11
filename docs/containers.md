@@ -135,12 +135,12 @@ the state it was found in. `podman machine list --format json` reports
 ### Running a job
 
 ```powershell
-wsl-toolkit --instance podbox run --image docker.io/library/rust:1.98.1-bookworm --workspace . --exclude .codegraph --exclude target --exclude .dev --script .\job.sh --timeout 45m --tick 120s
+wsl-toolkit --instance podbox run --image docker.io/library/rust:1.98.1-bookworm --workspace . --exclude codegraph.db --exclude target --exclude .dev --script .\job.sh --timeout 45m --tick 120s
 ```
 
 | the choice | why |
 | --- | --- |
-| `--exclude .codegraph` | the local index is 230 MiB and is not an input to anything |
+| `--exclude codegraph.db` | the local index is 230 MiB and is not an input to anything. ⛔ **The FILE, never the `.codegraph` directory**: that name also matches a tracked corpus file, and a copy one file short reads as a dirty tree in the guest |
 | `--exclude target` | build output, and it is the wrong architecture on a Windows host |
 | `--exclude .dev` | the background build's own log and state |
 | `.git` is **kept** | `check-attribution`, `check-markers` and `restore-modes` all read the index |
