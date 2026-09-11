@@ -52,9 +52,37 @@ single conflicting change would have made it a merge nobody had reviewed.
 before anything else: fast-forward where the history allows it, merge where it
 does not, verify the union is reachable from `main`, and only then delete.
 
+### ⛔ `main` is protected, so the LAST step is a pull request
+
+⚠ **A direct push is refused, and it is refused for the operator too.** Read
+from the repository on 2026-09-11: `main` requires a pull request, requires all
+four gate jobs to pass, requires the branch to be up to date, and has
+`enforce_admins` enabled. Approving reviews required: **0**.
+
+⭐ **That does not reopen the rule above, and the distinction is the whole
+point.** The rule is about where work LIVES. Work still happens on `main`, and
+a session still commits to `main`. What protection forces is a branch that
+exists only to carry finished commits through the gate, and that lives for one
+pull request.
+
 ```sh
-git push -u origin main
+git switch -c "publish/$(date -u +%Y%m%dT%H%M%SZ)"
+git push -u origin HEAD
+gh pr create --fill
+gh pr merge --rebase --delete-branch
 ```
+
+⛔ **Rebase, never squash.** Squash is offered and it collapses several
+commits, each with its own reasoned message, into one. Merge commits are
+disabled on this repository, so rebase is the only method that keeps them.
+
+⚠ **A session never leaves a branch behind.** The branch is deleted by the
+merge, and the local `main` is fast-forwarded onto the result before anything
+else is done.
+
+⛔ **The branch is never where work continues.** A session that finds a
+`publish/*` branch still open has found a session that did not finish, and the
+repair is to merge or delete it, not to add to it.
 
 On a network failure, retry with backoff: 2 s, 4 s, 8 s, 16 s, then stop and
 say so.
