@@ -7,43 +7,55 @@ the work order.
 
 ## The task
 
-Session of 2026-09-12, which started at `02:35:53Z`. The work order's item 1,
-[T-0215](image.md), and item 2, [T-0211](image.md).
+Session of 2026-09-12, which started at `02:35:53Z`. It took the work order's
+items 1, 2 and 3, and the operator called the end-of-session protocol. The
+summary beside [`../docs/history/sessions/`](../docs/history/sessions/) carries
+the end instant.
 
 ## The resume point
 
-[PROGRESS.md](PROGRESS.md)'s work order. ⭐ [T-0211](image.md) is `done` and
-[T-0215](image.md) is still `open`, so the next item is
-[T-0702](interpose.md) unless T-0215 is taken further first.
+[PROGRESS.md](PROGRESS.md)'s work order, item 1: [T-0215](image.md), which is
+still `open` and still P0.
 
-⛔ **T-0215 is P0 and it is NOT fixed.** What it now has is a measurement, an
-instrument with a positive control, and two refutations. What it does not have
-is the holder's name. `experiments/153-store-lock-race.sh` clause 6 is the fork
-control and its skip list was short of the code twice; the entry's `Approach`
-step 4 names the next measurement, which is a sampler in a second process.
+⛔ **Read the entry before the number.** T-0215 now carries a measured series, a
+refuted mechanism, an unrefuted one, and an instrument with a positive control.
+⚠ **Its fork control has been wrong three times**, always because the skip list
+was short of what the code does. `experiments/results/store-lock-race.txt`
+prints the COMMAND for every clause above its figures, and that command is the
+authority on what the figures measured.
 
 ## In flight
 
-Nothing is half-written. Every file is committed and the gate is green.
+Nothing is half-written and nothing is uncommitted.
+
+⚠ **One re-run was in flight when the session ended and its result is NOT in
+the tree.** `experiments/153-store-lock-race.sh` with clauses `0 1 2 3 6 7` at
+20 control runs, launched to re-take clause 6 with all four forking paths in the
+skip list. ⛔ **The committed evidence's clause 6 was taken with three**, which
+is why T-0215 does not claim a fork verdict. Re-run it and the entry can:
+
+```sh
+PODBOX_RACE_RUNS=12 PODBOX_RACE_CONTROL_RUNS=20 \
+  PODBOX_RACE_CLAUSES="0 1 2 3 6 7" ./experiments/153-store-lock-race.sh
+```
 
 ## The state of the tree
 
-Clean, on `main`, level with `origin/main`. `./scripts/check-todo.py` is green,
-`sh scripts/common/check-gate.sh --fast` is green on this host, and the hosted
-gate was green on all four checks at `17a022f`.
+Clean, on `main`. `./scripts/check-todo.py` is green and
+`sh scripts/common/check-gate.sh --fast` is green on this host, all ten checks.
+`sh scripts/windows/run-in-base.sh` ran the complete `dev.sh check` and it
+exited 0 with the new step order.
 
 ⭐ **`main` accepts a direct push.** `enforce_admins` was turned off on
-2026-09-11 and a push was verified again on 2026-09-12. The four required
-checks still run. [RULES.md](RULES.md) section 2 carries the rule and the
-fallback. ⛔ Create no branches.
+2026-09-11 and a push was verified twice on 2026-09-12. The four required checks
+still run, and they were green on all four at `17a022f`.
+[RULES.md](RULES.md) section 2 carries the rule and the fallback. ⛔ Create no
+branches.
 
-⚠ **One check is intermittent and it is not fixed.**
-`cargo test --workspace` failed between 3 and 10 of 12 runs across seven passes
-on 2026-09-11 and 2026-09-12, over six store lock tests.
-[T-0215](image.md) carries the measurement. A red run of
-`workspace and interposer tests` is that race until somebody proves otherwise,
-and the operator's standing instruction is to re-run it. ⭐ The hosted gate
-happened to be green at `17a022f`, which is luck rather than evidence.
+⚠ **One check is intermittent and it is not fixed.** A red
+`workspace and interposer tests` is [T-0215](image.md) until somebody proves
+otherwise, and the standing instruction is to re-run it. ⛔ Never ignore or
+disable it.
 
 ## The corpus
 
@@ -62,9 +74,15 @@ their trackers are in `api/`.
 ⭐ The distribution `wsl-toolkit-podbox` persists on purpose, with a warm image
 cache. Leave it.
 
-⛔ `podman-machine-default` is not this project's. ⚠ Check its state at the end
-of a session rather than assuming: `./scripts/session-start.sh`'s probe can
-start it.
+⛔ `podman-machine-default` is not this project's. Measured at the end of this
+session with `podman machine list`: **not running**, which is how it should be
+left, and this session did not start it. ⚠ `./scripts/session-start.sh`'s probe
+can start it, so check the state at the end rather than assuming.
+
+⚠ **Job records from 2026-09-12 are still in the base**, including one whose
+artifact pack failed and whose directory is therefore kept. Nothing needs them.
+`wsl-toolkit --instance podbox gc --apply --older-than 24h` collects them from
+2026-09-13.
 
 ⚠ **`eph-pgb` is not on this host.** `podman machine list` reports one machine
 and that is the one above.
