@@ -83,10 +83,22 @@ went from 5 to 12 of 20 to **0 of 20 in each of two passes**, and clause 12
 deletes the release and reads **20 of 20** with the regression test red at
 exit 101.
 
-⭐ **The guard is deterministic where the defect was one run in two.**
+⭐ **Two guards, both deterministic where the defect was one run in two.**
 `releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` uses
 `F_DUPFD_CLOEXEC` to hold a second reference to one open file description, which
 is what a child gets, so it needs no second process, no thread and no timing.
+`a_lock_handed_to_the_payload_outlives_this_process_dropping_it` guards the one
+lock the fix must NOT release, and clause 14 reddens it by making the release
+unconditional.
+
+⚠ **ONE WINDOW SURVIVES ON PURPOSE, AND IT IS THE ONE THAT IS CORRECT.** A lock
+handed to a payload is released by the LAST reference and never by this thread,
+because that is what handing it means. So after a container really ends its
+image can read as in use for a few hundred microseconds. ⛔ That is the safe
+direction, it self-corrects, and the dangerous direction cannot happen while the
+payload lives. ⭐ The first draft of that guard asserted the release was
+immediate and failed **9 and 13 of 30**, which is the defect reproduced on
+demand in the one place the fix deliberately does not reach.
 
 ⛔ **Four earlier closures are kept and NONE of them fixed this.** Every lock
 registers for shedding, podbox's own libstd spawn drains the table, and the

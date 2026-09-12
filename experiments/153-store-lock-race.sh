@@ -32,6 +32,7 @@
 #  11. the test's own bare spawn given the hook       the last unshed fork in the process
 #  12. the explicit release taken back out           the fix's own plant, and no rate
 #  13. the capture at the refusal, release deleted     the reading that named the mechanism
+#  14. the payload exemption made unconditional      the other half of the fix, planted
 #
 # ⚠ CLAUSE 7 WAS BUILT FOR ONE IDEA AND HAS ALREADY RULED IT OUT. A refusal
 # that clears at once with no holder anywhere the kernel reports one is what a
@@ -534,6 +535,59 @@ capture_the_refusals() {
 	cargo test --workspace --no-run >>"$WORK/cap.log" 2>&1
 }
 
+# ⭐ CLAUSE 14. THE PAYLOAD EXEMPTION'S OWN PLANT, AND IT MEASURES NO RATE.
+#
+# ⛔ `Lock::drop` releases explicitly now, and one lock must NOT be released:
+# the one handed to a running container. Making the release unconditional is
+# what a later reader would do if the flag looked redundant, and TODO/image.md
+# T-0204 would break in silence. This makes it unconditional and asserts the
+# guard goes RED.
+plant_the_exemption() {
+	pass="$1"
+	src="$REPO/crates/podbox-image/src/store.rs"
+	anchor="        if !self.handed.load(std::sync::atomic::Ordering::Acquire) {"
+	test_name="a_lock_handed_to_the_payload_outlives_this_process_dropping_it"
+	hits=$(grep -c -F -x -- "$anchor" "$src")
+	say "== clause 14 pass $pass  the payload exemption made unconditional"
+	if [ "$hits" != "1" ]; then
+		say "  SKIP: the anchor matched $hits times, not once. Lock::drop moved."
+		say ""
+		return
+	fi
+	cp "$src" "$WORK/mutated.orig"
+	MUTATED="$src"
+	trap 'cp "$WORK/mutated.orig" "$MUTATED" 2>/dev/null' EXIT HUP INT TERM
+	awk -v a="$anchor" '{ if ($0 == a) print "        if true {"; else print }' 		"$WORK/mutated.orig" >"$src"
+	say "  mutation         crates/podbox-image/src/store.rs"
+	say "    replace, at:   $anchor"
+	say "    with:          if true {"
+	if ! cargo test --workspace --no-run >"$WORK/plant14.log" 2>&1; then
+		say "  SKIP: the mutated tree did not build"
+		tail -10 "$WORK/plant14.log" | sed 's/^/  /' >>"$REPORT"
+		say ""
+		cp "$WORK/mutated.orig" "$src"
+		cargo test --workspace --no-run >>"$WORK/plant14.log" 2>&1
+		return
+	fi
+	say "  command          cargo test -p podbox-image $test_name"
+	# ⛔ The code is read from the process that produced it, unpiped.
+	cargo test -p podbox-image "$test_name" >"$WORK/plant14.run" 2>&1
+	rc=$?
+	say "  exit             $rc"
+	if [ "$rc" -eq 0 ]; then
+		say "  ⛔ THE GUARD STAYED GREEN WITH THE EXEMPTION GONE, so nothing"
+		say "  stops a later change releasing a running container's image lock."
+		fail=1
+	else
+		say "  ⭐ the guard went red, so it is watching the exemption"
+	fi
+	grep -E "panicked at|prune may delete|assertion" "$WORK/plant14.run" |
+		head -4 | sed 's/^/    /' >>"$REPORT"
+	say ""
+	cp "$WORK/mutated.orig" "$src"
+	cargo test --workspace --no-run >>"$WORK/plant14.log" 2>&1
+}
+
 for c in $CLAUSES; do
 	for p in A B; do
 		case "$c" in
@@ -565,6 +619,7 @@ for c in $CLAUSES; do
 		10) [ "$p" = A ] && plant_the_hook_control A ;;
 		12) [ "$p" = A ] && plant_the_release A ;;
 		13) [ "$p" = A ] && capture_the_refusals A ;;
+		14) [ "$p" = A ] && plant_the_exemption A ;;
 		11) mutate_and_measure 11 "$p" "the bare spawn in the test given the hook too" "crates/podbox-image/src/store.rs" '        let mut child = std::process::Command::new("/bin/sh")' replace '        let mut child = sys::shed_after_fork(&mut std::process::Command::new("/bin/sh"))' ;;
 		0) [ "$p" = A ] && instrument_control ;;
 		*)

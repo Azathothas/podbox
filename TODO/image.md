@@ -1430,7 +1430,7 @@ Decision:    ⭐ **`Lock::drop` releases the lock EXPLICITLY, with
              ⚠ The tempting fix was to serialise the lock tests, which makes the
              suite green and answers nothing. ⛔ It stayed refused, and the
              answer came from the instrument instead.
-Prove:       `cargo test -p podbox-image releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` passes, and `PODBOX_RACE_CLAUSES="0 1 6 12" ./experiments/153-store-lock-race.sh` reports the subject at 0 of 20 in both passes and clause 12 red on both the regression test and the subject. ⛔ Clause 12 DELETES the release and asserts the red, because a fix nobody has seen fail is worth as little as a check nobody has seen fail
+Prove:       `cargo test -p podbox-image releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` and `cargo test -p podbox-image a_lock_handed_to_the_payload_outlives_this_process_dropping_it` both pass, and `PODBOX_RACE_CLAUSES="0 1 6 12 13 14" ./experiments/153-store-lock-race.sh` reports the subject at 0 of 30 in both passes, clause 12 red on the first guard and on the subject, and clause 14 red on the second, and the script itself exits 0. ⛔ Clauses 12 and 14 DELETE the release and the exemption in turn and assert the red, because a fix nobody has seen fail is worth as little as a check nobody has seen fail
 
 
 **Done 2026-09-12, and the mechanism is named rather than guessed.**
@@ -1449,12 +1449,12 @@ and why nothing about WHICH descriptors a child holds ever moved the rate.
 at the assertion.** Every instrument before it ran while the assertion message
 was being formatted, by which time the refusal was over: the committed captures
 show it gone on the next attempt, 1 to 4 us later. ⛔ **Clause 13 takes it**: it
-deletes the release, turns the capture on, and runs the subject twenty times.
-All twenty fail, and the captures carry **two signatures, which are one
+deletes the release, turns the capture on, and runs the subject thirty times.
+All thirty fail, and the captures carry **two signatures, which are one
 mechanism in two phases**.
 
 ⭐ **While the second reference is OPEN, the lock is genuinely held** and the
-kernel says so. Twenty captures, one per run:
+kernel says so. Thirty captures, one per run:
 
 ```text
 AT THE REFUSAL, on inode 132694, probe fd 28:
@@ -1463,11 +1463,11 @@ AT THE REFUSAL, on inode 132694, probe fd 28:
 ```
 
 ⚠ That is the regression test's duplicate descriptor, holding the description
-open across a drop that no longer releases. The retry counts run from 54,989 to
-109,349 over the instrument's full 20 ms bound.
+open across a drop that no longer releases. The retry counts run from 54,536 to
+106,929 over the instrument's full 20 ms bound.
 
 ⛔ **While it is being TORN DOWN, the lock is refused with nothing holding it
-anywhere.** Four captures in the same twenty runs:
+anywhere.** Eleven captures in the same thirty runs:
 
 ```text
 AT THE REFUSAL, on inode 132740, probe fd 25:
@@ -1476,8 +1476,8 @@ AT THE REFUSAL, on inode 132740, probe fd 25:
   no descriptor on this inode in ANY process, the probe's own apart
 ```
 
-⚠ The four run at 1, 2 and 4 us on the first retry, and one at 100 us on the
-425th.
+⚠ Most clear on the first retry, 1 to 3 us later. The slowest ran 344 us and
+1372 retries, which is still three orders of magnitude short of a holder.
 
 ⭐ **That second signature is the race as it arrived for three sessions**, and
 it is why every earlier instrument answered "nobody": there was nobody, by the
@@ -1496,11 +1496,12 @@ the run:**
 
 | the reading | before | after |
 | --- | --- | --- |
-| clause 1, the subject | 5 to 12 of 20 across twenty passes | ⭐ **0 of 20, twice** |
-| clause 12, the release deleted, the subject | - | ⛔ **20 of 20** |
+| clause 1, the subject | 5 to 12 of 20 across twenty passes | ⭐ **0 of 30, twice** |
+| clause 12, the release deleted, the subject | - | ⛔ **30 of 30** |
 | clause 12, the release deleted, the regression test | - | ⛔ **red, exit 101** |
-| clause 13, the captures with the release deleted | - | 20 with a real holder, 4 with none at all |
-| clause 6, the fork control | 0, 0 | 0, 0 |
+| clause 13, the captures with the release deleted | - | 30 with a real holder, 11 with none at all |
+| clause 14, the exemption made unconditional | - | ⛔ **red, the payload guard** |
+| clause 6, the fork control | 0, 0 | 0, 0 of 30 |
 
 ⭐ **`releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` is the
 guard, and it is DETERMINISTIC where the defect was one run in two.**
@@ -1509,6 +1510,27 @@ is exactly what a child gets, so the test needs no second process, no thread and
 no timing. ⛔ Clause 12 deletes the `LOCK_UN` line and asserts the test goes
 red, because a fix nobody has seen fail is worth as little as a check nobody has
 seen fail.
+
+⛔ **AND THE EXEMPTION HAS ITS OWN GUARD, BECAUSE IT IS THE HALF THAT WOULD
+BREAK IN SILENCE.** `a_lock_handed_to_the_payload_outlives_this_process_dropping_it`
+hands a lock to a payload, holds the payload's duplicate, drops this process's
+`Lock`, and asserts the image still reads as in use. ⚠ Without the exemption a
+running container's image would read as free the moment the launcher's `Lock`
+went, and a concurrent `prune` could delete the rootfs it is executing out of,
+which is what [T-0204](image.md) and invariant I4 were paid for. ⭐ Clause 14
+makes the release unconditional and asserts the guard goes red.
+
+⚠ **AND THE EXEMPTION KEEPS THE ASYNCHRONOUS RELEASE, WHICH IS THE ONE PLACE
+THAT IS CORRECT.** A handed lock is released by the LAST reference and never by
+this thread, because that is what handing it means. So the window this entry is
+about survives for that one lock: after a container really ends, its image can
+read as in use for a few hundred microseconds. ⛔ **That is the safe direction**,
+it self-corrects on the next attempt, and the dangerous direction cannot happen
+because the lock is genuinely held while the payload lives.
+⭐ **The guard says so rather than asserting immediacy.** A first draft of it
+asserted the image was free the instant the payload's descriptor closed, and it
+failed **9 and 13 of 30** for exactly the reason this entry names. It waits for
+the release to ARRIVE now, which is the property the design provides.
 
 ⚠ **What this does NOT claim.** The blast radius is unchanged: the product, as
 measured, could not reach this. Several threads in one process are a necessary

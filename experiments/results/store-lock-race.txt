@@ -1,57 +1,58 @@
 == conditions
-date              2026-09-12T07:39:16Z
+date              2026-09-12T10:04:51Z
 host kernel       Linux 7.2.0-WSL2-STABLE
 nproc             20
 cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
 rustc             rustc 1.98.1 (48a229cea 2026-09-01)
-commit            23b8b0d
+commit            d29305b
 tree              ⛔ MODIFIED. What ran is that commit PLUS:
-                   crates/podbox-image/src/store.rs   | 135 +++++++++++++++++++++++++++++++++++++
-                   experiments/153-store-lock-race.sh |  67 ++++++++++++++++++
-                   2 files changed, 202 insertions(+)
-runs per clause   20 subject, 20 control
-clauses           0 1 6 12 13
+                   TODO/image.md                      | 24 ++++++++++++-
+                   crates/podbox-image/src/store.rs   | 70 ++++++++++++++++++++++++++++++++++++++
+                   experiments/153-store-lock-race.sh | 55 ++++++++++++++++++++++++++++++
+                   3 files changed, 148 insertions(+), 1 deletion(-)
+runs per clause   30 subject, 30 control
+clauses           0 1 6 12 13 14
 
 == clause 0  the instrument's positive control
   command          cargo test -p podbox-image the_t_0215_instrument -- --nocapture
   exit             0
     T-0215 positive control, with the lock HELD:
-      inode Some(132301), pid 5293
+      inode Some(132231), pid 5327
       this process's descriptions on it:
-        fd 4 -> /tmp/podbox-store-5293-instrument/locks/5809addc9f6926fc5c4e20cf87958858c4454c21cdfc6b02f377f12c06b35cca.lock
+        fd 4 -> /tmp/podbox-store-5327-instrument/locks/5809addc9f6926fc5c4e20cf87958858c4454c21cdfc6b02f377f12c06b35cca.lock
       /proc/locks rows on this inode:
-        1: FLOCK  ADVISORY  READ 5293 00:29:132301 0 EOF
+        1: FLOCK  ADVISORY  READ 5327 00:29:132231 0 EOF
     T-0215 positive control, after the release:
-      inode Some(132301), pid 5293
+      inode Some(132231), pid 5327
       this process's descriptions on it: none, so the holder is not this process
       /proc/locks rows on this inode: none
 
 == clause 1 pass A  the suite as the gate runs it. THE SUBJECT
   command          cargo test --workspace
-  runs             20
-  failed runs      0 of 20
-  seconds          77 total for 20 runs
+  runs             30
+  failed runs      0 of 30
+  seconds          121 total for 30 runs
   the failing tests: none
 
 == clause 1 pass B  the suite as the gate runs it. THE SUBJECT
   command          cargo test --workspace
-  runs             20
-  failed runs      0 of 20
-  seconds          81 total for 20 runs
+  runs             30
+  failed runs      0 of 30
+  seconds          122 total for 30 runs
   the failing tests: none
 
 == clause 6 pass A  every forking test skipped. THE FORK CONTROL
   command          cargo test --workspace -- --skip a_fork_while_the_lock_is_held_does_not_extend_it --skip a_spawned_process_does_not_inherit_the_lock --skip probe_cache:: --skip naming_the_registry_insecure_gets_past_the_policy
-  runs             20
-  failed runs      0 of 20
-  seconds          25 total for 20 runs
+  runs             30
+  failed runs      0 of 30
+  seconds          40 total for 30 runs
   the failing tests: none
 
 == clause 6 pass B  every forking test skipped. THE FORK CONTROL
   command          cargo test --workspace -- --skip a_fork_while_the_lock_is_held_does_not_extend_it --skip a_spawned_process_does_not_inherit_the_lock --skip probe_cache:: --skip naming_the_registry_insecure_gets_past_the_policy
-  runs             20
-  failed runs      0 of 20
-  seconds          25 total for 20 runs
+  runs             30
+  failed runs      0 of 30
+  seconds          40 total for 30 runs
   the failing tests: none
 
 == clause 12 pass A  the explicit release taken back out
@@ -60,120 +61,159 @@ clauses           0 1 6 12 13
   command          cargo test -p podbox-image releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
   exit             101
   ⭐ the regression test went red, so it is watching the release
-    thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (81265) panicked at crates/podbox-image/src/store.rs:2059:9:
+    thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (118643) panicked at crates/podbox-image/src/store.rs:2128:9:
     the holder released the lock and it is still held, because a duplicate of its open file description outlived it: closing a descriptor releases an flock only when it drops the LAST reference (TODO/image.md T-0215)
       a second attempt SUCCEEDED, so the refusal did not outlive the assertion
 == clause 12 pass A  the explicit release taken back out
   command          cargo test --workspace
-  runs             20
-  failed runs      20 of 20
-  seconds          73 total for 20 runs
+  runs             30
+  failed runs      30 of 30
+  seconds          111 total for 30 runs
   the failing tests, by run:
-    run 1 store::tests::opening_a_store_sweeps_what_a_killed_process_left
     run 1 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 1 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+    run 1 store::tests::a_spawned_process_does_not_inherit_the_lock
     run 2 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
     run 3 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
     run 4 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
     run 5 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 6 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
     run 6 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 7 store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one
     run 7 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
-    run 7 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
     run 8 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
-    run 8 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
     run 9 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
     run 10 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 11 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
     run 11 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
     run 12 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 12 store::tests::a_spawned_process_does_not_inherit_the_lock
     run 13 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
     run 14 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
     run 15 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 15 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
     run 16 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
     run 17 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 17 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
     run 18 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 18 store::tests::opening_a_store_sweeps_what_a_killed_process_left
     run 19 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 19 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
     run 20 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 21 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 22 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 22 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+    run 23 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 23 store::tests::a_spawned_process_does_not_inherit_the_lock
+    run 24 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 25 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+    run 25 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 26 store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one
+    run 26 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 27 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 28 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 29 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+    run 29 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+    run 30 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
   distinct tests:
+          1 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+          3 store::tests::a_spawned_process_does_not_inherit_the_lock
+          4 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
           1 store::tests::opening_a_store_sweeps_what_a_killed_process_left
-         20 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
-          2 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+         30 store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
+          2 store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one
+          4 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   the assertions:
-  run 1  thread 'store::tests::opening_a_store_sweeps_what_a_killed_process_left' (81694) panicked at crates/podbox-image/src/store.rs:1656:9:
-  run 1  a second open did not sweep
-  run 1    T-0215 instrument, path /tmp/podbox-store-81569-openswp/staging/abandoned.81569.7.partial
-  run 1    inode Some(132495), pid 81569
-  run 1    the hunt: STILL REFUSED after 20014 us and 1 attempt(s), and the holder is:
-  run 1      pid 81715 (store::tests::a) fd 15 -> /tmp/podbox-store-81569-openswp/staging/abandoned.81569.7.partial  [ANOTHER PROCESS]
-  run 1    this process's descriptions on it: none, so the holder is not this process
-  run 1    /proc/locks rows on this inode:
-  run 1      6: FLOCK  ADVISORY  WRITE 81569 00:29:132495 0 EOF
-  run 1    this process's children:
-  run 1      pid 81871 (gone)
-  run 1      pid 81877 (exe)
-  run 1      pid 81887 (exe)
-  run 1      pid 81889 (exe)
-  run 1      pid 81894 (exe)
-  run 1      pid 81715 (store::tests::a)
-  run 1    a second attempt was refused as well
-  run 1  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 1  
-  run 1  ---- store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives stdout ----
-  run 1  
-  run 1  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (81716) panicked at crates/podbox-image/src/store.rs:2059:9:
+  run 1  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (119166) panicked at crates/podbox-image/src/store.rs:2128:9:
   run 1  the holder released the lock and it is still held, because a duplicate of its open file description outlived it: closing a descriptor releases an flock only when it drops the LAST reference (TODO/image.md T-0215)
-  run 1    T-0215 instrument, path /tmp/podbox-store-81569-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
-  run 1    inode Some(132438), pid 81569
-  run 1    the hunt: the refusal cleared after 239 us and 1 attempt(s), so nothing held it by then
+  run 1    T-0215 instrument, path /tmp/podbox-store-118947-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
+  run 1    inode Some(132513), pid 118947
+  run 1    the hunt: the refusal cleared after 11058 us and 2 attempt(s), so nothing held it by then
   run 1    this process's descriptions on it: none, so the holder is not this process
   run 1    /proc/locks rows on this inode: none
   run 1    this process's children:
-  run 1      pid 82001 (exe)
-  run 1      pid 82003 (gone)
-  run 1      pid 82005 (gone)
-  run 1      pid 82006 (exe)
-  run 1      pid 81715 (store::tests::a)
+  run 1      pid 119156 (exe)
+  run 1      pid 119256 (gone)
+  run 1      pid 119257 (exe)
+  run 1      pid 119259 (exe)
+  run 1      pid 119157 (exe)
+  run 1      pid 119258 (exe)
+  run 1      pid 119155 (exe)
+  run 1      pid 119152 (exe)
+  run 1      pid 119151 (store::tests::a)
+  run 1    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 1  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 1  
+  run 1  ---- store::tests::a_fork_while_the_lock_is_held_does_not_extend_it stdout ----
+  run 1  --
+  run 1  thread 'store::tests::a_fork_while_the_lock_is_held_does_not_extend_it' (119077) panicked at crates/podbox-image/src/store.rs:1824:9:
+  run 1  the holder released the lock and it is still held: a forked child inherited the fd, which is TODO/image.md T-0211
+  run 1    T-0215 instrument, path /tmp/podbox-store-118947-forkhold/locks/26e7f98cfafee5b213726e22632923bf31bf3e988233235f8f5ca5466b3ac0ed.lock
+  run 1    inode Some(132485), pid 118947
+  run 1    the hunt: the refusal cleared after 39 us and 1 attempt(s), so nothing held it by then
+  run 1    this process's descriptions on it: none, so the holder is not this process
+  run 1    /proc/locks rows on this inode: none
+  run 1    this process's children:
+  run 1      pid 119323 (exe)
+  run 1      pid 119324 (exe)
+  run 1      pid 119325 (exe)
+  run 1    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 1  
+  run 1  ---- store::tests::a_spawned_process_does_not_inherit_the_lock stdout ----
+  run 1  
+  run 1  thread 'store::tests::a_spawned_process_does_not_inherit_the_lock' (119105) panicked at crates/podbox-image/src/store.rs:1895:9:
+  run 1  the holder released the lock and a spawned process is still holding it: the lock fd was not O_CLOEXEC, which is the exec half of TODO/image.md T-0211
+  run 1    T-0215 instrument, path /tmp/podbox-store-118947-spawnhold/locks/d8c50d6282a1ba47f0a23430d177bbfbb72e2b84713745e894f575570f1f3d6e.lock
+  run 1    inode Some(132451), pid 118947
+  run 1    the hunt: the refusal cleared after 389 us and 1 attempt(s), so nothing held it by then
+  run 1    this process's descriptions on it: none, so the holder is not this process
+  run 1    /proc/locks rows on this inode:
+  run 1      1: FLOCK  ADVISORY  WRITE 118947 00:29:132451 0 EOF
+  run 1    this process's children:
+  run 1      pid 119348 (exe)
+  run 1      pid 119347 (exe)
   run 1    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 1  
   run 1  
   run 1  failures:
-  run 1      store::tests::opening_a_store_sweeps_what_a_killed_process_left
+  run 1      store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+  run 1      store::tests::a_spawned_process_does_not_inherit_the_lock
   run 1      store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
   run 1  
-  run 1  test result: FAILED. 94 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
-  run 2  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (82548) panicked at crates/podbox-image/src/store.rs:2059:9:
+  run 1  test result: FAILED. 94 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.99s
+  run 1  
+  run 2  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (119964) panicked at crates/podbox-image/src/store.rs:2128:9:
   run 2  the holder released the lock and it is still held, because a duplicate of its open file description outlived it: closing a descriptor releases an flock only when it drops the LAST reference (TODO/image.md T-0215)
-  run 2    T-0215 instrument, path /tmp/podbox-store-82416-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
-  run 2    inode Some(132534), pid 82416
-  run 2    the hunt: the refusal cleared after 675 us and 1 attempt(s), so nothing held it by then
+  run 2    T-0215 instrument, path /tmp/podbox-store-119795-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
+  run 2    inode Some(132586), pid 119795
+  run 2    the hunt: the refusal cleared after 5 us and 1 attempt(s), so nothing held it by then
   run 2    this process's descriptions on it: none, so the holder is not this process
   run 2    /proc/locks rows on this inode: none
   run 2    this process's children:
-  run 2      pid 82544 (exe)
-  run 2      pid 82660 (exe)
-  run 2      pid 82663 (exe)
-  run 2      pid 82545 (exe)
-  run 2      pid 82667 (exe)
-  run 2      pid 82549 (store::tests::a)
+  run 2      pid 120035 (exe)
+  run 2      pid 119938 (exe)
+  run 2      pid 119935 (exe)
+  run 2      pid 120043 (exe)
+  run 2      pid 119936 (exe)
+  run 2      pid 120046 (exe)
+  run 2      pid 119939 (store::tests::a)
   run 2    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 2  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 2  
   run 2  
   run 2  failures:
   run 2      store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
-  run 2  
-  run 3  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (83494) panicked at crates/podbox-image/src/store.rs:2059:9:
+  run 3  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (120894) panicked at crates/podbox-image/src/store.rs:2128:9:
   run 3  the holder released the lock and it is still held, because a duplicate of its open file description outlived it: closing a descriptor releases an flock only when it drops the LAST reference (TODO/image.md T-0215)
-  run 3    T-0215 instrument, path /tmp/podbox-store-83263-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
-  run 3    inode Some(132546), pid 83263
-  run 3    the hunt: the refusal cleared after 23 us and 1 attempt(s), so nothing held it by then
+  run 3    T-0215 instrument, path /tmp/podbox-store-120643-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
+  run 3    inode Some(132595), pid 120643
+  run 3    the hunt: the refusal cleared after 17 us and 1 attempt(s), so nothing held it by then
   run 3    this process's descriptions on it: none, so the holder is not this process
   run 3    /proc/locks rows on this inode: none
   run 3    this process's children:
-  run 3      pid 83488 (exe)
-  run 3      pid 83486 (exe)
-  run 3      pid 83594 (exe)
-  run 3      pid 83487 (exe)
-  run 3      pid 83597 (gone)
-  run 3      pid 83489 (store::tests::a)
+  run 3      pid 121077 (exe)
+  run 3      pid 121084 (exe)
+  run 3      pid 120885 (store::tests::a)
   run 3    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 3  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 3  
@@ -181,19 +221,21 @@ clauses           0 1 6 12 13
   run 3  failures:
   run 3      store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
   run 3  
-  run 4  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (84257) panicked at crates/podbox-image/src/store.rs:2059:9:
+  run 3  test result: FAILED. 96 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.64s
+  run 3  
+  run 3  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 4  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (121745) panicked at crates/podbox-image/src/store.rs:2128:9:
   run 4  the holder released the lock and it is still held, because a duplicate of its open file description outlived it: closing a descriptor releases an flock only when it drops the LAST reference (TODO/image.md T-0215)
-  run 4    T-0215 instrument, path /tmp/podbox-store-84110-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
-  run 4    inode Some(132507), pid 84110
-  run 4    the hunt: the refusal cleared after 39 us and 1 attempt(s), so nothing held it by then
+  run 4    T-0215 instrument, path /tmp/podbox-store-121491-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
+  run 4    inode Some(132594), pid 121491
+  run 4    the hunt: the refusal cleared after 67 us and 1 attempt(s), so nothing held it by then
   run 4    this process's descriptions on it: none, so the holder is not this process
   run 4    /proc/locks rows on this inode: none
   run 4    this process's children:
-  run 4      pid 84422 (exe)
-  run 4      pid 84420 (exe)
-  run 4      pid 84419 (gone)
-  run 4      pid 84428 (exe)
-  run 4      pid 84240 (store::tests::a)
+  run 4      pid 121864 (gone)
+  run 4      pid 121874 (gone)
+  run 4      pid 121878 (gone)
+  run 4      pid 121690 (store::tests::a)
   run 4    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 4  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 4  
@@ -201,20 +243,20 @@ clauses           0 1 6 12 13
   run 4  failures:
   run 4      store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
   run 4  
-  run 4  test result: FAILED. 95 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
-  run 5  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (85144) panicked at crates/podbox-image/src/store.rs:2059:9:
+  run 4  test result: FAILED. 96 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.64s
+  run 4  
+  run 5  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (122537) panicked at crates/podbox-image/src/store.rs:2128:9:
   run 5  the holder released the lock and it is still held, because a duplicate of its open file description outlived it: closing a descriptor releases an flock only when it drops the LAST reference (TODO/image.md T-0215)
-  run 5    T-0215 instrument, path /tmp/podbox-store-84957-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
-  run 5    inode Some(132555), pid 84957
-  run 5    the hunt: the refusal cleared after 327 us and 1 attempt(s), so nothing held it by then
+  run 5    T-0215 instrument, path /tmp/podbox-store-122338-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
+  run 5    inode Some(132615), pid 122338
+  run 5    the hunt: the refusal cleared after 545 us and 1 attempt(s), so nothing held it by then
   run 5    this process's descriptions on it: none, so the holder is not this process
   run 5    /proc/locks rows on this inode: none
   run 5    this process's children:
-  run 5      pid 85163 (exe)
-  run 5      pid 85252 (exe)
-  run 5      pid 85254 (exe)
-  run 5      pid 85162 (exe)
-  run 5      pid 85164 (store::tests::a)
+  run 5      pid 122674 (exe)
+  run 5      pid 122682 (exe)
+  run 5      pid 122683 (exe)
+  run 5      pid 122503 (store::tests::a)
   run 5    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 5  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 5  
@@ -222,129 +264,179 @@ clauses           0 1 6 12 13
   run 5  failures:
   run 5      store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
   run 5  
-  run 5  test result: FAILED. 95 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.98s
-  run 6  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (85950) panicked at crates/podbox-image/src/store.rs:2059:9:
-  run 6  the holder released the lock and it is still held, because a duplicate of its open file description outlived it: closing a descriptor releases an flock only when it drops the LAST reference (TODO/image.md T-0215)
-  run 6    T-0215 instrument, path /tmp/podbox-store-85804-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
-  run 6    inode Some(132580), pid 85804
-  run 6    the hunt: the refusal cleared after 12 us and 1 attempt(s), so nothing held it by then
+  run 5  test result: FAILED. 96 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.64s
+  run 5  
+  run 6  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (123401) panicked at crates/podbox-image/src/store.rs:1759:9:
+  run 6  the holder released it and it still reads as in use
+  run 6    T-0215 instrument, path /tmp/podbox-store-123186-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
+  run 6    inode Some(132596), pid 123186
+  run 6    the hunt: the refusal cleared after 613 us and 1 attempt(s), so nothing held it by then
   run 6    this process's descriptions on it: none, so the holder is not this process
   run 6    /proc/locks rows on this inode: none
   run 6    this process's children:
-  run 6      pid 85953 (exe)
-  run 6      pid 86106 (exe)
-  run 6      pid 86107 (exe)
-  run 6      pid 85954 (exe)
-  run 6      pid 86108 (exe)
-  run 6      pid 85955 (store::tests::a)
+  run 6      pid 123567 (exe)
+  run 6      pid 123568 (exe)
+  run 6      pid 123569 (exe)
+  run 6      pid 123387 (store::tests::a)
   run 6    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 6  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 6  
+  run 6  ---- store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives stdout ----
   run 6  
-  run 6  failures:
-  run 6      store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives
-  run 6  
-  run 7  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (86852) panicked at crates/podbox-image/src/store.rs:2059:9:
-  run 7  the holder released the lock and it is still held, because a duplicate of its open file description outlived it: closing a descriptor releases an flock only when it drops the LAST reference (TODO/image.md T-0215)
-  run 7    T-0215 instrument, path /tmp/podbox-store-86651-dupfree/locks/5d9ae980408df9325fbc46da2612c599ef76949450516ae38bf3b4c64721613d.lock
-  run 7    inode Some(132462), pid 86651
-  run 7    the hunt: the refusal cleared after 12605 us and 2 attempt(s), so nothing held it by then
-  run 7    this process's descriptions on it: none, so the holder is not this process
-  run 7    /proc/locks rows on this inode: none
-  run 7    this process's children:
-  run 7      pid 87013 (exe)
-  run 7      pid 87015 (gone)
-  run 7      pid 87030 (gone)
-  run 7      pid 87034 (exe)
-  run 7      pid 87039 (exe)
+  run 6  thread 'store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives' (123439) panicked at crates/podbox-image/src/store.rs:2128:9:
 
 == clause 13 pass A  the capture at the refusal, with the release deleted
   mutation         crates/podbox-image/src/store.rs
     delete, at:                let _ = sys::flock(self.fd, sys::LOCK_UN);
   command          PODBOX_T0215_CAPTURE=1 cargo test --workspace
-  runs             20
-  failing runs     20
+  runs             30
+  failing runs     30
   every capture, verbatim:
-    run 1  AT THE REFUSAL, on inode 132694, probe fd 28:
-    run 1  kernel: 4: FLOCK  ADVISORY  READ 101032 00:29:132694 0 EOF
-    run 1  the same fd was still refused after 77792 retries and 20000 us, so a holder is real
-    run 2  AT THE REFUSAL, on inode 132671, probe fd 24:
-    run 2  kernel: 1: FLOCK  ADVISORY  READ 101873 00:29:132671 0 EOF
-    run 2  the same fd was still refused after 68404 retries and 20000 us, so a holder is real
-    run 3  AT THE REFUSAL, on inode 132424, probe fd 4:
-    run 3  kernel: 3: FLOCK  ADVISORY  READ 102714 00:29:132424 0 EOF
-    run 3  the same fd was still refused after 103997 retries and 20000 us, so a holder is real
-    run 4  AT THE REFUSAL, on inode 132740, probe fd 25:
-    run 4  kernel: NO FLOCK ROW ON THIS INODE, yet the flock was refused
-    run 4  THE SAME FD SUCCEEDED on retry 1 after 2 us, so there was no holder
-    run 4  no descriptor on this inode in ANY process, the probe's own apart
-    run 4  AT THE REFUSAL, on inode 132690, probe fd 21:
-    run 4  kernel: 2: FLOCK  ADVISORY  READ 103555 00:29:132690 0 EOF
-    run 4  the same fd was still refused after 63125 retries and 20117 us, so a holder is real
-    run 5  AT THE REFUSAL, on inode 132674, probe fd 13:
-    run 5  kernel: 6: FLOCK  ADVISORY  READ 104396 00:29:132674 0 EOF
-    run 5  the same fd was still refused after 61593 retries and 20123 us, so a holder is real
-    run 6  AT THE REFUSAL, on inode 132737, probe fd 3:
-    run 6  kernel: 1: FLOCK  ADVISORY  READ 105237 00:29:132737 0 EOF
-    run 6  the same fd was still refused after 65084 retries and 20001 us, so a holder is real
-    run 7  AT THE REFUSAL, on inode 132775, probe fd 3:
-    run 7  kernel: 5: FLOCK  ADVISORY  READ 106078 00:29:132775 0 EOF
-    run 7  the same fd was still refused after 62640 retries and 20000 us, so a holder is real
-    run 8  AT THE REFUSAL, on inode 132621, probe fd 3:
-    run 8  kernel: 9: FLOCK  ADVISORY  READ 106919 00:29:132621 0 EOF
-    run 8  the same fd was still refused after 74866 retries and 20000 us, so a holder is real
-    run 9  AT THE REFUSAL, on inode 132729, probe fd 11:
-    run 9  kernel: 2: FLOCK  ADVISORY  READ 107760 00:29:132729 0 EOF
-    run 9  the same fd was still refused after 76456 retries and 20105 us, so a holder is real
-    run 10  AT THE REFUSAL, on inode 132820, probe fd 22:
-    run 10  kernel: 4: FLOCK  ADVISORY  READ 108601 00:29:132820 0 EOF
-    run 10  the same fd was still refused after 69042 retries and 20000 us, so a holder is real
-    run 10  AT THE REFUSAL, on inode 132827, probe fd 4:
-    run 10  kernel: 1: FLOCK  ADVISORY  READ 108601 00:29:132827 0 EOF
-    run 10  THE SAME FD SUCCEEDED on retry 1 after 1 us, so there was no holder
-    run 11  AT THE REFUSAL, on inode 132456, probe fd 6:
-    run 11  kernel: 4: FLOCK  ADVISORY  READ 109442 00:29:132456 0 EOF
-    run 11  the same fd was still refused after 101436 retries and 20000 us, so a holder is real
-    run 12  AT THE REFUSAL, on inode 132815, probe fd 9:
-    run 12  kernel: 6: FLOCK  ADVISORY  READ 110283 00:29:132815 0 EOF
-    run 12  the same fd was still refused after 54989 retries and 20000 us, so a holder is real
-    run 13  AT THE REFUSAL, on inode 132843, probe fd 11:
-    run 13  kernel: 8: FLOCK  ADVISORY  READ 111124 00:29:132843 0 EOF
-    run 13  the same fd was still refused after 62413 retries and 20000 us, so a holder is real
-    run 14  AT THE REFUSAL, on inode 132759, probe fd 6:
-    run 14  kernel: 5: FLOCK  ADVISORY  READ 111965 00:29:132759 0 EOF
-    run 14  the same fd was still refused after 87574 retries and 20000 us, so a holder is real
-    run 14  AT THE REFUSAL, on inode 132734, probe fd 9:
+    run 1  AT THE REFUSAL, on inode 132503, probe fd 14:
+    run 1  kernel: 6: FLOCK  ADVISORY  READ 146913 00:29:132503 0 EOF
+    run 1  the same fd was still refused after 68795 retries and 20000 us, so a holder is real
+    run 1  AT THE REFUSAL, on inode 132784, probe fd 6:
+    run 1  kernel: 1: FLOCK  ADVISORY  READ 146913 00:29:132784 0 EOF
+    run 1  THE SAME FD SUCCEEDED on retry 1 after 1 us, so there was no holder
+    run 2  AT THE REFUSAL, on inode 132908, probe fd 12:
+    run 2  kernel: 8: FLOCK  ADVISORY  READ 147755 00:29:132908 0 EOF
+    run 2  the same fd was still refused after 65008 retries and 20000 us, so a holder is real
+    run 3  AT THE REFUSAL, on inode 132955, probe fd 17:
+    run 3  kernel: 5: FLOCK  ADVISORY  READ 148597 00:29:132955 0 EOF
+    run 3  the same fd was still refused after 67081 retries and 20000 us, so a holder is real
+    run 4  AT THE REFUSAL, on inode 132978, probe fd 5:
+    run 4  kernel: 1: FLOCK  ADVISORY  READ 149439 00:29:132978 0 EOF
+    run 4  the same fd was still refused after 56315 retries and 20001 us, so a holder is real
+    run 5  AT THE REFUSAL, on inode 132993, probe fd 30:
+    run 5  kernel: 6: FLOCK  ADVISORY  READ 150281 00:29:132993 0 EOF
+    run 5  the same fd was still refused after 59393 retries and 20000 us, so a holder is real
+    run 6  AT THE REFUSAL, on inode 132899, probe fd 12:
+    run 6  kernel: 4: FLOCK  ADVISORY  READ 151123 00:29:132899 0 EOF
+    run 6  the same fd was still refused after 64062 retries and 20000 us, so a holder is real
+    run 6  AT THE REFUSAL, on inode 132915, probe fd 3:
+    run 6  kernel: 4: FLOCK  ADVISORY  READ 151123 00:29:132915 0 EOF
+    run 6  THE SAME FD SUCCEEDED on retry 1372 after 344 us, so there was no holder
+    run 6  AT THE REFUSAL, on inode 132960, probe fd 32:
+    run 6  kernel: NO FLOCK ROW ON THIS INODE, yet the flock was refused
+    run 6  THE SAME FD SUCCEEDED on retry 1 after 2 us, so there was no holder
+    run 6  no descriptor on this inode in ANY process, the probe's own apart
+    run 6  AT THE REFUSAL, on inode 132631, probe fd 3:
+    run 6  kernel: NO FLOCK ROW ON THIS INODE, yet the flock was refused
+    run 6  THE SAME FD SUCCEEDED on retry 1 after 1 us, so there was no holder
+    run 6  no descriptor on this inode in ANY process, the probe's own apart
+    run 7  AT THE REFUSAL, on inode 133036, probe fd 8:
+    run 7  kernel: 3: FLOCK  ADVISORY  READ 151965 00:29:133036 0 EOF
+    run 7  the same fd was still refused after 74783 retries and 20000 us, so a holder is real
+    run 8  AT THE REFUSAL, on inode 133043, probe fd 7:
+    run 8  kernel: 1: FLOCK  ADVISORY  READ 152807 00:29:133043 0 EOF
+    run 8  the same fd was still refused after 55979 retries and 20000 us, so a holder is real
+    run 9  AT THE REFUSAL, on inode 133055, probe fd 6:
+    run 9  kernel: 1: FLOCK  ADVISORY  READ 153649 00:29:133055 0 EOF
+    run 9  the same fd was still refused after 78480 retries and 20001 us, so a holder is real
+    run 9  AT THE REFUSAL, on inode 133067, probe fd 7:
+    run 9  kernel: 2: FLOCK  ADVISORY  READ 153649 00:29:133067 0 EOF
+    run 9  THE SAME FD SUCCEEDED on retry 1 after 2 us, so there was no holder
+    run 9  no descriptor on this inode in ANY process, the probe's own apart
+    run 10  AT THE REFUSAL, on inode 132654, probe fd 5:
+    run 10  kernel: 2: FLOCK  ADVISORY  READ 154491 00:29:132654 0 EOF
+    run 10  the same fd was still refused after 106929 retries and 20000 us, so a holder is real
+    run 11  AT THE REFUSAL, on inode 133083, probe fd 7:
+    run 11  kernel: 7: FLOCK  ADVISORY  READ 155333 00:29:133083 0 EOF
+    run 11  the same fd was still refused after 68315 retries and 20000 us, so a holder is real
+    run 12  AT THE REFUSAL, on inode 133089, probe fd 26:
+    run 12  kernel: 2: FLOCK  ADVISORY  READ 156175 00:29:133089 0 EOF
+    run 12  the same fd was still refused after 56102 retries and 20000 us, so a holder is real
+    run 13  AT THE REFUSAL, on inode 133044, probe fd 7:
+    run 13  kernel: 5: FLOCK  ADVISORY  READ 157017 00:29:133044 0 EOF
+    run 13  the same fd was still refused after 70429 retries and 20000 us, so a holder is real
+    run 14  AT THE REFUSAL, on inode 133108, probe fd 6:
+    run 14  kernel: 8: FLOCK  ADVISORY  READ 157859 00:29:133108 0 EOF
+    run 14  the same fd was still refused after 69442 retries and 20000 us, so a holder is real
+    run 14  AT THE REFUSAL, on inode 133073, probe fd 8:
     run 14  kernel: NO FLOCK ROW ON THIS INODE, yet the flock was refused
-    run 14  THE SAME FD SUCCEEDED on retry 1 after 4 us, so there was no holder
+    run 14  THE SAME FD SUCCEEDED on retry 1 after 3 us, so there was no holder
     run 14  no descriptor on this inode in ANY process, the probe's own apart
-    run 15  AT THE REFUSAL, on inode 132455, probe fd 4:
-    run 15  kernel: 2: FLOCK  ADVISORY  READ 112806 00:29:132455 0 EOF
-    run 15  the same fd was still refused after 109349 retries and 20000 us, so a holder is real
-    run 16  AT THE REFUSAL, on inode 132482, probe fd 4:
-    run 16  kernel: 7: FLOCK  ADVISORY  READ 113647 00:29:132482 0 EOF
-    run 16  the same fd was still refused after 71012 retries and 20000 us, so a holder is real
-    run 17  AT THE REFUSAL, on inode 132894, probe fd 6:
-    run 17  kernel: 1: FLOCK  ADVISORY  READ 114488 00:29:132894 0 EOF
-    run 17  the same fd was still refused after 67933 retries and 20000 us, so a holder is real
-    run 17  AT THE REFUSAL, on inode 132780, probe fd 5:
-    run 17  kernel: 2: FLOCK  ADVISORY  READ 114488 00:29:132780 0 EOF
-    run 17  THE SAME FD SUCCEEDED on retry 425 after 100 us, so there was no holder
-    run 18  AT THE REFUSAL, on inode 132801, probe fd 3:
-    run 18  kernel: 2: FLOCK  ADVISORY  READ 115329 00:29:132801 0 EOF
-    run 18  the same fd was still refused after 81991 retries and 20000 us, so a holder is real
-    run 19  AT THE REFUSAL, on inode 132846, probe fd 11:
-    run 19  kernel: 4: FLOCK  ADVISORY  READ 116170 00:29:132846 0 EOF
-    run 19  the same fd was still refused after 68330 retries and 20007 us, so a holder is real
-    run 20  AT THE REFUSAL, on inode 132919, probe fd 12:
-    run 20  kernel: 7: FLOCK  ADVISORY  READ 117011 00:29:132919 0 EOF
-    run 20  the same fd was still refused after 61554 retries and 20000 us, so a holder is real
-  ⭐ the same fd succeeded in 4 capture(s)
-  ⛔ a holder was real in 20 capture(s)
+    run 15  AT THE REFUSAL, on inode 133035, probe fd 18:
+    run 15  kernel: 6: FLOCK  ADVISORY  WRITE 158701 00:29:133035 0 EOF
+    run 15  THE SAME FD SUCCEEDED on retry 1 after 2 us, so there was no holder
+    run 15  no descriptor on this inode in ANY process, the probe's own apart
+    run 15  AT THE REFUSAL, on inode 133123, probe fd 10:
+    run 15  kernel: 2: FLOCK  ADVISORY  READ 158701 00:29:133123 0 EOF
+    run 15  the same fd was still refused after 71051 retries and 20000 us, so a holder is real
+    run 16  AT THE REFUSAL, on inode 133139, probe fd 28:
+    run 16  kernel: 6: FLOCK  ADVISORY  READ 159543 00:29:133139 0 EOF
+    run 16  the same fd was still refused after 59574 retries and 20000 us, so a holder is real
+    run 16  AT THE REFUSAL, on inode 133080, probe fd 4:
+    run 16  kernel: NO FLOCK ROW ON THIS INODE, yet the flock was refused
+    run 16  THE SAME FD SUCCEEDED on retry 1 after 1 us, so there was no holder
+    run 16  no descriptor on this inode in ANY process, the probe's own apart
+    run 17  AT THE REFUSAL, on inode 133105, probe fd 7:
+    run 17  kernel: 7: FLOCK  ADVISORY  READ 160385 00:29:133105 0 EOF
+    run 17  the same fd was still refused after 72027 retries and 20000 us, so a holder is real
+    run 18  AT THE REFUSAL, on inode 133153, probe fd 16:
+    run 18  kernel: 3: FLOCK  ADVISORY  READ 161227 00:29:133153 0 EOF
+    run 18  the same fd was still refused after 76761 retries and 20000 us, so a holder is real
+    run 18  AT THE REFUSAL, on inode 133124, probe fd 4:
+    run 18  kernel: 5: FLOCK  ADVISORY  READ 161227 00:29:133124 0 EOF
+    run 18  THE SAME FD SUCCEEDED on retry 100 after 22 us, so there was no holder
+    run 19  AT THE REFUSAL, on inode 133184, probe fd 12:
+    run 19  kernel: 2: FLOCK  ADVISORY  READ 162069 00:29:133184 0 EOF
+    run 19  the same fd was still refused after 77724 retries and 20000 us, so a holder is real
+    run 20  AT THE REFUSAL, on inode 133165, probe fd 16:
+    run 20  kernel: 8: FLOCK  ADVISORY  READ 162911 00:29:133165 0 EOF
+    run 20  the same fd was still refused after 76120 retries and 20000 us, so a holder is real
+    run 20  AT THE REFUSAL, on inode 133161, probe fd 5:
+    run 20  kernel: NO FLOCK ROW ON THIS INODE, yet the flock was refused
+    run 20  THE SAME FD SUCCEEDED on retry 1 after 3 us, so there was no holder
+    run 21  AT THE REFUSAL, on inode 133168, probe fd 8:
+    run 21  kernel: 2: FLOCK  ADVISORY  READ 163753 00:29:133168 0 EOF
+    run 21  the same fd was still refused after 56792 retries and 20000 us, so a holder is real
+    run 22  AT THE REFUSAL, on inode 133212, probe fd 29:
+    run 22  kernel: 3: FLOCK  ADVISORY  READ 164595 00:29:133212 0 EOF
+    run 22  the same fd was still refused after 80121 retries and 20000 us, so a holder is real
+    run 23  AT THE REFUSAL, on inode 132773, probe fd 5:
+    run 23  kernel: 1: FLOCK  ADVISORY  READ 165437 00:29:132773 0 EOF
+    run 23  the same fd was still refused after 93259 retries and 20000 us, so a holder is real
+    run 24  AT THE REFUSAL, on inode 133214, probe fd 23:
+    run 24  kernel: 4: FLOCK  ADVISORY  READ 166279 00:29:133214 0 EOF
+    run 24  the same fd was still refused after 57089 retries and 20000 us, so a holder is real
+    run 25  AT THE REFUSAL, on inode 133208, probe fd 12:
+    run 25  kernel: 7: FLOCK  ADVISORY  READ 167121 00:29:133208 0 EOF
+    run 25  the same fd was still refused after 67765 retries and 20019 us, so a holder is real
+    run 26  AT THE REFUSAL, on inode 133258, probe fd 18:
+    run 26  kernel: 1: FLOCK  ADVISORY  READ 167963 00:29:133258 0 EOF
+    run 26  the same fd was still refused after 54536 retries and 20000 us, so a holder is real
+    run 27  AT THE REFUSAL, on inode 133263, probe fd 9:
+    run 27  kernel: 3: FLOCK  ADVISORY  READ 168805 00:29:133263 0 EOF
+    run 27  the same fd was still refused after 65629 retries and 20000 us, so a holder is real
+    run 27  AT THE REFUSAL, on inode 133110, probe fd 3:
+    run 27  kernel: 2: FLOCK  ADVISORY  READ 168805 00:29:133110 0 EOF
+    run 27  THE SAME FD SUCCEEDED on retry 526 after 140 us, so there was no holder
+    run 28  AT THE REFUSAL, on inode 132805, probe fd 3:
+    run 28  kernel: 2: FLOCK  ADVISORY  READ 169647 00:29:132805 0 EOF
+    run 28  the same fd was still refused after 101274 retries and 20000 us, so a holder is real
+    run 29  AT THE REFUSAL, on inode 133264, probe fd 3:
+    run 29  kernel: 2: FLOCK  ADVISORY  READ 170489 00:29:133264 0 EOF
+    run 29  the same fd was still refused after 59993 retries and 20000 us, so a holder is real
+    run 30  AT THE REFUSAL, on inode 133273, probe fd 28:
+    run 30  kernel: 3: FLOCK  ADVISORY  READ 171331 00:29:133273 0 EOF
+    run 30  the same fd was still refused after 59152 retries and 20037 us, so a holder is real
+  ⭐ the same fd succeeded in 11 capture(s)
+  ⛔ a holder was real in 30 capture(s)
+
+== clause 14 pass A  the payload exemption made unconditional
+  mutation         crates/podbox-image/src/store.rs
+    replace, at:           if !self.handed.load(std::sync::atomic::Ordering::Acquire) {
+    with:          if true {
+  command          cargo test -p podbox-image a_lock_handed_to_the_payload_outlives_this_process_dropping_it
+  exit             101
+  ⭐ the guard went red, so it is watching the exemption
+    thread 'store::tests::a_lock_handed_to_the_payload_outlives_this_process_dropping_it' (174669) panicked at crates/podbox-image/src/store.rs:2051:9:
+    the lock was handed to the payload and this process released it anyway, so a running container's image reads as free and a prune may delete the rootfs it is executing out of (TODO/image.md T-0204)
 
 == what the clauses support
   the subject did not reproduce: pass A 0 and pass B 0 of
-  20 runs. No control below can subtract a condition from
+  30 runs. No control below can subtract a condition from
   a failure that did not happen.
   ⭐ Where a candidate fix is in the tree, THIS is the reading that
   supports it, and it needs both passes green to say anything.

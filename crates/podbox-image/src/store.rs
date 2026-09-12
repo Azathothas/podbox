@@ -2015,6 +2015,78 @@ mod tests {
         let _ = std::fs::remove_dir_all(s.root());
     }
 
+    /// ⭐ **The other half of T-0215's fix, and the half that would break
+    /// [T-0204](#t-0204-images-rmi-tag-and-a-store-gc-that-cannot-delete-a-running-containers-rootfs)
+    /// in silence.**
+    ///
+    /// ⛔ `Lock::drop` releases explicitly now, and one lock must NOT be
+    /// released: the one [`Lock::hand_to_payload`] gave to a running container.
+    /// The payload holds a duplicate of THIS open file description, and
+    /// `LOCK_UN` belongs to the description rather than to a descriptor, so
+    /// releasing here would release the payload's lock as well. A concurrent
+    /// `rmi` or `prune` could then delete the rootfs the container is executing
+    /// out of, which is the defect T-0204 and invariant I4 were paid for.
+    ///
+    /// ⚠ **Red if the exemption goes, and not intermittently.** Make the
+    /// release unconditional and the first assertion below fails every time.
+    ///
+    /// ⭐ `dup` stands in for the payload, for the same reason it stands in for
+    /// a fork in the test above: what the payload gets from `fork` and `execve`
+    /// is a second descriptor on one description.
+    #[test]
+    fn a_lock_handed_to_the_payload_outlives_this_process_dropping_it() {
+        let s = scratch("handed");
+        let r = record("docker.io/library/alpine", Some("latest"), 33);
+        s.put_record(r.clone()).unwrap();
+
+        let held = s.hold(&r).unwrap();
+        let fd = held
+            .hand_to_payload()
+            .expect("hand the lock to the payload");
+        // The payload's copy, which a `fork` would have made for it.
+        let payload = sys::dup_cloexec(fd).expect("dup the handed descriptor");
+
+        drop(held);
+        let still_held = s.in_use(&r).unwrap();
+        // ⚠ Closed before the assertion, so a failure leaves nothing behind.
+        let _ = sys::close(payload);
+        assert!(
+            still_held,
+            "the lock was handed to the payload and this process released it \
+             anyway, so a running container's image reads as free and a prune \
+             may delete the rootfs it is executing out of (TODO/image.md T-0204)"
+        );
+
+        // ⛔ **THE RELEASE ARRIVES, WHICH IS NOT THE SAME AS ARRIVING AT ONCE,
+        // AND MUST NOT BE.** The exemption exists so that THIS process does not
+        // release a lock the payload is keeping, so only the LAST reference can
+        // release it and that is by design not this thread. The handed lock
+        // therefore keeps the asynchronous release this entry is about, and it
+        // is the one place that is correct: while the payload lives the lock IS
+        // held, and the only window left reads an image as in use for a few
+        // hundred microseconds after its container really ended, which is the
+        // safe direction and self-corrects on the next attempt.
+        // ⚠ Asserting immediacy here is what a first draft of this test did,
+        // and it failed 9 and 13 of 30 for exactly the reason T-0215 names.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        let mut freed = false;
+        while std::time::Instant::now() < deadline {
+            if !s.in_use(&r).unwrap() {
+                freed = true;
+                break;
+            }
+            std::thread::yield_now();
+        }
+        assert!(
+            freed,
+            "the payload's descriptor is closed and five seconds later the image \
+             still reads as in use, so the exemption is a permanent hold rather \
+             than a release this thread does not make{}",
+            who_holds(&s.image_lock_path(&r).unwrap())
+        );
+        let _ = std::fs::remove_dir_all(s.root());
+    }
+
     /// ⭐ **T-0215's regression test, and it is DETERMINISTIC where the defect
     /// it guards was one run in two.**
     ///

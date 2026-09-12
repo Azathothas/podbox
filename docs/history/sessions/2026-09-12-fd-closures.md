@@ -9,13 +9,13 @@ Ran `04:22:08Z` to `07:40Z`, four minutes after the previous session ended.
 | what | before | after | taken by |
 | --- | --- | --- | --- |
 | ⭐ [T-0215](../../../TODO/image.md), P0, open since 2026-09-11 | open | **done** | `experiments/153-store-lock-race.sh` |
-| ⭐ the subject, per 20 runs | 5 to 12 across twenty passes | **0 of 20, twice** | clause 1 |
-| the same suite with the fix deleted | - | **20 of 20** | clause 12 |
+| ⭐ the subject | 5 to 12 of 20 across twenty passes | **0 of 30, twice** | clause 1 |
+| the same suite with the fix deleted | - | **30 of 30** | clause 12 |
 | entries open / partial / blocked / done | 41 / 4 / 0 / 86 | **41 / 4 / 0 / 87** | `scripts/check-todo.py` |
 | candidate mechanisms closed with no effect | 1 | **5** | the entry |
 | ⭐ what the refusal is | a holder, assumed | **the tail of an unfinished release** | the capture at the refusal |
-| the guard on the defect | none | **deterministic, no fork and no timing** | the regression test |
-| clauses in the instrument | 8 | **13**, five of them source mutations | the script |
+| the guards on the defect | none | **two, both deterministic** | clauses 12 and 14 |
+| clauses in the instrument | 8 | **14**, six of them source mutations | the script |
 | ⭐ `Prove` lines pulling from Docker Hub | unknown | **39 of 132, in ten files** | counted over `TODO/*.md` |
 | entries owning that defect | none | **[T-1209](../../../TODO/gate.md)** | the entry |
 | Windows-lane traps recorded | 7 | **8** | [`containers.md`](../../containers.md) |
@@ -56,6 +56,13 @@ releasing thread, whatever the reference count is.
    reference to one open file description, which is exactly what a fork gives a
    child, so the regression test needs no second process, no thread and no
    timing. The defect was one run in two; its guard is one run.
+   ⚠ **The second guard, on the payload exemption, first asserted too much and
+   reproduced the defect instead.** It said the image was free the instant the
+   payload's descriptor closed, and failed 9 and 13 of 30. A handed lock is
+   released by the LAST reference and never by this thread, which is what
+   handing it means, so it waits for the release to ARRIVE now. ⭐ That failure
+   is corroboration: the defect came back on demand, in the one place the fix
+   deliberately does not reach.
 5. ⛔ **STOPPING A JOB FROM WINDOWS DOES NOT STOP IT IN THE GUEST.** A killed
    wrapper's container ran to completion nine minutes later and kept writing to
    the log it had inherited, so a second job interleaved with it and the
