@@ -31,6 +31,7 @@
 #  10. the hook gutted, and its control asserted red   the control's own plant, and no rate
 #  11. the test's own bare spawn given the hook       the last unshed fork in the process
 #  12. the explicit release taken back out           the fix's own plant, and no rate
+#  13. the capture at the refusal, release deleted     the reading that named the mechanism
 #
 # ⚠ CLAUSE 7 WAS BUILT FOR ONE IDEA AND HAS ALREADY RULED IT OUT. A refusal
 # that clears at once with no holder anywhere the kernel reports one is what a
@@ -468,6 +469,71 @@ plant_the_release() {
 	cargo test --workspace --no-run >>"$WORK/plant12.log" 2>&1
 }
 
+# ⭐ CLAUSE 13. THE READING THAT NAMED THE MECHANISM, RE-TAKEN.
+#
+# ⛔ TODO/image.md T-0215 quotes what the capture at the `EWOULDBLOCK` saw, and
+# a figure a reader cannot re-take is a figure on trust. This clause deletes the
+# explicit release, turns the capture on, runs the subject, and puts every
+# capture in the evidence.
+#
+# ⚠ It measures no rate. Clause 12 is the rate; this is the diagnosis.
+capture_the_refusals() {
+	pass="$1"
+	src="$REPO/crates/podbox-image/src/store.rs"
+	anchor="            let _ = sys::flock(self.fd, sys::LOCK_UN);"
+	hits=$(grep -c -F -x -- "$anchor" "$src")
+	say "== clause 13 pass $pass  the capture at the refusal, with the release deleted"
+	if [ "$hits" != "1" ]; then
+		say "  SKIP: the anchor matched $hits times, not once. Lock::drop moved."
+		say ""
+		return
+	fi
+	cp "$src" "$WORK/mutated.orig"
+	MUTATED="$src"
+	trap 'cp "$WORK/mutated.orig" "$MUTATED" 2>/dev/null' EXIT HUP INT TERM
+	grep -v -F -x -- "$anchor" "$WORK/mutated.orig" >"$src"
+	say "  mutation         crates/podbox-image/src/store.rs"
+	say "    delete, at:    $anchor"
+	say "  command          PODBOX_T0215_CAPTURE=1 cargo test --workspace"
+	if ! cargo test --workspace --no-run >"$WORK/cap.log" 2>&1; then
+		say "  SKIP: the mutated tree did not build"
+		tail -10 "$WORK/cap.log" | sed 's/^/  /' >>"$REPORT"
+		say ""
+		cp "$WORK/mutated.orig" "$src"
+		cargo test --workspace --no-run >>"$WORK/cap.log" 2>&1
+		return
+	fi
+	got=0
+	i=1
+	: >"$WORK/captures"
+	while [ "$i" -le "$CONTROL_RUNS" ]; do
+		PODBOX_T0215_CAPTURE=1 cargo test --workspace >"$WORK/cap.run.$i" 2>&1
+		# ⛔ The code is read from the process that produced it, unpiped.
+		rc=$?
+		if [ "$rc" -ne 0 ]; then
+			got=$((got + 1))
+			grep -E "AT THE REFUSAL|kernel:|SAME FD|same fd|no descriptor on this inode" \
+				"$WORK/cap.run.$i" | sed "s/^ */    run $i  /" >>"$WORK/captures"
+		fi
+		i=$((i + 1))
+	done
+	say "  runs             $CONTROL_RUNS"
+	say "  failing runs     $got"
+	say "  every capture, verbatim:"
+	if [ -s "$WORK/captures" ]; then
+		head -200 "$WORK/captures" >>"$REPORT"
+		verdicts=$(grep -c "THE SAME FD SUCCEEDED" "$WORK/captures")
+		holders=$(grep -c "still refused after" "$WORK/captures")
+		say "  ⭐ the same fd succeeded in $verdicts capture(s)"
+		say "  ⛔ a holder was real in $holders capture(s)"
+	else
+		say "    none: the subject did not fail, so there was nothing to capture"
+	fi
+	say ""
+	cp "$WORK/mutated.orig" "$src"
+	cargo test --workspace --no-run >>"$WORK/cap.log" 2>&1
+}
+
 for c in $CLAUSES; do
 	for p in A B; do
 		case "$c" in
@@ -498,6 +564,7 @@ for c in $CLAUSES; do
 		# clause that measures a RATE is taken twice; this one measures none.
 		10) [ "$p" = A ] && plant_the_hook_control A ;;
 		12) [ "$p" = A ] && plant_the_release A ;;
+		13) [ "$p" = A ] && capture_the_refusals A ;;
 		11) mutate_and_measure 11 "$p" "the bare spawn in the test given the hook too" "crates/podbox-image/src/store.rs" '        let mut child = std::process::Command::new("/bin/sh")' replace '        let mut child = sys::shed_after_fork(&mut std::process::Command::new("/bin/sh"))' ;;
 		0) [ "$p" = A ] && instrument_control ;;
 		*)

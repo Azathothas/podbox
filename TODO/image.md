@@ -1473,20 +1473,37 @@ and why nothing about WHICH descriptors a child holds ever moved the rate.
 ⭐ **The reading that settled it, taken at the `EWOULDBLOCK` itself rather than
 at the assertion.** Every instrument before it ran while the assertion message
 was being formatted, and the shortest refusal it chased had already cleared in
-11 us. Thirteen captures over eleven failing runs, and **every single one says
-the same descriptor succeeded on retry**:
+11 us. ⛔ **Clause 13 re-takes it**: it deletes the release, turns the capture
+on, and runs the subject twenty times. All twenty fail, and the captures carry
+**two signatures, which are one mechanism in two phases**.
+
+⭐ **While the second reference is OPEN, the lock is genuinely held** and the
+kernel says so. Twenty captures, one per run:
 
 ```text
-AT THE REFUSAL, on inode 123582, probe fd 3:
-  kernel: NO FLOCK ROW ON THIS INODE, yet the flock was refused
-  THE SAME FD SUCCEEDED on retry 1 after 1 us, so there was no holder
+AT THE REFUSAL, on inode 132694, probe fd 28:
+  kernel: 4: FLOCK  ADVISORY  READ 101032 00:29:132694 0 EOF
+  the same fd was still refused after 77792 retries and 20000 us, so a holder is real
 ```
 
-⚠ Nine of the thirteen cleared on retry 1 or 2 within 1 to 4 us; the slowest
-took 2276 retries and 481 us, and the longest ran 1190 us. ⛔ **Not one capture
-found a holder**: no descriptor on the inode in any process on the host, the
-probe's own excluded by number, and in six of the thirteen no `/proc/locks` row
-either while the `flock` was still being refused.
+⚠ That is the regression test's duplicate descriptor, holding the description
+open across a drop that no longer releases. The retry counts run from 61,593 to
+103,997 over the instrument's full 20 ms bound.
+
+⛔ **While it is being TORN DOWN, the lock is refused with nothing holding it
+anywhere.** Four captures in the same twenty runs:
+
+```text
+AT THE REFUSAL, on inode 132740, probe fd 25:
+  kernel: NO FLOCK ROW ON THIS INODE, yet the flock was refused
+  THE SAME FD SUCCEEDED on retry 1 after 2 us, so there was no holder
+  no descriptor on this inode in ANY process, the probe's own apart
+```
+
+⭐ **That second signature is the race as it arrived for three sessions**, and
+it is why every earlier instrument answered "nobody": there was nobody, by the
+time anything looked. The refusal is the tail of a release that the holder's own
+`close` did not finish.
 
 ⭐ **The fix is one syscall and it is in the releasing thread.**
 `Lock::drop` calls `flock(fd, LOCK_UN)` before the close, so the record is
@@ -1503,6 +1520,7 @@ the run:**
 | clause 1, the subject | 5 to 12 of 20 across twenty passes | ⭐ **0 of 20, twice** |
 | clause 12, the release deleted, the subject | - | ⛔ **20 of 20** |
 | clause 12, the release deleted, the regression test | - | ⛔ **red, exit 101** |
+| clause 13, the captures with the release deleted | - | 20 with a real holder, 4 with none at all |
 | clause 6, the fork control | 0, 0 | 0, 0 |
 
 ⭐ **`releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` is the

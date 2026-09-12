@@ -13,9 +13,9 @@ Ran `04:22:08Z` to `07:40Z`, four minutes after the previous session ended.
 | the same suite with the fix deleted | - | **20 of 20** | clause 12 |
 | entries open / partial / blocked / done | 41 / 4 / 0 / 86 | **41 / 4 / 0 / 87** | `scripts/check-todo.py` |
 | candidate mechanisms closed with no effect | 1 | **5** | the entry |
-| ⭐ a holder, ever found | assumed | **none, in 13 captures** | the capture at the refusal |
+| ⭐ what the refusal is | a holder, assumed | **the tail of an unfinished release** | the capture at the refusal |
 | the guard on the defect | none | **deterministic, no fork and no timing** | the regression test |
-| clauses in the instrument | 8 | **12**, four of them source mutations | the script |
+| clauses in the instrument | 8 | **13**, five of them source mutations | the script |
 | ⭐ `Prove` lines pulling from Docker Hub | unknown | **39 of 132, in ten files** | counted over `TODO/*.md` |
 | entries owning that defect | none | **[T-1209](../../../TODO/gate.md)** | the entry |
 | Windows-lane traps recorded | 7 | **8** | [`containers.md`](../../containers.md) |
@@ -37,7 +37,9 @@ releasing thread, whatever the reference count is.
    holder already gone: the shortest refusal had cleared in 11 us. Moving the
    capture into the `EWOULDBLOCK` arm answered the question on the first run.
    ⭐ When every reading says "nobody", suspect where you are standing before
-   you suspect the world.
+   you suspect the world. ⚠ And the capture is kept, behind
+   `PODBOX_T0215_CAPTURE`, with clause 13 to re-take it: a figure a reader
+   cannot re-take is a figure on trust.
 2. ⛔ **AN INSTRUMENT THAT CAN FIND ITSELF WILL.** The first capture at the
    refusal named the holder as this process, fd 7, which was the probe's own
    descriptor, opened microseconds earlier by the very call being measured. It

@@ -1021,6 +1021,14 @@ impl Lock {
                 Ok(Some(lock))
             }
             Err(sys::EWOULDBLOCK) => {
+                // ⛔ **THE ONLY MOMENT A HOLDER WOULD BE THERE.**
+                // [`TODO/image.md`](../../../TODO/image.md) T-0215: every
+                // instrument that ran from the failing assertion arrived
+                // microseconds late and reported "nobody". This runs at the
+                // `EWOULDBLOCK` itself. ⚠ Test builds only, and silent unless
+                // `PODBOX_T0215_CAPTURE` is set.
+                #[cfg(test)]
+                tests::note_the_refusal(path, fd);
                 let _ = sys::close(fd);
                 Ok(None)
             }
@@ -1173,6 +1181,128 @@ mod tests {
         Store::open(d).unwrap()
     }
 
+    // ⭐ **T-0215's diagnostic capture, and it is OFF unless asked for.**
+    //
+    // ⛔ **This is the reading that named the mechanism, and it is kept so the
+    // figures the entry quotes can be re-taken rather than believed.**
+    // `PODBOX_T0215_CAPTURE=1` turns it on;
+    // `experiments/153-store-lock-race.sh` clause 13 is what sets it, with the
+    // release deleted, so the capture has something to capture.
+    //
+    // ⚠ **It costs a scan of `/proc` and up to 20 ms per refusal**, and a
+    // legitimate refusal is common: `in_use` answers true whenever a holder
+    // really is there. That is why it is off by default rather than merely
+    // `cfg(test)`.
+    thread_local! {
+        static LAST_REFUSAL: std::cell::RefCell<String> =
+            const { std::cell::RefCell::new(String::new()) };
+    }
+
+    /// What the last refusal on this thread saw, captured at the `EWOULDBLOCK`
+    /// itself and printed by [`who_holds`] afterwards.
+    fn last_refusal() -> String {
+        LAST_REFUSAL.with(|c| c.borrow().clone())
+    }
+
+    /// ⭐ **Called from `Lock::try_acquire`'s `EWOULDBLOCK` arm, so it runs
+    /// before the refusal is even returned to the caller.**
+    ///
+    /// ⛔ Every instrument before this one ran from the failing assertion and
+    /// arrived microseconds late: the shortest refusal it chased had already
+    /// cleared in 11 us, and every capture it took therefore said "nobody".
+    ///
+    /// ⚠ **The probe's own descriptor is excluded by fd number.** `Lock::open`
+    /// has just opened one on this very inode, and a scan that counts it finds
+    /// itself and reports the instrument as the holder. That was the first
+    /// capture this took.
+    ///
+    /// ⭐ **The order is cheapest-first and it is deliberate.** `/proc/locks`
+    /// is one small read and it is the kernel's own answer. Retrying THE SAME
+    /// DESCRIPTOR is next, because it separates a refusal with a holder from a
+    /// refusal with none. The scan of every process is last, because it costs
+    /// milliseconds and the refusals measured here last tens of microseconds.
+    pub(super) fn note_the_refusal(path: &Path, probe_fd: i64) {
+        use std::os::unix::fs::MetadataExt;
+        static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        if !*ON.get_or_init(|| std::env::var_os("PODBOX_T0215_CAPTURE").is_some()) {
+            return;
+        }
+        let Ok(md) = std::fs::metadata(path) else {
+            return;
+        };
+        let (dev, ino) = (md.dev(), md.ino());
+        let me = std::process::id();
+
+        // 1. The kernel's own table, read while the refusal is true.
+        let mut rows = String::new();
+        if let Ok(locks) = std::fs::read_to_string("/proc/locks") {
+            let needle = format!(":{ino} ");
+            for line in locks.lines() {
+                if line.contains("FLOCK") && line.contains(&needle) {
+                    rows.push_str(&format!("{HUNT_NL}  kernel: {}", line.trim()));
+                }
+            }
+        }
+        if rows.is_empty() {
+            rows =
+                format!("{HUNT_NL}  kernel: NO FLOCK ROW ON THIS INODE, yet the flock was refused");
+        }
+
+        // 2. ⭐ THE SAME DESCRIPTOR, AGAIN, AT ONCE. Nothing else changes: the
+        // same fd, the same operation, microseconds later. A refusal that
+        // clears here was never a conflict, because no holder can have arrived
+        // and left in between.
+        let t0 = std::time::Instant::now();
+        let mut tries: u64 = 0;
+        let verdict;
+        loop {
+            tries += 1;
+            match sys::flock(probe_fd, sys::LOCK_EX | sys::LOCK_NB) {
+                Ok(_) => {
+                    let _ = sys::flock(probe_fd, sys::LOCK_UN);
+                    verdict = format!(
+                        "{HUNT_NL}  THE SAME FD SUCCEEDED on retry {tries} after {} us, \
+                         so there was no holder",
+                        t0.elapsed().as_micros()
+                    );
+                    break;
+                }
+                Err(e) if e.0 == sys::EWOULDBLOCK.0 => {}
+                Err(e) => {
+                    verdict = format!(
+                        "{HUNT_NL}  the same fd answered {} ({}) on retry {tries}",
+                        e.name(),
+                        e.0
+                    );
+                    break;
+                }
+            }
+            if t0.elapsed() > std::time::Duration::from_millis(20) {
+                verdict = format!(
+                    "{HUNT_NL}  the same fd was still refused after {tries} retries and \
+                     {} us, so a holder is real",
+                    t0.elapsed().as_micros()
+                );
+                break;
+            }
+        }
+
+        // 3. Every descriptor on the inode anywhere on the host, the probe's
+        // own excluded by number.
+        let found = scan_every_fd(dev, ino, me, probe_fd);
+        let who = if found.is_empty() {
+            format!("{HUNT_NL}  no descriptor on this inode in ANY process, the probe's own apart")
+        } else {
+            found
+        };
+
+        LAST_REFUSAL.with(|c| {
+            *c.borrow_mut() = format!(
+                "{HUNT_NL}AT THE REFUSAL, on inode {ino}, probe fd {probe_fd}:{rows}{verdict}{who}"
+            )
+        });
+    }
+
     /// ⭐ [`TODO/image.md`](../../../TODO/image.md) T-0215's instrument, and it
     /// is passive: it reads `/proc` and changes nothing it looks at.
     ///
@@ -1198,6 +1328,10 @@ mod tests {
             .ok()
             .map(|m| std::os::unix::fs::MetadataExt::ino(&m));
         out.push_str(&format!("\n  inode {ino:?}, pid {}", std::process::id()));
+
+        // ⭐ What was seen AT the refusal, where the holder was known to be.
+        // Empty unless PODBOX_T0215_CAPTURE is set.
+        out.push_str(&last_refusal());
 
         if let Some(ino) = ino {
             out.push_str(&hunt_the_holder(path, ino));
