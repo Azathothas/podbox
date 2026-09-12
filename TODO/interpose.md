@@ -127,7 +127,7 @@ Source:      `experiments/results/interposer-abi.txt`; `references/fritzw__ld-pr
 Category:    interpose
 Priority:    P0
 Effort:      M
-Status:      open
+Status:      partial
 
 Problem:     Two separate failures share this entry because the fix is the same
              artefact. A preload object built against one libc cannot serve a
@@ -226,21 +226,39 @@ Status note: **no longer blocked, and the musl gap is closed.** The measurement
              ⛔ Without the assertion the script exited 0 having produced TWO
              GLIBC OBJECTS, which is the whole requirement inverted and reads as
              success.
-             ⚠ **What is left is the EMBEDDING and it is a fork nobody has
-             ruled on.** This `Approach` says "embed both", and the two objects
-             are built by a script rather than by cargo, so `include_bytes!` in
-             `podbox-cli` makes an ordinary `cargo build` fail on a tree where
-             the script has not run -- which breaks `cargo test --workspace`,
-             the acceptance and every contributor's first command. The three
-             shapes are: a `build.rs` that runs the script (a cargo build that
-             invokes a linker for two other targets); a `build.rs` that refuses
-             with a named reason (loud, and still breaks the plain build); or
-             the objects committed as artefacts (⛔ `docs/conventions/git.md`
-             section 4 forbids build output in the tree). ⚠ Recommend the
-             FIRST, with the script's own skip behaviour preserved so a machine
-             without zig still builds podbox and gets a refusal from
+             ⭐ **THE EMBEDDING IS RULED AND HALF BUILT, on 2026-09-12.** This
+             `Approach` says "embed both", and the two objects are built by a
+             script rather than by cargo, so `include_bytes!` in `podbox-cli`
+             would make an ordinary `cargo build` fail on a tree where the
+             script has not run, which breaks `cargo test --workspace`, the
+             acceptance and every contributor's first command.
+             ⚠ **A FOURTH SHAPE WAS TAKEN, AND IT IS NOT ONE OF THE THREE THIS
+             ENTRY LISTED.** `crates/podbox-cli/build.rs` COPIES what
+             `scripts/build-interpose.sh` left behind, and writes an EMPTY file
+             where an object is absent. `include_bytes!` always compiles, a
+             fresh clone with no zig still builds, and an empty object is read
+             at run time as "carries none" so the payload gets
              [T-0706](#t-0706-classify-the-payload-and-decline-with-a-named-reason)'s
-             channel at run time rather than at compile time.
+             named decline rather than a preload that cannot load.
+             ⛔ **The rejected three, and why.** A `build.rs` that RUNS the
+             script is a cargo inside a cargo, which waits on a lock its own
+             parent holds. ⚠ That hazard was MEASURED rather than assumed:
+             `experiments/158-interpose-embedding.sh` ran a nested build in two
+             shapes on 2026-09-12 and **both completed**, so it does not fire
+             here. It is still refused, because it would fire on somebody
+             else's machine and copying cannot. A `build.rs` that refuses is
+             loud and still breaks the plain build. The objects committed as
+             artefacts are build output in the tree, which
+             `docs/conventions/git.md` section 4 forbids.
+             ⛔ **AND THE ORDER HAD TO MOVE WITH IT.** `scripts/dev.sh` check
+             and the gate workflow both built the binary BEFORE the objects, so
+             with this shape they would have embedded two placeholders and
+             passed. The interposer step now runs first in both.
+             ⚠ **What is still open is the PLACEMENT**, which is this
+             `Approach`'s second sentence: the selected object written INSIDE
+             the rootfs before the chroot, and `LD_PRELOAD` set to the path the
+             payload will see. Nothing of that is written yet, and
+             `crates/podbox-cli/src/interpose.rs` says so in its own header.
 Prove:       `./experiments/80-interposer-abi.sh` exits 0, and `podbox run --rm alpine:latest sh -c 'grep -q "$(readlink -f /.podbox/interpose.so)" /proc/self/environ'`
 
 ---

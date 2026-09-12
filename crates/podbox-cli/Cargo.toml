@@ -5,6 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+# ⛔ It only COPIES what `scripts/build-interpose.sh` left behind and never
+# invokes cargo. `build.rs` carries the reason and the measurement behind it.
+build = "build.rs"
 
 [[bin]]
 name = "podbox"

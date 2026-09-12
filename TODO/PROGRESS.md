@@ -9,7 +9,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-131 entries: 42 open, 3 partial, 0 blocked, 86 done.
+131 entries: 41 open, 4 partial, 0 blocked, 86 done.
 
 ## Baseline
 

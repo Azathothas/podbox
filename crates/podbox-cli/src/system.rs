@@ -344,6 +344,14 @@ fn human(fields: &[(&str, String)]) -> String {
         pick(fields, "VerbsStub"),
         pick(fields, "VerbsNone"),
     ));
+    // ⛔ **WHICH INTERPOSER OBJECTS THIS BINARY CARRIES, and it is printed
+    // because a caller cannot otherwise tell.** A podbox built where
+    // `scripts/build-interpose.sh` could not run carries none and declines
+    // every payload, which is a different tool from one that carries both.
+    // `TOOL.md` section 4.1 forbids output that implies a capability podbox
+    // does not have, and silence here would imply one.
+    // `TODO/interpose.md` T-0702.
+    out.push_str(&format!("{}\n\n", crate::interpose::carried()));
     out.push_str(&parity::text());
     out
 }

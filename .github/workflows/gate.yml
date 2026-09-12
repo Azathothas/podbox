@@ -91,6 +91,13 @@ jobs:
       - name: bootstrap
         run: ./scripts/common/bootstrap-env.sh rust bloat cc zig tools
 
+      # ⛔ BEFORE THE BINARY, because the two objects are an INPUT to it.
+      # `crates/podbox-cli/build.rs` embeds them, so a binary built first
+      # embeds two empty placeholders and this job passes with a podbox that
+      # interposes nothing. TODO/interpose.md T-0702.
+      - name: interposer, one object per libc
+        run: ./scripts/build-interpose.sh
+
       - name: build
         run: cargo build --release --target x86_64-unknown-linux-musl
 
@@ -123,10 +130,9 @@ jobs:
       - name: binary size ceiling and breakdown
         run: ./experiments/110-bloat-delta.sh ci
 
-      # The interposer is the one artefact that is not crt-static, and it is
-      # built separately for exactly that reason.
-      - name: interposer, one object per libc
-        run: ./scripts/build-interpose.sh
+      # ⚠ The interposer is the one artefact that is not crt-static, and it is
+      # built separately for exactly that reason. It is built in the step
+      # before `build` above, because the binary embeds it.
 
   lint:
     name: fmt, clippy, shell

@@ -18,6 +18,7 @@ mod complete;
 mod exec;
 mod format;
 mod images;
+mod interpose;
 mod lifecycle;
 mod names;
 mod parity;

@@ -199,14 +199,19 @@ build)
 check)
 	# What a change has to pass before it is committed, in the order that fails
 	# cheapest first.
+	#
+	# ⛔ THE INTERPOSER IS BUILT BEFORE THE BINARY, because it is an INPUT to
+	# it. `crates/podbox-cli/build.rs` embeds the two objects, so a binary built
+	# first embeds two empty placeholders and this check would pass with a
+	# podbox that interposes nothing. TODO/interpose.md T-0702.
 	rc=0
 	for step in \
 		"cargo fmt --all -- --check" \
 		"cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check" \
 		"cargo clippy --workspace --all-targets -- -D warnings" \
 		"RUSTFLAGS='-C target-feature=-crt-static' cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings" \
-		"cargo build --release --target $TARGET" \
 		"./scripts/build-interpose.sh" \
+		"cargo build --release --target $TARGET" \
 		"cargo test --workspace" \
 		"RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu" \
 		"./scripts/check-todo.py" \

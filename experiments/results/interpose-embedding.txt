@@ -1,0 +1,23 @@
+== conditions
+date              2026-09-12T03:50:58Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
+commit            411663a
+bound per clause  120 s
+
+== clause 1  the nested build with no help
+  exit             0  after 0 s
+  ⭐ the nested build COMPLETED
+
+== clause 2  the nested build with CARGO_TARGET_DIR separate
+  exit             0  after 0 s
+  ⭐ the nested build COMPLETED
+
+== what the clauses support
+  a build.rs CAN invoke cargo on this host, in 2 of 2 shapes.
+  ⚠ That is this host on this day. The hazard is real on others, and
+  TODO/interpose.md T-0702 carries what podbox decided to do with it.
+
+⚠ What this cannot say: that podbox's own script behaves the same. It
+  builds two targets and invokes a linker, so it is slower and it needs
+  zig; this fixture isolates the LOCK question and nothing else.

@@ -6,6 +6,37 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-12T03:58:37Z: the interposer objects are embedded, by copying rather than by a nested cargo
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
+deployment.
+
+[`TODO/interpose.md`](TODO/interpose.md) T-0702's remaining fork was which shape
+embeds the two objects, and the entry recommended a `build.rs` that runs
+`scripts/build-interpose.sh`. That is a cargo inside a cargo, which can wait on
+a lock its own parent holds.
+
+⭐ **A fourth shape was taken and it is not one of the three the entry listed.**
+`crates/podbox-cli/build.rs` copies what the script left behind and writes an
+empty file where an object is absent, so `include_bytes!` always compiles and a
+fresh clone with no zig still builds. ⚠ The hazard was measured rather than
+assumed: `experiments/158-interpose-embedding.sh` ran a nested build in two
+shapes and both completed, so it does not fire here. The shape is refused
+anyway, because it would fire on somebody else's machine and copying cannot.
+
+⛔ **An empty object must never read as a working interposer**, so
+`podbox system info` now prints which objects the binary carries, including the
+state where it carries neither.
+
+⛔ **The step order had to move with the shape.** `scripts/dev.sh` check and the
+gate workflow both built the binary BEFORE the objects, so this embedding would
+have put two placeholders in it and both would have passed. The interposer step
+runs first in each now.
+
+⚠ **The placement half is untouched and the entry is `partial`.** The object
+still has to be written inside the rootfs before the chroot, with `LD_PRELOAD`
+set to the path the payload will see.
+
 ### 2026-09-12T03:44:30Z: T-0211 closes on a pass count, and the fork control was short of the code
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
