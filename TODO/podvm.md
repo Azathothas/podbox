@@ -127,11 +127,33 @@ Approach:    `podvm` is `podbox` invoked under that name, or `podbox` with the
              that is enforced in one tier and accepted in the other is the
              silent degradation the honesty rules forbid, so the tier that
              cannot enforce it says so.
-Decision:    Not taken. ⚠ Two candidate shapes and the trade is real: a tier
-             flag on one command line reads naturally to a person, and an argv0
-             alias is what an agent's existing scripts already produce. They are
-             not exclusive, and the entry should rule whether BOTH are offered
-             or only one.
+Decision:    ⭐ **Taken on 2026-09-12: BOTH, and the flag is the primitive.**
+             `--podbox-tier=machine` selects the tier, and `podvm` is a third
+             name in `crates/podbox-cli/src/names.rs`'s `ALIASES` whose only
+             effect is to change that flag's DEFAULT. There is one
+             implementation and one parity table; the table lists the flag, and
+             the name is an entry point to it rather than a second code path,
+             which is what [cli.md](cli.md) T-0808 needs.
+             ⛔ **The collision rule, because `podvm --podbox-tier=chroot` is
+             otherwise undefined: the explicit flag wins over `argv[0]`, and
+             podbox states the tier it selected whenever the two disagree.**
+             The tier is not cosmetic. This entry's own `Approach` names
+             `--memory` as enforced by the machine tier and not by the chroot
+             tier, so a caller who cannot tell which tier ran cannot tell
+             whether a limit was honoured.
+             ⚠ **Neither shape alone survives this entry's own `Prove`**, which
+             asks that `podbox --help` AND `podvm --help` list one set of verbs
+             and that the parity experiment drive every row **from the flag**.
+             A name with no flag has nothing to drive; a flag with no name
+             leaves `podvm --help` unanswerable.
+             ⚠ **T-0803's refusal rule does not extend here.** That ruling is
+             about taking another tool's name where that tool works: `docker` is
+             refused where a daemon answers. `podvm` is podbox's own name, so
+             there is no foreign daemon to check for and no refusal to make.
+             The banner obligation is the tier, not the name.
+             ⚠ **The prefix is fixed by this decision** so an implementer does
+             not reopen it: `--podbox-` is a prefix neither docker nor podman
+             uses, which is the rule the `Approach` above already states.
              ⛔ **One thing IS settled, and it is about the escape hatch rather
              than the tier flag.** A machine tier needs a way to pass an
              argument straight to the emulator, and

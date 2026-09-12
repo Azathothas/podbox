@@ -495,45 +495,58 @@ Problem:     [RULES.md](RULES.md) section 5 says an entry closes in place with
              **Nothing asserts it.** `scripts/check-todo.py` checks the counts,
              the rows, the fields and every citation, and it does not check the
              one thing that makes a closed entry mean anything.
-Premise:     **Measured on 2026-09-11 across all 87 closed entries**, and the
-             number is small, which is the good news:
-             86 carry a record of the run. **One did not**: T-0408 in
-             [complete.md](complete.md) had a `Prove` line and nothing after it,
-             and it has been reopened.
+Premise:     **Measured by `experiments/156-closure-records.sh`, which is the
+             instrument and not a reader.** Re-run on 2026-09-12 at `6008985`:
+             131 entries, 85 closed, **85 carry a record of the run and 0 do
+             not**. The one entry that carried a `Prove` line and nothing after
+             it was T-0408 in [complete.md](complete.md), and it is reopened,
+             which is why the count of the unrecorded is now zero.
              **The harder half is that the record has two shapes**, and a
-             reader looking for one of them under-counts badly. 80 entries open
-             the record with a bold `Done` paragraph. Six record the run in
+             reader looking for one of them under-counts badly. 81 entries open
+             the record with a bold `Done` paragraph. **Four** record the run in
              prose after the `Prove` line instead, naming the test, the driven
-             command or the measured count: T-0801 in [cli.md](cli.md), T-0204
-             and T-0211 in [image.md](image.md), T-1103 in
-             [milestones.md](milestones.md), and T-0107 and T-0108 in
+             command or the measured count: T-0204 in [image.md](image.md),
+             T-1103 in [milestones.md](milestones.md), and T-0107 and T-0108 in
              [probe.md](probe.md).
+             ⚠ **T-0801 in [cli.md](cli.md) is not one of them**, and an earlier
+             reading of this said it was. Its record opens `**Done, 2026-09-09.**`,
+             which is the bold shape. T-0211 was in the prose set and is now
+             `partial`, so it is not a closed entry to convert.
              **Both shapes satisfy the rule as written.** Section 5 asks for
              the output recorded underneath and does not name a format. So the
-             defect is not in those six entries; it is that the rule is not
+             defect is not in those four entries; it is that the rule is not
              machine-checkable, and a rule nothing checks drifts.
              A first count of this got the answer badly wrong, which is the
              argument for a checked rule rather than a careful reader: a grep for
              the marker with a trailing space missed every record written
              `Done.` with no date, and reported 31 entries as unrecorded when the
              true number was one.
-Approach:    Fix the rule first, then check it. Give section 5 one stated shape
-             for the closure record, amend the six entries above into it in the
-             same change, and then add the check:
+Approach:    Fix the rule first, then check it. Give section 5 the one stated
+             shape the `Decision` names, amend the four prose entries into it in
+             the same change, and then add the check:
              1. every entry whose `Status` is `done` has content after its
                 `Prove` field;
-             2. that content names something checkable, which is at least one
-                backticked command, path or number;
+             2. that content opens with the bold `Done` marker, which is the
+                shape section 5 will state;
              3. the plant, in `scripts/plant.sh`: delete the record from one
                 closed entry and assert the gate goes red naming that entry.
              A check with no plant is not a check, and [T-1202](gate.md)
              is the rule that says so.
-Decision:    Not taken on the shape itself. Two are defensible: keep the bold
-             `Done` paragraph and convert the six, or accept any content after
-             `Prove` and check only that it exists and cites something.
-             The first is stricter and rewrites six entries that are not wrong;
-             the second checks less and rewrites nothing. Take one, record the
-             rejected one, and continue.
+Decision:    ⭐ **Taken on 2026-09-12: one shape, and it is the bold `Done`
+             paragraph.** A closed entry's record opens with `**Done` on the
+             first unindented line after `Prove`. The four prose entries are
+             converted in the same change as the check.
+             **The rejected option: accept any content after `Prove` and check
+             only that it exists and cites something backticked.** It rewrites
+             nothing, which is its whole appeal, and it fails the one test this
+             entry exists for. "Cites something checkable" is a judgement a
+             script has to approximate, so the check would pass a record that
+             carries one backticked word and no run at all, and the approximation
+             is a second rule nobody wrote down. A literal opening marker cannot
+             drift and cannot be argued with. 81 of 85 entries already write it.
+             ⚠ **The cost is stated rather than denied**: four entries that obey
+             the rule as written get rewritten, and their prose records were not
+             wrong when they were written.
              A date on the `Status` line is **not** part of this. 21 closed
              entries carry `done` with no date and 66 carry one; section 5 asks
              for neither, so making it a rule here would invent one.

@@ -6,6 +6,50 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-12T03:40:00Z: the store lock race is measured, and both candidate causes are refuted
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
+deployment.
+
+[`TODO/image.md`](TODO/image.md) T-0215 asked which of two mechanisms makes four
+store lock tests fail intermittently, and ordered the blast radius established
+before anything was changed. `experiments/153-store-lock-race.sh` is the
+measurement: one suite, one thing changed per clause, twelve runs each.
+
+⛔ **Both candidate mechanisms are refuted, and neither refutation rests on one
+pass.** A misdirected `close` would leave the lock's own description open: at
+every captured failure this process held no description on that inode, and a
+second `flock` attempt microseconds later succeeded. The fork-shed table is read
+only inside `clone_fork`, and with every forking test removed the failure still
+arrives at 3 and 4 of 20 in two passes. ⭐ **One test thread per binary is green
+in five passes**, so several threads in one process is a necessary condition,
+and the process that holds an image lock is measured single-threaded.
+
+⚠ **One control disagreed with itself and that is why every control is now taken
+twice.** At twelve runs the fork control read 3 and then 0: one pass refuting a
+mechanism and the next supporting it. At twenty runs, twice, it reads 3 and 4.
+The script reports a disagreement between its two passes as ruling nothing.
+
+⭐ **The failing set is six tests and not four**, and the two new ones are about
+the sweep rather than `in_use`. ⭐ **Every failure captured so far is in the safe
+direction**: a lock reads as held when nothing holds it. A wrong `false`, which
+is what would delete a running container's blobs, has never been observed.
+
+⚠ **The instrument ships with a positive control**, because an instrument that
+reports "nobody holds this" in every case is blind rather than right.
+`the_t_0215_instrument_sees_a_lock_that_is_held` holds the lock and asserts the
+instrument sees it.
+
+`scripts/windows/run-in-base.sh` gained two repairs the measurement needed: the
+live CodeGraph sidecars are excluded, because a file that grows during the
+workspace copy stops it with `archive/tar: write too long`, and a job can hand
+its evidence back through `/out`.
+
+Two decisions were taken that needed no operator:
+[`TODO/gate.md`](TODO/gate.md) T-1208 rules one shape for a closure record, and
+[`TODO/podvm.md`](TODO/podvm.md) T-1302 rules that `podvm` is both a flag and an
+argv0 alias, with the flag as the primitive.
+
 ### 2026-09-11T18:05:26Z: the references are mined, and two licence badges were wrong
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
