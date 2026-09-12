@@ -23,13 +23,17 @@ prints the diff. The command line above each clause's figures is still the
 authority on what they measured, and a mutating clause now prints the line it
 WROTE as well as the line it matched.
 
-⭐ **The next reading is the entry's `Approach` step 4c and it is cheap.**
-`free_now` already loops at the point of refusal; it has to read `/proc/locks`
-and every live child's `/proc/<pid>/fd` on each attempt and name the child that
-holds the descriptor. ⛔ **Wire it into the sweep tests first**: both captures
-where the kernel still listed a holder came from
-`opening_a_store_sweeps_what_a_killed_process_left`, which has no duration line,
-and `free_now` reaches the two `in_use` tests alone.
+⛔ **THE NEXT MOVE IS NOT ANOTHER SHED, and the entry says why.** Every fork in
+the process drains the shed table now and every lock is in it, and the failure
+still arrives at 4 of 20 twice. A shed runs in the child, so the window between
+the fork and the shed is the one thing it cannot close.
+
+⭐ **Two readings are named, in the entry's `Approach` steps 4c and 4e.** 4c is
+small: `free_now` reaches the two `in_use` tests alone, and both captures where
+the kernel still listed a holder came from
+`opening_a_store_sweeps_what_a_killed_process_left`, which has no duration line
+at all. 4e is a SECOND process sampling `/proc/locks` through the whole run,
+because the instrument in the failing thread arrives after the holder has gone.
 
 ## In flight
 

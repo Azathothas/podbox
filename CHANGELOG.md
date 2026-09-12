@@ -33,16 +33,22 @@ inventing a reference is what T-1209 refuses. Its line drives the static row
 instead, through podbox's own musl binary, and says so rather than pretending to
 cover both.
 
-### 2026-09-12T05:26:00Z: three fd mechanisms closed for the store lock race, and not one of them moved the rate
+### 2026-09-12T05:26:00Z: four fd mechanisms closed for the store lock race, and not one of them moved the rate
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
 deployment.
 
 [`TODO/image.md`](TODO/image.md) T-0215 had one candidate family left, and every
 member of it said the same thing: a forked child holds a copy of a lock fd and
-the `flock` outlives its holder. Three ways for that to happen were closed, one
-after another, and the subject stayed in its band of 2 to 11 failures per pass
-every time.
+the `flock` outlives its holder. Four ways for that to happen were closed, one
+after another, and the subject stayed inside its 20-run band of 5 to 12 every
+time.
+
+⛔ **The fourth ends the family, and clause 11 is how.** One fork in the suite
+was bare by design, and hooking it leaves every fork in the process draining the
+table with every lock in it. The failure stays. T-0215's `Premise` carries the
+figures and the reason a shed cannot go further, and the entry's `Approach` says
+the next move is not another shed.
 
 ⭐ **`Lock::try_acquire` registers every lock it builds.** It is the only place a
 `Lock` is made, so no caller is asked to remember, and eight of the nine
@@ -88,11 +94,12 @@ mutating clause prints the line it wrote as well as the line it matched: naming
 what was mutated and not what it became cannot be checked by a reader, which is
 the same defect as a label that outruns its command.
 
-⭐ **It also gained clause 9 and clause 10.** Clause 9 takes the spawn hook back
+⭐ **It also gained clauses 9, 10 and 11.** Clause 9 takes the spawn hook back
 out inside the script, so both legs of an A and B land in one file under one
 conditions block. Clause 10 measures no rate at all: it guts the hook and
 asserts the hook's own control goes RED, because a control nobody has seen fail
-is not a control.
+is not a control. Clause 11 hooks a spawn the tree must never hook, which is
+what a mutation is for.
 
 ⛔ **Stopping a job from Windows does not stop it in the guest.** A killed
 wrapper's container ran to completion nine minutes later and kept writing to the

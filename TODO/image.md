@@ -1211,26 +1211,27 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
 
              | the clause | failures, per pass |
              | --- | --- |
-             | 1. the suite as the gate runs it | 3, 10, 6, 4, 9, 3, 2, 4 of 12, and sixteen passes of 20 over eight tree states on 2026-09-12: 5, 6, 6, 6, 7, 7, 7, 7, 7, 8, 8, 9, 10, 11, 11, 12 |
+             | 1. the suite as the gate runs it | 3, 10, 6, 4, 9, 3, 2, 4 of 12, and twenty passes of 20 over ten tree states on 2026-09-12: 5, 5, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8, 8, 9, 10, 11, 11, 12 |
              | 2. one test thread per binary | ⭐ **0, 0, 0 of 12 and 0, 0 of 20** |
              | 3. two of store.rs's forks removed | 4, 1, 5 of 12 and 10, 5, 2, 2 of 20 |
-             | 4. the ONLY fork left is `clone_fork` | 1, 1 then 0, 0 then ⭐ **0, 0 of 20** |
-             | 5. the ONLY fork left is `Command::spawn` | 1, 0 then 1, 0 then ⛔ **2, 3 of 20** |
-             | 6. EVERY forking test removed | ⭐ **0, 0, 0, 0, 0, 0 of 20** |
+             | 4. the ONLY fork left is `clone_fork` | 1, 1 then 0, 0 then 0, 0 then ⭐ **0, 0 of 20** |
+             | 5. the ONLY fork left is `Command::spawn` | 1, 0 then 1, 0 then 2, 3 then 0, 2 of 20 |
+             | 6. EVERY forking test removed | ⭐ **0, 0 in each of four takings of 20** |
              | 7. every lock on `tmpfs` instead of `overlayfs` | 6, 10, 9, 7, 6, 8 of 20 |
-             | 8. the pre-registration window widened to 200 us | 3, 4 then 3, 4 then 1, 1 of 20 |
-             | 9. the libstd spawn hook taken back out | 10, 11 then 7, 8 of 20, against a subject of 7 and 8 in that run |
+             | 8. the pre-registration window widened to 200 us | 3, 4 then 3, 4 then 1, 1 then 4, 3 of 20 |
+             | 9. the libstd spawn hook taken back out | 10, 11 then 7, 8 then 9, 10 of 20, against subjects of 10 and 12, 7 and 8, and 5 and 6 |
              | 10. the hook gutted, and its own control asserted red | no rate: the control exits 101, so it is watching the hook |
+             | 11. the last bare spawn given the hook as well | 4, 4 then 6, 6 of 20, against subjects of 7 and 6, and 5 and 6 |
 
              ⛔ **THE SUBJECT'S OWN RATE IS UNSTABLE, and that governs how much
-             any control can carry.** Twenty-three passes over two days read
+             any control can carry.** Twenty-nine passes over two days read
              between **2 and 10 of 12** and between **5 and 12 of 20**, and the
              two denominators are kept apart because a range across both is a
              rate with no denominator at all. ⚠ The tree was not the same for
-             all sixteen of the 20-run passes, because each measured a candidate
-             closure; clauses 8, 9 and 10 are the states that matter and each
-             has its own row, taken in the same run as the subject it is read
-             against. ⚠ **A control
+             all twenty of the 20-run passes, because each measured a candidate
+             closure; clauses 8, 9, 10 and 11 are the states that matter and
+             each has its own row, taken in the same run as the subject it is
+             read against. ⚠ **A control
              taken once rules nothing here**, and clause 6 is the proof: at
              twelve runs it read 3 and then 0, which is one pass refuting a
              mechanism and the next supporting it. Every clause in the script is
@@ -1277,8 +1278,14 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
              `/bin/sh -c 'echo ready; sleep 2'`, which carries no shed hook ON
              PURPOSE because its own subject is `O_CLOEXEC`. Its child lives two
              seconds, and `O_CLOEXEC` takes the inherited fds away only at that
-             child's `execve`. ⚠ That is a candidate and not a measurement, and
-             `Approach` step 4d is the one line that would settle it.
+             child's `execve`, so for those two seconds it was the one fork in
+             the process that shed nothing.
+             ⛔ **CLAUSE 11 GAVE IT THE HOOK AND THE FAILURE STAYED**, at 4 and
+             4 of 20 against a subject of 7 and 6, and at 6 and 6 against 5 and
+             6 in the next taking. Level with the subject and nowhere near zero.
+             ⭐ **So every fork this process makes now drains the shed table,
+             every lock is in it, and the failure still arrives.** The
+             descriptor family is out of moves that a shed can make.
              ⭐ What the pair does support, read against clause 6's FOUR zeroes
              and not against clause 1: one surviving fork of either kind brings
              the failure back at least sometimes, so the mechanism is not
@@ -1330,7 +1337,17 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
                 follow: 3 and 4 of 20 against 11 and 6 in one run, and 3 and 4
                 against 10 and 12 in the next. A window that is the mechanism
                 gets worse when it is made longer.
-             ⛔ **And a fourth, from before this series: `Lock`'s `Drop` ignores
+             4. One fork in the process shed nothing at all, on purpose: the
+                bare `Command::spawn` in
+                `a_spawned_process_does_not_inherit_the_lock`, whose own subject
+                is whether `O_CLOEXEC` alone takes the fd away at the exec. Its
+                child lives two seconds.
+                ⛔ **Closed by clause 11 and the failure stayed**, at 4 and 4
+                of 20 against a subject of 7 and 6, and at 6 and 6 against 5 and
+                6. ⚠ The mutation lives in the script and never in the tree,
+                because shedding in that child is exactly what that test must
+                not do.
+             ⛔ **And a fifth, from before this series: `Lock`'s `Drop` ignores
              the result of `close`, so a descriptor closed twice would release
              somebody else's file.** Refuted twice over, and neither refutation
              is a rate. A `close` sent to the wrong descriptor would leave the
@@ -1431,21 +1448,26 @@ Approach:    ⛔ **Establish the blast radius before fixing anything.** The firs
                    reads only THIS process's descriptors, so a child holding an
                    inherited copy is the one thing the 50 ms capture points at
                    and the one thing the instrument cannot see;
-                d. ⭐ **ONE LINE, AND IT WOULD NAME THE MECHANISM OR REFUTE
-                   IT.** Clause 5's surviving spawn is the test's bare
-                   `/bin/sh -c 'echo ready; sleep 2'`. Give THAT spawn
-                   `sys::shed_after_fork` as a mutation clause and re-run the
-                   subject. If clause 1 collapses, the mechanism is the
-                   fork-to-exec window of a libstd spawn that nothing sheds, and
-                   the fix follows from it. ⛔ **The mutation stays in the
-                   script and never in the tree**, because shedding in that
-                   child is exactly what that test must NOT do: its subject is
-                   whether `O_CLOEXEC` alone takes the fd away at the exec;
-                e. only if the above do not settle it: sample `/proc/locks` from
-                   a SECOND process through the whole run, so a holder that
-                   lives for microseconds is caught while it lives. ⛔ The
+                d. ✅ **Done, and it is the last thing shedding can test.**
+                   Clause 11 gave the test's own bare spawn the hook, so every
+                   fork in the process drained the table, and the failure stayed
+                   at 4 and 4 of 20 and then at 6 and 6. ⛔ **SHEDDING CANNOT
+                   CLOSE THE WINDOW BETWEEN THE `fork` AND THE SHED**, because
+                   the shed runs in the child and the child has to be scheduled
+                   to run it. Every
+                   closure this session made is a shed, so the family is not
+                   refuted; it is at the limit of what a shed can rule on;
+                e. ⭐ **SO THE NEXT MOVE IS NOT ANOTHER SHED.** Two shapes are
+                   left and each answers the residual window directly. The
+                   cheaper: sample `/proc/locks` from a SECOND process through
+                   the whole run, so a holder that lives for microseconds is
+                   caught while it lives, and read which pid holds it. ⛔ The
                    instrument in the failing thread cannot do that on its own,
-                   which is why the short captures mostly answer "nobody".
+                   which is why the short captures mostly answer "nobody". The
+                   heavier: stop a fork happening at all while a lock fd is
+                   open, with a gate that `clone_fork` and every spawn take,
+                   which is a design change and needs its own entry rather than
+                   a clause.
 Decision:    ⭐ **Taken in part on 2026-09-12, and only the part the measurement
              supports.**
              ⛔ **No change to `Lock::drop`'s `close`**, which is refuted by

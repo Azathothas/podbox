@@ -64,11 +64,16 @@ publish branch is the fallback if protection is ever restored.
 
 ## What the last session did
 
-⛔ **THREE WAYS FOR A FORK TO CARRY A LOCK AWAY WERE CLOSED, AND THE STORE LOCK
+⛔ **FOUR WAYS FOR A FORK TO CARRY A LOCK AWAY WERE CLOSED, AND THE STORE LOCK
 RACE DID NOT MOVE.** [T-0215](image.md) had one candidate family left and its
 `Premise` names each member and what took it away. The subject stayed inside
-its 20-run band of 5 to 12 through all three closures, and
+its 20-run band of 5 to 12 through all four, and
 `experiments/results/store-lock-race.txt` carries every clause in one run.
+⭐ **The fourth ends the family**: every fork in the process drains the shed
+table now, every lock is in it, and the failure still arrives. A shed runs in
+the child and the child has to be scheduled to run it, so the window between the
+fork and the shed is the one thing a shed cannot close. The entry says the next
+move is not another shed.
 
 ⭐ **The two closures that are KEPT are kept on an invariant, not on a
 measurement, and the entry says so in those words.** `Lock::try_acquire`
@@ -126,14 +131,16 @@ run was read beside the tail of the other.
 
 ## Current work order
 
-1. [T-0215](image.md): **name the holder.** ⛔ Still P0 and still open. What is
-   measured: several threads in one process ARE necessary, a concurrent fork IS
-   necessary, the filesystem is not the cause, and every mechanism about an
-   inherited descriptor has now been closed without the rate moving. ⭐ The
-   entry's `Approach` step 4c is the next reading and the two kernel captures
-   are what make it cheap: `free_now` already loops at the point of refusal, so
-   it reads `/proc/locks` and every live child's `/proc/<pid>/fd` on EACH
-   attempt and names the child that has the descriptor.
+1. [T-0215](image.md): **name the holder, and not with another shed.** ⛔ Still
+   P0 and still open. What is measured: several threads in one process ARE
+   necessary, a concurrent fork IS necessary, the filesystem is not the cause,
+   and every mechanism about an inherited descriptor has been closed without the
+   rate moving. ⭐ Two readings are named and the entry's `Approach` step 4e
+   holds both. The cheaper is a SECOND process sampling `/proc/locks` through
+   the run, because the instrument in the failing thread arrives after the
+   holder. ⚠ Step 4c comes first and it is small: `free_now` reaches the two
+   `in_use` tests alone, and both captures where the kernel still listed a
+   holder came from a SWEEP test that has no duration line at all.
 2. [T-0702](interpose.md): **the placement half.** The embedding is built and
    the entry is `partial`. What is left is this: write the selected object
    INSIDE the rootfs before the chroot, and set `LD_PRELOAD` to the path the

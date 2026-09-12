@@ -29,6 +29,7 @@
 #   8. the pre-registration window widened              makes one candidate window bigger
 #   9. podbox's own spawn no longer sheds                puts one fd closure back as it was
 #  10. the hook gutted, and its control asserted red   the control's own plant, and no rate
+#  11. the test's own bare spawn given the hook       the last unshed fork in the process
 #
 # ⚠ CLAUSE 7 WAS BUILT FOR ONE IDEA AND HAS ALREADY RULED IT OUT. A refusal
 # that clears at once with no holder anywhere the kernel reports one is what a
@@ -439,6 +440,7 @@ for c in $CLAUSES; do
 		# ⚠ A plant is deterministic, so one pass is the whole of it. Every
 		# clause that measures a RATE is taken twice; this one measures none.
 		10) [ "$p" = A ] && plant_the_hook_control A ;;
+		11) mutate_and_measure 11 "$p" "the bare spawn in the test given the hook too" "crates/podbox-image/src/store.rs" '        let mut child = std::process::Command::new("/bin/sh")' replace '        let mut child = sys::shed_after_fork(&mut std::process::Command::new("/bin/sh"))' ;;
 		0) [ "$p" = A ] && instrument_control ;;
 		*)
 			if [ "$p" = A ]; then
