@@ -84,7 +84,7 @@ the blocker named and what would clear it.
 | [T-0208](image.md) | P2 | image | open | `--platform`, and a store that can hold two variants of one tag |
 | [T-0209](image.md) | P2 | image | open | Registry authentication, without a credential ever entering this tree |
 | [T-0210](image.md) | P1 | image | done | The store's concurrency contract, written down and driven |
-| [T-0211](image.md) | P1 | image | partial | An image lock outlives its holder whenever anything forks |
+| [T-0211](image.md) | P1 | image | done | An image lock outlives its holder whenever anything forks |
 | [T-0212](image.md) | P0 | image | done | The platform is decided at run time, and the store holds more than one |
 | [T-0213](image.md) | P0 | image | done | A registry with no certificate, or one nothing trusts, and the refusal kept |
 | [T-0214](image.md) | P2 | image | done | A blob body cut off mid-stream is not retried, and the bounded retry is around the wrong thing |
@@ -195,7 +195,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-131 items: 42 open, 4 partial, 0 blocked, 85 done.
+131 items: 42 open, 3 partial, 0 blocked, 86 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -204,10 +204,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 7 | 1 | 0 | 44 | 52 |
-| P1 | 21 | 3 | 0 | 31 | 55 |
+| P1 | 21 | 2 | 0 | 32 | 55 |
 | P2 | 10 | 0 | 0 | 9 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **42** | **4** | **0** | **85** | **131** |
+| **All** | **42** | **3** | **0** | **86** | **131** |
 
 ## How the current ordering is derived
 

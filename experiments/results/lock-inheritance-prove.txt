@@ -1,0 +1,24 @@
+== conditions
+date              2026-09-12T03:29:05Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+nproc             20
+cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
+commit            17a022f
+attempts          30 per test
+
+== clause 1  each test alone, 30 attempts each
+  a_fork_while_the_lock_is_held_does_not_extend_it
+    passed           30 of 30
+  a_spawned_process_does_not_inherit_the_lock
+    passed           30 of 30
+
+== clause 2  the fork defence removed from Store::hold
+  a_fork_while_the_lock_is_held_does_not_extend_it exited 101  (want non-zero)
+  a_spawned_process_does_not_inherit_the_lock exited 0  (want 0)
+
+== clause 3  O_CLOEXEC removed from Lock::open
+  a_spawned_process_does_not_inherit_the_lock exited 101  (want non-zero)
+  a_fork_while_the_lock_is_held_does_not_extend_it exited 0  (want 0)
+
+== the tree afterwards
+  crates/podbox-image/src/store.rs is back as it was

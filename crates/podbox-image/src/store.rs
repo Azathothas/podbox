@@ -1182,6 +1182,39 @@ mod tests {
             }
         }
 
+        // ⭐ **The children, because a `/proc/locks` row naming THIS pid while
+        // this process holds no description on the inode is the signature of a
+        // child that inherited one.** There is one lock record per open file
+        // description and it keeps the pid that took it, so a child holding the
+        // inherited copy still reads as its parent. Naming the children is what
+        // tells that apart from a lock this process really holds.
+        //
+        // ⛔ **THIS HALF HAS NO POSITIVE CONTROL AND CANNOT HAVE ONE HERE.**
+        // `children` needs `CONFIG_PROC_CHILDREN`, and where the kernel does
+        // not carry it this reads "none" for a process that has children. The
+        // control would be a test that forks and asserts the fork is seen,
+        // which would add a fork to this binary and so to
+        // `experiments/153-store-lock-race.sh`'s fork control, which must have
+        // none. ⚠ So "none" here means "none found", and a reader chasing a
+        // holder confirms it from outside the process.
+        out.push_str("\n  this process's children:");
+        let mut kids = 0;
+        if let Ok(tasks) = std::fs::read_dir("/proc/self/task") {
+            for t in tasks.flatten() {
+                if let Ok(list) = std::fs::read_to_string(t.path().join("children")) {
+                    for pid in list.split_whitespace() {
+                        kids += 1;
+                        let cmd = std::fs::read_to_string(format!("/proc/{pid}/comm"))
+                            .unwrap_or_else(|_| "gone\n".into());
+                        out.push_str(&format!("\n    pid {pid} ({})", cmd.trim()));
+                    }
+                }
+            }
+        }
+        if kids == 0 {
+            out.push_str(" none");
+        }
+
         // ⚠ **The one active line in this instrument, and the only question the
         // two passive readings cannot answer: is the refusal still true?** It
         // takes the lock and drops it at once. ⛔ It is the same call `in_use`

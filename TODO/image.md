@@ -703,7 +703,7 @@ Source:      Found by `cargo test --workspace` failing intermittently at the clo
 Category:    image
 Priority:    P1
 Effort:      S
-Status:      partial 2026-09-09
+Status:      done 2026-09-12
 
 Problem:     `Store::hold` opens the image lock **without** `O_CLOEXEC`, which
              is [T-0204](image.md)'s mechanism and is right: the guard has to
@@ -805,35 +805,30 @@ Decision:    Fix the inheritance, not the test. Marking the test `#[serial]` or
              child, a line of stdout from the spawned one, and not on a delay.
 Prove:       `cargo test -p podbox-image a_fork_while_the_lock_is_held_does_not_extend_it` and `cargo test -p podbox-image a_spawned_process_does_not_inherit_the_lock` both pass; the first fails with the `sys::close_in_children` registration removed from `Store::hold` and the second with `O_CLOEXEC` removed from `Lock::open`, and neither mutation fails both
 
----
+**Done, 2026-09-12.** `./experiments/157-lock-inheritance-prove.sh` with
+`PODBOX_PROVE_RUNS=30`, recorded in
+`experiments/results/lock-inheritance-prove.txt`. ⛔ **A pass count out of
+stated attempts, because one green run is what this entry was reopened for.**
 
-Status note: **Moved from `done` to `partial` on 2026-09-11 by reconciliation,
-             and the reason is a contradiction inside this file.**
-             Two things were found together and either alone would be minor.
-             1. The entry records **no run**. It carries a `Prove` line and
-                nothing after it, where [RULES.md](RULES.md) section 5 asks for
-                the command actually run and the output recorded underneath.
-                `experiments/156-closure-records.sh` is what found it, and it
-                was the only closed entry in the tree in that state.
-             2. **Both tests its `Prove` names are in [T-0215](image.md)'s
-                measured-intermittent set.**
-                `a_fork_while_the_lock_is_held_does_not_extend_it` and
-                `a_spawned_process_does_not_inherit_the_lock` are two of the
-                four store lock tests that failed **5 of 12**
-                `cargo test --workspace` runs on 2026-09-11. So the evidence
-                this entry would have recorded is evidence
-                [T-0215](image.md) has already shown is not reliable.
-             **The implementation is not in doubt**, which is why this is
-             `partial` and not `open`. `sys::close_in_children`, the
-             `FORK_CLOSE` slot table and the `O_CLOEXEC` on `Lock::open` are in
-             the tree and the mutations named above are real. What is missing is
-             a sound closing measurement.
-             **What closes it:** [T-0215](image.md) first, because until the
-             race is understood a green run of these two tests is a coin toss
-             rather than a proof. Then run the `Prove` above **in a loop**, and
-             record the pass count out of the attempts rather than a single
-             green, which is exactly the mistake the baseline in
-             [PROGRESS.md](PROGRESS.md) already records against this suite.
+| what was run | result |
+| --- | --- |
+| `a_fork_while_the_lock_is_held_does_not_extend_it`, alone, 30 attempts | **30 of 30** |
+| `a_spawned_process_does_not_inherit_the_lock`, alone, 30 attempts | **30 of 30** |
+| the fork defence removed from `Store::hold` | the fork test exits 101, the exec test exits 0 |
+| `O_CLOEXEC` removed from `Lock::open` | the exec test exits 101, the fork test exits 0 |
+
+⭐ **Each mutation reddens exactly one test, which is what makes the two
+defences independent rather than one mechanism written twice.** The script
+asserts the mutation landed before it reads either test, so a pattern that
+matched nothing cannot read as a defence that held, and it restores the file
+from a copy rather than with `git checkout --`.
+
+⚠ **Each test is run ALONE, in its own process, which is the shape the `Prove`
+names.** [T-0215](image.md) measured that several threads in one process are a
+necessary condition for the suite's intermittency, so running these two tests
+one per process removes that condition by construction. ⛔ **This entry is
+therefore closed and the suite is still red.** T-0215 owns that, and a green
+`cargo test --workspace` is not evidence either entry rests on.
 
 ### T-0212 The platform is decided at run time, and the store holds more than one
 
@@ -1214,10 +1209,16 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
 
              | the clause | failures, per pass |
              | --- | --- |
-             | 1. the suite as the gate runs it | 3, 10, 6, 4, 9, 3 of 12 |
+             | 1. the suite as the gate runs it | 3, 10, 6, 4, 9, 3, 2 of 12 |
              | 2. one test thread per binary | ⭐ **0, 0, 0 of 12 and 0, 0 of 20** |
-             | 3. two of store.rs's forks removed | 4, 1, 5 of 12 |
-             | 6. every forking test removed | 3, 0 of 12 and **3, 4 of 20** |
+             | 3. two of store.rs's forks removed | 4, 1, 5 of 12 and 10, 5 of 20 |
+             | 6. EVERY forking test removed | **2, 5 of 20** |
+             | 7. every lock on `tmpfs` instead of `overlayfs` | 6, 10 of 20 and 9, 7 of 20 |
+
+             ⚠ **Clause 6's row is the run whose skip list names all four
+             forking paths.** Two earlier readings, 3 and 0 of 12 and then 3 and
+             4 of 20, were taken with a fork still in the run and are not
+             evidence about forking. The correction is below.
 
              ⛔ **THE SUBJECT'S OWN RATE IS UNSTABLE, and that governs how much
              any control can carry.** Seven passes over two days read 5, 3, 10,
@@ -1227,22 +1228,36 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
              At twenty runs, twice, it reads 3 and 4. Every control in the
              script is now taken twice and a disagreement is reported as ruling
              nothing.
-             ⚠ **Clause 3 is not the fork control**, and reading it as one was
-             this script's own first mistake. `probe_cache` is a module of
-             `podbox-image`, so its tests fork inside the same process; skipping
-             store.rs's own two forking tests leaves that forking in place.
-             Clause 6 is the clause that removes it.
+             ⛔ **THE FORK CONTROL WAS WRONG TWICE, AND BOTH TIMES BECAUSE ITS
+             SKIP LIST WAS SHORT OF WHAT THE CODE DOES.** Clause 3 skips
+             store.rs's own two forking tests and was read as "no fork"; but
+             `probe_cache` is a module of `podbox-image`, so its tests fork in
+             the same process. Clause 6 then added `probe_cache::` and was still
+             one short: `pull` calls `probe_cache::resolve` once it is past the
+             transport policy, so `naming_the_registry_insecure_gets_past_the_policy`
+             forks under a name that says nothing about forking.
+             ⚠ **A skip list is a claim about the code, and it is checked by
+             reading the code rather than the test names.** The four paths to a
+             fork in this binary, as of 2026-09-12, are `clone_fork` and
+             `Command::spawn` in `crates/podbox-image/src/store.rs`, and
+             `podbox_probe::run` reached through `probe_cache::measure` from the
+             `probe_cache` tests and from `crates/podbox-image/src/pull.rs`.
+             ⭐ **With all four skipped, the failure still arrives at 2 and 5 of
+             20**, so a concurrent fork is NOT a necessary condition. ⚠ Whether
+             removing the forks changes the RATE is not answerable at this
+             sample size, and no claim is made about it.
 
-             ⛔ **BOTH CANDIDATE MECHANISMS ARE REFUTED, and neither refutation
-             rests on a single pass.**
+             ⛔ **BOTH CANDIDATE MECHANISMS ARE REFUTED**, one by a control
+             taken twice and one by an observation taken at every failure.
              1. `crates/podbox-probe/src/sys.rs` holds `FORK_CLOSE`, a
                 PROCESS-GLOBAL array of sixteen slots naming fds to shed in a
                 forked child. `stop_closing_in_children` clears EVERY slot
                 holding a given fd NUMBER, and an fd number is reused the moment
-                it is closed. ⛔ **Refuted by clause 6 at twenty runs a pass,
-                twice.** That table is read only inside `clone_fork`, so a run
-                with no fork in it cannot consult it, and the failure still
-                arrives at 3 and 4 of 20.
+                it is closed. ⛔ **Refuted by clause 6 once its skip list
+                named all four forking paths, in two passes of 20.** That table
+                is read only inside `clone_fork`, so a run with no fork in it
+                never consults it, and the failure still arrives at 2 and 5 of
+                20.
              2. `Lock` manages a raw fd by hand and its `Drop` ignores the
                 result of `close`. A descriptor closed twice makes a later
                 `close` release somebody else's file. ⛔ **Refuted twice over,
@@ -1269,12 +1284,33 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
              "nobody" in every case, including one where a holder is known to
              exist, is blind rather than right, and that is the reading this
              clause exists to rule out.
-             ⛔ **So the refusal outlives nothing.** `flock(LOCK_EX|LOCK_NB)`
-             answered `EWOULDBLOCK`, and microseconds later no holder existed
-             anywhere the kernel reports one: the instrument's own second
-             attempt **succeeded in every captured failure**. Whatever holds
-             the lock holds it for less time than it takes to panic, which is
-             why it cannot be named from inside the failing thread.
+             ⭐ **TWO SIGNATURES, AND THE SECOND ONE NAMES A HOLDER.** Most
+             captured failures show nothing: `flock(LOCK_EX|LOCK_NB)` answered
+             `EWOULDBLOCK`, and a moment later the instrument's second attempt
+             **succeeded**, so the holder was already gone.
+             ⛔ **One capture is different and it is the useful one.** On
+             2026-09-12, in clause 1 of the clause 7 run, a staging lock
+             answered held and the kernel table agreed:
+
+             ```text
+             path   /tmp/podbox-store-7011-openswp/staging/abandoned.7011.7.partial
+             this process's descriptions on it: none
+             /proc/locks:  5: FLOCK  ADVISORY  WRITE 7011 00:29:106354 0 EOF
+             a second attempt was refused as well
+             ```
+
+             ⚠ **`7011` is the test process itself, and that process holds no
+             descriptor on the inode.** There is one lock record per open file
+             description and it keeps the pid that took it, so a CHILD holding
+             an inherited copy still reads as its parent. ⛔ **That reading is
+             not yet confirmed against a live child**, which is why the
+             instrument now also lists this process's children: a named child
+             at the moment of failure turns the reading into a measurement.
+             ⚠ Note which lock it was: a `*.partial` staging lock.
+             `StagedFile::create` takes it through `Lock::try_acquire` and
+             **never registers it with `sys::close_in_children`**, so a fork
+             sheds `Store::hold`'s lock and not this one. ⛔ That is a
+             difference in the code, not yet a proved cause.
 Approach:    ⛔ **Establish the blast radius before fixing anything.** The first
              question is not how to fix it; it is whether a single-threaded
              podbox process can reach it at all. A race that only a test harness
@@ -1286,8 +1322,11 @@ Approach:    ⛔ **Establish the blast radius before fixing anything.** The firs
                 `experiments/153-store-lock-race.sh` and
                 `experiments/results/store-lock-race.txt`.
              2. ✅ **Done, and the answer is that neither mechanism is live.**
-                Both refutations are in the `Premise` above, each with the
-                clause and the pass counts that produced it.
+                Both refutations are in the `Premise` above, each with what
+                produced it. ⚠ It took three readings of clause 6 to get there,
+                twice because its skip list was short of the code, and the
+                entry keeps that so the next control is derived from the call
+                graph rather than from test names.
              3. ⚠ Whatever the cause, the gate is the second finding: CI ran
                 `cargo test --workspace` and reported green, so a check that
                 fails two runs in five has been reporting success. A single run
@@ -1297,23 +1336,36 @@ Approach:    ⛔ **Establish the blast radius before fixing anything.** The firs
                 each test owns its own store root, and the holder is gone before
                 the failing thread can look. Two measurements are named and
                 clause 7 is the first of them:
-                a. clause 7 moves every lock to a second filesystem through
-                   `TMPDIR` and changes nothing else. ⚠ **A HYPOTHESIS AND NOT A
-                   FINDING**: a refusal that clears at once with no holder
-                   anywhere is what a release completing late would look like,
-                   and the store's locks live on this container's `/tmp`. If the
-                   two filesystems agree, the idea is ruled out, which is worth
-                   the same;
-                b. sample `/proc/locks` from a SECOND process through the whole
-                   run, so a holder that lives for microseconds is caught while
-                   it lives rather than after it has gone. ⛔ The instrument in
-                   the failing thread cannot do this, and that is why it answers
-                   "nobody".
+                a. ✅ **Clause 7 ruled the filesystem out.** It moved every lock
+                   from this container's `overlayfs` `/tmp` to a `tmpfs` through
+                   `TMPDIR` and changed nothing else. The failure arrived at
+                   **6 and 10 of 20**, and at **9 and 7 of 20** on a second
+                   taking, so a release completing late on one filesystem is not
+                   the cause. ⭐ A negative result, and it costs the next
+                   session the run it would have made;
+                b. ⛔ **STILL TO DO.** Sample `/proc/locks` and the process
+                   table from a SECOND process through the whole run, so a
+                   holder that lives for microseconds is caught while it lives.
+                   The instrument in the failing thread cannot do this, and the
+                   one capture that did catch a row is why it is worth doing:
+                   one sample of the kernel table at the right instant named a
+                   pid, and a sampler would name it every time;
+                c. then decide whether `StagedFile::create`'s lock, and the
+                   seven other `Lock` sites that take no `close_in_children`
+                   registration, are a defect in the product or only in the
+                   suite's process shape. ⚠ `Store::hold` is the ONLY one of
+                   the **nine** `Lock` construction sites in this tree that
+                   registers: seven in `crates/podbox-image/src/store.rs` and
+                   two in `crates/podbox-supervise/`.
 Decision:    ⭐ **Taken in part on 2026-09-12, and only the part the measurement
              supports.**
-             ⛔ **The fix does not go where either candidate mechanism said.** A
-             change to `FORK_CLOSE` or to `Lock::drop`'s `close` would be a
-             change made against a story two agreeing passes have refused.
+             ⛔ **The fix goes to neither candidate.** `Lock::drop`'s `close`
+             is refuted by observation, because the description it would leave
+             open is not there, and `FORK_CLOSE` is refuted by a fork-free run
+             that still fails. ⚠ **The one capture that named a holder points
+             somewhere else**: a `*.partial` staging lock, at a site that takes
+             no `close_in_children` registration at all. That is a lead and not
+             a cause, and step 4 is how it gets settled.
              ⭐ **The blast radius is settled: the product, as measured, cannot
              reach this.** Several threads in ONE process are a necessary
              condition, clause 2 at 0 of 12, and the process that holds an image
@@ -1321,8 +1373,8 @@ Decision:    ⭐ **Taken in part on 2026-09-12, and only the part the measuremen
              `experiments/results/lifecycle-loop.txt` reads the launcher's own
              `/proc/<pid>/task` and reports **1 thread**, and
              `nothing_on_the_spawn_path_can_spawn_a_thread` in
-             `crates/podbox-supervise/src/launcher.rs` refuses a
-             thread-spawning call on that path at compile-time review. ⚠ **That
+             `crates/podbox-supervise/src/launcher.rs` reads that crate's own
+             sources at test time and refuses a thread-spawning line. ⚠ **That
              is a blast radius and not an acquittal**: a single-threaded process
              cannot reach a race that needs two threads, and it says nothing
              about `flock` answering `EWOULDBLOCK` with no holder, which is what

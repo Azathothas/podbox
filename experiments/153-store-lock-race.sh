@@ -3,8 +3,10 @@
 # test harness that runs many threads inside one process?
 #
 # TODO/image.md T-0215. The measurement that opened it is the first clause here:
-# `cargo test --workspace` failed 5 of 12 runs on 2026-09-11, across four store
-# lock tests, while the same tests alone passed 30 of 30.
+# `cargo test --workspace` failed 5 of 12 runs on 2026-09-11, and that entry now
+# names six store lock tests rather than the four it opened with. ⚠ The counts
+# live in the entry and not in this comment, because a number written into a
+# script goes stale the next time the script runs.
 #
 # ⛔ THE ANSWER DECIDES WHERE THE FIX GOES, so this script measures before
 # anything is changed. A race that only many threads in one process can produce
@@ -22,25 +24,34 @@
 #   3. neither of store.rs's two forking tests          removes TWO forks, not every one
 #   4. the clone_fork forker alone                      keeps the shedding fork
 #   5. the Command::spawn forker alone                  keeps the fork-then-exec window
-#   6. clause 3 and probe_cache's tests as well         removes every fork this binary makes
+#   6. clause 3, probe_cache and pull's forker as well  removes every fork this binary makes
 #   7. the same suite on a second filesystem            changes where the locks live
 #
-# ⚠ CLAUSE 7 TESTS A HYPOTHESIS AND NOTHING IN THIS TREE SUPPORTS IT YET.
-# Every captured failure clears microseconds later with no holder anywhere the
-# kernel reports one, which is what a release that completes late would look
-# like. `scratch` in the store's tests resolves its directory through
-# `std::env::temp_dir()`, so `TMPDIR` moves every lock to another filesystem
-# and changes nothing else. ⛔ If the two filesystems disagree the cause is
-# below podbox; if they agree, this clause has ruled the idea out, which is
-# worth the same.
+# ⚠ CLAUSE 7 WAS BUILT FOR ONE IDEA AND HAS ALREADY RULED IT OUT. A refusal
+# that clears at once with no holder anywhere the kernel reports one is what a
+# release completing late would look like, so the clause moves every lock to
+# another filesystem and changes nothing else: `scratch` in the store's tests
+# resolves its directory through `std::env::temp_dir()`, which `TMPDIR` moves.
+# ⛔ T-0215 carries what it found. The clause stays because a filesystem is
+# worth re-varying on any host where this race is chased again.
 #
 # ⛔ CLAUSE 3 IS NOT THE FORK CONTROL AND CLAUSE 6 IS. `probe_cache` is a module
 # of `podbox-image`, so its tests run in the SAME process as the store tests,
 # and `resolve` calls `measure`, which runs the probe as one freshly forked
 # child per probe. Skipping store.rs's own two forking tests therefore leaves
-# the forking that TODO/image.md T-0211 names in place. Reading clause 3 as
-# "no fork" was this script's own first mistake and the comment stays so nobody
-# makes it twice.
+# the forking that TODO/image.md T-0211 names in place.
+#
+# ⛔ THE FORK CONTROL WAS WRONG TWICE AND THE SKIP LIST IS WHY THIS COMMENT IS
+# LONG. First it skipped two tests and was read as skipping every fork.
+# Then it added `probe_cache::` and was still short one: `pull` calls
+# `probe_cache::resolve` once it is past the transport policy, so
+# `naming_the_registry_insecure_gets_past_the_policy` forks under a name that
+# says nothing about forking. ⚠ A SKIP LIST IS A CLAIM ABOUT THE CODE AND IT IS
+# CHECKED BY READING THE CODE, not by the names of the tests. The four
+# names below are every path to a fork in this binary as of 2026-09-12:
+# `clone_fork` in store.rs, `Command::spawn` in store.rs, and
+# `podbox_probe::run` reached through `probe_cache::measure` from the
+# `probe_cache` tests and from `pull`.
 #
 # ⚠ THE PRODUCT SHAPE IS NOT MEASURED AGAIN HERE. The process that holds an
 # image lock for a container's life is the detached launcher, and
@@ -77,6 +88,12 @@ FORKER_SPAWN="a_spawned_process_does_not_inherit_the_lock"
 # ⚠ The module, not one test. Every `probe_cache` test calls `resolve`, and a
 # cache miss there runs the probe, which forks.
 FORKER_PROBE="probe_cache::"
+# ⛔ AND THIS ONE, WHICH IS WHY CLAUSE 6 WAS WRONG TWICE. `pull` calls
+# `probe_cache::resolve` once it is past the transport policy, so the test that
+# gets past that policy forks, and its name carries no hint of it. The other
+# `pull` test is refused before that line and forks nothing.
+# `crates/podbox-image/src/pull.rs` is where the order is visible.
+FORKER_PULL="naming_the_registry_insecure_gets_past_the_policy"
 
 command -v cargo >/dev/null 2>&1 || {
 	echo "SKIP: no cargo on PATH. This measurement is the workspace test suite." >&2
@@ -268,9 +285,9 @@ for c in $CLAUSES; do
 			"$CONTROL_RUNS" --skip "$FORKER_SPAWN" ;;
 		5) measure 5 "$p" "the spawning forker kept, the clone_fork one skipped" \
 			"$CONTROL_RUNS" --skip "$FORKER_CLONE" ;;
-		6) measure 6 "$p" "probe_cache skipped as well. THE FORK CONTROL" \
+		6) measure 6 "$p" "every forking test skipped. THE FORK CONTROL" \
 			"$CONTROL_RUNS" --skip "$FORKER_CLONE" --skip "$FORKER_SPAWN" \
-			--skip "$FORKER_PROBE" ;;
+			--skip "$FORKER_PROBE" --skip "$FORKER_PULL" ;;
 		7) second_filesystem "$p" ;;
 		0) [ "$p" = A ] && instrument_control ;;
 		*)

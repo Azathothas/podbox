@@ -6,7 +6,39 @@ under Unreleased.
 
 ## Unreleased
 
-### 2026-09-12T03:40:00Z: the store lock race is measured, and both candidate causes are refuted
+### 2026-09-12T03:44:30Z: T-0211 closes on a pass count, and the fork control was short of the code
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
+deployment.
+
+[`TODO/image.md`](TODO/image.md) T-0211 was reopened for recording no run at
+all, and its two tests live in the suite T-0215 measures as intermittent.
+`experiments/157-lock-inheritance-prove.sh` is its closing measurement: each
+test alone, **30 attempts, 30 of 30**, and each of the two mutations reddens
+exactly one of them, which is what makes the fork defence and the exec defence
+independent. The script asserts a mutation landed before it reads either test,
+and it restores the file from a copy rather than with `git checkout --`.
+
+⛔ **T-0215's fork control was short of the code twice, and the second time
+changed the answer.** `pull` calls `probe_cache::resolve` once it is past the
+transport policy, so one `pull` test forks under a name that says nothing about
+forking. With all four of the binary's forking paths skipped the failure still
+arrives at **2 and 5 of 20**, so a concurrent fork is not a necessary condition
+and the fork-shed table is refuted after all.
+
+⭐ **The filesystem is ruled out.** Clause 7 moves every lock from this
+container's `overlayfs` to a `tmpfs` through `TMPDIR` and changes nothing else.
+The failure arrives at 6 and 10 of 20, and again at 9 and 7 of 20. A negative
+result, and it saves the next session the run.
+
+⚠ **One capture names a holder and it is the session's best lead.** A staging
+lock read as held with no descriptor in this process and a `/proc/locks` row
+carrying this process's own pid, which is what a child holding an inherited
+description looks like. `StagedFile::create` takes that lock and never registers
+it for shedding; `Store::hold` is the only one of the nine `Lock` sites in the
+tree that does. ⛔ Recorded as a lead, not as a cause.
+
+### 2026-09-12T03:25:36Z: the store lock race is measured, and both candidate causes are refuted
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
 deployment.
@@ -14,21 +46,25 @@ deployment.
 [`TODO/image.md`](TODO/image.md) T-0215 asked which of two mechanisms makes four
 store lock tests fail intermittently, and ordered the blast radius established
 before anything was changed. `experiments/153-store-lock-race.sh` is the
-measurement: one suite, one thing changed per clause, twelve runs each.
+measurement: one suite, one thing changed per clause, and every control taken
+twice.
 
-⛔ **Both candidate mechanisms are refuted, and neither refutation rests on one
-pass.** A misdirected `close` would leave the lock's own description open: at
-every captured failure this process held no description on that inode, and a
-second `flock` attempt microseconds later succeeded. The fork-shed table is read
-only inside `clone_fork`, and with every forking test removed the failure still
-arrives at 3 and 4 of 20 in two passes. ⭐ **One test thread per binary is green
-in five passes**, so several threads in one process is a necessary condition,
-and the process that holds an image lock is measured single-threaded.
+⛔ **Both candidate mechanisms are refuted.** A misdirected `close` would leave
+the lock's own description open: at every captured failure this process held no
+description on that inode, and a second `flock` attempt microseconds later
+succeeded. The fork-shed table is read only inside `clone_fork`, and with every
+one of this binary's four forking paths removed the failure still arrives at 2
+and 5 of 20. ⭐ **One test thread per binary is green in five passes**, so
+several threads in one process is a necessary condition, and the process that
+holds an image lock is measured single-threaded.
 
-⚠ **One control disagreed with itself and that is why every control is now taken
-twice.** At twelve runs the fork control read 3 and then 0: one pass refuting a
-mechanism and the next supporting it. At twenty runs, twice, it reads 3 and 4.
-The script reports a disagreement between its two passes as ruling nothing.
+⚠ **Two lessons about controls, both paid for in this session.** A control that
+disagrees with itself rules nothing: at twelve runs the fork control read 3 and
+then 0. And a control's skip list is a claim about the code: that list was short
+twice, the second time because `pull` forks through `probe_cache::resolve` once
+it is past the transport policy, under a test name that says nothing about
+forking. Every control is now taken twice, and the skip list is derived from the
+call graph rather than from the names.
 
 ⭐ **The failing set is six tests and not four**, and the two new ones are about
 the sweep rather than `in_use`. ⭐ **Every failure captured so far is in the safe

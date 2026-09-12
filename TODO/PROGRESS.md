@@ -9,7 +9,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-131 entries: 42 open, 4 partial, 0 blocked, 85 done.
+131 entries: 42 open, 3 partial, 0 blocked, 86 done.
 
 ## Baseline
 
@@ -92,8 +92,10 @@ T-0415, T-0712, T-1208, T-1307 and T-1308. T-1111 became milestone M8.
    outside the test harness. ⛔ It is P0, it sits above M6 because `prune`
    asks `in_use` before it deletes blobs a running container needs, and
    [T-0211](image.md) now waits on it as well.
-2. [T-0211](image.md): once T-0215 is understood, run its `Prove` **in a loop**
-   and record the pass count out of the attempts.
+2. ✅ [T-0211](image.md) **is done.** `experiments/157-lock-inheritance-prove.sh`
+   ran its `Prove` in a loop: 30 of 30 for each of the two tests, alone, and
+   each mutation reddened exactly one of them.
+   `experiments/results/lock-inheritance-prove.txt` is the record.
 3. [T-0702](interpose.md): place the correct per-libc interposer inside the
    rootfs and set `LD_PRELOAD` only when that rung is selected.
 4. [T-0703](interpose.md): implement and verify the complete entry-point set and
@@ -117,17 +119,12 @@ T-0415, T-0712, T-1208, T-1307 and T-1308. T-1111 became milestone M8.
 
 ## In progress
 
-No implementation entry is half-written. Four entries are `partial`:
+No implementation entry is half-written. Three entries are `partial`:
+[T-0503](enter.md), [T-0704](interpose.md) and [T-1109](milestones.md) carry
+their remaining conditions in their own files.
 
-- [T-0503](enter.md), [T-0704](interpose.md) and [T-1109](milestones.md) carry
-  their remaining conditions in their own files;
-- ⭐ [T-0211](image.md) was moved from `done` on 2026-09-11 and the reason is a
-  contradiction inside [image.md](image.md): it recorded no run, and **both
-  tests its `Prove` names are in [T-0215](image.md)'s measured-intermittent
-  set**. The implementation is not in doubt. The closing measurement is.
-
-[T-0408](complete.md) was moved from `done` to `open` in the same pass, for the
-simpler reason: it carried a `Prove` line and nothing after it.
+[T-0408](complete.md) is `open` rather than `done` for the simpler reason that
+reopened it: it carried a `Prove` line and nothing after it.
 
 ## Operator questions
 
