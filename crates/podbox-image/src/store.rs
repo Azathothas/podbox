@@ -860,8 +860,15 @@ pub struct Removed {
 /// ⛔ **Invariant I5's mechanism.** [`Store::sweep_staging`] decides what is
 /// abandoned by trying to lock each `*.partial`, so a file being written has to
 /// be locked or the sweep would delete it out from under its writer. The lock
-/// is on the same open file description as the writes, and it goes when this
-/// value does, however the process ends.
+/// goes when this value does, however the process ends.
+///
+/// ⚠ **Two open file descriptions on one inode, not one.** `flock` is held on
+/// the description [`Lock`] opened, and the writes go through a second one this
+/// type opens after it. They are independent: closing the writer releases no
+/// lock, and the lock's own `Drop` is the only thing that does. ⛔ So a
+/// `StagedFile` costs two descriptors, and a reader counting descriptors while
+/// chasing a lock that outlived its holder has to know that
+/// ([`TODO/image.md`](../../../TODO/image.md) T-0215).
 pub struct StagedFile {
     file: std::fs::File,
     /// ⚠ Held for its `Drop`, and never read. The lock is the point.
@@ -1116,6 +1123,124 @@ mod tests {
         Store::open(d).unwrap()
     }
 
+    /// ⭐ [`TODO/image.md`](../../../TODO/image.md) T-0215's instrument, and it
+    /// is passive: it reads `/proc` and changes nothing it looks at.
+    ///
+    /// A lock that answers "held" after every holder released it is a second
+    /// open file description somebody still has, and the question the entry
+    /// asks is WHO. `/proc/self/fd` names every description THIS process holds
+    /// and its fd number; `/proc/locks` names the pid holding each `FLOCK` and
+    /// the inode it is on, so a holder that is a child process rather than this
+    /// one is visible as a different pid.
+    ///
+    /// ⛔ Called only from an assertion message, which `assert!` formats on
+    /// failure alone, so a passing run pays nothing for it. ⚠ It returns a
+    /// string rather than asserting: an instrument that can fail on its own is
+    /// a second failure to explain.
+    fn who_holds(path: &Path) -> String {
+        let mut out = format!("\n  T-0215 instrument, path {}", path.display());
+        let ino = std::fs::metadata(path)
+            .ok()
+            .map(|m| std::os::unix::fs::MetadataExt::ino(&m));
+        out.push_str(&format!("\n  inode {ino:?}, pid {}", std::process::id()));
+
+        out.push_str("\n  this process's descriptions on it:");
+        let mut mine = 0;
+        if let Ok(entries) = std::fs::read_dir("/proc/self/fd") {
+            for e in entries.flatten() {
+                if let Ok(target) = std::fs::read_link(e.path()) {
+                    // ⚠ `(deleted)` is kept in the comparison rather than
+                    // stripped: a description on an unlinked inode is exactly
+                    // the state a swept file leaves behind.
+                    let t = target.to_string_lossy().to_string();
+                    if t.starts_with(&path.display().to_string()) {
+                        mine += 1;
+                        out.push_str(&format!(
+                            "\n    fd {} -> {t}",
+                            e.file_name().to_string_lossy()
+                        ));
+                    }
+                }
+            }
+        }
+        if mine == 0 {
+            out.push_str(" none, so the holder is not this process");
+        }
+
+        if let (Ok(locks), Some(ino)) = (std::fs::read_to_string("/proc/locks"), ino) {
+            out.push_str("\n  /proc/locks rows on this inode:");
+            let needle = format!(":{ino} ");
+            let mut rows = 0;
+            for line in locks.lines() {
+                if line.contains("FLOCK") && line.contains(&needle) {
+                    rows += 1;
+                    out.push_str(&format!("\n    {}", line.trim()));
+                }
+            }
+            if rows == 0 {
+                out.push_str(" none");
+            }
+        }
+
+        // ⚠ **The one active line in this instrument, and the only question the
+        // two passive readings cannot answer: is the refusal still true?** It
+        // takes the lock and drops it at once. ⛔ It is the same call `in_use`
+        // makes, so it observes nothing `in_use` did not already do, and it
+        // runs only after an assertion has already failed.
+        match Lock::try_acquire(path, sys::LOCK_EX) {
+            Ok(Some(_)) => out.push_str(
+                "\n  a second attempt SUCCEEDED, so the refusal did not outlive the assertion",
+            ),
+            Ok(None) => out.push_str("\n  a second attempt was refused as well"),
+            Err(e) => out.push_str(&format!("\n  a second attempt errored: {e}")),
+        }
+        out
+    }
+
+    /// ⭐ **The positive control for [`who_holds`], and without it that
+    /// instrument's answers mean nothing.**
+    ///
+    /// ⛔ `docs/methodology/experiments.md`: an absence is not a zero. A probe
+    /// that reports "nobody holds this" may be looking in the wrong place, and
+    /// the two readings are told apart only by a case the probe is KNOWN to
+    /// find. This is that case: the lock is held by this process while the
+    /// instrument runs, so a report of nothing is the instrument being blind.
+    ///
+    /// ⚠ **The kernel table is reported and not asserted.** Whether
+    /// `/proc/locks` lists an `flock` is a property of the host's kernel and
+    /// its namespaces, not of podbox, so an assertion on it would fail on a
+    /// machine where podbox is correct. `experiments/153-store-lock-race.sh`
+    /// runs this test with `--nocapture` and puts the text in the evidence.
+    #[test]
+    fn the_t_0215_instrument_sees_a_lock_that_is_held() {
+        let s = scratch("instrument");
+        let r = record("docker.io/library/alpine", Some("latest"), 23);
+        s.put_record(r.clone()).unwrap();
+        let path = s.image_lock_path(&r).unwrap();
+
+        let held = s.hold(&r).unwrap();
+        let text = who_holds(&path);
+        eprintln!("T-0215 positive control, with the lock HELD:{text}");
+
+        assert!(
+            text.contains("\n    fd "),
+            "the instrument did not see a description THIS process holds, so \
+             its `none` answers say nothing:{text}"
+        );
+        drop(held);
+
+        // ⚠ And the negative half, which is what the failing assertions read.
+        // Nothing holds it now, so the instrument must say so rather than
+        // reporting the description that has gone.
+        let after = who_holds(&path);
+        eprintln!("T-0215 positive control, after the release:{after}");
+        assert!(
+            !after.contains("\n    fd "),
+            "the instrument still names a description after the holder went:{after}"
+        );
+        let _ = std::fs::remove_dir_all(s.root());
+    }
+
     /// ⛔ INVARIANT I6. Two `stage` calls in ONE process must not take one
     /// name. `TODO/probe.md` T-0113 is this defect one crate over, and it was
     /// found by luck there; this is the assertion that would have found it.
@@ -1163,7 +1288,11 @@ mod tests {
         let (live, _held) = s.stage("live").unwrap();
 
         let swept = s.sweep_staging();
-        assert!(swept.contains(&dead), "the abandoned file was not swept");
+        assert!(
+            swept.contains(&dead),
+            "the abandoned file was not swept{}",
+            who_holds(&dead)
+        );
         assert!(!dead.exists(), "the abandoned file is still there");
         assert!(live.exists(), "the sweep took a file being written");
         assert!(!swept.contains(&live));
@@ -1181,7 +1310,11 @@ mod tests {
         drop(handle);
         assert!(dead.is_file());
         let _again = Store::open(&d).unwrap();
-        assert!(!dead.exists(), "a second open did not sweep");
+        assert!(
+            !dead.exists(),
+            "a second open did not sweep{}",
+            who_holds(&dead)
+        );
         let _ = std::fs::remove_dir_all(&d);
     }
 
@@ -1280,8 +1413,17 @@ mod tests {
         assert!(pruned.untagged.is_empty());
 
         drop(held);
-        assert!(!s.in_use(&r).unwrap());
-        assert!(s.remove("alpine:latest").is_ok());
+        let lock_path = s.image_lock_path(&r).unwrap();
+        assert!(
+            !s.in_use(&r).unwrap(),
+            "the holder released it and it still reads as in use{}",
+            who_holds(&lock_path)
+        );
+        assert!(
+            s.remove("alpine:latest").is_ok(),
+            "rmi refused an image nothing is using{}",
+            who_holds(&lock_path)
+        );
         let _ = std::fs::remove_dir_all(s.root());
     }
 
@@ -1340,7 +1482,8 @@ mod tests {
         assert!(
             free.unwrap(),
             "the holder released the lock and it is still held: a forked child \
-             inherited the fd, which is TODO/image.md T-0211"
+             inherited the fd, which is TODO/image.md T-0211{}",
+            who_holds(&s.image_lock_path(&r).unwrap())
         );
         let _ = std::fs::remove_dir_all(s.root());
     }
@@ -1411,7 +1554,8 @@ mod tests {
             free.unwrap(),
             "the holder released the lock and a spawned process is still \
              holding it: the lock fd was not O_CLOEXEC, which is the exec half \
-             of TODO/image.md T-0211"
+             of TODO/image.md T-0211{}",
+            who_holds(&s.image_lock_path(&r).unwrap())
         );
         let _ = std::fs::remove_dir_all(s.root());
     }
@@ -1539,7 +1683,11 @@ mod tests {
         drop(a);
         assert!(s.in_use(&r).unwrap(), "one holder left and it read as free");
         drop(b);
-        assert!(!s.in_use(&r).unwrap());
+        assert!(
+            !s.in_use(&r).unwrap(),
+            "both holders went and it still reads as in use{}",
+            who_holds(&s.image_lock_path(&r).unwrap())
+        );
         let _ = std::fs::remove_dir_all(s.root());
     }
 

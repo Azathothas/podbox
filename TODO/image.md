@@ -1175,6 +1175,23 @@ Problem:     ⛔ **`cargo test --workspace` is not deterministic, and the tests
              and the launcher's held lock is the only thing that answers. A
              wrong `false` deletes the blobs a running container is about to
              execute out of, which is the defect T-0211 and I4 were paid for.
+             ⚠ **The count in the title is two short and the set is six, not
+             four.** `experiments/153-store-lock-race.sh` added two on
+             2026-09-12, both about the sweep rather than about `in_use`:
+             `opening_a_store_sweeps_what_a_killed_process_left` and
+             `the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one`. The
+             title keeps its wording because it is how this entry is cited.
+             ⭐ **AND EVERY FAILURE CAPTURED SO FAR IS IN THE SAFE DIRECTION.**
+             Every one of them read a lock as HELD when nothing held it: `rmi`
+             refuses an image nothing uses, and a sweep leaves an abandoned file
+             behind. ⛔ **A wrong `false` has never been observed**, and the
+             assertion that would catch one,
+             `two_holders_of_one_image_both_have_to_go_before_it_is_free`'s
+             middle line, has not failed once. ⚠ The clause table below carries
+             the run counts; the failing runs themselves were not counted across
+             all passes, so no total is quoted here. So the cost quoted above is
+             still the cost if the direction ever reverses, and it is not what
+             has been measured. The entry stays P0 because the gate is red.
 Premise:     ⭐ **The shape is measured and it points at concurrency, not at any
              one test.** Same host, same image, same binary:
 
@@ -1188,37 +1205,128 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
              ⚠ **Only the workspace run reproduces it**, which is the only shape
              that runs several crates' test binaries at once. So the trigger is
              load or cross-binary timing, and not an ordering inside one suite.
-             ⚠ **Two candidate mechanisms, and NEITHER is proved.** Writing
-             either one down as the cause would be the fabrication this
-             repository's third absolute forbids.
+
+             ⭐ **MEASURED AGAIN ON 2026-09-12 BY
+             `experiments/153-store-lock-race.sh`, which holds everything still
+             except one thing per clause.** Twelve runs per pass, same host,
+             same image, and `experiments/results/store-lock-race.txt` is the
+             record:
+
+             | the clause | failures, per pass |
+             | --- | --- |
+             | 1. the suite as the gate runs it | 3, 10, 6, 4, 9, 3 of 12 |
+             | 2. one test thread per binary | ⭐ **0, 0, 0 of 12 and 0, 0 of 20** |
+             | 3. two of store.rs's forks removed | 4, 1, 5 of 12 |
+             | 6. every forking test removed | 3, 0 of 12 and **3, 4 of 20** |
+
+             ⛔ **THE SUBJECT'S OWN RATE IS UNSTABLE, and that governs how much
+             any control can carry.** Seven passes over two days read 5, 3, 10,
+             6, 4, 9 and 3 of 12. ⚠ **A control taken once rules nothing here,
+             and clause 6 is the proof**: at twelve runs it read 3 and then 0,
+             which is one pass refuting a mechanism and the next supporting it.
+             At twenty runs, twice, it reads 3 and 4. Every control in the
+             script is now taken twice and a disagreement is reported as ruling
+             nothing.
+             ⚠ **Clause 3 is not the fork control**, and reading it as one was
+             this script's own first mistake. `probe_cache` is a module of
+             `podbox-image`, so its tests fork inside the same process; skipping
+             store.rs's own two forking tests leaves that forking in place.
+             Clause 6 is the clause that removes it.
+
+             ⛔ **BOTH CANDIDATE MECHANISMS ARE REFUTED, and neither refutation
+             rests on a single pass.**
              1. `crates/podbox-probe/src/sys.rs` holds `FORK_CLOSE`, a
                 PROCESS-GLOBAL array of sixteen slots naming fds to shed in a
-                forked child. `cargo test` runs tests as threads in one process,
-                so every test in a binary shares that one table.
-                `stop_closing_in_children` clears EVERY slot holding a given fd
-                NUMBER, and an fd number is reused the moment it is closed.
+                forked child. `stop_closing_in_children` clears EVERY slot
+                holding a given fd NUMBER, and an fd number is reused the moment
+                it is closed. ⛔ **Refuted by clause 6 at twenty runs a pass,
+                twice.** That table is read only inside `clone_fork`, so a run
+                with no fork in it cannot consult it, and the failure still
+                arrives at 3 and 4 of 20.
              2. `Lock` manages a raw fd by hand and its `Drop` ignores the
-                result of `close`. A descriptor closed twice anywhere in the
-                process makes a later `close` release somebody else's file, and
-                an `flock` is released by closing the descriptor that holds it.
+                result of `close`. A descriptor closed twice makes a later
+                `close` release somebody else's file. ⛔ **Refuted twice over,
+                and neither refutation is a rate.** A `close` sent to the wrong
+                descriptor would leave the lock's own description OPEN: at every
+                captured failure `/proc/self/fd` showed **no description on that
+                inode at all**, and a second `flock` attempt taken microseconds
+                later **succeeded**. A leaked description would still be
+                refusing.
+
+             ⭐ **What the instrument does say, and it has a positive control so
+             an absence is not read as a zero.** `who_holds` in
+             `crates/podbox-image/src/store.rs` is called from the failing
+             assertion alone, so a passing run pays nothing for it. At every
+             captured failure:
+             - this process held **no** open file description on the inode;
+             - `/proc/locks` carried **no** row for it, so no process on the
+               host held an `flock` on it either.
+             ⚠ **Clause 0 is why those two absences can be believed.** With the
+             lock deliberately held, the same instrument printed
+             `fd 4 -> .../<digest>.lock` and the kernel row
+             `1: FLOCK ADVISORY READ <pid> 00:29:107240 0 EOF`, and after the
+             release it printed none of either. An instrument that answers
+             "nobody" in every case, including one where a holder is known to
+             exist, is blind rather than right, and that is the reading this
+             clause exists to rule out.
+             ⛔ **So the refusal outlives nothing.** `flock(LOCK_EX|LOCK_NB)`
+             answered `EWOULDBLOCK`, and microseconds later no holder existed
+             anywhere the kernel reports one: the instrument's own second
+             attempt **succeeded in every captured failure**. Whatever holds
+             the lock holds it for less time than it takes to panic, which is
+             why it cannot be named from inside the failing thread.
 Approach:    ⛔ **Establish the blast radius before fixing anything.** The first
              question is not how to fix it; it is whether a single-threaded
              podbox process can reach it at all. A race that only a test harness
              with many threads in one process can produce is a test defect and is
              fixed in the test; one that a launcher and a `prune` can produce is
              a P0 in the product, and the two fixes are different.
-             1. Reproduce under a loop, capture the failing assertion and the fd
-                numbers involved, and record the run.
-             2. Decide by MEASUREMENT which of the two mechanisms above is live,
-                by instrumenting the one that is cheapest to observe: the slot
-                table already has an atomic per slot.
+             1. ✅ **Done on 2026-09-12.** Reproduced under a loop, with the
+                failing assertion and the descriptor state captured.
+                `experiments/153-store-lock-race.sh` and
+                `experiments/results/store-lock-race.txt`.
+             2. ✅ **Done, and the answer is that neither mechanism is live.**
+                Both refutations are in the `Premise` above, each with the
+                clause and the pass counts that produced it.
              3. ⚠ Whatever the cause, the gate is the second finding: CI ran
                 `cargo test --workspace` and reported green, so a check that
                 fails two runs in five has been reporting success. A single run
                 is not evidence for a racy suite.
-Decision:    Not taken, and it must not be taken before step 2. ⚠ The tempting
-             fix is to serialise the lock tests, which makes the suite green and
-             answers nothing. ⛔ If mechanism 1 is live, a global table keyed on a
-             REUSABLE fd number is wrong in production too, and the green suite
-             would hide it.
+             4. ⛔ **STILL OPEN, AND IT IS WHAT CLOSES THIS ENTRY.** Name the
+                holder. Threads in one process are necessary, a fork is not,
+                each test owns its own store root, and the holder is gone before
+                the failing thread can look. Two measurements are named and
+                clause 7 is the first of them:
+                a. clause 7 moves every lock to a second filesystem through
+                   `TMPDIR` and changes nothing else. ⚠ **A HYPOTHESIS AND NOT A
+                   FINDING**: a refusal that clears at once with no holder
+                   anywhere is what a release completing late would look like,
+                   and the store's locks live on this container's `/tmp`. If the
+                   two filesystems agree, the idea is ruled out, which is worth
+                   the same;
+                b. sample `/proc/locks` from a SECOND process through the whole
+                   run, so a holder that lives for microseconds is caught while
+                   it lives rather than after it has gone. ⛔ The instrument in
+                   the failing thread cannot do this, and that is why it answers
+                   "nobody".
+Decision:    ⭐ **Taken in part on 2026-09-12, and only the part the measurement
+             supports.**
+             ⛔ **The fix does not go where either candidate mechanism said.** A
+             change to `FORK_CLOSE` or to `Lock::drop`'s `close` would be a
+             change made against a story two agreeing passes have refused.
+             ⭐ **The blast radius is settled: the product, as measured, cannot
+             reach this.** Several threads in ONE process are a necessary
+             condition, clause 2 at 0 of 12, and the process that holds an image
+             lock for a container's life is measured single-threaded.
+             `experiments/results/lifecycle-loop.txt` reads the launcher's own
+             `/proc/<pid>/task` and reports **1 thread**, and
+             `nothing_on_the_spawn_path_can_spawn_a_thread` in
+             `crates/podbox-supervise/src/launcher.rs` refuses a
+             thread-spawning call on that path at compile-time review. ⚠ **That
+             is a blast radius and not an acquittal**: a single-threaded process
+             cannot reach a race that needs two threads, and it says nothing
+             about `flock` answering `EWOULDBLOCK` with no holder, which is what
+             was actually observed and is not yet explained.
+             ⚠ The tempting fix is to serialise the lock tests, which makes the
+             suite green and answers nothing. ⛔ It stays refused.
 Prove:       `./experiments/153-store-lock-race.sh` runs the workspace suite a recorded number of times, reports the failure count with its conditions, and exits 1 while any run fails. ⛔ It reports the count even when the count is zero, because a racy check that happened to pass is not a check that passed

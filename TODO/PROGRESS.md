@@ -26,10 +26,15 @@ same rootless environment. The complete migrated-tree validation is recorded
 in [`docs/history/migration-2026-09-11.md`](../docs/history/migration-2026-09-11.md).
 
 ⛔ **That baseline is known to be incomplete in one way that matters.**
-`cargo test --workspace` is not deterministic: measured on 2026-09-11,
-**5 of 12 runs failed**, across four store lock tests. A single green run is not
-evidence for that suite. [T-0215](image.md) carries the measurement and what has
-to be established before anything is changed.
+`cargo test --workspace` is not deterministic, and the rate itself is unstable.
+Six passes of 12 runs over 2026-09-11 and 2026-09-12 read **5, 3, 10, 6, 4 and
+9 failures**, across **six** store lock tests. A single green run is not
+evidence for that suite, and neither is a single control.
+[T-0215](image.md) carries the measurement, the two mechanisms it refutes or
+leaves open, and what has to be established before anything is changed.
+⭐ **Every failure captured so far reads a lock as HELD when nothing holds it**,
+which is the safe direction. A wrong `false`, the one that would delete a
+running container's blobs, has not been observed at all.
 
 The raw source-era record, including all measurements and resolved questions,
 is preserved at
