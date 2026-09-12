@@ -10,9 +10,9 @@ half of item 2.
 placement half. ⭐ **[T-0215](image.md) is CLOSED**, so the work order has moved
 up by one and the store lock race is no longer the first thing a session reads.
 
-⭐ **The suite is deterministic again.** `cargo test --workspace` reads 0 of 20
+⭐ **The suite is deterministic again.** `cargo test --workspace` reads 0 of 30
 in each of two passes, where it read 5 to 12 of 20 across twenty passes over two
-days. ⛔ A red `workspace and interposer tests` is NOT T-0215 any more, and it is
+days, and `experiments/153-store-lock-race.sh` exits 0 for the first time. ⛔ A red `workspace and interposer tests` is NOT T-0215 any more, and it is
 not to be re-run and shrugged at: it is a new finding and it is investigated.
 
 ## In flight

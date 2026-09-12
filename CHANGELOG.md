@@ -80,9 +80,10 @@ time.
 
 ⛔ **The fourth ends the family, and clause 11 is how.** One fork in the suite
 was bare by design, and hooking it leaves every fork in the process draining the
-table with every lock in it. The failure stays. T-0215's `Premise` carries the
-figures and the reason a shed cannot go further, and the entry's `Approach` says
-the next move is not another shed.
+table with every lock in it. The failure stays.
+[`docs/history/2026-09-12-store-lock-race-dead-ends.md`](docs/history/2026-09-12-store-lock-race-dead-ends.md)
+carries the figures and the reason a shed cannot go further. ⚠ That page is
+where T-0215's `Premise` went when the entry closed later the same day.
 
 ⭐ **`Lock::try_acquire` registers every lock it builds.** It is the only place a
 `Lock` is made, so no caller is asked to remember, and eight of the nine

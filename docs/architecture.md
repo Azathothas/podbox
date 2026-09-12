@@ -61,6 +61,13 @@ permission check.
 - The payload owns its standard streams and its exit status reaches the caller.
 - Platform choice is runtime data, not a compile-time architecture constant.
 - A denied or unmeasured mechanism is a named state, never inferred success.
+- An advisory lock is given up by an explicit unlock, and never by letting its
+  descriptor close. Closing gives the lock up only once the last reference to
+  the open file description goes, and a `fork` makes a second one, so a holder
+  that only closes has not finished when it returns.
+  [`TODO/image.md`](../TODO/image.md) T-0215 is what that cost. ⚠ The one
+  exception is a lock deliberately handed to a payload, which this process must
+  not take back.
 
 The security consequences are detailed in [`SECURITY.md`](../SECURITY.md).
 The ordered implementation backlog is [`TODO/PROGRESS.md`](../TODO/PROGRESS.md).

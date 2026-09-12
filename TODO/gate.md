@@ -621,6 +621,11 @@ Approach:    ⛔ **The rule before the sweep, and the check before the edits.** 
                 payload is a Go one. Decide that there and not here;
              3. the check, in `scripts/check-todo.py`: a `Prove` line may name
                 no unqualified image reference and no `docker.io/` reference;
+                ⚠ **and `README.md`'s quick start names `alpine:latest` twice**,
+                which is the same reference and not a `Prove` line. It is a
+                reader's own quota rather than the acceptance's, so it is not
+                this entry's defect; it is written down here so the next sweep
+                does not find it and think nobody looked;
              4. the plant, in `scripts/plant.sh`: put `alpine:latest` into one
                 `Prove` line and assert the gate goes red naming that entry.
              ⛔ A check with no plant is not a check, and [T-1202](gate.md) is

@@ -27,7 +27,7 @@ in [`docs/history/migration-2026-09-11.md`](../docs/history/migration-2026-09-11
 
 ⭐ **THAT GAP IS CLOSED. `cargo test --workspace` is deterministic again**, as
 of 2026-09-12. It read between 2 and 10 of 12 and between 5 and 12 of 20 across
-twenty-two passes over two days, and it reads **0 of 20 in each of two passes**
+twenty-two passes over two days, and it reads **0 of 30 in each of two passes**
 now. [T-0215](image.md) carries the mechanism, the captures that named it, the
 one-syscall fix and the clause that reddens the fix on demand.
 ⛔ **`close(2)` is not a release while anything else references the same open
@@ -79,9 +79,9 @@ and the SAME DESCRIPTOR succeeds on the next attempt a microsecond later.
 
 ⭐ **The fix is one syscall in the releasing thread**, `flock(LOCK_UN)` before
 the close, with the one lock that is handed to a payload exempt. The subject
-went from 5 to 12 of 20 to **0 of 20 in each of two passes**, and clause 12
-deletes the release and reads **20 of 20** with the regression test red at
-exit 101.
+went from 5 to 12 of 20 to **0 of 30 in each of two passes**, and clause 12
+deletes the release and reads **30 of 30** with the regression test red at
+exit 101. ⭐ `experiments/153-store-lock-race.sh` exits 0 for the first time.
 
 ⭐ **Two guards, both deterministic where the defect was one run in two.**
 `releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` uses
