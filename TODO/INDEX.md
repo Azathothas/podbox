@@ -184,6 +184,7 @@ the blocker named and what would clear it.
 | [T-1206](gate.md) | P0 | gate | done | CI installs the toolchain the build config names, and nine commits proved nobody was holding it |
 | [T-1207](gate.md) | P1 | gate | open | The one crate that runs inside other people's processes is the one the gate does not check |
 | [T-1208](gate.md) | P1 | gate | open | A closed entry carries its recorded run, and the gate can see it |
+| [T-1209](gate.md) | P1 | gate | open | Thirty-nine `Prove` lines pull from the one registry the acceptance may not use |
 | [T-1301](podvm.md) | P0 | podvm | open | The machine tier is probed leg by leg, and a present file is not a working one |
 | [T-1302](podvm.md) | P1 | podvm | open | One binary, one parity table, and a VM-only flag that cannot collide |
 | [T-1303](podvm.md) | P1 | podvm | open | The image is a rootfs directory, and an initramfs with no console is a silent machine |
@@ -195,7 +196,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-131 items: 41 open, 4 partial, 0 blocked, 86 done.
+132 items: 42 open, 4 partial, 0 blocked, 86 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -204,10 +205,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 6 | 2 | 0 | 44 | 52 |
-| P1 | 21 | 2 | 0 | 32 | 55 |
+| P1 | 22 | 2 | 0 | 32 | 56 |
 | P2 | 10 | 0 | 0 | 9 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **41** | **4** | **0** | **86** | **131** |
+| **All** | **42** | **4** | **0** | **86** | **132** |
 
 ## How the current ordering is derived
 

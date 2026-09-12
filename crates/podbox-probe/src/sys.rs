@@ -708,8 +708,8 @@ pub fn stop_closing_in_children(fd: i64) {
     }
 }
 
-/// Close every registered fd. ⛔ Called in the child by [`clone_fork`] itself
-/// and nowhere else, so a caller that forgets cannot exist.
+/// Close every registered fd. ⛔ Called in the child, by [`clone_fork`] and by
+/// [`shed_after_fork`], and nowhere else.
 ///
 /// ⚠ Async-signal-safe: an atomic load and a `close(2)` per slot, no allocation
 /// and no lock.
@@ -720,6 +720,38 @@ fn shed_registered_fds() {
         if fd >= 0 {
             let _ = close(fd);
         }
+    }
+}
+
+/// ⛔ **The second drain, and `std::process::Command` is why it exists.**
+/// [`clone_fork`] is podbox's own fork and it sheds before it returns in the
+/// child. libstd forks inside `Command::spawn`, never passes through
+/// [`clone_fork`], and the shed list therefore cannot reach that child.
+///
+/// ⚠ **`O_CLOEXEC` does not cover the gap, because it acts at the `execve` and
+/// not at the `fork`.** Between the two the child holds a duplicate of every
+/// open file description the parent had, and `flock(2)` is held on the
+/// description. So a lock ANY OTHER THREAD releases inside that window stays
+/// held by the child's copy until the child execs, and `in_use` reads an image
+/// as in use with no holder anywhere.
+/// [`TODO/image.md`](../../../TODO/image.md) T-0215.
+///
+/// ⭐ The hook runs in the child after the `fork` and before the `execve`, so
+/// it shortens the window to the instructions between those two points rather
+/// than removing it. ⚠ It cannot be removed: the duplication happens in the
+/// kernel at the `fork`, and there is no close-on-fork.
+///
+/// # Safety
+/// `pre_exec` runs between `fork` and `execve` in a process that may hold locks
+/// another thread owns, so the hook has to be async-signal-safe.
+/// [`shed_registered_fds`] is atomic loads and `close(2)`, which is.
+pub fn shed_after_fork(cmd: &mut std::process::Command) -> &mut std::process::Command {
+    use std::os::unix::process::CommandExt;
+    unsafe {
+        cmd.pre_exec(|| {
+            shed_registered_fds();
+            Ok(())
+        })
     }
 }
 
@@ -1566,5 +1598,66 @@ mod tests {
     fn an_unknown_errno_names_its_number_rather_than_guessing_a_name() {
         assert_eq!(Errno(1).name(), "EPERM");
         assert_eq!(Errno(4093).name(), "E4093");
+    }
+
+    /// ⛔ **[`shed_after_fork`]'s positive control, and it carries its own
+    /// negative one in the same test.**
+    ///
+    /// [`TODO/image.md`](../../../TODO/image.md) T-0215 measured that the hook
+    /// changes nothing about the store lock race. ⚠ **An absence is not a
+    /// zero**: a hook that never ran would report exactly the same nothing, so
+    /// the measurement is worth only as much as the proof that the hook fires.
+    /// `docs/methodology/experiments.md` asks for this of every instrument.
+    ///
+    /// ⭐ It asks the CHILD rather than the parent, because the parent cannot
+    /// see the child's descriptor table. The pipe is made without `O_CLOEXEC`,
+    /// so the write end survives the `execve` and only the hook can take it
+    /// away, and `/bin/sh` then says whether the number is still open in it.
+    /// The same spawn with no hook is run first, and it has to answer `open`;
+    /// without that leg an answer of `shed` could mean the fd never reached the
+    /// child at all.
+    #[test]
+    fn a_spawn_through_the_hook_sheds_a_registered_fd_and_one_without_it_does_not() {
+        fn ask_the_child(w: i64, hook: bool) -> String {
+            // ⚠ The number is the parent's, and a `fork` copies the table, so
+            // it is the child's number as well.
+            let script = format!("if [ -e /proc/self/fd/{w} ]; then echo open; else echo shed; fi");
+            let mut cmd = std::process::Command::new("/bin/sh");
+            cmd.arg("-c")
+                .arg(script)
+                .stdout(std::process::Stdio::piped());
+            if hook {
+                shed_after_fork(&mut cmd);
+            }
+            let out = cmd.output().expect("/bin/sh");
+            String::from_utf8_lossy(&out.stdout).trim().to_string()
+        }
+
+        let mut fds = [0i32; 2];
+        pipe2(&mut fds, 0).expect("pipe2");
+        let (r, w) = (fds[0] as i64, fds[1] as i64);
+
+        // ⛔ The negative leg first, and it runs before anything is registered,
+        // so it measures the descriptor and not the table.
+        let without = ask_the_child(w, false);
+        assert!(
+            close_in_children(w),
+            "no free slot to register the control's own fd in"
+        );
+        let with = ask_the_child(w, true);
+        stop_closing_in_children(w);
+        let _ = close(w);
+        let _ = close(r);
+
+        assert_eq!(
+            without, "open",
+            "a spawn with no hook did not carry the fd into its child, so the \
+             other leg proves nothing"
+        );
+        assert_eq!(
+            with, "shed",
+            "the hook is installed and the fd reached the child anyway, so \
+             every measurement that rests on this hook rests on nothing"
+        );
     }
 }

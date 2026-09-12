@@ -259,7 +259,7 @@ Status note: **no longer blocked, and the musl gap is closed.** The measurement
              the rootfs before the chroot, and `LD_PRELOAD` set to the path the
              payload will see. Nothing of that is written yet, and
              `crates/podbox-cli/src/interpose.rs` says so in its own header.
-Prove:       `./experiments/80-interposer-abi.sh` exits 0, and `podbox run --rm alpine:latest sh -c 'grep -q "$(readlink -f /.podbox/interpose.so)" /proc/self/environ'`
+Prove:       `./experiments/80-interposer-abi.sh` exits 0, and `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'grep -q "$(readlink -f /.podbox/interpose.so)" /proc/self/environ'`. ⛔ **The reference was `alpine:latest` until 2026-09-12**, which is unqualified and resolves to a quota-bearing registry, so this acceptance could not be run under the rule `scripts/common/distro-matrix.sh` states. It is the M5 alpine row now. [T-1209](gate.md) owns the other 37 lines with the same defect
 
 ---
 
@@ -546,7 +546,7 @@ Decision:    Decline the tier, do not fall back to a copy silently. A `-v` that
              that needs a usable `ptrace`, which this runtime denies, and
              `references/proot-me__proot/tree/src/cli/cli.c:135-138` shows what
              a tool that assumes otherwise tells the user.
-Prove:       `podbox run --rm -v "$PWD:/mapped" golang:alpine /usr/local/go/bin/go version 2>&1 | grep -q 'interpose: declined'`
+Prove:       `podbox run --rm -v "$(command -v podbox):/podbox:ro" public.ecr.aws/docker/library/alpine:3.20 /podbox --version 2>&1 | grep -q 'interpose: declined'`. ⚠ **That drives row 2 of the table and not row 3**, and the substitution is stated rather than quiet: podbox's own release binary is `x86_64-unknown-linux-musl` under the workspace's `+crt-static`, which [T-0701](#t-0701-the-cdylib-build-constraints) records, so it carries no `PT_INTERP` and is a static payload this tree already builds. ⭐ The command IS the check on that: a payload with a `PT_INTERP` would not be declined and the line would fail. ⛔ **The line named `golang:alpine` until 2026-09-12**, which is unqualified and resolves to a quota-bearing registry. ⚠ **Row 3, the Go payload, has no acceptance now**, because every row of `DISTRO_ROWS_M5` is a base distribution and none is a Go image, and inventing a reference is what [T-1209](gate.md) refuses. That entry's `Approach` step 2 is where the row is asked for
 
 ---
 

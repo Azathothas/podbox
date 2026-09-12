@@ -272,8 +272,15 @@ fn need_sh() -> Result<(), Outcome> {
 }
 
 /// Run a path as a child process and report what happened to it.
+///
+/// ⛔ Through [`sys::shed_after_fork`], because this is the one place podbox
+/// spawns a process with libstd rather than with `sys::clone_fork`, and a probe
+/// makes one fresh child per probe. Without the hook every lock any other
+/// thread holds is duplicated into this child at the `fork` and outlives its
+/// holder's release. [`TODO/image.md`](../../../TODO/image.md) T-0215.
 fn run_payload(path: &str) -> Outcome {
-    match std::process::Command::new(path).status() {
+    let mut cmd = std::process::Command::new(path);
+    match sys::shed_after_fork(&mut cmd).status() {
         Ok(st) if st.success() => Outcome::ok(),
         Ok(st) => Outcome::skip(
             None,

@@ -7,50 +7,45 @@ the work order.
 
 ## The task
 
-Session of 2026-09-12, which started at `02:35:53Z`. It took the work order's
-items 1, 2 and 3, and the operator called the end-of-session protocol. The
-summary beside [`../docs/history/sessions/`](../docs/history/sessions/) carries
-the end instant.
+Session of 2026-09-12, which started at `04:22:08Z`, four minutes after the
+previous one ended. It took the work order's item 1 in depth and the authoring
+half of item 2.
 
 ## The resume point
 
 [PROGRESS.md](PROGRESS.md)'s work order, item 1: [T-0215](image.md), which is
 still `open` and still P0.
 
-⛔ **Read the entry before the number.** T-0215 now carries a measured series, a
-refuted mechanism, an unrefuted one, and an instrument with a positive control.
-⚠ **Its fork control has been wrong three times**, always because the skip list
-was short of what the code does. `experiments/results/store-lock-race.txt`
-prints the COMMAND for every clause above its figures, and that command is the
-authority on what the figures measured.
+⛔ **Read the entry before the number, and read the CONDITIONS BLOCK before the
+figures.** Every clause of `experiments/153-store-lock-race.sh` measures a
+change, so the tree is modified while it runs, and the report now says so and
+prints the diff. The command line above each clause's figures is still the
+authority on what they measured, and a mutating clause now prints the line it
+WROTE as well as the line it matched.
+
+⭐ **The next reading is the entry's `Approach` step 4c and it is cheap.**
+`free_now` already loops at the point of refusal; it has to read `/proc/locks`
+and every live child's `/proc/<pid>/fd` on each attempt and name the child that
+holds the descriptor. ⛔ **Wire it into the sweep tests first**: both captures
+where the kernel still listed a holder came from
+`opening_a_store_sweeps_what_a_killed_process_left`, which has no duration line,
+and `free_now` reaches the two `in_use` tests alone.
 
 ## In flight
 
 Nothing is half-written and nothing is uncommitted.
-
-⚠ **One re-run was in flight when the session ended and its result is NOT in
-the tree.** `experiments/153-store-lock-race.sh` with clauses `0 1 2 3 6 7` at
-20 control runs, launched to re-take clause 6 with all four forking paths in the
-skip list. ⛔ **The committed evidence's clause 6 was taken with three**, which
-is why T-0215 does not claim a fork verdict. Re-run it and the entry can:
-
-```sh
-PODBOX_RACE_RUNS=12 PODBOX_RACE_CONTROL_RUNS=20 \
-  PODBOX_RACE_CLAUSES="0 1 2 3 6 7" ./experiments/153-store-lock-race.sh
-```
 
 ## The state of the tree
 
 Clean, on `main`. `./scripts/check-todo.py` is green and
 `sh scripts/common/check-gate.sh --fast` is green on this host, all ten checks.
 `sh scripts/windows/run-in-base.sh` ran the complete `dev.sh check` and it
-exited 0 with the new step order.
+exited 0.
 
 ⭐ **`main` accepts a direct push.** `enforce_admins` was turned off on
-2026-09-11 and a push was verified twice on 2026-09-12. The four required checks
-still run, and they were green on all four at `17a022f`.
+2026-09-11 and a push was verified on 2026-09-12.
 [RULES.md](RULES.md) section 2 carries the rule and the fallback. ⛔ Create no
-branches.
+branches, and force-push is still refused.
 
 ⚠ **One check is intermittent and it is not fixed.** A red
 `workspace and interposer tests` is [T-0215](image.md) until somebody proves
@@ -74,18 +69,27 @@ their trackers are in `api/`.
 ⭐ The distribution `wsl-toolkit-podbox` persists on purpose, with a warm image
 cache. Leave it.
 
-⛔ `podman-machine-default` is not this project's. Measured at the end of this
-session with `podman machine list`: **not running**, which is how it should be
-left, and this session did not start it. ⚠ `./scripts/session-start.sh`'s probe
-can start it, so check the state at the end rather than assuming.
+⛔ **Stopping a job from Windows does NOT stop it in the guest, and this session
+paid for that.** A killed wrapper's container ran to completion nine minutes
+later and kept writing to the log it had inherited, so a second job interleaved
+with it and the conditions block of one run was read beside the tail of another.
+⭐ Give every job its own log path and its own `PODBOX_ARTIFACTS`, read the
+artifact rather than the console, and check
+`wsl-toolkit --instance podbox resources` for a container still `Up` before
+believing a job has ended. [`../docs/containers.md`](../docs/containers.md)
+carries it.
 
-⚠ **Job records from 2026-09-12 are still in the base**, including one whose
-artifact pack failed and whose directory is therefore kept. Nothing needs them.
+⚠ **The artifact pack failed once more on 2026-09-12**, so a job record is kept
+in the base. The scripts print the report to stdout before they copy, which is
+how that run was recovered.
+
+⛔ `podman-machine-default` is not this project's. Measured at the end of this
+session: **not running**, which is how it should be left, and this session did
+not start it. ⚠ `eph-pgb` is registered and stopped, and is not this session's.
+
+⚠ **Job records from 2026-09-12 are in the base.** Nothing needs them.
 `wsl-toolkit --instance podbox gc --apply --older-than 24h` collects them from
 2026-09-13.
-
-⚠ **`eph-pgb` is not on this host.** `podman machine list` reports one machine
-and that is the one above.
 
 ## The paste
 

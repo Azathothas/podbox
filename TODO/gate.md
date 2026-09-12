@@ -551,3 +551,93 @@ Decision:    ⭐ **Taken on 2026-09-12: one shape, and it is the bold `Done`
              entries carry `done` with no date and 66 carry one; section 5 asks
              for neither, so making it a rule here would invent one.
 Prove:       `./scripts/check-todo.py` reports a `closure_records` coverage count equal to the number of closed entries, and the plant for it goes red naming the entry whose record was removed
+
+---
+
+### T-1209 Thirty-nine `Prove` lines pull from the one registry the acceptance may not use
+
+Source:      Found while correcting [T-0702](interpose.md)'s `Prove` for the same defect
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     ⛔ **A `Prove` line IS the acceptance**, because [RULES.md](RULES.md)
+             section 5 closes an entry on that command actually run. So the rule
+             that keeps the acceptance off a quota-bearing registry applies to
+             every one of them, and 39 of the 132 in `TODO/` break it.
+             [T-0206](image.md) moved every `experiments/` script off Docker Hub
+             on 2026-09-09 and recorded the registry each one uses. ⚠ **The
+             `Prove` lines were not part of that sweep and nobody noticed**,
+             because the entry's table names scripts and a `Prove` line is not a
+             script.
+             ⚠ What it costs is not a broken pull. It is a pull that answers
+             `HTTP 429` and reads as a broken registry rather than as somebody
+             else's quota, which is the reading [T-0206](image.md)'s `Problem`
+             says teaches a session to ignore `exit 2`.
+Premise:     ⭐ **Counted on 2026-09-12 over `TODO/*.md`: 39 of 132 `Prove`
+             lines, in ten of the eighteen files.** 35 of them name an
+             UNQUALIFIED reference and five name `docker.io/` outright, and the
+             two sets overlap by one line.
+
+             | the file | lines |
+             | --- | --- |
+             | [complete.md](complete.md) | 8 |
+             | [interpose.md](interpose.md) | 6 |
+             | [supervise.md](supervise.md) | 5 |
+             | [cli.md](cli.md) , [image.md](image.md) | 4 each |
+             | [enter.md](enter.md) , [extract.md](extract.md) , [milestones.md](milestones.md) | 3 each |
+             | [packaging.md](packaging.md) | 2 |
+             | [probe.md](probe.md) | 1 |
+
+             ⭐ **An unqualified reference is the larger half and it is the one
+             a reader cannot see.** `alpine:latest` appears 50 times. It carries
+             no registry, so it resolves through the engine's own shortname
+             aliases, and `scripts/common/distro-matrix.sh` rule 4 already
+             states what that costs: the name lands at a registry where the
+             digest does not exist and the failure arrives as `manifest
+             unknown`, which reads as a broken pin.
+             ⛔ **The rule these break is not new and it is written twice.**
+             `scripts/common/distro-matrix.sh` says of the M5 row list: no
+             Docker Hub, every reference `ghcr.io`, `public.ecr.aws` or the
+             distribution's own. [T-0206](image.md) records the same for the
+             scripts.
+             ⚠ **One legitimate exception exists and the check has to know it.**
+             `DISTRO_ROWS_NSSWITCH` in the same file is deliberately on Docker
+             Hub, because `experiments/results/across/` was measured against
+             those digests and the same tag at another registry is another
+             image. A `Prove` that re-reads one of those readings is not the
+             same act as a `Prove` that pulls afresh.
+Approach:    ⛔ **The rule before the sweep, and the check before the edits.** A
+             replacement chosen per line is 39 judgements nobody can review; a
+             stated mapping is one.
+             1. state the mapping in one place: every `Prove` reference is a row
+                of `DISTRO_ROWS_M5`, named by its fully qualified reference, and
+                a `Prove` that needs an image with no row asks for a row rather
+                than inventing a reference;
+             2. ⚠ **`golang:alpine` in [T-0706](interpose.md) has no row and no
+                equivalent**, and it is not a distribution. Its `Prove` needs a
+                Go payload rather than that image, and the entry says why the
+                payload is a Go one. Decide that there and not here;
+             3. the check, in `scripts/check-todo.py`: a `Prove` line may name
+                no unqualified image reference and no `docker.io/` reference;
+             4. the plant, in `scripts/plant.sh`: put `alpine:latest` into one
+                `Prove` line and assert the gate goes red naming that entry.
+             ⛔ A check with no plant is not a check, and [T-1202](gate.md) is
+             the rule that says so.
+             ⚠ **Not in one pass with the check.** The 39 edits change what 39
+             acceptance commands assert, so they land as their own change with
+             the mapping stated, and the check lands once nothing violates it.
+Decision:    ⭐ **Taken on 2026-09-12: the sweep is one entry and not 39
+             corrections spread through the entries that carry the lines.** A
+             correction made inside each owning entry is made 39 times by 39
+             sessions against 39 readings of the rule, and the rule is what
+             drifted in the first place.
+             ⚠ **[T-0702](interpose.md) and [T-0706](interpose.md) are the two
+             exceptions and they are corrected already**, because the work order
+             sent a session to run them and a `Prove` that cannot run is not a
+             `Prove`. That is 2 of the 39; this entry owns the other 37.
+             ⛔ **The rejected option: leave the lines and let the check warn.**
+             A warning nobody has to clear is a comment, and the gate here is an
+             assertion or it is decoration.
+Prove:       `./scripts/check-todo.py` exits 0 with the new check in place, and `./scripts/plant.sh` reddens it by name

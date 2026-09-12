@@ -21,7 +21,7 @@
 //! closed.
 //!
 //! ⛔ That fd is `O_CLOEXEC`, and the one caller that wants the payload to
-//! inherit it says so with [`Lock::keep_across_exec`] immediately before its
+//! inherit it says so with [`Lock::hand_to_payload`] immediately before its
 //! `execve`. T-0211 is what the other shape cost: an fd left inheritable from
 //! open time is inherited by every unrelated `fork` while the lock is held, and
 //! each such child keeps the `flock` alive for its own lifetime.
@@ -470,6 +470,11 @@ impl Store {
     /// close-on-fork and `flock` is held on the open file description a fork
     /// duplicates. The one caller that wants a payload to inherit it says so
     /// with [`Lock::hand_to_payload`], which undoes both.
+    ///
+    /// ⚠ Both defences come from [`Lock`] itself now, and neither is this
+    /// function's to take: `Lock::open` sets `O_CLOEXEC` and
+    /// [`Lock::try_acquire`] registers. T-0215 is why this one is no longer
+    /// special.
     pub fn hold(&self, record: &Record) -> Result<Lock> {
         let path = self.image_lock_path(record)?;
         // ⛔ INVARIANT I4 AND I7. The index lock is taken first and dropped at
@@ -481,17 +486,7 @@ impl Store {
         // AND the lock file it was holding. Both take index-then-image, so
         // neither can wait on the other.
         let _index = self.lock()?;
-        let lock = Lock::acquire(&path, sys::LOCK_SH)?;
-        if !sys::close_in_children(lock.fd) {
-            return Err(Error::Store(format!(
-                "{} image locks are already held by this process, which is every \
-                 slot podbox has for fds a fork must shed. Holding one more \
-                 would leak it into every child forked from here (T-0211), so \
-                 it is refused rather than held unsafely",
-                sys::FORK_CLOSE_SLOTS
-            )));
-        }
-        Ok(lock)
+        Lock::acquire(&path, sys::LOCK_SH)
     }
 
     /// Whether any process holds [`Store::hold`] on this image.
@@ -955,7 +950,7 @@ impl Lock {
         // wants the image lock to survive **one** exec, and T-0211 is what it
         // cost to get that by leaving the fd inheritable from the moment it was
         // opened: every unrelated fork in between inherits it too.
-        // [`Lock::keep_across_exec`] is the deliberate act, made one call before
+        // [`Lock::hand_to_payload`] is the deliberate act, made one call before
         // the `execve` it is for.
         let flags = sys::O_RDWR | sys::O_CREAT | sys::O_CLOEXEC;
         sys::open(&c, flags, 0o644).map_err(|e| {
@@ -988,13 +983,36 @@ impl Lock {
         Lock::acquire(path, sys::LOCK_EX)
     }
 
+    /// ⛔ **Every lock this type takes is registered for shedding here, and
+    /// this is the only place a `Lock` is built.** A caller cannot forget,
+    /// because a caller is not asked.
+    /// [`TODO/image.md`](../../../TODO/image.md) T-0215 is what the previous
+    /// shape cost: only [`Store::hold`] registered, so a staging lock, an index
+    /// lock and a container lock were each inherited by every child a
+    /// concurrent `clone_fork` made, and the child then held the `flock` for
+    /// its own lifetime. The image read as in use after its holder released it.
+    ///
+    /// ⚠ The `Lock` is built BEFORE the registration is checked, so the fd is
+    /// closed by its own `Drop` on the refusal path rather than leaked.
     fn try_acquire(path: &Path, op: u64) -> Result<Option<Lock>> {
         let fd = Lock::open(path)?;
         match sys::flock(fd, op | sys::LOCK_NB) {
-            Ok(_) => Ok(Some(Lock {
-                fd,
-                path: path.to_path_buf(),
-            })),
+            Ok(_) => {
+                let lock = Lock {
+                    fd,
+                    path: path.to_path_buf(),
+                };
+                if !sys::close_in_children(fd) {
+                    return Err(Error::Store(format!(
+                        "this process already holds {} locks, which is every slot \
+                         podbox has for fds a fork must shed. One more would leak \
+                         into every child forked from here (T-0211), so it is \
+                         refused rather than held unsafely",
+                        sys::FORK_CLOSE_SLOTS
+                    )));
+                }
+                Ok(Some(lock))
+            }
             Err(sys::EWOULDBLOCK) => {
                 let _ = sys::close(fd);
                 Ok(None)
@@ -1230,6 +1248,51 @@ mod tests {
         out
     }
 
+    /// ⭐ **T-0215's second instrument, and it measures the one quantity the
+    /// first one cannot: HOW LONG the refusal lasted.**
+    ///
+    /// ⛔ [`who_holds`] runs while an assertion message is being formatted,
+    /// which is after the refusal, and every capture so far has found the
+    /// holder already gone. So the question it leaves open is whether there was
+    /// a holder at all. ⭐ A refusal that clears on the very next attempt is a
+    /// RELEASE THAT HAD NOT FINISHED; one that lasts hundreds of microseconds
+    /// is a SECOND HOLDER that lived. The two need different fixes, and this
+    /// number separates them.
+    ///
+    /// ⚠ It returns the FIRST reading unchanged, so a test that uses it fails
+    /// exactly where it failed before and the retry runs only after a refusal.
+    /// ⛔ Bounded by time: an unbounded retry inside a failing test is a hang.
+    fn free_now(s: &Store, r: &Record) -> (bool, String) {
+        if !s.in_use(r).unwrap() {
+            return (true, String::new());
+        }
+        let start = std::time::Instant::now();
+        let mut attempts: u64 = 0;
+        loop {
+            attempts += 1;
+            if !s.in_use(r).unwrap() {
+                return (
+                    false,
+                    format!(
+                        "\n  the refusal cleared after {} us and {attempts} further \
+                         attempt(s), so nothing held it by then",
+                        start.elapsed().as_micros()
+                    ),
+                );
+            }
+            if start.elapsed() > std::time::Duration::from_millis(50) {
+                return (
+                    false,
+                    format!(
+                        "\n  the refusal outlived {} us and {attempts} further \
+                         attempts, so a holder is real and it is still there",
+                        start.elapsed().as_micros()
+                    ),
+                );
+            }
+        }
+    }
+
     /// ⭐ **The positive control for [`who_holds`], and without it that
     /// instrument's answers mean nothing.**
     ///
@@ -1447,9 +1510,10 @@ mod tests {
 
         drop(held);
         let lock_path = s.image_lock_path(&r).unwrap();
+        let (free, lingered) = free_now(&s, &r);
         assert!(
-            !s.in_use(&r).unwrap(),
-            "the holder released it and it still reads as in use{}",
+            free,
+            "the holder released it and it still reads as in use{lingered}{}",
             who_holds(&lock_path)
         );
         assert!(
@@ -1716,9 +1780,10 @@ mod tests {
         drop(a);
         assert!(s.in_use(&r).unwrap(), "one holder left and it read as free");
         drop(b);
+        let (free, lingered) = free_now(&s, &r);
         assert!(
-            !s.in_use(&r).unwrap(),
-            "both holders went and it still reads as in use{}",
+            free,
+            "both holders went and it still reads as in use{lingered}{}",
             who_holds(&s.image_lock_path(&r).unwrap())
         );
         let _ = std::fs::remove_dir_all(s.root());

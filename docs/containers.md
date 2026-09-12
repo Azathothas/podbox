@@ -185,6 +185,18 @@ the copy took about 4 s.** The image pull is the larger cost on a cold base.
   which are the only files left in the copy that anything writes in the
   background. ⚠ **The cause was not isolated to one of the four**, and the
   repair does not need it to be.
+- ⛔ **STOPPING THE WRAPPER ON THE WINDOWS SIDE DOES NOT STOP THE JOB IN THE
+  GUEST.** Measured on 2026-09-12: a background
+  [`../scripts/windows/run-in-base.sh`](../scripts/windows/run-in-base.sh) was
+  killed three minutes in, and its container ran to completion nine minutes
+  later and kept writing to the redirect it had inherited. ⚠ **A second job
+  launched into the same log then interleaves with the first**, and the reader
+  cannot tell them apart: the conditions block of one run was read beside the
+  tail of the other, and the clause list did not match the job that was asked
+  for. ⭐ Give every job its OWN log path and its own `PODBOX_ARTIFACTS`
+  directory, and read the artifact rather than the console. ⛔ Check
+  `wsl-toolkit --instance podbox resources` for a container still `Up` before
+  believing a job has ended.
 - ⛔ **A new script arrives unrunnable even after `restore-modes.sh`, because
   that repair reads the git INDEX.** Measured on 2026-09-12: a new
   `experiments/` script that was written but not staged failed as

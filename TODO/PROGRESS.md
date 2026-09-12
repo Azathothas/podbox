@@ -9,7 +9,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-131 entries: 41 open, 4 partial, 0 blocked, 86 done.
+132 entries: 42 open, 4 partial, 0 blocked, 86 done.
 
 ## Baseline
 
@@ -64,85 +64,82 @@ publish branch is the fallback if protection is ever restored.
 
 ## What the last session did
 
-⭐ **The store lock race was MEASURED and it is still not fixed.**
-[T-0215](image.md) asked which of two mechanisms makes the lock tests fail
-intermittently and ordered the blast radius established first.
-`experiments/153-store-lock-race.sh` is the instrument and its own header states
-the shape it holds still; `experiments/results/store-lock-race.txt` is the run.
+⛔ **THREE WAYS FOR A FORK TO CARRY A LOCK AWAY WERE CLOSED, AND THE STORE LOCK
+RACE DID NOT MOVE.** [T-0215](image.md) had one candidate family left and its
+`Premise` names each member and what took it away. The subject stayed inside
+its 20-run band of 5 to 12 through all three closures, and
+`experiments/results/store-lock-race.txt` carries every clause in one run.
 
-⛔ **The candidate that a misdirected `close` leaves a description open is
-refuted by observation**, not by a rate: at every captured failure the process
-held no description on that inode, and a second `flock` taken microseconds
-later succeeded. ⭐ **The other candidate is where every measurement points**: a
-run with none of the binary's four forking paths in it does not fail at all,
-0 of 20 twice, so a concurrent fork is a necessary condition.
+⭐ **The two closures that are KEPT are kept on an invariant, not on a
+measurement, and the entry says so in those words.** `Lock::try_acquire`
+registers every lock it builds, where eight of the nine construction sites
+registered nothing before; and `sys::shed_after_fork` drains the shed table in a
+child libstd forked, which `clone_fork`'s own shed could never reach. Each closes
+a way a fork can carry a lock away, which [T-0211](image.md) forbids whether or
+not it is what T-0215 is.
 
-⛔ **THE FORK CONTROL WAS WRONG THREE TIMES, AND A SKIP LIST IS WHY.** It
-started as two test names, gained `probe_cache::`, and was still short of the
-code: `pull` forks through `probe_cache::resolve` once it is past the transport
-policy, under a test name that says nothing about forking. ⭐ The third reading
-was caught by a review pass reading the COMMAND LINE in the committed evidence
-rather than the label above it. A skip list is a claim about the call graph and
-it is checked against the call graph.
+⛔ **The third closure is a source MUTATION and it never enters the tree.**
+Clause 8 widens the window between `Lock::open` and the registration to 200 us
+and restores the file however the script ends, the way `scripts/plant.sh` works.
+Clause 9 does the same to take the second closure back out, so both legs of an
+A and B land in one evidence file under one conditions block.
 
-⭐ **The instrument ships with a positive control, and one of its two halves
-does not.** `who_holds` reads `/proc/self/fd` and `/proc/locks` at a failing
-assertion. `the_t_0215_instrument_sees_a_lock_that_is_held` holds a lock and
-asserts the instrument sees it, so a report of "nobody" is an absence rather
-than a blind probe. ⚠ The children half has no such control and says so: the
-control would be a test that forks, which would put a fork into the very
-control that must have none.
+⭐ **An absence is not a zero, so the new hook has a positive control that
+carries its own negative leg.**
+`a_spawn_through_the_hook_sheds_a_registered_fd_and_one_without_it_does_not` asks
+the child whether the descriptor arrived, and runs the same spawn with no hook
+first. Without that leg a null result from a hook that never fired would read
+exactly like one from a hook that did.
 
-⭐ **Two more findings fell out of the same runs.** The failing set is **six**
-tests and not four, and the two new ones are about the sweep rather than about
-`in_use`. And every failure captured so far reads a lock as HELD when nothing
-holds it, which is the safe direction; a wrong `false`, the one that would
-delete a running container's blobs, has never been observed.
+⭐ **The first positive fact this entry has had: a real holder exists.**
+`free_now` retries at the point of refusal rather than after the assertion, and
+the refusals last 17 to 4163 us, several of them surviving 11 to 31 consecutive
+`flock` calls. Twice the kernel still listed the lock at the assertion, both
+times on a `*.partial` staging lock and both times attributed to the test process
+while that process held no descriptor on the inode.
 
-✅ **[T-0211](image.md) closed on a pass count rather than a green run.**
-`experiments/157-lock-inheritance-prove.sh`: each test alone, 30 attempts, 30 of
-30, and each of the two mutations reddens exactly one of them.
+⚠ **`experiments/153-store-lock-race.sh` was repaired in several places and
+every repair is about a reading that was not what it claimed.**
+[CHANGELOG.md](../CHANGELOG.md) carries what each one was. ⛔ **What matters to the work order is that clauses 4
+and 5 still rule nothing even repaired**: clause 4 read 1 and 1 of 20 in one
+taking and 0 and 0 in the next, so the two takings disagree and the entry quotes
+neither as a verdict.
 
-⭐ **[T-0702](interpose.md)'s embedding fork was ruled and half built.** A
-fourth shape was taken, and it is not one of the three that entry listed:
-`crates/podbox-cli/build.rs` COPIES what `scripts/build-interpose.sh` left
-behind and writes an empty file where an object is absent. ⚠ The recommended
-shape, a `build.rs` that RUNS the script, is a cargo inside a cargo;
-`experiments/158-interpose-embedding.sh` measured that it completes here and the
-shape was refused anyway, because it would not elsewhere. ⛔ The step order
-moved with it: both `scripts/dev.sh` check and the gate workflow built the
-binary BEFORE the objects, so the embedding would have carried two placeholders
-and passed.
+⭐ **[T-1209](gate.md) was authored from a defect found while correcting one
+line.** 39 of the 132 `Prove` lines in `TODO/` pull from Docker Hub, which is the
+one registry the acceptance may not use. [T-0206](image.md) moved every
+`experiments/` script off the Hub in 2026-09-09 and nobody swept the `Prove`
+lines, because that entry's table names scripts and a `Prove` line is not a
+script.
 
-⭐ **Two decisions were taken and neither needed the operator.**
-[T-1208](gate.md) rules one shape for a closure record, the bold `Done`
-paragraph, and its own counts were wrong in three ways until the instrument
-settled them. [T-1302](podvm.md) rules that `podvm` is BOTH a flag and an argv0
-alias, with the flag as the primitive and the name changing only its default.
+⚠ **[T-0702](interpose.md) and [T-0706](interpose.md) had theirs corrected**,
+because the work order sent this session to run them. T-0706's row 3, the Go
+payload, has no acceptance now: no row of `DISTRO_ROWS_M5` ships Go, and
+inventing a reference is what T-1209 refuses.
 
-⚠ **Two Windows-lane traps were repaired in place.** A file that grows during
-the workspace copy stops it at `archive/tar: write too long`, and a job could
-not hand its evidence back out of a container that is removed when it exits.
-[`../docs/containers.md`](../docs/containers.md) carries both.
+⛔ **A Windows-lane trap cost this session a wrong reading and it is recorded.**
+Stopping a job from Windows does not stop it in the guest: a killed wrapper's
+container ran to completion nine minutes later and kept writing to the log it had
+inherited, so a second job interleaved with it and the conditions block of one
+run was read beside the tail of the other.
+[`../docs/containers.md`](../docs/containers.md) carries it.
 
 ## Current work order
 
 1. [T-0215](image.md): **name the holder.** ⛔ Still P0 and still open. What is
    measured: several threads in one process ARE necessary, a concurrent fork IS
-   necessary, the filesystem is not the cause, and a misdirected `close` is
-   refuted. ⭐ The entry's `Approach` step 4b is the cheap decisive move that
-   the fork result justifies: register the eight `Lock` sites that take no
-   `sys::close_in_children` and re-run the subject. Applied, measured, and
-   reverted if it changes nothing.
+   necessary, the filesystem is not the cause, and every mechanism about an
+   inherited descriptor has now been closed without the rate moving. ⭐ The
+   entry's `Approach` step 4c is the next reading and the two kernel captures
+   are what make it cheap: `free_now` already loops at the point of refusal, so
+   it reads `/proc/locks` and every live child's `/proc/<pid>/fd` on EACH
+   attempt and names the child that has the descriptor.
 2. [T-0702](interpose.md): **the placement half.** The embedding is built and
    the entry is `partial`. What is left is this: write the selected object
    INSIDE the rootfs before the chroot, and set `LD_PRELOAD` to the path the
    payload will see. ⚠ It needs [T-0706](interpose.md)'s payload classification,
-   which is `open` and effort S, so take that first or together.
-   ⛔ **And T-0702's `Prove` names `alpine:latest`**, which resolves to a
-   quota-bearing registry. `scripts/common/distro-matrix.sh` and T-0206 rule
-   that the acceptance uses `public.ecr.aws` and the distributions' own; the
-   `Prove` line needs correcting before it is run.
+   which is `open` and effort S, so take that first or together. ⭐ Both `Prove`
+   lines are corrected now and both can be run.
 3. [T-0703](interpose.md): implement and verify the complete entry-point set and
    `*at` path-resolution rules.
 4. [T-1110](milestones.md): run M6 acceptance across the libc matrix, including
@@ -150,18 +147,22 @@ not hand its evidence back out of a container that is removed when it exits.
    [T-0712](interpose.md) is the rule its matrix has to obey.
 5. [T-0710](interpose.md) and [T-0711](interpose.md): implement the two rulings
    the operator settled on 2026-09-11. Both are written into the entries.
-6. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
+6. [T-1209](gate.md): the 37 remaining `Prove` lines that pull from Docker Hub,
+   the mapping that decides each replacement, and the check and plant that stop
+   the next one. ⚠ Take the mapping and the sweep before the check: the check
+   goes green only once nothing violates it.
+7. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
    every parity row through the shipped binary. [T-0809](cli.md) adds the row
    that makes an ambiguous spawn failure readable.
-7. [T-0408](complete.md): run the zypper row and record it. It is one container
+8. [T-0408](complete.md): run the zypper row and record it. It is one container
    run, and it is the only entry reopened for having no evidence at all.
-8. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
+9. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
    coverage, and the check that a closed entry carries its recorded run.
    ⭐ T-1208's shape is RULED now, so what is left is the check, its plant, and
    converting the four prose records that entry names.
-9. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
-10. [T-1111](milestones.md): M8, the nix acceptance, after M7.
-11. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
+10. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
+11. [T-1111](milestones.md): M8, the nix acceptance, after M7.
+12. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
     on the probe. ⭐ T-1302's shape is ruled, so its implementation is a flag,
     a third `ALIASES` entry and the collision rule.
 
@@ -181,10 +182,12 @@ are `partial`:
 [T-0408](complete.md) is `open` rather than `done` for the simpler reason that
 reopened it: it carried a `Prove` line and nothing after it.
 
-⛔ **One measurement is worth re-taking before it is leaned on.**
-`experiments/results/store-lock-race.txt` carries clause 6's figures, and the
-command line printed above them is the authority on what they measured. Read it
-before quoting the number.
+⛔ **Read the CONDITIONS BLOCK of a reading before quoting its figures.**
+`experiments/results/store-lock-race.txt` now prints whether the tree was
+modified and what differed from the commit, because every clause in that script
+measures a change and the commit alone names a state that was not run. The
+command line above each clause's figures is still the authority on what they
+measured.
 
 ## Operator questions
 
@@ -211,22 +214,26 @@ entry also carries the second denial only one instance of the class has shown:
 
 ## What the next session should decide, and neither needs the operator
 
-⭐ **Both decisions this section carried are TAKEN**, on 2026-09-12, and each is
-written into the entry that owns it rather than here: [T-1208](gate.md) rules
-one shape for a closure record, and [T-1302](podvm.md) rules that `podvm` is
-both a flag and an argv0 alias. What is left in each is implementation.
+⭐ **The fork this section carried is SETTLED by measurement rather than by a
+decision.** It asked whether the eight `Lock` sites that took no
+`close_in_children` registration were a product defect or only a test-shape one.
+They are registered now, the rate did not move, and the entry records the change
+as kept on [T-0211](image.md)'s invariant rather than on this measurement. There
+was nothing to decide once it was measured.
 
-Two forks are open and defensible either way:
+Two are open and each is defensible either way:
 
-- ⛔ **[T-0215](image.md) step 4b is a measurement, not a fork**, but the fork
-  underneath it is: whether the eight `Lock` sites that take no
-  `close_in_children` registration are a product defect or only a test-shape
-  one. ⚠ `Store::hold` is the only one of nine that registers, and the single
-  capture that named a holder pointed at a staging lock, which is one of the
-  eight. The entry says this is a lead and not a cause.
-- ⚠ **[T-0702](interpose.md) needs its `Prove` corrected before it can be run.**
-  It names `alpine:latest`, which resolves to a quota-bearing registry, and the
-  acceptance rule is `public.ecr.aws` and the distributions' own. Correcting a
-  `Prove` line is authoring, so do it under
-  [`../docs/methodology/authoring.md`](../docs/methodology/authoring.md) and not
-  in the same pass as the implementation.
+- ⛔ **[T-0215](image.md) has run out of candidates about an inherited
+  descriptor, and the fork under it is what to do about the gate meanwhile.**
+  Three closures moved nothing, a fork and several threads are both still
+  necessary, and the suite is red about one run in two. ⚠ The tempting fix is to
+  serialise the lock tests, which the entry refuses because it answers nothing.
+  What is NOT refused and is not yet decided is whether the gate should report
+  the rate instead of a pass or a fail, so a racy check stops reading as a green
+  one. That is [T-1204](gate.md)'s neighbourhood and it needs a ruling.
+- ⚠ **[T-1209](gate.md) decides how a `Prove` line names an image, and the Go
+  row is the case that has no answer yet.** The mapping the entry states is that
+  every reference is a row of `DISTRO_ROWS_M5`, named by its fully qualified
+  reference. No row ships Go, so [T-0706](interpose.md)'s row 3 has no
+  acceptance. Either a row is added for a Go image, or the classification's Go
+  case is proved some other way. ⛔ Inventing a reference is refused.

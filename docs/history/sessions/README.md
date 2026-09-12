@@ -15,3 +15,4 @@ is the only place that has one.
 - [`2026-09-11-orientation.md`](2026-09-11-orientation.md)
 - [`2026-09-11-reference-sweep.md`](2026-09-11-reference-sweep.md)
 - [`2026-09-12-store-lock-race.md`](2026-09-12-store-lock-race.md)
+- [`2026-09-12-fd-closures.md`](2026-09-12-fd-closures.md)

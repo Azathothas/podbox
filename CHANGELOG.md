@@ -6,6 +6,100 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-12T06:45:00Z: a defect found while correcting one Prove line turns out to be 39 of them
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
+deployment.
+
+[`TODO/gate.md`](TODO/gate.md) T-1209 is authored, and it is not implemented in
+the same pass. A `Prove` line IS the acceptance, because
+[`TODO/RULES.md`](TODO/RULES.md) section 5 closes an entry on that command
+actually run, so the rule that keeps the acceptance off a quota-bearing registry
+applies to every one of them. ⛔ **39 of the 132 break it**, in ten of the
+eighteen files: 35 name an unqualified reference and five name `docker.io/`
+outright, and the two sets overlap by one line. `alpine:latest` alone appears 50
+times.
+
+⚠ **[T-0206](TODO/image.md) moved every `experiments/` script off Docker Hub on
+2026-09-09 and nobody swept the `Prove` lines**, because that entry's table names
+scripts and a `Prove` line is not a script.
+
+⭐ **Two lines are corrected already and the entry says why they are the
+exceptions.** [`TODO/interpose.md`](TODO/interpose.md) T-0702 and T-0706 are what
+the work order sent this session to run, and a `Prove` that cannot run is not a
+`Prove`. ⚠ T-0706's row 3, the Go payload, has no acceptance as a result: every
+row of `DISTRO_ROWS_M5` is a base distribution and none is a Go image, and
+inventing a reference is what T-1209 refuses. Its line drives the static row
+instead, through podbox's own musl binary, and says so rather than pretending to
+cover both.
+
+### 2026-09-12T05:26:00Z: three fd mechanisms closed for the store lock race, and not one of them moved the rate
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
+deployment.
+
+[`TODO/image.md`](TODO/image.md) T-0215 had one candidate family left, and every
+member of it said the same thing: a forked child holds a copy of a lock fd and
+the `flock` outlives its holder. Three ways for that to happen were closed, one
+after another, and the subject stayed in its band of 2 to 11 failures per pass
+every time.
+
+⭐ **`Lock::try_acquire` registers every lock it builds.** It is the only place a
+`Lock` is made, so no caller is asked to remember, and eight of the nine
+construction sites were registering nothing at all until now: a staging lock, an
+index lock and a container lock were all inheritable by a fork.
+
+⭐ **`sys::shed_after_fork` drains the shed table in a child libstd forked.**
+`clone_fork` sheds before it returns in the child; `Command::spawn` forks inside
+libstd and never reaches that code, and `O_CLOEXEC` acts at the `execve` and not
+at the `fork`. `run_payload` is the one place podbox spawns with libstd and it
+goes through the hook now.
+
+⛔ **Neither is a fix for T-0215 and neither is written up as one.** Each is kept
+because [`TODO/image.md`](TODO/image.md) T-0211 forbids a fork carrying a lock
+away, whether or not that is what T-0215 is. A change kept on an invariant rather
+than on a measurement is recorded as exactly that.
+
+⚠ **The third closure never enters the tree.** The fd exists before it is
+registered, so a fork in between leaves a child with a lock fd in no table.
+Clause 8 widens that window to 200 us as a source mutation and restores the file
+however the script ends, the way `scripts/plant.sh` works. The rate does not
+follow it.
+
+⭐ **An absence is not a zero, so the hook has a positive control that carries
+its own negative leg.** `a_spawn_through_the_hook_sheds_a_registered_fd_and_one_without_it_does_not`
+asks the child itself whether the descriptor arrived, and runs the same spawn
+with no hook first. Without that leg, a null result from a hook that never fired
+would read exactly like a null result from a hook that did.
+
+⭐ **The first positive fact this entry has had: a real holder exists.**
+`free_now` retries at the point of refusal instead of after the assertion, and
+reports how long the refusal lasted. The older instrument runs while an assertion
+message is being formatted, by which time every short holder has gone, which is
+why it kept answering "nobody".
+
+⚠ **`experiments/153-store-lock-race.sh` gained four repairs and every one is
+about a reading that was not what it claimed.** The subject is taken twice now,
+because the moment a candidate fix is in the tree the subject becomes the claim.
+Clauses 4 and 5 skipped one test name each and left two forking paths in both,
+so neither isolated the path it named. The conditions block says when a reading
+was taken on a modified tree, which every clause measuring a change is. And a
+mutating clause prints the line it wrote as well as the line it matched: naming
+what was mutated and not what it became cannot be checked by a reader, which is
+the same defect as a label that outruns its command.
+
+⭐ **It also gained clause 9 and clause 10.** Clause 9 takes the spawn hook back
+out inside the script, so both legs of an A and B land in one file under one
+conditions block. Clause 10 measures no rate at all: it guts the hook and
+asserts the hook's own control goes RED, because a control nobody has seen fail
+is not a control.
+
+⛔ **Stopping a job from Windows does not stop it in the guest.** A killed
+wrapper's container ran to completion nine minutes later and kept writing to the
+log it had inherited, so a second job interleaved with it and the conditions
+block of one run was read beside the tail of the other.
+[`docs/containers.md`](docs/containers.md) carries it.
+
 ### 2026-09-12T03:58:37Z: the interposer objects are embedded, by copying rather than by a nested cargo
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no

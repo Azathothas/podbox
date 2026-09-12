@@ -1201,128 +1201,180 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
              that runs several crates' test binaries at once. So the trigger is
              load or cross-binary timing, and not an ordering inside one suite.
 
-             ⭐ **MEASURED AGAIN ON 2026-09-12 BY
-             `experiments/153-store-lock-race.sh`, which holds everything still
-             except one thing per clause.** Twelve runs per pass, same host,
-             same image, and `experiments/results/store-lock-race.txt` is the
-             record:
+             ⭐ **MEASURED BY `experiments/153-store-lock-race.sh`, WHICH HOLDS
+             EVERYTHING STILL EXCEPT ONE THING PER CLAUSE.** Same host, same
+             image, and `experiments/results/store-lock-race.txt` is the record.
+             ⚠ Clauses 8 and 9 change the SOURCE rather than the test selection,
+             and they are read in the opposite direction from the others:
+             clause 8 makes a candidate window longer, and clause 9 takes a fix
+             back out.
 
              | the clause | failures, per pass |
              | --- | --- |
-             | 1. the suite as the gate runs it | 3, 10, 6, 4, 9, 3, 2, 4 of 12 |
+             | 1. the suite as the gate runs it | 3, 10, 6, 4, 9, 3, 2, 4 of 12, and sixteen passes of 20 over eight tree states on 2026-09-12: 5, 6, 6, 6, 7, 7, 7, 7, 7, 8, 8, 9, 10, 11, 11, 12 |
              | 2. one test thread per binary | ⭐ **0, 0, 0 of 12 and 0, 0 of 20** |
              | 3. two of store.rs's forks removed | 4, 1, 5 of 12 and 10, 5, 2, 2 of 20 |
-             | 6. EVERY forking test removed | ⭐ **0, 0 of 20** |
+             | 4. the ONLY fork left is `clone_fork` | 1, 1 then 0, 0 then ⭐ **0, 0 of 20** |
+             | 5. the ONLY fork left is `Command::spawn` | 1, 0 then 1, 0 then ⛔ **2, 3 of 20** |
+             | 6. EVERY forking test removed | ⭐ **0, 0, 0, 0, 0, 0 of 20** |
              | 7. every lock on `tmpfs` instead of `overlayfs` | 6, 10, 9, 7, 6, 8 of 20 |
-
-             ⛔ **CLAUSE 6's ROW IS THE RUN WHOSE SKIP LIST NAMES ALL FOUR
-             FORKING PATHS, AND ONLY THAT RUN.** Three earlier readings, 3 and 0
-             of 12 and then 3 and 4 and 2 and 5 of 20, were taken with a fork
-             still in the run, and each of them was RED for that reason. ⚠ Read
-             the command line printed above a figure in
-             `experiments/results/store-lock-race.txt` before quoting it: that
-             is what settled this, and a label above the figures did not.
+             | 8. the pre-registration window widened to 200 us | 3, 4 then 3, 4 then 1, 1 of 20 |
+             | 9. the libstd spawn hook taken back out | 10, 11 then 7, 8 of 20, against a subject of 7 and 8 in that run |
+             | 10. the hook gutted, and its own control asserted red | no rate: the control exits 101, so it is watching the hook |
 
              ⛔ **THE SUBJECT'S OWN RATE IS UNSTABLE, and that governs how much
-             any control can carry.** Seven passes over two days read 5, 3, 10,
-             6, 4, 9 and 3 of 12. ⚠ **A control taken once rules nothing here,
-             and clause 6 is the proof**: at twelve runs it read 3 and then 0,
-             which is one pass refuting a mechanism and the next supporting it.
-             At twenty runs, twice, it reads 3 and 4. Every control in the
-             script is now taken twice and a disagreement is reported as ruling
-             nothing.
-             ⛔ **THE FORK CONTROL WAS WRONG TWICE, AND BOTH TIMES BECAUSE ITS
-             SKIP LIST WAS SHORT OF WHAT THE CODE DOES.** Clause 3 skips
-             store.rs's own two forking tests and was read as "no fork"; but
-             `probe_cache` is a module of `podbox-image`, so its tests fork in
-             the same process. Clause 6 then added `probe_cache::` and was still
-             one short: `pull` calls `probe_cache::resolve` once it is past the
-             transport policy, so `naming_the_registry_insecure_gets_past_the_policy`
-             forks under a name that says nothing about forking.
+             any control can carry.** Twenty-three passes over two days read
+             between **2 and 10 of 12** and between **5 and 12 of 20**, and the
+             two denominators are kept apart because a range across both is a
+             rate with no denominator at all. ⚠ The tree was not the same for
+             all sixteen of the 20-run passes, because each measured a candidate
+             closure; clauses 8, 9 and 10 are the states that matter and each
+             has its own row, taken in the same run as the subject it is read
+             against. ⚠ **A control
+             taken once rules nothing here**, and clause 6 is the proof: at
+             twelve runs it read 3 and then 0, which is one pass refuting a
+             mechanism and the next supporting it. Every clause in the script is
+             now taken twice, THE SUBJECT INCLUDED, and a disagreement is
+             reported as ruling nothing. ⭐ The subject was taken once until
+             2026-09-12; the moment a candidate fix is in the tree the subject
+             becomes the claim, and a subject reading 0 once would say no more
+             than a control reading 0 once.
+
+             ⛔ **THE FORK CONTROL WAS WRONG THREE TIMES, AND ITS SKIP LIST WAS
+             SHORT OF THE CODE EVERY TIME.** Clause 3 skips store.rs's own two
+             forking tests and was read as "no fork"; but `probe_cache` is a
+             module of `podbox-image`, so its tests fork in the same process.
+             Clause 6 then added `probe_cache::` and was still one short: `pull`
+             calls `probe_cache::resolve` once it is past the transport policy,
+             so `naming_the_registry_insecure_gets_past_the_policy` forks under
+             a name that says nothing about forking.
              ⚠ **A skip list is a claim about the code, and it is checked by
              reading the code rather than the test names.** The four paths to a
-             fork in this binary, as of 2026-09-12, are `clone_fork` and
-             `Command::spawn` in `crates/podbox-image/src/store.rs`, and
-             `podbox_probe::run` reached through `probe_cache::measure` from the
-             `probe_cache` tests and from `crates/podbox-image/src/pull.rs`.
+             fork in `podbox-image`'s test binary, as of 2026-09-12, are
+             `clone_fork` and `Command::spawn` in
+             `crates/podbox-image/src/store.rs`, and `podbox_probe::run` reached
+             through `probe_cache::measure` from the `probe_cache` tests and
+             from `crates/podbox-image/src/pull.rs`.
              ⭐ **With all four skipped the failure does not arrive at all, 0 of
              20 in each of two passes, so A CONCURRENT FORK IS A NECESSARY
              CONDITION** on this host. ⚠ Clause 3 keeps two of the four paths
              and stays red at 2 and 2 of 20, which is what a necessary condition
              looks like from the other side.
 
-             ⭐ **ONE CANDIDATE MECHANISM IS REFUTED AND THE OTHER IS WHERE
-             EVERY MEASUREMENT POINTS.**
+             ⛔ **AND NEITHER CLAUSE 4 NOR CLAUSE 5 RULES ANYTHING, WHICH IS
+             THE SCRIPT'S OWN VERDICT RATHER THAN A DISAPPOINTMENT.** Each keeps
+             exactly one forking path, and each has two passes that disagree:
+             clause 4 reads 1 and 1 of 20 in the first taking and 0 and 0 in
+             each of the next two; clause 5 reads 1 and 0 twice and then 2 and
+             3. ⚠ **The first taking of each disagrees with what followed**, so
+             neither is a verdict.
+             ⭐ **BUT THE TWO HAVE SEPARATED, AND THAT IS THE LEAD THIS ENTRY
+             LEAVES.** Across the last two takings the `clone_fork` path alone
+             produced 0 failures in 80 runs, and the `Command::spawn` path alone
+             produced 2 and 3 of 20, which is the first taking of clause 5 whose
+             two passes agree. ⛔ **The surviving spawn in clause 5 is the
+             TEST'S BARE ONE**, `a_spawned_process_does_not_inherit_the_lock`'s
+             `/bin/sh -c 'echo ready; sleep 2'`, which carries no shed hook ON
+             PURPOSE because its own subject is `O_CLOEXEC`. Its child lives two
+             seconds, and `O_CLOEXEC` takes the inherited fds away only at that
+             child's `execve`. ⚠ That is a candidate and not a measurement, and
+             `Approach` step 4d is the one line that would settle it.
+             ⭐ What the pair does support, read against clause 6's FOUR zeroes
+             and not against clause 1: one surviving fork of either kind brings
+             the failure back at least sometimes, so the mechanism is not
+             particular to one of the two ways this tree forks. ⚠ Both sit far
+             below the subject, and the reason is printed by the script rather
+             than left to a reader: removing three paths of four removes most of
+             the fork VOLUME as well.
+             ⛔ Those two clauses skipped ONE name each until 2026-09-12, which
+             left two forking paths in both of them, so neither isolated
+             anything it claimed to. That is the skip-list defect again, in the
+             clause built to catch it.
+
+             ⛔ **THREE CANDIDATE MECHANISMS WERE CLOSED ON 2026-09-12 AND NONE
+             OF THEM MOVED THE RATE. ALL THREE ARE ABOUT AN INHERITED
+             DESCRIPTOR.**
              1. `crates/podbox-probe/src/sys.rs` holds `FORK_CLOSE`, a
                 PROCESS-GLOBAL array of sixteen slots naming fds to shed in a
-                forked child. `stop_closing_in_children` clears EVERY slot
-                holding a given fd NUMBER, and an fd number is reused the moment
-                it is closed. ⭐ **NOT refuted, and clause 6 is why.** That
-                table is read only inside `clone_fork`, and a run with no fork
-                in it does not fail at all: 0 of 20, twice. ⚠ **A fork being
-                necessary is not proof that THIS table is the defect**, and the
-                difference matters. What the captures add: one `/proc/locks` row
-                attributed to the test process's own pid while that process held
-                no descriptor on the inode, which is what a child holding an
-                inherited description looks like, and live children named at
-                several failures. ⛔ **And the lock in that capture was a
-                `*.partial` staging lock, which `StagedFile::create` takes
-                through `Lock::try_acquire` and never registers for shedding.**
-                So the shape that fits every measurement is an UNREGISTERED fd
-                inherited by a fork, not a wrongly keyed table.
-             2. `Lock` manages a raw fd by hand and its `Drop` ignores the
-                result of `close`. A descriptor closed twice makes a later
-                `close` release somebody else's file. ⛔ **Refuted twice over,
-                and neither refutation is a rate.** A `close` sent to the wrong
-                descriptor would leave the lock's own description OPEN: at every
-                captured failure `/proc/self/fd` showed **no description on that
-                inode at all**, and a second `flock` attempt taken microseconds
-                later **succeeded**. A leaked description would still be
-                refusing.
+                forked child, and only `Store::hold` registered one: eight of
+                the nine `Lock` construction sites took no slot at all.
+                ⛔ **Closed, and the subject did not move.**
+                `Lock::try_acquire` is the only place a `Lock` is built and it
+                registers every one of them now. The subject stayed inside
+                its 20-run band of 5 to 12, at 10 and 12 of 20 in the run of
+                record.
+                ⚠ **This one is weaker than the two below it**, and the entry
+                grades it rather than levelling them: there is no clause that
+                takes this closure back out the way clause 9 does for the next,
+                so the reading is the subject before and after rather than an
+                isolated control. ⭐ That clause is one more anchor in
+                `mutate_and_measure` and it belongs in the next taking.
+             2. libstd forks inside `Command::spawn` and never passes through
+                `clone_fork`, so the shed list could not reach that child at
+                all, and `O_CLOEXEC` acts at the `execve` and not at the `fork`.
+                ⛔ **Refuted by closing it.** `sys::shed_after_fork` installs a
+                `pre_exec` hook that drains the table in the child, and
+                `run_payload` is the one place podbox spawns with libstd. The
+                subject did not move, and clause 9 takes the hook back out and
+                reads 10 and 11 of 20 against a subject of 10 and 12 in the
+                same run. ⚠ **The hook is PROVED to fire**, by
+                `a_spawn_through_the_hook_sheds_a_registered_fd_and_one_without_it_does_not`,
+                which asks the child itself and runs the same spawn with no hook
+                as its own negative leg. An absence is not a zero, and this
+                closure's null result would be worth nothing without it.
+             3. The fd exists before it is registered, so a fork between
+                `Lock::open` and `sys::close_in_children` leaves a child holding
+                a lock fd that is in no table and that nothing can shed.
+                ⛔ **Refuted by amplifying it.** Clause 8 widens that window
+                from a few instructions to 200 us and the rate does not
+                follow: 3 and 4 of 20 against 11 and 6 in one run, and 3 and 4
+                against 10 and 12 in the next. A window that is the mechanism
+                gets worse when it is made longer.
+             ⛔ **And a fourth, from before this series: `Lock`'s `Drop` ignores
+             the result of `close`, so a descriptor closed twice would release
+             somebody else's file.** Refuted twice over, and neither refutation
+             is a rate. A `close` sent to the wrong descriptor would leave the
+             lock's own description OPEN: at every captured failure
+             `/proc/self/fd` showed no description on that inode, and a second
+             `flock` attempt taken microseconds later succeeded. A leaked
+             description would still be refusing.
 
-             ⭐ **What the instrument does say, and it has a positive control so
-             an absence is not read as a zero.** `who_holds` in
-             `crates/podbox-image/src/store.rs` is called from the failing
-             assertion alone, so a passing run pays nothing for it. At every
-             captured failure:
-             - this process held **no** open file description on the inode;
-             - `/proc/locks` carried **no** row for it, so no process on the
-               host held an `flock` on it either.
-             ⚠ **Clause 0 is why those two absences can be believed.** With the
-             lock deliberately held, the same instrument printed
-             `fd 4 -> .../<digest>.lock` and the kernel row
-             `1: FLOCK ADVISORY READ <pid> 00:29:107240 0 EOF`, and after the
-             release it printed none of either. An instrument that answers
-             "nobody" in every case, including one where a holder is known to
-             exist, is blind rather than right, and that is the reading this
-             clause exists to rule out.
-             ⭐ **TWO SIGNATURES, AND THE SECOND ONE NAMES A HOLDER.** Most
-             captured failures show nothing: `flock(LOCK_EX|LOCK_NB)` answered
-             `EWOULDBLOCK`, and a moment later the instrument's second attempt
-             **succeeded**, so the holder was already gone.
-             ⛔ **One capture is different and it is the useful one.** On
-             2026-09-12, in clause 1 of the clause 7 run, a staging lock
-             answered held and the kernel table agreed:
+             ⭐ **WHAT IS NOW MEASURED, AND IT IS THE FIRST POSITIVE FACT THIS
+             ENTRY HAS HAD: A REAL HOLDER EXISTS, AND IT CAN LIVE FOR TENS OF
+             MILLISECONDS.** `free_now` in `crates/podbox-image/src/store.rs`
+             retries at the point of refusal and reports how long the refusal
+             lasted, which the older instrument cannot: `who_holds` runs while
+             an assertion message is being formatted, by which time every short
+             holder is gone. In the run of record the refusals last **52 us to
+             2827 us**, and the useful ones are the several that survive many
+             attempts rather than one: **48 further attempts over 2021 us**, and
+             17 over 118, and 8 over 229.
+             ⚠ **A refusal that survives 48 consecutive `flock` calls is not a
+             release that had not finished.** That is the reading the one-attempt
+             captures left open, and clause 7 could rule it out only for the
+             filesystem. Something held those locks.
+
+             ⛔ **And twice in that run the kernel named a holder that was still
+             there:**
 
              ```text
-             path   /tmp/podbox-store-7011-openswp/staging/abandoned.7011.7.partial
+             path   /tmp/podbox-store-19074-openswp/staging/abandoned.19074.5.partial
              this process's descriptions on it: none
-             /proc/locks:  5: FLOCK  ADVISORY  WRITE 7011 00:29:106354 0 EOF
+             /proc/locks:  1: FLOCK  ADVISORY  WRITE 19074 00:29:132319 0 EOF
+             this process's children: 19354, 19302, 19368, 19371, 19370, 19303
              a second attempt was refused as well
              ```
 
-             ⚠ **`7011` is the test process itself, and that process holds no
+             ⭐ **`19074` is the test process itself, and that process holds no
              descriptor on the inode.** There is one lock record per open file
              description and it keeps the pid that took it, so a CHILD holding
-             an inherited copy still reads as its parent. ⛔ **That reading is
-             not yet confirmed against a live child**, which is why the
-             instrument now also lists this process's children: a named child
-             at the moment of failure turns the reading into a measurement.
-             ⚠ Note which lock it was: a `*.partial` staging lock.
-             `StagedFile::create` takes it through `Lock::try_acquire` and
-             **never registers it with `sys::close_in_children`**, so a fork
-             sheds `Store::hold`'s lock and not this one. ⛔ That is a
-             difference in the code, not yet a proved cause.
+             an inherited copy still reads as its parent. ⚠ Note which lock:
+             `WRITE`, so it is a `*.partial` staging lock, and both captures are
+             on one. ⛔ **A staging lock is registered for shedding now**, and
+             the child that would inherit it is one of the six named beside it,
+             and not one of them is identified. That is the lead, and it is not
+             a cause yet: [`Approach`](#t-0215-four-lock-tests-fail-in-two-runs-of-five-and-the-gate-has-never-said-so)
+             step 4c is the reading that would name it.
 Approach:    ⛔ **Establish the blast radius before fixing anything.** The first
              question is not how to fix it; it is whether a single-threaded
              podbox process can reach it at all. A race that only a test harness
@@ -1333,21 +1385,21 @@ Approach:    ⛔ **Establish the blast radius before fixing anything.** The firs
                 failing assertion and the descriptor state captured.
                 `experiments/153-store-lock-race.sh` and
                 `experiments/results/store-lock-race.txt`.
-             2. ✅ **Done. One mechanism is refuted and the other is where the
-                measurements point.** The `Premise` above carries both, each
-                with what produced it. ⚠ It took FOUR readings of clause 6 to
-                get there, three of them with a fork still in the run, and the
-                entry keeps that so the next control is derived from the call
-                graph rather than from test names.
+             2. ✅ **Done. Every candidate about an inherited descriptor was
+                closed and none of them moved the rate.** The `Premise` above
+                carries the four, each with what it was worth. ⚠ It took FOUR readings of clause 6 to get the
+                fork question right, three of them with a fork still in the run,
+                and the entry keeps that so the next control is derived from the
+                call graph rather than from the test names.
              3. ⚠ Whatever the cause, the gate is the second finding: CI ran
                 `cargo test --workspace` and reported green, so a check that
                 fails two runs in five has been reporting success. A single run
                 is not evidence for a racy suite.
              4. ⛔ **STILL OPEN, AND IT IS WHAT CLOSES THIS ENTRY.** Name the
-                holder. Threads in one process are necessary, a fork is not,
-                each test owns its own store root, and the holder is gone before
-                the failing thread can look. Two measurements are named and
-                clause 7 is the first of them:
+                holder. Threads in one process are necessary, a fork is
+                necessary, neither fork path rules anything on its own, each
+                test owns its own store root, and a holder the kernel still
+                lists has now been caught twice. Four measurements are named and three are taken:
                 a. ✅ **Clause 7 ruled the filesystem out.** It moved every lock
                    from this container's `overlayfs` `/tmp` to a `tmpfs` through
                    `TMPDIR` and changed nothing else. The failure arrived at
@@ -1355,44 +1407,80 @@ Approach:    ⛔ **Establish the blast radius before fixing anything.** The firs
                    taking, so a release completing late on one filesystem is not
                    the cause. ⭐ A negative result, and it costs the next
                    session the run it would have made;
-                b. ⭐ **THE CHEAP DECISIVE ONE, AND CLAUSE 6 IS WHAT JUSTIFIES
-                   IT.** Register the other `Lock` sites with
-                   `sys::close_in_children` and re-run clause 1. A fork is a
-                   measured necessary condition, and `Store::hold` is the ONLY
-                   one of the **nine** `Lock` construction sites that registers:
-                   seven in `crates/podbox-image/src/store.rs` and two in
-                   `crates/podbox-supervise/`. If the failure goes away the
-                   mechanism is named by the fix; if it does not, the change is
-                   reverted and the entry has learnt something for one run.
-                   ⚠ The slot table holds sixteen, so `Store::hold`'s exhaustion
-                   path is re-read before eight more sites take a slot;
-                c. only if b does not settle it: sample `/proc/locks` from a
-                   SECOND process through the whole run, so a holder that lives
-                   for microseconds is caught while it lives. ⛔ The instrument
-                   in the failing thread cannot do that, which is why it mostly
-                   answers "nobody".
+                b. ✅ **Registering the other eight `Lock` sites changed
+                   nothing**, and neither did shedding on libstd's fork, and
+                   neither did widening the pre-registration window. The
+                   `Premise` carries all three with their figures. ⭐ Two of the
+                   three closures are KEPT anyway, because each removes a real
+                   way for a fork to carry a lock away, which T-0211 forbids
+                   whether or not it is what T-0215 is;
+                c. ⭐ **THE NEXT ONE, AND THE TWO KERNEL CAPTURES ARE WHAT
+                   MAKE IT CHEAP.** A holder the kernel still lists at the
+                   assertion is one that can be read while it lives. `free_now`
+                   already loops at the point of refusal, so it can read
+                   `/proc/locks` and every live child's `/proc/<pid>/fd` ON EACH
+                   ATTEMPT, and report the first attempt at which a holder
+                   appears and which child has the descriptor.
+                   ⛔ **AND IT HAS TO REACH THE SWEEP TESTS FIRST, which is a
+                   gap in the instrument rather than in the plan.** `free_now`
+                   is wired into the two `in_use` tests alone, and BOTH captures
+                   where the kernel still listed the holder came from
+                   `opening_a_store_sweeps_what_a_killed_process_left`, which
+                   has no duration line at all. The most informative failures
+                   are the ones the instrument does not cover; ⚠ The present instrument
+                   reads only THIS process's descriptors, so a child holding an
+                   inherited copy is the one thing the 50 ms capture points at
+                   and the one thing the instrument cannot see;
+                d. ⭐ **ONE LINE, AND IT WOULD NAME THE MECHANISM OR REFUTE
+                   IT.** Clause 5's surviving spawn is the test's bare
+                   `/bin/sh -c 'echo ready; sleep 2'`. Give THAT spawn
+                   `sys::shed_after_fork` as a mutation clause and re-run the
+                   subject. If clause 1 collapses, the mechanism is the
+                   fork-to-exec window of a libstd spawn that nothing sheds, and
+                   the fix follows from it. ⛔ **The mutation stays in the
+                   script and never in the tree**, because shedding in that
+                   child is exactly what that test must NOT do: its subject is
+                   whether `O_CLOEXEC` alone takes the fd away at the exec;
+                e. only if the above do not settle it: sample `/proc/locks` from
+                   a SECOND process through the whole run, so a holder that
+                   lives for microseconds is caught while it lives. ⛔ The
+                   instrument in the failing thread cannot do that on its own,
+                   which is why the short captures mostly answer "nobody".
 Decision:    ⭐ **Taken in part on 2026-09-12, and only the part the measurement
              supports.**
              ⛔ **No change to `Lock::drop`'s `close`**, which is refuted by
              observation: the description it would leave open is not there.
-             ⭐ **The next change to try is the REGISTRATION**, because a fork is
-             a measured necessary condition and eight of the nine `Lock` sites
-             are unregistered. ⚠ It is written as `Approach` step 4b, an
-             experiment rather than a fix: applied, measured, and reverted if it
-             changes nothing.
+             ⭐ **Two fd closures are KEPT although neither changed the rate**,
+             and the entry says which reason is which. `Lock::try_acquire`
+             registers every lock it builds, and `sys::shed_after_fork` drains
+             the table in a child libstd forked. ⛔ **Neither is a fix for
+             T-0215 and neither is written up as one.** Each removes a way for a
+             fork to carry a lock fd away from its holder, which
+             [T-0211](image.md) forbids, and eight of the nine `Lock` sites and
+             every libstd spawn sat outside that rule until now. ⚠ **A change
+             kept on an invariant rather than on a measurement is recorded as
+             exactly that**, so a later reader cannot find a change in the
+             history and conclude the race was fixed.
+             ⛔ **The third closure, widening the window, is a MUTATION and it
+             lives in the script and never in the tree.** Clause 8 makes it and
+             restores the file however the script ends, the way
+             `scripts/plant.sh` works. Clause 9 does the same to take the second
+             closure back out, so both legs of that A and B land in one evidence
+             file under one conditions block.
              ⭐ **The blast radius is settled: the product, as measured, cannot
              reach this.** Several threads in ONE process are a necessary
-             condition, clause 2 at 0 of 12, and the process that holds an image
-             lock for a container's life is measured single-threaded.
+             condition, clause 2 at 0 of 12 three times and 0 of 20 twice, and
+             the process that holds an image lock for a container's life is
+             measured single-threaded.
              `experiments/results/lifecycle-loop.txt` reads the launcher's own
              `/proc/<pid>/task` and reports **1 thread**, and
              `nothing_on_the_spawn_path_can_spawn_a_thread` in
              `crates/podbox-supervise/src/launcher.rs` reads that crate's own
              sources at test time and refuses a thread-spawning line. ⚠ **That
              is a blast radius and not an acquittal**: a single-threaded process
-             cannot reach a race that needs two threads, and it says nothing
-             about `flock` answering `EWOULDBLOCK` with no holder, which is what
-             was actually observed and is not yet explained.
+             cannot reach a race that needs two threads, and a lock the kernel
+             attributes to a process holding no descriptor on it is still
+             unexplained.
              ⚠ The tempting fix is to serialise the lock tests, which makes the
              suite green and answers nothing. ⛔ It stays refused.
 Prove:       `./experiments/153-store-lock-race.sh` runs the workspace suite a recorded number of times, reports the failure count with its conditions, and exits 1 while any run fails. ⛔ It reports the count even when the count is zero, because a racy check that happened to pass is not a check that passed
