@@ -98,7 +98,9 @@ named. `podman machine list` reports one machine and it is
 `eph-pgb` under what WSL has registered, stopped, and never touched. ⛔ Neither
 is this session's to start or remove.
 
-⚠ **Job records from 2026-09-12 are in the base.** Nothing needs them.
+⚠ **Two job records from 2026-09-12 are kept in the base**, 2.4 GiB, both from
+runs whose artifact pack failed. No container is running and no job record is
+open. Nothing needs them, and
 `wsl-toolkit --instance podbox gc --apply --older-than 24h` collects them from
 2026-09-13.
 

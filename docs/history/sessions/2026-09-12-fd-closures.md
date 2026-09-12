@@ -4,8 +4,8 @@
 table in chat AND on disk. [PROGRESS.md](../../../TODO/PROGRESS.md) is the
 record; this is the one-screen version of what moved.
 
-Ran `04:22:08Z` to `06:52Z`, four minutes after the previous session ended. The
-four hosted checks were green at `5473a78`.
+Ran `04:22:08Z` to `06:38:00Z`, four minutes after the previous session ended.
+The four hosted checks were green at `5473a78`.
 
 | what | before | after | taken by |
 | --- | --- | --- | --- |
