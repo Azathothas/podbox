@@ -50,12 +50,13 @@ exactly one of them, which is what makes the fork defence and the exec defence
 independent. The script asserts a mutation landed before it reads either test,
 and it restores the file from a copy rather than with `git checkout --`.
 
-⛔ **T-0215's fork control was short of the code twice, and the second time
-changed the answer.** `pull` calls `probe_cache::resolve` once it is past the
+⛔ **T-0215's fork control was short of the code three times, and completing it
+reversed the answer.** `pull` calls `probe_cache::resolve` once it is past the
 transport policy, so one `pull` test forks under a name that says nothing about
-forking. With all four of the binary's forking paths skipped the failure still
-arrives at **2 and 5 of 20**, so a concurrent fork is not a necessary condition
-and the fork-shed table is refuted after all.
+forking. With all four paths skipped the failure does not arrive at all, **0 of
+20 in each of two passes**, so a concurrent fork IS necessary and the fork-shed
+table is not refuted. ⚠ The three earlier readings were red because a fork was
+still in the run.
 
 ⭐ **The filesystem is ruled out.** Clause 7 moves every lock from this
 container's `overlayfs` to a `tmpfs` through `TMPDIR` and changes nothing else.
@@ -69,7 +70,7 @@ description looks like. `StagedFile::create` takes that lock and never registers
 it for shedding; `Store::hold` is the only one of the nine `Lock` sites in the
 tree that does. ⛔ Recorded as a lead, not as a cause.
 
-### 2026-09-12T03:25:36Z: the store lock race is measured, and both candidate causes are refuted
+### 2026-09-12T03:25:36Z: the store lock race is measured, and one candidate cause is refuted
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
 deployment.
@@ -80,19 +81,19 @@ before anything was changed. `experiments/153-store-lock-race.sh` is the
 measurement: one suite, one thing changed per clause, and every control taken
 twice.
 
-⛔ **Both candidate mechanisms are refuted.** A misdirected `close` would leave
-the lock's own description open: at every captured failure this process held no
-description on that inode, and a second `flock` attempt microseconds later
-succeeded. The fork-shed table is read only inside `clone_fork`, and with every
-one of this binary's four forking paths removed the failure still arrives at 2
-and 5 of 20. ⭐ **One test thread per binary is green in five passes**, so
-several threads in one process is a necessary condition, and the process that
-holds an image lock is measured single-threaded.
+⛔ **One candidate mechanism is refuted and the other is where every
+measurement points.** A misdirected `close` would leave the lock's own
+description open: at every captured failure this process held no description on
+that inode, and a second `flock` attempt microseconds later succeeded. ⭐ **With
+all four of the binary's forking paths removed the failure does not arrive at
+all**, 0 of 20 in two passes, so a concurrent fork is a necessary condition.
+Several threads in one process is one too, green in five control passes, and the
+process that holds an image lock is measured single-threaded.
 
 ⚠ **Two lessons about controls, both paid for in this session.** A control that
 disagrees with itself rules nothing: at twelve runs the fork control read 3 and
 then 0. And a control's skip list is a claim about the code: that list was short
-twice, the second time because `pull` forks through `probe_cache::resolve` once
+three times, the last because `pull` forks through `probe_cache::resolve` once
 it is past the transport policy, under a test name that says nothing about
 forking. Every control is now taken twice, and the skip list is derived from the
 call graph rather than from the names.

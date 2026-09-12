@@ -1,10 +1,10 @@
 == conditions
-date              2026-09-12T03:32:41Z
+date              2026-09-12T04:01:38Z
 host kernel       Linux 7.2.0-WSL2-STABLE
 nproc             20
 cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
 rustc             rustc 1.98.1 (48a229cea 2026-09-01)
-commit            17a022f
+commit            0625d48
 runs per clause   12 subject, 20 control
 clauses           0 1 2 3 6 7
 
@@ -12,264 +12,369 @@ clauses           0 1 2 3 6 7
   command          cargo test -p podbox-image the_t_0215_instrument -- --nocapture
   exit             0
     T-0215 positive control, with the lock HELD:
-      inode Some(106565), pid 5163
+      inode Some(119308), pid 5231
       this process's descriptions on it:
-        fd 4 -> /tmp/podbox-store-5163-instrument/locks/5809addc9f6926fc5c4e20cf87958858c4454c21cdfc6b02f377f12c06b35cca.lock
+        fd 4 -> /tmp/podbox-store-5231-instrument/locks/5809addc9f6926fc5c4e20cf87958858c4454c21cdfc6b02f377f12c06b35cca.lock
       /proc/locks rows on this inode:
-        1: FLOCK  ADVISORY  READ 5163 00:29:106565 0 EOF
+        1: FLOCK  ADVISORY  READ 5231 00:29:119308 0 EOF
     T-0215 positive control, after the release:
-      inode Some(106565), pid 5163
+      inode Some(119308), pid 5231
       this process's descriptions on it: none, so the holder is not this process
       /proc/locks rows on this inode: none
 
 == clause 1 pass A  the suite as the gate runs it. THE SUBJECT
   command          cargo test --workspace
   runs             12
-  failed runs      2 of 12
-  seconds          35 total for 12 runs
+  failed runs      4 of 12
+  seconds          46 total for 12 runs
   the failing tests, by run:
-    run 11 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 11 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
-    run 11 store::tests::a_spawned_process_does_not_inherit_the_lock
-    run 12 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+    run 3 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+    run 4 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+    run 5 store::tests::a_spawned_process_does_not_inherit_the_lock
+    run 9 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   distinct tests:
-          1 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
           1 store::tests::a_spawned_process_does_not_inherit_the_lock
-          1 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-          1 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+          3 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   the assertions:
-  run 11  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (15763) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 11  the holder released it and it still reads as in use
-  run 11    T-0215 instrument, path /tmp/podbox-store-15632-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 11    inode Some(106678), pid 15632
-  run 11    this process's descriptions on it: none, so the holder is not this process
-  run 11    /proc/locks rows on this inode: none
-  run 11    this process's children:
-  run 11      pid 15876 (exe)
-  run 11      pid 15803 (exe)
-  run 11      pid 15887 (gone)
-  run 11      pid 15895 (exe)
-  run 11      pid 15804 (store::tests::a)
-  run 11    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 11  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 11  
-  run 11  ---- store::tests::a_fork_while_the_lock_is_held_does_not_extend_it stdout ----
-  run 11  
-  run 11  thread 'store::tests::a_fork_while_the_lock_is_held_does_not_extend_it' (15740) panicked at crates/podbox-image/src/store.rs:1506:9:
-  run 11  the holder released the lock and it is still held: a forked child inherited the fd, which is TODO/image.md T-0211
-  run 11    T-0215 instrument, path /tmp/podbox-store-15632-forkhold/locks/26e7f98cfafee5b213726e22632923bf31bf3e988233235f8f5ca5466b3ac0ed.lock
-  run 11    inode Some(106682), pid 15632
-  run 11    this process's descriptions on it: none, so the holder is not this process
-  run 11    /proc/locks rows on this inode: none
-  run 11    this process's children:
-  run 11      pid 16150 (exe)
-  run 11    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 11  
-  run 11  ---- store::tests::a_spawned_process_does_not_inherit_the_lock stdout ----
-  run 11  
-  run 11  thread 'store::tests::a_spawned_process_does_not_inherit_the_lock' (15759) panicked at crates/podbox-image/src/store.rs:1577:9:
-  run 11  the holder released the lock and a spawned process is still holding it: the lock fd was not O_CLOEXEC, which is the exec half of TODO/image.md T-0211
-  run 11    T-0215 instrument, path /tmp/podbox-store-15632-spawnhold/locks/d8c50d6282a1ba47f0a23430d177bbfbb72e2b84713745e894f575570f1f3d6e.lock
-  run 11    inode Some(106577), pid 15632
-  run 11    this process's descriptions on it: none, so the holder is not this process
-  run 11    /proc/locks rows on this inode: none
-  run 11    this process's children: none
-  run 11    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 11  
-  run 11  
-  run 11  failures:
-  run 11      store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
-  run 11      store::tests::a_spawned_process_does_not_inherit_the_lock
-  run 11      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 11  
-  run 11  test result: FAILED. 92 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
-  run 11  
-  run 11  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 12  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (16574) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 12  both holders went and it still reads as in use
-  run 12    T-0215 instrument, path /tmp/podbox-store-16353-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 12    inode Some(106647), pid 16353
-  run 12    this process's descriptions on it: none, so the holder is not this process
-  run 12    /proc/locks rows on this inode: none
-  run 12    this process's children:
-  run 12      pid 16667 (gone)
-  run 12      pid 16669 (exe)
-  run 12      pid 16674 (exe)
-  run 12      pid 16679 (exe)
-  run 12      pid 16681 (exe)
-  run 12      pid 16484 (store::tests::a)
-  run 12    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 12  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 12  
-  run 12  
-  run 12  failures:
-  run 12      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 12  
-  run 12  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.65s
+  run 3  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (8056) panicked at crates/podbox-image/src/store.rs:1719:9:
+  run 3  both holders went and it still reads as in use
+  run 3    T-0215 instrument, path /tmp/podbox-store-7843-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 3    inode Some(119431), pid 7843
+  run 3    this process's descriptions on it: none, so the holder is not this process
+  run 3    /proc/locks rows on this inode: none
+  run 3    this process's children:
+  run 3      pid 8134 (exe)
+  run 3      pid 8133 (exe)
+  run 3      pid 8002 (exe)
+  run 3      pid 8004 (exe)
+  run 3      pid 8141 (exe)
+  run 3      pid 8137 (exe)
+  run 3      pid 8000 (store::tests::a)
+  run 3    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 3  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 3  
+  run 3  
+  run 3  failures:
+  run 3      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  run 3  
+  run 4  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (8932) panicked at crates/podbox-image/src/store.rs:1719:9:
+  run 4  both holders went and it still reads as in use
+  run 4    T-0215 instrument, path /tmp/podbox-store-8689-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 4    inode Some(119364), pid 8689
+  run 4    this process's descriptions on it: none, so the holder is not this process
+  run 4    /proc/locks rows on this inode: none
+  run 4    this process's children:
+  run 4      pid 9023 (gone)
+  run 4      pid 9029 (exe)
+  run 4      pid 8894 (exe)
+  run 4      pid 8897 (exe)
+  run 4      pid 8896 (store::tests::a)
+  run 4    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 4  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 4  
+  run 4  
+  run 4  failures:
+  run 4      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  run 4  
+  run 4  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+  run 4  
+  run 5  thread 'store::tests::a_spawned_process_does_not_inherit_the_lock' (9676) panicked at crates/podbox-image/src/store.rs:1586:9:
+  run 5  the holder released the lock and a spawned process is still holding it: the lock fd was not O_CLOEXEC, which is the exec half of TODO/image.md T-0211
+  run 5    T-0215 instrument, path /tmp/podbox-store-9535-spawnhold/locks/d8c50d6282a1ba47f0a23430d177bbfbb72e2b84713745e894f575570f1f3d6e.lock
+  run 5    inode Some(119332), pid 9535
+  run 5    this process's descriptions on it: none, so the holder is not this process
+  run 5    /proc/locks rows on this inode: none
+  run 5    this process's children:
+  run 5      pid 10069 (exe)
+  run 5    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 5  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 5  
+  run 5  
+  run 5  failures:
+  run 5      store::tests::a_spawned_process_does_not_inherit_the_lock
+  run 5  
+  run 5  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.01s
+  run 5  
+  run 5  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 9  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (14100) panicked at crates/podbox-image/src/store.rs:1719:9:
+  run 9  both holders went and it still reads as in use
+  run 9    T-0215 instrument, path /tmp/podbox-store-13843-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 9    inode Some(119432), pid 13843
+  run 9    this process's descriptions on it: none, so the holder is not this process
+  run 9    /proc/locks rows on this inode: none
+  run 9    this process's children:
+  run 9      pid 14186 (exe)
+  run 9      pid 14041 (exe)
+  run 9      pid 14192 (exe)
+  run 9      pid 14190 (exe)
+  run 9      pid 14195 (exe)
+  run 9      pid 14191 (exe)
+  run 9      pid 14040 (store::tests::a)
+  run 9    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 9  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 9  
+  run 9  
+  run 9  failures:
+  run 9      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  run 9  
 
 == clause 2 pass A  one test thread per binary. Removes threads in one process
   command          cargo test --workspace -- --test-threads=1
   runs             20
   failed runs      0 of 20
-  seconds          73 total for 20 runs
+  seconds          91 total for 20 runs
   the failing tests: none
 
 == clause 2 pass B  one test thread per binary. Removes threads in one process
   command          cargo test --workspace -- --test-threads=1
   runs             20
   failed runs      0 of 20
-  seconds          72 total for 20 runs
+  seconds          91 total for 20 runs
   the failing tests: none
 
 == clause 3 pass A  store.rs's two forking tests skipped. NOT the fork control
   command          cargo test --workspace -- --skip a_fork_while_the_lock_is_held_does_not_extend_it --skip a_spawned_process_does_not_inherit_the_lock
   runs             20
-  failed runs      10 of 20
-  seconds          59 total for 20 runs
+  failed runs      2 of 20
+  seconds          77 total for 20 runs
   the failing tests, by run:
-    run 1 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 2 store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one
-    run 6 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 10 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 13 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 15 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 16 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 18 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 19 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 20 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+    run 5 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+    run 17 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+    run 17 store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one
   distinct tests:
-          3 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+          2 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
           1 store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one
-          6 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   the assertions:
-  run 1  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (58362) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 1  the holder released it and it still reads as in use
-  run 1    T-0215 instrument, path /tmp/podbox-store-58240-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 1    inode Some(116286), pid 58240
+  run 5  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (69061) panicked at crates/podbox-image/src/store.rs:1450:9:
+  run 5  the holder released it and it still reads as in use
+  run 5    T-0215 instrument, path /tmp/podbox-store-68913-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
+  run 5    inode Some(119393), pid 68913
+  run 5    this process's descriptions on it: none, so the holder is not this process
+  run 5    /proc/locks rows on this inode: none
+  run 5    this process's children:
+  run 5      pid 69145 (exe)
+  run 5      pid 69144 (exe)
+  run 5    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 5  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 5  
+  run 5  
+  run 5  failures:
+  run 5      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+  run 5  
+  run 5  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.62s
+  run 5  
+  run 5  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 17  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (82514) panicked at crates/podbox-image/src/store.rs:1450:9:
+  run 17  the holder released it and it still reads as in use
+  run 17    T-0215 instrument, path /tmp/podbox-store-82393-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
+  run 17    inode Some(119465), pid 82393
+  run 17    this process's descriptions on it: none, so the holder is not this process
+  run 17    /proc/locks rows on this inode: none
+  run 17    this process's children:
+  run 17      pid 82619 (exe)
+  run 17      pid 82633 (exe)
+  run 17      pid 82632 (exe)
+  run 17    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 17  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 17  
+  run 17  ---- store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one stdout ----
+  run 17  
+  run 17  thread 'store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one' (82569) panicked at crates/podbox-image/src/store.rs:1324:9:
+  run 17  the abandoned file was not swept
+  run 17    T-0215 instrument, path /tmp/podbox-store-82393-sweep/staging/abandoned.82393.17.partial
+  run 17    inode Some(119409), pid 82393
+  run 17    this process's descriptions on it: none, so the holder is not this process
+  run 17    /proc/locks rows on this inode: none
+  run 17    this process's children:
+  run 17      pid 82628 (exe)
+  run 17      pid 82634 (gone)
+  run 17      pid 82649 (gone)
+  run 17    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 17  
+  run 17  
+  run 17  failures:
+  run 17      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+  run 17      store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one
+  run 17  
+  run 17  test result: FAILED. 91 passed; 2 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.63s
+  run 17  
+  run 17  error: test failed, to rerun pass `-p podbox-image --lib`
+
+== clause 3 pass B  store.rs's two forking tests skipped. NOT the fork control
+  command          cargo test --workspace -- --skip a_fork_while_the_lock_is_held_does_not_extend_it --skip a_spawned_process_does_not_inherit_the_lock
+  runs             20
+  failed runs      2 of 20
+  seconds          77 total for 20 runs
+  the failing tests, by run:
+    run 1 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+    run 3 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  distinct tests:
+          2 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  the assertions:
+  run 1  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (86887) panicked at crates/podbox-image/src/store.rs:1719:9:
+  run 1  both holders went and it still reads as in use
+  run 1    T-0215 instrument, path /tmp/podbox-store-86687-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 1    inode Some(119483), pid 86687
   run 1    this process's descriptions on it: none, so the holder is not this process
   run 1    /proc/locks rows on this inode: none
   run 1    this process's children:
-  run 1      pid 58545 (exe)
-  run 1      pid 58546 (exe)
-  run 1      pid 58549 (exe)
-  run 1      pid 58551 (exe)
-  run 1      pid 58550 (gone)
+  run 1      pid 87011 (gone)
+  run 1      pid 87023 (exe)
+  run 1      pid 87028 (exe)
   run 1    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 1  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 1  
   run 1  
   run 1  failures:
-  run 1      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+  run 1      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   run 1  
   run 1  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.64s
   run 1  
-  run 2  thread 'store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one' (59132) panicked at crates/podbox-image/src/store.rs:1315:9:
-  run 2  the abandoned file was not swept
-  run 2    T-0215 instrument, path /tmp/podbox-store-58956-sweep/staging/abandoned.58956.20.partial
-  run 2    inode Some(116333), pid 58956
+  run 1  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 3  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (88882) panicked at crates/podbox-image/src/store.rs:1719:9:
+  run 3  both holders went and it still reads as in use
+  run 3    T-0215 instrument, path /tmp/podbox-store-88677-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 3    inode Some(119525), pid 88677
+  run 3    this process's descriptions on it: none, so the holder is not this process
+  run 3    /proc/locks rows on this inode: none
+  run 3    this process's children:
+  run 3      pid 89011 (exe)
+  run 3      pid 89014 (gone)
+  run 3      pid 89023 (exe)
+  run 3      pid 89027 (exe)
+  run 3      pid 89031 (gone)
+  run 3      pid 89037 (exe)
+  run 3      pid 89040 (exe)
+  run 3    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 3  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 3  
+  run 3  
+  run 3  failures:
+  run 3      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  run 3  
+
+== clause 6 pass A  every forking test skipped. THE FORK CONTROL
+  command          cargo test --workspace -- --skip a_fork_while_the_lock_is_held_does_not_extend_it --skip a_spawned_process_does_not_inherit_the_lock --skip probe_cache:: --skip naming_the_registry_insecure_gets_past_the_policy
+  runs             20
+  failed runs      0 of 20
+  seconds          24 total for 20 runs
+  the failing tests: none
+
+== clause 6 pass B  every forking test skipped. THE FORK CONTROL
+  command          cargo test --workspace -- --skip a_fork_while_the_lock_is_held_does_not_extend_it --skip a_spawned_process_does_not_inherit_the_lock --skip probe_cache:: --skip naming_the_registry_insecure_gets_past_the_policy
+  runs             20
+  failed runs      0 of 20
+  seconds          23 total for 20 runs
+  the failing tests: none
+
+  ⚠ clause 7 moves TMPDIR from /tmp (overlayfs) to /dev/shm/podbox-race-692 (tmpfs)
+== clause 7 pass A  every lock on tmpfs instead of overlayfs
+  command          cargo test --workspace
+  runs             20
+  failed runs      6 of 20
+  seconds          76 total for 20 runs
+  the failing tests, by run:
+    run 2 store::tests::opening_a_store_sweeps_what_a_killed_process_left
+    run 7 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+    run 11 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+    run 14 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+    run 16 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+    run 20 store::tests::opening_a_store_sweeps_what_a_killed_process_left
+    run 20 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  distinct tests:
+          2 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+          1 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+          2 store::tests::opening_a_store_sweeps_what_a_killed_process_left
+          2 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  the assertions:
+  run 2  thread 'store::tests::opening_a_store_sweeps_what_a_killed_process_left' (138423) panicked at crates/podbox-image/src/store.rs:1346:9:
+  run 2  a second open did not sweep
+  run 2    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-138176-openswp/staging/abandoned.138176.10.partial
+  run 2    inode Some(3596), pid 138176
   run 2    this process's descriptions on it: none, so the holder is not this process
   run 2    /proc/locks rows on this inode: none
   run 2    this process's children:
-  run 2      pid 59199 (gone)
-  run 2      pid 59212 (exe)
-  run 2      pid 59215 (exe)
+  run 2      pid 138491 (exe)
+  run 2      pid 138490 (exe)
+  run 2      pid 138488 (exe)
+  run 2      pid 138407 (exe)
+  run 2      pid 138408 (store::tests::a)
   run 2    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 2  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 2  
   run 2  
   run 2  failures:
-  run 2      store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one
+  run 2      store::tests::opening_a_store_sweeps_what_a_killed_process_left
   run 2  
-  run 2  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.63s
+  run 2  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
   run 2  
-  run 2  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 6  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (62948) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 6  both holders went and it still reads as in use
-  run 6    T-0215 instrument, path /tmp/podbox-store-62744-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 6    inode Some(116438), pid 62744
-  run 6    this process's descriptions on it: none, so the holder is not this process
-  run 6    /proc/locks rows on this inode: none
-  run 6    this process's children:
-  run 6      pid 63088 (exe)
-  run 6      pid 63091 (exe)
-  run 6    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 6  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 6  
-  run 6  
-  run 6  failures:
-  run 6      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 6  
-  run 6  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.63s
-  run 6  
-  run 6  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 10  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (66678) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 10  the holder released it and it still reads as in use
-  run 10    T-0215 instrument, path /tmp/podbox-store-66532-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 10    inode Some(119765), pid 66532
-  run 10    this process's descriptions on it: none, so the holder is not this process
-  run 10    /proc/locks rows on this inode: none
-  run 10    this process's children:
-  run 10      pid 66874 (gone)
-  run 10      pid 66876 (exe)
-  run 10    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 10  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 10  
-  run 10  
-  run 10  failures:
-  run 10      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 10  
-  run 10  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.64s
-  run 10  
-  run 10  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 13  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (69583) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 13  both holders went and it still reads as in use
-  run 13    T-0215 instrument, path /tmp/podbox-store-69296-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 13    inode Some(142354), pid 69296
-  run 13    this process's descriptions on it: none, so the holder is not this process
-  run 13    /proc/locks rows on this inode: none
-  run 13    this process's children:
-  run 13      pid 69697 (exe)
-  run 13      pid 69703 (exe)
-  run 13      pid 69705 (exe)
-  run 13      pid 69702 (exe)
-  run 13    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 13  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 13  
-  run 13  
-  run 13  failures:
-  run 13      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 13  
-  run 13  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.64s
-  run 13  
-  run 13  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 15  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (71242) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 15  both holders went and it still reads as in use
-  run 15    T-0215 instrument, path /tmp/podbox-store-71036-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 15    inode Some(143622), pid 71036
-  run 15    this process's descriptions on it: none, so the holder is not this process
-  run 15    /proc/locks rows on this inode: none
-  run 15    this process's children:
-  run 15      pid 71407 (exe)
-  run 15      pid 71411 (exe)
-  run 15      pid 71410 (gone)
-  run 15      pid 71417 (gone)
-  run 15      pid 71424 (gone)
-  run 15    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 15  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 15  
-  run 15  
-  run 15  failures:
-  run 15      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 15  
-  run 15  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.63s
-  run 15  
-  run 16  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (71983) panicked at crates/podbox-image/src/store.rs:1710:9:
+  run 7  thread 'store::tests::a_fork_while_the_lock_is_held_does_not_extend_it' (143792) panicked at crates/podbox-image/src/store.rs:1515:9:
+  run 7  the holder released the lock and it is still held: a forked child inherited the fd, which is TODO/image.md T-0211
+  run 7    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-143638-forkhold/locks/26e7f98cfafee5b213726e22632923bf31bf3e988233235f8f5ca5466b3ac0ed.lock
+  run 7    inode Some(6575), pid 143638
+  run 7    this process's descriptions on it: none, so the holder is not this process
+  run 7    /proc/locks rows on this inode: none
+  run 7    this process's children:
+  run 7      pid 144058 (exe)
+  run 7      pid 144059 (exe)
+  run 7    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 7  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 7  
+  run 7  
+  run 7  failures:
+  run 7      store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+  run 7  
+  run 7  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.59s
+  run 7  
+  run 7  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 11  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (148157) panicked at crates/podbox-image/src/store.rs:1450:9:
+  run 11  the holder released it and it still reads as in use
+  run 11    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-147946-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
+  run 11    inode Some(9067), pid 147946
+  run 11    this process's descriptions on it: none, so the holder is not this process
+  run 11    /proc/locks rows on this inode: none
+  run 11    this process's children:
+  run 11      pid 148178 (exe)
+  run 11      pid 148346 (exe)
+  run 11      pid 148348 (exe)
+  run 11      pid 148351 (exe)
+  run 11      pid 148350 (exe)
+  run 11      pid 148179 (store::tests::a)
+  run 11    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 11  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 11  
+  run 11  
+  run 11  failures:
+  run 11      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+  run 11  
+  run 11  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+  run 14  thread 'store::tests::a_fork_while_the_lock_is_held_does_not_extend_it' (151258) panicked at crates/podbox-image/src/store.rs:1515:9:
+  run 14  the holder released the lock and it is still held: a forked child inherited the fd, which is TODO/image.md T-0211
+  run 14    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-151100-forkhold/locks/26e7f98cfafee5b213726e22632923bf31bf3e988233235f8f5ca5466b3ac0ed.lock
+  run 14    inode Some(10809), pid 151100
+  run 14    this process's descriptions on it: none, so the holder is not this process
+  run 14    /proc/locks rows on this inode: none
+  run 14    this process's children:
+  run 14      pid 151553 (exe)
+  run 14      pid 151554 (exe)
+  run 14    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 14  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 14  
+  run 14  
+  run 14  failures:
+  run 14      store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+  run 14  
+  run 14  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+  run 14  
+  run 14  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 16  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (153297) panicked at crates/podbox-image/src/store.rs:1719:9:
   run 16  both holders went and it still reads as in use
-  run 16    T-0215 instrument, path /tmp/podbox-store-71752-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 16    inode Some(144419), pid 71752
+  run 16    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-153100-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 16    inode Some(12112), pid 153100
   run 16    this process's descriptions on it: none, so the holder is not this process
   run 16    /proc/locks rows on this inode: none
-  run 16    this process's children: none
+  run 16    this process's children:
+  run 16      pid 153396 (exe)
   run 16    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 16  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 16  
@@ -277,700 +382,160 @@ clauses           0 1 2 3 6 7
   run 16  failures:
   run 16      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   run 16  
-  run 16  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.66s
+  run 16  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
   run 16  
   run 16  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 18  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (73723) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 18  both holders went and it still reads as in use
-  run 18    T-0215 instrument, path /tmp/podbox-store-73492-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 18    inode Some(145275), pid 73492
-  run 18    this process's descriptions on it: none, so the holder is not this process
-  run 18    /proc/locks rows on this inode: none
-  run 18    this process's children:
-  run 18      pid 73868 (exe)
-  run 18      pid 73866 (exe)
-  run 18      pid 73870 (exe)
-  run 18      pid 73874 (exe)
-  run 18    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 18  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 18  
-  run 18  
-  run 18  failures:
-  run 18      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 18  
-  run 18  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.65s
-  run 18  
-  run 18  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 19  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (74441) panicked at crates/podbox-image/src/store.rs:1710:9:
-
-== clause 3 pass B  store.rs's two forking tests skipped. NOT the fork control
-  command          cargo test --workspace -- --skip a_fork_while_the_lock_is_held_does_not_extend_it --skip a_spawned_process_does_not_inherit_the_lock
-  runs             20
-  failed runs      5 of 20
-  seconds          59 total for 20 runs
-  the failing tests, by run:
-    run 2 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 6 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 7 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 7 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 10 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 13 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 13 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  distinct tests:
-          3 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-          4 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  the assertions:
-  run 2  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (76818) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 2  the holder released it and it still reads as in use
-  run 2    T-0215 instrument, path /tmp/podbox-store-76670-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 2    inode Some(145610), pid 76670
-  run 2    this process's descriptions on it: none, so the holder is not this process
-  run 2    /proc/locks rows on this inode: none
-  run 2    this process's children:
-  run 2      pid 76992 (exe)
-  run 2      pid 76999 (exe)
-  run 2      pid 77000 (exe)
-  run 2      pid 77001 (exe)
-  run 2      pid 76994 (exe)
-  run 2      pid 76995 (exe)
-  run 2      pid 76997 (exe)
-  run 2      pid 76998 (exe)
-  run 2    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 2  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 2  
-  run 2  
-  run 2  failures:
-  run 2      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 6  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (80706) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 6  both holders went and it still reads as in use
-  run 6    T-0215 instrument, path /tmp/podbox-store-80458-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 6    inode Some(145622), pid 80458
-  run 6    this process's descriptions on it: none, so the holder is not this process
-  run 6    /proc/locks rows on this inode: none
-  run 6    this process's children:
-  run 6      pid 80838 (gone)
-  run 6      pid 80849 (exe)
-  run 6    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 6  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 6  
-  run 6  
-  run 6  failures:
-  run 6      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 6  
-  run 6  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.62s
-  run 6  
-  run 6  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 7  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (81310) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 7  both holders went and it still reads as in use
-  run 7    T-0215 instrument, path /tmp/podbox-store-81174-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 7    inode Some(145609), pid 81174
-  run 7    this process's descriptions on it: none, so the holder is not this process
-  run 7    /proc/locks rows on this inode: none
-  run 7    this process's children:
-  run 7      pid 81374 (exe)
-  run 7      pid 81378 (exe)
-  run 7      pid 81379 (probe_cache::te)
-  run 7      pid 81377 (exe)
-  run 7    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 7  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 7  
-  run 7  ---- store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune stdout ----
-  run 7  
-  run 7  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (81268) panicked at crates/podbox-image/src/store.rs:1446:9:
-  run 7  rmi refused an image nothing is using
-  run 7    T-0215 instrument, path /tmp/podbox-store-81174-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 7    inode Some(145658), pid 81174
-  run 7    this process's descriptions on it: none, so the holder is not this process
-  run 7    /proc/locks rows on this inode: none
-  run 7    this process's children: none
-  run 7    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 7  
-  run 7  
-  run 7  failures:
-  run 7      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 7      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 7  
-  run 7  test result: FAILED. 91 passed; 2 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.62s
-  run 7  
-  run 7  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 10  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (84129) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 10  both holders went and it still reads as in use
-  run 10    T-0215 instrument, path /tmp/podbox-store-83938-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 10    inode Some(145565), pid 83938
-  run 10    this process's descriptions on it: none, so the holder is not this process
-  run 10    /proc/locks rows on this inode: none
-  run 10    this process's children:
-  run 10      pid 84394 (exe)
-  run 10    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 10  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 10  
-  run 10  
-  run 10  failures:
-  run 10      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 10  
-  run 10  test result: FAILED. 92 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.63s
-  run 10  
-  run 10  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 13  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (86778) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 13  the holder released it and it still reads as in use
-  run 13    T-0215 instrument, path /tmp/podbox-store-86702-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 13    inode Some(145617), pid 86702
-  run 13    this process's descriptions on it: none, so the holder is not this process
-  run 13    /proc/locks rows on this inode: none
-  run 13    this process's children:
-  run 13      pid 86862 (exe)
-  run 13      pid 86859 (exe)
-  run 13      pid 86861 (exe)
-  run 13      pid 86860 (gone)
-  run 13      pid 86868 (gone)
-  run 13      pid 86878 (exe)
-  run 13    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 13  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 13  
-  run 13  ---- store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free stdout ----
-  run 13  
-  run 13  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (86835) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 13  both holders went and it still reads as in use
-  run 13    T-0215 instrument, path /tmp/podbox-store-86702-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 13    inode Some(145647), pid 86702
-  run 13    this process's descriptions on it: none, so the holder is not this process
-  run 13    /proc/locks rows on this inode: none
-  run 13    this process's children: none
-  run 13    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 13  
-  run 13  
-  run 13  failures:
-  run 13      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 13      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 13  
-  run 13  test result: FAILED. 91 passed; 2 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.62s
-  run 13  
-  run 13  error: test failed, to rerun pass `-p podbox-image --lib`
-
-== clause 6 pass A  probe_cache skipped as well. THE FORK CONTROL
-  command          cargo test --workspace -- --skip a_fork_while_the_lock_is_held_does_not_extend_it --skip a_spawned_process_does_not_inherit_the_lock --skip probe_cache::
-  runs             20
-  failed runs      2 of 20
-  seconds          58 total for 20 runs
-  the failing tests, by run:
-    run 11 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 15 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  distinct tests:
-          2 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  the assertions:
-  run 11  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (100849) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 11  the holder released it and it still reads as in use
-  run 11    T-0215 instrument, path /tmp/podbox-store-100782-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 11    inode Some(145548), pid 100782
-  run 11    this process's descriptions on it: none, so the holder is not this process
-  run 11    /proc/locks rows on this inode: none
-  run 11    this process's children:
-  run 11      pid 100880 (exe)
-  run 11    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 11  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 11  
-  run 11  
-  run 11  failures:
-  run 11      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 11  
-  run 11  test result: FAILED. 83 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 2.56s
-  run 11  
-  run 11  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 15  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (103017) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 15  the holder released it and it still reads as in use
-  run 15    T-0215 instrument, path /tmp/podbox-store-102950-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 15    inode Some(145499), pid 102950
-  run 15    this process's descriptions on it: none, so the holder is not this process
-  run 15    /proc/locks rows on this inode: none
-  run 15    this process's children:
-  run 15      pid 103048 (exe)
-  run 15    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 15  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 15  
-  run 15  
-  run 15  failures:
-  run 15      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 15  
-  run 15  test result: FAILED. 83 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 2.55s
-  run 15  
-  run 15  error: test failed, to rerun pass `-p podbox-image --lib`
-
-== clause 6 pass B  probe_cache skipped as well. THE FORK CONTROL
-  command          cargo test --workspace -- --skip a_fork_while_the_lock_is_held_does_not_extend_it --skip a_spawned_process_does_not_inherit_the_lock --skip probe_cache::
-  runs             20
-  failed runs      5 of 20
-  seconds          58 total for 20 runs
-  the failing tests, by run:
-    run 1 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 8 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 8 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 11 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 19 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 20 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  distinct tests:
-          3 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-          3 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  the assertions:
-  run 1  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (106438) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 1  both holders went and it still reads as in use
-  run 1    T-0215 instrument, path /tmp/podbox-store-106362-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 1    inode Some(145554), pid 106362
-  run 1    this process's descriptions on it: none, so the holder is not this process
-  run 1    /proc/locks rows on this inode: none
-  run 1    this process's children:
-  run 1      pid 106472 (exe)
-  run 1    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 1  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 1  
-  run 1  
-  run 1  failures:
-  run 1      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 1  
-  run 1  test result: FAILED. 83 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 2.55s
-  run 1  
-  run 1  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 8  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (110464) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 8  both holders went and it still reads as in use
-  run 8    T-0215 instrument, path /tmp/podbox-store-110387-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 8    inode Some(145639), pid 110387
-  run 8    this process's descriptions on it: none, so the holder is not this process
-  run 8    /proc/locks rows on this inode: none
-  run 8    this process's children:
-  run 8      pid 110483 (exe)
-  run 8    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 8  
-  run 8  ---- store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune stdout ----
-  run 8  
-  run 8  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (110453) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 8  the holder released it and it still reads as in use
-  run 8    T-0215 instrument, path /tmp/podbox-store-110387-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 8    inode Some(145703), pid 110387
-  run 8    this process's descriptions on it: none, so the holder is not this process
-  run 8    /proc/locks rows on this inode: none
-  run 8    this process's children:
-  run 8      pid 110483 (exe)
-  run 8    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 8  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 8  
-  run 8  
-  run 8  failures:
-  run 8      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 8      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 8  
-  run 8  test result: FAILED. 82 passed; 2 failed; 0 ignored; 0 measured; 11 filtered out; finished in 2.55s
-  run 8  
-  run 8  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 11  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (112004) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 11  the holder released it and it still reads as in use
-  run 11    T-0215 instrument, path /tmp/podbox-store-111936-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 11    inode Some(145735), pid 111936
-  run 11    this process's descriptions on it: none, so the holder is not this process
-  run 11    /proc/locks rows on this inode: none
-  run 11    this process's children:
-  run 11      pid 112037 (exe)
-  run 11    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 11  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 11  
-  run 11  
-  run 11  failures:
-  run 11      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 11  
-  run 11  test result: FAILED. 83 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 2.55s
-  run 11  
-  run 11  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 19  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (116646) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 19  the holder released it and it still reads as in use
-  run 19    T-0215 instrument, path /tmp/podbox-store-116580-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 19    inode Some(145783), pid 116580
-  run 19    this process's descriptions on it: none, so the holder is not this process
-  run 19    /proc/locks rows on this inode: none
-  run 19    this process's children:
-  run 19      pid 116690 (gone)
-  run 19    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 19  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 19  
-  run 19  
-  run 19  failures:
-  run 19      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 19  
-  run 19  test result: FAILED. 83 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 2.55s
-  run 19  
-  run 19  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 20  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (116970) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 20  both holders went and it still reads as in use
-  run 20    T-0215 instrument, path /tmp/podbox-store-116891-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 20    inode Some(145544), pid 116891
+  run 20  thread 'store::tests::opening_a_store_sweeps_what_a_killed_process_left' (157619) panicked at crates/podbox-image/src/store.rs:1346:9:
+  run 20  a second open did not sweep
+  run 20    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-157408-openswp/staging/abandoned.157408.12.partial
+  run 20    inode Some(14471), pid 157408
   run 20    this process's descriptions on it: none, so the holder is not this process
   run 20    /proc/locks rows on this inode: none
   run 20    this process's children:
-  run 20      pid 116992 (exe)
+  run 20      pid 157669 (gone)
+  run 20      pid 157680 (gone)
+  run 20      pid 157689 (gone)
+  run 20      pid 157693 (exe)
+  run 20      pid 157555 (store::tests::a)
   run 20    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 20  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 20  
+  run 20  ---- store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free stdout ----
+  run 20  
+  run 20  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (157670) panicked at crates/podbox-image/src/store.rs:1719:9:
+  run 20  both holders went and it still reads as in use
+  run 20    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-157408-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 20    inode Some(14541), pid 157408
+  run 20    this process's descriptions on it: none, so the holder is not this process
+  run 20    /proc/locks rows on this inode: none
+  run 20    this process's children:
+  run 20      pid 157901 (exe)
+  run 20      pid 157902 (exe)
+  run 20      pid 157555 (store::tests::a)
+  run 20    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 20  
   run 20  
   run 20  failures:
+  run 20      store::tests::opening_a_store_sweeps_what_a_killed_process_left
   run 20      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   run 20  
-  run 20  test result: FAILED. 83 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 2.55s
+  run 20  test result: FAILED. 93 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
   run 20  
   run 20  error: test failed, to rerun pass `-p podbox-image --lib`
 
-  ⚠ clause 7 moves TMPDIR from /tmp (overlayfs) to /dev/shm/podbox-race-691 (tmpfs)
-== clause 7 pass A  every lock on tmpfs instead of overlayfs
-  command          cargo test --workspace
-  runs             20
-  failed runs      9 of 20
-  seconds          60 total for 20 runs
-  the failing tests, by run:
-    run 1 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 1 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 5 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 9 store::tests::a_spawned_process_does_not_inherit_the_lock
-    run 12 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 13 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 14 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 15 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 15 store::tests::a_spawned_process_does_not_inherit_the_lock
-    run 16 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 20 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  distinct tests:
-          2 store::tests::a_spawned_process_does_not_inherit_the_lock
-          1 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-          8 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  the assertions:
-  run 1  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (117381) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 1  the holder released it and it still reads as in use
-  run 1    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-117213-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 1    inode Some(2827), pid 117213
-  run 1    this process's descriptions on it: none, so the holder is not this process
-  run 1    /proc/locks rows on this inode: none
-  run 1    this process's children:
-  run 1      pid 117487 (exe)
-  run 1      pid 117486 (exe)
-  run 1      pid 117488 (probe_cache::te)
-  run 1      pid 117485 (exe)
-  run 1      pid 117484 (exe)
-  run 1    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 1  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 1  
-  run 1  ---- store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free stdout ----
-  run 1  
-  run 1  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (117442) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 1  both holders went and it still reads as in use
-  run 1    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-117213-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 1    inode Some(2861), pid 117213
-  run 1    this process's descriptions on it: none, so the holder is not this process
-  run 1    /proc/locks rows on this inode: none
-  run 1    this process's children:
-  run 1      pid 117511 (exe)
-  run 1      pid 117519 (exe)
-  run 1    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 1  
-  run 1  
-  run 1  failures:
-  run 1      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 1      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 1  
-  run 1  test result: FAILED. 93 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.01s
-  run 1  
-  run 1  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 5  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (121309) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 5  both holders went and it still reads as in use
-  run 5    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-121021-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 5    inode Some(5277), pid 121021
-  run 5    this process's descriptions on it: none, so the holder is not this process
-  run 5    /proc/locks rows on this inode: none
-  run 5    this process's children:
-  run 5      pid 121209 (exe)
-  run 5      pid 121414 (exe)
-  run 5      pid 121416 (exe)
-  run 5      pid 121415 (exe)
-  run 5      pid 121210 (store::tests::a)
-  run 5    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 5  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 5  
-  run 5  
-  run 5  failures:
-  run 5      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 5  
-  run 5  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
-  run 5  
-  run 9  thread 'store::tests::a_spawned_process_does_not_inherit_the_lock' (124917) panicked at crates/podbox-image/src/store.rs:1577:9:
-  run 9  the holder released the lock and a spawned process is still holding it: the lock fd was not O_CLOEXEC, which is the exec half of TODO/image.md T-0211
-  run 9    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-124829-spawnhold/locks/d8c50d6282a1ba47f0a23430d177bbfbb72e2b84713745e894f575570f1f3d6e.lock
-  run 9    inode Some(7741), pid 124829
-  run 9    this process's descriptions on it: none, so the holder is not this process
-  run 9    /proc/locks rows on this inode: none
-  run 9    this process's children:
-  run 9      pid 125159 (exe)
-  run 9      pid 125112 (exe)
-  run 9      pid 125158 (exe)
-  run 9    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 9  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 9  
-  run 9  
-  run 9  failures:
-  run 9      store::tests::a_spawned_process_does_not_inherit_the_lock
-  run 9  
-  run 9  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.57s
-  run 9  
-  run 9  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 12  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (127816) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 12  both holders went and it still reads as in use
-  run 12    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-127608-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 12    inode Some(9498), pid 127608
-  run 12    this process's descriptions on it: none, so the holder is not this process
-  run 12    /proc/locks rows on this inode: none
-  run 12    this process's children:
-  run 12      pid 127793 (exe)
-  run 12      pid 127844 (exe)
-  run 12      pid 127796 (exe)
-  run 12      pid 127797 (exe)
-  run 12      pid 127794 (exe)
-  run 12      pid 127795 (exe)
-  run 12      pid 127798 (exe)
-  run 12      pid 127799 (store::tests::a)
-  run 12    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 12  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 12  
-  run 12  
-  run 12  failures:
-  run 12      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 13  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (128601) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 13  both holders went and it still reads as in use
-  run 13    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-128329-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 13    inode Some(10062), pid 128329
-  run 13    this process's descriptions on it: none, so the holder is not this process
-  run 13    /proc/locks rows on this inode: none
-  run 13    this process's children:
-  run 13      pid 128541 (exe)
-  run 13      pid 128540 (exe)
-  run 13      pid 128656 (exe)
-  run 13      pid 128539 (exe)
-  run 13      pid 128654 (exe)
-  run 13      pid 128658 (exe)
-  run 13      pid 128655 (exe)
-  run 13      pid 128657 (exe)
-  run 13      pid 128542 (store::tests::a)
-  run 13    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 13  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 13  
-  run 13  
-  run 13  failures:
-  run 14  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (129305) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 14  both holders went and it still reads as in use
-  run 14    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-129050-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 14    inode Some(10643), pid 129050
-  run 14    this process's descriptions on it: none, so the holder is not this process
-  run 14    /proc/locks rows on this inode: none
-  run 14    this process's children:
-  run 14      pid 129235 (exe)
-  run 14      pid 129396 (gone)
-  run 14      pid 129236 (exe)
-  run 14      pid 129407 (exe)
-  run 14      pid 129234 (store::tests::a)
-  run 14    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 14  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 14  
-  run 14  
-  run 14  failures:
-  run 14      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 14  
-  run 14  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
-  run 14  
-  run 15  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (130043) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 15  both holders went and it still reads as in use
-  run 15    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-129771-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 15    inode Some(11196), pid 129771
-  run 15    this process's descriptions on it: none, so the holder is not this process
-  run 15    /proc/locks rows on this inode: none
-  run 15    this process's children:
-  run 15      pid 130135 (exe)
-  run 15      pid 130133 (gone)
-  run 15      pid 130019 (exe)
-  run 15      pid 130020 (exe)
-  run 15      pid 130023 (exe)
-  run 15      pid 130021 (store::tests::a)
-  run 15    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 15  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 15  
-  run 15  ---- store::tests::a_spawned_process_does_not_inherit_the_lock stdout ----
-  run 15  
-  run 15  thread 'store::tests::a_spawned_process_does_not_inherit_the_lock' (129962) panicked at crates/podbox-image/src/store.rs:1577:9:
-  run 15  the holder released the lock and a spawned process is still holding it: the lock fd was not O_CLOEXEC, which is the exec half of TODO/image.md T-0211
-
-  ⚠ clause 7 moves TMPDIR from /tmp (overlayfs) to /dev/shm/podbox-race-691 (tmpfs)
+  ⚠ clause 7 moves TMPDIR from /tmp (overlayfs) to /dev/shm/podbox-race-692 (tmpfs)
 == clause 7 pass B  every lock on tmpfs instead of overlayfs
   command          cargo test --workspace
   runs             20
-  failed runs      7 of 20
-  seconds          61 total for 20 runs
+  failed runs      8 of 20
+  seconds          74 total for 20 runs
   the failing tests, by run:
-    run 4 store::tests::a_spawned_process_does_not_inherit_the_lock
-    run 5 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 6 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-    run 7 store::tests::a_spawned_process_does_not_inherit_the_lock
-    run 9 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-    run 9 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
-    run 10 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+    run 4 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
+    run 5 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+    run 7 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+    run 8 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
     run 11 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+    run 12 store::tests::a_spawned_process_does_not_inherit_the_lock
+    run 19 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+    run 20 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   distinct tests:
-          2 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
-          2 store::tests::a_spawned_process_does_not_inherit_the_lock
+          1 store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
+          1 store::tests::a_spawned_process_does_not_inherit_the_lock
           1 store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-          3 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+          5 store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   the assertions:
-  run 4  thread 'store::tests::a_spawned_process_does_not_inherit_the_lock' (138304) panicked at crates/podbox-image/src/store.rs:1577:9:
-  run 4  the holder released the lock and a spawned process is still holding it: the lock fd was not O_CLOEXEC, which is the exec half of TODO/image.md T-0211
-  run 4    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-138120-spawnhold/locks/d8c50d6282a1ba47f0a23430d177bbfbb72e2b84713745e894f575570f1f3d6e.lock
-  run 4    inode Some(16666), pid 138120
+  run 4  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (161942) panicked at crates/podbox-image/src/store.rs:1450:9:
+  run 4  the holder released it and it still reads as in use
+  run 4    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-161728-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
+  run 4    inode Some(16896), pid 161728
   run 4    this process's descriptions on it: none, so the holder is not this process
   run 4    /proc/locks rows on this inode: none
   run 4    this process's children:
-  run 4      pid 138634 (exe)
-  run 4      pid 138633 (exe)
+  run 4      pid 162114 (exe)
+  run 4      pid 162116 (gone)
+  run 4      pid 162123 (exe)
+  run 4      pid 162130 (gone)
+  run 4      pid 161943 (store::tests::a)
   run 4    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 4  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 4  
   run 4  
   run 4  failures:
-  run 4      store::tests::a_spawned_process_does_not_inherit_the_lock
+  run 4      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
   run 4  
-  run 4  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.98s
+  run 4  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
   run 4  
-  run 4  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 5  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (139114) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 5  both holders went and it still reads as in use
-  run 5    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-138841-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 5    inode Some(17165), pid 138841
+  run 5  thread 'store::tests::a_fork_while_the_lock_is_held_does_not_extend_it' (162704) panicked at crates/podbox-image/src/store.rs:1515:9:
+  run 5  the holder released the lock and it is still held: a forked child inherited the fd, which is TODO/image.md T-0211
+  run 5    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-162574-forkhold/locks/26e7f98cfafee5b213726e22632923bf31bf3e988233235f8f5ca5466b3ac0ed.lock
+  run 5    inode Some(17411), pid 162574
   run 5    this process's descriptions on it: none, so the holder is not this process
   run 5    /proc/locks rows on this inode: none
   run 5    this process's children:
-  run 5      pid 139270 (exe)
-  run 5      pid 139273 (exe)
-  run 5      pid 139274 (exe)
-  run 5      pid 139277 (gone)
-  run 5      pid 139059 (store::tests::a)
+  run 5      pid 163087 (exe)
   run 5    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 5  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 5  
   run 5  
   run 5  failures:
-  run 5      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  run 5      store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
   run 5  
-  run 5  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
+  run 5  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
   run 5  
-  run 6  thread 'store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune' (139757) panicked at crates/podbox-image/src/store.rs:1441:9:
-  run 6  the holder released it and it still reads as in use
-  run 6    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-139562-inuse/locks/ac9e61d54eb6967e212c06aab15408292f8558c48f06f9d705150063c68753b0.lock
-  run 6    inode Some(17703), pid 139562
-  run 6    this process's descriptions on it: none, so the holder is not this process
-  run 6    /proc/locks rows on this inode: none
-  run 6    this process's children:
-  run 6      pid 139887 (gone)
-  run 6      pid 139892 (exe)
-  run 6      pid 139897 (exe)
-  run 6      pid 139900 (exe)
-  run 6    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 6  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 6  
-  run 6  
-  run 6  failures:
-  run 6      store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune
-  run 6  
-  run 6  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.02s
-  run 6  
-  run 6  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 7  thread 'store::tests::a_spawned_process_does_not_inherit_the_lock' (140447) panicked at crates/podbox-image/src/store.rs:1577:9:
-  run 7  the holder released the lock and a spawned process is still holding it: the lock fd was not O_CLOEXEC, which is the exec half of TODO/image.md T-0211
-  run 7    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-140283-spawnhold/locks/d8c50d6282a1ba47f0a23430d177bbfbb72e2b84713745e894f575570f1f3d6e.lock
-  run 7    inode Some(18389), pid 140283
+  run 5  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 7  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (164816) panicked at crates/podbox-image/src/store.rs:1719:9:
+  run 7  both holders went and it still reads as in use
+  run 7    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-164574-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 7    inode Some(18736), pid 164574
   run 7    this process's descriptions on it: none, so the holder is not this process
   run 7    /proc/locks rows on this inode: none
   run 7    this process's children:
-  run 7      pid 140764 (exe)
+  run 7      pid 164783 (exe)
+  run 7      pid 164905 (exe)
+  run 7      pid 164785 (exe)
+  run 7      pid 164904 (gone)
+  run 7      pid 164906 (exe)
+  run 7      pid 164907 (gone)
+  run 7      pid 164789 (store::tests::a)
   run 7    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 7  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 7  
   run 7  
   run 7  failures:
-  run 7      store::tests::a_spawned_process_does_not_inherit_the_lock
+  run 7      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   run 7  
-  run 7  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.65s
-  run 7  
-  run 7  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 9  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (142276) panicked at crates/podbox-image/src/store.rs:1710:9:
-  run 9  both holders went and it still reads as in use
-  run 9    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-142033-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 9    inode Some(19515), pid 142033
-  run 9    this process's descriptions on it: none, so the holder is not this process
-  run 9    /proc/locks rows on this inode: none
-  run 9    this process's children:
-  run 9      pid 142258 (exe)
-  run 9      pid 142252 (exe)
-  run 9      pid 142254 (exe)
-  run 9      pid 142253 (exe)
-  run 9      pid 142319 (exe)
-  run 9      pid 142259 (exe)
-  run 9      pid 142250 (exe)
-  run 9      pid 142255 (store::tests::a)
-  run 9    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 9  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 9  
-  run 9  ---- store::tests::a_fork_while_the_lock_is_held_does_not_extend_it stdout ----
-  run 9  
-  run 9  thread 'store::tests::a_fork_while_the_lock_is_held_does_not_extend_it' (142208) panicked at crates/podbox-image/src/store.rs:1506:9:
-  run 9  the holder released the lock and it is still held: a forked child inherited the fd, which is TODO/image.md T-0211
-  run 9    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-142033-forkhold/locks/26e7f98cfafee5b213726e22632923bf31bf3e988233235f8f5ca5466b3ac0ed.lock
-  run 9    inode Some(19399), pid 142033
-  run 9    this process's descriptions on it: none, so the holder is not this process
-  run 9    /proc/locks rows on this inode: none
-  run 9    this process's children:
-  run 9      pid 142412 (exe)
-  run 9      pid 142418 (exe)
-  run 9      pid 142417 (exe)
-  run 9    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 9  
-  run 9  
-  run 9  failures:
-  run 9      store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
-  run 9      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
-  run 9  
-  run 9  test result: FAILED. 93 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.99s
-  run 9  
-  run 9  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 10  thread 'store::tests::a_fork_while_the_lock_is_held_does_not_extend_it' (142909) panicked at crates/podbox-image/src/store.rs:1506:9:
-  run 10  the holder released the lock and it is still held: a forked child inherited the fd, which is TODO/image.md T-0211
-  run 10    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-142754-forkhold/locks/26e7f98cfafee5b213726e22632923bf31bf3e988233235f8f5ca5466b3ac0ed.lock
-  run 10    inode Some(19967), pid 142754
-  run 10    this process's descriptions on it: none, so the holder is not this process
-  run 10    /proc/locks rows on this inode: none
-  run 10    this process's children:
-  run 10      pid 143173 (exe)
-  run 10      pid 143171 (exe)
-  run 10      pid 143172 (exe)
-  run 10    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
-  run 10  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-  run 10  
-  run 10  
-  run 10  failures:
-  run 10      store::tests::a_fork_while_the_lock_is_held_does_not_extend_it
-  run 10  
-  run 10  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.60s
-  run 10  
-  run 10  error: test failed, to rerun pass `-p podbox-image --lib`
-  run 11  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (143778) panicked at crates/podbox-image/src/store.rs:1710:9:
+  run 8  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (165641) panicked at crates/podbox-image/src/store.rs:1719:9:
+  run 8  both holders went and it still reads as in use
+  run 8    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-165420-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 8    inode Some(19308), pid 165420
+  run 8    this process's descriptions on it: none, so the holder is not this process
+  run 8    /proc/locks rows on this inode: none
+  run 8    this process's children:
+  run 8      pid 165736 (exe)
+  run 8      pid 165735 (exe)
+  run 8      pid 165737 (exe)
+  run 8      pid 165587 (store::tests::a)
+  run 8    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 8  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 8  
+  run 8  
+  run 8  failures:
+  run 8      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  run 8  
+  run 8  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+  run 8  
+  run 8  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 11  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (168807) panicked at crates/podbox-image/src/store.rs:1719:9:
   run 11  both holders went and it still reads as in use
-  run 11    T-0215 instrument, path /dev/shm/podbox-race-691/podbox-store-143475-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
-  run 11    inode Some(20664), pid 143475
+  run 11    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-168574-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 11    inode Some(21112), pid 168574
   run 11    this process's descriptions on it: none, so the holder is not this process
   run 11    /proc/locks rows on this inode: none
   run 11    this process's children:
-  run 11      pid 143886 (exe)
-  run 11      pid 143888 (exe)
-  run 11      pid 143887 (exe)
-  run 11      pid 143719 (exe)
-  run 11      pid 143718 (store::tests::a)
+  run 11      pid 168910 (exe)
+  run 11      pid 168911 (exe)
+  run 11      pid 168916 (exe)
+  run 11      pid 168736 (store::tests::a)
   run 11    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
   run 11  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
   run 11  
@@ -978,22 +543,82 @@ clauses           0 1 2 3 6 7
   run 11  failures:
   run 11      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
   run 11  
-  run 11  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.98s
+  run 11  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
   run 11  
+  run 11  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 12  thread 'store::tests::a_spawned_process_does_not_inherit_the_lock' (169568) panicked at crates/podbox-image/src/store.rs:1586:9:
+  run 12  the holder released the lock and a spawned process is still holding it: the lock fd was not O_CLOEXEC, which is the exec half of TODO/image.md T-0211
+  run 12    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-169420-spawnhold/locks/d8c50d6282a1ba47f0a23430d177bbfbb72e2b84713745e894f575570f1f3d6e.lock
+  run 12    inode Some(21740), pid 169420
+  run 12    this process's descriptions on it: none, so the holder is not this process
+  run 12    /proc/locks rows on this inode: none
+  run 12    this process's children:
+  run 12      pid 169942 (exe)
+  run 12      pid 169941 (exe)
+  run 12    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 12  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 12  
+  run 12  
+  run 12  failures:
+  run 12      store::tests::a_spawned_process_does_not_inherit_the_lock
+  run 12  
+  run 12  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.97s
+  run 12  
+  run 12  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 19  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (177504) panicked at crates/podbox-image/src/store.rs:1719:9:
+  run 19  both holders went and it still reads as in use
+  run 19    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-177190-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 19    inode Some(25960), pid 177190
+  run 19    this process's descriptions on it: none, so the holder is not this process
+  run 19    /proc/locks rows on this inode: none
+  run 19    this process's children:
+  run 19      pid 177593 (exe)
+  run 19      pid 177595 (exe)
+  run 19      pid 177597 (exe)
+  run 19      pid 177594 (exe)
+  run 19    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 19  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 19  
+  run 19  
+  run 19  failures:
+  run 19      store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free
+  run 19  
+  run 19  test result: FAILED. 94 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+  run 19  
+  run 19  error: test failed, to rerun pass `-p podbox-image --lib`
+  run 20  thread 'store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free' (178312) panicked at crates/podbox-image/src/store.rs:1719:9:
+  run 20  both holders went and it still reads as in use
+  run 20    T-0215 instrument, path /dev/shm/podbox-race-692/podbox-store-178036-twohold/locks/57bfd1cb0adda3d94315053fda723f2028320faa8338225d99f629e3d46d43a9.lock
+  run 20    inode Some(26532), pid 178036
+  run 20    this process's descriptions on it: none, so the holder is not this process
+  run 20    /proc/locks rows on this inode: none
+  run 20    this process's children:
+  run 20      pid 178262 (exe)
+  run 20      pid 178378 (exe)
+  run 20      pid 178375 (exe)
+  run 20      pid 178261 (exe)
+  run 20      pid 178376 (exe)
+  run 20      pid 178266 (store::tests::a)
+  run 20    a second attempt SUCCEEDED, so the refusal did not outlive the assertion
+  run 20  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  run 20  
+  run 20  
+  run 20  failures:
 
 == what the clauses support
-  the subject reproduced: 2 of 12 runs failed
+  the subject reproduced: 4 of 12 runs failed
   ⚠ The subject's own rate is unstable across passes, and T-0215 carries
   the series. A control that reads 0 once is therefore weaker evidence
   than it looks, and that is why each one below is taken twice.
   threads in one process removed: pass A 0 of 20, pass B 0 of 20
     both passes green, so what this clause removes is a NECESSARY
     condition as far as two passes of 20 can say.
-  two of store.rs's forks removed: pass A 10 of 20, pass B 5 of 20
+  two of store.rs's forks removed: pass A 2 of 20, pass B 2 of 20
     both passes red, so what this clause removes is NOT necessary.
-  every forking test removed: pass A 2 of 20, pass B 5 of 20
-    both passes red, so what this clause removes is NOT necessary.
-  the locks moved to a second filesystem: pass A 9 of 20, pass B 7 of 20
+  every forking test removed: pass A 0 of 20, pass B 0 of 20
+    both passes green, so what this clause removes is a NECESSARY
+    condition as far as two passes of 20 can say.
+  the locks moved to a second filesystem: pass A 6 of 20, pass B 8 of 20
     both passes red, so what this clause removes is NOT necessary.
 
 ⚠ What this script cannot say: that it generalises. It is one machine on

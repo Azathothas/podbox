@@ -1209,16 +1209,19 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
 
              | the clause | failures, per pass |
              | --- | --- |
-             | 1. the suite as the gate runs it | 3, 10, 6, 4, 9, 3, 2 of 12 |
+             | 1. the suite as the gate runs it | 3, 10, 6, 4, 9, 3, 2, 4 of 12 |
              | 2. one test thread per binary | ⭐ **0, 0, 0 of 12 and 0, 0 of 20** |
-             | 3. two of store.rs's forks removed | 4, 1, 5 of 12 and 10, 5 of 20 |
-             | 6. EVERY forking test removed | **2, 5 of 20** |
-             | 7. every lock on `tmpfs` instead of `overlayfs` | 6, 10 of 20 and 9, 7 of 20 |
+             | 3. two of store.rs's forks removed | 4, 1, 5 of 12 and 10, 5, 2, 2 of 20 |
+             | 6. EVERY forking test removed | ⭐ **0, 0 of 20** |
+             | 7. every lock on `tmpfs` instead of `overlayfs` | 6, 10, 9, 7, 6, 8 of 20 |
 
-             ⚠ **Clause 6's row is the run whose skip list names all four
-             forking paths.** Two earlier readings, 3 and 0 of 12 and then 3 and
-             4 of 20, were taken with a fork still in the run and are not
-             evidence about forking. The correction is below.
+             ⛔ **CLAUSE 6's ROW IS THE RUN WHOSE SKIP LIST NAMES ALL FOUR
+             FORKING PATHS, AND ONLY THAT RUN.** Three earlier readings, 3 and 0
+             of 12 and then 3 and 4 and 2 and 5 of 20, were taken with a fork
+             still in the run, and each of them was RED for that reason. ⚠ Read
+             the command line printed above a figure in
+             `experiments/results/store-lock-race.txt` before quoting it: that
+             is what settled this, and a label above the figures did not.
 
              ⛔ **THE SUBJECT'S OWN RATE IS UNSTABLE, and that governs how much
              any control can carry.** Seven passes over two days read 5, 3, 10,
@@ -1242,22 +1245,31 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
              `Command::spawn` in `crates/podbox-image/src/store.rs`, and
              `podbox_probe::run` reached through `probe_cache::measure` from the
              `probe_cache` tests and from `crates/podbox-image/src/pull.rs`.
-             ⭐ **With all four skipped, the failure still arrives at 2 and 5 of
-             20**, so a concurrent fork is NOT a necessary condition. ⚠ Whether
-             removing the forks changes the RATE is not answerable at this
-             sample size, and no claim is made about it.
+             ⭐ **With all four skipped the failure does not arrive at all, 0 of
+             20 in each of two passes, so A CONCURRENT FORK IS A NECESSARY
+             CONDITION** on this host. ⚠ Clause 3 keeps two of the four paths
+             and stays red at 2 and 2 of 20, which is what a necessary condition
+             looks like from the other side.
 
-             ⛔ **BOTH CANDIDATE MECHANISMS ARE REFUTED**, one by a control
-             taken twice and one by an observation taken at every failure.
+             ⭐ **ONE CANDIDATE MECHANISM IS REFUTED AND THE OTHER IS WHERE
+             EVERY MEASUREMENT POINTS.**
              1. `crates/podbox-probe/src/sys.rs` holds `FORK_CLOSE`, a
                 PROCESS-GLOBAL array of sixteen slots naming fds to shed in a
                 forked child. `stop_closing_in_children` clears EVERY slot
                 holding a given fd NUMBER, and an fd number is reused the moment
-                it is closed. ⛔ **Refuted by clause 6 once its skip list
-                named all four forking paths, in two passes of 20.** That table
-                is read only inside `clone_fork`, so a run with no fork in it
-                never consults it, and the failure still arrives at 2 and 5 of
-                20.
+                it is closed. ⭐ **NOT refuted, and clause 6 is why.** That
+                table is read only inside `clone_fork`, and a run with no fork
+                in it does not fail at all: 0 of 20, twice. ⚠ **A fork being
+                necessary is not proof that THIS table is the defect**, and the
+                difference matters. What the captures add: one `/proc/locks` row
+                attributed to the test process's own pid while that process held
+                no descriptor on the inode, which is what a child holding an
+                inherited description looks like, and live children named at
+                several failures. ⛔ **And the lock in that capture was a
+                `*.partial` staging lock, which `StagedFile::create` takes
+                through `Lock::try_acquire` and never registers for shedding.**
+                So the shape that fits every measurement is an UNREGISTERED fd
+                inherited by a fork, not a wrongly keyed table.
              2. `Lock` manages a raw fd by hand and its `Drop` ignores the
                 result of `close`. A descriptor closed twice makes a later
                 `close` release somebody else's file. ⛔ **Refuted twice over,
@@ -1321,10 +1333,10 @@ Approach:    ⛔ **Establish the blast radius before fixing anything.** The firs
                 failing assertion and the descriptor state captured.
                 `experiments/153-store-lock-race.sh` and
                 `experiments/results/store-lock-race.txt`.
-             2. ✅ **Done, and the answer is that neither mechanism is live.**
-                Both refutations are in the `Premise` above, each with what
-                produced it. ⚠ It took three readings of clause 6 to get there,
-                twice because its skip list was short of the code, and the
+             2. ✅ **Done. One mechanism is refuted and the other is where the
+                measurements point.** The `Premise` above carries both, each
+                with what produced it. ⚠ It took FOUR readings of clause 6 to
+                get there, three of them with a fork still in the run, and the
                 entry keeps that so the next control is derived from the call
                 graph rather than from test names.
              3. ⚠ Whatever the cause, the gate is the second finding: CI ran
@@ -1343,29 +1355,31 @@ Approach:    ⛔ **Establish the blast radius before fixing anything.** The firs
                    taking, so a release completing late on one filesystem is not
                    the cause. ⭐ A negative result, and it costs the next
                    session the run it would have made;
-                b. ⛔ **STILL TO DO.** Sample `/proc/locks` and the process
-                   table from a SECOND process through the whole run, so a
-                   holder that lives for microseconds is caught while it lives.
-                   The instrument in the failing thread cannot do this, and the
-                   one capture that did catch a row is why it is worth doing:
-                   one sample of the kernel table at the right instant named a
-                   pid, and a sampler would name it every time;
-                c. then decide whether `StagedFile::create`'s lock, and the
-                   seven other `Lock` sites that take no `close_in_children`
-                   registration, are a defect in the product or only in the
-                   suite's process shape. ⚠ `Store::hold` is the ONLY one of
-                   the **nine** `Lock` construction sites in this tree that
-                   registers: seven in `crates/podbox-image/src/store.rs` and
-                   two in `crates/podbox-supervise/`.
+                b. ⭐ **THE CHEAP DECISIVE ONE, AND CLAUSE 6 IS WHAT JUSTIFIES
+                   IT.** Register the other `Lock` sites with
+                   `sys::close_in_children` and re-run clause 1. A fork is a
+                   measured necessary condition, and `Store::hold` is the ONLY
+                   one of the **nine** `Lock` construction sites that registers:
+                   seven in `crates/podbox-image/src/store.rs` and two in
+                   `crates/podbox-supervise/`. If the failure goes away the
+                   mechanism is named by the fix; if it does not, the change is
+                   reverted and the entry has learnt something for one run.
+                   ⚠ The slot table holds sixteen, so `Store::hold`'s exhaustion
+                   path is re-read before eight more sites take a slot;
+                c. only if b does not settle it: sample `/proc/locks` from a
+                   SECOND process through the whole run, so a holder that lives
+                   for microseconds is caught while it lives. ⛔ The instrument
+                   in the failing thread cannot do that, which is why it mostly
+                   answers "nobody".
 Decision:    ⭐ **Taken in part on 2026-09-12, and only the part the measurement
              supports.**
-             ⛔ **The fix goes to neither candidate.** `Lock::drop`'s `close`
-             is refuted by observation, because the description it would leave
-             open is not there, and `FORK_CLOSE` is refuted by a fork-free run
-             that still fails. ⚠ **The one capture that named a holder points
-             somewhere else**: a `*.partial` staging lock, at a site that takes
-             no `close_in_children` registration at all. That is a lead and not
-             a cause, and step 4 is how it gets settled.
+             ⛔ **No change to `Lock::drop`'s `close`**, which is refuted by
+             observation: the description it would leave open is not there.
+             ⭐ **The next change to try is the REGISTRATION**, because a fork is
+             a measured necessary condition and eight of the nine `Lock` sites
+             are unregistered. ⚠ It is written as `Approach` step 4b, an
+             experiment rather than a fix: applied, measured, and reverted if it
+             changes nothing.
              ⭐ **The blast radius is settled: the product, as measured, cannot
              reach this.** Several threads in ONE process are a necessary
              condition, clause 2 at 0 of 12, and the process that holds an image

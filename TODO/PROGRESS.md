@@ -73,8 +73,9 @@ the shape it holds still; `experiments/results/store-lock-race.txt` is the run.
 ⛔ **The candidate that a misdirected `close` leaves a description open is
 refuted by observation**, not by a rate: at every captured failure the process
 held no description on that inode, and a second `flock` taken microseconds
-later succeeded. ⚠ **The fork-shed table is NOT refuted**, and the reason is
-this session's own worst finding.
+later succeeded. ⭐ **The other candidate is where every measurement points**: a
+run with none of the binary's four forking paths in it does not fail at all,
+0 of 20 twice, so a concurrent fork is a necessary condition.
 
 ⛔ **THE FORK CONTROL WAS WRONG THREE TIMES, AND A SKIP LIST IS WHY.** It
 started as two test names, gained `probe_cache::`, and was still short of the
@@ -127,12 +128,12 @@ not hand its evidence back out of a container that is removed when it exits.
 ## Current work order
 
 1. [T-0215](image.md): **name the holder.** ⛔ Still P0 and still open. What is
-   measured: several threads in one process are necessary, the filesystem is
-   not the cause, and a misdirected `close` is refuted. What is NOT: whether a
-   fork is necessary, because the fork control's skip list was short of the code
-   three times. The entry's `Approach` step 4 names the two measurements left,
-   and step b, a sampler in a SECOND process, is the one that would name a
-   holder that lives for microseconds.
+   measured: several threads in one process ARE necessary, a concurrent fork IS
+   necessary, the filesystem is not the cause, and a misdirected `close` is
+   refuted. ⭐ The entry's `Approach` step 4b is the cheap decisive move that
+   the fork result justifies: register the eight `Lock` sites that take no
+   `sys::close_in_children` and re-run the subject. Applied, measured, and
+   reverted if it changes nothing.
 2. [T-0702](interpose.md): **the placement half.** The embedding is built and
    the entry is `partial`. What is left is this: write the selected object
    INSIDE the rootfs before the chroot, and set `LD_PRELOAD` to the path the
