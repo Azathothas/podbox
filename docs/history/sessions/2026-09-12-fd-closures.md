@@ -4,8 +4,8 @@
 table in chat AND on disk. [PROGRESS.md](../../../TODO/PROGRESS.md) is the
 record; this is the one-screen version of what moved.
 
-Ran `04:22:08Z` to `10:25:00Z`, four minutes after the previous session ended.
-The four hosted checks were green at `62bc355`.
+Ran `04:22:08Z` to `10:45:00Z`, four minutes after the previous session ended.
+The four hosted checks were green at `8502702`.
 
 | what | before | after | taken by |
 | --- | --- | --- | --- |
@@ -20,6 +20,7 @@ The four hosted checks were green at `62bc355`.
 | ⭐ `Prove` lines pulling from Docker Hub | unknown | **39 of 132, in ten files** | counted over `TODO/*.md` |
 | entries owning that defect | none | **[T-1209](../../../TODO/gate.md)** | the entry |
 | Windows-lane traps recorded | 7 | **8** | [`containers.md`](../../containers.md) |
+| ⭐ claims this project has withdrawn, listed | nowhere | **7, on the history front page** | [`../README.md`](../README.md) |
 
 ## The mechanism, in one paragraph
 
