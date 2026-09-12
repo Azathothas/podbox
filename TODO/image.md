@@ -1356,42 +1356,16 @@ Premise:     ⭐ **The shape is measured and it points at concurrency, not at an
              `flock` attempt taken microseconds later succeeded. A leaked
              description would still be refusing.
 
-             ⭐ **WHAT IS NOW MEASURED, AND IT IS THE FIRST POSITIVE FACT THIS
-             ENTRY HAS HAD: A REAL HOLDER EXISTS, AND IT CAN LIVE FOR TENS OF
-             MILLISECONDS.** `free_now` in `crates/podbox-image/src/store.rs`
-             retries at the point of refusal and reports how long the refusal
-             lasted, which the older instrument cannot: `who_holds` runs while
-             an assertion message is being formatted, by which time every short
-             holder is gone. In the run of record the refusals last **52 us to
-             2827 us**, and the useful ones are the several that survive many
-             attempts rather than one: **48 further attempts over 2021 us**, and
-             17 over 118, and 8 over 229.
-             ⚠ **A refusal that survives 48 consecutive `flock` calls is not a
-             release that had not finished.** That is the reading the one-attempt
-             captures left open, and clause 7 could rule it out only for the
-             filesystem. Something held those locks.
+             ⭐ **AND THE ANSWER IS UNDER ALL OF THEM: THE REFUSAL IS NOT A
+             CONFLICT AT ALL.** Every candidate above asks WHICH descriptor a
+             child holds. The measurement that ended the entry asks whether
+             anything holds one, and the `Done` record below carries it: at the
+             `EWOULDBLOCK` itself there is no row in `/proc/locks`, no
+             descriptor on the inode in any process on the host, and the SAME
+             descriptor succeeds on the next attempt a microsecond later.
+             ⛔ `Lock::drop` released by closing, and closing is not releasing
+             while anything else references the same open file description.
 
-             ⛔ **And twice in that run the kernel named a holder that was still
-             there:**
-
-             ```text
-             path   /tmp/podbox-store-19074-openswp/staging/abandoned.19074.5.partial
-             this process's descriptions on it: none
-             /proc/locks:  1: FLOCK  ADVISORY  WRITE 19074 00:29:132319 0 EOF
-             this process's children: 19354, 19302, 19368, 19371, 19370, 19303
-             a second attempt was refused as well
-             ```
-
-             ⭐ **`19074` is the test process itself, and that process holds no
-             descriptor on the inode.** There is one lock record per open file
-             description and it keeps the pid that took it, so a CHILD holding
-             an inherited copy still reads as its parent. ⚠ Note which lock:
-             `WRITE`, so it is a `*.partial` staging lock, and both captures are
-             on one. ⛔ **A staging lock is registered for shedding now**, and
-             the child that would inherit it is one of the six named beside it,
-             and not one of them is identified. That is the lead, and it is not
-             a cause yet: [`Approach`](#t-0215-four-lock-tests-fail-in-two-runs-of-five-and-the-gate-has-never-said-so)
-             step 4c is the reading that would name it.
 Approach:    ⛔ **Establish the blast radius before fixing anything.** The first
              question is not how to fix it; it is whether a single-threaded
              podbox process can reach it at all. A race that only a test harness
@@ -1432,7 +1406,8 @@ Approach:    ⛔ **Establish the blast radius before fixing anything.** The firs
                 c. ✅ **The instrument was moved to the moment of the refusal,
                    and that is what answered it.** Everything before it ran from
                    the assertion, microseconds too late: the shortest refusal it
-                   chased had cleared in 11 us;
+                   chased had already cleared, and the committed captures show
+                   the transient gone on the next attempt 1 to 4 us later;
                 d. ✅ **The same descriptor, retried at once, is the reading
                    that settled it.** Nothing else changes: the same fd, the
                    same operation, microseconds later.
@@ -1472,10 +1447,11 @@ and why nothing about WHICH descriptors a child holds ever moved the rate.
 
 ⭐ **The reading that settled it, taken at the `EWOULDBLOCK` itself rather than
 at the assertion.** Every instrument before it ran while the assertion message
-was being formatted, and the shortest refusal it chased had already cleared in
-11 us. ⛔ **Clause 13 re-takes it**: it deletes the release, turns the capture
-on, and runs the subject twenty times. All twenty fail, and the captures carry
-**two signatures, which are one mechanism in two phases**.
+was being formatted, by which time the refusal was over: the committed captures
+show it gone on the next attempt, 1 to 4 us later. ⛔ **Clause 13 takes it**: it
+deletes the release, turns the capture on, and runs the subject twenty times.
+All twenty fail, and the captures carry **two signatures, which are one
+mechanism in two phases**.
 
 ⭐ **While the second reference is OPEN, the lock is genuinely held** and the
 kernel says so. Twenty captures, one per run:
@@ -1487,8 +1463,8 @@ AT THE REFUSAL, on inode 132694, probe fd 28:
 ```
 
 ⚠ That is the regression test's duplicate descriptor, holding the description
-open across a drop that no longer releases. The retry counts run from 61,593 to
-103,997 over the instrument's full 20 ms bound.
+open across a drop that no longer releases. The retry counts run from 54,989 to
+109,349 over the instrument's full 20 ms bound.
 
 ⛔ **While it is being TORN DOWN, the lock is refused with nothing holding it
 anywhere.** Four captures in the same twenty runs:
@@ -1500,6 +1476,9 @@ AT THE REFUSAL, on inode 132740, probe fd 25:
   no descriptor on this inode in ANY process, the probe's own apart
 ```
 
+⚠ The four run at 1, 2 and 4 us on the first retry, and one at 100 us on the
+425th.
+
 ⭐ **That second signature is the race as it arrived for three sessions**, and
 it is why every earlier instrument answered "nobody": there was nobody, by the
 time anything looked. The refusal is the tail of a release that the holder's own
@@ -1508,7 +1487,7 @@ time anything looked. The refusal is the tail of a release that the holder's own
 ⭐ **The fix is one syscall and it is in the releasing thread.**
 `Lock::drop` calls `flock(fd, LOCK_UN)` before the close, so the record is
 removed here rather than whenever the last reference happens to go.
-[`Lock::hand_to_payload`] sets a flag that turns it off for the one lock that is
+`Lock::hand_to_payload` sets a flag that turns it off for the one lock that is
 meant to be inherited, because the payload holds a duplicate of that same
 description.
 

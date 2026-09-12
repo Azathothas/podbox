@@ -34,8 +34,9 @@ releasing thread, whatever the reference count is.
 
 1. ⛔ **THE INSTRUMENT WAS THE BLOCKER, NOT THE THEORY.** Three sessions of
    readings were taken from the failing assertion, and every one found the
-   holder already gone: the shortest refusal had cleared in 11 us. Moving the
-   capture into the `EWOULDBLOCK` arm answered the question on the first run.
+   holder already gone: the committed captures show the refusal over on the next
+   attempt, 1 to 4 us later. Moving the capture into the `EWOULDBLOCK` arm
+   answered the question on the first run.
    ⭐ When every reading says "nobody", suspect where you are standing before
    you suspect the world. ⚠ And the capture is kept, behind
    `PODBOX_T0215_CAPTURE`, with clause 13 to re-take it: a figure a reader

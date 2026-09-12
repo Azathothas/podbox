@@ -71,11 +71,11 @@ when the last reference goes, and where that is a child, it happens
 asynchronously with respect to this process's next `flock`.
 
 ⭐ **The reading that settled it was taken at the `EWOULDBLOCK` itself.** Every
-instrument before it ran from the failing assertion, and the shortest refusal it
-chased had already cleared in 11 us. Thirteen captures over eleven failing runs,
-and every one says the SAME DESCRIPTOR succeeded on retry, with no `/proc/locks`
-row and no descriptor on the inode in any process on the host. ⛔ **There was
-never a holder.**
+instrument before it ran from the failing assertion, by which time the refusal
+was over. Clause 13 carries the captures: where the refusal is the race, there
+is no `/proc/locks` row, no descriptor on the inode in any process on the host,
+and the SAME DESCRIPTOR succeeds on the next attempt a microsecond later.
+⛔ **There was never a holder.**
 
 ⭐ **The fix is one syscall in the releasing thread**, `flock(LOCK_UN)` before
 the close, with the one lock that is handed to a payload exempt. The subject

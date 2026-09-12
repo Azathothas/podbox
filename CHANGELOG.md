@@ -16,7 +16,7 @@ two mechanisms proposed and refuted and four more closed without the rate
 moving. ⛔ **`Lock::drop` released a lock by closing its descriptor, and closing
 is not releasing while anything else references the same open file
 description.** The entry carries the mechanism, why a fork is what creates that
-second reference, and the thirteen captures that named it.
+second reference, and the captures that named it.
 
 ⭐ **The instrument is what changed, not the theory.** Every reading before this
 was taken from the failing assertion and arrived microseconds late. Moving the
