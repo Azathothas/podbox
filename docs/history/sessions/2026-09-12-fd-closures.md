@@ -1,72 +1,68 @@
-# Session summary, 2026-09-12: four fd closures, and the rate never moved
+# Session summary, 2026-09-12: the store lock race, closed
 
 ⚠ Saved beside the record because `docs/methodology/sessions.md` asks for the
 table in chat AND on disk. [PROGRESS.md](../../../TODO/PROGRESS.md) is the
 record; this is the one-screen version of what moved.
 
-Ran `04:22:08Z` to `06:38:00Z`, four minutes after the previous session ended.
-The four hosted checks were green at `5473a78`.
+Ran `04:22:08Z` to `07:40Z`, four minutes after the previous session ended.
 
 | what | before | after | taken by |
 | --- | --- | --- | --- |
-| entries open / partial / blocked / done | 41 / 4 / 0 / 86 | **42 / 4 / 0 / 86** | `scripts/check-todo.py` |
-| ⭐ candidate mechanisms for the race | 1 refuted, 1 open | **4 more closed, none moved the rate** | `experiments/153-store-lock-race.sh` |
-| `Lock` sites that register for shedding | 1 of 9 | **9 of 9, from one funnel** | `crates/podbox-image/src/store.rs` |
-| forks in this tree that drain the shed table | `clone_fork` only | **`clone_fork` and podbox's own libstd spawn** | `crates/podbox-probe/src/sys.rs` |
-| the shed hook's own positive control | none | **passes, and goes red when the hook is gutted** | clause 10, exit 101 |
-| how long a refusal lasts | unmeasured | **52 to 2827 us, one surviving 48 attempts** | `free_now`, clause 1 |
-| a holder the kernel still lists | 1 capture, in a superseded run | **2, in the committed run** | the same |
-| clauses in the instrument | 8 | **12** | the script |
-| ⭐ clauses that mutate the SOURCE | 0 | **4, none reaching the tree** | clauses 8, 9, 10 and 11 |
-| the subject's rate, per 20 runs | 2 readings | **20 passes, 5 to 12** | clause 1 |
+| ⭐ [T-0215](../../../TODO/image.md), P0, open since 2026-09-11 | open | **done** | `experiments/153-store-lock-race.sh` |
+| ⭐ the subject, per 20 runs | 5 to 12 across twenty passes | **0 of 20, twice** | clause 1 |
+| the same suite with the fix deleted | - | **20 of 20** | clause 12 |
+| entries open / partial / blocked / done | 41 / 4 / 0 / 86 | **41 / 4 / 0 / 87** | `scripts/check-todo.py` |
+| candidate mechanisms closed with no effect | 1 | **5** | the entry |
+| ⭐ a holder, ever found | assumed | **none, in 13 captures** | the capture at the refusal |
+| the guard on the defect | none | **deterministic, no fork and no timing** | the regression test |
+| clauses in the instrument | 8 | **12**, four of them source mutations | the script |
 | ⭐ `Prove` lines pulling from Docker Hub | unknown | **39 of 132, in ten files** | counted over `TODO/*.md` |
 | entries owning that defect | none | **[T-1209](../../../TODO/gate.md)** | the entry |
 | Windows-lane traps recorded | 7 | **8** | [`containers.md`](../../containers.md) |
 
+## The mechanism, in one paragraph
+
+⛔ **Closing a descriptor is not a release while anything else references the
+same open file description.** `Lock::drop` released a lock by closing. A `fork`
+makes that second reference, so after one the holder's own close no longer
+completes the release: the record goes when the LAST reference goes, and where
+that is a child it happens asynchronously with respect to this process's next
+`flock`. ⭐ `flock(fd, LOCK_UN)` before the close removes the record in the
+releasing thread, whatever the reference count is.
+
 ## The five findings worth carrying forward
 
-1. ⛔ **CLOSING A MECHANISM IS NOT THE SAME AS REFUTING IT, AND THE ENTRY GRADES
-   THEM.** Four ways for a fork to carry a lock fd away were closed and the rate
-   did not move. Three are graded as refutations, because each has a clause that
-   takes the closure back out or amplifies it. The fourth, registering every
-   `Lock`, has no such clause, so the entry says it is the subject before and
-   after rather than an isolated control, and names the clause that would fix
-   that.
-2. ⛔ **A CHANGE KEPT WITHOUT A MEASUREMENT BEHIND IT SAYS SO IN THOSE WORDS.**
-   Two closures are in the tree although neither moved the rate. Each removes a
-   real way a fork can carry a lock away, which
-   [T-0211](../../../TODO/image.md) forbids whether or not it is what T-0215 is.
-   ⚠ Written any other way, a later reader finds a change in the history and
-   concludes the race was fixed.
-3. ⛔ **AN ABSENCE IS NOT A ZERO, AND A NULL RESULT FROM AN UNPROVEN HOOK IS
-   WORTH NOTHING.** The new spawn hook has a positive control that carries its
-   own negative leg, and clause 10 guts the hook and asserts the control goes
-   red. It exits 101, so the control is watching the hook and not the air.
-   ⭐ Without that, "the hook changed nothing" and "the hook never ran" are the
-   same sentence.
-4. ⛔ **EVIDENCE THAT NAMES WHAT WAS MUTATED AND NOT WHAT IT BECAME CANNOT BE
-   CHECKED.** A review pass reading the COMMAND rather than the label found that
-   a mutating clause printed the line it matched and not the line it wrote. It
-   prints both now. ⚠ That is the same defect as a skip list short of the code,
-   which cost this entry three wrong verdicts, in a different costume.
+1. ⛔ **THE INSTRUMENT WAS THE BLOCKER, NOT THE THEORY.** Three sessions of
+   readings were taken from the failing assertion, and every one found the
+   holder already gone: the shortest refusal had cleared in 11 us. Moving the
+   capture into the `EWOULDBLOCK` arm answered the question on the first run.
+   ⭐ When every reading says "nobody", suspect where you are standing before
+   you suspect the world.
+2. ⛔ **AN INSTRUMENT THAT CAN FIND ITSELF WILL.** The first capture at the
+   refusal named the holder as this process, fd 7, which was the probe's own
+   descriptor, opened microseconds earlier by the very call being measured. It
+   is excluded by number now.
+3. ⛔ **CLOSING A MECHANISM IS NOT REFUTING IT, AND FIVE CLOSURES MOVED
+   NOTHING.** Every lock registered for shedding, podbox's own libstd spawn
+   drained the table, the pre-registration window was widened, and the one spawn
+   that was bare by design was hooked. The rate never moved, because the defect
+   was not about which descriptors a child holds. ⭐ Two of the five are kept,
+   on [T-0211](../../../TODO/image.md)'s invariant and NOT on this measurement,
+   and the entry says so in those words.
+4. ⛔ **A DETERMINISTIC GUARD BEATS A RATE.** `F_DUPFD_CLOEXEC` gives a second
+   reference to one open file description, which is exactly what a fork gives a
+   child, so the regression test needs no second process, no thread and no
+   timing. The defect was one run in two; its guard is one run.
 5. ⛔ **STOPPING A JOB FROM WINDOWS DOES NOT STOP IT IN THE GUEST.** A killed
    wrapper's container ran to completion nine minutes later and kept writing to
-   the log it had inherited. A second job interleaved with it, and the
-   conditions block of one run was read beside the tail of the other, which
-   nearly put a figure from the wrong tree into the entry.
+   the log it had inherited, so a second job interleaved with it and the
+   conditions block of one run was read beside the tail of the other.
 
-## What is still open, and it is the same P0
+## What this does not claim
 
-[T-0215](../../../TODO/image.md) is not closed and its `Problem` has not moved:
-several threads in one process are necessary, a concurrent fork is necessary,
-and nothing about an inherited descriptor explains it.
-
-⭐ **What the session added is a boundary rather than an answer, and it is worth
-more than another candidate.** Every fork this process makes now drains the shed
-table and every lock is in it, including the one spawn that was bare by design,
-and the failure still arrives. ⛔ A shed runs in the CHILD and the child has to
-be scheduled to run it, so the window between the fork and the shed is the one
-thing a shed cannot close. The next session does not spend a run on another
-shed: the entry's `Approach` step 4e names a second process sampling
-`/proc/locks` through the run, and a design change that stops a fork happening
-while a lock fd is open at all.
+⚠ **The blast radius is unchanged and the product could not reach this.**
+Several threads in one process are a necessary condition, clause 2 at 0 of 12
+three times and 0 of 20 twice, and the process that holds an image lock for a
+container's life is measured single-threaded. ⭐ The fix is in the product
+anyway: a `prune` in a future threaded caller would have hit it, and every
+observed failure was in the safe direction by luck rather than by design.

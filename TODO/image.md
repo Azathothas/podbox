@@ -1148,7 +1148,7 @@ Source:      `crates/podbox-image/src/store.rs`; `crates/podbox-probe/src/sys.rs
 Category:    image
 Priority:    P0
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     ⛔ **`cargo test --workspace` is not deterministic, and the tests
              that are not deterministic are the lock tests.** Measured on
@@ -1402,107 +1402,121 @@ Approach:    ⛔ **Establish the blast radius before fixing anything.** The firs
                 failing assertion and the descriptor state captured.
                 `experiments/153-store-lock-race.sh` and
                 `experiments/results/store-lock-race.txt`.
-             2. ✅ **Done. Every candidate about an inherited descriptor was
-                closed and none of them moved the rate.** The `Premise` above
-                carries the four, each with what it was worth. ⚠ It took FOUR readings of clause 6 to get the
-                fork question right, three of them with a fork still in the run,
-                and the entry keeps that so the next control is derived from the
-                call graph rather than from the test names.
-             3. ⚠ Whatever the cause, the gate is the second finding: CI ran
-                `cargo test --workspace` and reported green, so a check that
-                fails two runs in five has been reporting success. A single run
-                is not evidence for a racy suite.
-             4. ⛔ **STILL OPEN, AND IT IS WHAT CLOSES THIS ENTRY.** Name the
-                holder. Threads in one process are necessary, a fork is
-                necessary, neither fork path rules anything on its own, each
-                test owns its own store root, and a holder the kernel still
-                lists has now been caught twice. Four measurements are named and three are taken:
+             2. ✅ **Done. Every candidate about which descriptors a CHILD holds
+                was closed and none of them moved the rate.** The `Premise`
+                carries the five, each with what it was worth. ⚠ It took FOUR
+                readings of clause 6 to get the fork question right, three of
+                them with a fork still in the run, and the entry keeps that so
+                the next control is derived from the call graph rather than from
+                the test names.
+             3. ✅ **The gate was the second finding and it is answered.** CI ran
+                `cargo test --workspace` and reported green while the suite
+                failed two runs in five, because a single run is not evidence
+                for a racy suite.
+                `releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives`
+                is deterministic, so one run is now enough.
+             4. ✅ **The holder is named, and there was never one.** Threads in
+                one process are necessary, a fork is necessary, and the refusal
+                itself is spurious. Four measurements were named and all four
+                are taken:
                 a. ✅ **Clause 7 ruled the filesystem out.** It moved every lock
                    from this container's `overlayfs` `/tmp` to a `tmpfs` through
                    `TMPDIR` and changed nothing else. The failure arrived at
                    **6 and 10 of 20**, and at **9 and 7 of 20** on a second
-                   taking, so a release completing late on one filesystem is not
-                   the cause. ⭐ A negative result, and it costs the next
-                   session the run it would have made;
+                   taking. ⭐ A negative result, and it costs the next session
+                   the run it would have made;
                 b. ✅ **Registering the other eight `Lock` sites changed
                    nothing**, and neither did shedding on libstd's fork, and
-                   neither did widening the pre-registration window. The
-                   `Premise` carries all three with their figures. ⭐ Two of the
-                   three closures are KEPT anyway, because each removes a real
-                   way for a fork to carry a lock away, which T-0211 forbids
-                   whether or not it is what T-0215 is;
-                c. ⭐ **THE NEXT ONE, AND THE TWO KERNEL CAPTURES ARE WHAT
-                   MAKE IT CHEAP.** A holder the kernel still lists at the
-                   assertion is one that can be read while it lives. `free_now`
-                   already loops at the point of refusal, so it can read
-                   `/proc/locks` and every live child's `/proc/<pid>/fd` ON EACH
-                   ATTEMPT, and report the first attempt at which a holder
-                   appears and which child has the descriptor.
-                   ⛔ **AND IT HAS TO REACH THE SWEEP TESTS FIRST, which is a
-                   gap in the instrument rather than in the plan.** `free_now`
-                   is wired into the two `in_use` tests alone, and BOTH captures
-                   where the kernel still listed the holder came from
-                   `opening_a_store_sweeps_what_a_killed_process_left`, which
-                   has no duration line at all. The most informative failures
-                   are the ones the instrument does not cover; ⚠ The present instrument
-                   reads only THIS process's descriptors, so a child holding an
-                   inherited copy is the one thing the 50 ms capture points at
-                   and the one thing the instrument cannot see;
-                d. ✅ **Done, and it is the last thing shedding can test.**
-                   Clause 11 gave the test's own bare spawn the hook, so every
-                   fork in the process drained the table, and the failure stayed
-                   at 4 and 4 of 20 and then at 6 and 6. ⛔ **SHEDDING CANNOT
-                   CLOSE THE WINDOW BETWEEN THE `fork` AND THE SHED**, because
-                   the shed runs in the child and the child has to be scheduled
-                   to run it. Every
-                   closure this session made is a shed, so the family is not
-                   refuted; it is at the limit of what a shed can rule on;
-                e. ⭐ **SO THE NEXT MOVE IS NOT ANOTHER SHED.** Two shapes are
-                   left and each answers the residual window directly. The
-                   cheaper: sample `/proc/locks` from a SECOND process through
-                   the whole run, so a holder that lives for microseconds is
-                   caught while it lives, and read which pid holds it. ⛔ The
-                   instrument in the failing thread cannot do that on its own,
-                   which is why the short captures mostly answer "nobody". The
-                   heavier: stop a fork happening at all while a lock fd is
-                   open, with a gate that `clone_fork` and every spawn take,
-                   which is a design change and needs its own entry rather than
-                   a clause.
-Decision:    ⭐ **Taken in part on 2026-09-12, and only the part the measurement
-             supports.**
-             ⛔ **No change to `Lock::drop`'s `close`**, which is refuted by
-             observation: the description it would leave open is not there.
-             ⭐ **Two fd closures are KEPT although neither changed the rate**,
-             and the entry says which reason is which. `Lock::try_acquire`
-             registers every lock it builds, and `sys::shed_after_fork` drains
-             the table in a child libstd forked. ⛔ **Neither is a fix for
-             T-0215 and neither is written up as one.** Each removes a way for a
-             fork to carry a lock fd away from its holder, which
-             [T-0211](image.md) forbids, and eight of the nine `Lock` sites and
-             every libstd spawn sat outside that rule until now. ⚠ **A change
-             kept on an invariant rather than on a measurement is recorded as
-             exactly that**, so a later reader cannot find a change in the
-             history and conclude the race was fixed.
-             ⛔ **The third closure, widening the window, is a MUTATION and it
-             lives in the script and never in the tree.** Clause 8 makes it and
-             restores the file however the script ends, the way
-             `scripts/plant.sh` works. Clause 9 does the same to take the second
-             closure back out, so both legs of that A and B land in one evidence
-             file under one conditions block.
-             ⭐ **The blast radius is settled: the product, as measured, cannot
-             reach this.** Several threads in ONE process are a necessary
-             condition, clause 2 at 0 of 12 three times and 0 of 20 twice, and
-             the process that holds an image lock for a container's life is
-             measured single-threaded.
-             `experiments/results/lifecycle-loop.txt` reads the launcher's own
-             `/proc/<pid>/task` and reports **1 thread**, and
-             `nothing_on_the_spawn_path_can_spawn_a_thread` in
-             `crates/podbox-supervise/src/launcher.rs` reads that crate's own
-             sources at test time and refuses a thread-spawning line. ⚠ **That
-             is a blast radius and not an acquittal**: a single-threaded process
-             cannot reach a race that needs two threads, and a lock the kernel
-             attributes to a process holding no descriptor on it is still
-             unexplained.
-             ⚠ The tempting fix is to serialise the lock tests, which makes the
-             suite green and answers nothing. ⛔ It stays refused.
-Prove:       `./experiments/153-store-lock-race.sh` runs the workspace suite a recorded number of times, reports the failure count with its conditions, and exits 1 while any run fails. ⛔ It reports the count even when the count is zero, because a racy check that happened to pass is not a check that passed
+                   neither did widening the pre-registration window, and neither
+                   did hooking the one spawn that was bare by design;
+                c. ✅ **The instrument was moved to the moment of the refusal,
+                   and that is what answered it.** Everything before it ran from
+                   the assertion, microseconds too late: the shortest refusal it
+                   chased had cleared in 11 us;
+                d. ✅ **The same descriptor, retried at once, is the reading
+                   that settled it.** Nothing else changes: the same fd, the
+                   same operation, microseconds later.
+Decision:    ⭐ **`Lock::drop` releases the lock EXPLICITLY, with
+             `flock(LOCK_UN)`, before it closes the descriptor.**
+             ⛔ **Closing is not releasing while anything else holds a reference
+             to the same open file description**, and a `fork` makes exactly
+             that. `LOCK_UN` removes the record in the releasing thread, whatever
+             the reference count is, so the release is finished when the line
+             is.
+             ⚠ **One lock is exempt and it is the one that is meant to be
+             inherited.** [`Lock::hand_to_payload`] sets a flag that turns the
+             explicit release off, because the payload holds a duplicate of that
+             same description and `LOCK_UN` would take the lock from it too.
+             ⛔ **The close stays and is not replaced.** It is what makes the
+             lock correct across an unexpected death, where no `Drop` runs.
+             ⛔ **No change to the eight registrations or to the shed hook**,
+             which are kept on [T-0211](image.md)'s invariant and not on this
+             measurement, and the `Premise` says so in those words.
+             ⚠ The tempting fix was to serialise the lock tests, which makes the
+             suite green and answers nothing. ⛔ It stayed refused, and the
+             answer came from the instrument instead.
+Prove:       `cargo test -p podbox-image releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` passes, and `PODBOX_RACE_CLAUSES="0 1 6 12" ./experiments/153-store-lock-race.sh` reports the subject at 0 of 20 in both passes and clause 12 red on both the regression test and the subject. ⛔ Clause 12 DELETES the release and asserts the red, because a fix nobody has seen fail is worth as little as a check nobody has seen fail
+
+
+**Done 2026-09-12, and the mechanism is named rather than guessed.**
+
+⛔ **`close(2)` IS NOT A RELEASE WHILE ANYTHING ELSE REFERENCES THE SAME OPEN
+FILE DESCRIPTION.** `Lock::drop` released by closing its descriptor. A `fork`
+makes a second reference to the description, so after one the holder's own
+`close` no longer completes the release: the record is taken away when the LAST
+reference goes, and where that is the child, it happens asynchronously with
+respect to this process's next `flock`. `in_use` read those windows as an image
+still in use after its holder released it, and a sweep left an abandoned file
+behind. ⭐ That is why a concurrent fork was a necessary condition all along,
+and why nothing about WHICH descriptors a child holds ever moved the rate.
+
+⭐ **The reading that settled it, taken at the `EWOULDBLOCK` itself rather than
+at the assertion.** Every instrument before it ran while the assertion message
+was being formatted, and the shortest refusal it chased had already cleared in
+11 us. Thirteen captures over eleven failing runs, and **every single one says
+the same descriptor succeeded on retry**:
+
+```text
+AT THE REFUSAL, on inode 123582, probe fd 3:
+  kernel: NO FLOCK ROW ON THIS INODE, yet the flock was refused
+  THE SAME FD SUCCEEDED on retry 1 after 1 us, so there was no holder
+```
+
+⚠ Nine of the thirteen cleared on retry 1 or 2 within 1 to 4 us; the slowest
+took 2276 retries and 481 us, and the longest ran 1190 us. ⛔ **Not one capture
+found a holder**: no descriptor on the inode in any process on the host, the
+probe's own excluded by number, and in six of the thirteen no `/proc/locks` row
+either while the `flock` was still being refused.
+
+⭐ **The fix is one syscall and it is in the releasing thread.**
+`Lock::drop` calls `flock(fd, LOCK_UN)` before the close, so the record is
+removed here rather than whenever the last reference happens to go.
+[`Lock::hand_to_payload`] sets a flag that turns it off for the one lock that is
+meant to be inherited, because the payload holds a duplicate of that same
+description.
+
+⭐ **Proved from both sides, and `experiments/results/store-lock-race.txt` is
+the run:**
+
+| the reading | before | after |
+| --- | --- | --- |
+| clause 1, the subject | 5 to 12 of 20 across twenty passes | ⭐ **0 of 20, twice** |
+| clause 12, the release deleted, the subject | - | ⛔ **20 of 20** |
+| clause 12, the release deleted, the regression test | - | ⛔ **red, exit 101** |
+| clause 6, the fork control | 0, 0 | 0, 0 |
+
+⭐ **`releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` is the
+guard, and it is DETERMINISTIC where the defect was one run in two.**
+`F_DUPFD_CLOEXEC` gives a second reference to one open file description, which
+is exactly what a child gets, so the test needs no second process, no thread and
+no timing. ⛔ Clause 12 deletes the `LOCK_UN` line and asserts the test goes
+red, because a fix nobody has seen fail is worth as little as a check nobody has
+seen fail.
+
+⚠ **What this does NOT claim.** The blast radius is unchanged: the product, as
+measured, could not reach this. Several threads in one process are a necessary
+condition, clause 2 at 0 of 12 three times and 0 of 20 twice, and the process
+that holds an image lock for a container's life is measured single-threaded in
+`experiments/results/lifecycle-loop.txt`. ⭐ The defect was real and the fix is
+in the product, because a `prune` in a future threaded caller would have hit it
+and the failure was only ever in the safe direction by luck.

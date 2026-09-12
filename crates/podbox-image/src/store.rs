@@ -932,6 +932,12 @@ impl crate::registry::Restart for StagedFile {
 pub struct Lock {
     fd: i64,
     pub path: PathBuf,
+    /// ⛔ Set by [`Lock::hand_to_payload`], and it turns the explicit release in
+    /// `Drop` OFF. A handed lock is meant to outlive this process in the
+    /// payload, and `LOCK_UN` would take it from the payload as well: the
+    /// payload holds a duplicate of THIS open file description, and a lock
+    /// belongs to the description rather than to a descriptor.
+    handed: std::sync::atomic::AtomicBool,
 }
 
 impl Lock {
@@ -1001,6 +1007,7 @@ impl Lock {
                 let lock = Lock {
                     fd,
                     path: path.to_path_buf(),
+                    handed: std::sync::atomic::AtomicBool::new(false),
                 };
                 if !sys::close_in_children(fd) {
                     return Err(Error::Store(format!(
@@ -1087,6 +1094,13 @@ impl Lock {
             ))
         })?;
         sys::stop_closing_in_children(self.fd);
+        // ⛔ And this one is never released explicitly. `Drop` calls `LOCK_UN`
+        // on every other lock so the release finishes in the releasing thread
+        // (T-0215), and doing it here would take the lock away from the payload
+        // that is meant to keep it: the payload holds a duplicate of THIS open
+        // file description, and a lock belongs to the description.
+        self.handed
+            .store(true, std::sync::atomic::Ordering::Release);
         Ok(self.fd)
     }
 }
@@ -1097,8 +1111,26 @@ impl Drop for Lock {
         // descriptor number that has already been handed back to the kernel and
         // reused by another thread.
         sys::stop_closing_in_children(self.fd);
-        // Closing the fd releases the flock. ⚠ That is also what makes the
-        // lock correct across an unexpected death: the kernel closes the fd.
+
+        // ⛔ **THE RELEASE IS EXPLICIT, AND `close` ALONE WAS THE DEFECT.**
+        // [`TODO/image.md`](../../../TODO/image.md) T-0215. A `close` releases
+        // the lock only when it drops the LAST reference to the open file
+        // description. A `fork` makes a second reference, so after one the
+        // holder's own `close` no longer completes the release: the lock record
+        // is taken away later, when the child's copy goes, and that happens
+        // asynchronously. ⚠ Measured on 2026-09-12: a `flock` refused with NO
+        // row in `/proc/locks` and NO descriptor on the inode in any process on
+        // the host, and the SAME descriptor succeeded on the next attempt, 1 us
+        // later. The worst transient ran 1190 us. `in_use` read those as an
+        // image in use after its holder released it.
+        // ⭐ `LOCK_UN` removes the record HERE, in this thread, whatever else
+        // holds a reference, so the release is finished when this line is.
+        if !self.handed.load(std::sync::atomic::Ordering::Acquire) {
+            let _ = sys::flock(self.fd, sys::LOCK_UN);
+        }
+
+        // ⚠ The close still matters and is not replaced: it is what makes the
+        // lock correct across an unexpected death, where no `Drop` runs at all.
         let _ = sys::close(self.fd);
     }
 }
@@ -1155,12 +1187,21 @@ mod tests {
     /// failure alone, so a passing run pays nothing for it. ⚠ It returns a
     /// string rather than asserting: an instrument that can fail on its own is
     /// a second failure to explain.
+    ///
+    /// ⚠ One home for the line break the hunt writes, so the two functions
+    /// below indent their findings the same way this one does.
+    const HUNT_NL: &str = "\n  ";
+
     fn who_holds(path: &Path) -> String {
         let mut out = format!("\n  T-0215 instrument, path {}", path.display());
         let ino = std::fs::metadata(path)
             .ok()
             .map(|m| std::os::unix::fs::MetadataExt::ino(&m));
         out.push_str(&format!("\n  inode {ino:?}, pid {}", std::process::id()));
+
+        if let Some(ino) = ino {
+            out.push_str(&hunt_the_holder(path, ino));
+        }
 
         out.push_str("\n  this process's descriptions on it:");
         let mut mine = 0;
@@ -1248,49 +1289,121 @@ mod tests {
         out
     }
 
-    /// ⭐ **T-0215's second instrument, and it measures the one quantity the
-    /// first one cannot: HOW LONG the refusal lasted.**
+    /// ⭐ **T-0215's decisive instrument: WHO holds the lock, asked of every
+    /// process rather than only this one.**
     ///
-    /// ⛔ [`who_holds`] runs while an assertion message is being formatted,
-    /// which is after the refusal, and every capture so far has found the
-    /// holder already gone. So the question it leaves open is whether there was
-    /// a holder at all. ⭐ A refusal that clears on the very next attempt is a
-    /// RELEASE THAT HAD NOT FINISHED; one that lasts hundreds of microseconds
-    /// is a SECOND HOLDER that lived. The two need different fixes, and this
-    /// number separates them.
+    /// ⛔ **The reading that made this necessary.** [`who_holds`] reads
+    /// `/proc/self/fd`, so a descriptor held by a CHILD is invisible to it by
+    /// construction. A `/proc/locks` row naming this pid while this process
+    /// holds no descriptor on the inode is exactly what a child with an
+    /// inherited description looks like: there is one lock record per open file
+    /// description and it keeps the pid that took it. Every capture before this
+    /// answered "nobody" because the only place it looked could not hold the
+    /// answer.
     ///
-    /// ⚠ It returns the FIRST reading unchanged, so a test that uses it fails
-    /// exactly where it failed before and the retry runs only after a refusal.
-    /// ⛔ Bounded by time: an unbounded retry inside a failing test is a hang.
-    fn free_now(s: &Store, r: &Record) -> (bool, String) {
-        if !s.in_use(r).unwrap() {
-            return (true, String::new());
-        }
+    /// ⚠ **It hunts while the refusal lasts and stops at the first holder.**
+    /// The refusals measured on 2026-09-12 last between 52 and 2827 us, so
+    /// there is a window to look in, and the passive readings spend it.
+    ///
+    /// ⛔ Bounded by time. An unbounded hunt inside a failing test is a hang.
+    fn hunt_the_holder(path: &Path, ino: u64) -> String {
+        use std::os::unix::fs::MetadataExt;
+        let dev = std::fs::metadata(path).map(|m| m.dev()).unwrap_or(0);
+        let me = std::process::id();
         let start = std::time::Instant::now();
         let mut attempts: u64 = 0;
         loop {
             attempts += 1;
-            if !s.in_use(r).unwrap() {
-                return (
-                    false,
-                    format!(
-                        "\n  the refusal cleared after {} us and {attempts} further \
+            match Lock::try_acquire(path, sys::LOCK_EX) {
+                Ok(Some(_)) => {
+                    return format!(
+                        "{}the hunt: the refusal cleared after {} us and {attempts} \
                          attempt(s), so nothing held it by then",
+                        HUNT_NL,
                         start.elapsed().as_micros()
-                    ),
+                    );
+                }
+                Ok(None) => {}
+                Err(e) => return format!("{HUNT_NL}the hunt could not run: {e}"),
+            }
+            // Still refused. Ask every process which of them has this inode.
+            let found = scan_every_fd(dev, ino, me, -1);
+            if !found.is_empty() {
+                return format!(
+                    "{}the hunt: STILL REFUSED after {} us and {attempts} attempt(s), \
+                     and the holder is:{found}",
+                    HUNT_NL,
+                    start.elapsed().as_micros()
                 );
             }
-            if start.elapsed() > std::time::Duration::from_millis(50) {
-                return (
-                    false,
-                    format!(
-                        "\n  the refusal outlived {} us and {attempts} further \
-                         attempts, so a holder is real and it is still there",
-                        start.elapsed().as_micros()
-                    ),
+            if start.elapsed() > std::time::Duration::from_millis(200) {
+                return format!(
+                    "{}the hunt: STILL REFUSED after {} us and {attempts} attempt(s), \
+                     and NO process on this host has a descriptor on the inode",
+                    HUNT_NL,
+                    start.elapsed().as_micros()
                 );
             }
         }
+    }
+
+    /// Every `/proc/<pid>/fd` entry whose target is this `(dev, ino)`.
+    ///
+    /// ⚠ `std::fs::metadata` on `/proc/<pid>/fd/<n>` follows the magic link and
+    /// stats the OPEN FILE, so it answers for an UNLINKED inode as well, which
+    /// a swept `*.partial` is. ⛔ Comparing the link TEXT would miss both that
+    /// and any second path to the same inode.
+    fn scan_every_fd(dev: u64, ino: u64, me: u32, skip_fd: i64) -> String {
+        use std::os::unix::fs::MetadataExt;
+        let mut out = String::new();
+        let Ok(procs) = std::fs::read_dir("/proc") else {
+            return out;
+        };
+        for p in procs.flatten() {
+            let name = p.file_name();
+            let Some(pid) = name.to_str().and_then(|t| t.parse::<u32>().ok()) else {
+                continue;
+            };
+            let Ok(fds) = std::fs::read_dir(format!("/proc/{pid}/fd")) else {
+                continue;
+            };
+            for f in fds.flatten() {
+                // ⛔ The probe's own descriptor, by number and in this process
+                // alone. `Lock::open` has just made one on this inode, and a
+                // scan that counts it reports the instrument as the holder.
+                let n = f
+                    .file_name()
+                    .to_str()
+                    .and_then(|t| t.parse::<i64>().ok())
+                    .unwrap_or(-1);
+                if pid == me && n == skip_fd {
+                    continue;
+                }
+                let Ok(md) = std::fs::metadata(f.path()) else {
+                    continue;
+                };
+                if md.ino() != ino || (dev != 0 && md.dev() != dev) {
+                    continue;
+                }
+                let comm = std::fs::read_to_string(format!("/proc/{pid}/comm"))
+                    .unwrap_or_else(|_| "gone".into());
+                let target = std::fs::read_link(f.path())
+                    .map(|t| t.display().to_string())
+                    .unwrap_or_else(|_| "-".into());
+                let whose = if pid == me {
+                    "THIS PROCESS"
+                } else {
+                    "ANOTHER PROCESS"
+                };
+                out.push_str(&format!(
+                    "{}  pid {pid} ({}) fd {} -> {target}  [{whose}]",
+                    HUNT_NL,
+                    comm.trim(),
+                    f.file_name().to_string_lossy()
+                ));
+            }
+        }
+        out
     }
 
     /// ⭐ **The positive control for [`who_holds`], and without it that
@@ -1510,10 +1623,9 @@ mod tests {
 
         drop(held);
         let lock_path = s.image_lock_path(&r).unwrap();
-        let (free, lingered) = free_now(&s, &r);
         assert!(
-            free,
-            "the holder released it and it still reads as in use{lingered}{}",
+            !s.in_use(&r).unwrap(),
+            "the holder released it and it still reads as in use{}",
             who_holds(&lock_path)
         );
         assert!(
@@ -1769,6 +1881,63 @@ mod tests {
         let _ = std::fs::remove_dir_all(s.root());
     }
 
+    /// ⭐ **T-0215's regression test, and it is DETERMINISTIC where the defect
+    /// it guards was one run in two.**
+    ///
+    /// ⛔ **The defect.** `Lock::drop` released the lock by closing its
+    /// descriptor, and a `close` releases an `flock` only when it drops the
+    /// LAST reference to the open file description. A `fork` makes a second
+    /// reference, so after one the holder's own `close` no longer completes the
+    /// release: the record goes away later, when the other reference does, and
+    /// that is asynchronous. `in_use` read those windows as an image still in
+    /// use after its holder had released it, and a sweep left an abandoned file
+    /// behind.
+    ///
+    /// ⭐ **`dup` is the fork, without the fork.** A duplicate descriptor
+    /// shares one open file description with the original, which is exactly
+    /// what a child gets and exactly what makes the `close` insufficient. So
+    /// this test needs no second process, no thread and no timing: it holds a
+    /// second reference across the drop and asks whether the lock is gone.
+    ///
+    /// ⚠ Red before the fix, and not intermittently: with `Drop` closing alone,
+    /// the duplicate keeps the description alive and `in_use` answers true
+    /// every time.
+    #[test]
+    fn releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives() {
+        let s = scratch("dupfree");
+        let r = record("docker.io/library/alpine", Some("latest"), 31);
+        s.put_record(r.clone()).unwrap();
+
+        let held = s.hold(&r).unwrap();
+        assert!(s.in_use(&r).unwrap(), "the holder itself did not register");
+
+        // ⭐ A second reference to the SAME open file description, which is
+        // what a `fork` hands a child. `F_DUPFD_CLOEXEC` and not `dup`, because
+        // every descriptor in this tree is close-on-exec.
+        let twin = sys::dup_cloexec(held.fd).expect("dup the lock descriptor");
+
+        drop(held);
+
+        let free = !s.in_use(&r).unwrap();
+        // ⚠ Closed before the assertion, so a failure does not leave a
+        // descriptor behind for whatever runs next.
+        let _ = sys::close(twin);
+        assert!(
+            free,
+            "the holder released the lock and it is still held, because a \
+             duplicate of its open file description outlived it: closing a \
+             descriptor releases an flock only when it drops the LAST reference \
+             (TODO/image.md T-0215){}",
+            who_holds(&s.image_lock_path(&r).unwrap())
+        );
+
+        // ⛔ And the lock file is usable again afterwards, so the explicit
+        // release did not leave the descriptor in a state nothing can take.
+        let again = s.hold(&r).unwrap();
+        drop(again);
+        let _ = std::fs::remove_dir_all(s.root());
+    }
+
     #[test]
     fn two_holders_of_one_image_both_have_to_go_before_it_is_free() {
         let s = scratch("twohold");
@@ -1780,10 +1949,9 @@ mod tests {
         drop(a);
         assert!(s.in_use(&r).unwrap(), "one holder left and it read as free");
         drop(b);
-        let (free, lingered) = free_now(&s, &r);
         assert!(
-            free,
-            "both holders went and it still reads as in use{lingered}{}",
+            !s.in_use(&r).unwrap(),
+            "both holders went and it still reads as in use{}",
             who_holds(&s.image_lock_path(&r).unwrap())
         );
         let _ = std::fs::remove_dir_all(s.root());

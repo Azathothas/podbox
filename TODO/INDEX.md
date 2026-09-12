@@ -88,7 +88,7 @@ the blocker named and what would clear it.
 | [T-0212](image.md) | P0 | image | done | The platform is decided at run time, and the store holds more than one |
 | [T-0213](image.md) | P0 | image | done | A registry with no certificate, or one nothing trusts, and the refusal kept |
 | [T-0214](image.md) | P2 | image | done | A blob body cut off mid-stream is not retried, and the bounded retry is around the wrong thing |
-| [T-0215](image.md) | P0 | image | open | Four lock tests fail in two runs of five, and the gate has never said so |
+| [T-0215](image.md) | P0 | image | done | Four lock tests fail in two runs of five, and the gate has never said so |
 | [T-0301](extract.md) | P0 | extract | done | Extract in-process, at entry level, never through system `tar` |
 | [T-0302](extract.md) | P0 | extract | done | Ownership-neutral extraction plus the sidecar |
 | [T-0303](extract.md) | P0 | extract | done | Whiteouts are matched on the basename, never with a path glob |
@@ -196,7 +196,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-132 items: 42 open, 4 partial, 0 blocked, 86 done.
+132 items: 41 open, 4 partial, 0 blocked, 87 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -204,11 +204,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 6 | 2 | 0 | 44 | 52 |
+| P0 | 5 | 2 | 0 | 45 | 52 |
 | P1 | 22 | 2 | 0 | 32 | 56 |
 | P2 | 10 | 0 | 0 | 9 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **42** | **4** | **0** | **86** | **132** |
+| **All** | **41** | **4** | **0** | **87** | **132** |
 
 ## How the current ordering is derived
 

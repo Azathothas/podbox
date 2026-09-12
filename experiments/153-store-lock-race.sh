@@ -30,6 +30,7 @@
 #   9. podbox's own spawn no longer sheds                puts one fd closure back as it was
 #  10. the hook gutted, and its control asserted red   the control's own plant, and no rate
 #  11. the test's own bare spawn given the hook       the last unshed fork in the process
+#  12. the explicit release taken back out           the fix's own plant, and no rate
 #
 # ⚠ CLAUSE 7 WAS BUILT FOR ONE IDEA AND HAS ALREADY RULED IT OUT. A refusal
 # that clears at once with no holder anywhere the kernel reports one is what a
@@ -411,6 +412,62 @@ plant_the_hook_control() {
 	cargo test --workspace --no-run >>"$WORK/plant10.log" 2>&1
 }
 
+# ⭐ CLAUSE 12. THE FIX'S OWN PLANT, AND IT MEASURES NO RATE.
+#
+# ⛔ TODO/image.md T-0215 is closed by an explicit `LOCK_UN` in `Lock::drop`,
+# and a fix nobody has seen fail is worth as little as a check nobody has seen
+# fail. This takes the release back out and asserts the regression test goes
+# RED.
+#
+# ⚠ It also asserts the SUBJECT goes red without it, which is the whole claim:
+# the deterministic test and the racy suite are two views of one defect.
+plant_the_release() {
+	pass="$1"
+	src="$REPO/crates/podbox-image/src/store.rs"
+	anchor="            let _ = sys::flock(self.fd, sys::LOCK_UN);"
+	test_name="releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives"
+	hits=$(grep -c -F -x -- "$anchor" "$src")
+	say "== clause 12 pass $pass  the explicit release taken back out"
+	if [ "$hits" != "1" ]; then
+		say "  SKIP: the anchor matched $hits times, not once. Lock::drop moved,"
+		say "  so this plant cannot say what it mutated."
+		say ""
+		return
+	fi
+	cp "$src" "$WORK/mutated.orig"
+	MUTATED="$src"
+	trap 'cp "$WORK/mutated.orig" "$MUTATED" 2>/dev/null' EXIT HUP INT TERM
+	grep -v -F -x -- "$anchor" "$WORK/mutated.orig" >"$src"
+	say "  mutation         crates/podbox-image/src/store.rs"
+	say "    delete, at:    $anchor"
+	if ! cargo test --workspace --no-run >"$WORK/plant12.log" 2>&1; then
+		say "  SKIP: the mutated tree did not build"
+		tail -10 "$WORK/plant12.log" | sed 's/^/  /' >>"$REPORT"
+		say ""
+		cp "$WORK/mutated.orig" "$src"
+		cargo test --workspace --no-run >>"$WORK/plant12.log" 2>&1
+		return
+	fi
+	say "  command          cargo test -p podbox-image $test_name"
+	# ⛔ The code is read from the process that produced it, unpiped.
+	cargo test -p podbox-image "$test_name" >"$WORK/plant12.run" 2>&1
+	rc=$?
+	say "  exit             $rc"
+	if [ "$rc" -eq 0 ]; then
+		say "  ⛔ THE REGRESSION TEST STAYED GREEN WITHOUT THE RELEASE, so it"
+		say "  guards nothing and the fix rests on the rate alone."
+		fail=1
+	else
+		say "  ⭐ the regression test went red, so it is watching the release"
+	fi
+	grep -E "panicked at|still held|assertion" "$WORK/plant12.run" |
+		head -4 | sed 's/^/    /' >>"$REPORT"
+	# ⭐ And the subject, without the release, on the same mutated tree.
+	measure 12 "$pass" "the explicit release taken back out" "$CONTROL_RUNS"
+	cp "$WORK/mutated.orig" "$src"
+	cargo test --workspace --no-run >>"$WORK/plant12.log" 2>&1
+}
+
 for c in $CLAUSES; do
 	for p in A B; do
 		case "$c" in
@@ -440,6 +497,7 @@ for c in $CLAUSES; do
 		# ⚠ A plant is deterministic, so one pass is the whole of it. Every
 		# clause that measures a RATE is taken twice; this one measures none.
 		10) [ "$p" = A ] && plant_the_hook_control A ;;
+		12) [ "$p" = A ] && plant_the_release A ;;
 		11) mutate_and_measure 11 "$p" "the bare spawn in the test given the hook too" "crates/podbox-image/src/store.rs" '        let mut child = std::process::Command::new("/bin/sh")' replace '        let mut child = sys::shed_after_fork(&mut std::process::Command::new("/bin/sh"))' ;;
 		0) [ "$p" = A ] && instrument_control ;;
 		*)

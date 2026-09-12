@@ -1,39 +1,19 @@
-# RESUME
-
-⛔ **A dead man's switch, not a record.** This file is overwritten at the start
-of every session and refreshed while the session runs. It carries what is in
-flight right now and nothing else. [PROGRESS.md](PROGRESS.md) is the record and
-the work order.
-
 ## The task
 
 Session of 2026-09-12, which started at `04:22:08Z`, four minutes after the
-previous one ended. It took the work order's item 1 in depth and the authoring
+previous one ended. It closed the work order's item 1 and took the authoring
 half of item 2.
 
 ## The resume point
 
-[PROGRESS.md](PROGRESS.md)'s work order, item 1: [T-0215](image.md), which is
-still `open` and still P0.
+[PROGRESS.md](PROGRESS.md)'s work order, item 1: [T-0702](interpose.md), the
+placement half. ⭐ **[T-0215](image.md) is CLOSED**, so the work order has moved
+up by one and the store lock race is no longer the first thing a session reads.
 
-⛔ **Read the entry before the number, and read the CONDITIONS BLOCK before the
-figures.** Every clause of `experiments/153-store-lock-race.sh` measures a
-change, so the tree is modified while it runs, and the report now says so and
-prints the diff. The command line above each clause's figures is still the
-authority on what they measured, and a mutating clause now prints the line it
-WROTE as well as the line it matched.
-
-⛔ **THE NEXT MOVE IS NOT ANOTHER SHED, and the entry says why.** Every fork in
-the process drains the shed table now and every lock is in it, and the failure
-still arrives at 4 of 20 twice. A shed runs in the child, so the window between
-the fork and the shed is the one thing it cannot close.
-
-⭐ **Two readings are named, in the entry's `Approach` steps 4c and 4e.** 4c is
-small: `free_now` reaches the two `in_use` tests alone, and both captures where
-the kernel still listed a holder came from
-`opening_a_store_sweeps_what_a_killed_process_left`, which has no duration line
-at all. 4e is a SECOND process sampling `/proc/locks` through the whole run,
-because the instrument in the failing thread arrives after the holder has gone.
+⭐ **The suite is deterministic again.** `cargo test --workspace` reads 0 of 20
+in each of two passes, where it read 5 to 12 of 20 across twenty passes over two
+days. ⛔ A red `workspace and interposer tests` is NOT T-0215 any more, and it is
+not to be re-run and shrugged at: it is a new finding and it is investigated.
 
 ## In flight
 
@@ -51,10 +31,11 @@ exited 0.
 [RULES.md](RULES.md) section 2 carries the rule and the fallback. ⛔ Create no
 branches, and force-push is still refused.
 
-⚠ **One check is intermittent and it is not fixed.** A red
-`workspace and interposer tests` is [T-0215](image.md) until somebody proves
-otherwise, and the standing instruction is to re-run it. ⛔ Never ignore or
-disable it.
+⚠ **`experiments/153-store-lock-race.sh` has twelve clauses and four of them
+MUTATE THE SOURCE.** Each restores the file however the script ends, the way
+`scripts/plant.sh` works, but a killed run is worth a `git status` afterwards.
+⛔ Read the conditions block before quoting any figure from it: every clause
+measures a change, so the tree is modified while it runs and the report says so.
 
 ## The corpus
 

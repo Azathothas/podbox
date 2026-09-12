@@ -6,6 +6,40 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-12T08:05:00Z: the store lock race is closed, and closing a descriptor was never a release
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
+deployment.
+
+[`TODO/image.md`](TODO/image.md) T-0215 had been open across three sessions with
+two mechanisms proposed and refuted and four more closed without the rate
+moving. ⛔ **`Lock::drop` released a lock by closing its descriptor, and closing
+is not releasing while anything else references the same open file
+description.** The entry carries the mechanism, why a fork is what creates that
+second reference, and the thirteen captures that named it.
+
+⭐ **The instrument is what changed, not the theory.** Every reading before this
+was taken from the failing assertion and arrived microseconds late. Moving the
+capture to the `EWOULDBLOCK` itself answered the question on the first run.
+
+⭐ **The fix is one syscall in the releasing thread.** `flock(fd, LOCK_UN)`
+before the close, so the record is removed here rather than whenever the last
+reference happens to go. ⚠ `Lock::hand_to_payload` sets a flag that turns it off
+for the one lock that is meant to be inherited: the payload holds a duplicate of
+that same description. ⛔ The close stays and is not replaced, because it is what
+makes the lock correct across an unexpected death, where no `Drop` runs.
+
+⭐ **`releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` is the
+guard and it is DETERMINISTIC where the defect was one run in two.**
+`F_DUPFD_CLOEXEC` gives a second reference to one open file description, which is
+exactly what a child gets, so the test needs no second process, no thread and no
+timing. Clause 12 deletes the release and asserts the test goes red.
+
+⚠ **The two fd closures from earlier today are kept and neither fixed this.**
+Each removes a real way for a fork to carry a lock away, which T-0211 forbids,
+and the entry says in those words that they are kept on an invariant rather than
+on a measurement.
+
 ### 2026-09-12T06:45:00Z: a defect found while correcting one Prove line turns out to be 39 of them
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
