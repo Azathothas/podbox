@@ -4,7 +4,8 @@
 table in chat AND on disk. [PROGRESS.md](../../../TODO/PROGRESS.md) is the
 record; this is the one-screen version of what moved.
 
-Ran `02:35:53Z` to `04:15Z`. The operator called the end-of-session protocol.
+Ran `02:35:53Z` to `04:18:01Z`. The operator called the end-of-session
+protocol. The hosted gate was green on all four checks at `adce0da`.
 
 | what | before | after | taken by |
 | --- | --- | --- | --- |
