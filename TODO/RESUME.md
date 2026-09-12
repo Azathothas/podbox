@@ -88,8 +88,15 @@ in the base. The scripts print the report to stdout before they copy, which is
 how that run was recovered.
 
 ⛔ `podman-machine-default` is not this project's. Measured at the end of this
-session: **not running**, which is how it should be left, and this session did
-not start it. ⚠ `eph-pgb` is registered and stopped, and is not this session's.
+session with `podman machine list`: **stopped**, which is how it should be left,
+and this session did not start it.
+
+⚠ **`eph-pgb` is not a podman machine and it IS a registered WSL distribution**,
+and the two readings look like a contradiction until the tool that took each is
+named. `podman machine list` reports one machine and it is
+`podman-machine-default`. `wsl-toolkit --instance podbox resources` lists
+`eph-pgb` under what WSL has registered, stopped, and never touched. ⛔ Neither
+is this session's to start or remove.
 
 ⚠ **Job records from 2026-09-12 are in the base.** Nothing needs them.
 `wsl-toolkit --instance podbox gc --apply --older-than 24h` collects them from
