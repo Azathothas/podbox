@@ -9,6 +9,7 @@
 #   sh scripts/windows/run-in-base.sh              the complete check
 #   sh scripts/windows/run-in-base.sh JOB.sh       that script, inside /work
 #   PODBOX_IMAGE=... sh scripts/windows/run-in-base.sh
+#   PODBOX_ARTIFACTS=DIR sh scripts/windows/run-in-base.sh JOB.sh
 #
 # ⛔ NEVER CALL wsl.exe. docs/containers.md carries the rule and the reason: a
 # payload handed to wsl.exe as an argument is expanded before the guest reads
@@ -17,6 +18,11 @@
 # ⚠ Two repairs happen before the job, and both are for the same cause. NTFS
 # carries no POSIX mode bit, so the copy arrives with no executable file and
 # any CRLF in the payload reaches a POSIX shell as part of a word.
+#
+# ⭐ A JOB HANDS ITS EVIDENCE BACK THROUGH /out. The container is removed when
+# it exits, so a measurement that writes only into the workspace has written
+# into something nobody can read afterwards. `PODBOX_ARTIFACTS` names a
+# directory on this machine that receives whatever the job leaves in /out.
 #
 # Exit: the job's own code, or 2 when the job could not be started.
 set -u
@@ -28,6 +34,7 @@ cd "$ROOT" || exit 2
 IMAGE="${PODBOX_IMAGE:-docker.io/library/rust:1.98.1-bookworm}"
 INSTANCE="${PODBOX_WSL_INSTANCE:-podbox}"
 TIMEOUT="${PODBOX_JOB_TIMEOUT:-45m}"
+ARTIFACTS="${PODBOX_ARTIFACTS:-}"
 
 case "${1:-}" in
 -h | --help)
@@ -107,12 +114,36 @@ trap cleanup EXIT HUP INT TERM
 # the directory also matched a TRACKED corpus file under `references/`, so the
 # copy arrived one file short and the guest read the tree as dirty.
 # `plant.sh` refuses to start on a dirty tree.
+#
+# ⛔ THE INDEX SIDECARS ARE EXCLUDED BECAUSE A FILE THAT GROWS DURING THE COPY
+# BREAKS IT. Measured on 2026-09-12 while the CodeGraph daemon was indexing:
+# the copy stopped at `archive/tar: write too long` and the job exited 2 in
+# 475 ms, which names the archiver and not the file. A tar member's size is
+# written before its bytes are read, so a file that grows in between overruns
+# its own header. ⚠ The four names below are the only files in the copy that a
+# background daemon writes; `target` and `.dev` are already out. ⛔ BY NAME,
+# never `*.log`: 82 tracked corpus logs under `references/` carry that suffix
+# and every one of them is evidence.
+EXCLUDES="codegraph.db codegraph.db-wal codegraph.db-shm daemon.log daemon.pid target .dev"
+set -- # nothing positional survives into the call below
+for x in $EXCLUDES; do
+	set -- "$@" --exclude "$x"
+done
+
+# ⚠ `--artifacts` is passed only when a caller asked for one, because the flag
+# creates the directory and an empty one beside a checkout is litter.
+if [ -n "$ARTIFACTS" ]; then
+	mkdir -p "$ARTIFACTS" || {
+		echo "run-in-base: cannot create $ARTIFACTS" >&2
+		exit 2
+	}
+	set -- "$@" --artifacts "$ARTIFACTS"
+fi
+
 wsl-toolkit --instance "$INSTANCE" run \
 	--image "$IMAGE" \
 	--workspace . \
-	--exclude codegraph.db \
-	--exclude target \
-	--exclude .dev \
+	"$@" \
 	--script "$work/wrapper.lf.sh" \
 	--timeout "$TIMEOUT" \
 	--tick 120s

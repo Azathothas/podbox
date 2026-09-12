@@ -141,16 +141,18 @@ wsl-toolkit --instance podbox run --image docker.io/library/rust:1.98.1-bookworm
 | the choice | why |
 | --- | --- |
 | `--exclude codegraph.db` | the local index is 230 MiB and is not an input to anything. ⛔ **The FILE, never the `.codegraph` directory**: that name also matches a tracked corpus file, and a copy one file short reads as a dirty tree in the guest |
+| ⭐ `--exclude codegraph.db-wal`, `codegraph.db-shm`, `daemon.log`, `daemon.pid` | the live index's sidecars, and a file that GROWS during the copy breaks it. ⛔ By name, never `*.log`: 82 tracked corpus logs carry that suffix and each one is evidence |
 | `--exclude target` | build output, and it is the wrong architecture on a Windows host |
 | `--exclude .dev` | the background build's own log and state |
 | `.git` is **kept** | `check-attribution`, `check-markers` and `restore-modes` all read the index |
 | `references/` is **kept** | `check-todo.py` resolves every cited path and line in it |
 | `--script`, never `-c` | the file travels as bytes. A command travels through two parsers. |
+| ⭐ `--artifacts DIR` | what the job leaves in `/out` is copied to `DIR` on this machine. **The container is removed when it exits**, so a measurement that writes only into the workspace has written into something nobody can read. `PODBOX_ARTIFACTS` is how [`../scripts/windows/run-in-base.sh`](../scripts/windows/run-in-base.sh) passes it |
 
 **Measured on 2026-09-11: the workspace is 8,406 entries and 164.6 MiB, and
 the copy took about 4 s.** The image pull is the larger cost on a cold base.
 
-### ⛔ Five traps this host produced, each on 2026-09-11
+### ⛔ Seven traps this host produced, five on 2026-09-11 and two on 2026-09-12
 
 - ⛔ **A Windows checkout carries no executable bit, so every script arrives
   unrunnable.** Measured on 2026-09-11: **396 of 396** had to be repaired. NTFS holds no POSIX mode and `core.fileMode` is false there.
@@ -174,6 +176,23 @@ the copy took about 4 s.** The image pull is the larger cost on a cold base.
 - ⚠ **Python reads a script from stdin using the host code page, not UTF-8.**
   A marker character in the source is mangled before the program starts.
   Export `PYTHONIOENCODING=utf-8`, or pass a file.
+- ⛔ **A file that grows while the workspace is copied stops the copy, and the
+  error names the archiver rather than the file.** Measured on 2026-09-12 while
+  the CodeGraph daemon was indexing: `! archive/tar: write too long`, and the
+  job exited 2 in **475 ms**. A tar member's size goes into its header before
+  its bytes are read, so a file that grows in between overruns what was
+  declared. ⭐ The exclusions above cover the four sidecars the daemon writes,
+  which are the only files left in the copy that anything writes in the
+  background. ⚠ **The cause was not isolated to one of the four**, and the
+  repair does not need it to be.
+- ⛔ **A new script arrives unrunnable even after `restore-modes.sh`, because
+  that repair reads the git INDEX.** Measured on 2026-09-12: a new
+  `experiments/` script that was written but not staged failed as
+  `./experiments/153-store-lock-race.sh: Permission denied`, rc **126**, with
+  the mode repair reporting 396 of 396 files fixed in the same run. ⭐ Stage it
+  with its bit before the job: `git add PATH && git update-index --chmod=+x PATH`.
+  ⚠ Running it as `sh PATH` hides the missing bit rather than repairing it, and
+  the bit is what the tree has to carry.
 
 ### ⛔ Decommissioning
 
