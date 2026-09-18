@@ -484,7 +484,12 @@ pub(crate) fn prepare(
         );
         return Err(EXIT_FLAG_ERROR);
     }
-    let env = Plan::env_for(&cfg.config.env, &o.env);
+    let mut env = Plan::env_for(&cfg.config.env, &o.env);
+    // ⭐ T-0702 and T-0706: classify the payload and place the object BEFORE
+    // the banner is built, so the banner names the write before anything of
+    // the payload's runs. The note joins the banner below.
+    let mut interpose_note = String::new();
+    crate::interpose::apply(verb, &rootfs, &argv, &mut env, &mut interpose_note);
     let path_dirs = Plan::path_from(&env);
     let working_dir = o
         .workdir
@@ -510,6 +515,7 @@ pub(crate) fn prepare(
     if let Some(note) = crate::names::alias_note() {
         banner.push_str(&note);
     }
+    banner.push_str(&interpose_note);
     // ⭐ M5. The completion layer runs HERE: after the rootfs exists and the
     // image lock is held, and before anything is entered. Its report is part of
     // the banner, because every one of these is an edit podbox made inside

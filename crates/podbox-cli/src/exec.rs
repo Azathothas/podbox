@@ -184,7 +184,12 @@ fn enter(
     // ⚠ The container's own environment is not inherited: T-0505's whole
     // subject is that this shares the filesystem and NOTHING else, and silently
     // copying the original's environment would be the implication it refuses.
-    let env = podbox_enter::Plan::env_for(&[], &o.env);
+    let mut env = podbox_enter::Plan::env_for(&[], &o.env);
+    // ⭐ T-0702 and T-0706, as in `run`: a fresh chroot re-entry is a fresh
+    // payload, so it is classified and placed again rather than inheriting
+    // the first entry's answer.
+    let mut interpose_note = String::new();
+    crate::interpose::apply("exec", rootfs, &o.command, &mut env, &mut interpose_note);
     let path_dirs = podbox_enter::Plan::path_from(&env);
     let working_dir = o.workdir.clone().unwrap_or_else(|| "/".to_string());
     let findings = podbox_probe::run();
@@ -195,6 +200,7 @@ fn enter(
         banner.push_str(&note);
     }
     banner.push_str(&degradation());
+    banner.push_str(&interpose_note);
     // ⭐ M5. `exec` completes the rootfs exactly as `run` does, and for the same
     // reason: a fresh chroot re-entry is a fresh payload, and the `/dev/null` a
     // previous one turned into a file is still a file.
@@ -345,7 +351,11 @@ pub fn exec(args: &[String]) -> i32 {
     // command given and nothing around it, and an entrypoint that wraps a
     // second entry is a process the caller did not write.
     let argv = o.command.clone();
-    let env = Plan::env_for(&cfg.config.env, &o.env);
+    let mut env = Plan::env_for(&cfg.config.env, &o.env);
+    // ⭐ T-0702 and T-0706, as on the container path above: the image path is
+    // a second way to reach the same entry, not a second answer to it.
+    let mut interpose_note = String::new();
+    crate::interpose::apply("exec", &rootfs, &argv, &mut env, &mut interpose_note);
     let path_dirs = Plan::path_from(&env);
     let working_dir = o
         .workdir
@@ -365,6 +375,7 @@ pub fn exec(args: &[String]) -> i32 {
         banner.push_str(&note);
     }
     banner.push_str(&degradation());
+    banner.push_str(&interpose_note);
     // ⭐ M5. The same completion the container path takes, from the same
     // function: two entry paths that complete a rootfs differently would be two
     // answers to one question, and the one nobody exercises is the one that

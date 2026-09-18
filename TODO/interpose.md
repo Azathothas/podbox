@@ -127,7 +127,7 @@ Source:      `experiments/results/interposer-abi.txt`; `references/fritzw__ld-pr
 Category:    interpose
 Priority:    P0
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     Two separate failures share this entry because the fix is the same
              artefact. A preload object built against one libc cannot serve a
@@ -254,12 +254,26 @@ Status note: **no longer blocked, and the musl gap is closed.** The measurement
              and the gate workflow both built the binary BEFORE the objects, so
              with this shape they would have embedded two placeholders and
              passed. The interposer step now runs first in both.
-             ⚠ **What is still open is the PLACEMENT**, which is this
+             ⚠ **The PLACEMENT was still open until 2026-09-18**, which is this
              `Approach`'s second sentence: the selected object written INSIDE
              the rootfs before the chroot, and `LD_PRELOAD` set to the path the
-             payload will see. Nothing of that is written yet, and
-             `crates/podbox-cli/src/interpose.rs` says so in its own header.
-Prove:       `./experiments/80-interposer-abi.sh` exits 0, and `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'grep -q "$(readlink -f /.podbox/interpose.so)" /proc/self/environ'`. ⛔ **The reference was `alpine:latest` until 2026-09-12**, which is unqualified and resolves to a quota-bearing registry, so this acceptance could not be run under the rule `scripts/common/distro-matrix.sh` states. It is the M5 alpine row now. [T-1209](gate.md) owns the other 37 lines with the same defect
+             payload will see. It landed in `crates/podbox-cli/src/interpose.rs`
+             (`place`, called from `apply`); the Done note below carries the
+             run.
+Prove:       `./experiments/80-interposer-abi.sh` exits 0, and `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -f /.podbox/interpose.so && env | grep -q "^LD_PRELOAD=/\.podbox/interpose\.so"'`. ⛔ **The reference was `alpine:latest` until 2026-09-12**, which is unqualified and resolves to a quota-bearing registry, so this acceptance could not be run under the rule `scripts/common/distro-matrix.sh` states. It is the M5 alpine row now. [T-1209](gate.md) owns the other 37 lines with the same defect. ⛔ **The second half read `/proc/self/environ` until 2026-09-18**, and the chroot has no `/proc`, so that line could not pass under podbox: `grep` answered `No such file or directory` while the object sat placed beside it. The environ is read through the payload's own `env` instead.
+
+
+**Done 2026-09-18.** The placement half landed in `crates/podbox-cli/src/interpose.rs` (`place`, and `apply` calling it): the selected object is written to `/.podbox/interpose.so` inside the rootfs before the chroot, sibling plus rename, and `LD_PRELOAD` names it, podbox's object first where the caller set one. `run`, `exec` and `create` share the one call. `experiments/159-interpose-placement.sh` clause A is this `Prove`, pinned to the M5 digest, and `experiments/results/interpose-placement.txt` carries the run: file present, `LD_PRELOAD` in the payload's `env`, exit 0.
+
+⭐ **The resolver follows absolute links under the rootfs, because the first
+shape declined every dynamic payload.** Alpine's `/bin/sh` points at the
+absolute `/bin/busybox`, which names the host's file when read from outside
+and the image's from inside. The naive read found nothing, declined `sh`,
+and the payload still ran, so the tier read as absent on every image whose
+shell is an absolute link. `resolve_in` walks the guest path component by
+component and splices an absolute target back under the root, the way the
+guest kernel would; `..` past the root and a link loop are refused rather
+than followed.
 
 ---
 
@@ -506,7 +520,7 @@ Source:      `TOOL.md` section 6.7, `paper_final.md` section 10.3
 Category:    interpose
 Priority:    P0
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Starting a mode that cannot reach the payload fails later, deeper
              and less legibly than declining it.
@@ -546,7 +560,10 @@ Decision:    Decline the tier, do not fall back to a copy silently. A `-v` that
              that needs a usable `ptrace`, which this runtime denies, and
              `references/proot-me__proot/tree/src/cli/cli.c:135-138` shows what
              a tool that assumes otherwise tells the user.
-Prove:       `podbox run --rm -v "$(command -v podbox):/podbox:ro" public.ecr.aws/docker/library/alpine:3.20 /podbox --version 2>&1 | grep -q 'interpose: declined'`. ⚠ **That drives row 2 of the table and not row 3**, and the substitution is stated rather than quiet: podbox's own release binary is `x86_64-unknown-linux-musl` under the workspace's `+crt-static`, which [T-0701](#t-0701-the-cdylib-build-constraints) records, so it carries no `PT_INTERP` and is a static payload this tree already builds. ⭐ The command IS the check on that: a payload with a `PT_INTERP` would not be declined and the line would fail. ⛔ **The line named `golang:alpine` until 2026-09-12**, which is unqualified and resolves to a quota-bearing registry. ⚠ **Row 3, the Go payload, has no acceptance now**, because every row of `DISTRO_ROWS_M5` is a base distribution and none is a Go image, and inventing a reference is what [T-1209](gate.md) refuses. That entry's `Approach` step 2 is where the row is asked for
+Prove:       `podbox run --rm -v "$(command -v podbox):/podbox:ro" public.ecr.aws/docker/library/alpine:3.20 /podbox --version 2>&1 | grep -q 'interpose: declined'`. ⚠ **That drives row 2 of the table and not row 3**, and the substitution is stated rather than quiet: podbox's own release binary is `x86_64-unknown-linux-musl` under the workspace's `+crt-static`, which [T-0701](#t-0701-the-cdylib-build-constraints) records, so it carries no `PT_INTERP` and is a static payload this tree already builds. ⭐ The command IS the check on that: a payload with a `PT_INTERP` would not be declined and the line would fail. ⛔ **The line named `golang:alpine` until 2026-09-12**, which is unqualified and resolves to a quota-bearing registry. ⚠ **Row 3, the Go payload, has no acceptance now**, because every row of `DISTRO_ROWS_M5` is a base distribution and none is a Go image, and inventing a reference is what [T-1209](gate.md) refuses. That entry's `Approach` step 2 is where the row is asked for. ⛔ **The `-v` in that line never ran: `run -v` is a refused `None` row.** `experiments/159-interpose-placement.sh` clause B stages the same static binary with `extract` plus a host copy plus `run` instead, and asserts the decline line and exit 0.
+
+
+**Done 2026-09-18.** The classifier landed in `crates/podbox-cli/src/interpose.rs` (`classify`, read once per payload, advisory, safe direction on every doubt) and runs at `run`, at `exec` on both paths, and at `create` through the shared `prepare`. Where it says unreachable the tier is declined by name on stderr and the payload still runs. `experiments/results/interpose-placement.txt` carries the run: row 2 declines naming the static payload with exit 0, the dynamic control is preloaded and not declined. ⭐ **Row 3 is proved without an image.** The Go markers outrank a present interpreter by unit test over all four section names, because [T-1209](gate.md) refuses an invented reference and no `DISTRO_ROWS_M5` row is a Go image. That answers [PROGRESS.md](PROGRESS.md)'s open question with the second option: the classification's Go case is proved some other way.
 
 ---
 
@@ -728,11 +745,13 @@ running it rather than by reading:
    `libc.so.6` in the declared list beside `GLIBC_2.39`, where it sorts after
    every real one and became the "declares up to" the refusal reported.
 
-⚠ **What is still open is the OBJECT, not the reader.** Nothing preloads
-anything yet: [T-0701](#t-0701-the-cdylib-build-constraints) and
-[T-0702](#t-0702-one-object-per-libc-and-it-must-live-inside-the-rootfs) are the
-cdylib and the placement, and this reader is what will choose between the two
-objects they produce.
+⚠ **The OBJECT was still open until 2026-09-18, not the reader.** Nothing
+preloaded anything: [T-0701](#t-0701-the-cdylib-build-constraints) and
+[T-0702](#t-0702-one-object-per-libc-and-it-must-live-inside-the-rootfs) were the
+cdylib and the placement, and this reader is what chooses between the two
+objects they produce. The placement landed and the reader now serves it
+through [T-0706](#t-0706-classify-the-payload-and-decline-with-a-named-reason)'s
+channel.
 
 ⭐ **A second thing this closed, in the harness rather than in podbox.**
 `experiments/80-interposer-abi.sh` exited **2** on this container because

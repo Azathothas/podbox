@@ -137,6 +137,9 @@ pub struct Elf {
     pub interp: Option<String>,
     pub needed: Vec<String>,
     pub soname: Option<String>,
+    /// Every section name, from the section table. T-0706 reads these for Go
+    /// build markers, which no program header names.
+    pub sections: Vec<String>,
     /// ⛔ From `.dynsym`, never `.symtab`. Point 4 of this module's header.
     pub defined: Vec<Versioned>,
     pub imported: Vec<Versioned>,
@@ -199,6 +202,7 @@ impl Elf {
             interp,
             needed: Vec::new(),
             soname: None,
+            sections: sections.by_name.keys().cloned().collect(),
             defined: Vec::new(),
             imported: Vec::new(),
             declares: Vec::new(),
@@ -833,6 +837,13 @@ mod tests {
         let me = std::env::current_exe().unwrap();
         let got = Elf::read(me.to_str().unwrap()).unwrap();
         assert_eq!(got.machine, podbox_probe::binfmt::SELF_MACHINE);
+        // ⭐ The section names T-0706 classifies Go payloads by. A binary with
+        // no readable section table gives the classifier nothing to match, so
+        // the parse the classifier trusts is asserted here.
+        assert!(
+            !got.sections.is_empty(),
+            "this binary parsed with no section names"
+        );
     }
 
     /// ⛔ **The `.symtab` trap, as an assertion rather than a comment.** A
@@ -1011,6 +1022,7 @@ mod tests {
             interp: None,
             needed: needed.iter().map(|s| (*s).to_string()).collect(),
             soname: soname.map(str::to_string),
+            sections: Vec::new(),
             defined: defined.iter().map(|(n, v)| ver(n, *v)).collect(),
             imported: Vec::new(),
             declares: declares.iter().map(|s| (*s).to_string()).collect(),

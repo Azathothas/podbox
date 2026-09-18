@@ -1,20 +1,20 @@
 ## The task
 
-Session of 2026-09-18. It starts at `2026-09-18T15:03:32Z`. It follows AGENTS.md. It runs startup and stops. It names no TODO entry.
+Session of 2026-09-18. It starts at `2026-09-18T15:03:32Z`. It works the order in [PROGRESS.md](PROGRESS.md). Item 1, T-0702 placement with T-0706, is done and committed. Item 2, T-0703, is next.
 
 ## The resume point
 
-[PROGRESS.md](PROGRESS.md) carries the work order. Item 1 names T-0702, the placement half, with T-0706 first or together. A fresh session starts there.
+[PROGRESS.md](PROGRESS.md) carries the work order. Item 1 is [T-0703](interpose.md), the entry-point set and `*at` rules.
 
 ## In flight
 
-Nothing is half-written. This file is the only change. It holds the startup state.
+Nothing is half-written. The tree is clean and the gate is green.
 
 ## The state of the tree
 
-Clean, on `main`, at `3d3d605`. `check-todo.py` passes through `py`: 132 rows, 41 open, 4 partial, 0 blocked, 87 done. The host gate passes: 10 passed, 0 failed, 1 skipped. `dev.sh status` reads `unknown`, because the build never started on this host. That reading is correct on the Windows lane: the build runs in a container inside `wsl-toolkit-podbox`.
+Clean, on `main`. `check-todo.py` passes through `py`: 132 rows, 40 open, 3 partial, 0 blocked, 89 done. The guest ran the full `dev.sh check` green plus `experiments/159-interpose-placement.sh` green; the report is at `experiments/results/interpose-placement.txt`. The host gate passes. This session's guest jobs are removed; the four older ones stay as found.
 
-The base persists and runs. No container is `Up`: four job records sit `Exited`, all from about two hours before this session. `podman-machine-default` reads `Running`; the last session left it `Stopped`. This session did not start it, and it stays as found.
+Findings kept: T-0706's `Prove` used a refused `run -v`; T-0702's used `/proc` the chroot lacks; the first resolver declined every dynamic payload on absolute links. Each is amended in its entry.
 
 ## The paste
 

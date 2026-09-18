@@ -3,13 +3,15 @@
 ## State
 
 M0 through M5 are implemented. M6 is partial: the interposer builds for glibc
-and musl and the shipped binary now EMBEDS both, but placement, the complete
-entry-point set, ownership-memo policy and end-to-end acceptance remain open. M7 packaging has not started. ⭐ **M8 is the
+and musl, the shipped binary EMBEDS both, and since 2026-09-18 it PLACES the
+selected object inside the rootfs and CLASSIFIES the payload with a named
+decline. The complete entry-point set, the ownership-memo move to the host,
+the identity measurement, and end-to-end acceptance remain open. M7 packaging has not started. ⭐ **M8 is the
 nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-132 entries: 41 open, 4 partial, 0 blocked, 87 done.
+132 entries: 40 open, 3 partial, 0 blocked, 89 done.
 
 ## Baseline
 
@@ -61,113 +63,71 @@ publish branch is the fallback if protection is ever restored.
 
 ## What the last session did
 
-⭐ **[T-0215](image.md) IS CLOSED, AND THE MECHANISM IS NAMED RATHER THAN
-GUESSED.** The store lock race had been open across three sessions with two
-mechanisms proposed and refuted. `Lock::drop` released a lock by closing its
-descriptor, and `close(2)` completes a release only when it drops the LAST
-reference to the open file description. A `fork` makes a second reference, so
-after one the holder's own close no longer finishes the job: the record goes
-when the last reference goes, and where that is a child, it happens
-asynchronously with respect to this process's next `flock`.
+Session of 2026-09-18. It closed the work order's item 1: [T-0702](interpose.md)
+placement with [T-0706](interpose.md) classification, both `done`. The
+[T-0215](image.md) record it replaced lives in the entries and in
+[`docs/history/sessions/`](../docs/history/sessions/).
 
-⭐ **The reading that settled it was taken at the `EWOULDBLOCK` itself.** Every
-instrument before it ran from the failing assertion, by which time the refusal
-was over. Clause 13 carries the captures: where the refusal is the race, there
-is no `/proc/locks` row, no descriptor on the inode in any process on the host,
-and the SAME DESCRIPTOR succeeds on the next attempt a microsecond later.
-⛔ **There was never a holder.**
+⭐ **The tier now reaches a dynamic payload and declines the rest by name.**
+`crates/podbox-cli/src/interpose.rs` classifies the payload ELF once
+(`PT_INTERP`, Go markers, architecture, T-0709's version assertion through
+the decline channel), writes the selected object to `/.podbox/interpose.so`
+inside the rootfs before the chroot, and sets `LD_PRELOAD` with podbox's
+object first. `run`, `exec` on both paths, and `create` share the one call.
+A decline never fails the run. `experiments/159-interpose-placement.sh`
+carries the acceptance and `experiments/results/interpose-placement.txt`
+the run: placed and preloaded for `sh`, declined naming the static payload
+with exit 0, Go markers proved by unit test with no image invented.
 
-⭐ **The fix is one syscall in the releasing thread**, `flock(LOCK_UN)` before
-the close, with the one lock that is handed to a payload exempt. The subject
-went from 5 to 12 of 20 to **0 of 30 in each of two passes**, and clause 12
-deletes the release and reads **30 of 30** with the regression test red at
-exit 101. ⭐ `experiments/153-store-lock-race.sh` exits 0 for the first time.
+⭐ **The first shape declined every dynamic payload, and the mechanism is
+the entry's own subject.** Alpine's `/bin/sh` is an absolute link to
+`/bin/busybox`, which names the host's file when read from outside and the
+image's from inside. The resolver now walks the guest path the way the
+guest kernel would. Three entry `Prove` lines were unrunnable as written
+and are amended with the reason in the entries: `-v` is refused so the
+static binary stages by `extract` plus copy plus `run`, and the chroot has
+no `/proc` so the environ is read through `env`.
 
-⭐ **Two guards, both deterministic where the defect was one run in two.**
-`releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` uses
-`F_DUPFD_CLOEXEC` to hold a second reference to one open file description, which
-is what a child gets, so it needs no second process, no thread and no timing.
-`a_lock_handed_to_the_payload_outlives_this_process_dropping_it` guards the one
-lock the fix must NOT release, and clause 14 reddens it by making the release
-unconditional.
-
-⚠ **ONE WINDOW SURVIVES ON PURPOSE, AND IT IS THE ONE THAT IS CORRECT.** A lock
-handed to a payload is released by the LAST reference and never by this thread,
-because that is what handing it means. So after a container really ends its
-image can read as in use for a few hundred microseconds. ⛔ That is the safe
-direction, it self-corrects, and the dangerous direction cannot happen while the
-payload lives. ⭐ The first draft of that guard asserted the release was
-immediate and failed **9 and 13 of 30**, which is the defect reproduced on
-demand in the one place the fix deliberately does not reach.
-
-⛔ **Four earlier closures are kept and NONE of them fixed this.** Every lock
-registers for shedding, podbox's own libstd spawn drains the table, and the
-entry says in those words that they are kept on [T-0211](image.md)'s invariant
-and not on this measurement. ⚠ Written any other way, a later reader finds a
-change in the history and concludes it was the fix.
-
-⭐ **[T-1209](gate.md) was authored from a defect found while correcting one
-line.** 39 of the 132 `Prove` lines in `TODO/` pull from Docker Hub, which is the
-one registry the acceptance may not use. [T-0206](image.md) moved every
-`experiments/` script off the Hub on 2026-09-09 and nobody swept the `Prove`
-lines, because that entry's table names scripts and a `Prove` line is not a
-script. ⚠ [T-0702](interpose.md) and [T-0706](interpose.md) had theirs corrected,
-because the work order sent this session to run them.
-
-⚠ **`experiments/153-store-lock-race.sh` went from eight clauses to twelve**,
-four of which mutate the source and none of which reaches the tree.
-[CHANGELOG.md](../CHANGELOG.md) carries what each repair was.
-
-⛔ **A Windows-lane trap cost this session a wrong reading and it is recorded.**
-Stopping a job from Windows does not stop it in the guest.
-[`../docs/containers.md`](../docs/containers.md) carries it.
+⚠ **One red run that is not this change.** `cargo test --workspace` failed
+three `podbox-image` lock-table tests with "already holds 16 locks" on a
+tree whose new tests hold no store lock, then passed clean on re-run of the
+same tree. That is the flaky class [T-1204](gate.md)'s neighbourhood owns:
+one pass is not evidence for a racy suite. It is recorded here and not
+acted on.
 
 ## Current work order
 
-1. [T-0702](interpose.md): **the placement half.** The embedding is built and
-   the entry is `partial`. What is left is this: write the selected object
-   INSIDE the rootfs before the chroot, and set `LD_PRELOAD` to the path the
-   payload will see. ⚠ It needs [T-0706](interpose.md)'s payload classification,
-   which is `open` and effort S, so take that first or together. ⭐ Both `Prove`
-   lines are corrected now and both can be run.
-2. [T-0703](interpose.md): implement and verify the complete entry-point set and
+1. [T-0703](interpose.md): implement and verify the complete entry-point set and
    `*at` path-resolution rules.
-3. [T-1110](milestones.md): run M6 acceptance across the libc matrix, including
+2. [T-1110](milestones.md): run M6 acceptance across the libc matrix, including
    deliberate wrong-object selection and a named static-binary decline.
    [T-0712](interpose.md) is the rule its matrix has to obey.
-4. [T-0710](interpose.md) and [T-0711](interpose.md): implement the two rulings
+3. [T-0710](interpose.md) and [T-0711](interpose.md): implement the two rulings
    the operator settled on 2026-09-11. Both are written into the entries.
-5. [T-1209](gate.md): the 37 remaining `Prove` lines that pull from Docker Hub,
+4. [T-1209](gate.md): the 37 remaining `Prove` lines that pull from Docker Hub,
    the mapping that decides each replacement, and the check and plant that stop
    the next one. ⚠ Take the mapping and the sweep before the check: the check
    goes green only once nothing violates it.
-6. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
+5. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
    every parity row through the shipped binary. [T-0809](cli.md) adds the row
    that makes an ambiguous spawn failure readable.
-7. [T-0408](complete.md): run the zypper row and record it. It is one container
+6. [T-0408](complete.md): run the zypper row and record it. It is one container
    run, and it is the only entry reopened for having no evidence at all.
-8. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
+7. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
    coverage, and the check that a closed entry carries its recorded run.
    ⭐ T-1208's shape is RULED now, so what is left is the check, its plant, and
    converting the four prose records that entry names.
-9. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
-10. [T-1111](milestones.md): M8, the nix acceptance, after M7.
-11. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
+8. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
+9. [T-1111](milestones.md): M8, the nix acceptance, after M7.
+10. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
     on the probe. ⭐ T-1302's shape is ruled, so its implementation is a flag,
     a third `ALIASES` entry and the collision rule.
 
 ## In progress
 
-No implementation entry is half-written and nothing is uncommitted. Four entries
-are `partial`:
-
-- [T-0503](enter.md), [T-0704](interpose.md) and [T-1109](milestones.md) carry
-  their remaining conditions in their own files;
-- ⭐ [T-0702](interpose.md) is `partial` as of 2026-09-12. The embedding half is
-  built, tested in both the bare-tree and the built state, and ruled in the
-  entry. The PLACEMENT half is untouched, and
-  `crates/podbox-cli/src/interpose.rs` says so in its own header so a reader of
-  the code cannot mistake one for the other.
+No implementation entry is half-written and nothing is uncommitted. Three entries
+are `partial`: [T-0503](enter.md), [T-0704](interpose.md) and
+[T-1109](milestones.md), each carrying its remaining conditions in its own file.
 
 [T-0408](complete.md) is `open` rather than `done` for the simpler reason that
 reopened it: it carried a `Prove` line and nothing after it.
@@ -210,17 +170,18 @@ They are registered, the rate did not move, and [T-0215](image.md) records the
 change as kept on [T-0211](image.md)'s invariant. The race itself is closed and
 was neither of those things.
 
-Two are open and each is defensible either way:
+⭐ **The Go row is settled the second way.** [T-0706](interpose.md)'s row 3 is
+proved by unit test over the four Go section names, with no image invented,
+and the entry records that as the answer. What is left of
+[T-1209](gate.md)'s mapping question is the general rule for future rows,
+not this case.
 
-- ⚠ **[T-1209](gate.md) decides how a `Prove` line names an image, and the Go
-  row is the case with no answer yet.** The mapping the entry states is that
-  every reference is a row of `DISTRO_ROWS_M5`, named by its fully qualified
-  reference. Every row is a base distribution and none is a Go image, so
-  [T-0706](interpose.md)'s row 3 has no acceptance. Either a row is added for a
-  Go image, or the classification's Go case is proved some other way.
-  ⛔ Inventing a reference is refused.
+One is open and it needs no operator:
+
 - ⚠ **Whether the gate should report a rate rather than a pass or a fail.**
   T-0215 is closed, so nothing is red today, but CI reported green for a suite
   that failed two runs in five and a single run is still not evidence for a racy
   one. That is [T-1204](gate.md)'s neighbourhood and it needs a ruling before
-  the next intermittent check arrives.
+  the next intermittent check arrives. This session added one more reading for
+  it: three `podbox-image` lock-table tests failed once with "already holds 16
+  locks" and passed on re-run of the same tree.
