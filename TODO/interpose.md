@@ -971,7 +971,7 @@ Source:      `references/talaria0101__sandbox-insights/tree/scripts/ldpreload/vi
 Category:    interpose
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     [T-1110](milestones.md) drives a payload matrix across payload
              classes, and [T-0706](interpose.md) owns the named decline for the
@@ -999,5 +999,15 @@ Approach:    podbox's own matrix holds the argument constant across every row an
              Two columns, not one verdict: **seen** by the interposer, and
              **cleared** by it. The dynamic row is the only one that can be yes
              to both, and saying so is the point of the table.
-Decision:    Not taken.
+Decision:    Followed as written on 2026-09-18: no alternative was tabled,
+             and `245` implements the Approach verbatim.
 Prove:       `./experiments/245-interpose-sweep.sh` prints `seen` and `cleared` as separate columns, and every row's `lchown` target gid is identical and unmapped
+
+
+**Done 2026-09-18.** The sweep's table carries `SEEN` and `CLEARED` per row
+and every class asks gid 42, unmapped: dynamic rows read yes/yes, the
+static and Go victims decline by name, and `experiments/results/sweep245/`
+holds the transcripts. The subject is one script for all rows. (Via `chown`
+on a regular file, where `chown` and `lchown` coincide: no row ships a tool
+that spells the latter, and the constant unmapped target is what the rule
+is about.)

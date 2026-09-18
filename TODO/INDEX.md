@@ -136,7 +136,7 @@ the blocker named and what would clear it.
 | [T-0709](interpose.md) | P0 | interpose | done | Select the interposer by `DT_NEEDED`, and refuse on the version predicate |
 | [T-0710](interpose.md) | P1 | interpose | open | The ownership memo lives where the payload can edit it, and answers by linear scan |
 | [T-0711](interpose.md) | P1 | interpose | open | The identity calls, and podbox's honesty rules point the other way from fakeroot's |
-| [T-0712](interpose.md) | P2 | interpose | open | A reach matrix holds its arguments constant, or it measures two things |
+| [T-0712](interpose.md) | P2 | interpose | done | A reach matrix holds its arguments constant, or it measures two things |
 | [T-0801](cli.md) | P0 | cli | done | The verb and flag parity table |
 | [T-0802](cli.md) | P0 | cli | done | docker's exit codes, unaltered |
 | [T-0803](cli.md) | P1 | cli | done | Answer to `docker` and `podman` on PATH |
@@ -173,7 +173,7 @@ the blocker named and what would clear it.
 | [T-1107](milestones.md) | P1 | milestones | open | M6 the interposer |
 | [T-1108](milestones.md) | P2 | milestones | open | M7 packaging |
 | [T-1109](milestones.md) | P1 | milestones | partial | The negative tests, which are tests |
-| [T-1110](milestones.md) | P0 | milestones | open | M6's acceptance: a payload the interposer is the only reason works |
+| [T-1110](milestones.md) | P0 | milestones | done | M6's acceptance: a payload the interposer is the only reason works |
 | [T-1111](milestones.md) | P1 | milestones | open | M8 the nix acceptance: a real payload the chroot tier is exactly the answer for |
 | [T-1112](milestones.md) | P3 | milestones | open | A disposable guest that is not Linux |
 | [T-1201](gate.md) | P0 | gate | done | The gate reaches every file this project wrote |
@@ -196,7 +196,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-132 items: 39 open, 3 partial, 0 blocked, 90 done.
+132 items: 37 open, 3 partial, 0 blocked, 92 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -204,11 +204,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 3 | 1 | 0 | 48 | 52 |
+| P0 | 2 | 1 | 0 | 49 | 52 |
 | P1 | 22 | 2 | 0 | 32 | 56 |
-| P2 | 10 | 0 | 0 | 9 | 19 |
+| P2 | 9 | 0 | 0 | 10 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **39** | **3** | **0** | **90** | **132** |
+| **All** | **37** | **3** | **0** | **92** | **132** |
 
 ## How the current ordering is derived
 

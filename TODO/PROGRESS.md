@@ -12,7 +12,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-132 entries: 39 open, 3 partial, 0 blocked, 90 done.
+132 entries: 37 open, 3 partial, 0 blocked, 92 done.
 
 ## Baseline
 
@@ -89,15 +89,16 @@ and are amended with the reason in the entries: `-v` is refused so the
 static binary stages by `extract` plus copy plus `run`, and the chroot has
 no `/proc` so the environ is read through `env`.
 
-⚠ **Red runs that are not this change.** `cargo test --workspace` failed
+⚠ **Red runs that are not this change.** `cargo test --workspace` fails
 `podbox-image` lock-table tests with "already holds 16 locks" on trees
-whose new tests hold no store lock: three failures, then clean on re-run,
-then four (one of them the [T-0215](image.md) instrument's own benign
-window), then six, including T-0215's deterministic guard. The guard is
-deterministic in isolation; the TABLE is the shared constraint, and the
-count moves with scheduling luck, not with the tree. That is the flaky
-class [T-1204](gate.md)'s neighbourhood owns: one pass is not evidence for
-a racy suite. It is recorded here and not acted on. A second instance failed four tests the same way, one of them the
+whose new tests hold no store lock: 3 failures, then clean, then 4 (one of
+them the [T-0215](image.md) instrument's own benign window), then 6
+(including T-0215's deterministic guard), then 1, then 5, each clean on
+some re-run of the same tree. The guard is deterministic in isolation; the
+TABLE is the shared constraint, and the count moves with scheduling luck,
+not with the tree. That is the flaky class [T-1204](gate.md)'s
+neighbourhood owns: one pass is not evidence for a racy suite. It is
+recorded here and not acted on. A second instance failed four tests the same way, one of them the
 [T-0215](image.md) instrument's own benign window, and also passed on
 re-run.
 
@@ -109,29 +110,37 @@ every gcc-built object (the `_Unwind_Resume@GCC_3.0` import lives in
 `libgcc_s.so.1`; the check now runs against the link set). Both live in
 their entries with the runs.
 
+⭐ **And [T-1110](milestones.md) with [T-0712](interpose.md): the M6
+acceptance exists.** `experiments/245-interpose-sweep.sh` drives all ten
+matrix rows with one subject: 10 ran, 10 virtualized, 20 declined, 0
+host_not_runtime, every selection asserted on bytes, both cross-libc
+refusals deliberate, transcripts in `experiments/results/sweep245/`. The Go
+victim is generated (`experiments/src/govictim.sh`), and clause 1 of `250`
+is green. Two readers fell out: void links its loader absolutely (in-root
+resolution now), and `250` clause 2 stays red on image content no session
+shipped (counted 4, 5 and 6 ways across identical runs; none of the reasons
+names interposition).
+
 ## Current work order
 
-1. [T-1110](milestones.md): run M6 acceptance across the libc matrix, including
-   deliberate wrong-object selection and a named static-binary decline.
-   [T-0712](interpose.md) is the rule its matrix has to obey.
-2. [T-0710](interpose.md) and [T-0711](interpose.md): implement the two rulings
+1. [T-0710](interpose.md) and [T-0711](interpose.md): implement the two rulings
    the operator settled on 2026-09-11. Both are written into the entries.
-3. [T-1209](gate.md): the 37 remaining `Prove` lines that pull from Docker Hub,
+2. [T-1209](gate.md): the 37 remaining `Prove` lines that pull from Docker Hub,
    the mapping that decides each replacement, and the check and plant that stop
    the next one. ⚠ Take the mapping and the sweep before the check: the check
    goes green only once nothing violates it.
-4. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
+3. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
    every parity row through the shipped binary. [T-0809](cli.md) adds the row
    that makes an ambiguous spawn failure readable.
-5. [T-0408](complete.md): run the zypper row and record it. It is one container
+4. [T-0408](complete.md): run the zypper row and record it. It is one container
    run, and it is the only entry reopened for having no evidence at all.
-6. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
+5. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
    coverage, and the check that a closed entry carries its recorded run.
    ⭐ T-1208's shape is RULED now, so what is left is the check, its plant, and
    converting the four prose records that entry names.
-7. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
-8. [T-1111](milestones.md): M8, the nix acceptance, after M7.
-9. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
+6. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
+7. [T-1111](milestones.md): M8, the nix acceptance, after M7.
+8. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
     on the probe. ⭐ T-1302's shape is ruled, so its implementation is a flag,
     a third `ALIASES` entry and the collision rule.
 

@@ -594,7 +594,7 @@ Source:      `TOOL.md` section 9; T-1106's shape
 Category:    milestones
 Priority:    P0
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     M5 has a ten-row matrix that installs a toolchain and builds a
              program, and it found five defects a one-image test would not.
@@ -632,11 +632,32 @@ Approach:    A sweep in `experiments/240-distro-sweep.sh`'s shape, over
              both is the machine's.
              ⚠ No quota-bearing registry: ghcr.io, public.ecr.aws and the
              distributions' own, which `distro-matrix.sh` already holds.
-Decision:    Not taken. ⚠ It cannot start before [T-0702](interpose.md) places
-             the object, because until then there is nothing to select.
+Decision:    The sweep is the shape the Approach describes, run on
+             2026-09-18: ten rows, one subject, transcripts per row.
 Prove:       `./experiments/245-interpose-sweep.sh`, printing `rows`, `ran`,
              `virtualized`, `declined` and `host_not_runtime`, and clause 1 of
              `./experiments/250-negative-tests.sh` no longer printing SKIPPED.
+
+
+**Done 2026-09-18.** `experiments/results/interpose-sweep.txt` carries the
+run: 10 rows, 10 ran, 10 virtualized, 20 declined, 0 host_not_runtime, with
+per-row transcripts in `experiments/results/sweep245/`. Every row preloads
+the object of its own libc (asserted on bytes, not inferred), every static
+and Go victim is declined by name, and both cross-libc refusals fire
+through `podbox system abi`. The version refusal has no matrix row old
+enough and stays unit-covered, stated in the script rather than invented
+for. Clause 1 of `250` is green (`go payload declined rc=126`, naming Go
+build markers); the script's other clauses are untouched, and clause 2
+stays red on image content this session did not ship (recorded below, owned
+by its own entry, and outside this `Prove`).
+
+⭐ **Two readers fell out of the matrix.** Debian keeps its loader in
+`/lib64` and its library in `/lib/<triplet>/`, and void links its loader
+at an absolute path whose target exists only in the chroot; both declined
+every payload until the finder learned a bounded structural search and
+in-root symlink resolution. The void row is what proved the decline
+reason gate: it refused an unknown decline rather than waving it through,
+and the transcript named the missing file.
 
 
 ---

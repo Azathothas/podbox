@@ -539,7 +539,20 @@ fn newest(declares: &[String]) -> String {
 pub fn libc_beside(rootfs: &str, interp: &str, machine: u16) -> Option<String> {
     let rel = interp.trim_start_matches('/');
     match Flavour::of_libc_name(rel) {
-        Flavour::Musl => Some(format!("{}/{rel}", rootfs.trim_end_matches('/'))),
+        Flavour::Musl => {
+            let root = std::path::Path::new(rootfs);
+            // ⭐ The verbatim path is the common case. Where it is a link or
+            // lives elsewhere, resolve first: an absolute link target stays
+            // under the root, the way the guest kernel would read it.
+            match resolve_in(root, interp) {
+                Ok(p) => Some(p.display().to_string()),
+                Err(ResolveKind::Absent) => {
+                    let base = rel.rsplit('/').next().unwrap_or(rel);
+                    search_file(rootfs.trim_end_matches('/'), base, None)
+                }
+                Err(_) => None,
+            }
+        }
         Flavour::Glibc => {
             let dir = rel.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
             let root = rootfs.trim_end_matches('/');
@@ -551,18 +564,19 @@ pub fn libc_beside(rootfs: &str, interp: &str, machine: u16) -> Option<String> {
             if std::path::Path::new(&p).exists() {
                 return Some(p);
             }
-            search_libc(root, machine)
+            search_file(root, "libc.so.6", Some(machine))
         }
         Flavour::Unknown => None,
     }
 }
 
-/// A `libc.so.6` of `machine` under the conventional library roots.
+/// A file called `name` under the conventional library roots.
 ///
 /// Bounded twice: three directories deep and 512 entries visited, so a large
 /// tree cannot turn classification into a walk. Deterministic: candidates in
-/// path order, first machine match wins.
-fn search_libc(root: &str, machine: u16) -> Option<String> {
+/// path order. `machine` filters multilib doubles where given; `None` takes
+/// the first name match, which is exact for arch-named loaders.
+fn search_file(root: &str, name: &str, machine: Option<u16>) -> Option<String> {
     const ROOTS: [&str; 4] = ["lib", "lib64", "usr/lib", "usr/lib64"];
     let mut found = Vec::new();
     let mut visited = 0usize;
@@ -571,7 +585,7 @@ fn search_libc(root: &str, machine: u16) -> Option<String> {
         let mut stack = vec![(base, 0usize)];
         while let Some((dir, depth)) = stack.pop() {
             if depth > 3 || visited > 512 {
-                return first_match(&found, machine);
+                return first_match(root, &found, machine);
             }
             let entries = match std::fs::read_dir(&dir) {
                 Ok(e) => e,
@@ -582,7 +596,7 @@ fn search_libc(root: &str, machine: u16) -> Option<String> {
             for e in names {
                 visited += 1;
                 if visited > 512 {
-                    return first_match(&found, machine);
+                    return first_match(root, &found, machine);
                 }
                 let ft = match e.file_type() {
                     Ok(t) => t,
@@ -593,24 +607,41 @@ fn search_libc(root: &str, machine: u16) -> Option<String> {
                 // level where it has to.
                 if ft.is_dir() {
                     stack.push((e.path().display().to_string(), depth + 1));
-                } else if e.file_name().to_string_lossy().as_ref() == "libc.so.6" {
+                } else if e.file_name().to_string_lossy().as_ref() == name {
                     found.push(e.path().display().to_string());
                 }
             }
         }
     }
-    first_match(&found, machine)
+    first_match(root, &found, machine)
 }
 
-/// The first candidate whose ELF machine is `machine`, in path order.
+/// The first candidate matching `machine` where given, in path order.
+///
+/// ⭐ Candidates resolve INSIDE the rootfs first. An absolute symlink in an
+/// image names the host from outside and the image from inside: void's
+/// `/lib/ld-musl-x86_64.so.1` points at `/usr/lib64/libc.so`, which is a
+/// real file in the chroot and nothing on the host, so reading the link
+/// directly answers about the wrong machine. A link escaping the root is
+/// skipped rather than followed.
 ///
 /// ⚠ Read, not executed: the header is 64 bytes and the machine field two
 /// bytes into it. A file that does not parse is skipped rather than trusted.
-fn first_match(found: &[String], machine: u16) -> Option<String> {
+fn first_match(root: &str, found: &[String], machine: Option<u16>) -> Option<String> {
+    let canon_root = std::fs::canonicalize(root).ok()?;
     let mut sorted = found.to_vec();
     sorted.sort();
     for p in sorted {
-        let bytes = match std::fs::read(&p) {
+        // ⭐ Inside the root or not at all: a dangling or escaping link is
+        // skipped, and what remains is read from where it resolves.
+        let canon = match std::fs::canonicalize(&p) {
+            Ok(c) if c.starts_with(&canon_root) => c,
+            _ => continue,
+        };
+        if machine.is_none() {
+            return Some(canon.display().to_string());
+        }
+        let bytes = match std::fs::read(&canon) {
             Ok(b) => b,
             Err(_) => continue,
         };
@@ -622,11 +653,100 @@ fn first_match(found: &[String], machine: u16) -> Option<String> {
             2 => u16::from_be_bytes([bytes[18], bytes[19]]),
             _ => continue,
         };
-        if m == machine {
-            return Some(p);
+        if Some(m) == machine {
+            return Some(canon.display().to_string());
         }
     }
     None
+}
+
+/// How a guest path failed to resolve inside a rootfs.
+///
+/// ⛔ Three shapes and not two: `Absent` is an ordinary miss along a search,
+/// while `Escapes` and `Loop` are refusals that must surface rather than read
+/// as missing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResolveKind {
+    Absent,
+    Escapes,
+    Loop,
+}
+
+/// Resolve `guest` (a `/`-joined path as seen inside the root) to a host
+/// path for reading, following symlinks the way the guest kernel would.
+///
+/// ⭐ An absolute link target stays UNDER the root. Reading it directly
+/// follows it onto the host instead: one matrix row links its loader at an
+/// absolute path whose target exists only in the chroot, so the naive read
+/// declined every payload of that image while each one ran fine. Relative
+/// targets resolve against the link's own directory. `..` past the root and
+/// a link loop are refused rather than followed.
+///
+/// # Safety
+/// `root` must be a readable directory. Nothing is written and nothing is
+/// executed; the walk is bounded by `MAX_LINKS` replacements.
+pub fn resolve_in(root: &std::path::Path, guest: &str) -> Result<std::path::PathBuf, ResolveKind> {
+    const MAX_LINKS: usize = 40;
+    let mut parts: Vec<String> = guest
+        .split('/')
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect();
+    let mut out: Vec<String> = Vec::new();
+    let mut links = 0usize;
+    let mut i = 0usize;
+    while i < parts.len() {
+        let p = parts[i].clone();
+        if p == "." {
+            i += 1;
+            continue;
+        }
+        if p == ".." {
+            if out.pop().is_none() {
+                return Err(ResolveKind::Escapes);
+            }
+            i += 1;
+            continue;
+        }
+        let mut probe = out.clone();
+        probe.push(p.clone());
+        let disk = probe.iter().fold(root.to_path_buf(), |a, c| a.join(c));
+        let md = match std::fs::symlink_metadata(&disk) {
+            Ok(m) => m,
+            Err(_) => return Err(ResolveKind::Absent),
+        };
+        if md.file_type().is_symlink() {
+            links += 1;
+            if links > MAX_LINKS {
+                return Err(ResolveKind::Loop);
+            }
+            let target = std::fs::read_link(&disk).map_err(|_| ResolveKind::Absent)?;
+            let mut next = if target.is_absolute() {
+                Vec::new()
+            } else {
+                out.clone()
+            };
+            out.clear();
+            next.extend(
+                target
+                    .to_string_lossy()
+                    .split('/')
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_string),
+            );
+            next.extend(parts[i + 1..].iter().cloned());
+            parts = next;
+            i = 0;
+            continue;
+        }
+        out.push(p);
+        i += 1;
+    }
+    let full = out.iter().fold(root.to_path_buf(), |a, c| a.join(c));
+    match std::fs::symlink_metadata(&full) {
+        Ok(m) if m.file_type().is_file() => Ok(full),
+        _ => Err(ResolveKind::Absent),
+    }
 }
 
 // ------------------------------------------------------------------ the bytes
@@ -1104,14 +1224,19 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(d.join("lib/x86_64-linux-gnu")).unwrap();
         std::fs::write(d.join("lib/x86_64-linux-gnu/libc.so.6"), b"x").unwrap();
+        std::fs::write(
+            d.join("lib/ld-musl-x86_64.so.1"),
+            tiny_elf(podbox_probe::binfmt::SELF_MACHINE),
+        )
+        .unwrap();
         let root = d.to_string_lossy().to_string();
         let m = podbox_probe::binfmt::SELF_MACHINE;
         assert_eq!(
             libc_beside(&root, "/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2", m),
             Some(format!("{root}/lib/x86_64-linux-gnu/libc.so.6"))
         );
-        // ⭐ On musl the interpreter IS the C library, so no second file is
-        // looked for and none has to exist.
+        // ⭐ On musl the interpreter IS the C library: the verbatim path
+        // parses, so it is returned with no search.
         assert_eq!(
             libc_beside(&root, "/lib/ld-musl-x86_64.so.1", m),
             Some(format!("{root}/lib/ld-musl-x86_64.so.1"))
@@ -1122,20 +1247,21 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
     }
 
+    fn tiny_elf(machine: u16) -> Vec<u8> {
+        let mut b = vec![0u8; 64];
+        b[0..4].copy_from_slice(b"\x7fELF");
+        b[4] = 2;
+        b[5] = 1;
+        b[18..20].copy_from_slice(&machine.to_le_bytes());
+        b
+    }
+
     /// ⭐ The multiarch layout, where the loader's own directory holds no
     /// libc: Debian keeps the loader in `/lib64` and the library in
     /// `/lib/<triplet>/`. The fallback search finds it by name and machine,
     /// and a wrong-machine decoy does not win.
     #[test]
     fn the_libc_is_found_across_a_multiarch_split() {
-        fn tiny_elf(machine: u16) -> Vec<u8> {
-            let mut b = vec![0u8; 64];
-            b[0..4].copy_from_slice(b"\x7fELF");
-            b[4] = 2;
-            b[5] = 1;
-            b[18..20].copy_from_slice(&machine.to_le_bytes());
-            b
-        }
         let d = std::env::temp_dir().join(format!("podbox-abi64-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         const ME: u16 = 62;
@@ -1156,6 +1282,25 @@ mod tests {
         // ⛔ And a machine with no library here gets no answer, not the
         // other architecture's.
         assert_eq!(libc_beside(&root, "/lib64/ld-linux-x86-64.so.2", 40), None);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// ⭐ The musl loader installed anywhere else: one matrix row keeps it
+    /// out of `/lib`, and the verbatim path then names nothing. The search
+    /// finds it by basename, which carries the architecture already.
+    #[test]
+    fn a_musl_loader_outside_lib_is_found_by_name() {
+        let d = std::env::temp_dir().join(format!("podbox-abi-musl-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("usr/lib")).unwrap();
+        std::fs::create_dir_all(d.join("lib")).unwrap();
+        std::fs::write(d.join("usr/lib/ld-musl-x86_64.so.1"), b"fake-libc").unwrap();
+        let root = d.to_string_lossy().to_string();
+        let m = podbox_probe::binfmt::SELF_MACHINE;
+        assert_eq!(
+            libc_beside(&root, "/lib/ld-musl-x86_64.so.1", m),
+            Some(format!("{root}/usr/lib/ld-musl-x86_64.so.1"))
+        );
         let _ = std::fs::remove_dir_all(&d);
     }
 

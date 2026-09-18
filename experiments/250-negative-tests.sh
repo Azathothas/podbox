@@ -120,13 +120,35 @@ refuses "run --network=none" "$PODBOX_EXIT_FLAG_ERROR" \
 # ⭐ `-v ...:ro` must be REJECTED, not honoured as a copy.
 refuses "run -v host:/mapped:ro" "$PODBOX_EXIT_FLAG_ERROR" \
 	"a copy pretending to be a mount" -- run -v "$WORK:/mapped:ro" "$IMAGE" true
-# ⚠ The third, a Go payload under `interpose` declined rather than silently
-# unvirtualized, is M6's and cannot be asserted before the interposer exists.
-# ⛔ Recorded as a clause that DID NOT RUN rather than left out: a missing
-# assertion and a passing one look the same in a report that omits it.
-say "  a Go payload under interpose        SKIPPED: M6 has no interposer yet"
-say "      TODO/interpose.md T-0709 is the entry, and this clause is its Prove"
-skipped=1
+# ⭐ The third, a Go payload under `interpose` declined rather than silently
+# unvirtualized (TODO/interpose.md T-0706 owns the refusal; T-1110 drives it
+# here). The victim is generated, not fetched: no matrix row is a Go image
+# and inventing a registry reference is refused (`experiments/src/govictim.sh`
+# carries the layout). It is ET_REL on purpose, so `execve` answers ENOEXEC
+# and the run exits 126 after the decline, deterministically on any kernel.
+# ⚠ No `--rm`: the staged victim must survive into the runs below, and the
+# store is this script's own mktemp directory either way.
+govictim_ok=1
+"$BIN" extract "$IMAGE" >/dev/null 2>&1 || govictim_ok=0
+GROOT="$("$BIN" inspect --format '{{.RootfsPath}}' "$IMAGE" 2>/dev/null)" || govictim_ok=0
+if [ "$govictim_ok" -eq 1 ] && [ -n "${GROOT:-}" ] \
+&& sh "$REPO/experiments/src/govictim.sh" >"$GROOT/go-victim" \
+&& chmod 755 "$GROOT/go-victim"; then
+	refuses "go payload declined" "$PODBOX_EXIT_CANNOT_INVOKE" \
+		"interpose: declined" -- run "$IMAGE" /go-victim
+	# ⛔ The decline must name the CLASS, not just the tier: any unreadable
+	# file declines, so the row-3 reason is asserted separately, or the
+	# clause would pass with the Go logic deleted.
+	govout="$(timeout 300 "$BIN" run "$IMAGE" /go-victim 2>&1 >/dev/null)"
+	printf '%s' "$govout" | grep -qF -- "Go build markers" || {
+		say "  FAIL: the decline does not name Go build markers"
+		printf '      GOT: %s\n' "$(printf '%s' "$govout" | head -2 | tr '\n' ' ' | cut -c1-118)" >>"$WORK/report"
+		fail=1
+	}
+else
+	say "  FAIL: the Go victim could not be staged"
+	fail=1
+fi
 
 # --------------------------------------------------------------------- 2
 say ""

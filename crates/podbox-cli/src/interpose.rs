@@ -135,120 +135,40 @@ fn is_go(elf: &podbox_enter::abi::Elf) -> bool {
 /// looked for along `path_dirs` and the first file wins, which is the order
 /// the child tries after the chroot.
 fn resolve(rootfs: &str, argv0: &str, path_dirs: &[String]) -> Result<String, String> {
+    use podbox_enter::abi::{resolve_in, ResolveKind};
     let root = std::path::Path::new(rootfs);
     if !root.is_dir() {
         return Err(format!("{rootfs}: not a directory podbox can read"));
     }
+    // ⭐ One walker for both readers: `podbox_enter::abi::resolve_in` owns
+    // the guest-kernel symlink walk, and this maps its kinds to sentences.
+    // A second copy here would be the copy that diverges.
+    let say = |guest: &str, kind: ResolveKind| match kind {
+        ResolveKind::Absent => format!("{argv0} names no file in the image"),
+        ResolveKind::Escapes => format!("{guest} escapes the image"),
+        ResolveKind::Loop => format!("{guest} has too many levels of symlinks"),
+    };
     if argv0.contains('/') {
         return resolve_in(root, argv0)
             .map(|p| p.display().to_string())
-            .map_err(|e| explain(argv0, e));
+            .map_err(|kind| say(argv0, kind));
     }
     let mut refused: Option<String> = None;
     for d in path_dirs {
         let guest = format!("{}/{argv0}", d.trim_end_matches('/'));
         match resolve_in(root, &guest) {
             Ok(p) => return Ok(p.display().to_string()),
-            Err(Missing::Absent) => continue,
-            // ⚠ The first refusal wins, so a loop reads as a loop rather than
-            // as a missing file once the other directories miss.
-            Err(Missing::Refused(why)) => {
+            Err(ResolveKind::Absent) => continue,
+            // ⚠ The first refusal wins, so a loop reads as a loop rather
+            // than as a missing file once the other directories miss.
+            Err(kind) => {
                 if refused.is_none() {
-                    refused = Some(why);
+                    refused = Some(say(&guest, kind));
                 }
             }
         }
     }
     Err(refused.unwrap_or_else(|| format!("{argv0} names no file in the image")))
-}
-
-fn explain(argv0: &str, e: Missing) -> String {
-    match e {
-        Missing::Absent => format!("{argv0} names no file in the image"),
-        Missing::Refused(why) => why,
-    }
-}
-
-enum Missing {
-    Absent,
-    Refused(String),
-}
-
-/// Resolve `guest` (a path as the payload sees it) to a host path for
-/// reading, following symlinks the way the guest kernel would.
-///
-/// ⭐ An absolute link target stays UNDER the rootfs. Reading it directly
-/// follows it onto the host instead: alpine's `/bin/sh` points at
-/// `/bin/busybox`, which names the host's file from outside and the image's
-/// from inside, so the naive read answered about the wrong machine while the
-/// payload ran fine. `..` that escapes the root and a link loop are refused
-/// rather than followed.
-fn resolve_in(root: &std::path::Path, guest: &str) -> Result<std::path::PathBuf, Missing> {
-    // ⭐ The kernel's own bound: `ELOOP` after 40 traversals, so a loop is a
-    // refusal with that shape rather than a hang.
-    const MAX_LINKS: usize = 40;
-    let mut parts: Vec<String> = guest
-        .split('/')
-        .filter(|s| !s.is_empty())
-        .map(str::to_string)
-        .collect();
-    let mut out: Vec<String> = Vec::new();
-    let mut links = 0usize;
-    let mut i = 0usize;
-    while i < parts.len() {
-        let p = parts[i].clone();
-        if p == "." {
-            i += 1;
-            continue;
-        }
-        if p == ".." {
-            if out.pop().is_none() {
-                return Err(Missing::Refused(format!("{guest} escapes the image")));
-            }
-            i += 1;
-            continue;
-        }
-        let mut probe = out.clone();
-        probe.push(p.clone());
-        let disk = probe.iter().fold(root.to_path_buf(), |a, c| a.join(c));
-        let md = match std::fs::symlink_metadata(&disk) {
-            Ok(m) => m,
-            Err(_) => return Err(Missing::Absent),
-        };
-        if md.file_type().is_symlink() {
-            links += 1;
-            if links > MAX_LINKS {
-                return Err(Missing::Refused(format!(
-                    "{guest} has too many levels of symlinks"
-                )));
-            }
-            let target = std::fs::read_link(&disk).map_err(|_| Missing::Absent)?;
-            let mut next = if target.is_absolute() {
-                Vec::new()
-            } else {
-                out.clone()
-            };
-            out.clear();
-            next.extend(
-                target
-                    .to_string_lossy()
-                    .split('/')
-                    .filter(|s| !s.is_empty())
-                    .map(str::to_string),
-            );
-            next.extend(parts[i + 1..].iter().cloned());
-            parts = next;
-            i = 0;
-            continue;
-        }
-        out.push(p);
-        i += 1;
-    }
-    let full = out.iter().fold(root.to_path_buf(), |a, c| a.join(c));
-    match std::fs::symlink_metadata(&full) {
-        Ok(m) if m.file_type().is_file() => Ok(full),
-        _ => Err(Missing::Absent),
-    }
 }
 
 /// Read the payload ELF once and say whether the tier reaches it.
