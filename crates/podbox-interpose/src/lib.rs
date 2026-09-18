@@ -8,10 +8,11 @@
 //! exactly as it would with no interposer loaded. That is the wall that stops
 //! the most tools, and clearing it is what makes M6 worth doing.
 //!
-//! ⚠ **Path virtualization is T-0703 and is not here yet.** This object
-//! interposes the ownership family and the `stat` family and nothing else; it
-//! rewrites no path. The two halves are separate entries because they are
-//! separate mechanisms, and shipping one is not a claim about the other.
+//! ⚠ **Path virtualization is T-0703, and it landed beside the ownership
+//! half.** Every path-taking entry point rewrites through `map` before
+//! calling through. The two halves stay separate mechanisms: with no table
+//! every path call forwards unchanged, and shipping the rewrite is not a
+//! claim about reverse mapping (T-0705) or the emulated operations (T-0708).
 //!
 //! # The four constraints, none of them optional
 //!
@@ -59,6 +60,7 @@ compile_error!(
      architecture needs its own measurement (TODO/interpose.md T-0704)"
 );
 
+pub mod map;
 pub mod memo;
 pub mod real;
 pub mod say;
@@ -218,6 +220,10 @@ fn clear_errno() {
     unsafe { *__errno_location() = 0 }
 }
 
+pub(crate) fn set_errno(e: c_int) {
+    unsafe { *__errno_location() = e }
+}
+
 /// Is this the wall podbox exists for?
 ///
 /// ⛔ **Both `EPERM` and `EINVAL`.** fakeroot tests `EPERM` alone at eight sites
@@ -249,6 +255,96 @@ crate::real!(pub fn next_lxstat = "__lxstat"(c_int, *const c_char, *mut c_void) 
 crate::real!(pub fn next_fxstat = "__fxstat"(c_int, c_int, *mut c_void) -> c_int);
 crate::real!(pub fn next_fxstatat = "__fxstatat"(c_int, c_int, *const c_char, *mut c_void, c_int) -> c_int);
 crate::real!(pub fn next_statx = "statx"(c_int, *const c_char, c_int, c_uint, *mut c_void) -> c_int);
+
+// ------------------------------------------------------- T-0703: the paths
+//
+// ⭐ One declaration per interposed path-taking symbol, in the same shape as
+// above. A name the payload's libc does not define resolves to null, and the
+// entry point answers `EINVAL` rather than calling it: that is a payload
+// probing for something absent, not a call.
+//
+// ⚠ `pub`, because the macro-generated `pub` entry points below name them:
+// a private alias in a public signature is E0363.
+
+pub type Filter = unsafe extern "C" fn(*const c_void) -> c_int;
+pub type Compar = unsafe extern "C" fn(*const *const c_void, *const *const c_void) -> c_int;
+pub type ErrFunc = unsafe extern "C" fn(*const c_char, c_int) -> c_int;
+pub type FtwFunc = unsafe extern "C" fn(*const c_char, *const c_void, c_int) -> c_int;
+pub type NftwFunc =
+    unsafe extern "C" fn(*const c_char, *const c_void, c_int, *const c_void) -> c_int;
+
+crate::real!(pub fn next_open = "open"(*const c_char, c_int, c_uint) -> c_int);
+crate::real!(pub fn next_open64 = "open64"(*const c_char, c_int, c_uint) -> c_int);
+crate::real!(pub fn next_openat = "openat"(c_int, *const c_char, c_int, c_uint) -> c_int);
+crate::real!(pub fn next_openat64 = "openat64"(c_int, *const c_char, c_int, c_uint) -> c_int);
+crate::real!(pub fn next_openat2 = "openat2"(c_int, *const c_char, *const c_void, usize) -> c_int);
+crate::real!(pub fn next_creat = "creat"(*const c_char, c_uint) -> c_int);
+crate::real!(pub fn next_creat64 = "creat64"(*const c_char, c_uint) -> c_int);
+crate::real!(pub fn next_execve = "execve"(*const c_char, *const *const c_char, *const *const c_char) -> c_int);
+crate::real!(pub fn next_execv = "execv"(*const c_char, *const *const c_char) -> c_int);
+crate::real!(pub fn next_execvp = "execvp"(*const c_char, *const *const c_char) -> c_int);
+crate::real!(pub fn next_execvpe = "execvpe"(*const c_char, *const *const c_char, *const *const c_char) -> c_int);
+crate::real!(pub fn next_execveat = "execveat"(c_int, *const c_char, *const *const c_char, *const *const c_char, c_int) -> c_int);
+crate::real!(pub fn next_posix_spawn = "posix_spawn"(*mut c_int, *const c_char, *const c_void, *const c_void, *const *const c_char, *const *const c_char) -> c_int);
+crate::real!(pub fn next_posix_spawnp = "posix_spawnp"(*mut c_int, *const c_char, *const c_void, *const c_void, *const *const c_char, *const *const c_char) -> c_int);
+crate::real!(pub fn next_chdir = "chdir"(*const c_char) -> c_int);
+crate::real!(pub fn next_opendir = "opendir"(*const c_char) -> *mut c_void);
+crate::real!(pub fn next_scandir = "scandir"(*const c_char, *mut *mut c_void, Filter, Compar) -> c_int);
+crate::real!(pub fn next_readlink = "readlink"(*const c_char, *mut c_char, usize) -> isize);
+crate::real!(pub fn next_readlinkat = "readlinkat"(c_int, *const c_char, *mut c_char, usize) -> isize);
+crate::real!(pub fn next_realpath = "realpath"(*const c_char, *mut c_char) -> *mut c_void);
+crate::real!(pub fn next_canonicalize = "canonicalize_file_name"(*const c_char) -> *mut c_void);
+crate::real!(pub fn next_getxattr = "getxattr"(*const c_char, *const c_char, *mut c_void, usize) -> isize);
+crate::real!(pub fn next_lgetxattr = "lgetxattr"(*const c_char, *const c_char, *mut c_void, usize) -> isize);
+crate::real!(pub fn next_setxattr = "setxattr"(*const c_char, *const c_char, *const c_void, usize, c_int) -> c_int);
+crate::real!(pub fn next_lsetxattr = "lsetxattr"(*const c_char, *const c_char, *const c_void, usize, c_int) -> c_int);
+crate::real!(pub fn next_listxattr = "listxattr"(*const c_char, *mut c_char, usize) -> isize);
+crate::real!(pub fn next_llistxattr = "llistxattr"(*const c_char, *mut c_char, usize) -> isize);
+crate::real!(pub fn next_removexattr = "removexattr"(*const c_char, *const c_char) -> c_int);
+crate::real!(pub fn next_lremovexattr = "lremovexattr"(*const c_char, *const c_char) -> c_int);
+crate::real!(pub fn next_link = "link"(*const c_char, *const c_char) -> c_int);
+crate::real!(pub fn next_linkat = "linkat"(c_int, *const c_char, c_int, *const c_char, c_int) -> c_int);
+crate::real!(pub fn next_symlink = "symlink"(*const c_char, *const c_char) -> c_int);
+crate::real!(pub fn next_symlinkat = "symlinkat"(*const c_char, c_int, *const c_char) -> c_int);
+crate::real!(pub fn next_unlink = "unlink"(*const c_char) -> c_int);
+crate::real!(pub fn next_unlinkat = "unlinkat"(c_int, *const c_char, c_int) -> c_int);
+crate::real!(pub fn next_rename = "rename"(*const c_char, *const c_char) -> c_int);
+crate::real!(pub fn next_renameat = "renameat"(c_int, *const c_char, c_int, *const c_char) -> c_int);
+crate::real!(pub fn next_renameat2 = "renameat2"(c_int, *const c_char, c_int, *const c_char, c_uint) -> c_int);
+crate::real!(pub fn next_mkdir = "mkdir"(*const c_char, c_uint) -> c_int);
+crate::real!(pub fn next_mkdirat = "mkdirat"(c_int, *const c_char, c_uint) -> c_int);
+crate::real!(pub fn next_rmdir = "rmdir"(*const c_char) -> c_int);
+crate::real!(pub fn next_mkstemp = "mkstemp"(*mut c_char) -> c_int);
+crate::real!(pub fn next_mkostemp = "mkostemp"(*mut c_char, c_int) -> c_int);
+crate::real!(pub fn next_mkdtemp = "mkdtemp"(*mut c_char) -> *mut c_char);
+crate::real!(pub fn next_access = "access"(*const c_char, c_int) -> c_int);
+crate::real!(pub fn next_eaccess = "eaccess"(*const c_char, c_int) -> c_int);
+crate::real!(pub fn next_euidaccess = "euidaccess"(*const c_char, c_int) -> c_int);
+crate::real!(pub fn next_faccessat = "faccessat"(c_int, *const c_char, c_int, c_int) -> c_int);
+crate::real!(pub fn next_chmod = "chmod"(*const c_char, c_uint) -> c_int);
+crate::real!(pub fn next_fchmodat = "fchmodat"(c_int, *const c_char, c_uint) -> c_int);
+crate::real!(pub fn next_truncate = "truncate"(*const c_char, i64) -> c_int);
+crate::real!(pub fn next_utime = "utime"(*const c_char, *const c_void) -> c_int);
+crate::real!(pub fn next_utimes = "utimes"(*const c_char, *const c_void) -> c_int);
+crate::real!(pub fn next_utimensat = "utimensat"(c_int, *const c_char, *const c_void, c_int) -> c_int);
+crate::real!(pub fn next_statfs = "statfs"(*const c_char, *mut c_void) -> c_int);
+crate::real!(pub fn next_statvfs = "statvfs"(*const c_char, *mut c_void) -> c_int);
+crate::real!(pub fn next_remove = "remove"(*const c_char) -> c_int);
+crate::real!(pub fn next_fopen = "fopen"(*const c_char, *const c_char) -> *mut c_void);
+crate::real!(pub fn next_fopen64 = "fopen64"(*const c_char, *const c_char) -> *mut c_void);
+crate::real!(pub fn next_tmpfile = "tmpfile"() -> *mut c_void);
+crate::real!(pub fn next_tmpfile64 = "tmpfile64"() -> *mut c_void);
+crate::real!(pub fn next_freopen = "freopen"(*const c_char, *const c_char, *mut c_void) -> *mut c_void);
+crate::real!(pub fn next_freopen64 = "freopen64"(*const c_char, *const c_char, *mut c_void) -> *mut c_void);
+crate::real!(pub fn next_glob = "glob"(*const c_char, c_int, ErrFunc, *mut c_void) -> c_int);
+crate::real!(pub fn next_glob64 = "glob64"(*const c_char, c_int, ErrFunc, *mut c_void) -> c_int);
+crate::real!(pub fn next_ftw = "ftw"(*const c_char, FtwFunc, c_int) -> c_int);
+crate::real!(pub fn next_ftw64 = "ftw64"(*const c_char, FtwFunc, c_int) -> c_int);
+crate::real!(pub fn next_nftw = "nftw"(*const c_char, NftwFunc, c_int, c_int) -> c_int);
+crate::real!(pub fn next_nftw64 = "nftw64"(*const c_char, NftwFunc, c_int, c_int) -> c_int);
+crate::real!(pub fn next_xstat64 = "__xstat64"(c_int, *const c_char, *mut c_void) -> c_int);
+crate::real!(pub fn next_lxstat64 = "__lxstat64"(c_int, *const c_char, *mut c_void) -> c_int);
+crate::real!(pub fn next_fxstatat64 = "__fxstatat64"(c_int, c_int, *const c_char, *mut c_void, c_int) -> c_int);
 
 /// `AT_SYMLINK_NOFOLLOW`, for the `lchown` half of `fchownat`.
 const AT_SYMLINK_NOFOLLOW: c_int = 0x100;
@@ -373,8 +469,13 @@ unsafe fn ids_of_fd(fd: c_int) -> Option<(u64, u64)> {
 /// The payload's own contract for `chown(2)`.
 #[no_mangle]
 pub unsafe extern "C" fn chown(path: *const c_char, uid: c_uint, gid: c_uint) -> c_int {
-    let ids = unsafe { ids_of_path(path, true) };
-    let rc = next_chown().map(|f| unsafe { f(path, uid, gid) });
+    let mut buf = [0u8; crate::map::OUT];
+    let p = unsafe { crate::map::prepare(b"chown", crate::map::AT_FDCWD, path, &mut buf) };
+    if p.is_null() {
+        return -1;
+    }
+    let ids = unsafe { ids_of_path(p, true) };
+    let rc = next_chown().map(|f| unsafe { f(p, uid, gid) });
     unsafe { owned(rc, ids, uid, gid, b"chown") }
 }
 
@@ -382,8 +483,13 @@ pub unsafe extern "C" fn chown(path: *const c_char, uid: c_uint, gid: c_uint) ->
 /// The payload's own contract for `lchown(2)`.
 #[no_mangle]
 pub unsafe extern "C" fn lchown(path: *const c_char, uid: c_uint, gid: c_uint) -> c_int {
-    let ids = unsafe { ids_of_path(path, false) };
-    let rc = next_lchown().map(|f| unsafe { f(path, uid, gid) });
+    let mut buf = [0u8; crate::map::OUT];
+    let p = unsafe { crate::map::prepare(b"lchown", crate::map::AT_FDCWD, path, &mut buf) };
+    if p.is_null() {
+        return -1;
+    }
+    let ids = unsafe { ids_of_path(p, false) };
+    let rc = next_lchown().map(|f| unsafe { f(p, uid, gid) });
     unsafe { owned(rc, ids, uid, gid, b"lchown") }
 }
 
@@ -411,17 +517,31 @@ pub unsafe extern "C" fn fchownat(
     gid: c_uint,
     flags: c_int,
 ) -> c_int {
-    let ids = if dirfd == AT_FDCWD || unsafe { *path } == b'/' as c_char {
-        unsafe { ids_of_path(path, flags & AT_SYMLINK_NOFOLLOW == 0) }
+    // ⭐ The path goes through the table first, so a mapped `fchownat` memos
+    // the file the kernel actually changed. Where the rewrite moved it, the
+    // call goes with an absolute path; where it did not, the original
+    // descriptor and path go through untouched.
+    let mut buf = [0u8; crate::map::OUT];
+    let p = unsafe { crate::map::prepare(b"fchownat", dirfd, path, &mut buf) };
+    if p.is_null() {
+        return -1;
+    }
+    let (rfd, rpath) = if p == path {
+        (dirfd, path)
     } else {
-        // ⚠ A relative path against a directory descriptor. The real
-        // `fstatat` answers it without podbox resolving anything, which is why
-        // this object needs none of T-0703's `/proc/self/fd` machinery yet.
+        (AT_FDCWD, p)
+    };
+    let ids = if rfd == AT_FDCWD || unsafe { *rpath } == b'/' as c_char {
+        unsafe { ids_of_path(rpath, flags & AT_SYMLINK_NOFOLLOW == 0) }
+    } else {
+        // A relative path against a directory descriptor, rewritten above
+        // where the table matched it. The real `fstatat` answers what is
+        // left without podbox resolving anything further.
         let mut st = [0u8; 256];
         let rc = match next_fstatat() {
-            Some(f) => unsafe { f(dirfd, path, st.as_mut_ptr() as *mut c_void, flags) },
+            Some(f) => unsafe { f(rfd, rpath, st.as_mut_ptr() as *mut c_void, flags) },
             None => match next_fxstatat() {
-                Some(g) => unsafe { g(1, dirfd, path, st.as_mut_ptr() as *mut c_void, flags) },
+                Some(g) => unsafe { g(1, rfd, rpath, st.as_mut_ptr() as *mut c_void, flags) },
                 None => -1,
             },
         };
@@ -431,7 +551,7 @@ pub unsafe extern "C" fn fchownat(
             None
         }
     };
-    let rc = next_fchownat().map(|f| unsafe { f(dirfd, path, uid, gid, flags) });
+    let rc = next_fchownat().map(|f| unsafe { f(rfd, rpath, uid, gid, flags) });
     unsafe { owned(rc, ids, uid, gid, b"fchownat") }
 }
 
@@ -458,49 +578,150 @@ macro_rules! stat_entry {
     };
 }
 
-stat_entry!(stat, next_stat, (path: *const c_char, st: *mut c_void), st);
-stat_entry!(lstat, next_lstat, (path: *const c_char, st: *mut c_void), st);
+/// The path-taking `stat` shapes: rewrite first, then the real call, then
+/// the memo. The memo is keyed by inode, so it answers for the rewritten
+/// file, which is the file the kernel just stated.
+macro_rules! stat_path_entry {
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* $(,)? ), $st:ident, $path:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
+            let Some(f) = $real() else {
+                unsafe { *__errno_location() = EINVAL };
+                return -1;
+            };
+            let mut buf = [0u8; crate::map::OUT];
+            let p = unsafe {
+                crate::map::prepare(
+                    stringify!($name).as_bytes(),
+                    crate::map::AT_FDCWD,
+                    $path,
+                    &mut buf,
+                )
+            };
+            if p.is_null() {
+                return -1;
+            }
+            let $path = p;
+            let rc = unsafe { f($($arg),*) };
+            if rc == 0 {
+                unsafe { report($st) };
+            }
+            rc
+        }
+    };
+}
+
+/// The `*at` `stat` shapes: resolve the descriptor pair first. Where the
+/// rewrite moved the path the call goes with an absolute one; where it did
+/// not, the original descriptor and path go through untouched.
+macro_rules! stat_at_entry {
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* $(,)? ), $st:ident, $dirfd:ident, $path:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
+            let Some(f) = $real() else {
+                unsafe { *__errno_location() = EINVAL };
+                return -1;
+            };
+            let mut buf = [0u8; crate::map::OUT];
+            let p = unsafe {
+                crate::map::prepare(stringify!($name).as_bytes(), $dirfd, $path, &mut buf)
+            };
+            if p.is_null() {
+                return -1;
+            }
+            let ($dirfd, $path) = if p == $path {
+                ($dirfd, $path)
+            } else {
+                (crate::map::AT_FDCWD, p)
+            };
+            let rc = unsafe { f($($arg),*) };
+            if rc == 0 {
+                unsafe { report($st) };
+            }
+            rc
+        }
+    };
+}
+
+stat_path_entry!(stat, next_stat, (path: *const c_char, st: *mut c_void), st, path);
+stat_path_entry!(lstat, next_lstat, (path: *const c_char, st: *mut c_void), st, path);
 stat_entry!(fstat, next_fstat, (fd: c_int, st: *mut c_void), st);
-stat_entry!(
+stat_at_entry!(
     fstatat,
     next_fstatat,
     (dirfd: c_int, path: *const c_char, st: *mut c_void, flags: c_int),
-    st
+    st,
+    dirfd,
+    path
 );
 // ⭐ THE `64` NAMES ARE NOT DUPLICATES, and T-0703 measured why: all four
 // `libpython3.*` and `libglib-2.0.so.0` import only `stat64`, `lstat64` and
 // `fstatat64`, while `libarchive` and `libdbus-1` import the plain names. Both
 // sets are live in one process.
-stat_entry!(stat64, next_stat64, (path: *const c_char, st: *mut c_void), st);
-stat_entry!(lstat64, next_lstat64, (path: *const c_char, st: *mut c_void), st);
+stat_path_entry!(stat64, next_stat64, (path: *const c_char, st: *mut c_void), st, path);
+stat_path_entry!(lstat64, next_lstat64, (path: *const c_char, st: *mut c_void), st, path);
 stat_entry!(fstat64, next_fstat64, (fd: c_int, st: *mut c_void), st);
-stat_entry!(
+stat_at_entry!(
     fstatat64,
     next_fstatat64,
     (dirfd: c_int, path: *const c_char, st: *mut c_void, flags: c_int),
-    st
+    st,
+    dirfd,
+    path
 );
 // ⭐ AND THE `__xstat` SHAPE, which is glibc's pre-2.33 one and which glibc 2.39
 // still exports at `GLIBC_2.2.5`. The PAYLOAD's libc decides which shape its
 // libraries call, not the host this object was built on.
-stat_entry!(
+stat_path_entry!(
     __xstat,
     next_xstat,
     (ver: c_int, path: *const c_char, st: *mut c_void),
-    st
+    st,
+    path
 );
-stat_entry!(
+stat_path_entry!(
     __lxstat,
     next_lxstat,
     (ver: c_int, path: *const c_char, st: *mut c_void),
-    st
+    st,
+    path
+);
+// ⭐ AND THEIR `64` SHAPE, which the completeness command counts as reached.
+// Same contract as above: define it, forward it, let the loader decide.
+stat_path_entry!(
+    __xstat64,
+    next_xstat64,
+    (ver: c_int, path: *const c_char, st: *mut c_void),
+    st,
+    path
+);
+stat_path_entry!(
+    __lxstat64,
+    next_lxstat64,
+    (ver: c_int, path: *const c_char, st: *mut c_void),
+    st,
+    path
 );
 stat_entry!(__fxstat, next_fxstat, (ver: c_int, fd: c_int, st: *mut c_void), st);
-stat_entry!(
+stat_at_entry!(
     __fxstatat,
     next_fxstatat,
     (ver: c_int, dirfd: c_int, path: *const c_char, st: *mut c_void, flags: c_int),
-    st
+    st,
+    dirfd,
+    path
+);
+stat_at_entry!(
+    __fxstatat64,
+    next_fxstatat64,
+    (ver: c_int, dirfd: c_int, path: *const c_char, st: *mut c_void, flags: c_int),
+    st,
+    dirfd,
+    path
 );
 
 /// `statx(2)`, and it is the entry point a modern `stat(1)` actually calls.
@@ -519,6 +740,16 @@ pub unsafe extern "C" fn statx(
         unsafe { *__errno_location() = EINVAL };
         return -1;
     };
+    let mut buf = [0u8; crate::map::OUT];
+    let p = unsafe { crate::map::prepare(b"statx", dirfd, path, &mut buf) };
+    if p.is_null() {
+        return -1;
+    }
+    let (dirfd, path) = if p == path {
+        (dirfd, path)
+    } else {
+        (crate::map::AT_FDCWD, p)
+    };
     // ⛔ The caller's mask is widened to include the identity fields. A caller
     // that did not ask for `STATX_UID` gets it anyway, which `statx(2)` permits
     // -- the kernel may return more than was asked for -- and without it podbox
@@ -536,4 +767,533 @@ pub unsafe extern "C" fn statx(
         unsafe { report_statx(st) };
     }
     rc
+}
+
+// ------------------------------------------- T-0703: the path entry points
+//
+// ⭐ One macro per return shape, so the macro-covered entry points cannot
+// drift apart, which is `references/VHSgunzo__pathmap/tree/path-mapping.c:250-262`'s
+// own decision. Every one funnels its path through [`map::prepare`] and calls
+// the real function with what comes back. `$path` is the argument the rewrite
+// applies to.
+//
+// ⚠ Functions taking only descriptors stay out: `fstat`, `fchdir`,
+// `fexecve`, `fchmod` and their kin carry nothing to rewrite, which is
+// `experiments/100-interpose-symbols.sh`'s own rule for the same absence.
+//
+// ⚠ What these macros deliberately do NOT do: save and restore `errno` around
+// the real call. Linux leaves `errno` alone on success, and every internal
+// step that can fail returns before the real call runs, so there is nothing
+// to restore on the success path and the failure path carries the real
+// call's own number.
+
+macro_rules! path_int {
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $path:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
+            let Some(f) = $real() else { set_errno(EINVAL); return -1; };
+            let mut buf = [0u8; crate::map::OUT];
+            let p = unsafe {
+                crate::map::prepare(
+                    stringify!($name).as_bytes(),
+                    crate::map::AT_FDCWD,
+                    $path,
+                    &mut buf,
+                )
+            };
+            if p.is_null() {
+                return -1;
+            }
+            let $path = p;
+            unsafe { f($($arg),*) }
+        }
+    };
+}
+
+macro_rules! path_nonneg {
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $path:ident, $ret:ty) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name($($arg: $ty),*) -> $ret {
+            let fail: $ret = -1 as $ret;
+            let Some(f) = $real() else { set_errno(EINVAL); return fail; };
+            let mut buf = [0u8; crate::map::OUT];
+            let p = unsafe {
+                crate::map::prepare(
+                    stringify!($name).as_bytes(),
+                    crate::map::AT_FDCWD,
+                    $path,
+                    &mut buf,
+                )
+            };
+            if p.is_null() {
+                return fail;
+            }
+            let $path = p;
+            unsafe { f($($arg),*) }
+        }
+    };
+}
+
+macro_rules! path_ptr {
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $path:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name($($arg: $ty),*) -> *mut c_void {
+            let Some(f) = $real() else { set_errno(EINVAL); return core::ptr::null_mut(); };
+            let mut buf = [0u8; crate::map::OUT];
+            let p = unsafe {
+                crate::map::prepare(
+                    stringify!($name).as_bytes(),
+                    crate::map::AT_FDCWD,
+                    $path,
+                    &mut buf,
+                )
+            };
+            if p.is_null() {
+                return core::ptr::null_mut();
+            }
+            let $path = p;
+            unsafe { f($($arg),*) }
+        }
+    };
+}
+
+macro_rules! path_at_int {
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $dirfd:ident, $path:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
+            let Some(f) = $real() else { set_errno(EINVAL); return -1; };
+            let mut buf = [0u8; crate::map::OUT];
+            let p = unsafe {
+                crate::map::prepare(stringify!($name).as_bytes(), $dirfd, $path, &mut buf)
+            };
+            if p.is_null() {
+                return -1;
+            }
+            let $path = p;
+            unsafe { f($($arg),*) }
+        }
+    };
+}
+
+macro_rules! path_at_nonneg {
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $dirfd:ident, $path:ident, $ret:ty) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name($($arg: $ty),*) -> $ret {
+            let fail: $ret = -1 as $ret;
+            let Some(f) = $real() else { set_errno(EINVAL); return fail; };
+            let mut buf = [0u8; crate::map::OUT];
+            let p = unsafe {
+                crate::map::prepare(stringify!($name).as_bytes(), $dirfd, $path, &mut buf)
+            };
+            if p.is_null() {
+                return fail;
+            }
+            let $path = p;
+            unsafe { f($($arg),*) }
+        }
+    };
+}
+
+path_int!(chdir, next_chdir, (path: *const c_char), path);
+path_int!(unlink, next_unlink, (path: *const c_char), path);
+path_int!(rmdir, next_rmdir, (path: *const c_char), path);
+path_int!(remove, next_remove, (path: *const c_char), path);
+path_int!(mkdir, next_mkdir, (path: *const c_char, mode: c_uint), path);
+path_int!(chmod, next_chmod, (path: *const c_char, mode: c_uint), path);
+path_int!(truncate, next_truncate, (path: *const c_char, len: i64), path);
+path_int!(utime, next_utime, (path: *const c_char, times: *const c_void), path);
+path_int!(utimes, next_utimes, (path: *const c_char, times: *const c_void), path);
+path_int!(access, next_access, (path: *const c_char, mode: c_int), path);
+path_int!(eaccess, next_eaccess, (path: *const c_char, mode: c_int), path);
+path_int!(euidaccess, next_euidaccess, (path: *const c_char, mode: c_int), path);
+path_int!(statfs, next_statfs, (path: *const c_char, buf: *mut c_void), path);
+path_int!(statvfs, next_statvfs, (path: *const c_char, buf: *mut c_void), path);
+path_int!(setxattr, next_setxattr, (path: *const c_char, name: *const c_char, value: *const c_void, size: usize, flags: c_int), path);
+path_int!(lsetxattr, next_lsetxattr, (path: *const c_char, name: *const c_char, value: *const c_void, size: usize, flags: c_int), path);
+path_int!(removexattr, next_removexattr, (path: *const c_char, name: *const c_char), path);
+path_int!(lremovexattr, next_lremovexattr, (path: *const c_char, name: *const c_char), path);
+path_int!(execve, next_execve, (path: *const c_char, argv: *const *const c_char, envp: *const *const c_char), path);
+path_int!(execv, next_execv, (path: *const c_char, argv: *const *const c_char), path);
+path_int!(execvp, next_execvp, (path: *const c_char, argv: *const *const c_char), path);
+path_int!(execvpe, next_execvpe, (path: *const c_char, argv: *const *const c_char, envp: *const *const c_char), path);
+path_at_int!(execveat, next_execveat, (dirfd: c_int, path: *const c_char, argv: *const *const c_char, envp: *const *const c_char, flags: c_int), dirfd, path);
+path_int!(posix_spawn, next_posix_spawn, (pid: *mut c_int, path: *const c_char, fa: *const c_void, attr: *const c_void, argv: *const *const c_char, envp: *const *const c_char), path);
+path_int!(posix_spawnp, next_posix_spawnp, (pid: *mut c_int, path: *const c_char, fa: *const c_void, attr: *const c_void, argv: *const *const c_char, envp: *const *const c_char), path);
+path_int!(glob, next_glob, (pattern: *const c_char, flags: c_int, errfunc: ErrFunc, pglob: *mut c_void), pattern);
+path_int!(glob64, next_glob64, (pattern: *const c_char, flags: c_int, errfunc: ErrFunc, pglob: *mut c_void), pattern);
+path_int!(ftw, next_ftw, (path: *const c_char, func: FtwFunc, nfds: c_int), path);
+path_int!(ftw64, next_ftw64, (path: *const c_char, func: FtwFunc, nfds: c_int), path);
+path_int!(nftw, next_nftw, (path: *const c_char, func: NftwFunc, nfds: c_int, flags: c_int), path);
+path_int!(nftw64, next_nftw64, (path: *const c_char, func: NftwFunc, nfds: c_int, flags: c_int), path);
+
+path_nonneg!(creat, next_creat, (path: *const c_char, mode: c_uint), path, c_int);
+path_nonneg!(creat64, next_creat64, (path: *const c_char, mode: c_uint), path, c_int);
+path_nonneg!(scandir, next_scandir, (dir: *const c_char, list: *mut *mut c_void, filter: Filter, compar: Compar), dir, c_int);
+path_nonneg!(readlink, next_readlink, (path: *const c_char, buf: *mut c_char, n: usize), path, isize);
+path_nonneg!(getxattr, next_getxattr, (path: *const c_char, name: *const c_char, value: *mut c_void, size: usize), path, isize);
+path_nonneg!(lgetxattr, next_lgetxattr, (path: *const c_char, name: *const c_char, value: *mut c_void, size: usize), path, isize);
+path_nonneg!(listxattr, next_listxattr, (path: *const c_char, list: *mut c_char, size: usize), path, isize);
+path_nonneg!(llistxattr, next_llistxattr, (path: *const c_char, list: *mut c_char, size: usize), path, isize);
+
+path_ptr!(opendir, next_opendir, (path: *const c_char), path);
+path_ptr!(fopen, next_fopen, (path: *const c_char, mode: *const c_char), path);
+path_ptr!(fopen64, next_fopen64, (path: *const c_char, mode: *const c_char), path);
+path_ptr!(freopen, next_freopen, (path: *const c_char, mode: *const c_char, stream: *mut c_void), path);
+path_ptr!(freopen64, next_freopen64, (path: *const c_char, mode: *const c_char, stream: *mut c_void), path);
+path_ptr!(realpath, next_realpath, (path: *const c_char, resolved: *mut c_char), path);
+path_ptr!(canonicalize_file_name, next_canonicalize, (path: *const c_char), path);
+
+path_at_int!(mkdirat, next_mkdirat, (dirfd: c_int, path: *const c_char, mode: c_uint), dirfd, path);
+path_at_int!(unlinkat, next_unlinkat, (dirfd: c_int, path: *const c_char, flags: c_int), dirfd, path);
+path_at_int!(fchmodat, next_fchmodat, (dirfd: c_int, path: *const c_char, mode: c_uint), dirfd, path);
+path_at_int!(faccessat, next_faccessat, (dirfd: c_int, path: *const c_char, mode: c_int, flags: c_int), dirfd, path);
+path_at_int!(utimensat, next_utimensat, (dirfd: c_int, path: *const c_char, times: *const c_void, flags: c_int), dirfd, path);
+path_at_int!(openat2, next_openat2, (dirfd: c_int, path: *const c_char, how: *const c_void, size: usize), dirfd, path);
+path_at_nonneg!(readlinkat, next_readlinkat, (dirfd: c_int, path: *const c_char, buf: *mut c_char, n: usize), dirfd, path, isize);
+
+// ------------------------------------------------- shapes no macro covers
+
+const ERANGE: c_int = 34;
+const ENAMETOOLONG: c_int = 36;
+
+/// `open` with a fixed third argument rather than `...`.
+///
+/// ⭐ On x86_64 SysV the first six integer arguments travel in registers, so a
+/// two-argument caller leaves whatever in the third register and a
+/// three-argument one puts the mode there. Reading it only under
+/// `O_CREAT|O_TMPFILE` is exact for both shapes, and stable Rust cannot
+/// define C-variadic functions at all (rust-lang/rust#44930), so this is the
+/// shape rather than a workaround.
+macro_rules! open_fixed {
+    ($name:ident, $real:ident, $path:ident, $flags:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name($path: *const c_char, $flags: c_int, mode: c_uint) -> c_int {
+            let Some(f) = $real() else {
+                set_errno(EINVAL);
+                return -1;
+            };
+            let mut buf = [0u8; crate::map::OUT];
+            let p = unsafe {
+                crate::map::prepare(
+                    stringify!($name).as_bytes(),
+                    crate::map::AT_FDCWD,
+                    $path,
+                    &mut buf,
+                )
+            };
+            if p.is_null() {
+                return -1;
+            }
+            unsafe { f(p, $flags, mode) }
+        }
+    };
+    ($name:ident, $real:ident, $dirfd:ident, $path:ident, $flags:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name(
+            $dirfd: c_int,
+            $path: *const c_char,
+            $flags: c_int,
+            mode: c_uint,
+        ) -> c_int {
+            let Some(f) = $real() else {
+                set_errno(EINVAL);
+                return -1;
+            };
+            let mut buf = [0u8; crate::map::OUT];
+            let p = unsafe {
+                crate::map::prepare(stringify!($name).as_bytes(), $dirfd, $path, &mut buf)
+            };
+            if p.is_null() {
+                return -1;
+            }
+            unsafe { f($dirfd, p, $flags, mode) }
+        }
+    };
+}
+
+open_fixed!(open, next_open, path, flags);
+open_fixed!(open64, next_open64, path, flags);
+open_fixed!(openat, next_openat, dirfd, path, flags);
+open_fixed!(openat64, next_openat64, dirfd, path, flags);
+
+/// Two paths in one call: both resolve, and either failing fails the call.
+/// `linkat`, `renameat` and `renameat2` share the shape; only the names and
+/// the trailing arguments differ.
+macro_rules! path_dual {
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $dirfd_a:ident, $path_a:ident, $dirfd_b:ident, $path_b:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
+            let Some(f) = $real() else { set_errno(EINVAL); return -1; };
+            let mut bufa = [0u8; crate::map::OUT];
+            let mut bufb = [0u8; crate::map::OUT];
+            let pa = unsafe {
+                crate::map::prepare(stringify!($name).as_bytes(), $dirfd_a, $path_a, &mut bufa)
+            };
+            let pb = unsafe {
+                crate::map::prepare(stringify!($name).as_bytes(), $dirfd_b, $path_b, &mut bufb)
+            };
+            if pa.is_null() || pb.is_null() {
+                return -1;
+            }
+            let $path_a = pa;
+            let $path_b = pb;
+            unsafe { f($($arg),*) }
+        }
+    };
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $path_a:ident, $path_b:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[no_mangle]
+        pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
+            let Some(f) = $real() else { set_errno(EINVAL); return -1; };
+            let mut bufa = [0u8; crate::map::OUT];
+            let mut bufb = [0u8; crate::map::OUT];
+            let pa = unsafe {
+                crate::map::prepare(
+                    stringify!($name).as_bytes(),
+                    crate::map::AT_FDCWD,
+                    $path_a,
+                    &mut bufa,
+                )
+            };
+            let pb = unsafe {
+                crate::map::prepare(
+                    stringify!($name).as_bytes(),
+                    crate::map::AT_FDCWD,
+                    $path_b,
+                    &mut bufb,
+                )
+            };
+            if pa.is_null() || pb.is_null() {
+                return -1;
+            }
+            let $path_a = pa;
+            let $path_b = pb;
+            unsafe { f($($arg),*) }
+        }
+    };
+}
+
+path_dual!(link, next_link, (old: *const c_char, new: *const c_char), old, new);
+path_dual!(rename, next_rename, (old: *const c_char, new: *const c_char), old, new);
+path_dual!(linkat, next_linkat, (olddirfd: c_int, old: *const c_char, newdirfd: c_int, new: *const c_char, flags: c_int), olddirfd, old, newdirfd, new);
+path_dual!(renameat, next_renameat, (olddirfd: c_int, old: *const c_char, newdirfd: c_int, new: *const c_char), olddirfd, old, newdirfd, new);
+path_dual!(renameat2, next_renameat2, (olddirfd: c_int, old: *const c_char, newdirfd: c_int, new: *const c_char, flags: c_uint), olddirfd, old, newdirfd, new);
+
+/// `symlink` maps the link path fully and the target literally.
+///
+/// ⭐ The target is link CONTENT, resolved when the link is used and relative
+/// to the link's own directory, so absolutizing it now would answer about the
+/// wrong directory. An absolute target matches the table as written; a
+/// relative one matches only where it literally starts with a prefix. That is
+/// `references/VHSgunzo__pathmap/tree/path-mapping.c:1019-1035`'s shape.
+///
+/// # Safety
+/// The payload's own contract for `symlink(2)`.
+#[no_mangle]
+pub unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> c_int {
+    let Some(f) = next_symlink() else {
+        set_errno(EINVAL);
+        return -1;
+    };
+    let mut linkb = [0u8; crate::map::OUT];
+    let mut targb = [0u8; crate::map::OUT];
+    let lp = unsafe { crate::map::prepare(b"symlink", crate::map::AT_FDCWD, linkpath, &mut linkb) };
+    let tp = unsafe { crate::map::prepare_literal(b"symlink", target, &mut targb) };
+    if lp.is_null() || tp.is_null() {
+        return -1;
+    }
+    unsafe { f(tp, lp) }
+}
+
+/// # Safety
+/// The payload's own contract for `symlinkat(2)`.
+#[no_mangle]
+pub unsafe extern "C" fn symlinkat(
+    target: *const c_char,
+    newdirfd: c_int,
+    linkpath: *const c_char,
+) -> c_int {
+    let Some(f) = next_symlinkat() else {
+        set_errno(EINVAL);
+        return -1;
+    };
+    let mut linkb = [0u8; crate::map::OUT];
+    let mut targb = [0u8; crate::map::OUT];
+    let lp = unsafe { crate::map::prepare(b"symlinkat", newdirfd, linkpath, &mut linkb) };
+    let tp = unsafe { crate::map::prepare_literal(b"symlinkat", target, &mut targb) };
+    if lp.is_null() || tp.is_null() {
+        return -1;
+    }
+    unsafe { f(tp, newdirfd, lp) }
+}
+
+/// A `mk*` template is rewritten in place, because the caller reads the
+/// chosen name back out of the same buffer.
+///
+/// ⛔ The mapped name lands only where it fits in the bytes the template
+/// already occupies. Writing past them would overflow a buffer whose size
+/// the caller never states, so a longer mapping is `ERANGE` rather than a
+/// truncation. That is T-0705's decision, applied early.
+unsafe fn place_template(what: &[u8], template: *mut c_char, rewritten: *const c_char) -> bool {
+    let mut n = 0usize;
+    while n < crate::map::OUT {
+        if unsafe { *(rewritten as *const u8).add(n) } == 0 {
+            break;
+        }
+        n += 1;
+    }
+    let mut cap = 0usize;
+    while cap < crate::map::OUT {
+        if unsafe { *(template as *const u8).add(cap) } == 0 {
+            break;
+        }
+        cap += 1;
+    }
+    if n > cap {
+        crate::say::line(&[what, b": the mapped name does not fit the template"]);
+        set_errno(ERANGE);
+        return false;
+    }
+    unsafe {
+        core::ptr::copy_nonoverlapping(rewritten as *const u8, template as *mut u8, n + 1);
+    }
+    true
+}
+
+/// Rewrite `template` through the table where it matches, leaving it alone
+/// where it does not. Returns the pointer to call with, or null on failure.
+unsafe fn map_template(
+    what: &[u8],
+    template: *mut c_char,
+    out: &mut [u8; crate::map::OUT],
+) -> *mut c_char {
+    if template.is_null() {
+        return template;
+    }
+    let t = unsafe { crate::map::table() };
+    if t.n == 0 {
+        return template;
+    }
+    let n = crate::map::strnlen(template, crate::map::OUT);
+    if n >= crate::map::OUT {
+        return template;
+    }
+    // Templates are relative to the working directory by construction.
+    let mut abs = [0u8; crate::map::OUT];
+    if unsafe { crate::map::absolutize(crate::map::AT_FDCWD, template, &mut abs) } < 0 {
+        crate::say::line(&[what, b": podbox cannot resolve the path, so the call fails"]);
+        set_errno(2);
+        return core::ptr::null_mut();
+    }
+    let abs_n = crate::map::strnlen(abs.as_ptr() as *const c_char, crate::map::OUT);
+    match unsafe { crate::map::rewrite(&t, abs.as_ptr(), abs_n, out) } {
+        -1 => template,
+        -2 => {
+            crate::say::line(&[what, b": the mapped path does not fit"]);
+            set_errno(ENAMETOOLONG);
+            core::ptr::null_mut()
+        }
+        _ => {
+            if !unsafe { place_template(what, template, out.as_ptr() as *const c_char) } {
+                return core::ptr::null_mut();
+            }
+            template
+        }
+    }
+}
+
+/// # Safety
+/// The payload's own contract for `mkstemp(3)`.
+#[no_mangle]
+pub unsafe extern "C" fn mkstemp(template: *mut c_char) -> c_int {
+    let Some(f) = next_mkstemp() else {
+        set_errno(EINVAL);
+        return -1;
+    };
+    let mut buf = [0u8; crate::map::OUT];
+    let t = unsafe { map_template(b"mkstemp", template, &mut buf) };
+    if t.is_null() {
+        return -1;
+    }
+    unsafe { f(t) }
+}
+
+/// # Safety
+/// The payload's own contract for `mkostemp(3)`.
+#[no_mangle]
+pub unsafe extern "C" fn mkostemp(template: *mut c_char, flags: c_int) -> c_int {
+    let Some(f) = next_mkostemp() else {
+        set_errno(EINVAL);
+        return -1;
+    };
+    let mut buf = [0u8; crate::map::OUT];
+    let t = unsafe { map_template(b"mkostemp", template, &mut buf) };
+    if t.is_null() {
+        return -1;
+    }
+    unsafe { f(t, flags) }
+}
+
+/// # Safety
+/// The payload's own contract for `mkdtemp(3)`.
+#[no_mangle]
+pub unsafe extern "C" fn mkdtemp(template: *mut c_char) -> *mut c_char {
+    let Some(f) = next_mkdtemp() else {
+        set_errno(EINVAL);
+        return core::ptr::null_mut();
+    };
+    let mut buf = [0u8; crate::map::OUT];
+    let t = unsafe { map_template(b"mkdtemp", template, &mut buf) };
+    if t.is_null() {
+        return core::ptr::null_mut();
+    }
+    unsafe { f(t) }
+}
+
+/// `tmpfile`, which takes no path and forwards unchanged.
+///
+/// ⛔ `execl`, `execlp`, `execle` and `execlpe` are NOT here, and the absence
+/// is a language wall rather than an omission: they are C-variadic, and
+/// stable Rust cannot define a C-variadic function (rust-lang/rust#44930).
+/// A payload calling one reaches the kernel untranslated, which behaves as
+/// without the object where no table is set and misses the rewrite where one
+/// is.
+///
+/// # Safety
+/// The payload's own contract for `tmpfile(3)`.
+#[no_mangle]
+pub unsafe extern "C" fn tmpfile() -> *mut c_void {
+    let Some(f) = next_tmpfile() else {
+        set_errno(EINVAL);
+        return core::ptr::null_mut();
+    };
+    unsafe { f() }
+}
+
+/// # Safety
+/// The payload's own contract for `tmpfile64(3)`.
+#[no_mangle]
+pub unsafe extern "C" fn tmpfile64() -> *mut c_void {
+    let Some(f) = next_tmpfile64() else {
+        set_errno(EINVAL);
+        return core::ptr::null_mut();
+    };
+    unsafe { f() }
 }

@@ -9,6 +9,7 @@
  * `experiments/105-interpose-ownership.sh` check A asserts the two agree: a
  * symbol in one and not the other is either a silent non-interposition or a
  * symbol some other library in the payload's process resolves to podbox.
+ * T-0703 owns the path half of the list; T-0704 the ownership half.
  */
 {
   global:
@@ -28,7 +29,79 @@
     __lxstat;
     __fxstat;
     __fxstatat;
+    __xstat64;
+    __lxstat64;
+    __fxstatat64;
     statx;
+    open;
+    open64;
+    openat;
+    openat64;
+    openat2;
+    creat;
+    creat64;
+    execve;
+    execv;
+    execvp;
+    execvpe;
+    execveat;
+    posix_spawn;
+    posix_spawnp;
+    chdir;
+    opendir;
+    scandir;
+    readlink;
+    readlinkat;
+    realpath;
+    canonicalize_file_name;
+    getxattr;
+    lgetxattr;
+    setxattr;
+    lsetxattr;
+    listxattr;
+    llistxattr;
+    removexattr;
+    lremovexattr;
+    link;
+    linkat;
+    symlink;
+    symlinkat;
+    unlink;
+    unlinkat;
+    rename;
+    renameat;
+    renameat2;
+    mkdir;
+    mkdirat;
+    rmdir;
+    mkstemp;
+    mkostemp;
+    mkdtemp;
+    access;
+    eaccess;
+    euidaccess;
+    faccessat;
+    chmod;
+    fchmodat;
+    truncate;
+    utime;
+    utimes;
+    utimensat;
+    statfs;
+    statvfs;
+    remove;
+    fopen;
+    fopen64;
+    freopen;
+    freopen64;
+    tmpfile;
+    tmpfile64;
+    glob;
+    glob64;
+    ftw;
+    ftw64;
+    nftw;
+    nftw64;
   local:
     *;
 };

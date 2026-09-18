@@ -482,6 +482,25 @@ pub fn admits(object: &Elf, libc: &Elf) -> Verdict {
     Verdict::Admitted
 }
 
+/// The link set the loader resolves against, as one [`Elf`].
+///
+/// `primary` carries the identity (path, machine, interpreter); `rest`
+/// contributes their definitions and declarations. The caller reads the
+/// runtime libraries beside the libc -- today `libgcc_s.so.1`, which every
+/// gcc-built object imports `_Unwind_Resume@GCC_3.0` from and which no
+/// `libc.so.6` declares -- so a pair the loader accepts is a pair this
+/// admits. A version the whole set lacks still refuses, naming it.
+pub fn union(primary: &Elf, rest: &[Elf]) -> Elf {
+    let mut out = primary.clone();
+    for r in rest {
+        out.defined.extend(r.defined.iter().cloned());
+        out.declares.extend(r.declares.iter().cloned());
+    }
+    out.declares.sort();
+    out.declares.dedup();
+    out
+}
+
 /// The highest version among `declares`, for the message.
 ///
 /// ⚠ A LEXICAL maximum over the numeric fields, which is right for the
@@ -506,10 +525,18 @@ fn newest(declares: &[String]) -> String {
 ///
 /// ⭐ **No table of distribution paths.** `PT_INTERP` names the loader that will
 /// run this payload. On musl that file IS the C library; on glibc the loader
-/// lives in the same directory as `libc.so.6`, so the libc is the loader's own
-/// directory plus that name. ⚠ Both are returned as paths INSIDE `rootfs`, so
-/// the caller reads them before the chroot.
-pub fn libc_beside(rootfs: &str, interp: &str) -> Option<String> {
+/// usually lives in the same directory as `libc.so.6`, so the libc is the
+/// loader's own directory plus that name. ⚠ Both are returned as paths INSIDE
+/// `rootfs`, so the caller reads them before the chroot.
+///
+/// ⚠ **Usually is not always.** On a multiarch layout the loader sits in
+/// `/lib64` while `libc.so.6` sits in `/lib/<triplet>/`, so the directory
+/// rule finds nothing and every payload of that image would be declined.
+/// The fallback is a bounded structural search, not a table: the conventional
+/// library roots, three deep, for a file named exactly `libc.so.6` with the
+/// payload's own machine. A multilib tree can hold several; the machine
+/// decides, deterministically by path order.
+pub fn libc_beside(rootfs: &str, interp: &str, machine: u16) -> Option<String> {
     let rel = interp.trim_start_matches('/');
     match Flavour::of_libc_name(rel) {
         Flavour::Musl => Some(format!("{}/{rel}", rootfs.trim_end_matches('/'))),
@@ -521,10 +548,85 @@ pub fn libc_beside(rootfs: &str, interp: &str) -> Option<String> {
             } else {
                 format!("{root}/{dir}/libc.so.6")
             };
-            std::path::Path::new(&p).exists().then_some(p)
+            if std::path::Path::new(&p).exists() {
+                return Some(p);
+            }
+            search_libc(root, machine)
         }
         Flavour::Unknown => None,
     }
+}
+
+/// A `libc.so.6` of `machine` under the conventional library roots.
+///
+/// Bounded twice: three directories deep and 512 entries visited, so a large
+/// tree cannot turn classification into a walk. Deterministic: candidates in
+/// path order, first machine match wins.
+fn search_libc(root: &str, machine: u16) -> Option<String> {
+    const ROOTS: [&str; 4] = ["lib", "lib64", "usr/lib", "usr/lib64"];
+    let mut found = Vec::new();
+    let mut visited = 0usize;
+    for r in ROOTS {
+        let base = format!("{root}/{r}");
+        let mut stack = vec![(base, 0usize)];
+        while let Some((dir, depth)) = stack.pop() {
+            if depth > 3 || visited > 512 {
+                return first_match(&found, machine);
+            }
+            let entries = match std::fs::read_dir(&dir) {
+                Ok(e) => e,
+                Err(_) => continue,
+            };
+            let mut names: Vec<_> = entries.filter_map(|e| e.ok()).collect();
+            names.sort_by_key(|e| e.file_name());
+            for e in names {
+                visited += 1;
+                if visited > 512 {
+                    return first_match(&found, machine);
+                }
+                let ft = match e.file_type() {
+                    Ok(t) => t,
+                    Err(_) => continue,
+                };
+                // ⚠ No symlink following while walking: a link cycle would
+                // loop the search, and the machine read below follows one
+                // level where it has to.
+                if ft.is_dir() {
+                    stack.push((e.path().display().to_string(), depth + 1));
+                } else if e.file_name().to_string_lossy().as_ref() == "libc.so.6" {
+                    found.push(e.path().display().to_string());
+                }
+            }
+        }
+    }
+    first_match(&found, machine)
+}
+
+/// The first candidate whose ELF machine is `machine`, in path order.
+///
+/// ⚠ Read, not executed: the header is 64 bytes and the machine field two
+/// bytes into it. A file that does not parse is skipped rather than trusted.
+fn first_match(found: &[String], machine: u16) -> Option<String> {
+    let mut sorted = found.to_vec();
+    sorted.sort();
+    for p in sorted {
+        let bytes = match std::fs::read(&p) {
+            Ok(b) => b,
+            Err(_) => continue,
+        };
+        if bytes.len() < 64 || &bytes[0..4] != b"\x7fELF" {
+            continue;
+        }
+        let m = match bytes[5] {
+            1 => u16::from_le_bytes([bytes[18], bytes[19]]),
+            2 => u16::from_be_bytes([bytes[18], bytes[19]]),
+            _ => continue,
+        };
+        if m == machine {
+            return Some(p);
+        }
+    }
+    None
 }
 
 // ------------------------------------------------------------------ the bytes
@@ -943,6 +1045,38 @@ mod tests {
         assert_eq!(admits(&obj, &libc), Verdict::Admitted);
     }
 
+    /// ⭐ The `_Unwind_Resume@GCC_3.0` case, measured on a Debian rootfs: every
+    /// gcc-built object imports it, no `libc.so.6` declares it, and the loader
+    /// takes it from `libgcc_s.so.1` beside the libc. Against the libc alone
+    /// the pair refuses; against the union it admits, which is the loader's
+    /// own answer in both cases.
+    #[test]
+    fn an_import_from_the_runtimes_beside_libc_admits_against_their_union() {
+        let libc = fake(
+            "/lib/x86_64-linux-gnu/libc.so.6",
+            Some("libc.so.6"),
+            &[],
+            &[("open", None)],
+            &["GLIBC_2.4"],
+        );
+        let libgcc = fake(
+            "/lib/x86_64-linux-gnu/libgcc_s.so.1",
+            Some("libgcc_s.so.1"),
+            &[],
+            &[("_Unwind_Resume", Some("GCC_3.0"))],
+            &["GCC_3.0"],
+        );
+        let obj = fake_import(
+            "/i.so",
+            &["libgcc_s.so.1", "libc.so.6"],
+            &[("open", None), ("_Unwind_Resume", Some("GCC_3.0"))],
+        );
+        let Verdict::Refused(_) = admits(&obj, &libc) else {
+            panic!("a libgcc import admitted against the libc alone");
+        };
+        assert_eq!(admits(&obj, &union(&libc, &[libgcc])), Verdict::Admitted);
+    }
+
     /// ⛔ A symbol the libc does not define at all is refused before the version
     /// question is asked, and the message names the symbol.
     #[test]
@@ -971,19 +1105,57 @@ mod tests {
         std::fs::create_dir_all(d.join("lib/x86_64-linux-gnu")).unwrap();
         std::fs::write(d.join("lib/x86_64-linux-gnu/libc.so.6"), b"x").unwrap();
         let root = d.to_string_lossy().to_string();
+        let m = podbox_probe::binfmt::SELF_MACHINE;
         assert_eq!(
-            libc_beside(&root, "/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2"),
+            libc_beside(&root, "/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2", m),
             Some(format!("{root}/lib/x86_64-linux-gnu/libc.so.6"))
         );
         // ⭐ On musl the interpreter IS the C library, so no second file is
         // looked for and none has to exist.
         assert_eq!(
-            libc_beside(&root, "/lib/ld-musl-x86_64.so.1"),
+            libc_beside(&root, "/lib/ld-musl-x86_64.so.1", m),
             Some(format!("{root}/lib/ld-musl-x86_64.so.1"))
         );
         // ⛔ And an interpreter podbox does not recognise gets no answer rather
         // than a guessed one.
-        assert_eq!(libc_beside(&root, "/opt/weird/loader"), None);
+        assert_eq!(libc_beside(&root, "/opt/weird/loader", m), None);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// ⭐ The multiarch layout, where the loader's own directory holds no
+    /// libc: Debian keeps the loader in `/lib64` and the library in
+    /// `/lib/<triplet>/`. The fallback search finds it by name and machine,
+    /// and a wrong-machine decoy does not win.
+    #[test]
+    fn the_libc_is_found_across_a_multiarch_split() {
+        fn tiny_elf(machine: u16) -> Vec<u8> {
+            let mut b = vec![0u8; 64];
+            b[0..4].copy_from_slice(b"\x7fELF");
+            b[4] = 2;
+            b[5] = 1;
+            b[18..20].copy_from_slice(&machine.to_le_bytes());
+            b
+        }
+        let d = std::env::temp_dir().join(format!("podbox-abi64-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        const ME: u16 = 62;
+        const OTHER: u16 = 183;
+        std::fs::create_dir_all(d.join("lib64")).unwrap();
+        std::fs::create_dir_all(d.join("lib/aarch64-linux-gnu")).unwrap();
+        std::fs::create_dir_all(d.join("lib/x86_64-linux-gnu")).unwrap();
+        std::fs::write(d.join("lib64/ld-linux-x86-64.so.2"), b"x").unwrap();
+        std::fs::write(d.join("lib/aarch64-linux-gnu/libc.so.6"), tiny_elf(OTHER)).unwrap();
+        std::fs::write(d.join("lib/x86_64-linux-gnu/libc.so.6"), tiny_elf(ME)).unwrap();
+        let root = d.to_string_lossy().to_string();
+        // ⛔ The loader's own directory has no libc, so the direct rule
+        // misses and the search must find the machine-matching one.
+        assert_eq!(
+            libc_beside(&root, "/lib64/ld-linux-x86-64.so.2", ME),
+            Some(format!("{root}/lib/x86_64-linux-gnu/libc.so.6"))
+        );
+        // ⛔ And a machine with no library here gets no answer, not the
+        // other architecture's.
+        assert_eq!(libc_beside(&root, "/lib64/ld-linux-x86-64.so.2", 40), None);
         let _ = std::fs::remove_dir_all(&d);
     }
 

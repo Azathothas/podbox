@@ -127,7 +127,7 @@ the blocker named and what would clear it.
 | [T-0608](supervise.md) | P1 | supervise | done | A detached container that reads `exited` with no launcher, seen twice and not reproduced |
 | [T-0701](interpose.md) | P0 | interpose | done | The cdylib build constraints |
 | [T-0702](interpose.md) | P0 | interpose | done | One object per libc, and it must live inside the rootfs |
-| [T-0703](interpose.md) | P0 | interpose | open | Path virtualization: the entry-point set and `*at` resolution |
+| [T-0703](interpose.md) | P0 | interpose | done | Path virtualization: the entry-point set and `*at` resolution |
 | [T-0704](interpose.md) | P0 | interpose | partial | Ownership virtualization: the half a path interposer does not have |
 | [T-0705](interpose.md) | P1 | interpose | open | Reverse mapping, so the payload reads back what it wrote |
 | [T-0706](interpose.md) | P0 | interpose | done | Classify the payload and decline with a named reason |
@@ -196,7 +196,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-132 items: 40 open, 3 partial, 0 blocked, 89 done.
+132 items: 39 open, 3 partial, 0 blocked, 90 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -204,11 +204,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 4 | 1 | 0 | 47 | 52 |
+| P0 | 3 | 1 | 0 | 48 | 52 |
 | P1 | 22 | 2 | 0 | 32 | 56 |
 | P2 | 10 | 0 | 0 | 9 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **40** | **3** | **0** | **89** | **132** |
+| **All** | **39** | **3** | **0** | **90** | **132** |
 
 ## How the current ordering is derived
 

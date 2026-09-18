@@ -324,7 +324,7 @@ fn classify_elf(name: &str, elf: &podbox_enter::abi::Elf, rootfs: &str, objs: &P
             obj.machine
         ));
     }
-    let Some(libc_path) = podbox_enter::abi::libc_beside(rootfs, interp) else {
+    let Some(libc_path) = podbox_enter::abi::libc_beside(rootfs, interp, elf.machine) else {
         return Reach::Declined(format!(
             "{interp} names no C library podbox can find in the image"
         ));
@@ -335,8 +335,31 @@ fn classify_elf(name: &str, elf: &podbox_enter::abi::Elf, rootfs: &str, objs: &P
     };
     // ⭐ T-0709's assertion, through T-0706's channel: select and assert,
     // never try. A version predicate the pair fails is a decline that names
-    // the version, not a relocation error inside the payload.
-    match podbox_enter::abi::admits(obj, &libc_elf) {
+    // the version, not a relocation error inside the payload. The check runs
+    // against the LINK SET, not the libc alone: the loader resolves every
+    // NEEDED library, and an import `libgcc_s.so.1` satisfies is not the
+    // libc's to define.
+    let mut rest = Vec::new();
+    if let Some(dir) = libc_path.rsplit_once('/').map(|(d, _)| d) {
+        let sib = format!("{dir}/libgcc_s.so.1");
+        if sib != libc_path {
+            if let Ok(e) = podbox_enter::abi::Elf::read(&sib) {
+                rest.push(e);
+            }
+        }
+    }
+    let interp_path = format!(
+        "{}/{rel}",
+        rootfs.trim_end_matches('/'),
+        rel = interp.trim_start_matches('/')
+    );
+    if interp_path != libc_path {
+        if let Ok(e) = podbox_enter::abi::Elf::read(&interp_path) {
+            rest.push(e);
+        }
+    }
+    let set = podbox_enter::abi::union(&libc_elf, &rest);
+    match podbox_enter::abi::admits(obj, &set) {
         podbox_enter::abi::Verdict::Admitted => Reach::Preload {
             libc,
             object: bytes,

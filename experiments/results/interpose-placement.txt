@@ -1,11 +1,11 @@
 == conditions
-date              2026-09-18T15:40:03Z
+date              2026-09-18T16:59:01Z
 host kernel       7.2.0-WSL2-STABLE
 host arch         x86_64
 podbox            podbox 0.1.0
 image             public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 payload B         /work/target/x86_64-unknown-linux-musl/release/podbox (the binary under test)
-payload B file      /work/target/x86_64-unknown-linux-musl/release/podbox: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), static-pie linked, BuildID[sha1]=ae59557d895cb64f3812903043c7e27ae3c0101c, stripped
+payload B file      /work/target/x86_64-unknown-linux-musl/release/podbox: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), static-pie linked, BuildID[sha1]=db592505199855a3fcaf62b37d2fa33ada217287, stripped
 == A. T-0702: the object is inside the rootfs and in environ
 ok   A: /.podbox/interpose.so is a file and names LD_PRELOAD
 == B. T-0706 row 2: a static payload is declined by name, and runs

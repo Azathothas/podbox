@@ -120,5 +120,9 @@ fail=0
 
 	echo "== verdict"
 	if [ "$fail" -eq 0 ]; then echo "ok"; else echo "FAILED"; fi
-} | tee "$OUT"
+# ⛔ No pipe to `tee` here: every stage of a pipeline runs in a subshell,
+# so `exit "$fail"` after one would always see the initial 0 and a failing
+# run would exit green. The report goes to the file first, then to stdout.
+} >"$OUT" 2>&1
+cat "$OUT"
 exit "$fail"

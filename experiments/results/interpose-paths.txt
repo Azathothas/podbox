@@ -1,0 +1,135 @@
+== conditions
+date              2026-09-18T16:59:07Z
+host kernel       7.2.0-WSL2-STABLE
+host arch         x86_64
+podbox            podbox 0.1.0
+glibc image       public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+musl image        public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+maps              /mapped:/etc,/vbin:/bin
+
+== glibc: public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+ok   glibc A: mapped read equals the real file
+ok   glibc A2: unmapped control fails
+ok   glibc B: stat parity
+ok   glibc C: chdir into mapped, relative read
+ok   glibc D: exec of a mapped path
+ok   glibc E: symlink target rule
+ok   glibc E2: link, rename, mkdir, rmdir
+ok   glibc F: glob expands through the map
+ok   glibc G: tar works under a map
+ok   glibc G2: find works under a map
+ok   glibc H: C program green
+  podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation
+  ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+  ok   openat-cwd mapped
+  ok   read mapped
+  ok   open tmp dir
+  ok   openat-dirfd forwards
+  ok   openat-dirfd content
+  ok   fstatat mapped
+  ok   fstatat==real
+  ok   faccessat mapped
+  ok   eaccess mapped
+  ok   access mapped
+  ok   open creat
+  ok   open mode bits exact
+  ok   openat creat
+  ok   openat mode bits exact
+  ok   linkat mapped
+  ok   symlinkat mapped target
+  ok   readlinkat link
+  ok   symlink target rewritten
+  ok   utimensat passthrough
+  ok   getxattr parity
+  ok   nftw mapped walks
+  ok   nftw real walks
+  ok   nftw counts equal
+  ok   ftw mapped walks
+  ok   ftw count equals nftw count
+  ok   scandir mapped
+  ok   glob mapped, real path
+  ok   statfs parity
+  ok   mkstemp template
+  ok   renameat passthrough
+  ok   memo setup creat
+  ok   memo dir writable
+  ok   unprivileged chown answered
+  ok   memo reports the intended owner
+  ok   memo file grew
+ok   glibc J: unmapped chown reaches the file
+ok   glibc J2: mapped chown reaches the real file
+
+== musl: public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+ok   musl A: mapped read equals the real file
+ok   musl A2: unmapped control fails
+ok   musl B: stat parity
+ok   musl C: chdir into mapped, relative read
+ok   musl D: exec of a mapped path
+ok   musl E: symlink target rule
+ok   musl E2: link, rename, mkdir, rmdir
+ok   musl F: glob expands through the map
+ok   musl G: tar works under a map
+ok   musl G2: find works under a map
+ok   musl H: C program green
+  podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation
+  ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+  ok   openat-cwd mapped
+  ok   read mapped
+  ok   open tmp dir
+  ok   openat-dirfd forwards
+  ok   openat-dirfd content
+  ok   fstatat mapped
+  ok   fstatat==real
+  ok   faccessat mapped
+  ok   eaccess mapped
+  ok   access mapped
+  ok   open creat
+  ok   open mode bits exact
+  ok   openat creat
+  ok   openat mode bits exact
+  ok   linkat mapped
+  ok   symlinkat mapped target
+  ok   readlinkat link
+  ok   symlink target rewritten
+  ok   utimensat passthrough
+  ok   getxattr parity
+  ok   nftw mapped walks
+  ok   nftw real walks
+  ok   nftw counts equal
+  ok   ftw mapped walks
+  ok   ftw count equals nftw count
+  ok   scandir mapped
+  ok   glob mapped, real path
+  ok   statfs parity
+  ok   mkstemp template
+  ok   renameat passthrough
+  ok   memo setup creat
+  ok   memo dir writable
+  ok   unprivileged chown answered
+  ok   memo reports the intended owner
+  ok   memo file grew
+ok   musl J: unmapped chown reaches the file
+ok   musl J2: mapped chown reaches the real file
+
+== I. the gap: what the rootfs reaches that the objects do not define
+  reached but not defined: execl execlp execle dlopen mount umount2
+ok   I: every gap name is owned
+
+== J. the entry's count: 60 or more defined text symbols per object
+ok   J: gnu defines 89 (>= 60)
+ok   J: musl defines 89 (>= 60)
+
+== verdict
+ok

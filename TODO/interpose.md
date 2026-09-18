@@ -283,7 +283,7 @@ Source:      `TOOL.md` section 6.7; `references/VHSgunzo__pathmap`
 Category:    interpose
 Priority:    P0
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     A payload asks for a path that is not there. Without a rewrite in
              front of every path-taking entry point, `-v` is a copy and nothing
@@ -359,7 +359,43 @@ Decision:    A macro over the families, as
              only the ones whose argument shape the macro cannot express, which
              in pathmap is `fchownat` at
              `references/VHSgunzo__pathmap/tree/path-mapping.c:1242-1256`.
-Prove:       `./experiments/50-interpose-tier.sh` exits 0 and `nm -D --defined-only crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so | grep -c ' T ' | awk '$1 >= 60'`
+Prove:       `./experiments/161-path-rewrite.sh` exits 0 and `nm -D --defined-only crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so | grep -c ' T ' | awk '$1 >= 60'`. ⛔ **The first half named `50-interpose-tier.sh` until 2026-09-18**, which measures pathmap, somebody else's object, and cannot verify this one: the wrong subject with a green exit, the same defect class [T-0709](#t-0709-select-the-interposer-by-dt_needed-and-refuse-on-the-version-predicate) amended its own `Prove` for. `161` drives podbox's object through podbox on both libcs, and `experiments/results/interpose-paths.txt` carries the run.
+
+
+**Done 2026-09-18.** The object interposes 89 names (`src/map.rs` plus ten
+macros and twelve hand-written shapes in `src/lib.rs`): the `open`, `stat`
+(already there), `exec`, `chdir`, `opendir`/`scandir`, `readlink`/`realpath`,
+`xattr`, `link`, `rename`, `mkdir`, `mkstemp`/`mkostemp`/`mkdtemp`, `access`,
+`chmod`, `truncate`, `utime`, `statfs`/`statvfs`, `remove`, `fopen`, `glob`,
+`ftw`, `tmpfile` families and every `*at` variant of each, `execveat`
+included. Functions taking only descriptors stay out, which is
+`experiments/100-interpose-symbols.sh`'s own rule: there is nothing in them
+to rewrite. The table
+is one variable, `PODBOX_MAPS`, in `FROM:TO[,FROM:TO...]` pairs mirroring
+pathmap's syntax; longest match wins at a component boundary, and
+`/.podbox/` never rewrites. With no table every call forwards unchanged, so
+an unmapped payload cannot fail here at all.
+
+⭐ **Three deviations from the letter, each with its reason.** `AT_FDCWD`
+resolves through the real `getcwd`, which answers identically without
+`/proc`. A descriptor-relative path the table cannot be checked against
+forwards unchanged: the kernel resolves it through a directory that is
+already real, so forwarding is kernel-correct and failing it would break
+`tar`, `find` and `ls -R` on any mapped run, which `161` clauses G/G2 hold
+green. `execl`, `execlp`, `execle` and `execlpe` are absent: they are
+C-variadic and stable Rust cannot define one (rust-lang/rust#44930), which
+the gap clause owns beside `mount`, `umount`, `umount2`, `dlopen` and
+`dlmopen` (T-0708's and the loader's). Pure forwarders with no path to
+rewrite (`getcwd`, `readdir` and their kin) stay out: risk without function,
+and T-0705 interposes them with the reverse mapping when it lands. `tmpfile`
+is the exception: the completeness command counts it as reached, so it
+forwards.
+
+⭐ **The memo proof runs where the kernel cannot be asked nicely.** `161`
+clause H drops privilege in a child, so `chown` fails `EPERM` on any host
+however rootful, and the memo answers `0:42` with the file grown by one
+record, on both libcs. The `chown`/`stat` families resolve through the same
+funnel, so a mapped `chown` memos the real file (clause J2).
 
 ---
 
@@ -752,6 +788,13 @@ cdylib and the placement, and this reader is what chooses between the two
 objects they produce. The placement landed and the reader now serves it
 through [T-0706](#t-0706-classify-the-payload-and-decline-with-a-named-reason)'s
 channel.
+
+⭐ **The reader checks the link set since 2026-09-18, not the libc alone.**
+A Debian payload declined every run because the object imports
+`_Unwind_Resume@GCC_3.0`, which no `libc.so.6` declares and `libgcc_s.so.1`
+beside it does. `abi::union` merges the libc with the runtimes beside it
+for the check; `podbox system abi` keeps the direct two-file question. The
+multiarch search that found that libc is in the same change.
 
 ⭐ **A second thing this closed, in the harness rather than in podbox.**
 `experiments/80-interposer-abi.sh` exited **2** on this container because
