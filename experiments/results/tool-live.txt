@@ -1,0 +1,136 @@
+== conditions
+2026-09-18T12:49:20Z
+MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64
+instance=podbox
+~/bin/text-tool
+~/bin/wsl-toolkit
+
+== text-tool answers
+help_exit=0
+
+== text-tool write, append, edit with --expect, eol
+write_exit=0
+append_exit=0
+edit_exit=0
+count_exit=0
+would change ~/AppData/Local/Temp/tmp.wLG4QE2C4l/notes.md: 1 match(es), 26 -> 15 bytes, lf endings
+wrong_expect_exit=1 (want 1, nothing written)
+refused ~/AppData/Local/Temp/tmp.wLG4QE2C4l/notes.md: 0 match(es), 26 -> 26 bytes, lf endings
+text-tool: --expect 1 and this matches 0 times across 1 file(s). Nothing was written
+eol_exit=0
+--- file bytes ---
+0000000   H   e   l   l   o   ,       "   w   o   r   l   d   "  \n   s
+0000020   e   c   o   n   d       l   i   n   e
+0000032
+
+== wsl-toolkit answers
+version_exit=0
+4.0.0
+run_help_exit=0
+base_help_exit=0
+hostaddress_help_exit=0
+man_exit=0
+wsl-toolkit 4.0.0
+
+  doctor      report the host and the tools that can run
+  base        manage the WSL distribution that this tool owns
+  images      list, check, or pull catalog images
+
+== wsl-toolkit doctor and readiness
+doctor_exit=0
+wsl-toolkit doctor  agent-doctor/1  (2026-09-18T12:49:21Z)
+
+HOST
+  os             windows
+  arch           x86_64
+  flavor         native
+  distro         windows
+  shell          native Go go1.25.0
+  network        unknown
+
+WSL
+  installed      true
+  path           C:\Windows\System32\wsl.exe
+  callable here  yes
+  base distro    wsl-toolkit (registered)
+  local helper   not started
+    eph-pgb                      stopped
+    podman-machine-default       running
+  * wsl-toolkit                  running
+    wsl-toolkit-base             running
+    wsl-toolkit-podbox           running
+
+THROWAWAY DISTRIBUTIONS
+  state dir      ~\AppData\Local\wsl-toolkit\distros
+  free space     126.3 GiB, against a floor of 256.0 MiB per import
+  held           0 distribution(s), 0 leftover(s) of 0 B, 0 snapshot(s) of 0 B
+  networking     nat, from .wslconfig
+  host address   172.23.96.1: a host service on 127.0.0.1 is NOT reachable from a distribution; bind it to this address
+  host engine    podman at ~\AppData\Local\Programs\Podman\podman.exe, pulling for linux/amd64
+  clock          506000 ns smallest step seen. A %9f timestamp pads below it
+ready_exit=0
+  instance podbox: distribution wsl-toolkit-podbox, state ~\AppData\Local\wsl-toolkit\instances\podbox
+  verdict     ready
+  version     4.0.0
+  executable  ~\bin\wsl-toolkit.exe
+  instance    podbox
+  state       ~\AppData\Local\wsl-toolkit\instances\podbox
+  config      ~\AppData\Local\wsl-toolkit\instances\podbox\config.json (the state directory), fingerprint 8d29a4890c7f7dfe
+  route       direct -- this process can call wsl.exe itself
+  helper      none listening
+  base        wsl-toolkit-podbox, registered true, usable true
+  built from  ghcr.io/pkgforge-dev/archlinux:latest
+  engine      podman version 6.1.2
+  catalog     13 image(s)
+  update      none: 4.0.0 is the newest published release
+  ~ this base has no cgroup delegation for the engine's account, so podman creates no cgroup per container. a memory or cpu limit is ACCEPTED AND NOT ENFORCED, `podman stats` reports 0B, and an out-of-memory kill cannot be told apart from any other exit 137
+
+== base status with probe
+base_status_exit=0 (want 0: usable true)
+  instance podbox: distribution wsl-toolkit-podbox, state ~\AppData\Local\wsl-toolkit\instances\podbox
+  name        wsl-toolkit-podbox
+  image       ghcr.io/pkgforge-dev/archlinux:latest
+  account     toolkit
+  automount   ro, and the guest's drives read ro
+  interop     on
+  init        systemd false
+  sudo        passwordless false
+  toolset     none
+  shared wsl  /mnt/wsl on
+  registered  true
+  running     true
+  disk        9.8 GiB  ~\AppData\Local\wsl-toolkit\instances\podbox\base\ext4.vhdx
+  usable      true
+  engine      podman version 6.1.2
+  cgroup      v2 via none
+  limits      enforced: no   stats usable: no
+  binfmt      31 QEMU handler(s), ready: true
+
+  ⛔ CGROUP-DELEGATION
+     what   this base has no cgroup delegation for the engine's account, so podman creates no cgroup per container
+     costs  a memory or cpu limit is ACCEPTED AND NOT ENFORCED, `podman stats` reports 0B, and an out-of-memory kill cannot be told apart from any other exit 137
+     read   wsl-toolkit base status --probe --json  # the cgroup block carries the mechanism
+     ⚠ this tool cannot repair it, and says so rather than pretending
+
+== one tiny container through the whole path
+smoke_exit=0 (want 0)
+  instance podbox: distribution wsl-toolkit-podbox, state ~\AppData\Local\wsl-toolkit\instances\podbox
+  verdict     ready
+  version     4.0.0
+  executable  ~\bin\wsl-toolkit.exe
+  instance    podbox
+  state       ~\AppData\Local\wsl-toolkit\instances\podbox
+  config      ~\AppData\Local\wsl-toolkit\instances\podbox\config.json (the state directory), fingerprint 8d29a4890c7f7dfe
+  route       direct -- this process can call wsl.exe itself
+  helper      none listening
+  base        wsl-toolkit-podbox, registered true, usable true
+  built from  ghcr.io/pkgforge-dev/archlinux:latest
+  engine      podman version 6.1.2
+  catalog     13 image(s)
+  smoke       ran as uid 0 on kernel 7.2.0-WSL2-STABLE, /work writable, artifact returned, transcript readable, no host mount
+  update      none: 4.0.0 is the newest published release
+  ~ this base has no cgroup delegation for the engine's account, so podman creates no cgroup per container. a memory or cpu limit is ACCEPTED AND NOT ENFORCED, `podman stats` reports 0B, and an out-of-memory kill cannot be told apart from any other exit 137
+
+== verdict
+fail=0 norun=0
+home_prefix_redacted_to=~

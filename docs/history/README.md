@@ -10,6 +10,7 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 | [`2026-09-11-reference-sweep.md`](2026-09-11-reference-sweep.md) | The sweep of eleven references: what it did not establish, the depth reached per tree, the verdicts, and the six findings |
 | [`2026-09-12-store-lock-race-dead-ends.md`](2026-09-12-store-lock-race-dead-ends.md) | [T-0215](../../TODO/image.md)'s superseded `Premise`: five closed mechanisms, the clause series behind them, and the three wrong readings of the fork control |
 | [`source-progress-ea5b671.md`](source-progress-ea5b671.md) | Complete live record at the final source revision before migration |
+| [`upstream-tool-shape.md`](upstream-tool-shape.md) | Retired two-product wording for `wsl-toolkit`, kept verbatim with what took it away |
 | [`sessions/`](sessions/) | Superseded source-project session summaries |
 | [`reviews/`](reviews/) | Focused review outcomes for migrated changes |
 
@@ -34,6 +35,7 @@ wording in the page that made it, per that methodology's append-never-edit rule.
 | A concurrent fork was NOT a necessary condition for that race | The fork control's skip list was short of the code three times; completing it reversed the verdict to 0 of 20 | the same page |
 | The race was a forked child holding a lock descriptor, in any of five shapes | All five were closed and the rate never moved. The refusal had no holder at all | the same page, and [T-0215](../../TODO/image.md)'s `Done` record |
 | A lock handed to a payload is free the instant the payload's descriptor closes | The first draft of that guard asserted it and failed 9 and 13 of 30 | [T-0215](../../TODO/image.md)'s `Done` record |
+| `wsl-toolkit` ships as two products, a script and a compiled carrier with a launcher | Upstream deleted the PowerShell product and its launcher; the binary on this host answers as one product | [`upstream-tool-shape.md`](upstream-tool-shape.md) |
 
 ⭐ **The last two rows are one lesson twice**: a control that has never been
 seen to fail, and an assertion that claims more than the design provides, both

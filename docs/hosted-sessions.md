@@ -70,9 +70,8 @@ that does nothing until a command is run:
 git config core.hooksPath .githooks
 ```
 
-⚠ **In this repository the hook lives under `dotfiles/githooks` instead**,
-because `dotfiles/` is what a project receives. `check-attribution` prints
-whichever path is actually in the tree.
+⚠ **In this repository the hook lives under `.githooks`.** `check-attribution`
+prints whichever path is actually in the tree.
 
 ---
 

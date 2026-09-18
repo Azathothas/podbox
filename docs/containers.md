@@ -56,20 +56,38 @@ it is a container engine you already have.
 and a container engine solve different problems with different interfaces. Pick
 by what the host has, and say in the write-up which one produced a number.
 
-⭐ **It is two products now, and a caller gets the compiled one by default.**
-Upstream ships a PowerShell script and an executable that carries that same
-script inside itself and adds to it, and its launcher resolves the executable
-first. ⚠ **A page here that names its flags is a page that goes stale without
-anybody editing it**, so this one does not: read the tool's own documentation
-at the link. What matters at this level is that the two exist, that a caller
-can ask for either, and that "the version I ran" is now a question with two
-answers.
+### ⛔ What the tool is, and how to call it, is not written here
 
-⚠ **That rule bans a copy of upstream's manual. It does not ban this project's
-own procedure.** The section below names an instance, an image, a set of
-exclusions and the failures this repository met on this host. None of it is
-upstream's to change, and a reader who deletes it as a duplicate has removed
-the part that only this project knows.
+**This page owns the PROCEDURE. Upstream owns the TOOL.** Nothing below
+describes a flag, a subcommand, a product shape or a version. The split is
+deliberate. A page that copies flags goes stale without anybody editing it.
+
+Upstream ships one Windows executable. It generates its manual from the
+commands it holds. The retired two-product wording lives in
+[`history/upstream-tool-shape.md`](history/upstream-tool-shape.md).
+
+⭐ **Upstream ships one agent skill per use, and each skill follows the
+executable's own manual.** Read the one you need before you run anything.
+When a link below stops resolving, list the directory that holds them:
+[`skills/`](https://github.com/Azathothas/ToolKit/tree/main/skills).
+
+| skill | answers |
+| --- | --- |
+| [`skills/wsl-toolkit`](https://github.com/Azathothas/ToolKit/raw/main/skills/wsl-toolkit/SKILL.md) | build and operate a base: what a base is, how to make one, how to grant it a directory, how to run a command in it |
+| [`skills/wsl-toolkit-agents`](https://github.com/Azathothas/ToolKit/raw/main/skills/wsl-toolkit-agents/SKILL.md) | drive a coding agent inside a base, and read back the model and the effort it started on |
+| [`skills/text-tool`](https://github.com/Azathothas/ToolKit/raw/main/skills/text-tool/SKILL.md) | write and edit a file from a shell that mangles the payload. [`conventions/shell.md`](conventions/shell.md) section 1 states why that matters. |
+
+⚠ **Those three links name a branch, and every other fetch on this page is
+pinned.** A page a reader opens is read. A pinned fetch is code that runs.
+Pin what runs. Read what is current.
+
+⚠ **Ask the binary for its version and its manual.** A version in a document
+was true once. The tool reports what it holds today.
+
+```powershell
+wsl-toolkit --version
+wsl-toolkit man --no-pager
+```
 
 ⭐ **It also answers whether a machine can run an isolated Linux job at all**,
 in one command, rather than leaving a session to infer it from three.
@@ -89,13 +107,9 @@ every distribution on the host, including the one that holds somebody else's
 container engine.
 
 ⭐ **One instance, and it is `podbox`.** The flag `--instance podbox` names the
-distribution `wsl-toolkit-podbox` and gives it its own state directory. A
-pointer file in the checkout makes that the default for every call from inside
-the tree:
-
-```json
-{ "schema": "wsl-toolkit-pointer/1", "instance": "podbox" }
-```
+distribution `wsl-toolkit-podbox` and gives it its own state directory. Every
+call names it: [`../scripts/windows/run-in-base.sh`](../scripts/windows/run-in-base.sh)
+defaults `PODBOX_WSL_INSTANCE` to `podbox`, and a manual call passes the flag.
 
 **The distribution persists and a container inside it does not.** The base
 holds the engine, the image cache and the job records across sessions. Every
@@ -315,6 +329,11 @@ opens a substitution, and Windows PowerShell 5.1 drops a double quote out of a
 child process's argument list before the script runs. ⭐ Send a **file**, or
 send **base64**, which has no character any shell touches.
 
+⛔ **Do not hand a job payload to the platform command yourself.** A payload
+handed to `wsl.exe` as an argument expands before the guest sees it. The guest
+parses the result again. [`../scripts/windows/run-in-base.sh`](../scripts/windows/run-in-base.sh)
+sends the wrapper as a file for this reason.
+
 ⚠ **Write the script with LF endings.** A byte-exact channel will not repair
 anybody's payload, so a CRLF script makes a POSIX shell read the carriage
 return as part of the last word on every line. A here-string written on a
@@ -339,7 +358,7 @@ why.
 
 | the mode | what the guest reaches |
 | --- | --- |
-| NAT, the default, and what this was written on | the host's address on the virtual adapter. Ask the tool; it changes. |
+| NAT, the default, and what this was written on | the host's address on the virtual adapter. Ask the tool; it changes. `wsl-toolkit hostaddress` prints it. |
 | mirrored | the host's own loopback, so a caller's branch for this disappears |
 | bridged | the guest is on the LAN, and which host address it reaches is a choice rather than a lookup |
 
@@ -359,6 +378,10 @@ A guest command that hangs looks exactly like a guest command that is working,
 and a line-oriented reader shows nothing at all while a large download is
 visibly progressing, because the downloader redraws one line and emits no
 newline for minutes.
+
+⭐ **Every row below is a hazard, not an assignment.** The tool ships each
+shape with its own flags. Check the manual before you build one. A caller who
+builds them again owns a second copy of a solved problem.
 
 | the shape | why it is needed |
 | --- | --- |

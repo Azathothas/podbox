@@ -58,7 +58,7 @@ judging the tree.
 
 ⛔ **These were here and were removed.** A tool kept in two repositories
 acquires two sets of defects, and one of the two never gets fixed. Two of the
-four below were carrying a defect their upstream had already fixed on the day
+four removed were carrying a defect their upstream had already fixed on the day
 they left. [`history/twins-and-scripts.md`](history/twins-and-scripts.md) has
 the comparison, including the two that had not drifted.
 
@@ -66,13 +66,22 @@ the comparison, including the two that had not drifted.
 reference runs code nobody reviewed. [`containers.md`](containers.md) has the
 worked shape of a pinned wrapper and what it cost to get right.
 
+⛔ **Where a row links a skill, read the skill and not the row.** Upstream
+writes one page per use and generates it against the executable's own manual.
+That page stays current in a way no summary here can. This repository once
+described a product shape that upstream later deleted. The correction arrived
+from outside rather than from anybody here.
+[`history/upstream-tool-shape.md`](history/upstream-tool-shape.md) keeps the
+retired wording.
+
 | tool | upstream | what it does |
 | --- | --- | --- |
-| `wsl-toolkit` | [`Azathothas/ToolKit`](https://github.com/Azathothas/ToolKit) | surveys the host, owns one WSL distro with a container engine in it, runs a command in a container or a set of them, and removes what it made. ⭐ Two products, one of them compiled. [`containers.md`](containers.md) is the procedure. |
+| `wsl-toolkit` | [`Azathothas/ToolKit`](https://github.com/Azathothas/ToolKit) | surveys the host, owns one WSL distro with a container engine in it, runs a command in a container or a set of them, and removes what it made. [`containers.md`](containers.md) is the procedure; the [skill](https://github.com/Azathothas/ToolKit/blob/main/skills/wsl-toolkit/SKILL.md) is how to drive it. |
+| `wsl-toolkit-agents` | [`Azathothas/ToolKit`](https://github.com/Azathothas/ToolKit) | runs a coding agent inside a base and reads back the model and the effort it started on. A [skill](https://github.com/Azathothas/ToolKit/blob/main/skills/wsl-toolkit-agents/SKILL.md), not a second binary. |
 | `git-sync` | [`Azathothas/ToolKit`](https://github.com/Azathothas/ToolKit) | commit and push with [`conventions/git.md`](conventions/git.md)'s rules enforced rather than remembered |
 | `fill-license` | [`Azathothas/ToolKit`](https://github.com/Azathothas/ToolKit) | writes a canonical license with the holder filled in and refuses notices that are not yours to alter. podbox's selected text is [`../LICENSE`](../LICENSE). |
 | `deslop` | [`Azathothas/ToolKit`](https://github.com/Azathothas/ToolKit) | inventories the files in a tree that address a reader as an agent. [`methodology/lean-adoption.md`](methodology/lean-adoption.md) is the procedure. |
-| `write-file` | [`Azathothas/ToolKit`](https://github.com/Azathothas/ToolKit) | writes or patches a file without the shell touching the payload. [`conventions/shell.md`](conventions/shell.md) section 1 is why that matters. |
+| ⭐ `text-tool` | [`Azathothas/ToolKit`](https://github.com/Azathothas/ToolKit) | writes or patches a file without the shell touching the payload, and refuses a substitution whose match count you did not state. [`conventions/shell.md`](conventions/shell.md) section 1 is why that matters; the [skill](https://github.com/Azathothas/ToolKit/blob/main/skills/text-tool/SKILL.md) is how to drive it. |
 
 ---
 
