@@ -103,7 +103,7 @@ anything. ⛔ Probe by RUNNING the tool, not by finding it.
 | lint PowerShell | [`PSScriptAnalyzer`](https://github.com/PowerShell/PSScriptAnalyzer) | the same, on the half a POSIX linter cannot see |
 | time a command honestly | [`hyperfine`](https://github.com/sharkdp/hyperfine) | a single `time` run is not a measurement. [`methodology/experiments.md`](methodology/experiments.md) says what one owes. |
 | count lines of code | [`scc`](https://github.com/boyter/scc) or [`tokei`](https://github.com/XAMPPRocky/tokei) | ⚠ counters disagree about blank and comment lines, so name which one produced a number |
-| ⭐ find where something is in the code | [`codegraph`](https://github.com/colbymchenry/codegraph) | ⛔ **it answers before `grep` does.** One call returns the relevant symbols' source, the call paths between them, and the dynamic-dispatch hops a text search cannot follow. `codegraph sync` first, then `codegraph explore "<question>"`. |
+| ⭐ find where something is in the code | [`codegraph`](https://github.com/colbymchenry/codegraph) | ⛔ **it answers before `grep` does.** `codegraph sync` first, then `explore "<question>"` for symbols with source and call paths, `query` for one symbol, `node` for one symbol or file, `callers` / `callees` / `impact` for change questions. A text search then confirms one line. Prose documents are not symbols: search them directly. |
 | search a tree for one string | [`rg`](https://github.com/BurntSushi/ripgrep) | ⚠ second, not first. It locates a line and confirms nothing, and it cannot see a call. Use it after CodeGraph has said what exists, and open the file. |
 | run something on Linux from Windows | `wsl-toolkit`, above | never install a distro by hand and leave it registered. [`containers.md`](containers.md). |
 
