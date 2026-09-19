@@ -102,6 +102,22 @@
     ftw64;
     nftw;
     nftw64;
+    setuid;
+    setgid;
+    seteuid;
+    setegid;
+    setreuid;
+    setregid;
+    setresuid;
+    setresgid;
+    setgroups;
+    getuid;
+    geteuid;
+    getgid;
+    getegid;
+    getgroups;
+    getresuid;
+    getresgid;
   local:
     *;
 };

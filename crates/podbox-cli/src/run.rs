@@ -27,6 +27,11 @@ pub const RUN_OPTIONS: &str = "\
   --rm             remove the extracted rootfs when the payload exits
   -e, --env K=V    set an environment variable. Repeatable; a later one wins
   -w, --workdir D  working directory inside the container
+  -u, --user U:G   run as this identity: numeric uid and gid, or names from
+                   the image's own passwd and group files. The requested id
+                   is answered through the interposer identity memo for a
+                   reachable payload, which the banner names and --strict
+                   refuses (TODO/interpose.md T-0711)
   --entrypoint P   replace the image's entrypoint. ⚠ As docker: this also
                    drops the image's Cmd, because those were that
                    entrypoint's default arguments
@@ -111,6 +116,9 @@ struct Opts {
     tty: bool,
     image: Option<String>,
     command: Vec<String>,
+    /// `--user`. Carried raw here and resolved against the image once its
+    /// rootfs exists, because a name means the image's own passwd entry.
+    user: Option<String>,
     /// M5 and T-0804. ⚠ Carried in one struct so `run`, `create` and the
     /// launcher cannot each grow their own copy of the same three answers.
     ask: crate::complete::Ask,
@@ -138,6 +146,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
         tty: false,
         image: None,
         command: Vec::new(),
+        user: None,
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -152,6 +161,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                 "--platform" => o.platform = Some(a.clone()),
                 "--pull" => o.pull = a.clone(),
                 "--name" => o.name = Some(a.clone()),
+                "--user" => o.user = Some(a.clone()),
                 "--add-host" => crate::complete::add_host(&mut o.ask, verb, a)?,
                 _ => o.insecure.push(a.clone()),
             }
@@ -196,6 +206,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             }
             "-e" | "--env" => expecting = Some("-e"),
             "-w" | "--workdir" => expecting = Some("-w"),
+            "-u" | "--user" => expecting = Some("--user"),
             "--entrypoint" => expecting = Some("--entrypoint"),
             "--platform" => expecting = Some("--platform"),
             "--pull" => expecting = Some("--pull"),
@@ -210,6 +221,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             "--no-steps" => o.ask.no_steps = true,
             "--strict" => o.ask.strict = true,
             other if other.starts_with("--env=") => o.env.push(other[6..].to_string()),
+            other if other.starts_with("--user=") => o.user = Some(other[7..].to_string()),
             other if other.starts_with("--workdir=") => o.workdir = Some(other[10..].to_string()),
             other if other.starts_with("--entrypoint=") => {
                 o.entrypoint = Some(other[13..].to_string())
@@ -485,6 +497,11 @@ pub(crate) fn prepare(
         return Err(EXIT_FLAG_ERROR);
     }
     let mut env = Plan::env_for(&cfg.config.env, &o.env);
+    // ⭐ T-0711: the requested identity travels in the environment, resolved
+    // against the image, before anything classifies the payload: the object
+    // reads it on first use in every process, which is what survives fork
+    // and exec where a file descriptor would need re-handing.
+    crate::lifecycle::apply_user(verb, &rootfs, o.user.as_ref(), &mut env)?;
     // ⭐ T-0702 and T-0706: classify the payload and place the object BEFORE
     // the banner is built, so the banner names the write before anything of
     // the payload's runs. The note joins the banner below.

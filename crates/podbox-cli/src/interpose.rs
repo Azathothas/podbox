@@ -303,6 +303,15 @@ pub fn place(rootfs: &str, object_bytes: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// The variable that carries the requested identity into the payload.
+///
+/// ⚠ The name is shared with `podbox-interpose`, which reads the same bytes
+/// out of its own environ: that crate cannot depend on this one, so the two
+/// spellings are one fact in two homes, and
+/// `experiments/106-interpose-identity.sh` asserts they agree by driving the
+/// behaviour end to end.
+pub const IDENTITY_VAR: &str = "PODBOX_IDENTITY";
+
 /// The `LD_PRELOAD` value with podbox's object first.
 ///
 /// A caller-supplied value keeps working behind it. Podbox first means the
@@ -330,6 +339,13 @@ pub fn apply(verb: &str, rootfs: &str, argv: &[String], env: &mut Vec<String>, n
     let Some(first) = argv.first() else {
         return;
     };
+    // ⭐ T-0711: the requested identity, if any. Named in the banner wherever
+    // the tier loads, because a `getuid` that answers a record must never
+    // read as a kernel answer.
+    let identity = env.iter().rev().find_map(|e| {
+        let (k, v) = e.split_once('=')?;
+        (k == IDENTITY_VAR && !v.is_empty()).then(|| v.to_string())
+    });
     let path_dirs = podbox_enter::Plan::path_from(env);
     match classify(rootfs, first, &path_dirs) {
         Reach::Preload { libc, object } => match place(rootfs, object) {
@@ -348,6 +364,14 @@ pub fn apply(verb: &str, rootfs: &str, argv: &[String], env: &mut Vec<String>, n
                      image's own rootfs and the payload can see it\n",
                     libc.word()
                 ));
+                if let Some(id) = &identity {
+                    note.push_str(&format!(
+                        "podbox: interpose: identity faked to {id} (--user): \
+                         `getuid` and friends answer the record, not the \
+                         kernel, and the run is degraded \
+                         (TODO/interpose.md T-0711)\n"
+                    ));
+                }
             }
             Err(e) => decline(
                 note,
@@ -356,7 +380,15 @@ pub fn apply(verb: &str, rootfs: &str, argv: &[String], env: &mut Vec<String>, n
                 format!("the object could not be placed: {e}"),
             ),
         },
-        Reach::Declined(why) => decline(note, verb, first, why),
+        Reach::Declined(why) => {
+            // ⚠ A declined tier carries no memo, so `--user` changes nothing
+            // here: saying so keeps the flag from reading as honoured.
+            let why = match &identity {
+                Some(id) => format!("{why}; --user {id} has no interposed payload to act through"),
+                None => why,
+            };
+            decline(note, verb, first, why);
+        }
     }
 }
 

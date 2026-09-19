@@ -754,6 +754,109 @@ pub fn platform_and_policy(
     Ok((p, pol))
 }
 
+/// Resolve `--user` into the environment, for T-0711.
+///
+/// ⭐ One call for `run`, `create` and both `exec` paths: the value is the
+/// resolved `UID:GID`, the caller's own spelling under the same name loses,
+/// and a name means the image's own files. `None` changes nothing.
+pub fn apply_user(
+    verb: &str,
+    rootfs: &str,
+    user: Option<&String>,
+    env: &mut Vec<String>,
+) -> Result<(), i32> {
+    let Some(spec) = user else {
+        return Ok(());
+    };
+    let (uid, gid) = resolve_user(verb, rootfs, spec)?;
+    env.retain(|e| e.split('=').next().unwrap_or("") != crate::interpose::IDENTITY_VAR);
+    env.push(format!("{}={uid}:{gid}", crate::interpose::IDENTITY_VAR));
+    Ok(())
+}
+
+/// Resolve `--user UID[:GID]` against the image, for T-0711.
+///
+/// Either side is a decimal id or a name from the image's own files: the
+/// missing group means the user's own, as docker resolves it. Anything else
+/// is the caller's mistake and refuses as a flag error, naming what was
+/// asked for rather than running as somebody unintended.
+pub fn resolve_user(verb: &str, rootfs: &str, spec: &str) -> Result<(u32, u32), i32> {
+    fn num(s: &str) -> Option<u32> {
+        if s.is_empty() || s.len() > 10 || !s.bytes().all(|c| c.is_ascii_digit()) {
+            return None;
+        }
+        s.parse().ok()
+    }
+    /// The `UID` and primary `GID` for `want` in the image's own passwd
+    /// file: fields 2 and 3 past the name. A name that is not there is
+    /// `None`, not zero.
+    fn passwd(rootfs: &str, want: &str) -> Option<(u32, u32)> {
+        let text = std::fs::read_to_string(format!("{rootfs}/etc/passwd")).ok()?;
+        for line in text.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let mut fields = line.split(':');
+            if fields.next() != Some(want) {
+                continue;
+            }
+            fields.next()?;
+            let uid: u32 = fields.next()?.trim().parse().ok()?;
+            let gid: u32 = fields.next()?.trim().parse().ok()?;
+            return Some((uid, gid));
+        }
+        None
+    }
+    /// The id for `want` in the image's own group file: field 2 past the
+    /// name. A name that is not there is `None`, not zero.
+    fn lookup(rootfs: &str, want: &str) -> Option<u32> {
+        let text = std::fs::read_to_string(format!("{rootfs}/etc/group")).ok()?;
+        for line in text.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let mut fields = line.split(':');
+            if fields.next() != Some(want) {
+                continue;
+            }
+            fields.next()?;
+            return fields.next()?.trim().parse().ok();
+        }
+        None
+    }
+    let (user, group) = match spec.split_once(':') {
+        Some((u, g)) => (u, Some(g)),
+        None => (spec, None),
+    };
+    // ⭐ A bare name means that user's own primary group from the image's
+    // passwd file, not the uid repeated: the two agree on most images and
+    // differ exactly where inventing one would run as somebody unintended.
+    let (uid, primary) = match num(user) {
+        Some(u) => (Some(u), None),
+        None => match passwd(rootfs, user) {
+            Some((u, g)) => (Some(u), Some(g)),
+            None => (None, None),
+        },
+    };
+    let gid = match group {
+        Some(g) => num(g).or_else(|| lookup(rootfs, g)),
+        None => primary.or(uid),
+    };
+    match (uid, gid, group) {
+        (Some(u), _, None) => Ok((u, gid.unwrap_or(u))),
+        (Some(u), Some(g), _) => Ok((u, g)),
+        _ => {
+            eprintln!(
+                "podbox {verb}: --user takes uid[:gid] with decimal ids or names \
+                 from the image's own passwd and group files, not {spec:?}"
+            );
+            Err(podbox_image::error::EXIT_FLAG_ERROR)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -817,6 +920,34 @@ mod tests {
             f.iter().find(|(k, _)| *k == "ExitCode").unwrap().1,
             "-".to_string()
         );
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// ⛔ A bare name means the passwd file's primary group, not the uid
+    /// repeated: the plant is a user whose gid differs from its uid, and
+    /// the old `(u, u)` answer fails it (TODO/interpose.md T-0711).
+    #[test]
+    fn a_bare_user_name_takes_its_primary_group_from_the_image() {
+        let d = std::env::temp_dir().join(format!("podbox-user-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("etc")).unwrap();
+        std::fs::write(
+            d.join("etc/passwd"),
+            "root:x:0:0:root:/root:/bin/sh\napp:x:1000:100:app::/bin/sh\n",
+        )
+        .unwrap();
+        std::fs::write(
+            d.join("etc/group"),
+            "root:x:0:\napp:x:100:app:\nwheel:x:10:app\n",
+        )
+        .unwrap();
+        let root = d.to_string_lossy().to_string();
+        assert_eq!(resolve_user("run", &root, "app"), Ok((1000, 100)));
+        assert_eq!(resolve_user("run", &root, "1000"), Ok((1000, 1000)));
+        assert_eq!(resolve_user("run", &root, "app:wheel"), Ok((1000, 10)));
+        assert_eq!(resolve_user("run", &root, "1000:100"), Ok((1000, 100)));
+        assert!(resolve_user("run", &root, "nobody").is_err());
+        assert!(resolve_user("run", &root, "app:nogroup").is_err());
         let _ = std::fs::remove_dir_all(&d);
     }
 

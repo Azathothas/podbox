@@ -29,6 +29,8 @@ usage: podbox exec [options] <image> <command> [arg...]
 
   -e, --env K=V    set an environment variable. Repeatable; a later one wins
   -w, --workdir D  working directory inside the container
+  -u, --user U:G   as in run: fake the identity through the interposer memo
+                   (TODO/interpose.md T-0711)
   --platform P     which platform of a multi-platform image to enter
   --add-host N:IP  add a name to the container's /etc/hosts. Repeatable
   --no-source-fixup
@@ -74,6 +76,8 @@ struct Opts {
     tty: bool,
     image: Option<String>,
     command: Vec<String>,
+    /// `--user`, resolved against the re-entered rootfs like `run` does.
+    user: Option<String>,
     ask: crate::complete::Ask,
 }
 
@@ -87,6 +91,7 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
         tty: false,
         image: None,
         command: Vec::new(),
+        user: None,
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -96,6 +101,7 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
                 "-e" => o.env.push(a.clone()),
                 "-w" => o.workdir = Some(a.clone()),
                 "--add-host" => crate::complete::add_host(&mut o.ask, "exec", a)?,
+                "--user" => o.user = Some(a.clone()),
                 _ => o.platform = Some(a.clone()),
             }
             continue;
@@ -125,6 +131,7 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
             }
             "-e" | "--env" => expecting = Some("-e"),
             "-w" | "--workdir" => expecting = Some("-w"),
+            "-u" | "--user" => expecting = Some("--user"),
             "--platform" => expecting = Some("--platform"),
             "--add-host" => expecting = Some("--add-host"),
             other if other.starts_with("--add-host=") => {
@@ -135,6 +142,7 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
             "--no-steps" => o.ask.no_steps = true,
             "--strict" => o.ask.strict = true,
             other if other.starts_with("--env=") => o.env.push(other[6..].to_string()),
+            other if other.starts_with("--user=") => o.user = Some(other[7..].to_string()),
             other if other.starts_with("--workdir=") => o.workdir = Some(other[10..].to_string()),
             other if other.starts_with("--platform=") => o.platform = Some(other[11..].to_string()),
             other if other.starts_with('-') => {
@@ -185,6 +193,11 @@ fn enter(
     // subject is that this shares the filesystem and NOTHING else, and silently
     // copying the original's environment would be the implication it refuses.
     let mut env = podbox_enter::Plan::env_for(&[], &o.env);
+    // ⭐ T-0711: the requested identity, resolved against the re-entered
+    // rootfs exactly as `run` resolves it against the extracted one.
+    if let Err(code) = crate::lifecycle::apply_user("exec", rootfs, o.user.as_ref(), &mut env) {
+        return code;
+    }
     // ⭐ T-0702 and T-0706, as in `run`: a fresh chroot re-entry is a fresh
     // payload, so it is classified and placed again rather than inheriting
     // the first entry's answer.
@@ -352,6 +365,12 @@ pub fn exec(args: &[String]) -> i32 {
     // second entry is a process the caller did not write.
     let argv = o.command.clone();
     let mut env = Plan::env_for(&cfg.config.env, &o.env);
+    // ⭐ T-0711: the one call, as on the container path above: a second
+    // spelling of the same resolve-and-set would be the second copy
+    // `docs/conventions/code.md` refuses.
+    if let Err(code) = crate::lifecycle::apply_user("exec", &rootfs, o.user.as_ref(), &mut env) {
+        return code;
+    }
     // ⭐ T-0702 and T-0706, as on the container path above: the image path is
     // a second way to reach the same entry, not a second answer to it.
     let mut interpose_note = String::new();

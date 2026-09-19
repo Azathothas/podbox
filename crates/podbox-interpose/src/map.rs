@@ -99,6 +99,46 @@ fn eq(a: *const u8, b: *const u8, len: usize) -> bool {
     true
 }
 
+/// The value of one `NAME=VALUE` entry, or `None` where the entry is some
+/// other variable. The length check runs first so the compare never reads
+/// past a short string's NUL.
+fn match_var(e: *const c_char, name: &[u8]) -> Option<*const u8> {
+    if strnlen(e, name.len()) == name.len()
+        && eq(e as *const u8, name.as_ptr(), name.len())
+        && unsafe { *(e as *const u8).add(name.len()) } == b'='
+    {
+        Some(unsafe { (e as *const u8).add(name.len() + 1) })
+    } else {
+        None
+    }
+}
+
+/// The value of one variable, as pointer and length into environ memory.
+///
+/// `None` where the variable is absent. Used for the small podbox-owned
+/// variables (`PODBOX_MAPS` goes through [`parse`]; this serves the rest)
+///
+/// # Safety
+/// Reads the process's environ, which the kernel keeps valid.
+pub unsafe fn lookup_env(name: &[u8]) -> Option<(*const u8, usize)> {
+    let env = unsafe { environ };
+    if env.is_null() {
+        return None;
+    }
+    let mut i = 0usize;
+    while i < 4096 {
+        let e = unsafe { *env.add(i) };
+        if e.is_null() {
+            break;
+        }
+        if let Some(v) = match_var(e, name) {
+            return Some((v, strnlen(v as *const c_char, 65536)));
+        }
+        i += 1;
+    }
+    None
+}
+
 /// Parse the table out of one environ image.
 ///
 /// `env` is the NUL-terminated `NAME=VALUE` pointers; the tests hand it a
@@ -123,13 +163,9 @@ pub unsafe fn parse(env: *const *const c_char) -> Table {
         if e.is_null() {
             break;
         }
-        // `PODBOX_MAPS=` then the pairs. The length check runs first so the
-        // prefix compare never reads past a short string's NUL.
-        if strnlen(e, var.len()) == var.len()
-            && eq(e as *const u8, var.as_ptr(), var.len())
-            && unsafe { *(e as *const u8).add(var.len()) } == b'='
-        {
-            parse_pairs(unsafe { (e as *const u8).add(var.len() + 1) }, &mut t);
+        // `PODBOX_MAPS=` then the pairs.
+        if let Some(v) = match_var(e, var) {
+            parse_pairs(v, &mut t);
             break;
         }
         i += 1;

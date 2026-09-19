@@ -892,7 +892,7 @@ Source:      `TOOL.md` section 6.7; `references/salsa-debian__fakeroot/tree/libf
 Category:    interpose
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     A payload that is already uid 0 still calls `setuid`, `setgid` and
              `setgroups`, and on the runtimes podbox targets they fail. A
@@ -959,6 +959,42 @@ Prove:       `./experiments/106-interpose-identity.sh`, which runs a payload
              picks, and asserts the BANNER says the same thing the call did --
              because the failure this entry exists to prevent is podbox and its
              own output disagreeing about who the payload is.
+
+
+**Done 2026-09-19.** The ruling's both halves are implemented, and `106`
+drives them end to end with `experiments/results/interpose-identity.txt`
+carrying the run: 14 checks, exit 0. Without the flag the object calls
+through and names the failure with its errno (clause A holds the loaded
+report identical to the bare one, musl honest checked against the same
+kernel's bare glibc lines in C0); with `--user 1000:100` the setters
+answer 0 and every getter answers the record on both libcs (B, C,
+including `setreuid(2000,-1)` reporting `2000:1000:1000`, the kernel's
+saved-follows-effective rule); `podbox run --user` makes `id` answer the
+request on both libcs with the banner naming the faked identity (D);
+`--strict` refuses naming `--user` through its Degraded parity row (E);
+and a static payload with `--user` is declined by name and still runs (F).
+
+The shape the entry ruled: `run`, `create` and both `exec` paths resolve
+`--user` through one call (`crates/podbox-cli/src/lifecycle.rs`
+`apply_user`, numeric ids or names from the image's own files, a bare
+name taking its primary group from passwd) into `PODBOX_IDENTITY`, which
+the object reads per process with no lock and no allocation
+(`crates/podbox-interpose/src/identity.rs`), surviving `fork` by copy
+and `execve` by re-read. The sixteen identity entry points are declared
+in `interpose.map` and asserted against it by `105` check A. What the
+entry's `Approach` still names as owed, the errno-by-call measurement
+on a real target deciding the honest refusal's shape, stays open as
+follow-up work, not as this entry: the default no longer depends on it.
+
+⚠ **Two substitutions this run records.** The job container cannot run a
+docker daemon (dockerd fails creating the DOCKER chain, `iptables ...
+Permission denied`, measured 2026-09-19), so clauses A, B and C0 run the
+victims directly rather than under `docker run -v`: the fake answers the
+record with or without a wall, and the control compares bare against
+loaded rather than against the kernel, which is why no clause asserts an
+absolute honest-failure rc. The musl victim cannot execute on the glibc
+job container (its interpreter is the absent musl loader), so clause C
+runs it staged inside the alpine rootfs through podbox itself.
 
 
 ---

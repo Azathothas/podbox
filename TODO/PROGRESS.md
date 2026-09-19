@@ -5,14 +5,15 @@
 M0 through M5 are implemented. M6 is partial: the interposer builds for glibc
 and musl, the shipped binary EMBEDS both, and since 2026-09-18 it PLACES the
 selected object inside the rootfs, CLASSIFIES the payload with a named
-decline, and REWRITES mapped paths across 88 entry points. The ownership-memo
-move to the host, the identity measurement, and end-to-end acceptance remain
-open. M7 packaging has not started. ⭐ **M8 is the
+decline, and REWRITES mapped paths across 88 entry points. Since 2026-09-19
+it also FAKES the identity under `--user` and refuses honestly without it.
+The ownership-memo move to the host and end-to-end acceptance remain open.
+M7 packaging has not started. ⭐ **M8 is the
 nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-132 entries: 37 open, 3 partial, 0 blocked, 92 done.
+132 entries: 36 open, 3 partial, 0 blocked, 93 done.
 
 ## Baseline
 
@@ -62,69 +63,55 @@ stdout, which the scripts print before they copy.
 and still have to be green. [RULES.md](RULES.md) section 2 carries it, and a
 publish branch is the fallback if protection is ever restored.
 
-## What the last session did
+## What this session did
 
-Session of 2026-09-18. It closed the work order's item 1: [T-0702](interpose.md)
-placement with [T-0706](interpose.md) classification, both `done`. The
-[T-0215](image.md) record it replaced lives in the entries and in
-[`docs/history/sessions/`](../docs/history/sessions/).
+Session of 2026-09-19. It reconciled the dirty tree the prior session left:
+the T-0711 identity implementation, uncommitted, with no proof script and a
+red gate citation. It finished the implementation, proved it, and closed the
+entry.
 
-⭐ **The tier now reaches a dynamic payload and declines the rest by name.**
-`crates/podbox-cli/src/interpose.rs` classifies the payload ELF once
-(`PT_INTERP`, Go markers, architecture, T-0709's version assertion through
-the decline channel), writes the selected object to `/.podbox/interpose.so`
-inside the rootfs before the chroot, and sets `LD_PRELOAD` with podbox's
-object first. `run`, `exec` on both paths, and `create` share the one call.
-A decline never fails the run. `experiments/159-interpose-placement.sh`
-carries the acceptance and `experiments/results/interpose-placement.txt`
-the run: placed and preloaded for `sh`, declined naming the static payload
-with exit 0, Go markers proved by unit test with no image invented.
+⭐ **The identity tier answers the operator's ruling with both behaviours.**
+The default calls through and names the failure with its errno; `--user`
+turns on the fakeroot behaviour for `run`, `create` and both `exec` paths
+through one resolve call, answered from a per-process record with no lock
+and no allocation. `experiments/106-interpose-identity.sh` drives all six
+clauses with `experiments/results/interpose-identity.txt` carrying the run:
+14 checks, exit 0, honest default identical to bare, faked record on both
+libcs, banner naming the fake, `--strict` refusing through the Degraded
+parity row, declined static payload still running.
 
-⭐ **The first shape declined every dynamic payload, and the mechanism is
-the entry's own subject.** Alpine's `/bin/sh` is an absolute link to
-`/bin/busybox`, which names the host's file when read from outside and the
-image's from inside. The resolver now walks the guest path the way the
-guest kernel would. Three entry `Prove` lines were unrunnable as written
-and are amended with the reason in the entries: `-v` is refused so the
-static binary stages by `extract` plus copy plus `run`, and the chroot has
-no `/proc` so the environ is read through `env`.
+Two defects found while reconciling, both fixed in the same change: the
+`exec` image path duplicated the resolve-and-set instead of calling the one
+function, and a bare user name resolved its group as the uid repeated
+rather than its primary group from the image's passwd file, with a
+regression test whose plant (`app` at `1000:100`) fails the old shape.
+A third, in review: `setreuid`/`setregid` with a `-1` effective recorded
+the saved id as the real one, where the kernel sets it to the (unchanged)
+effective; the victim covers it and the run proves it.
 
-⚠ **Red runs that are not this change.** `cargo test --workspace` fails
-`podbox-image` lock-table tests with "already holds 16 locks" on trees
-whose new tests hold no store lock: 3 failures, then clean, then 4 (one of
-them the [T-0215](image.md) instrument's own benign window), then 6
-(including T-0215's deterministic guard), then 1, then 5, each clean on
-some re-run of the same tree. The guard is deterministic in isolation; the
-TABLE is the shared constraint, and the count moves with scheduling luck,
-not with the tree. That is the flaky class [T-1204](gate.md)'s
-neighbourhood owns: one pass is not evidence for a racy suite. It is
-recorded here and not acted on. A second instance failed four tests the same way, one of them the
-[T-0215](image.md) instrument's own benign window, and also passed on
-re-run.
+⚠ **The lock-table flake fired three times today and went quiet the fourth.**
+`cargo test --workspace` on this tree read 6 failures, then 5, then 0 of
+344, all in the `podbox-image` store lock-table tests with the recorded
+"already holds 16 locks" refusal. Same tree, same message as the 2026-09-18
+readings, count moving with scheduling luck. The green fourth pass is the
+gate this change commits against.
 
-⭐ **This session then closed [T-0703](interpose.md) as well.** `161`
-drives the rewrite on both libcs with the memo proved by privilege drop.
-Two readers found while proving it: the classifier could not see Debian's
-libc (multiarch split; a bounded structural search now), and it refused
-every gcc-built object (the `_Unwind_Resume@GCC_3.0` import lives in
-`libgcc_s.so.1`; the check now runs against the link set). Both live in
-their entries with the runs.
-
-⭐ **And [T-1110](milestones.md) with [T-0712](interpose.md): the M6
-acceptance exists.** `experiments/245-interpose-sweep.sh` drives all ten
-matrix rows with one subject: 10 ran, 10 virtualized, 20 declined, 0
-host_not_runtime, every selection asserted on bytes, both cross-libc
-refusals deliberate, transcripts in `experiments/results/sweep245/`. The Go
-victim is generated (`experiments/src/govictim.sh`), and clause 1 of `250`
-is green. Two readers fell out: void links its loader absolutely (in-root
-resolution now), and `250` clause 2 stays red on image content no session
-shipped (counted 4, 5 and 6 ways across identical runs; none of the reasons
-names interposition).
+⚠ **Red runs that are not this change.** The job container cannot run a
+docker daemon today: dockerd fails creating the DOCKER NAT chain with
+`iptables ... Permission denied (you must be root)`, measured 2026-09-19,
+so the outer container holds no NET_ADMIN. The daemon's own log carries
+it, retrieved through a diagnostic job. `106` routes around it (victims
+run directly; the fake is wall-independent by design) and records the
+substitution. `105`, `159`, `161` and `245` need docker and could not run
+in this environment today; they were green on 2026-09-18 in the same base,
+and the cause of the change is unknown. Reopen condition: a job container
+with NET_ADMIN, or a base-level daemon the jobs can reach.
 
 ## Current work order
 
-1. [T-0710](interpose.md) and [T-0711](interpose.md): implement the two rulings
-   the operator settled on 2026-09-11. Both are written into the entries.
+1. [T-0710](interpose.md): move the ownership memo to the host, beside the
+   container record, with the bounded read. The ruling is written into the
+   entry; what is left is the implementation and check G.
 2. [T-1209](gate.md): the 37 remaining `Prove` lines that pull from Docker Hub,
    the mapping that decides each replacement, and the check and plant that stop
    the next one. ⚠ Take the mapping and the sweep before the check: the check
@@ -146,8 +133,9 @@ names interposition).
 
 ## In progress
 
-No implementation entry is half-written and nothing is uncommitted. Three entries
-are `partial`: [T-0503](enter.md), [T-0704](interpose.md) and
+No implementation entry is half-written. One entry is newly `done` in this
+change and goes out with it: [T-0711](interpose.md). Three entries remain
+`partial`: [T-0503](enter.md), [T-0704](interpose.md) and
 [T-1109](milestones.md), each carrying its remaining conditions in its own file.
 
 [T-0408](complete.md) is `open` rather than `done` for the simpler reason that
@@ -181,21 +169,11 @@ to [T-0503](enter.md). [T-0414](complete.md) is the probe leg for it, and that
 entry also carries the second denial only one instance of the class has shown:
 `readdir("/")` answering `EACCES`.
 
-⛔ **Nothing is blocked.**
+⛔ **Nothing is blocked.** The docker-daemon gap above stops the docker-driven
+experiment clauses, not the work: `106` proves the substitution, and the next
+docker-driven item names its own route when it gets there.
 
 ## What the next session should decide, and neither needs the operator
-
-⭐ **The fork this section carried is settled by measurement.** It asked whether
-the eight unregistered `Lock` sites were a product defect or a test-shape one.
-They are registered, the rate did not move, and [T-0215](image.md) records the
-change as kept on [T-0211](image.md)'s invariant. The race itself is closed and
-was neither of those things.
-
-⭐ **The Go row is settled the second way.** [T-0706](interpose.md)'s row 3 is
-proved by unit test over the four Go section names, with no image invented,
-and the entry records that as the answer. What is left of
-[T-1209](gate.md)'s mapping question is the general rule for future rows,
-not this case.
 
 One is open and it needs no operator:
 
@@ -203,6 +181,9 @@ One is open and it needs no operator:
   T-0215 is closed, so nothing is red today, but CI reported green for a suite
   that failed two runs in five and a single run is still not evidence for a racy
   one. That is [T-1204](gate.md)'s neighbourhood and it needs a ruling before
-  the next intermittent check arrives. This session added one more reading for
-  it: three `podbox-image` lock-table tests failed once with "already holds 16
-  locks" and passed on re-run of the same tree.
+  the next intermittent check arrives.
+
+The two this section carried before are settled: the eight unregistered `Lock`
+sites were a test-shape question answered by measurement on [T-0211](image.md)'s
+invariant, and [T-0706](interpose.md)'s Go row is proved by unit test with no
+image invented.

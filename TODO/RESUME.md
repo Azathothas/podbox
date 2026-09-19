@@ -1,20 +1,30 @@
 ## The task
 
-Session of 2026-09-18. It starts at `2026-09-18T15:03:32Z`. It works the order in [PROGRESS.md](PROGRESS.md). Items 1, 2 and 3 are done and committed: T-0702 with T-0706, T-0703, then T-1110 with T-0712. Item 4, T-0710 and T-0711, is next.
+Session of 2026-09-19. It reconciled the dirty tree the prior session left
+(T-0711 identity implementation, uncommitted) and continued the work order in
+[PROGRESS.md](PROGRESS.md). It closed [T-0711](interpose.md) with its proof.
 
 ## The resume point
 
-[PROGRESS.md](PROGRESS.md) carries the work order. Item 1 is [T-0710](interpose.md) and [T-0711](interpose.md), the two ruled implementations.
+[PROGRESS.md](PROGRESS.md) carries the work order. Item 1 is
+[T-0710](interpose.md), the host-side ownership memo with its bounded read.
 
 ## In flight
 
-Nothing is half-written. The tree is clean and the gate is green.
+Nothing is half-written. The tree is clean and the gate is green: host
+`check-todo.py`, markers, secrets and fmt pass; the guest ran the full
+`dev.sh check` green apart from the recorded lock-table flake, and a fourth
+`cargo test --workspace` pass on the same tree reads 344 passed, 0 failed.
 
 ## The state of the tree
 
-Clean, on `main`. `check-todo.py` passes through `py`: 132 rows, 37 open, 3 partial, 0 blocked, 92 done. The guest ran the full `dev.sh check` green plus 105 (A/B, CDE need docker), 159, 161 and 245 with 250 clause 1; reports are tracked under `experiments/results/`. The host gate passes. This session's guest jobs are removed; the four older ones stay as found.
+Clean, on `main`, after the commit this session ends with. `check-todo.py`
+passes: 132 rows, 36 open, 3 partial, 0 blocked, 93 done. `106` is green
+with `experiments/results/interpose-identity.txt` tracked.
 
-Findings kept: the flaky lock-table reds (recorded in PROGRESS for T-1204); three amended `Prove` lines with reasons; `250` clause 2 red on image content (recorded, owned elsewhere).
+Findings kept: the job container cannot run dockerd (no NET_ADMIN,
+measured 2026-09-19; `106` routes around it); the lock-table flake fired
+6, 5, then 0 of 344 across three same-tree passes today.
 
 ## The paste
 
