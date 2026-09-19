@@ -147,7 +147,7 @@ unsafe fn dev_ino(st: *const c_void) -> (u64, u64) {
 unsafe fn report(st: *mut c_void) {
     let (dev, ino) = unsafe { dev_ino(st) };
     match memo::lookup(dev, ino) {
-        memo::Lookup::Miss | memo::Lookup::BeyondCeiling => return,
+        memo::Lookup::Miss | memo::Lookup::BeyondCeiling => (),
         memo::Lookup::Hit(o) => {
             let b = st as *mut u8;
             unsafe {
