@@ -8,19 +8,19 @@ docker daemon, so engine clauses run on host podman.
 
 ## The resume point
 
-T-1209 in progress: Prove-block scan measured 41 violating lines plus 2
-history notes to reword plus 1 tag alignment, against the entry's 37.
-Sweep next, then the check and plant.
+T-1209 closed. Next: T-1210 (convert 80, 100, 245 through
+`experiments/lib/engine.sh`, run each on host podman, record the runs).
 
 ## In flight
 
-Nothing half-written. Tree clean on main at `bfe7ef4`. Host podman answers
-(5.8.6 client, linux backend). `check-todo.py` green at start.
+Commit B (check 21 + plant 21a/21b + T-1209 close) staged but uncommitted.
+Tree on main at `f1e423a` plus the staged change.
 
 ## The state of the tree
 
-Clean, on main. Host `check-todo.py` green (exit 0). Guest/workspace checks
-not yet run this session.
+`check-todo.py` green with the new check (`prove_registry=136`); `plant.sh`
+26 caught, 0 missed, 3 controls quiet. Counts: 136 entries, 38 open,
+3 partial, 0 blocked, 95 done.
 
 ## The paste
 

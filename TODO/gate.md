@@ -560,7 +560,7 @@ Source:      Found while correcting [T-0702](interpose.md)'s `Prove` for the sam
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     ⛔ **A `Prove` line IS the acceptance**, because [RULES.md](RULES.md)
              section 5 closes an entry on that command actually run. So the rule
@@ -677,6 +677,34 @@ Decision:    ⭐ **Taken on 2026-09-12: the sweep is one entry and not 41
              A warning nobody has to clear is a comment, and the gate here is an
              assertion or it is decoration.
 Prove:       `./scripts/check-todo.py` exits 0 with the new check in place, and `./scripts/plant.sh` reddens it by name
+
+**Done 2026-09-19.** The mapping, the sweep and the check, in two changes.
+The sweep moved 41 violating `Prove` lines to their `DISTRO_ROWS_M5` rows in
+the same ten files the Premise names, aligned the [T-0408](complete.md) tag
+to its row, reworded the two history notes in [T-0702 and
+T-0706](interpose.md) to name the defect without the literal so their
+`Prove` lines stay fully checked, and stated the mapping and the corrected
+count in this entry. The check and its plant landed together, per
+[T-1202](gate.md): check 21 in `scripts/check-todo.py` with cases 21a and
+21b in `scripts/plant.sh`, one per arm because the two spellings fail apart.
+
+```
+$ py scripts/check-todo.py; echo EXIT:$?
+check-todo: 136 rows, 136 entries, 38 open, 3 partial, 0 blocked, 95 done
+check-todo: coverage bare_citations=1327 ci_components=3 corpus=41 counts=5 crossrefs=478 entries=136 exit_codes=5 experiment_numbers=471 fields=1360 prove_registry=136 rows=136 size_ceiling=232 todo_citations=101 todo_links=559 tree_citations=64 tree_links=342
+check-todo: ok
+EXIT:0
+$ sh scripts/plant.sh; echo EXIT:$?
+  plants   26 caught, 0 missed
+  controls 3 quiet, 0 fired
+  every check that was planted against went red with its own message.
+EXIT:0
+```
+
+⚠ `plant.sh` ran under a `python3` shim on PATH pointing at the real
+interpreter, because this host's `python3` is a Microsoft Store stub that
+exits without running anything. The shim lived for the one command and was
+removed afterwards.
 
 ---
 

@@ -73,6 +73,18 @@
      wrapper, and the wrapper names the component that installs it. TODO/gate.md
      T-1206;
  20. Docker-compatible exit codes are declared in exactly one source file.
+ 21. No `Prove` line pulls from the registry the acceptance may not use.
+     TODO/gate.md T-1209: a `Prove` line IS the acceptance, so the rule that
+     keeps it off Docker Hub applies to every one of them. A `Prove` block
+     (the `Prove:` line and its indented continuations) may name no
+     `docker.io/` reference and no unqualified image reference; every
+     reference is a row of DISTRO_ROWS_M5 in
+     `scripts/common/distro-matrix.sh`. A block re-reading
+     `experiments/results/across/` is exempt: those readings were taken
+     against DISTRO_ROWS_NSSWITCH digests and the same tag at another
+     registry is another image. A bare row name handed to a matrix script
+     is not an image reference: the script resolves it to a pinned digest
+     internally.
 
 ⛔ Read the exit code from this process, unpiped.
 Exit: 0 everything agrees, 1 something disagrees, 2 could not run.
@@ -175,7 +187,7 @@ seen = {
     "todo_citations": 0, "todo_links": 0, "crossrefs": 0,
     "tree_citations": 0, "tree_links": 0, "bare_citations": 0,
     "size_ceiling": 0, "experiment_numbers": 0, "ci_components": 0,
-    "exit_codes": 0,
+    "exit_codes": 0, "prove_registry": 0,
 }
 
 # ⛔ Check 17. The one file allowed to declare the release binary's ceiling, and
@@ -634,6 +646,92 @@ def check_exit_codes(files):
             "TODO/cli.md T-0802.")
 
 
+# ⛔ Check 21. No Prove line pulls from the registry the acceptance may not
+# use. TODO/gate.md T-1209: a Prove line IS the acceptance, because RULES.md
+# section 5 closes an entry on that command actually run, so the rule that
+# keeps the acceptance off Docker Hub applies to every one of them.
+#
+# A Prove BLOCK is the `Prove:` line and its indented continuations: T-0301
+# carries its second command there, and a matcher reading the first line
+# alone misses it. Lines carrying the `known-absent` token are skipped, as
+# checks 14 and 18 skip them; a block re-reading
+# `experiments/results/across/` is exempt, because those readings were taken
+# against DISTRO_ROWS_NSSWITCH digests and the same tag at another registry
+# is another image. A bare row name handed to a matrix script (T-0412's
+# `240-distro-sweep.sh opensuse-leap`) is not an image reference: the script
+# resolves it to a pinned digest internally. That carve-out covers the
+# unqualified arm only; a `docker.io/` reference is a Hub pull wherever it
+# stands.
+PROVE_FIELD = re.compile(r"^Prove:")
+PROVE_ENTRY = re.compile(r"^### (T-\d{4})")
+PROVE_UNQUALIFIED = re.compile(
+    r"(?<![\w./:-])(?:(?:voidlinux/voidlinux-musl|rockylinux/rockylinux"
+    r"|opensuse/leap|library/[A-Za-z0-9._-]+|golang:[A-Za-z0-9._-]+"
+    r"|alpine|debian|ubuntu|archlinux|fedora|almalinux|rocky-minimal"
+    r"|rocky|opensuse-leap|voidlinux-musl)(?::[A-Za-z0-9._-]+)?)"
+    r"(?![\w./:-])"
+)
+PROVE_ACROSS = "experiments/results/across/"
+
+
+def check_prove_registry():
+    """Check 21: Prove blocks name no Docker Hub reference."""
+    for name in sorted(os.listdir(TODO)):
+        if not name.endswith(".md"):
+            continue
+        lines = read(os.path.join(TODO, name)).splitlines()
+        heads = []
+        for i, ln in enumerate(lines):
+            m = PROVE_ENTRY.match(ln)
+            if m:
+                heads.append((i, m.group(1)))
+        for idx, (li, tid) in enumerate(heads):
+            end = heads[idx + 1][0] if idx + 1 < len(heads) else len(lines)
+            start = None
+            for j in range(li, end):
+                if PROVE_FIELD.match(lines[j]):
+                    start = j
+                    break
+            if start is None:
+                continue
+            j = start + 1
+            while j < end and lines[j][:1] in (" ", "\t"):
+                j += 1
+            seen["prove_registry"] += 1
+            block = lines[start:j]
+            if any(PROVE_ACROSS in ln for ln in block):
+                continue
+            for k, ln in enumerate(block):
+                if KNOWN_ABSENT in ln:
+                    continue
+                where = f"TODO/{name}:{start + k + 1}"
+                m = re.search(r"docker\.io/\S*", ln)
+                if m:
+                    err(where,
+                        f"({tid}) Prove names `{m.group(0)}`, which pulls "
+                        f"from Docker Hub. Every Prove reference is a row "
+                        f"of DISTRO_ROWS_M5 in "
+                        f"`scripts/common/distro-matrix.sh`, named by its "
+                        f"fully qualified reference. TODO/gate.md T-1209.")
+                    continue
+                m = PROVE_UNQUALIFIED.search(ln)
+                while m:
+                    # A matrix row handed to a script is resolved to a pinned
+                    # digest inside it, so it is not an image reference.
+                    if re.search(r"\.sh\s+$", ln[:m.start()]):
+                        m = PROVE_UNQUALIFIED.search(ln, m.end())
+                        continue
+                    err(where,
+                        f"({tid}) Prove names an unqualified image "
+                        f"reference `{m.group(0)}`, which resolves through "
+                        f"the engine's shortname aliases to Docker Hub. "
+                        f"Every Prove reference is a row of DISTRO_ROWS_M5 "
+                        f"in `scripts/common/distro-matrix.sh`, named by "
+                        f"its fully qualified reference. "
+                        f"TODO/gate.md T-1209.")
+                    break
+
+
 def main():
     if not os.path.isdir(TODO):
         print("check-todo: TODO/ does not exist", file=sys.stderr)
@@ -856,6 +954,9 @@ def main():
     # -- 19. CI installs what a cargo build needs ----------------------------
     check_ci_components(files)
     check_exit_codes(files)
+
+    # -- 21. Prove lines stay off Docker Hub ---------------------------------
+    check_prove_registry()
 
     # -- 16. coverage --------------------------------------------------------
     # ⭐ A check that examined nothing reports success otherwise, which is the

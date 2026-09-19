@@ -2,8 +2,8 @@
 # plant.sh - break each of the gate's checks on purpose and assert it goes red.
 #
 # ⛔ AN ASSERTION NOBODY HAS SEEN FAIL IS NOT AN ASSERTION. `check-todo.py`
-# carries twenty checks and this script carries twenty-four cases, because
-# check 17 has four assertions that fail apart, and checks 18 and 19 two. A check that
+# carries twenty-one checks and this script carries twenty-six cases, because
+# check 17 has four assertions that fail apart, and checks 18, 19 and 21 two. A check that
 # quietly matches nothing exits 0 exactly like one whose assertions all passed,
 # and the second is what everybody assumes they are looking at. This script is
 # what tells them apart.
@@ -341,6 +341,17 @@ EXIT_DECL="pub"" const EXIT_""RUNTIME_ERROR: i32 = 125;"
 export EXIT_DECL
 case_plant "20 a second exit-code declaration" "already holds docker" \
   sh -c 'printf "\n%s\n" "$EXIT_DECL" >> crates/podbox-supervise/src/lib.rs'
+
+# ⚠ Check 21 has two cases because its two arms fail apart: an unqualified
+# reference and a `docker.io/` reference are different spellings of the same
+# defect, and a matcher reaching for one stops seeing the other. Both plants
+# land on a Prove line in TODO/probe.md, which this script already owns, and
+# both are restored with it.
+case_plant "21a an unqualified image in a Prove line" "unqualified image reference" \
+  sh -c 'sed -i -E "s/(^Prove:.*)public\.ecr\.aws\/docker\/library\/alpine:3\.20/\1alpine:latest/" TODO/probe.md'
+
+case_plant "21b a docker.io image in a Prove line" "which pulls from Docker Hub" \
+  sh -c 'sed -i -E "s/(^Prove:.*)public\.ecr\.aws\/docker\/library\/alpine:3\.20/\1docker.io\/library\/alpine:latest/" TODO/probe.md'
 
 echo
 # ⛔ SAY WHAT IS NOT COVERED. A harness that lists passing cases without naming
