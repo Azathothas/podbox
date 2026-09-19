@@ -185,7 +185,7 @@ the blocker named and what would clear it.
 | [T-1207](gate.md) | P1 | gate | open | The one crate that runs inside other people's processes is the one the gate does not check |
 | [T-1208](gate.md) | P1 | gate | open | A closed entry carries its recorded run, and the gate can see it |
 | [T-1209](gate.md) | P1 | gate | done | Thirty-nine `Prove` lines pull from the one registry the acceptance may not use |
-| [T-1210](gate.md) | P1 | gate | open | Convert the interpose engine scripts to `experiments/lib/engine.sh` |
+| [T-1210](gate.md) | P1 | gate | done | Convert the interpose engine scripts to `experiments/lib/engine.sh` |
 | [T-1211](gate.md) | P1 | gate | open | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
 | [T-1212](gate.md) | P1 | gate | open | Convert the image, registry and CLI engine scripts to `experiments/lib/engine.sh` |
 | [T-1213](gate.md) | P1 | gate | open | Convert the target-image pair and its probe consumer to `experiments/lib/engine.sh` |
@@ -200,7 +200,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-136 items: 38 open, 3 partial, 0 blocked, 95 done.
+136 items: 37 open, 3 partial, 0 blocked, 96 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -209,10 +209,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 2 | 1 | 0 | 49 | 52 |
-| P1 | 23 | 2 | 0 | 35 | 60 |
+| P1 | 22 | 2 | 0 | 36 | 60 |
 | P2 | 9 | 0 | 0 | 10 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **38** | **3** | **0** | **95** | **136** |
+| **All** | **37** | **3** | **0** | **96** | **136** |
 
 ## How the current ordering is derived
 

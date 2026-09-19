@@ -36,6 +36,13 @@
 # the mechanism podbox adopts and because it builds against either libc with no
 # unwinder, which podbox's own Rust cdylib does not (check A2 of 60-).
 #
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. Every container call carries a timeout, runs
+# `--rm`, mounts read-only, and refuses `--privileged`, unpinned images and
+# mount sources outside this tree. `HOST` arms run natively on a Linux lane
+# and staged inside the glibc payload elsewhere, because an ELF built here
+# does not execute there; the pairing each arm asserts is unchanged.
+#
 # Exit: 0 every check this host can run ran and matched, 1 a check ran and did
 #       not match, 2 a check could not run here.
 set -uo pipefail
@@ -45,20 +52,56 @@ ROOT="$(CDPATH= cd -- "$HERE/.." && pwd)"
 OUT="${OUT:-$HERE/.abi}"
 rm -rf "$OUT"; mkdir -p "$OUT"
 
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$ROOT"
+ENGINE_WORK="$OUT"
+# ⭐ Soft: a Linux lane without an engine still runs what is native (A and D
+# here); the B gate below is what exits 2, exactly where the docker gate was.
+if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+trap eng_cleanup EXIT INT TERM
+
 SRC="$ROOT/references/VHSgunzo__pathmap/tree/path-mapping.c"
 GLIBC_PAYLOAD='ubuntu@sha256:c664f8f86ed5a386b0a340d981b8f81714e21a8b9c73f658c4bea56aa179d54a'
 MUSL_PAYLOAD='alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
+# ⭐ The admitting partner for a modern object. Check C builds the subject
+# newer than the 2.31 payload BY DESIGN, so on a lane with no host libc of
+# its own the control needs a newer payload too: the M5 debian row (glibc
+# 2.36), which declares and defines what the object imports.
+GLIBC_MODERN='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
+
+# ⭐ `zig cc` WHERE `cc` IS ABSENT, which is a Windows host. `cc` builds the
+# glibc subject where one answers; elsewhere `scripts/zig-cc.sh` carries the
+# same target, so the object the checks read is the same ELF either way.
+# The target is glibc 2.36, the tree's own Debian build host: check C needs
+# the subject NEWER than the 2.31 payload, and the fortified symbols check B
+# needs must come from a modern header. The conditions block says which one
+# drove, because "the arm ran" means something different depending on it.
+if command -v cc >/dev/null 2>&1; then
+  CC_VIA="$(cc --version 2>/dev/null | head -1)"
+elif [ -x "$ROOT/scripts/zig-cc.sh" ] && command -v zig >/dev/null 2>&1; then
+  CC_VIA="zig cc for x86_64-linux-gnu.2.36 ($(zig version 2>/dev/null))"
+else
+  CC_VIA="absent"
+fi
+cc_gnu() {
+  if command -v cc >/dev/null 2>&1; then
+    cc "$@"
+  else
+    ZIG_TARGET=x86_64-linux-gnu.2.36 "$ROOT/scripts/zig-cc.sh" "$@"
+  fi
+}
 
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
 _ldd="$(ldd --version 2>&1)"
 printf 'host libc         %s\n' "${_ldd%%$'\n'*}"
-printf 'cc                %s\n' "$(cc --version 2>/dev/null | head -1)"
+printf 'cc                %s\n' "$CC_VIA"
 printf 'musl-gcc          %s\n' "$(command -v musl-gcc || echo absent)"
 printf 'zig               %s\n' "$(zig version 2>/dev/null || echo absent)"
-_dv="$(docker version --format '{{.Server.Version}}' 2>/dev/null)"
-printf 'docker            %s\n' "${_dv:-MISSING}"
+printf 'engine            %s %s\n' "$ENGINE_NAME" "$(engine_describe 2>/dev/null || echo MISSING)"
 printf 'glibc payload     %s\n' "$GLIBC_PAYLOAD"
 printf 'musl payload      %s\n' "$MUSL_PAYLOAD"
 printf 'subject           %s\n' "references/VHSgunzo__pathmap/tree/path-mapping.c"
@@ -66,7 +109,7 @@ echo
 
 [ -r "$SRC" ] || { echo "SKIP: $SRC is absent" >&2; exit 2; }
 command -v readelf >/dev/null 2>&1 || { echo "SKIP: no readelf" >&2; exit 2; }
-command -v cc      >/dev/null 2>&1 || { echo "SKIP: no cc" >&2; exit 2; }
+[ "$CC_VIA" != "absent" ] || { echo "SKIP: no cc and no zig" >&2; exit 2; }
 
 rc=0
 # ⛔ A THIRD STATE, and it is not a failure: `AGENTS.md` absolute 4 and
@@ -83,7 +126,11 @@ maxver() { readelf -sW --dyn-syms "$1" 2>/dev/null | grep -oE 'GLIBC_[0-9.]+' | 
 echo "== build the subject against each libc"
 GNU_SO="$OUT/pathmap-glibc.so"
 MUSL_SO="$OUT/pathmap-musl.so"
-if cc -shared -fPIC -O1 -o "$GNU_SO" "$SRC" 2>"$OUT/build-glibc.log"; then
+# ⭐ Fortified on every lane, explicitly. The musl refusal check B asserts
+# is a relocation failure on a `__*_chk` symbol, and a distro `cc` that
+# stopped fortifying by default would build an object musl admits. The flag
+# is a no-op where the default already had it.
+if cc_gnu -shared -fPIC -O1 -D_FORTIFY_SOURCE=2 -o "$GNU_SO" "$SRC" 2>"$OUT/build-glibc.log"; then
   printf '  glibc object  %8s bytes  NEEDED: %s\n' "$(stat -c%s "$GNU_SO")" "$(needed "$GNU_SO")"
 else
   echo "SKIP: the subject does not build against this host's libc; see $OUT/build-glibc.log" >&2
@@ -111,6 +158,28 @@ if [ "$HAVE_MUSL" = 1 ]; then
     "$(stat -c%s "$MUSL_SO")" "$(needed "$MUSL_SO")" "$MUSL_VIA"
 else
   printf '  musl object   NOT BUILT (no musl-gcc and no zig, or the link failed)\n'
+fi
+# ⭐ The musl payload's own userland is static, so a preload into /bin/true
+# measures the kernel rather than the loader: a bogus preload exits 0 there,
+# measured on this lane. The musl arms drive a dynamic vehicle built with the
+# musl toolchain instead; the pairing each arm asserts is unchanged.
+VEH=""
+if [ "$HAVE_MUSL" = 1 ]; then
+  cat >"$OUT/veh.c" <<'EOF'
+int main(void){return 0;}
+EOF
+  if [ "$MUSL_VIA" = "musl-gcc" ]; then
+    musl-gcc -O1 -o "$OUT/veh" "$OUT/veh.c" 2>>"$OUT/build-musl.log" && VEH="$OUT/veh"
+  else
+    ZIG_TARGET=x86_64-linux-musl "$ROOT/scripts/zig-cc.sh" -dynamic -O1 \
+      -o "$OUT/veh" "$OUT/veh.c" 2>>"$OUT/build-musl.log" && VEH="$OUT/veh"
+  fi
+  if [ -n "$VEH" ]; then
+    printf '  musl vehicle  %8s bytes\n' "$(stat -c%s "$VEH")"
+  else
+    echo "SKIP: the musl vehicle did not build; see $OUT/build-musl.log" >&2
+    exit 2
+  fi
 fi
 echo
 
@@ -143,15 +212,63 @@ fi
 echo
 
 echo "== B. the four cross-libc arms"
-command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 || {
-  echo "SKIP: no docker daemon, so three of the four arms cannot run" >&2; exit 2; }
+[ "$HAVE_ENGINE" -eq 1 ] || {
+  echo "SKIP: no engine (a docker daemon or host podman), so three of the four arms cannot run" >&2; exit 2; }
+# The first engine run would otherwise spend its own timeout pulling: fetch
+# every payload image before any clause is timed. Both glibc libcs travel
+# out with them: the 2.31 one is check D's trap instance, the modern one is
+# the admitting partner check E needs on a lane with no host libc of its own.
+eng_pull "$GLIBC_PAYLOAD" || exit 2
+eng_pull "$MUSL_PAYLOAD" || exit 2
+eng_pull "$GLIBC_MODERN" || exit 2
+D_LIBC=/lib/x86_64-linux-gnu/libc.so.6
+HOST_LIBC=/lib/x86_64-linux-gnu/libc.so.6
+case "$(uname -s)" in
+  Linux) ;;
+  *)
+    D_LIBC="$OUT/payload-libc.so.6"
+    HOST_LIBC="$OUT/modern-libc.so.6"
+    cid="$(eng_create "$GLIBC_PAYLOAD" -- /bin/true)" && {
+      eng_cp "$cid" /lib/x86_64-linux-gnu/libc.so.6 "$OUT/payload-libc.so.6" >/dev/null 2>&1
+      eng_rm "$cid"
+    }
+    cid="$(eng_create "$GLIBC_MODERN" -- /bin/true)" && {
+      eng_cp "$cid" /lib/x86_64-linux-gnu/libc.so.6 "$OUT/modern-libc.so.6" >/dev/null 2>&1
+      eng_rm "$cid"
+    }
+    { [ -s "$OUT/payload-libc.so.6" ] && [ -s "$OUT/modern-libc.so.6" ]; } \
+      || cannot "a payload libc could not be copied out" ;;
+esac
 arm() { # arm LABEL IMAGE SO EXPECT
   local label="$1" img="$2" so="$3" expect="$4" out r
+  # ⭐ HOST is this machine's own loader on a Linux lane. Elsewhere the
+  # pairing runs staged inside the modern glibc payload: the build host is
+  # newer than the 2.31 payload by design (check C), so the admitting
+  # partner has to declare and define what this object imports.
   if [ "$img" = "HOST" ]; then
-    out="$(LD_PRELOAD="$so" /usr/bin/env true 2>&1)"; r=$?
-  else
-    out="$(timeout 180 docker run --rm -v "$so":/i.so:ro "$img" \
-             sh -c 'LD_PRELOAD=/i.so /bin/true' 2>&1)"; r=$?
+    case "$(uname -s)" in
+      Linux) out="$(LD_PRELOAD="$so" /usr/bin/env true 2>&1)"; r=$? ;;
+      *) img="$GLIBC_MODERN" ;;
+    esac
+  fi
+  if [ "$img" != "HOST" ]; then
+    # ⭐ Inside the musl payload the vehicle runs, not /bin/true: that
+    # userland is static and a preload into it exits 0 even for a bogus
+    # path, so the pairing is asserted on a dynamic binary instead. The
+    # copy inside is load-bearing where the checkout cannot hold a mode.
+    case "$img" in
+      "$MUSL_PAYLOAD")
+        [ -n "$VEH" ] || { fail "B: $label has no vehicle"; return; }
+        eng_mount "$so" /i.so && eng_mount "$VEH" /veh || {
+          fail "B: $label could not be staged"; return; }
+        out="$(eng_run 180 "$img" "" -- /bin/sh -c \
+          'cp /veh /tmp/veh && chmod +x /tmp/veh && LD_PRELOAD=/i.so /tmp/veh' 2>&1)"; r=$?
+        eng_clear ;;
+      *)
+        eng_mount "$so" /i.so || { fail "B: $label could not be staged"; return; }
+        out="$(eng_run 180 "$img" "" -- sh -c 'LD_PRELOAD=/i.so /bin/true' 2>&1)"; r=$?
+        eng_clear ;;
+    esac
   fi
   printf '  %-34s rc=%-4s %s\n' "$label" "$r" "$(printf '%s' "$out" | head -1)"
   case "$expect" in
@@ -174,12 +291,12 @@ echo
 
 echo "== C. the version predicate: predict from ELF, then confirm with the loader"
 obj_max="$(maxver "$GNU_SO")"
-payload_max="$(timeout 180 docker run --rm "$GLIBC_PAYLOAD" \
+payload_max="$(eng_run 180 "$GLIBC_PAYLOAD" "" -- \
   sh -c 'readelf -V /lib/x86_64-linux-gnu/libc.so.6 2>/dev/null | grep -oE "GLIBC_[0-9.]+" | sort -uV | tail -1' 2>/dev/null)"
 if [ -z "$payload_max" ]; then
   # ⚠ A minimal image has no readelf. Fall back to the payload's own ldd banner,
   # which names the release rather than the highest declared version symbol.
-  payload_max="GLIBC_$(timeout 180 docker run --rm "$GLIBC_PAYLOAD" \
+  payload_max="GLIBC_$(eng_run 180 "$GLIBC_PAYLOAD" "" -- \
     sh -c 'ldd --version 2>&1 | head -1 | grep -oE "[0-9]+\.[0-9]+$"' 2>/dev/null)"
 fi
 printf '  the object imports up to   %s\n' "${obj_max:-none}"
@@ -190,8 +307,13 @@ if [ -n "$obj_max" ] && [ -n "$payload_max" ]; then
   [ "$hi" = "$obj_max" ] && [ "$obj_max" != "$payload_max" ] && predict=refused
 fi
 printf '  PREDICTION from ELF alone: %s\n' "$predict"
-c_out="$(timeout 180 docker run --rm -v "$GNU_SO":/i.so:ro "$GLIBC_PAYLOAD" \
-          sh -c 'LD_PRELOAD=/i.so /bin/true' 2>&1)"; c_rc=$?
+if eng_mount "$GNU_SO" /i.so; then
+  c_out="$(eng_run 180 "$GLIBC_PAYLOAD" "" -- \
+            sh -c 'LD_PRELOAD=/i.so /bin/true' 2>&1)"; c_rc=$?
+  eng_clear
+else
+  fail "C: the object could not be staged"; c_out=""; c_rc=2
+fi
 printf '  OBSERVED                 : rc=%s %s\n' "$c_rc" "$(printf '%s' "$c_out" | head -1)"
 observed=loads; [ "$c_rc" -ne 0 ] && observed=refused
 if [ "$predict" = "$observed" ]; then
@@ -212,7 +334,9 @@ echo
 echo "== D. the .dynsym trap"
 # ⭐ A reader that asks .symtab about a stripped libc concludes it defines
 # nothing, refuses every artefact, and reads exactly like a check that works.
-LIBC=/lib/x86_64-linux-gnu/libc.so.6
+# `$D_LIBC` is this machine's own libc where one exists, else the 2.31
+# payload's copy taken above; the trap instance is a stripped libc either way.
+LIBC="$D_LIBC"
 sym=$(nm --defined-only "$LIBC" 2>/dev/null | grep -c . )
 dyn=$(nm -D --defined-only "$LIBC" 2>/dev/null | grep -c . )
 printf '  .symtab defined symbols  %s\n' "$sym"
@@ -234,27 +358,43 @@ echo "== E. podbox's own reader, against the same four situations"
 # ⛔ Its exit codes are 0 admitted, 1 refused, 2 unreadable, so a file it could
 # not read never reads as a refusal.
 BIN="${PODBOX_BIN:-$ROOT/target/x86_64-unknown-linux-musl/release/podbox}"
-if [ ! -x "$BIN" ]; then
-  cannot "$BIN is not an executable. ./scripts/dev.sh build"
+# ⭐ A Linux binary executes on a Linux lane and is staged inside the glibc
+# payload elsewhere (`105-interpose-ownership.sh` check F is the shape), so
+# what is asked here is readability, not executability.
+BIN_OK=""
+case "$(uname -s)" in
+  Linux) [ -x "$BIN" ] && BIN_OK=1 ;;
+  *)     [ -r "$BIN" ] && BIN_OK=1 ;;
+esac
+if [ -z "$BIN_OK" ]; then
+  cannot "$BIN is not usable on this lane (set PODBOX_BIN to a guest build artifact)"
 else
   # The payloads' own libc files, taken out of the pinned images rather than
-  # named: `docker cp` from a created (never started) container.
+  # named: a created (never started) container, copied out, removed.
   libc_out() { # libc_out IMAGE PATH DEST
     local cid
-    cid="$(timeout 180 docker create "$1" /bin/true 2>/dev/null)" || return 1
-    # ⛔ `-L`, and it is not a nicety. `/lib/x86_64-linux-gnu/libc.so.6` is a
-    # SYMLINK to `libc-2.31.so` in the pinned glibc payload, and a plain
-    # `docker cp` copies the link: the destination is then a dangling symlink,
-    # and the reader reports "No such file or directory" for a libc that is
-    # very much there.
-    timeout 180 docker cp -L "$cid:$2" "$3" >/dev/null 2>&1
+    # ⛔ No `-L` spelling: the helper copies without following links, because
+    # podman has none and a flag only one engine honours would be a second
+    # behaviour. `105-interpose-ownership.sh` check F copies this same ubuntu
+    # libc the same way and its reader answers from ELF there.
+    cid="$(eng_create "$1" -- /bin/true 2>/dev/null)" || return 1
+    eng_cp "$cid" "$2" "$3" >/dev/null 2>&1
     local r=$?
-    docker rm -f "$cid" >/dev/null 2>&1
+    eng_rm "$cid"
     [ "$r" -eq 0 ] && [ -s "$3" ]
   }
   reader() { # reader LABEL OBJECT LIBC EXPECT NEEDLE
     local label="$1" obj="$2" libc="$3" expect="$4" needle="${5:-}" out r
-    out="$("$BIN" system abi "$obj" "$libc" 2>&1)"; r=$?
+    case "$(uname -s)" in
+      Linux) out="$("$BIN" system abi "$obj" "$libc" 2>&1)"; r=$? ;;
+      *)
+        eng_mount "$BIN" /pb && eng_mount "$obj" /obj && eng_mount "$libc" /lc || {
+          fail "E: $label could not be staged"; return; }
+        # Any glibc payload hosts the static binary; the modern one is
+        # already here for the host-libc arms.
+        out="$(eng_run 60 "$GLIBC_MODERN" "" -- /pb system abi /obj /lc 2>&1)"; r=$?
+        eng_clear ;;
+    esac
     # ⚠ REPO-RELATIVE in the transcript. `$ROOT` is this checkout's path, and a
     # tracked reading that carries one differs from itself on every machine --
     # the same defect a `mktemp` path was taken out of 85- for.
@@ -271,7 +411,7 @@ else
   }
   # ⛔ THE CONTROL FIRST, as in B: a reader that refused everything would pass
   # every other arm of this check.
-  reader "control glibc obj -> host libc" "$GNU_SO" /lib/x86_64-linux-gnu/libc.so.6 admitted
+  reader "control glibc obj -> host libc" "$GNU_SO" "$HOST_LIBC" admitted
   if libc_out "$MUSL_PAYLOAD" /lib/ld-musl-x86_64.so.1 "$OUT/ld-musl-x86_64.so.1"; then
     reader "glibc obj -> musl libc" "$GNU_SO" "$OUT/ld-musl-x86_64.so.1" refused "musl"
     [ "$HAVE_MUSL" = 1 ] && reader "control musl obj -> musl libc" \
@@ -280,7 +420,7 @@ else
     cannot "the musl payload's libc could not be copied out"
   fi
   [ "$HAVE_MUSL" = 1 ] && reader "musl obj -> host glibc libc" \
-    "$MUSL_SO" /lib/x86_64-linux-gnu/libc.so.6 refused "glibc"
+    "$MUSL_SO" "$HOST_LIBC" refused "glibc"
   # ⭐ CHECK C's OWN SITUATION, decided by the reader instead of by the loader.
   # The loader said `version 'GLIBC_2.34' not found`; the reader must refuse and
   # name the same version, from ELF alone and with nothing run.

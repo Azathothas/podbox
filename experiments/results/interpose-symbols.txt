@@ -1,12 +1,20 @@
+engine            podman (host machine)
 == conditions
-date              2026-09-08T06:45:17Z
-host kernel       6.18.44-fc-v24
-host libc         ldd (Ubuntu GLIBC 2.39-0ubuntu8.7) 2.39
-cc                cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
-docker            29.3.1
+date              2026-09-19T09:02:12Z
+host kernel       3.6.9-b4195d69.x86_64
+host libc         ldd (cygwin) 3.6.9
+cc                zig cc for x86_64-linux-gnu (0.16.0)
+engine            podman podman version 5.8.6
 subject           references/VHSgunzo__pathmap/tree/path-mapping.c
 rootfs for D      debian@sha256:2f65600e1252c5649d2213e1d1ea4d74253d26514dc6530102a875e429245929
 
+Resolved "debian" as an alias (/etc/containers/registries.conf.d/000-shortnames.conf)
+Trying to pull docker.io/library/debian@sha256:2f65600e1252c5649d2213e1d1ea4d74253d26514dc6530102a875e429245929...
+Getting image source signatures
+Copying blob sha256:abf56b2f87242de589f03ea56779358079c07c4c099bd1e454d083538eb6666d
+Copying config sha256:39db83443324e7ef683bd854a90c6615741fecbfe005bc10228129e03af1e950
+Writing manifest to image destination
+39db83443324e7ef683bd854a90c6615741fecbfe005bc10228129e03af1e950
 == A. an interposer that defines execve alone
   execve   rewritable
   execv    NOT SEEN
@@ -34,12 +42,14 @@ ok   C: every exec entry point A measured as bypassable is defined here
 
 == D. the completeness test, against a pinned rootfs
   files read from the exported rootfs: 400
-  distinct undefined symbols across the rootfs sample: 1541
-  path-taking names this rootfs actually reaches: 38
-  of those, NOT defined by the interposer: 3
+  distinct undefined symbols across the rootfs sample: 1839
+  path-taking names this rootfs actually reaches: 60
+  of those, NOT defined by the interposer: 5
+     freopen64
      eaccess
+     euidaccess
      mount
-     umount
+     tmpfile
 ok   D: the gap is a number this command produces, not a list somebody maintains
 
 == verdict

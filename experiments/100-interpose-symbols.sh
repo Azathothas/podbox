@@ -28,6 +28,14 @@
 # TODO/reference-map.md records, and for D:
 #   debian@sha256:2f65600e1252c5649d2213e1d1ea4d74253d26514dc6530102a875e429245929
 #
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. One-shot runs carry a timeout and `--rm`, mounts
+# are read-only from declared roots, images are digest-pinned and fetched
+# before any timed clause, and `--privileged` and `--cap-add` are refused.
+# A and B run natively on a Linux lane and staged inside the rootfs
+# elsewhere, because an ELF built here does not execute there; what each arm
+# counts is unchanged.
+#
 # Exit: 0 every check ran and matched, 1 a check ran and did not match,
 #       2 could not run.
 set -uo pipefail
@@ -39,6 +47,39 @@ rm -rf "$OUT"; mkdir -p "$OUT"
 
 SRC="$ROOT/references/VHSgunzo__pathmap/tree/path-mapping.c"
 ROOTFS='debian@sha256:2f65600e1252c5649d2213e1d1ea4d74253d26514dc6530102a875e429245929'
+
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$ROOT"
+ENGINE_WORK="$OUT"
+# ⭐ Soft: a Linux lane without an engine still runs what is native (A, B
+# and C here); D is what exits 2 there, exactly where the docker gate was.
+if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+
+# ⭐ `zig cc` WHERE `cc` IS ABSENT, which is a Windows host (`80-`'s rule).
+# The conditions block says which one drove.
+if command -v cc >/dev/null 2>&1; then
+  CC_VIA="$(cc --version 2>/dev/null | head -1)"
+elif [ -x "$ROOT/scripts/zig-cc.sh" ] && command -v zig >/dev/null 2>&1; then
+  CC_VIA="zig cc for x86_64-linux-gnu ($(zig version 2>/dev/null))"
+else
+  CC_VIA="absent"
+fi
+cc_linux() {
+  if command -v cc >/dev/null 2>&1; then
+    cc "$@"
+  else
+    ZIG_TARGET=x86_64-linux-gnu.2.17 "$ROOT/scripts/zig-cc.sh" "$@"
+  fi
+}
+
+# ⭐ Native execution on a Linux lane; staged inside the rootfs elsewhere,
+# because an ELF built here does not execute there.
+case "$(uname -s)" in
+  Linux) NATIVE=1 ;;
+  *)     NATIVE=0 ;;
+esac
 
 # The path-taking libc surface podbox cares about. ⚠ Every name here takes a
 # PATH. `fstat`, `fexecve` and `fdopendir` take a descriptor and are therefore
@@ -62,14 +103,13 @@ printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
 _ldd="$(ldd --version 2>&1)"
 printf 'host libc         %s\n' "${_ldd%%$'\n'*}"
-printf 'cc                %s\n' "$(cc --version 2>/dev/null | head -1)"
-_dv="$(docker version --format '{{.Server.Version}}' 2>/dev/null)"
-printf 'docker            %s\n' "${_dv:-MISSING}"
+printf 'cc                %s\n' "$CC_VIA"
+printf 'engine            %s %s\n' "$ENGINE_NAME" "$(engine_describe 2>/dev/null || echo MISSING)"
 printf 'subject           %s\n' "references/VHSgunzo__pathmap/tree/path-mapping.c"
 printf 'rootfs for D      %s\n' "$ROOTFS"
 echo
 
-command -v cc >/dev/null 2>&1 || { echo "SKIP: no cc" >&2; exit 2; }
+[ "$CC_VIA" != "absent" ] || { echo "SKIP: no cc and no zig" >&2; exit 2; }
 command -v nm >/dev/null 2>&1 || { echo "SKIP: no nm" >&2; exit 2; }
 [ -r "$SRC" ] || { echo "SKIP: $SRC is absent" >&2; exit 2; }
 
@@ -99,7 +139,7 @@ int main(int argc, char **argv) {
     return 1;
 }
 EOF
-cc -o "$OUT/caller" "$OUT/caller.c" 2>"$OUT/cc.log" || {
+cc_linux -o "$OUT/caller" "$OUT/caller.c" 2>"$OUT/cc.log" || {
   echo "SKIP: cannot build the caller; see $OUT/cc.log" >&2; exit 2; }
 
 # -- arm A: execve only ----------------------------------------------------
@@ -145,17 +185,43 @@ int execlp(const char *p, const char *a0, ...) {
     note("execlp", p); char *av[64]; va_list ap; va_start(ap, a0);
     collect(a0, ap, av, 64); va_end(ap); FWD(execvp); return real(p, av); }
 EOF
-cc -shared -fPIC -o "$OUT/only-execve.so" "$OUT/only-execve.c" -ldl 2>>"$OUT/cc.log" || {
+cc_linux -shared -fPIC -o "$OUT/only-execve.so" "$OUT/only-execve.c" -ldl 2>>"$OUT/cc.log" || {
   echo "SKIP: cannot build arm A" >&2; exit 2; }
-cc -shared -fPIC -o "$OUT/all-exec.so"    "$OUT/all-exec.c"    -ldl 2>>"$OUT/cc.log" || {
+cc_linux -shared -fPIC -o "$OUT/all-exec.so"    "$OUT/all-exec.c"    -ldl 2>>"$OUT/cc.log" || {
   echo "SKIP: cannot build arm B" >&2; exit 2; }
 
 CALLERS='execve execv execvp execl execlp spawn spawnp'
 
+# The first engine run would otherwise spend its own timeout pulling: fetch
+# the rootfs before any staged clause is timed. Native lanes never reach
+# the engine before D, so a failed fetch there exits now rather than after
+# three checks that did not need it.
+if [ "$NATIVE" -eq 0 ]; then
+  eng_pull "$ROOTFS" || { echo "SKIP: cannot pull the rootfs" >&2; exit 2; }
+fi
+
+# ⭐ One counter for both lanes. Natively the caller executes here; elsewhere
+# it is staged beside the arm's object, copied inside with its bit set (a
+# file linked on an NTFS checkout runs only after that copy), and driven
+# through the rootfs. An empty answer is a staging failure, not a zero: a
+# genuine zero still prints `0`.
+seen_count() { # SO WORD -> the SEEN count on stdout, empty when unstaged
+  if [ "$NATIVE" -eq 1 ]; then
+    LD_PRELOAD="$1" "$OUT/caller" "$2" 2>&1 | grep -c '^SEEN '
+  else
+    eng_mount "$1" /a.so && eng_mount "$OUT/caller" /caller.bin || return 1
+    eng_run 120 "$ROOTFS" "" -- /bin/sh -c \
+      'cp /caller.bin /tmp/caller && chmod +x /tmp/caller && LD_PRELOAD=/a.so /tmp/caller '"$2" 2>&1 \
+      | grep -c '^SEEN '
+    eng_clear
+  fi
+}
+
 echo "== A. an interposer that defines execve alone"
 a_seen=0
 for m in $CALLERS; do
-  n="$(LD_PRELOAD="$OUT/only-execve.so" "$OUT/caller" "$m" 2>&1 | grep -c '^SEEN ')"
+  n="$(seen_count "$OUT/only-execve.so" "$m")"
+  [ -n "$n" ] || { fail "A: $m could not run"; continue; }
   if [ "$n" -gt 0 ]; then printf '  %-8s rewritable\n' "$m"; a_seen=$((a_seen+1))
   else printf '  %-8s NOT SEEN\n' "$m"; fi
 done
@@ -169,7 +235,8 @@ echo
 echo "== B. the control: the same seven with every entry point defined"
 b_seen=0
 for m in $CALLERS; do
-  n="$(LD_PRELOAD="$OUT/all-exec.so" "$OUT/caller" "$m" 2>&1 | grep -c '^SEEN ')"
+  n="$(seen_count "$OUT/all-exec.so" "$m")"
+  [ -n "$n" ] || { fail "B: $m could not run"; continue; }
   [ "$n" -gt 0 ] && b_seen=$((b_seen+1))
   printf '  %-8s %s\n' "$m" "$([ "$n" -gt 0 ] && echo seen || echo 'NOT SEEN')"
 done
@@ -183,7 +250,7 @@ echo
 echo "== C. the adopted mechanism's real exported set"
 # ⚠ Read from a BUILT object. The definitions are macro-generated, and three
 # different macros generate them, so a grep of the source undercounts.
-if cc -shared -fPIC -O1 -o "$OUT/pathmap.so" "$SRC" 2>"$OUT/pathmap.log"; then
+if cc_linux -shared -fPIC -O1 -o "$OUT/pathmap.so" "$SRC" 2>"$OUT/pathmap.log"; then
   nm -D --defined-only "$OUT/pathmap.so" | awk '$2=="T"{print $3}' | sort -u > "$OUT/defined.txt"
   total="$(grep -c . "$OUT/defined.txt")"
   internal="$(grep -cE '^(_|pm_)' "$OUT/defined.txt")"
@@ -214,26 +281,27 @@ fi
 echo
 
 echo "== D. the completeness test, against a pinned rootfs"
-if ! { command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; }; then
-  echo "  COULD NOT RUN: no docker daemon."
+if [ "$HAVE_ENGINE" -eq 0 ]; then
+  echo "  COULD NOT RUN: no engine (a docker daemon or host podman)."
   echo "  D is the check podbox keeps; A, B and C stand without it."
   [ "$rc" -eq 0 ] && exit 2
   exit "$rc"
 fi
-timeout 300 docker pull -q "$ROOTFS" >/dev/null 2>&1 || {
+eng_pull "$ROOTFS" >/dev/null 2>&1 || {
   echo "  COULD NOT RUN: cannot pull the rootfs." ; [ "$rc" -eq 0 ] && exit 2; exit "$rc"; }
 # ⛔ READ THE ROOTFS FROM OUTSIDE, with this host's readelf. A reader run inside
 # the image measures whatever that image happens to ship, and most images ship
 # no readelf at all, so the answer becomes a property of the image's package
 # list rather than of its binaries. It is also the wrong position: podbox
 # extracts a rootfs and inspects it from outside, which is what this reproduces.
-cid="$(timeout 180 docker create "$ROOTFS" /bin/true 2>/dev/null)"
-[ -n "$cid" ] || { echo "  COULD NOT RUN: cannot create a container from the rootfs."
-                   [ "$rc" -eq 0 ] && exit 2; exit "$rc"; }
+# A created container is not needed for that: one bounded run streams the
+# four directories to stdout and the host unpacks them, so no container
+# outlives the clause and there is nothing to register or remove.
 mkdir -p "$OUT/rootfs"
-timeout 600 docker export "$cid" 2>/dev/null \
-  | tar x -C "$OUT/rootfs" --wildcards 'bin/*' 'usr/bin/*' 'lib/*' 'usr/lib/*' 2>/dev/null
-timeout 60 docker rm -f "$cid" >/dev/null 2>&1
+eng_run 600 "$ROOTFS" "" -- tar -c -C / bin usr/bin lib usr/lib 2>/dev/null > "$OUT/rootfs.tar" || {
+  echo "  COULD NOT RUN: cannot read the rootfs."
+  [ "$rc" -eq 0 ] && exit 2; exit "$rc"; }
+tar x -f "$OUT/rootfs.tar" -C "$OUT/rootfs" 2>/dev/null
 find "$OUT/rootfs" -type f 2>/dev/null | head -400 | while read -r f; do
   readelf -sW --dyn-syms "$f" 2>/dev/null | awk '$7=="UND"{print $8}'
 done | sed 's/@.*//' | sort -u > "$OUT/rootfs-imports.txt"

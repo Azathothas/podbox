@@ -714,7 +714,7 @@ Source:      `experiments/lib/engine.sh`; `experiments/105-interpose-ownership.s
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     Three interpose scripts reach an engine without the one safe
              helper: `experiments/80-interposer-abi.sh` (13 docker calls),
@@ -751,6 +751,53 @@ Prove:       `./experiments/80-interposer-abi.sh`, `./experiments/100-interpose-
              and `./experiments/245-interpose-sweep.sh` each exit 0 on host
              podman with the conditions block naming `podman (host machine)`,
              and `experiments/results/` carries the three runs.
+**Done 2026-09-19.** All three convert through `lib/engine.sh` and exit 0
+on host podman, each conditions block naming `podman (host machine)`.
+`experiments/results/` carries the runs: `interpose-abi.txt` (new),
+`interpose-symbols.txt`, and `interpose-sweep.txt` with per-row
+transcripts in `experiments/results/sweep245/`. No clause changed apart
+from the engine spelling; the row matrix, the verdict words and the exit
+contract are untouched.
+
+```
+$ sh experiments/80-interposer-abi.sh; echo EXIT:$?
+  == verdict: every check that ran matched.
+EXIT:0
+$ sh experiments/100-interpose-symbols.sh; echo EXIT:$?
+  == verdict: every check that ran matched
+EXIT:0
+$ sh experiments/245-interpose-sweep.sh; echo EXIT:$?
+  rows 10, ran 9, virtualized 9, declined 18, host_not_runtime 0
+EXIT:0
+```
+
+Two findings from the first full sweep, one fixed and one carried. First,
+the two cross-libc refusals printed vacuous oks: void's
+`ld-musl-*.so.1` is an absolute link to `/usr/lib64/libc.so` (measured in
+the pinned image), which dangles on the staging host, so the old
+`find | head -1` order staged a mount failure and called it a refusal;
+the early return then leaked `/pb` and `/obj` mounts, so the second pair
+died on a duplicate destination. Fixed in the script: the loop takes the
+first match in sorted order that the host can read and that resolves
+inside the checkout, or skips honestly; the mount-failure path clears its
+mounts, as the file's own comment already promised. The green run prints
+both genuine DT_NEEDED refusals through `podbox system abi`.
+
+Second, archlinux extracts nowhere on this lane: `podbox extract` stops
+on `usr/share/terminfo/l/lft-pc850` against `L/LFT-PC850`, a case-only
+collision the Windows-backed shared store cannot hold. Extracting the
+same pinned image with a container-local store succeeds (4 layers, 33164
+entries), so the trigger is the case-insensitive backing, not the image
+and not the conversion. The table records it as `no rootfs` (no-pull 1,
+broken 0); it clears on a case-sensitive store, where the 2026-09-18 run
+reached 10 of 10.
+
+⚠ One wart for a later entry: a cold host-podman connection answers
+`podman info` slower than the 15 s probe budget, three times in a row, so
+`engine_pick` exits 2 after about twenty idle minutes (measured twice:
+6 probes answered FAIL, FAIL, FAIL, OK, OK, OK at 15, 15, 16, 4, 1 and
+0 s). Warming with one `podman info` before the run clears it; all three
+green runs above passed the pick on a warm engine.
 
 ---
 
