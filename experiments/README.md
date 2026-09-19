@@ -30,6 +30,7 @@ because a number here is a citation somebody may write down:
 | `Dockerfile.target` | the image `10-` builds, pinned by base digest |
 | `targetfs.sh` | the image's ENTRYPOINT. It shapes the filesystem inside the container and then execs `/workspace/.harness/enter.sh`, which is written by `20-`. It is never run from a host |
 | `src/` | the small programs the language comparison of `40-` builds and measures |
+| `lib/` | shared shell helpers sourced by numbered scripts. `engine.sh` is the one way they reach a container engine: a docker daemon where one answers, else host podman. [`../docs/containers.md`](../docs/containers.md) is the lane procedure. |
 
 ⭐ **Re-running an experiment dirties the tree by its date line.**
 `110-`, `130-`, `140-`, `150-`, `160-` and `170-` end by saying whether every
@@ -71,6 +72,8 @@ decisions podbox has to make. Each writes its transcript to
 ./experiments/80-interposer-abi.sh              # which interposer a payload may load, decided from ELF
 ./experiments/90-nsswitch-contract.sh           # whether a supplied /etc/passwd is read at all
 ./experiments/100-interpose-symbols.sh          # the exec family, and the completeness test
+./experiments/105-interpose-ownership.sh        # podbox's own object against the ownership wall, both libcs
+./experiments/106-interpose-identity.sh         # the identity tier, honest by default and faked under --user
 ./experiments/110-bloat-delta.sh image          # the release total, its breakdown, and the ceiling
 ./experiments/125-across-distributions.sh       # ~10 min, eleven pinned distributions
 ./experiments/130-probe-parity.sh               # M0's acceptance: the rung in both environments, and the rows
@@ -79,11 +82,15 @@ decisions podbox has to make. Each writes its transcript to
 ./experiments/153-store-lock-race.sh            # the store lock race: a condition removed, or the source mutated, per clause
 ./experiments/156-closure-records.sh            # does every closed entry carry its recorded run?
 ./experiments/157-lock-inheritance-prove.sh     # T-0211's two tests in a loop, and both mutations
+./experiments/159-interpose-placement.sh        # the placed object and the named decline, both libcs
+./experiments/161-path-rewrite.sh               # the path rewrite across the entry-point set, both libcs
 ./experiments/160-store-gc.sh                   # a GC under a holder, and the containment check
 ./experiments/170-probe-cache.sh                # the probe cache, and the key the specification got wrong
 ./experiments/210-store-concurrency.sh          # the store's contract, against 8 real concurrent processes
 ./experiments/220-extract-path-safety.sh        # M2: a hostile layer is refused and a distro rootfs is not
 ./experiments/230-lifecycle-loop.sh 20          # M4: the lifecycle, twenty consecutive times, no sleep anywhere
+./experiments/245-interpose-sweep.sh            # the ten-row reach matrix with one subject, both libcs
+./experiments/250-negative-tests.sh             # every shipped refusal, actually refused
 ./experiments/260-multiarch.sh                  # six architectures check the workspace, and the one that does not
 ./experiments/270-multiarch-image.sh            # two platforms of one tag, and the ELF machine inside each tree
 ./experiments/280-insecure-registry.sh          # a registry with no certificate, and one nothing trusts
@@ -108,6 +115,8 @@ processes at once and the registry is not what it is measuring.
 needs to be able to `mount` a tmpfs and exits 2 where it cannot. `150-` needs
 outbound HTTPS to a registry. `260-`'s aarch64 arm needs `binfmt_misc` and
 `qemu-user`; `290-` needs `qemu-system-x86_64`, `busybox-static` and `cpio`.
+`105-` takes a docker daemon or host podman through `lib/engine.sh`, which
+also names the driver in the conditions block.
 ⚠ `320-` is the odd one: a docker daemon is not a dependency there but a
 CONDITION, and it decides which half of clause 5 can be measured, because the
 operator's ruling of 2026-09-08 is about what podbox does when one answers.

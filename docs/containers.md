@@ -166,6 +166,44 @@ wsl-toolkit --instance podbox run --image docker.io/library/rust:1.98.1-bookworm
 **Measured on 2026-09-11: the workspace is 8,406 entries and 164.6 MiB, and
 the copy took about 4 s.** The image pull is the larger cost on a cold base.
 
+### ⭐ Running engine clauses from the Windows host
+
+A job container cannot start a docker daemon: it holds no `NET_ADMIN`, and
+`dockerd` fails creating the `DOCKER` chain with `iptables ... Permission
+denied`, measured 2026-09-19. Experiment clauses that need an engine do not
+run there. They run on the host's own podman machine, which is rootful and
+honours `--cap-drop`, measured the same day: a `--cap-drop=CHOWN` payload
+fails `EPERM` with exit 1 and unchanged ownership.
+
+[`../experiments/lib/engine.sh`](../experiments/lib/engine.sh) is the one way
+scripts reach either engine. It prefers a docker daemon where one answers and
+falls back to host podman, and the conditions block names which one drove.
+What it enforces, because the workstation is shared:
+
+- no `--privileged` and no `--cap-add`, refused outright;
+- digest-pinned images only (`@sha256:`), refused otherwise;
+- mounts read-only, and only from the checkout or the caller's scratch;
+- a timeout on every call: runs take it as an argument, and create, copy
+  and pull carry fixed bounds;
+- created containers registered for removal by the caller's own trap.
+  `wsl-toolkit gc` never sees these containers, so a script that leaves one
+  behind leaves it for somebody else's disk.
+
+Three traps belong to this lane. A Git Bash `/c/...` path arrives at the
+Windows podman binary as garbage: spell host sources `C:/...` (the helper
+translates) and carry `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'` on every
+engine call, which the helper does. `chmod` on this checkout is a silent
+no-op, measured 2026-09-19, so a binary linked here runs only after a copy
+to a filesystem that honours modes. `wsl-toolkit base exec` carries simple
+commands reliably and mangles argument-carrying ones: a Linux binary off the
+Windows automount receives shortened `argv`, and even staged into the base
+the same call answered usage twice against five genuine runs, measured
+2026-09-19. Commands that must receive file arguments run inside a container
+through `engine.sh` instead, where `argv` arrives intact. The podman
+machine stays running as found: never stop it, never prune without naming
+what goes. A first image pull outlasts a clause timeout, so scripts fetch
+their images before any timed clause starts rather than inside it.
+
 ### ⛔ Seven traps this host produced, five on 2026-09-11 and two on 2026-09-12
 
 - ⛔ **A Windows checkout carries no executable bit, so every script arrives

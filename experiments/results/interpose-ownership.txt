@@ -1,17 +1,30 @@
+engine            podman (host machine)
 == conditions
-date              2026-09-09T18:46:25Z
-host kernel       6.18.44-fc-v24
-host libc         ldd (Ubuntu GLIBC 2.39-0ubuntu8.7) 2.39
+date              2026-09-19T05:30:41Z
+host kernel       3.6.9-b4195d69.x86_64
+host libc         ldd (cygwin) 3.6.9
 zig               0.16.0
-docker            29.3.1
+engine            podman podman version 5.8.6
 glibc payload     quay.io/fedora/fedora@sha256:e78cd1a688cd079c23864f289a89a49a3f4ad66d817864e325e1d058310ee95c
 glibc too old     ubuntu@sha256:c664f8f86ed5a386b0a340d981b8f81714e21a8b9c73f658c4bea56aa179d54a
-musl payload      alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+musl payload      public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 
+Trying to pull quay.io/fedora/fedora@sha256:e78cd1a688cd079c23864f289a89a49a3f4ad66d817864e325e1d058310ee95c...
+Getting image source signatures
+Copying blob sha256:419b79a05f4b7b7596e704ce4aa07898ca036fd8f9cad5964b8cb2811ae51d21
+Copying config sha256:1eea7f82474ec19ef359ee5a5896014df434cd44c0d6ba2b937ffbe0697dec56
+Writing manifest to image destination
+1eea7f82474ec19ef359ee5a5896014df434cd44c0d6ba2b937ffbe0697dec56
+Trying to pull public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc...
+Getting image source signatures
+Copying blob sha256:25f1d6b1951ac8eb3740558fe94cb83d377bdadf95fd9f98b50d2e1b96130471
+Copying config sha256:bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731
+Writing manifest to image destination
+bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731
 == A. the exported set, against the version script
-  declared in interpose.map  17
-  exported by the gnu object 17
-  exported by the musl object 17
+  declared in interpose.map  105
+  exported by the gnu object 105
+  exported by the musl object 105
 ok   A: the gnu object exports exactly what interpose.map declares
 ok   A: the musl object exports exactly what interpose.map declares
   rust_eh_personality in the gnu object: 0
@@ -56,7 +69,7 @@ ok   D: the bare chown failed (rc=1) and podbox's answered 0:42
 ok   E: the musl object answered 0:42 where the bare chown failed (rc=1)
 
 == F. the pair podbox must refuse BEFORE loading anything
-  podbox system abi: rc=1 refused: crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so impo
+  podbox system abi: rc=1 refused: /obj imports `dlsym` at version `GLIBC_2.34`, and /lc declares up to `GLIBC_2.30`. ⛔ This
   and the loader:    GLIBC_2.34' not found
 ok   F: the reader refused the pair from ELF and the loader agreed
 

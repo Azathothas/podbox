@@ -3,7 +3,7 @@
 # stay quiet on a machine that has no wall?
 #
 # TODO/interpose.md T-0701 (the cdylib's build constraints) and T-0704
-# (ownership virtualization). ⭐ This is the half a path interposer does not
+# (ownership virtualization). This is the half a path interposer does not
 # have: `references/VHSgunzo__pathmap/tree/path-mapping.c:1240-1241` routes
 # `chown` through the same path-rewriting macro as everything else and passes
 # the ids through untouched, so a payload's `chown 0:42` fails identically with
@@ -19,7 +19,7 @@
 #      check that asserted only the first struct would have left unmeasured the
 #      one that actually answers a modern glibc payload.
 #   C. THE CONTROL, and it comes first: on a machine that CAN chown, podbox must
-#      change nothing and write no memo. ⛔ An interposer that reported the
+#      change nothing and write no memo. An interposer that reported the
 #      caller's intent where the kernel would have done the real thing is weaker
 #      than the bare chroot it replaces.
 #   D. THE WALL, glibc. `--cap-drop=CHOWN` is root without `CAP_CHOWN`, which is
@@ -35,13 +35,24 @@
 #      cannot load it. T-0709's reader says so from ELF, with nothing loaded,
 #      and the loader is asked afterwards to agree.
 #
-# ⚠ WHY NOT THIS HOST DIRECTLY. It grants real ownership -- `podbox probe` reads
+# WHY NOT THIS HOST DIRECTLY. It grants real ownership -- `podbox probe` reads
 # `ownership: real` -- so `chown 0:42` SUCCEEDS here and the memo path never
 # runs. A check that passed for that reason would be measuring the kernel.
 # `--cap-drop=CHOWN` removes exactly the capability and nothing else.
 #
-# Inputs pinned: the two images by manifest digest, and the objects
-# `scripts/build-interpose.sh` produces from this tree.
+# Inputs pinned: the glibc image and the too-old glibc image by manifest
+# digest, the musl image by the same digest the M5 alpine row pins (qualified
+# at `public.ecr.aws`, never Docker Hub), and the objects
+# `scripts/build-interpose.sh` produces from this tree, or `GNU_SO` and
+# `MUSL_SO` in the environment pointing at a guest build's artifacts. The
+# podbox binary for check F is `PODBOX_BIN` (a Linux binary: on a Linux lane
+# it runs directly, anywhere else staged inside the glibc payload image,
+# which is statically linked enough to need nothing from it but a kernel).
+#
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. Every container call carries a timeout, runs
+# `--rm`, mounts read-only, and refuses `--privileged`, unpinned images and
+# mount sources outside this tree.
 #
 # Exit: 0 every check that ran matched, 1 one did not, 2 a check could not run.
 set -uo pipefail
@@ -53,25 +64,33 @@ OUT="${OUT:-$HERE/.ownership}"
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
-GNU_SO="$CRATE/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so"
-MUSL_SO="$CRATE/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so"
-# ⚠ THE GLIBC PAYLOAD IS NEWER THAN THE BUILD HOST'S, and that is not a
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$ROOT"
+ENGINE_WORK="$OUT"
+engine_pick || exit 2
+trap eng_cleanup EXIT INT TERM
+
+GNU_SO="${GNU_SO:-$CRATE/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so}"
+MUSL_SO="${MUSL_SO:-$CRATE/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so}"
+# The glibc payload is newer than the build host's, and that is not a
 # convenience. This object is linked against the host's glibc 2.39 and imports
 # `dlsym@GLIBC_2.34`, so it CANNOT be loaded into a 2.31 payload: check F puts
 # the old one to podbox's own reader and requires it to be refused before
 # anything is loaded, which is TODO/interpose.md T-0709.
 GLIBC_PAYLOAD='quay.io/fedora/fedora@sha256:e78cd1a688cd079c23864f289a89a49a3f4ad66d817864e325e1d058310ee95c'
+# Bare `ubuntu` with a pinned digest: no M5 row names this older libc, so it
+# stays as it was. [T-1209](gate.md) owns the Hub mapping in general.
 GLIBC_TOO_OLD='ubuntu@sha256:c664f8f86ed5a386b0a340d981b8f81714e21a8b9c73f658c4bea56aa179d54a'
-MUSL_PAYLOAD='alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
+MUSL_PAYLOAD='public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
 
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
-_ldd="$(ldd --version 2>&1)"
-printf 'host libc         %s\n' "${_ldd%%$'\n'*}"
+printf 'host libc         %s\n' "$(ldd --version 2>&1 | head -1)"
 printf 'zig               %s\n' "$(zig version 2>/dev/null || echo absent)"
-_dv="$(docker version --format '{{.Server.Version}}' 2>/dev/null)"
-printf 'docker            %s\n' "${_dv:-MISSING}"
+printf 'engine            %s %s\n' "$ENGINE_NAME" "$(engine_describe 2>/dev/null || echo MISSING)"
 printf 'glibc payload     %s\n' "$GLIBC_PAYLOAD"
 printf 'glibc too old     %s\n' "$GLIBC_TOO_OLD"
 printf 'musl payload      %s\n' "$MUSL_PAYLOAD"
@@ -84,12 +103,17 @@ pass() { printf 'ok   %s\n' "$1"; }
 cannot() { printf '  COULD NOT RUN: %s\n' "$1"; could_not=1; }
 
 if [ ! -r "$GNU_SO" ] || [ ! -r "$MUSL_SO" ]; then
-	echo "SKIP: the objects are not built. ./scripts/build-interpose.sh" >&2
+	echo "SKIP: the objects are not built. ./scripts/build-interpose.sh (or set GNU_SO and MUSL_SO)" >&2
 	exit 2
 fi
 
+# The first engine run would otherwise spend its own timeout pulling: fetch
+# both payload images before any clause is timed.
+eng_pull "$GLIBC_PAYLOAD" || exit 2
+eng_pull "$MUSL_PAYLOAD" || exit 2
+
 echo "== A. the exported set, against the version script"
-# ⚠ The version script is the SOURCE of this list, and the object is what is
+# The version script is the SOURCE of this list, and the object is what is
 # compared with it: a name in `interpose.map` that `src/lib.rs` does not define
 # is a silent non-interposition, and one the object exports that the script does
 # not list is a symbol some other library in the payload's process would resolve
@@ -109,7 +133,7 @@ for arm in gnu musl; do
 		diff "$OUT/declared" "$OUT/exported.$arm" | sed 's/^/      /'
 	fi
 done
-# ⛔ T-0701's own Prove. A default Rust cdylib exports this into every process.
+# T-0701's own Prove. A default Rust cdylib exports this into every process.
 for arm in gnu musl; do
 	so="$GNU_SO"
 	[ "$arm" = musl ] && so="$MUSL_SO"
@@ -125,16 +149,16 @@ cat >"$OUT/off.c" <<'EOF'
 #include <stdio.h>
 #include <sys/stat.h>
 #include <stddef.h>
-/* ⚠ NOT <linux/stat.h>. musl's own <sys/stat.h> defines `struct statx` and the
+/* NOT <linux/stat.h>. musl's own <sys/stat.h> defines `struct statx` and the
  * kernel header then redefines it; glibc since 2.28 defines it there too under
- * _GNU_SOURCE. ⭐ Two libcs declaring one kernel struct in two different headers
+ * _GNU_SOURCE. Two libcs declaring one kernel struct in two different headers
  * is exactly why podbox's object carries OFFSETS rather than a struct. */
 int main(void){
   printf("sizeof=%zu dev=%zu ino=%zu mode=%zu uid=%zu gid=%zu\n",
     sizeof(struct stat), offsetof(struct stat, st_dev), offsetof(struct stat, st_ino),
     offsetof(struct stat, st_mode), offsetof(struct stat, st_uid),
     offsetof(struct stat, st_gid));
-  /* ⭐ statx too, and it is not a duplicate: coreutils' `stat` on a modern
+  /* statx too, and it is not a duplicate: coreutils' `stat` on a modern
    * glibc asks statx(2) and never reaches `stat`. src/lib.rs carries these
    * six numbers as well, and a check that asserted only the first struct
    * would have left the ones that actually answer a glibc payload unmeasured. */
@@ -148,20 +172,62 @@ int main(void){
 EOF
 g_off=""
 m_off=""
-if cc -o "$OUT/off_g" "$OUT/off.c" 2>/dev/null; then g_off="$("$OUT/off_g" | tr '\n' '|')"; fi
-if command -v zig >/dev/null 2>&1 &&
-	ZIG_TARGET=x86_64-linux-musl "$ROOT/scripts/zig-cc.sh" -o "$OUT/off_m" "$OUT/off.c" 2>/dev/null; then
-	m_off="$("$OUT/off_m" | tr '\n' '|')"
+# NTFS carries no POSIX mode, and chmod on this checkout is a silent no-op
+# (measured 2026-09-19), so a binary linked on the Windows host must be
+# copied to a filesystem that honours modes before it can run. The runs
+# below copy it inside the container for exactly that reason.
+if cc -O1 -o "$OUT/off_g" "$OUT/off.c" 2>/dev/null; then
+	:
+elif command -v zig >/dev/null 2>&1 &&
+	ZIG_TARGET=x86_64-linux-gnu.2.17 "$ROOT/scripts/zig-cc.sh" -O1 \
+		-o "$OUT/off_g" "$OUT/off.c" 2>/dev/null; then
+	:
+else
+	cannot "the glibc offsetof program did not build (needs cc or zig)"
 fi
-printf '  glibc  %s\n' "${g_off:-COULD NOT BUILD}"
-printf '  musl   %s\n' "${m_off:-COULD NOT BUILD}"
-# ⚠ The numbers `crates/podbox-interpose/src/lib.rs` carries, asserted here
-# rather than believed. ⛔ They agree on x86_64 and that is this architecture's
+if command -v zig >/dev/null 2>&1 &&
+	ZIG_TARGET=x86_64-linux-musl "$ROOT/scripts/zig-cc.sh" -O1 \
+		-o "$OUT/off_m" "$OUT/off.c" 2>/dev/null; then
+	:
+else
+	cannot "the musl offsetof program did not build (needs zig)"
+fi
+# A Linux host runs both directly. Anywhere else they run staged inside the
+# matching image, because an ELF built here does not execute there. The copy
+# inside the container is load-bearing on Windows lanes: see above.
+if [ -f "$OUT/off_g" ] && [ -z "$g_off" ]; then
+	case "$(uname -s)" in
+	Linux) g_off="$("$OUT/off_g" | tr '\n' '|')" ;;
+	*)
+		if eng_mount "$OUT/off_g" /off-src; then
+			g_off="$(eng_run 60 "$GLIBC_PAYLOAD" "" -- /bin/sh -c 'cp /off-src /tmp/off && chmod +x /tmp/off && exec /tmp/off' 2>"$OUT/off_g.err" | tr '\n' '|')" || g_off=""
+			[ -n "$g_off" ] || sed 's/^/  engine: /' "$OUT/off_g.err"
+		fi
+		eng_clear
+		;;
+	esac
+fi
+if [ -f "$OUT/off_m" ] && [ -z "$m_off" ]; then
+	case "$(uname -s)" in
+	Linux) m_off="$("$OUT/off_m" | tr '\n' '|')" ;;
+	*)
+		if eng_mount "$OUT/off_m" /off-src; then
+			m_off="$(eng_run 60 "$MUSL_PAYLOAD" "" -- /bin/sh -c 'cp /off-src /tmp/off && chmod +x /tmp/off && exec /tmp/off' 2>"$OUT/off_m.err" | tr '\n' '|')" || m_off=""
+			[ -n "$m_off" ] || sed 's/^/  engine: /' "$OUT/off_m.err"
+		fi
+		eng_clear
+		;;
+	esac
+fi
+printf '  glibc  %s\n' "${g_off:-COULD NOT BUILD OR RUN}"
+printf '  musl   %s\n' "${m_off:-COULD NOT BUILD OR RUN}"
+# The numbers `crates/podbox-interpose/src/lib.rs` carries, asserted here
+# rather than believed. They agree on x86_64 and that is this architecture's
 # property, not a general one: T-0702's premise is that struct layout is what a
 # preload cannot bridge.
 WANT='sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|'
 if [ -z "$g_off" ] || [ -z "$m_off" ]; then
-	cannot "one of the two offsetof programs did not build"
+	cannot "one of the two offsetof programs did not build or run"
 elif [ "$g_off" = "$WANT" ] && [ "$m_off" = "$WANT" ]; then
 	pass "B: both libcs agree on BOTH structs, and with the offsets src/lib.rs carries"
 else
@@ -169,18 +235,11 @@ else
 fi
 echo
 
-command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 || {
-	echo "SKIP: no docker daemon, so C, D and E cannot run" >&2
-	exit 2
-}
-
 # subject SO IMAGE CAPS -> prints "<rc-of-chown> <what stat reports> <memo bytes>"
 subject() {
 	local so="$1" img="$2" caps="$3" preload="$4"
-	# ⛔ ONE `sh -c`, so the chown and the stat are two EXECVEs of one shell:
-	# T-0704's own Prove shape, and the reason the memo cannot live in memory.
-	# shellcheck disable=SC2086
-	timeout 180 docker run --rm $caps -v "$so":/i.so:ro "$img" /bin/sh -c "
+	eng_mount "$so" /i.so || return 1
+	eng_run 180 "$img" "$caps" -- /bin/sh -c "
     ${preload}
     : >/tmp/f
     chown 0:42 /tmp/f 2>/tmp/e; echo \"CHOWN_RC=\$?\"
@@ -191,7 +250,7 @@ subject() {
 }
 
 echo "== C. the control: a machine that CAN chown, with the object loaded"
-# ⛔ FIRST. An interposer that reported the caller's intent where the kernel
+# FIRST. An interposer that reported the caller's intent where the kernel
 # would have done the real thing is weaker than the bare chroot it replaces, and
 # every arm below would pass for that reason.
 c_out="$(subject "$GNU_SO" "$GLIBC_PAYLOAD" "" 'export LD_PRELOAD=/i.so')"
@@ -206,7 +265,7 @@ fi
 echo
 
 echo "== D. the wall, glibc: root WITHOUT CAP_CHOWN"
-# ⚠ `--cap-drop=CHOWN` refuses the call with EPERM, which is one of the two
+# `--cap-drop=CHOWN` refuses the call with EPERM, which is one of the two
 # errnos T-0704 names. The runtime podbox targets answers EINVAL for an unmapped
 # id, and the object swallows both; fakeroot tests EPERM alone at eight sites
 # and would return the error on every one of them here.
@@ -248,23 +307,58 @@ fi
 echo
 
 echo "== F. the pair podbox must refuse BEFORE loading anything"
-# ⭐ TODO/interpose.md T-0709, against podbox's OWN object rather than the C
+# TODO/interpose.md T-0709, against podbox's OWN object rather than the C
 # reference interposer 80-interposer-abi.sh uses. The object is built on glibc
 # 2.39 and imports `dlsym@GLIBC_2.34`; the older payload declares up to
-# GLIBC_2.31. ⛔ The reader must say so from ELF, with nothing loaded, and the
+# GLIBC_2.31. The reader must say so from ELF, with nothing loaded, and the
 # loader must agree when the pair is forced.
 BIN="${PODBOX_BIN:-$ROOT/target/x86_64-unknown-linux-musl/release/podbox}"
-if [ ! -x "$BIN" ]; then
-	cannot "$BIN is not an executable, so the reader cannot be asked"
-else
-	cid="$(timeout 180 docker create "$GLIBC_TOO_OLD" /bin/true 2>/dev/null)"
-	if [ -n "$cid" ] && timeout 180 docker cp -L "$cid:/lib/x86_64-linux-gnu/libc.so.6" \
-		"$OUT/old-libc.so.6" >/dev/null 2>&1 && [ -s "$OUT/old-libc.so.6" ]; then
-		docker rm -f "$cid" >/dev/null 2>&1
-		f_out="$("$BIN" system abi "$GNU_SO" "$OUT/old-libc.so.6" 2>&1)"
-		f_rc=$?
+# The reader runs where a Linux binary executes. On a Linux lane that is
+# here. Anywhere else it runs staged inside the glibc payload image: the
+# release binary is statically linked, so it needs nothing from the image
+# but a kernel, and the base-exec channel proved too flaky for argv (usage
+# answers mixed with genuine ones across identical calls).
+_can_read=""
+_can_engine=""
+case "$(uname -s)" in
+Linux)
+	if [ -x "$BIN" ]; then
+		_can_read="1"
+	else
+		cannot "$BIN is not an executable (set PODBOX_BIN), so the reader cannot be asked"
+	fi
+	;;
+*)
+	if [ -r "$BIN" ]; then
+		_can_engine="1"
+	else
+		cannot "PODBOX_BIN is not readable (set it to a guest build artifact), so the reader cannot be asked"
+	fi
+	;;
+esac
+if [ -n "$_can_read" ] || [ -n "$_can_engine" ]; then
+	cid="$(eng_create "$GLIBC_TOO_OLD" -- /bin/true)" || {
+		cannot "the old payload image could not be created"
+		cid=""
+	}
+	if [ -n "$cid" ] && eng_cp "$cid" /lib/x86_64-linux-gnu/libc.so.6 "$OUT/old-libc.so.6" >/dev/null 2>&1 && [ -s "$OUT/old-libc.so.6" ]; then
+		eng_rm "$cid"
+		if [ -n "$_can_read" ]; then
+			f_out="$("$BIN" system abi "$GNU_SO" "$OUT/old-libc.so.6" 2>&1)"
+			f_rc=$?
+		elif eng_mount "$BIN" /pb && eng_mount "$GNU_SO" /obj && eng_mount "$OUT/old-libc.so.6" /lc; then
+			f_out="$(eng_run 60 "$GLIBC_PAYLOAD" "" -- /pb system abi /obj /lc 2>&1)"
+			f_rc=$?
+			eng_clear
+		else
+			cannot "the reader inputs could not be staged"
+			f_out=""
+			f_rc=2
+		fi
 		printf '  podbox system abi: rc=%s %s\n' "$f_rc" \
 			"$(printf '%s' "$f_out" | head -1 | sed "s#$ROOT/##g" | cut -c1-100)"
+		# subject() stages the object itself; staging it here too would only
+		# double the same destination.
 		f_loader="$(subject "$GNU_SO" "$GLIBC_TOO_OLD" "" 'export LD_PRELOAD=/i.so' |
 			grep -oE "GLIBC_[0-9.]+.? not found" | head -1)"
 		printf '  and the loader:    %s\n' "${f_loader:-it loaded}"
@@ -276,7 +370,7 @@ else
 			fail "F: the reader answered rc=$f_rc for a pair the loader refuses"
 		fi
 	else
-		docker rm -f "$cid" >/dev/null 2>&1
+		[ -n "$cid" ] && eng_rm "$cid"
 		cannot "the old payload's libc could not be copied out"
 	fi
 fi

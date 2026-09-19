@@ -65,47 +65,47 @@ publish branch is the fallback if protection is ever restored.
 
 ## What this session did
 
-Session of 2026-09-19. It reconciled the dirty tree the prior session left:
-the T-0711 identity implementation, uncommitted, with no proof script and a
-red gate citation. It finished the implementation, proved it, and closed the
-entry.
+Session of 2026-09-19, second half. The operator asked whether podman could
+replace the broken in-guest docker daemon, and the answer is measured: the
+Windows host's own podman machine runs rootful and honours `--cap-drop`
+with a clean `EPERM` wall, while the job container holds no `NET_ADMIN`.
+The lane rule stands: guest containers keep the build, the tests, the gate
+and every podbox-driven clause; raw-daemon clauses move to host podman.
 
-⭐ **The identity tier answers the operator's ruling with both behaviours.**
-The default calls through and names the failure with its errno; `--user`
-turns on the fakeroot behaviour for `run`, `create` and both `exec` paths
-through one resolve call, answered from a per-process record with no lock
-and no allocation. `experiments/106-interpose-identity.sh` drives all six
-clauses with `experiments/results/interpose-identity.txt` carrying the run:
-14 checks, exit 0, honest default identical to bare, faked record on both
-libcs, banner naming the fake, `--strict` refusing through the Degraded
-parity row, declined static payload still running.
+⭐ **`experiments/lib/engine.sh` is the one way scripts reach either engine.**
+It prefers a docker daemon where one answers and falls back to host podman,
+names the driver in the conditions block, and refuses `--privileged`,
+`--cap-add`, unpinned images, out-of-tree mount sources, writable mounts
+outside scratch, and untimed calls. `105` is converted and green through it
+on host podman with `experiments/results/interpose-ownership.txt` carrying
+the run: every check ran and matched. The musl image reference is qualified
+at `public.ecr.aws` for the same digest; the bare `ubuntu` row stays, owned
+by [T-1209](gate.md).
 
-Two defects found while reconciling, both fixed in the same change: the
-`exec` image path duplicated the resolve-and-set instead of calling the one
-function, and a bare user name resolved its group as the uid repeated
-rather than its primary group from the image's passwd file, with a
-regression test whose plant (`app` at `1000:100`) fails the old shape.
-A third, in review: `setreuid`/`setregid` with a `-1` effective recorded
-the saved id as the real one, where the kernel sets it to the (unchanged)
-effective; the victim covers it and the run proves it.
+Fourteen more engine scripts await the same conversion (80, 90, 100, 125,
+130, 150, 170, 240, 245, 270, 280, 300, 320, 330, plus the target pair 10
+and 20). Filing them as entries is the next session's authoring; the helper
+and the 105 conversion are the shape to copy.
+
+Earlier today this record closed [T-0711](interpose.md) with its proof (14
+checks, exit 0); the entry carries the detail. Three review defects from
+that change are in the same commit. What stays current from it:
 
 ⚠ **The lock-table flake fired three times today and went quiet the fourth.**
 `cargo test --workspace` on this tree read 6 failures, then 5, then 0 of
 344, all in the `podbox-image` store lock-table tests with the recorded
 "already holds 16 locks" refusal. Same tree, same message as the 2026-09-18
 readings, count moving with scheduling luck. The green fourth pass is the
-gate this change commits against.
+gate that change commits against.
 
-⚠ **Red runs that are not this change.** The job container cannot run a
-docker daemon today: dockerd fails creating the DOCKER NAT chain with
-`iptables ... Permission denied (you must be root)`, measured 2026-09-19,
-so the outer container holds no NET_ADMIN. The daemon's own log carries
-it, retrieved through a diagnostic job. `106` routes around it (victims
-run directly; the fake is wall-independent by design) and records the
-substitution. `105`, `159`, `161` and `245` need docker and could not run
-in this environment today; they were green on 2026-09-18 in the same base,
-and the cause of the change is unknown. Reopen condition: a job container
-with NET_ADMIN, or a base-level daemon the jobs can reach.
+⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
+creating the DOCKER chain with `iptables ... Permission denied`, measured
+2026-09-19: the job container holds no `NET_ADMIN`. What changed since the
+morning reading is the route, not the fact: engine clauses move to host
+podman, where `105` is green. `159`, `161`, `245` and the rest still await
+conversion and could not run in the guest today; they were green on
+2026-09-18 in the same base. Reopen condition for the guest lane: a job
+container with `NET_ADMIN`, or a base-level daemon the jobs can reach.
 
 ## Current work order
 
