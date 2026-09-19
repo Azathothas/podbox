@@ -97,10 +97,22 @@ pub fn create(args: &[String]) -> i32 {
                 p.completion_degraded,
             ) {
                 Ok(c) => {
+                    // ⭐ T-0710: the ephemeral memo becomes the container's,
+                    // beside its record. The stored environment already carries
+                    // the constant descriptor number.
+                    let dest = podbox_supervise::table::memo_path(&s, &c.id);
+                    if let Err(e) = std::fs::rename(&p.memo_host_path, &dest) {
+                        eprintln!("podbox create: the ownership memo could not be stored: {e}");
+                        let _ = podbox_supervise::remove(&s, &c.id, true);
+                        return podbox_image::error::EXIT_RUNTIME_ERROR;
+                    }
                     println!("{}", c.id);
                     0
                 }
-                Err(e) => fail("create", e),
+                Err(e) => {
+                    let _ = std::fs::remove_file(&p.memo_host_path);
+                    fail("create", e)
+                }
             }
         }
         Err(code) => code,
@@ -718,6 +730,12 @@ pub struct Prepared {
     pub rung: String,
     pub detach: bool,
     pub rm: bool,
+    /// ⭐ T-0710: the host memo file this entry hands the payload, beside the
+    /// container record once the container exists. For `prepare` itself this is
+    /// an ephemeral file under staging; `create` and `run -d` move it to
+    /// `containers/<id>/ownership.memo`, foreground `run` deletes it on exit.
+    /// The environment already carries `PODBOX_MEMO_FD` for it.
+    pub memo_host_path: std::path::PathBuf,
     /// ⭐ T-0804 rule 3: `inspect` reports the TRUE mode per container, and a
     /// shimmed `/dev/null` is part of that mode. One line per fixup that
     /// changed a byte or failed, carried into the container record.

@@ -134,7 +134,7 @@ the blocker named and what would clear it.
 | [T-0707](interpose.md) | P1 | interpose | open | The paths that must not be rewritten |
 | [T-0708](interpose.md) | P2 | interpose | open | Intercept the operations the runtime cannot provide |
 | [T-0709](interpose.md) | P0 | interpose | done | Select the interposer by `DT_NEEDED`, and refuse on the version predicate |
-| [T-0710](interpose.md) | P1 | interpose | open | The ownership memo lives where the payload can edit it, and answers by linear scan |
+| [T-0710](interpose.md) | P1 | interpose | done | The ownership memo lives where the payload can edit it, and answers by linear scan |
 | [T-0711](interpose.md) | P1 | interpose | done | The identity calls, and podbox's honesty rules point the other way from fakeroot's |
 | [T-0712](interpose.md) | P2 | interpose | done | A reach matrix holds its arguments constant, or it measures two things |
 | [T-0801](cli.md) | P0 | cli | done | The verb and flag parity table |
@@ -185,6 +185,10 @@ the blocker named and what would clear it.
 | [T-1207](gate.md) | P1 | gate | open | The one crate that runs inside other people's processes is the one the gate does not check |
 | [T-1208](gate.md) | P1 | gate | open | A closed entry carries its recorded run, and the gate can see it |
 | [T-1209](gate.md) | P1 | gate | open | Thirty-nine `Prove` lines pull from the one registry the acceptance may not use |
+| [T-1210](gate.md) | P1 | gate | open | Convert the interpose engine scripts to `experiments/lib/engine.sh` |
+| [T-1211](gate.md) | P1 | gate | open | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
+| [T-1212](gate.md) | P1 | gate | open | Convert the image, registry and CLI engine scripts to `experiments/lib/engine.sh` |
+| [T-1213](gate.md) | P1 | gate | open | Convert the target-image pair and its probe consumer to `experiments/lib/engine.sh` |
 | [T-1301](podvm.md) | P0 | podvm | open | The machine tier is probed leg by leg, and a present file is not a working one |
 | [T-1302](podvm.md) | P1 | podvm | open | One binary, one parity table, and a VM-only flag that cannot collide |
 | [T-1303](podvm.md) | P1 | podvm | open | The image is a rootfs directory, and an initramfs with no console is a silent machine |
@@ -196,7 +200,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-132 items: 36 open, 3 partial, 0 blocked, 93 done.
+136 items: 39 open, 3 partial, 0 blocked, 94 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -205,10 +209,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 2 | 1 | 0 | 49 | 52 |
-| P1 | 21 | 2 | 0 | 33 | 56 |
+| P1 | 24 | 2 | 0 | 34 | 60 |
 | P2 | 9 | 0 | 0 | 10 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **36** | **3** | **0** | **93** | **132** |
+| **All** | **39** | **3** | **0** | **94** | **136** |
 
 ## How the current ordering is derived
 

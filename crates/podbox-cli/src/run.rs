@@ -305,9 +305,19 @@ pub fn run(args: &[String]) -> i32 {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("podbox run: {e}");
+                let _ = std::fs::remove_file(&p.memo_host_path);
                 return podbox_image::error::EXIT_RUNTIME_ERROR;
             }
         };
+        // ⭐ T-0710: the ephemeral memo becomes the container's, beside its
+        // record. The environment already carries the constant descriptor
+        // number, so nothing in it moves with the file.
+        let dest = podbox_supervise::table::memo_path(&store, &c.id);
+        if let Err(e) = std::fs::rename(&p.memo_host_path, &dest) {
+            eprintln!("podbox run: the ownership memo could not be stored: {e}");
+            let _ = podbox_supervise::remove(&store, &c.id, true);
+            return podbox_image::error::EXIT_RUNTIME_ERROR;
+        }
         return match podbox_supervise::start(&store, &c.id, &p.record) {
             Ok(c) => {
                 println!("{}", c.id);
@@ -329,6 +339,7 @@ pub fn run(args: &[String]) -> i32 {
         Ok(h) => h,
         Err(e) => {
             let _ = writeln!(err, "podbox run: {e}");
+            let _ = std::fs::remove_file(&p.memo_host_path);
             return podbox_image::error::EXIT_RUNTIME_ERROR;
         }
     };
@@ -336,14 +347,34 @@ pub fn run(args: &[String]) -> i32 {
         Ok(r) => r,
         Err(e) => {
             let _ = writeln!(err, "podbox run: {e}");
+            let _ = std::fs::remove_file(&p.memo_host_path);
             return e.exit_code();
         }
     };
+    // ⭐ T-0710: the host memo, handed as a descriptor that survives the
+    // `chroot` and the `execve`. The file lives beside no container record
+    // here, but still on the host under staging, where the payload cannot
+    // reach it by path.
+    let memo = match crate::interpose::open_memo(&p.memo_host_path) {
+        Ok(f) => f,
+        Err(e) => {
+            let _ = writeln!(
+                err,
+                "podbox run: the ownership memo could not be opened: {e}"
+            );
+            let _ = std::fs::remove_file(&p.memo_host_path);
+            return podbox_image::error::EXIT_RUNTIME_ERROR;
+        }
+    };
+    use std::os::fd::AsRawFd;
+    let memo_host = memo.as_raw_fd() as i64;
     let plan = Plan {
         argv: p.argv.clone(),
         env: p.env.clone(),
         working_dir: p.working_dir.clone(),
-        fds: Fds::default(),
+        fds: Fds {
+            pass: vec![(crate::interpose::MEMO_CHILD_FD, memo_host)],
+        },
         // ⚠ Empty, and that is the same reason the launcher's is: `prepare`
         // printed the banner, because T-0412's steps run inside the rootfs
         // after it and every one of them has to be named before it runs.
@@ -354,6 +385,8 @@ pub fn run(args: &[String]) -> i32 {
     // before the fork that leads to its exec, and to nothing else.
     if let Err(e) = held.hand_to_payload() {
         let _ = writeln!(err, "podbox run: {e}");
+        drop(memo);
+        let _ = std::fs::remove_file(&p.memo_host_path);
         return podbox_image::error::EXIT_RUNTIME_ERROR;
     }
     let code = match podbox_enter::run(&root, &plan, &mut err) {
@@ -364,6 +397,10 @@ pub fn run(args: &[String]) -> i32 {
         }
     };
     drop(err);
+    // ⭐ T-0710: the ephemeral memo goes with the run. The child holds its own
+    // dup past the `execve`; this handle and the staging file are the parent's.
+    drop(memo);
+    let _ = std::fs::remove_file(&p.memo_host_path);
 
     if p.rm {
         // ⚠ The lock is dropped first: `remove_extracted` deletes the tree the
@@ -502,11 +539,26 @@ pub(crate) fn prepare(
     // reads it on first use in every process, which is what survives fork
     // and exec where a file descriptor would need re-handing.
     crate::lifecycle::apply_user(verb, &rootfs, o.user.as_ref(), &mut env)?;
+    // ⭐ T-0710: the host memo, beside the container record once it exists.
+    // Ephemeral here under staging; `create` and `run -d` move it to
+    // `containers/<id>/`, foreground `run` deletes it on exit. The descriptor
+    // number is constant, so the environment set here is final for every later
+    // entry into the same container.
+    let memo_host_path = crate::interpose::ephemeral_memo_path(store);
+    if let Err(e) = crate::interpose::ensure_memo_file(&memo_host_path) {
+        eprintln!("podbox {verb}: the ownership memo could not be created: {e}");
+        return Err(podbox_image::error::EXIT_RUNTIME_ERROR);
+    }
+    env.retain(|e| e.split('=').next().unwrap_or("") != crate::interpose::MEMO_FD_VAR);
+    env.push(crate::interpose::memo_fd_env());
     // ⭐ T-0702 and T-0706: classify the payload and place the object BEFORE
     // the banner is built, so the banner names the write before anything of
     // the payload's runs. The note joins the banner below.
     let mut interpose_note = String::new();
-    crate::interpose::apply(verb, &rootfs, &argv, &mut env, &mut interpose_note);
+    if let Err(e) = crate::interpose::apply(verb, &rootfs, &argv, &mut env, &mut interpose_note) {
+        eprintln!("{e}");
+        return Err(podbox_image::error::EXIT_RUNTIME_ERROR);
+    }
     let path_dirs = Plan::path_from(&env);
     let working_dir = o
         .workdir
@@ -585,10 +637,24 @@ pub(crate) fn prepare(
     // refusal prints even where the banner is suppressed: the config switch
     // silences a notice, never a refusal.
     crate::complete::strict_refusal(verb, &ask, entered.word(), &completion, &mut err)?;
-    // ⭐ T-0412. The commands the completion layer could not run from the host,
-    // run here: after the banner named them, after `--strict` had its chance to
-    // refuse them, and before anything of the payload's exists.
-    crate::complete::run_steps(verb, &rootfs, &env, &mut completion, quiet, &mut err);
+    // ⭐ T-0412 and T-0710. The steps share this entry's host memo: a fixup's
+    // `chown` must land in the same record the payload reads, or the two
+    // disagree about who owns the file. Opened here for the steps alone; the
+    // payload's own handle is opened by the caller that spawns it.
+    {
+        use std::os::fd::AsRawFd;
+        let memo_for_steps = crate::interpose::open_memo(&memo_host_path).ok();
+        let memo_host = memo_for_steps.as_ref().map(|f| f.as_raw_fd() as i64);
+        crate::complete::run_steps_with_memo(
+            verb,
+            &rootfs,
+            &env,
+            &mut completion,
+            quiet,
+            &mut err,
+            memo_host,
+        );
+    }
     let _ = path_dirs;
     // ⚠ The lock this function took goes here. It existed to keep the rootfs
     // from being deleted between the extraction check and now; the process that
@@ -605,6 +671,7 @@ pub(crate) fn prepare(
         rung: entered.word().to_string(),
         detach: o.detach,
         rm: o.rm,
+        memo_host_path,
         completion: completion
             .fixups
             .iter()

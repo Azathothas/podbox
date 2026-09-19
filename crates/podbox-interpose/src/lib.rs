@@ -138,36 +138,44 @@ unsafe fn dev_ino(st: *const c_void) -> (u64, u64) {
 ///
 /// ⛔ Only the fields the payload actually asked for are overwritten: a `chown`
 /// that named a gid and left the uid alone must not make podbox invent a uid.
+/// A lookup past the scan ceiling leaves the real `stat` untouched: the memo
+/// may hold a newer record for this file past it, so any record from before it
+/// could be stale, and the real owner marked degraded is the honest answer.
 ///
 /// # Safety
 /// As [`dev_ino`].
 unsafe fn report(st: *mut c_void) {
     let (dev, ino) = unsafe { dev_ino(st) };
-    let Some(o) = memo::lookup(dev, ino) else {
-        return;
-    };
-    let b = st as *mut u8;
-    unsafe {
-        if o.set & memo::SET_UID != 0 {
-            (b.add(ST_UID) as *mut u32).write_unaligned(o.uid);
+    match memo::lookup(dev, ino) {
+        memo::Lookup::Miss | memo::Lookup::BeyondCeiling => return,
+        memo::Lookup::Hit(o) => {
+            let b = st as *mut u8;
+            unsafe {
+                if o.set & memo::SET_UID != 0 {
+                    (b.add(ST_UID) as *mut u32).write_unaligned(o.uid);
+                }
+                if o.set & memo::SET_GID != 0 {
+                    (b.add(ST_GID) as *mut u32).write_unaligned(o.gid);
+                }
+            }
+            if say::debug() {
+                say::line(&[
+                    b"reported the recorded owner ",
+                    say::Num::new(o.uid as u64).as_bytes(),
+                    b":",
+                    say::Num::new(o.gid as u64).as_bytes(),
+                    b" for inode ",
+                    say::Num::new(ino).as_bytes(),
+                ]);
+            }
         }
-        if o.set & memo::SET_GID != 0 {
-            (b.add(ST_GID) as *mut u32).write_unaligned(o.gid);
-        }
-    }
-    if say::debug() {
-        say::line(&[
-            b"reported the recorded owner ",
-            say::Num::new(o.uid as u64).as_bytes(),
-            b":",
-            say::Num::new(o.gid as u64).as_bytes(),
-            b" for inode ",
-            say::Num::new(ino).as_bytes(),
-        ]);
     }
 }
 
 /// Report the memo back, over a filled `struct statx`.
+///
+/// Past the scan ceiling this leaves the real `statx` untouched, for `report`'s
+/// reason: any record from before the ceiling could be stale.
 ///
 /// # Safety
 /// `st` must point at a `struct statx` the real call has just filled.
@@ -180,7 +188,7 @@ unsafe fn report_statx(st: *mut c_void) {
             (b.add(STX_DEV_MINOR) as *const u32).read_unaligned() as u64,
         )
     };
-    let Some(o) = memo::lookup(makedev(major, minor), ino) else {
+    let memo::Lookup::Hit(o) = memo::lookup(makedev(major, minor), ino) else {
         return;
     };
     unsafe {

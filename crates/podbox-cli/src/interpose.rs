@@ -312,6 +312,35 @@ pub fn place(rootfs: &str, object_bytes: &[u8]) -> Result<(), String> {
 /// behaviour end to end.
 pub const IDENTITY_VAR: &str = "PODBOX_IDENTITY";
 
+/// The variable carrying the memo descriptor number into the payload.
+///
+/// ⭐ One path: `podbox-supervise::table` owns the file, the number and the
+/// grammar. This re-exports it so `run` and `exec` read one name; the
+/// interposer's own spelling lives in `podbox-interpose` and is asserted by
+/// `experiments/105-interpose-ownership.sh`.
+pub use podbox_supervise::table::{
+    ensure_memo_file, memo_fd_env, memo_fd_of, open_memo, MEMO_CHILD_FD, MEMO_FD_VAR,
+};
+
+/// An ephemeral host memo for a run with no container record.
+///
+/// Foreground `run` and image-path `exec` enter a rootfs with no container
+/// around it, so there is no `containers/<id>/` to sit beside. The file still
+/// lives on the host under the store's staging directory, where the payload
+/// cannot reach it, and the caller removes it when the payload exits. Per-run,
+/// never shared: two foreground runs sharing one memo would answer each
+/// other's `stat` with the wrong intent.
+pub fn ephemeral_memo_path(store: &podbox_image::Store) -> std::path::PathBuf {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    store
+        .root()
+        .join("staging")
+        .join(format!("memo-{}-{nanos}.tmp", std::process::id()))
+}
+
 /// The `LD_PRELOAD` value with podbox's object first.
 ///
 /// A caller-supplied value keeps working behind it. Podbox first means the
@@ -332,12 +361,25 @@ fn decline(note: &mut String, verb: &str, argv0: &str, why: String) {
 /// Classify the payload, place the object, and set the environment.
 ///
 /// ⭐ ONE CALL for `run`, `exec` and `create`, so the three verbs cannot
-/// disagree about whether a payload is reachable. It never fails the run:
-/// every refusal is a decline line in `note`, and the payload runs without
-/// the tier.
-pub fn apply(verb: &str, rootfs: &str, argv: &[String], env: &mut Vec<String>, note: &mut String) {
+/// disagree about whether a payload is reachable.
+///
+/// ⛔ T-0710: where the tier loads, the memo descriptor must already be handed
+/// in `env` (`PODBOX_MEMO_FD`), put there by the caller that opened the host
+/// file beside the container record. An entry that would load the tier without
+/// one is refused (`Err`) rather than started with no memo: a second process
+/// that silently has no ownership record answers a `stat` with the real uid
+/// and contradicts the first. A declined tier carries no memo and needs none.
+/// Nothing on the host reads the memo to decide anything; it is the payload's
+/// own view, not evidence.
+pub fn apply(
+    verb: &str,
+    rootfs: &str,
+    argv: &[String],
+    env: &mut Vec<String>,
+    note: &mut String,
+) -> Result<(), String> {
     let Some(first) = argv.first() else {
-        return;
+        return Ok(());
     };
     // ⭐ T-0711: the requested identity, if any. Named in the banner wherever
     // the tier loads, because a `getuid` that answers a record must never
@@ -348,38 +390,51 @@ pub fn apply(verb: &str, rootfs: &str, argv: &[String], env: &mut Vec<String>, n
     });
     let path_dirs = podbox_enter::Plan::path_from(env);
     match classify(rootfs, first, &path_dirs) {
-        Reach::Preload { libc, object } => match place(rootfs, object) {
-            Ok(()) => {
-                let merged = merge_preload(env);
-                // ⭐ Later wins and the earlier is removed, which is
-                // `Plan::env_for`'s own rule: a duplicate name must not reach
-                // `execve`, where glibc and musl resolve it differently.
-                env.retain(|e| e.split('=').next().unwrap_or("") != "LD_PRELOAD");
-                env.push(format!("LD_PRELOAD={merged}"));
-                // ⛔ Said, because T-0506 has no exception for a helpful edit:
-                // podbox wrote a file into somebody's image.
-                note.push_str(&format!(
-                    "podbox: interpose: {GUEST_PATH} ({} object) is preloaded \
-                     for this payload. ⛔ podbox WROTE that file into the \
-                     image's own rootfs and the payload can see it\n",
-                    libc.word()
+        Reach::Preload { libc, object } => {
+            // ⛔ The memo before the preload: without it the tier would start
+            // with no ownership record. Refuse, do not decline.
+            if memo_fd_of(env).is_none() {
+                return Err(format!(
+                    "podbox {verb}: interpose: the payload is reachable but no \
+                     ownership memo descriptor ({MEMO_FD_VAR}) was handed to it. \
+                     podbox refuses rather than starting a second process with \
+                     no record that would contradict the first \
+                     (TODO/interpose.md T-0710)"
                 ));
-                if let Some(id) = &identity {
-                    note.push_str(&format!(
-                        "podbox: interpose: identity faked to {id} (--user): \
-                         `getuid` and friends answer the record, not the \
-                         kernel, and the run is degraded \
-                         (TODO/interpose.md T-0711)\n"
-                    ));
-                }
             }
-            Err(e) => decline(
-                note,
-                verb,
-                first,
-                format!("the object could not be placed: {e}"),
-            ),
-        },
+            match place(rootfs, object) {
+                Ok(()) => {
+                    let merged = merge_preload(env);
+                    // ⭐ Later wins and the earlier is removed, which is
+                    // `Plan::env_for`'s own rule: a duplicate name must not reach
+                    // `execve`, where glibc and musl resolve it differently.
+                    env.retain(|e| e.split('=').next().unwrap_or("") != "LD_PRELOAD");
+                    env.push(format!("LD_PRELOAD={merged}"));
+                    // ⛔ Said, because T-0506 has no exception for a helpful edit:
+                    // podbox wrote a file into somebody's image.
+                    note.push_str(&format!(
+                        "podbox: interpose: {GUEST_PATH} ({} object) is preloaded \
+                         for this payload. ⛔ podbox WROTE that file into the \
+                         image's own rootfs and the payload can see it\n",
+                        libc.word()
+                    ));
+                    if let Some(id) = &identity {
+                        note.push_str(&format!(
+                            "podbox: interpose: identity faked to {id} (--user): \
+                             `getuid` and friends answer the record, not the \
+                             kernel, and the run is degraded \
+                             (TODO/interpose.md T-0711)\n"
+                        ));
+                    }
+                }
+                Err(e) => decline(
+                    note,
+                    verb,
+                    first,
+                    format!("the object could not be placed: {e}"),
+                ),
+            }
+        }
         Reach::Declined(why) => {
             // ⚠ A declined tier carries no memo, so `--user` changes nothing
             // here: saying so keeps the flag from reading as honoured.
@@ -390,6 +445,7 @@ pub fn apply(verb: &str, rootfs: &str, argv: &[String], env: &mut Vec<String>, n
             decline(note, verb, first, why);
         }
     }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -754,5 +810,40 @@ mod tests {
             merge_preload(&["LD_PRELOAD=".to_string()]),
             "/.podbox/interpose.so"
         );
+    }
+
+    /// ⭐ T-0710: the descriptor grammar the host and the interposer share.
+    /// Decimal digits only; anything else is no descriptor rather than a guess.
+    #[test]
+    fn the_memo_descriptor_parses_as_decimal_or_not_at_all() {
+        assert_eq!(memo_fd_of(&["PODBOX_MEMO_FD=17".to_string()]), Some(17));
+        assert_eq!(memo_fd_of(&[]), None);
+        assert_eq!(memo_fd_of(&["PODBOX_MEMO_FD=".to_string()]), None);
+        assert_eq!(memo_fd_of(&["PODBOX_MEMO_FD=nobody".to_string()]), None);
+        assert_eq!(memo_fd_of(&["PODBOX_MEMO_FD=-1".to_string()]), None);
+        // ⚠ The last wins, as every other `*_for` in this tree resolves it:
+        // the caller wins over the image.
+        assert_eq!(
+            memo_fd_of(&[
+                "PODBOX_MEMO_FD=17".to_string(),
+                "PODBOX_MEMO_FD=18".to_string()
+            ]),
+            Some(18)
+        );
+    }
+
+    /// ⛔ An entry that would load the tier without a memo refuses rather than
+    /// starting with no record. A declined tier needs none.
+    #[test]
+    fn a_reachable_payload_without_a_memo_is_refused_not_declined() {
+        // A missing payload is declined (no memo needed); the refusal arm
+        // needs a real rootfs with a real ELF, which this unit does not build.
+        // What this pins is the grammar above, which `apply` reads: without it
+        // the refusal cannot fire. The end-to-end refusal is asserted by
+        // `experiments/105-interpose-ownership.sh` check G's harness, which
+        // hands fd 17 where the tier loads.
+        assert!(memo_fd_of(&[]).is_none());
+        assert_eq!(memo_fd_env(), "PODBOX_MEMO_FD=17");
+        assert_eq!(MEMO_CHILD_FD, 17);
     }
 }

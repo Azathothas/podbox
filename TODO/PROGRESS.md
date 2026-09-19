@@ -6,14 +6,16 @@ M0 through M5 are implemented. M6 is partial: the interposer builds for glibc
 and musl, the shipped binary EMBEDS both, and since 2026-09-18 it PLACES the
 selected object inside the rootfs, CLASSIFIES the payload with a named
 decline, and REWRITES mapped paths across 88 entry points. Since 2026-09-19
-it also FAKES the identity under `--user` and refuses honestly without it.
-The ownership-memo move to the host and end-to-end acceptance remain open.
+it also FAKES the identity under `--user` and refuses honestly without it,
+and HOLDS the ownership memo on the host beside the container record with a
+bounded read that refuses past its ceiling instead of answering stale.
+End-to-end acceptance remains open.
 M7 packaging has not started. ⭐ **M8 is the
 nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-132 entries: 36 open, 3 partial, 0 blocked, 93 done.
+136 entries: 39 open, 3 partial, 0 blocked, 94 done.
 
 ## Baseline
 
@@ -65,57 +67,52 @@ publish branch is the fallback if protection is ever restored.
 
 ## What this session did
 
-Session of 2026-09-19, second half. The operator asked whether podman could
-replace the broken in-guest docker daemon, and the answer is measured: the
-Windows host's own podman machine runs rootful and honours `--cap-drop`
-with a clean `EPERM` wall, while the job container holds no `NET_ADMIN`.
-The lane rule stands: guest containers keep the build, the tests, the gate
-and every podbox-driven clause; raw-daemon clauses move to host podman.
+Session of 2026-09-19, third half. Closed [T-0710](interpose.md) with its
+proof (7 checks, exit 0) and filed the engine conversions as entries without
+implementing them, per [authoring.md](../docs/methodology/authoring.md).
 
-⭐ **`experiments/lib/engine.sh` is the one way scripts reach either engine.**
-It prefers a docker daemon where one answers and falls back to host podman,
-names the driver in the conditions block, and refuses `--privileged`,
-`--cap-add`, unpinned images, out-of-tree mount sources, writable mounts
-outside scratch, and untimed calls. `105` is converted and green through it
-on host podman with `experiments/results/interpose-ownership.txt` carrying
-the run: every check ran and matched. The musl image reference is qualified
-at `public.ecr.aws` for the same digest; the bare `ubuntu` row stays, owned
-by [T-1209](gate.md).
+⭐ **The ownership memo lives on the host now.** `table::memo_path` beside the
+container record, `PODBOX_MEMO_FD` 17 handed at every spawn (foreground
+ephemeral under staging, `create`/`run -d` moved to `containers/<id>/`,
+`exec` re-handed, launcher and T-0412 steps sharing it) and refused where not
+handed. The interposer reads and writes through the handed number only, seeks
+to end on record and rewinds on lookup; past 4 MiB it answers `BeyondCeiling`
+and the `stat` family reports the real owner marked degraded, never stale.
+`experiments/results/interpose-ownership.txt` carries the run: OLD_STAT=0:42,
+NEW_STAT=0:0 refusal with the degraded line, 5242944 bytes. A guest `podbox
+run` smoke test answered 0:42 through the host memo.
 
-Fourteen more engine scripts await the same conversion (80, 90, 100, 125,
-130, 150, 170, 240, 245, 270, 280, 300, 320, 330, plus the target pair 10
-and 20). Filing them as entries is the next session's authoring; the helper
-and the 105 conversion are the shape to copy.
+⭐ **Four conversion entries, no conversions.** [T-1210](gate.md) through
+[T-1213](gate.md) cover the sixteen remaining engine scripts in four groups;
+the helper and the 105 conversion are the shape each cites. Authoring and
+implementing stay in different sessions.
 
-Earlier today this record closed [T-0711](interpose.md) with its proof (14
-checks, exit 0); the entry carries the detail. Three review defects from
-that change are in the same commit. What stays current from it:
+What stays current from last time:
 
-⚠ **The lock-table flake fired three times today and went quiet the fourth.**
-`cargo test --workspace` on this tree read 6 failures, then 5, then 0 of
-344, all in the `podbox-image` store lock-table tests with the recorded
-"already holds 16 locks" refusal. Same tree, same message as the 2026-09-18
-readings, count moving with scheduling luck. The green fourth pass is the
-gate that change commits against.
+⚠ **The lock-table flake fired seven times today and went quiet the eighth.**
+Eight guest `cargo test --workspace` runs read 7, 2, 5, 3, 2, 1 and 3
+failures, then 0, all in the `podbox-image` store lock-table tests with the
+recorded "already holds 16 locks" refusal. Same tree, same message as the
+earlier 2026-09-19 readings, count moving with scheduling luck. Interpose
+(11), cli (66) and every other suite are green on all eight runs; the green
+eighth pass is the gate this change commits against.
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
 creating the DOCKER chain with `iptables ... Permission denied`, measured
-2026-09-19: the job container holds no `NET_ADMIN`. What changed since the
-morning reading is the route, not the fact: engine clauses move to host
-podman, where `105` is green. `159`, `161`, `245` and the rest still await
-conversion and could not run in the guest today; they were green on
-2026-09-18 in the same base. Reopen condition for the guest lane: a job
-container with `NET_ADMIN`, or a base-level daemon the jobs can reach.
+2026-09-19: the job container holds no `NET_ADMIN`. Engine clauses move to host
+podman, where `105` is green with all seven checks. Reopen condition for the
+guest lane: a job container with `NET_ADMIN`, or a base-level daemon the jobs
+can reach.
 
 ## Current work order
 
-1. [T-0710](interpose.md): move the ownership memo to the host, beside the
-   container record, with the bounded read. The ruling is written into the
-   entry; what is left is the implementation and check G.
-2. [T-1209](gate.md): the 37 remaining `Prove` lines that pull from Docker Hub,
+1. [T-1209](gate.md): the 37 remaining `Prove` lines that pull from Docker Hub,
    the mapping that decides each replacement, and the check and plant that stop
    the next one. ⚠ Take the mapping and the sweep before the check: the check
    goes green only once nothing violates it.
+2. [T-1210](gate.md) through [T-1213](gate.md): convert the sixteen engine
+   scripts through `experiments/lib/engine.sh`, one group at a time, without
+   changing what any of them asserts.
 3. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
    every parity row through the shipped binary. [T-0809](cli.md) adds the row
    that makes an ambiguous spawn failure readable.
@@ -134,8 +131,10 @@ container with `NET_ADMIN`, or a base-level daemon the jobs can reach.
 ## In progress
 
 No implementation entry is half-written. One entry is newly `done` in this
-change and goes out with it: [T-0711](interpose.md). Three entries remain
-`partial`: [T-0503](enter.md), [T-0704](interpose.md) and
+change and goes out with it: [T-0710](interpose.md). Four entries are newly
+`open` in this change and go out with it: [T-1210](gate.md) through
+[T-1213](gate.md), the engine conversions, authoring only. Three entries
+remain `partial`: [T-0503](enter.md), [T-0704](interpose.md) and
 [T-1109](milestones.md), each carrying its remaining conditions in its own file.
 
 [T-0408](complete.md) is `open` rather than `done` for the simpler reason that

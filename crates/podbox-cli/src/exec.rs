@@ -198,11 +198,33 @@ fn enter(
     if let Err(code) = crate::lifecycle::apply_user("exec", rootfs, o.user.as_ref(), &mut env) {
         return code;
     }
+    // ⭐ T-0710: the container's host memo, re-handed on this fresh re-entry.
+    // A fresh chroot shares only the filesystem; without the same descriptor
+    // a second process answers `stat` with the real uid and contradicts the
+    // first, so an entry that cannot be handed one refuses.
+    let memo_path = match podbox_supervise::get(store, target) {
+        Ok(c) => podbox_supervise::table::memo_path(store, &c.id),
+        Err(e) => {
+            eprintln!("podbox exec: {e}");
+            return podbox_image::error::EXIT_RUNTIME_ERROR;
+        }
+    };
+    if let Err(e) = podbox_supervise::table::ensure_memo_file(&memo_path) {
+        eprintln!("podbox exec: the ownership memo could not be created: {e}");
+        return podbox_image::error::EXIT_RUNTIME_ERROR;
+    }
+    env.retain(|e| e.split('=').next().unwrap_or("") != podbox_supervise::table::MEMO_FD_VAR);
+    env.push(podbox_supervise::table::memo_fd_env());
     // ⭐ T-0702 and T-0706, as in `run`: a fresh chroot re-entry is a fresh
     // payload, so it is classified and placed again rather than inheriting
     // the first entry's answer.
     let mut interpose_note = String::new();
-    crate::interpose::apply("exec", rootfs, &o.command, &mut env, &mut interpose_note);
+    if let Err(e) =
+        crate::interpose::apply("exec", rootfs, &o.command, &mut env, &mut interpose_note)
+    {
+        eprintln!("{e}");
+        return podbox_image::error::EXIT_RUNTIME_ERROR;
+    }
     let path_dirs = podbox_enter::Plan::path_from(&env);
     let working_dir = o.workdir.clone().unwrap_or_else(|| "/".to_string());
     let findings = podbox_probe::run();
@@ -243,12 +265,41 @@ fn enter(
     // ⭐ T-0412, and `exec` runs them for the same reason it completes the
     // rootfs at all: a fresh chroot re-entry is a fresh payload, and a keyring
     // or a CA index a previous one destroyed is still destroyed.
-    crate::complete::run_steps("exec", rootfs, &env, &mut completion, quiet, &mut err);
+    // ⭐ T-0710: steps share the container's memo, opened once for the steps
+    // and again for the payload below.
+    {
+        use std::os::fd::AsRawFd;
+        let memo_for_steps = podbox_supervise::table::open_memo(&memo_path).ok();
+        let memo_host = memo_for_steps.as_ref().map(|f| f.as_raw_fd() as i64);
+        crate::complete::run_steps_with_memo(
+            "exec",
+            rootfs,
+            &env,
+            &mut completion,
+            quiet,
+            &mut err,
+            memo_host,
+        );
+    }
+    let memo = match podbox_supervise::table::open_memo(&memo_path) {
+        Ok(f) => f,
+        Err(e) => {
+            let _ = writeln!(
+                err,
+                "podbox exec: the ownership memo could not be opened: {e}"
+            );
+            return podbox_image::error::EXIT_RUNTIME_ERROR;
+        }
+    };
+    use std::os::fd::AsRawFd;
+    let memo_host = memo.as_raw_fd() as i64;
     let plan = Plan {
         argv: o.command.clone(),
         env,
         working_dir,
-        fds: Fds::default(),
+        fds: Fds {
+            pass: vec![(podbox_supervise::table::MEMO_CHILD_FD, memo_host)],
+        },
         // ⚠ Empty: the banner was printed above, before the steps.
         banner: String::new(),
         path_dirs,
@@ -371,10 +422,25 @@ pub fn exec(args: &[String]) -> i32 {
     if let Err(code) = crate::lifecycle::apply_user("exec", &rootfs, o.user.as_ref(), &mut env) {
         return code;
     }
+    // ⭐ T-0710: an ephemeral host memo, as foreground `run` holds. No
+    // container record exists on this path, but the payload still cannot reach
+    // the file by path; it is handed the descriptor at spawn and deleted on
+    // exit.
+    let memo_host_path = crate::interpose::ephemeral_memo_path(&store);
+    if let Err(e) = podbox_supervise::table::ensure_memo_file(&memo_host_path) {
+        eprintln!("podbox exec: the ownership memo could not be created: {e}");
+        return podbox_image::error::EXIT_RUNTIME_ERROR;
+    }
+    env.retain(|e| e.split('=').next().unwrap_or("") != podbox_supervise::table::MEMO_FD_VAR);
+    env.push(podbox_supervise::table::memo_fd_env());
     // ⭐ T-0702 and T-0706, as on the container path above: the image path is
     // a second way to reach the same entry, not a second answer to it.
     let mut interpose_note = String::new();
-    crate::interpose::apply("exec", &rootfs, &argv, &mut env, &mut interpose_note);
+    if let Err(e) = crate::interpose::apply("exec", &rootfs, &argv, &mut env, &mut interpose_note) {
+        eprintln!("{e}");
+        let _ = std::fs::remove_file(&memo_host_path);
+        return podbox_image::error::EXIT_RUNTIME_ERROR;
+    }
     let path_dirs = Plan::path_from(&env);
     let working_dir = o
         .workdir
@@ -436,13 +502,43 @@ pub fn exec(args: &[String]) -> i32 {
         }
     }
     // ⭐ T-0412's steps, on the image path as on the container one.
-    crate::complete::run_steps("exec", &rootfs, &env, &mut completion, quiet, &mut err);
+    // ⭐ T-0710: steps share the ephemeral memo, opened once for the steps and
+    // again for the payload below.
+    {
+        use std::os::fd::AsRawFd;
+        let memo_for_steps = podbox_supervise::table::open_memo(&memo_host_path).ok();
+        let memo_host = memo_for_steps.as_ref().map(|f| f.as_raw_fd() as i64);
+        crate::complete::run_steps_with_memo(
+            "exec",
+            &rootfs,
+            &env,
+            &mut completion,
+            quiet,
+            &mut err,
+            memo_host,
+        );
+    }
 
+    let memo = match podbox_supervise::table::open_memo(&memo_host_path) {
+        Ok(f) => f,
+        Err(e) => {
+            let _ = writeln!(
+                err,
+                "podbox exec: the ownership memo could not be opened: {e}"
+            );
+            let _ = std::fs::remove_file(&memo_host_path);
+            return podbox_image::error::EXIT_RUNTIME_ERROR;
+        }
+    };
+    use std::os::fd::AsRawFd;
+    let memo_host = memo.as_raw_fd() as i64;
     let plan = Plan {
         argv,
         env,
         working_dir,
-        fds: Fds::default(),
+        fds: Fds {
+            pass: vec![(podbox_supervise::table::MEMO_CHILD_FD, memo_host)],
+        },
         // ⚠ Empty: the banner was printed above, before the steps.
         banner: String::new(),
         path_dirs,
@@ -453,20 +549,27 @@ pub fn exec(args: &[String]) -> i32 {
         Ok(r) => r,
         Err(e) => {
             let _ = writeln!(err, "podbox exec: {e}");
+            drop(memo);
+            let _ = std::fs::remove_file(&memo_host_path);
             return e.exit_code();
         }
     };
     if let Err(e) = held.hand_to_payload() {
         let _ = writeln!(err, "podbox exec: {e}");
+        drop(memo);
+        let _ = std::fs::remove_file(&memo_host_path);
         return podbox_image::error::EXIT_RUNTIME_ERROR;
     }
-    match podbox_enter::run(&root, &plan, &mut err) {
+    let code = match podbox_enter::run(&root, &plan, &mut err) {
         Ok(c) => c,
         Err(e) => {
             let _ = writeln!(err, "podbox exec: {e}");
             e.exit_code()
         }
-    }
+    };
+    drop(memo);
+    let _ = std::fs::remove_file(&memo_host_path);
+    code
 }
 
 #[cfg(test)]

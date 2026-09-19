@@ -156,6 +156,88 @@ pub fn control_path(store: &Store, id: &str) -> PathBuf {
     dir(store, id).join("ctl.sock")
 }
 
+/// Where one container's ownership memo lives: beside its record, on the host.
+///
+/// ⛔ T-0710's ruling. The payload cannot reach it; the interposer is handed a
+/// descriptor to it at spawn, re-handed on every `exec` re-entry. Nothing on
+/// the host reads it to decide anything: it is the payload's own view of
+/// ownership, not evidence.
+pub fn memo_path(store: &Store, id: &str) -> PathBuf {
+    dir(store, id).join("ownership.memo")
+}
+
+/// The variable carrying the memo descriptor number into the payload.
+///
+/// One fact in two homes with `podbox-interpose`'s `MEMO_FD_VAR`: that crate
+/// cannot depend on this one, so the two spellings are asserted to agree by
+/// driving the behaviour end to end in
+/// `experiments/105-interpose-ownership.sh`.
+pub const MEMO_FD_VAR: &str = "PODBOX_MEMO_FD";
+
+/// The descriptor number the payload sees the memo on.
+///
+/// High enough to miss 0, 1, 2 and the log sinks the launcher passes, low
+/// enough to stay under any conservative `FD_SETSIZE`. The host's own number
+/// for the file is unrelated: `podbox-enter`'s `Fds.pass` dups it to this one
+/// in the child before the `chroot`, and `dup3` with flags 0 clears
+/// `CLOEXEC`, so it survives the `execve` the readiness pipe does not.
+pub const MEMO_CHILD_FD: i64 = 17;
+
+/// The `PODBOX_MEMO_FD` entry for a payload environment, once the host has the
+/// file open.
+pub fn memo_fd_env() -> String {
+    format!("{MEMO_FD_VAR}={MEMO_CHILD_FD}")
+}
+
+/// The memo descriptor the environment hands the payload, or `None`.
+///
+/// Decimal digits only, within `c_int` range; the interposer parses the same
+/// grammar, so anything else is no descriptor rather than a guess at one.
+pub fn memo_fd_of(env: &[String]) -> Option<i64> {
+    let v = env
+        .iter()
+        .rev()
+        .find_map(|e| e.strip_prefix(&format!("{MEMO_FD_VAR}=")))?;
+    if v.is_empty() || v.len() > 10 || !v.bytes().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    let n: i64 = v.parse().ok()?;
+    (n >= 0 && n <= i32::MAX as i64).then_some(n)
+}
+
+/// Create the host memo file where absent, leaving what is there alone.
+///
+/// An existing memo is a container's ownership memory and must survive a
+/// second entry, so this never truncates. A fresh file is empty, which reads
+/// as "no record yet" rather than as degraded.
+pub fn ensure_memo_file(path: &std::path::Path) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("{}: {e}", path.display()))?;
+    }
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .map(|_| ())
+        .map_err(|e| format!("{}: {e}", path.display()))
+}
+
+/// Open the host memo for handing to the payload.
+///
+/// `O_APPEND` so the kernel serialises one-record writes from concurrent
+/// payload processes with no lock in the interposer. The returned handle must
+/// outlive the spawn: the child dups it to `MEMO_CHILD_FD` before the
+/// `chroot`.
+pub fn open_memo(path: &std::path::Path) -> Result<std::fs::File, String> {
+    ensure_memo_file(path)?;
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .read(true)
+        .open(path)
+        .map_err(|e| format!("{}: {e}", path.display()))
+}
+
 /// The control socket's path, in a form that FITS IN `sun_path`.
 ///
 /// ⛔ **A unix socket address is 108 bytes including the NUL, and a container
@@ -371,5 +453,26 @@ mod tests {
         assert_eq!(x.status(), "Exited");
         x.exit_code = Some(3);
         assert_eq!(x.status(), "Exited (3)");
+    }
+
+    /// ⭐ T-0710: the memo lives beside the container record, on the host, and
+    /// the environment names the constant descriptor number for it.
+    #[test]
+    fn the_memo_lives_beside_the_container_record() {
+        let d = std::env::temp_dir().join(format!("podbox-memo-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        let s = Store::open(&d).unwrap();
+        let p = memo_path(&s, "abc123");
+        assert!(p.ends_with("containers/abc123/ownership.memo"), "{p:?}");
+        assert_eq!(memo_fd_env(), "PODBOX_MEMO_FD=17");
+        assert_eq!(MEMO_CHILD_FD, 17);
+        // Creating twice keeps what is there: a second entry must not truncate
+        // the first process's ownership memory.
+        ensure_memo_file(&p).unwrap();
+        std::fs::write(&p, b"first").unwrap();
+        ensure_memo_file(&p).unwrap();
+        assert_eq!(std::fs::read(&p).unwrap(), b"first");
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

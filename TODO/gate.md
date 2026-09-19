@@ -646,3 +646,153 @@ Decision:    ⭐ **Taken on 2026-09-12: the sweep is one entry and not 39
              A warning nobody has to clear is a comment, and the gate here is an
              assertion or it is decoration.
 Prove:       `./scripts/check-todo.py` exits 0 with the new check in place, and `./scripts/plant.sh` reddens it by name
+
+---
+
+### T-1210 Convert the interpose engine scripts to `experiments/lib/engine.sh`
+
+Source:      `experiments/lib/engine.sh`; `experiments/105-interpose-ownership.sh`
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     Three interpose scripts reach an engine without the one safe
+             helper: `experiments/80-interposer-abi.sh` (13 docker calls),
+             `experiments/100-interpose-symbols.sh` (8) and
+             `experiments/245-interpose-sweep.sh` (11). A job container cannot
+             start a docker daemon (no `NET_ADMIN`, measured 2026-09-19), so
+             they exit 2 in the guest lane, and on a workstation their raw
+             `docker run` calls carry no timeout, no pin check, no mount
+             confinement and no privileged refusal.
+Premise:     Counted on 2026-09-19 by matching `docker|podman` against each
+             script: 80, 100 and 245 name the engine directly and never source
+             `lib/engine.sh`, while only `105` does. `105` is the converted
+             shape to copy: `engine_pick` preferring a daemon and falling back
+             to host podman, the conditions block naming the driver, images
+             fetched before any timed clause, every run bounded and `--rm`,
+             mounts read-only from declared roots.
+Approach:    One script at a time, in number order, through the helper:
+             1. source `lib/engine.sh`, set `ENGINE_REPO` to the checkout and
+                `ENGINE_WORK` to the script's scratch, `engine_pick` or exit 2;
+             2. replace each `docker run|create|cp|pull` with the `eng_*`
+                spelling, pinning every image at `@sha256:` and fetching before
+                any timed clause;
+             3. name the driver in the conditions block, as `105` does.
+             Out of scope: what each script asserts. The conversion keeps every
+             clause byte-identical apart from the engine spelling, so a red
+             conversion is a broken conversion and not a new finding.
+             ⛔ No `--privileged` and no `--cap-add` survive the move; the
+             helper refuses both, and a clause needing one is rewritten to a
+             `--cap-drop` wall or filed as blocked naming what would clear it.
+Decision:    Convert, do not fork the helper per script. A second engine
+             spelling is the copy that diverges, which is what `105` was
+             written to stop.
+Prove:       `./experiments/80-interposer-abi.sh`, `./experiments/100-interpose-symbols.sh`
+             and `./experiments/245-interpose-sweep.sh` each exit 0 on host
+             podman with the conditions block naming `podman (host machine)`,
+             and `experiments/results/` carries the three runs.
+
+---
+
+### T-1211 Convert the distribution and probe engine scripts to `experiments/lib/engine.sh`
+
+Source:      `experiments/lib/engine.sh`; `experiments/105-interpose-ownership.sh`
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     Four matrix scripts reach an engine without the helper:
+             `experiments/90-nsswitch-contract.sh` (8 docker calls),
+             `experiments/125-across-distributions.sh` (9),
+             `experiments/170-probe-cache.sh` (1) and
+             `experiments/240-distro-sweep.sh` (14). Same wall as T-1210: exit
+             2 in the guest lane, unbounded and unconfined on a workstation.
+Premise:     Counted on 2026-09-19 as T-1210's premise was: none of the four
+             sources `lib/engine.sh`. `125` is the widest (eleven pinned rows)
+             and `240` is M5's own sweep, so neither may change what it asserts
+             in the move.
+Approach:    As T-1210, one script at a time: source the helper, pin every
+             image, fetch before timed clauses, bound every call, name the
+             driver. Out of scope: the rows each matrix drives and what each
+             row asserts. A matrix that changes its rows in the move measures
+             something new, which is T-0712's defect in another costume.
+Decision:    Convert, do not re-row. The matrices stay byte-identical apart
+             from the engine spelling.
+Prove:       `./experiments/90-nsswitch-contract.sh`, `./experiments/125-across-distributions.sh`,
+             `./experiments/170-probe-cache.sh` and `./experiments/240-distro-sweep.sh`
+             each exit 0 on host podman with the conditions block naming the
+             driver, and `experiments/results/` carries the runs, including one
+             transcript per row for `125` and `240`.
+
+---
+
+### T-1212 Convert the image, registry and CLI engine scripts to `experiments/lib/engine.sh`
+
+Source:      `experiments/lib/engine.sh`; `experiments/105-interpose-ownership.sh`
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     Six scripts reach an engine without the helper:
+             `experiments/150-image-acquisition.sh` (23 docker calls),
+             `experiments/270-multiarch-image.sh` (1),
+             `experiments/280-insecure-registry.sh` (16),
+             `experiments/300-run.sh` (7),
+             `experiments/320-cli-contract.sh` (21) and
+             `experiments/330-exit-codes.sh` (27). `150`, `320` and `330` are
+             the widest engine users in the tree; `330` owns docker's exit-code
+             contract, so an engine difference there reads as a product defect.
+Premise:     Counted on 2026-09-19 as T-1210's premise was. `280` stands up a
+             registry fixture, so its conversion keeps the fixture's lifecycle
+             (start, wait-on-condition, teardown) and only changes the engine
+             spelling that drives it.
+Approach:    As T-1210, one script at a time. Out of scope: exit codes,
+             templates and registry behaviour each script asserts. `330` in
+             particular keeps every expected code; a code that moves under host
+             podman is reported as a finding about the engines, not edited into
+             the expectation.
+Decision:    Convert, do not re-assert. Where host podman and a daemon would
+             answer differently, the conditions block names which one drove and
+             the difference is a finding, never a silent edit.
+Prove:       `./experiments/150-image-acquisition.sh`, `./experiments/270-multiarch-image.sh`,
+             `./experiments/280-insecure-registry.sh`, `./experiments/300-run.sh`,
+             `./experiments/320-cli-contract.sh` and `./experiments/330-exit-codes.sh`
+             each exit 0 on host podman with the conditions block naming the
+             driver, and `experiments/results/` carries the runs.
+
+---
+
+### T-1213 Convert the target-image pair and its probe consumer to `experiments/lib/engine.sh`
+
+Source:      `experiments/lib/engine.sh`; `experiments/130-probe-parity.sh:1-40`
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     `experiments/10-build-target-image.sh` (9 docker calls) builds
+             the image `experiments/20-enter-target.sh` (6) enters, and
+             `experiments/130-probe-parity.sh` drives `20` for T-1101's
+             acceptance. None sources the helper. `130` names no engine itself
+             (zero `docker|podman` lines) and still cannot run where `20`
+             cannot, which is why the three convert together or not at all.
+Premise:     Counted on 2026-09-19 as T-1210's premise was. `130`'s header
+             (lines 1-40) states the dependency in writing: all three rows
+             through `20`, plus a `--refresh` path through `30-`.
+Approach:    As T-1210: `10` builds through the helper (pinned base, bounded,
+             no privileged), `20` enters through it, `130` inherits both and
+             keeps its three rows and its `--refresh` shape. Out of scope: the
+             rung each row expects. `130` compares verdict AND errno row for
+             row against `attribute.txt`; the move changes neither side of the
+             comparison.
+Decision:    The three convert as one unit. Converting `130` without `20`
+             tests nothing, and converting `20` without `10` builds nothing.
+Prove:       `./experiments/10-build-target-image.sh`,
+             `./experiments/20-enter-target.sh` and
+             `./experiments/130-probe-parity.sh` each exit 0 on host podman
+             with the conditions block naming the driver, and
+             `experiments/results/probe-parity.txt` carries the run.
+

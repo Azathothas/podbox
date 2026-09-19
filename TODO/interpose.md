@@ -813,7 +813,7 @@ Source:      `crates/podbox-interpose/src/memo.rs`; `experiments/results/interpo
 Category:    interpose
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done 2026-09-19
 
 Problem:     T-0704's memo makes `chown` answerable on a runtime that refuses
              it, and the shape it took to get there is a append-only log at
@@ -883,6 +883,27 @@ Prove:       `experiments/105-interpose-ownership.sh` gains a check G: write
              recorded before it, and assert the answer is either correct or a
              refusal, never a stale one. ⛔ The current code fails that check,
              which is why it is written before the fix rather than after.
+
+
+**Done 2026-09-19.** The memo lives on the host beside the container record
+(`podbox-supervise/src/table.rs` `memo_path`, `MEMO_CHILD_FD` 17,
+`PODBOX_MEMO_FD`), handed as a descriptor at every spawn (`run` foreground
+ephemeral under staging, `create`/`run -d` moved to `containers/<id>/`,
+`exec` re-handed, launcher and T-0412 steps sharing it) and refused where not
+handed (`interpose::apply` returns `Err`). The interposer reads and writes
+through the handed number only (`memo::memo_fd`, seek-to-end record, rewind
+lookup); past 4 MiB `lookup` returns `BeyondCeiling` and the `stat` family
+answers the real owner marked degraded, never a stale record.
+`experiments/105-interpose-ownership.sh` check G drives it end to end with
+`experiments/results/interpose-ownership.txt` carrying the run: 7 checks, exit
+0 (OLD_STAT=0:42, NEW_STAT=0:0 refusal with the degraded line, 5242944 bytes).
+A guest `podbox run` smoke test answered 0:42 through the host memo. Nothing
+on the host reads the memo to decide anything.
+
+⚠ **One lane trap this change records.** The 105 harness hands fd 9 and not
+17: the old glibc payload's `/bin/sh` is dash, which redirects single-digit
+descriptors only (`exec 17<>` answers `17: not found`, measured 2026-09-19).
+podbox hands 17 by `dup2` with no shell involved, so production is unaffected.
 
 ---
 

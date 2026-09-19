@@ -236,10 +236,28 @@ fi
 echo
 
 # subject SO IMAGE CAPS -> prints "<rc-of-chown> <what stat reports> <memo bytes>"
+# ⭐ T-0710: the memo is handed as a descriptor, as podbox hands it at spawn.
+# Where the payload preloads the object the harness opens `/.podbox/` (inside
+# this test container, standing in for the host file podbox holds) read-write
+# and hands fd 9 with `PODBOX_MEMO_FD=9`; bare runs hand nothing and write
+# no memo. Read-write (`<>`) rather than append (`>>`): the interposer reads
+# through the same descriptor it writes, and a write-only one answers `EBADF`
+# on the read. The object seeks to the end before each record, so the position
+# is exact either way. Fd 9 and not 17: the old glibc payload's `/bin/sh` is
+# dash, which redirects single-digit descriptors only; podbox itself hands 17
+# by `dup2` before the `exec` and no shell is involved there.
 subject() {
 	local so="$1" img="$2" caps="$3" preload="$4"
 	eng_mount "$so" /i.so || return 1
 	eng_run 180 "$img" "$caps" -- /bin/sh -c "
+    case ' ${preload} ' in
+      *LD_PRELOAD*)
+        mkdir -p /.podbox
+        : >/.podbox/ownership.memo
+        exec 9<>/.podbox/ownership.memo
+        export PODBOX_MEMO_FD=9
+        ;;
+    esac
     ${preload}
     : >/tmp/f
     chown 0:42 /tmp/f 2>/tmp/e; echo \"CHOWN_RC=\$?\"
@@ -257,10 +275,13 @@ c_out="$(subject "$GNU_SO" "$GLIBC_PAYLOAD" "" 'export LD_PRELOAD=/i.so')"
 printf '%s\n' "$c_out" | sed 's/^/  /'
 c_stat="$(printf '%s' "$c_out" | sed -n 's/^STAT=//p')"
 c_memo="$(printf '%s' "$c_out" | sed -n 's/^MEMO=//p')"
-if [ "$c_stat" = "0:42" ] && [ "$c_memo" = "none" ]; then
+# ⭐ T-0710: the harness hands an empty host file; "wrote no memo" is no
+# records, so none (no file, bare runs) or 0 (empty file, real chown needed no
+# record) both pass. Anything else is a record where the kernel did the work.
+if [ "$c_stat" = "0:42" ] && { [ "$c_memo" = "none" ] || [ "$c_memo" = "0" ]; }; then
 	pass "C: the real chown worked and podbox wrote no memo"
 else
-	fail "C: stat says [$c_stat] and the memo is [$c_memo]; it should be 0:42 and none"
+	fail "C: stat says [$c_stat] and the memo is [$c_memo]; it should be 0:42 and none or 0"
 fi
 echo
 
@@ -373,6 +394,55 @@ if [ -n "$_can_read" ] || [ -n "$_can_engine" ]; then
 		[ -n "$cid" ] && eng_rm "$cid"
 		cannot "the old payload's libc could not be copied out"
 	fi
+fi
+echo
+
+echo "== G. past the scan ceiling: correct or refusal, never stale"
+# TODO/interpose.md T-0710. The memo holds 4 MiB (131,072 records) of scan.
+# An old pair recorded before the ceiling, overwritten past it, must not read
+# back as the old owner: the lookup refuses and the real `stat` answers,
+# marked degraded. The current code fails this check, which is why it is
+# written before the fix rather than after.
+#
+# Shape, inside one `--cap-drop=CHOWN` container so the wall holds throughout:
+# chown to 0:42 (records old), fill past the ceiling with zeros, chown the
+# same file to 0:43 (records new, past the ceiling), then stat. Correct is
+# 0:43, refusal is the real 0:0, stale is 0:42. The harness hands fd 9 as
+# `subject` does (dash reaches single-digit descriptors only); podbox hands 17
+# by `dup2` with no shell involved.
+if eng_mount "$GNU_SO" /i.so; then
+	g_out="$(eng_run 180 "$GLIBC_PAYLOAD" "--cap-drop=CHOWN" -- /bin/sh -c '
+    mkdir -p /.podbox
+    : >/.podbox/ownership.memo
+    exec 9<>/.podbox/ownership.memo
+    export PODBOX_MEMO_FD=9 LD_PRELOAD=/i.so
+    : >/tmp/g
+    chown 0:42 /tmp/g 2>/dev/null
+    echo "OLD_STAT=$(stat -c %u:%g /tmp/g 2>/dev/null)"
+    dd if=/dev/zero bs=1M count=5 >>/.podbox/ownership.memo 2>/dev/null
+    chown 0:43 /tmp/g 2>/dev/null
+    echo "NEW_STAT=$(stat -c %u:%g /tmp/g 2>/dev/null)"
+    echo "MEMO_BYTES=$(wc -c </.podbox/ownership.memo)"
+  ' 2>&1)"
+	g_rc=$?
+	eng_clear
+	printf '%s\n' "$g_out" | sed 's/^/  /'
+	g_old="$(printf '%s' "$g_out" | sed -n 's/^OLD_STAT=//p')"
+	g_new="$(printf '%s' "$g_out" | sed -n 's/^NEW_STAT=//p')"
+	g_bytes="$(printf '%s' "$g_out" | sed -n 's/^MEMO_BYTES=//p')"
+	printf '  old stat %s, new stat %s, memo bytes %s\n' \
+		"${g_old:-?}" "${g_new:-?}" "${g_bytes:-?}"
+	if [ "$g_old" != "0:42" ]; then
+		fail "G: the old chown did not record 0:42 (got [$g_old]); the wall may not hold here"
+	elif [ "$g_new" = "0:42" ]; then
+		fail "G: past the ceiling the memo answered stale 0:42 instead of correct 0:43 or refusal 0:0"
+	elif [ "$g_new" = "0:43" ] || [ "$g_new" = "0:0" ]; then
+		pass "G: past the ceiling the answer is $g_new (correct or refusal), never stale 0:42"
+	else
+		fail "G: past the ceiling the stat is [$g_new], which is neither correct 0:43 nor refusal 0:0"
+	fi
+else
+	cannot "the object could not be staged for check G"
 fi
 echo
 

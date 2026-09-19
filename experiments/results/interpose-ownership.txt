@@ -1,6 +1,6 @@
 engine            podman (host machine)
 == conditions
-date              2026-09-19T05:30:41Z
+date              2026-09-19T06:35:04Z
 host kernel       3.6.9-b4195d69.x86_64
 host libc         ldd (cygwin) 3.6.9
 zig               0.16.0
@@ -39,7 +39,7 @@ ok   B: both libcs agree on BOTH structs, and with the offsets src/lib.rs carrie
   CHOWN_RC=0
   CHOWN_ERR=
   STAT=0:42
-  MEMO=none
+  MEMO=0
 ok   C: the real chown worked and podbox wrote no memo
 
 == D. the wall, glibc: root WITHOUT CAP_CHOWN
@@ -72,6 +72,14 @@ ok   E: the musl object answered 0:42 where the bare chown failed (rc=1)
   podbox system abi: rc=1 refused: /obj imports `dlsym` at version `GLIBC_2.34`, and /lc declares up to `GLIBC_2.30`. ⛔ This
   and the loader:    GLIBC_2.34' not found
 ok   F: the reader refused the pair from ELF and the loader agreed
+
+== G. past the scan ceiling: correct or refusal, never stale
+  OLD_STAT=0:42
+  NEW_STAT=0:0
+  podbox: interpose: the ownership memo holds more than 4194304 bytes and podbox stopped scanning it. The real owner is reported, marked degraded (TODO/interpose.md T-0710)
+  MEMO_BYTES=5242944
+  old stat 0:42, new stat 0:0, memo bytes 5242944
+ok   G: past the ceiling the answer is 0:0 (correct or refusal), never stale 0:42
 
 == verdict
   every check ran and matched. podbox's own object clears the ownership

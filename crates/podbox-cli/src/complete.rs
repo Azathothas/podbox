@@ -230,13 +230,21 @@ pub const STEP_TIMEOUT_MS: i64 = 300_000;
 /// ⚠ The step's stdout is redirected to podbox's STDERR. T-1104: the payload
 /// owns stdout, and a step's output on it would corrupt every pipeline
 /// `podbox run <image> cmd | consumer` is in.
-pub fn run_steps(
+///
+/// T-0412 steps sharing the entry's host memo, for T-0710.
+///
+/// `memo_host` is the host's own number for the file the environment already
+/// names at `MEMO_CHILD_FD`: steps are payload processes in the same rootfs,
+/// so a `chown` they virtualize must land in the same record the payload
+/// reads. `None` runs them without a memo, as before where no tier loads.
+pub fn run_steps_with_memo(
     verb: &str,
     rootfs: &str,
     env: &[String],
     report: &mut podbox_complete::Report,
     quiet: bool,
     err: &mut dyn Write,
+    memo_host: Option<i64>,
 ) {
     if report.steps.is_empty() {
         return;
@@ -256,7 +264,7 @@ pub fn run_steps(
     };
     for (i, s) in steps.iter().enumerate() {
         let started = std::time::Instant::now();
-        let outcome = one_step(&root, s, env);
+        let outcome = one_step(&root, s, env, memo_host);
         let took = started.elapsed().as_secs_f64();
         let (line, failure) = match outcome {
             Ok(podbox_enter::Bounded::Exited(0)) => (
@@ -342,19 +350,25 @@ fn one_step(
     root: &podbox_enter::RootDir,
     s: &podbox_complete::Step,
     env: &[String],
+    memo_host: Option<i64>,
 ) -> Result<podbox_enter::Bounded, podbox_enter::Error> {
     // ⛔ The step's stdout becomes podbox's stderr, and it is DUPLICATED first:
     // handing `(1, 2)` to the child's `dup2`-then-close loop would close the
     // child's own stderr with it.
     let mirror = podbox_probe::sys::dup_cloexec(2)
         .map_err(|e| podbox_enter::Error::Runtime(format!("dup of stderr: {}", e.name())))?;
+    let mut pass = vec![(1, mirror)];
+    // ⭐ T-0710: steps share the entry's memo, where one was handed. Without
+    // it a fixup's `chown` would fail real where the payload's succeeds
+    // virtualized, and the two would disagree about who owns the file.
+    if let Some(host) = memo_host {
+        pass.push((podbox_supervise::table::MEMO_CHILD_FD, host));
+    }
     let plan = podbox_enter::Plan {
         argv: s.argv.clone(),
         env: env.to_vec(),
         working_dir: "/".to_string(),
-        fds: podbox_enter::Fds {
-            pass: vec![(1, mirror)],
-        },
+        fds: podbox_enter::Fds { pass },
         // ⚠ Empty: the banner named this step before podbox got here.
         banner: String::new(),
         path_dirs: Vec::new(),

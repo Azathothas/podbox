@@ -336,6 +336,19 @@ fn supervise(
         pass.push((1, o.as_raw_fd() as i64));
         pass.push((2, e.as_raw_fd() as i64));
     }
+    // ⭐ T-0710: the host memo, beside this container's record. Opened here,
+    // before the root changes, and dup'd to the constant child number the
+    // environment names. An entry that cannot be handed one refuses rather
+    // than starting with no record.
+    let memo_path = table::memo_path(store, &container.id);
+    let memo = match table::open_memo(&memo_path) {
+        Ok(f) => f,
+        Err(e) => {
+            say(&format!("err the ownership memo could not be opened: {e}"));
+            return 1;
+        }
+    };
+    pass.push((table::MEMO_CHILD_FD, memo.as_raw_fd() as i64));
 
     let root = match RootDir::open(&container.rootfs) {
         Ok(r) => r,
@@ -344,16 +357,23 @@ fn supervise(
             return 1;
         }
     };
+    // The stored environment already carries the constant descriptor number
+    // from `create`; containers made before T-0710 do not, so ensure it here
+    // rather than refusing a record that predates the rule.
+    let mut env = container.env.clone();
+    if table::memo_fd_of(&env).is_none() {
+        env.push(table::memo_fd_env());
+    }
     let plan = Plan {
         argv: container.argv.clone(),
-        env: container.env.clone(),
+        env: env.clone(),
         working_dir: container.working_dir.clone(),
         fds: Fds { pass },
         // ⚠ Empty: the banner was printed by the process the caller was
         // watching, before it forked this one. Printing it again here would put
         // it in the container's LOG, where it is not the payload's output.
         banner: String::new(),
-        path_dirs: podbox_enter::Plan::path_from(&container.env),
+        path_dirs: podbox_enter::Plan::path_from(&env),
     };
 
     // ⭐ TODO/image.md T-0204 and T-0211. The image lock is taken here and handed
