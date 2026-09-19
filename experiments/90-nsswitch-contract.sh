@@ -29,10 +29,11 @@
 #   alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 #
 # Exit: 0 every check ran and matched, 1 a check ran and did not match,
-#       2 could not run (no cc, no docker, no daemon).
+#       2 could not run (no cc and no staged probe, no engine).
 set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+ROOT="$(CDPATH= cd -- "$HERE/.." && pwd)"
 OUT="${OUT:-$HERE/.nsswitch}"
 rm -rf "$OUT"; mkdir -p "$OUT"
 
@@ -40,36 +41,54 @@ UBUNTU='ubuntu@sha256:c664f8f86ed5a386b0a340d981b8f81714e21a8b9c73f658c4bea56aa1
 DEBIAN='debian@sha256:2f65600e1252c5649d2213e1d1ea4d74253d26514dc6530102a875e429245929'
 ALPINE='alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
 
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. What each check asserts is unchanged.
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$ROOT"
+ENGINE_WORK="$OUT"
+
+# The static probe's source lives in one file so the guest build that
+# supplies lanes without a C toolchain compiles the same bytes this lane
+# builds natively. A static glibc probe is the point: musl reads
+# /etc/passwd directly whatever nsswitch says, so a musl probe would pass
+# check A on every row and prove nothing.
+cp "$HERE/src/nsswitch-q.c" "$OUT/q.c"
+if command -v cc >/dev/null 2>&1; then
+  CC_VIA="$(cc --version 2>/dev/null | head -1)"
+elif [ -r "${Q_STATIC:-}" ]; then
+  CC_VIA="guest-built static probe"
+fi
+
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
 _ldd="$(ldd --version 2>&1)"
 printf 'host libc         %s\n' "${_ldd%%$'\n'*}"
-printf 'cc                %s\n' "$(cc --version 2>/dev/null | head -1)"
-_dv="$(docker version --format '{{.Server.Version}}' 2>/dev/null)"
-printf 'docker            %s\n' "${_dv:-MISSING}"
+printf 'cc                %s\n' "${CC_VIA:-absent}"
 printf 'strace            %s\n' "$(strace -V 2>/dev/null | head -1 || echo absent)"
 echo
 
-command -v cc >/dev/null 2>&1 || { echo "SKIP: no cc" >&2; exit 2; }
-command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 || {
-  echo "SKIP: no docker daemon; start dockerd" >&2; exit 2; }
+if [ -z "${CC_VIA:-}" ] && [ ! -r "${Q_STATIC:-}" ]; then
+  echo "SKIP: no cc and no guest-built static probe (set Q_STATIC)" >&2; exit 2
+fi
+if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
+printf 'engine            %s\n' "$(engine_describe)"
+echo
 
 rc=0
 fail() { printf 'FAIL %s\n' "$1"; rc=1; }
 pass() { printf 'ok   %s\n' "$1"; }
 
-cat > "$OUT/q.c" <<'EOF'
-#include <stdio.h>
-#include <pwd.h>
-int main(void) {
-    struct passwd *p = getpwnam("podboxsupplied");
-    puts(p ? "FOUND" : "NOTFOUND");
-    return p ? 0 : 1;
-}
-EOF
-cc -static -o "$OUT/q_static" "$OUT/q.c" 2>"$OUT/cc.log" || {
-  echo "SKIP: cannot build a static probe; see $OUT/cc.log" >&2; exit 2; }
+if command -v cc >/dev/null 2>&1; then
+  cc -static -o "$OUT/q_static" "$OUT/q.c" 2>"$OUT/cc.log" || {
+    echo "SKIP: cannot build a static probe; see $OUT/cc.log" >&2; exit 2; }
+else
+  cp "$Q_STATIC" "$OUT/q_static" || {
+    echo "SKIP: cannot stage the guest-built static probe" >&2; exit 2; }
+fi
 
 cat > "$OUT/passwd" <<'EOF'
 root:x:0:0:root:/root:/bin/sh
@@ -80,10 +99,12 @@ printf 'passwd: systemd\ngroup: systemd\n' > "$OUT/nsw.other"
 
 echo "== A. is a supplied /etc/passwd consulted? nsswitch decides"
 for ns in files other; do
-  out="$(timeout 180 docker run --rm \
-          -v "$OUT/passwd":/etc/passwd:ro \
-          -v "$OUT/nsw.$ns":/etc/nsswitch.conf:ro \
-          -v "$OUT/q_static":/q:ro "$UBUNTU" /q 2>&1 | head -1)"
+  eng_mount "$OUT/passwd" /etc/passwd \
+    && eng_mount "$OUT/nsw.$ns" /etc/nsswitch.conf \
+    && eng_mount "$OUT/q_static" /q \
+    || { fail "A: the $ns run could not be staged"; eng_clear; continue; }
+  out="$(eng_run 180 "$UBUNTU" "" -- /q 2>&1 | head -1)"
+  eng_clear
   printf '  nsswitch=%-6s -> %s\n' "$ns" "$out"
   eval "res_$ns=\$out"
 done
@@ -101,11 +122,15 @@ echo
 
 echo "== B. what pinned images actually ship"
 saw_files=0; saw_none=0
+# The three pins are fetched before any timed clause, as 105 does; a pin
+# that does not fetch reads no-pull on its row, exactly as before.
+for img in "$UBUNTU" "$DEBIAN" "$ALPINE"; do
+  eng_pull "$img" || echo "  no-pull $img"
+done
 for row in "ubuntu-20.04 $UBUNTU" "debian-12 $DEBIAN" "alpine-3.22 $ALPINE"; do
   name=${row%% *}; img=${row##* }
-  timeout 300 docker pull -q "$img" >/dev/null 2>&1 || { printf '  %-14s no-pull\n' "$name"; continue; }
-  ns="$(timeout 180 docker run --rm "$img" \
-        sh -c 'grep -E "^passwd" /etc/nsswitch.conf 2>/dev/null || echo NO-NSSWITCH-FILE' 2>&1 | tr -d '\r')"
+  ns="$(eng_run 180 "$img" "" -- sh -c 'grep -E "^passwd" /etc/nsswitch.conf 2>/dev/null || echo NO-NSSWITCH-FILE' 2>&1 | tr -d '\r')"
+  [ -n "$ns" ] || { printf '  %-14s no-pull\n' "$name"; continue; }
   printf '  %-14s %s\n' "$name" "$ns"
   case "$ns" in
     *NO-NSSWITCH*) saw_none=$((saw_none+1)) ;;

@@ -33,7 +33,7 @@
 # registries. Docker Hub's rate limit is attributed to a shared address in this
 # environment and a limited pull reads as a broken registry.
 #
-# ⭐ **A ROW THAT FAILS IS RUN AGAIN UNDER DOCKER, WITH THE SAME BYTES AND NO
+# ⭐ **A ROW THAT FAILS IS RUN AGAIN UNDER THE ENGINE, WITH THE SAME BYTES AND NO
 # HELP.** That control is what separates "podbox is missing a fixup" from "this
 # machine cannot do it either", and both are real answers with different next
 # moves. Measured on 2026-09-09: this host intercepts TLS, and `apk add gcc`
@@ -52,20 +52,57 @@ set -uo pipefail
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
 BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
-OUT="$REPO/experiments/results/distro-sweep.txt"
+OUT="${OUT:-$REPO/experiments/results/distro-sweep.txt}"
 TRANSCRIPTS="${TRANSCRIPTS:-$REPO/experiments/results/sweep}"
-WORK="$(mktemp -d)"
+# ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
+# because an ELF built here does not execute there. The lane's scratch
+# lives under the checkout on a non-native lane: mount sources must be
+# Windows paths there (245's rule), and /tmp/... names nothing.
+case "$(uname -s)" in
+Linux) NATIVE=1; WORK="$(mktemp -d)" ;;
+*)     NATIVE=0; WORK="$REPO/experiments/.sweep240-work"; rm -rf "$WORK"; mkdir -p "$WORK" || exit 2 ;;
+esac
 trap 'rm -rf "$WORK"' EXIT INT TERM
+
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. The rows, the subject and what each row
+# asserts are unchanged.
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$REPO"
+ENGINE_WORK="$WORK"
+if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+# The rows cannot run without the binary: natively, or staged in the
+# driver. The control needs the engine on either lane.
+if [ "$NATIVE" -eq 0 ]; then
+	[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine on a lane where the podbox binary does not execute" >&2; exit 2; }
+	[ -r "$BIN" ] || {
+		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		exit 2
+	}
+fi
+
+# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# for every `$BIN` call on a non-native lane. No capability wall here: 240
+# measures real installs, and 245's CHOWN wall belongs to the interposer.
+DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
+STAGE="$WORK/stage"
 
 ONLY="${1:-}"
 # ⚠ Generous, and bounded. A dnf transaction over a cold cache is minutes, and
 # an unbounded wait is the failure RULES.md section 8 exists to prevent.
 ROW_TIMEOUT="${PODBOX_ROW_TIMEOUT:-1200}"
+# The driver's bound covers a first pull plus the row's run; the control
+# runs on the host engine, outside it.
+OUTER="$((ROW_TIMEOUT + 900))"
 
-[ -x "$BIN" ] || {
-	echo "SKIP: $BIN is not an executable. ./scripts/dev.sh build" >&2
-	exit 2
-}
+if [ "$NATIVE" -eq 1 ]; then
+	[ -x "$BIN" ] || {
+		echo "SKIP: $BIN is not an executable. ./scripts/dev.sh build" >&2
+		exit 2
+	}
+fi
 # shellcheck source=../scripts/common/distro-matrix.sh
 . "$REPO/scripts/common/distro-matrix.sh"
 
@@ -76,29 +113,41 @@ mkdir -p "$TRANSCRIPTS"
 # `set -u` the conditions block read an unset variable, printed
 # `have_docker: unbound variable` and then an EMPTY `control` line -- which
 # reads as "no control" on a run that had one.
-have_docker=0
-if command -v docker >/dev/null 2>&1 && timeout 30 docker info >/dev/null 2>&1; then
-	have_docker=1
-fi
+# have_docker is HAVE_ENGINE now: the helper picked a daemon or host
+# podman above, and the warning stays because the rule it states still holds.
 
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
-printf 'podbox            %s\n' "$("$BIN" version)"
+if [ "$NATIVE" -eq 1 ]; then
+	_ver="$("$BIN" version)"
+	_entered="$("$BIN" system info --format '{{.EnteredRung}}')"
+	_permits="$("$BIN" system info --format '{{.Rung}}')"
+else
+	eng_pull "$DRIVER" || exit 2
+	mkdir -p "$STAGE"
+	cp "$BIN" "$STAGE/podbox"
+	eng_mount "$STAGE/podbox" /pb || exit 2
+	_ver="$(eng_run 60 "$DRIVER" "" -- /pb version 2>&1)"
+	_entered="$(eng_run 60 "$DRIVER" "" -- /pb system info --format '{{.EnteredRung}}' 2>&1)"
+	_permits="$(eng_run 60 "$DRIVER" "" -- /pb system info --format '{{.Rung}}' 2>&1)"
+	eng_clear
+fi
+printf 'podbox            %s\n' "$_ver"
 # ⛔ TWO ANSWERS. This printed `.Rung`, which is the rung THIS MACHINE PERMITS,
 # under the label "rung podbox uses" -- so on this host the header said
 # `namespace` for a sequence that chroots and creates no namespace, which is
 # exactly what TODO/cli.md T-0804 was opened for. `.EnteredRung` is
 # `podbox_enter::ENTERED_RUNG`, the sequence podbox actually performs.
-printf 'rung podbox enters %s\n' "$("$BIN" system info --format '{{.EnteredRung}}')"
+printf 'rung podbox enters %s\n' "$_entered"
 printf 'rung this machine  %s   (permits, and podbox does not use it)\n' \
-	"$("$BIN" system info --format '{{.Rung}}')"
+	"$_permits"
 printf 'rows              %s\n' "$(distro_count_rows "$DISTRO_ROWS_M5")"
 printf 'row timeout       %s s\n' "$ROW_TIMEOUT"
 printf 'store             %s\n' "\$PODBOX_STORE (a fresh one per run unless set)"
 printf 'transcripts       %s\n' "experiments/results/sweep/"
 printf 'control           %s\n' \
-	"$([ "$have_docker" -eq 1 ] && echo 'docker, on any row podbox fails' || echo 'ABSENT: no docker daemon, so a failure cannot be attributed')"
+	"$([ "$HAVE_ENGINE" -eq 1 ] && echo "$ENGINE_NAME, on any row podbox fails" || echo 'ABSENT: no engine, so a failure cannot be attributed')"
 echo
 
 # ------------------------------------------------------------------ the subject
@@ -208,13 +257,112 @@ printf '%-14s %-8s %-13s %-9s %-7s %s\n' ROW LIBC PM INSTALL BUILD 'RAN'
 printf '%.0s-' $(seq 1 74)
 echo
 
+# ⭐ The row's whole podbox sequence in one driver call. The subject
+# arrives as a staged file and is read inside (245's rule: two shells
+# re-parse argv between here and the driver). Stdout carries only stage
+# failures; every reading lands in /w/row-NAME/ on the shared scratch.
+cat >"$WORK/row-driver.sh" <<'ROWDRIVER_EOF'
+#!/bin/sh
+# row-driver.sh PINNED NAME ROW_TIMEOUT - one matrix row in the driver.
+set -u
+# ⭐ Container-local store: nothing on the host reads the store's bytes on
+# this sweep (240 has no refusal loop), and the shared Windows-backed
+# scratch cannot hold archlinux's case-colliding terminfo names (245's
+# finding, measured 2026-09-19). Extraction runs on overlayfs here.
+export PODBOX_STORE=/tmp/ostore
+# The lane's CA announcement: the provisioned bundle, by the path the
+# driver sees. Native lanes inherit the machine's own announcement.
+if [ -f /w/cacert.pem ]; then
+	export SSL_CERT_FILE=/w/cacert.pem
+fi
+pinned="$1"
+name="$2"
+to="$3"
+d="/w/row-$name"
+mkdir -p "$d" || exit 6
+rm -rf /tmp/ostore
+/pb pull "$pinned" >"$d/pull.log" 2>&1 || exit 3
+timeout "$to" /pb run --rm "$pinned" /bin/sh -c "$(cat /subj/subject.sh)" >"$d/out" 2>"$d/err"
+echo "$?" >"$d/rowrc"
+exit 0
+ROWDRIVER_EOF
+
+# ⭐ Staged once: the same files serve every row. The objects stay on the
+# host; only the binary enters the driver, because only it has to execute
+# there. /w is the shared scratch the driver writes its readings to.
+if [ "$NATIVE" -eq 0 ]; then
+	mkdir -p "$WORK/w" "$STAGE"
+	cp "$BIN" "$STAGE/podbox"
+	eng_mount "$STAGE/podbox" /pb \
+		&& eng_mount "$WORK/w" /w rw \
+		&& eng_mount "$WORK/subject.sh" /subj/subject.sh \
+		&& eng_mount "$WORK/row-driver.sh" /drv/row.sh \
+		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
+fi
+
+# ⭐ The driver announces the standard roots. podbox-complete upgrades
+# package sources to https where the mirror speaks it (debian, ubuntu,
+# almalinux, rocky: measured 2026-09-19), and appends THIS MACHINE's CA
+# bundle into the rootfs -- but only one the machine announced through
+# $SSL_CERT_FILE / $CURL_CA_BUNDLE / $REQUESTS_CA_BUNDLE. A bare
+# bookworm-slim announces nothing and ships no bundle, so every https
+# fetch died with "No system certificates available" while the pristine
+# control (still http) succeeded: five ⛔ lines that blamed podbox for a
+# missing lane provision.
+# ⭐ The bundle travels as a FILE, not an install: containers are removed
+# after each run, so an apt install per row would cost minutes ten times
+# over. One install, copied to the shared scratch, announced by path from
+# every row driver after it. A normal Linux host announces by existing;
+# this is the same announcement, provisioned once.
+if [ "$NATIVE" -eq 0 ]; then
+	eng_run 600 "$DRIVER" "" -- /bin/sh -c 'DEBIAN_FRONTEND=noninteractive apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ca-certificates && cp /etc/ssl/certs/ca-certificates.crt /w/cacert.pem && test -s /w/cacert.pem' \
+		>/dev/null 2>"$WORK/ca-install.log" || {
+		echo "SKIP: the CA bundle did not install; see $WORK/ca-install.log" >&2
+		exit 2
+	}
+fi
+
 while IFS='|' read -r ref name libc digest; do
 	[ -n "${ref:-}" ] || continue
 	[ -z "$ONLY" ] || [ "$ONLY" = "$name" ] || continue
 	pinned="$(distro_pinned "$ref" "$digest")"
 	t="$TRANSCRIPTS/$name.out"
 
-	if ! timeout 900 "$BIN" pull "$pinned" >"$WORK/pull.$name" 2>&1; then
+	# ⭐ Non-native lane: one driver call runs the row's pull and run and
+	# normalizes every reading to the names the native path writes, so the
+	# transcript and every check below are shared.
+	if [ "$NATIVE" -eq 0 ]; then
+		d="$WORK/w/row-$name"
+		drc_out="$(eng_run "$OUTER" "$DRIVER" "" -- /bin/sh /drv/row.sh "$pinned" "$name" "$ROW_TIMEOUT" 2>&1)"; drc=$?
+		case "$drc" in
+		0)
+			cp "$d/pull.log" "$WORK/pull.$name" && cp "$d/out" "$WORK/out.$name" && cp "$d/err" "$WORK/err.$name" || {
+				printf '%-14s %-8s %-13s %-9s %-7s %s\n' "$name" "$libc" - - - 'driver files missing'
+				echo "driver files missing for $pinned" >"$t"
+				broken=$((broken + 1))
+				fail=1
+				continue
+			}
+			row_rc="$(cat "$d/rowrc")" ;;
+		3)
+			printf '%-14s %-8s %-13s %-9s %-7s %s\n' "$name" "$libc" - no-pull - -
+			{
+				echo "no-pull $pinned"
+				tail -3 "$d/pull.log"
+			} >"$t"
+			nopull=$((nopull + 1))
+			continue ;;
+		*)
+			printf '%-14s %-8s %-13s %-9s %-7s %s\n' "$name" "$libc" - - - "driver rc=$drc"
+			{
+				echo "driver rc=$drc for $pinned"
+				printf '%s\n' "$drc_out" | tail -5
+			} >"$t"
+			broken=$((broken + 1))
+			fail=1
+			continue ;;
+		esac
+	elif ! timeout 900 "$BIN" pull "$pinned" >"$WORK/pull.$name" 2>&1; then
 		printf '%-14s %-8s %-13s %-9s %-7s %s\n' "$name" "$libc" - no-pull - -
 		{
 			echo "no-pull $pinned"
@@ -233,10 +381,13 @@ while IFS='|' read -r ref name libc digest; do
 	# ⛔ `--rm`: each row extracts a rootfs and then installs a toolchain into
 	# it, and ten of those is gigabytes. The rootfs is content-addressed and
 	# shared, so leaving it would also carry one row's installed packages into
-	# any later run against the same digest.
-	timeout "$ROW_TIMEOUT" "$BIN" run --rm "$pinned" /bin/sh -c "$(cat "$WORK/subject.sh")" \
-		>"$WORK/out.$name" 2>"$WORK/err.$name"
-	row_rc=$?
+	# any later run against the same digest. On the driver lane the run
+	# already happened above; this is the native lane's.
+	if [ "$NATIVE" -eq 1 ]; then
+		timeout "$ROW_TIMEOUT" "$BIN" run --rm "$pinned" /bin/sh -c "$(cat "$WORK/subject.sh")" \
+			>"$WORK/out.$name" 2>"$WORK/err.$name"
+		row_rc=$?
+	fi
 	{
 		printf '# %s\n# pinned %s\n# podbox run exit %s\n' "$name" "$pinned" "$row_rc"
 		# ⚠ THE PULL TRANSCRIPT TRAVELS WITH EVERY ROW, not only with a row that
@@ -257,14 +408,17 @@ while IFS='|' read -r ref name libc digest; do
 	# ⛔ The control, run only where podbox did not reach 42, because it costs a
 	# second install of a toolchain and answers nothing on a row that passed.
 	control() {
-		if [ "$have_docker" -eq 0 ]; then
+		if [ "$HAVE_ENGINE" -eq 0 ]; then
 			printf '%s' "-"
 			return
 		fi
-		timeout "$ROW_TIMEOUT" docker run --rm "$pinned" /bin/sh -c "$(cat "$WORK/subject.sh")" \
+		# The subject travels as argv, exactly as it did under docker: the
+		# argv probe on host podman carries spaces, quotes and newlines
+		# intact, measured 2026-09-19.
+		eng_run "$ROW_TIMEOUT" "$pinned" "" -- /bin/sh -c "$(cat "$WORK/subject.sh")" \
 			>"$WORK/dout.$name" 2>"$WORK/derr.$name"
 		{
-			echo "--- the control: the same subject under docker, no help"
+			echo "--- the control: the same subject under $ENGINE_NAME, no help"
 			cat "$WORK/dout.$name"
 			tail -3 "$WORK/derr.$name"
 		} >>"$t"
@@ -289,12 +443,12 @@ while IFS='|' read -r ref name libc digest; do
 	if [ "$built" != "42" ]; then
 		dbuilt="$(control)"
 		if [ "$dbuilt" = "42" ]; then
-			printf '%-14s   ⛔ podbox failed and DOCKER SUCCEEDED on the same image.\n' "$name"
+			printf '%-14s   ⛔ podbox failed and %s SUCCEEDED on the same image.\n' "$name" "$ENGINE_NAME"
 			printf '%-14s      %s\n' "" "$(get INSTALL_TAIL | cut -c1-110)"
 			fail=1
 		else
-			printf '%-14s   ⚠ the host: docker failed here too (BUILT_AND_RAN=%s).\n' \
-				"$name" "${dbuilt:--}"
+			printf '%-14s   ⚠ the host: %s failed here too (BUILT_AND_RAN=%s).\n' \
+				"$name" "$ENGINE_NAME" "${dbuilt:--}"
 			printf '%-14s      %s\n' "" "$(get INSTALL_TAIL | cut -c1-110)"
 			host=$((host + 1))
 		fi
@@ -306,7 +460,7 @@ EOF
 verdict_rc=0
 distro_verdict "$ran" "$nopull" "$broken" || verdict_rc=$?
 if [ "$host" -gt 0 ]; then
-	printf '  ⚠ %s row(s) failed under podbox AND under docker on the same image,\n' "$host"
+	printf '  ⚠ %s row(s) failed under podbox AND under %s on the same image,\n' "$host" "$ENGINE_NAME"
 	printf '    so what they measure is this machine rather than either runtime.\n'
 	printf '    Their transcripts carry both outputs.\n'
 fi
@@ -322,7 +476,7 @@ printf '  transcripts in experiments/results/sweep/\n'
 	printf 'no_pull           %s\n' "$nopull"
 	printf 'harness_failed    %s\n' "$broken"
 	# ⛔ COUNTED IN THE LOOP, never by grepping the transcripts. Measured on
-	# 2026-09-09: the transcript of a failing row also carries the DOCKER
+	# 2026-09-09: the transcript of a failing row also carries the engine
 	# control's output, so `grep -l BUILT_AND_RAN=42` counted a row podbox
 	# failed as a row podbox passed. The loop is not in a subshell here, so its
 	# counters survive; 125-across-distributions.sh recounts from files because

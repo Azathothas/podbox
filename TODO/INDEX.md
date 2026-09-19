@@ -186,7 +186,7 @@ the blocker named and what would clear it.
 | [T-1208](gate.md) | P1 | gate | open | A closed entry carries its recorded run, and the gate can see it |
 | [T-1209](gate.md) | P1 | gate | done | Thirty-nine `Prove` lines pull from the one registry the acceptance may not use |
 | [T-1210](gate.md) | P1 | gate | done | Convert the interpose engine scripts to `experiments/lib/engine.sh` |
-| [T-1211](gate.md) | P1 | gate | open | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
+| [T-1211](gate.md) | P1 | gate | blocked | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
 | [T-1212](gate.md) | P1 | gate | open | Convert the image, registry and CLI engine scripts to `experiments/lib/engine.sh` |
 | [T-1213](gate.md) | P1 | gate | open | Convert the target-image pair and its probe consumer to `experiments/lib/engine.sh` |
 | [T-1301](podvm.md) | P0 | podvm | open | The machine tier is probed leg by leg, and a present file is not a working one |
@@ -197,10 +197,11 @@ the blocker named and what would clear it.
 | [T-1306](podvm.md) | P1 | podvm | open | The non-goals are refusals the code makes, not notes in a document |
 | [T-1307](podvm.md) | P2 | podvm | open | The five Rust VM tools, ruled one by one, so nobody surveys them again |
 | [T-1308](podvm.md) | P1 | podvm | open | One TCG number is a claim about one benchmark, and the range is 3x to 21x |
+| [T-1309](interpose.md) | P1 | interpose | open | libdnf repodata downloads fail under the preloaded interposer |
 
 ## Counts
 
-136 items: 37 open, 3 partial, 0 blocked, 96 done.
+137 items: 37 open, 3 partial, 1 blocked, 96 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -209,10 +210,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 2 | 1 | 0 | 49 | 52 |
-| P1 | 22 | 2 | 0 | 36 | 60 |
+| P1 | 22 | 2 | 1 | 36 | 61 |
 | P2 | 9 | 0 | 0 | 10 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **37** | **3** | **0** | **96** | **136** |
+| **All** | **37** | **3** | **1** | **96** | **137** |
 
 ## How the current ordering is derived
 

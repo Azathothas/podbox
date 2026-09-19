@@ -1,24 +1,25 @@
 # podbox probe cache, TODO/probe.md T-0111
-# taken 2026-09-08T16:54:57Z on kernel 6.18.44-fc-v24
+# taken 2026-09-19T10:47:58Z on kernel 3.6.9-b4195d69.x86_64
 # ⛔ The boot id is the KERNEL S. Both readings below are on one kernel.
-host_rung         namespace
-host_boot_id      b538b475-930e-4dd1-9dec-3098dd77212f
-confined_rung     chroot
-confined_boot_id  b538b475-930e-4dd1-9dec-3098dd77212f
+host_rung         supervise
+host_boot_id      0e7bb870-96b3-43c5-8e9c-b8187c862ee9
+confined_rung     supervise
+confined_boot_id  0e7bb870-96b3-43c5-8e9c-b8187c862ee9
 boot_ids_equal    yes
 cache_served_host no   (no is the pass)
 
 ## why the confined run refused the cache
-  measured now, because the confinement changed: mnt_ns, uid_map, gid_map, setgroups, seccomp, seccomp_filters differ(s) from the cached run
+  measured now, because the confinement changed: mnt_ns differ(s) from the cached run
 
 ## the key the host wrote
   {
-    "boot_id": "b538b475-930e-4dd1-9dec-3098dd77212f",
+    "boot_id": "0e7bb870-96b3-43c5-8e9c-b8187c862ee9",
     "complete": true,
     "gid_map": "0 0 4294967295",
-    "mnt_ns": "mnt:[4026531832]",
-    "seccomp": "0",
-    "seccomp_filters": "0",
+    "interpreter": "none",
+    "mnt_ns": "mnt:[4026532479]",
+    "seccomp": "2",
+    "seccomp_filters": "1",
     "setgroups": "allow",
     "uid_map": "0 0 4294967295"
   }

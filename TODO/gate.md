@@ -807,7 +807,7 @@ Source:      `experiments/lib/engine.sh`; `experiments/105-interpose-ownership.s
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      blocked
 
 Problem:     Four matrix scripts reach an engine without the helper:
              `experiments/90-nsswitch-contract.sh` (8 docker calls),
@@ -831,6 +831,38 @@ Prove:       `./experiments/90-nsswitch-contract.sh`, `./experiments/125-across-
              each exit 0 on host podman with the conditions block naming the
              driver, and `experiments/results/` carries the runs, including one
              transcript per row for `125` and `240`.
+Blocked:     `240` exits 1: the rocky and rocky-minimal rows read
+             no-compiler under podbox while the engine control reaches 42
+             on the same images. The cause is not the conversion: fixed-URL
+             back-to-back probes show libdnf repodata downloads failing
+             with the interposer preloaded and succeeding without it, on
+             one network namespace with identical DNS. Filed as
+             [T-1309](interpose.md), which names the suspect and the
+             exonerated. What clears this: T-1309 fixed, then the two rows
+             read 42 and the sweep exits 0. Nothing else owes: `90`
+             (A FOUND/NOTFOUND, B 2 files + 1 absent, C, D graciously
+             absent), `125` (11 rows, 0 no-pull, 0 harness-failed,
+             opensuse SIGFPE reproduced) and `170` (measured, served,
+             confined supervise with equal boot ids, mnt_ns named) each
+             exit 0 with the conditions block naming `podman (host
+             machine)`, and `experiments/results/` carries all four runs.
+
+```
+$ sh experiments/90-nsswitch-contract.sh; echo EXIT:$?
+  == verdict: every check that ran matched
+EXIT:0
+$ sh experiments/125-across-distributions.sh; echo EXIT:$?
+  11 row(s) produced a reading.
+EXIT:0
+$ sh experiments/170-probe-cache.sh; echo EXIT:$?
+  ok the first run measured; ok the second run was served;
+  ok the confined run measured its own answer;
+  ok the refusal names the mount namespace
+EXIT:0
+$ sh experiments/240-distro-sweep.sh; echo EXIT:$?
+  rows 10, ran 10, built_and_ran 7, host_not_runtime 1
+EXIT:1
+```
 
 ---
 

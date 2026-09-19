@@ -42,6 +42,14 @@ OUT="${OUT:-$HERE/.across}"
 TRANSCRIPTS="${TRANSCRIPTS:-$ROOT/experiments/results/across}"
 rm -rf "$OUT"; mkdir -p "$OUT" "$TRANSCRIPTS"
 
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. The rows and what each row asserts are unchanged.
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$ROOT"
+ENGINE_WORK="$OUT"
+
 # REFERENCE  LOCAL-NAME  LIBC  MANIFEST-DIGEST
 # ⛔ Every digest here was resolved with `docker manifest inspect` on
 # 2026-09-08. Re-pulling a tag without editing its row silently changes what
@@ -60,36 +68,44 @@ fedora:42|fedora-42|glibc|sha256:7c63468daf71fdc5bda3699cd483b169bb995b5137265d5
 archlinux:latest|archlinux-latest|glibc|sha256:818793c894d94534c22f2149154a39ebaee57e4e67321023b0866a1d5722036c
 '
 
+# The static probe's source lives in one file so the guest build that
+# supplies lanes without a C toolchain compiles the same bytes this lane
+# builds natively (90's rule: a musl probe would answer every row alike).
+cp "$HERE/src/across-probe.c" "$OUT/probe.c"
+if command -v cc >/dev/null 2>&1; then
+  CC_VIA="$(cc --version 2>/dev/null | head -1)"
+elif [ -r "${PROBE_STATIC:-}" ]; then
+  CC_VIA="guest-built static probe"
+fi
+
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
 _ldd="$(ldd --version 2>&1)"
 printf 'host libc         %s\n' "${_ldd%%$'\n'*}"
-printf 'cc                %s\n' "$(cc --version 2>/dev/null | head -1)"
-_dv="$(docker version --format '{{.Server.Version}}' 2>/dev/null)"
-printf 'docker            %s\n' "${_dv:-MISSING}"
+printf 'cc                %s\n' "${CC_VIA:-absent}"
 printf 'rows              %s\n' "$(printf '%s' "$ROWS" | grep -c .)"
 printf 'transcripts       %s\n' "experiments/results/across/"
 echo
 
-command -v cc >/dev/null 2>&1 || { echo "SKIP: no cc" >&2; exit 2; }
-command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 || {
-  echo "SKIP: no docker daemon; start dockerd" >&2; exit 2; }
+if [ -z "${CC_VIA:-}" ] && [ ! -r "${PROBE_STATIC:-}" ]; then
+  echo "SKIP: no cc and no guest-built static probe (set PROBE_STATIC)" >&2; exit 2
+fi
+if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
+printf 'engine            %s\n' "$(engine_describe)"
+echo
 
 # The subject the rows share. Built once, on the host, so every row runs the
 # same bytes: a difference between rows is then a difference between
 # distributions and nothing else.
-cat > "$OUT/probe.c" <<'EOF'
-#include <stdio.h>
-#include <pwd.h>
-int main(void) {
-    struct passwd *p = getpwnam("podboxsupplied");
-    printf("SUPPLIED_PASSWD=%s\n", p ? "seen" : "not-seen");
-    return 0;
-}
-EOF
-cc -static -o "$OUT/probe" "$OUT/probe.c" 2>"$OUT/cc.log" || {
-  echo "SKIP: cannot build the static probe; see $OUT/cc.log" >&2; exit 2; }
+if command -v cc >/dev/null 2>&1; then
+  cc -static -o "$OUT/probe" "$OUT/probe.c" 2>"$OUT/cc.log" || {
+    echo "SKIP: cannot build the static probe; see $OUT/cc.log" >&2; exit 2; }
+else
+  cp "$PROBE_STATIC" "$OUT/probe" || {
+    echo "SKIP: cannot stage the guest-built static probe" >&2; exit 2; }
+fi
 
 cat > "$OUT/passwd" <<'EOF'
 root:x:0:0:root:/root:/bin/sh
@@ -159,21 +175,40 @@ ran=0; nopull=0; broken=0
 printf '%-20s %-8s %-8s %-22s %s\n' ROW LIBC PULLED NSSWITCH 'SUPPLIED /etc/passwd'
 printf '%.0s-' $(seq 1 88); echo
 
+# Every pin is fetched before any timed clause, as 105 does. A pin that
+# does not fetch takes the same no-pull path below as a pull that failed
+# inline: the recount reads the transcripts, so the transcript is what
+# must stay identical, not where the fetch happened.
+NOPULL_PINS=" $(printf '%s\n' "$ROWS" | while IFS='|' read -r ref name libc digest; do
+  [ -n "${ref:-}" ] || continue
+  pinned="$(qualify "$ref")@$digest"
+  eng_pull "$pinned" >/dev/null 2>&1 || printf '%s ' "$pinned"
+done)"
+export NOPULL_PINS
+
 printf '%s\n' "$ROWS" | while IFS='|' read -r ref name libc digest; do
   [ -n "${ref:-}" ] || continue
   pinned="$(qualify "$ref")@$digest"
-  if ! timeout 420 docker pull -q "$pinned" >/dev/null 2>&1; then
+  case "$NOPULL_PINS" in
+  *" $pinned "*) 
     printf '%-20s %-8s %-8s %-22s %s\n' "$name" "$libc" no-pull - -
     echo "no-pull $pinned" > "$TRANSCRIPTS/$name.out"
-    continue
-  fi
-  out="$(timeout 300 docker run --rm \
-          -v "$OUT/probe":/mnt/probe:ro \
-          -v "$OUT/body.sh":/mnt/body.sh:ro \
-          -v "$OUT/passwd":/etc/passwd:ro \
-          -e HOME=/tmp \
-          "$pinned" /bin/sh /mnt/body.sh 2>&1)"
+    continue ;;
+  esac
+  eng_mount "$OUT/probe" /mnt/probe \
+    && eng_mount "$OUT/body.sh" /mnt/body.sh \
+    && eng_mount "$OUT/passwd" /etc/passwd \
+    || {
+      eng_clear
+      printf '%-20s %-8s %-8s %-22s %s\n' "$name" "$libc" yes 'harness-failed' "stage-failed"
+      echo "harness-failed $pinned: the three mounts could not be staged" > "$TRANSCRIPTS/$name.out"
+      continue
+    }
+  # The helper carries no `-e`: HOME travels in the argv wrapper instead.
+  # body.sh itself is byte-identical on both lanes.
+  out="$(eng_run 300 "$pinned" "" -- /bin/sh -c 'HOME=/tmp exec /bin/sh /mnt/body.sh' 2>&1)"
   rc=$?
+  eng_clear
   printf '%s\n' "$out" > "$TRANSCRIPTS/$name.out"
   got_libc="$(printf '%s\n' "$out" | sed -n 's/^LIBC=//p' | head -1)"
   nsw="$(printf '%s\n' "$out" | sed -n 's/^NSSWITCH=//p' | head -1)"

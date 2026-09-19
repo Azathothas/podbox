@@ -1068,3 +1068,57 @@ holds the transcripts. The subject is one script for all rows. (Via `chown`
 on a regular file, where `chown` and `lchown` coincide: no row ships a tool
 that spells the latter, and the constant unmapped target is what the rule
 is about.)
+
+---
+
+### T-1309 libdnf repodata downloads fail under the preloaded interposer
+
+Source:      `experiments/240-distro-sweep.sh` rocky and rocky-minimal rows;
+             `crates/podbox-interpose/src/lib.rs` (the interposed symbol set)
+Category:    interpose
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     The rocky and rocky-minimal rows of `240` fail under podbox
+             while the engine control builds and runs 42 on the same image.
+             `dnf`/`microdnf` (libdnf) report `Yum repo downloading error:
+             Invalid path: repodata/<hash>-primary.xml.gz` after a slow
+             trickle. Fedora's dnf5 and the apk, apt, pacman, zypper and
+             xbps rows are unaffected, so this is libdnf-family specific
+             rather than a broken mirror.
+Premise:     Measured 2026-09-19 on host podman, fixed URL, back to back,
+             same image, same store shape:
+             with the interposer, `dnf makecache` against
+             `https://dl.rockylinux.org/pub/rocky/9/BaseOS/x86_64/os/`
+             fails with the Invalid-path error; with `env -u LD_PRELOAD`
+             the same command writes `Metadata cache created`. Mirror
+             lottery and time flapping are refuted by the fixed URL and
+             the minutes-apart pairing. DNS answers were read on both
+             sides and are identical (one AAAA, Fastly), the resolver is
+             `10.255.255.254` on both, and both share one network
+             namespace, so neither names the cause. The interposer wraps
+             no socket symbol (`crates/podbox-interpose/src/lib.rs`: chown,
+             stat, open, path and identity families only), so socket
+             shaping is refuted by reading; a file-path operation in the
+             download path (`mkstemp`, `statx`, `openat` handling) is the
+             suspect, unconfirmed.
+             This blocks [T-1211](gate.md): `240` exits 1 while these two
+             rows read no-compiler, and unsetting `LD_PRELOAD` in the sweep
+             would test a different product, so the sweep stays as it is.
+Approach:    Strace the failing fetch inside a podbox run (or bisect the
+             interposed symbols against a fixed-URL `makecache`) to name
+             the call, then fix in the interposer with a regression test
+             that drives a rocky dnf fetch under the preload. Out of
+             scope: the T-1211 conversions (done, and 240's attribution is
+             what found this), the static 1 MB `/dev/urandom` shim the
+             probes also showed (T-0401's area, reported separately), and
+             the almalinux row, which fails identically under the engine
+             and is the host's mirror, not the runtime.
+Decision:    Fix in the interposer, not around it. The control exists to
+             separate "podbox is missing a fixup" from "this machine
+             cannot do it either", and here it names podbox: no sweep-side
+             workaround is legitimate.
+Prove:       `./experiments/240-distro-sweep.sh` exits 0 with both
+             libdnf rows reading 42, on host podman, with the
+             conditions block naming the driver.

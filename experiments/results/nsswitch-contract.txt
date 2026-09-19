@@ -1,10 +1,12 @@
 == conditions
-date              2026-09-08T06:45:12Z
-host kernel       6.18.44-fc-v24
-host libc         ldd (Ubuntu GLIBC 2.39-0ubuntu8.7) 2.39
-cc                cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
-docker            29.3.1
-strace            strace -- version 6.8
+date              2026-09-19T10:37:31Z
+host kernel       3.6.9-b4195d69.x86_64
+host libc         ldd (cygwin) 3.6.9
+cc                guest-built static probe
+strace            strace (cygwin) 3.6.9
+
+engine            podman (host machine)
+engine            podman version 5.8.6
 
 == A. is a supplied /etc/passwd consulted? nsswitch decides
   nsswitch=files  -> FOUND
@@ -15,6 +17,24 @@ ok   A: the supplied /etc/passwd is read under 'files' and IGNORED otherwise
         any rootfs whose nsswitch names another service.
 
 == B. what pinned images actually ship
+Trying to pull docker.io/library/ubuntu@sha256:c664f8f86ed5a386b0a340d981b8f81714e21a8b9c73f658c4bea56aa179d54a...
+Getting image source signatures
+Copying blob sha256:13b7e930469f6d3575a320709035c6acf6f5485a76abcf03d1b92a64c09c2476
+Copying config sha256:b7bab04fd9aa0c771e5720bf0cc7cbf993fd6946645983d9096126e5af45d713
+Writing manifest to image destination
+b7bab04fd9aa0c771e5720bf0cc7cbf993fd6946645983d9096126e5af45d713
+Trying to pull docker.io/library/debian@sha256:2f65600e1252c5649d2213e1d1ea4d74253d26514dc6530102a875e429245929...
+Getting image source signatures
+Copying blob sha256:abf56b2f87242de589f03ea56779358079c07c4c099bd1e454d083538eb6666d
+Copying config sha256:39db83443324e7ef683bd854a90c6615741fecbfe005bc10228129e03af1e950
+Writing manifest to image destination
+39db83443324e7ef683bd854a90c6615741fecbfe005bc10228129e03af1e950
+Trying to pull docker.io/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc...
+Getting image source signatures
+Copying blob sha256:25f1d6b1951ac8eb3740558fe94cb83d377bdadf95fd9f98b50d2e1b96130471
+Copying config sha256:bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731
+Writing manifest to image destination
+bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731
   ubuntu-20.04   passwd:         files
   debian-12      passwd:         files
   alpine-3.22    NO-NSSWITCH-FILE
@@ -26,14 +46,13 @@ ok   B: 2 image(s) name files, 1 ship no nsswitch.conf at all
   static probe PT_INTERP headers: 0
   objects opened after the last execve: 0
   ld.so.cache lines seen (the trap, correctly excluded): 0
-ok   C: measured on this host with nsswitch 'passwd: files'
+ok   C: measured on this host with nsswitch 'passwd: files db'
      ⚠ The count is a property of THIS host's nsswitch, not of static
         linking. A rootfs naming a non-files service is where a static
         glibc payload reaches for a host NSS module it cannot have.
 
 == D. glibc's gconv modules and DT_NEEDED
-  253 of 253 gconv modules record DT_NEEDED libc.so.6
-ok   D: bundling gconv into a musl artefact reintroduces a second libc
+  COULD NOT RUN: no gconv directory on this host.
 
 == verdict
   every check that ran matched
