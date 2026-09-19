@@ -45,7 +45,7 @@ Decision:    In-process over a Rust tar reader, rather than a vendored C
              the entry-level API podbox needs is the smaller half of what it
              offers.
 Prove:       `./experiments/220-extract-path-safety.sh` exits 0, and
-             `strace -f -e trace=execve -o /tmp/e.txt podbox extract --force alpine:latest; grep -c 'execve.*"tar"' /tmp/e.txt` prints 0
+             `strace -f -e trace=execve -o /tmp/e.txt podbox extract --force public.ecr.aws/docker/library/alpine:3.20; grep -c 'execve.*"tar"' /tmp/e.txt` prints 0
 
 **Done, 2026-09-08.** `crates/podbox-extract/src/apply.rs` drives
 `tar::Archive::entries()` and makes every decision itself. 515 entries out of a
@@ -118,7 +118,7 @@ Decision:    A sidecar, not `--no-same-owner` semantics alone. The alternative
              `references/containers__storage/tree/drivers/vfs/driver.go:59-62`.
              That does not change podbox's design and it does change a claim
              about podman, which is T-0205.
-Prove:       `podbox pull alpine:latest && podbox extract alpine:latest && jq -e 'select(.path=="etc/shadow") | .uid==0 and .gid==42 and .applied.gid==0' "$(podbox inspect --format '{{.RootfsPath}}' alpine:latest)/../.meta.jsonl"`
+Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox extract public.ecr.aws/docker/library/alpine:3.20 && jq -e 'select(.path=="etc/shadow") | .uid==0 and .gid==42 and .applied.gid==0' "$(podbox inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/../.meta.jsonl"`
 
 **Done, 2026-09-08.** `crates/podbox-extract/src/sidecar.rs`, written per entry
 by `crates/podbox-extract/src/apply.rs`. The `Prove` above runs and exits 0
@@ -291,7 +291,7 @@ Approach:    Interpret an absolute target **relative to the rootfs**, which is
 Decision:    Rebase rather than reject, and rebase rather than dereference at
              extraction time. Dereferencing would bake the build host's tree
              into the image.
-Prove:       `podbox pull voidlinux/voidlinux-musl:latest && podbox extract voidlinux/voidlinux-musl:latest && ! test -L "$(podbox inspect --format '{{.RootfsPath}}' voidlinux/voidlinux-musl:latest)/var/cache/xbps"`
+Prove:       `podbox pull ghcr.io/void-linux/void-musl:latest && podbox extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podbox inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`
 
 **Done, 2026-09-08.** `safety::rebase_symlink_target`, and driven against the
 image the entry names. `var/cache/xbps` is **gone** from the extracted tree,
@@ -342,7 +342,7 @@ Decision:    Widen only the owner bits, and only on entries this extraction
              wrote. Widening group or other bits changes what the image means
              for a payload that reads modes, and widening everything makes the
              sidecar the only record of the real image.
-Prove:       `cargo test -p podbox-extract a_read_only_directory_in_one_layer_can_be_written_into_by_the_next` passes, and `podbox extract voidlinux/voidlinux-musl:latest` succeeds on a two-layer image
+Prove:       `cargo test -p podbox-extract a_read_only_directory_in_one_layer_can_be_written_into_by_the_next` passes, and `podbox extract ghcr.io/void-linux/void-musl:latest` succeeds on a two-layer image
 
 **Done, 2026-09-08.** The pass runs after each layer, over what **that layer
 wrote**, and adds owner read, write and execute to directories.

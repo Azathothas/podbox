@@ -42,7 +42,7 @@ Approach:    Open stdio, the log sinks, any host device the config exposes via
 Decision:    Pass descriptors rather than bind-mounting anything. There is no
              attach path on this runtime, so a descriptor is the only thing that
              crosses the boundary.
-Prove:       `podbox run --rm --device /dev/urandom alpine:latest sh -c 'head -c4 /dev/urandom | wc -c' | grep -qx 4`
+Prove:       `podbox run --rm --device /dev/urandom public.ecr.aws/docker/library/alpine:3.20 sh -c 'head -c4 /dev/urandom | wc -c' | grep -qx 4`
 
 **Done 2026-09-09.** `crates/podbox-enter/src/lib.rs`. Every buffer the child
 touches after the `chroot`, the argv, the environment, the working directory and
@@ -88,7 +88,7 @@ Approach:    Resolve the program path **after** `chroot` and `chdir("/")`, in
 Decision:    Resolve in the child rather than pass a pre-resolved absolute path
              from the parent. A parent-resolved path names the outer tree, and
              the outer tree is gone.
-Prove:       `env -i "$(command -v podbox)" run --rm alpine:latest /bin/sh -c 'echo ok' | grep -qx ok`
+Prove:       `env -i "$(command -v podbox)" run --rm public.ecr.aws/docker/library/alpine:3.20 /bin/sh -c 'echo ok' | grep -qx ok`
 
 **Done 2026-09-09.** `podbox_enter::run` resolves the program **after**
 `fchdir`, `chroot(".")` and `chdir("/")`, in the process that did them.
@@ -135,7 +135,7 @@ Approach:    `stat("/dev/ptmx")` in the **outer** environment, before the chroot
 Decision:    Refuse rather than degrade. `-t` is a request for a terminal, and a
              terminal that is not there cannot be approximated by a pipe without
              changing what every interactive program does.
-Prove:       `podbox probe --json | jq -e 'has("ptmx")' && { podbox run --rm -t alpine:latest true || podbox run --rm -t alpine:latest true 2>&1 | grep -q 'ptmx'; }`
+Prove:       `podbox probe --json | jq -e 'has("ptmx")' && { podbox run --rm -t public.ecr.aws/docker/library/alpine:3.20 true || podbox run --rm -t public.ecr.aws/docker/library/alpine:3.20 true 2>&1 | grep -q 'ptmx'; }`
 
 **Partial, 2026-09-08.** The probe half is implemented and measured; the refusal
 half needs `run`, which is M3.
@@ -184,7 +184,7 @@ Approach:    `lstat` the resolved rootfs path and refuse if it is a symlink,
 Decision:    Refuse rather than resolve. Resolving accepts a rootfs the store
              does not own, and the store is where the ownership sidecar and the
              lock (T-0204) live.
-Prove:       `ln -sfn "$(podbox inspect --format '{{.RootfsPath}}' alpine:latest)" /tmp/rootlink && ! podbox run --rm --rootfs /tmp/rootlink alpine:latest true`
+Prove:       `ln -sfn "$(podbox inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)" /tmp/rootlink && ! podbox run --rm --rootfs /tmp/rootlink public.ecr.aws/docker/library/alpine:3.20 true`
 
 **Done 2026-09-09.** `podbox_enter::RootDir::open` `lstat`s with
 `AT_SYMLINK_NOFOLLOW`, refuses a symlink **naming its target**, refuses anything

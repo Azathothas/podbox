@@ -1,31 +1,35 @@
 ## The task
 
-Session of 2026-09-19, third half. Work order was TODO/PROGRESS.md item 1
-T-0710 host-side ownership memo plus filing the remaining engine conversions
-as entries per docs/methodology/authoring.md. Push straight to main, no
-branches.
+Session of 2026-09-19, fourth half. Work order is TODO/PROGRESS.md: T-1209
+first (sweep Prove refs to M5 rows, add registry check + plant, close), then
+T-1210 through T-1213 one conversion group at a time without changing what
+any script asserts. Push straight to main, no branches. Guest lane has no
+docker daemon, so engine clauses run on host podman.
 
 ## The resume point
 
-Done and committed. Next session continues the work order in
-[PROGRESS.md](PROGRESS.md): T-1209 first, then T-1210 through T-1213.
+T-1209 in progress: Prove-block scan measured 41 violating lines plus 2
+history notes to reword plus 1 tag alignment, against the entry's 37.
+Sweep next, then the check and plant.
 
 ## In flight
 
-Nothing half-written. T-0710 done with 105 checks A-G green (exit 0) and a
-guest podbox-run smoke test; T-1210 through T-1213 filed as open entries with
-no implementation.
+Nothing half-written. Tree clean on main at `bfe7ef4`. Host podman answers
+(5.8.6 client, linux backend). `check-todo.py` green at start.
 
 ## The state of the tree
 
-Clean, on main. Host check-todo.py green, host gate green (10 passed, 1
-skipped), guest workspace green on the eighth pass after seven lock-table
-flakes with the recorded 16-lock refusal. 105 green on host podman.
+Clean, on main. Host `check-todo.py` green (exit 0). Guest/workspace checks
+not yet run this session.
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-The record is TODO/PROGRESS.md and it carries the work order.
-Push straight to main. Create no branches.
+The record is TODO/PROGRESS.md and it carries the work order: T-1209 first,
+then T-1210 through T-1213 one group at a time without changing what any
+script asserts. Push straight to main and create no branches. Work
+unattended; the operator reads the result later. The guest lane still has no
+docker daemon (no NET_ADMIN), so engine clauses run on host podman and the
+lock-table suite may need more than one pass.
 ```

@@ -43,7 +43,7 @@ Approach note: T-0708's `mknod` interception makes the same substitution from
 Decision:    A regular file, not a fifo. A fifo blocks a writer with no reader,
              which turns a redirection into a hang, and a hang is the failure
              mode [RULES.md](RULES.md) section 8 exists to prevent.
-Prove:       `podbox run --rm alpine:latest sh -c 'echo x >/dev/null && test ! -s /dev/null'`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo x >/dev/null && test ! -s /dev/null'`
 
 
 **Done 2026-09-09.** `crates/podbox-complete/src/devices.rs`, and the shape
@@ -120,7 +120,7 @@ Decision:    Always, not "if empty". An image with a wrong resolver is
              indistinguishable from one with a right one without resolving
              something, and resolving something is a network round trip on every
              container start.
-Prove:       `podbox run --rm docker.io/rockylinux/rockylinux:9 cat /etc/resolv.conf | diff -q - /etc/resolv.conf`
+Prove:       `podbox run --rm quay.io/rockylinux/rockylinux:9 cat /etc/resolv.conf | diff -q - /etc/resolv.conf`
 
 
 **Done 2026-09-09.** `crates/podbox-complete/src/net.rs`, and unconditionally,
@@ -169,7 +169,7 @@ Approach:    Write `127.0.0.1 localhost <container-name>` plus `::1 localhost`,
 Decision:    Write the file rather than intercept the resolver. The interposer
              does not reach static payloads, and `/etc/hosts` is read by the
              libc of whatever is running.
-Prove:       `podbox run --rm --name hostprobe --add-host foo:10.0.0.1 alpine:latest sh -c 'getent hosts foo && getent hosts hostprobe'`
+Prove:       `podbox run --rm --name hostprobe --add-host foo:10.0.0.1 public.ecr.aws/docker/library/alpine:3.20 sh -c 'getent hosts foo && getent hosts hostprobe'`
 
 
 **Done 2026-09-09.** `crates/podbox-complete/src/net.rs`, `hosts`.
@@ -230,7 +230,7 @@ Approach:    Synthesize both files in the rootfs if absent, with at least `root`
 Decision:    Synthesize into the rootfs rather than interpose `getpwuid`.
              Interposition does not reach a static or Go payload, and this is
              the fixup that decides whether M5 passes.
-Prove:       `podbox run --rm alpine:latest python3 -c 'import pwd; print(pwd.getpwuid(0).pw_name)' | grep -qx root && podbox run --rm docker.io/library/debian:bookworm-slim sh -c 'useradd -r svc && grep -q ^svc: /etc/passwd'`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 python3 -c 'import pwd; print(pwd.getpwuid(0).pw_name)' | grep -qx root && podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'useradd -r svc && grep -q ^svc: /etc/passwd'`
 
 
 **Done 2026-09-09.** `crates/podbox-complete/src/identity.rs`, and it lands
@@ -353,7 +353,7 @@ Approach:    Comment out `DownloadUser` in `/etc/pacman.conf`. Initialize the
 Decision:    Edit `pacman.conf` rather than create the `alpm` user. Creating it
              does not help: the id still has no mapping, so the `chown` still
              returns `EINVAL`.
-Prove:       `podbox run --rm docker.io/library/archlinux:latest sh -c 'pacman -Sy --noconfirm gcc >/dev/null && gcc --version'`
+Prove:       `podbox run --rm ghcr.io/pkgforge-dev/archlinux:latest sh -c 'pacman -Sy --noconfirm gcc >/dev/null && gcc --version'`
 
 
 **Done 2026-09-09.** `crates/podbox-complete/src/pkg.rs`, and the two halves
@@ -415,7 +415,7 @@ Approach:    Set `APT::Sandbox::User=root` in a drop-in under
 Decision:    A drop-in file rather than editing `apt.conf`, so the fixup is
              visible, removable and idempotent, and an image that already sets
              the key is not clobbered.
-Prove:       `podbox run --rm docker.io/library/debian:bookworm-slim sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gcc >/dev/null && gcc --version'`
+Prove:       `podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gcc >/dev/null && gcc --version'`
 
 
 **Done 2026-09-09.** `crates/podbox-complete/src/pkg.rs`, and the entry named
@@ -484,7 +484,7 @@ Approach:    Edit the service definitions under
 Decision:    Edit the source of the generated file. The alternative, disabling
              the refresh, changes what the payload's package manager does in a
              way the payload can observe and did not ask for.
-Prove:       `podbox run --rm registry.opensuse.org/opensuse/leap:latest sh -c 'zypper -n refresh && zypper -n install gcc >/dev/null && gcc --version'`
+Prove:       `podbox run --rm registry.opensuse.org/opensuse/leap:15.6 sh -c 'zypper -n refresh && zypper -n install gcc >/dev/null && gcc --version'`
 
 ---
 
@@ -529,7 +529,7 @@ Approach:    Where the interposer is active (T-0704) the `chown` succeeds and is
 Decision:    Report, do not suppress and do not translate. Suppressing hides a
              real failure of the same shape; translating breaks `docker run`
              parity on exit codes, which is T-0802.
-Prove:       `podbox run --rm docker.io/voidlinux/voidlinux-musl:latest sh -c 'xbps-install -Sy gcc >/dev/null 2>&1; gcc --version'`
+Prove:       `podbox run --rm ghcr.io/void-linux/void-musl:latest sh -c 'xbps-install -Sy gcc >/dev/null 2>&1; gcc --version'`
 
 
 **Done 2026-09-09.** ⛔ **A rule rather than a code path, and it is enforced in
@@ -622,7 +622,7 @@ Decision:    Edit rather than replace. A rootfs whose `nsswitch.conf` names
              `sss` or `systemd` may be doing so for a reason podbox cannot see,
              and prepending `files` restores the supplied file without removing
              what was there.
-Prove:       `./experiments/90-nsswitch-contract.sh` exits 0 and `podbox run --rm debian:12 sh -c 'id podboxsupplied'`
+Prove:       `./experiments/90-nsswitch-contract.sh` exits 0 and `podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'id podboxsupplied'`
 
 
 **Done 2026-09-09.** `crates/podbox-complete/src/identity.rs`, `nsswitch`, and
@@ -716,7 +716,7 @@ Decision:    Rewrite in the extracted rootfs at `run` time rather than at
              the caller names a registry and podbox obeys. Here podbox is
              changing a file inside somebody else's image, so the default is the
              conservative one and the disclosure is per file.
-Prove:       `podbox run --rm debian:latest sh -c 'apt-get update' ` completes rather than hanging, the banner names each file rewritten, and `--no-source-fixup` leaves every source file byte-identical to the extracted tree
+Prove:       `podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update' ` completes rather than hanging, the banner names each file rewritten, and `--no-source-fixup` leaves every source file byte-identical to the extracted tree
 
 **Done 2026-09-09.** `crates/podbox-complete/src/sources.rs`, and all four
 rules of the Approach are enforced:

@@ -88,7 +88,7 @@ Approach:    Build both objects with `scripts/build-interpose.sh`, embed both as
 Decision:    Write it into the rootfs rather than keep it in the store and bind
              it in. There is no attach path on this runtime, so a bind is not
              available, and a copy per container is a few hundred kilobytes.
-Prove:       `podbox run --rm alpine:latest sh -c 'test -r /.podbox/interpose.so && grep -q /.podbox/interpose.so /proc/self/environ'`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -r /.podbox/interpose.so && grep -q /.podbox/interpose.so /proc/self/environ'`
 
 ---
 
@@ -135,7 +135,7 @@ Approach:    Implement memfd, then the private run directory, then the
 Decision:    Two environment variables, request and result, from the start. The
              single-variable form works until podbox runs inside itself, and
              then it is a bug that reproduces only under nesting.
-Prove:       `PODBOX_MODE=memfd podbox run --rm alpine:latest true 2>&1 | grep -q 'memfd' && podbox run --rm alpine:latest sh -c 'test -z "$PODBOX_MODE" && test -n "$PODBOX_ACTIVE_MODE"'`
+Prove:       `PODBOX_MODE=memfd podbox run --rm public.ecr.aws/docker/library/alpine:3.20 true 2>&1 | grep -q 'memfd' && podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -z "$PODBOX_MODE" && test -n "$PODBOX_ACTIVE_MODE"'`
 
 ---
 

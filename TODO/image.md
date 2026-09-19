@@ -37,7 +37,7 @@ Decision:    A blocking client. podbox has no reason to be async, and an async
              runtime is a large dependency with nothing to do here. The crate
              sweep for the client and its TLS is T-0905 and T-0906, and neither
              lands without a measured size delta.
-Prove:       `podbox pull alpine:latest && podbox images --format '{{.Digest}}' alpine:latest | grep -qx "$(docker image inspect alpine:latest --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"`
+Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox images --format '{{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | grep -qx "$(docker image inspect public.ecr.aws/docker/library/alpine:3.20 --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"`
 
 **Done 2026-09-08.** `crates/podbox-image/src/registry.rs`, driven by
 `experiments/150-image-acquisition.sh`, which exits 0. The `Prove` above is its
@@ -102,7 +102,7 @@ Approach:    Store blobs under `sha256:<hex>`, verify every blob against its
              a layer about to be extracted as root.
 Decision:    One store shared by images and containers, with a lock, rather than
              a store per container. The GC race that decides this is T-0204.
-Prove:       `podbox pull alpine:latest && podbox pull alpine:latest 2>&1 | grep -qi 'already' && sha256sum "$(podbox inspect --format '{{.Store}}' alpine:latest)"/blobs/sha256/* >/dev/null`
+Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox pull public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -qi 'already' && sha256sum "$(podbox inspect --format '{{.Store}}' public.ecr.aws/docker/library/alpine:3.20)"/blobs/sha256/* >/dev/null`
 
 **Done 2026-09-08.** `crates/podbox-image/src/store.rs` and
 `crates/podbox-image/src/digest.rs`, driven by
@@ -305,7 +305,7 @@ Approach:    Hold a lock fd on each in-use rootfs, inherited across the exec, an
 Decision:    An inheritable lock fd rather than a pid file. A pid file is stale
              the moment a process dies unexpectedly, and the check that clears a
              stale one is the race this is closing.
-Prove:       `podbox run -d --name gc-probe alpine:latest sleep 30 && ! podbox image prune -af 2>&1 | grep -q "$(podbox inspect --format '{{.Image}}' gc-probe)" && podbox rm -f gc-probe`
+Prove:       `podbox run -d --name gc-probe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && ! podbox image prune -af 2>&1 | grep -q "$(podbox inspect --format '{{.Image}}' gc-probe)" && podbox rm -f gc-probe`
 
 **Partial, 2026-09-08.** `images`, `image ls`, `rmi`, `image rm`, `tag`,
 `image prune` and `inspect` are implemented in `crates/podbox-cli/src/images.rs`
@@ -569,7 +569,7 @@ Decision:    Key by platform rather than refusing a second variant. The refusal
              ⚠ Rejected: defaulting to `linux/amd64` on every host. It is what
              the code does now and it is wrong the moment podbox runs on arm64,
              which is most of the machines its audience rents.
-Prove:       `podbox pull --platform linux/arm64 alpine:latest && podbox images --format '{{.Platform}} {{.Digest}}' alpine:latest | sort | uniq -c | grep -qx ' *1 linux/amd64 .*' `
+Prove:       `podbox pull --platform linux/arm64 public.ecr.aws/docker/library/alpine:3.20 && podbox images --format '{{.Platform}} {{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | sort | uniq -c | grep -qx ' *1 linux/amd64 .*' `
 
 ---
 

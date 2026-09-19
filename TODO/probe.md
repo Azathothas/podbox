@@ -404,7 +404,7 @@ Decision:    Take `ruri`'s inversion and `udocker`'s precedence chain, and take
              rejected is a single global strictness level: it cannot express
              "this container asked for isolation and that one did not", which
              is the distinction the ladder exists for.
-Prove:       `podbox run --network=none --rm alpine true; test $? -ne 0` and `podbox probe --strict` exits non-zero on any degraded rung
+Prove:       `podbox run --network=none --rm public.ecr.aws/docker/library/alpine:3.20 true; test $? -ne 0` and `podbox probe --strict` exits non-zero on any degraded rung
 
 **Partial, 2026-09-08.** The selection and the switch are implemented and
 measured; the first half of the `Prove` above cannot be earned at this
@@ -474,7 +474,7 @@ Decision:    stderr, not stdout. A payload's stdout is data to whatever
              consumes it, and a banner on it corrupts every pipeline. The same
              split `pathshim` uses at
              `references/compforge__pathshim/tree/src/main.rs:134-138`.
-Prove:       `podbox run --rm alpine:latest /bin/echo hi 2>banner.txt >out.txt && grep -q '^hi$' out.txt && grep -q 'mode=' banner.txt`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 /bin/echo hi 2>banner.txt >out.txt && grep -q '^hi$' out.txt && grep -q 'mode=' banner.txt`
 
 **Partial, 2026-09-08.** The banner exists, is on stderr, and is derived; the
 `Prove` above needs `run` and is not claimed.

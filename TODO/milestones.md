@@ -143,7 +143,7 @@ Approach:    `podbox pull`, `images`, `rmi`, `tag`, and a content-addressed
 Decision:    Do not gold-plate it. The registry plane is ordinary HTTPS and file
              I/O and it works here, and it is the least interesting part of the
              problem.
-Prove:       `podbox pull alpine:latest && podbox images --format '{{.Digest}}' alpine:latest | grep -qx "$(docker image inspect alpine:latest --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"`
+Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox images --format '{{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | grep -qx "$(docker image inspect public.ecr.aws/docker/library/alpine:3.20 --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"`
 
 **Done 2026-09-08**, against a script rather than a recollection:
 `experiments/150-image-acquisition.sh` exits 0 and carries the `Prove` above as
@@ -197,7 +197,7 @@ Approach:    The four acceptance criteria, in order, and each is a separate
              failure mode rather than a variation of one.
 Decision:    In-process extraction at entry level. Shelling out to `tar` is what
              makes this wall reach five tools instead of one.
-Prove:       `./experiments/70-whiteout-contract.sh` exits 0; `./experiments/220-extract-path-safety.sh` exits 0; `podbox pull alpine:latest && podbox extract alpine:latest && test -f "$(podbox inspect --format '{{.RootfsPath}}' alpine:latest)/etc/shadow"`; `podbox pull voidlinux/voidlinux-musl:latest && podbox extract voidlinux/voidlinux-musl:latest && ! test -L "$(podbox inspect --format '{{.RootfsPath}}' voidlinux/voidlinux-musl:latest)/var/cache/xbps"`; then, when M3 lands, the same two images under `podbox run --rm`
+Prove:       `./experiments/70-whiteout-contract.sh` exits 0; `./experiments/220-extract-path-safety.sh` exits 0; `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox extract public.ecr.aws/docker/library/alpine:3.20 && test -f "$(podbox inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/etc/shadow"`; `podbox pull ghcr.io/void-linux/void-musl:latest && podbox extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podbox inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`; then, when M3 lands, the same two images under `podbox run --rm`
 
 **Partial, 2026-09-08.** Every clause above ran and matched, on this host, with
 `crates/podbox-extract` and the `extract` verb. [extract.md](extract.md) T-0301
@@ -493,7 +493,7 @@ Approach:    Both halves in one object: path virtualization, and ownership
 Decision:    Both, or the milestone is not done. ⭐ No project in the corpus does
              both halves in one interposer while also speaking docker's CLI.
              That gap is what podbox is.
-Prove:       `podbox run --rm alpine:latest sh -c 'chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` and `podbox run --rm -v "$PWD:/mapped" alpine:latest sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` and `podbox run --rm -v "$PWD:/mapped" public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
 
 ---
 

@@ -590,6 +590,15 @@ Premise:     ⭐ **Counted on 2026-09-12 over `TODO/*.md`: 39 of 132 `Prove`
              | [packaging.md](packaging.md) | 2 |
              | [probe.md](probe.md) | 1 |
 
+             ⛔ **The count above is short by four, measured 2026-09-19.**
+             Scoped to the `Prove` line and its indented continuations, the
+             sweep finds **43** lines that ever named a Hub reference, in the
+             same ten files: `complete.md` carries 9 rather than 8, `enter.md`
+             4 rather than 3, `extract.md` 4 rather than 3, and `probe.md` 2
+             rather than 1. Two were corrected on 2026-09-12 ([T-0702 and
+             T-0706](interpose.md)), so this entry owns the remaining **41**.
+             The title keeps the number the entry was filed under.
+
              ⭐ **An unqualified reference is the larger half and it is the one
              a reader cannot see.** `alpine:latest` appears 50 times. It carries
              no registry, so it resolves through the engine's own shortname
@@ -630,18 +639,40 @@ Approach:    ⛔ **The rule before the sweep, and the check before the edits.** 
                 `Prove` line and assert the gate goes red naming that entry.
              ⛔ A check with no plant is not a check, and [T-1202](gate.md) is
              the rule that says so.
-             ⚠ **Not in one pass with the check.** The 39 edits change what 39
+             ⚠ **Not in one pass with the check.** The 41 edits change what 41
              acceptance commands assert, so they land as their own change with
              the mapping stated, and the check lands once nothing violates it.
-Decision:    ⭐ **Taken on 2026-09-12: the sweep is one entry and not 39
+
+             ⭐ **The mapping, stated once, applied 2026-09-19.** Every left
+             side below is replaced by the right side, which is the
+             `DISTRO_ROWS_M5` row in `scripts/common/distro-matrix.sh`:
+
+             | the `Prove` lines named | the M5 row that replaces it |
+             | --- | --- |
+             | `alpine:latest`, bare `alpine` | `public.ecr.aws/docker/library/alpine:3.20` |
+             | `debian:12`, `debian:latest`, `docker.io/library/debian:bookworm-slim` | `public.ecr.aws/debian/debian:bookworm-slim` |
+             | `docker.io/rockylinux/rockylinux:9` | `quay.io/rockylinux/rockylinux:9` |
+             | `docker.io/library/archlinux:latest` | `ghcr.io/pkgforge-dev/archlinux:latest` |
+             | `docker.io/voidlinux/voidlinux-musl:latest`, `voidlinux/voidlinux-musl:latest` | `ghcr.io/void-linux/void-musl:latest` |
+             | `registry.opensuse.org/opensuse/leap:latest` | `registry.opensuse.org/opensuse/leap:15.6` |
+
+             41 violating lines swept, in the same ten files the Premise
+             names, plus the [T-0408](complete.md) tag aligned to its row
+             (same registry, `:latest` to `:15.6`). The two history notes in
+             [T-0702 and T-0706](interpose.md) name the defect without the
+             literal now, so their `Prove` lines stay fully checked. Step 2
+             is settled without a new row: [T-0706](interpose.md) proves its
+             Go row by unit test over the section markers, so no image is
+             needed and none is invented.
+Decision:    ⭐ **Taken on 2026-09-12: the sweep is one entry and not 41
              corrections spread through the entries that carry the lines.** A
-             correction made inside each owning entry is made 39 times by 39
-             sessions against 39 readings of the rule, and the rule is what
+             correction made inside each owning entry is made 41 times by 41
+             sessions against 41 readings of the rule, and the rule is what
              drifted in the first place.
              ⚠ **[T-0702](interpose.md) and [T-0706](interpose.md) are the two
              exceptions and they are corrected already**, because the work order
              sent a session to run them and a `Prove` that cannot run is not a
-             `Prove`. That is 2 of the 39; this entry owns the other 37.
+             `Prove`. That is 2 of the 43; this entry owns the other 41.
              ⛔ **The rejected option: leave the lines and let the check warn.**
              A warning nobody has to clear is a comment, and the gate here is an
              assertion or it is decoration.

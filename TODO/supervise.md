@@ -36,7 +36,7 @@ Approach:    Hold a pidfd per direct child from the moment it is created. Exit
 Decision:    A pidfd rather than a pid plus a start time. The pid is reusable
              and the start-time check is a heuristic; a pidfd cannot address a
              process that has been reaped.
-Prove:       `podbox run -d --name pidfdprobe alpine:latest sleep 5 && podbox wait pidfdprobe | grep -qx 0 && podbox rm pidfdprobe`
+Prove:       `podbox run -d --name pidfdprobe public.ecr.aws/docker/library/alpine:3.20 sleep 5 && podbox wait pidfdprobe | grep -qx 0 && podbox rm pidfdprobe`
 
 **Done, 2026-09-09.** `crates/podbox-supervise/src/launcher.rs`. One launcher per
 container holds a pidfd on its payload from the moment the payload exists,
@@ -84,7 +84,7 @@ Approach:    Wait on the pidfd, or on a readiness fd the child writes to and the
              by the audience it is built for.
 Decision:    A readiness fd over polling `ps`. Polling reintroduces the interval
              the entry exists to remove.
-Prove:       `for i in $(seq 20); do podbox run -d --name loop$i alpine:latest sleep 1 && podbox ps -q | grep -q . && podbox stop loop$i && podbox rm loop$i || exit 1; done`
+Prove:       `for i in $(seq 20); do podbox run -d --name loop$i public.ecr.aws/docker/library/alpine:3.20 sleep 1 && podbox ps -q | grep -q . && podbox stop loop$i && podbox rm loop$i || exit 1; done`
 
 **Done, 2026-09-09**, and it took three failing runs and a door sweep to get
 there. `./experiments/230-lifecycle-loop.sh 20` reports **20 of 20 consecutive
@@ -165,7 +165,7 @@ Decision:    Keep the spawn path single-threaded rather than pinning a thread.
              Pinning works and it is a constraint every future contributor has to
              know; a single-threaded path is a constraint the type system can be
              made to hold.
-Prove:       `podbox run -d --name pdprobe alpine:latest sleep 30 && grep -qx 1 /proc/$(podbox inspect --format '{{.Pid}}' pdprobe)/status.threads 2>/dev/null || test "$(ls /proc/$(pgrep -f 'podbox run' | head -1)/task | wc -l)" -le 3`
+Prove:       `podbox run -d --name pdprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && grep -qx 1 /proc/$(podbox inspect --format '{{.Pid}}' pdprobe)/status.threads 2>/dev/null || test "$(ls /proc/$(pgrep -f 'podbox run' | head -1)/task | wc -l)" -le 3`
 
 **Done, 2026-09-09.** The spawn path is single-threaded and nothing on it spawns
 a thread: the launcher forks with `clone_fork`, the payload's `chroot` and
@@ -207,7 +207,7 @@ Decision:    Reconcile on start rather than trust the table. A launcher killed
              with `SIGKILL` leaves the table saying "running", and the only
              honest answer after that is "this process exited while podbox was
              not watching".
-Prove:       `podbox run -d --name stateprobe alpine:latest sleep 30 && kill -9 "$(podbox inspect --format '{{.Pid}}' stateprobe)" && podbox ps -a --format '{{.Status}}' --filter name=stateprobe | grep -qi exited && podbox rm stateprobe`
+Prove:       `podbox run -d --name stateprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && kill -9 "$(podbox inspect --format '{{.Pid}}' stateprobe)" && podbox ps -a --format '{{.Status}}' --filter name=stateprobe | grep -qi exited && podbox rm stateprobe`
 
 **Done, 2026-09-09.** Clause 2 of `experiments/230-lifecycle-loop.sh` drives it:
 a detached container whose LAUNCHER is `SIGKILL`ed reads `dead`, `inspect
@@ -252,7 +252,7 @@ Decision:    A file in the store rather than a pipe pumped by the launcher. A
              pipe loses everything written after the launcher dies, and the
              launcher is the process most likely to be killed by an outer
              `timeout`.
-Prove:       `podbox run --rm --name logprobe alpine:latest sh -c 'echo out; echo err >&2' >/dev/null 2>&1; podbox logs logprobe 2>&1 | grep -q out`
+Prove:       `podbox run --rm --name logprobe public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo out; echo err >&2' >/dev/null 2>&1; podbox logs logprobe 2>&1 | grep -q out`
 
 **Done, 2026-09-09.** Clause 4 of `experiments/230-lifecycle-loop.sh`:
 `podbox run -d ... sh -c 'echo out; echo err >&2'` then `podbox logs` reads back

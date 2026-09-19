@@ -260,7 +260,7 @@ Status note: **no longer blocked, and the musl gap is closed.** The measurement
              payload will see. It landed in `crates/podbox-cli/src/interpose.rs`
              (`place`, called from `apply`); the Done note below carries the
              run.
-Prove:       `./experiments/80-interposer-abi.sh` exits 0, and `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -f /.podbox/interpose.so && env | grep -q "^LD_PRELOAD=/\.podbox/interpose\.so"'`. ⛔ **The reference was `alpine:latest` until 2026-09-12**, which is unqualified and resolves to a quota-bearing registry, so this acceptance could not be run under the rule `scripts/common/distro-matrix.sh` states. It is the M5 alpine row now. [T-1209](gate.md) owns the other 37 lines with the same defect. ⛔ **The second half read `/proc/self/environ` until 2026-09-18**, and the chroot has no `/proc`, so that line could not pass under podbox: `grep` answered `No such file or directory` while the object sat placed beside it. The environ is read through the payload's own `env` instead.
+Prove:       `./experiments/80-interposer-abi.sh` exits 0, and `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -f /.podbox/interpose.so && env | grep -q "^LD_PRELOAD=/\.podbox/interpose\.so"'`. ⛔ **The reference was an unqualified tag until 2026-09-12**, which resolves through the engine's shortname aliases to a quota-bearing registry, so this acceptance could not be run under the rule `scripts/common/distro-matrix.sh` states. It names the M5 row for that distribution now. [T-1209](gate.md) owns the other 42 lines with the same defect. ⛔ **The second half read `/proc/self/environ` until 2026-09-18**, and the chroot has no `/proc`, so that line could not pass under podbox: `grep` answered `No such file or directory` while the object sat placed beside it. The environ is read through the payload's own `env` instead.
 
 
 **Done 2026-09-18.** The placement half landed in `crates/podbox-cli/src/interpose.rs` (`place`, and `apply` calling it): the selected object is written to `/.podbox/interpose.so` inside the rootfs before the chroot, sibling plus rename, and `LD_PRELOAD` names it, podbox's object first where the caller set one. `run`, `exec` and `create` share the one call. `experiments/159-interpose-placement.sh` clause A is this `Prove`, pinned to the M5 digest, and `experiments/results/interpose-placement.txt` carries the run: file present, `LD_PRELOAD` in the payload's `env`, exit 0.
@@ -443,7 +443,7 @@ Approach:    Intercept the `chown` family and return success after recording the
 Decision:    Probe once and cache, rather than fakeroot's environment variable.
              A user who has to know to set a variable has to know the wall
              exists, and the audience is automated.
-Prove:       `./experiments/105-interpose-ownership.sh` exits 0, and then `podbox run --rm alpine:latest sh -c 'chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` once T-0702 places the object
+Prove:       `./experiments/105-interpose-ownership.sh` exits 0, and then `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` once T-0702 places the object
 
 
 **Partial, 2026-09-09.** The object does it and it is measured under both libcs;
@@ -546,7 +546,7 @@ Approach:    Reverse-map `getcwd`, `get_current_dir_name`, `readlink`,
 Decision:    `ERANGE` over a silent real path. The buffer case is rare and a
              leaked host path in a `configure` script's output is a build that
              bakes in the wrong prefix.
-Prove:       `podbox run --rm -v "$PWD:/mapped" alpine:latest sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
+Prove:       `podbox run --rm -v "$PWD:/mapped" public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
 
 ---
 
@@ -596,7 +596,7 @@ Decision:    Decline the tier, do not fall back to a copy silently. A `-v` that
              that needs a usable `ptrace`, which this runtime denies, and
              `references/proot-me__proot/tree/src/cli/cli.c:135-138` shows what
              a tool that assumes otherwise tells the user.
-Prove:       `podbox run --rm -v "$(command -v podbox):/podbox:ro" public.ecr.aws/docker/library/alpine:3.20 /podbox --version 2>&1 | grep -q 'interpose: declined'`. ⚠ **That drives row 2 of the table and not row 3**, and the substitution is stated rather than quiet: podbox's own release binary is `x86_64-unknown-linux-musl` under the workspace's `+crt-static`, which [T-0701](#t-0701-the-cdylib-build-constraints) records, so it carries no `PT_INTERP` and is a static payload this tree already builds. ⭐ The command IS the check on that: a payload with a `PT_INTERP` would not be declined and the line would fail. ⛔ **The line named `golang:alpine` until 2026-09-12**, which is unqualified and resolves to a quota-bearing registry. ⚠ **Row 3, the Go payload, has no acceptance now**, because every row of `DISTRO_ROWS_M5` is a base distribution and none is a Go image, and inventing a reference is what [T-1209](gate.md) refuses. That entry's `Approach` step 2 is where the row is asked for. ⛔ **The `-v` in that line never ran: `run -v` is a refused `None` row.** `experiments/159-interpose-placement.sh` clause B stages the same static binary with `extract` plus a host copy plus `run` instead, and asserts the decline line and exit 0.
+Prove:       `podbox run --rm -v "$(command -v podbox):/podbox:ro" public.ecr.aws/docker/library/alpine:3.20 /podbox --version 2>&1 | grep -q 'interpose: declined'`. ⚠ **That drives row 2 of the table and not row 3**, and the substitution is stated rather than quiet: podbox's own release binary is `x86_64-unknown-linux-musl` under the workspace's `+crt-static`, which [T-0701](#t-0701-the-cdylib-build-constraints) records, so it carries no `PT_INTERP` and is a static payload this tree already builds. ⭐ The command IS the check on that: a payload with a `PT_INTERP` would not be declined and the line would fail. ⛔ **The line named an unqualified Go image until 2026-09-12**, which resolves through the engine's shortname aliases to a quota-bearing registry. ⚠ **Row 3, the Go payload, has no acceptance now**, because every row of `DISTRO_ROWS_M5` is a base distribution and none is a Go image, and inventing a reference is what [T-1209](gate.md) refuses. That entry's `Approach` step 2 is where the row is asked for. ⛔ **The `-v` in that line never ran: `run -v` is a refused `None` row.** `experiments/159-interpose-placement.sh` clause B stages the same static binary with `extract` plus a host copy plus `run` instead, and asserts the decline line and exit 0.
 
 
 **Done 2026-09-18.** The classifier landed in `crates/podbox-cli/src/interpose.rs` (`classify`, read once per payload, advisory, safe direction on every doubt) and runs at `run`, at `exec` on both paths, and at `create` through the shared `prepare`. Where it says unreachable the tier is declined by name on stderr and the payload still runs. `experiments/results/interpose-placement.txt` carries the run: row 2 declines naming the static payload with exit 0, the dynamic control is preloaded and not declined. ⭐ **Row 3 is proved without an image.** The Go markers outrank a present interpreter by unit test over all four section names, because [T-1209](gate.md) refuses an invented reference and no `DISTRO_ROWS_M5` row is a Go image. That answers [PROGRESS.md](PROGRESS.md)'s open question with the second option: the classification's Go case is proved some other way.
@@ -635,7 +635,7 @@ Decision:    Built-in first, user list second, and the built-in entries are not
              removable. A user who removes `/proc/self/fd` from the list gets an
              interposer that cannot resolve `*at` calls, and the failure names
              nothing.
-Prove:       `podbox run --rm -v "$PWD:/mapped" alpine:latest sh -c 'readlink /proc/self/exe | grep -qv /mapped'`
+Prove:       `podbox run --rm -v "$PWD:/mapped" public.ecr.aws/docker/library/alpine:3.20 sh -c 'readlink /proc/self/exe | grep -qv /mapped'`
 
 ---
 
@@ -671,7 +671,7 @@ Decision:    Strip namespace flags from `clone` rather than failing it. Failing
              ⚠ Do not strip `CLONE_NEWNET` silently: an empty netns is
              `ENETUNREACH` for every connection, which reads as a network outage
              rather than as a stripped flag. Report it.
-Prove:       `podbox run --rm alpine:latest sh -c 'mknod /tmp/n c 1 3 && test -f /tmp/n' && podbox inspect --format '{{.Interpose.Emulated.mknod}}' "$(podbox ps -lq)" | grep -q '^[1-9]'`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'mknod /tmp/n c 1 3 && test -f /tmp/n' && podbox inspect --format '{{.Interpose.Emulated.mknod}}' "$(podbox ps -lq)" | grep -q '^[1-9]'`
 
 ---
 

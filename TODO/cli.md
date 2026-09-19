@@ -149,7 +149,7 @@ Approach:    Return the payload's status verbatim from `run`, `start` in the
              That rule is what T-0409 depends on.
 Decision:    Match docker rather than define a clearer scheme. Parity is the
              product.
-Prove:       `podbox run --rm alpine:latest sh -c 'exit 42'; test $? -eq 42 && podbox run --rm alpine:latest /nonexistent; test $? -eq 127`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'exit 42'; test $? -eq 42 && podbox run --rm public.ecr.aws/docker/library/alpine:3.20 /nonexistent; test $? -eq 127`
 
 
 **Done 2026-09-09, and the entry's own description of docker's convention was
@@ -307,7 +307,7 @@ Decision:    Suppressible by config, never by default. `ruri` allows
              the `sandlock` failure mode with a flag in front of it; podbox's
              equivalent is a config file a machine's operator sets once, and it
              cannot be set from the command line of a single run.
-Prove:       `podbox run --rm --network=none alpine:latest true 2>&1 | grep -q 'network isolation'; test $? -eq 0 && podbox run --rm --memory=1g alpine:latest true; test $? -eq 0 && podbox run --strict --rm --memory=1g alpine:latest true; test $? -ne 0`
+Prove:       `podbox run --rm --network=none public.ecr.aws/docker/library/alpine:3.20 true 2>&1 | grep -q 'network isolation'; test $? -eq 0 && podbox run --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true; test $? -eq 0 && podbox run --strict --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true; test $? -ne 0`
 
 
 **Done 2026-09-09.** All four rules, and the third and fourth needed a defect
@@ -420,7 +420,7 @@ Approach:    Every failure carries four parts: the operation, the errno, the
 Decision:    Quote the actual `uid_map` contents rather than saying "an unmapped
              id". The map is one read (T-0105) and it is what turns a confusing
              errno into an explanation a reader can act on.
-Prove:       `podbox pull alpine:latest 2>&1 | grep -A2 'gid 42' | grep -q 'gid_map'` or, where the interposer cleared it, `podbox inspect --format '{{.Ownership.Deferred}}' alpine:latest | grep -q etc/shadow`
+Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -A2 'gid 42' | grep -q 'gid_map'` or, where the interposer cleared it, `podbox inspect --format '{{.Ownership.Deferred}}' public.ecr.aws/docker/library/alpine:3.20 | grep -q etc/shadow`
 
 ---
 
@@ -457,7 +457,7 @@ Approach:    Three properties, tested rather than reviewed:
 Decision:    Check at the point of use rather than up front. lilipod's shape
              makes `pull` fail on a machine where `pull` would have worked, and
              `pull` is the verb an agent reaches for first.
-Prove:       `podbox run --rm alpine:latest true </dev/null && timeout 30 podbox pull alpine:latest </dev/null; test $? -ne 124`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 true </dev/null && timeout 30 podbox pull public.ecr.aws/docker/library/alpine:3.20 </dev/null; test $? -ne 124`
 
 
 **Done 2026-09-09.** All three properties, and each is asserted rather than
