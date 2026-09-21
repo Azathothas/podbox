@@ -1,0 +1,289 @@
+== conditions
+date: 2026-09-21T10:39:26Z
+head: f9aa0bb
+nproc: 20
+rustc: rustc 1.98.1 (48a229cea 2026-09-01)
+cargo: cargo 1.98.1 (797e8a9bc 2026-08-05)
+suite tests: (counted after compile)
+== bootstrap (the gate's own setup: no docker; the lane has no NET_ADMIN)
+== disk, before anything is written
+  905931 MB and 65897606 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 2 installed, 0 failed
+everything requested is present.
+bootstrap rc=0
+== compile the suite once
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded cfg-if v1.0.4
+  Downloaded form_urlencoded v1.2.2
+  Downloaded cpufeatures v0.3.1
+  Downloaded block-buffer v0.12.1
+  Downloaded crypto-common v0.2.2
+  Downloaded percent-encoding v2.3.2
+  Downloaded idna_adapter v1.2.2
+  Downloaded potential_utf v0.1.6
+  Downloaded itoa v1.0.18
+  Downloaded stable_deref_trait v1.2.1
+  Downloaded subtle v2.6.1
+  Downloaded zerofrom-derive v0.1.7
+  Downloaded utf8_iter v1.0.4
+  Downloaded untrusted v0.9.0
+  Downloaded webpki-roots v0.26.11
+  Downloaded yoke-derive v0.8.2
+  Downloaded adler2 v2.0.1
+  Downloaded displaydoc v0.2.7
+  Downloaded rustls-pemfile v2.2.0
+  Downloaded synstructure v0.13.2
+  Downloaded quote v1.0.47
+  Downloaded simd-adler32 v0.3.10
+  Downloaded tinystr v0.8.4
+  Downloaded smallvec v1.16.0
+  Downloaded zerovec-derive v0.11.6
+  Downloaded zerofrom v0.1.8
+  Downloaded writeable v0.6.4
+  Downloaded digest v0.11.3
+  Downloaded find-msvc-tools v0.1.12
+  Downloaded crc32fast v1.5.1
+  Downloaded hybrid-array v0.4.15
+  Downloaded once_cell v1.21.4
+  Downloaded litemap v0.8.3
+  Downloaded shlex v2.0.1
+  Downloaded sha2 v0.11.0
+  Downloaded zeroize v1.9.0
+  Downloaded yoke v0.8.3
+  Downloaded zmij v1.0.23
+  Downloaded getrandom v0.2.17
+  Downloaded unicode-ident v1.0.24
+  Downloaded rustls-pki-types v1.15.1
+  Downloaded log v0.4.34
+  Downloaded serde_derive v1.0.229
+  Downloaded serde_core v1.0.229
+  Downloaded proc-macro2 v1.0.107
+  Downloaded icu_provider v2.3.1
+  Downloaded icu_locale_core v2.3.0
+  Downloaded miniz_oxide v0.9.1
+  Downloaded flate2 v1.1.10
+  Downloaded base64 v0.22.1
+  Downloaded icu_collections v2.3.0
+  Downloaded zerotrie v0.2.5
+  Downloaded rustls-webpki v0.103.15
+  Downloaded serde v1.0.229
+  Downloaded icu_normalizer_data v2.3.0
+  Downloaded cc v1.4.5
+  Downloaded memchr v2.8.3
+  Downloaded url v2.5.8
+  Downloaded syscalls v0.8.1
+  Downloaded typenum v1.20.1
+  Downloaded ureq v2.12.1
+  Downloaded icu_properties v2.3.0
+  Downloaded zerovec v0.11.8
+  Downloaded idna v1.1.0
+  Downloaded icu_properties_data v2.3.0
+  Downloaded serde_json v1.0.151
+  Downloaded zlib-rs v0.6.7
+  Downloaded webpki-roots v1.0.9
+  Downloaded syn v3.0.5
+  Downloaded syn v2.0.119
+  Downloaded rustls v0.23.44
+  Downloaded icu_normalizer v2.3.0
+  Downloaded libc v0.2.189
+  Downloaded ring v0.17.14
+  Downloaded linux-raw-sys v0.12.1
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling stable_deref_trait v1.2.1
+   Compiling litemap v0.8.3
+   Compiling writeable v0.6.4
+   Compiling shlex v2.0.1
+   Compiling cfg-if v1.0.4
+   Compiling find-msvc-tools v0.1.12
+   Compiling icu_properties_data v2.3.0
+   Compiling utf8_iter v1.0.4
+   Compiling icu_normalizer_data v2.3.0
+   Compiling libc v0.2.189
+   Compiling zeroize v1.9.0
+   Compiling typenum v1.20.1
+   Compiling smallvec v1.16.0
+   Compiling serde_core v1.0.229
+   Compiling untrusted v0.9.0
+   Compiling crc32fast v1.5.1
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling syscalls v0.8.1
+   Compiling rustls v0.23.44
+   Compiling zmij v1.0.23
+   Compiling percent-encoding v2.3.2
+   Compiling cc v1.4.5
+   Compiling rustls-pki-types v1.15.1
+   Compiling log v0.4.34
+   Compiling once_cell v1.21.4
+   Compiling serde v1.0.229
+   Compiling subtle v2.6.1
+   Compiling miniz_oxide v0.9.1
+   Compiling serde_json v1.0.151
+   Compiling base64 v0.22.1
+   Compiling form_urlencoded v1.2.2
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling cpufeatures v0.3.1
+   Compiling linux-raw-sys v0.12.1
+   Compiling webpki-roots v1.0.9
+   Compiling rustls-pemfile v2.2.0
+   Compiling webpki-roots v0.26.11
+   Compiling podbox-probe v0.1.0 (/work/crates/podbox-probe)
+   Compiling flate2 v1.1.10
+   Compiling hybrid-array v0.4.15
+   Compiling syn v2.0.119
+   Compiling syn v3.0.5
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling getrandom v0.2.17
+   Compiling ring v0.17.14
+   Compiling digest v0.11.3
+   Compiling sha2 v0.11.0
+   Compiling synstructure v0.13.2
+   Compiling zerovec-derive v0.11.6
+   Compiling displaydoc v0.2.7
+   Compiling serde_derive v1.0.229
+   Compiling zerofrom-derive v0.1.7
+   Compiling yoke-derive v0.8.2
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.3
+   Compiling zerovec v0.11.8
+   Compiling zerotrie v0.2.5
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.3.0
+   Compiling icu_locale_core v2.3.0
+   Compiling icu_provider v2.3.1
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v2.12.1
+   Compiling podbox-image v0.1.0 (/work/crates/podbox-image)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 21.91s
+  Executable unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox_image-6fe9f317efc0990a)
+compile rc=0
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox_image-6fe9f317efc0990a)
+   Doc-tests podbox_image
+suite tests: 97
+== parallel run 1 of 10
+run 1: rc=101 passed=85 failed=4 slot16_hits=5
+refusing tests:
+test store::tests::re_pulling_one_tag_replaces_its_record_rather_than_adding_a_second ... FAILED
+test store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one ... FAILED
+test store::tests::tagging_something_a_digest_names_is_refused ... FAILED
+test store::tests::two_platforms_of_one_tag_are_two_images_and_not_one ... FAILED
+    store::tests::two_platforms_of_one_tag_are_two_images_and_not_one
+
+test result: FAILED. 92 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.66s
+
+error: test failed, to rerun pass `-p podbox-image --lib`
+== parallel run 2 of 10
+run 2: rc=101 passed=83 failed=5 slot16_hits=5
+refusing tests:
+test store::tests::the_t_0215_instrument_sees_a_lock_that_is_held ... FAILED
+test store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free ... FAILED
+test store::tests::two_platforms_of_one_tag_are_two_images_and_not_one ... FAILED
+test store::tests::two_staging_calls_in_one_process_take_two_names ... FAILED
+test store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one ... FAILED
+    store::tests::two_staging_calls_in_one_process_take_two_names
+
+test result: FAILED. 92 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
+
+error: test failed, to rerun pass `-p podbox-image --lib`
+== parallel run 3 of 10
+run 3: rc=101 passed=80 failed=7 slot16_hits=8
+refusing tests:
+test store::tests::re_pulling_one_tag_replaces_its_record_rather_than_adding_a_second ... FAILED
+test store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one ... FAILED
+test store::tests::tagging_something_a_digest_names_is_refused ... FAILED
+test store::tests::the_t_0215_instrument_sees_a_lock_that_is_held ... FAILED
+test store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free ... FAILED
+test store::tests::two_staging_calls_in_one_process_take_two_names ... FAILED
+test store::tests::two_platforms_of_one_tag_are_two_images_and_not_one ... FAILED
+    store::tests::two_staging_calls_in_one_process_take_two_names
+
+test result: FAILED. 89 passed; 8 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.64s
+
+error: test failed, to rerun pass `-p podbox-image --lib`
+== parallel run 4 of 10
+run 4: rc=101 passed=89 failed=1 slot16_hits=1
+refusing tests:
+test store::tests::two_staging_calls_in_one_process_take_two_names ... FAILED
+    store::tests::two_staging_calls_in_one_process_take_two_names
+
+test result: FAILED. 96 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.62s
+
+error: test failed, to rerun pass `-p podbox-image --lib`
+== parallel run 5 of 10
+run 5: rc=101 passed=79 failed=3 slot16_hits=3
+refusing tests:
+test store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free ... FAILED
+test store::tests::two_staging_calls_in_one_process_take_two_names ... FAILED
+test store::tests::two_platforms_of_one_tag_are_two_images_and_not_one ... FAILED
+    store::tests::two_staging_calls_in_one_process_take_two_names
+
+test result: FAILED. 94 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.83s
+
+error: test failed, to rerun pass `-p podbox-image --lib`
+== parallel run 6 of 10
+run 6: rc=101 passed=92 failed=3 slot16_hits=3
+refusing tests:
+test store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free ... FAILED
+test store::tests::two_platforms_of_one_tag_are_two_images_and_not_one ... FAILED
+test store::tests::two_staging_calls_in_one_process_take_two_names ... FAILED
+    store::tests::two_staging_calls_in_one_process_take_two_names
+
+test result: FAILED. 94 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.60s
+
+error: test failed, to rerun pass `-p podbox-image --lib`
+== parallel run 7 of 10
+run 7: rc=0 passed=88 failed=0 slot16_hits=0
+== parallel run 8 of 10
+run 8: rc=0 passed=88 failed=0 slot16_hits=0
+== parallel run 9 of 10
+run 9: rc=101 passed=83 failed=6 slot16_hits=7
+refusing tests:
+test store::tests::re_pulling_one_tag_replaces_its_record_rather_than_adding_a_second ... FAILED
+test store::tests::releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives ... FAILED
+test store::tests::the_t_0215_instrument_sees_a_lock_that_is_held ... FAILED
+test store::tests::two_holders_of_one_image_both_have_to_go_before_it_is_free ... FAILED
+test store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one ... FAILED
+test store::tests::two_staging_calls_in_one_process_take_two_names ... FAILED
+    store::tests::two_staging_calls_in_one_process_take_two_names
+
+test result: FAILED. 90 passed; 7 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
+
+error: test failed, to rerun pass `-p podbox-image --lib`
+== parallel run 10 of 10
+run 10: rc=101 passed=84 failed=3 slot16_hits=3
+refusing tests:
+test store::tests::an_ambiguous_reference_is_refused_by_name_and_never_by_position ... FAILED
+test store::tests::the_t_0215_instrument_sees_a_lock_that_is_held ... FAILED
+test store::tests::the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one ... FAILED
+    store::tests::the_t_0215_instrument_sees_a_lock_that_is_held
+
+test result: FAILED. 94 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+
+error: test failed, to rerun pass `-p podbox-image --lib`
+== serial controls (2 runs, --test-threads=1)
+serial 1: rc=0
+serial 2: rc=0
+== summary
+parallel: 10 runs, 8 with the 16-slot signature
+serial: 2 runs, 0 failed
+RESULT: refusal reproduced (8 of 10)

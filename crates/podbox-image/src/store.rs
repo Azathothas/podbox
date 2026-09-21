@@ -1556,6 +1556,7 @@ mod tests {
     /// runs this test with `--nocapture` and puts the text in the evidence.
     #[test]
     fn the_t_0215_instrument_sees_a_lock_that_is_held() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("instrument");
         let r = record("docker.io/library/alpine", Some("latest"), 23);
         s.put_record(r.clone()).unwrap();
@@ -1589,6 +1590,7 @@ mod tests {
     /// found by luck there; this is the assertion that would have found it.
     #[test]
     fn two_staging_calls_in_one_process_take_two_names() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("stage-unique");
         let (a, _fa) = s.stage("layer").unwrap();
         let (b, _fb) = s.stage("layer").unwrap();
@@ -1607,6 +1609,7 @@ mod tests {
     /// as NUL bytes and the digest fails a long way from the cause.
     #[test]
     fn a_restarted_staging_file_holds_only_the_second_attempt() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         use crate::registry::Restart;
         let s = scratch("restart");
         let (path, mut f) = s.stage("layer").unwrap();
@@ -1622,6 +1625,7 @@ mod tests {
     /// written is not, and the difference is a lock rather than a pid.
     #[test]
     fn the_sweep_takes_an_abandoned_partial_and_leaves_a_held_one() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("sweep");
         // Abandoned: staged, then the handle dropped without a commit, which is
         // what a SIGKILL leaves behind.
@@ -1646,6 +1650,7 @@ mod tests {
     /// and nothing else would.
     #[test]
     fn opening_a_store_sweeps_what_a_killed_process_left() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let d = std::env::temp_dir().join(format!("podbox-store-{}-openswp", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         let s = Store::open(&d).unwrap();
@@ -1682,6 +1687,7 @@ mod tests {
 
     #[test]
     fn a_blob_whose_bytes_do_not_match_never_reaches_the_blob_directory() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         // ⛔ The central rule of T-0202, driven rather than asserted about.
         let s = scratch("verify");
         let claimed = Digest::of(b"alpine");
@@ -1693,6 +1699,7 @@ mod tests {
 
     #[test]
     fn a_blob_that_matches_is_stored_under_its_digest_and_reads_back() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("roundtrip");
         let d = Digest::of(b"alpine");
         s.put_bytes(b"alpine", &d, "layer").unwrap();
@@ -1704,6 +1711,7 @@ mod tests {
 
     #[test]
     fn a_stored_blob_edited_behind_podboxs_back_is_caught_on_the_way_out() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("tamper");
         let d = Digest::of(b"alpine");
         s.put_bytes(b"alpine", &d, "layer").unwrap();
@@ -1715,6 +1723,7 @@ mod tests {
 
     #[test]
     fn a_shared_blob_survives_removing_one_of_the_two_images_that_reach_it() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         // ⭐ Reachability is computed over what SURVIVES. Computing it over the
         // doomed set deletes a shared layer with the first image that goes.
         let s = scratch("shared");
@@ -1740,6 +1749,7 @@ mod tests {
 
     #[test]
     fn an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         // ⭐ T-0204's acceptance, minus the container: the lock is the whole
         // mechanism and it is driven here through the shipping functions.
         let s = scratch("inuse");
@@ -1782,7 +1792,7 @@ mod tests {
     /// to the one call that matters.
     #[test]
     fn a_fork_while_the_lock_is_held_does_not_extend_it() {
-        let _serialised = FORKING_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("forkhold");
         let r = record("docker.io/library/alpine", Some("latest"), 17);
         s.put_record(r.clone()).unwrap();
@@ -1831,21 +1841,40 @@ mod tests {
         let _ = std::fs::remove_dir_all(s.root());
     }
 
-    /// ⛔ **THE TWO FORK TESTS BELOW MAY NOT RUN AT THE SAME TIME**, and this is
-    /// what stops them.
+    /// ⛔ **NO TWO TESTS IN THIS MODULE RUN AT THE SAME TIME**, and this is what
+    /// stops them. Two reasons, and either alone would need it.
     ///
-    /// `cargo test` runs tests in THREADS of one process. A bare `fork` copies
-    /// every open descriptor of that process, including a lock another test is
-    /// holding in another thread; that child then holds the lock for as long as
-    /// it lives, and the other test's assertion -- "the holder released it and
-    /// nobody else has it" -- fails for a reason that has nothing to do with its
-    /// subject. Measured on 2026-09-09: `a_spawned_process_does_not_inherit_the_lock`
-    /// failed once in a full-workspace run and passed alone and on the retry,
-    /// which is the shape a flake takes and is not one.
+    /// 1. **The fork.** `cargo test` runs tests in THREADS of one process. A
+    ///    bare `fork` copies every open descriptor of that process, including a
+    ///    lock another test is holding in another thread; that child then holds
+    ///    the lock for as long as it lives, and the other test's assertion --
+    ///    "the holder released it and nobody else has it" -- fails for a reason
+    ///    that has nothing to do with its subject. Measured on 2026-09-09:
+    ///    `a_spawned_process_does_not_inherit_the_lock` failed once in a
+    ///    full-workspace run and passed alone and on the retry, which is the
+    ///    shape a flake takes and is not one.
+    ///    [`TODO/image.md`](../../../TODO/image.md) T-0211.
+    /// 2. **The slots.** Every `Lock` this crate takes registers one of sixteen
+    ///    process-wide fork-shed slots (`sys::FORK_CLOSE_SLOTS`), and a
+    ///    seventeenth is refused by name. Twenty libtest threads holding one to
+    ///    three locks each exhaust them, and the test that asks last is refused
+    ///    for a reason that has nothing to do with its subject. Measured on
+    ///    2026-09-21: 8 refusals in 10 parallel runs of this suite, a different
+    ///    victim each time, and 97 of 97 serial.
+    ///    [`TODO/image.md`](../../../TODO/image.md) T-1310.
     ///
     /// ⚠ It is the same trap as T-0603's, which counted `/proc/self/task`
     /// before and after a spawn and failed about one run in five.
-    static FORKING_TESTS: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    ///
+    /// ⛔ Helpers in this module (`scratch`, `record`, `who_holds`) must never
+    /// take it: a test calls them with it already held, and a second
+    /// acquisition on this thread deadlocks. Only `#[test]` functions take it,
+    /// exactly once, as their first line. That is enough by audit: no test
+    /// outside this module holds a `Lock` (`probe_cache` and `pull` tests only
+    /// `Store::open` fresh directories, which sweeps nothing and takes no
+    /// slot), and the implementation review greps every test body below for the
+    /// acquisition line.
+    static STORE_TESTS: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     /// ⭐ T-0211's second half, and it is a **different** failure from the one
     /// above rather than the same one written twice.
@@ -1858,7 +1887,7 @@ mod tests {
     /// was confirmed they are independent.
     #[test]
     fn a_spawned_process_does_not_inherit_the_lock() {
-        let _serialised = FORKING_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("spawnhold");
         let r = record("docker.io/library/alpine", Some("latest"), 19);
         s.put_record(r.clone()).unwrap();
@@ -1911,6 +1940,7 @@ mod tests {
     /// `find_one`, which took `.next()`.
     #[test]
     fn an_ambiguous_reference_is_refused_by_name_and_never_by_position() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("ambig");
         for (plat, arch, n) in [("linux/amd64", "amd64", 31), ("linux/arm64", "arm64", 33)] {
             let mut r = record("docker.io/library/alpine", Some("latest"), n);
@@ -1958,6 +1988,7 @@ mod tests {
 
     #[test]
     fn two_platforms_of_one_tag_are_two_images_and_not_one() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("twoplat");
         let mut amd = record("docker.io/library/alpine", Some("latest"), 21);
         amd.platform = "linux/amd64".into();
@@ -2035,6 +2066,7 @@ mod tests {
     /// is a second descriptor on one description.
     #[test]
     fn a_lock_handed_to_the_payload_outlives_this_process_dropping_it() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("handed");
         let r = record("docker.io/library/alpine", Some("latest"), 33);
         s.put_record(r.clone()).unwrap();
@@ -2110,6 +2142,7 @@ mod tests {
     /// every time.
     #[test]
     fn releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("dupfree");
         let r = record("docker.io/library/alpine", Some("latest"), 31);
         s.put_record(r.clone()).unwrap();
@@ -2146,6 +2179,7 @@ mod tests {
 
     #[test]
     fn two_holders_of_one_image_both_have_to_go_before_it_is_free() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("twohold");
         let r = record("docker.io/library/alpine", Some("latest"), 11);
         s.put_record(r.clone()).unwrap();
@@ -2165,6 +2199,7 @@ mod tests {
 
     #[test]
     fn a_tag_points_at_the_same_manifest_without_copying_a_blob() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("tag");
         let r = record("docker.io/library/alpine", Some("latest"), 13);
         s.put_record(r.clone()).unwrap();
@@ -2184,6 +2219,7 @@ mod tests {
 
     #[test]
     fn tagging_something_a_digest_names_is_refused() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("tagdigest");
         s.put_record(record("docker.io/library/alpine", Some("latest"), 17))
             .unwrap();
@@ -2198,6 +2234,7 @@ mod tests {
 
     #[test]
     fn re_pulling_one_tag_replaces_its_record_rather_than_adding_a_second() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("retag");
         s.put_record(record("docker.io/library/alpine", Some("latest"), 19))
             .unwrap();
@@ -2212,6 +2249,7 @@ mod tests {
 
     #[test]
     fn an_image_is_found_by_tag_by_digest_and_by_docker_short_id() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let s = scratch("find");
         let r = record("docker.io/library/alpine", Some("latest"), 23);
         s.put_record(r.clone()).unwrap();
@@ -2226,6 +2264,7 @@ mod tests {
 
     #[test]
     fn an_index_written_by_a_later_podbox_is_refused_rather_than_reinterpreted() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let d = std::env::temp_dir().join(format!("podbox-store-{}-future", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
@@ -2241,6 +2280,7 @@ mod tests {
 
     #[test]
     fn the_store_root_prefers_podbox_store_and_never_falls_to_tmpdir_silently() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         // ⚠ The corpus's shipped default is `env::temp_dir()` with no space
         // check, at
         // `references/VHSgunzo__memfd-exec/tree/src/executable.rs:580-584`.
@@ -2255,5 +2295,61 @@ mod tests {
             "{}",
             got.display()
         );
+    }
+
+    /// ⛔ T-1310's pin on the ceiling: sixteen slots, and the seventeenth is
+    /// refused by name.
+    ///
+    /// Held under `STORE_TESTS`, so no other test in this process holds a slot
+    /// and the count is deterministic rather than scheduling-dependent. Without
+    /// the mutex this test is itself flaky: neighbours holding slots make the
+    /// table fill early and the refusal arrive before the sixteenth. That
+    /// flakiness is the signal the mutex works, and the suite passing is the
+    /// signal the table is big enough for one test's needs.
+    ///
+    /// ⚠ `/dev/null` descriptors stand in for locks: what is counted here is
+    /// slots, not locks, and opening the real lock files would also contend
+    /// with the store under test.
+    #[test]
+    fn the_seventeenth_concurrent_registration_is_refused_by_name() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        // ⛔ The value in two places, with the check that they agree: sixteen is
+        // the contract T-0207 is bounded by, so a change to the constant breaks
+        // here on purpose rather than drifting past it in silence.
+        assert_eq!(
+            sys::FORK_CLOSE_SLOTS,
+            16,
+            "the ceiling moved: update T-0207's contract and this message with it"
+        );
+        let null = sys::CBuf::new("/dev/null").expect("/dev/null");
+        let mut held = Vec::new();
+        for _ in 0..sys::FORK_CLOSE_SLOTS {
+            let fd = sys::open(&null, sys::O_RDONLY, 0).expect("open /dev/null");
+            assert!(
+                sys::close_in_children(fd),
+                "slot table filled early: another holder in this process took slots \
+                 outside STORE_TESTS"
+            );
+            held.push(fd);
+        }
+        let extra = sys::open(&null, sys::O_RDONLY, 0).expect("open /dev/null");
+        assert!(
+            !sys::close_in_children(extra),
+            "a seventeenth slot was taken: the ceiling moved, and T-0207's \
+             contract names sixteen"
+        );
+        for fd in held {
+            sys::stop_closing_in_children(fd);
+            let _ = sys::close(fd);
+        }
+        sys::stop_closing_in_children(extra);
+        let _ = sys::close(extra);
+        // ⛔ And a slot is usable again afterwards, so the test leaves the table
+        // as it found it rather than consuming sixteen slots for the rest of
+        // the run.
+        let fd = sys::open(&null, sys::O_RDONLY, 0).expect("open /dev/null");
+        assert!(sys::close_in_children(fd), "a freed slot was not reusable");
+        sys::stop_closing_in_children(fd);
+        let _ = sys::close(fd);
     }
 }

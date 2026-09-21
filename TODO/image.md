@@ -512,7 +512,12 @@ Premise:     ⭐ **Read in this tree, at file and line.**
              a reading of the code, not a number, and taking the number is part
              of this entry rather than a prerequisite for it.
 Approach:    A bounded pool of worker threads over the descriptor list, with the
-             bound a named constant and not a per-machine guess. Each worker
+             bound a named constant and not a per-machine guess. ⛔ The bound
+             plus transient locks stays under sixteen concurrent `Lock`s in one
+             process: every lock registers a fork-shed slot
+             (`crates/podbox-probe/src/sys.rs:680`), and
+             [T-1310](#t-1310-the-store-suite-exhausts-the-sixteen-fork-shed-slots-and-the-victim-varies)
+             measured what exceeding it costs. Each worker
              stages, verifies and commits through the existing store functions,
              so there is one write path and not two.
              ⛔ The transcript stays in manifest order however the fetches
@@ -1404,7 +1409,7 @@ Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken i
 Category:    image
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Full parallel runs of the `podbox-image` suite intermittently refuse
              with `this process already holds 16 locks, which is every slot
@@ -1512,4 +1517,25 @@ Decision:    Implement candidate 1. One `STORE_TESTS` mutex in the `store.rs`
              ruling: the ruling this family needed arrived with the
              authorisation, and the open gate-rate question is recorded where it
              belongs rather than decided here.
-Prove:       `cargo test -p podbox-image` passes repeatedly with default parallelism in the Linux lane, and the ceiling test passes alone; the runs are recorded under the entry with their conditions
+Prove:       `./experiments/326-store-contention-prove.sh` exits 0
+
+**Done 2026-09-21.** One `STORE_TESTS` mutex in the `store.rs` test module,
+taken once by every test in it (24 of 24 by audit). `FORKING_TESTS` is gone,
+subsumed. The ceiling test fills all sixteen slots under the mutex and asserts
+the seventeenth is refused. One contract line into T-0207 bounds its future
+pool under sixteen.
+
+| the reading | before | after |
+| --- | --- | --- |
+| parallel suite, default threads, 10 runs, nproc 20 | 8 refused with the 16-slot signature, victims across eight tests | 10 green, 0 with the signature |
+| serial control | 2 green | green |
+| ceiling test alone | - (new) | 3 green |
+| mutex audit (test functions vs acquisitions) | - (new) | 24 vs 24, equal |
+| `dev.sh check` (fmt, clippy, build, workspace tests, gate) | green on main (CI success at `a18cdda`) | green |
+
+Task 1 ran on the unmodified tree at `f9aa0bb`
+(`experiments/results/store-contention-prefix.txt`). The after column ran in
+the same lane on the working tree of this change
+(`experiments/results/store-contention-prove.txt`,
+`experiments/326-store-contention-prove.sh`). No flip: task 1 confirmed the
+production-hold inspection, so candidate 1 stands as decided.

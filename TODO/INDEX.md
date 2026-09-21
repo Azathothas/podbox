@@ -198,11 +198,11 @@ the blocker named and what would clear it.
 | [T-1307](podvm.md) | P2 | podvm | open | The five Rust VM tools, ruled one by one, so nobody surveys them again |
 | [T-1308](podvm.md) | P1 | podvm | open | One TCG number is a claim about one benchmark, and the range is 3x to 21x |
 | [T-1309](interpose.md) | P1 | interpose | open | libdnf repodata downloads fail under the preloaded interposer |
-| [T-1310](image.md) | P1 | image | open | The store suite exhausts the sixteen fork-shed slots, and the victim varies |
+| [T-1310](image.md) | P1 | image | done | The store suite exhausts the sixteen fork-shed slots, and the victim varies |
 
 ## Counts
 
-138 items: 33 open, 3 partial, 3 blocked, 99 done.
+138 items: 32 open, 3 partial, 3 blocked, 100 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -211,10 +211,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 2 | 1 | 0 | 49 | 52 |
-| P1 | 18 | 2 | 3 | 39 | 62 |
+| P1 | 17 | 2 | 3 | 40 | 62 |
 | P2 | 9 | 0 | 0 | 10 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **33** | **3** | **3** | **99** | **138** |
+| **All** | **32** | **3** | **3** | **100** | **138** |
 
 ## How the current ordering is derived
 
