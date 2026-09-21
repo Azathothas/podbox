@@ -1125,13 +1125,14 @@ Prove:       `./experiments/240-distro-sweep.sh` exits 0 with both
 
 ### T-1311 The interposed `fchmodat` drops the `flags` argument
 
-Source:      `experiments/152-nix-acceptance.sh` FETCH-NIX row;
+Source:      the T-1111 nix unpack (the symptom is in
+             `experiments/results/tar-symlink-modes-prefix.txt`);
              `crates/podbox-interpose/src/lib.rs:334`,
              `crates/podbox-interpose/src/lib.rs:989`
 Category:    interpose
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Unpacking a tarball that carries symlinks fails under podbox
              while the engine control unpacks it cleanly. GNU tar reports
@@ -1172,3 +1173,18 @@ Decision:    Fix in the interposer, not around it. The control names
              test a different product, the same ruling T-1309 carries.
 Prove:       `./experiments/162-tar-symlink-modes.sh` exits 0 on host
              podman, with the conditions block naming the driver.
+
+**Done 2026-09-21.** The declaration and the wrapper carry `flags`
+(`crates/podbox-interpose/src/lib.rs:334`,
+`crates/podbox-interpose/src/lib.rs:989`); every other flags-taking
+`*at` wrapper already did, so the audit closes with this one. Guard:
+`tests::fchmodat_forwards_flags` compares the interposed entry point
+against libc's own on a symlink with flags 0 and `AT_SYMLINK_NOFOLLOW`.
+Pre-fix it fails with `left: (-1, 22), right: (0, 0)` on flags 0; post-fix
+the suite is 12 of 12 with fmt and clippy clean. End to end on host podman
+6.1.2 with the debian row 240 and 152 drive:
+`experiments/162-tar-symlink-modes.sh` exits 1 on the pre-fix binary
+(`TAR_RC:2` with one `Cannot change mode` error per link, control green;
+`experiments/results/tar-symlink-modes-prefix.txt`) and 0 on the fixed
+binary (unpack rc 0 with both links and the mode green on both sides;
+`experiments/results/tar-symlink-modes.txt`).

@@ -1,0 +1,34 @@
+== conditions
+date              2026-09-21T12:12:12Z
+host kernel       3.6.9-b4195d69.x86_64
+engine            podman version 6.1.2
+podbox            .dev/artifacts-t1311/podbox (staged, not executed on this lane)
+podbox sha256     6adb54c6444c7303cd8dffe9492abe5503ac29203b3058f67b806324b49855ce
+driver            public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+--- treatment stdout
+TAR_RC:0
+LINK_l ok
+LINK_h ok
+MODE_f ok
+--- treatment stderr (tar errors, if any)
+ownership: real; network: host-shared; pids: host-shared)
+probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+        clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+this mode does NOT provide: process, network, IPC or mount isolation
+⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+--- control stdout
+TAR_RC:0
+LINK_l ok
+LINK_h ok
+MODE_f ok
+--- control stderr
+row treat  unpack rc 0
+row treat  LINK_l  ok
+row treat  LINK_h  ok
+row treat  MODE_f  ok
+row ctl    unpack rc 0
+row ctl    LINK_l  ok
+row ctl    LINK_h  ok
+row ctl    MODE_f  ok
+tar-symlink-modes: every row green under podbox and in the control.

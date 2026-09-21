@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-139 entries: 30 open, 3 partial, 3 blocked, 103 done.
+139 entries: 29 open, 3 partial, 3 blocked, 104 done.
 
 ## Baseline
 
@@ -153,6 +153,13 @@ interposed `fchmodat` declares and forwards three arguments where libc takes
 four, so the real call reads a fourth register the wrapper never set. The
 fix and its regression proof belong to T-1311, in its own change; T-1111
 waits on it.
+
+[T-1311](interpose.md) closed in its own change: `flags` through the
+declaration and the wrapper, a unit guard that fails pre-fix with
+`(-1, EINVAL)` against libc's `(0, 0)` and passes with the suite at 12 of
+12, and 162 red on the pre-fix binary (`TAR_RC:2`, one `Cannot change mode`
+error per link) and green on the fixed one (every row green both sides).
+T-1111 is unblocked and next.
 
 What stays current from last time:
 

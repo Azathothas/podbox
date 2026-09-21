@@ -331,7 +331,7 @@ crate::real!(pub fn next_eaccess = "eaccess"(*const c_char, c_int) -> c_int);
 crate::real!(pub fn next_euidaccess = "euidaccess"(*const c_char, c_int) -> c_int);
 crate::real!(pub fn next_faccessat = "faccessat"(c_int, *const c_char, c_int, c_int) -> c_int);
 crate::real!(pub fn next_chmod = "chmod"(*const c_char, c_uint) -> c_int);
-crate::real!(pub fn next_fchmodat = "fchmodat"(c_int, *const c_char, c_uint) -> c_int);
+crate::real!(pub fn next_fchmodat = "fchmodat"(c_int, *const c_char, c_uint, c_int) -> c_int);
 crate::real!(pub fn next_truncate = "truncate"(*const c_char, i64) -> c_int);
 crate::real!(pub fn next_utime = "utime"(*const c_char, *const c_void) -> c_int);
 crate::real!(pub fn next_utimes = "utimes"(*const c_char, *const c_void) -> c_int);
@@ -986,7 +986,7 @@ path_ptr!(canonicalize_file_name, next_canonicalize, (path: *const c_char), path
 
 path_at_int!(mkdirat, next_mkdirat, (dirfd: c_int, path: *const c_char, mode: c_uint), dirfd, path);
 path_at_int!(unlinkat, next_unlinkat, (dirfd: c_int, path: *const c_char, flags: c_int), dirfd, path);
-path_at_int!(fchmodat, next_fchmodat, (dirfd: c_int, path: *const c_char, mode: c_uint), dirfd, path);
+path_at_int!(fchmodat, next_fchmodat, (dirfd: c_int, path: *const c_char, mode: c_uint, flags: c_int), dirfd, path);
 path_at_int!(faccessat, next_faccessat, (dirfd: c_int, path: *const c_char, mode: c_int, flags: c_int), dirfd, path);
 path_at_int!(utimensat, next_utimensat, (dirfd: c_int, path: *const c_char, times: *const c_void, flags: c_int), dirfd, path);
 path_at_int!(openat2, next_openat2, (dirfd: c_int, path: *const c_char, how: *const c_void, size: usize), dirfd, path);
@@ -1697,3 +1697,81 @@ macro_rules! getres {
 
 getres!(getresuid, next_getresuid, ruid, euid, saved_uid);
 getres!(getresgid, next_getresgid, rgid, egid, saved_gid);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+
+    extern "C" {
+        fn dlopen(name: *const c_char, flag: c_int) -> *mut c_void;
+        fn dlsym(handle: *mut c_void, sym: *const c_char) -> *mut c_void;
+    }
+
+    const RTLD_NOW: c_int = 2;
+    const RTLD_DEFAULT: *mut c_void = core::ptr::null_mut();
+
+    /// The real four-argument shape. Every payload calls it this way; the
+    /// dynamic symbol carries no arity, so a wrapper that declares fewer is
+    /// still entered with all four registers set.
+    type FchmodatFn = unsafe extern "C" fn(c_int, *const c_char, c_uint, c_int) -> c_int;
+
+    fn lookup(handle: *mut c_void, name: &str) -> FchmodatFn {
+        let sym = CString::new(name).expect("symbol name");
+        let f = unsafe { dlsym(handle, sym.as_ptr()) };
+        assert!(!f.is_null(), "dlsym {name}");
+        unsafe { std::mem::transmute(f) }
+    }
+
+    /// libc's own `fchmodat`: the oracle the interposed entry point agrees
+    /// with on every flags value. `libc.so.6` first, musl's name after it,
+    /// because the test runs on whichever libc the toolchain used.
+    fn libc_fchmodat() -> FchmodatFn {
+        for lib in ["libc.so.6", "libc.musl-x86_64.so.1"] {
+            let name = CString::new(lib).expect("library name");
+            let h = unsafe { dlopen(name.as_ptr(), RTLD_NOW) };
+            if !h.is_null() {
+                return lookup(h, "fchmodat");
+            }
+        }
+        panic!("no libc to compare against");
+    }
+
+    /// This object's own interposed entry point, looked up the way the
+    /// loader looks it up: the test binary defines the `#[no_mangle]`
+    /// symbol itself, so it wins over libc's without any preload.
+    fn under_test() -> FchmodatFn {
+        lookup(RTLD_DEFAULT, "fchmodat")
+    }
+
+    fn call(f: FchmodatFn, path: &CString, flags: c_int) -> (c_int, c_int) {
+        clear_errno();
+        let rc = unsafe { f(AT_FDCWD, path.as_ptr(), 0o777, flags) };
+        (rc, errno())
+    }
+
+    /// T-1311: the interposed `fchmodat` forwards `flags`. A symlink with
+    /// `AT_SYMLINK_NOFOLLOW` and with 0 answers exactly as libc does. The
+    /// test process runs without the preload, so the wrapper resolves the
+    /// real call through `RTLD_NEXT` and the only difference under test is
+    /// what the wrapper passes on.
+    #[test]
+    fn fchmodat_forwards_flags() {
+        let dir = std::env::temp_dir().join(format!("podbox-fchmodat-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        std::fs::write(dir.join("f"), b"data").expect("temp file");
+        std::os::unix::fs::symlink(dir.join("f"), dir.join("l")).expect("temp link");
+        let link = CString::new(dir.join("l").as_os_str().as_bytes()).expect("link path");
+        let real = libc_fchmodat();
+        let wrapped = under_test();
+        for flags in [0, AT_SYMLINK_NOFOLLOW] {
+            // Adjacent and in the same order both sides: a mode-set that
+            // lands changes what the next call reads.
+            let want = call(real, &link, flags);
+            let got = call(wrapped, &link, flags);
+            assert_eq!(got, want, "flags={flags:#x}");
+        }
+        std::fs::remove_dir_all(&dir).ok();
+    }
+}

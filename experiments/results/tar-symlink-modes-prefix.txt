@@ -1,0 +1,33 @@
+== conditions
+date              2026-09-21T12:07:00Z
+host kernel       3.6.9-b4195d69.x86_64
+engine            podman version 6.1.2
+podbox            .dev/artifacts-build/podbox (staged, not executed on this lane)
+podbox sha256     aeaf625961c43cbabfc044a8e564d392c0dec1be4de7b3f80e5d846729a678aa
+driver            public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+--- treatment stdout
+TAR_RC:2
+LINK_l ok
+LINK_h ok
+MODE_f ok
+--- treatment stderr (tar errors, if any)
+this mode does NOT provide: process, network, IPC or mount isolation
+⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+tar: ./src/h: Cannot change mode to rwxrwxrwx: No such file or directory
+tar: ./l: Cannot change mode to rwxrwxrwx: No such file or directory
+tar: Exiting with failure status due to previous errors
+--- control stdout
+TAR_RC:0
+LINK_l ok
+LINK_h ok
+MODE_f ok
+row treat  FAIL unpack TAR_RC:2 (side rc=0)
+row treat  LINK_l  ok
+row treat  LINK_h  ok
+row treat  MODE_f  ok
+row ctl    unpack rc 0
+row ctl    LINK_l  ok
+row ctl    LINK_h  ok
+row ctl    MODE_f  ok
+tar-symlink-modes: FAILED (see rows above).
