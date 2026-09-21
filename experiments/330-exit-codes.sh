@@ -39,17 +39,66 @@ HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
 BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
 OUT="$REPO/experiments/results/exit-codes.txt"
-WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT INT TERM
+# ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
+# because an ELF built here does not execute there. The lane's scratch
+# lives under the checkout on a non-native lane: mount sources must be
+# Windows paths there (245's rule), and /tmp/... names nothing.
+case "$(uname -s)" in
+Linux) NATIVE=1; WORK="$(mktemp -d)"; PSTORE="$WORK/store" ;;
+*)     NATIVE=0; WORK="$REPO/experiments/.sweep330-work"; rm -rf "$WORK"; mkdir -p "$WORK/w" || exit 2; PSTORE="/v/store" ;;
+esac
+trap 'eng_cleanup; rm -rf "$WORK"' EXIT INT TERM
 
 # ⚠ The same tag for both binaries, fully qualified, so a difference between
 # them is a difference between the binaries and not between two images.
 IMAGE="${PODBOX_EXIT_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
 
-[ -x "$BIN" ] || {
-	echo "SKIP: $BIN is not an executable. ./scripts/dev.sh build" >&2
-	exit 2
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. What each case asserts is unchanged.
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$REPO"
+ENGINE_WORK="$WORK"
+if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
+
+# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# for every `$BIN` call on a non-native lane.
+DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
+STAGE="$WORK/stage"
+if [ "$NATIVE" -eq 0 ]; then
+	[ -r "$BIN" ] || {
+		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		exit 2
+	}
+	eng_pull "$DRIVER" || exit 2
+	mkdir -p "$STAGE" || exit 2
+	cp "$BIN" "$STAGE/podbox"
+	eng_mount "$STAGE/podbox" /pb \
+		&& eng_mount "$WORK/w" /w rw \
+		&& eng_volmount "x330-$$" /v rw \
+		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
+fi
+
+# pb TIMEOUT ARGS... - podbox with the sweep's store: directly where it
+# executes, staged in the driver elsewhere. Timeouts stay per call site,
+# as before.
+pb() {
+	_t="$1"; shift
+	if [ "$NATIVE" -eq 1 ]; then
+		timeout "$_t" "$BIN" "$@"
+	else
+		eng_pbrun "$_t" "$DRIVER" "$PSTORE" -- "$@"
+	fi
 }
+
+if [ "$NATIVE" -eq 1 ]; then
+	[ -x "$BIN" ] || {
+		echo "SKIP: $BIN is not an executable. ./scripts/dev.sh build" >&2
+		exit 2
+	}
+fi
 command -v jq >/dev/null 2>&1 || {
 	echo "SKIP: jq is not on PATH. ./scripts/common/bootstrap-env.sh tools" >&2
 	exit 2
@@ -60,16 +109,20 @@ fail=0
 skipped=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
 
+# ⭐ The docker half runs only where the picked engine IS a daemon. There
+# is no docker CLI on a podman lane, so every `docker` column reads `-`
+# there and the comparison half is recorded as skipped rather than as a
+# pass. Ruling 2026-09-21: have_docker follows ENGINE_NAME, because the
+# daemon probe and the engine pick ask the same question.
 have_docker=0
-if command -v docker >/dev/null 2>&1 && timeout 30 docker info >/dev/null 2>&1; then
-	have_docker=1
-fi
+[ "$ENGINE_NAME" = docker ] && have_docker=1
 
 {
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podbox            %s\n' "$(pb 60 version)"
+	printf 'engine            %s\n' "$(engine_describe)"
 	if [ "$have_docker" -eq 1 ]; then
 		printf 'docker            %s\n' "$(docker version --format '{{.Server.Version}}' 2>/dev/null)"
 	else
@@ -81,7 +134,7 @@ fi
 
 # --------------------------------------------------------------------- 0
 say "== 0. podbox's table, as data"
-"$BIN" system info --format '{{json .ExitCodes}}' >"$WORK/codes.json" 2>"$WORK/e0"
+pb 60 system info --format '{{json .ExitCodes}}' >"$WORK/codes.json" 2>"$WORK/e0"
 rc=$?
 if [ "$rc" -ne 0 ]; then
 	say "  FAIL: podbox system info --format '{{json .ExitCodes}}' exited $rc"
@@ -90,7 +143,13 @@ if [ "$rc" -ne 0 ]; then
 	cat "$WORK/report"
 	exit 1
 fi
-jq -r '.[] | "  \(.case)  \(.code)"' "$WORK/codes.json" >>"$WORK/report"
+# ⛔ The `tr` strips this lane's carriage returns: its jq ends every
+# raw-output line with CRLF, and those bytes would otherwise land in the
+# committed evidence. Measured 2026-09-21 in 320's clause 3, where the
+# same bytes reached podbox as part of a verb and read as "no such
+# command". Single-value `jq` reads need none of it: the shell's command
+# substitution strips the one trailing line ending.
+jq -r '.[] | "  \(.case)  \(.code)"' "$WORK/codes.json" | tr -d '\r' >>"$WORK/report"
 code_for() { jq -r --arg c "$1" '.[] | select(.case == $c) | .code' "$WORK/codes.json"; }
 
 FLAG_ERROR="$(code_for flag-error)"
@@ -103,7 +162,7 @@ invoke=$CANNOT_INVOKE runtime=$RUNTIME_ERROR"
 
 # Make sure the image is in both stores before the timing-sensitive cases, so a
 # pull is not what is being measured.
-timeout 600 "$BIN" pull "$IMAGE" >/dev/null 2>&1
+pb 600 pull "$IMAGE" >/dev/null 2>&1
 [ "$have_docker" -eq 1 ] && timeout 600 docker pull -q "$IMAGE" >/dev/null 2>&1
 
 # ⛔ ONE PLACE runs a case, so the two binaries are driven identically and the
@@ -121,7 +180,7 @@ run_case() {
 		if [ "$seen" -eq 0 ]; then pb+=("$a"); else dk+=("$a"); fi
 	done
 	local prc drc
-	timeout 300 "$BIN" "${pb[@]}" >/dev/null 2>&1
+	pb 300 "${pb[@]}" >/dev/null 2>&1
 	prc=$?
 	if [ "$have_docker" -eq 1 ]; then
 		timeout 300 docker "${dk[@]}" >/dev/null 2>&1
@@ -181,7 +240,7 @@ say "== 4. the bare name, with NO arguments at all"
 # `docker ""`, which is an EMPTY VERB and exits 1. On 2026-09-09 that harness
 # mistake was reported as "podbox and docker disagree" when the two agree, which
 # is a defect in this script and not a reading about either binary.
-timeout 60 "$BIN" >/dev/null 2>&1
+pb 60 >/dev/null 2>&1
 prc=$?
 if [ "$have_docker" -eq 1 ]; then
 	timeout 60 docker >/dev/null 2>&1
@@ -201,8 +260,8 @@ say "== 5. ⛔ a fixup NEVER changes the payload's exit code"
 # T-0409 and T-0802. The completion layer edits files inside the image on every
 # run; a payload that fails must still report its own failure, and one that
 # succeeds must not be improved into a failure by a fixup that warned.
-before=$(timeout 300 "$BIN" run --rm "$IMAGE" sh -c 'exit 7' >/dev/null 2>&1; echo $?)
-after=$(timeout 300 "$BIN" run --rm --no-source-fixup "$IMAGE" sh -c 'exit 7' >/dev/null 2>&1; echo $?)
+before=$(pb 300 run --rm "$IMAGE" sh -c 'exit 7' >/dev/null 2>&1; echo $?)
+after=$(pb 300 run --rm --no-source-fixup "$IMAGE" sh -c 'exit 7' >/dev/null 2>&1; echo $?)
 say "  with fixups        $before"
 say "  --no-source-fixup  $after"
 [ "$before" = 7 ] && [ "$after" = 7 ] || {
@@ -212,10 +271,10 @@ say "  --no-source-fixup  $after"
 
 say ""
 say "== 6. --strict refuses rather than running, and with the runtime code"
-timeout 300 "$BIN" run --strict --rm "$IMAGE" true >/dev/null 2>&1
+pb 300 run --strict --rm "$IMAGE" true >/dev/null 2>&1
 rc=$?
 say "  run --strict       $rc (want $RUNTIME_ERROR on a machine below the namespace rung)"
-strict_ok="$("$BIN" system info --format '{{.StrictOk}}')"
+strict_ok="$(pb 300 system info --format '{{.StrictOk}}')"
 say "  StrictOk           $strict_ok"
 if [ "$strict_ok" = "true" ]; then
 	# ⚠ A machine at the namespace rung can still be refused by a completion

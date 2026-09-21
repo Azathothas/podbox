@@ -45,10 +45,14 @@ ENGINE_NAME=""
 # or artifact directory. Anything else as a mount source is refused.
 ENGINE_REPO="${ENGINE_REPO:-}"
 ENGINE_WORK="${ENGINE_WORK:-}"
-# Accumulated `SRC:DST:MODE` bindings for the next eng_run. Cleared after it.
+# Accumulated `SRC:DST:MODE` bindings for the next eng_run, where SRC is a
+# host path staged by eng_mount or a volume name staged by eng_volmount.
+# Cleared after it.
 ENG_MOUNTS=""
 # Container ids eng_create registered, space-separated, for eng_cleanup.
 ENG_CIDS=""
+# Named volumes eng_volmount registered, space-separated, for eng_cleanup.
+ENG_VOLS=""
 
 # winpath P -> the spelling the engine wants. Git Bash hands a POSIX-looking
 # /c/... path to a Windows binary that reads it as garbage, so on Windows
@@ -189,6 +193,35 @@ eng_mount() {
 	ENG_MOUNTS="$ENG_MOUNTS$(winpath "$_raw_src"):$_dst:$_mode "
 }
 
+# eng_volmount NAME DST [rw] - stage a NAMED VOLUME binding for the next
+# eng_run, and register NAME for eng_cleanup. For engine-local persistent
+# state: a podbox store that must survive `--rm` one-shots on a filesystem
+# the host cannot share (a Windows-backed bind is case-insensitive, and an
+# archlinux extract does not survive one). NAME is a volume name, never a
+# path: it names nothing on the operator's disk, so unlike eng_mount it
+# needs no declared root, and a second run with the same NAME reuses the
+# volume rather than starting clean. DST must be absolute; read-only unless
+# the third argument is exactly `rw`.
+eng_volmount() {
+	[ $# -ge 2 ] || return 1
+	_vn="$1"
+	_vd="$2"
+	_vm="ro"
+	case "$_vn" in
+	"" | .* | -* | *[!A-Za-z0-9_.-]*) _refuse "volume name is not a name: $_vn" || return 1 ;;
+	esac
+	case "$_vd" in
+	/*) ;;
+	*) _refuse "mount destination is not absolute: $_vd" || return 1 ;;
+	esac
+	if [ "${3:-}" = "rw" ]; then _vm="rw"; fi
+	ENG_MOUNTS="$ENG_MOUNTS$_vn:$_vd:$_vm "
+	case " $ENG_VOLS " in
+	*" $_vn "*) ;;
+	*) ENG_VOLS="$ENG_VOLS$_vn " ;;
+	esac
+}
+
 # eng_run TIMEOUT IMAGE CAPS -- CMD... - one container, removed afterwards.
 # CAPS is "" or `--cap-drop=...` words; anything else in it is refused.
 # Mounts come from eng_mount and stay staged until the caller runs
@@ -232,6 +265,54 @@ eng_run() {
 # that staged them: a `$( )` around the run would discard the clearing.
 eng_clear() {
 	ENG_MOUNTS=""
+}
+
+# eng_serve NAME IMAGE PORTS ENV -- CMD... - a fixture server that outlives
+# one call. Prints the id on stdout and nothing else, and registers it for
+# eng_cleanup. NAME is a fixed fixture name (`podbox-x280-http-<pid>`), so a
+# re-run can pre-clean a previous run's fixture by name. PORTS is
+# `HPORT:CPORT` words published as given (fixtures serve the test alone, on
+# ports the caller chose). ENV is `K=V` words passed through `-e`; values
+# with spaces are unsupported, keep them out. Mounts come from eng_mount as
+# with eng_run. CMD may be empty where the image's own command serves.
+eng_serve() {
+	[ $# -ge 5 ] || return 1
+	_n="$1"; _img="$2"; _ports="$3"; _env="$4"
+	shift 4
+	[ "$1" = "--" ] || return 1
+	shift
+	[ -n "$ENGINE_BIN" ] || return 1
+	_pinned "$_img" || return 1
+	_no_priv "$@" || return 1
+	case "$_n" in
+	"" | .* | -* | *[!A-Za-z0-9_.-]*) _refuse "fixture name is not a name: $_n" || return 1 ;;
+	esac
+	_flags=""
+	# shellcheck disable=SC2086
+	for _p in $_ports; do
+		case "$_p" in
+		[0-9]*:[0-9]*) ;;
+		*) _refuse "port mapping is not HPORT:CPORT: $_p" || return 1 ;;
+		esac
+		_flags="$_flags -p $_p"
+	done
+	# shellcheck disable=SC2086
+	for _e in $_env; do
+		case "$_e" in
+		*=*) ;;
+		*) _refuse "env is not K=V: $_e" || return 1 ;;
+		esac
+		_flags="$_flags -e $_e"
+	done
+	# shellcheck disable=SC2086
+	for _m1 in $ENG_MOUNTS; do
+		_flags="$_flags -v $_m1"
+	done
+	# shellcheck disable=SC2086
+	_cid="$(MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout 120 "$ENGINE_BIN" create --name "$_n" $_flags "$_img" "$@")"
+	[ -n "$_cid" ] || return 1
+	ENG_CIDS="$ENG_CIDS$_cid "
+	printf '%s\n' "$_cid"
 }
 
 # eng_create IMAGE -- CMD... - a container that outlives one call. Prints the
@@ -279,19 +360,128 @@ eng_rm() {
 	done
 }
 
-# eng_cleanup - remove everything eng_create registered. Callers using
-# eng_create add this to their EXIT trap.
+# eng_cleanup - remove everything eng_create registered, then every volume
+# eng_volmount registered. Callers using either add this to their EXIT trap.
 eng_cleanup() {
 	if [ -n "$ENG_CIDS" ]; then
 		# shellcheck disable=SC2086
 		eng_rm $ENG_CIDS
 	fi
+	if [ -n "$ENG_VOLS" ] && [ -n "$ENGINE_BIN" ]; then
+		# shellcheck disable=SC2086
+		for _v in $ENG_VOLS; do
+			MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout 60 "$ENGINE_BIN" volume rm "$_v" >/dev/null 2>&1 || true
+		done
+		ENG_VOLS=""
+	fi
 }
 
-# eng_pull IMAGE - fetch a pinned image before a create that does not pull.
+# eng_pbrun TIMEOUT IMAGE STORE [VAR=VAL ...] -- ARGS... - podbox staged in
+# the driver with STORE as its PODBOX_STORE. The caller staged /pb (and any
+# mounts) first; STORE is a /w path on lanes that share the store with the
+# host and a container-local path where nothing host-side reads it. Further
+# variables (a driver-spelled config path, an insecure-registry list) travel
+# the same way: VAR=VAL words before the `--`, refused where a value carries
+# a quote or a space. The helper carries no `-e`, so the store travels in
+# the argv wrapper, whose text crosses shells intact on both lanes.
+# Timeouts stay per call site.
+eng_pbrun() {
+	[ $# -ge 4 ] || return 1
+	_t="$1"; _img="$2"; _store="$3"
+	shift 3
+	_pfx=""
+	while [ $# -gt 0 ] && [ "$1" != "--" ]; do
+		case "$1" in
+		*=*)
+			_v="${1%%=*}"; _val="${1#*=}"
+			case "$_v" in "" | [0-9]* | *[!A-Za-z0-9_]*) _refuse "env name is not a name: $_v" || return 1 ;; esac
+			case "$_val" in *"'"* | *" "*) _refuse "env value crosses no shell intact: $_v" || return 1 ;; esac
+			_pfx="$_pfx$_v=$_val " ;;
+		*) _refuse "not VAR=VAL and not --: $1" || return 1 ;;
+		esac
+		shift
+	done
+	[ "${1:-}" = "--" ] || return 1
+	shift
+	_script="$_pfx"PODBOX_STORE="$_store"' exec /pb "$@"'
+	eng_run "$_t" "$_img" "" -- /bin/sh -c "$_script" _ "$@"
+}
+
+# eng_pull [--allow-tag] IMAGE - fetch before a create that does not pull.
+# Tags are refused by default: a moving tag measures a different thing
+# each week. --allow-tag is the explicit escape for the one case where
+# the tag IS the subject and the script handles the race itself (150's
+# digest parity, with its re-pull protocol and printed resolved digests).
+# An allowlist flag, greppable at the call site, never a quiet default.
 eng_pull() {
+	_tagok=0
+	if [ "${1:-}" = "--allow-tag" ]; then _tagok=1; shift; fi
 	[ $# -eq 1 ] || return 1
 	[ -n "$ENGINE_BIN" ] || return 1
-	_pinned "$1" || return 1
+	if [ "$_tagok" -eq 0 ]; then _pinned "$1" || return 1; fi
 	MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout 300 "$ENGINE_BIN" pull "$1"
+}
+
+# eng_tag SRC DST - point a second name at an image, for fixture setup.
+# Both sides are engine references; pinning is the caller's business here
+# because a fixture tag is a local name by definition.
+eng_tag() {
+	[ $# -eq 2 ] || return 1
+	[ -n "$ENGINE_BIN" ] || return 1
+	MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout 120 "$ENGINE_BIN" tag "$1" "$2"
+}
+
+# eng_push REF - push to a fixture registry. The experiments that push
+# only ever push their own loopback fixtures, whose certificate nothing
+# trusts; on a podman lane the daemon cert store is unreachable from
+# here, so verification is skipped for exactly that case, loudly in the
+# caller's transcript. A docker lane pushes plainly and trusts through
+# its own certs.d, as before.
+eng_push() {
+	[ $# -eq 1 ] || return 1
+	[ -n "$ENGINE_BIN" ] || return 1
+	case "$ENGINE_BIN" in
+	docker) MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout 300 "$ENGINE_BIN" push "$1" ;;
+	podman) MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout 300 "$ENGINE_BIN" push --tls-verify=false "$1" ;;
+	*) _refuse "no engine picked" || return 1 ;;
+	esac
+}
+
+# eng_image_inspect REF FORMAT - one engine-side record, for parity checks
+# against podbox's own. --format is spelled the same on both engines.
+eng_image_inspect() {
+	[ $# -eq 2 ] || return 1
+	[ -n "$ENGINE_BIN" ] || return 1
+	MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout 60 "$ENGINE_BIN" image inspect --format "$2" "$1"
+}
+
+# eng_start CID - start a created container and return once it is running.
+# For fixtures that must serve across calls (a registry); one-shot runs
+# use eng_run. The id stays registered for eng_cleanup.
+eng_start() {
+	[ $# -eq 1 ] || return 1
+	[ -n "$ENGINE_BIN" ] || return 1
+	MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout 60 "$ENGINE_BIN" start "$1"
+}
+
+# eng_pb SHIM TIMEOUT IMAGE - write an executable that forwards to the
+# staged /pb in the driver, for readers that need a PATH rather than a
+# function: `podbox_exit_codes` runs `$BIN system info`, and multicall
+# clauses exec names. The shim carries no mounts (readers needing files
+# use eng_run directly) and forwards the exit code; timeout bounds it as
+# eng_run would. Generated, never edited: the five lines below are the
+# only second spelling of the run line, and they are written here once.
+eng_pb() {
+	[ $# -eq 3 ] || return 1
+	[ -n "$ENGINE_BIN" ] || return 1
+	[ -n "$ENGINE_WORK" ] || return 1
+	_pb="$ENGINE_WORK/stage/podbox"
+	[ -f "$_pb" ] || _refuse "no staged podbox at $_pb" || return 1
+	cat >"$1" <<EOF_PB
+#!/bin/sh
+# Generated by eng_pb. Forwards to the staged podbox; takes no mounts.
+export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
+exec timeout $2 "$ENGINE_BIN" run --rm -v "$(winpath "$_pb"):/pb:ro" "$3" /pb "\$@"
+EOF_PB
+	chmod +x "$1"
 }

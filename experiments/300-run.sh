@@ -27,30 +27,86 @@ HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
 BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
 OUT="$REPO/experiments/results/run.txt"
-WORK="$(mktemp -d)"
+# ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
+# because an ELF built here does not execute there. The lane's scratch
+# lives under the checkout on a non-native lane: mount sources must be
+# Windows paths there (245's rule), and /tmp/... names nothing.
+case "$(uname -s)" in
+Linux) NATIVE=1; WORK="$(mktemp -d)"; PSTORE="$WORK/store"; EMPTY_STORE="$WORK/empty-store" ;;
+*)     NATIVE=0; WORK="$REPO/experiments/.sweep300-work"; rm -rf "$WORK"; mkdir -p "$WORK/w" || exit 2; PSTORE="/v/store"; EMPTY_STORE="/v/empty-store" ;;
+esac
 BINFMT_NAME="podbox-x300-$$"
 
 cleanup() {
 	[ -f "/proc/sys/fs/binfmt_misc/$BINFMT_NAME" ] &&
 		echo -1 >"/proc/sys/fs/binfmt_misc/$BINFMT_NAME" 2>/dev/null
+	eng_cleanup
 	rm -rf "$WORK"
 }
 trap cleanup EXIT INT TERM
 
 IMAGE="${PODBOX_RUN_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
 
-[ -x "$BIN" ] || {
-	echo "SKIP: $BIN is not an executable. Build it:" >&2
-	echo "      cargo build --release --target x86_64-unknown-linux-musl" >&2
-	exit 2
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. What each clause asserts is unchanged.
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$REPO"
+ENGINE_WORK="$WORK"
+if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
+
+# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# for every `$BIN` call on a non-native lane.
+DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
+STAGE="$WORK/stage"
+if [ "$NATIVE" -eq 0 ]; then
+	[ -r "$BIN" ] || {
+		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		exit 2
+	}
+	eng_pull "$DRIVER" || exit 2
+	mkdir -p "$STAGE" || exit 2
+	cp "$BIN" "$STAGE/podbox"
+	eng_mount "$STAGE/podbox" /pb \
+		&& eng_mount "$WORK/w" /w rw \
+		&& eng_volmount "x300-$$" /v rw \
+		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
+	eng_pb "$WORK/pb-shim" 120 "$DRIVER" || exit 2
+	BIN_RUN="$WORK/pb-shim"
+else
+	BIN_RUN="$BIN"
+fi
+
+# pb TIMEOUT ARGS... - podbox with the sweep's store: directly where it
+# executes, staged in the driver elsewhere. Timeouts stay per call site,
+# as before.
+pb() {
+	_t="$1"; shift
+	if [ "$NATIVE" -eq 1 ]; then
+		timeout "$_t" "$BIN" "$@"
+	else
+		eng_pbrun "$_t" "$DRIVER" "$PSTORE" -- "$@"
+	fi
 }
+
+if [ "$NATIVE" -eq 1 ]; then
+	[ -x "$BIN" ] || {
+		echo "SKIP: $BIN is not an executable. Build it:" >&2
+		echo "      cargo build --release --target x86_64-unknown-linux-musl" >&2
+		exit 2
+	}
+fi
 
 # ⭐ The exit codes are DATA, read out of the binary rather than written here.
 # TODO/cli.md T-0802 and scripts/common/exit-codes.sh: six clauses across four
 # experiments had `[ "$rc" -eq 2 ]` in them and all went red at once the day
 # docker's codes were measured.
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$BIN" || {
+# Read out of the binary; on a lane where it does not execute, the
+# generated shim runs that one call staged in the driver.
+podbox_exit_codes "$BIN_RUN" || {
 	echo "SKIP: cannot read podbox's exit-code table; is jq installed and the binary built?" >&2
 	exit 2
 }
@@ -67,7 +123,8 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
 	printf 'host arch         %s\n' "$(uname -m)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podbox            %s\n' "$(pb 60 version)"
+	printf 'engine            %s\n' "$(engine_describe)"
 	printf 'image             %s\n' "$IMAGE"
 	echo
 } >"$WORK/report"
@@ -76,7 +133,7 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 say "== 1. T-1104's own acceptance: a command runs and says so on stdout"
 # ⛔ stdout and stderr are captured SEPARATELY. The whole contract is that they
 # do not mix, so a clause that merged them would assert nothing.
-out="$(timeout 2400 "$BIN" run --rm "$IMAGE" /bin/echo hi 2>"$WORK/e1")"
+out="$(pb 2400 run --rm "$IMAGE" /bin/echo hi 2>"$WORK/e1")"
 rc=$?
 say "  stdout            [$out]"
 say "  exit              $rc"
@@ -93,23 +150,23 @@ say "== 2. T-0802: the exit code is the payload's, unaltered"
 for pair in "0:/bin/true" "1:/bin/false"; do
 	want="${pair%%:*}"
 	cmd="${pair#*:}"
-	timeout 900 "$BIN" run "$IMAGE" "$cmd" >/dev/null 2>&1
+	pb 900 run "$IMAGE" "$cmd" >/dev/null 2>&1
 	got=$?
 	say "  $(printf '%-28s' "$cmd") $got (want $want)"
 	[ "$got" -eq "$want" ] || { say "  FAIL"; fail=1; }
 done
-timeout 900 "$BIN" run "$IMAGE" /bin/sh -c 'exit 42' >/dev/null 2>&1
+pb 900 run "$IMAGE" /bin/sh -c 'exit 42' >/dev/null 2>&1
 got=$?
 say "  $(printf '%-28s' "sh -c 'exit 42'") $got (want 42)"
 [ "$got" -eq 42 ] || { say "  FAIL"; fail=1; }
 # ⛔ A signalled payload is 128+signal, which is the shell's convention and
 # docker's. Reporting 0 or 1 here would hide a SIGKILL from a caller that
 # branches on the code.
-timeout 900 "$BIN" run "$IMAGE" /bin/sh -c 'kill -9 $$' >/dev/null 2>&1
+pb 900 run "$IMAGE" /bin/sh -c 'kill -9 $$' >/dev/null 2>&1
 got=$?
 say "  $(printf '%-28s' "sh -c 'kill -9 \$\$'") $got (want 137 = 128+9)"
 [ "$got" -eq 137 ] || { say "  FAIL: a SIGKILLed payload did not report 128+9"; fail=1; }
-timeout 900 "$BIN" run "$IMAGE" /no/such/binary >/dev/null 2>&1
+pb 900 run "$IMAGE" /no/such/binary >/dev/null 2>&1
 got=$?
 say "  $(printf '%-28s' "/no/such/binary") $got (want 127)"
 [ "$got" -eq 127 ] || { say "  FAIL: a missing command is not 127"; fail=1; }
@@ -117,7 +174,7 @@ say "  $(printf '%-28s' "/no/such/binary") $got (want 127)"
 # --------------------------------------------------------------------- 3
 say ""
 say "== 3. it is really a chroot into the image, not the host"
-os="$(timeout 900 "$BIN" run "$IMAGE" /bin/sh -c '. /etc/os-release; echo $NAME' 2>/dev/null)"
+os="$(pb 900 run "$IMAGE" /bin/sh -c '. /etc/os-release; echo $NAME' 2>/dev/null)"
 say "  /etc/os-release   $os"
 host_os="$(. /etc/os-release 2>/dev/null; echo "${NAME:-unknown}")"
 say "  the host's is     $host_os"
@@ -130,17 +187,17 @@ say "  the host's is     $host_os"
 # --------------------------------------------------------------------- 4
 say ""
 say "== 4. -e, -w and --entrypoint"
-got="$(timeout 900 "$BIN" run -e GREETING=hello "$IMAGE" /bin/sh -c 'echo $GREETING' 2>/dev/null)"
+got="$(pb 900 run -e GREETING=hello "$IMAGE" /bin/sh -c 'echo $GREETING' 2>/dev/null)"
 say "  -e GREETING=hello  [$got]"
 [ "$got" = "hello" ] || { say "  FAIL"; fail=1; }
-got="$(timeout 900 "$BIN" run -w /etc "$IMAGE" /bin/pwd 2>/dev/null)"
+got="$(pb 900 run -w /etc "$IMAGE" /bin/pwd 2>/dev/null)"
 say "  -w /etc            [$got]"
 [ "$got" = "/etc" ] || { say "  FAIL"; fail=1; }
-got="$(timeout 900 "$BIN" run --entrypoint /bin/echo "$IMAGE" ep 2>/dev/null)"
+got="$(pb 900 run --entrypoint /bin/echo "$IMAGE" ep 2>/dev/null)"
 say "  --entrypoint       [$got]"
 [ "$got" = "ep" ] || { say "  FAIL"; fail=1; }
 # ⚠ A bare name is resolved along the image's own PATH, inside the new root.
-got="$(timeout 900 "$BIN" run "$IMAGE" sh -c 'echo onpath' 2>/dev/null)"
+got="$(pb 900 run "$IMAGE" sh -c 'echo onpath' 2>/dev/null)"
 say "  a bare name        [$got]"
 [ "$got" = "onpath" ] || { say "  FAIL: a bare name was not resolved on PATH"; fail=1; }
 
@@ -167,7 +224,7 @@ else
 			echo -1 >"/proc/sys/fs/binfmt_misc/$BINFMT_NAME" 2>/dev/null
 		skipped=1
 	else
-		got="$(timeout 2400 "$BIN" run --platform linux/arm64 "$IMAGE" /bin/uname -m 2>"$WORK/e5")"
+		got="$(pb 2400 run --platform linux/arm64 "$IMAGE" /bin/uname -m 2>"$WORK/e5")"
 		rc=$?
 		say "  arm64 image, uname -m inside it: [$got] rc=$rc"
 		say "  the host is                      $(uname -m)"
@@ -184,7 +241,7 @@ else
 
 	# ⛔ The other half: an architecture nothing is registered for must be
 	# refused with a message a caller can act on, never an Exec format error.
-	err="$(timeout 2400 "$BIN" run --platform linux/riscv64 "$IMAGE" /bin/true 2>&1 >/dev/null)"
+	err="$(pb 2400 run --platform linux/riscv64 "$IMAGE" /bin/true 2>&1 >/dev/null)"
 	rc=$?
 	say "  riscv64, nothing registered: rc=$rc"
 	say "    $(printf '%s' "$err" | grep -o 'podbox cannot execute it.*' | cut -c1-88)"
@@ -204,7 +261,7 @@ say ""
 say "== 6. --pull never on a platform the store does not hold"
 # ⚠ "held, for another platform" and "not held at all" are different sentences
 # and send a caller to different remedies.
-err="$(timeout 300 "$BIN" run --pull never --platform linux/ppc64le "$IMAGE" /bin/true 2>&1 >/dev/null)"
+err="$(pb 300 run --pull never --platform linux/ppc64le "$IMAGE" /bin/true 2>&1 >/dev/null)"
 rc=$?
 say "  exit              $rc"
 say "  says              $(printf '%s' "$err" | tr -d '\n' | cut -c1-96)"
@@ -235,7 +292,7 @@ elif ! docker image inspect container-research/target:1 >/dev/null 2>&1; then
 	skipped=1
 else
 	recon_store="$WORK/recon-store"
-	PODBOX_STORE="$recon_store" timeout 900 "$BIN" pull "$IMAGE" >/dev/null 2>&1
+	PODBOX_STORE="$recon_store" PSTORE="$recon_store" pb 900 pull "$IMAGE" >/dev/null 2>&1
 	if [ ! -d "$recon_store" ]; then
 		say "  SKIP: could not pre-pull $IMAGE for the reconstruction"
 		skipped=1
@@ -248,7 +305,7 @@ else
 		rung="$(sed -n 's/.*mode=\([a-z]*\).*/\1/p' "$WORK/e7" | head -1)"
 		say "  stdout            [$out]"
 		say "  exit              $rc"
-		say "  rung inside       $rung   (this host selects $("$BIN" probe 2>/dev/null | head -1))"
+		say "  rung inside       $rung   (this host selects $(pb 60 probe 2>/dev/null | head -1))"
 		say "  says it does NOT provide: $(grep -o 'does NOT provide:.*' "$WORK/e7" | head -1 | cut -c1-64)"
 		[ "$out" = "hi" ] || { say "  FAIL: stdout was not the payload's output"; fail=1; }
 		[ "$rc" -eq 0 ] || { say "  FAIL: expected exit 0"; fail=1; }
@@ -274,7 +331,7 @@ say "== 8. T-0505: exec is a fresh chroot, and every channel says so"
 # so the whole content of this clause is that the difference is STATED rather
 # than discovered: on stderr for a person, in `inspect` for a program, and by
 # refusing to invent the thing it cannot attach to.
-out="$(timeout 900 "$BIN" exec "$IMAGE" /bin/sh -c 'echo marker' 2>"$WORK/e8")"
+out="$(pb 900 exec "$IMAGE" /bin/sh -c 'echo marker' 2>"$WORK/e8")"
 rc=$?
 say "  stdout            [$out]"
 say "  exit              $rc"
@@ -287,8 +344,8 @@ grep -q 'not an entry into a running container' "$WORK/e8" || {
 }
 # ⭐ The same fact, to a program rather than to a reader, and it has to be the
 # same fact: the banner and this field read one pair of constants.
-shares="$(timeout 300 "$BIN" inspect --format '{{.Exec.Shares}}' "$IMAGE" 2>/dev/null)"
-mode="$(timeout 300 "$BIN" inspect --format '{{.Exec.Mode}}' "$IMAGE" 2>/dev/null)"
+shares="$(pb 300 inspect --format '{{.Exec.Shares}}' "$IMAGE" 2>/dev/null)"
+mode="$(pb 300 inspect --format '{{.Exec.Mode}}' "$IMAGE" 2>/dev/null)"
 say "  {{.Exec.Shares}}  [$shares]   {{.Exec.Mode}}  [$mode]"
 [ "$shares" = "filesystem" ] || { say "  FAIL: inspect does not report the sharing"; fail=1; }
 grep -q "$mode" "$WORK/e8" || {
@@ -298,7 +355,7 @@ grep -q "$mode" "$WORK/e8" || {
 # ⛔ No default command. An image's Cmd is what `run` starts, and re-running it
 # from `exec` is a process the caller did not ask for.
 # ⚠ The status is read once, from the process that produced it, into a variable.
-timeout 300 "$BIN" exec "$IMAGE" >/dev/null 2>&1
+pb 300 exec "$IMAGE" >/dev/null 2>&1
 rc=$?
 say "  exec with no command: rc=$rc  (want $PODBOX_EXIT_CLI_ERROR, the cli-error code)"
 [ "$rc" -eq "$PODBOX_EXIT_CLI_ERROR" ] || {
@@ -306,7 +363,7 @@ say "  exec with no command: rc=$rc  (want $PODBOX_EXIT_CLI_ERROR, the cli-error
 	fail=1
 }
 # ⛔ And it never pulls: an empty store is a refusal that names `run`, not a fetch.
-err="$(PODBOX_STORE="$WORK/empty-store" timeout 300 "$BIN" exec "$IMAGE" /bin/true 2>&1 >/dev/null)"
+err="$(PODBOX_STORE="$EMPTY_STORE" PSTORE="$EMPTY_STORE" pb 300 exec "$IMAGE" /bin/true 2>&1 >/dev/null)"
 rc=$?
 say "  against an empty store: rc=$rc"
 say "    $(printf '%s' "$err" | grep -o 'never pulls.*' | cut -c1-72)"

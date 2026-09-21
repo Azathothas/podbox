@@ -33,16 +33,75 @@ HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
 BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
 OUT="$REPO/experiments/results/cli-contract.txt"
-WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT INT TERM
+# ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
+# because an ELF built here does not execute there. The lane's scratch
+# lives under the checkout on a non-native lane: mount sources must be
+# Windows paths there (245's rule), and /tmp/... names nothing.
+case "$(uname -s)" in
+Linux) NATIVE=1; WORK="$(mktemp -d)"; PSTORE="$WORK/store" ;;
+*)     NATIVE=0; WORK="$REPO/experiments/.sweep320-work"; rm -rf "$WORK"; mkdir -p "$WORK/w" || exit 2; PSTORE="/v/store" ;;
+esac
+trap 'eng_cleanup; rm -rf "$WORK"' EXIT INT TERM
 
 IMAGE="${PODBOX_RUN_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
 
-[ -x "$BIN" ] || {
-	echo "SKIP: $BIN is not an executable. Build it:" >&2
-	echo "      cargo build --release --target x86_64-unknown-linux-musl" >&2
-	exit 2
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. What each clause asserts is unchanged.
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$REPO"
+ENGINE_WORK="$WORK"
+if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
+
+# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# for every `$BIN` call on a non-native lane.
+DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
+STAGE="$WORK/stage"
+if [ "$NATIVE" -eq 0 ]; then
+	[ -r "$BIN" ] || {
+		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		exit 2
+	}
+	eng_pull "$DRIVER" || exit 2
+	mkdir -p "$STAGE" || exit 2
+	cp "$BIN" "$STAGE/podbox"
+	# ⭐ The same staged file at three driver paths: /pb for pb(), and
+	# /docker + /podman for the argv[0] multicall in clause 4. A shell
+	# execs a PATH-resolved name with argv[0] set to the word as typed,
+	# so symlinks beside them answer to each name.
+	eng_mount "$STAGE/podbox" /pb \
+		&& eng_mount "$STAGE/podbox" /docker \
+		&& eng_mount "$STAGE/podbox" /podman \
+		&& eng_mount "$WORK/w" /w rw \
+		&& eng_volmount "x320-$$" /v rw \
+		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
+	eng_pb "$WORK/pb-shim" 120 "$DRIVER" || exit 2
+	BIN_RUN="$WORK/pb-shim"
+else
+	BIN_RUN="$BIN"
+fi
+
+# pb TIMEOUT ARGS... - podbox with the sweep's store: directly where it
+# executes, staged in the driver elsewhere. Timeouts stay per call site,
+# as before.
+pb() {
+	_t="$1"; shift
+	if [ "$NATIVE" -eq 1 ]; then
+		timeout "$_t" "$BIN" "$@"
+	else
+		eng_pbrun "$_t" "$DRIVER" "$PSTORE" -- "$@"
+	fi
 }
+
+if [ "$NATIVE" -eq 1 ]; then
+	[ -x "$BIN" ] || {
+		echo "SKIP: $BIN is not an executable. Build it:" >&2
+		echo "      cargo build --release --target x86_64-unknown-linux-musl" >&2
+		exit 2
+	}
+fi
 command -v jq >/dev/null 2>&1 || {
 	echo "SKIP: jq is not on PATH. ./scripts/common/bootstrap-env.sh tools" >&2
 	exit 2
@@ -53,7 +112,9 @@ command -v jq >/dev/null 2>&1 || {
 # experiments had `[ "$rc" -eq 2 ]` in them and all went red at once the day
 # docker's codes were measured.
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$BIN" || {
+# Read out of the binary; on a lane where it does not execute, the
+# generated shim runs that one call staged in the driver.
+podbox_exit_codes "$BIN_RUN" || {
 	echo "SKIP: cannot read podbox's exit-code table; is jq installed and the binary built?" >&2
 	exit 2
 }
@@ -67,7 +128,8 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podbox            %s\n' "$(pb 60 version)"
+	printf 'engine            %s\n' "$(engine_describe)"
 	printf 'jq                %s\n' "$(jq --version)"
 	echo
 } >"$WORK/report"
@@ -76,7 +138,7 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 say "== 1. T-0801's own acceptance: the table is data"
 # ⭐ The entry's Prove, verbatim in shape: at least sixty rows, and every status
 # one of the four words TOOL.md section 6.8 defines.
-"$BIN" system info --format '{{json .Parity}}' >"$WORK/parity.json" 2>"$WORK/e1"
+pb 60 system info --format '{{json .Parity}}' >"$WORK/parity.json" 2>"$WORK/e1"
 rc=$?
 say "  exit              $rc"
 if [ "$rc" -ne 0 ]; then
@@ -110,7 +172,7 @@ say "== 2. the table DECIDES, rather than describing what a parser does"
 # `run --name` and went red the day M4 made it Native.
 noneflag="$(jq -r '[.[] | select(.verb == "run" and .flag != null and .status == "None") | .flag] | .[0]' \
 	"$WORK/parity.json" | cut -d, -f1)"
-err="$(timeout 300 "$BIN" run "$noneflag" "$IMAGE" /bin/true 2>&1 >/dev/null)"
+err="$(pb 300 run "$noneflag" "$IMAGE" /bin/true 2>&1 >/dev/null)"
 rc=$?
 say "  run $noneflag        rc=$rc"
 say "    $(printf '%s' "$err" | head -1 | cut -c1-96)"
@@ -121,7 +183,7 @@ printf '%s' "$err" | grep -q 'status None' || {
 }
 # ⚠ THE OTHER HALF, and it is the one a table alone cannot give: a flag NOBODY
 # listed must not reach a parser arm either.
-err="$(timeout 300 "$BIN" run --no-such-flag "$IMAGE" /bin/true 2>&1 >/dev/null)"
+err="$(pb 300 run --no-such-flag "$IMAGE" /bin/true 2>&1 >/dev/null)"
 rc=$?
 say "  run --no-such-flag rc=$rc"
 say "    $(printf '%s' "$err" | head -1 | cut -c1-96)"
@@ -132,7 +194,7 @@ printf '%s' "$err" | grep -q 'no row in the parity table' || {
 }
 # ⚠ And a Stub is ACCEPTED, because a stub is a difference the table states and
 # not a refusal. `-i` is the one podbox has.
-timeout 900 "$BIN" run -i --pull always "$IMAGE" /bin/true >/dev/null 2>&1
+pb 900 run -i --pull always "$IMAGE" /bin/true >/dev/null 2>&1
 rc=$?
 say "  run -i (a Stub)   rc=$rc"
 [ "$rc" -eq 0 ] || { say "  FAIL: a Stub flag was refused"; fail=1; }
@@ -145,8 +207,13 @@ say "== 3. every verb the table calls None says so with docker's 125"
 # ⭐ TAKEN FROM THE TABLE, not written here. Measured on 2026-09-09: this clause
 # named six verbs by hand and went red the day M4 implemented them, which is a
 # second declaration of the same thing the table already carries.
-for verb in $(jq -r '[.[] | select(.flag == null and .status == "None") | .verb] | .[0:6] | .[]' "$WORK/parity.json"); do
-	err="$(timeout 60 "$BIN" "$verb" 2>&1 >/dev/null)"
+# ⛔ Without the `tr`, every verb but the last arrives with a carriage
+# return: this lane's jq ends every raw-output line with CRLF, and the
+# shell's command substitution only strips the trailing one. podbox
+# answers `restart\r` with "no such command" and exit 1. Measured
+# 2026-09-21: five false FAILs and a report file carrying ^M bytes.
+for verb in $(jq -r '[.[] | select(.flag == null and .status == "None") | .verb] | .[0:6] | .[]' "$WORK/parity.json" | tr -d '\r'); do
+	err="$(pb 60 "$verb" 2>&1 >/dev/null)"
 	rc=$?
 	want="$(jq -r --arg v "$verb" '.[] | select(.verb == $v and .flag == null) | .note' \
 		"$WORK/parity.json")"
@@ -161,13 +228,31 @@ say ""
 say '== 4. T-0803: podbox answers to `docker` and `podman` on PATH'
 # ⭐ Multicall on argv[0]. The link is made by hand here, exactly as T-0803's
 # Prove writes it, so this clause measures the BINARY and not the installer.
-mkdir -p "$WORK/bin"
-ln -sf "$BIN" "$WORK/bin/docker"
-ln -sf "$BIN" "$WORK/bin/podman"
+# On a non-native lane the names resolve inside the driver instead: the
+# staged file is already mounted at /docker and /podman, and symlinks
+# beside the store answer to each name.
+if [ "$NATIVE" -eq 1 ]; then
+	mkdir -p "$WORK/bin"
+	ln -sf "$BIN" "$WORK/bin/docker"
+	ln -sf "$BIN" "$WORK/bin/podman"
+	MCPATH="$WORK/bin"
+else
+	eng_run 60 "$DRIVER" "" -- /bin/sh -c \
+		'mkdir -p /v/bin && ln -sf /docker /v/bin/docker && ln -sf /podman /v/bin/podman' \
+		|| { echo "SKIP: the multicall names could not be staged" >&2; exit 2; }
+	MCPATH="/v/bin"
+fi
 for name in docker podman; do
-	out="$(PATH="$WORK/bin:$PATH" timeout 900 "$name" run --rm "$IMAGE" /bin/echo hi \
-		2>"$WORK/e4-$name")"
-	rc=$?
+	if [ "$NATIVE" -eq 1 ]; then
+		out="$(PATH="$MCPATH:$PATH" timeout 900 "$name" run --rm "$IMAGE" /bin/echo hi \
+			2>"$WORK/e4-$name")"
+		rc=$?
+	else
+		out="$(eng_run 900 "$DRIVER" "" -- /bin/sh -c \
+			'PODBOX_STORE=/v/store PATH=/v/bin:$PATH "$0" run --rm "$1" /bin/echo hi' \
+			"$name" "$IMAGE" 2>"$WORK/e4-$name")"
+		rc=$?
+	fi
 	said="$(grep -o "invoked as .$name." "$WORK/e4-$name" | head -1)"
 	say "  $(printf '%-7s' "$name") stdout [$out] rc=$rc  banner says: ${said:-NOTHING}"
 	[ "$out" = "hi" ] || { say "  FAIL: $name did not run the payload"; fail=1; }
@@ -191,7 +276,16 @@ if command -v docker >/dev/null 2>&1 && timeout 30 docker info >/dev/null 2>&1; 
 	daemon=reachable
 fi
 say "  a docker daemon here: $daemon"
-err="$(timeout 60 "$BIN" system install-names --dir "$WORK/names" 2>&1 >/dev/null)"
+# install-names writes where podbox runs: the checkout on a native lane,
+# the shared scratch on a non-native one, read back host-side below.
+if [ "$NATIVE" -eq 1 ]; then
+	NAMES="$WORK/names"; FORCED="$WORK/forced"
+	NAMES_INNER="$NAMES"; FORCED_INNER="$FORCED"
+else
+	NAMES="$WORK/w/names"; FORCED="$WORK/w/forced"
+	NAMES_INNER="/w/names"; FORCED_INNER="/w/forced"
+fi
+err="$(pb 60 system install-names --dir "$NAMES_INNER" 2>&1 >/dev/null)"
 rc=$?
 say "  install-names     rc=$rc"
 if [ "$daemon" = reachable ]; then
@@ -202,23 +296,23 @@ if [ "$daemon" = reachable ]; then
 		fail=1
 	}
 	# ⛔ And `podman` is installed anyway: the ruling is about the `docker` name.
-	[ -L "$WORK/names/podman" ] || { say "  FAIL: podman was not installed"; fail=1; }
-	[ -e "$WORK/names/docker" ] && { say "  FAIL: the docker link was made anyway"; fail=1; }
+	[ -L "$NAMES/podman" ] || { say "  FAIL: podman was not installed"; fail=1; }
+	[ -e "$NAMES/docker" ] && { say "  FAIL: the docker link was made anyway"; fail=1; }
 	# ⚠ And --force takes it, because the ruling is "unless an explicit flag".
-	timeout 60 "$BIN" system install-names --dir "$WORK/forced" --force >/dev/null 2>&1
+	pb 60 system install-names --dir "$FORCED_INNER" --force >/dev/null 2>&1
 	rc=$?
-	say "  install-names --force rc=$rc, docker link: $([ -L "$WORK/forced/docker" ] && echo made || echo absent)"
-	[ -L "$WORK/forced/docker" ] || { say "  FAIL: --force did not install it"; fail=1; }
+	say "  install-names --force rc=$rc, docker link: $([ -L "$FORCED/docker" ] && echo made || echo absent)"
+	[ -L "$FORCED/docker" ] || { say "  FAIL: --force did not install it"; fail=1; }
 else
 	# ⚠ THIS is the state the machines podbox is for are in, and the ruling
 	# means the name IS taken there.
 	[ "$rc" -eq 0 ] || { say "  FAIL: no daemon here, so both names should install"; fail=1; }
-	[ -L "$WORK/names/docker" ] || { say "  FAIL: the docker name was not taken"; fail=1; }
+	[ -L "$NAMES/docker" ] || { say "  FAIL: the docker name was not taken"; fail=1; }
 	say "  ⚠ the refusal half could not be measured on this machine: no daemon"
 	skipped=1
 fi
 # ⛔ Symlinks, never copies: one binary is one artefact (T-1001).
-for f in "$WORK/names"/* "$WORK/forced"/*; do
+for f in "$NAMES"/* "$FORCED"/*; do
 	[ -e "$f" ] || continue
 	[ -L "$f" ] || { say "  FAIL: $(basename "$f") is not a symlink"; fail=1; }
 done

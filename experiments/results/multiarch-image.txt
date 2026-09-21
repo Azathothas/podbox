@@ -1,10 +1,10 @@
 == conditions
-date              2026-09-09T02:32:45Z
-host kernel       6.18.44-fc-v24
+date              2026-09-21T06:06:21Z
+host kernel       3.6.9-b4195d69.x86_64
 host arch         x86_64
 podbox            podbox 0.1.0
 image             ghcr.io/pkgforge-dev/archlinux:latest
-store             a fresh directory under /tmp
+store             a fresh container-local volume
 
 == 1. no --platform pulls the platform podbox was BUILT for
   asked for         nothing
@@ -25,6 +25,7 @@ store             a fresh directory under /tmp
   says              latest: Pulling from pkgforge-dev/archlinuxpodbox: this index offers no linux/nosucharch manifes
 
 == 5. a malformed --platform is a USAGE error, before any network
-  exit              2 (2 is invalid input, TODO/probe.md T-0110)
+  exit              1 (125 is a flag error, TODO/cli.md T-0802)
   says              podbox: "a/b/c/d" has 4 fields. A platform is os/arch or os/arch/variant, for example linux/arm6
-  --platform with no value: exit 2
+  FAIL: expected the flag-error code 125
+  --platform with no value: exit 1

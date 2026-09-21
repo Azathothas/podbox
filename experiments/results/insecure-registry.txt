@@ -1,29 +1,30 @@
 == conditions
-date              2026-09-09T02:49:20Z
-host kernel       6.18.44-fc-v24
+date              2026-09-21T05:57:24Z
+host kernel       3.6.9-b4195d69.x86_64
 podbox            podbox 0.1.0
-docker            Docker version 29.3.1
-proxy in env      yes (clause 3 is only meaningful when yes)
+engine            podman version 6.1.2 (fixtures: podman)
+proxy in env      no (clause 3 is only meaningful when yes)
+forward           tcpfwd.c built with 0.16.0
 
 == 1. the default refuses an explicit http:// and NAMES the flag
-  exit              2 (2 is invalid input)
+  exit              1 (want 1, the cli-error code)
   names the flag    1
 
 == 2. the default refuses a certificate nothing trusts
   exit              125 (125 is a runtime failure)
-  says              invalid peer certificate: Other(OtherError(CaUsedAsEndEntity
+  says              invalid peer certificate: UnknownIssuer
 
 == 3. --insecure-registry pulls the whole image over plain HTTP
   exit              0
   layers pulled     4
 
 == 4. and it changed NOTHING for any other registry
-  a DIFFERENT registry over http://: exit 2
+  a DIFFERENT registry over http://: exit 1
 
 == 5. --tls-verify=false reaches the self-signed registry
   exit              0
   layers pulled     4
-  --tls-verify=false with an http:// reference: exit 2
+  --tls-verify=false with an http:// reference: exit 1
 
 == 6. every downgrade is announced on stderr
   announced insecure          2
@@ -33,4 +34,4 @@ proxy in env      yes (clause 3 is only meaningful when yes)
 == 7. the environment and the config file reach the same place
   $PODBOX_INSECURE_REGISTRIES exit 0
   $PODBOX_CONFIG file         exit 0
-  a URL where a host belongs: exit 2, registries.conf:2
+  a URL where a host belongs: exit 1, registries.conf:2

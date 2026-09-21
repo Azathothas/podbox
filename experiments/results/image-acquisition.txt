@@ -1,10 +1,10 @@
-# podbox image acquisition against docker, TODO/milestones.md T-1102
-# taken 2026-09-09T18:54:47Z on kernel 6.18.44-fc-v24
+# podbox image acquisition against the engine, TODO/milestones.md T-1102
+# taken 2026-09-19T12:23:59Z on kernel 3.6.9-b4195d69.x86_64
 # TODO/image.md T-0201 and T-0202 carry clauses 2 to 4.
 reference         ghcr.io/pkgforge-dev/archlinux:latest
 podbox_digest     sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
-docker_digest     sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
-digests_match     yes
+engine_digest     sha256:9bef8f23f6fb578d4c8e309d14fe1714ffdea2e967a5e4652dad65abf69d75d9
+digests_match     no
 tag_moved         no
 blobs_stored      7
 blobs_mismatched  0

@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-137 entries: 37 open, 3 partial, 1 blocked, 96 done.
+137 entries: 36 open, 3 partial, 2 blocked, 96 done.
 
 ## Baseline
 
@@ -30,14 +30,6 @@ replacement now creates a sibling candidate and renames it atomically only
 after successful device creation. The focused regression test passes in the
 same rootless environment. The complete migrated-tree validation is recorded
 in [`docs/history/migration-2026-09-11.md`](../docs/history/migration-2026-09-11.md).
-
-⭐ **THAT GAP IS CLOSED. `cargo test --workspace` is deterministic again**, as
-of 2026-09-12. It read between 2 and 10 of 12 and between 5 and 12 of 20 across
-twenty-two passes over two days, and it reads **0 of 30 in each of two passes**
-now. [T-0215](image.md) carries the mechanism, the captures that named it, the
-one-syscall fix and the clause that reddens the fix on demand.
-⛔ **`close(2)` is not a release while anything else references the same open
-file description**, and a `fork` makes exactly that.
 
 The raw source-era record, including all measurements and resolved questions,
 is preserved at
@@ -67,73 +59,82 @@ publish branch is the fallback if protection is ever restored.
 
 ## What this session did
 
-Session of 2026-09-19, third half. Closed [T-0710](interpose.md) with its
-proof (7 checks, exit 0) and filed the engine conversions as entries without
-implementing them, per [authoring.md](../docs/methodology/authoring.md).
+Session of 2026-09-21. Closed [T-1212](gate.md) **blocked** after converting
+the last four engine scripts and running all six on host podman 6.1.2.
 
-⭐ **The ownership memo lives on the host now.** `table::memo_path` beside the
-container record, `PODBOX_MEMO_FD` 17 handed at every spawn (foreground
-ephemeral under staging, `create`/`run -d` moved to `containers/<id>/`,
-`exec` re-handed, launcher and T-0412 steps sharing it) and refused where not
-handed. The interposer reads and writes through the handed number only, seeks
-to end on record and rewinds on lookup; past 4 MiB it answers `BeyondCeiling`
-and the `stat` family reports the real owner marked degraded, never stale.
-`experiments/results/interpose-ownership.txt` carries the run: OLD_STAT=0:42,
-NEW_STAT=0:0 refusal with the degraded line, 5242944 bytes. A guest `podbox
-run` smoke test answered 0:42 through the host memo.
+⭐ **All six image, registry and CLI scripts run through
+`experiments/lib/engine.sh` now, with no assertion changed.**
+`280-insecure-registry.sh` exits 0 with all seven clauses green after three
+conversion repairs. `300-run.sh` exits 2: every runnable clause green, clause 5 SKIP
+(no `binfmt_misc` without privilege) and clause 7 SKIP (no docker daemon).
+`320-cli-contract.sh` exits 2: clauses 1 to 4 green, the install-names half
+green, clause 5's refusal half SKIP without a daemon.
+`330-exit-codes.sh` exits 2: every podbox-against-its-own-table row `ok`,
+every `docker` column `-`. `150` exits 1 on the index-vs-child digest
+difference and `270` exits 1 on the 125-vs-1 platform error, both settled
+last session and re-recorded in the entry. `experiments/results/` carries
+all six runs.
 
-⭐ **Four conversion entries, no conversions.** [T-1210](gate.md) through
-[T-1213](gate.md) cover the sixteen remaining engine scripts in four groups;
-the helper and the 105 conversion are the shape each cites. Authoring and
-implementing stay in different sessions.
+Three conversion repairs, each found by running the converted script whole:
+`280` re-stages its driver mounts after the fixture block's `eng_clear`,
+drives its wrapper through `eng_run` with positional words (never through
+`eng_pbrun`, which execs `/pb` with the words it is given), removes its
+fixtures by name (serve ids captured in `$( )` never reach `eng_cleanup`),
+and builds its TLS certificate against an empty config file named through
+`winpath` after four lane failures. `320` strips this lane's jq CRLF bytes
+before podbox ever sees a verb. One self-inflicted taint: editing `300`
+mid-run skipped one byte of the running script, so the run was repeated
+clean. Never edit a running script.
 
 What stays current from last time:
-
-⚠ **The lock-table flake fired seven times today and went quiet the eighth.**
-Eight guest `cargo test --workspace` runs read 7, 2, 5, 3, 2, 1 and 3
-failures, then 0, all in the `podbox-image` store lock-table tests with the
-recorded "already holds 16 locks" refusal. Same tree, same message as the
-earlier 2026-09-19 readings, count moving with scheduling luck. Interpose
-(11), cli (66) and every other suite are green on all eight runs; the green
-eighth pass is the gate this change commits against.
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
 creating the DOCKER chain with `iptables ... Permission denied`, measured
 2026-09-19: the job container holds no `NET_ADMIN`. Engine clauses move to host
-podman, where `105` is green with all seven checks. Reopen condition for the
-guest lane: a job container with `NET_ADMIN`, or a base-level daemon the jobs
-can reach.
+podman. Reopen condition for the guest lane: a job container with
+`NET_ADMIN`, or a base-level daemon the jobs can reach.
+
+⚠ **This lane's jq ends every raw-output line with CRLF**, and the shell's
+command substitution strips only the trailing one. Multi-line `jq -r`
+streams poison every line but the last. Single-value reads stay clean.
+`320` clause 3 and `330` clause 0 strip the transport bytes; Python reads
+the table's values clean.
+
+⚠ **This lane's OpenSSL reads a system config its own build rejects.**
+`req -x509` needs an empty config file at a Windows-spelled path with
+conversion off for the call. `280` carries the shape.
 
 ## Current work order
 
-1. [T-1209](gate.md): the 37 remaining `Prove` lines that pull from Docker Hub,
-   the mapping that decides each replacement, and the check and plant that stop
-   the next one. ⚠ Take the mapping and the sweep before the check: the check
-   goes green only once nothing violates it.
-2. [T-1210](gate.md) through [T-1213](gate.md): convert the sixteen engine
-   scripts through `experiments/lib/engine.sh`, one group at a time, without
-   changing what any of them asserts.
-3. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
+1. [T-1213](gate.md): convert `10-build-target-image.sh`,
+   `20-enter-target.sh` and `130-probe-parity.sh` through
+   `experiments/lib/engine.sh` as one unit, without changing what any of
+   them asserts.
+2. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
    every parity row through the shipped binary. [T-0809](cli.md) adds the row
    that makes an ambiguous spawn failure readable.
-4. [T-0408](complete.md): run the zypper row and record it. It is one container
+3. [T-0408](complete.md): run the zypper row and record it. It is one container
    run, and it is the only entry reopened for having no evidence at all.
-5. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
+4. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
    coverage, and the check that a closed entry carries its recorded run.
    ⭐ T-1208's shape is RULED now, so what is left is the check, its plant, and
    converting the four prose records that entry names.
-6. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
-7. [T-1111](milestones.md): M8, the nix acceptance, after M7.
-8. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
+5. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
+6. [T-1111](milestones.md): M8, the nix acceptance, after M7.
+7. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
     on the probe. ⭐ T-1302's shape is ruled, so its implementation is a flag,
     a third `ALIASES` entry and the collision rule.
 
+[T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
+rows read no-compiler under the interposer while the engine control reaches
+42. What clears it is T-1309 fixed. [T-1209](gate.md) and [T-1210](gate.md)
+are `done`.
+
 ## In progress
 
-No implementation entry is half-written. One entry is newly `done` in this
-change and goes out with it: [T-0710](interpose.md). Four entries are newly
-`open` in this change and go out with it: [T-1210](gate.md) through
-[T-1213](gate.md), the engine conversions, authoring only. Three entries
+[T-1213](gate.md) is `open` and is next. No implementation entry is
+half-written. [T-1212](gate.md) is newly `blocked` in this change and goes
+out with it, with its six runs and what clears each red half. Three entries
 remain `partial`: [T-0503](enter.md), [T-0704](interpose.md) and
 [T-1109](milestones.md), each carrying its remaining conditions in its own file.
 
@@ -162,15 +163,19 @@ is where an implementer reads it.
 | `dockless`, which states no licence at all | keep the tree, study it, copy nothing, re-implement where useful | [reference-map.md](reference-map.md) |
 | `VHSgunzo/userland-execve`, which does not exist | keep the row as a corrected citation, not a deletion | [reference-map.md](reference-map.md) |
 | whether an unlicensed research tree may be tracked here | yes, track the whole tree; the corpus rule wins and nothing may be copied from it | [reference-map.md](reference-map.md) |
+| where the docker half runs when the picked engine is not a daemon | nowhere: `have_docker` follows `ENGINE_NAME`, the comparison columns read `-`, the half is recorded as skipped | [T-1212](gate.md) |
+| how `280` reaches its wrapper through a helper that execs `/pb` | positional words through `eng_run`, never through `eng_pbrun` | [T-1212](gate.md) |
 
 ⚠ **`/dev/ptmx` on the target is a measurement, not a ruling**, and it belongs
 to [T-0503](enter.md). [T-0414](complete.md) is the probe leg for it, and that
 entry also carries the second denial only one instance of the class has shown:
 `readdir("/")` answering `EACCES`.
 
-⛔ **Nothing is blocked.** The docker-daemon gap above stops the docker-driven
-experiment clauses, not the work: `106` proves the substitution, and the next
-docker-driven item names its own route when it gets there.
+⛔ **Nothing is blocked except what names its blocker.** [T-1211](gate.md) on
+[T-1309](interpose.md) and [T-1212](gate.md) on a daemon, privilege, and two
+expectation owners. The docker-daemon gap stops the docker-driven experiment
+clauses, not the work: the next docker-driven item names its own route when it
+gets there.
 
 ## What the next session should decide, and neither needs the operator
 

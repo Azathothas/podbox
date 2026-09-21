@@ -872,7 +872,7 @@ Source:      `experiments/lib/engine.sh`; `experiments/105-interpose-ownership.s
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      blocked
 
 Problem:     Six scripts reach an engine without the helper:
              `experiments/150-image-acquisition.sh` (23 docker calls),
@@ -900,6 +900,122 @@ Prove:       `./experiments/150-image-acquisition.sh`, `./experiments/270-multia
              `./experiments/320-cli-contract.sh` and `./experiments/330-exit-codes.sh`
              each exit 0 on host podman with the conditions block naming the
              driver, and `experiments/results/` carries the runs.
+Blocked:     The conversion is complete and the assertions are unchanged, but
+             the `Prove` does not hold on this lane. One script exits 0, two
+             exit 1 on engine differences, three exit 2 on halves no lane
+             here can measure. What clears each half is named below; none of
+             it is a conversion defect.
+             `150` exits 1: clause 1 is an index-vs-child difference, not a
+             race. `podbox images` reports the OCI index digest `b2507f19…`;
+             podman's `RepoDigests[0]` is the resolved child `9bef8f23…`.
+             A re-pull of both sides converges on nothing, because both
+             pulls are stable and the LEVELS differ. Needs a docker daemon
+             to check the original premise, which no lane here has.
+             `270` exits 1: clause 5a expects 125 and the binary exits 1 by
+             design. `crates/podbox-image/src/error.rs:64-68` maps
+             `Error::Usage` to `EXIT_CLI_ERROR`; the 270 expectation dates
+             to the migration commit. Clauses 1 to 4 are green. The fix
+             belongs to 270/T-0212's owner, never to this conversion.
+             `300` exits 2: every runnable clause is green. Clause 5 SKIPs
+             (`binfmt_misc` is not mounted, so neither half can be measured
+             without privilege) and clause 7 SKIPs (no docker daemon, so
+             the reconstruction cannot be entered). Clears with privilege
+             for the first and a reachable daemon for the second.
+             `320` exits 2: clauses 1 to 4 are green, including the argv[0]
+             multicall through same-file `/docker` and `/podman` mounts,
+             and the install-names half is green with every installed name
+             a symlink on the shared scratch. Clause 5's refusal half is
+             unmeasurable without a daemon. Clears with a reachable daemon.
+             `330` exits 2: every podbox-against-its-own-table row reads
+             `ok`, and every `docker` column reads `-`. The comparison half
+             needs a daemon. Clears with a reachable daemon.
+             `280` exits 0: all seven clauses green on the first whole run,
+             after three conversion repairs below.
+
+```
+$ sh experiments/280-insecure-registry.sh; echo EXIT:$?
+  == 1. the default refuses an explicit http:// and NAMES the flag
+    exit              1 (want 1, the cli-error code)
+    names the flag    1
+  == 2. the default refuses a certificate nothing trusts
+    exit              125 (125 is a runtime failure)
+    says              invalid peer certificate: UnknownIssuer
+  == 3. --insecure-registry pulls the whole image over plain HTTP
+    exit              0
+    layers pulled     4
+  == 4. and it changed NOTHING for any other registry
+    a DIFFERENT registry over http://: exit 1
+  == 5. --tls-verify=false reaches the self-signed registry
+    exit              0
+    layers pulled     4
+    --tls-verify=false with an http:// reference: exit 1
+  == 6. every downgrade is announced on stderr
+    announced insecure          2
+    announced the http fallback 1
+    a normal pull says it       0 time(s)
+  == 7. the environment and the config file reach the same place
+    $PODBOX_INSECURE_REGISTRIES exit 0
+    $PODBOX_CONFIG file         exit 0
+    a URL where a host belongs: exit 1, registries.conf:2
+EXIT:0
+$ sh experiments/300-run.sh; echo EXIT:$?
+  == 1. T-1104's own acceptance: stdout [hi], exit 0, mode= on stderr
+  == 2. T-0802: every payload code unaltered (0, 1, 42, 137, 127)
+  == 3. a chroot into the image, not the host (Arch Linux)
+  == 4. -e, -w and --entrypoint all answer (hello, /etc, ep, onpath)
+  == 5. SKIP: binfmt_misc is not mounted
+  == 6. --pull never names what the store holds, exit 125
+  == 7. SKIP: no docker daemon
+  == 8. exec is a fresh chroot on every channel
+EXIT:2
+$ sh experiments/320-cli-contract.sh; echo EXIT:$?
+  == 1. the table is data: 141 rows, 53 verbs, four statuses, every row noted
+  == 2. the table DECIDES: None refused with its reason, unlisted refused,
+     a Stub accepted
+  == 3. every None verb answers 125 with its own row: six of six
+  == 4. `docker` and `podman` answer with payload and banner: hi, rc 0
+  == 5. install half green, every name a symlink; refusal half SKIP: no daemon
+EXIT:2
+$ sh experiments/330-exit-codes.sh; echo EXIT:$?
+  == 0. the table as data: flag=125 cli=1 notfound=127 invoke=126 runtime=125
+  == 1. five flag-parser rows ok against the table, docker columns `-`
+  == 2. four verb-refusal rows ok, docker columns `-`
+  == 3. four payload rows ok (42, 127, 126, 0), docker columns `-`
+  == 4. the bare name exits 0
+  == 5. fixups never move the payload's code (7 and 7)
+  == 6. --strict refuses with 125, StrictOk false
+  docker ABSENT: the comparison half cannot run, recorded as half
+EXIT:2
+```
+
+             Three conversion repairs, each found by running the converted
+             script whole. First, `280`'s driver mounts were staged and then
+             dropped by the `eng_clear` that released the `/certs` staging,
+             so every clause exited 127 on `exec: /pb: not found`; the
+             script re-stages them after the fixture block. Second, `280`'s
+             `pb()` handed its wrapper to `eng_pbrun`, which execs `/pb`
+             with the words it is given, so podbox refused `/bin/sh` as a
+             command; the wrapper now takes the store, the config and the
+             insecure list as positional words through `eng_run`.
+             `eng_serve` ids captured in `$( )` never reach `eng_cleanup`
+             (a subshell discards the assignment), so the trap removes the
+             fixtures by name; a rerun's start failed on the first run's
+             still-Up fixture before this. Third, the TLS fixture died on
+             an empty certs directory four times: the lane's OpenSSL reads
+             a system config with an unknown option, `/dev/null` is not
+             openable by a native Windows binary, `/tmp` is the shell's
+             and not openssl's, and native openssl reads no msys spelling.
+             The script writes an empty config beside the certificate,
+             names it and the key paths through `winpath`, and refuses
+             honestly where the certificate comes out empty.
+             One lane-toolchain repair outside any clause: this lane's jq
+             ends every raw-output line with CRLF, and the shell's command
+             substitution strips only the trailing one, so `320` clause 3
+             measured five verbs as `restart\r` and failed them with "no
+             such command". Python reads the table's values clean, the
+             jq behaviour is measured at the command line, and the loop
+             strips the transport bytes before podbox ever sees them. All
+             six verbs answer 125 with their rows after it.
 
 ---
 

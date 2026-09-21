@@ -38,28 +38,77 @@ OUT="$REPO/experiments/results/image-acquisition.txt"
 # the Hub specifically, and ghcr has no anonymous pull quota that a third party
 # can exhaust on this project's behalf.
 REFERENCE="${PODBOX_TEST_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
-WORK="$(mktemp -d)"
-STORE="$WORK/store"
+# ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
+# because an ELF built here does not execute there. The lane's scratch
+# lives under the checkout on a non-native lane: mount sources must be
+# Windows paths there (245's rule), and /tmp/... names nothing.
+case "$(uname -s)" in
+Linux) NATIVE=1; WORK="$(mktemp -d)"; STORE="$WORK/store" ;;
+*)     NATIVE=0; WORK="$REPO/experiments/.sweep150-work"; rm -rf "$WORK"; mkdir -p "$WORK/w" || exit 2; STORE="$WORK/w/store" ;;
+esac
 trap 'rm -rf "$WORK"' EXIT INT TERM
 export PODBOX_STORE="$STORE"
 
-[ -x "$BIN" ] || {
-	echo "SKIP: $BIN is not an executable. Build it:" >&2
-	echo "      cargo build --release --target x86_64-unknown-linux-musl" >&2
-	exit 2
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. What each clause asserts is unchanged.
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$REPO"
+ENGINE_WORK="$WORK"
+if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
+
+# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# for every `$BIN` call on a non-native lane.
+DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
+STAGE="$WORK/stage"
+if [ "$NATIVE" -eq 0 ]; then
+	[ -r "$BIN" ] || {
+		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		exit 2
+	}
+	eng_pull "$DRIVER" || exit 2
+	mkdir -p "$STAGE" "$WORK/w" || exit 2
+	cp "$BIN" "$STAGE/podbox"
+	cat >"$WORK/pb.sh" <<'PB_EOF'
+#!/bin/sh
+# pb.sh - podbox in the driver with the shared store. Arguments are podbox's.
+export PODBOX_STORE=/w/store
+exec /pb "$@"
+PB_EOF
+	eng_mount "$STAGE/podbox" /pb \
+		&& eng_mount "$WORK/w" /w rw \
+		&& eng_mount "$WORK/pb.sh" /drv/pb.sh \
+		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
+fi
+
+# pb TIMEOUT ARGS... - podbox with the sweep's store: directly where it
+# executes, staged in the driver elsewhere. Timeouts stay per call site,
+# as before.
+pb() {
+	_t="$1"; shift
+	if [ "$NATIVE" -eq 1 ]; then
+		timeout "$_t" "$BIN" "$@"
+	else
+		eng_run "$_t" "$DRIVER" "" -- /bin/sh /drv/pb.sh "$@"
+	fi
 }
-command -v docker >/dev/null 2>&1 || { echo "SKIP: docker not on PATH" >&2; exit 2; }
-docker info >/dev/null 2>&1 || {
-	echo "SKIP: docker daemon not reachable. scripts/common/bootstrap-env.sh starts it" >&2
-	exit 2
-}
+
+if [ "$NATIVE" -eq 1 ]; then
+	[ -x "$BIN" ] || {
+		echo "SKIP: $BIN is not an executable. Build it:" >&2
+		echo "      cargo build --release --target x86_64-unknown-linux-musl" >&2
+		exit 2
+	}
+fi
 
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
-printf 'podbox            %s\n' "$("$BIN" version)"
+printf 'podbox            %s\n' "$(pb 60 version)"
 printf 'binary            %s bytes\n' "$(stat -c%s "$BIN")"
-printf 'docker            %s\n' "$(docker version --format '{{.Server.Version}}' 2>/dev/null || echo '-')"
+printf 'engine            %s\n' "$(engine_describe)"
 printf 'reference         %s\n' "$REFERENCE"
 printf 'store             a fresh directory under %s\n' "$(dirname "$WORK")"
 echo
@@ -70,7 +119,7 @@ fail=0
 # through a pipe and never from an && chain whose earlier link already
 # succeeded. AGENTS.md absolute 8.
 pull_podbox() {
-	timeout 600 "$BIN" pull "$1" >"$WORK/pull.out" 2>"$WORK/pull.err"
+	pb 600 pull "$1" >"$WORK/pull.out" 2>"$WORK/pull.err"
 	return $?
 }
 
@@ -82,32 +131,32 @@ if ! pull_podbox "$REFERENCE"; then
 fi
 sed 's/^/    /' "$WORK/pull.out"
 
-podbox_digest="$(timeout 60 "$BIN" images --format '{{.Digest}}' "$REFERENCE")"
+podbox_digest="$(pb 60 images --format '{{.Digest}}' "$REFERENCE")"
 podbox_rc=$?
 [ "$podbox_rc" -eq 0 ] || { echo "SKIP: podbox images exited $podbox_rc" >&2; exit 2; }
 
-if ! timeout 600 docker pull -q "$REFERENCE" >/dev/null 2>"$WORK/docker.err"; then
-	echo "  SKIP: docker pull failed; the registry may be unreachable" >&2
-	sed 's/^/    /' "$WORK/docker.err" >&2
+if ! eng_pull --allow-tag "$REFERENCE" >/dev/null 2>"$WORK/engine.err"; then
+	echo "  SKIP: the engine pull failed; the registry may be unreachable" >&2
+	sed 's/^/    /' "$WORK/engine.err" >&2
 	exit 2
 fi
-docker_digest="$(docker image inspect "$REFERENCE" --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"
+engine_digest="$(eng_image_inspect "$REFERENCE" '{{index .RepoDigests 0}}' | cut -d@ -f2)"
 
 printf '  podbox  %s\n' "$podbox_digest"
-printf '  docker  %s\n' "$docker_digest"
+printf '  %-7s %s\n' "$ENGINE_NAME" "$engine_digest"
 race="no"
-if [ "$podbox_digest" != "$docker_digest" ]; then
+if [ "$podbox_digest" != "$engine_digest" ]; then
 	# ⚠ One re-run, to separate a moving tag from a wrong digest. A tag that
 	# moved between the two pulls agrees on the second round; a wrong digest
 	# does not.
 	echo "  ⚠ they differ. Re-pulling both, to tell a moved tag from a wrong digest"
 	pull_podbox "$REFERENCE"
-	timeout 600 docker pull -q "$REFERENCE" >/dev/null 2>&1
-	podbox_digest="$(timeout 60 "$BIN" images --format '{{.Digest}}' "$REFERENCE")"
-	docker_digest="$(docker image inspect "$REFERENCE" --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"
+	eng_pull --allow-tag "$REFERENCE" >/dev/null 2>&1
+	podbox_digest="$(pb 60 images --format '{{.Digest}}' "$REFERENCE")"
+	engine_digest="$(eng_image_inspect "$REFERENCE" '{{index .RepoDigests 0}}' | cut -d@ -f2)"
 	printf '  podbox  %s\n' "$podbox_digest"
-	printf '  docker  %s\n' "$docker_digest"
-	if [ "$podbox_digest" = "$docker_digest" ]; then
+	printf '  %-7s %s\n' "$ENGINE_NAME" "$engine_digest"
+	if [ "$podbox_digest" = "$engine_digest" ]; then
 		echo "  ⚠ RECORDED: the tag moved between the first two pulls. They agree now."
 		race="yes"
 	else
@@ -115,7 +164,7 @@ if [ "$podbox_digest" != "$docker_digest" ]; then
 		fail=1
 	fi
 fi
-[ "$podbox_digest" = "$docker_digest" ] || fail=1
+[ "$podbox_digest" = "$engine_digest" ] || fail=1
 
 echo
 echo "== 2. a second pull fetches nothing"
@@ -160,7 +209,7 @@ echo "== 4. a plain-HTTP registry is refused rather than downgraded"
 # ⛔ TODO/image.md T-0201. tcp/80 egress is broken on the runtime podbox
 # targets, so a fallback hangs instead of failing. `timeout` is the proof that
 # it did not hang: a downgrade would sit here until the timeout fired.
-timeout 30 "$BIN" pull "http://registry.invalid/library/archlinux:latest" \
+pb 30 pull "http://registry.invalid/library/archlinux:latest" \
 	>"$WORK/http.out" 2>"$WORK/http.err"
 http_rc=$?
 printf '  exit %s\n' "$http_rc"
@@ -179,14 +228,14 @@ else
 fi
 
 {
-	printf '# podbox image acquisition against docker, TODO/milestones.md T-1102\n'
+	printf '# podbox image acquisition against the engine, TODO/milestones.md T-1102\n'
 	printf '# taken %s on kernel %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(uname -r)"
 	printf '# TODO/image.md T-0201 and T-0202 carry clauses 2 to 4.\n'
 	printf 'reference         %s\n' "$REFERENCE"
 	printf 'podbox_digest     %s\n' "$podbox_digest"
-	printf 'docker_digest     %s\n' "$docker_digest"
+	printf 'engine_digest     %s\n' "$engine_digest"
 	printf 'digests_match     %s\n' \
-		"$([ "$podbox_digest" = "$docker_digest" ] && echo yes || echo no)"
+		"$([ "$podbox_digest" = "$engine_digest" ] && echo yes || echo no)"
 	printf 'tag_moved         %s\n' "$race"
 	printf 'blobs_stored      %s\n' "$counted"
 	printf 'blobs_mismatched  %s\n' "$mismatched"
