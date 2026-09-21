@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-137 entries: 36 open, 3 partial, 2 blocked, 96 done.
+137 entries: 35 open, 3 partial, 3 blocked, 96 done.
 
 ## Baseline
 
@@ -86,6 +86,16 @@ before podbox ever sees a verb. One self-inflicted taint: editing `300`
 mid-run skipped one byte of the running script, so the run was repeated
 clean. Never edit a running script.
 
+⭐ **[T-1213](gate.md) is blocked without converting a line.** The
+reconstruction runs `docker run --privileged`
+(`20-enter-target.sh:134`), because `mount(2)` and `pivot_root(2)` build
+the topology it exists to measure, and `experiments/lib/engine.sh`
+refuses `--privileged` outright. The build script needs a build entry
+the helper does not have. Three routes considered, none compliant; the
+entry names them and what clears each. What it needs is an operator
+ruling: whether the helper gains a bounded build entry, and whether the
+privileged run gets an explicit escape or stays outside the helper.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -106,35 +116,35 @@ conversion off for the call. `280` carries the shape.
 
 ## Current work order
 
-1. [T-1213](gate.md): convert `10-build-target-image.sh`,
-   `20-enter-target.sh` and `130-probe-parity.sh` through
-   `experiments/lib/engine.sh` as one unit, without changing what any of
-   them asserts.
-2. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
+1. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
    every parity row through the shipped binary. [T-0809](cli.md) adds the row
    that makes an ambiguous spawn failure readable.
-3. [T-0408](complete.md): run the zypper row and record it. It is one container
+2. [T-0408](complete.md): run the zypper row and record it. It is one container
    run, and it is the only entry reopened for having no evidence at all.
-4. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
+3. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
    coverage, and the check that a closed entry carries its recorded run.
    ⭐ T-1208's shape is RULED now, so what is left is the check, its plant, and
    converting the four prose records that entry names.
-5. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
-6. [T-1111](milestones.md): M8, the nix acceptance, after M7.
+4. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
+5. [T-1111](milestones.md): M8, the nix acceptance, after M7.
 7. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
     on the probe. ⭐ T-1302's shape is ruled, so its implementation is a flag,
     a third `ALIASES` entry and the collision rule.
 
 [T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
 rows read no-compiler under the interposer while the engine control reaches
-42. What clears it is T-1309 fixed. [T-1209](gate.md) and [T-1210](gate.md)
-are `done`.
+42. What clears it is T-1309 fixed. [T-1212](gate.md) is `blocked` on a
+daemon, privilege, and two expectation owners. [T-1213](gate.md) is
+`blocked` on the operator ruling above. [T-1209](gate.md) and
+[T-1210](gate.md) are `done`.
 
 ## In progress
 
-[T-1213](gate.md) is `open` and is next. No implementation entry is
-half-written. [T-1212](gate.md) is newly `blocked` in this change and goes
-out with it, with its six runs and what clears each red half. Three entries
+[T-0805](cli.md) and [T-0808](cli.md) are `open` and are next. No
+implementation entry is half-written. [T-1212](gate.md) went `blocked`
+in this change with its six runs and what clears each red half, and
+[T-1213](gate.md) went `blocked` in this change with no script touched:
+the unit needs an operator ruling first. Three entries
 remain `partial`: [T-0503](enter.md), [T-0704](interpose.md) and
 [T-1109](milestones.md), each carrying its remaining conditions in its own file.
 
@@ -150,7 +160,15 @@ mutating clause prints the line it WROTE as well as the line it matched.
 
 ## Operator questions
 
-⭐ **None is open.** Every ruling is written into the entry that owns it, which
+⭐ **One is open.** It blocks [T-1213](gate.md) and it needs the operator,
+because it is a security policy on a shared workstation rather than an
+implementation choice.
+
+| question | status | where it lives |
+| --- | --- | --- |
+| whether `experiments/lib/engine.sh` gains a bounded build entry, and whether the reconstruction's `--privileged` run gets an explicit escape or stays outside the helper | open, asked 2026-09-21 | [T-1213](gate.md) |
+
+Every settled ruling is written into the entry that owns it, which
 is where an implementer reads it.
 
 | question | ruled on 2026-09-11 | where it lives |

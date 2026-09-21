@@ -1025,7 +1025,7 @@ Source:      `experiments/lib/engine.sh`; `experiments/130-probe-parity.sh:1-40`
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      blocked
 
 Problem:     `experiments/10-build-target-image.sh` (9 docker calls) builds
              the image `experiments/20-enter-target.sh` (6) enters, and
@@ -1049,4 +1049,27 @@ Prove:       `./experiments/10-build-target-image.sh`,
              `./experiments/130-probe-parity.sh` each exit 0 on host podman
              with the conditions block naming the driver, and
              `experiments/results/probe-parity.txt` carries the run.
+Blocked:     Two of the three have no compliant route through the helper,
+             measured 2026-09-21 against the helper's own source. First,
+             `20-enter-target.sh:134` runs the reconstruction with
+             `--privileged`, because `mount(2)` and `pivot_root(2)` build
+             the topology the script exists to measure, and
+             `experiments/lib/engine.sh` refuses `--privileged` outright in
+             `_no_priv`. A `--cap-drop` wall cannot build that topology.
+             Second, `10-build-target-image.sh:20` runs `docker build` and
+             the helper has no build entry at all: no pinned-base,
+             bounded, unprivileged build to convert the call into. Three
+             routes considered: add a build entry plus a privileged escape
+             to the helper (a security-policy change on a shared
+             workstation, not an implementer's call); convert `130`'s
+             unconfined rows alone (this entry's own Decision forbids
+             splitting the unit); leave the privileged run outside the
+             helper (then the conversion is a second engine spelling,
+             which is what the helper exists to stop). What clears this:
+             an operator ruling on whether `engine.sh` gains a bounded
+             build entry, and whether the reconstruction's privileged run
+             gets an explicit escape or stays outside the helper with
+             `130` inheriting the SKIP. On this lane both scripts exit 2
+             today (no docker daemon: `20-enter-target.sh:39-40`), so the
+             unit is unmeasurable here either way.
 
