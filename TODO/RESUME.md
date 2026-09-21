@@ -72,9 +72,16 @@ reds, all named in TODO/PROGRESS.md.
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-The record is TODO/PROGRESS.md and it carries the work order: T-1213 is
-blocked on lane findings, so T-0805/T-0808 are next. Push straight to
-main and create no branches. Work unattended; the operator reads the
-result later. The guest lane still has no docker daemon (no NET_ADMIN),
-so engine clauses run on host podman.
+T-1213 is on main: eng_build + eng_privrun are in, 10/20/130 are
+converted. This is a continuous session: work until manually stopped,
+finishing as many entries as possible, spawning subagents where work
+is independent. First verify CI on main (a red CI is the top
+priority), then gc the kept wsl-toolkit job containers, then work the
+full TODO/PROGRESS.md order in listed order starting at T-0805/T-0808
+(read both entries in full first). The store-contention fix is
+authorised: author the T-0211/T-0215-family entry, then implement it,
+in its own change. Push straight to main and create no branches. The
+guest lane still has no docker daemon (no NET_ADMIN), so engine
+clauses run on host podman; the podman machine is stopped, restart it
+before engine work.
 ```

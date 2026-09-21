@@ -236,3 +236,16 @@ The two this section carried before are settled: the eight unregistered `Lock`
 sites were a test-shape question answered by measurement on [T-0211](image.md)'s
 invariant, and [T-0706](interpose.md)'s Go row is proved by unit test with no
 image invented.
+
+## Operator rulings for the continuous session, 2026-09-21
+
+- Work continuously unless manually stopped, finishing as many entries
+  as possible. The five-entry session end does not apply.
+- Work the full work order in listed order until stopped.
+- Spawn subagents wherever independent work allows it.
+- The store-suite contention fix is authorised: author the
+  [T-0211](image.md)/[T-0215](image.md)-family entry under the authoring
+  methodology, then implement it, in its own change.
+- The kept wsl-toolkit job containers go at session start
+  (`gc --apply`); past results already live in `TODO/`.
+- CI on main is verified first; a red CI becomes the top priority.
