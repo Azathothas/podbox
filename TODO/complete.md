@@ -472,7 +472,7 @@ Source:      `TOOL.md` section 6.4, section 8
 Category:    complete
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     A naive edit to `/etc/zypp/repos.d/` reverts. `refresh-services`
              regenerates that directory from the RIS index and overwrites
@@ -486,12 +486,33 @@ Decision:    Edit the source of the generated file. The alternative, disabling
              way the payload can observe and did not ask for.
 Prove:       `podbox run --rm registry.opensuse.org/opensuse/leap:15.6 sh -c 'zypper -n refresh && zypper -n install gcc >/dev/null && gcc --version'`
 
+**Done 2026-09-21.** The `Prove` run, against the pinned digest of the same
+distribution, on host podman through the sweep driver with a musl binary of
+this tree (`podbox 0.1.0`): `opensuse-leap glibc zypper 0 0 42`, `podbox run`
+exit 0 (`experiments/results/sweep/opensuse-leap.out`,
+`experiments/results/sweep-t0408.txt`).
+
+The fixup took the Skipped branch, correctly: the pristine image ships no
+`/usr/share/zypp/local/service/` and an empty `/etc/zypp/services.d/`
+(measured read-only on host podman 2026-09-21), so `repos.d` is not
+regenerated and editing it in place holds
+(`crates/podbox-complete/src/pkg.rs:810-851`). The absent `zypper-index`
+banner line is the design, not missing evidence: the banner prints one line
+per fixup that changed something
+(`crates/podbox-complete/src/lib.rs:244-252`). The scheme fixup (T-0411)
+rewrote fourteen `repos.d` entries `http://` to `https://`, `zypper refresh`
+and `install gcc glibc-devel` exited 0, and the built program ran (`42`).
+
+⚠ The Unchanged branch (an index present) is not exercised by this image.
+What would cover it is an image shipping a service index. The `Prove` as
+written is satisfied.
+
 ---
 
 Status note: **Reopened on 2026-09-11 by reconciliation, and it never met the
              bar.** [RULES.md](RULES.md) section 5 closes an entry in place with
              its `Prove` command **actually run and the output recorded
-             underneath**. This entry carries a `Prove` line and nothing after
+             underneath**. This entry carried a `Prove` line and nothing after
              it: no run, no output, and no date on its `Status` line either,
              where every other closed entry in this file carries one.
              ⚠ **The approach is not in doubt and is not being relitigated.**

@@ -1,0 +1,9 @@
+# M5 acceptance: a C toolchain through each distribution own package manager
+# TODO/milestones.md T-1106. Taken 2026-09-21T11:09:40Z on kernel 3.6.9-b4195d69.x86_64
+# ⛔ no docker.io: ghcr.io, public.ecr.aws and the distributions own registries
+rows              10
+ran               1
+no_pull           0
+harness_failed    0
+built_and_ran     1
+host_not_runtime  0

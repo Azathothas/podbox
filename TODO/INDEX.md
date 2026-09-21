@@ -103,7 +103,7 @@ the blocker named and what would clear it.
 | [T-0405](complete.md) | P1 | complete | done | `/etc/mtab` is a symlink, and writing through it escapes the rootfs |
 | [T-0406](complete.md) | P1 | complete | done | pacman: `DownloadUser` and the keyring |
 | [T-0407](complete.md) | P1 | complete | done | apt: the sandbox user, https sources and the CA bundle |
-| [T-0408](complete.md) | P2 | complete | open | zypper: fix the RIS index, not `repos.d` |
+| [T-0408](complete.md) | P2 | complete | done | zypper: fix the RIS index, not `repos.d` |
 | [T-0409](complete.md) | P2 | complete | done | Ownership failures from `dpkg`, `rpm` and `xbps` are warnings |
 | [T-0410](complete.md) | P0 | complete | done | Supply `/etc/nsswitch.conf`, or the supplied `/etc/passwd` is a no-op |
 | [T-0411](complete.md) | P1 | complete | done | A payload whose package sources are `http://`, on a runtime where tcp/80 hangs |
@@ -202,7 +202,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-138 items: 32 open, 3 partial, 3 blocked, 100 done.
+138 items: 31 open, 3 partial, 3 blocked, 101 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -212,9 +212,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 2 | 1 | 0 | 49 | 52 |
 | P1 | 17 | 2 | 3 | 40 | 62 |
-| P2 | 9 | 0 | 0 | 10 | 19 |
+| P2 | 8 | 0 | 0 | 11 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **32** | **3** | **3** | **100** | **138** |
+| **All** | **31** | **3** | **3** | **101** | **138** |
 
 ## How the current ordering is derived
 

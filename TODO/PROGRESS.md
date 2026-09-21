@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-138 entries: 32 open, 3 partial, 3 blocked, 100 done.
+138 entries: 31 open, 3 partial, 3 blocked, 101 done.
 
 ## Baseline
 
@@ -186,8 +186,8 @@ store suite), so the change commits with the three reds named above.
    are done. [T-1310](image.md) closed the store-suite contention in its own
    change: one suite mutex, the ceiling pinned, 10 of 10 parallel runs green
    after 8 of 10 refused before.
-2. [T-0408](complete.md): run the zypper row and record it. It is one container
-   run, and it is the only entry reopened for having no evidence at all.
+2. [T-0408](complete.md) is done: the opensuse-leap row ran green (zypper 0 0
+   42) and the transcript is recorded under the entry.
 3. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
    coverage, and the check that a closed entry carries its recorded run.
    ⭐ T-1208's shape is RULED now, so what is left is the check, its plant, and
