@@ -16,7 +16,7 @@ the shipped binary, seven rows green, so the last gate reads. The machine
 tier, [podvm.md](podvm.md), holds its probe since 2026-09-21 (T-1301: six
 legs, one verdict per leg); the flag is next.
 
-140 entries: 26 open, 3 partial, 3 blocked, 108 done.
+140 entries: 25 open, 3 partial, 3 blocked, 109 done.
 
 ## Baseline
 
@@ -207,6 +207,16 @@ driven from the flag, `exec` mirroring `run`, and other verbs refusing
 the flag as unlisted. Full lane check green with the unit tests for the
 resolve matrix, the two parsers and the tier refusal.
 
+[T-1303](podvm.md) closed in its own change: `experiments/146-podvm-initramfs.sh`
+wraps a podbox-extracted Alpine rootfs as an initramfs with an appended
+console node and `/init` override, and boots it under TCG to
+`VMR-GUEST-READY` (exits 0 on a lane-built binary;
+`experiments/results/podvm-initramfs.txt`). Three findings are recorded
+in the entry: the reference kernel pin is stale (6.12.94 named, 6.12.110
+served, so the pin here is measured), a host `-x` test lies about
+absolute symlinks, and `cpio -t` stops at the base TRAILER while the
+kernel keeps going.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -268,8 +278,9 @@ store suite), so the change commits with the three reds named above.
    reconstruction.
 5. [T-1111](milestones.md) is done: M8, the nix acceptance, seven rows
    green through the shipped binary on host podman.
-7. [podvm.md](podvm.md) T-1301 and T-1302 are done: the probe legs and the
-   tier flag with the `podvm` name. T-1303 (the image wrapping) is next.
+7. [podvm.md](podvm.md) T-1301, T-1302 and T-1303 are done: the probe legs,
+   the tier flag with the `podvm` name, and the booting initramfs. T-1304
+   (the serial exec protocol) is next.
 
 [T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
 rows read no-compiler under the interposer while the engine control reaches

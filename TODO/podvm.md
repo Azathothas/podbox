@@ -230,7 +230,7 @@ Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec docume
 Category:    podvm
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     podbox's image path ends in an extracted rootfs on disk
              ([extract.md](extract.md)), and the machine tier needs that same
@@ -264,6 +264,32 @@ Decision:    A rootfs directory, not a disk image. ⚠ A disk image needs a
              filesystem the host can make, and the runtimes studied refuse
              `mount`, so the host cannot populate one it cannot attach.
 Prove:       `./experiments/146-podvm-initramfs.sh` asserts the guest prints its ready marker and that the console node is present in the unpacked archive
+
+**Done 2026-09-21.** `experiments/146-podvm-initramfs.sh` exits 0 on a
+lane-built binary: the pinned Alpine image pulls and extracts through
+podbox, the rootfs archives as newc cpio, an appended raw archive carries
+`dev/`, `dev/console` 5:1 and the `/init` override, and the pinned kernel
+boots the assembly under TCG to `VMR-GUEST-READY`
+(`experiments/results/podvm-initramfs.txt`).
+
+| clause | verdict on the lane |
+| --- | --- |
+| pull + extract `alpine@sha256:3e9b4b…` | ok, guest-executable `/bin/sh` |
+| base archive | ok, 8,365,568 bytes |
+| appended archive | ok, 8,366,168 bytes assembled |
+| console node | ok, `dev/console` in the appended archive |
+| boot `vmlinuz-virt` (sha256 `6b58e5d7…`), qemu 7.2.22 TCG | ok, marker printed; qemu rc 124, the halt the spec records |
+
+Three findings on the way, each in the script now. The reference pin for
+the kernel is stale: its tree names 6.12.94 and the mirror serves
+6.12.110, so the pin here is measured, not inherited. A host `-x` test
+lies about absolute symlinks: the image's `sh` points at `/bin/busybox`,
+which the guest resolves inside the rootfs and the host resolves outside
+it, so the check resolves the link as the guest does. `cpio -t` stops at
+the base archive's TRAILER while the kernel's unpacker keeps going, so
+the node is listed in the appended archive and the boot proves the full
+assembly. The newc writer is this script's own: no host mknod, no
+privilege.
 
 ---
 
