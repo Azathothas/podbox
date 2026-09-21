@@ -1,11 +1,12 @@
 == conditions
-date              2026-09-21T15:53:32Z
+date              2026-09-21T19:49:48Z
 host kernel       7.2.0-WSL2-STABLE
 podbox            podbox 0.1.0
 qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
 image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
 kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
 boot timeout      180 s
+curl timeout      60 s
 
 == 1. pull and extract the pinned image
   ok: rootfs at /work/experiments/.sweep146-work/store/rootfs/sha256_3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764/rootfs
@@ -24,5 +25,8 @@ boot timeout      180 s
 /work/experiments/.sweep146-work/vmlinuz-virt: OK
   qemu rc=124 (124 is the halt the spec records: poweroff halts on pc,acpi=off)
   ok: the guest printed VMR-GUEST-READY
+
+== 6. a stalled origin proves the fetch ceiling
+  ok: the stalled origin exited 28 inside 10 s
 
 146 acceptance: the assembly boots and the node is in it

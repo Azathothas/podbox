@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-141 entries: 21 open, 3 partial, 3 blocked, 114 done.
+141 entries: 20 open, 3 partial, 3 blocked, 115 done.
 
 ## Baseline
 
@@ -250,11 +250,15 @@ added 5 rows without re-driving, so the committed 153-row reading was
 already stale before T-1305's 2 rows. Unit tests 84 of 84 (cli) and 74 of
 74 (probe) green in the lane.
 
-[T-1313](podvm.md) authored in its own change and stays `open`: the
-`curl -fsSL` fetches in 146, 147 and 152 get `--max-time` with a
-stalled-origin clause in 146 proving the bound bites. No script changes
-in this pass; the implementation with all three re-drives belongs to the
-next one.
+[T-1313](podvm.md) closed in its own change: `--max-time` on all three
+fetches, default 60 and env-overridable per script, with the ceiling in
+each conditions block and a stalled-origin clause green in 146 (localhost
+accept-and-stall exits 28 inside 10 s). All three re-drove green: 146 and
+147 on lane-built binaries, 152 on the Windows host against host podman
+6.1.2 with all seven rows green. The driving found one lane trap (two
+`run-in-base.sh` jobs from one checkout stage through one job file, so
+both drove 146; recorded as the eighth trap in `docs/containers.md`, 147
+re-run alone).
 
 [T-1306](podvm.md) closed in its own change: one new census row (loopback
 bind+listen, family in native order for the big-endian targets) and a
@@ -289,6 +293,19 @@ network, and carrying a static compiler is future work. The run left no
 `PODBOX_ARTIFACTS`, so the results file was recovered line-exact from
 the kept job transcript while the raw per-run logs stayed in the guest
 job directory; the entry records the rule.
+
+[T-1313](podvm.md) closed in its own change: `--max-time` with a per-script
+env knob (default 60) on the 146, 147 and 152 fetches, the ceiling printed
+in each conditions block, and a new clause 6 in 146 driving a stalled
+localhost origin to curl exit 28 inside 10 s. The clause logic was proven
+on the host first (`rc=28 elapsed=2s`), then all three scripts re-drove
+green: 146 exits 0 on a lane-built binary with clause 6 green, 147 exits
+0 on a lane-built binary with every status distinct, 152 exits 0 on the
+Windows host against the started podman machine with all seven rows
+green. Parallel lane jobs both drove 146 through the one shared staging
+path, so 147 was re-run alone; the race is the eighth trap in
+`docs/containers.md`. 146's built binary rode home through
+`PODBOX_ARTIFACTS` and drove the host 152 run.
 
 What stays current from last time:
 

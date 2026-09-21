@@ -683,7 +683,7 @@ Source:      `TODO/podvm.md` T-1304 residual; `experiments/146-podvm-initramfs.s
 Category:    podvm
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     Three experiment fetches wait on the network with no ceiling:
              the kernel fetch in 146 and 147 (`curl -fsSL`, no `--max-time`,
@@ -716,3 +716,26 @@ Decision:    Recommendation: `curl --max-time`, not the `timeout` wrapper.
              152 out because its re-drive is heavy (that leaves the heaviest
              fetch unbounded, which is the one that most needs the ceiling).
 Prove:       `./experiments/146-podvm-initramfs.sh` exits 0 on a lane-built binary with the stalled-origin clause green
+**Done 2026-09-22.** `--max-time` on all three fetches, default 60,
+             env-overridable per script (`PODBOX_146_CURL_TIMEOUT`,
+             `PODBOX_147_CURL_TIMEOUT`, `PODBOX_NIX_CURL_TIMEOUT`),
+             with the ceiling in each conditions block. 146 gains clause 6:
+             a localhost python server that accepts and never answers,
+             fetched with a 2 s ceiling under `timeout 10`, exits 28. All
+             three re-drive green in this change: 146 exits 0 on a
+             lane-built binary with clause 6 green
+             (`experiments/results/podvm-initramfs.txt`), 147 exits 0 on a
+             lane-built binary with every status distinct
+             (`experiments/results/podvm-exec.txt`), and 152 exits 0 on the
+             Windows host against host podman 6.1.2 with all seven rows
+             green (`experiments/results/nix-acceptance.txt`). T-1303's and
+             T-1111's evidence stand re-driven. Two findings belong to the
+             driving, not the code: two `run-in-base.sh` jobs from one
+             checkout stage through one job file, so both drove 146 while
+             one was asked for 147 (recorded as the eighth trap in
+             [`../docs/containers.md`](../docs/containers.md); 147 was
+             re-run alone), and a measurement job always names
+             `PODBOX_ARTIFACTS` (146's binary rode home that way and drove
+             152 on the host). One pre-existing wart, untouched: the
+             subject prints `/bin/sh: 18: echo: echo: I/O error` where
+             `grep -qm1` closes the pipe early; every row stays green.

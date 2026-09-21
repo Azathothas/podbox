@@ -1,12 +1,13 @@
 == conditions
-date              2026-09-21T14:03:20Z
+date              2026-09-21T19:56:37Z
 host kernel       3.6.9-b4195d69.x86_64
 engine            podman version 6.1.2
-podbox            .dev/artifacts-t1312e/podbox (staged, not executed on this lane)
+podbox            .dev/artifacts-146/podbox (staged, not executed on this lane)
 nix tarball       https://nixos.org/releases/nix/nix-2.2.2/nix-2.2.2-x86_64-linux.tar.bz2 (23607712 bytes)
 nixpkgs           tag 22.05
 base              public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
 run timeout       3600 s
+curl timeout      60 s
 row REGISTER  ok   closure registered
 row FETCH     ok   /nix/store/di36mqc6y19ivaa4qjrb2l82c6dqg7m3-source
 row EVAL      ok   "22.05pre-git"

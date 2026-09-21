@@ -53,6 +53,7 @@ KURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinu
 KERNEL_SHA256="6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51"
 BOOT_DEADLINE="${PODBOX_147_BOOT:-120}"
 CMD_DEADLINE="${PODBOX_147_CMD:-20}"
+CURL_TIMEOUT="${PODBOX_147_CURL_TIMEOUT:-60}"
 
 fail=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
@@ -81,6 +82,7 @@ done
 	printf 'kernel            %s (sha256 %s)\n' "$KURL" "$KERNEL_SHA256"
 	printf 'boot deadline     %s s\n' "$BOOT_DEADLINE"
 	printf 'command deadline  %s s\n' "$CMD_DEADLINE"
+	printf 'curl timeout      %s s\n' "$CURL_TIMEOUT"
 	echo
 } >"$WORK/report"
 
@@ -116,7 +118,7 @@ INITEOF
 	ok "assembly: $(wc -c <"$WORK/full.cpio") bytes"
 fi
 if [ "$fail" -eq 0 ]; then
-	if ! curl -fsSL -o "$WORK/vmlinuz-virt" "$KURL"; then
+	if ! curl -fsSL --max-time "$CURL_TIMEOUT" -o "$WORK/vmlinuz-virt" "$KURL"; then
 		miss "the kernel did not fetch"
 	else
 		printf '%s  %s\n' "$KERNEL_SHA256" "$WORK/vmlinuz-virt" | sha256sum -c - >>"$WORK/report" 2>&1 || {

@@ -1,5 +1,5 @@
 == conditions
-date              2026-09-21T16:41:42Z
+date              2026-09-21T19:55:35Z
 host kernel       7.2.0-WSL2-STABLE
 podbox            podbox 0.1.0
 qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
@@ -7,6 +7,7 @@ image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb526
 kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
 boot deadline     120 s
 command deadline  20 s
+curl timeout      60 s
 
 == 1. the assembly
   ok: assembly: 8366168 bytes

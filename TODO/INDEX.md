@@ -201,11 +201,11 @@ the blocker named and what would clear it.
 | [T-1310](image.md) | P1 | image | done | The store suite exhausts the sixteen fork-shed slots, and the victim varies |
 | [T-1311](interpose.md) | P1 | interpose | done | The interposed `fchmodat` drops the `flags` argument |
 | [T-1312](interpose.md) | P1 | interpose | done | The glibc interposer needs newer symbols than the payload provides |
-| [T-1313](podvm.md) | P1 | podvm | open | Every experiment fetch carries its own ceiling, and a stalled origin proves it |
+| [T-1313](podvm.md) | P1 | podvm | done | Every experiment fetch carries its own ceiling, and a stalled origin proves it |
 
 ## Counts
 
-141 items: 21 open, 3 partial, 3 blocked, 114 done.
+141 items: 20 open, 3 partial, 3 blocked, 115 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -214,10 +214,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 50 | 52 |
-| P1 | 11 | 2 | 3 | 49 | 65 |
+| P1 | 10 | 2 | 3 | 50 | 65 |
 | P2 | 5 | 0 | 0 | 14 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **21** | **3** | **3** | **114** | **141** |
+| **All** | **20** | **3** | **3** | **115** | **141** |
 
 ## How the current ordering is derived
 

@@ -204,7 +204,7 @@ machine stays running as found: never stop it, never prune without naming
 what goes. A first image pull outlasts a clause timeout, so scripts fetch
 their images before any timed clause starts rather than inside it.
 
-### ⛔ Seven traps this host produced, five on 2026-09-11 and two on 2026-09-12
+### ⛔ Eight traps this host produced, five on 2026-09-11, two on 2026-09-12 and one on 2026-09-22
 
 - ⛔ **A Windows checkout carries no executable bit, so every script arrives
   unrunnable.** Measured on 2026-09-11: **396 of 396** had to be repaired. NTFS holds no POSIX mode and `core.fileMode` is false there.
@@ -257,6 +257,15 @@ their images before any timed clause starts rather than inside it.
   with its bit before the job: `git add PATH && git update-index --chmod=+x PATH`.
   ⚠ Running it as `sh PATH` hides the missing bit rather than repairing it, and
   the bit is what the tree has to carry.
+- ⛔ **Two `run-in-base.sh` jobs from one checkout stage through one job
+  file, so the second job drives the first job's script.** Measured on
+  2026-09-22: two lane jobs launched together both stage through
+  `$ROOT/.podbox-job.sh`, and both containers drove `146` while one was
+  asked for `147`. Both transcripts name 146, so the evidence stayed
+  honest, but the 147 re-drive never happened and was run again alone.
+  ⭐ One lane job at a time per checkout. A staging path unique per
+  invocation would make the race impossible; until one ships, serial
+  jobs are the rule.
 
 ### ⛔ Decommissioning
 

@@ -38,6 +38,7 @@ BASE='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740eb
 DRIVER="$BASE"
 
 RUN_TIMEOUT="${PODBOX_NIX_TIMEOUT:-3600}"
+CURL_TIMEOUT="${PODBOX_NIX_CURL_TIMEOUT:-60}"
 
 case "$(uname -s)" in
 Linux) NATIVE=1; WORK="$(mktemp -d)" ;;
@@ -68,6 +69,7 @@ printf 'nix tarball       %s (%s bytes)\n' "$NIX_TARBALL_URL" "$NIX_TARBALL_BYTE
 printf 'nixpkgs           tag %s\n' "$NIXPKGS_TAG"
 printf 'base              %s\n' "$BASE"
 printf 'run timeout       %s s\n' "$RUN_TIMEOUT"
+printf 'curl timeout      %s s\n' "$CURL_TIMEOUT"
 } | tee "$OUT"
 
 # ------------------------------------------------------------------ the subject
@@ -91,7 +93,7 @@ apt-get install -y -qq curl bzip2 xz-utils ca-certificates >/tmp/apt.log 2>&1 \
 # the layout check below accepts them at the top level or under one wrapper
 # directory, and anything else is a different tarball than the pin names.
 mkdir -p /nix
-curl -fsSL "$NIX_TARBALL_URL" -o /tmp/nix.tbz2 || { row FETCH-NIX FAIL "curl tarball"; exit 3; }
+curl -fsSL --max-time "$CURL_TIMEOUT" "$NIX_TARBALL_URL" -o /tmp/nix.tbz2 || { row FETCH-NIX FAIL "curl tarball"; exit 3; }
 [ "\$(stat -c%s /tmp/nix.tbz2)" = "$NIX_TARBALL_BYTES" ] || { row FETCH-NIX FAIL "size \$(stat -c%s /tmp/nix.tbz2)"; exit 3; }
 LIST="\$(tar -tjf /tmp/nix.tbz2 2>/dev/null)" || { row FETCH-NIX FAIL "not a bzip2 tarball"; exit 3; }
 echo "\$LIST" | grep -q "\.reginfo" || { row FETCH-NIX FAIL "no .reginfo inside"; exit 3; }

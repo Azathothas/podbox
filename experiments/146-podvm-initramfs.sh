@@ -17,6 +17,10 @@
 #      base archive's TRAILER while the kernel's unpacker keeps going, so
 #      the boot in clause 5 is what proves the full assembly);
 #   5. the pinned kernel boots the assembly under TCG to VMR-GUEST-READY.
+#   6. a stalled origin proves the fetch ceiling: a localhost server that
+#      accepts and never answers, fetched with a 2 s ceiling, exits 28
+#      inside 10 s. It runs on every invocation, guest or no guest,
+#      because the bound is about curl, not the guest.
 #
 # Runs on Linux, native or in a job container: qemu, cpio and python3 come
 # from the guest package manager and are recorded in the conditions. On a
@@ -26,9 +30,9 @@
 # ⚠ `set -u` and no `pipefail`: this script also runs under `sh` in a
 # Linux job container, where `sh` is dash.
 #
-# Exit: 0 the guest printed the marker and the archive carries the node,
-# 1 the assembly or the boot failed, 2 a tool, the binary or an input
-# could not run.
+# Exit: 0 the guest printed the marker, the archive carries the node, and
+# the stalled origin timed out; 1 the assembly, the boot or the bound
+# proof failed, 2 a tool, the binary or an input could not run.
 set -u
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
@@ -50,6 +54,7 @@ ALPINE_REF='public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cf
 KURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt"
 KERNEL_SHA256="6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51"
 BOOT_TIMEOUT="${PODBOX_146_TIMEOUT:-180}"
+CURL_TIMEOUT="${PODBOX_146_CURL_TIMEOUT:-60}"
 
 fail=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
@@ -74,6 +79,7 @@ done
 	printf 'image             %s\n' "$ALPINE_REF"
 	printf 'kernel            %s (sha256 %s)\n' "$KURL" "$KERNEL_SHA256"
 	printf 'boot timeout      %s s\n' "$BOOT_TIMEOUT"
+	printf 'curl timeout      %s s\n' "$CURL_TIMEOUT"
 	echo
 } >"$WORK/report"
 
@@ -150,7 +156,7 @@ fi
 if [ "$fail" -eq 0 ]; then
 say ""
 say "== 5. boot under TCG to the marker"
-if ! curl -fsSL -o "$WORK/vmlinuz-virt" "$KURL"; then
+if ! curl -fsSL --max-time "$CURL_TIMEOUT" -o "$WORK/vmlinuz-virt" "$KURL"; then
 	miss "the kernel did not fetch"
 else
 	printf '%s  %s\n' "$KERNEL_SHA256" "$WORK/vmlinuz-virt" | sha256sum -c - >>"$WORK/report" 2>&1 || {
@@ -174,6 +180,42 @@ if [ "$fail" -eq 0 ] && [ -f "$WORK/full.cpio" ]; then
 		tail -8 "$WORK/boot.log" >>"$WORK/report"
 	fi
 fi
+
+say ""
+say "== 6. a stalled origin proves the fetch ceiling"
+cat >"$WORK/stall.py" <<'PYEOF'
+import socket, time
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(("127.0.0.1", 0))
+s.listen(1)
+print(s.getsockname()[1], flush=True)
+c, _ = s.accept()
+time.sleep(30)
+PYEOF
+rm -f "$WORK/stall.port"
+python3 "$WORK/stall.py" >"$WORK/stall.port" 2>"$WORK/stall.err" &
+STALLPID=$!
+PORT=""
+i=0
+while [ "$i" -lt 25 ] && [ ! -s "$WORK/stall.port" ]; do
+	sleep 0.2
+	i=$((i + 1))
+done
+[ -s "$WORK/stall.port" ] && PORT="$(cat "$WORK/stall.port")"
+if [ -z "$PORT" ]; then
+	miss "the stall server printed no port"
+	tail -3 "$WORK/stall.err" >>"$WORK/report" 2>/dev/null || true
+else
+	timeout 10 curl -fsSL --max-time 2 "http://127.0.0.1:$PORT/" -o "$WORK/stall.out" 2>"$WORK/stall-curl.err"
+	rc=$?
+	case "$rc" in
+	28) ok "the stalled origin exited 28 inside 10 s" ;;
+	*) miss "the stalled fetch exited $rc, not 28" ;;
+	esac
+fi
+kill "$STALLPID" 2>/dev/null || true
+wait "$STALLPID" 2>/dev/null || true
 
 say ""
 if [ "$fail" -eq 0 ]; then

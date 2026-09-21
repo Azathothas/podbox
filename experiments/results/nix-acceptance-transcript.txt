@@ -28,5 +28,5 @@ podbox: complete: 10 fixup(s) applied to this image's rootfs, 5 degraded, 0 fail
         clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
 this mode does NOT provide: process, network, IPC or mount isolation
 ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+podbox run: interpose: declined for "/bin/sh": this podbox binary carries no glibc interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
 /bin/sh: 18: echo: echo: I/O error
