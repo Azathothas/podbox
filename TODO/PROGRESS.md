@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-137 entries: 32 open, 3 partial, 3 blocked, 99 done.
+138 entries: 33 open, 3 partial, 3 blocked, 99 done.
 
 ## Baseline
 
@@ -169,10 +169,10 @@ store suite), so the change commits with the three reds named above.
 
 ## Current work order
 
-1. [T-0805](cli.md), [T-0809](cli.md) and [T-0808](cli.md) are done. Next is
-   the authorised store-suite contention fix: author the
-   [T-0211](image.md)/[T-0215](image.md)-family entry, then implement it,
-   in its own change.
+1. [T-0805](cli.md), [T-0809](cli.md) and [T-0808](cli.md) are done. [T-1310](image.md)
+   is filed (`open`) for the authorised store-suite contention fix under the
+   [T-0211](image.md)/[T-0215](image.md) family. Next is its implementation, in
+   its own change.
 2. [T-0408](complete.md): run the zypper row and record it. It is one container
    run, and it is the only entry reopened for having no evidence at all.
 3. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate

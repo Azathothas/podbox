@@ -1395,3 +1395,121 @@ that holds an image lock for a container's life is measured single-threaded in
 `experiments/results/lifecycle-loop.txt`. ⭐ The defect was real and the fix is
 in the product, because a `prune` in a future threaded caller would have hit it
 and the failure was only ever in the safe direction by luck.
+
+---
+
+### T-1310 The store suite exhausts the sixteen fork-shed slots, and the victim varies
+
+Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podbox-image/src/store.rs:1003`; `crates/podbox-probe/src/sys.rs:680`
+Category:    image
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Full parallel runs of the `podbox-image` suite intermittently refuse
+             with `this process already holds 16 locks, which is every slot
+             podbox has ... (T-0211)`. The victim varies with scheduling
+             (`two_holders_of_one_image...`, `two_staging_calls...`,
+             `two_platforms...`). A serial run passes 97 of 97. The pool is
+             process-wide and fixed at `FORK_CLOSE_SLOTS`
+             (`crates/podbox-probe/src/sys.rs:680`), and every
+             `Lock::try_acquire` takes one slot
+             (`crates/podbox-image/src/store.rs:1003-1021`). Libtest runs the
+             suite in threads of one process, and each `two_*` test holds two or
+             more locks at once, so parallel neighbours exhaust the pool and the
+             test that asks last is refused.
+Premise:     ⭐ **The figures above are inherited, not measured here.** They come
+             from the 2026-09-21 record, written in this same continuous session:
+             three reds around one change, all with the 16-slot signature, then
+             97 of 97 with `--test-threads=1`, then a fully green fourth gate.
+             Task 1 re-takes them in this lane before any code changes, because a
+             rate from another lane is a reading from that lane.
+             ⭐ **What was checked here, at file and line.**
+             `FORK_CLOSE_SLOTS` is 16
+             (`crates/podbox-probe/src/sys.rs:680`). Every lock registers
+             (`crates/podbox-image/src/store.rs:1003-1021`), including staging
+             locks: a `StagedFile` holds one for its life
+             (`crates/podbox-image/src/store.rs:867-871`). So do transient sweep
+             and `in_use` probes. Every store test reaches `Store::open` through
+             `scratch` or directly. A production process holds at most three at
+             once by inspection: one image lock plus transient index or staging
+             locks. The spawn path is asserted single-threaded
+             (`nothing_on_the_spawn_path_can_spawn_a_thread`,
+             `crates/podbox-supervise/src/launcher.rs:565`). `pull` resolves the
+             probe before it stages anything
+             (`crates/podbox-image/src/pull.rs:93`, and [T-0211](image.md)'s
+             premise). So no production shape on record reaches sixteen. Only
+             the harness does, and its thread count scales with the machine's
+             cores.
+             ⛔ **Two predecessors refused the test-only fix, and this entry is
+             distinguished from both.** [T-0211](image.md) refused `#[serial]`
+             because the fork leak was reachable in production. [T-0215](image.md)
+             refused serialising the lock tests because the late release was a
+             product defect. Here the exhausted pool is unreachable in production
+             by the inspection above, so the suite is the only holder that
+             exceeds the design, and the fix belongs in the suite. If task 1
+             refutes the inspection, the decision flips to candidate 2, and this
+             paragraph carries the flip.
+Approach:    Three candidates, each with what refutes it. A fourth pass follows
+             for what the three miss.
+             1. Serialise every store test under one suite mutex (test-only).
+                Each test takes it. `FORKING_TESTS` goes away, subsumed: fork
+                tests must also exclude store tests, because a forked child
+                inherits another thread's lock, which is T-0211's shape. A
+                deterministic ceiling test fills all sixteen slots under the
+                mutex and asserts the seventeenth is refused by name. That pins
+                the ceiling and proves the mutex excludes. Refuted if any
+                production path holds sixteen locks. Inspection says none does.
+                T-0207's future pool is the risk, and the contract below bounds
+                it.
+             2. A growable slot table in the product, with no ceiling. The parent
+                allocates and never frees. The child only reads atomics and
+                closes, so the fork path stays signal-safe. Plausible mechanism,
+                **not recommended**. A bug in it leaks locks silently, which is
+                the exact class this family fights, and it answers T-0207, a
+                consumer that does not exist yet.
+             3. A larger fixed number. **Refuted.** The libtest thread count
+                scales with machine cores, so demand scales with the machine, and
+                any fixed number is the same wall moved. The ceiling row
+                (`docs/conventions/forbidden-patterns.md:65`) names it.
+             4. Second pass. Transient sweep and `in_use` locks also consume
+                slots, so the mutex covers every test that reaches the store, not
+                only the holders. The probe crate's test binary owns a separate
+                table (one process per test binary), so it stays out. The
+                gate-rate question, one run is not evidence for a racy suite,
+                stays with [T-1204](gate.md)'s neighbourhood. This entry's Prove
+                uses repeats, which is evidence for that question without
+                settling it.
+Decision:    Implement candidate 1. One `STORE_TESTS` mutex in the `store.rs`
+             test module. Every test that reaches the store takes it, with the
+             `into_inner` poison precedent `FORKING_TESTS` already sets. The
+             ceiling test pins sixteen plus refusal. One contract line goes into
+             [T-0207](image.md) in the same implementation change: its pool bound
+             plus transient locks stays under sixteen, or that entry grows the
+             table with its own measurement. No gate-check change, so no plant is
+             owed. Recommend **P1, S**: the product is unaffected, and the work
+             is one mutex, one test, one script, and repeated runs.
+             In scope: a deterministic parallel suite; the ceiling pinned by
+             test; the T-0207 contract line.
+             Out of scope: gate rate reporting; any change to the sixteen-slot
+             mechanism; T-0207's bound value.
+             Tasks: (1) re-measure in this lane: parallel runs to first refusal
+             or N, serial control twice, all with conditions; (2) the mutex
+             conversion plus the ceiling test; (3)
+             `experiments/326-store-contention-prove.sh` (0 ran and matched, 1
+             ran and did not, 2 could not run) with committed results; (4) three
+             review passes, the gate, and the record.
+             Pitfalls: a test that forgets the mutex reintroduces the flake
+             silently, so the implementation review greps every test body for the
+             acquisition line. One mutex only, never nested, so no deadlock
+             shape. Poison uses `into_inner`, never a panic.
+             Acceptance gate: `docs/methodology/gate.md`, all three parts. Part
+             (a) runs in the Linux lane (`sh scripts/windows/run-in-base.sh`).
+             Part (b) is the 326 script green there. Part (c) asks the true,
+             consistent, and cold-usable questions over the entry, the test diff,
+             and the script.
+             No item here needs the operator. No credential, no remote system, no
+             ruling: the ruling this family needed arrived with the
+             authorisation, and the open gate-rate question is recorded where it
+             belongs rather than decided here.
+Prove:       `cargo test -p podbox-image` passes repeatedly with default parallelism in the Linux lane, and the ceiling test passes alone; the runs are recorded under the entry with their conditions
