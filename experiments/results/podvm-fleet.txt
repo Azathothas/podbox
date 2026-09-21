@@ -1,0 +1,34 @@
+== conditions
+date              2026-09-21T17:48:21Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+jq                jq-1.6
+python3           Python 3.11.2
+natural ceiling   (-1, -1)
+lowered ceiling   1073741824 bytes
+over guest        4G = 4294967296 bytes
+under guest       1M
+
+== 0. the mem rows are data
+  ok: table carries run --podbox-mem
+  ok: table carries exec --podbox-mem
+
+== 1. over the ceiling is refused before anything starts
+  ok: run --podbox-tier=machine --podbox-mem=4G refused naming the ceiling (1073741824) and the guest (4294967296)
+
+== 2. under the ceiling reaches the legs verdict with no ceiling language
+  ok: run --podbox-tier=machine --podbox-mem=1M passed the check to the legs verdict
+
+== 3. what is not a size is a flag error
+  ok: --podbox-mem=bogus is a flag error
+  ok: --podbox-mem 0 is a flag error
+  ok: --podbox-mem past 64 bits is a flag error
+
+== 4. the flag outside the machine tier is refused as needs-machine
+  ok: run --podbox-mem without the machine tier is a flag error
+  ok: exec --podbox-mem without the machine tier is a flag error
+
+== 5. exec mirrors run on the over-ceiling refusal
+  ok: exec --podbox-tier=machine --podbox-mem=4G refused naming the ceiling and the guest
+
+== counts: 10 driven, 0 mismatches
