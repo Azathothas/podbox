@@ -595,7 +595,7 @@ Source:      `references/talaria0101__vm-research/tree/experiments/logs/66-tcg-b
 Category:    podvm
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     [T-1301](podvm.md) selects the machine tier and the selection is a
              cost decision, so podbox will have to tell an operator what the
@@ -623,9 +623,14 @@ Premise:     **Measured, four times, on one host class, and the spread is
              moment, not about emulation". The other files it as an open
              question and names the closure test.
 Approach:    Adopt that closure test rather than inventing one: integer,
-             syscall, memory-bandwidth, compilation and I/O workloads, reported
+             syscall, memory-bandwidth and I/O workloads, reported
              as a distribution rather than a point, with same-day native and
              chroot controls taken on the same host in the same run.
+             Compilation is a named gap, not a fifth row: the guest
+             carries no toolchain and has no network to fetch one, so no
+             compiler runs inside it. Carrying a static compiler into the
+             extras archive is future work; until then the spread rests on
+             the four classes one binary can cover on all three platforms.
              Every row prints a checksum and the run is refused if two
              platforms disagree, because a platform that computed something else
              must say so rather than look fast.
@@ -639,6 +644,35 @@ Decision:    **podbox never prints a bare multiplier.** Where the machine tier
              somebody else's benchmark on somebody else's host and would be read
              here as a property of emulation.
 Prove:       `./experiments/154-tcg-workload-spread.sh` prints one row per workload class with its checksum and its ratio, and exits 1 if any two platforms disagree on a checksum
+**Done 2026-09-22.** `experiments/154-tcg-workload-spread.sh` exits 0
+             on a lane-built binary: 14 driven, 0 mismatches
+             (`experiments/results/tcg-workload-spread.txt`). One static
+             binary per class runs on all three platforms, medians of three
+             runs: int host 0.153 s, chroot 0.155 s (1.0x), guest 1.136 s
+             (7.4x); syscall host 0.267 s, chroot 0.270 s (1.0x), guest
+             3.060 s (11.5x); memory host 1.094 s, chroot 1.118 s (1.0x),
+             guest 1.588 s (1.5x); file I/O host 0.087 s, chroot 0.092 s
+             (1.1x), guest 0.453 s (5.2x). Every checksum agrees on every
+             platform, so no platform computes a different thing. The chroot
+             tier costs nothing measurable here (1.0 to 1.1x on all four
+             classes). The TCG spread runs 1.5x (memory) to 11.5x
+             (syscall): syscall-heavy payloads pay most, and no single
+             multiplier describes the tier. That confirms the Decision: the
+             banner names the class and its range, never a bare figure.
+             Conditions: lane base `rust:1.98.1-bookworm`, host kernel
+             7.2.0-WSL2-STABLE, qemu 7.2.22 with
+             `-M pc,acpi=off -m 256 -accel tcg,thread=multi`, gcc 12.2.0
+             with `-O2 -static`, the pinned image and kernel above. The
+             guest file-I/O leg runs against initramfs (RAM): no disk
+             device passes to qemu, so that row compares filesystems, not
+             disks. Two notes stay open: an `io error=` line counts as a
+             run in section 2 while section 4 still refuses it
+             (report-internal only, the exit stays 1), and the conditions
+             block does not repeat the qemu flags or CFLAGS (both pinned
+             in the script). The results file was recovered from the kept
+             job transcript: the run left no `PODBOX_ARTIFACTS`, so the raw
+             per-run logs stayed in the guest job directory. A measurement
+             job always names `PODBOX_ARTIFACTS`.
 
 ---
 

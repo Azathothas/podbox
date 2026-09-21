@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-141 entries: 22 open, 3 partial, 3 blocked, 113 done.
+141 entries: 21 open, 3 partial, 3 blocked, 114 done.
 
 ## Baseline
 
@@ -274,6 +274,22 @@ its tree line; the one overstatement found (cubic "accelerates every
 machine") is corrected under the premise with its lines. No source
 moves, so no lane run belongs to this change.
 
+[T-1308](podvm.md) closed in its own change: `experiments/154-tcg-workload-spread.sh`
+with four static payloads (`experiments/154-bench-{int,sys,mem,io}.c`)
+exits 0 on a lane-built binary, 14 driven, 0 mismatches
+(`experiments/results/tcg-workload-spread.txt`). The first lane run went
+red on two defects, both fixed in the tree: the payloads printed
+`syscall`/`membw` while the driver counts `sys`/`mem`, and section 3
+called an undefined `ok` instead of `pass`. The green rerun prints one
+row per class with agreeing checksums: int 7.4x, syscall 11.5x, memory
+1.5x, file I/O 5.2x guest-over-host, chroot 1.0 to 1.1x throughout. A
+read-only review found no blocking defect but named the compilation gap,
+so the Approach carries it in place: the guest has no toolchain and no
+network, and carrying a static compiler is future work. The run left no
+`PODBOX_ARTIFACTS`, so the results file was recovered line-exact from
+the kept job transcript while the raw per-run logs stayed in the guest
+job directory; the entry records the rule.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -340,7 +356,14 @@ store suite), so the change commits with the three reds named above.
    exec protocol with every status distinct, the fleet decision with the
    file-size ceiling enforced before anything starts, the non-goals as
    measured refusals, and the five Rust VM tools ruled one by one.
-   T-1308 (the TCG workload spread) is next.
+   T-1308 (the TCG workload spread) is done: 154 exits 0 on a
+   lane-built binary, 14 driven, 0 mismatches, one checksum per class on
+   all three platforms. Chroot costs 1.0 to 1.1x on all four classes;
+   the TCG spread runs 1.5x (memory) to 11.5x (syscall), which confirms
+   the Decision that the banner names the class and its range, never a
+   bare figure. Compilation stays a named gap (no toolchain in the
+   guest). The results file was recovered from the kept job transcript;
+   a measurement job always names `PODBOX_ARTIFACTS`.
 
 [T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
 rows read no-compiler under the interposer while the engine control reaches

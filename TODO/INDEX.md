@@ -196,7 +196,7 @@ the blocker named and what would clear it.
 | [T-1305](podvm.md) | P2 | podvm | done | The fleet and the fork, and the file-size ceiling that bounds both |
 | [T-1306](podvm.md) | P1 | podvm | done | The non-goals are refusals the code makes, not notes in a document |
 | [T-1307](podvm.md) | P2 | podvm | done | The five Rust VM tools, ruled one by one, so nobody surveys them again |
-| [T-1308](podvm.md) | P1 | podvm | open | One TCG number is a claim about one benchmark, and the range is 3x to 21x |
+| [T-1308](podvm.md) | P1 | podvm | done | One TCG number is a claim about one benchmark, and the range is 3x to 21x |
 | [T-1309](interpose.md) | P1 | interpose | open | libdnf repodata downloads fail under the preloaded interposer |
 | [T-1310](image.md) | P1 | image | done | The store suite exhausts the sixteen fork-shed slots, and the victim varies |
 | [T-1311](interpose.md) | P1 | interpose | done | The interposed `fchmodat` drops the `flags` argument |
@@ -205,7 +205,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-141 items: 22 open, 3 partial, 3 blocked, 113 done.
+141 items: 21 open, 3 partial, 3 blocked, 114 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -214,10 +214,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 50 | 52 |
-| P1 | 12 | 2 | 3 | 48 | 65 |
+| P1 | 11 | 2 | 3 | 49 | 65 |
 | P2 | 5 | 0 | 0 | 14 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **22** | **3** | **3** | **113** | **141** |
+| **All** | **21** | **3** | **3** | **114** | **141** |
 
 ## How the current ordering is derived
 

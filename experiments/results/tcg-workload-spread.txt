@@ -1,0 +1,40 @@
+== conditions
+date              2026-09-21T19:09:56Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
+gcc               gcc (Debian 12.2.0-14+deb12u1) 12.2.0
+image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
+host io backing   /dev/sdd       ext4 1055762868 38806140 963253256   4% /work
+payload bench-int  aa9b927bac7da5b6f1506e103cf0c064362d92ca0d72ad0064a470cac97de832
+payload bench-sys  e8dcf374ed6f1689704025a0b8d9037542038fe4d044c55fd8a39461d0c1f8ba
+payload bench-mem  46c25638962e625eb14690962ab1112127fb8fc86ea0049ae78326ea62bc79e4
+payload bench-io  1c3dbbb5dd7c136c10b5238d59a4d42b735bc82b41a3c17b737d675fa66903bf
+
+== 1. host runs
+  ok: host bench-int ran three times
+  ok: host bench-sys ran three times
+  ok: host bench-mem ran three times
+  ok: host bench-io ran three times
+
+== 2. chroot runs through podbox
+chroot io backing /dev/sdd       ext4 1055762868 38821740 963237656   4% /work
+  ok: chroot bench-int ran through podbox three times
+  ok: chroot bench-sys ran through podbox three times
+  ok: chroot bench-mem ran through podbox three times
+  ok: chroot bench-io ran through podbox three times
+
+== 3. guest assembly and batch boot
+  ok: assembly 14567044 bytes
+/work/experiments/.sweep154-work/vmlinuz-virt: OK
+  qemu rc=124 (124 is the halt the spec records: poweroff halts on pc,acpi=off)
+  ok: the guest ran the batch to VMR-BENCH-DONE
+
+== 4. one row per class
+  ok: int: host 0.153s chroot 0.155s (1.0x) guest 1.136s (7.4x) checksum ebb92308acb7eace 
+  ok: sys: host 0.267s chroot 0.270s (1.0x) guest 3.060s (11.5x) checksum 4f24f178e189eea5 
+  ok: mem: host 1.094s chroot 1.118s (1.0x) guest 1.588s (1.5x) checksum 1d3fea76c4222325 
+  ok: io: host 0.087s chroot 0.092s (1.1x) guest 0.453s (5.2x) checksum 7168c26550222325 
+
+== counts: 14 driven, 0 mismatches
