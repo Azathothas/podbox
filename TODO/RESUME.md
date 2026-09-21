@@ -1,38 +1,34 @@
 ## The task
 
-Session of 2026-09-21, continued. The operator ruled on T-1213 (build
-entry yes, narrow fixture-only escape yes) and the unit is implemented:
-helper gained `eng_build` + `eng_privrun`, 10/20/130 converted with no
-assertion changed, 10 exits 0, 20 enters, 130 exits 1 on lane findings.
-Work order is TODO/PROGRESS.md: T-1213 is blocked on findings, next is
-T-0805/T-0808. Push straight to main, no branches. Work unattended; the
-operator reads the result later.
+Session of 2026-09-21, continued. T-1213 is committed as 5cfe7ea and
+pushed to main: helper gained `eng_build` + `eng_privrun`, 10/20/130
+converted with no assertion changed, 10 exits 0, 20 enters, 130 exits
+1 on lane findings. The commit gate failed three Linux runs on
+store-suite contention (a different two_* victim each time; the slot
+pool is process-wide and libtest shares it) before the fourth came
+back fully green, with a 97/97 serial confirmation beside it. T-1213
+stays blocked on lane findings. Next is T-0805/T-0808. Push straight
+to main, no branches. Work unattended; the operator reads the result
+later.
 
 ## The resume point
 
-Commit the T-1213 conversion (helper, three scripts, probe-parity
-evidence, entry, counts, record), gate green, push to main. Then start
-T-0805/T-0808: read both entries in full first.
+T-1213 is on main (5cfe7ea). Start T-0805/T-0808: read both entries
+in full first. The podman machine is stopped at close-out; restart it
+before engine work. The contention fix (serial store tests or scoped
+slots) belongs to the T-0211/T-0215 family and is still unauthored.
 
-## In flight (uncommitted, tree otherwise clean)
+## State (committed, tree clean)
 
 ```text
-M TODO/gate.md                    (T-1213 implemented + runs + findings)
-M TODO/PROGRESS.md                (ruling settled, work order, counts)
-M TODO/RESUME.md                  (this file)
-M experiments/lib/engine.sh       (+eng_build, +eng_privrun, +_in_roots,
-                                    +ENG_ENTRYPOINT, bare-ID pin)
-M experiments/10-build-target-image.sh (converted; exit 0)
-M experiments/20-enter-target.sh       (converted; enters, N+F+M)
-M experiments/130-probe-parity.sh      (converted; exit 1, lane findings)
-M experiments/results/probe-parity.txt (12 matched, 4 differed, 0 missing)
+5cfe7ea  experiments: convert target-image pair and probe consumer
+         to lib/engine.sh (T-1213, blocked) — pushed to main
 ```
 
 Counts hold at 35 open, 3 partial, 3 blocked, 96 done (no status moved).
-Gate was green before this work (`py scripts/check-todo.py` exit 0
-unpiped; full Linux check 9 passed, 0 failed, 2 environmental skips).
-Re-run the host gate unpiped after these edits; the Linux half needs a
-fresh run-in-base pass because engine.sh and three scripts changed.
+Host gate green (`py scripts/check-todo.py` exit 0 unpiped); Linux gate
+green on the fourth attempt (EXIT:0 unpiped) after three contention
+reds, all named in TODO/PROGRESS.md.
 
 ## Standing traps (paid for, do not rediscover)
 
@@ -65,10 +61,10 @@ fresh run-in-base pass because engine.sh and three scripts changed.
 - Guest artifacts: `.dev/artifacts/artifacts/{podbox,gnu.so,musl.so}`.
 - shellcheck SC1007 on the `CDPATH= ` idiom is a pre-existing
   false-positive pattern across all scripts.
-- Machine state: `podman-machine-default` Running (this session
-  restarted it after the T-1212 stop). Base `wsl-toolkit-podbox`
-  repaired and usable, with one honest non-fatal note: no cgroup
-  delegation.
+- Machine state: `podman-machine-default` stopped at close-out (this
+  session found it stopped, ran the engine work, and stopped it again).
+  Base `wsl-toolkit-podbox` repaired and usable, with one honest
+  non-fatal note: no cgroup delegation.
 - `Dockerfile.target` opens with an unpinned `FROM golang:1.24.7-bookworm`
   stage. Pinning it changes the build input; carried as a wart, not a fix.
 
