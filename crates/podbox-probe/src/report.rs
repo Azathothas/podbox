@@ -156,6 +156,10 @@ pub fn evidence(f: &Findings, sel: &Selection) -> String {
         );
     }
 
+    if let Some(note) = spawn_wall_note(f.get("clone(CLONE_NEWNS)"), f.get("setgroups(0,NULL)")) {
+        out.push_str(&note);
+    }
+
     if !sel.rejected.is_empty() {
         out.push_str("\nrungs considered and not reached\n");
     }
@@ -198,6 +202,60 @@ fn short(o: &crate::verdict::Outcome) -> String {
         (Verdict::Skip, Some(e)) => format!("skip ({})", e.name()),
         (Verdict::Skip, None) => "skip".to_string(),
     }
+}
+
+/// Wall 2 (`TODO/cli.md` T-0809): one string, two refused calls.
+///
+/// A Go payload that spawns a child fails `fork/exec <path>: operation not
+/// permitted` whether the clone or the setgroups met the denial, so the note
+/// names both legs with what this machine measured and tells the two apart
+/// by the payload shape. It prints only where a leg is denied: two clear
+/// legs mean the wall is absent here.
+fn spawn_wall_note(
+    clone: Option<&crate::verdict::Outcome>,
+    setgroups: Option<&crate::verdict::Outcome>,
+) -> Option<String> {
+    fn leg(o: Option<&crate::verdict::Outcome>) -> (String, bool, bool) {
+        match o {
+            Some(x) => match x.verdict {
+                Verdict::Denied => (short(x), true, false),
+                Verdict::Ok => (short(x), false, true),
+                Verdict::Skip => (short(x), false, false),
+            },
+            None => ("not measured".to_string(), false, false),
+        }
+    }
+    let (c_text, c_denied, c_clear) = leg(clone);
+    let (s_text, s_denied, s_clear) = leg(setgroups);
+    if !c_denied && !s_denied {
+        return None;
+    }
+    let mut out = String::from(
+        "\nspawn, and the two calls behind one string\n  A Go payload that spawns a \
+         child fails `fork/exec <path>: operation not permitted` whether the clone \
+         or the setgroups met the denial.\n",
+    );
+    out.push_str(&format!(
+        "  clone(CLONE_NEWNS) here: {c_text}. setgroups(0,NULL) here: {s_text}.\n"
+    ));
+    if c_denied {
+        out.push_str("  A payload that sets clone flags meets the clone denial here.\n");
+    } else if c_clear {
+        out.push_str("  The clone is clear here, so a failing spawn did not meet it.\n");
+    } else {
+        out.push_str("  The clone leg was not measured, so no spawn is attributed to it.\n");
+    }
+    if s_denied {
+        out.push_str(
+            "  A payload that sets a credential meets the setgroups denial here; the \
+             remedy is Credential{NoSetGroups: true}.\n",
+        );
+    } else if s_clear {
+        out.push_str("  Setgroups is clear here, so a failing spawn did not meet it.\n");
+    } else {
+        out.push_str("  The setgroups leg was not measured, so no spawn is attributed to it.\n");
+    }
+    Some(out)
 }
 
 fn identity_block(id: &Identity) -> String {
@@ -529,5 +587,50 @@ mod tests {
         assert_eq!(field(&a, "rung"), field(&b, "rung"));
         assert_eq!(field(&a, "mnt_ns"), field(&b, "mnt_ns"));
         assert_eq!(field(&a, "boot_id"), field(&b, "boot_id"));
+    }
+
+    fn denied() -> crate::verdict::Outcome {
+        crate::verdict::Outcome::denied(crate::sys::EPERM)
+    }
+
+    #[test]
+    fn two_clear_legs_mean_no_spawn_note() {
+        let ok = crate::verdict::Outcome::ok();
+        assert!(spawn_wall_note(Some(&ok), Some(&ok)).is_none());
+        assert!(spawn_wall_note(None, None).is_none());
+    }
+
+    #[test]
+    fn a_denied_clone_names_the_clone_and_clears_setgroups() {
+        let ok = crate::verdict::Outcome::ok();
+        let note = spawn_wall_note(Some(&denied()), Some(&ok)).expect("a note prints");
+        assert!(note.contains("clone flags"), "{note}");
+        assert!(note.contains("Setgroups is clear"), "{note}");
+        assert!(!note.contains("NoSetGroups"), "{note}");
+    }
+
+    #[test]
+    fn a_denied_setgroups_names_the_field_and_clears_the_clone() {
+        let ok = crate::verdict::Outcome::ok();
+        let note = spawn_wall_note(Some(&ok), Some(&denied())).expect("a note prints");
+        assert!(note.contains("NoSetGroups"), "{note}");
+        assert!(note.contains("credential"), "{note}");
+        assert!(note.contains("clone is clear"), "{note}");
+    }
+
+    #[test]
+    fn two_denied_legs_name_both_and_tell_them_apart_by_shape() {
+        let note = spawn_wall_note(Some(&denied()), Some(&denied())).expect("a note prints");
+        assert!(note.contains("clone flags"), "{note}");
+        assert!(note.contains("NoSetGroups"), "{note}");
+        assert!(note.contains("denied EPERM"), "{note}");
+    }
+
+    #[test]
+    fn an_unmeasured_leg_is_never_attributed() {
+        let note = spawn_wall_note(Some(&denied()), None).expect("a note prints");
+        assert!(note.contains("not measured"), "{note}");
+        assert!(note.contains("clone flags"), "{note}");
+        assert!(!note.contains("Setgroups is clear"), "{note}");
     }
 }

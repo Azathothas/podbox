@@ -612,7 +612,7 @@ Source:      `https://github.com/talaria0101/sandbox-insights`, its walls docume
 Category:    cli
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-21
 
 Problem:     A payload inside podbox spawns a child, the spawn fails, and the
              message says the operation is not permitted. ⛔ **That one string
@@ -647,3 +647,21 @@ Decision:    Diagnose, never patch. ⛔ podbox does not rewrite a payload's
              [complete.md](complete.md) T-0407's trust change, and it is not this
              tool's to make. It names the wall and the remedy.
 Prove:       `./experiments/151-spawn-ambiguity.sh` asserts podbox distinguishes a refused clone from a refused `setgroups` behind one identical payload message, and that the diagnostic names the field
+
+**Done 2026-09-21.** The probe evidence names the wall per context
+(`crates/podbox-probe/src/report.rs`): both legs with what this machine
+measured, the payload shape that tells them apart, and
+`Credential{NoSetGroups: true}` where setgroups met the denial. It prints
+only where a leg is denied. Five unit tests pin the leg matrix, including
+the unmeasured leg, which no spawn is attributed to.
+
+No generic string matcher ships. The mapping keys on the probe legs, not
+on substrings of payload output, so a matcher that guesses from text has
+no caller. The table row from T-0805 stays as the static mapping.
+
+Run 2026-09-21 in a disposable container (go 1.19.8, host podman 6.1.2):
+`./experiments/151-spawn-ambiguity.sh` exits 0. Both payloads fail with
+the byte-identical `fork/exec /bin/true: operation not permitted`, the
+clone half attributed in the plain context and the setgroups half under
+`unshare -Ur`, and the control payload exits 0 where setgroups is
+allowed. `experiments/results/spawn-ambiguity.txt` carries the run.
