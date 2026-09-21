@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-139 entries: 29 open, 3 partial, 3 blocked, 104 done.
+140 entries: 30 open, 3 partial, 3 blocked, 104 done.
 
 ## Baseline
 
@@ -159,7 +159,11 @@ declaration and the wrapper, a unit guard that fails pre-fix with
 `(-1, EINVAL)` against libc's `(0, 0)` and passes with the suite at 12 of
 12, and 162 red on the pre-fix binary (`TAR_RC:2`, one `Cannot change mode`
 error per link) and green on the fixed one (every row green both sides).
-T-1111 is unblocked and next.
+T-1111 ran on the fixed binary and reached a second wall past the unpack:
+every nix binary refuses to start with `GLIBC_2.34 not found (required by
+/.podbox/interpose.so)`, because the closure ships glibc 2.27 and the
+preloaded object binds `dlsym` at 2.34 and `gettid` at 2.30. That is filed
+as [T-1312](interpose.md) with the symbols named; T-1111 waits on it.
 
 What stays current from last time:
 

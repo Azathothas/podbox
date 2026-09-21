@@ -1123,6 +1123,50 @@ Prove:       `./experiments/240-distro-sweep.sh` exits 0 with both
              libdnf rows reading 42, on host podman, with the
              conditions block naming the driver.
 
+### T-1312 The glibc interposer needs newer symbols than the payload provides
+
+Source:      the T-1111 nix unpack (`experiments/results/nix-acceptance.txt`
+             carries the loader error);
+             `crates/podbox-interpose/src/real.rs:28`
+Category:    interpose
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     The nix 2.2.2 closure unpacks under podbox now (T-1311), but no
+             nix binary starts: the loader refuses each one with
+             `version 'GLIBC_2.34' not found (required by
+             /.podbox/interpose.so)`. The closure ships glibc 2.27, and the
+             preloaded object binds symbols its libc predates, so the whole
+             T-1111 pipeline stops at REGISTER.
+Premise:     Measured 2026-09-21 in the lane: `readelf -VW` on the shipped
+             glibc object needs `GLIBC_2.34` for `dlsym` and `GLIBC_2.30`
+             for `gettid`, and nothing else above 2.27. The `dlsym` reference
+             is this object's own (`crates/podbox-interpose/src/real.rs:28`);
+             glibc re-versioned the merged `libdl` symbols at 2.34, so any
+             link against a newer libc stamps it. No crate code calls
+             `gettid`: the reference arrives with Rust std, which this
+             object links. Everything else the object needs is 2.14 or
+             older, so these two are the whole gap.
+Approach:    Pin this object's `dlsym` reference to `GLIBC_2.2.5` with a
+             `.symver` directive, and define `gettid` locally through the
+             raw syscall number so std's reference resolves inside the
+             object instead of against the payload's libc. Assert the
+             ceiling in `scripts/build-interpose.sh`: no `GLIBC_` need above
+             2.27, the closure's version, measured in the failing row. Out
+             of scope: the musl object (no symbol versions, unaffected), a
+             `no_std` rewrite (the larger answer, unneeded while the two
+             references are the whole gap), and building against an older
+             libc (fragile without the assertion, redundant with it).
+Decision:    Fix in the interposer, not around it. Shipping a second older
+             object, or exempting nix binaries from the preload, would both
+             be a special case with a second thing to maintain; one object
+             that loads anywhere back to 2.27 is the product T-0702
+             describes.
+Prove:       `./scripts/build-interpose.sh` exits 0 with the ceiling
+             assertion recorded in its output, and the 152 REGISTER row
+             reads ok (recorded under the T-1111 run).
+
 ### T-1311 The interposed `fchmodat` drops the `flags` argument
 
 Source:      the T-1111 nix unpack (the symptom is in
