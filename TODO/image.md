@@ -307,7 +307,7 @@ Decision:    An inheritable lock fd rather than a pid file. A pid file is stale
              stale one is the race this is closing.
 Prove:       `podbox run -d --name gc-probe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && ! podbox image prune -af 2>&1 | grep -q "$(podbox inspect --format '{{.Image}}' gc-probe)" && podbox rm -f gc-probe`
 
-**Partial, 2026-09-08.** `images`, `image ls`, `rmi`, `image rm`, `tag`,
+**Done 2026-09-09, in the two halves below.** `images`, `image ls`, `rmi`, `image rm`, `tag`,
 `image prune` and `inspect` are implemented in `crates/podbox-cli/src/images.rs`
 over `crates/podbox-image/src/store.rs`, and the lock is
 `crates/podbox-probe/src/sys.rs`'s `flock(2)` on an fd opened **without**

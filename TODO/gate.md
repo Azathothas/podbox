@@ -454,6 +454,14 @@ Premise:     The exclusion is right and is not what this entry proposes to
              the workspace binary; the two `.so` files are 266,632 and 286,056
              bytes and are held to no ceiling at all, while they are embedded
              in the binary that IS held to one.
+             ⛔ **CORRECTED 2026-09-21 BY READING THE TREE: the `Problem` above no
+             longer holds as written.** `scripts/dev.sh` check runs fmt, clippy
+             with `-D warnings`, the interpose build and the interpose tests
+             against the excluded crate, so Approach item 1 has landed in
+             substance. What has not landed is item 2 (exported-symbol count
+             against the version script at the gate), item 3 (per-libc size in
+             T-0910's baseline) and item 4 (third-state reporting). The
+             `Decision` below is still open and still needs its ruling.
 Approach:    A second scope, not a second gate:
              1. `dev.sh check` runs the same four steps against
                 `crates/podbox-interpose` with its own target and linker, which

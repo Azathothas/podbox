@@ -136,7 +136,9 @@ fails the build rather than misleading the next session.
 ## 5. How an entry closes
 
 An entry closes **in place**, in its own file, with its `Prove` command
-actually run and the output recorded underneath.
+actually run and the output recorded underneath. The record opens with a bold
+`Done` paragraph on the first unindented line after `Prove`;
+`scripts/check-todo.py` check 22 holds it.
 
 ⛔ **Nothing closes as "won't fix", "upstream's problem" or "out of scope".**
 A blocked entry stays `blocked`, keeps its title, and names the blocker and

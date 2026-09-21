@@ -226,6 +226,9 @@ Decision:    A fresh chroot rather than refusing `exec`. `exec` is load-bearing
              uses provided it is stated.
 Prove:       `./experiments/320-cli-contract.sh` clause 4 and `./experiments/300-run.sh` clause 8: exec's stdout is the payload's, the banner says it is a fresh chroot, and `inspect --format '{{.Exec.Shares}}'` reads `filesystem`
 
+**Done, 2026-09-09.** `crates/podbox-cli/src/exec.rs`, `Exec.Mode` and
+`Exec.Shares` on `inspect`, and clause 8 of `experiments/300-run.sh`.
+
 ⛔ **The `Prove` above was rewritten, and the original is here because the
 rewrite is the finding.** It read
 
@@ -239,9 +242,6 @@ this entry BEFORE M4 because M4 needs it, so a `Prove` that needs M4 could never
 have run in the order it was written for. The mechanism does not depend on that
 half: `exec` re-enters a rootfs, and today a rootfs is named by an image
 reference and at M4 by a container name that resolves to the same directory.
-
-**Done, 2026-09-09.** `crates/podbox-cli/src/exec.rs`, `Exec.Mode` and
-`Exec.Shares` on `inspect`, and clause 8 of `experiments/300-run.sh`.
 
 ⭐ **The degradation is stated in three places and they cannot disagree**,
 because all three read one pair of constants in `crates/podbox-cli/src/images.rs`:

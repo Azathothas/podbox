@@ -199,10 +199,10 @@ Decision:    In-process extraction at entry level. Shelling out to `tar` is what
              makes this wall reach five tools instead of one.
 Prove:       `./experiments/70-whiteout-contract.sh` exits 0; `./experiments/220-extract-path-safety.sh` exits 0; `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox extract public.ecr.aws/docker/library/alpine:3.20 && test -f "$(podbox inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/etc/shadow"`; `podbox pull ghcr.io/void-linux/void-musl:latest && podbox extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podbox inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`; then, when M3 lands, the same two images under `podbox run --rm`
 
-**Partial, 2026-09-08.** Every clause above ran and matched, on this host, with
-`crates/podbox-extract` and the `extract` verb. [extract.md](extract.md) T-0301
-to T-0307 are all `done`, and this entry stays `partial` for one reason, named
-below.
+**Done 2026-09-09.** Every clause below ran and matched: the first four with
+`crates/podbox-extract` and the `extract` verb on 2026-09-08, the last two
+under `run --rm` on 2026-09-09. [extract.md](extract.md) T-0301
+to T-0307 are all `done`.
 
 | clause | reading |
 | --- | --- |
@@ -233,8 +233,9 @@ is why the `Prove` has the shape it has.
 The `Prove` as authored ran `podbox run --rm`, which is [T-1104](milestones.md).
 M2 can implement and drive extraction and cannot enter the tree it produced, in
 exactly the way [T-0107](probe.md), [T-0108](probe.md) and [T-0204](image.md)
-are `partial` now. What is left is one line: re-run the two image clauses under
-`run --rm` instead of against the extracted rootfs, and close this entry.
+were `partial` then. What was left was one line: re-running the two image
+clauses under `run --rm` instead of against the extracted rootfs, and closing
+this entry.
 
 ⚠ **THE `Prove` WAS REWRITTEN, AND NOT ONLY TO REMOVE `run`.** As authored it
 was one `&&` chain of six commands, and that shape cannot report what this

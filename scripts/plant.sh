@@ -2,7 +2,7 @@
 # plant.sh - break each of the gate's checks on purpose and assert it goes red.
 #
 # ⛔ AN ASSERTION NOBODY HAS SEEN FAIL IS NOT AN ASSERTION. `check-todo.py`
-# carries twenty-one checks and this script carries twenty-six cases, because
+# carries twenty-two checks and this script carries twenty-seven cases, because
 # check 17 has four assertions that fail apart, and checks 18, 19 and 21 two. A check that
 # quietly matches nothing exits 0 exactly like one whose assertions all passed,
 # and the second is what everybody assumes they are looking at. This script is
@@ -352,6 +352,15 @@ case_plant "21a an unqualified image in a Prove line" "unqualified image referen
 
 case_plant "21b a docker.io image in a Prove line" "which pulls from Docker Hub" \
   sh -c 'sed -i -E "s/(^Prove:.*)public\.ecr\.aws\/docker\/library\/alpine:3\.20/\1docker.io\/library\/alpine:latest/" TODO/probe.md'
+
+# ⛔ CHECK 22, and the plant is global on purpose rather than aimed at one
+# entry. The defect is a record that does not open with the marker, and any
+# single entry named here would rot the way cases 3, 4 and 10 did: the moment
+# that entry is edited, the mutation lands nowhere. Stripping the marker from
+# every record in a file the harness already owns always lands, and the
+# expected substring names the defect rather than the victim.
+case_plant "22 a closed entry with no recorded run" "closes without a recorded run" \
+  sh -c 'sed -i "s/^\*\*Done/*Done/" TODO/probe.md'
 
 echo
 # ⛔ SAY WHAT IS NOT COVERED. A harness that lists passing cases without naming

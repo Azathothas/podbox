@@ -85,6 +85,9 @@
      registry is another image. A bare row name handed to a matrix script
      is not an image reference: the script resolves it to a pinned digest
      internally.
+ 22. Every `done` entry opens its record with a bold `Done` paragraph on the
+     first unindented line after `Prove`. TODO/gate.md T-1208: a closed entry
+     nobody ran reads as done, and four of them did.
 
 ⛔ Read the exit code from this process, unpiped.
 Exit: 0 everything agrees, 1 something disagrees, 2 could not run.
@@ -187,7 +190,7 @@ seen = {
     "todo_citations": 0, "todo_links": 0, "crossrefs": 0,
     "tree_citations": 0, "tree_links": 0, "bare_citations": 0,
     "size_ceiling": 0, "experiment_numbers": 0, "ci_components": 0,
-    "exit_codes": 0, "prove_registry": 0,
+    "exit_codes": 0, "prove_registry": 0, "closure_records": 0,
 }
 
 # ⛔ Check 17. The one file allowed to declare the release binary's ceiling, and
@@ -732,6 +735,43 @@ def check_prove_registry():
                     break
 
 
+DONE_OPEN = re.compile(r"^\*\*Done")
+
+
+def check_closure_records(entries):
+    """Check 22: every done entry opens its record with a bold Done paragraph.
+
+    The first unindented, non-blank line after the Prove block has to open
+    with `**Done`. TODO/gate.md T-1208 is the ruling; RULES.md section 5 is
+    the shape it states.
+    """
+    for tid in sorted(entries):
+        e = entries[tid]
+        m = re.search(r"^Status: +(\S.*)$", e["body"], re.M)
+        if not m:
+            continue  # check 5 reports the missing field
+        if m.group(1).strip("*").split()[0] != "done":
+            continue
+        seen["closure_records"] += 1
+        where = f"TODO/{e['file']}:{e['line']}"
+        lines = e["body"].splitlines()
+        start = None
+        for i, ln in enumerate(lines):
+            if re.match(r"^Prove: +", ln):
+                start = i
+                break
+        if start is None:
+            continue  # check 5 reports the missing field
+        j = start + 1
+        while j < len(lines) and (not lines[j].strip() or lines[j][:1] in (" ", "\t")):
+            j += 1
+        if j >= len(lines) or not DONE_OPEN.match(lines[j]):
+            err(where,
+                f"({tid}) closes without a recorded run: the first unindented "
+                f"line after Prove does not open with `**Done`. "
+                f"TODO/gate.md T-1208.")
+
+
 def main():
     if not os.path.isdir(TODO):
         print("check-todo: TODO/ does not exist", file=sys.stderr)
@@ -957,6 +997,9 @@ def main():
 
     # -- 21. Prove lines stay off Docker Hub ---------------------------------
     check_prove_registry()
+
+    # -- 22. A closed entry carries its recorded run -------------------------
+    check_closure_records(entries)
 
     # -- 16. coverage --------------------------------------------------------
     # ⭐ A check that examined nothing reports success otherwise, which is the

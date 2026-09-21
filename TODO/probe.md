@@ -406,9 +406,9 @@ Decision:    Take `ruri`'s inversion and `udocker`'s precedence chain, and take
              is the distinction the ladder exists for.
 Prove:       `podbox run --network=none --rm public.ecr.aws/docker/library/alpine:3.20 true; test $? -ne 0` and `podbox probe --strict` exits non-zero on any degraded rung
 
-**Partial, 2026-09-08.** The selection and the switch are implemented and
-measured; the first half of the `Prove` above cannot be earned at this
-milestone and is not claimed.
+**Done 2026-09-09.** The selection and the switch were implemented and measured
+on 2026-09-08; the first half of the `Prove` above was earned under M3 on
+2026-09-09, and the reading is below.
 
 **What holds now.** `crates/podbox-probe/src/select.rs` derives the rung from
 the probe rows and nothing else. Measured on 2026-09-08: `namespace` unconfined
@@ -476,8 +476,8 @@ Decision:    stderr, not stdout. A payload's stdout is data to whatever
              `references/compforge__pathshim/tree/src/main.rs:134-138`.
 Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 /bin/echo hi 2>banner.txt >out.txt && grep -q '^hi$' out.txt && grep -q 'mode=' banner.txt`
 
-**Partial, 2026-09-08.** The banner exists, is on stderr, and is derived; the
-`Prove` above needs `run` and is not claimed.
+**Done 2026-09-09.** The banner existed on stderr, derived, on 2026-09-08; the
+`Prove` above was earned under M3 on 2026-09-09, and the reading is below.
 
 **What holds now.** `crates/podbox-probe/src/report.rs` emits it, and
 `podbox probe` prints it on stderr while stdout carries the rung alone. Inside
