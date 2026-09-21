@@ -1,33 +1,38 @@
 ## The task
 
-Session of 2026-09-21, continued. T-1212 is committed and pushed
-(`1d9ed91`). T-1213 analysed without touching a script: `20` needs
-`--privileged` (helper refuses it by design) and `10` needs a build
-entry the helper does not have. Work order is TODO/PROGRESS.md: T-1213
-is blocked on an operator ruling, next is T-0805/T-0808. Push straight
-to main, no branches. Work unattended; the operator reads the result
-later.
+Session of 2026-09-21, continued. The operator ruled on T-1213 (build
+entry yes, narrow fixture-only escape yes) and the unit is implemented:
+helper gained `eng_build` + `eng_privrun`, 10/20/130 converted with no
+assertion changed, 10 exits 0, 20 enters, 130 exits 1 on lane findings.
+Work order is TODO/PROGRESS.md: T-1213 is blocked on findings, next is
+T-0805/T-0808. Push straight to main, no branches. Work unattended; the
+operator reads the result later.
 
 ## The resume point
 
-Commit the T-1213 `blocked` state (entry, counts, record), gate green,
-push to main. Then start T-0805/T-0808: read both entries in full first.
-The open operator question (helper build entry + privileged escape)
-is asked in the final message and recorded in TODO/PROGRESS.md; do not
-implement either without the ruling.
+Commit the T-1213 conversion (helper, three scripts, probe-parity
+evidence, entry, counts, record), gate green, push to main. Then start
+T-0805/T-0808: read both entries in full first.
 
 ## In flight (uncommitted, tree otherwise clean)
 
 ```text
-M TODO/gate.md       (T-1213 blocked + three routes + clearer)
-M TODO/PROGRESS.md   (counts 35/3/3/96, work order, open question)
-M TODO/RESUME.md     (this file)
-M TODO/INDEX.md      (35 open, 3 partial, 3 blocked, 96 done)
+M TODO/gate.md                    (T-1213 implemented + runs + findings)
+M TODO/PROGRESS.md                (ruling settled, work order, counts)
+M TODO/RESUME.md                  (this file)
+M experiments/lib/engine.sh       (+eng_build, +eng_privrun, +_in_roots,
+                                    +ENG_ENTRYPOINT, bare-ID pin)
+M experiments/10-build-target-image.sh (converted; exit 0)
+M experiments/20-enter-target.sh       (converted; enters, N+F+M)
+M experiments/130-probe-parity.sh      (converted; exit 1, lane findings)
+M experiments/results/probe-parity.txt (12 matched, 4 differed, 0 missing)
 ```
 
-Gate was green at the T-1212 push (`py scripts/check-todo.py` exit 0
-read unpiped; full Linux check 9 passed, 0 failed, 2 environmental
-skips). Re-run both after these edits, unpiped, before the push.
+Counts hold at 35 open, 3 partial, 3 blocked, 96 done (no status moved).
+Gate was green before this work (`py scripts/check-todo.py` exit 0
+unpiped; full Linux check 9 passed, 0 failed, 2 environmental skips).
+Re-run the host gate unpiped after these edits; the Linux half needs a
+fresh run-in-base pass because engine.sh and three scripts changed.
 
 ## Standing traps (paid for, do not rediscover)
 
@@ -47,25 +52,33 @@ skips). Re-run both after these edits, unpiped, before the push.
 - This lane's OpenSSL rejects its own system config; `req -x509` needs an
   empty config file at a `winpath` spelling with conversion off for the
   call, and native openssl reads no msys spelling.
+- 20's stdout IS the payload channel: silence `engine_pick` there (the
+  line rode into 130's rung capture). Conditions on stderr still name
+  the driver.
+- The Go harness builds for the image arch from the engine, never the
+  host (host go targets windows here); the C probe builds on native
+  lanes only.
+- confine resolves no bare names (`20 -- id` dies, `20 -- /bin/id`
+  works); every real caller passes absolute paths.
+- Fixture tags are local names: 10/20 run the census and the
+  reconstruction by image ID, which `_pinned` accepts as content.
 - Guest artifacts: `.dev/artifacts/artifacts/{podbox,gnu.so,musl.so}`.
 - shellcheck SC1007 on the `CDPATH= ` idiom is a pre-existing
   false-positive pattern across all scripts.
-- Machine state: `podman-machine-default` Running (this session started
-  it from stopped; stop it when no entry needs host podman). Base
-  `wsl-toolkit-podbox` repaired and usable, with one honest non-fatal
-  note: no cgroup delegation.
-- T-1213's wall: `20-enter-target.sh:134` `--privileged` vs the helper's
-  `_no_priv` refusal; `10-build-target-image.sh:20` `docker build` vs no
-  build entry. Both need the operator, neither needs rediscovery.
+- Machine state: `podman-machine-default` Running (this session
+  restarted it after the T-1212 stop). Base `wsl-toolkit-podbox`
+  repaired and usable, with one honest non-fatal note: no cgroup
+  delegation.
+- `Dockerfile.target` opens with an unpinned `FROM golang:1.24.7-bookworm`
+  stage. Pinning it changes the build input; carried as a wart, not a fix.
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
 The record is TODO/PROGRESS.md and it carries the work order: T-1213 is
-blocked on an operator ruling (helper build entry plus privileged
-escape), so T-0805/T-0808 are next after the ruling or in parallel with
-it. Push straight to main and create no branches. Work unattended; the
-operator reads the result later. The guest lane still has no docker
-daemon (no NET_ADMIN), so engine clauses run on host podman.
+blocked on lane findings, so T-0805/T-0808 are next. Push straight to
+main and create no branches. Work unattended; the operator reads the
+result later. The guest lane still has no docker daemon (no NET_ADMIN),
+so engine clauses run on host podman.
 ```

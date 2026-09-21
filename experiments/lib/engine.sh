@@ -32,6 +32,13 @@
 # What this file deliberately does not do: start, stop or remove any machine,
 # and never `podman machine` anything. The shared machine stays as found.
 #
+# Two entry points the target-image conversion needed, and the rules they
+# carry: eng_build builds fixture images (bounded, roots-checked, never
+# privileged, never pushed by this helper), and eng_privrun is the one
+# privileged run, for fixture setup that builds kernel topology and for
+# nothing else, announced on stderr on every call. An operator ruling
+# (TODO/gate.md T-1213) owns both shapes.
+#
 # Exit codes follow the tree convention: 0 ran, 1 the caller asked for
 # something refused, 2 no engine answered.
 set -u
@@ -45,6 +52,10 @@ ENGINE_NAME=""
 # or artifact directory. Anything else as a mount source is refused.
 ENGINE_REPO="${ENGINE_REPO:-}"
 ENGINE_WORK="${ENGINE_WORK:-}"
+# Optional entrypoint override for the next eng_run, cleared by eng_clear
+# afterwards like the mounts. Empty means the image's own. One caller (10)
+# needs it for one call; every other caller leaves it alone.
+ENG_ENTRYPOINT="${ENG_ENTRYPOINT:-}"
 # Accumulated `SRC:DST:MODE` bindings for the next eng_run, where SRC is a
 # host path staged by eng_mount or a volume name staged by eng_volmount.
 # Cleared after it.
@@ -144,8 +155,16 @@ _refuse() {
 _pinned() {
 	case "$1" in
 	*@sha256:*) return 0 ;;
-	*) _refuse "image is not digest-pinned: $1" ;;
 	esac
+	# A bare image ID is content, not a name: exactly 64 hex chars name
+	# one object and cannot move, so running one is more pinned than
+	# running a digest-tagged name, not less. Locally built fixtures only
+	# ever have this form (10, 20); registry names never do alone.
+	case "$1" in
+	"" | *[!0-9a-f]*) ;;
+	*) [ "${#1}" -eq 64 ] && return 0 ;;
+	esac
+	_refuse "image is not digest-pinned: $1"
 }
 
 # _no_priv ARGS... - refuse the flags that escape the experiment.
@@ -156,6 +175,24 @@ _no_priv() {
 		esac
 	done
 	return 0
+}
+
+# _in_roots P - true where P sits under ENGINE_REPO or ENGINE_WORK.
+# The one spelling of the root check: eng_mount and eng_build share it so
+# the two cannot drift into different ideas of what "inside" means.
+_in_roots() {
+	[ -n "$ENGINE_REPO" ] || [ -n "$ENGINE_WORK" ] || return 1
+	if [ -n "$ENGINE_REPO" ]; then
+		case "$(winpath "$1")/" in
+		"$(winpath "$ENGINE_REPO")/"*) return 0 ;;
+		esac
+	fi
+	if [ -n "$ENGINE_WORK" ]; then
+		case "$(winpath "$1")/" in
+		"$(winpath "$ENGINE_WORK")/"*) return 0 ;;
+		esac
+	fi
+	return 1
 }
 
 # eng_mount SRC DST [rw] - stage one binding for the next eng_run, cleared
@@ -179,16 +216,7 @@ eng_mount() {
 	*) _refuse "mount destination is not absolute: $_dst" || return 1 ;;
 	esac
 	_ok=""
-	if [ -n "$ENGINE_REPO" ]; then
-		case "$(winpath "$_raw_src")/" in
-		"$(winpath "$ENGINE_REPO")/"*) _ok="1" ;;
-		esac
-	fi
-	if [ -n "$ENGINE_WORK" ]; then
-		case "$(winpath "$_raw_src")/" in
-		"$(winpath "$ENGINE_WORK")/"*) _ok="1" ;;
-		esac
-	fi
+	_in_roots "$_raw_src" && _ok="1"
 	[ -n "$_ok" ] || _refuse "mount source outside the declared roots: $_raw_src" || return 1
 	ENG_MOUNTS="$ENG_MOUNTS$(winpath "$_raw_src"):$_dst:$_mode "
 }
@@ -255,16 +283,63 @@ eng_run() {
 	for _m1 in $ENG_MOUNTS; do
 		_flags="$_flags -v $_m1"
 	done
+	[ -n "$ENG_ENTRYPOINT" ] && _flags="$_flags --entrypoint $ENG_ENTRYPOINT"
 	# shellcheck disable=SC2086
 	MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout "$_t" "$ENGINE_BIN" run --rm $_caps $_flags "$_img" "$@"
 	_rc=$?
 	return "$_rc"
 }
 
-# eng_clear - forget staged mounts. Call after the run, in the same shell
-# that staged them: a `$( )` around the run would discard the clearing.
+# eng_clear - forget staged mounts and the entrypoint override. Call after
+# the run, in the same shell that staged them: a `$( )` around the run
+# would discard the clearing.
 eng_clear() {
 	ENG_MOUNTS=""
+	ENG_ENTRYPOINT=""
+}
+
+# eng_privrun TIMEOUT IMAGE ENTRYPOINT ENVS -- CMD... - the one privileged
+# entry point, for fixture setup that builds kernel topology no
+# unprivileged call can build (20's reconstruction: mount(2) plus
+# pivot_root(2)). Pinned image, bounded, staged mounts, --rm, like
+# eng_run, plus --privileged, --security-opt seccomp=unconfined and -i,
+# minus any privilege flag the caller passes: those stay refused, so this
+# call is the one spelling of the escape. Announces on stderr on every
+# call: a silent privileged run is the exact dishonesty this tree refuses
+# to ship. The container exit code is the exit code. Fixture setup only;
+# payloads never ride this call.
+# ENTRYPOINT is "" or a path; ENVS is K=V words, values with spaces
+# unsupported, keep them out.
+eng_privrun() {
+	[ $# -ge 5 ] || return 1
+	_t="$1"; _img="$2"; _ep="$3"; _env="$4"
+	shift 4
+	[ "$1" = "--" ] || return 1
+	shift
+	[ -n "$ENGINE_BIN" ] || return 1
+	_pinned "$_img" || return 1
+	_no_priv "$@" || return 1
+	_flags=""
+	# shellcheck disable=SC2086
+	for _m1 in $ENG_MOUNTS; do
+		_flags="$_flags -v $_m1"
+	done
+	# shellcheck disable=SC2086
+	for _e in $_env; do
+		case "$_e" in
+		*=*) ;;
+		*) _refuse "env is not K=V: $_e" || return 1 ;;
+		esac
+		_flags="$_flags -e $_e"
+	done
+	[ -n "$_ep" ] && _flags="$_flags --entrypoint $_ep"
+	_tty=""
+	[ -t 0 ] && _tty="-t"
+	printf 'engine: PRIVILEGED fixture run (--privileged seccomp=unconfined): %s\n' "$_img" >&2
+	# shellcheck disable=SC2086
+	MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout "$_t" "$ENGINE_BIN" run --rm -i $_tty --privileged --security-opt seccomp=unconfined $_flags "$_img" "$@"
+	_rc=$?
+	return "$_rc"
 }
 
 # eng_serve NAME IMAGE PORTS ENV -- CMD... - a fixture server that outlives
@@ -453,6 +528,33 @@ eng_image_inspect() {
 	[ $# -eq 2 ] || return 1
 	[ -n "$ENGINE_BIN" ] || return 1
 	MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout 60 "$ENGINE_BIN" image inspect --format "$2" "$1"
+}
+
+# eng_build TIMEOUT TAG DOCKERFILE CONTEXT -- [BUILDARGS...] - build one
+# fixture image. TAG is a local fixture name; this helper never pushes, so
+# a fixture tag stays where the engine keeps it. DOCKERFILE and CONTEXT
+# must sit under the declared roots. Bounded by TIMEOUT; --privileged and
+# --cap-add refused. Prints the image id on stdout. Base-image pinning
+# stays the Dockerfile's own rule: its header already states it, and a tag
+# there is the Dockerfile's business, not the caller's.
+eng_build() {
+	[ $# -ge 4 ] || return 1
+	_t="$1"; _tag="$2"; _df="$3"; _ctx="$4"
+	shift 4
+	[ "${1:-}" = "--" ] || return 1
+	shift
+	[ -n "$ENGINE_BIN" ] || return 1
+	[ -n "$_tag" ] || return 1
+	_no_priv "$@" || return 1
+	[ -f "$_df" ] || _refuse "dockerfile is not a file: $_df" || return 1
+	[ -d "$_ctx" ] || _refuse "build context is not a directory: $_ctx" || return 1
+	_in_roots "$_df" || _refuse "dockerfile outside the declared roots: $_df" || return 1
+	_in_roots "$_ctx" || _refuse "build context outside the declared roots: $_ctx" || return 1
+	# shellcheck disable=SC2086
+	MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout "$_t" "$ENGINE_BIN" build -f "$(winpath "$_df")" -t "$_tag" "$@" "$(winpath "$_ctx")"
+	_rc=$?
+	if [ "$_rc" -ne 0 ]; then return "$_rc"; fi
+	eng_image_inspect "$_tag" '{{.Id}}'
 }
 
 # eng_start CID - start a created container and return once it is running.

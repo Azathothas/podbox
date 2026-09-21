@@ -20,8 +20,38 @@ set -euo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
+# Sourced before anything that can fail, so the EXIT trap below never
+# calls a function that does not exist yet. Naming the engine comes
+# later, with the work directory it needs.
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
 IMAGE="${TARGET_IMAGE:-container-research/target:1}"
-STAGE="${TARGET_STAGE:-$REPO/experiments/.stage}"
+# ⭐ The lane's scratch lives under the checkout on a non-native lane:
+# mount sources must be Windows paths there (245's rule), and /tmp/...
+# names nothing. STAGE is staged into the reconstruction read-write, so
+# it sits under the work directory on every lane; TARGET_STAGE still
+# overrides it. Fresh per run: the remove-first staging below already
+# refuses to nest, and a fresh directory cannot carry a stale one.
+case "$(uname -s)" in
+Linux) NATIVE=1; WORK="$(mktemp -d)" ;;
+*)     NATIVE=0; WORK="$REPO/experiments/.sweep20-work"; rm -rf "$WORK"; mkdir -p "$WORK" || exit 2 ;;
+esac
+STAGE="${TARGET_STAGE:-$WORK/stage}"
+trap 'eng_cleanup; rm -rf "$WORK"' EXIT INT TERM
+
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. The reconstruction runs privileged through
+# the helper's one loud escape, because mount(2) and pivot_root(2) build
+# the topology this script exists to measure. What each run asserts is
+# unchanged.
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$REPO"
+ENGINE_WORK="$WORK"
+# ⛔ Silenced, not removed: this script's stdout IS the payload channel
+# (130 captures it as the rung), and the pick line would ride along into
+# it. The choice is still recorded, in the conditions block on stderr.
+if engine_pick >/dev/null; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
 
 RAW=0
 STAGE_IN=()
@@ -36,12 +66,15 @@ while [ "$#" -gt 0 ]; do
 done
 [ "${#ARGS[@]}" -eq 0 ] && ARGS=(/bin/sh)
 
-command -v docker >/dev/null 2>&1 || { echo "SKIP: docker not on PATH" >&2; exit 2; }
-docker info >/dev/null 2>&1 || { echo "SKIP: docker daemon not reachable" >&2; exit 2; }
-docker image inspect "$IMAGE" >/dev/null 2>&1 || {
+eng_image_inspect "$IMAGE" '{{.Id}}' >/dev/null 2>&1 || {
 	echo "SKIP: $IMAGE not built. Run ./experiments/10-build-target-image.sh" >&2
 	exit 2
 }
+# By ID, not by fixture tag: the tag is a local name by definition, and
+# the helper only takes pinned references. The ID names the exact bytes
+# the build produced.
+IID="$(eng_image_inspect "$IMAGE" '{{.Id}}')"
+IID="${IID#sha256:}"
 
 # ------------------------------------------------------------------ staging
 # The harness is built on the host and staged into what becomes /workspace,
@@ -67,9 +100,17 @@ for d in confine probe; do
 	}
 done
 mkdir -p "$STAGE/.harness"
-( cd "$HARNESS_SRC/confine" && CGO_ENABLED=0 go build -o "$STAGE/.harness/confine" . )
-( cd "$HARNESS_SRC/probe"   && CGO_ENABLED=0 go build -o "$STAGE/.harness/probe" . )
-if command -v gcc >/dev/null 2>&1 && [ -f "$HARNESS_SRC/cprobe/cprobe.c" ]; then
+# The harness runs INSIDE the reconstruction, so it is built for the
+# image's architecture, never the host's: on a non-native lane host go
+# targets windows and the build dies on Linux-only syscalls. Measured
+# 2026-09-21. The image arch comes from the engine, which built it.
+HARNESS_GOARCH="$(eng_image_inspect "$IMAGE" '{{.Architecture}}')"
+( cd "$HARNESS_SRC/confine" && GOOS=linux GOARCH="$HARNESS_GOARCH" CGO_ENABLED=0 go build -o "$STAGE/.harness/confine" . )
+( cd "$HARNESS_SRC/probe"   && GOOS=linux GOARCH="$HARNESS_GOARCH" CGO_ENABLED=0 go build -o "$STAGE/.harness/probe" . )
+# The C probe only where host gcc targets the container: a non-native
+# lane's gcc builds for the host, and a windows binary inside the
+# reconstruction measures nothing. The shell probe above covers the rows.
+if [ "$NATIVE" -eq 1 ] && command -v gcc >/dev/null 2>&1 && [ -f "$HARNESS_SRC/cprobe/cprobe.c" ]; then
 	gcc -O2 -static -o "$STAGE/.harness/cprobe" "$HARNESS_SRC/cprobe/cprobe.c"
 fi
 
@@ -129,25 +170,30 @@ chown -R 1000:1000 "$STAGE/.fixtures" 2>/dev/null || true
 chown -R 1000:1000 "$STAGE" 2>/dev/null || true
 
 # ------------------------------------------------------------------ run
-DOCKER_ARGS=(
-	--rm -i
-	--privileged                 # mount(2) and pivot_root(2) build the topology
-	--security-opt seccomp=unconfined
-	-v "$STAGE:/stage"
-	-e "TARGET_HOST_UID=1000"
-	-e "TARGET_WORKSPACE=/stage"
-)
-[ -t 0 ] && DOCKER_ARGS+=(-t)
+# The privileged half, through the helper's one loud escape: mount(2)
+# and pivot_root(2) build the topology, and nothing unprivileged can.
+# STAGE travels read-write; TARGET_STAGE callers (300's clause 7 stages a
+# store there) land under the work directory's mount the same way.
+eng_mount "$STAGE" /stage rw \
+	|| { echo "SKIP: $STAGE could not be staged" >&2; exit 2; }
+ENVS="TARGET_HOST_UID=1000 TARGET_WORKSPACE=/stage"
 
 if [ "$RAW" = 1 ]; then
-	exec docker run "${DOCKER_ARGS[@]}" --entrypoint /bin/sh "$IMAGE" -c \
+	eng_privrun 3600 "$IID" /bin/sh "$ENVS" -- -c \
 		'cp -a /stage/. /target-stage 2>/dev/null; exec "$@"' -- "${ARGS[@]}"
+	rc=$?
+	eng_clear
+	exit "$rc"
 fi
 
 echo "== reconstruction conditions" >&2
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >&2
 printf 'host kernel       %s\n' "$(uname -r)" >&2
-printf 'image             %s\n' "$(docker image inspect -f '{{.Id}}' "$IMAGE")" >&2
+printf 'engine            %s\n' "$(engine_describe)" >&2
+printf 'image             %s\n' "$(eng_image_inspect "$IMAGE" '{{.Id}}')" >&2
 printf 'harness sources   %s\n' "$HARNESS_SRC" >&2
 
-exec docker run "${DOCKER_ARGS[@]}" "$IMAGE" "${ARGS[@]}"
+eng_privrun 3600 "$IID" "" "$ENVS" -- "${ARGS[@]}"
+rc=$?
+eng_clear
+exit "$rc"

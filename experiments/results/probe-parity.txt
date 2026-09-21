@@ -1,11 +1,11 @@
 # podbox probe against experiments/results/attribute.txt
-# taken 2026-09-10T00:14:39Z on kernel 6.18.44-fc-v24
+# taken 2026-09-21T07:46:49Z on kernel 3.6.9-b4195d69.x86_64
 # TODO/milestones.md T-1101. Verdict and errno, never raw text.
 confined_rung     chroot
-unconfined_rung   namespace
-rows_matched      15
-rows_recorded     1   (kcmp control: ENOSYS is a skip here, a denial there)
-rows_differed     0
+unconfined_rung   supervise
+rows_matched      12
+rows_recorded     0   (kcmp control: ENOSYS is a skip here, a denial there)
+rows_differed     4
 rows_missing      0
 
 ## every row podbox reported inside the reconstruction
@@ -48,14 +48,14 @@ umount2(2) bogus target|denied|1
 pivot_root(2) bogus paths|denied|1
 process_vm_readv(bogus pid)|denied|1
 pidfd_getfd(-1,-1) [control]|denied|9
-kcmp(-1,-1,...) [control]|skip|
+kcmp(-1,-1,...) [control]|denied|3
 fsopen(tmpfs)|ok|-
 fsmount(tmpfs)|ok|-
 open_tree(/tmp, CLONE)|ok|-
 move_mount(-> bogus dest)|denied|2
-move_mount(-> /tmp/mm-probe)|ok|-
+move_mount(-> /tmp/mm-probe)|denied|1
 openat(detached tmpfs, O_DIRECTORY)|ok|-
 seccomp(NEW_LISTENER)|ok|-
 open /proc/self/mem O_RDONLY|ok|-
-open /proc/self/mem O_RDWR|ok|-
-landlock_create_ruleset(VERSION)|denied|38
+open /proc/self/mem O_RDWR|denied|13
+landlock_create_ruleset(VERSION)|ok|-

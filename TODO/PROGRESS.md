@@ -86,15 +86,15 @@ before podbox ever sees a verb. One self-inflicted taint: editing `300`
 mid-run skipped one byte of the running script, so the run was repeated
 clean. Never edit a running script.
 
-⭐ **[T-1213](gate.md) is blocked without converting a line.** The
-reconstruction runs `docker run --privileged`
-(`20-enter-target.sh:134`), because `mount(2)` and `pivot_root(2)` build
-the topology it exists to measure, and `experiments/lib/engine.sh`
-refuses `--privileged` outright. The build script needs a build entry
-the helper does not have. Three routes considered, none compliant; the
-entry names them and what clears each. What it needs is an operator
-ruling: whether the helper gains a bounded build entry, and whether the
-privileged run gets an explicit escape or stays outside the helper.
+⭐ **[T-1213](gate.md) is implemented under the operator ruling and
+blocked on lane findings.** The ruling (build entry yes, narrow
+privileged escape yes) arrived the same session, so the helper gained
+`eng_build` and `eng_privrun`, all three scripts converted with no
+assertion changed, and all three ran: `10` exits 0 (image builds,
+census green), `20` enters the reconstruction (N+F+M, payload codes
+pass), `130` exits 1 (unconfined rung is `supervise` in the driver,
+four rows differ against the reference kernel). The entry carries the
+runs, the refusal-path probes, and what clears each half.
 
 What stays current from last time:
 
@@ -113,6 +113,33 @@ the table's values clean.
 ⚠ **This lane's OpenSSL reads a system config its own build rejects.**
 `req -x509` needs an empty config file at a Windows-spelled path with
 conversion off for the call. `280` carries the shape.
+
+⚠ **The store suite failed the commit gate three times, a different
+victim each time, all `two_*`** (`two_holders_of_one_image...`, then
+`two_staging_calls_in_one_process...`, then `two_platforms...` plus
+`two_holders...` again: 95 of 97 around the third). Run 3 names the
+mechanism twice: `Store("this process already holds 16 locks, which
+is every slot podbox has ... (T-0211)")`. The pool is process-wide
+and fixed: `FORK_CLOSE_SLOTS` in `crates/podbox-probe/src/sys.rs`,
+one slot per `Lock::try_acquire` in
+`crates/podbox-image/src/store.rs`. Libtest runs the suite in threads
+of one process. Each `two_*` test holds two or more locks at once:
+`two_holders` keeps `a` and `b` live together. Parallel neighbours
+exhaust the 16 slots, and the hungry test that asks last is refused.
+The victim varies with scheduling. No source changed under any of it:
+the tree differs from the green run in `experiments/` and `TODO/`
+alone, which `cargo test --workspace` never reads. A fresh container
+per run refutes stale state. A cut-down probe without the gate's own
+setup proved nothing twice now: it dies building `ring`, so the `zig
+tools` bootstrap is load-bearing. A serial run with the gate's own
+setup confirmed it: 97 of 97 pass with `--test-threads=1`, all three
+victims green uncontended. The suite is correct; the parallelism is
+the defect. The fix,
+serial store tests or scoped slots, belongs to the
+[T-0211](image.md)/[T-0215](image.md) family, not to the change under
+gate. The serial run came back green, and the fourth and final
+full-gate attempt came back fully green with it (97 of 97 on the
+store suite), so the change commits with the three reds named above.
 
 ## Current work order
 
@@ -135,7 +162,8 @@ conversion off for the call. `280` carries the shape.
 rows read no-compiler under the interposer while the engine control reaches
 42. What clears it is T-1309 fixed. [T-1212](gate.md) is `blocked` on a
 daemon, privilege, and two expectation owners. [T-1213](gate.md) is
-`blocked` on the operator ruling above. [T-1209](gate.md) and
+`blocked` on a native lane for clause 2 and a same-machine reference
+for clause 3. [T-1209](gate.md) and
 [T-1210](gate.md) are `done`.
 
 ## In progress
@@ -143,8 +171,8 @@ daemon, privilege, and two expectation owners. [T-1213](gate.md) is
 [T-0805](cli.md) and [T-0808](cli.md) are `open` and are next. No
 implementation entry is half-written. [T-1212](gate.md) went `blocked`
 in this change with its six runs and what clears each red half, and
-[T-1213](gate.md) went `blocked` in this change with no script touched:
-the unit needs an operator ruling first. Three entries
+[T-1213](gate.md) went `blocked` in this change with its conversion,
+its three runs and its lane findings. Three entries
 remain `partial`: [T-0503](enter.md), [T-0704](interpose.md) and
 [T-1109](milestones.md), each carrying its remaining conditions in its own file.
 
@@ -160,13 +188,12 @@ mutating clause prints the line it WROTE as well as the line it matched.
 
 ## Operator questions
 
-⭐ **One is open.** It blocks [T-1213](gate.md) and it needs the operator,
-because it is a security policy on a shared workstation rather than an
-implementation choice.
+⭐ **None is open.** The T-1213 ruling arrived the same session it was
+asked in, and it lives in the entry.
 
 | question | status | where it lives |
 | --- | --- | --- |
-| whether `experiments/lib/engine.sh` gains a bounded build entry, and whether the reconstruction's `--privileged` run gets an explicit escape or stays outside the helper | open, asked 2026-09-21 | [T-1213](gate.md) |
+| whether `experiments/lib/engine.sh` gains a bounded build entry, and whether the reconstruction's `--privileged` run gets an explicit escape or stays outside the helper | ruled 2026-09-21: build entry yes, narrow fixture-only escape yes | [T-1213](gate.md) |
 
 Every settled ruling is written into the entry that owns it, which
 is where an implementer reads it.

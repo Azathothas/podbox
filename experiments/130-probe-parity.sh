@@ -22,8 +22,57 @@ REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
 BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
 REF="$REPO/experiments/results/attribute.txt"
 OUT="$REPO/experiments/results/probe-parity.txt"
-WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT INT TERM
+# ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
+# because an ELF built here does not execute there. The lane's scratch
+# lives under the checkout on a non-native lane: mount sources must be
+# Windows paths there (245's rule), and /tmp/... names nothing.
+case "$(uname -s)" in
+Linux) NATIVE=1; WORK="$(mktemp -d)"; PSTORE="$WORK/store" ;;
+*)     NATIVE=0; WORK="$REPO/experiments/.sweep130-work"; rm -rf "$WORK"; mkdir -p "$WORK/w" || exit 2; PSTORE="/v/store" ;;
+esac
+trap 'eng_cleanup; rm -rf "$WORK"' EXIT INT TERM
+
+# The engine is `experiments/lib/engine.sh`: a docker daemon where one
+# answers, else host podman. Clauses 1 and 3 drive 20-enter-target.sh
+# (converted beside this one); clause 2 and the conditions drive the
+# binary directly where it executes, staged in the driver elsewhere.
+# What each row asserts is unchanged.
+# shellcheck source=lib/engine.sh
+. "$HERE/lib/engine.sh"
+export ENGINE_REPO ENGINE_WORK
+ENGINE_REPO="$REPO"
+ENGINE_WORK="$WORK"
+if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
+[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
+
+# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# for every `$BIN` call on a non-native lane.
+DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
+STAGE="$WORK/stage"
+if [ "$NATIVE" -eq 0 ]; then
+	[ -r "$BIN" ] || {
+		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		exit 2
+	}
+	eng_pull "$DRIVER" || exit 2
+	mkdir -p "$STAGE" || exit 2
+	cp "$BIN" "$STAGE/podbox"
+	eng_mount "$STAGE/podbox" /pb \
+		&& eng_mount "$WORK/w" /w rw \
+		&& eng_volmount "x130-$$" /v rw \
+		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
+fi
+
+# pb TIMEOUT ARGS... - podbox where it executes, staged in the driver
+# elsewhere. Timeouts stay per call site, as before.
+pb() {
+	_t="$1"; shift
+	if [ "$NATIVE" -eq 1 ]; then
+		timeout "$_t" "$BIN" "$@"
+	else
+		eng_pbrun "$_t" "$DRIVER" "$PSTORE" -- "$@"
+	fi
+}
 
 [ "${1:-}" = "--refresh" ] && {
 	# 30- exits 2 where this kernel has no Landlock, which is a real skip and
@@ -33,11 +82,13 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 	[ "$rc" -eq 1 ] && { echo "SKIP: 30-attribution-census.sh reported a mismatch" >&2; exit 2; }
 }
 
-[ -x "$BIN" ] || {
-	echo "SKIP: $BIN is not an executable. Build it:" >&2
-	echo "      cargo build --release --target x86_64-unknown-linux-musl" >&2
-	exit 2
-}
+if [ "$NATIVE" -eq 1 ]; then
+	[ -x "$BIN" ] || {
+		echo "SKIP: $BIN is not an executable. Build it:" >&2
+		echo "      cargo build --release --target x86_64-unknown-linux-musl" >&2
+		exit 2
+	}
+fi
 [ -s "$REF" ] || {
 	echo "SKIP: $REF does not exist. Take it first:" >&2
 	echo "      ./experiments/30-attribution-census.sh --capture experiments/results" >&2
@@ -63,7 +114,8 @@ normalise() {
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
-printf 'podbox            %s\n' "$("$BIN" version)"
+printf 'podbox            %s\n' "$(pb 60 version)"
+printf 'engine            %s\n' "$(engine_describe)"
 printf 'binary            %s bytes\n' "$(stat -c%s "$BIN")"
 printf 'reference rows    %s\n' "$REF"
 echo
@@ -87,7 +139,7 @@ fi
 
 echo
 echo "== 2. unconfined, the rung must be namespace"
-unconfined_rung="$("$BIN" probe 2>"$WORK/unconfined.err")"
+unconfined_rung="$(pb 60 probe 2>"$WORK/unconfined.err")"
 printf '  got %s\n' "$unconfined_rung"
 [ "$unconfined_rung" = "namespace" ] || { echo "  FAIL: expected namespace"; fail=1; }
 

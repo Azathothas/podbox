@@ -1049,27 +1049,93 @@ Prove:       `./experiments/10-build-target-image.sh`,
              `./experiments/130-probe-parity.sh` each exit 0 on host podman
              with the conditions block naming the driver, and
              `experiments/results/probe-parity.txt` carries the run.
-Blocked:     Two of the three have no compliant route through the helper,
-             measured 2026-09-21 against the helper's own source. First,
-             `20-enter-target.sh:134` runs the reconstruction with
-             `--privileged`, because `mount(2)` and `pivot_root(2)` build
-             the topology the script exists to measure, and
-             `experiments/lib/engine.sh` refuses `--privileged` outright in
-             `_no_priv`. A `--cap-drop` wall cannot build that topology.
-             Second, `10-build-target-image.sh:20` runs `docker build` and
-             the helper has no build entry at all: no pinned-base,
-             bounded, unprivileged build to convert the call into. Three
-             routes considered: add a build entry plus a privileged escape
-             to the helper (a security-policy change on a shared
-             workstation, not an implementer's call); convert `130`'s
-             unconfined rows alone (this entry's own Decision forbids
-             splitting the unit); leave the privileged run outside the
-             helper (then the conversion is a second engine spelling,
-             which is what the helper exists to stop). What clears this:
-             an operator ruling on whether `engine.sh` gains a bounded
-             build entry, and whether the reconstruction's privileged run
-             gets an explicit escape or stays outside the helper with
-             `130` inheriting the SKIP. On this lane both scripts exit 2
-             today (no docker daemon: `20-enter-target.sh:39-40`), so the
-             unit is unmeasurable here either way.
+Blocked:     The conversion is implemented under the operator ruling of
+             2026-09-21 (a bounded build entry, and one loud privileged
+             escape for fixture setup), and the assertions are unchanged,
+             but the `Prove` does not hold on this lane. `10` exits 0:
+             the image builds from the pinned Dockerfile and the census
+             names its toolchain. `20` enters the reconstruction (N+F+M,
+             payload codes pass through). `130` exits 1 on three lane
+             findings below. What clears each is named; none of it is a
+             conversion defect.
+             Clause 2 fails in the driver: unconfined, podbox selects
+             `supervise` where the clause wants `namespace`. The binary
+             cannot execute on the Windows host, so the clause drives it
+             staged in the driver container, which is itself confined
+             (no new user namespace). The clause measures the driver's
+             confinement, not podbox. Clears on a native lane, where the
+             binary runs on the host.
+             Clause 3 differs on four rows, all reference-vs-machine,
+             all correctly reported as DIFFER: kcmp control (denied 38
+             there, denied 3 here), move_mount (ok there, denied 1
+             here), open /proc/self/mem (ok there, denied 13 here),
+             landlock_create_ruleset (denied 38 there, ok here: this
+             kernel has landlock, the reference machine did not).
+             `attribute.txt` was taken 2026-09-10 on another kernel.
+             Clears with a same-machine re-capture (`130 --refresh`
+             through `30-`).
+             One observation, not a failure: bare payload names do not
+             resolve through confine (`20 -- id` dies with "no such
+             file", `20 -- /bin/id` exits 0). Name resolution inside the
+             reconstruction is the corpus binary's business; every real
+             caller (130, 300 clause 7) passes absolute paths.
+
+```
+$ sh experiments/10-build-target-image.sh; echo EXIT:$?
+  == building container-research/target:1
+  [2/2] COMMIT container-research/target:1
+  --> 9ed4f5c81452
+  == conditions
+  engine            podman version 6.1.2
+  image id          9ed4f5c81452 (short form; the full ID is in 10's console output, never committed)
+  == what the image has, and has not
+  go                go1.24.7
+  gcc               12
+  python3           3.11.2
+  tar               1.34
+  zstd              1.5.4
+  rustc             MISSING (as on the target)
+  docker on PATH    podman version 5.8.2
+EXIT:0
+$ sh experiments/130-probe-parity.sh; echo EXIT:$?
+  == 1. inside the reconstruction, the rung must be chroot
+    got chroot
+  == 2. unconfined, the rung must be namespace
+    got supervise
+    FAIL: expected namespace
+  == 3. the attribution rows: 12 matched, 0 recorded, 4 differed, 0 missing
+EXIT:1
+```
+
+             The helper carries two new entry points, both ruled, both
+             with refusal paths probed: `eng_build` (bounded, roots-checked,
+             never privileged, never pushed; prints the image id) and
+             `eng_privrun` (pinned image, bounded, staged mounts, --rm,
+             plus --privileged with seccomp=unconfined and -i, announcing
+             on stderr on every call; caller-passed privilege flags stay
+             refused). A bare 64-hex image ID counts as pinned: it names
+             content, not a tag, and locally built fixtures only ever have
+             that form. The `_in_roots` extraction was proved equivalent
+             against the previous spelling over seven accept/refuse cases.
+             Two conversion repairs: 20's stdout is the payload channel,
+             so `engine_pick` is silenced there (its line rode into 130's
+             rung capture); 20 builds the Go harness for the image's
+             architecture from the engine, never the host's (host go
+             targets windows on this lane), and skips the C probe where
+             host gcc cannot target the container.
+             One wart carried, not fixed: `Dockerfile.target` opens with
+             an unpinned `FROM golang:1.24.7-bookworm` stage. Pinning it
+             changes the build input, which is out of scope here.
+             Commit gate, 2026-09-21: the conversion is done and
+             recorded but uncommitted. The Linux gate failed three
+             times on the store suite, a different `two_*` victim each
+             time, all with the 16-lock-slot refusal: the slot pool is
+             process-wide, libtest shares it across threads, and each
+             `two_*` test holds two or more locks at once. No crate
+             changed under it; [PROGRESS.md](PROGRESS.md) carries the
+             mechanism and the runs. The serial run came back 97 of 97
+             green, and the final full-gate attempt came back fully
+             green with it, so the change commits with the three reds
+             named. The contention fix itself belongs to the
+             T-0211/T-0215 family.
 
