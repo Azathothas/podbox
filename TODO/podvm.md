@@ -45,7 +45,7 @@ Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec docume
 Category:    podvm
 Priority:    P0
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     podbox reports a rung and never claims a stronger one than it
              achieved. The machine tier has no probe at all, so `podvm` today
@@ -94,6 +94,31 @@ Decision:    The tier is refused when any leg is missing, and the refusal names
              acceleration and no network is two different products depending on
              which leg failed.
 Prove:       `podbox probe --json | jq -e '.tiers.machine.legs | length >= 5 and (map(select(.verdict == null)) | length == 0)'`
+
+**Done 2026-09-21.** Six legs in `Group::Machine`
+(`crates/podbox-probe/src/probes.rs`, `MACHINE_LEGS`), one verdict per
+leg, read back through `crates/podbox-probe/src/machine.rs`, which refuses
+the tier naming every missing leg. `report::document` carries
+`tiers.machine.legs` with a null verdict where a row is absent, so a
+document written before the legs existed cannot read as a measured tier;
+the stderr evidence lists the legs with the same refusal. The Prove exits
+0 against a lane-built binary: 6 legs, no null verdict.
+
+| leg | verdict on the lane |
+| --- | --- |
+| `qemu-system-x86_64 --version` | skip, no emulator on PATH (ENOENT) |
+| `open(/dev/kvm, O_RDWR)` | denied ENOENT |
+| `prlimit(RLIMIT_FSIZE)` | ok, `cur=infinity max=infinity` |
+| `open(/dev/net/tun, O_RDWR)` | denied ENOENT |
+| `image space (statfs .)` | ok, blocks and inodes free named |
+| `qemu-system-x86_64 -accel help` | skip, no emulator on PATH (ENOENT) |
+
+The review caught a wrong constant before it shipped: `RLIMIT_FSIZE` was
+written as 7, which is `RLIMIT_NOFILE`, and the leg reported the
+descriptor ceiling as a file size. The kernel's own headers settle it
+(`RLIMIT_FSIZE` 1, `RLIMIT_NOFILE` 7, measured in the lane), the constant
+is 1, and the re-drive above ran on the fixed code. Every non-ok leg on
+that machine carries its errno, so T-0101's invariant holds.
 
 ---
 

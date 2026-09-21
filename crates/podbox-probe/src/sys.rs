@@ -262,6 +262,20 @@ pub const SYS_MKNODAT: i64 = nr!(mknodat, __NR_mknodat);
 /// requiring it.
 pub const SYS_OPENAT2: i64 = nr!(openat2, __NR_openat2);
 
+// -------------------------------------------- resource limits
+//
+// `prlimit64` and not `getrlimit`: the latter has no number on architectures
+// whose kernel only carries the former, while `prlimit64` answers on every
+// Linux architecture. `TODO/podvm.md` T-1301 leg 3 reads `RLIMIT_FSIZE`
+// because it bounds the memory image, and a guest over it dies with
+// `SIGXFSZ`.
+pub const SYS_PRLIMIT64: i64 = nr!(prlimit64, __NR_prlimit64);
+/// `RLIMIT_FSIZE`, the maximum size of a file the process may create. 1 in
+/// asm-generic `resource.h`, on every Linux architecture, measured against
+/// the kernel's own headers. `RLIMIT_NOFILE` is 7: reading 7 here once
+/// reported the descriptor ceiling as a file size.
+pub const RLIMIT_FSIZE: u64 = 1;
+
 // ------------------------------------------------- stat, which has three names
 //
 // ⛔ **The same syscall is called three different things by the kernel, and on
@@ -1409,6 +1423,33 @@ pub fn statfs(path: &CBuf) -> Result<Statfs, Errno> {
         f_files: raw.f_files as u64,
         f_ffree: raw.f_ffree as u64,
     })
+}
+
+/// `prlimit64(0, resource, NULL, &old)`: read this process's own limit
+/// without changing it.
+///
+/// ⛔ As [`Statfs`]: the kernel's own `struct rlimit64` is the buffer, taken
+/// per architecture from `linux_raw_sys`, because a hand-written pair of the
+/// wrong width is a kernel write past the end of it.
+pub fn prlimit(resource: u64) -> Result<(u64, u64), Errno> {
+    let mut raw = unsafe { core::mem::zeroed::<linux_raw_sys::general::rlimit64>() };
+    unsafe {
+        sys(
+            SYS_PRLIMIT64,
+            [
+                0,
+                resource,
+                0,
+                &mut raw as *mut linux_raw_sys::general::rlimit64 as u64,
+                0,
+                0,
+            ],
+        )?
+    };
+    // ⚠ As `Stat::from_kernel`: redundant on this architecture and
+    // load-bearing on one whose `__u64` is not `u64`.
+    #[allow(clippy::unnecessary_cast)]
+    Ok((raw.rlim_cur as u64, raw.rlim_max as u64))
 }
 
 /// The `stat` fields this project reads, widened to one shape.

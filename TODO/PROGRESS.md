@@ -13,9 +13,10 @@ End-to-end acceptance remains open.
 M7 packaging has not started. ⭐ **M8 is green since 2026-09-21:**
 [milestones.md](milestones.md) T-1111 drove the whole nix pipeline through
 the shipped binary, seven rows green, so the last gate reads. The machine
-tier, [podvm.md](podvm.md), is specified and not started.
+tier, [podvm.md](podvm.md), holds its probe since 2026-09-21 (T-1301: six
+legs, one verdict per leg); the flag is next.
 
-140 entries: 28 open, 3 partial, 3 blocked, 106 done.
+140 entries: 27 open, 3 partial, 3 blocked, 107 done.
 
 ## Baseline
 
@@ -182,6 +183,18 @@ PROCHOOKS row pinning the six fixup hooks that use process substitution.
 The unpack wall was T-1311 and the symbol wall was T-1312; both are fixed
 underneath this run.
 
+[T-1301](podvm.md) closed in its own change: the probe carries a `machine`
+group with six legs (emulator version, `/dev/kvm` opened, `RLIMIT_FSIZE`,
+`/dev/net/tun` opened, image space by statfs, `qemu -accel help`), each
+measured and never inferred from another. `machine::assess` refuses the
+tier naming every missing leg, `podbox probe --json` carries
+`tiers.machine.legs` with null where a row is absent, and the entry Prove
+exits 0 on a lane-built binary. The review caught `RLIMIT_FSIZE` written
+as 7 (that is `RLIMIT_NOFILE`); the kernel headers settle it at 1, and the
+recorded drive ran on the fixed code. Full lane check green (fmt, clippy
+with `-D warnings`, musl release build, workspace tests 369 of 369 with 9
+new, interpose unit 12 of 12, gate 9 of 9 with 2 skips).
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -243,9 +256,10 @@ store suite), so the change commits with the three reds named above.
    reconstruction.
 5. [T-1111](milestones.md) is done: M8, the nix acceptance, seven rows
    green through the shipped binary on host podman.
-7. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
-    on the probe. ⭐ T-1302's shape is ruled, so its implementation is a flag,
-    a third `ALIASES` entry and the collision rule.
+7. [podvm.md](podvm.md) T-1301 is done, because every other entry there
+    depends on the probe. ⭐ T-1302's shape is ruled, so its implementation
+    is a flag, a third `ALIASES` entry and the collision rule. T-1302 is
+    next.
 
 [T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
 rows read no-compiler under the interposer while the engine control reaches

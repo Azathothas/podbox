@@ -22,6 +22,7 @@ pub mod exit;
 pub mod identity;
 pub mod interp;
 pub mod json;
+pub mod machine;
 pub mod mounts;
 pub mod probes;
 pub mod report;

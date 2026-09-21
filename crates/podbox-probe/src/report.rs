@@ -191,6 +191,26 @@ pub fn evidence(f: &Findings, sel: &Selection) -> String {
         "\nprobe children were re-executed from {}\n",
         f.self_exe
     ));
+    out.push_str(&machine_block(f));
+    out
+}
+
+/// TODO/podvm.md T-1301's legs, one per fact, with the tier's refusal where
+/// any leg is missing. The verdicts are the rows that ran; the refusal names
+/// the legs that did not hold.
+fn machine_block(f: &Findings) -> String {
+    let mach = crate::machine::assess(f);
+    let mut out = String::from("\nmachine, one leg per fact\n");
+    for leg in &mach.legs {
+        match &leg.outcome {
+            Some(o) => out.push_str(&format!("  {}\n", o.row(leg.name))),
+            None => out.push_str(&format!("  {name:<34} (not probed)\n", name = leg.name)),
+        }
+    }
+    match mach.refusal() {
+        Some(r) => out.push_str(&format!("  ⛔ {r}\n")),
+        None => out.push_str("  the tier holds: every leg ok\n"),
+    }
     out
 }
 
@@ -458,11 +478,46 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
                     "group",
                     match crate::probes::find(name).map(|p| p.group) {
                         Some(crate::probes::Group::Attribution) => "attribution",
-                        _ => "census",
+                        Some(crate::probes::Group::Machine) => "machine",
+                        Some(crate::probes::Group::Census) | None => "census",
                     },
                 );
             });
         }
+    });
+
+    // ⭐ TODO/podvm.md T-1301. The machine tier's legs, one per fact, each
+    // with the verdict the run established. A leg whose row is absent --
+    // a document written before the legs existed -- carries a null verdict,
+    // which is missing rather than any verdict, so a stale cache cannot
+    // read as a measured tier.
+    let mach = crate::machine::assess(f);
+    let refusal = mach.refusal();
+    o.obj("tiers", |t| {
+        t.obj("machine", |m| {
+            m.arr("legs", |a| {
+                for leg in &mach.legs {
+                    a.obj(|e| {
+                        e.str("name", leg.name);
+                        match &leg.outcome {
+                            Some(out) => {
+                                e.str("verdict", out.verdict.word());
+                                e.opt_num("errno", out.errno.map(|x| x.0 as i64));
+                                e.opt_str("errno_name", out.errno_name().as_deref());
+                                e.opt_str("reason", none_if_empty(&out.reason));
+                            }
+                            None => {
+                                e.null("verdict");
+                                e.null("errno");
+                                e.null("errno_name");
+                                e.null("reason");
+                            }
+                        }
+                    });
+                }
+            });
+            m.opt_str("refusal", refusal.as_deref());
+        });
     });
 
     // ⭐ TODO/probe.md T-0111. The cache stores this document verbatim, so the
@@ -591,6 +646,60 @@ mod tests {
 
     fn denied() -> crate::verdict::Outcome {
         crate::verdict::Outcome::denied(crate::sys::EPERM)
+    }
+
+    /// Six machine legs, all clear. Synthetic, so the shape is asserted
+    /// without depending on whether this machine carries an emulator.
+    fn machine_ok() -> Findings {
+        Findings {
+            rows: crate::probes::MACHINE_LEGS
+                .iter()
+                .map(|&name| (name, crate::verdict::Outcome::ok()))
+                .collect(),
+            ..Findings::empty()
+        }
+    }
+
+    #[test]
+    fn the_document_carries_six_machine_legs_with_no_null_verdict() {
+        // TODO/podvm.md T-1301's Prove reads exactly this shape.
+        let f = machine_ok();
+        let sel = Selection::choose(&f);
+        let doc = document(&f, &sel);
+        assert!(doc.contains("\"tiers\":{\"machine\":{\"legs\":["), "{doc}");
+        for name in crate::probes::MACHINE_LEGS {
+            assert!(doc.contains(&format!("\"name\":\"{name}\"")), "{doc}");
+        }
+        assert!(doc.contains("\"group\":\"machine\""), "{doc}");
+        assert!(!doc.contains("\"verdict\":null"), "{doc}");
+        assert!(doc.contains("\"refusal\":null"), "{doc}");
+    }
+
+    #[test]
+    fn a_document_without_machine_rows_carries_nulls_and_a_refusal() {
+        // A document written before the legs existed: every leg null, and
+        // the refusal names the absence rather than reading as a tier.
+        let f = Findings::empty();
+        let sel = Selection::choose(&f);
+        let doc = document(&f, &sel);
+        assert_eq!(doc.matches("\"verdict\":null").count(), 6, "{doc}");
+        let refusal = field(&doc, "refusal").expect("a refusal string");
+        assert!(refusal.contains("machine tier refused"), "{refusal}");
+        assert!(refusal.contains("(not probed)"), "{refusal}");
+    }
+
+    #[test]
+    fn the_evidence_names_the_missing_machine_leg() {
+        let mut f = machine_ok();
+        f.rows[1] = (
+            "open(/dev/kvm, O_RDWR)",
+            crate::verdict::Outcome::denied(crate::sys::ENOENT),
+        );
+        let sel = Selection::choose(&f);
+        let e = evidence(&f, &sel);
+        assert!(e.contains("machine, one leg per fact"), "{e}");
+        assert!(e.contains("machine tier refused"), "{e}");
+        assert!(e.contains("open(/dev/kvm, O_RDWR)=ENOENT"), "{e}");
     }
 
     #[test]

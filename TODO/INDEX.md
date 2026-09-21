@@ -189,7 +189,7 @@ the blocker named and what would clear it.
 | [T-1211](gate.md) | P1 | gate | blocked | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
 | [T-1212](gate.md) | P1 | gate | blocked | Convert the image, registry and CLI engine scripts to `experiments/lib/engine.sh` |
 | [T-1213](gate.md) | P1 | gate | blocked | Convert the target-image pair and its probe consumer to `experiments/lib/engine.sh` |
-| [T-1301](podvm.md) | P0 | podvm | open | The machine tier is probed leg by leg, and a present file is not a working one |
+| [T-1301](podvm.md) | P0 | podvm | done | The machine tier is probed leg by leg, and a present file is not a working one |
 | [T-1302](podvm.md) | P1 | podvm | open | One binary, one parity table, and a VM-only flag that cannot collide |
 | [T-1303](podvm.md) | P1 | podvm | open | The image is a rootfs directory, and an initramfs with no console is a silent machine |
 | [T-1304](podvm.md) | P1 | podvm | open | The exec protocol is a serial pair with a nonce, and every wait is bounded |
@@ -204,7 +204,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-140 items: 28 open, 3 partial, 3 blocked, 106 done.
+140 items: 27 open, 3 partial, 3 blocked, 107 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -212,11 +212,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 2 | 1 | 0 | 49 | 52 |
+| P0 | 1 | 1 | 0 | 50 | 52 |
 | P1 | 15 | 2 | 3 | 44 | 64 |
 | P2 | 7 | 0 | 0 | 12 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **28** | **3** | **3** | **106** | **140** |
+| **All** | **27** | **3** | **3** | **107** | **140** |
 
 ## How the current ordering is derived
 

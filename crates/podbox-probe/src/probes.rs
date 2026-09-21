@@ -56,6 +56,9 @@ pub enum Group {
     /// `probe attribute`: the bogus-argument discriminator and its controls.
     /// `TODO/probe.md` T-0102.
     Attribution,
+    /// The machine tier's legs. `TODO/podvm.md` T-1301: one leg per fact and
+    /// a verdict per leg, each measured, never inferred from another leg.
+    Machine,
 }
 
 pub struct Probe {
@@ -200,6 +203,38 @@ pub static PROBES: &[Probe] = &[
             kind: Kind::Child { ns_flags: 0, body: a_mem_rdwr } },
     Probe { name: "landlock_create_ruleset(VERSION)", group: Group::Attribution,
             kind: Kind::Child { ns_flags: 0, body: a_landlock } },
+
+    // ------------------------------------------------------------ machine
+    // TODO/podvm.md T-1301. One leg per fact the machine tier needs, each
+    // measured by the operation itself: the emulator by running it, the two
+    // device nodes by opening them, the file-size bound by reading it, the
+    // image space by statfs, the accelerator by asking the emulator.
+    // ⛔ Never infer a leg from another leg. A leg whose precondition is
+    // another leg's subject says which one and stops, like every other
+    // precondition in this file.
+    Probe { name: "qemu-system-x86_64 --version", group: Group::Machine,
+            kind: Kind::Child { ns_flags: 0, body: m_qemu_version } },
+    Probe { name: "open(/dev/kvm, O_RDWR)", group: Group::Machine,
+            kind: Kind::Child { ns_flags: 0, body: m_kvm } },
+    Probe { name: "prlimit(RLIMIT_FSIZE)", group: Group::Machine,
+            kind: Kind::Child { ns_flags: 0, body: m_fsize } },
+    Probe { name: "open(/dev/net/tun, O_RDWR)", group: Group::Machine,
+            kind: Kind::Child { ns_flags: 0, body: m_tun } },
+    Probe { name: "image space (statfs .)", group: Group::Machine,
+            kind: Kind::Child { ns_flags: 0, body: m_space } },
+    Probe { name: "qemu-system-x86_64 -accel help", group: Group::Machine,
+            kind: Kind::Child { ns_flags: 0, body: m_accel } },
+];
+
+/// The machine tier's legs, in the order they run. [`crate::machine`] and the
+/// report read the verdicts through these names, so a rename moves all three.
+pub const MACHINE_LEGS: &[&str] = &[
+    "qemu-system-x86_64 --version",
+    "open(/dev/kvm, O_RDWR)",
+    "prlimit(RLIMIT_FSIZE)",
+    "open(/dev/net/tun, O_RDWR)",
+    "image space (statfs .)",
+    "qemu-system-x86_64 -accel help",
 ];
 
 pub fn find(name: &str) -> Option<&'static Probe> {
@@ -1006,6 +1041,175 @@ fn a_landlock() -> Outcome {
     }
 }
 
+// ------------------------------------------------------------ machine
+
+/// The emulator the machine tier drives. Named once, so the two legs that
+/// spawn it cannot drift onto two different binaries.
+const QEMU: &str = "qemu-system-x86_64";
+
+/// What running the emulator answered: its stdout, or why there is none.
+enum EmuAnswer {
+    Said(String),
+    Absent,
+    Unusable(Errno),
+    Exited(i32),
+    Failed(String),
+}
+
+/// Run the emulator with `args` and take its stdout.
+///
+/// ⛔ Through [`sys::shed_after_fork`], like [`run_payload`]: libstd forks
+/// inside `output()`, and without the hook every lock another thread holds is
+/// duplicated into the child at the fork. `TODO/image.md` T-0215.
+fn qemu_output(args: &[&str]) -> EmuAnswer {
+    let mut cmd = std::process::Command::new(QEMU);
+    cmd.args(args);
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::null());
+    let out = match sys::shed_after_fork(&mut cmd).output() {
+        Ok(o) => o,
+        Err(e) => match e.raw_os_error() {
+            // The lookup is `execvp`'s, so ENOENT is the binary's absence from
+            // PATH and not a statement about the machine's acceleration.
+            Some(n) if n == sys::ENOENT.0 => return EmuAnswer::Absent,
+            Some(n) => return EmuAnswer::Unusable(Errno(n)),
+            None => return EmuAnswer::Failed(format!("spawning {QEMU} failed: {e}")),
+        },
+    };
+    if !out.status.success() {
+        return EmuAnswer::Exited(out.status.code().unwrap_or(-1));
+    }
+    EmuAnswer::Said(String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
+fn m_qemu_version() -> Outcome {
+    match qemu_output(&["--version"]) {
+        EmuAnswer::Said(out) => match out.lines().next().map(str::trim).filter(|l| !l.is_empty()) {
+            Some(line) => Outcome::ok_with(line.chars().take(160).collect::<String>()),
+            None => Outcome::skip(
+                None,
+                "qemu-system-x86_64 --version ran and answered nothing",
+            ),
+        },
+        EmuAnswer::Absent => Outcome::skip(
+            Some(sys::ENOENT),
+            "no qemu-system-x86_64 on PATH, so the emulator leg could not run",
+        ),
+        EmuAnswer::Unusable(e) => Outcome::denied(e),
+        EmuAnswer::Exited(code) => Outcome::skip(
+            None,
+            format!(
+                "qemu-system-x86_64 --version ran and exited {code}; the emulator \
+                 runs but did not answer"
+            ),
+        ),
+        EmuAnswer::Failed(why) => Outcome::skip(None, why),
+    }
+}
+
+fn m_kvm() -> Outcome {
+    // ⛔ OPENED, not stat-ed. A node that exists and answers EACCES on open is
+    // not acceleration. T-1301. Absence is the answer too, so ENOENT is a
+    // denial rather than a missing precondition, like `stat(/dev/ptmx)`.
+    open_probe("/dev/kvm", sys::O_RDWR | sys::O_CLOEXEC)
+}
+
+fn m_fsize() -> Outcome {
+    match sys::prlimit(sys::RLIMIT_FSIZE) {
+        Ok((cur, max)) => {
+            Outcome::ok_with(format!("RLIMIT_FSIZE cur={} max={}", rlim(cur), rlim(max)))
+        }
+        Err(e) => Outcome::denied(e),
+    }
+}
+
+/// An rlimit value in words. `RLIM64_INFINITY` is not a size, so printing it
+/// as digits would be the plausible-looking number AGENTS.md absolute 3
+/// refuses.
+fn rlim(v: u64) -> String {
+    if v == u64::MAX {
+        "infinity".to_string()
+    } else {
+        v.to_string()
+    }
+}
+
+fn m_tun() -> Outcome {
+    // Opened the same way as the kvm leg: a node that cannot be opened cannot
+    // carry the tier's network.
+    open_probe("/dev/net/tun", sys::O_RDWR | sys::O_CLOEXEC)
+}
+
+fn m_space() -> Outcome {
+    // Blocks and inodes both, per `TODO/RULES.md` section 8, for the directory
+    // the caller runs in, named in the row. A destination the tier will use is
+    // not known at probe time; T-1302's consumer checks its own.
+    let cwd = match std::env::current_dir() {
+        Ok(p) => p,
+        Err(e) => match e.raw_os_error() {
+            Some(n) => {
+                return Outcome::skip(
+                    Some(Errno(n)),
+                    "the working directory could not be read, so no space was measured",
+                )
+            }
+            None => {
+                return Outcome::skip(
+                    None,
+                    format!("the working directory could not be read: {e}"),
+                )
+            }
+        },
+    };
+    let path = cwd.to_string_lossy().into_owned();
+    let Some(p) = CBuf::new(&path) else {
+        return Outcome::skip(
+            None,
+            "the working directory contains a NUL and cannot reach the kernel",
+        );
+    };
+    match sys::statfs(&p) {
+        Ok(s) => Outcome::ok_with(format!(
+            "{} blocks of {} B free, {} inodes free at {path}",
+            s.f_bavail, s.f_bsize, s.f_ffree
+        )),
+        Err(e) => Outcome::denied(e),
+    }
+}
+
+fn m_accel() -> Outcome {
+    // ⭐ Ask the emulator rather than deciding from the kvm leg. An
+    // accelerator the build was compiled without is as absent as a missing
+    // node, and the node alone cannot say which builds carry what.
+    match qemu_output(&["-accel", "help"]) {
+        EmuAnswer::Said(out) => {
+            let accels: Vec<&str> = out
+                .lines()
+                .map(str::trim)
+                .filter(|l| !l.is_empty() && !l.ends_with(':'))
+                .collect();
+            if accels.is_empty() {
+                Outcome::skip(
+                    None,
+                    "qemu-system-x86_64 -accel help ran and listed no accelerator",
+                )
+            } else {
+                Outcome::ok_with(format!("accelerators: {}", accels.join(" ")))
+            }
+        }
+        EmuAnswer::Absent => Outcome::skip(
+            Some(sys::ENOENT),
+            "no qemu-system-x86_64 on PATH, so the accelerator list could not be read",
+        ),
+        EmuAnswer::Unusable(e) => Outcome::denied(e),
+        EmuAnswer::Exited(code) => Outcome::skip(
+            None,
+            format!("qemu-system-x86_64 -accel help ran and exited {code}; the list is unread"),
+        ),
+        EmuAnswer::Failed(why) => Outcome::skip(None, why),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1056,6 +1260,19 @@ mod tests {
                 "landlock_create_ruleset(VERSION)",
             ]
         );
+    }
+
+    #[test]
+    fn the_machine_block_is_six_legs_in_order() {
+        // TODO/podvm.md T-1301: `crate::machine` and the report read the
+        // verdicts through `MACHINE_LEGS`, so the block and the constant
+        // answer together or not at all.
+        let got: Vec<&str> = PROBES
+            .iter()
+            .filter(|p| p.group == Group::Machine)
+            .map(|p| p.name)
+            .collect();
+        assert_eq!(got.as_slice(), MACHINE_LEGS);
     }
 
     #[test]
