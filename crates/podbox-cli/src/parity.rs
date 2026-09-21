@@ -89,10 +89,12 @@ pub const TABLE: &[Row] = &[
     Row { verb: "rmi", flag: Option::None, status: Native, note: "refuses an image a running container holds, and names it" },
     Row { verb: "tag", flag: Option::None, status: Native, note: "points a second name at one manifest digest; nothing is fetched" },
     Row { verb: "image", flag: Option::None, status: Native, note: "ls, rm, prune, tag, inspect, pull and extract" },
+    Row { verb: "image", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "inspect", flag: Option::None, status: Degraded, note: "images only. podbox has no containers until M4, so a container reference is not resolvable" },
     Row { verb: "system", flag: Option::None, status: Degraded, note: "info, install-names and abi. df, events and prune are not implemented; the last two are podbox's own and docker has neither" },
     Row { verb: "info", flag: Option::None, status: Degraded, note: "podbox has no daemon, so the server half of docker's output is the rung this machine permits instead" },
     Row { verb: "version", flag: Option::None, status: Native, note: "one artefact, so there is one version and no client/server split" },
+    Row { verb: "version", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "probe", flag: Option::None, status: Native, note: "podbox's own verb, with no docker equivalent: what this machine permits, and the rung podbox selects" },
     Row { verb: "extract", flag: Option::None, status: Native, note: "podbox's own verb, with no docker equivalent: unpack the layers and write the ownership sidecar" },
     // ⭐ M4, and each says the difference from docker's rather than implying
@@ -229,10 +231,20 @@ pub const TABLE: &[Row] = &[
     Row { verb: "wait", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "start", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "cp", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "system", flag: Some("--format"), status: Native, note: "the same template shape as the other verbs, plus `json .Field` for a field that is a document" },
-    Row { verb: "system", flag: Some("--dir"), status: Native, note: "install-names: where to put the symlinks. Default: the directory this binary is in" },
-    Row { verb: "system", flag: Some("--force"), status: Native, note: "install-names: take the `docker` name even where a docker daemon answers, and replace a file that is not already a link to this binary" },
+    Row { verb: "tag", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "prune", flag: Option::None, status: Native, note: "removes untagged images, and tagged ones too with --all. Held ones are named and kept (T-0204). Invoke it as `image prune`" },
+    Row { verb: "prune", flag: Some("-a, --all"), status: Native, note: "take tagged images too, where nothing holds them" },
+    Row { verb: "prune", flag: Some("-f, --force"), status: Stub, note: "accepted for parity: podbox never prompts, so there is nothing to suppress" },
+    Row { verb: "prune", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "system", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "info", flag: Some("--format"), status: Native, note: "the same template shape as the other verbs, plus `json .Field` for a field that is a document" },
+    Row { verb: "info", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "install-names", flag: Option::None, status: Native, note: "installs the docker and podman names as symlinks to this binary, refusing docker where a daemon answers unless --force (T-0803). Invoke it as `system install-names`" },
+    Row { verb: "install-names", flag: Some("--dir"), status: Native, note: "install-names: where to put the symlinks. Default: the directory this binary is in" },
+    Row { verb: "install-names", flag: Some("--force"), status: Native, note: "install-names: take the `docker` name even where a docker daemon answers, and replace a file that is not already a link to this binary" },
+    Row { verb: "install-names", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "abi", flag: Option::None, status: Native, note: "answers whether an object may be preloaded into a libc payload (T-0709). Invoke it as `system abi`" },
+    Row { verb: "abi", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     // ⭐ TODO/cli.md T-0803. The names podbox answers to are rows here for the
     // same reason every flag is: a surface with no row is a surface nobody
     // documented, and `names.rs` asserts these exist.
@@ -258,9 +270,23 @@ pub fn verb(name: &str) -> Option<&'static Row> {
 /// naming the caller's verb in the diagnostics would also have made `flag`
 /// refuse every flag `create` accepts, which is the shape of hole
 /// `docs/conventions/code.md` calls a second, quieter surface. T-0801.
+///
+/// The `image` and `system` groups dispatch to one handler per subverb, so
+/// each subverb's rows live under its own name and the refusal names the
+/// path the caller typed, as `create` does for `run`. T-0808.
 pub fn rows_of(verb: &str) -> &str {
     match verb {
         "create" => "run",
+        "image ls" | "image list" => "images",
+        "image rm" | "image remove" => "rmi",
+        "image prune" => "prune",
+        "image tag" => "tag",
+        "image inspect" => "inspect",
+        "image pull" => "pull",
+        "image extract" => "extract",
+        "system info" => "info",
+        "system install-names" => "install-names",
+        "system abi" => "abi",
         v => v,
     }
 }
@@ -316,6 +342,20 @@ pub fn admit(verb: &str, arg: &str, usage: &str) -> Result<(), i32> {
         }
         Some(_) => Ok(()),
     }
+}
+
+/// Admit-first, one read path (T-0808): refuse every dash-arg the table
+/// does not list before any match arm runs, so an arm for a flag with no
+/// row is unreachable. A value that starts with `-` must use the `=` form.
+pub fn admit_all(verb: &str, args: &[String], usage: &str) -> Option<i32> {
+    for a in args {
+        if a.starts_with('-') {
+            if let Err(c) = admit(verb, a, usage) {
+                return Some(c);
+            }
+        }
+    }
+    None
 }
 
 /// The arm a verb's parser reaches when [`admit`] passed a flag and the parser
@@ -501,5 +541,50 @@ mod tests {
         assert!(arr
             .iter()
             .any(|r| r["verb"] == "run" && r["flag"].is_null()));
+    }
+
+    /// T-0808: the `image` and `system` groups dispatch to one handler per
+    /// subverb, so each subverb resolves the rows its flags live under and
+    /// the refusal names the path the caller typed.
+    #[test]
+    fn group_subverbs_resolve_the_rows_their_flags_live_under() {
+        for (sub, home) in [
+            ("image ls", "images"),
+            ("image list", "images"),
+            ("image rm", "rmi"),
+            ("image remove", "rmi"),
+            ("image prune", "prune"),
+            ("image tag", "tag"),
+            ("image inspect", "inspect"),
+            ("image pull", "pull"),
+            ("image extract", "extract"),
+            ("info", "info"),
+            ("system info", "info"),
+            ("system install-names", "install-names"),
+            ("system abi", "abi"),
+        ] {
+            assert_eq!(rows_of(sub), home, "{sub} resolves under {home}");
+        }
+        assert!(flag("image prune", "-a").is_some());
+        assert!(flag("image prune", "--no-such-flag").is_none());
+        assert!(flag("system install-names", "--dir").is_some());
+        assert!(flag("info", "--format").is_some());
+    }
+
+    /// T-0808: the pre-pass refuses before any arm runs, and passes
+    /// listed flags and positionals through.
+    #[test]
+    fn admit_all_refuses_before_any_arm_runs() {
+        let usage = "usage: podbox images";
+        assert_eq!(
+            admit_all("images", &["--no-such-flag".to_string()], usage),
+            Some(podbox_image::error::EXIT_FLAG_ERROR)
+        );
+        assert_eq!(admit_all("images", &["-a".to_string()], usage), None);
+        assert_eq!(
+            admit_all("images", &["some-image".to_string()], usage),
+            None
+        );
+        assert_eq!(admit_all("images", &[], usage), None);
     }
 }

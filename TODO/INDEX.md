@@ -144,7 +144,7 @@ the blocker named and what would clear it.
 | [T-0805](cli.md) | P1 | cli | done | Diagnostics that name the operation, the errno, the mechanism and the remedy |
 | [T-0806](cli.md) | P0 | cli | done | Never prompt, never wait unbounded, and check space before every large write |
 | [T-0807](cli.md) | P2 | cli | done | `podbox images --format` refuses a template no verb can answer, before it looks at the store |
-| [T-0808](cli.md) | P1 | cli | open | Drive every row of the parity table through the shipped binary |
+| [T-0808](cli.md) | P1 | cli | done | Drive every row of the parity table through the shipped binary |
 | [T-0809](cli.md) | P1 | cli | done | The spawn that fails with the wrong reason, and the one field that fixes it |
 | [T-0901](deps.md) | P1 | deps | done | Sweep: syscalls |
 | [T-0902](deps.md) | P2 | deps | done | Sweep: seccomp BPF |
@@ -201,7 +201,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-137 items: 33 open, 3 partial, 3 blocked, 98 done.
+137 items: 32 open, 3 partial, 3 blocked, 99 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -210,10 +210,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 2 | 1 | 0 | 49 | 52 |
-| P1 | 18 | 2 | 3 | 38 | 61 |
+| P1 | 17 | 2 | 3 | 39 | 61 |
 | P2 | 9 | 0 | 0 | 10 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **33** | **3** | **3** | **98** | **137** |
+| **All** | **32** | **3** | **3** | **99** | **137** |
 
 ## How the current ordering is derived
 

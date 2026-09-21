@@ -146,7 +146,10 @@ usage: podbox inspect [--format T] <image> [image...]
 ";
 
 /// `podbox pull`.
-pub fn pull(args: &[String]) -> i32 {
+pub fn pull(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, PULL_USAGE) {
+        return c;
+    }
     let mut want: Option<&str> = None;
     let mut platform_flag: Option<String> = None;
     let mut insecure: Vec<String> = Vec::new();
@@ -186,7 +189,12 @@ pub fn pull(args: &[String]) -> i32 {
                     return EXIT_FLAG_ERROR;
                 }
             },
-            other if other.starts_with('-') => return unknown("pull", other, PULL_USAGE),
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, PULL_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
+            }
             other if want.is_none() => want = Some(other),
             other => {
                 eprintln!("podbox pull: {other:?}: pull takes one image");
@@ -242,7 +250,10 @@ struct Options {
 }
 
 /// `podbox images`.
-pub fn images(args: &[String]) -> i32 {
+pub fn images(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, IMAGES_USAGE) {
+        return c;
+    }
     let mut o = Options {
         quiet: false,
         digests: false,
@@ -271,7 +282,12 @@ pub fn images(args: &[String]) -> i32 {
             other if other.starts_with("--format=") => {
                 o.format = Some(other["--format=".len()..].to_string())
             }
-            other if other.starts_with('-') => return unknown("images", other, IMAGES_USAGE),
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, IMAGES_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
+            }
             other if o.filter.is_none() => o.filter = Some(other.to_string()),
             other => {
                 eprintln!("podbox images: {other:?}: images takes at most one image");
@@ -346,7 +362,10 @@ pub fn images(args: &[String]) -> i32 {
 }
 
 /// `podbox rmi` and `podbox image rm`.
-pub fn rmi(args: &[String]) -> i32 {
+pub fn rmi(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, RMI_USAGE) {
+        return c;
+    }
     let mut wanted: Vec<&str> = Vec::new();
     for a in args {
         match a.as_str() {
@@ -359,7 +378,12 @@ pub fn rmi(args: &[String]) -> i32 {
             // image IN USE, and no flag overrides that, because the deletion
             // would be under a running payload.
             "-f" | "--force" => {}
-            other if other.starts_with('-') => return unknown("rmi", other, RMI_USAGE),
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, RMI_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
+            }
             other => wanted.push(other),
         }
     }
@@ -392,7 +416,10 @@ pub fn rmi(args: &[String]) -> i32 {
 }
 
 /// `podbox tag`.
-pub fn tag(args: &[String]) -> i32 {
+pub fn tag(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, TAG_USAGE) {
+        return c;
+    }
     let mut positional: Vec<&str> = Vec::new();
     for a in args {
         match a.as_str() {
@@ -400,7 +427,12 @@ pub fn tag(args: &[String]) -> i32 {
                 print!("{TAG_USAGE}");
                 return 0;
             }
-            other if other.starts_with('-') => return unknown("tag", other, TAG_USAGE),
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, TAG_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
+            }
             other => positional.push(other),
         }
     }
@@ -419,9 +451,26 @@ pub fn tag(args: &[String]) -> i32 {
 }
 
 /// `podbox image prune`.
-pub fn prune(args: &[String]) -> i32 {
+pub fn prune(verb: &str, args: &[String]) -> i32 {
     let mut all = false;
+    // docker clusters argless shorts (`-af`); expand before the table sees
+    // the flag, or a listed spelling reads as unlisted. T-0808.
+    let mut expanded: Vec<String> = Vec::new();
     for a in args {
+        if a.starts_with('-')
+            && !a.starts_with("--")
+            && a.len() > 2
+            && a[1..].chars().all(|c| c == 'a' || c == 'f')
+        {
+            expanded.extend(a[1..].chars().map(|c| format!("-{c}")));
+        } else {
+            expanded.push(a.clone());
+        }
+    }
+    if let Some(c) = crate::parity::admit_all(verb, &expanded, PRUNE_USAGE) {
+        return c;
+    }
+    for a in &expanded {
         match a.as_str() {
             "-h" | "--help" => {
                 print!("{PRUNE_USAGE}");
@@ -431,14 +480,11 @@ pub fn prune(args: &[String]) -> i32 {
             "-f" | "--force" => {}
             // docker takes `-af` as one cluster, and the acceptance in
             // TODO/image.md T-0204 writes it that way.
-            other if other.starts_with('-') && !other.starts_with("--") => {
-                for c in other[1..].chars() {
-                    match c {
-                        'a' => all = true,
-                        'f' => {}
-                        _ => return unknown("image prune", other, PRUNE_USAGE),
-                    }
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, PRUNE_USAGE) {
+                    return c;
                 }
+                return crate::parity::no_arm(verb, other);
             }
             other => return unknown("image prune", other, PRUNE_USAGE),
         }
@@ -478,7 +524,10 @@ pub fn prune(args: &[String]) -> i32 {
 /// T-1103's acceptance runs `podbox run --rm`, which is M3, so extraction would
 /// otherwise be implemented with nothing able to exercise it until another
 /// milestone lands. That is how a component ships untested.
-pub fn extract(args: &[String]) -> i32 {
+pub fn extract(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, EXTRACT_USAGE) {
+        return c;
+    }
     let mut want: Option<&str> = None;
     let mut force = false;
     let mut platform_flag: Option<String> = None;
@@ -499,7 +548,12 @@ pub fn extract(args: &[String]) -> i32 {
             other if other.starts_with("--platform=") => {
                 platform_flag = Some(other["--platform=".len()..].to_string());
             }
-            other if other.starts_with('-') => return unknown("extract", other, EXTRACT_USAGE),
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, EXTRACT_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
+            }
             other if want.is_none() => want = Some(other),
             other => {
                 eprintln!("podbox extract: {other:?}: extract takes one image");
@@ -620,7 +674,10 @@ pub fn extract(args: &[String]) -> i32 {
     }
 }
 
-pub fn inspect(args: &[String]) -> i32 {
+pub fn inspect(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, INSPECT_USAGE) {
+        return c;
+    }
     let mut template: Option<String> = None;
     let mut wanted: Vec<&str> = Vec::new();
     let mut it = args.iter();
@@ -640,7 +697,12 @@ pub fn inspect(args: &[String]) -> i32 {
             other if other.starts_with("--format=") => {
                 template = Some(other["--format=".len()..].to_string())
             }
-            other if other.starts_with('-') => return unknown("inspect", other, INSPECT_USAGE),
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, INSPECT_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
+            }
             other => wanted.push(other),
         }
     }

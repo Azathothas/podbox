@@ -73,6 +73,13 @@ code rather than by a shape parsing**: `--pull` takes a closed set of values and
 rejects anything a test could invent, so what the test asserts is that no shape
 returns the fallback arm's own `EXIT_RUNTIME_ERROR`.
 
+⚠ Written as universal on 2026-09-09 and measured as partial on 2026-09-21:
+only `run`, `exec` (and `create` through `run`'s parser) admitted first;
+`images`, `system`, `lifecycle`, `probe`, `version` and the `image` group
+refused from hand-written arms. T-0808 threaded `parity::admit_all` through
+every one of those parsers, so the sentence above holds since 2026-09-21 and
+`experiments/325-parity-drive.sh` asserts it per row, starting from the flag.
+
 ⭐ **The refusal carries the row's own reason**, so a caller that reads the
 table and then runs the verb gets the same sentence back from the same place:
 `podbox run --name c1` exits 2 with "`--name` is in the parity table with status
@@ -565,7 +572,7 @@ Source:      T-0801; the door sweep of 2026-09-10
 Category:    cli
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done 2026-09-21
 
 Problem:     ⛔ **The table is 141 rows and nothing asserts the binary agrees
              with all of them.** `experiments/320-cli-contract.sh` drives a
@@ -599,10 +606,29 @@ Approach:    One driver, over the table read out of the binary itself:
              store that has neither, so the assertion is about the FLAG's
              refusal and not the verb's; a row whose flag cannot be reached
              without state reports the third state rather than passing.
-Decision:    Not taken.
+Decision:    Admit-first everywhere, in the same change as the driver. Every
+             dash-arg passes `parity::admit_all` before any match arm runs, so
+             an arm for a flag with no row is unreachable and a row with no arm
+             ends at `parity::no_arm`, which the driver reports as a mismatch.
+             Group subverbs carry the path the caller typed (`image prune`,
+             `system abi`) and resolve their rows through `parity::rows_of`.
+             Approach clause 3 closed structurally rather than by enumeration:
+             with the pre-pass there is no second list to compare.
 Prove:       `./experiments/325-parity-drive.sh`, which exits 0 only when every
              row of `podbox system info --format '{{json .Parity}}'` was driven
              or reported as unreachable here, and prints the count of each.
+
+**Done, 2026-09-21.** The driver is green against the shipped binary: 153
+rows, 192 driven, 0 mismatches, 0 unreachable here
+(`experiments/results/parity-drive.txt`, with the conditions at its head).
+`run -i` and `exec -i` both ran a self-pulled `alpine:3.20` payload with the
+banner naming `-i`. Release build, `clippy --workspace --all-targets` with
+`-D warnings`, and `cargo test -p podbox-cli -p podbox-probe -p podbox-extract`
+(73, 65 and 46 passed) were all green in the same run. The first drive found
+4 mismatches and all 4 were the driver's: group subverbs probed as top-level
+verbs, and `exec` driven with the run-only `--pull`. Both fixed in the
+script; the second run was green, and a third stayed green after the
+`admit_all` pre-pass landed.
 
 ---
 

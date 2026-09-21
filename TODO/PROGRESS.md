@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-137 entries: 33 open, 3 partial, 3 blocked, 98 done.
+137 entries: 32 open, 3 partial, 3 blocked, 99 done.
 
 ## Baseline
 
@@ -107,6 +107,21 @@ spawn wall per context with both legs measured, and 151 drives both
 refusals behind one identical payload message to green. No generic
 string matcher ships; the mapping keys on the legs.
 
+[T-0808](cli.md) closed in this change: admit-first everywhere, with the
+325 driver green against the shipped binary. T-0801 claimed every dash-arg
+goes through `parity::admit` and only `run`/`exec` did; the seven `images`,
+eight `lifecycle`, two `system` and one `names` parsers plus `probe`,
+`version` and the `image` group now open with `parity::admit_all`, and the
+group subverbs resolve their rows through `parity::rows_of`. 153 rows, 192
+driven, 0 mismatches, 0 unreachable here
+(`experiments/results/parity-drive.txt`); `run -i` and `exec -i` both ran
+a self-pulled `alpine:3.20` with the banner naming `-i`. The first drive
+found 4 mismatches, all 4 the driver's (group subverbs probed as
+top-level verbs, `exec` driven with the run-only `--pull`). Release build,
+clippy with `-D warnings`, and the three unit-test packages stayed green
+throughout. The T-0801 universal claim now holds, with the correction
+under it.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -154,8 +169,10 @@ store suite), so the change commits with the three reds named above.
 
 ## Current work order
 
-1. [T-0805](cli.md) and [T-0809](cli.md) are done. [T-0808](cli.md) drives
-   every parity row through the shipped binary, and is next.
+1. [T-0805](cli.md), [T-0809](cli.md) and [T-0808](cli.md) are done. Next is
+   the authorised store-suite contention fix: author the
+   [T-0211](image.md)/[T-0215](image.md)-family entry, then implement it,
+   in its own change.
 2. [T-0408](complete.md): run the zypper row and record it. It is one container
    run, and it is the only entry reopened for having no evidence at all.
 3. [T-1207](gate.md) and [T-1208](gate.md): the excluded interposer crate's gate
@@ -178,7 +195,7 @@ for clause 3. [T-1209](gate.md) and
 
 ## In progress
 
-[T-0808](cli.md) is `open` and is next. No
+[T-0808](cli.md) is `done` and commits here. No
 implementation entry is half-written. [T-1212](gate.md) went `blocked`
 in this change with its six runs and what clears each red half, and
 [T-1213](gate.md) went `blocked` in this change with its conversion,

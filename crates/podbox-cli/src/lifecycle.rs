@@ -121,6 +121,13 @@ pub fn create(args: &[String]) -> i32 {
 
 /// `podbox start <container>...`
 pub fn start(args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(
+        "start",
+        args,
+        "usage: podbox start <container> [container...]",
+    ) {
+        return c;
+    }
     let s = match store() {
         Ok(s) => s,
         Err(c) => return c,
@@ -133,8 +140,14 @@ pub fn start(args: &[String]) -> i32 {
             return 0;
         }
         if want.starts_with('-') {
-            eprintln!("podbox start: unknown option {want:?}");
-            return EXIT_FLAG_ERROR;
+            if let Err(c) = crate::parity::admit(
+                "start",
+                want,
+                "usage: podbox start <container> [container...]",
+            ) {
+                return c;
+            }
+            return crate::parity::no_arm("start", want);
         }
         any = true;
         let c = match podbox_supervise::get(&s, want) {
@@ -169,6 +182,9 @@ pub fn start(args: &[String]) -> i32 {
 
 /// `podbox ps`
 pub fn ps(args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all("ps", args, PS_USAGE) {
+        return c;
+    }
     let mut all = false;
     let mut quiet = false;
     let mut no_trunc = false;
@@ -192,6 +208,12 @@ pub fn ps(args: &[String]) -> i32 {
             },
             other if other.starts_with("--format=") => {
                 template = Some(other["--format=".len()..].to_string())
+            }
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit("ps", other, PS_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm("ps", other);
             }
             other => {
                 eprintln!("podbox ps: unknown option {other:?}");
@@ -302,6 +324,9 @@ fn ps_fields(c: &Container, no_trunc: bool) -> Vec<(&'static str, String)> {
 
 /// `podbox logs <container>`
 pub fn logs(args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all("logs", args, "usage: podbox logs <container>") {
+        return c;
+    }
     let Some(want) = args.first() else {
         println!("usage: podbox logs <container>");
         return EXIT_CLI_ERROR;
@@ -309,6 +334,12 @@ pub fn logs(args: &[String]) -> i32 {
     if want == "-h" || want == "--help" {
         println!("usage: podbox logs <container>");
         return 0;
+    }
+    if want.starts_with('-') {
+        if let Err(c) = crate::parity::admit("logs", want, "usage: podbox logs <container>") {
+            return c;
+        }
+        return crate::parity::no_arm("logs", want);
     }
     let s = match store() {
         Ok(s) => s,
@@ -328,6 +359,13 @@ pub fn logs(args: &[String]) -> i32 {
 
 /// `podbox stop [-t N] <container>...`
 pub fn stop(args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(
+        "stop",
+        args,
+        "usage: podbox stop [-t seconds] <container> [container...]",
+    ) {
+        return c;
+    }
     let mut grace = STOP_GRACE_MS;
     let mut names = Vec::new();
     let mut it = args.iter();
@@ -345,8 +383,14 @@ pub fn stop(args: &[String]) -> i32 {
                 }
             },
             other if other.starts_with('-') => {
-                eprintln!("podbox stop: unknown option {other:?}");
-                return EXIT_FLAG_ERROR;
+                if let Err(c) = crate::parity::admit(
+                    "stop",
+                    other,
+                    "usage: podbox stop [-t seconds] <container> [container...]",
+                ) {
+                    return c;
+                }
+                return crate::parity::no_arm("stop", other);
             }
             other => names.push(other.to_string()),
         }
@@ -382,6 +426,13 @@ pub fn stop(args: &[String]) -> i32 {
 
 /// `podbox kill [-s SIG] <container>...`
 pub fn kill(args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(
+        "kill",
+        args,
+        "usage: podbox kill [-s SIGNAL] <container> [container...]",
+    ) {
+        return c;
+    }
     let mut sig = 9;
     let mut names = Vec::new();
     let mut it = args.iter();
@@ -405,8 +456,14 @@ pub fn kill(args: &[String]) -> i32 {
                 }
             },
             other if other.starts_with('-') => {
-                eprintln!("podbox kill: unknown option {other:?}");
-                return EXIT_FLAG_ERROR;
+                if let Err(c) = crate::parity::admit(
+                    "kill",
+                    other,
+                    "usage: podbox kill [-s SIGNAL] <container> [container...]",
+                ) {
+                    return c;
+                }
+                return crate::parity::no_arm("kill", other);
             }
             other => names.push(other.to_string()),
         }
@@ -452,9 +509,28 @@ fn signal_number(v: &str) -> Option<i32> {
 
 /// `podbox wait <container>...`
 pub fn wait(args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(
+        "wait",
+        args,
+        "usage: podbox wait <container> [container...]",
+    ) {
+        return c;
+    }
     if args.is_empty() || args[0] == "-h" || args[0] == "--help" {
         println!("usage: podbox wait <container> [container...]");
         return if args.is_empty() { EXIT_CLI_ERROR } else { 0 };
+    }
+    for want in args {
+        if want.starts_with('-') {
+            if let Err(c) = crate::parity::admit(
+                "wait",
+                want,
+                "usage: podbox wait <container> [container...]",
+            ) {
+                return c;
+            }
+            return crate::parity::no_arm("wait", want);
+        }
     }
     let s = match store() {
         Ok(s) => s,
@@ -484,6 +560,13 @@ pub fn wait(args: &[String]) -> i32 {
 
 /// `podbox rm [-f] <container>...`
 pub fn rm(args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(
+        "rm",
+        args,
+        "usage: podbox rm [-f|--force] <container> [container...]",
+    ) {
+        return c;
+    }
     let mut force = false;
     let mut names = Vec::new();
     for a in args {
@@ -495,8 +578,14 @@ pub fn rm(args: &[String]) -> i32 {
             "-f" | "--force" => force = true,
             "-v" | "--volumes" => {}
             other if other.starts_with('-') => {
-                eprintln!("podbox rm: unknown option {other:?}");
-                return EXIT_FLAG_ERROR;
+                if let Err(c) = crate::parity::admit(
+                    "rm",
+                    other,
+                    "usage: podbox rm [-f|--force] <container> [container...]",
+                ) {
+                    return c;
+                }
+                return crate::parity::no_arm("rm", other);
             }
             other => names.push(other.to_string()),
         }
@@ -521,12 +610,31 @@ pub fn rm(args: &[String]) -> i32 {
 
 /// `podbox cp <src> <dest>`, where one side is `<container>:<path>`.
 pub fn cp(args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(
+        "cp",
+        args,
+        "usage: podbox cp <container>:<path> <dest>\n       podbox cp <src> <container>:<path>",
+    ) {
+        return c;
+    }
     if args.len() == 1 && (args[0] == "-h" || args[0] == "--help") {
         println!(
             "usage: podbox cp <container>:<path> <dest>\n       \
              podbox cp <src> <container>:<path>"
         );
         return 0;
+    }
+    for a in args {
+        if a.starts_with('-') {
+            if let Err(c) = crate::parity::admit(
+                "cp",
+                a,
+                "usage: podbox cp <container>:<path> <dest>\n       podbox cp <src> <container>:<path>",
+            ) {
+                return c;
+            }
+            return crate::parity::no_arm("cp", a);
+        }
     }
     if args.len() != 2 {
         eprintln!("podbox cp: takes exactly two paths, one of them <container>:<path>");

@@ -161,7 +161,10 @@ usage: podbox system install-names [--dir D] [--force] [name...]
     T-1001).
 ";
 
-pub fn install(args: &[String]) -> i32 {
+pub fn install(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, INSTALL_USAGE) {
+        return c;
+    }
     let mut dir: Option<PathBuf> = None;
     let mut force = false;
     let mut wanted: Vec<String> = Vec::new();
@@ -184,9 +187,10 @@ pub fn install(args: &[String]) -> i32 {
                 dir = Some(PathBuf::from(&other["--dir=".len()..]))
             }
             other if other.starts_with('-') => {
-                eprintln!("podbox system install-names: unknown option {other:?}");
-                eprint!("{INSTALL_USAGE}");
-                return EXIT_FLAG_ERROR;
+                if let Err(c) = crate::parity::admit(verb, other, INSTALL_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
             }
             other => {
                 if !ALIASES.contains(&other) {

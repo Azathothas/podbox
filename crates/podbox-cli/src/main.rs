@@ -127,16 +127,31 @@ fn main() -> std::process::ExitCode {
         Some("start") => exit(lifecycle::start(rest)),
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
-        Some("pull") => exit(images::pull(rest)),
-        Some("extract") => exit(images::extract(rest)),
-        Some("images") => exit(images::images(rest)),
-        Some("rmi") => exit(images::rmi(rest)),
-        Some("tag") => exit(images::tag(rest)),
-        Some("inspect") => exit(images::inspect(rest)),
+        Some("pull") => exit(images::pull("pull", rest)),
+        Some("extract") => exit(images::extract("extract", rest)),
+        Some("images") => exit(images::images("images", rest)),
+        Some("rmi") => exit(images::rmi("rmi", rest)),
+        Some("tag") => exit(images::tag("tag", rest)),
+        Some("inspect") => exit(images::inspect("inspect", rest)),
         Some("image") => exit(image_group(rest)),
         Some("system") => exit(system::system(rest)),
-        Some("info") => exit(system::info(rest)),
+        Some("info") => exit(system::info("info", rest)),
         Some("version") | Some("--version") | Some("-v") => {
+            for a in rest {
+                if a == "-h" || a == "--help" {
+                    println!("usage: podbox version");
+                    return std::process::ExitCode::SUCCESS;
+                }
+                if a.starts_with('-') {
+                    // ⛔ TODO/cli.md T-0801. The table decides: a flag the
+                    // table has no row for is refused rather than silently
+                    // accepted with the version number.
+                    if let Err(c) = crate::parity::admit("version", a, "usage: podbox version") {
+                        return exit(c);
+                    }
+                    return exit(crate::parity::no_arm("version", a));
+                }
+            }
             println!("podbox {}", env!("CARGO_PKG_VERSION"));
             std::process::ExitCode::SUCCESS
         }
@@ -192,16 +207,29 @@ fn main() -> std::process::ExitCode {
 fn image_group(args: &[String]) -> i32 {
     let rest = if args.len() > 1 { &args[1..] } else { &[] };
     match args.first().map(String::as_str) {
-        Some("ls") | Some("list") => images::images(rest),
-        Some("rm") | Some("remove") => images::rmi(rest),
-        Some("prune") => images::prune(rest),
-        Some("tag") => images::tag(rest),
-        Some("inspect") => images::inspect(rest),
-        Some("pull") => images::pull(rest),
-        Some("extract") => images::extract(rest),
+        Some(s) if s == "ls" || s == "list" => images::images(&format!("image {s}"), rest),
+        Some(s) if s == "rm" || s == "remove" => images::rmi(&format!("image {s}"), rest),
+        Some("prune") => images::prune("image prune", rest),
+        Some("tag") => images::tag("image tag", rest),
+        Some("inspect") => images::inspect("image inspect", rest),
+        Some("pull") => images::pull("image pull", rest),
+        Some("extract") => images::extract("image extract", rest),
         Some("-h") | Some("--help") | None => {
             println!("usage: podbox image ls | rm | prune | tag | inspect | pull");
             0
+        }
+        Some(first) if first.starts_with('-') => {
+            // ⛔ TODO/cli.md T-0801. The table decides: `image` takes
+            // subverbs, never flags, so a flag has no row and is refused
+            // rather than reaching the subverb match below.
+            if let Err(c) = crate::parity::admit(
+                "image",
+                first,
+                "usage: podbox image ls | rm | prune | tag | inspect | pull",
+            ) {
+                return c;
+            }
+            crate::parity::no_arm("image", first)
         }
         Some(other) => {
             eprintln!("podbox image: {other:?}: not implemented yet");
@@ -216,6 +244,13 @@ fn probe(args: &[String]) -> i32 {
     let mut cached = false;
     let mut strictness = Strictness::Warn;
     for a in args {
+        // ⛔ TODO/cli.md T-0801. The table decides, as in every other parser:
+        // an unlisted flag never reaches an arm.
+        if a.starts_with('-') {
+            if let Err(c) = crate::parity::admit("probe", a, PROBE_USAGE) {
+                return c;
+            }
+        }
         match a.as_str() {
             "--json" => json = true,
             "--rows" => rows = true,
@@ -224,6 +259,9 @@ fn probe(args: &[String]) -> i32 {
             "-h" | "--help" => {
                 print!("{PROBE_USAGE}");
                 return 0;
+            }
+            other if other.starts_with('-') => {
+                return crate::parity::no_arm("probe", other);
             }
             other => {
                 eprintln!("podbox probe: unknown option {other:?}");

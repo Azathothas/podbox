@@ -106,12 +106,18 @@ fn banner_state() -> String {
 pub fn system(args: &[String]) -> i32 {
     let rest = if args.len() > 1 { &args[1..] } else { &[] };
     match args.first().map(String::as_str) {
-        Some("info") => info(rest),
-        Some("install-names") => crate::names::install(rest),
-        Some("abi") => abi(rest),
+        Some("info") => info("system info", rest),
+        Some("install-names") => crate::names::install("system install-names", rest),
+        Some("abi") => abi("system abi", rest),
         Some("-h") | Some("--help") | None => {
             print!("{SYSTEM_USAGE}");
             0
+        }
+        Some(first) if first.starts_with('-') => {
+            if let Err(c) = crate::parity::admit("system", first, SYSTEM_USAGE) {
+                return c;
+            }
+            crate::parity::no_arm("system", first)
         }
         Some(other) => {
             // ⛔ The table answers, not this match arm. `podbox system df` gets
@@ -136,7 +142,10 @@ pub fn system(args: &[String]) -> i32 {
 ///
 /// ⛔ Three exit codes and the third is not a failure: 0 admitted, 1 refused
 /// with the reason on stderr, 2 a file podbox could not read.
-pub fn abi(args: &[String]) -> i32 {
+pub fn abi(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, SYSTEM_USAGE) {
+        return c;
+    }
     let mut paths: Vec<&str> = Vec::new();
     for a in args {
         match a.as_str() {
@@ -145,8 +154,10 @@ pub fn abi(args: &[String]) -> i32 {
                 return 0;
             }
             other if other.starts_with('-') => {
-                eprintln!("podbox system abi: unknown option {other:?}");
-                return EXIT_FLAG_ERROR;
+                if let Err(c) = crate::parity::admit(verb, other, SYSTEM_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
             }
             other => paths.push(other),
         }
@@ -186,7 +197,10 @@ pub fn abi(args: &[String]) -> i32 {
     }
 }
 
-pub fn info(args: &[String]) -> i32 {
+pub fn info(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, SYSTEM_USAGE) {
+        return c;
+    }
     let mut template: Option<String> = None;
     let mut it = args.iter();
     while let Some(a) = it.next() {
@@ -204,6 +218,12 @@ pub fn info(args: &[String]) -> i32 {
             },
             other if other.starts_with("--format=") => {
                 template = Some(other["--format=".len()..].to_string())
+            }
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, SYSTEM_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
             }
             other => {
                 eprintln!("podbox system info: unknown option {other:?}");
