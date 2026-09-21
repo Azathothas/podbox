@@ -183,7 +183,7 @@ the blocker named and what would clear it.
 | [T-1205](gate.md) | P1 | gate | done | The gate holds experiment numbers unique, because four Proves already collide |
 | [T-1206](gate.md) | P0 | gate | done | CI installs the toolchain the build config names, and nine commits proved nobody was holding it |
 | [T-1207](gate.md) | P1 | gate | open | The one crate that runs inside other people's processes is the one the gate does not check |
-| [T-1208](gate.md) | P1 | gate | open | A closed entry carries its recorded run, and the gate can see it |
+| [T-1208](gate.md) | P1 | gate | done | A closed entry carries its recorded run, and the gate can see it |
 | [T-1209](gate.md) | P1 | gate | done | Thirty-nine `Prove` lines pull from the one registry the acceptance may not use |
 | [T-1210](gate.md) | P1 | gate | done | Convert the interpose engine scripts to `experiments/lib/engine.sh` |
 | [T-1211](gate.md) | P1 | gate | blocked | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
@@ -202,7 +202,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-138 items: 31 open, 3 partial, 3 blocked, 101 done.
+138 items: 30 open, 3 partial, 3 blocked, 102 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -211,10 +211,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 2 | 1 | 0 | 49 | 52 |
-| P1 | 17 | 2 | 3 | 40 | 62 |
+| P1 | 16 | 2 | 3 | 41 | 62 |
 | P2 | 8 | 0 | 0 | 11 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **31** | **3** | **3** | **101** | **138** |
+| **All** | **30** | **3** | **3** | **102** | **138** |
 
 ## How the current ordering is derived
 

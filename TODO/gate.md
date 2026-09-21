@@ -496,7 +496,7 @@ Source:      [RULES.md](RULES.md) section 5; the reconciliation of 2026-09-11
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     [RULES.md](RULES.md) section 5 says an entry closes in place with
              its `Prove` command actually run and the output recorded underneath.
@@ -559,6 +559,19 @@ Decision:    ⭐ **Taken on 2026-09-12: one shape, and it is the bold `Done`
              entries carry `done` with no date and 66 carry one; section 5 asks
              for neither, so making it a rule here would invent one.
 Prove:       `./scripts/check-todo.py` reports a `closure_records` coverage count equal to the number of closed entries, and the plant for it goes red naming the entry whose record was removed
+
+**Done 2026-09-21.** Check 22 in `scripts/check-todo.py` (every `done` entry
+opens its record with `**Done` on the first unindented line after `Prove`),
+its plant case in `scripts/plant.sh`, the RULES.md section 5 shape sentence,
+and five records converted (T-0204, T-1103, T-0107, T-0108, T-0505).
+
+The check found five prose records, not the four this entry names: T-0505
+(`enter.md`) kept its `**Done` paragraph after a `Prove`-rewrite note, so the
+first unindented line after `Prove` was the note. All five open with `**Done`
+now, with their content preserved. `check-todo.py` reports
+`closure_records=101` against 101 `done` entries. The plant run on the
+committed tree: 27 caught, 0 missed, 3 controls quiet, full `dev.sh check`
+green alongside.
 
 ---
 

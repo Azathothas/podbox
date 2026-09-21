@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-138 entries: 31 open, 3 partial, 3 blocked, 101 done.
+138 entries: 30 open, 3 partial, 3 blocked, 102 done.
 
 ## Baseline
 
@@ -142,8 +142,9 @@ beside T-0204, T-1103, T-0107 and T-0108), and all five are converted in this
 change. The plant strips the marker across `TODO/probe.md` and asserts the
 gate goes red naming the defect. T-1207's stale `Problem` is corrected in
 place (the interpose steps are already in `dev.sh check`); its Decision still
-needs a ruling, so it stays open. [T-1208](gate.md) stays open until the plant
-run on the committed tree.
+needs a ruling, so it stays open. [T-1208](gate.md) closed after the plant
+run on the committed tree: 27 caught, 0 missed, 3 controls quiet, full gate
+green alongside.
 
 What stays current from last time:
 
@@ -198,11 +199,9 @@ store suite), so the change commits with the three reds named above.
    after 8 of 10 refused before.
 2. [T-0408](complete.md) is done: the opensuse-leap row ran green (zypper 0 0
    42) and the transcript is recorded under the entry.
-3. [T-1207](gate.md) and [T-1208](gate.md): check 22 (closure records) and
-   its plant land here, with five records converted to the ruled shape (the
-   four the entry names plus T-0505, which the new check found). T-1207's
-   stale claim is corrected in place; its Decision still needs a ruling.
-   [T-1208](gate.md) stays open until the plant run on the committed tree.
+3. [T-1207](gate.md) and [T-1208](gate.md): [T-1208](gate.md) is done (check
+   22, its plant, five records converted). [T-1207](gate.md)'s stale claim is
+   corrected in place; its Decision still needs a ruling.
 4. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
 5. [T-1111](milestones.md): M8, the nix acceptance, after M7.
 7. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
