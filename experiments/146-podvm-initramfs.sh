@@ -10,9 +10,9 @@
 #   1. pull and extract the pinned image through the lane-built binary, which
 #      prints the rootfs path;
 #   2. the base archive: the rootfs as newc cpio, uncompressed;
-#   3. the appended archive: dev/, dev/console 5:1 and the /init override,
-#      written by this script's own newc writer. No host mknod and no
-#      privilege: the record is bytes, and archives concatenate;
+#   3. the appended archive: dev/, dev/console 5:1 and the /init override.
+#      The assembly lives in experiments/lib/podvm-guest.sh, which 147
+#      reuses; the /init content stays here because it is this guest's.
 #   4. the console node is in the appended archive (cpio -t stops at the
 #      base archive's TRAILER while the kernel's unpacker keeps going, so
 #      the boot in clause 5 is what proves the full assembly);
@@ -40,6 +40,9 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 
 STORE="$WORK/store"
 export PODBOX_STORE="$STORE"
+
+# shellcheck source=lib/podvm-guest.sh
+. "$HERE/lib/podvm-guest.sh"
 
 # ⭐ Every input pinned. A registry that moves a tag is a different
 # measurement wearing the same name.
@@ -113,9 +116,7 @@ fi
 if [ "$fail" -eq 0 ]; then
 say ""
 say "== 2. the base archive"
-(cd "$ROOTFS" && find . -print0 | cpio --quiet -o -H newc --null >"$WORK/base.cpio") || {
-	miss "the base cpio did not build"
-}
+podvm_base "$ROOTFS" "$WORK/base.cpio" || miss "the base cpio did not build"
 say "  base: $(wc -c <"$WORK/base.cpio") bytes"
 
 say ""
@@ -127,28 +128,8 @@ mount -t sysfs sysfs /sys 2>/dev/null
 echo VMR-GUEST-READY
 poweroff -f
 INITEOF
-python3 - "$WORK" <<'PYEOF'
-import sys
-d = sys.argv[1]
-def newc(name, mode, filesize=0, rdevmaj=0, rdevmin=0, data=b""):
-    name_b = name.encode() + b"\0"
-    head = ["070701", "00000000", format(mode, "08x"), "00000000",
-            "00000000", "00000001", "00000000", format(filesize, "08x"),
-            "00000000", "00000000", format(rdevmaj, "08x"),
-            format(rdevmin, "08x"), format(len(name_b), "08x"), "00000000"]
-    out = "".join(head).encode() + name_b
-    out += b"\0" * ((4 - len(out) % 4) % 4)
-    out += data + b"\0" * ((4 - len(data) % 4) % 4)
-    return out
-init = open(d + "/init-override", "rb").read()
-rec = newc("dev", 0o040755)
-rec += newc("dev/console", 0o020600, rdevmaj=5, rdevmin=1)
-rec += newc("init", 0o100755, filesize=len(init), data=init)
-rec += newc("TRAILER!!!", 0)
-open(d + "/extras.cpio", "wb").write(rec)
-PYEOF
-[ -s "$WORK/extras.cpio" ] || miss "the extras archive is empty"
-cat "$WORK/base.cpio" "$WORK/extras.cpio" >"$WORK/full.cpio" || miss "concat failed"
+podvm_extras "$WORK/init-override" "$WORK/extras.cpio" || miss "the extras archive did not build"
+podvm_concat "$WORK/base.cpio" "$WORK/extras.cpio" "$WORK/full.cpio" || miss "concat failed"
 say "  full: $(wc -c <"$WORK/full.cpio") bytes"
 
 say ""

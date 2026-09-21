@@ -1,5 +1,5 @@
 == conditions
-date              2026-09-21T15:33:49Z
+date              2026-09-21T15:53:32Z
 host kernel       7.2.0-WSL2-STABLE
 podbox            podbox 0.1.0
 qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)

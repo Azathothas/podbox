@@ -14,9 +14,11 @@ M7 packaging has not started. ⭐ **M8 is green since 2026-09-21:**
 [milestones.md](milestones.md) T-1111 drove the whole nix pipeline through
 the shipped binary, seven rows green, so the last gate reads. The machine
 tier, [podvm.md](podvm.md), holds its probe since 2026-09-21 (T-1301: six
-legs, one verdict per leg); the flag is next.
+legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
+the booting initramfs (T-1303), and the serial exec protocol (T-1304:
+147 green, every status distinct across the line).
 
-140 entries: 25 open, 3 partial, 3 blocked, 109 done.
+140 entries: 24 open, 3 partial, 3 blocked, 110 done.
 
 ## Baseline
 
@@ -217,6 +219,22 @@ served, so the pin here is measured), a host `-x` test lies about
 absolute symlinks, and `cpio -t` stops at the base TRAILER while the
 kernel keeps going.
 
+[T-1304](podvm.md) closed in its own change: the assembly moves to
+`experiments/lib/podvm-guest.sh`, shared with 146 (re-driven green on
+the refactored tree with byte-identical evidence), and
+`experiments/147-podvm-exec.sh` exits 0 on a lane-built binary: the
+guest boots, the shell answers the handshake round-trip, `true`
+reports 0, `exit 3` reports 3, a marker-shaped line with the wrong
+nonce is ignored with the real 7 reported, and `sleep 30` past an 8 s
+deadline reports DEADLINE (`experiments/results/podvm-exec.txt`).
+Five findings are in the script: CRLF stripped once at the reader,
+unbuffered delivery past `tr`, both fifo ends pre-held O_RDWR,
+`-N16` on the nonce reader (`od` without it reads urandom to an EOF
+that never comes, so the first handshake hung unboundedly), and the
+command in a subshell so a bare `exit 3` cannot kill the reporting
+shell. Residual, with its own entry still to author: `curl -fsSL` in
+146/147 carries no `--max-time`.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -278,9 +296,10 @@ store suite), so the change commits with the three reds named above.
    reconstruction.
 5. [T-1111](milestones.md) is done: M8, the nix acceptance, seven rows
    green through the shipped binary on host podman.
-7. [podvm.md](podvm.md) T-1301, T-1302 and T-1303 are done: the probe legs,
-   the tier flag with the `podvm` name, and the booting initramfs. T-1304
-   (the serial exec protocol) is next.
+7. [podvm.md](podvm.md) T-1301, T-1302, T-1303 and T-1304 are done: the
+   probe legs, the tier flag with the `podvm` name, the booting
+   initramfs, and the serial exec protocol with every status distinct.
+   T-1305 (the fleet decision) is next.
 
 [T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
 rows read no-compiler under the interposer while the engine control reaches

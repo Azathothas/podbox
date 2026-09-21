@@ -299,7 +299,7 @@ Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec docume
 Category:    podvm
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     `podbox exec` hands a command to a process. The machine tier has no
              process to hand it to: the command crosses a serial line into a
@@ -325,12 +325,51 @@ Approach:    One shot per command: a begin marker, the command, an end marker
              ⛔ Every read has a deadline and the deadline is reported, per
              [RULES.md](RULES.md) section 8. A machine that stopped answering and
              a command that is still running are different states.
-Decision:    Not taken. ⚠ The marker format is a wire contract and a payload can
-             print anything, including a line that looks like a marker. The
-             entry must rule how a marker is made unforgeable: a per-command
-             nonce is the obvious answer and it should be written down rather
-             than assumed.
+Decision:    ⭐ **Taken 2026-09-21: a per-command 128-bit nonce in every
+             marker, matched line-anchored and exact.** `VMR-BEGIN-<nonce>`
+             opens, `VMR-END-<nonce> <status>` closes, and the driver takes
+             the first exact line. The nonce comes from the host's entropy
+             per command and is never reused. What this defeats is the stated
+             threat: a payload printing a marker-SHAPED line, which a fixed
+             marker cannot tell from the real one. What it does not defeat is
+             a guest that reads the nonce off its own stdin and forges the
+             exact line: the nonce crosses the same serial line as the
+             command, so a hostile guest is outside this model, and the entry
+             says so rather than implying otherwise.
+             ⚠ **Rejected:** fixed markers (the shape a payload collides
+             with by accident) and bare sequence numbers (the same shape
+             with arithmetic).
 Prove:       `./experiments/147-podvm-exec.sh` asserts a zero status, a non-zero status and a deadline are each reported distinctly, and that a payload printing a marker-shaped line does not end the command
+
+**Done 2026-09-21.** `experiments/147-podvm-exec.sh` exits 0 on a
+lane-built binary: the guest boots, the shell answers the handshake,
+`true` reports 0, `exit 3` reports 3, a marker-shaped line with the
+wrong nonce is ignored with the real 7 reported, and `sleep 30` past
+an 8 s deadline reports DEADLINE, which is no status
+(`experiments/results/podvm-exec.txt`). The assembly moves to
+`experiments/lib/podvm-guest.sh`, shared with 146; 146 re-driven on
+the refactored tree exits 0 with evidence identical bar the date line,
+so the committed `podvm-initramfs.txt` is that re-drive.
+
+Five findings on the way, each in the script now. The serial speaks
+CRLF, so the reader strips it once (`tr -d '\r'`) and no anchored
+match has to know. `tr` block-buffers a file target, so the reader
+runs unbuffered (`stdbuf -o0`). The pipe backend opens existing fifos
+and blocks otherwise, so the parent holds both ends O_RDWR before qemu
+starts. `od` reads to EOF and urandom has none, so the nonce reader
+takes `-N16`: without it the first handshake hung unboundedly, which
+is the shell form of the urandom trap
+`crates/podbox-complete/src/devices.rs:218` records. A bare `exit 3`
+ends the very shell that must print the end marker, so the command
+runs in a subshell and the reporter outlives it. The end-marker
+pattern accepts the exact line and rejects six forgery shapes,
+checked host-side against the same pattern text. The kernel pin stays
+measured: the mirror serves 6.12.110 and the reference names 6.12.94.
+
+Residual, not in this change: `curl -fsSL` in 146 and 147 carries no
+`--max-time`, so a stalled mirror is the one network wait without a
+ceiling. It predates this entry (146 introduced it) and changing 146
+would invalidate T-1303's evidence, so it needs its own entry.
 
 ---
 
