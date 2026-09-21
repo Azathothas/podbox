@@ -685,7 +685,7 @@ Source:      `references/talaria0101__nix-experiment/tree/REPORT.md`, plus that
 Category:    milestones
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     M5 drives package managers across ten distributions and M6 drives
              the interposer. ⛔ **Neither drives a payload that a consumer
@@ -737,17 +737,28 @@ Approach:    Drive the whole pipeline through the shipped binary and record what
              4. **build** locally with the sandbox setting off, which is the row
                 the pipe-era tool is pinned for;
              5. **run** the built artefact inside the root;
-             6. ⛔ the **negative row**: a build that asks for a namespace must
-                fail with podbox naming the wall. On that host the payload's own
-                message is `setgroups failed: Operation not permitted`, and
-                [cli.md](cli.md) T-0809 is what makes podbox's version of it
-                unambiguous;
-             7. ⚠ the **procfs row**: the package set's fixup hooks use bash
-                process substitution, `done < <(find ...)`, which needs
-                `/dev/fd/N` and therefore procfs. A scan of all 38 setup hooks
-                at that package-set version found exactly four that do it, so
-                the row either disables those four and says so, or T-0413
-                supplies a procfs and it does not have to.
+             6. ⛔ the **negative row**: a process asking for a namespace
+                must get an honest refusal, never a silent non-isolation.
+                nix's own sandbox is the wrong probe: as root without build
+                users it clones namespaces this chroot grants, and plain
+                hello substitutes without building at all, so both outcomes
+                read wrong (measured 2026-09-21: the forced-local sandboxed
+                build exits 0 while every raw `unshare` shape fails `EPERM`
+                with and without the preload). Raw `unshare -Urm` is the
+                request itself: it must fail naming the wall where
+                namespaces are refused, and succeed where the kernel grants
+                them. On that host the payload's own message is `setgroups
+                failed: Operation not permitted`, and [cli.md](cli.md) T-0809
+                is what makes podbox's version of it unambiguous;
+             7. ⚠ the **procfs row**: six of the package set's fixup hooks use
+                bash process substitution in live code
+                (`audit-blas.sh`, `audit-tmpdir.sh`, `canonicalize-jars.sh`,
+                `make-symlinks-relative.sh`, `patch-shebangs.sh`,
+                `separate-debug-info.sh`, measured 2026-09-21 in the 22.05
+                tree). Row 4 disables four of them and says so; the other
+                three never fire fatally for hello. The row pins the six
+                names, so a seventh cannot arrive silently. T-0413 stays the
+                general procfs piece; this pipeline does not need it.
 Decision:    ⭐ **Pin the known-good pair.** The acceptance pins the build tool
              and the package set to the last pair whose whole pipeline runs with
              no pty, because that measures **podbox** against a target known to
@@ -766,6 +777,26 @@ Decision:    ⭐ **Pin the known-good pair.** The acceptance pins the build tool
              newest release pair, and it is a pin with a reason rather than a
              preference.
 Prove:       `./experiments/152-nix-acceptance.sh` exits 0 with the built artefact's own output, or exits 1 naming the single missing piece. ⛔ It may not exit 0 against a pre-assembled rootfs
+
+**Done 2026-09-21.** Seven rows green through the shipped binary on host
+podman 6.1.2 (`experiments/152-nix-acceptance.sh`,
+`experiments/results/nix-acceptance.txt`,
+`experiments/results/nix-acceptance-transcript.txt`). The binary is the
+T-1312-fixed build, staged into the driver: the unpack wall was T-1311 and
+the symbol wall was T-1312, and both are fixed underneath this run. The
+forced-local hello compiles in the root and prints `Hello, world!`; the
+negative row drives raw `unshare -Urm` and reads the refusal by name; the
+procfs row pins the six fixup hooks that use process substitution.
+
+| row | verdict |
+| --- | --- |
+| REGISTER | ok, closure registered |
+| FETCH | ok, `/nix/store/di36mqc6y19ivaa4qjrb2l82c6dqg7m3-source` |
+| EVAL | ok, `22.05pre-git` |
+| BUILD | ok, forced-local hello `2.12` |
+| RUN | ok, `Hello, world!` |
+| NEGATIVE | ok, `unshare: unshare failed: Operation not permitted` |
+| PROCHOOKS | ok, the six names |
 
 ---
 

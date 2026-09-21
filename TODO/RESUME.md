@@ -1,33 +1,38 @@
 ## The task
 
-Continuous session of 2026-09-21. T-1108 is done and commits here. Next is
-the work order in TODO/PROGRESS.md (item 5: T-1111 M8 nix acceptance).
-Push straight to main, no branches. Engine clauses run on host podman;
-stop the podman machine at close-out.
+Continuous session of 2026-09-21. T-1312 is committed but not yet pushed
+(`06b2142` filing, `bffd956` implement; verify with `git log`).
+T-1111's change is closed in the worktree and next to commit. Push straight
+to main, no branches. Engine clauses run on host podman; stop the podman
+machine at close-out.
 
 ## The resume point
 
-T-1108 closes here (static binary, staged reconstruction run). After the
-push, read TODO/PROGRESS.md and T-1111 for the next unit of work.
+Commit T-1111's change (152 script, two result files, entry, record), run
+the lane's full check on the final tree, and push everything on main.
+After the push the work order continues at `TODO/PROGRESS.md` item 7
+(podvm T-1301).
 
 ## In flight
 
-Nothing half-written. Tree state: verify at resume.
+T-1111 entry closed in `TODO/milestones.md` with the seven-row table.
+`TODO/PROGRESS.md` carries the close-out. Nothing is half-written.
 
-## State (tree dirty, closing)
+## State
 
-```text
-M7 close: milestones.md T-1108 record, INDEX.md counts, PROGRESS.md record
-```
-
-Counts 138: 29 open, 3 partial, 3 blocked, 103 done. Host reader green
-(closure_records=103). Both T-1108 Prove halves green in this lane.
+Counts 140: 28 open, 3 partial, 3 blocked, 106 done after
+`todo-count --set T-1111 done`. Host reader green expected
+(`check-todo: ok`); lane full check still to run on the final tree.
+Podman machine `podman-machine-default` running (was running at session
+start; the operator orders it stopped at close-out). Lane job ledger GC'd
+to 0 open records at session start.
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Continuous session: T-1108 is on main. Read TODO/PROGRESS.md for the work
-order and continue with the next unit. Push straight to main, no branches.
-The guest lane has no docker daemon; engine clauses run on host podman.
+Continuous session: T-1311 and T-1312 are committed, T-1111 is closed in
+the worktree. Commit T-1111, run the full lane check, push straight to
+main with no branches, then continue the PROGRESS.md work order. Engine
+clauses run on host podman; stop the podman machine at close-out.
 ```
