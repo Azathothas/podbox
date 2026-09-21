@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-140 entries: 30 open, 3 partial, 3 blocked, 104 done.
+140 entries: 29 open, 3 partial, 3 blocked, 105 done.
 
 ## Baseline
 
@@ -164,6 +164,13 @@ every nix binary refuses to start with `GLIBC_2.34 not found (required by
 /.podbox/interpose.so)`, because the closure ships glibc 2.27 and the
 preloaded object binds `dlsym` at 2.34 and `gettid` at 2.30. That is filed
 as [T-1312](interpose.md) with the symbols named; T-1111 waits on it.
+
+[T-1312](interpose.md) closed in its own change: the glibc object binds
+`dlsym@GLIBC_2.2.5` under `libdl.so.2` through a stub-first linker
+wrapper, `gettid` is a local assembly label, and the build asserts the
+2.27 ceiling, the missing export and the libdl need per object. Loader
+proof green under the closure's own glibc 2.27, and 152 reads REGISTER ok
+and FETCH ok on the fixed binary. T-1111 runs whole.
 
 What stays current from last time:
 

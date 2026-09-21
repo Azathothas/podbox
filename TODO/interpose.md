@@ -1131,7 +1131,7 @@ Source:      the T-1111 nix unpack (`experiments/results/nix-acceptance.txt`
 Category:    interpose
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The nix 2.2.2 closure unpacks under podbox now (T-1311), but no
              nix binary starts: the loader refuses each one with
@@ -1148,13 +1148,22 @@ Premise:     Measured 2026-09-21 in the lane: `readelf -VW` on the shipped
              `gettid`: the reference arrives with Rust std, which this
              object links. Everything else the object needs is 2.14 or
              older, so these two are the whole gap.
-Approach:    Pin this object's `dlsym` reference to `GLIBC_2.2.5` with a
-             `.symver` directive, and define `gettid` locally through the
-             raw syscall number so std's reference resolves inside the
-             object instead of against the payload's libc. Assert the
-             ceiling in `scripts/build-interpose.sh`: no `GLIBC_` need above
-             2.27, the closure's version, measured in the failing row. Out
-             of scope: the musl object (no symbol versions, unaffected), a
+Approach:    Link `dlsym` against the `dl-stub.S` import library, which
+             records the reference under `libdl.so.2`: the library that
+             defines it on both sides of glibc's 2.34 `libdl` merge. (The
+             `2` is libdl's own SONAME version, unrelated to `libc.so.6`.)
+             The reference carries `GLIBC_2.2.5` through `.symver` and the
+             stub defines that node through `dl-stub.map`; the stub travels
+             first on the link through a linker wrapper, because user link
+             arguments arrive after the objects, where `--as-needed` drops
+             the stub outright and the surviving reference binds `libc.so.6`
+             instead. All three failures were measured. Define `gettid`
+             locally through the raw syscall number so std's reference
+             resolves inside the object instead of against the payload's
+             libc. Assert the ceiling in `scripts/build-interpose.sh`: no
+             `GLIBC_` need above 2.27, the closure's version, measured in
+             the failing row. Out of
+             scope: the musl object (no symbol versions, unaffected), a
              `no_std` rewrite (the larger answer, unneeded while the two
              references are the whole gap), and building against an older
              libc (fragile without the assertion, redundant with it).
@@ -1166,6 +1175,25 @@ Decision:    Fix in the interposer, not around it. Shipping a second older
 Prove:       `./scripts/build-interpose.sh` exits 0 with the ceiling
              assertion recorded in its output, and the 152 REGISTER row
              reads ok (recorded under the T-1111 run).
+
+**Done 2026-09-21.** The glibc object links `dlsym` against the
+`dl-stub.S` import library first on the line through the
+`gnu-link-stub.sh` linker wrapper, recording `dlsym@GLIBC_2.2.5` under
+`libdl.so.2`, and defines `gettid` as a bare assembly label that stays
+local. `build-interpose.sh` asserts three things per object and all hold:
+newest need `GLIBC_2.14` within the 2.27 ceiling, no uppercase `gettid`
+in `.dynsym`, `libdl.so.2` needed on glibc, with the export set agreeing
+with `interpose.map` both ways and the unit suite at 12 of 12. The loader
+proof loads the object under the closure's own glibc 2.27 (static probe:
+bare 0, preloaded 0, control 0). End to end on host podman 6.1.2 with
+binary `bc9dbb58`: 152 reads `row REGISTER ok closure registered` and
+`row FETCH ok "/nix/store/di36mqc6y19ivaa4qjrb2l82c6dqg7m3-source"`.
+Refuted along the way, so nobody re-tries them: a `.symver` pin alone
+binds `libc.so.6`; a plain `-ldl` resolves through the host linker script
+into the same `libc.so.6` or vanishes under `--as-needed`; a Rust
+`gettid` definition exports no matter the version script; `objcopy
+--localize-symbol` leaves the dynamic entry; `.symver` in the stub
+defines no version node; and the SONAME is `libdl.so.2`, not `.6`.
 
 ### T-1311 The interposed `fchmodat` drops the `flags` argument
 

@@ -200,11 +200,11 @@ the blocker named and what would clear it.
 | [T-1309](interpose.md) | P1 | interpose | open | libdnf repodata downloads fail under the preloaded interposer |
 | [T-1310](image.md) | P1 | image | done | The store suite exhausts the sixteen fork-shed slots, and the victim varies |
 | [T-1311](interpose.md) | P1 | interpose | done | The interposed `fchmodat` drops the `flags` argument |
-| [T-1312](interpose.md) | P1 | interpose | open | The glibc interposer needs newer symbols than the payload provides |
+| [T-1312](interpose.md) | P1 | interpose | done | The glibc interposer needs newer symbols than the payload provides |
 
 ## Counts
 
-140 items: 30 open, 3 partial, 3 blocked, 104 done.
+140 items: 29 open, 3 partial, 3 blocked, 105 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -213,10 +213,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 2 | 1 | 0 | 49 | 52 |
-| P1 | 17 | 2 | 3 | 42 | 64 |
+| P1 | 16 | 2 | 3 | 43 | 64 |
 | P2 | 7 | 0 | 0 | 12 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **30** | **3** | **3** | **104** | **140** |
+| **All** | **29** | **3** | **3** | **105** | **140** |
 
 ## How the current ordering is derived
 

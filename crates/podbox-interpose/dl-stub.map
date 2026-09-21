@@ -1,0 +1,11 @@
+/* The version node for the dlsym link stub, TODO/interpose.md T-1312.
+ *
+ * The stub defines `dlsym`, and this script puts the definition in a
+ * `GLIBC_2.2.5` node, which is the version the crate's reference asks for.
+ * An assembler `.symver` was tried first and left no node behind; this is
+ * the mechanism version scripts exist for.
+ */
+GLIBC_2.2.5 {
+  global: dlsym;
+  local: *;
+};
