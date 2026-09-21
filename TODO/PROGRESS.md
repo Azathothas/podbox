@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-138 entries: 29 open, 3 partial, 3 blocked, 103 done.
+139 entries: 30 open, 3 partial, 3 blocked, 103 done.
 
 ## Baseline
 
@@ -145,6 +145,14 @@ place (the interpose steps are already in `dev.sh check`); its Decision still
 needs a ruling, so it stays open. [T-1208](gate.md) closed after the plant
 run on the committed tree: 27 caught, 0 missed, 3 controls quiet, full gate
 green alongside.
+
+[T-1311](interpose.md) is filed in this change and stays `open`. The
+T-1111 nix acceptance unpacks its binary tarball under `podbox run` and tar
+exits 2 setting modes on symlinks, while the engine control exits 0. The
+interposed `fchmodat` declares and forwards three arguments where libc takes
+four, so the real call reads a fourth register the wrapper never set. The
+fix and its regression proof belong to T-1311, in its own change; T-1111
+waits on it.
 
 What stays current from last time:
 

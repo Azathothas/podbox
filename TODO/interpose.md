@@ -1122,3 +1122,53 @@ Decision:    Fix in the interposer, not around it. The control exists to
 Prove:       `./experiments/240-distro-sweep.sh` exits 0 with both
              libdnf rows reading 42, on host podman, with the
              conditions block naming the driver.
+
+### T-1311 The interposed `fchmodat` drops the `flags` argument
+
+Source:      `experiments/152-nix-acceptance.sh` FETCH-NIX row;
+             `crates/podbox-interpose/src/lib.rs:334`,
+             `crates/podbox-interpose/src/lib.rs:989`
+Category:    interpose
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Unpacking a tarball that carries symlinks fails under podbox
+             while the engine control unpacks it cleanly. GNU tar reports
+             `tar: ./l: Cannot change mode to rwxrwxrwx: No such file or
+             directory` for each link and exits 2, so the nix 2.2.2 binary
+             tarball (T-1111) does not unpack. Plain `chmod` on the same
+             links succeeds, and regular files extract with their modes
+             intact: only the mode-set on symlinks fails.
+Premise:     Measured 2026-09-21 on host podman, same image, back to back:
+             under `podbox run` the minimal tar-symlink repro exits 2 with
+             one such error per link; in the plain driver container the same
+             commands exit 0. The interposed `fchmodat` is declared with
+             three arguments (`crates/podbox-interpose/src/lib.rs:334`) and
+             forwards three (`crates/podbox-interpose/src/lib.rs:989`),
+             while libc takes four `(dirfd, path, mode, flags)`: the real
+             call receives a fourth register the wrapper never set, so any
+             caller passing flags gets the wrong answer. Tar's symlink
+             mode-set passes `AT_SYMLINK_NOFOLLOW`. Every other
+             flags-taking `*at` wrapper carries its flags (`unlinkat`,
+             `faccessat`, `utimensat`, `linkat`, `execveat`, `openat2`,
+             `fstatat`), so this is the one truncation, not the pattern.
+             An empty path table returns the caller's pointer before any
+             resolution (`crates/podbox-interpose/src/map.rs:448`), which
+             refutes the rewrite as the cause on runs with no table set.
+             The ownership memo never sees `chmod`, which refutes that
+             layer.
+Approach:    Carry `flags` through the declaration and the wrapper. Add a
+             unit test that compares the interposed `fchmodat` against
+             libc's own for a symlink with `AT_SYMLINK_NOFOLLOW` and with
+             flags 0. Drive the tar-symlink repro under podbox with the
+             engine control beside it. Out of scope: the T-1309 libdnf
+             failure (same family, a different call, still open), the
+             T-0705 reverse mapping, and the non-native `$BIN version`
+             line of 152 (T-1111's area, cosmetic).
+Decision:    Fix in the interposer, not around it. The control names
+             podbox, so no script-side workaround is legitimate: stripping
+             symlink modes or passing tar permission-dodging flags would
+             test a different product, the same ruling T-1309 carries.
+Prove:       `./experiments/162-tar-symlink-modes.sh` exits 0 on host
+             podman, with the conditions block naming the driver.
