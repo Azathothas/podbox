@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-140 entries: 24 open, 3 partial, 3 blocked, 110 done.
+141 entries: 24 open, 3 partial, 3 blocked, 111 done.
 
 ## Baseline
 
@@ -235,6 +235,27 @@ command in a subshell so a bare `exit 3` cannot kill the reporting
 shell. Residual, with its own entry still to author: `curl -fsSL` in
 146/147 carries no `--max-time`.
 
+[T-1305](podvm.md) closed in its own change: the fleet decision is ruled
+(the fleet is podbox's job under its existing lifecycle verbs, no new
+fleet verb; fork stays future work for when a guest driver ships) and the
+shared bound ships as `--podbox-mem` on `run`/`exec`, judged against
+`RLIMIT_FSIZE` before the legs with both numbers in the refusal at exit
+125. `experiments/148-podvm-fleet.sh` exits 0 on a lane-built binary (10
+driven, 0 mismatches; the lane's natural ceiling is infinity, so the
+script lowers it to 1 GiB in the driven child only).
+`experiments/145-podvm-parity.sh` re-driven green unchanged (19 driven, 0
+mismatches). `experiments/325-parity-drive.sh` re-driven green at 160
+rows, 199 driven, which retires a staleness the re-drive exposed: T-1302
+added 5 rows without re-driving, so the committed 153-row reading was
+already stale before T-1305's 2 rows. Unit tests 84 of 84 (cli) and 74 of
+74 (probe) green in the lane.
+
+[T-1313](podvm.md) authored in its own change and stays `open`: the
+`curl -fsSL` fetches in 146, 147 and 152 get `--max-time` with a
+stalled-origin clause in 146 proving the bound bites. No script changes
+in this pass; the implementation with all three re-drives belongs to the
+next one.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -296,10 +317,11 @@ store suite), so the change commits with the three reds named above.
    reconstruction.
 5. [T-1111](milestones.md) is done: M8, the nix acceptance, seven rows
    green through the shipped binary on host podman.
-7. [podvm.md](podvm.md) T-1301, T-1302, T-1303 and T-1304 are done: the
-   probe legs, the tier flag with the `podvm` name, the booting
-   initramfs, and the serial exec protocol with every status distinct.
-   T-1305 (the fleet decision) is next.
+7. [podvm.md](podvm.md) T-1301, T-1302, T-1303, T-1304 and T-1305 are done:
+   the probe legs, the tier flag with the `podvm` name, the booting
+   initramfs, the serial exec protocol with every status distinct, and the
+   fleet decision with the file-size ceiling enforced before anything
+   starts. T-1306 (the non-goals as measured refusals) is next.
 
 [T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
 rows read no-compiler under the interposer while the engine control reaches

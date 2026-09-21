@@ -1,10 +1,10 @@
 == conditions
-date              2026-09-21T10:06:35Z
+date              2026-09-21T17:48:23Z
 host kernel       7.2.0-WSL2-STABLE
 podbox            podbox 0.1.0
 jq                jq-1.6
 
-== 0. the table is data: 153 rows
+== 0. the table is data: 160 rows
 
 == 1. every row with a flag, driven
 
@@ -15,4 +15,4 @@ jq                jq-1.6
   run -i runs and the banner names it: yes
   exec -i runs and the banner names it: yes
 
-== counts: 153 rows, 192 driven, 0 mismatches, 0 unreachable here
+== counts: 160 rows, 199 driven, 0 mismatches, 0 unreachable here

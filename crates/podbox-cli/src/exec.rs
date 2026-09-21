@@ -49,6 +49,9 @@ usage: podbox exec [options] <image> <command> [arg...]
   --podbox-qemu-arg A
                    as in run: machine tier only and refused elsewhere, one
                    emulator token per occurrence, repeatable, never split
+  --podbox-mem S   as in run: machine tier only and refused elsewhere, the
+                   guest memory in bytes with an optional K/M/G/T suffix
+                   (TODO/podvm.md T-1305)
 
   ⛔ This is a FRESH CHROOT re-entry, not an entry into a running container.
     It shares the filesystem tree and nothing else. `podbox inspect --format
@@ -89,6 +92,9 @@ struct Opts {
     /// `--podbox-qemu-arg`, one emulator token per occurrence, refused
     /// outside the machine tier rather than silently dropped.
     qemu_args: Vec<String>,
+    /// `--podbox-mem`, the validated guest memory in bytes, refused outside
+    /// the machine tier rather than silently dropped. TODO/podvm.md T-1305.
+    mem: Option<u64>,
     ask: crate::complete::Ask,
 }
 
@@ -105,6 +111,7 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
         user: None,
         tier: None,
         qemu_args: Vec::new(),
+        mem: None,
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -123,6 +130,13 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
                     }
                 },
                 "--podbox-qemu-arg" => o.qemu_args.push(a.clone()),
+                "--podbox-mem" => match crate::tier::parse_mem(a) {
+                    Some(m) => o.mem = Some(m),
+                    None => {
+                        eprintln!("podbox exec: --podbox-mem takes a byte count with an optional K/M/G/T suffix, not {a:?}");
+                        return Err(EXIT_FLAG_ERROR);
+                    }
+                },
                 _ => o.platform = Some(a.clone()),
             }
             continue;
@@ -157,6 +171,7 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
             "--add-host" => expecting = Some("--add-host"),
             "--podbox-tier" => expecting = Some("--podbox-tier"),
             "--podbox-qemu-arg" => expecting = Some("--podbox-qemu-arg"),
+            "--podbox-mem" => expecting = Some("--podbox-mem"),
             other if other.starts_with("--add-host=") => {
                 crate::complete::add_host(&mut o.ask, "exec", &other[11..])?
             }
@@ -180,6 +195,18 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
             },
             other if other.starts_with("--podbox-qemu-arg=") => {
                 o.qemu_args.push(other[18..].to_string())
+            }
+            other if other.starts_with("--podbox-mem=") => {
+                match crate::tier::parse_mem(&other[13..]) {
+                    Some(m) => o.mem = Some(m),
+                    None => {
+                        eprintln!(
+                            "podbox exec: --podbox-mem takes a byte count with an optional K/M/G/T suffix, not {:?}",
+                            &other[13..]
+                        );
+                        return Err(EXIT_FLAG_ERROR);
+                    }
+                }
             }
             other if other.starts_with('-') => {
                 // ⛔ Unreachable through the table above; an assertion, not a
@@ -382,10 +409,14 @@ pub fn exec(args: &[String]) -> i32 {
         eprintln!("podbox exec: {note}");
     }
     if tier.tier == crate::tier::Tier::Machine {
-        return crate::tier::enter_machine("exec");
+        return crate::tier::enter_machine("exec", o.mem);
     }
     if !o.qemu_args.is_empty() {
         eprintln!("podbox exec: --podbox-qemu-arg needs --podbox-tier=machine");
+        return EXIT_FLAG_ERROR;
+    }
+    if o.mem.is_some() {
+        eprintln!("podbox exec: --podbox-mem needs --podbox-tier=machine");
         return EXIT_FLAG_ERROR;
     }
     let image = o.image.clone().expect("checked in parse");
@@ -724,6 +755,30 @@ mod tests {
         );
         let o = parse(&v(&["--podbox-qemu-arg", "a b", "img", "true"])).unwrap();
         assert_eq!(o.qemu_args, v(&["a b"]));
+    }
+
+    /// ⭐ TODO/podvm.md T-1305, as in `run`: the memory spelling parses to
+    /// bytes in both forms, and anything that is not a size is a flag error.
+    #[test]
+    fn the_mem_flag_parses_to_bytes_in_both_forms() {
+        assert_eq!(
+            parse(&v(&["--podbox-mem", "512M", "img", "true"]))
+                .unwrap()
+                .mem,
+            Some(512 << 20)
+        );
+        assert_eq!(
+            parse(&v(&["--podbox-mem=1G", "img", "true"])).unwrap().mem,
+            Some(1 << 30)
+        );
+        assert_eq!(
+            parse(&v(&["--podbox-mem=bogus", "img", "true"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+        assert_eq!(
+            parse(&v(&["--podbox-mem", "0", "img", "true"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
     }
 
     /// ⭐ The banner and the machine-readable field are one pair of constants,

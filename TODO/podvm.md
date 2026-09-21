@@ -379,7 +379,7 @@ Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec docume
 Category:    podvm
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     The machine tier's value over the chroot tier is that a guest can be
              copied, restarted and thrown away. Neither copying nor restarting
@@ -398,12 +398,50 @@ Approach:    Read `RLIMIT_FSIZE` in the probe ([T-1301](#t-1301-the-machine-tier
              and refuse a guest whose configured memory would cross it, before it
              starts, naming the number. Fork is a quiesce, a copy of the memory
              image and a restore into a second guest.
-Decision:    Not taken. ⚠ The question is whether a fleet is podbox's job at all.
-             `docker` has no fleet verb, so a fleet is an extension, and this
-             file's opening rule says an extension may not confuse an agent that
-             knows docker. ⛔ Rule it explicitly rather than growing one verb at
-             a time.
+Decision:    Ruled 2026-09-21 under the operator steer that podbox works on
+             every environment with as many features and fallbacks as it can
+             honestly carry. The fleet IS podbox's job, spelled with the verbs
+             it already has: `run`, `ps`, `stop`, `rm`, `images` and `logs`
+             over machine-tier guests. No new fleet verb: `docker` has none,
+             so one here is the extension this file's opening rule forbids,
+             and a second verb family is a second parity table
+             [cli.md](cli.md) T-0808 would have to drive. Fork (quiesce, copy
+             the memory image, restore into a second guest) is NOT this
+             entry: no guest driver ships yet (T-1302's holds-branch still
+             refuses), so there is nothing to fork; it stays future work for
+             when the driver lands. What this entry ships is the bound both
+             fleet operations share: `--podbox-mem` (machine-tier only,
+             `--podbox-`-prefixed per T-1302, refused elsewhere), judged
+             against `RLIMIT_FSIZE` BEFORE the legs, so an over-ceiling guest
+             is refused naming both numbers on every machine. The `--memory`
+             trap T-1302 names closes per tier: chroot keeps refusing
+             `-m`/`--memory` (no cgroup to enforce with), machine enforces
+             `--podbox-mem` against the file ceiling, and neither tier
+             accepts a limit it silently drops.
+             ⚠ Rejected: a `fleet`/`fork` verb family (a second table), and
+             no fleet ruling at all (the Problem this entry states would stay
+             open silently).
 Prove:       `./experiments/148-podvm-fleet.sh` asserts a guest over the file-size ceiling is refused BEFORE it starts, with the ceiling in the message
+
+**Done 2026-09-21.** `--podbox-mem` on `run` and `exec` (`create` rides
+`run`'s parser through `parity::rows_of`): bytes with an optional K/M/G/T
+suffix (`tier::parse_mem`, zero and overflow refused), machine-tier-only
+and refused elsewhere as needs-machine, judged in `enter_machine` BEFORE
+the legs against `prlimit(RLIMIT_FSIZE)` with both numbers in the refusal
+at exit 125. `experiments/148-podvm-fleet.sh` exits 0 on a lane-built
+binary: 10 driven, 0 mismatches
+(`experiments/results/podvm-fleet.txt`). The lane's natural ceiling is
+infinity (conditions print `(-1, -1)`, python's infinity), so the script
+lowers the limit to 1 GiB in the driven child only (python3 setrlimit +
+exec, asserted on take): 4 GiB refused naming ceiling 1073741824 and guest
+4294967296, 1 MiB passes through to the legs verdict with no ceiling
+language, three not-a-size spellings are flag errors, and `exec` mirrors
+`run`. Unit tests pin the spelling matrix, the ceiling comparison
+(including infinity never refusing), and both parsers in both spellings;
+`every_flag_the_table_admits_is_handled_by_this_parser` holds for the two
+new rows on both verbs. 145 re-driven green unchanged (19 driven, 0
+mismatches); 325 re-driven green at 160 rows, 199 driven, 0 mismatches,
+which also retires the staleness T-1302 left in T-0808's record below.
 
 ---
 
@@ -557,3 +595,46 @@ Decision:    **podbox never prints a bare multiplier.** Where the machine tier
              somebody else's benchmark on somebody else's host and would be read
              here as a property of emulation.
 Prove:       `./experiments/154-tcg-workload-spread.sh` prints one row per workload class with its checksum and its ratio, and exits 1 if any two platforms disagree on a checksum
+
+---
+
+### T-1313 Every experiment fetch carries its own ceiling, and a stalled origin proves it
+
+Source:      `TODO/podvm.md` T-1304 residual; `experiments/146-podvm-initramfs.sh:153`,
+             `experiments/147-podvm-exec.sh:119`, `experiments/152-nix-acceptance.sh:94`
+Category:    podvm
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     Three experiment fetches wait on the network with no ceiling:
+             the kernel fetch in 146 and 147 (`curl -fsSL`, no `--max-time`,
+             no `timeout` wrapper) and the nix tarball fetch in 152. A
+             stalled mirror turns any of the three into a hang no clause
+             names. [RULES.md](RULES.md) section 8 gives every
+             network-touching command a timeout, and podbox inherits that as
+             a product requirement; the project's own scripts are not exempt.
+Premise:     Every OTHER wait in 146/147 is already bounded (146 boots under
+             `timeout BOOT_TIMEOUT`, 147 carries boot, command and handshake
+             deadlines), and the tree already bounds fetches both ways:
+             `timeout 300 curl` in `experiments/290-microvm.sh:91` and
+             `--max-time 60` in `scripts/common/mine-repo.sh:416`. The fix is
+             one flag per fetch, not a new mechanism.
+             `experiments/280-insecure-registry.sh:287,291` needs no change:
+             loopback health polls inside retry loops, where the loop is the
+             bound.
+Approach:    `--max-time` on all three fetches, default 60, env-overridable
+             per script (`PODBOX_146_CURL_TIMEOUT` and kin, following the
+             `BOOT_TIMEOUT` pattern already in 146/147) for a slow mirror.
+             A stalled-origin clause in 146 proves the bound bites: a
+             localhost server that accepts and never answers, fetched with a
+             2 s ceiling, must exit 28 inside 10 s. A bound nobody drove red
+             is a comment, not a ceiling. Changing 146 re-drives T-1303's
+             evidence and changing 152 re-drives T-1111's, so all three
+             scripts re-drive green in the same change.
+Decision:    Recommendation: `curl --max-time`, not the `timeout` wrapper.
+             The ceiling travels with the transfer rather than with the
+             process, and 146 already gates on `curl`. Ruled out: leaving
+             152 out because its re-drive is heavy (that leaves the heaviest
+             fetch unbounded, which is the one that most needs the ceiling).
+Prove:       `./experiments/146-podvm-initramfs.sh` exits 0 on a lane-built binary with the stalled-origin clause green

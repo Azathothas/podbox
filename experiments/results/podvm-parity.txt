@@ -1,5 +1,5 @@
 == conditions
-date              2026-09-21T15:00:10Z
+date              2026-09-21T17:48:21Z
 host kernel       7.2.0-WSL2-STABLE
 podbox            podbox 0.1.0
 jq                jq-1.6

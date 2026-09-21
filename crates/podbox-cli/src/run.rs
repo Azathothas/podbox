@@ -72,6 +72,10 @@ pub const RUN_OPTIONS: &str = "\
                    podbox's own, machine tier only and refused elsewhere: one
                    token for the emulator per occurrence. Repeatable, and never
                    split on whitespace (TODO/podvm.md T-1302)
+  --podbox-mem S   podbox's own, machine tier only and refused elsewhere: the
+                   guest memory in bytes, with an optional K/M/G/T suffix. A
+                   guest over the RLIMIT_FSIZE ceiling is refused before it
+                   starts, naming both numbers (TODO/podvm.md T-1305)
 
   ⛔ podbox run enters a CHROOT, not a container. It shares this machine's
     process table, network, IPC and mount namespaces with the payload. The
@@ -135,6 +139,10 @@ struct Opts {
     /// the machine tier's driver (T-1303); refused on every other tier
     /// rather than silently dropped.
     qemu_args: Vec<String>,
+    /// `--podbox-mem`. The validated guest memory in bytes, carried for the
+    /// machine tier's ceiling check in `prepare`; refused on every other
+    /// tier rather than silently dropped. TODO/podvm.md T-1305.
+    mem: Option<u64>,
     /// M5 and T-0804. ⚠ Carried in one struct so `run`, `create` and the
     /// launcher cannot each grow their own copy of the same three answers.
     ask: crate::complete::Ask,
@@ -165,6 +173,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
         user: None,
         tier: None,
         qemu_args: Vec::new(),
+        mem: None,
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -191,6 +200,15 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                     }
                 },
                 "--podbox-qemu-arg" => o.qemu_args.push(a.clone()),
+                "--podbox-mem" => match crate::tier::parse_mem(a) {
+                    Some(m) => o.mem = Some(m),
+                    None => {
+                        eprintln!(
+                            "podbox {verb}: --podbox-mem takes a byte count with an optional K/M/G/T suffix, not {a:?}"
+                        );
+                        return Err(EXIT_FLAG_ERROR);
+                    }
+                },
                 _ => o.insecure.push(a.clone()),
             }
             i += 1;
@@ -243,6 +261,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             "--add-host" => expecting = Some("--add-host"),
             "--podbox-tier" => expecting = Some("--podbox-tier"),
             "--podbox-qemu-arg" => expecting = Some("--podbox-qemu-arg"),
+            "--podbox-mem" => expecting = Some("--podbox-mem"),
             other if other.starts_with("--add-host=") => {
                 crate::complete::add_host(&mut o.ask, verb, &other[11..])?
             }
@@ -270,6 +289,18 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             },
             other if other.starts_with("--podbox-qemu-arg=") => {
                 o.qemu_args.push(other[18..].to_string())
+            }
+            other if other.starts_with("--podbox-mem=") => {
+                match crate::tier::parse_mem(&other[13..]) {
+                    Some(m) => o.mem = Some(m),
+                    None => {
+                        eprintln!(
+                            "podbox {verb}: --podbox-mem takes a byte count with an optional K/M/G/T suffix, not {:?}",
+                            &other[13..]
+                        );
+                        return Err(EXIT_FLAG_ERROR);
+                    }
+                }
             }
             other if other.starts_with("--insecure-registry=") => {
                 o.insecure.push(other[20..].to_string())
@@ -477,13 +508,20 @@ pub(crate) fn prepare(
         eprintln!("podbox {verb}: {note}");
     }
     if tier.tier == crate::tier::Tier::Machine {
-        return Err(crate::tier::enter_machine(verb));
+        return Err(crate::tier::enter_machine(verb, o.mem));
     }
     if !o.qemu_args.is_empty() {
         // ⛔ Refused rather than silently dropped. An emulator argument the
         // chroot tier accepts and ignores is a limit the caller believes is
         // set and podbox never passed anywhere.
         eprintln!("podbox {verb}: --podbox-qemu-arg needs --podbox-tier=machine");
+        return Err(EXIT_FLAG_ERROR);
+    }
+    if o.mem.is_some() {
+        // ⛔ The same rule for the memory the machine tier judges against
+        // the file-size ceiling: accepted-and-ignored elsewhere would be a
+        // limit the caller believes is enforced. TODO/podvm.md T-1305.
+        eprintln!("podbox {verb}: --podbox-mem needs --podbox-tier=machine");
         return Err(EXIT_FLAG_ERROR);
     }
     let image = o.image.clone().expect("checked in parse");
@@ -1002,5 +1040,29 @@ mod tests {
         )
         .unwrap();
         assert_eq!(o.qemu_args, v(&["a", "b c"]));
+    }
+
+    /// ⭐ TODO/podvm.md T-1305: the memory spelling parses to bytes in both
+    /// forms, and anything that is not a size is a flag error.
+    #[test]
+    fn the_mem_flag_parses_to_bytes_in_both_forms() {
+        assert_eq!(
+            parse("run", &v(&["--podbox-mem", "512M", "img"]))
+                .unwrap()
+                .mem,
+            Some(512 << 20)
+        );
+        assert_eq!(
+            parse("run", &v(&["--podbox-mem=1G", "img"])).unwrap().mem,
+            Some(1 << 30)
+        );
+        assert_eq!(
+            parse("run", &v(&["--podbox-mem=bogus", "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+        assert_eq!(
+            parse("run", &v(&["--podbox-mem", "0", "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
     }
 }

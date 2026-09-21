@@ -175,6 +175,7 @@ pub const TABLE: &[Row] = &[
     // no flag here can mean one thing here and another there.
     Row { verb: "run", flag: Some("--podbox-tier"), status: Native, note: "podbox's own: machine selects the machine tier, chroot the chroot tier. `podvm` is this binary under another name and defaults to machine; an explicit flag wins over argv[0], and podbox states the tier where the two disagree (T-1302)" },
     Row { verb: "run", flag: Some("--podbox-qemu-arg"), status: Native, note: "podbox's own, machine tier only and refused elsewhere: one token for the emulator per occurrence, repeatable, never split on whitespace (T-1302)" },
+    Row { verb: "run", flag: Some("--podbox-mem"), status: Native, note: "podbox's own, machine tier only and refused elsewhere: the guest memory in bytes with an optional K/M/G/T suffix, judged against the RLIMIT_FSIZE ceiling before anything starts (T-1305)" },
     // ------------------------------------------------------ exec's own flags
     Row { verb: "exec", flag: Some("-e, --env"), status: Native, note: "repeatable; a later one wins" },
     Row { verb: "exec", flag: Some("-w, --workdir"), status: Native, note: "chdir inside the new root, after the chroot" },
@@ -191,6 +192,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "exec", flag: Some("--strict"), status: Native, note: "as in run: refuse rather than re-enter where anything about this invocation is Degraded or Stub (T-0804)" },
     Row { verb: "exec", flag: Some("--podbox-tier"), status: Native, note: "as in run: machine selects the machine tier, chroot the chroot tier, and an explicit flag wins over the podvm default with the tier stated (T-1302)" },
     Row { verb: "exec", flag: Some("--podbox-qemu-arg"), status: Native, note: "as in run: machine tier only and refused elsewhere, one emulator token per occurrence, repeatable, never split (T-1302)" },
+    Row { verb: "exec", flag: Some("--podbox-mem"), status: Native, note: "as in run: machine tier only and refused elsewhere, the guest memory in bytes with an optional K/M/G/T suffix, judged against the RLIMIT_FSIZE ceiling before anything starts (T-1305)" },
     // ------------------------------------------------------ pull's own flags
     Row { verb: "pull", flag: Some("--platform"), status: Native, note: "a bare word is an architecture, as docker reads it" },
     Row { verb: "pull", flag: Some("--insecure-registry"), status: Native, note: "docker's flag and docker's meaning" },

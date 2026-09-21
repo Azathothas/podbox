@@ -618,9 +618,13 @@ Prove:       `./experiments/325-parity-drive.sh`, which exits 0 only when every
              row of `podbox system info --format '{{json .Parity}}'` was driven
              or reported as unreachable here, and prints the count of each.
 
-**Done, 2026-09-21.** The driver is green against the shipped binary: 153
-rows, 192 driven, 0 mismatches, 0 unreachable here
+**Done, 2026-09-21.** The driver is green against the shipped binary: 160
+rows, 199 driven, 0 mismatches, 0 unreachable here
 (`experiments/results/parity-drive.txt`, with the conditions at its head).
+The 153-row figure this record carried went stale at T-1302, which added
+5 rows (the two tier rows, the two qemu-arg rows and `podvm`) without
+re-driving, and T-1305 added 2 more (the two `--podbox-mem` rows) with the
+re-drive above: 153 plus 5 plus 2 is the 160 the binary publishes.
 `run -i` and `exec -i` both ran a self-pulled `alpine:3.20` payload with the
 banner naming `-i`. Release build, `clippy --workspace --all-targets` with
 `-D warnings`, and `cargo test -p podbox-cli -p podbox-probe -p podbox-extract`
