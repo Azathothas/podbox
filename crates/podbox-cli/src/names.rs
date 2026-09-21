@@ -29,7 +29,7 @@ use std::time::Duration;
 use podbox_image::error::{EXIT_CLI_ERROR, EXIT_FLAG_ERROR, EXIT_RUNTIME_ERROR};
 
 /// The names podbox answers to besides its own.
-pub const ALIASES: &[&str] = &["docker", "podman"];
+pub const ALIASES: &[&str] = &["docker", "podman", "podvm"];
 
 /// The name podbox was invoked under, with no directory.
 pub fn invoked_as() -> String {
@@ -49,6 +49,17 @@ pub fn invoked_as() -> String {
 /// the honesty rules exist to forbid.
 pub fn alias_note() -> Option<String> {
     let name = invoked_as();
+    if name == "podvm" {
+        // ⭐ `podvm` is podbox's own name, so the docker-shaped note would
+        // read wrong: there are no `podvm` verbs to take. What differs under
+        // this name is the tier default, and that is what the note says.
+        return Some(format!(
+            "podbox: invoked as `podvm`. This is podbox {}, selecting the machine \
+             tier; --podbox-tier=chroot runs the chroot tier instead \
+             (TODO/podvm.md T-1302)\n",
+            env!("CARGO_PKG_VERSION")
+        ));
+    }
     if !ALIASES.contains(&name.as_str()) {
         return None;
     }
@@ -143,7 +154,7 @@ pub fn docker_daemon() -> Daemon {
 pub const INSTALL_USAGE: &str = "\
 usage: podbox system install-names [--dir D] [--force] [name...]
 
-  Install `docker` and `podman` as SYMLINKS to this binary, so an agent that
+  Install `docker`, `podman` and `podvm` as SYMLINKS to this binary, so an agent that
   knows docker reaches podbox without learning anything.
 
   --dir D    where to put them. Default: the directory this binary is in

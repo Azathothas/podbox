@@ -64,6 +64,14 @@ pub const RUN_OPTIONS: &str = "\
                    as `podbox pull`; used only when something must be fetched
   -t, --tty        ⛔ REFUSED BY NAME where /dev/ptmx is unusable, rather
                    than silently degraded (TODO/enter.md T-0503)
+  --podbox-tier T  podbox's own: machine selects the machine tier, chroot the
+                   chroot tier. `podvm` defaults to machine; an explicit flag
+                   wins over argv[0], and podbox states the tier where the two
+                   disagree (TODO/podvm.md T-1302)
+  --podbox-qemu-arg A
+                   podbox's own, machine tier only and refused elsewhere: one
+                   token for the emulator per occurrence. Repeatable, and never
+                   split on whitespace (TODO/podvm.md T-1302)
 
   ⛔ podbox run enters a CHROOT, not a container. It shares this machine's
     process table, network, IPC and mount namespaces with the payload. The
@@ -119,6 +127,14 @@ struct Opts {
     /// `--user`. Carried raw here and resolved against the image once its
     /// rootfs exists, because a name means the image's own passwd entry.
     user: Option<String>,
+    /// `--podbox-tier`. Carried raw here and resolved against argv[0] in
+    /// `prepare`, because the default depends on the name podbox was
+    /// invoked under. TODO/podvm.md T-1302.
+    tier: Option<crate::tier::Want>,
+    /// `--podbox-qemu-arg`. One emulator token per occurrence, carried for
+    /// the machine tier's driver (T-1303); refused on every other tier
+    /// rather than silently dropped.
+    qemu_args: Vec<String>,
     /// M5 and T-0804. ⚠ Carried in one struct so `run`, `create` and the
     /// launcher cannot each grow their own copy of the same three answers.
     ask: crate::complete::Ask,
@@ -147,6 +163,8 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
         image: None,
         command: Vec::new(),
         user: None,
+        tier: None,
+        qemu_args: Vec::new(),
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -163,6 +181,16 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                 "--name" => o.name = Some(a.clone()),
                 "--user" => o.user = Some(a.clone()),
                 "--add-host" => crate::complete::add_host(&mut o.ask, verb, a)?,
+                "--podbox-tier" => match crate::tier::want(a) {
+                    Some(w) => o.tier = Some(w),
+                    None => {
+                        eprintln!(
+                            "podbox {verb}: --podbox-tier takes machine or chroot, not {a:?}"
+                        );
+                        return Err(EXIT_FLAG_ERROR);
+                    }
+                },
+                "--podbox-qemu-arg" => o.qemu_args.push(a.clone()),
                 _ => o.insecure.push(a.clone()),
             }
             i += 1;
@@ -213,6 +241,8 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             "--insecure-registry" => expecting = Some("--insecure-registry"),
             "--tls-verify" => o.tls_verify = Some(true),
             "--add-host" => expecting = Some("--add-host"),
+            "--podbox-tier" => expecting = Some("--podbox-tier"),
+            "--podbox-qemu-arg" => expecting = Some("--podbox-qemu-arg"),
             other if other.starts_with("--add-host=") => {
                 crate::complete::add_host(&mut o.ask, verb, &other[11..])?
             }
@@ -228,6 +258,19 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             }
             other if other.starts_with("--platform=") => o.platform = Some(other[11..].to_string()),
             other if other.starts_with("--pull=") => o.pull = other[7..].to_string(),
+            other if other.starts_with("--podbox-tier=") => match crate::tier::want(&other[14..]) {
+                Some(w) => o.tier = Some(w),
+                None => {
+                    eprintln!(
+                        "podbox {verb}: --podbox-tier takes machine or chroot, not {:?}",
+                        &other[14..]
+                    );
+                    return Err(EXIT_FLAG_ERROR);
+                }
+            },
+            other if other.starts_with("--podbox-qemu-arg=") => {
+                o.qemu_args.push(other[18..].to_string())
+            }
             other if other.starts_with("--insecure-registry=") => {
                 o.insecure.push(other[20..].to_string())
             }
@@ -426,6 +469,23 @@ pub(crate) fn prepare(
     verb: &str,
 ) -> std::result::Result<crate::lifecycle::Prepared, i32> {
     let o = parse(verb, args)?;
+    // ⭐ TODO/podvm.md T-1302. The tier is decided before anything is
+    // fetched: a machine-tier refusal names the legs, and there is nothing
+    // to pull for a tier that cannot run.
+    let tier = crate::tier::resolve(&crate::names::invoked_as(), o.tier);
+    if let Some(note) = &tier.note {
+        eprintln!("podbox {verb}: {note}");
+    }
+    if tier.tier == crate::tier::Tier::Machine {
+        return Err(crate::tier::enter_machine(verb));
+    }
+    if !o.qemu_args.is_empty() {
+        // ⛔ Refused rather than silently dropped. An emulator argument the
+        // chroot tier accepts and ignores is a limit the caller believes is
+        // set and podbox never passed anywhere.
+        eprintln!("podbox {verb}: --podbox-qemu-arg needs --podbox-tier=machine");
+        return Err(EXIT_FLAG_ERROR);
+    }
     let image = o.image.clone().expect("checked in parse");
 
     let (platform, policy) = crate::lifecycle::platform_and_policy(
@@ -909,5 +969,38 @@ mod tests {
     /// not 125: measured, `docker run` with no image exits 1. T-0802.
     fn no_image_is_a_cli_error() {
         assert_eq!(parse("run", &v(&["--rm"])).unwrap_err(), EXIT_CLI_ERROR);
+    }
+
+    /// ⭐ TODO/podvm.md T-1302. The tier flag takes two values, and the
+    /// emulator arguments collect whole: one token per occurrence, and a
+    /// value with a space stays one token rather than splitting.
+    #[test]
+    fn the_tier_flag_takes_two_values_and_qemu_args_collect_whole() {
+        assert_eq!(
+            parse("run", &v(&["--podbox-tier=machine", "img"]))
+                .unwrap()
+                .tier,
+            Some(crate::tier::Want::Machine)
+        );
+        assert_eq!(
+            parse("run", &v(&["--podbox-tier", "chroot", "img"]))
+                .unwrap()
+                .tier,
+            Some(crate::tier::Want::Chroot)
+        );
+        assert_eq!(
+            parse("run", &v(&["--podbox-tier=sandbox", "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+        assert_eq!(
+            parse("run", &v(&["--podbox-tier", "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+        let o = parse(
+            "run",
+            &v(&["--podbox-qemu-arg", "a", "--podbox-qemu-arg=b c", "img"]),
+        )
+        .unwrap();
+        assert_eq!(o.qemu_args, v(&["a", "b c"]));
     }
 }

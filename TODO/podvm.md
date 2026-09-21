@@ -128,7 +128,7 @@ Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec docume
 Category:    podvm
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     `podvm` has to feel like `podman` and `docker`, because its audience
              is automated and an agent reaches for the verbs it knows. ⛔ A
@@ -199,6 +199,28 @@ Decision:    ⭐ **Taken on 2026-09-12: BOTH, and the flag is the primitive.**
              take the repeatable form for this class of flag, and
              [cli.md](cli.md) is the parity rule that settles ties.
 Prove:       `podbox --help` and `podvm --help` list one set of verbs, and `./experiments/145-podvm-parity.sh` drives every row from the flag rather than from the table
+
+**Done 2026-09-21.** One flag and one name, in one implementation
+(`crates/podbox-cli/src/tier.rs`): `--podbox-tier=machine|chroot` on `run`
+and `exec` (which also serves `create`), and `podvm` as a third entry in
+`ALIASES` whose only effect is to default that flag to machine. The
+explicit flag wins over `argv[0]`, and `podvm --podbox-tier=chroot` states
+the override and runs the chroot tier. The machine tier assesses T-1301's
+legs before anything is pulled and refuses naming every missing one;
+where it holds, podbox says the guest driver arrives with T-1303/T-1304
+rather than running something else. `--podbox-qemu-arg` is repeatable,
+one token per occurrence, never split, machine-tier-only and refused
+elsewhere. `podbox --help` and `podvm --help` print one text.
+`experiments/145-podvm-parity.sh` exits 0 on a lane-built binary: 19
+driven, 0 mismatches (`experiments/results/podvm-parity.txt`).
+
+Decisions taken inside the ruled shape: the flag takes exactly
+`machine|chroot`, because those are the two tiers this binary knows; the
+qemu arguments are parsed, tier-gated and carried for T-1303's driver, and
+the collection contract (no splitting) is pinned by a parser unit test
+rather than by a drive. The 325 driver needed no change: a bare new flag
+reaches a message without a refusal marker, which clause 1 counts as
+driven.
 
 ---
 

@@ -25,6 +25,7 @@ mod names;
 mod parity;
 mod run;
 mod system;
+mod tier;
 
 use std::io::Write;
 
@@ -67,6 +68,10 @@ usage: podbox <command> [options]
   system install-names
                install `docker` and `podman` as symlinks to this binary
   version      print the version
+
+  podvm        this same binary under another name. It takes the same verbs
+               and flags, and selects the machine tier unless --podbox-tier
+               says otherwise (TODO/podvm.md T-1302)
 
   Every other docker verb is named in that table with the reason podbox does
   not have it, and says so with exit 125 rather than being silently ignored.

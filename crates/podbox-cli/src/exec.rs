@@ -43,6 +43,12 @@ usage: podbox exec [options] <image> <command> [arg...]
                    invocation is Degraded or Stub (TODO/cli.md T-0804)
   -t, --tty        ⛔ REFUSED BY NAME where /dev/ptmx is unusable, rather
                    than silently degraded (TODO/enter.md T-0503)
+  --podbox-tier T  as in run: machine selects the machine tier, chroot the
+                   chroot tier, and an explicit flag wins over the podvm
+                   default with the tier stated (TODO/podvm.md T-1302)
+  --podbox-qemu-arg A
+                   as in run: machine tier only and refused elsewhere, one
+                   emulator token per occurrence, repeatable, never split
 
   ⛔ This is a FRESH CHROOT re-entry, not an entry into a running container.
     It shares the filesystem tree and nothing else. `podbox inspect --format
@@ -78,6 +84,11 @@ struct Opts {
     command: Vec<String>,
     /// `--user`, resolved against the re-entered rootfs like `run` does.
     user: Option<String>,
+    /// `--podbox-tier`, resolved against argv[0] after parse like `run` does.
+    tier: Option<crate::tier::Want>,
+    /// `--podbox-qemu-arg`, one emulator token per occurrence, refused
+    /// outside the machine tier rather than silently dropped.
+    qemu_args: Vec<String>,
     ask: crate::complete::Ask,
 }
 
@@ -92,6 +103,8 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
         image: None,
         command: Vec::new(),
         user: None,
+        tier: None,
+        qemu_args: Vec::new(),
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -102,6 +115,14 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
                 "-w" => o.workdir = Some(a.clone()),
                 "--add-host" => crate::complete::add_host(&mut o.ask, "exec", a)?,
                 "--user" => o.user = Some(a.clone()),
+                "--podbox-tier" => match crate::tier::want(a) {
+                    Some(w) => o.tier = Some(w),
+                    None => {
+                        eprintln!("podbox exec: --podbox-tier takes machine or chroot, not {a:?}");
+                        return Err(EXIT_FLAG_ERROR);
+                    }
+                },
+                "--podbox-qemu-arg" => o.qemu_args.push(a.clone()),
                 _ => o.platform = Some(a.clone()),
             }
             continue;
@@ -134,6 +155,8 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
             "-u" | "--user" => expecting = Some("--user"),
             "--platform" => expecting = Some("--platform"),
             "--add-host" => expecting = Some("--add-host"),
+            "--podbox-tier" => expecting = Some("--podbox-tier"),
+            "--podbox-qemu-arg" => expecting = Some("--podbox-qemu-arg"),
             other if other.starts_with("--add-host=") => {
                 crate::complete::add_host(&mut o.ask, "exec", &other[11..])?
             }
@@ -145,6 +168,19 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
             other if other.starts_with("--user=") => o.user = Some(other[7..].to_string()),
             other if other.starts_with("--workdir=") => o.workdir = Some(other[10..].to_string()),
             other if other.starts_with("--platform=") => o.platform = Some(other[11..].to_string()),
+            other if other.starts_with("--podbox-tier=") => match crate::tier::want(&other[14..]) {
+                Some(w) => o.tier = Some(w),
+                None => {
+                    eprintln!(
+                        "podbox exec: --podbox-tier takes machine or chroot, not {:?}",
+                        &other[14..]
+                    );
+                    return Err(EXIT_FLAG_ERROR);
+                }
+            },
+            other if other.starts_with("--podbox-qemu-arg=") => {
+                o.qemu_args.push(other[18..].to_string())
+            }
             other if other.starts_with('-') => {
                 // ⛔ Unreachable through the table above; an assertion, not a
                 // fallback. See `run`'s own arm for why.
@@ -338,6 +374,20 @@ pub fn exec(args: &[String]) -> i32 {
         Ok(o) => o,
         Err(code) => return code,
     };
+    // ⭐ TODO/podvm.md T-1302, as in `run`'s `prepare`: the tier is decided
+    // before the store is touched, so a machine-tier refusal names the legs
+    // with nothing pulled for a tier that cannot run.
+    let tier = crate::tier::resolve(&crate::names::invoked_as(), o.tier);
+    if let Some(note) = &tier.note {
+        eprintln!("podbox exec: {note}");
+    }
+    if tier.tier == crate::tier::Tier::Machine {
+        return crate::tier::enter_machine("exec");
+    }
+    if !o.qemu_args.is_empty() {
+        eprintln!("podbox exec: --podbox-qemu-arg needs --podbox-tier=machine");
+        return EXIT_FLAG_ERROR;
+    }
     let image = o.image.clone().expect("checked in parse");
 
     let platform = match Platform::wanted(o.platform.as_deref()) {
@@ -650,6 +700,30 @@ mod tests {
     fn a_flag_needing_a_value_does_not_swallow_the_image() {
         assert_eq!(parse(&v(&["--platform"])).unwrap_err(), EXIT_FLAG_ERROR);
         assert_eq!(parse(&v(&["-w"])).unwrap_err(), EXIT_FLAG_ERROR);
+    }
+
+    /// ⭐ TODO/podvm.md T-1302, as in `run`: two tier values, and emulator
+    /// arguments that collect whole rather than splitting on whitespace.
+    #[test]
+    fn the_tier_flag_takes_two_values_and_qemu_args_collect_whole() {
+        assert_eq!(
+            parse(&v(&["--podbox-tier=machine", "img", "true"]))
+                .unwrap()
+                .tier,
+            Some(crate::tier::Want::Machine)
+        );
+        assert_eq!(
+            parse(&v(&["--podbox-tier", "chroot", "img", "true"]))
+                .unwrap()
+                .tier,
+            Some(crate::tier::Want::Chroot)
+        );
+        assert_eq!(
+            parse(&v(&["--podbox-tier=sandbox", "img", "true"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+        let o = parse(&v(&["--podbox-qemu-arg", "a b", "img", "true"])).unwrap();
+        assert_eq!(o.qemu_args, v(&["a b"]));
     }
 
     /// ⭐ The banner and the machine-readable field are one pair of constants,

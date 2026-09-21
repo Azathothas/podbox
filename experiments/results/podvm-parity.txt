@@ -1,0 +1,36 @@
+== conditions
+date              2026-09-21T15:00:10Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+jq                jq-1.6
+
+== 0. the tier rows are data
+  ok: table carries run --podbox-tier
+  ok: table carries run --podbox-qemu-arg
+  ok: table carries exec --podbox-tier
+  ok: table carries exec --podbox-qemu-arg
+  ok: table carries podvm -
+
+== 1. both help texts list one set of verbs
+  ok: podbox --help and podvm --help are the same text
+  ok: podvm --help names run
+  ok: podvm --help names exec
+  ok: podvm --help names podvm
+  ok: podvm --help names --podbox-tier
+
+== 2. the flag routes
+  ok: run --podbox-tier=machine refuses naming the legs
+  ok: run --podbox-tier=sandbox is a flag error
+  ok: run --podbox-qemu-arg without the machine tier is a flag error
+  ok: repeated qemu args with a space ride the machine tier to its refusal
+
+== 3. the name routes
+  ok: podvm run defaults to the machine tier and says its name
+  ok: podvm run --podbox-tier=chroot states the override and proceeds past the tier
+
+== 4. exec mirrors run, and other verbs refuse the flag as unlisted
+  ok: exec --podbox-tier=machine refuses naming the legs
+  ok: podvm exec defaults to the machine tier
+  ok: ps --podbox-tier is refused as unlisted
+
+== counts: 19 driven, 0 mismatches

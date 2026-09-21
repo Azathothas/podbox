@@ -170,6 +170,11 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("--no-host-cas"), status: Native, note: "podbox's own: do not append this machine's announced CA bundle ($SSL_CERT_FILE and friends) to the image's own trust store, even where the machine intercepts TLS (T-0407)" },
     Row { verb: "run", flag: Some("--no-steps"), status: Native, note: "podbox's own: run no command inside the rootfs before the payload. Two fixups cannot be made from outside the chroot -- pacman-key for an empty keyring and openssl rehash for a hash-indexed CA directory -- and this refuses both (T-0412)" },
     Row { verb: "run", flag: Some("--strict"), status: Native, note: "podbox's own: refuse rather than run where anything about this invocation is Degraded or Stub -- a flag, the selected rung, a completion fixup, or a step podbox would run inside the image (T-0804)" },
+    // ⭐ TODO/podvm.md T-1302. Two flags podbox's own tools do not have, and
+    // the prefix is the rule: neither docker nor podman uses `--podbox-`, so
+    // no flag here can mean one thing here and another there.
+    Row { verb: "run", flag: Some("--podbox-tier"), status: Native, note: "podbox's own: machine selects the machine tier, chroot the chroot tier. `podvm` is this binary under another name and defaults to machine; an explicit flag wins over argv[0], and podbox states the tier where the two disagree (T-1302)" },
+    Row { verb: "run", flag: Some("--podbox-qemu-arg"), status: Native, note: "podbox's own, machine tier only and refused elsewhere: one token for the emulator per occurrence, repeatable, never split on whitespace (T-1302)" },
     // ------------------------------------------------------ exec's own flags
     Row { verb: "exec", flag: Some("-e, --env"), status: Native, note: "repeatable; a later one wins" },
     Row { verb: "exec", flag: Some("-w, --workdir"), status: Native, note: "chdir inside the new root, after the chroot" },
@@ -184,6 +189,8 @@ pub const TABLE: &[Row] = &[
     Row { verb: "exec", flag: Some("--no-host-cas"), status: Native, note: "as in run: leave the image's own trust store alone (T-0407)" },
     Row { verb: "exec", flag: Some("--no-steps"), status: Native, note: "as in run: run no command inside the rootfs before the command asked for (T-0412)" },
     Row { verb: "exec", flag: Some("--strict"), status: Native, note: "as in run: refuse rather than re-enter where anything about this invocation is Degraded or Stub (T-0804)" },
+    Row { verb: "exec", flag: Some("--podbox-tier"), status: Native, note: "as in run: machine selects the machine tier, chroot the chroot tier, and an explicit flag wins over the podvm default with the tier stated (T-1302)" },
+    Row { verb: "exec", flag: Some("--podbox-qemu-arg"), status: Native, note: "as in run: machine tier only and refused elsewhere, one emulator token per occurrence, repeatable, never split (T-1302)" },
     // ------------------------------------------------------ pull's own flags
     Row { verb: "pull", flag: Some("--platform"), status: Native, note: "a bare word is an architecture, as docker reads it" },
     Row { verb: "pull", flag: Some("--insecure-registry"), status: Native, note: "docker's flag and docker's meaning" },
@@ -239,7 +246,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "system", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "info", flag: Some("--format"), status: Native, note: "the same template shape as the other verbs, plus `json .Field` for a field that is a document" },
     Row { verb: "info", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "install-names", flag: Option::None, status: Native, note: "installs the docker and podman names as symlinks to this binary, refusing docker where a daemon answers unless --force (T-0803). Invoke it as `system install-names`" },
+    Row { verb: "install-names", flag: Option::None, status: Native, note: "installs the docker, podman and podvm names as symlinks to this binary, refusing docker where a daemon answers unless --force (T-0803). Invoke it as `system install-names`" },
     Row { verb: "install-names", flag: Some("--dir"), status: Native, note: "install-names: where to put the symlinks. Default: the directory this binary is in" },
     Row { verb: "install-names", flag: Some("--force"), status: Native, note: "install-names: take the `docker` name even where a docker daemon answers, and replace a file that is not already a link to this binary" },
     Row { verb: "install-names", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
@@ -250,6 +257,7 @@ pub const TABLE: &[Row] = &[
     // documented, and `names.rs` asserts these exist.
     Row { verb: "docker", flag: Option::None, status: Degraded, note: "podbox answers to the `docker` name on PATH through argv[0], and says so in the banner. It REFUSES to install that name where a working docker daemon is reachable, unless --force (T-0803)" },
     Row { verb: "podman", flag: Option::None, status: Degraded, note: "podbox answers to the `podman` name on PATH through argv[0], and says so in the banner (T-0803)" },
+    Row { verb: "podvm", flag: Option::None, status: Degraded, note: "podbox answers to its own `podvm` name on PATH through argv[0], selecting the machine tier unless --podbox-tier says otherwise, and says both in the banner (T-1302)" },
 ];
 
 /// The verb's own row, if podbox names it at all.

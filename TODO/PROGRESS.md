@@ -16,7 +16,7 @@ the shipped binary, seven rows green, so the last gate reads. The machine
 tier, [podvm.md](podvm.md), holds its probe since 2026-09-21 (T-1301: six
 legs, one verdict per leg); the flag is next.
 
-140 entries: 27 open, 3 partial, 3 blocked, 107 done.
+140 entries: 26 open, 3 partial, 3 blocked, 108 done.
 
 ## Baseline
 
@@ -195,6 +195,18 @@ recorded drive ran on the fixed code. Full lane check green (fmt, clippy
 with `-D warnings`, musl release build, workspace tests 369 of 369 with 9
 new, interpose unit 12 of 12, gate 9 of 9 with 2 skips).
 
+[T-1302](podvm.md) closed in its own change: `--podbox-tier=machine|chroot`
+on `run` and `exec`, `podvm` as a third `ALIASES` entry defaulting the
+flag to machine, the explicit flag winning over `argv[0]` with the tier
+stated on disagreement, and a repeatable no-split `--podbox-qemu-arg`
+refused outside the machine tier. The machine tier assesses T-1301's legs
+before anything is pulled and refuses naming every missing one.
+`experiments/145-podvm-parity.sh` exits 0 on a lane-built binary (19
+driven, 0 mismatches): one help text under both names, every tier row
+driven from the flag, `exec` mirroring `run`, and other verbs refusing
+the flag as unlisted. Full lane check green with the unit tests for the
+resolve matrix, the two parsers and the tier refusal.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -256,10 +268,8 @@ store suite), so the change commits with the three reds named above.
    reconstruction.
 5. [T-1111](milestones.md) is done: M8, the nix acceptance, seven rows
    green through the shipped binary on host podman.
-7. [podvm.md](podvm.md) T-1301 is done, because every other entry there
-    depends on the probe. ⭐ T-1302's shape is ruled, so its implementation
-    is a flag, a third `ALIASES` entry and the collision rule. T-1302 is
-    next.
+7. [podvm.md](podvm.md) T-1301 and T-1302 are done: the probe legs and the
+   tier flag with the `podvm` name. T-1303 (the image wrapping) is next.
 
 [T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
 rows read no-compiler under the interposer while the engine control reaches
