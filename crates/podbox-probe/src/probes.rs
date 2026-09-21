@@ -163,6 +163,12 @@ pub static PROBES: &[Probe] = &[
             kind: Kind::Child { ns_flags: 0, body: p_stat_ptmx } },
     Probe { name: "open(/dev/ptmx, O_RDWR)", group: Group::Census,
             kind: Kind::Child { ns_flags: 0, body: p_open_ptmx } },
+    // ⭐ TODO/podvm.md T-1306. The spec target answers EPERM to every TCP
+    // bind, loopback or wildcard, which kills every hostfwd-based manager.
+    // A census row because it asks what this machine permits, like the
+    // ptmx pair above it.
+    Probe { name: "bind(127.0.0.1:0)+listen", group: Group::Census,
+            kind: Kind::Child { ns_flags: 0, body: p_tcp_listen } },
 
     // -------------------------------------------------------- attribution
     // TODO/probe.md T-0102. A seccomp filter sees the syscall number and six
@@ -758,6 +764,36 @@ fn p_open_ptmx() -> Outcome {
             let _ = sys::close(fd);
             Outcome::ok()
         }
+        Err(e) => Outcome::denied(e),
+    }
+}
+
+fn p_tcp_listen() -> Outcome {
+    // socket+bind+listen on 127.0.0.1 port 0: the kernel picks the port, so
+    // no fixture can collide, and nothing is ever accepted on it. Closing
+    // releases the port, so the probe leaves no listener behind.
+    // sockaddr_in, 16 bytes: family, port, address, 8 zero bytes.
+    let fd = match sys::socket(sys::AF_INET, sys::SOCK_STREAM | sys::SOCK_CLOEXEC, 0) {
+        Ok(fd) => fd,
+        Err(e) => return Outcome::denied(e),
+    };
+    let mut addr = [0u8; 16];
+    // The family in native order: this workspace builds for big-endian
+    // architectures too (TODO/deps.md T-0911), where a hard-coded
+    // little-endian 2 reads as family 512. Port 0 and the zero bytes are
+    // order-free; the address is big-endian by definition.
+    let fam = 2u16.to_ne_bytes();
+    addr[0] = fam[0];
+    addr[1] = fam[1];
+    addr[4] = 127;
+    addr[7] = 1;
+    let r = match sys::bind(fd, addr.as_ptr() as u64, 16) {
+        Ok(_) => sys::listen(fd, 1).map(|_| ()),
+        Err(e) => Err(e),
+    };
+    let _ = sys::close(fd);
+    match r {
+        Ok(()) => Outcome::ok_with("loopback TCP bind+listen permitted"),
         Err(e) => Outcome::denied(e),
     }
 }

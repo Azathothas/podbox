@@ -24,6 +24,7 @@ pub mod interp;
 pub mod json;
 pub mod machine;
 pub mod mounts;
+pub mod nongoals;
 pub mod probes;
 pub mod report;
 pub mod select;

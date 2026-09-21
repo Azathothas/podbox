@@ -194,7 +194,7 @@ the blocker named and what would clear it.
 | [T-1303](podvm.md) | P1 | podvm | done | The image is a rootfs directory, and an initramfs with no console is a silent machine |
 | [T-1304](podvm.md) | P1 | podvm | done | The exec protocol is a serial pair with a nonce, and every wait is bounded |
 | [T-1305](podvm.md) | P2 | podvm | done | The fleet and the fork, and the file-size ceiling that bounds both |
-| [T-1306](podvm.md) | P1 | podvm | open | The non-goals are refusals the code makes, not notes in a document |
+| [T-1306](podvm.md) | P1 | podvm | done | The non-goals are refusals the code makes, not notes in a document |
 | [T-1307](podvm.md) | P2 | podvm | open | The five Rust VM tools, ruled one by one, so nobody surveys them again |
 | [T-1308](podvm.md) | P1 | podvm | open | One TCG number is a claim about one benchmark, and the range is 3x to 21x |
 | [T-1309](interpose.md) | P1 | interpose | open | libdnf repodata downloads fail under the preloaded interposer |
@@ -205,7 +205,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-141 items: 24 open, 3 partial, 3 blocked, 111 done.
+141 items: 23 open, 3 partial, 3 blocked, 112 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -214,10 +214,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 50 | 52 |
-| P1 | 13 | 2 | 3 | 47 | 65 |
+| P1 | 12 | 2 | 3 | 48 | 65 |
 | P2 | 6 | 0 | 0 | 13 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **24** | **3** | **3** | **111** | **141** |
+| **All** | **23** | **3** | **3** | **112** | **141** |
 
 ## How the current ordering is derived
 

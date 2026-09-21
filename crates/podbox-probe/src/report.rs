@@ -192,6 +192,7 @@ pub fn evidence(f: &Findings, sel: &Selection) -> String {
         f.self_exe
     ));
     out.push_str(&machine_block(f));
+    out.push_str(&non_goals_block(f));
     out
 }
 
@@ -210,6 +211,29 @@ fn machine_block(f: &Findings) -> String {
     match mach.refusal() {
         Some(r) => out.push_str(&format!("  ⛔ {r}\n")),
         None => out.push_str("  the tier holds: every leg ok\n"),
+    }
+    out
+}
+
+/// TODO/podvm.md T-1306's non-goals, one measured stance per design the
+/// specification tried and this machine may or may not refuse. A refusal
+/// names its leg and errno with the remedy; an open mechanism says so with
+/// no refusal language; what the rows cannot say is unestablished rather
+/// than either.
+fn non_goals_block(f: &Findings) -> String {
+    let mut out = String::from("\nnon-goals, one stance per blocked design\n");
+    for g in crate::nongoals::assess(f) {
+        match g.stance {
+            crate::nongoals::Stance::Refused => {
+                out.push_str(&format!("  ⛔ {}\n", g.detail));
+            }
+            crate::nongoals::Stance::Open => {
+                out.push_str(&format!("  {}\n", g.detail));
+            }
+            crate::nongoals::Stance::Unestablished => {
+                out.push_str(&format!("  ? {}\n", g.detail));
+            }
+        }
     }
     out
 }
@@ -520,6 +544,26 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
         });
     });
 
+    // ⭐ TODO/podvm.md T-1306. The non-goals as measured stances, one per
+    // blocked design. A stance is per run, never a constant: refused where
+    // the mechanism is denied, open where it works here, unestablished
+    // where the rows cannot say. The per-leg verdicts also live in
+    // `probes` above; the agreement between the two is held by
+    // `nongoals`' own tests, which assert the detail names the rows'
+    // errnos.
+    let goals = crate::nongoals::assess(f);
+    o.arr("non_goals", |a| {
+        for g in &goals {
+            a.obj(|e| {
+                e.str("name", g.name);
+                e.str("spec", g.spec);
+                e.str("stance", crate::nongoals::word(g.stance));
+                e.str("detail", &g.detail);
+                e.str("remedy", g.remedy);
+            });
+        }
+    });
+
     // ⭐ TODO/probe.md T-0111. The cache stores this document verbatim, so the
     // key it is validated against travels inside it and there is no second
     // serializer to drift against the first.
@@ -699,6 +743,72 @@ mod tests {
         let e = evidence(&f, &sel);
         assert!(e.contains("machine, one leg per fact"), "{e}");
         assert!(e.contains("machine tier refused"), "{e}");
+        assert!(e.contains("open(/dev/kvm, O_RDWR)=ENOENT"), "{e}");
+    }
+
+    /// Every row T-1306 cites, all clear. Synthetic, so the shape is
+    /// asserted without depending on what this machine denies.
+    fn cited_ok() -> Findings {
+        Findings {
+            rows: [
+                "bind(127.0.0.1:0)+listen",
+                "open(/dev/kvm, O_RDWR)",
+                "clone(CLONE_NEWUTS)",
+                "unshare(CLONE_NEWUSER)",
+                "unshare(CLONE_NEWNS)",
+                "ptrace(PTRACE_TRACEME)",
+                "setuid(1000)",
+                "setgroups(0,NULL)",
+                "prlimit(RLIMIT_FSIZE)",
+            ]
+            .iter()
+            .map(|&name| (name, crate::verdict::Outcome::ok()))
+            .collect(),
+            ..Findings::empty()
+        }
+    }
+
+    #[test]
+    fn the_document_carries_six_non_goal_stances() {
+        // TODO/podvm.md T-1306's Prove reads exactly this shape.
+        let f = cited_ok();
+        let sel = Selection::choose(&f);
+        let doc = document(&f, &sel);
+        assert!(doc.contains("\"non_goals\":[{"), "{doc}");
+        for name in [
+            "tcp listener",
+            "kvm acceleration",
+            "runc-style oci",
+            "user-mode linux guest",
+            "uid_map identity switch",
+            "guest file over the ceiling",
+        ] {
+            assert!(doc.contains(&format!("\"name\":\"{name}\"")), "{doc}");
+        }
+    }
+
+    #[test]
+    fn a_denied_kvm_names_its_errno_in_the_document_and_the_evidence() {
+        let mut f = cited_ok();
+        for (n, o) in f.rows.iter_mut() {
+            if *n == "open(/dev/kvm, O_RDWR)" {
+                *o = crate::verdict::Outcome::denied(crate::sys::ENOENT);
+            }
+        }
+        let sel = Selection::choose(&f);
+        let doc = document(&f, &sel);
+        assert!(
+            doc.contains(
+                "\"name\":\"kvm acceleration\",\"spec\":\"E-30/60\",\"stance\":\"refused\""
+            ),
+            "{doc}"
+        );
+        assert!(doc.contains("open(/dev/kvm, O_RDWR)=ENOENT"), "{doc}");
+        let e = evidence(&f, &sel);
+        assert!(
+            e.contains("non-goals, one stance per blocked design"),
+            "{e}"
+        );
         assert!(e.contains("open(/dev/kvm, O_RDWR)=ENOENT"), "{e}");
     }
 

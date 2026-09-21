@@ -1452,6 +1452,35 @@ pub fn prlimit(resource: u64) -> Result<(u64, u64), Errno> {
     Ok((raw.rlim_cur as u64, raw.rlim_max as u64))
 }
 
+// ------------------------------------------------------- sockets
+//
+// `TODO/podvm.md` T-1306: the spec target answers EPERM to every TCP bind,
+// loopback or wildcard, which kills every hostfwd-based manager. The probe
+// binds 127.0.0.1 port 0 (the kernel picks the port, so no fixture can
+// collide) and listens once; nothing is ever accepted on it.
+pub const SYS_SOCKET: i64 = nr!(socket, __NR_socket);
+pub const SYS_BIND: i64 = nr!(bind, __NR_bind);
+pub const SYS_LISTEN: i64 = nr!(listen, __NR_listen);
+/// `AF_INET`, 2 in every Linux `socket.h`. The probe speaks IPv4 loopback.
+pub const AF_INET: u64 = 2;
+/// `SOCK_STREAM`, 1 in every Linux `socket.h`.
+pub const SOCK_STREAM: u64 = 1;
+/// `SOCK_CLOEXEC`, `O_CLOEXEC` shifted into the socket type word. Same value,
+/// separate name: one is a file-status flag and the other is not.
+pub const SOCK_CLOEXEC: u64 = 0o2000000;
+
+pub fn socket(domain: u64, stype: u64, protocol: u64) -> Sysres {
+    unsafe { sys(SYS_SOCKET, [domain, stype, protocol, 0, 0, 0]) }
+}
+
+pub fn bind(fd: i64, addr: u64, addrlen: u64) -> Sysres {
+    unsafe { sys(SYS_BIND, [fd as u64, addr, addrlen, 0, 0, 0]) }
+}
+
+pub fn listen(fd: i64, backlog: u64) -> Sysres {
+    unsafe { sys(SYS_LISTEN, [fd as u64, backlog, 0, 0, 0, 0]) }
+}
+
 /// The `stat` fields this project reads, widened to one shape.
 ///
 /// ⛔ As [`Statfs`]: **the kernel's own `struct stat` is the buffer**, taken

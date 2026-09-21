@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-141 entries: 24 open, 3 partial, 3 blocked, 111 done.
+141 entries: 23 open, 3 partial, 3 blocked, 112 done.
 
 ## Baseline
 
@@ -256,6 +256,17 @@ stalled-origin clause in 146 proving the bound bites. No script changes
 in this pass; the implementation with all three re-drives belongs to the
 next one.
 
+[T-1306](podvm.md) closed in its own change: one new census row (loopback
+bind+listen, family in native order for the big-endian targets) and a
+`nongoals` assessment giving each blocked design its measured stance,
+refused with leg, errno and remedy, open where the mechanism works here,
+unestablished where the rows cannot say. `experiments/149-podvm-non-goals.sh`
+exits 0 on a lane-built binary (14 driven, 0 mismatches): tcp/uml/uid_map/file
+open on the lane, kvm refused with ENOENT, runc refused with its errno.
+The spec's own README and podvm-spec section 7 supplied the mechanisms
+(ptrace for UML, UTS EPERM for runc), so five of the six cite existing
+rows and only the bind is new. 81 of 81 probe tests green in the lane.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -321,7 +332,8 @@ store suite), so the change commits with the three reds named above.
    the probe legs, the tier flag with the `podvm` name, the booting
    initramfs, the serial exec protocol with every status distinct, and the
    fleet decision with the file-size ceiling enforced before anything
-   starts. T-1306 (the non-goals as measured refusals) is next.
+   starts, and the non-goals as measured refusals. T-1307 (the five Rust
+   VM tools, ruled one by one) is next.
 
 [T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
 rows read no-compiler under the interposer while the engine control reaches

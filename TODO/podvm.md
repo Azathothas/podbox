@@ -451,7 +451,7 @@ Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec docume
 Category:    podvm
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     The specification lists designs that were tried and do not work on
              its target: a TCP listener of any kind, anything KVM-accelerated, a
@@ -479,7 +479,30 @@ Decision:    A non-goal is a measured verdict with a date, never a constant.
              ⛔ Where the mechanism is genuinely unavailable the refusal says
              which leg failed, so a reader can tell "this runtime refuses it"
              from "podbox does not implement it".
+             Ruled 2026-09-22 on the one fork the Approach leaves open: ONE
+             new leg, five cited. Only the TCP bind had no measurement; the
+             other five mechanisms already have probe rows (the kvm open, the
+             UTS and user namespace rows, ptrace, setuid/setgroups, the fsize
+             bound), and a second row measuring the same denial is the
+             value-in-two-places drift the forbidden patterns refuse. The
+             per-non-goal verdict lives in the new assessment, not in new
+             legs. Cross-run staleness is bounded by the probe cache key
+             (T-0111), like every other verdict in the document.
 Prove:       `./experiments/149-podvm-non-goals.sh` asserts each refusal names its leg and its errno, and that a leg the host permits turns the refusal off
+
+**Done 2026-09-22.** One new census row (`bind(127.0.0.1:0)+listen`:
+socket, bind port 0, listen once, close; the family in native order for
+the big-endian targets) plus `nongoals::assess`: six stances over cited
+rows, refused with leg, errno and remedy, open with no refusal language,
+unestablished where the rows cannot say. The document carries
+`non_goals[]` and the stderr evidence a block beside the machine one.
+`experiments/149-podvm-non-goals.sh` exits 0 on a lane-built binary: 14
+driven, 0 mismatches (`experiments/results/podvm-non-goals.txt`). Lane
+stances: tcp open, kvm refused naming
+`open(/dev/kvm, O_RDWR)=ENOENT`, runc refused naming its errno, uml,
+uid_map and file open (ptrace permitted, setuid works as root, no finite
+ceiling there). Five assessment unit tests and two report tests; 81 of 81
+probe tests green in the lane.
 
 ---
 
