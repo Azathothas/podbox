@@ -758,10 +758,12 @@ fn extract_now(
         podbox_image::error::EXIT_RUNTIME_ERROR
     })?;
     let mut err = std::io::stderr().lock();
-    podbox_extract::extract(store, &manifest, &record.manifest_digest, &mut err).map_err(|e| {
-        let _ = writeln!(err, "podbox {verb}: {e}");
-        podbox_image::error::EXIT_RUNTIME_ERROR
-    })?;
+    let done = podbox_extract::extract(store, &manifest, &record.manifest_digest, &mut err)
+        .map_err(|e| {
+            let _ = writeln!(err, "podbox {verb}: {e}");
+            podbox_image::error::EXIT_RUNTIME_ERROR
+        })?;
+    crate::diagnose::report_dropped(&mut err, &done, &podbox_probe::identity::read());
     Ok(())
 }
 

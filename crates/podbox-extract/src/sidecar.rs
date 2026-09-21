@@ -104,10 +104,23 @@ pub fn json_string(s: &str) -> String {
 /// The sidecar writer. One JSON object per line, so a rootfs with 200,000
 /// entries does not have to be held in memory to be read back, and so an
 /// interrupted extraction leaves a file whose complete lines are still valid.
+/// The first entry that lost an id, with what the kernel applied instead.
+/// The extraction report names it, so the diagnostic quotes one measured case
+/// rather than a count.
+#[derive(Debug, Clone)]
+pub struct FirstDropped {
+    pub path: String,
+    pub uid: u64,
+    pub gid: u64,
+    pub applied_uid: u64,
+    pub applied_gid: u64,
+}
+
 pub struct Sidecar {
     out: std::io::BufWriter<std::fs::File>,
     written: u64,
     dropped: u64,
+    first_dropped: Option<FirstDropped>,
 }
 
 impl Sidecar {
@@ -116,6 +129,7 @@ impl Sidecar {
             out: std::io::BufWriter::new(std::fs::File::create(path)?),
             written: 0,
             dropped: 0,
+            first_dropped: None,
         })
     }
 
@@ -123,6 +137,15 @@ impl Sidecar {
         self.written += 1;
         if m.reason.is_some() {
             self.dropped += 1;
+            if self.first_dropped.is_none() {
+                self.first_dropped = Some(FirstDropped {
+                    path: m.path.clone(),
+                    uid: m.uid,
+                    gid: m.gid,
+                    applied_uid: m.applied_uid,
+                    applied_gid: m.applied_gid,
+                });
+            }
         }
         writeln!(self.out, "{}", m.to_json())
     }
@@ -137,6 +160,11 @@ impl Sidecar {
     /// ownership and the extracted tree's have diverged.
     pub fn dropped(&self) -> u64 {
         self.dropped
+    }
+
+    /// The first entry that lost an id, if any. The report names it.
+    pub fn first_dropped(&self) -> Option<FirstDropped> {
+        self.first_dropped.clone()
     }
 }
 

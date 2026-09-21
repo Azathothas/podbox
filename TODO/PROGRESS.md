@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-137 entries: 35 open, 3 partial, 3 blocked, 96 done.
+137 entries: 34 open, 3 partial, 3 blocked, 97 done.
 
 ## Baseline
 
@@ -96,6 +96,12 @@ pass), `130` exits 1 (unconfined rung is `supervise` in the driver,
 four rows differ against the reference kernel). The entry carries the
 runs, the refusal-path probes, and what clears each half.
 
+[T-0805](cli.md) closed in this change: the section-8 table as data with
+the ownership row wired to live maps, one shared report for `extract` and
+`run`, and the sidecar example it names. Prove runs pull then extract and
+reads green beside `gid 42`; pull alone cannot name a dropped id, and the
+entry carries the finding.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -143,7 +149,7 @@ store suite), so the change commits with the three reds named above.
 
 ## Current work order
 
-1. [T-0805](cli.md) and [T-0808](cli.md): finish four-part diagnostics and drive
+1. [T-0805](cli.md) is done in this change. [T-0808](cli.md) drives
    every parity row through the shipped binary. [T-0809](cli.md) adds the row
    that makes an ambiguous spawn failure readable.
 2. [T-0408](complete.md): run the zypper row and record it. It is one container
@@ -168,7 +174,7 @@ for clause 3. [T-1209](gate.md) and
 
 ## In progress
 
-[T-0805](cli.md) and [T-0808](cli.md) are `open` and are next. No
+[T-0808](cli.md) and [T-0809](cli.md) are `open` and are next. No
 implementation entry is half-written. [T-1212](gate.md) went `blocked`
 in this change with its six runs and what clears each red half, and
 [T-1213](gate.md) went `blocked` in this change with its conversion,

@@ -397,7 +397,7 @@ Source:      `TOOL.md` section 6.9; `paper_final.md` section 10.8
 Category:    cli
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-21
 
 Problem:     In this environment the errno alone actively misleads. `EINVAL`
              from `chown` reads as a bad argument and means an id that does not
@@ -420,7 +420,32 @@ Approach:    Every failure carries four parts: the operation, the errno, the
 Decision:    Quote the actual `uid_map` contents rather than saying "an unmapped
              id". The map is one read (T-0105) and it is what turns a confusing
              errno into an explanation a reader can act on.
-Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -A2 'gid 42' | grep -q 'gid_map'` or, where the interposer cleared it, `podbox inspect --format '{{.Ownership.Deferred}}' public.ecr.aws/docker/library/alpine:3.20 | grep -q etc/shadow`
+Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox extract public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -A2 'gid 42' | grep -q 'gid_map'`
+
+**Done 2026-09-21.** `crates/podbox-cli/src/diagnose.rs` carries TOOL.md
+section 8 as data: 22 rows from observation to operation, errno, mechanism
+and remedy. `ownership_note` renders the chown row with live measurements:
+the first dropped entry from the sidecar, the map contents T-0105 reads,
+and the sidecar path as the remedy. `report_dropped` prints the counts line
+and the note. Both `extract` and `run` call it, so one extraction reads one
+way on both verbs. The sidecar remembers the first dropped entry and
+`Extracted` carries it (`crates/podbox-extract/src/sidecar.rs`,
+`crates/podbox-extract/src/lib.rs`).
+
+The entry first named `pull` alone in Prove. Pull performs no extraction
+(`crates/podbox-image/src/pull.rs:17`), so no pull output can name a dropped
+id. Three routes were checked: a pull path that extracts somewhere unseen
+(refuted by the pull handler, which prints the probe source and returns), a
+predictive diagnostic inside pull (refuted, since pull cannot know dropped
+ownership without extracting), and the pull-then-extract flow (adopted).
+
+Run 2026-09-21 in a disposable container on host podman 6.1.2 with guest
+maps `0 1000 1; 1 100000 65536`: pull exits 0, extract exits 0 over 517
+entries with 1 dropped, and the note names etc/shadow (uid 0, gid 42) with
+EINVAL beside the `/proc/self/gid_map` contents. The unit job exits 0: 71
+passed in podbox-cli with 5 new diagnose tests, 46 passed in
+podbox-extract. Clippy passes with `-D warnings`. The spawn row in the table
+stays unwired until T-0809.
 
 ---
 

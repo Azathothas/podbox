@@ -15,6 +15,7 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 mod complete;
+mod diagnose;
 mod exec;
 mod format;
 mod images;

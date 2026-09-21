@@ -596,17 +596,7 @@ pub fn extract(args: &[String]) -> i32 {
                 done.layers, done.entries, done.removed
             );
             if done.ownership_dropped > 0 {
-                // ⛔ Said out loud. A tree whose ownership differs from the
-                // image's in 900 places and says nothing is the dishonesty this
-                // project exists to refuse.
-                let _ = writeln!(
-                    out,
-                    "podbox: {} of {} entries carry an id this machine cannot apply; \
-                     what the image intended is in {}",
-                    done.ownership_dropped,
-                    done.sidecar_rows,
-                    done.sidecar.display()
-                );
+                crate::diagnose::report_dropped(&mut out, &done, &podbox_probe::identity::read());
             }
             if done.skipped > 0 {
                 let _ = writeln!(

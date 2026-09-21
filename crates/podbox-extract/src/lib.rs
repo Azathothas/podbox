@@ -79,6 +79,8 @@ pub struct Extracted {
     pub skipped_kinds: Vec<String>,
     pub sidecar_rows: u64,
     pub ownership_dropped: u64,
+    /// The first entry that lost an id, if any. The report names it.
+    pub first_dropped: Option<sidecar::FirstDropped>,
 }
 
 /// Where an image's rootfs and its sidecar live, given the store root.
@@ -162,6 +164,7 @@ pub fn extract(
         skipped_kinds: Vec::new(),
         sidecar_rows: 0,
         ownership_dropped: 0,
+        first_dropped: None,
     };
 
     // ⛔ EVERY FAILURE PATH BELOW REMOVES THE PARTIAL TREE. A refusal that
@@ -190,6 +193,7 @@ pub fn extract(
 
 fn done_ok(sidecar: sidecar::Sidecar, total: &mut Extracted, rootfs: &Path) -> Result<()> {
     total.ownership_dropped = sidecar.dropped();
+    total.first_dropped = sidecar.first_dropped();
     let (rows, _) = sidecar.finish()?;
     total.sidecar_rows = rows;
     // ⛔ LAST. Everything above has to have happened for this file to exist.
