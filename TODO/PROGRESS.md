@@ -15,7 +15,7 @@ nix acceptance**, [milestones.md](milestones.md) T-1111, and it drives the
 shipped binary, so it is the last gate rather than an early one. The machine
 tier, [podvm.md](podvm.md), is specified and not started.
 
-138 entries: 30 open, 3 partial, 3 blocked, 102 done.
+138 entries: 29 open, 3 partial, 3 blocked, 103 done.
 
 ## Baseline
 
@@ -202,7 +202,9 @@ store suite), so the change commits with the three reds named above.
 3. [T-1207](gate.md) and [T-1208](gate.md): [T-1208](gate.md) is done (check
    22, its plant, five records converted). [T-1207](gate.md)'s stale claim is
    corrected in place; its Decision still needs a ruling.
-4. [T-1108](milestones.md): package M7 only after M6 acceptance is green.
+4. [T-1108](milestones.md) is done: the shipped artefact is static with no
+   `PT_INTERP`, and the staged binary runs its version inside the
+   reconstruction.
 5. [T-1111](milestones.md): M8, the nix acceptance, after M7.
 7. [podvm.md](podvm.md) T-1301 first, because every other entry there depends
     on the probe. ⭐ T-1302's shape is ruled, so its implementation is a flag,

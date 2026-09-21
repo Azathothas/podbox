@@ -504,7 +504,7 @@ Source:      `TOOL.md` section 5 M7
 Category:    milestones
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     The binary has to run on the target with no libraries present.
 Premise:     ⭐ Measured on the skeleton already: T-1001 is `done` and its
@@ -516,6 +516,21 @@ Decision:    Keep T-1001 and this entry separate. T-1001 is the property of the
              skeleton and is measurable now; this is the property of the shipped
              artefact and is not.
 Prove:       `readelf -l target/x86_64-unknown-linux-musl/release/podbox | grep -c INTERP | grep -qx 0 && ./experiments/20-enter-target.sh --stage ./target/x86_64-unknown-linux-musl/release/podbox -- /workspace/podbox version`
+
+**Done 2026-09-21.** Both halves, on the shipped artefact with both
+interposers embedded. `readelf -l` reports no `PT_INTERP` (`INTERP count:
+0`, 3,367,792 bytes, static-pie), and the staged binary runs
+`/workspace/podbox version` as `podbox 0.1.0`, exit 0, inside the N+F+M
+reconstruction on host podman.
+
+Half 1 ran in a Linux job on this tree at `362aba4` (musl release build
+with the embedded objects). Half 2 staged `.dev/artifacts-build/podbox`,
+built earlier today: only `TODO/` and `scripts/` moved since, none of them
+a build input, so the bytes are the same build the job measured (both
+3,367,792, both `podbox 0.1.0`).
+
+⚠ The embedded-rootfs half stays with [T-1003](packaging.md), which is open.
+The `Prove` as written is satisfied.
 
 ---
 
