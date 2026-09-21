@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-141 entries: 23 open, 3 partial, 3 blocked, 112 done.
+141 entries: 22 open, 3 partial, 3 blocked, 113 done.
 
 ## Baseline
 
@@ -267,6 +267,13 @@ The spec's own README and podvm-spec section 7 supplied the mechanisms
 (ptrace for UML, UTS EPERM for runc), so five of the six cite existing
 rows and only the bind is new. 81 of 81 probe tests green in the lane.
 
+[T-1307](podvm.md) closed host-side in its own change: every
+reference-map row names its verdict and the tree line that settles it,
+and the gate resolves all green. Each of the five claims was re-read at
+its tree line; the one overstatement found (cubic "accelerates every
+machine") is corrected under the premise with its lines. No source
+moves, so no lane run belongs to this change.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -328,12 +335,12 @@ store suite), so the change commits with the three reds named above.
    reconstruction.
 5. [T-1111](milestones.md) is done: M8, the nix acceptance, seven rows
    green through the shipped binary on host podman.
-7. [podvm.md](podvm.md) T-1301, T-1302, T-1303, T-1304 and T-1305 are done:
-   the probe legs, the tier flag with the `podvm` name, the booting
-   initramfs, the serial exec protocol with every status distinct, and the
-   fleet decision with the file-size ceiling enforced before anything
-   starts, and the non-goals as measured refusals. T-1307 (the five Rust
-   VM tools, ruled one by one) is next.
+7. [podvm.md](podvm.md) T-1301 through T-1307 are done: the probe legs,
+   the tier flag with the `podvm` name, the booting initramfs, the serial
+   exec protocol with every status distinct, the fleet decision with the
+   file-size ceiling enforced before anything starts, the non-goals as
+   measured refusals, and the five Rust VM tools ruled one by one.
+   T-1308 (the TCG workload spread) is next.
 
 [T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
 rows read no-compiler under the interposer while the engine control reaches

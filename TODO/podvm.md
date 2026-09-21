@@ -513,7 +513,7 @@ Source:      [reference-map.md](reference-map.md); the sweep at
 Category:    podvm
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Five Rust projects were named as candidate microVM managers for the
              machine tier. **A candidate list nobody rules on is a list the
@@ -539,6 +539,13 @@ Premise:     **Read on 2026-09-11, and not one of the five is a microVM
              `references/qemu-rs__qemu-rs/tree/Cargo.toml:7` declares
              `GPL-2.0-or-later`, which `TOOL.md` section 3.3 already settles
              against for this tree.
+             Correction 2026-09-22, read against the tree: the `cubic`
+             sentence above overstates. `tree/src/qemu/qemu_accelerator.rs:47-64`
+             defaults to one accelerator per host OS (kvm, hvf, whpx, nvmm,
+             else tcg), and `tree/src/actions/start_instance_action.rs:177-193`
+             falls back to software tcg on `Accel::Off`, arch mismatch, or a
+             failed probe. Unaccelerated machines exist there; the verdict
+             below stands unchanged.
 Approach:    One row per tool in [reference-map.md](reference-map.md), which is
              written, plus the two mechanisms that survive the reading:
              1. **ask the emulator which accelerator works, never assume
@@ -562,6 +569,20 @@ Decision:    `Vex` **confirms** and `vml` **confirms**: independent evidence
              dependency entirely. It is a RISC-V guest today, so it is years
              from useful here. Revisit only when it carries an x86-64 guest.
 Prove:       `./scripts/check-todo.py` resolves every row, and each of the five names its verdict and the tree line that settles its licence
+
+**Done 2026-09-22.** Every row of [reference-map.md](reference-map.md)
+names its verdict and the tree line that settles it, and
+`./scripts/check-todo.py` resolves every row green. `Vex` **confirms**
+(`tree/src/commands/exec.rs:39` builds the qemu command line and spawns
+it: a composer, not a manager). `vml` **confirms**
+(`tree/README.md:20-26` names kvm, rsync, socat and cloud-localds).
+`cubic` is the **anti-pattern exhibit** (T-1302's space-splitting defect;
+the acceleration premise above is corrected underneath it).
+`tcg-rs` is **filed** (`tree/README.md:6-8`: a Rust TCG with a RISC-V
+guest only). `qemu-rs` is **refused** (`tree/Cargo.toml:7` declares
+`GPL-2.0-or-later`, and it binds the plugin API rather than managing
+anything). No row moved and no verdict changed; the one overstatement
+found on the way is corrected above with its lines.
 
 ---
 
