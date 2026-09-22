@@ -1,0 +1,14 @@
+podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+ownership: real; network: host-shared; pids: host-shared)
+probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+        clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+podbox run: interpose: declined for "/bin/busybox": /bin/busybox is statically linked (no PT_INTERP), so no loader reads LD_PRELOAD for it
+podbox: complete: rewrote dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file, and it was 227 bytes: a payload had already redirected into it. Writes are kept until the next run, not discarded
+podbox: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): APPENDED this machine's CA bundle (224449 bytes, announced in $SSL_CERT_FILE as /w/cacert.pem). The image's own roots are kept and the added block is marked. ⚠ This machine's trust is now the container's too; --no-host-cas refuses it
+podbox: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (224449 bytes, announced in $SSL_CERT_FILE as /w/cacert.pem). The image's own roots are kept and the added block is marked. ⚠ This machine's trust is now the container's too; --no-host-cas refuses it
+podbox: complete: created etc/ssl/cert.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (224449 bytes, announced in $SSL_CERT_FILE as /w/cacert.pem). The image's own roots are kept and the added block is marked. ⚠ This machine's trust is now the container's too; --no-host-cas refuses it
+podbox: complete: 4 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+podbox run: entering on the memfd rung at PODBOX_MODE's request (TODO/packaging.md T-1003)

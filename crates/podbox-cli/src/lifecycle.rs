@@ -871,6 +871,14 @@ pub struct Prepared {
     /// `containers/<id>/ownership.memo`, foreground `run` deletes it on exit.
     /// The environment already carries `PODBOX_MEMO_FD` for it.
     pub memo_host_path: std::path::PathBuf,
+    /// ⭐ TODO/packaging.md T-1003. The forced launch rung `prepare` admitted,
+    /// driven by foreground `run` and by nothing else. None is the default
+    /// chroot-by-path entry.
+    pub ladder: Option<podbox_enter::ladder::Mode>,
+    /// The probe rows the entry was decided under. `run` feeds them to the
+    /// ladder; `create` and `run -d` carry them unused, because neither
+    /// drives a rung.
+    pub findings: podbox_probe::Findings,
     /// ⭐ T-0804 rule 3: `inspect` reports the TRUE mode per container, and a
     /// shimmed `/dev/null` is part of that mode. One line per fixup that
     /// changed a byte or failed, carried into the container record.

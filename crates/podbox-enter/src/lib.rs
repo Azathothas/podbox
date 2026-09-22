@@ -351,7 +351,14 @@ pub fn run_ladder(
     fd: Option<i64>,
     err: &mut dyn Write,
 ) -> Result<i32> {
-    let child = spawn_ladder(root, plan, mode, fd, err)?;
+    let r = spawn_ladder(root, plan, mode, fd, err);
+    // The parent's copy of the memfd serves nothing past the fork: the child
+    // execs from its own. It closes on every path, including the refusal
+    // ones, so a refused launch leaks no descriptor.
+    if let Some(f) = fd {
+        let _ = sys::close(f);
+    }
+    let child = r?;
     child.wait()
 }
 

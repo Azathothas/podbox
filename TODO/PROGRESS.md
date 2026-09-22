@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 3 open, 1 partial, 2 blocked, 136 done. Every P0 is done.
+142 entries: 2 open, 1 partial, 2 blocked, 137 done. Every P0 is done.
 
 ## Baseline
 

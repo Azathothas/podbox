@@ -83,6 +83,61 @@ pub unsafe fn memfd_create(name: &sys::CBuf, allow_sealing: bool) -> Sysres {
     }
 }
 
+/// Whether the kernel takes `memfd_create`: create one and close it.
+///
+/// The ladder asks this before promising the memfd rung, so a forced mode
+/// refuses with the kernel as the reason rather than failing mid-launch.
+pub fn kernel_takes_memfd() -> bool {
+    let Some(name) = sys::CBuf::new("podbox-probe") else {
+        return false;
+    };
+    match unsafe { memfd_create(&name, false) } {
+        Ok(fd) => {
+            let _ = sys::close(fd);
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// Write `bytes` to a new memfd, sealed where the kernel accepts it.
+///
+/// The caller hands the descriptor to the ladder entry and closes its own
+/// copy past the fork (see `run_ladder`): a parent copy held past that is a
+/// leak, and the child execs from its own.
+pub fn stage(bytes: &[u8]) -> crate::Result<i64> {
+    let name = sys::CBuf::new("podbox-payload").expect("a literal carries no NUL");
+    let fd = unsafe { memfd_create(&name, true) }.map_err(|e| {
+        crate::Error::Runtime(format!(
+            "memfd_create for the payload failed: {} ({})",
+            e.name(),
+            e.0
+        ))
+    })?;
+    if let Err(e) = unsafe { write_full(fd, bytes) } {
+        let _ = sys::close(fd);
+        return Err(crate::Error::Runtime(format!(
+            "writing the payload to its memfd failed: {} ({})",
+            e.name(),
+            e.0
+        )));
+    }
+    match seal(fd) {
+        Ok(_) => {}
+        // A kernel without sealing answers EINVAL; the payload still runs, it
+        // just stays unsealed, which is `memfd_create`'s own fallback shape.
+        Err(e) if e == sys::EINVAL => {}
+        Err(e) => {
+            let _ = sys::close(fd);
+            return Err(crate::Error::Runtime(format!(
+                "sealing the payload memfd failed: {} ({})",
+                e.name(),
+                e.0
+            )));
+        }
+    }
+    Ok(fd)
+}
 /// Why bytes cannot go through fd-exec, naming what they take instead.
 ///
 /// ⛔ Named rather than a boolean, for the ladder's refusal: a caller told only
@@ -277,6 +332,23 @@ mod tests {
             Err(e) => assert_eq!(e, sys::EINVAL, "sealing failed with {e:?}"),
         }
         sys::close(fd).expect("the created fd closes");
+    }
+
+    /// `stage` hands back a live descriptor with close-on-exec set: the
+    /// staged memfd must not leak across a later `execve`. The exec half is
+    /// the lane's Prove; this pins the create, write and seal path runs.
+    #[test]
+    fn staging_hands_back_a_live_cloexec_descriptor() {
+        assert!(kernel_takes_memfd(), "memfd_create runs here");
+        let fd = stage(&static_pie()).expect("staging runs here");
+        assert!(fd >= 0);
+        let flags = sys::fcntl(fd, sys::F_GETFD, 0).expect("the staged fd answers fcntl");
+        assert_eq!(
+            flags & sys::FD_CLOEXEC as i64,
+            sys::FD_CLOEXEC as i64,
+            "MFD_CLOEXEC is set on the staged memfd"
+        );
+        sys::close(fd).expect("the staged fd closes");
     }
 
     /// A 64-bit header with one `PT_LOAD` and no `PT_INTERP`: the smallest

@@ -1,0 +1,1 @@
+podbox exec: PODBOX_MODE="memfd" requests a launch rung, which `exec` does not drive: only foreground `podbox run` honors it

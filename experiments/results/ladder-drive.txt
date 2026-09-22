@@ -1,0 +1,55 @@
+== conditions
+date              2026-09-22T16:30:26Z
+host kernel       MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64
+podbox            lane-built artifact, runs in the driver below
+alpine            public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+debian            public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+== 0. setup: busybox-static into the debian rootfs
+podbox: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from /w/cacert.pem
+podbox: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. ⛔ The scheme only: the mirror this image chose is the mirror podbox uses
+podbox: complete: 10 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+debconf: delaying package configuration, since apt-utils is not installed
+E: Can not write log (Is /dev/pts mounted?) - posix_openpt (2: No such file or directory)
+Selecting previously unselected package busybox-static.
+(Reading database ... 6096 files and directories currently installed.)
+Preparing to unpack .../busybox-static_1%3a1.35.0-4+deb12u1+b1_amd64.deb ...
+Unpacking busybox-static (1:1.35.0-4+deb12u1+b1) ...
+Setting up busybox-static (1:1.35.0-4+deb12u1+b1) ...
+-rwxr-xr-x 1 root root 1982256 May  7 20:33 /bin/busybox
+lrwxrwxrwx 1 root root       4 Sep 22 16:30 /bin/sh -> dash
+
+
+== 1. a forced memfd over a static payload enters on the memfd rung
+   (busybox-static on debian: alpine's own busybox is dynamically
+   linked and the rung correctly refuses it; clause 7 drives that arm)
+  c1m: rc=0
+  c1m: stdout names memfd
+  c1m: stderr names entering on the memfd rung
+
+== 2. the default entry reports chroot and hands no directive down
+  c2: rc=0
+  c2: stdout names chroot
+
+== 3. a declared PODBOX_MODE is scrubbed before the payload
+  c3: rc=0
+  c3: stdout names chroot
+
+== 4. a forced rung this runtime lacks refuses naming it
+  c4: rc=125
+  c4: stderr names /dev/fuse
+
+== 5. an unknown word refuses with the rung list
+  c5: rc=125
+  c5: stderr names names no launch rung
+
+== 6. exec never reaches the ladder and refuses the force
+  c6: rc=125
+  c6: stderr names does not drive
+
+== 7. a forced memfd over a dynamic payload refuses naming the loader
+  c7: rc=125
+  c7: stderr names dynamically linked
+
+== 0. the default entry without any force (control)
+  c1: rc=0
+  c1: stdout names chroot

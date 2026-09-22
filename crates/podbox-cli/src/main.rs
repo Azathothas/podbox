@@ -20,6 +20,7 @@ mod exec;
 mod format;
 mod images;
 mod interpose;
+mod ladder;
 mod lifecycle;
 mod names;
 mod parity;

@@ -463,12 +463,42 @@ pub fn run(args: &[String]) -> i32 {
         let _ = std::fs::remove_file(&p.memo_host_path);
         return podbox_image::error::EXIT_RUNTIME_ERROR;
     }
-    let code = match podbox_enter::run(&root, &plan, &mut err) {
-        Ok(c) => c,
-        Err(e) => {
-            let _ = writeln!(err, "podbox run: {e}");
-            e.exit_code()
+    // ⭐ TODO/packaging.md T-1003. A forced launch rung drives through the
+    // ladder; unset means the chroot by path below, untouched. The banner
+    // names the entered rung, so a forced run says where it went.
+    let code = match p.ladder {
+        Some(mode) => {
+            let _ = writeln!(
+                err,
+                "podbox run: entering on the {} rung at PODBOX_MODE's request \
+                 (TODO/packaging.md T-1003)",
+                mode.name()
+            );
+            let argv0 = plan.argv.first().cloned().unwrap_or_default();
+            match crate::ladder::enter_forced(
+                &root,
+                &plan,
+                mode,
+                &p.rootfs,
+                &argv0,
+                &plan.path_dirs,
+                &p.findings,
+                &mut err,
+            ) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(err, "podbox run: {e}");
+                    e.exit_code()
+                }
+            }
         }
+        None => match podbox_enter::run(&root, &plan, &mut err) {
+            Ok(c) => c,
+            Err(e) => {
+                let _ = writeln!(err, "podbox run: {e}");
+                e.exit_code()
+            }
+        },
     };
     drop(err);
     // ⭐ T-0710: the ephemeral memo goes with the run. The child holds its own
@@ -507,6 +537,25 @@ pub(crate) fn prepare(
     if let Some(note) = &tier.note {
         eprintln!("podbox {verb}: {note}");
     }
+    // ⭐ TODO/packaging.md T-1003. A forced launch rung is refused here, before
+    // anything is fetched, where the verb cannot honor it: only foreground
+    // `run` drives the ladder, and the machine tier never reaches it. It sits
+    // ahead of the machine branch so a force cannot fall through it silently.
+    if let Err(text) = crate::ladder::refuse_where_undriven(
+        verb,
+        o.detach,
+        tier.tier == crate::tier::Tier::Machine,
+    ) {
+        eprintln!("podbox {verb}: {text}");
+        return Err(podbox_image::error::EXIT_RUNTIME_ERROR);
+    }
+    let ladder = match crate::ladder::forced_mode() {
+        Ok(forced) => forced,
+        Err(e) => {
+            eprintln!("podbox {verb}: {e}");
+            return Err(e.exit_code());
+        }
+    };
     if tier.tier == crate::tier::Tier::Machine {
         return Err(crate::tier::enter_machine(verb, o.mem));
     }
@@ -764,6 +813,8 @@ pub(crate) fn prepare(
         detach: o.detach,
         rm: o.rm,
         memo_host_path,
+        ladder,
+        findings,
         completion: completion
             .fixups
             .iter()

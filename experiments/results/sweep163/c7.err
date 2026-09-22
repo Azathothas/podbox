@@ -1,0 +1,28 @@
+a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
+podbox: 10 of 4224 entries carry an id this machine cannot apply; what the image intended is in /tmp/ostore163/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+  extract without ownership and record the intended ids; intended metadata recorded in /tmp/ostore163/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+ownership: real; network: host-shared; pids: host-shared)
+probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+        clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
+podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
+podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
+podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
+podbox: complete: rewrote etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 54 bytes
+podbox: complete: created etc/hosts (hosts, T-0403): localhost
+podbox: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+podbox: complete: created etc/apt/apt.conf.d/99podbox (apt-sandbox, T-0407): APT::Sandbox::User root. The _apt user is not mapped on this runtime
+podbox: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from /w/cacert.pem
+podbox: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. ⛔ The scheme only: the mirror this image chose is the mirror podbox uses
+podbox: complete: 10 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+podbox run: entering on the memfd rung at PODBOX_MODE's request (TODO/packaging.md T-1003)
+podbox run: PODBOX_MODE=memfd was forced but memfd mode is unavailable: dynamically linked against /lib64/ld-linux-x86-64.so.2: a memfd exec never puts its libraries on disk, so the loader would fail on the first one it cannot find

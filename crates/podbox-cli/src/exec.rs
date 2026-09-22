@@ -395,6 +395,13 @@ pub fn exec(args: &[String]) -> i32 {
         Ok(o) => o,
         Err(code) => return code,
     };
+    // ⭐ TODO/packaging.md T-1003. `exec` re-enters and never reaches the
+    // ladder, so a force refused here names that rather than falling through
+    // it silently.
+    if let Err(text) = crate::ladder::refuse_where_undriven("exec", false, false) {
+        eprintln!("podbox exec: {text}");
+        return podbox_image::error::EXIT_RUNTIME_ERROR;
+    }
     // ⭐ TODO/podvm.md T-1302, as in `run`'s `prepare`: the tier is decided
     // before the store is touched, so a machine-tier refusal names the legs
     // with nothing pulled for a tier that cannot run.
