@@ -589,7 +589,9 @@ does for its driver rows (system file first, `apt-get` install as
 fallback) and skips the clause by name where none exists. Re-driven:
 step reasons 1 with the `openssl rehash` command named, zero FAILs,
 exit 2 on the two environmental skips. The `-t` and census conditions
-stand as recorded.
+stand as recorded. Re-driven again the same day on the T-0413-tree
+binary: a byte-identical report, zero FAILs, exit 2 on the same two
+skips, so the banner addition changes nothing 250 can see.
 
 ⛔ **Every clause asserts TWO things and the second is the one that rots**: the
 exit code, read from the process that produced it, and that the message NAMES
