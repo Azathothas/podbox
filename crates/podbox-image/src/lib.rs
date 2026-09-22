@@ -24,6 +24,7 @@
 
 pub mod clock;
 pub mod contain;
+pub mod credentials;
 pub mod digest;
 pub mod error;
 pub mod oci;

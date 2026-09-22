@@ -102,6 +102,14 @@ sha2 = { version = "0.11", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# T-0209, measured as zero marginal crates: `base64` 0.22.1 is already in the
+# resolve graph as `ureq`'s dependency at exactly this version, so pinning it
+# adds no crate. The T-0209 lane job asserts the `cargo tree` third-party
+# count is unchanged. A hand-rolled encoding here would be a second
+# implementation of a seam with exactly one, which is what the
+# vendor-and-registry table refuses.
+base64 = "0.22"
+
 [profile.release]
 lto = true
 opt-level = "z"

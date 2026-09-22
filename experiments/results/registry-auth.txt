@@ -1,0 +1,44 @@
+== conditions
+date              2026-09-22T10:11:17Z
+host kernel       3.6.9-b4195d69.x86_64
+engine            podman version 6.1.2 (fixtures: podman)
+zot               v2.1.21 85459246 bytes sha256:d2422616a28dbae10a92c1df9daa23980e2f7f3deb0079968b928f23492196cb
+network           none (container loopback only; asserted in clause iso-1)
+
+== podbox: staged musl binary (3453872 bytes; path omitted: host checkouts differ per lane, version read back inside the driver)
+== zot pin
+  ok zot v2.1.21, 85459246 bytes, sha256 matches the release line
+== seed
+  ok seeded fixture:t1 sha256:485f0181f41b7e9c6213806ecdfe9b4789938f9943edad7029de3df86523cea4
+== configs
+  ok required config written, cert carries SAN IP:127.0.0.1, htpasswd holds one user
+== driver image
+  ok driver ead05f6f6f05012a40d39e6ab2f1ce8ce0d1a07a83547b5c6c902701c028df1a
+== driver run (network none)
+-- staged binaries
+  podbox: podbox 0.1.0
+  zot: binary executes (pin verified host-side; zot has no version subcommand carrying the release tag)
+-- isolation (asserted not assumed)
+  ok iso-1: no default route (header only or loopback destinations)
+  ok iso-2: no name resolves from inside
+-- required server on 127.0.0.1:5443
+  ok cfg-1: required config verifies
+  ok req-1: GET /v2/ anon is 401 with a Basic challenge
+-- login stores, pull sends (HOME_A)
+  ok auth-1: login exits 0 and prints Login Succeeded
+  ok auth-2: the stored file is owner-only (600)
+  ok auth-3: the stored entry reads back as the login user
+  ok auth-4: authed pull by tag exits 0 and inspects to the seeded digest
+  ok auth-5: authed pull by digest exits 0
+  ok auth-6: a schemeful server names the same host and still pulls
+  ok auth-7: a wrong-password pull fails naming 401
+-- refusals (fresh homes, no usable login)
+  ok auth-8: an anonymous pull fails naming the missing login
+  ok auth-9: a bogus helper fails naming the helper
+-- usage shapes (no network)
+  ok auth-10: login without --password-stdin is 125
+  ok auth-11: login with two servers is 1
+driver: all clauses held
+  ok driver run exits 0 with network none
+== verdict
+  ok the test password is absent from the report

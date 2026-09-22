@@ -1,4 +1,5 @@
-//! The M1 verbs: `pull`, `images`, `rmi`, `tag`, `image prune`, `inspect`.
+//! The M1 verbs: `pull`, `images`, `rmi`, `tag`, `image prune`, `inspect`,
+//! and `login` (TODO/image.md T-0209).
 //!
 //! `TODO/image.md` T-0201 to T-0204 and `TOOL.md` section 6.8. The argument
 //! surface lives here and the work lives in `podbox-image`, so a flag is parsed
@@ -14,8 +15,8 @@
 
 use std::io::Write;
 
-use podbox_image::error::{Error, EXIT_CLI_ERROR, EXIT_FLAG_ERROR};
-use podbox_image::{clock, pull, space, Record, Store};
+use podbox_image::error::{Error, EXIT_CLI_ERROR, EXIT_FLAG_ERROR, EXIT_RUNTIME_ERROR};
+use podbox_image::{clock, credentials, pull, space, Record, Store};
 
 use crate::format;
 
@@ -448,6 +449,139 @@ pub fn tag(verb: &str, args: &[String]) -> i32 {
         Ok(_) => 0,
         Err(e) => fail(e),
     }
+}
+
+pub const LOGIN_USAGE: &str = "\
+usage: podbox login [-u|--username USER] [--password-stdin] [SERVER]
+
+  Log in to a registry. The password arrives on stdin, never as an
+  argument: an argument lives in the shell history and the process table.
+  There is no interactive prompt; an automated caller pipes the password
+  in, and a runtime that blocks on input is the hang AGENTS.md forbids.
+
+  Stores in ~/.docker/config.json, the file docker writes, or through the
+  configured credential helper where one is named for the server. SERVER
+  defaults to https://index.docker.io/v1/, docker's canonical key.
+
+  The stored login is used, never printed: pulls send it, errors name the
+  registry, and result files never carry it (TODO/image.md T-0209).
+";
+
+/// `podbox login`.
+pub fn login(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, LOGIN_USAGE) {
+        return c;
+    }
+    let parsed = match parse_login_args(verb, args) {
+        Ok(p) => p,
+        Err(c) => {
+            eprint!("{LOGIN_USAGE}");
+            return c;
+        }
+    };
+    if parsed.help {
+        print!("{LOGIN_USAGE}");
+        return 0;
+    }
+    let server = parsed
+        .server
+        .as_deref()
+        .unwrap_or("https://index.docker.io/v1/");
+    let mut password = String::new();
+    use std::io::Read;
+    if std::io::stdin().read_to_string(&mut password).is_err() {
+        eprint!("{LOGIN_USAGE}");
+        return EXIT_CLI_ERROR;
+    }
+    while password.ends_with('\n') || password.ends_with('\r') {
+        password.pop();
+    }
+    if password.is_empty() {
+        eprint!("{LOGIN_USAGE}");
+        return EXIT_CLI_ERROR;
+    }
+    match credentials::store_login(server, &parsed.username, &password) {
+        Ok(()) => {
+            println!("Login Succeeded");
+            0
+        }
+        Err(e) => {
+            eprintln!("podbox login: {e}");
+            EXIT_RUNTIME_ERROR
+        }
+    }
+}
+
+#[derive(Debug)]
+struct LoginArgs {
+    username: String,
+    server: Option<String>,
+    help: bool,
+}
+
+/// The argument shape, pure so tests own it. The password never appears
+/// here: it arrives on stdin after parsing, so no usage string, log line,
+/// or test fixture ever carries one. Unknown dash flags are refused by the
+/// caller through the parity table, not here: this function sees only what
+/// `admit_all` accepted.
+fn parse_login_args(verb: &str, args: &[String]) -> Result<LoginArgs, i32> {
+    let mut username: Option<String> = None;
+    let mut password_stdin = false;
+    let mut server: Option<String> = None;
+    let mut help = false;
+    let mut expecting: Option<&'static str> = None;
+    for a in args {
+        if let Some(flag) = expecting {
+            if flag == "--username" {
+                username = Some(a.clone());
+            }
+            expecting = None;
+            continue;
+        }
+        match a.as_str() {
+            "-h" | "--help" => help = true,
+            "-u" | "--username" => expecting = Some("--username"),
+            "--password-stdin" => password_stdin = true,
+            // ⚠ The `=` forms, as `pull`'s `--platform=` is handled: `admit`
+            // cuts at `=` before the table lookup, so these already passed
+            // `admit_all`, and without an arm here they would reach `no_arm`
+            // and read as a defect in podbox rather than a value it accepts.
+            other if other.starts_with("--username=") => {
+                username = Some(other["--username=".len()..].to_string());
+            }
+            other if other.starts_with("-u=") => {
+                username = Some(other["-u=".len()..].to_string());
+            }
+            other if other.starts_with('-') => {
+                crate::parity::admit(verb, other, LOGIN_USAGE)?;
+                return Err(crate::parity::no_arm(verb, other));
+            }
+            other => {
+                if server.is_some() {
+                    return Err(EXIT_CLI_ERROR);
+                }
+                server = Some(other.to_string());
+            }
+        }
+    }
+    if help {
+        return Ok(LoginArgs {
+            username: String::new(),
+            server,
+            help: true,
+        });
+    }
+    // ⛔ An empty username is a flag-shape refusal, not a stored login: the
+    // read path skips entries with no user, so storing one would write a
+    // login that never reads back.
+    if expecting.is_some() || username.as_deref().unwrap_or("").is_empty() || !password_stdin {
+        return Err(EXIT_FLAG_ERROR);
+    }
+    Ok(LoginArgs {
+        username: username.unwrap_or_default(),
+        server,
+        help,
+    })
 }
 
 /// `podbox image prune`.
@@ -1036,5 +1170,121 @@ mod tests {
         assert_eq!(pick(&f, "ID"), "333333333333");
         assert_eq!(pick(&f, "Repository"), "alpine");
         let _ = std::fs::remove_dir_all(store.root());
+    }
+
+    fn login_args(words: &[&str]) -> Vec<String> {
+        words.iter().map(|w| w.to_string()).collect()
+    }
+
+    #[test]
+    fn login_takes_a_user_a_stdin_flag_and_a_server() {
+        let got = parse_login_args(
+            "login",
+            &login_args(&["-u", "bob", "--password-stdin", "example.com:5000"]),
+        )
+        .expect("parses");
+        assert_eq!(got.username, "bob");
+        assert_eq!(got.server.as_deref(), Some("example.com:5000"));
+        assert!(!got.help);
+    }
+
+    #[test]
+    fn login_names_no_server_where_none_is_given() {
+        // The caller defaults it to docker's canonical key.
+        let got = parse_login_args(
+            "login",
+            &login_args(&["--username", "bob", "--password-stdin"]),
+        )
+        .expect("parses");
+        assert!(got.server.is_none());
+    }
+
+    #[test]
+    fn login_accepts_the_equals_forms() {
+        // ⛔ `admit` cuts at `=` before the table lookup, so these already
+        // passed `admit_all`: without an arm they would read as a defect in
+        // podbox rather than a value it accepts.
+        let got = parse_login_args(
+            "login",
+            &login_args(&["--username=bob", "--password-stdin"]),
+        )
+        .expect("parses");
+        assert_eq!(got.username, "bob");
+        let got = parse_login_args("login", &login_args(&["-u=bob", "--password-stdin"]))
+            .expect("parses");
+        assert_eq!(got.username, "bob");
+    }
+
+    #[test]
+    fn login_help_needs_nothing_else() {
+        let got = parse_login_args("login", &login_args(&["--help"])).expect("parses");
+        assert!(got.help);
+    }
+
+    #[test]
+    fn login_without_a_user_is_a_flag_refusal() {
+        // TODO/cli.md T-0802: a flag-shape refusal is 125.
+        assert_eq!(
+            parse_login_args("login", &login_args(&["--password-stdin"])).expect_err("no user"),
+            EXIT_FLAG_ERROR
+        );
+    }
+
+    #[test]
+    fn login_without_password_stdin_is_a_flag_refusal() {
+        // Podbox never prompts, so the flag is required, not defaulted.
+        assert_eq!(
+            parse_login_args("login", &login_args(&["-u", "bob"])).expect_err("no stdin flag"),
+            EXIT_FLAG_ERROR
+        );
+    }
+
+    #[test]
+    fn login_with_a_dangling_user_flag_is_a_flag_refusal() {
+        assert_eq!(
+            parse_login_args("login", &login_args(&["-u"])).expect_err("dangling"),
+            EXIT_FLAG_ERROR
+        );
+    }
+
+    #[test]
+    fn login_with_an_empty_user_is_a_flag_refusal() {
+        // The read path skips entries with no user, so storing one would
+        // write a login that never reads back.
+        assert_eq!(
+            parse_login_args("login", &login_args(&["-u", "", "--password-stdin"]))
+                .expect_err("empty user"),
+            EXIT_FLAG_ERROR
+        );
+        assert_eq!(
+            parse_login_args("login", &login_args(&["--username=", "--password-stdin"]))
+                .expect_err("empty equals user"),
+            EXIT_FLAG_ERROR
+        );
+    }
+
+    #[test]
+    fn login_with_two_servers_is_a_verb_refusal() {
+        // TODO/cli.md T-0802: the verb refusing afterwards is 1.
+        assert_eq!(
+            parse_login_args(
+                "login",
+                &login_args(&["-u", "bob", "--password-stdin", "a.example", "b.example"])
+            )
+            .expect_err("two servers"),
+            EXIT_CLI_ERROR
+        );
+    }
+
+    #[test]
+    fn login_with_an_unlisted_flag_is_a_flag_refusal() {
+        assert_eq!(
+            parse_login_args(
+                "login",
+                &login_args(&["-u", "bob", "--password-stdin", "--quiet"])
+            )
+            .expect_err("unlisted"),
+            EXIT_FLAG_ERROR
+        );
     }
 }

@@ -671,7 +671,7 @@ Source:      `TOOL.md` section 6.2, section 11.1
 Category:    image
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     Every request podbox makes is anonymous. A private registry answers
              401 and podbox has nothing to answer with, so the whole class of
@@ -702,6 +702,74 @@ Decision:    Read docker's and podman's files rather than inventing a third.
              configured**, because refusing to write is not the same as the
              credential not existing: it just moves it to a shell history.
 Prove:       `./experiments/200-registry-auth.sh` exits 0 against the fixture of T-0206 with a required credential
+
+**Done 2026-09-22.** `crates/podbox-image/src/credentials.rs` (one read
+path, one write path), the Basic answer in `registry.rs`, and `podbox
+login` with its three parity rows. `experiments/200-registry-auth.sh`
+exits 0 twice in a row on host podman 6.1.2 against the T-0206 fixture
+in required-credential mode, all 15 driver clauses green with all
+outbound network blocked (`experiments/results/registry-auth.txt`): the loopback
+isolation pair, the required config verifying, the anonymous 401 with
+its Basic challenge, login storing owner-only with the user reading
+back, authed pulls by tag and by digest to the seeded digest, a
+schemeful server naming the same host, a wrong password failing naming
+401, an anonymous pull failing naming the missing login, a bogus helper
+failing naming the helper, and the two usage shapes at 125 and 1. The
+test password is absent from the report in both runs.
+
+Unit proof: 17 credentials tests and 10 login parser tests green inside
+a full `dev.sh check` at rc=0. The login tests were seen red first: a
+plant job inverted the `--password-stdin` requirement and 4 of 10
+failed, then green again on the restored tree. `base64` 0.22.1 adds
+zero crates: it is already in `Cargo.lock` as `ureq`'s dependency at
+exactly this version, and the lockfile is untouched by this change.
+
+Five findings, each with what settles it:
+
+1. The change first shipped with no login flag rows, so `admit_all`
+   refused login's own flags before parsing. Three rows now name
+   `-u, --username`, `--password-stdin` and `-h, --help`, the parser
+   takes the `=` forms `pull` already takes, and an empty username is
+   a flag refusal: the read path skips entries with no user, so
+   storing one would write a login that never reads back.
+2. The Windows-backed `/w` bind reports every mode as 777 whatever
+   `chmod` says (measured: `chmod 600` exits 0, `stat` reads 777;
+   tmpfs reads 600). The driver's homes live on tmpfs, so the 600
+   proof reads a filesystem with a mode bit.
+3. `experiments/lib/engine.sh` `_in_roots` matches drive spellings
+   case-sensitively: `C:/...` against a `c:/...` root refuses as
+   outside. Not fixed here; the engine conversions belong to
+   [T-1212](gate.md).
+4. `experiments/325-parity-drive.sh` re-driven green at 164 rows, 202
+   driven, 0 mismatches, 2 unreachable here. That retires a
+   one-row staleness: [T-1004](packaging.md) added `--verbose`
+   without re-driving, so the committed 160-row reading was already
+   stale. The 2 unreachable are `run -i` and `exec -i`: the banner
+   names no `-i` in this container (rc=0, with and without a pty),
+   while the committed lane reading says it does. That disagreement
+   is filed under [T-0808](cli.md), not fixed here.
+5. The `Decision` fork lands as recommended: `login` writes, and
+   where the config names a helper for the host it writes and reads
+   only through the helper, with nothing stored beside a failed one.
+
+Residual, each with what would reopen it: a TTY stdin blocks in
+`read_to_string` (no guard; reopen with an `IsTerminal` refusal and
+its test); `image login` refuses where docker has no such path (the
+exit code against docker's own is unmeasured); there is no `logout`
+verb; `login` performs no network verification, so wrong credentials
+surface as a named 401 at pull (decided: an offline machine cannot
+verify, and a check that needs the network is a pull).
+
+⚠ Lane substitution, stated once beside every number above. The
+`wsl-toolkit-podbox` base is unusable: `getpwnam(root)` and
+`getpwnam(toolkit)` both fail, and `base ensure --probe` changed
+nothing. Every Linux step above ran instead in
+`docker.io/library/rust:1.98.1-bookworm` through host podman 6.1.2,
+the same image the lane uses, with the tree copied and modes
+restored from the index. What this does not establish: the
+project's own lane procedure. A re-drive from a repaired base
+would clear it; `base recreate` touches shared infrastructure and
+is not taken unasked.
 
 ---
 

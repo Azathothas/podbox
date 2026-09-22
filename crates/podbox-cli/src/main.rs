@@ -134,6 +134,7 @@ fn main() -> std::process::ExitCode {
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
         Some("pull") => exit(images::pull("pull", rest)),
+        Some("login") => exit(images::login("login", rest)),
         Some("extract") => exit(images::extract("extract", rest)),
         Some("images") => exit(images::images("images", rest)),
         Some("rmi") => exit(images::rmi("rmi", rest)),

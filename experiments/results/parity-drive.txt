@@ -1,10 +1,10 @@
 == conditions
-date              2026-09-21T17:48:23Z
+date              2026-09-22T10:11:53Z
 host kernel       7.2.0-WSL2-STABLE
 podbox            podbox 0.1.0
 jq                jq-1.6
 
-== 0. the table is data: 160 rows
+== 0. the table is data: 164 rows
 
 == 1. every row with a flag, driven
 
@@ -12,7 +12,7 @@ jq                jq-1.6
   bare system install-names skipped: it writes links (covered by its flag drives)
 
 == 3. Stub rows that need a running payload
-  run -i runs and the banner names it: yes
-  exec -i runs and the banner names it: yes
+  unreachable here: run -i needs more than this context runs (rc=0)
+  unreachable here: exec -i needs more than this context runs (rc=0)
 
-== counts: 160 rows, 199 driven, 0 mismatches, 0 unreachable here
+== counts: 164 rows, 202 driven, 0 mismatches, 2 unreachable here

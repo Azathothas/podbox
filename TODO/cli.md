@@ -634,6 +634,21 @@ verbs, and `exec` driven with the run-only `--pull`. Both fixed in the
 script; the second run was green, and a third stayed green after the
 `admit_all` pre-pass landed.
 
+**Re-driven 2026-09-22 under [T-0209](image.md), which added the 3 login
+flag rows.** 164 rows, 202 driven, 0 mismatches, 2 unreachable here.
+The committed 160-row reading had gone stale by one row meanwhile:
+[T-1004](packaging.md) added `version --verbose` without re-driving
+(160 plus 1 is the 161 the tree carried; plus 3 is the 164 the binary
+publishes). The 2 unreachable are `run -i` and `exec -i`, and they
+disagree with the sentence above: in the re-drive container both exit
+0 and the banner names no `-i`, with and without a pty, so the driver
+reports them unreachable here rather than passed. No line of the
+`run`/`exec` parsers prints `-i` on a plain run; the TTY theory was
+probed and refuted (0 mentions both ways). Whether the 2026-09-21
+reading matched a lane-only line or an older banner is unestablished,
+and neither the driver criterion nor the banner moves in the T-0209
+change that exposed it.
+
 ---
 
 ### T-0809 The spawn that fails with the wrong reason, and the one field that fixes it

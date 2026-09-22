@@ -387,7 +387,7 @@ impl Client {
         accept: Option<&str>,
     ) -> Result<Attempt> {
         let agent = self.agent_for(endpoint);
-        match self.send(&agent, url, scope, accept) {
+        match self.send(&agent, url, scope, accept, None) {
             Ok(r) => Ok(Attempt::Done(Box::new(r))),
             Err(ureq::Error::Status(401, resp)) => {
                 // The challenge decides where the token comes from. ⚠ Read from
@@ -401,9 +401,16 @@ impl Client {
                             .into(),
                     });
                 };
+                // TODO/image.md T-0209: a Basic challenge is answered from the
+                // stored logins, never anonymously retried. An anonymous retry
+                // after a Basic 401 fails the same way and teaches nothing.
+                let scheme = challenge.split_whitespace().next().unwrap_or("");
+                if scheme.eq_ignore_ascii_case("basic") {
+                    return self.answer_basic(&agent, url, scope, accept, &challenge);
+                }
                 let token = self.token(endpoint, scope, &challenge)?;
                 self.tokens.insert(key(endpoint, scope), token);
-                match self.send(&agent, url, scope, accept) {
+                match self.send(&agent, url, scope, accept, None) {
                     Ok(r) => Ok(Attempt::Done(Box::new(r))),
                     Err(e) => Err(status_error(url, e)),
                 }
@@ -432,6 +439,7 @@ impl Client {
         url: &str,
         scope: &str,
         accept: Option<&str>,
+        basic: Option<&str>,
     ) -> std::result::Result<ureq::Response, ureq::Error> {
         let mut req = agent.get(url);
         if let Some(a) = accept {
@@ -441,12 +449,58 @@ impl Client {
         // the registry's bearer token, and ureq does not carry headers across
         // hosts by default. The token is attached to the request this client
         // builds, which is always the registry.
-        if let Some(host) = host_of(url) {
+        //
+        // ⚠ A Basic answer rides instead of the token, never beside it: the
+        // 401 that produced it refused the Bearer the first request carried,
+        // and re-sending a refused credential beside the new one is how a
+        // secret reaches a log that records rejected attempts.
+        if let Some(b) = basic {
+            req = req.set("Authorization", b);
+        } else if let Some(host) = host_of(url) {
             if let Some(t) = self.tokens.get(&key(&host, scope)) {
                 req = req.set("Authorization", &format!("Bearer {t}"));
             }
         }
         req.call()
+    }
+
+    /// Answer a `Basic` challenge from the stored logins.
+    ///
+    /// `Ok(None)` from the lookup is a named refusal, not an anonymous
+    /// retry: the registry just refused the anonymous request. A failed
+    /// helper refuses by name through the lookup's error.
+    fn answer_basic(
+        &self,
+        agent: &ureq::Agent,
+        url: &str,
+        scope: &str,
+        accept: Option<&str>,
+        challenge: &str,
+    ) -> Result<Attempt> {
+        let host = host_of(url).unwrap_or_else(|| "<unknown>".into());
+        let cred = match crate::credentials::lookup(&host) {
+            Ok(Some(cred)) => cred,
+            Ok(None) => {
+                return Err(Error::Http {
+                    what: format!("GET {}", redact(url)),
+                    detail: format!(
+                        "the registry asked for Basic authentication (challenge {challenge:?}), \
+                         and no login is stored for {host} (TODO/image.md T-0209)"
+                    ),
+                });
+            }
+            Err(refused) => {
+                return Err(Error::Http {
+                    what: format!("GET {}", redact(url)),
+                    detail: refused,
+                });
+            }
+        };
+        let header = crate::credentials::basic_header(&cred);
+        match self.send(agent, url, scope, accept, Some(&header)) {
+            Ok(r) => Ok(Attempt::Done(Box::new(r))),
+            Err(e) => Err(status_error(url, e)),
+        }
     }
 
     /// Answer a `Bearer` challenge at the realm it names.
@@ -504,6 +558,25 @@ impl Client {
             "scope",
             params.get("scope").map(String::as_str).unwrap_or(scope),
         );
+
+        // TODO/image.md T-0209: a stored login rides to the token realm as
+        // Basic. No login stays anonymous, exactly as before; a failed
+        // helper refuses here rather than minting an anonymous token behind
+        // a delegation that just failed.
+        if let Some(realm_host) = host_of(realm) {
+            match crate::credentials::lookup(&realm_host) {
+                Ok(Some(cred)) => {
+                    req = req.set("Authorization", &crate::credentials::basic_header(&cred));
+                }
+                Ok(None) => {}
+                Err(refused) => {
+                    return Err(Error::Http {
+                        what: format!("token from {}", redact(realm)),
+                        detail: refused,
+                    });
+                }
+            }
+        }
 
         #[derive(Deserialize)]
         struct TokenBody {

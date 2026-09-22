@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 7 open, 1 partial, 2 blocked, 132 done.
+142 entries: 6 open, 1 partial, 2 blocked, 133 done.
 
 ## Baseline
 
@@ -479,6 +479,30 @@ with the three reasons. The change also carries one opt-in `ENG_NETWORK`
 knob in `engine.sh` (`none` only, unset by default, proved additive and
 injection-proof). Counts move to 7 open and 132 done.
 
+[T-0209](image.md) closed in its own change: the registry credential UX
+against the T-0206 fixture's required-credential mode.
+`crates/podbox-image/src/credentials.rs` holds one read path and one
+write path over the files the audience already has plus named helpers,
+`registry.rs` answers Basic challenges from stored logins, and `podbox
+login` stores through the helper where one is named. The new
+`experiments/200-registry-auth.sh` exits 0 twice in a row on host
+podman 6.1.2, all 15 driver clauses green with no default route and no working
+resolver inside the driver, the test password absent from the
+committed `experiments/results/registry-auth.txt`. Full `dev.sh
+check` green with 17 credentials and 10 login unit tests, the login
+tests seen red on a plant first. The 325 re-drive reads 164 rows, 202
+driven, 0 mismatches, 2 unreachable here, which retires T-1004's
+one-row staleness and files one finding under [T-0808](cli.md) (the
+banner names no `-i` in the re-drive container). Counts move to 6 open
+and 133 done.
+
+⚠ **The wsl-toolkit base stayed unusable for this whole change.**
+`getpwnam(root)` and `getpwnam(toolkit)` both fail and `base ensure
+--probe` changes nothing, so every Linux step ran in
+`docker.io/library/rust:1.98.1-bookworm` through host podman instead,
+the same image the lane uses. `base recreate` touches shared
+infrastructure and is not taken unasked.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -585,9 +609,10 @@ for clause 3. [T-1209](gate.md) and
    [T-0206](image.md) is done: the loopback fixture over the pinned `zot`
    minimal binary, driven by `experiments/180-registry-fixture.sh` with
    21 clauses green and `experiments/results/registry-fixture.txt`
-   committed. [T-0209](image.md) owns the credential UX against the
-   fixture's required-credential mode next; [T-1003](packaging.md) owns
-   the launch ladder.
+   committed. [T-0209](image.md) is done: the credential UX against the
+   fixture's required-credential mode, driven by the new 200 script
+   with all 15 driver clauses green twice in a row; [T-1003](packaging.md) owns
+   the launch ladder next.
    No beta binary ships without the operator's go-ahead: creating a
    GitHub release leaves the machine, so the artifact set rides as a
    proposal, not a commit.

@@ -20,3 +20,5 @@ ureq.workspace = true
 sha2.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+# TODO/image.md T-0209: Basic credentials. Zero marginal crates (see the pin).
+base64.workspace = true
