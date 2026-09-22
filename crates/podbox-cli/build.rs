@@ -25,6 +25,20 @@
 
 use std::path::{Path, PathBuf};
 
+use sha2::{Digest, Sha256};
+
+/// Hex sha256 of the embedded object bytes.
+fn hex_digest(bytes: &[u8]) -> String {
+    let mut h = Sha256::new();
+    h.update(bytes);
+    let out = h.finalize();
+    let mut s = String::with_capacity(out.len() * 2);
+    for b in out {
+        s.push_str(&format!("{b:02x}"));
+    }
+    s
+}
+
 /// The two objects, by the libc they are linked against.
 ///
 /// ⚠ The triples are the ones `scripts/build-interpose.sh` builds by default.
@@ -56,11 +70,8 @@ fn main() {
         // `scripts/build-interpose.sh` reach a binary that was built without it.
         println!("cargo::rerun-if-changed={}", from.display());
         let to = out.join(format!("interpose-{name}.so"));
-        match std::fs::read(&from) {
-            Ok(bytes) if !bytes.is_empty() => {
-                std::fs::write(&to, &bytes).expect("writing the embedded object");
-                embedded += 1;
-            }
+        let bytes = match std::fs::read(&from) {
+            Ok(bytes) if !bytes.is_empty() => bytes,
             _ => {
                 // ⚠ Zero bytes, and the run-time path reads that as absent.
                 // Not a stub object: a stub that loads and does nothing is the
@@ -72,11 +83,104 @@ fn main() {
                      declines to interpose and says so (TODO/interpose.md T-0702)",
                     from.display()
                 );
+                Vec::new()
             }
+        };
+        if !bytes.is_empty() {
+            std::fs::write(&to, &bytes).expect("writing the embedded object");
+            embedded += 1;
         }
+        // The digest `version --verbose` reports (T-1004), or `absent`
+        // where the placeholder went in. A digest of nothing would be a
+        // value that looks measured and is not.
+        println!(
+            "cargo::rustc-env=PODBOX_INTERPOSE_{}={}",
+            name.to_ascii_uppercase(),
+            if bytes.is_empty() {
+                "absent".to_string()
+            } else {
+                hex_digest(&bytes)
+            }
+        );
     }
     // ⚠ Reported for the record, and nothing conditions on the count: the
     // run-time path reads the bytes it has rather than a compile-time flag,
     // so one object present and one absent is a state podbox can describe.
     println!("cargo::rustc-env=PODBOX_INTERPOSE_EMBEDDED={embedded}");
+
+    build_info(&root);
+}
+
+/// Record the inputs that produced this binary for `version --verbose`
+/// ([`TODO/packaging.md`](../../../TODO/packaging.md) T-1004). Every value
+/// is emitted unconditionally: [`crate::version`] reads them with `env!`,
+/// which is a compile error on a missing variable, so `unknown` is a
+/// value and never an absence.
+fn build_info(root: &Path) {
+    println!(
+        "cargo::rustc-env=PODBOX_BUILD_COMMIT={}",
+        build_commit(root)
+    );
+    println!("cargo::rustc-env=PODBOX_BUILD_RUSTC={}", build_rustc());
+    println!(
+        "cargo::rustc-env=PODBOX_BUILD_TARGET={}",
+        std::env::var("TARGET").unwrap_or_else(|_| "unknown".to_string())
+    );
+    println!(
+        "cargo::rustc-env=PODBOX_BUILD_CRT_STATIC={}",
+        match std::env::var("CARGO_CFG_TARGET_FEATURE") {
+            Ok(f) if f.split(',').any(|s| s == "crt-static") => "yes",
+            _ => "no",
+        }
+    );
+}
+
+/// The git commit built, with `-dirty` where the tree is modified, or
+/// `unknown` where no commit is readable. `PODBOX_BUILD_COMMIT` overrides
+/// (a byte-exact rebuild names its own input); otherwise the build reads
+/// the checkout it runs in, which the lane keeps beside the sources.
+fn build_commit(root: &Path) -> String {
+    println!("cargo::rerun-if-env-changed=PODBOX_BUILD_COMMIT");
+    if let Ok(pinned) = std::env::var("PODBOX_BUILD_COMMIT") {
+        return pinned;
+    }
+    let head = root.join(".git/HEAD");
+    // ⚠ Declared whether or not it exists: a tree without `.git` builds
+    // with `unknown` rather than rebuilding pointlessly on every edit.
+    println!("cargo::rerun-if-changed={}", head.display());
+    let output = std::process::Command::new("git")
+        .arg("rev-parse")
+        .arg("HEAD")
+        .current_dir(root)
+        .output();
+    let commit = match output {
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
+        _ => return "unknown".to_string(),
+    };
+    let dirty = std::process::Command::new("git")
+        .arg("status")
+        .arg("--porcelain")
+        .current_dir(root)
+        .output()
+        .map(|o| !o.stdout.iter().all(|b| b.is_ascii_whitespace()))
+        .unwrap_or(false);
+    if dirty {
+        format!("{commit}-dirty")
+    } else {
+        commit
+    }
+}
+
+/// `rustc --version` of the building toolchain, or `unknown`. Cargo names
+/// the compiler in `RUSTC`; nothing is probed beyond reading it.
+fn build_rustc() -> String {
+    let rustc = std::env::var("RUSTC").unwrap_or_else(|_| "rustc".to_string());
+    std::process::Command::new(rustc)
+        .arg("--version")
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "unknown".to_string())
 }

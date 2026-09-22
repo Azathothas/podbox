@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 11 open, 1 partial, 2 blocked, 128 done.
+142 entries: 10 open, 1 partial, 2 blocked, 129 done.
 
 ## Baseline
 
@@ -569,6 +569,9 @@ discriminator) was corrected to the cli-error code in the preceding
 change. [T-0205](image.md) closed on a staged wall: vfs with
 `ignore_chown_errors` loads where the bare driver is refused, driven by
 the new 95 script with its seccomp filter helper.
+[T-1004](packaging.md) closed on its own verdict: `version --verbose`
+reports the recorded inputs and two lane builds match byte for byte,
+driven by the new 120 script.
 
 [T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
 the 2026-09-11 reopen note, so the note moved verbatim to

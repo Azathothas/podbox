@@ -163,7 +163,7 @@ Source:      `TOOL.md` section 10.9 via `paper_final.md` section 10.9
 Category:    packaging
 Priority:    P3
 Effort:      M
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     A single-file artefact whose inputs are not recorded cannot be
              traced back to what produced it, and the audience is automated and
@@ -184,6 +184,22 @@ Decision:    Report rather than promise. `TOOL.md` says a single-file artefact
 Prove:       `./experiments/120-reproducible-build.sh`; a runnable verdict
              (0 for a match or 1 for a mismatch) and its committed result
              capture close the entry
+
+**Done 2026-09-22.** The binary records its inputs and reports them,
+and two builds of one commit match byte for byte.
+`crates/podbox-cli/build.rs` emits the commit (with `-dirty` where the
+tree is modified, `unknown` where no commit is readable), the `rustc`
+version, the target triple, the hex sha256 of each embedded interposer
+object (`absent` where the placeholder went in), and whether
+`crt-static` holds; `version --verbose` prints the seven-line document
+through a new parity row, and bare `version` is byte-identical to
+before. Three unit tests pin the rendering (every input named, unknown
+stated never blank, version matching the binary), watched fail before
+the implementation and pass after, and the full lane check is green.
+Driven by `experiments/120-reproducible-build.sh`, exit 0: two release
+builds in one lane container hash to the same sha256 with identical
+verbose documents, recorded in
+`experiments/results/reproducible-build.txt`.
 
 ---
 

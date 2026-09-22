@@ -1,0 +1,17 @@
+== conditions
+date              2026-09-22T06:38:00Z
+host              MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64 x86_64
+commit            0d4cf6214acfd4daf8c11474263a96f4bf9b2187
+
+== the record the binary reports
+version: 0.1.0
+commit: 0d4cf6214acfd4daf8c11474263a96f4bf9b2187-dirty
+rustc: rustc 1.98.1 (48a229cea 2026-09-01)
+target: x86_64-unknown-linux-musl
+interpose-gnu: 96f509221a321f433c0dd86c0e7aa346955b07fd9b93fad1c878d48abb309c14
+interpose-musl: 895b3b07fa3dae83b6cf38f5a04a083aa02a2a549a1189d78a47509d094b7ab9
+crt-static: yes
+
+== build 1           83b0549b25e1f051a413b8800136a64dcf1283b9a0bef88bb6ec0f09712c209a
+== build 2           83b0549b25e1f051a413b8800136a64dcf1283b9a0bef88bb6ec0f09712c209a
+verdict           MATCH: two builds, one byte stream

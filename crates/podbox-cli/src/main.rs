@@ -26,6 +26,7 @@ mod parity;
 mod run;
 mod system;
 mod tier;
+mod version;
 
 use std::io::Write;
 
@@ -142,22 +143,33 @@ fn main() -> std::process::ExitCode {
         Some("system") => exit(system::system(rest)),
         Some("info") => exit(system::info("info", rest)),
         Some("version") | Some("--version") | Some("-v") => {
+            let mut verbose = false;
             for a in rest {
                 if a == "-h" || a == "--help" {
-                    println!("usage: podbox version");
+                    println!("usage: podbox version [--verbose]");
                     return std::process::ExitCode::SUCCESS;
+                }
+                if a == "--verbose" {
+                    verbose = true;
+                    continue;
                 }
                 if a.starts_with('-') {
                     // ⛔ TODO/cli.md T-0801. The table decides: a flag the
                     // table has no row for is refused rather than silently
                     // accepted with the version number.
-                    if let Err(c) = crate::parity::admit("version", a, "usage: podbox version") {
+                    if let Err(c) =
+                        crate::parity::admit("version", a, "usage: podbox version [--verbose]")
+                    {
                         return exit(c);
                     }
                     return exit(crate::parity::no_arm("version", a));
                 }
             }
-            println!("podbox {}", env!("CARGO_PKG_VERSION"));
+            if verbose {
+                print!("{}", crate::version::info().render_verbose());
+            } else {
+                println!("podbox {}", env!("CARGO_PKG_VERSION"));
+            }
             std::process::ExitCode::SUCCESS
         }
         Some("-h") | Some("--help") | Some("help") => {

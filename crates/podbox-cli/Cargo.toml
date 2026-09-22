@@ -9,6 +9,11 @@ repository.workspace = true
 # invokes cargo. `build.rs` carries the reason and the measurement behind it.
 build = "build.rs"
 
+[build-dependencies]
+# The interposer digests `version --verbose` reports (T-1004). Same version
+# the workspace already locks, so no new dependency enters the tree.
+sha2.workspace = true
+
 [[bin]]
 name = "podbox"
 path = "src/main.rs"

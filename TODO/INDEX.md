@@ -162,7 +162,7 @@ the blocker named and what would clear it.
 | [T-1001](packaging.md) | P0 | packaging | **done** | A single static binary with no `PT_INTERP` |
 | [T-1002](packaging.md) | P1 | packaging | done | Embed the interposer as bytes and place it inside the rootfs |
 | [T-1003](packaging.md) | P2 | packaging | open | The launch ladder, and a single file with an embedded rootfs |
-| [T-1004](packaging.md) | P3 | packaging | open | A reproducible build, and the artefact's own inputs recorded |
+| [T-1004](packaging.md) | P3 | packaging | done | A reproducible build, and the artefact's own inputs recorded |
 | [T-1005](packaging.md) | P1 | packaging | done | A session reaches the code in one command, and the build runs behind the reading |
 | [T-1100](milestones.md) | P0 | milestones | **done** | M-1 the corpus, the work index and the skeleton |
 | [T-1101](milestones.md) | P0 | milestones | done | M0 the probe, and nothing else |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 11 open, 1 partial, 2 blocked, 128 done.
+142 items: 10 open, 1 partial, 2 blocked, 129 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -217,8 +217,8 @@ that disagrees with the rows cannot reach a commit.
 | P0 | 1 | 0 | 0 | 51 | 52 |
 | P1 | 4 | 1 | 2 | 59 | 66 |
 | P2 | 3 | 0 | 0 | 16 | 19 |
-| P3 | 3 | 0 | 0 | 2 | 5 |
-| **All** | **11** | **1** | **2** | **128** | **142** |
+| P3 | 2 | 0 | 0 | 3 | 5 |
+| **All** | **10** | **1** | **2** | **129** | **142** |
 
 ## How the current ordering is derived
 

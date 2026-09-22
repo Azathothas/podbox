@@ -95,6 +95,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "info", flag: Option::None, status: Degraded, note: "podbox has no daemon, so the server half of docker's output is the rung this machine permits instead" },
     Row { verb: "version", flag: Option::None, status: Native, note: "one artefact, so there is one version and no client/server split" },
     Row { verb: "version", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "version", flag: Some("--verbose"), status: Native, note: "reports the build's recorded inputs: commit, toolchain, target, interposer digests, static mode (T-1004)" },
     Row { verb: "probe", flag: Option::None, status: Native, note: "podbox's own verb, with no docker equivalent: what this machine permits, and the rung podbox selects" },
     Row { verb: "extract", flag: Option::None, status: Native, note: "podbox's own verb, with no docker equivalent: unpack the layers and write the ownership sidecar" },
     // ⭐ M4, and each says the difference from docker's rather than implying
