@@ -714,13 +714,18 @@ for clause 3. [T-1209](gate.md) and
    items 2 through 4 belong in `dev.sh check`, each with its plant, and
    [T-1112](milestones.md) stays parked as P3.
 
-10. The next session runs continuous until ten tasks finish in earnest,
-    with [T-1314](packaging.md) as task 10, last before the gates. Then it
-    pushes the next `v*` tag, which publishes the nightly pre-release:
-    all seven claimed archs built as static-PIE binaries, each
-    smoke-tested on its own arch (version, both interposer digests,
-    `crt-static`), the full acceptance staying host-arch. Stable releases
-    stay manual and are not designed.
+10. Ran 2026-09-23 and closed in the entry: [T-1314](packaging.md) as
+    task 10, last before the gates, then tags `v0.1.0-beta.2` (matrix
+    green, publish red on the missing checkout) and `v0.1.0-beta.3`
+    (nightly published with fourteen assets, verified back). The nightly
+    pre-release now exists: all seven claimed archs built as static-PIE
+    binaries, each smoke-tested on its own arch (version, both interposer
+    digests, `crt-static`), the full acceptance staying host-arch. Stable
+    releases stay manual and are not designed. Next schedulable:
+    [T-1207](gate.md) items 2 to 4 (ruled into `dev.sh check`, each with
+    its plant); [T-1109](milestones.md) carries its remaining conditions;
+    [T-1112](milestones.md) stays parked, [T-1212](gate.md) and
+    [T-1213](gate.md) stay blocked.
    [T-0909](deps.md) is done: `io12/userland-execve-rust` vendored whole
    to `vendor/userland-execve` at `02ef0e0`, and podbox's own
    three-syscall memfd path in `crates/podbox-enter/src/memfd.rs` with
@@ -744,19 +749,18 @@ for clause 3. [T-1209](gate.md) and
 ## In progress
 
 [T-0413](complete.md) is `done` and [T-1003](packaging.md) is `done` and
-both commit here. No implementation entry is half-written. One entry
-remains `partial`: [T-1109](milestones.md), carrying its remaining
-conditions in its own file. Two entries remain `open`, both needing a
-ruling and surfaced only: [T-1207](gate.md) (items 2 to 4: the symbol
-count against `interpose.map`, the per-libc size baseline, the
-third-state reporting; the question is whether they join `dev.sh check`
-or a slower gate) and [T-1112](milestones.md) (the P3 non-Linux guest;
-its prerequisites T-1301 through T-1304 are closed, and the recommendation
-is to keep it parked). [T-1212](gate.md) and [T-1213](gate.md) stay
-`blocked` with their blockers named in their own files. The beta
-`v0.1.0-beta.1` ships as a pre-release with the verified binary beside
-it. Kept wsl-toolkit job containers are pruned at session end
-(`gc --apply`); past results already live in `TODO/`.
+both commit here. [T-1314](packaging.md) is `done` with the beta.3 nightly
+carrying fourteen assets, recorded in the entry. No implementation entry
+is half-written. One entry remains `partial`: [T-1109](milestones.md),
+carrying its remaining conditions in its own file. Two entries remain
+`open`: [T-1207](gate.md) (ruled 2026-09-22: items 2 to 4 belong in
+`dev.sh check`, each with its plant; implementation owes) and
+[T-1112](milestones.md) (ruled 2026-09-22: keep parked as P3).
+[T-1212](gate.md) and [T-1213](gate.md) stay `blocked` with their blockers
+named in their own files. The beta `v0.1.0-beta.1` ships as a pre-release
+with the verified binary beside it, and `v0.1.0-beta.3` publishes the
+nightly with all seven archs. Kept wsl-toolkit job containers are pruned
+at session end (`gc --apply`); past results already live in `TODO/`.
 
 [T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
 the 2026-09-11 reopen note, so the note moved verbatim to
