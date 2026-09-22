@@ -450,9 +450,11 @@ Decision:    Ruled 2026-09-22. The stream is named nightly; every `v*` tag
              The rejected alternative is `nightly-*` tags: version tags would
              then do nothing until a manual stable flow exists, which is a
              second naming scheme for one stream.
-Prove:       `git push origin v0.1.0-beta.2` publishes a nightly pre-release
+Prove:       `git push origin v0.1.0-beta.3` publishes a nightly pre-release
              with seven assets, each with a green per-arch smoke row in the
-             workflow run.
+             workflow run. (`v0.1.0-beta.2` proved the matrix and found the
+             publish defect below; the tag was kept and the publish moved to
+             the tag carrying the fix.)
 
 **Done 2026-09-23.** One `v*` tag builds and smoke-tests all seven claimed
 archs through `.github/workflows/nightly.yml`, with the per-arch smoke in
@@ -520,5 +522,12 @@ off-arch payloads decline naming both machines
 (`crates/podbox-cli/src/interpose.rs:238-246`). Per-arch objects belong to
 the T-0704 family, not to this entry.
 
-Prove run: `git push origin v0.1.0-beta.2` <to record with the run link,
-the seven smoke rows and the release assets>.
+Prove run 2026-09-23: `git push origin v0.1.0-beta.2` ran the workflow as
+run 35768821081. All seven legs green (x86_64, aarch64, riscv64gc,
+loongarch64, armv7, i686, powerpc64le), each with its smoke row, and the
+loongarch64 leg green under the runner's own qemu, which settles the lane's
+open question that way. The publish job died before creating anything:
+`gh release create` shells out to git and the job had no checkout (`failed
+to run git: not a git repository`). Nothing published, so the tag stands
+and the fix (the checkout above) rides the next tag. The beta.3 run below
+is the publish proof.

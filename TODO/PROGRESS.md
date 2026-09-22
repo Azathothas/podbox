@@ -74,8 +74,10 @@ takes `+crt-static` (it read `no` alone). After the three fixes all seven
 link with no overrides, and 6 of 6 runnable smokes read green in the lane
 (`loongarch64` SIGILLs a hello binary too under the lane's qemu 7.2, so
 that leg is decided by CI). Counts move to 143 entries, 2 open, 1 partial,
-2 blocked, 138 done, and every P0 is done. The `v0.1.0-beta.2` tag and its
-nightly run still owe, and the entry records them when they land.
+2 blocked, 138 done, and every P0 is done. `v0.1.0-beta.2` ran the matrix
+green on all seven legs and died publishing (the publish job had no
+checkout); the fix rides here and `v0.1.0-beta.3` carries the publish proof,
+which the entry records when it lands.
 
 Session of 2026-09-22, continued. [T-1314](packaging.md) filed in its own
 change: nightly releases, one `v*` tag building and smoke-testing all

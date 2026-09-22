@@ -112,6 +112,12 @@ jobs:
       contents: write
       actions: read
     steps:
+      # `gh release create` shells out to git for the repository it runs in,
+      # so this job checks out too. The first run of this workflow proved the
+      # point: seven green legs and a publish that died on `not a git
+      # repository` before creating anything.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: fetch every arch asset
         env:
           GH_TOKEN: ${{ github.token }}
