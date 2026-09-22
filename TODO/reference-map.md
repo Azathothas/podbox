@@ -130,6 +130,17 @@ copied into this repository.
 | `references/ylang-ylang__dockless` | `ed35b5d` | ⚠ **none found** | No licence file, no manifest key, and no statement in `tree/README.md` | ⛔ read only. The CLI posture is adopted as a design; no line is copied |
 | `references/VHSgunzo__userland-execve` | none | n/a | **The repository does not exist.** `PROVENANCE.md` records the 404 beside a reachable control | nothing. See below |
 
+### Fixture binaries, determined before use
+
+A fixture binary is not a corpus tree: no source is read, no mechanism is
+adopted, and nothing enters the artefact. What is owed before one runs is
+the same licence reading, recorded here, plus a pin (tag and checksum)
+that lands with the fixture.
+
+| binary | Licence | Where the determination came from | What may be done |
+| --- | --- | --- | --- |
+| `zot` ([project-zot/zot](https://github.com/project-zot/zot)), a pinned release binary | Apache-2.0 | `LICENSE` at the repository root, read 2026-09-22: the full Apache-2.0 text with "Copyright 2019-2025 The zot project authors" | run as a separate process in experiments ([image.md](image.md) T-0206, T-0209). Not vendored, not embedded |
+
 ### ⭐ The three that were not resolved, and the rulings that closed them
 
 ⭐ **All three were settled by the operator on 2026-09-11.** Each was read at
