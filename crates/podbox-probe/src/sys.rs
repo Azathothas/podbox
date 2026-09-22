@@ -255,6 +255,7 @@ pub const SYS_LINKAT: i64 = nr!(linkat, __NR_linkat);
 pub const SYS_SYMLINKAT: i64 = nr!(symlinkat, __NR_symlinkat);
 pub const SYS_READLINKAT: i64 = nr!(readlinkat, __NR_readlinkat);
 pub const SYS_FCHMODAT: i64 = nr!(fchmodat, __NR_fchmodat);
+pub const SYS_FACCESSAT: i64 = nr!(faccessat, __NR_faccessat);
 pub const SYS_UTIMENSAT: i64 = nr!(utimensat, __NR_utimensat);
 pub const SYS_MKNODAT: i64 = nr!(mknodat, __NR_mknodat);
 /// ⚠ Linux 5.6. A kernel without it answers `ENOSYS`, which is why
@@ -1021,6 +1022,20 @@ pub fn fchmod(fd: i64, mode: u64) -> Sysres {
 /// what extraction does because a symlink's own mode is not used.
 pub fn fchmodat(dirfd: i64, path: &CBuf, mode: u64, flags: u64) -> Sysres {
     unsafe { sys(SYS_FCHMODAT, [dirfd as u64, path.ptr(), mode, flags, 0, 0]) }
+}
+
+/// `X_OK`, the access mode the memfd probe asks about. The only mode podbox
+/// needs: executability is the one property the launch path probes for.
+pub const X_OK: u64 = 1;
+
+/// `faccessat(2)`: whether the real ids may access `path` in mode `mode`.
+///
+/// ⚠ The kernel's answer, not the mode bits': for root the bits may read
+/// `0o644` while the check still succeeds, and for a non-owner they may read
+/// `0o755` while it fails. [`TODO/deps.md`](../../../TODO/deps.md) T-0909
+/// probes both, because either alone mis-answers one of those two cases.
+pub fn faccessat(dirfd: i64, path: &CBuf, mode: u64, flags: u64) -> Sysres {
+    unsafe { sys(SYS_FACCESSAT, [dirfd as u64, path.ptr(), mode, flags, 0, 0]) }
 }
 
 pub fn fchownat(dirfd: i64, path: &CBuf, uid: u32, gid: u32, flags: u64) -> Sysres {

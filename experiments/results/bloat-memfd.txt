@@ -1,0 +1,47 @@
+# cargo bloat and the release total, area=memfd
+# TODO/deps.md T-0910. One machine, one day.
+date              2026-09-22T07:43:44Z
+host kernel       7.2.0-WSL2-STABLE
+rustc             rustc 1.98.1 (48a229cea 2026-09-01)
+cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
+target            x86_64-unknown-linux-musl
+profile           release: lto=true opt-level=z codegen-units=1 strip=symbols panic=abort
+total_bytes 2757488
+ceiling_bytes 8000000
+headroom_bytes 5242512
+pt_interp 0
+third_party_crates 97
+delta             2261304 bytes against 496184 in bloat-baseline.txt
+unmeasured        0
+scaffold_said     wrote=10 exe=true script=true cloexec=0x1
+breakdown         taken from an unstripped build of the release profile
+
+## the dependency declaration this was measured with
+[workspace.dependencies]
+
+## the scaffold `main` reached
+
+## cargo bloat -n 20
+ File  .text    Size            Crate Name
+ 0.7%   2.4% 40.0KiB           podbox podbox::main
+ 0.6%   2.0% 33.3KiB           rustls <rustls::msgs::handshake::HandshakeMessagePayload>::read_version
+ 0.5%   1.6% 26.2KiB  podbox_complete podbox_complete::complete
+ 0.3%   1.1% 18.3KiB   podbox_extract podbox_extract::extract
+ 0.3%   1.0% 17.1KiB        [Unknown] _ZN9libunwind10CFI_ParserINS_17LocalAddressSpaceEE20parseFDEInstructionsINS_16Registers_x86_64EEEbRS1_RKNS2_8FDE_InfoERKNS2_8CIE_InfoENT_23link_hardened_reg_arg_tEiPNS2_10PrologInfoE
+ 0.3%   1.0% 16.9KiB              std <std::backtrace_rs::symbolize::gimli::Cache>::with_global::<std::backtrace_rs::symbolize::gimli::resolve::{closure#1}>
+ 0.3%   1.0% 16.6KiB           rustls <webpki::verify_cert::ChainOptions<webpki::verify_cert::KeyUsage>>::build_chain_inner
+ 0.3%   0.9% 15.0KiB           podbox podbox::run::prepare
+ 0.2%   0.9% 14.3KiB  podbox_complete podbox_complete::pkg::apply
+ 0.2%   0.8% 13.1KiB     podbox_image podbox_image::pull::pull
+ 0.2%   0.7% 11.8KiB             ring ring_core_0_17_14__chacha20_poly1305_seal_avx2
+ 0.2%   0.7% 11.6KiB              std <std::backtrace_rs::symbolize::gimli::Context>::new
+ 0.2%   0.7% 11.3KiB podbox_supervise <&mut serde_json::de::Deserializer<serde_json::read::SliceRead> as serde_core::de::Deserializer>::deserialize_seq::<<alloc::vec::Vec<_> as serde_core::de::Deserialize>::deserialize::VecVisitor<podbox_supervise::table::Container>>
+ 0.2%   0.7% 11.0KiB           podbox podbox::exec::exec
+ 0.2%   0.7% 10.9KiB   podbox_extract <ruzstd::decoding::block_decoder::BlockDecoder>::decode_block_content::<&mut &mut std::io::buffered::bufreader::BufReader<std::fs::File>>
+ 0.2%   0.6% 10.2KiB             sha2 sha2::sha256::compress256
+ 0.2%   0.6% 10.2KiB     podbox_image <podbox_image::registry::Client>::get
+ 0.2%   0.6%  9.8KiB           rustls rustls::client::hs::emit_client_hello_for_retry
+ 0.2%   0.6%  9.5KiB             ring ring_core_0_17_14__chacha20_poly1305_open_avx2
+ 0.2%   0.6%  9.4KiB             ureq <rustls::conn::ConnectionCommon<rustls::client::client_conn::ClientConnectionData>>::complete_io::<alloc::boxed::Box<dyn ureq::stream::ReadWrite>>
+23.1%  80.4%  1.3MiB                  And 4797 smaller methods. Use -n N to show more.
+28.7% 100.0%  1.6MiB                  .text section size, the file size is 5.6MiB

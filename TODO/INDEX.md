@@ -155,7 +155,7 @@ the blocker named and what would clear it.
 | [T-0906](deps.md) | P1 | deps | done | Sweep: HTTP |
 | [T-0907](deps.md) | P0 | deps | done | Sweep: tar, gzip, zstd |
 | [T-0908](deps.md) | P1 | deps | done | Sweep: digests, JSON, argument parsing, ELF |
-| [T-0909](deps.md) | P1 | deps | open | Vendor the memfd and userland-exec rungs, and fix the fork's regression here |
+| [T-0909](deps.md) | P1 | deps | done | Vendor the memfd and userland-exec rungs, and fix the fork's regression here |
 | [T-0910](deps.md) | P0 | deps | done | The `cargo bloat` baseline, committed, and checked at the gate |
 | [T-0911](deps.md) | P0 | deps | done | The syscall table and the kernel structs come from a crate, per architecture |
 | [T-0912](deps.md) | P2 | deps | done | The powerpc gate is the crate's and it is stale, so podbox can clear it |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 9 open, 1 partial, 2 blocked, 130 done.
+142 items: 8 open, 1 partial, 2 blocked, 131 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -215,10 +215,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 0 | 0 | 51 | 52 |
-| P1 | 3 | 1 | 2 | 60 | 66 |
+| P1 | 2 | 1 | 2 | 61 | 66 |
 | P2 | 3 | 0 | 0 | 16 | 19 |
 | P3 | 2 | 0 | 0 | 3 | 5 |
-| **All** | **9** | **1** | **2** | **130** | **142** |
+| **All** | **8** | **1** | **2** | **131** | **142** |
 
 ## How the current ordering is derived
 
@@ -255,14 +255,16 @@ dependency order.
 
 ### 4. What is blocked, and on what?
 
-Two entries are blocked and neither blocks the current M6 path:
+Two entries are blocked, both in `gate.md`, and neither blocks the current
+M6 path:
 
-- [T-0606](supervise.md) needs the notification supervision tier to be
-  reachable and race-safe. The studied target provides no usable read channel;
-  the probe and named refusal still ship.
-- [T-0909](deps.md) needs sufficient `memfd-exec` license evidence before that
-  tree can be vendored. Its separately evaluated `userland-execve` half is not
-  blocked.
+- [T-1212](gate.md) is blocked on its `Prove` not holding on this lane:
+  the conversion is complete with assertions unchanged, but `150` and
+  `270` exit 1 on engine differences and three scripts exit 2 on halves no
+  lane here can measure. Each half names what clears it in the entry.
+- [T-1213](gate.md) is blocked on its `Prove` not holding on this lane:
+  the conversion is implemented under the 2026-09-21 ruling, but `130`
+  exits 1 on three lane findings named in the entry.
 
 ⛔ Neither closes. Each names the blocker and what would clear it. T-0702 is
 open rather than blocked: the required musl tooling and per-libc objects now

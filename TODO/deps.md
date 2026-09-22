@@ -457,7 +457,7 @@ Source:      `TOOL.md` section 3.5; [reference-map.md](reference-map.md)
 Category:    deps
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     These sit on a seam podbox will move, and one of them is a fork
              maintained because the original is not. A registry dependency on an
@@ -527,6 +527,63 @@ Status note: **open.** The `blocked` label came off on 2026-09-11, and it never
              would clear it is a licence file appearing in either tree at a later
              commit, checked at the next reconciliation.
 Prove:       `test -f vendor/userland-execve/LICENSE && grep -q '^license = "MIT"' vendor/userland-execve/Cargo.toml && ./experiments/110-bloat-delta.sh memfd` exits 0
+
+**Done 2026-09-22.** The `Prove` ran green in the lane: the two file legs
+hold on this tree, and `110-bloat-delta.sh memfd` exits 0 with
+`experiments/results/bloat-memfd.txt` committed. Five answers:
+
+1. What it replaces. `crates/podbox-enter/src/memfd.rs`: `MFD_CLOEXEC` as
+   the unconditional base, `MFD_ALLOW_SEALING` with an `EINVAL` fallback to
+   the base, the `has_shebang` router predicate, the `is_executable` probe
+   (mode bits plus `faccessat` `X_OK`), and `memfd_create`, with four unit
+   tests watched fail before the implementation and pass after. Beside it,
+   `faccessat` joins the `*at` wrappers in `crates/podbox-probe/src/sys.rs`
+   with `SYS_FACCESSAT` and `X_OK`. The `fexecve` call itself is not here:
+   it takes the argv and env arrays, and it belongs to the ladder that owns
+   them ([T-1003](packaging.md)). Vendored whole beside it:
+   `vendor/userland-execve` is `io12/userland-execve-rust` at `02ef0e0`,
+   six source files plus `LICENSE`, `Cargo.toml` and `README.md`,
+   byte-identical to the corpus tree (`Cargo.lock` and `.gitignore` left
+   out). It is not compiled: nothing depends on it yet.
+2. What it costs. The committed reading is total 2757488 with 97
+   third-party crates, the scaffold control answering
+   (`wrote=10 exe=true script=true cloexec=0x1`). This change's own cost is
+   a subtraction between two lane runs minutes apart on the same image:
+   the scaffold-reached tree reads total 2757488 with the control
+   answering, and the same tree with the scaffold removed re-ran exit 0
+   logging the same delta (2261304 against the same baseline), which is
+   the same total to the byte, so the reached
+   memfd path costs **0 bytes, below the instrument's resolution**, with
+   the control answering. That is the same ruling shape as [T-0901](#t-0901-sweep-syscalls).
+   No new third-party crate: the path uses only the taken `syscalls` and
+   `linux-raw-sys` pins.
+3. Does it pull C. No. The path issues raw syscalls through podbox's own
+   trap. The vendored tree names `goblin` 0.8 and `nix` 0.27 in its
+   `Cargo.toml`; the pins are carried, never built. Wiring it ([T-1003](packaging.md))
+   first patches both out: `goblin` is refused by [T-0908](#t-0908-sweep-digests-json-argument-parsing-elf)
+   and the program-header walk it rules replaces it, and the `sys` module
+   here replaces `nix`.
+4. Maintained and licence. `io12/userland-execve-rust` is MIT with the
+   licence file present ([reference-map.md](reference-map.md) row). Niche
+   and on a seam podbox will move, so it vendors. `memfd-ng` 0.1.1 is 0BSD
+   and the operator's own; read at source, it sets `MFD_CLOEXEC`
+   unconditionally (`tree/src/sys.rs:141-149`) and carries the tmpfs
+   fallback this entry takes as mechanisms, not code. Neither `memfd-exec`
+   tree is vendored, per the `Decision`.
+5. Vendor or registry. Vendor `userland-execve` whole, and the three-syscall
+   memfd path is podbox's own. Registry: nothing new.
+
+⚠ The 10 MB synthetic-stack figure rides in the vendored file
+(`vendor/userland-execve/src/stack.rs:152`) unchanged, with the tracker's
+`cc1plus` reason beside it in the `Approach`. [T-1003](packaging.md) owns
+the ladder review that decides whether it stays.
+
+⭐ The retire check is a command, not a judgement: `diff -r
+references/io12__userland-execve-rust/tree/src vendor/userland-execve/src`
+plus `cmp` of `LICENSE`, `Cargo.toml` and `README.md` against the same
+tree. All seven read identical today. A future upstream release retires no
+patch on its own; reconcile it by reading per
+[`../docs/methodology/vendoring.md`](../docs/methodology/vendoring.md).
 
 ---
 

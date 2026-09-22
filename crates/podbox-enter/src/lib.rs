@@ -30,6 +30,7 @@
 
 pub mod abi;
 pub mod binfmt;
+pub mod memfd;
 pub mod plan;
 
 use std::io::Write;

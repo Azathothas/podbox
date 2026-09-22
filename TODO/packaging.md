@@ -145,6 +145,10 @@ Approach:    Implement memfd, then the private run directory, then the
              persistent cache, each with a named refusal. Probe for the two
              rungs this runtime lacks rather than assuming their absence, so the
              same binary uses them where they exist.
+             ⚠ The userland-exec rung arrives vendored with `goblin` and `nix`
+             pins ([T-0909](deps.md)); patch both out before wiring it, with
+             the [T-0908](deps.md) program-header walk and the `sys` module in
+             their place.
              Where the payload's own relocation is the problem rather than the
              filesystem, `references/VHSgunzo__sharun` is the lineage that solves
              it and `references/VHSgunzo__ulexec` drives both rungs from one
