@@ -204,7 +204,7 @@ machine stays running as found: never stop it, never prune without naming
 what goes. A first image pull outlasts a clause timeout, so scripts fetch
 their images before any timed clause starts rather than inside it.
 
-### ⛔ Eight traps this host produced, five on 2026-09-11, two on 2026-09-12 and one on 2026-09-22
+### ⛔ Nine traps this host produced, five on 2026-09-11, two on 2026-09-12 and two on 2026-09-22
 
 - ⛔ **A Windows checkout carries no executable bit, so every script arrives
   unrunnable.** Measured on 2026-09-11: **396 of 396** had to be repaired. NTFS holds no POSIX mode and `core.fileMode` is false there.
@@ -266,6 +266,16 @@ their images before any timed clause starts rather than inside it.
   ⭐ One lane job at a time per checkout. A staging path unique per
   invocation would make the race impossible; until one ships, serial
   jobs are the rule.
+- ⛔ **A file named `NUL` in the checkout breaks the lane workspace copy
+  and is invisible to git.** Measured on 2026-09-22: a 99-byte `./NUL`
+  appeared during an engine drive, and two lane jobs exited 2 with
+  `workspace refused: NUL shrank while it was being read (0 of 99
+  bytes)`. Windows opens the name as the null device, so the copy reads
+  0 bytes of a 99-byte header; `.gitignore` already ignores the
+  reserved names, so `git status` never shows it. ⭐ Repair is
+  `rm -f ./NUL` from Git Bash. What would reopen it is the creator,
+  which is not isolated: the `.gitignore` comment blames a shell not
+  mapping `2>/dev/null`, and no shell in the driven chain names one.
 
 ### ⛔ Decommissioning
 
