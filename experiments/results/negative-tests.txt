@@ -1,11 +1,12 @@
 == conditions
-date              2026-09-18T18:16:32Z
+date              2026-09-22T05:03:08Z
 host kernel       7.2.0-WSL2-STABLE
 podbox            podbox 0.1.0
 image             public.ecr.aws/docker/library/alpine:3.20
 flag-error code   125
 cli-error code    1
 
+  CA bundle announced via SSL_CERT_FILE for the step clause
 == 1. TOOL.md section 9's three
   run --network=none                 rc=125  ok
       podbox run: --network is in the parity table with status None: there is no network namespace to select
@@ -19,8 +20,8 @@ cli-error code    1
       podbox run: --strict, and this run is degraded in 5 way(s). podbox refuses rather than running and letting the pay
   reasons named                      5
   the same run without --strict      rc=0 (must be 0)
-  --strict against an image with a step  rc=125, step reasons 0
-  FAIL: it refused and named no step, so reason 4 did not fire
+  --strict against an image with a step  rc=125, step reasons 1
+        - podbox would run `/usr/bin/openssl rehash /etc/ssl/certs` (T-0412) inside this image before the payload: /etc/
 
 == 3. -t is a NAMED refusal where /dev/ptmx is unusable (T-0503)
   /dev/ptmx usable here              true
@@ -47,4 +48,4 @@ cli-error code    1
       it could not run here, which is the third state
 
 == verdict
-  ⛔ a refusal did not happen, or happened without saying why.
+  every refusal that could be driven here happened AND named its reason.

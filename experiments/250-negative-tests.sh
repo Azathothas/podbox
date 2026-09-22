@@ -79,6 +79,25 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 	echo
 } >"$WORK/report"
 
+# ⭐ The step clause below needs an ANNOUNCED CA bundle: T-0412 proposes its
+# rehash step only where the machine names a bundle through $SSL_CERT_FILE,
+# $CURL_CA_BUNDLE or $REQUESTS_CA_BUNDLE, and without one --strict names no
+# step, deterministically. 240 provisions the same announcement for its
+# driver rows. The clause reads the announcement below and skips by name
+# where none exists instead of failing on an environment it never asked for.
+if [ -z "${SSL_CERT_FILE:-}${CURL_CA_BUNDLE:-}${REQUESTS_CA_BUNDLE:-}" ]; then
+	if test -s /etc/ssl/certs/ca-certificates.crt; then
+		export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+		say "  CA bundle announced via SSL_CERT_FILE for the step clause"
+	elif command -v apt-get >/dev/null 2>&1 \
+	&& DEBIAN_FRONTEND=noninteractive apt-get update -qq \
+	&& DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ca-certificates \
+	&& test -s /etc/ssl/certs/ca-certificates.crt; then
+		export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+		say "  CA bundle installed and announced via SSL_CERT_FILE for the step clause"
+	fi
+fi
+
 timeout 600 "$BIN" pull "$IMAGE" >"$WORK/pull.log" 2>&1 || {
 	echo "SKIP: could not pull $IMAGE" >&2
 	tail -3 "$WORK/pull.log" >&2
@@ -192,7 +211,12 @@ say "  the same run without --strict      rc=$rc (must be 0)"
 # never taken, so it was shipped unexercised until this clause existed.
 out="$(timeout 600 "$BIN" run --strict --rm "$STEP_IMAGE" true 2>&1 >/dev/null)"
 rc=$?
-if [ "$rc" = "$PODBOX_EXIT_RUNTIME_ERROR" ]; then
+if [ -z "${SSL_CERT_FILE:-}${CURL_CA_BUNDLE:-}${REQUESTS_CA_BUNDLE:-}" ]; then
+	say "  --strict against an image with a step  rc=$rc (no bundle announced)"
+	say "  SKIP: without an announced CA bundle T-0412 proposes no step, so"
+	say "    reason 4 has nothing to fire on. That is the environment, not a pass."
+	skipped=1
+elif [ "$rc" = "$PODBOX_EXIT_RUNTIME_ERROR" ]; then
 	step="$(printf '%s' "$out" | grep -c '^  - podbox would run ')"
 	say "  --strict against an image with a step  rc=$rc, step reasons $step"
 	printf '%s' "$out" | grep -F -- '- podbox would run ' | head -1 \

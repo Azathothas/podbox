@@ -1,38 +1,38 @@
 ## The task
 
-Continuous session of 2026-09-22. T-0415 (device stand-in type check)
-is implemented, tested and recorded in the worktree: shape pre-check
-in `devices.rs`, three unit tests, entry Decision taken with the
-replace-loudly/refuse-narrowly ruling. Commit, push, verify CI, then
-pick the next entry. Push straight to main, no branches. Engine clauses
-run on host podman; stop `podman-machine-default` at close-out.
+Continuous session of 2026-09-22. T-1109 stays partial with two
+conditions closed: the 250 re-drive in the lane closes the Go decline
+and the step clause (after an A/B run proved the step needs an
+announced CA bundle, which 250 now provisions). Commit the 250 fix,
+the new report and the record, push, verify CI, then continue.
 
 ## The resume point
 
-Commit the T-0415 change (`devices.rs`, `TODO/complete.md`,
-`TODO/INDEX.md`, `TODO/PROGRESS.md`, three sweep transcripts, this
-file), push origin main, verify the CI run by re-listing. Then the next
-open entry from the pool: T-0413/T-0414 (complete), image T-0205-0209,
-T-1109 (partial), T-0503 (partial), T-0606, packaging T-1002-1004.
+Commit the T-1109 change whole (250 script, new report,
+`TODO/milestones.md`, `TODO/PROGRESS.md`, this file), push origin
+main, verify the CI run by re-listing. Next pool: T-0413/T-0414
+(complete, both undecided), image T-0205-0209, T-0503 (partial),
+T-0606, packaging T-1002-1004, gate T-1207 (needs a ruling).
 
 ## In flight
 
-T-0415 change complete in the worktree, uncommitted. Full lane check
-green (rc=0), devices suite 47 of 47, host gates green, 240 exit 0 at
-10 of 10 with device rows identical. No code is half-written.
+T-1109 change complete in the worktree, uncommitted: 250 exits 2 with
+zero FAILs (Go green, step reason named, `-t` and census skip by
+name). Host gates to run before the commit.
 
 ## State
 
-Tree dirty with the T-0415 change only. Podman machine
+Tree dirty with the T-1109 change only. Podman machine
 `podman-machine-default` running. No lane job running.
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Continuous session: T-0415 is implemented and green, uncommitted in
-the worktree. Commit it whole (no subset staging without re-gating),
-push straight to main with no branches, verify CI by re-listing, then
-continue with the next open entry. Engine clauses run on host podman;
-stop the podman machine at close-out.
+Continuous session: T-1109's 250 re-drive closes the Go and step
+conditions (report green except two environmental skips), uncommitted.
+Gate the whole tree, commit it whole, push straight to main with no
+branches, verify CI by re-listing, then continue with the next open
+entry. Engine clauses run on host podman; stop the podman machine at
+close-out.
 ```

@@ -566,6 +566,19 @@ Prove:       `./experiments/250-negative-tests.sh` exits 0
 refusals through the shipped binary and exits **2**, because three of them
 cannot be measured on this machine and one of those needs M6.
 
+**2026-09-22.** Re-driven in the lane on a binary with both interpose
+objects: the Go clause now measures green (declined, `rc=126`, the
+`Go build markers` reason named), so condition 1 below is closed. The
+step clause failed exactly as committed until the cause was measured:
+T-0412 proposes its rehash step only where the machine announces a CA
+bundle, and the lane announces none, so `--strict` named no step by
+design rather than by defect. `250` now announces a bundle the way 240
+does for its driver rows (system file first, `apt-get` install as
+fallback) and skips the clause by name where none exists. Re-driven:
+step reasons 1 with the `openssl rehash` command named, zero FAILs,
+exit 2 on the two environmental skips. The `-t` and census conditions
+stand as recorded.
+
 ⛔ **Every clause asserts TWO things and the second is the one that rots**: the
 exit code, read from the process that produced it, and that the message NAMES
 the reason. "unknown option" where the parity table has a reason is a regression
@@ -576,7 +589,9 @@ What ran and held:
 ```
   run --network=none                 rc=125  named: "no network namespace to select"
   run -v host:/mapped:ro             rc=125  named: "a copy pretending to be a mount"
-  run --strict                       rc=125  4 reasons listed, each on its own line
+  go payload declined                rc=126  named: "Go build markers" (closed 2026-09-22)
+  strict-against-step                rc=125  1 step named (closed 2026-09-22)
+  run --strict                       rc=125  5 reasons listed, each on its own line
   the same run without --strict      rc=0
   an unlisted flag                   rc=125  named: "no row in the parity table"
   a None flag names its status       rc=125  named: "status None"
@@ -585,17 +600,13 @@ What ran and held:
   30-attribution-census.sh           rc=2    the third state, never 1
 ```
 
-⚠ **Three clauses did not run here, and each says so rather than passing
-quietly**:
+⚠ **Two clauses do not run on this machine, and each says so rather than
+passing quietly**:
 
-1. a Go payload under `interpose` declined rather than silently unvirtualized:
-   ⛔ M6 has no interposer, and this clause is [T-0709](interpose.md)'s `Prove`;
-2. `-t` refused by name: this machine's `/dev/ptmx` IS usable, so the arm that
+1. `-t` refused by name: this machine's `/dev/ptmx` IS usable, so the arm that
    ran is the positive one and the refusal could not be driven;
-3. the `wait`-refuses-a-dead-container clause skipped once, on a container whose
-   launcher pid read 0. ⚠ That is the observation [T-0608](supervise.md)
-   records, and it is why the clause reports what it found rather than skipping
-   silently.
+2. the attribution census: `30-attribution-census.sh` exits 2 here, which is
+   the third state the entry's own rule allows, never 1.
 
 ⛔ The `pull http://` clause runs under a `timeout` and asserts the code is not
 124, because the failure that refusal exists to prevent is a **hang** rather

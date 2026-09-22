@@ -407,6 +407,17 @@ text being committed rather than the worktree around it. The procedure
 is verified in a toy repo; it rides here as the record until a hook
 holds it.
 
+[T-1109](milestones.md) stays `partial` with two conditions closed in one
+lane re-drive. The Go decline measures green at `rc=126` with its markers
+named. The step clause failed exactly as committed until an A/B run
+against the floating tag and the pinned digest showed neither names a
+step: T-0412 proposes its rehash only under an announced CA bundle, and
+the lane announces none. `250` now announces a bundle the way 240
+provisions one for its driver rows, and skips the clause by name where
+none exists. Re-driven it names the `openssl rehash` step with zero
+FAILs and exits 2 on the `-t` and census skips, which this machine
+cannot produce. The entry record carries the re-drive with its dates.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
