@@ -1,50 +1,45 @@
 ## The task
 
-Continuous session of 2026-09-21. T-1304 is implemented, proven green in
-the lane, and (pending the full lane check below) committed and pushed.
-Push straight to main, no branches. Engine clauses run on host podman;
-stop the podman machine at close-out.
+Continuous session of 2026-09-22. Close T-0705 (reverse mapping, done in
+worktree, 15 dirty files), push straight to main, verify CI, then work the
+open entries (T-0707/T-0708 neighbourhood first). Engine clauses run on
+host podman; stop `podman-machine-default` at close-out.
 
 ## The resume point
 
-If the lane check is green: commit T-1304's change, push straight to
-main, verify CI green. The work order then continues at
-`TODO/PROGRESS.md` item 7 (podvm T-1305, the fleet decision).
-If the lane check is red: the red is in the final tree, not in 147's
-evidence; fix forward in the worktree and re-run the failing gate only.
+Lane rebuild of the binary is running (`.dev/artifacts-pb`, job
+`bash-u8m3duwx`). When it lands: run the arch/void full-stderr interpose
+probe plus the T-0705 8-row drive, then host gates, then the lane check
+only if the tree moved under it, then commit T-0705, push origin main,
+watch CI to green.
 
 ## In flight
 
-T-1304's change is staged: `TODO/podvm.md` (Status done, Decision
-ruled, Done record with five findings plus the curl residual),
-`experiments/lib/podvm-guest.sh` (new, shared assembly),
-`experiments/146-podvm-initramfs.sh` (refactored onto the lib),
-`experiments/147-podvm-exec.sh` (new, exits 0 in the lane),
-`experiments/results/podvm-exec.txt` (new, the green run) and
-`experiments/results/podvm-initramfs.txt` (refreshed: the refactored
-146 re-drive, identical bar the date line). Counts are closed
-(`todo-count --set T-1304 done`: 140 items, 24 open, 3 partial,
-3 blocked, 110 done). `TODO/INDEX.md`, `TODO/PROGRESS.md` and this
-file ride in the same commit, as T-1301/T-1302/T-1303 did.
-Nothing is half-written.
+T-0705's change is done in the worktree and uncommitted: `TODO/INDEX.md`,
+`TODO/PROGRESS.md`, `TODO/interpose.md`, `crates/podbox-interpose/`
+(`interpose.map`, `src/lib.rs`, `src/map.rs`),
+`experiments/results/distro-sweep.txt` plus eight sweep transcripts.
+`archlinux.out` and `voidlinux-musl.out` are unchanged on disk: measured
+as a `tail -5` transcript-window artifact (their CA-rehash step leaves
+five trailing warnings that push the interpose line out of the window;
+opensuse-leap with one trailing warning still shows it), not a missed
+run. A two-row full-stderr probe still owes to close that gap.
 
 ## State
 
-Host gate green on the closed entry (`check-todo: ok` once PROGRESS
-carries the new counts); markers green. Full lane check running as
-`.dev/drive147e.log`'s successor (`.dev/fullcheck-t1304.log`):
-commit only after `LANE_RC=0` there.
-Podman machine `podman-machine-default` running; the operator orders
-it stopped at close-out. Lane job ledger: this session's containers
-await GC at close-out (`gc --apply`, live jobs excluded).
+Tree dirty, 15 files, HEAD `02592e1`. `fullcheck-T0705.log` read
+LANE_RC=0 at 2026-09-22T01:37Z on the final tree (re-verify before
+commit). Host gates owe a re-run after the last two PROGRESS/entry
+rewordings. Podman machine `podman-machine-default` running; lane job
+ledger: this session's containers await GC at close-out.
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Continuous session: T-1304 is staged with 147 green in the lane, the
-full lane check is running. If green, commit T-1304, push straight to
-main with no branches, verify CI, then continue the PROGRESS.md work
-order (podvm T-1305). Engine clauses run on host podman; stop the
-podman machine at close-out.
+Continuous session: T-0705 is done in the worktree and uncommitted;
+the lane binary rebuild is the first thing to check. Close T-0705,
+push straight to main with no branches, verify CI, then work the
+open entries. Engine clauses run on host podman; stop the podman
+machine at close-out.
 ```

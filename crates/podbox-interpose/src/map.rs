@@ -41,8 +41,8 @@ const ENAMETOOLONG: c_int = 36;
 
 pub const AT_FDCWD: c_int = -100;
 
-crate::real!(fn next_getcwd = "getcwd"(*mut c_char, usize) -> *mut c_char);
-crate::real!(fn next_readlink = "readlink"(*const c_char, *mut c_char, usize) -> isize);
+crate::real!(pub(crate) fn next_getcwd = "getcwd"(*mut c_char, usize) -> *mut c_char);
+crate::real!(pub(crate) fn next_readlink = "readlink"(*const c_char, *mut c_char, usize) -> isize);
 
 /// The process's own table, parsed out of its environ.
 ///
@@ -318,6 +318,84 @@ pub unsafe fn rewrite(t: &Table, path: *const u8, path_n: usize, out: &mut [u8; 
     }
 }
 
+/// The longest matching pair for a real `path`, matched on the TO side, or
+/// `None`. T-0705's mirror of [`longest`]: where the forward match asks
+/// which virtual prefix a payload path lies under, this asks which real
+/// prefix a result lies under, so the result can be read back in virtual
+/// names. A trailing slash on TO is ignored for the match, or the pair
+/// could never match anything under it. The `/.podbox/` guard holds on
+/// this side too: the object and the memo live there.
+///
+/// # Safety
+/// `path` must be readable for `path_n` bytes.
+pub unsafe fn longest_to(t: &Table, path: *const u8, path_n: usize) -> Option<(usize, usize)> {
+    const GUARD: &[u8] = b"/.podbox/";
+    if path_n >= GUARD.len() && eq(path, GUARD.as_ptr(), GUARD.len()) {
+        return None;
+    }
+    if path_n == b"/.podbox".len() && eq(path, b"/.podbox".as_ptr(), path_n) {
+        return None;
+    }
+    let mut best: Option<(usize, usize)> = None;
+    let mut i = 0usize;
+    while i < t.n {
+        let p = &t.pairs[i];
+        let mut to_n = p.to_n;
+        if to_n > 1 && unsafe { *p.to_p.add(to_n - 1) } == b'/' {
+            to_n -= 1;
+        }
+        if prefix(p.to_p, to_n, path, path_n) {
+            let better = match best {
+                None => true,
+                Some((_, n)) => to_n > n,
+            };
+            if better {
+                best = Some((i, to_n));
+            }
+        }
+        i += 1;
+    }
+    best
+}
+
+/// Reverse a real path through the table into `out`, T-0705.
+///
+/// Mirrors [`rewrite`] with the sides swapped: match the real TO prefix,
+/// substitute the virtual FROM, so a payload reading back a path it wrote
+/// sees the virtual name. Returns the new length, or `-1` where nothing
+/// matched (`out` untouched) or `-2` where the virtual name would not fit.
+/// A `-2` is the caller answering `ERANGE`, never a truncation and never
+/// the real path, which would leak the mapping.
+///
+/// # Safety
+/// `path` must be readable for `path_n` bytes.
+pub unsafe fn unrewrite(t: &Table, path: *const u8, path_n: usize, out: &mut [u8; OUT]) -> isize {
+    let Some((idx, to_n)) = (unsafe { longest_to(t, path, path_n) }) else {
+        return -1;
+    };
+    let p = &t.pairs[idx];
+    let rest_n = path_n - to_n;
+    // ⭐ Mirror of the join in `rewrite`: the remainder of a `/`-prefix
+    // match carries no leading slash, so one goes back in unless the
+    // virtual side already ends in one.
+    let slash = rest_n > 0
+        && unsafe { *path.add(to_n) } != b'/'
+        && unsafe { *p.from_p.add(p.from_n - 1) } != b'/';
+    if p.from_n + rest_n + (slash as usize) >= OUT {
+        return -2;
+    }
+    unsafe {
+        core::ptr::copy_nonoverlapping(p.from_p, out.as_mut_ptr(), p.from_n);
+        let mut at = p.from_n;
+        if slash {
+            *out.as_mut_ptr().add(at) = b'/';
+            at += 1;
+        }
+        core::ptr::copy_nonoverlapping(path.add(to_n), out.as_mut_ptr().add(at), rest_n);
+        (at + rest_n) as isize
+    }
+}
+
 /// Absolutize `path` for `dirfd` into `out`, T-0703's `*at` rule.
 ///
 /// An absolute path is copied. `AT_FDCWD` resolves through the real `getcwd`,
@@ -544,6 +622,11 @@ mod tests {
         unsafe { rewrite(t, path.as_ptr(), path.len(), out) }
     }
 
+    /// `unrewrite` through one unsafe block, beside `rw`.
+    fn unw(t: &Table, path: &[u8], out: &mut [u8; OUT]) -> isize {
+        unsafe { unrewrite(t, path.as_ptr(), path.len(), out) }
+    }
+
     #[test]
     fn pairs_parse_and_match_at_a_boundary() {
         let env = env_of([b"PODBOX_MAPS=/mapped:/real,/m2:/r2\0"]);
@@ -590,6 +673,52 @@ mod tests {
         // prefix string.
         let n = rw(&t, b"/.podbox2/x", &mut out);
         assert_eq!(&out[..n as usize], b"/anywhere/.podbox2/x");
+    }
+
+    #[test]
+    fn unrewrite_maps_real_prefixes_back_to_virtual() {
+        let env = env_of([b"PODBOX_MAPS=/mapped:/real,/m2:/r2\0"]);
+        let t = unsafe { parse(env.as_ptr()) };
+        let mut out = [0u8; OUT];
+        // Matches on the TO side, with the rest carried over.
+        let n = unw(&t, b"/real/a", &mut out);
+        assert_eq!(&out[..n as usize], b"/mapped/a");
+        // ⛔ `/real2` is not under `/real`.
+        assert_eq!(unw(&t, b"/real2/a", &mut out), -1);
+        // Unmatched is untouched.
+        assert_eq!(unw(&t, b"/other/a", &mut out), -1);
+        // An exact TO match answers the bare FROM.
+        let n = unw(&t, b"/r2", &mut out);
+        assert_eq!(&out[..n as usize], b"/m2");
+        // A trailing slash on TO is ignored for the match.
+        let env = env_of([b"PODBOX_MAPS=/m:/real/\0"]);
+        let t = unsafe { parse(env.as_ptr()) };
+        let n = unw(&t, b"/real/x", &mut out);
+        assert_eq!(&out[..n as usize], b"/m/x");
+        // A TO of `/` matches everything, like the FROM side.
+        let env = env_of([b"PODBOX_MAPS=/m:/\0"]);
+        let t = unsafe { parse(env.as_ptr()) };
+        let n = unw(&t, b"/etc/x", &mut out);
+        assert_eq!(&out[..n as usize], b"/m/etc/x");
+        // The longest TO wins whatever the order.
+        let env = env_of([b"PODBOX_MAPS=/short:/real,/long:/real/sub\0"]);
+        let t = unsafe { parse(env.as_ptr()) };
+        let n = unw(&t, b"/real/sub/a", &mut out);
+        assert_eq!(&out[..n as usize], b"/long/a");
+    }
+
+    #[test]
+    fn unrewrite_never_maps_the_memo_directory() {
+        let env = env_of([b"PODBOX_MAPS=/v:/.podbox,/w:/work\0"]);
+        let t = unsafe { parse(env.as_ptr()) };
+        let mut out = [0u8; OUT];
+        // The guard beats the match: TO `/.podbox` would match, and the
+        // answer stays -1.
+        assert_eq!(unw(&t, b"/.podbox/x", &mut out), -1);
+        assert_eq!(unw(&t, b"/.podbox", &mut out), -1);
+        // Beside it the reverse map still answers.
+        let n = unw(&t, b"/work/f", &mut out);
+        assert_eq!(&out[..n as usize], b"/w/f");
     }
 
     #[test]

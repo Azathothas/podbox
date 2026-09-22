@@ -48,6 +48,8 @@
     posix_spawn;
     posix_spawnp;
     chdir;
+    getcwd;
+    get_current_dir_name;
     opendir;
     scandir;
     readlink;

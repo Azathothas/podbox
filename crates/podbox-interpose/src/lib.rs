@@ -303,6 +303,9 @@ crate::real!(pub fn next_readlink = "readlink"(*const c_char, *mut c_char, usize
 crate::real!(pub fn next_readlinkat = "readlinkat"(c_int, *const c_char, *mut c_char, usize) -> isize);
 crate::real!(pub fn next_realpath = "realpath" @ "GLIBC_2.3"(*const c_char, *mut c_char) -> *mut c_void);
 crate::real!(pub fn next_canonicalize = "canonicalize_file_name"(*const c_char) -> *mut c_void);
+crate::real!(pub fn next_get_current_dir_name = "get_current_dir_name"() -> *mut c_char);
+crate::real!(fn next_malloc = "malloc"(usize) -> *mut c_void);
+crate::real!(fn next_free = "free"(*mut c_void) -> ());
 crate::real!(pub fn next_getxattr = "getxattr"(*const c_char, *const c_char, *mut c_void, usize) -> isize);
 crate::real!(pub fn next_lgetxattr = "lgetxattr"(*const c_char, *const c_char, *mut c_void, usize) -> isize);
 crate::real!(pub fn next_setxattr = "setxattr"(*const c_char, *const c_char, *const c_void, usize, c_int) -> c_int);
@@ -914,27 +917,6 @@ macro_rules! path_at_int {
     };
 }
 
-macro_rules! path_at_nonneg {
-    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $dirfd:ident, $path:ident, $ret:ty) => {
-        /// # Safety
-        /// The payload's own contract for this entry point.
-        #[no_mangle]
-        pub unsafe extern "C" fn $name($($arg: $ty),*) -> $ret {
-            let fail: $ret = -1 as $ret;
-            let Some(f) = $real() else { set_errno(EINVAL); return fail; };
-            let mut buf = [0u8; crate::map::OUT];
-            let p = unsafe {
-                crate::map::prepare(stringify!($name).as_bytes(), $dirfd, $path, &mut buf)
-            };
-            if p.is_null() {
-                return fail;
-            }
-            let $path = p;
-            unsafe { f($($arg),*) }
-        }
-    };
-}
-
 path_int!(chdir, next_chdir, (path: *const c_char), path);
 path_int!(unlink, next_unlink, (path: *const c_char), path);
 path_int!(rmdir, next_rmdir, (path: *const c_char), path);
@@ -970,7 +952,6 @@ path_int!(nftw64, next_nftw64, (path: *const c_char, func: NftwFunc, nfds: c_int
 path_nonneg!(creat, next_creat, (path: *const c_char, mode: c_uint), path, c_int);
 path_nonneg!(creat64, next_creat64, (path: *const c_char, mode: c_uint), path, c_int);
 path_nonneg!(scandir, next_scandir, (dir: *const c_char, list: *mut *mut c_void, filter: Filter, compar: Compar), dir, c_int);
-path_nonneg!(readlink, next_readlink, (path: *const c_char, buf: *mut c_char, n: usize), path, isize);
 path_nonneg!(getxattr, next_getxattr, (path: *const c_char, name: *const c_char, value: *mut c_void, size: usize), path, isize);
 path_nonneg!(lgetxattr, next_lgetxattr, (path: *const c_char, name: *const c_char, value: *mut c_void, size: usize), path, isize);
 path_nonneg!(listxattr, next_listxattr, (path: *const c_char, list: *mut c_char, size: usize), path, isize);
@@ -981,8 +962,6 @@ path_ptr!(fopen, next_fopen, (path: *const c_char, mode: *const c_char), path);
 path_ptr!(fopen64, next_fopen64, (path: *const c_char, mode: *const c_char), path);
 path_ptr!(freopen, next_freopen, (path: *const c_char, mode: *const c_char, stream: *mut c_void), path);
 path_ptr!(freopen64, next_freopen64, (path: *const c_char, mode: *const c_char, stream: *mut c_void), path);
-path_ptr!(realpath, next_realpath, (path: *const c_char, resolved: *mut c_char), path);
-path_ptr!(canonicalize_file_name, next_canonicalize, (path: *const c_char), path);
 
 path_at_int!(mkdirat, next_mkdirat, (dirfd: c_int, path: *const c_char, mode: c_uint), dirfd, path);
 path_at_int!(unlinkat, next_unlinkat, (dirfd: c_int, path: *const c_char, flags: c_int), dirfd, path);
@@ -990,7 +969,341 @@ path_at_int!(fchmodat, next_fchmodat, (dirfd: c_int, path: *const c_char, mode: 
 path_at_int!(faccessat, next_faccessat, (dirfd: c_int, path: *const c_char, mode: c_int, flags: c_int), dirfd, path);
 path_at_int!(utimensat, next_utimensat, (dirfd: c_int, path: *const c_char, times: *const c_void, flags: c_int), dirfd, path);
 path_at_int!(openat2, next_openat2, (dirfd: c_int, path: *const c_char, how: *const c_void, size: usize), dirfd, path);
-path_at_nonneg!(readlinkat, next_readlinkat, (dirfd: c_int, path: *const c_char, buf: *mut c_char, n: usize), dirfd, path, isize);
+
+// ------------------------------------------- results read back in virtual names, T-0705
+//
+// The forward map rewrites what goes into the kernel. These six read the
+// answer back out: where the real result lies under a TO prefix it is
+// rewritten to the virtual FROM, so a payload comparing what it wrote
+// with what it reads sees one tree. Unmatched answers travel untouched.
+// Too long answers `ERANGE` rather than a truncation or a leak, which is
+// the entry's ruled Decision. `readdir`'s `d_name` takes no reversal: a
+// bare name carries no prefix, so there is nothing to match it against.
+
+/// Copy `n` bytes at `src` plus a NUL into the caller's `size`-byte buffer.
+///
+/// Answers `ERANGE` where the buffer is too small, which is the real
+/// call's own answer there and T-0705's ruled answer for a virtual name
+/// that does not fit.
+///
+/// # Safety
+/// `src` must be readable for `n` bytes, `dst` writable for `size` bytes.
+unsafe fn copy_fit(src: *const u8, n: usize, dst: *mut c_char, size: usize) -> *mut c_char {
+    if n + 1 > size {
+        set_errno(ERANGE);
+        return core::ptr::null_mut();
+    }
+    unsafe {
+        core::ptr::copy_nonoverlapping(src, dst as *mut u8, n);
+        *(dst as *mut u8).add(n) = 0;
+    }
+    dst
+}
+
+/// Copy `n` bytes at `p` into freshly allocated memory.
+///
+/// The allocating result shapes must hand back memory the caller frees,
+/// so a reversed name needs its own allocation from the real `malloc`.
+/// Returns null where `malloc` fails, with `errno` carrying its number.
+///
+/// # Safety
+/// `p` must be readable for `n` bytes.
+unsafe fn malloc_copy(p: *const u8, n: usize) -> *mut c_void {
+    let Some(malloc) = next_malloc() else {
+        set_errno(EINVAL);
+        return core::ptr::null_mut();
+    };
+    let q = unsafe { malloc(n + 1) };
+    if q.is_null() {
+        return q;
+    }
+    unsafe {
+        core::ptr::copy_nonoverlapping(p, q as *mut u8, n);
+        *(q as *mut u8).add(n) = 0;
+    }
+    q
+}
+
+/// Free memory the real call allocated, where the allocator answers.
+///
+/// # Safety
+/// `p` must be memory the real call allocated, or null.
+unsafe fn free_ptr(p: *mut c_void) {
+    if p.is_null() {
+        return;
+    }
+    if let Some(free) = next_free() {
+        unsafe { free(p) };
+    }
+}
+
+/// Reverse an allocated real path into an allocated virtual one.
+///
+/// Frees `real` on every path out. Unmatched answers the real pointer
+/// itself: nothing virtual covers it, so the real path is the truth, not
+/// a leak. Too long, or a real path at the buffer ceiling, answers
+/// `ERANGE` rather than a truncation or a leak.
+///
+/// # Safety
+/// `real` must be a non-null NUL-terminated string from the real call.
+unsafe fn reverse_alloc(real: *mut c_void) -> *mut c_char {
+    let real_n = crate::map::strnlen(real as *const c_char, crate::map::OUT);
+    if real_n >= crate::map::OUT {
+        unsafe { free_ptr(real) };
+        set_errno(ERANGE);
+        return core::ptr::null_mut();
+    }
+    let t = unsafe { crate::map::table() };
+    let mut vbuf = [0u8; crate::map::OUT];
+    let v = unsafe { crate::map::unrewrite(&t, real as *const u8, real_n, &mut vbuf) };
+    if v == -2 {
+        unsafe { free_ptr(real) };
+        set_errno(ERANGE);
+        return core::ptr::null_mut();
+    }
+    if v < 0 {
+        return real as *mut c_char;
+    }
+    let q = unsafe { malloc_copy(vbuf.as_ptr(), v as usize) };
+    unsafe { free_ptr(real) };
+    q as *mut c_char
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[no_mangle]
+pub unsafe extern "C" fn getcwd(buf: *mut c_char, size: usize) -> *mut c_char {
+    let Some(f) = crate::map::next_getcwd() else {
+        set_errno(EINVAL);
+        return core::ptr::null_mut();
+    };
+    // ⭐ Empty table, empty wrapper: with nothing to reverse against the
+    // call goes straight through, so unmapped runs keep byte-identical
+    // behaviour (and no length ceiling below the real call's own).
+    let t = unsafe { crate::map::table() };
+    if t.n == 0 {
+        return unsafe { f(buf, size) };
+    }
+    let mut tmp = [0u8; crate::map::OUT];
+    let r = unsafe { f(tmp.as_mut_ptr() as *mut c_char, crate::map::OUT) };
+    if r.is_null() {
+        return core::ptr::null_mut();
+    }
+    let real_n = crate::map::strnlen(tmp.as_ptr() as *const c_char, crate::map::OUT);
+    let mut vbuf = [0u8; crate::map::OUT];
+    let v = unsafe { crate::map::unrewrite(&t, tmp.as_ptr(), real_n, &mut vbuf) };
+    if buf.is_null() {
+        // The glibc extension: allocate the answer.
+        if v == -2 {
+            set_errno(ERANGE);
+            return core::ptr::null_mut();
+        }
+        if v < 0 {
+            return unsafe { malloc_copy(tmp.as_ptr(), real_n) } as *mut c_char;
+        }
+        return unsafe { malloc_copy(vbuf.as_ptr(), v as usize) } as *mut c_char;
+    }
+    if v == -2 {
+        set_errno(ERANGE);
+        return core::ptr::null_mut();
+    }
+    // Unmatched answers the real path where it fits, exactly as the real
+    // call would have; too small answers `ERANGE` on both sides.
+    let (src, n) = if v < 0 {
+        (tmp.as_ptr(), real_n)
+    } else {
+        (vbuf.as_ptr(), v as usize)
+    };
+    unsafe { copy_fit(src, n, buf, size) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[no_mangle]
+pub unsafe extern "C" fn get_current_dir_name() -> *mut c_char {
+    let Some(f) = next_get_current_dir_name() else {
+        set_errno(EINVAL);
+        return core::ptr::null_mut();
+    };
+    let t = unsafe { crate::map::table() };
+    if t.n == 0 {
+        return unsafe { f() };
+    }
+    let r = unsafe { f() };
+    if r.is_null() {
+        return core::ptr::null_mut();
+    }
+    unsafe { reverse_alloc(r as *mut c_void) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[no_mangle]
+pub unsafe extern "C" fn realpath(path: *const c_char, resolved: *mut c_char) -> *mut c_char {
+    let Some(f) = next_realpath() else {
+        set_errno(EINVAL);
+        return core::ptr::null_mut();
+    };
+    let mut buf = [0u8; crate::map::OUT];
+    let p = unsafe { crate::map::prepare(b"realpath", crate::map::AT_FDCWD, path, &mut buf) };
+    if p.is_null() {
+        return core::ptr::null_mut();
+    }
+    let t = unsafe { crate::map::table() };
+    if t.n == 0 {
+        return unsafe { f(p, resolved) } as *mut c_char;
+    }
+    let path = p;
+    if resolved.is_null() {
+        let r = unsafe { f(path, core::ptr::null_mut()) };
+        if r.is_null() {
+            return core::ptr::null_mut();
+        }
+        return unsafe { reverse_alloc(r) };
+    }
+    // The caller sized the buffer at PATH_MAX: POSIX gives the call no size
+    // argument, so glibc assumes that scale, and OUT matches it. A virtual
+    // name past it answers `ERANGE` rather than overflowing.
+    let mut tmp = [0u8; crate::map::OUT];
+    let r = unsafe { f(path, tmp.as_mut_ptr() as *mut c_char) };
+    if r.is_null() {
+        return core::ptr::null_mut();
+    }
+    let real_n = crate::map::strnlen(tmp.as_ptr() as *const c_char, crate::map::OUT);
+    let t = unsafe { crate::map::table() };
+    let mut vbuf = [0u8; crate::map::OUT];
+    let v = unsafe { crate::map::unrewrite(&t, tmp.as_ptr(), real_n, &mut vbuf) };
+    if v == -2 {
+        set_errno(ERANGE);
+        return core::ptr::null_mut();
+    }
+    let (src, n) = if v < 0 {
+        (tmp.as_ptr(), real_n)
+    } else {
+        (vbuf.as_ptr(), v as usize)
+    };
+    unsafe { copy_fit(src, n, resolved, crate::map::OUT) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[no_mangle]
+pub unsafe extern "C" fn canonicalize_file_name(path: *const c_char) -> *mut c_char {
+    let Some(f) = next_canonicalize() else {
+        set_errno(EINVAL);
+        return core::ptr::null_mut();
+    };
+    let mut buf = [0u8; crate::map::OUT];
+    let p = unsafe {
+        crate::map::prepare(
+            b"canonicalize_file_name",
+            crate::map::AT_FDCWD,
+            path,
+            &mut buf,
+        )
+    };
+    if p.is_null() {
+        return core::ptr::null_mut();
+    }
+    let t = unsafe { crate::map::table() };
+    if t.n == 0 {
+        return unsafe { f(p) } as *mut c_char;
+    }
+    let r = unsafe { f(p) };
+    if r.is_null() {
+        return core::ptr::null_mut();
+    }
+    unsafe { reverse_alloc(r) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[no_mangle]
+pub unsafe extern "C" fn readlink(path: *const c_char, buf: *mut c_char, n: usize) -> isize {
+    let fail: isize = -1;
+    let Some(f) = crate::map::next_readlink() else {
+        set_errno(EINVAL);
+        return fail;
+    };
+    let mut ibuf = [0u8; crate::map::OUT];
+    let p = unsafe { crate::map::prepare(b"readlink", crate::map::AT_FDCWD, path, &mut ibuf) };
+    if p.is_null() {
+        return fail;
+    }
+    let t = unsafe { crate::map::table() };
+    if t.n == 0 {
+        return unsafe { f(p, buf, n) };
+    }
+    let rc = unsafe { f(p, buf, n) };
+    if rc < 0 {
+        return rc;
+    }
+    // The answer is bytes, not a string: no NUL terminates it.
+    let mut vbuf = [0u8; crate::map::OUT];
+    let v = unsafe { crate::map::unrewrite(&t, buf as *const u8, rc as usize, &mut vbuf) };
+    if v == -2 {
+        set_errno(ERANGE);
+        return fail;
+    }
+    if v < 0 {
+        return rc;
+    }
+    if v as usize > n {
+        set_errno(ERANGE);
+        return fail;
+    }
+    unsafe {
+        core::ptr::copy_nonoverlapping(vbuf.as_ptr(), buf as *mut u8, v as usize);
+    }
+    v
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[no_mangle]
+pub unsafe extern "C" fn readlinkat(
+    dirfd: c_int,
+    path: *const c_char,
+    buf: *mut c_char,
+    n: usize,
+) -> isize {
+    let fail: isize = -1;
+    let Some(f) = next_readlinkat() else {
+        set_errno(EINVAL);
+        return fail;
+    };
+    let mut ibuf = [0u8; crate::map::OUT];
+    let p = unsafe { crate::map::prepare(b"readlinkat", dirfd, path, &mut ibuf) };
+    if p.is_null() {
+        return fail;
+    }
+    let t = unsafe { crate::map::table() };
+    if t.n == 0 {
+        return unsafe { f(dirfd, p, buf, n) };
+    }
+    let rc = unsafe { f(dirfd, p, buf, n) };
+    if rc < 0 {
+        return rc;
+    }
+    let t = unsafe { crate::map::table() };
+    let mut vbuf = [0u8; crate::map::OUT];
+    let v = unsafe { crate::map::unrewrite(&t, buf as *const u8, rc as usize, &mut vbuf) };
+    if v == -2 {
+        set_errno(ERANGE);
+        return fail;
+    }
+    if v < 0 {
+        return rc;
+    }
+    if v as usize > n {
+        set_errno(ERANGE);
+        return fail;
+    }
+    unsafe {
+        core::ptr::copy_nonoverlapping(vbuf.as_ptr(), buf as *mut u8, v as usize);
+    }
+    v
+}
 
 // ------------------------------------------------- shapes no macro covers
 

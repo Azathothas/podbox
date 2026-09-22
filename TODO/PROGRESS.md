@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-141 entries: 19 open, 3 partial, 2 blocked, 117 done.
+141 entries: 18 open, 3 partial, 2 blocked, 118 done.
 
 ## Baseline
 
@@ -326,6 +326,28 @@ and the sweep at exit 0, and all three hold on today's runs. The
 other three scripts carry no `run` or preload path (read by grep),
 so the interposer change cannot reach them and their recorded runs
 stand.
+
+[T-0705](interpose.md) closed in its own change: `map::unrewrite`
+mirrors `rewrite` with the sides swapped, and six entry points
+(`getcwd`, `get_current_dir_name`, `realpath` in both shapes,
+`canonicalize_file_name`, `readlink`, `readlinkat`) read results
+back through it with the ruled `ERANGE` past the buffer. `readdir`'s
+`d_name` takes no reversal (a bare name carries no prefix). The
+entry's `-v` Prove spelling does not exist; `-e` carries the same
+table. Driven green on host podman with the shipped binary, eight
+rows, musl and glibc. Along the way the drive found the shipped
+test binary carried empty interposer placeholders (a `dev.sh build`
+without `build-interpose.sh` first), so the first 240 green in
+this session ran bare. The build job now asserts three ELFs before
+the binary rides home, and a re-drive with the interposing binary
+reads 10 rows, 10 ran, 10 built and ran with zero decline lines
+and preloaded lines on both libcs, which replaces the void
+evidence in the same change. A result-row guard against declined
+interposition belongs to a follow-up entry. Close-out: a full-stderr
+probe shows both silent rows run interposed (glibc and musl preloaded,
+zero decline lines in all ten transcripts); musl `getcwd` holds end to
+end through `pwd -P`; `nm -D` exports both names from both lane-built
+objects.
 
 What stays current from last time:
 

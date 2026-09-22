@@ -15,7 +15,7 @@ NSSWITCH=files
 GETENT_ROOT=root
 PM=dnf
 INSTALL_RC=0
-INSTALL_TAIL=[15/16] Installing make-1:4.4.1-10.fc42 100% | 138.5 MiB/s | 1.8 MiB | 00m00s [16/16] Installing gcc-0:15.2.1-7.fc42. 100% | 387.0 MiB/s | 111.4 MiB | 00m00s Complete! 
+INSTALL_TAIL=[15/16] Installing make-1:4.4.1-10.fc42 100% | 150.0 MiB/s | 1.8 MiB | 00m00s [16/16] Installing gcc-0:15.2.1-7.fc42. 100% | 366.6 MiB/s | 111.4 MiB | 00m00s Complete! 
 CC=/usr/bin/cc
 CC_VERSION=cc (GCC) 15.2.1 20260123 (Red Hat 15.2.1-7)
 BUILD_RC=0
@@ -38,4 +38,4 @@ probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM
         clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
 this mode does NOT provide: process, network, IPC or mount isolation
 ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-podbox run: interpose: declined for "/bin/sh": this podbox binary carries no glibc interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it

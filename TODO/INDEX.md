@@ -129,7 +129,7 @@ the blocker named and what would clear it.
 | [T-0702](interpose.md) | P0 | interpose | done | One object per libc, and it must live inside the rootfs |
 | [T-0703](interpose.md) | P0 | interpose | done | Path virtualization: the entry-point set and `*at` resolution |
 | [T-0704](interpose.md) | P0 | interpose | partial | Ownership virtualization: the half a path interposer does not have |
-| [T-0705](interpose.md) | P1 | interpose | open | Reverse mapping, so the payload reads back what it wrote |
+| [T-0705](interpose.md) | P1 | interpose | done | Reverse mapping, so the payload reads back what it wrote |
 | [T-0706](interpose.md) | P0 | interpose | done | Classify the payload and decline with a named reason |
 | [T-0707](interpose.md) | P1 | interpose | open | The paths that must not be rewritten |
 | [T-0708](interpose.md) | P2 | interpose | open | Intercept the operations the runtime cannot provide |
@@ -205,7 +205,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-141 items: 19 open, 3 partial, 2 blocked, 117 done.
+141 items: 18 open, 3 partial, 2 blocked, 118 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -214,10 +214,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 50 | 52 |
-| P1 | 9 | 2 | 2 | 52 | 65 |
+| P1 | 8 | 2 | 2 | 53 | 65 |
 | P2 | 5 | 0 | 0 | 14 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **19** | **3** | **2** | **117** | **141** |
+| **All** | **18** | **3** | **2** | **118** | **141** |
 
 ## How the current ordering is derived
 

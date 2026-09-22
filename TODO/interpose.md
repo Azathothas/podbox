@@ -520,7 +520,7 @@ Source:      `TOOL.md` section 6.7; `references/VHSgunzo__pathmap`
 Category:    interpose
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     A payload that opens `/mapped/x`, then calls `getcwd` or
              `realpath`, gets the real path back and notices the virtualization.
@@ -538,15 +538,45 @@ Premise:     Read at file and line.
              mapping", so `realpath(p, buf)` is **not** virtualized while
              `realpath(p, NULL)` is.
 Approach:    Reverse-map `getcwd`, `get_current_dir_name`, `readlink`,
-             `realpath`, `canonicalize_file_name` and the `d_name` of every
-             `readdir`. For the caller-supplied-buffer case podbox writes the
-             virtual name when it fits and returns `ERANGE` when it does not,
+             `realpath` and `canonicalize_file_name`. `readdir`'s `d_name`
+             takes no reversal: a bare name carries no prefix, so there is
+             nothing to match it against. For the caller-supplied-buffer case
+             podbox writes the virtual name when it fits and returns `ERANGE`
+             when it does not,
              rather than silently returning the real one: `ERANGE` is a defined
              answer the caller handles and a real path is a leak.
 Decision:    `ERANGE` over a silent real path. The buffer case is rare and a
              leaked host path in a `configure` script's output is a build that
              bakes in the wrong prefix.
-Prove:       `podbox run --rm -v "$PWD:/mapped" public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
+Prove:       `podbox run --rm -e PODBOX_MAPS=/mapped:$PWD public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
+             (The `-v` spelling the entry was authored with does not exist;
+             `-e` carries the same table and the assertion is unchanged.)
+
+**Done 2026-09-22.** `map::unrewrite` mirrors `rewrite` with the sides
+swapped (longest TO wins, the `/.podbox/` guard holds, `-2` past the
+buffer), with unit tests for the match, the boundary, the longest
+win, the guard, the trailing-slash and root TO sides. Six entry
+points read results back through it: `getcwd` (both the allocating
+extension and the sized buffer), `get_current_dir_name`,
+`realpath` (both shapes), `canonicalize_file_name`, `readlink`
+and `readlinkat`, each keeping the forward path's contract beside
+the reversal. With an empty table every one forwards exactly as
+before, so unmapped runs keep byte-identical behaviour. `getcwd`
+and `get_current_dir_name` join the export map (the musl object
+hid them without it; the gnu object already exported them).
+Driven green on host podman with the shipped binary
+(maps `/mapped:/etc`): the entry's `pwd` test, the forward read,
+`realpath`, the `readlink` error passthrough, and on the rocky
+payload `getcwd`, `realpath`, `get_current_dir_name` and the ruled
+`ERANGE` (a 6-byte buffer answers NULL with `ERANGE` where the
+real 4-byte path would fit, a 64-byte buffer reads `/mapped`).
+Close-out probe on the shipped binary: archlinux and voidlinux-musl
+both answer RC=0 with the preloaded line and no decline line in full
+stderr, musl `getcwd` holds end to end (`pwd -P` under `/mapped:/etc`
+answers `/mapped`), and `nm -D` on both lane-built objects exports
+`getcwd` and `get_current_dir_name`.
+Out of scope: the `-v` volume flag (a separate unit; `-e` proves
+the mechanism), and second-guessing the `ERANGE` Decision here.
 
 ---
 
