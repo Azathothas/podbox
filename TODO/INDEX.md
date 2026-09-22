@@ -160,7 +160,7 @@ the blocker named and what would clear it.
 | [T-0911](deps.md) | P0 | deps | done | The syscall table and the kernel structs come from a crate, per architecture |
 | [T-0912](deps.md) | P2 | deps | done | The powerpc gate is the crate's and it is stale, so podbox can clear it |
 | [T-1001](packaging.md) | P0 | packaging | **done** | A single static binary with no `PT_INTERP` |
-| [T-1002](packaging.md) | P1 | packaging | open | Embed the interposer as bytes and place it inside the rootfs |
+| [T-1002](packaging.md) | P1 | packaging | done | Embed the interposer as bytes and place it inside the rootfs |
 | [T-1003](packaging.md) | P2 | packaging | open | The launch ladder, and a single file with an embedded rootfs |
 | [T-1004](packaging.md) | P3 | packaging | open | A reproducible build, and the artefact's own inputs recorded |
 | [T-1005](packaging.md) | P1 | packaging | done | A session reaches the code in one command, and the build runs behind the reading |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 15 open, 3 partial, 2 blocked, 122 done.
+142 items: 14 open, 3 partial, 2 blocked, 123 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -215,10 +215,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 50 | 52 |
-| P1 | 6 | 2 | 2 | 56 | 66 |
+| P1 | 5 | 2 | 2 | 57 | 66 |
 | P2 | 4 | 0 | 0 | 15 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **15** | **3** | **2** | **122** | **142** |
+| **All** | **14** | **3** | **2** | **123** | **142** |
 
 ## How the current ordering is derived
 

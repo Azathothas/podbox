@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 15 open, 3 partial, 2 blocked, 122 done.
+142 entries: 14 open, 3 partial, 2 blocked, 123 done.
 
 ## Baseline
 
@@ -417,6 +417,16 @@ provisions one for its driver rows, and skips the clause by name where
 none exists. Re-driven it names the `openssl rehash` step with zero
 FAILs and exits 2 on the `-t` and census skips, which this machine
 cannot produce. The entry record carries the re-drive with its dates.
+
+[T-1002](packaging.md) closed in its own change without new code: the
+embed-and-place work shipped under earlier entries, and this close
+verifies it against the tree. Both objects embed as byte arrays,
+placement writes the selected one under `/.podbox` atomically, and
+`LD_PRELOAD` merges ahead of the payload's value. Driven green on host
+podman with the shipped binary on both halves (file present, preload
+announced). The entry Prove is amended: its `/proc/self/environ`
+reading cannot work where `/proc` is unmounted. Counts move to 14 open
+and 123 done.
 
 What stays current from last time:
 

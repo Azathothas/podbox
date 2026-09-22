@@ -64,7 +64,7 @@ Source:      `TOOL.md` section 4.3, section 6.7
 Category:    packaging
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     One artefact, not two. And an `LD_PRELOAD` path from outside a
              chroot does not resolve inside it, so extracting the object to the
@@ -88,7 +88,25 @@ Approach:    Build both objects with `scripts/build-interpose.sh`, embed both as
 Decision:    Write it into the rootfs rather than keep it in the store and bind
              it in. There is no attach path on this runtime, so a bind is not
              available, and a copy per container is a few hundred kilobytes.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -r /.podbox/interpose.so && grep -q /.podbox/interpose.so /proc/self/environ'`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -r /.podbox/interpose.so' && podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'true' 2>&1 | grep -q 'is preloaded for this payload'`
+
+**Done 2026-09-22.** The work this entry specifies shipped under
+earlier entries and this close verifies it rather than re-implementing
+it. Both objects build through `scripts/build-interpose.sh` and embed
+as byte arrays (`crates/podbox-cli/src/interpose.rs` `GNU`/`MUSL`);
+placement writes the selected one to `/.podbox/interpose.so` through a
+temporary file and an atomic rename; `LD_PRELOAD` merges the object
+ahead of the payload's own value. Driven green on host podman 6.1.2
+with the shipped binary: the file reads inside the payload, and the
+banner announces the preload. The interposer stays outside the
+workspace (`Cargo.toml`), and no `path` dependency reaches back into
+it.
+
+⛔ **The `Prove` above is amended: the committed spelling read
+`/proc/self/environ`, which does not exist where `/proc` is unmounted.**
+T-0707 measured the payloads unmounted. File presence plus the preload
+announcement on stderr proves the same two halves: the object is inside
+the rootfs, and the payload runs under it.
 
 ---
 

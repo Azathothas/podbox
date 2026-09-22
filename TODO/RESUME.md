@@ -1,38 +1,36 @@
 ## The task
 
-Continuous session of 2026-09-22. T-1109 stays partial with two
-conditions closed: the 250 re-drive in the lane closes the Go decline
-and the step clause (after an A/B run proved the step needs an
-announced CA bundle, which 250 now provisions). Commit the 250 fix,
-the new report and the record, push, verify CI, then continue.
+Continuous session of 2026-09-22. T-1002 verified against the tree and
+closed without new code (embed, atomic placement and LD_PRELOAD merge
+all present; adapted Prove driven green). Commit whole, push, verify
+CI, then continue.
 
 ## The resume point
 
-Commit the T-1109 change whole (250 script, new report,
-`TODO/milestones.md`, `TODO/PROGRESS.md`, this file), push origin
-main, verify the CI run by re-listing. Next pool: T-0413/T-0414
-(complete, both undecided), image T-0205-0209, T-0503 (partial),
-T-0606, packaging T-1002-1004, gate T-1207 (needs a ruling).
+Commit the T-1002 change whole (packaging.md, INDEX.md, PROGRESS.md,
+this file), push origin main, verify the CI run by re-listing. Next
+pool: T-0413/T-0414 (complete, both undecided), image T-0205-0209,
+T-0503 (partial), T-0606, T-1003/T-1004, gate T-1207 (needs a ruling).
+A check-22 ordering guard (Done-before-amendment) is owed its own
+change with a plant.
 
 ## In flight
 
-T-1109 change complete in the worktree, uncommitted: 250 exits 2 with
-zero FAILs (Go green, step reason named, `-t` and census skip by
-name). Host gates to run before the commit.
+T-1002 change complete in the worktree, uncommitted. Host gates green.
+T-1109 CI watch still pending from the earlier push.
 
 ## State
 
-Tree dirty with the T-1109 change only. Podman machine
-`podman-machine-default` running. No lane job running.
+Tree dirty with the T-1002 change only. Podman machine
+`podman-machine-default` running. One CI watch job pending.
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Continuous session: T-1109's 250 re-drive closes the Go and step
-conditions (report green except two environmental skips), uncommitted.
-Gate the whole tree, commit it whole, push straight to main with no
-branches, verify CI by re-listing, then continue with the next open
-entry. Engine clauses run on host podman; stop the podman machine at
+Continuous session: T-1002 verified and closed in the worktree,
+uncommitted. Gate the whole tree, commit it whole, push straight to
+main with no branches, verify CI by re-listing, then continue.
+Engine clauses run on host podman; stop the podman machine at
 close-out.
 ```
