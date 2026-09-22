@@ -1,16 +1,18 @@
 ## The task
 
-Continuous session of 2026-09-22. T-0909 closed and pushed (`fb9fc31`,
-CI success). Next: [T-0206](image.md), the loopback registry fixture.
+Continuous session of 2026-09-22. T-0206 closed and pushed (CI success).
+Next: [T-0209](image.md), the registry credential UX against the T-0206
+fixture's required-credential mode, or [T-1003](packaging.md), the launch
+ladder.
 
 ## The resume point
 
-Tree clean at `fb9fc31`. Counts: 142 entries, 8 open, 1 partial,
-2 blocked, 131 done. Next pool: image T-0206 (fixture over `zot`;
-its `Decision` still names `registry:2` and is amended in the same
-change that writes the 180 script), T-0207, T-0209, T-1003 (ladder),
-gate T-1207 (needs a ruling), T-0413/T-1207/T-1112 (need operator
-rulings: surface, do not implement), T-0606.
+Tree clean at the T-0206 commit. Counts: 142 entries, 7 open, 1 partial,
+2 blocked, 132 done. Next pool: image T-0209 (credential UX) and T-0207,
+packaging T-1003 (ladder, owns the vendored userland-execve `goblin`/`nix`
+patch-out and the `fexecve` call), gate T-1207 (needs a ruling),
+T-0413/T-1207/T-1112 (need operator rulings: surface, do not implement),
+T-0606.
 
 ## In flight
 
@@ -22,16 +24,17 @@ from this stretch await `wsl-toolkit gc` at close-out
 
 ## State
 
-Tree clean at `fb9fc31`, CI success verified by re-list. Podman
-machine `podman-machine-default` running. No lane job running.
+Tree dirty with the T-0206 change only (uncommitted). Podman machine
+`podman-machine-default` running. No lane job running. Eight T-0909 plus
+new T-0206 kept job containers await `wsl-toolkit gc` at close-out
+(re-list before collecting).
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Continuous session: T-0909 pushed (fb9fc31, CI green) and the tree is
-clean. Continue at T-0206 (zot fixture; amend the registry:2 Decision
-in the same change as the 180 script). Push straight to main with no
-branches. Engine clauses run on host podman; stop the podman machine
-at close-out.
+Continuous session: T-0206 closed in the worktree, uncommitted. Gate
+the whole tree, commit it whole, push straight to main with no
+branches, verify CI by re-listing, then continue at T-0209 or T-1003.
+Engine clauses run on host podman; stop the podman machine at close-out.
 ```

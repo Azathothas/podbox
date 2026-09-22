@@ -1,0 +1,44 @@
+== conditions
+date              2026-09-22T08:50:47Z
+host kernel       3.6.9-b4195d69.x86_64
+engine            podman version 6.1.2 (fixtures: podman)
+zot               v2.1.21 85459246 bytes sha256:d2422616a28dbae10a92c1df9daa23980e2f7f3deb0079968b928f23492196cb
+network           none (container loopback only; asserted in clause iso-1)
+
+== podbox binary: not staged, building it in the lane
+== podbox: staged musl binary (2757488 bytes; path omitted: host checkouts differ per lane, version read back inside the driver)
+== zot pin
+  ok zot v2.1.21, 85459246 bytes, sha256 matches the release line
+== seed
+  ok seeded fixture:t1 open sha256:6074db206aca3476fb9c0a47d1fc8b38025d22ea77d7e44b0d13ad89e91ef922, required sha256:b7ee2dc3d12bfa11516a26c1d0c1a8a0f12913c8113b06745312380a0311c2b9
+== configs
+  ok configs written, cert carries SAN IP:127.0.0.1, htpasswd holds one bcrypt-or-crypt user
+== driver image
+  ok driver ead05f6f6f05012a40d39e6ab2f1ce8ce0d1a07a83547b5c6c902701c028df1a
+== driver run (network none)
+-- staged binaries
+  podbox: podbox 0.1.0
+  zot: binary executes (pin verified host-side; zot has no version subcommand carrying the release tag)
+-- isolation (the Prove's block, asserted not assumed)
+  ok iso-1: no default route (header only or loopback destinations)
+  ok iso-2: no name resolves from inside
+-- zot verify (the binary runs)
+  ok cfg-1: open config verifies
+  ok cfg-2: required config verifies
+-- open server on 127.0.0.1:5000
+  ok open-1: GET /v2/ anon is 200
+  ok open-2: manifest by tag is 200 and is the seeded bytes
+  ok open-3: manifest by digest is 200 and identical to by tag
+  ok open-4: blob is 200 and is the seeded bytes
+  ok open-5: podbox pull tag exits 0 and inspects to the seeded digest
+  ok open-6: podbox pull by digest exits 0
+-- required server on 127.0.0.1:5443
+  ok req-1: GET /v2/ anon is 401 with a Basic challenge
+  ok req-2: GET /v2/ authed is 200
+  ok req-3: manifest anon is 401
+  ok req-4: manifest authed is 200 and is the seeded bytes
+  ok req-5: wrong password is 401
+driver: all clauses held
+  ok driver run exits 0 with network none
+== verdict
+  ok the test password is absent from the report

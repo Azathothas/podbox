@@ -430,7 +430,7 @@ Source:      Found while re-running `experiments/150-image-acquisition.sh` again
 Category:    image
 Priority:    P3
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     M1's acceptance pulls from Docker Hub, and Docker Hub answers
              `HTTP 429: TOOMANYREQUESTS: You have reached your unauthenticated
@@ -462,15 +462,61 @@ Approach:    Serve the OCI distribution endpoints podbox uses from the store
              ⛔ HTTPS, with a certificate the fixture generates and both clients
              are pointed at. A fixture that speaks plain HTTP would be the one
              thing `TODO/image.md` T-0201 refuses, wired into the acceptance.
-Decision:    A fixture in this tree over `registry:2` from Docker Hub. Pulling
-             the registry image to escape the pull limit is circular, and the
-             licence determination for a new tree is work
-             [reference-map.md](reference-map.md) requires before it is used.
+Decision:    A fixture in this tree over the `zot` release binary, not over
+             `registry:2`. Pulling the registry image to escape the pull limit
+             is circular, and `zot` needs no image pull at all: one pinned
+             binary plus a config, a storage dir, a generated cert and an
+             htpasswd file, all staged host-side. The licence determination
+             [reference-map.md](reference-map.md) requires before a new tree
+             is used is recorded there (Apache-2.0, read 2026-09-22), and the
+             minimal binary carries no extensions past the four endpoints and
+             the auth this fixture needs. The htpasswd-required mode it serves
+             is the shape [T-0209](#t-0209-registry-authentication-without-a-credential-ever-entering-this-tree)
+             later drives with credentials.
              ⚠ The rejected alternative is authenticating to the Hub: it needs a
              credential, and `docs/security/secrets.md` keeps credentials out of
              this tree, so the acceptance would then run only where somebody has
              one.
 Prove:       `./experiments/180-registry-fixture.sh` exits 0 with ALL outbound network blocked
+
+**Done 2026-09-22.** `experiments/180-registry-fixture.sh` exits 0 three
+consecutive runs on host podman 6.1.2, with
+`experiments/results/registry-fixture.txt` committed: 21 clauses green, no
+FAIL, the test password absent from the report. Five answers:
+
+1. What it is. One pinned binary (`zot-linux-amd64-minimal` v2.1.21,
+   85,459,246 bytes, sha256 verified every run against the release
+   checksums line) plus a config, a seeded storage dir, a generated cert
+   and an htpasswd file, all staged host-side. The Prove runs inside one
+   `--network=none` driver container where zot and a lane-built podbox meet
+   on container loopback. Two configs: open (podbox pull by tag and by
+   digest, both inspecting to the seeded digest) and htpasswd-required
+   (401 anon with a Basic challenge, 200 authed, wrong password 401, the
+   shape [T-0209](#t-0209-registry-authentication-without-a-credential-ever-entering-this-tree)
+   later drives with credentials; podbox is anonymous-only until then and
+   no podbox clause touches the required config).
+2. What it costs. The binary is fixture-only: downloaded per run into
+   trap-removed scratch, verified, never committed, never shipped. The
+   driver image is stock Debian plus curl (`experiments/180-driver.Dockerfile`,
+   base pin shared with `experiments/Dockerfile.target`).
+3. Does it pull C. Nothing new enters the artefact: zot is a separate
+   process, and the change to the tree is the script, the Dockerfile, one
+   opt-in `ENG_NETWORK` knob in `experiments/lib/engine.sh` (`none` only,
+   unset by default, anything else refused), and this record.
+4. Licence. Apache-2.0, determined in [reference-map.md](reference-map.md)
+   before use. The binary is executed, never vendored and never embedded.
+5. Binary or image. The pinned binary: no image pull at all, which is what
+   beats the entry's `registry:2` Decision (amended above in the same
+   change).
+
+⚠ Traps measured on the way, each carried in the script header where it
+bites: two zot servers never share one storage dir (the second dies on
+the first's `cache.db` lock); curl without `-f` exits 0 on an HTTP error
+page, so the size gates the fetch loop's break; NTFS carries no exec bit,
+so the binary check is `-f` off-lane; native openssl needs Windows
+spellings for every file it touches. What the runs did NOT prove: the
+Windows port-forward path (TLS through it aborts; the fixture never uses
+it, everything meets on container loopback).
 
 ⛔ **CORRECTED 2026-09-09 BY MEASUREMENT, AND THE PREMISE ABOVE WAS WRONG.** The
 `Premise` says `150-image-acquisition.sh` "cannot follow them, because its whole

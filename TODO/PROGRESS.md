@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 8 open, 1 partial, 2 blocked, 131 done.
+142 entries: 7 open, 1 partial, 2 blocked, 132 done.
 
 ## Baseline
 
@@ -465,6 +465,20 @@ and drops the stale blocked sentence; [T-0909](deps.md)'s `Decision`
 already ruled neither `memfd-exec` tree vendors. Counts move to 8 open and
 131 done.
 
+[T-0206](image.md) closed in its own change: the loopback registry
+fixture over the pinned `zot` minimal binary, driven by the new 180
+script with its `registry-fixture.txt` reading. Twenty-one clauses green
+three consecutive runs on host podman: the pin verified every run
+against the release checksums, the hand-seeded repo self-consistent,
+both configs verifying, the open half serving all four endpoints with
+podbox pulling by tag and by digest to the seeded digest, the required
+half answering 401 anon with a Basic challenge and 200 authed, all with
+no default route and no working resolver inside the driver. The
+`Decision` moves from `registry:2` to the binary in the same change,
+with the three reasons. The change also carries one opt-in `ENG_NETWORK`
+knob in `engine.sh` (`none` only, unset by default, proved additive and
+injection-proof). Counts move to 7 open and 132 done.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -568,9 +582,12 @@ for clause 3. [T-1209](gate.md) and
    scaffold control answering, reached path 0 bytes by subtraction).
    The `fexecve` call and the vendored tree's `goblin`/`nix` patch-out
    belong to the [T-1003](packaging.md) ladder.
-   [T-0206](image.md) keeps its fixture technology (`zot`, licence
-   determined) and is next: its `Decision` still names `registry:2` and
-   is amended to `zot` in the same change that writes the 180 script.
+   [T-0206](image.md) is done: the loopback fixture over the pinned `zot`
+   minimal binary, driven by `experiments/180-registry-fixture.sh` with
+   21 clauses green and `experiments/results/registry-fixture.txt`
+   committed. [T-0209](image.md) owns the credential UX against the
+   fixture's required-credential mode next; [T-1003](packaging.md) owns
+   the launch ladder.
    No beta binary ships without the operator's go-ahead: creating a
    GitHub release leaves the machine, so the artifact set rides as a
    proposal, not a commit.
@@ -605,6 +622,8 @@ the committed `bloat-memfd.txt` reading, the `THIRD_PARTY.md` vendored
 row, and the corrected `INDEX.md` section 4, which named two blocked
 entries neither of which is blocked (the blocked rows are
 [T-1212](gate.md) and [T-1213](gate.md)).
+[T-0206](image.md) closed in its own change: the `zot` fixture with the
+180 script green three consecutive runs and its reading committed.
 
 [T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
 the 2026-09-11 reopen note, so the note moved verbatim to

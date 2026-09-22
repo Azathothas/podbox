@@ -60,6 +60,14 @@ ENG_ENTRYPOINT="${ENG_ENTRYPOINT:-}"
 # host path staged by eng_mount or a volume name staged by eng_volmount.
 # Cleared after it.
 ENG_MOUNTS=""
+# Optional network for the next eng_run, cleared by eng_clear afterwards
+# like the mounts. Empty means the engine default. The only value honoured
+# is `none` (loopback alone, no default route, no resolver): anything else
+# is refused rather than passed through, because an unvalidated network
+# string is a flag-injection hole (`--network x --privileged` would ride
+# the same word-splitting the mounts use). TODO/image.md T-0206 proves a
+# fixture with all outbound network blocked through this knob.
+ENG_NETWORK="${ENG_NETWORK:-}"
 # Container ids eng_create registered, space-separated, for eng_cleanup.
 ENG_CIDS=""
 # Named volumes eng_volmount registered, space-separated, for eng_cleanup.
@@ -283,6 +291,11 @@ eng_run() {
 	for _m1 in $ENG_MOUNTS; do
 		_flags="$_flags -v $_m1"
 	done
+	case "${ENG_NETWORK:-}" in
+	"") ;;
+	none) _flags="$_flags --network none" ;;
+	*) _refuse "network is not a value this helper honours: $ENG_NETWORK" || return 1 ;;
+	esac
 	[ -n "$ENG_ENTRYPOINT" ] && _flags="$_flags --entrypoint $ENG_ENTRYPOINT"
 	# shellcheck disable=SC2086
 	MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' timeout "$_t" "$ENGINE_BIN" run --rm $_caps $_flags "$_img" "$@"
@@ -290,11 +303,12 @@ eng_run() {
 	return "$_rc"
 }
 
-# eng_clear - forget staged mounts and the entrypoint override. Call after
-# the run, in the same shell that staged them: a `$( )` around the run
-# would discard the clearing.
+# eng_clear - forget staged mounts, the network override and the entrypoint
+# override. Call after the run, in the same shell that staged them: a `$( )`
+# around the run would discard the clearing.
 eng_clear() {
 	ENG_MOUNTS=""
+	ENG_NETWORK=""
 	ENG_ENTRYPOINT=""
 }
 
