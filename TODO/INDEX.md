@@ -186,7 +186,7 @@ the blocker named and what would clear it.
 | [T-1208](gate.md) | P1 | gate | done | A closed entry carries its recorded run, and the gate can see it |
 | [T-1209](gate.md) | P1 | gate | done | Thirty-nine `Prove` lines pull from the one registry the acceptance may not use |
 | [T-1210](gate.md) | P1 | gate | done | Convert the interpose engine scripts to `experiments/lib/engine.sh` |
-| [T-1211](gate.md) | P1 | gate | blocked | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
+| [T-1211](gate.md) | P1 | gate | done | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
 | [T-1212](gate.md) | P1 | gate | blocked | Convert the image, registry and CLI engine scripts to `experiments/lib/engine.sh` |
 | [T-1213](gate.md) | P1 | gate | blocked | Convert the target-image pair and its probe consumer to `experiments/lib/engine.sh` |
 | [T-1301](podvm.md) | P0 | podvm | done | The machine tier is probed leg by leg, and a present file is not a working one |
@@ -205,7 +205,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-141 items: 19 open, 3 partial, 3 blocked, 116 done.
+141 items: 19 open, 3 partial, 2 blocked, 117 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -214,10 +214,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 50 | 52 |
-| P1 | 9 | 2 | 3 | 51 | 65 |
+| P1 | 9 | 2 | 2 | 52 | 65 |
 | P2 | 5 | 0 | 0 | 14 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **19** | **3** | **3** | **116** | **141** |
+| **All** | **19** | **3** | **2** | **117** | **141** |
 
 ## How the current ordering is derived
 

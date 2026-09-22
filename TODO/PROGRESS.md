@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-141 entries: 19 open, 3 partial, 3 blocked, 116 done.
+141 entries: 19 open, 3 partial, 2 blocked, 117 done.
 
 ## Baseline
 
@@ -320,6 +320,13 @@ built and ran on host podman 6.1.2 with the shipped binary, both
 libdnf rows 0 0 42. [T-1211](gate.md)'s clearing conditions hold; its
 flip to done is next.
 
+[T-1211](gate.md) is `done` in its own change, next in the same
+session: its Blocked clause named T-1309 fixed with both rows at 42
+and the sweep at exit 0, and all three hold on today's runs. The
+other three scripts carry no `run` or preload path (read by grep),
+so the interposer change cannot reach them and their recorded runs
+stand.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -395,9 +402,10 @@ store suite), so the change commits with the three reds named above.
    guest). The results file was recovered from the kept job transcript;
    a measurement job always names `PODBOX_ARTIFACTS`.
 
-[T-1211](gate.md) stays `blocked` pending its flip: [T-1309](interpose.md)
-is fixed and proven below, so the two rows read 42 and the sweep exits
-0, which is what its Blocked clause names. [T-1212](gate.md) is `blocked` on a
+[T-1211](gate.md) is `done` in its own change: the T-1309 fix holds,
+so the two rows read 42 and the sweep exits 0 with 10 rows, 10 ran,
+10 built and ran. The other three scripts never load the interposer,
+so their recorded runs stand. [T-1212](gate.md) is `blocked` on a
 daemon, privilege, and two expectation owners. [T-1213](gate.md) is
 `blocked` on a native lane for clause 2 and a same-machine reference
 for clause 3. [T-1209](gate.md) and
