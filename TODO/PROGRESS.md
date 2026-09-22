@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 13 open, 1 partial, 2 blocked, 126 done.
+142 entries: 12 open, 1 partial, 2 blocked, 127 done.
 
 ## Baseline
 
@@ -562,6 +562,11 @@ its three runs and its lane findings. One entry
 remains `partial`: [T-1109](milestones.md), carrying its remaining conditions
 in its own file. [T-0704](interpose.md) closed in this change: its wiring and
 identity halves landed under T-0702 and T-0711 with driven evidence.
+[T-0208](image.md) closed on [T-0212](image.md)'s green five-clause run:
+`--platform` and the platform-keyed store shipped there, and the 270
+script's stale 125 expectation (predating [T-0802](cli.md)'s
+discriminator) was corrected to the cli-error code in the preceding
+change.
 
 [T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
 the 2026-09-11 reopen note, so the note moved verbatim to

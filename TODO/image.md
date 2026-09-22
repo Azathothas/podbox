@@ -544,7 +544,7 @@ Source:      `TOOL.md` section 6.2; `docs/conventions/forbidden-patterns.md`, th
 Category:    image
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     podbox resolves an index to `linux/amd64` and records the platform
              it stored, but nothing can ask for another one, and the store keys
@@ -575,6 +575,28 @@ Decision:    Key by platform rather than refusing a second variant. The refusal
              the code does now and it is wrong the moment podbox runs on arm64,
              which is most of the machines its audience rents.
 Prove:       `podbox pull --platform linux/arm64 public.ecr.aws/docker/library/alpine:3.20 && podbox images --format '{{.Platform}} {{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | sort | uniq -c | grep -qx ' *1 linux/amd64 .*' `
+
+**Done 2026-09-22.** The work this entry specifies shipped under
+[T-0212](#t-0212-the-platform-is-decided-at-run-time-and-the-store-holds-more-than-one)
+and this close verifies it rather than re-implementing it. Every
+`Premise` claim is stale: `oci.rs` delegates to the `platform` module
+instead of hard-coding OS and ARCH, `put_record` retains on repository,
+tag **and** platform (`store.rs`), `find_for` resolves the ambiguity by
+name and returns the hits unfiltered where no platform matches, and
+`pull`, `images` and `extract` all take `--platform` defaulting through
+flag, environment, then the build host. Driven green on host podman
+6.1.2 with a lane-built musl binary (`podbox 0.1.0`):
+`experiments/270-multiarch-image.sh` exits 0 on five clauses: no flag
+pulls the build platform, `--platform` takes the arm64 manifest out of
+the same index (2 records, 2 image IDs for one tag), the ELF machine
+words read `x86-64` and `ARM aarch64` out of the extracted trees, the
+unmatched ask names what the index offers (exit 125), and a malformed
+platform is a cli error (exit 1), with the run in
+`experiments/results/multiarch-image.txt`. One `Approach` sentence
+landed differently and is named: the default `images` table carries no
+Platform column; the per-variant display is `--format '{{.Platform}}'`
+and `inspect`'s `.Platform`/`.Architecture`/`.Os`, while the common
+output is unchanged, which was that sentence's own goal.
 
 ---
 

@@ -81,7 +81,7 @@ the blocker named and what would clear it.
 | [T-0205](image.md) | P3 | image | open | Re-test podman with `vfs` and `ignore_chown_errors` before repeating "no path exists" |
 | [T-0206](image.md) | P3 | image | open | A registry fixture, so the acceptance stops depending on somebody else's quota |
 | [T-0207](image.md) | P2 | image | open | Fetch layers with bounded concurrency, and measure what it buys |
-| [T-0208](image.md) | P2 | image | open | `--platform`, and a store that can hold two variants of one tag |
+| [T-0208](image.md) | P2 | image | done | `--platform`, and a store that can hold two variants of one tag |
 | [T-0209](image.md) | P2 | image | open | Registry authentication, without a credential ever entering this tree |
 | [T-0210](image.md) | P1 | image | done | The store's concurrency contract, written down and driven |
 | [T-0211](image.md) | P1 | image | done | An image lock outlives its holder whenever anything forks |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 13 open, 1 partial, 2 blocked, 126 done.
+142 items: 12 open, 1 partial, 2 blocked, 127 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -216,9 +216,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 0 | 0 | 51 | 52 |
 | P1 | 4 | 1 | 2 | 59 | 66 |
-| P2 | 4 | 0 | 0 | 15 | 19 |
+| P2 | 3 | 0 | 0 | 16 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **13** | **1** | **2** | **126** | **142** |
+| **All** | **12** | **1** | **2** | **127** | **142** |
 
 ## How the current ordering is derived
 
