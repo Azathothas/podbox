@@ -941,7 +941,7 @@ Source:      `https://github.com/talaria0101/nix-experiment`, its REPORT documen
 Category:    complete
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     A chroot has no `/proc` unless something mounts one, and `mount` is
              refused on every runtime podbox targets. podbox already knows this
@@ -973,11 +973,37 @@ Approach:    Two parts, and the first is the one that pays.
                 descriptor, so a fixture that looks like procfs and answers
                 wrongly is worse than one that is absent.
              ⛔ Never mount, and never claim to have mounted.
-Decision:    Not taken. ⚠ Part 2 is where the trade is: an absent `/proc` fails
-             loudly and a partial one fails quietly, which inverts podbox's
-             honesty rule if the fixture is not bounded carefully. Rule what the
-             fixture may contain before any of it is written.
+Decision:    Taken 2026-09-22: no static fixture ships. Part 2 measured
+             itself out. `/proc/self/fd` entries are per-process kernel state:
+             a static directory cannot follow a descriptor, so a fixture that
+             looks like procfs answers wrongly exactly where it looks right,
+             which is the inversion the Approach warns about. Both live
+             instances need the kernel filesystem rather than files:
+             `/dev/fd/N` (T-0412 measured `/dev/fd/62: No such file or
+             directory`) and `/proc/self/exe` (the Premise's second
+             instance). Absent plus named is the whole answer: the banner
+             names the missing procfs and its casualty before the payload
+             meets either. ⛔ Never mount, and never claim to have mounted.
 Prove:       `./experiments/155-proc-absence.sh` asserts the banner names the missing procfs, and that a payload using process substitution fails with a message naming `/proc` rather than the script line
+
+**Done 2026-09-22.** Part 1 in `crates/podbox-probe`: the chroot
+`must_never_claim` names `a /proc filesystem`, and `entry_banner` adds one
+sentence for the entered chroot rung naming process substitution and
+`/proc/self` paths as the casualty with `/dev/fd` as the error's name.
+`run`, both `exec` paths and `probe` share the banner through one
+constant, so all four say it. Three unit tests pin it: the chroot claim
+names `/proc`, the chroot banner names the casualty, and the namespace
+banner names no procfs (T-0108: printed where true). Part 2 is the
+Decision above: measured out, nothing ships.
+`experiments/155-proc-absence.sh` gains clause 4: one pinned debian
+row, a `cat <(echo hi)` payload that must fail, bash naming `/dev/fd`
+beside the banner naming `/proc`. Driven exit 0 three times on host podman
+6.1.2 with lane-built musl binaries, all four clauses green: the five
+probe legs with their errnos, the `creat` denied-`EACCES` arm beside an
+ok listing, and the procfs clause at payload exit 1. Full
+`dev.sh check` green in the lane (fmt, clippy with `-D warnings`, musl
+release build, workspace tests, interpose tests, gate 9 passed with the
+2 familiar skips).
 
 
 ---

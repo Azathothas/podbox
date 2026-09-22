@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 4 open, 1 partial, 2 blocked, 135 done. Every P0 is done.
+142 entries: 3 open, 1 partial, 2 blocked, 136 done. Every P0 is done.
 
 ## Baseline
 
@@ -681,7 +681,7 @@ driven by the new 120 script.
 [T-0414](complete.md) closed on the probe half: three root-listing legs
 with their own errnos, driven by the new 155 script with a genuine
 denied arm. Its remedy decision stays open, and the proc-absence clause
-awaits [T-0413](complete.md)'s ruling.
+landed with [T-0413](complete.md)'s close: no static fixture ships.
 [T-0909](deps.md) closed in its own change (`fb9fc31`, CI success):
 the vendor tree, the own memfd path with four lane-green unit tests,
 the committed `bloat-memfd.txt` reading, the `THIRD_PARTY.md` vendored

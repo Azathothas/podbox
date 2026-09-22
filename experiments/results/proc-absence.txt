@@ -1,5 +1,5 @@
 == conditions
-date              2026-09-22T07:16:56Z
+date              2026-09-22T16:08:16Z
 host kernel       MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64
 podbox            lane-built artifact, runs in the driver below
 
@@ -19,3 +19,8 @@ open(/dev/ptmx, O_RDWR) ok errno=-
 readdir(/) ok errno=-
 open(/bin, O_RDONLY) by name ok errno=-
 creat(/, O_CREAT|O_EXCL) denied errno=EACCES
+
+== 4. a chroot run names the missing procfs (T-0413)
+  payload exit: 1
+  payload names /dev/fd: /dev/fd
+  banner names the missing procfs

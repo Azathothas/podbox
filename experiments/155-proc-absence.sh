@@ -1,11 +1,12 @@
 #!/bin/sh
 # Question: do the root-listing legs and the ptmx legs run and report
-# their own errno?
+# their own errno, and does a chroot run name the missing procfs?
 #
 # TODO/complete.md T-0414 (the root-listing clause and the `/dev/ptmx`
-# clause). The proc-absence clause this filename promises is
-# TODO/complete.md T-0413's and arrives with its ruling; this script
-# asserts no proc shape until then.
+# clause) and TODO/complete.md T-0413 (the proc-absence clause: the banner
+# names the missing procfs, and a process-substitution payload fails naming
+# `/dev/fd` beside it). T-0413 rules no static fixture ships: nothing static
+# can carry `/proc/self/fd` semantics, so absent plus named is the answer.
 #
 # The binary is `$PODBOX_BIN`, a lane-built podbox (the legs are its
 # code). A non-native lane stages it through the M5 debian driver, the
@@ -140,6 +141,78 @@ elif [ "$LANE" = "driver" ]; then
 	fi
 else
 	echo "  no setpriv on this host: the denied arm is not staged here" >>"$WORK/report"
+fi
+
+# TODO/complete.md T-0413 (the proc-absence clause). One image with bash:
+# process substitution is a bash feature, and the M5 debian row is pinned in
+# scripts/common/distro-matrix.sh. The payload must FAIL (no /proc is
+# mounted), bash must name /dev/fd (its signature for this shape), and the
+# banner on the same stderr must name /proc (the attribution). A fresh
+# container-local store; readings land in /w on the shared scratch.
+echo "" >>"$WORK/report"
+echo "== 4. a chroot run names the missing procfs (T-0413)" >>"$WORK/report"
+RUN_IMAGE='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
+if [ "$LANE" = "native" ]; then
+	STORE155="$WORK/store155"
+	rm -rf "$STORE155"
+	if PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" pull "$RUN_IMAGE" >"$WORK/pull155.log" 2>&1; then
+		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'cat <(echo hi)' >"$WORK/run155.out" 2>"$WORK/run155.err"
+		echo "$?" >"$WORK/run155.rc"
+	else
+		leg_not_run "podbox pull $RUN_IMAGE" "see $WORK/pull155.log"
+	fi
+else
+	cat >"$WORK/row155.sh" <<'ROW155_EOF'
+#!/bin/sh
+# One chroot run in the driver: pull, then a process-substitution payload.
+# Stdout carries only stage failures; the readings land in /w/row155/.
+set -u
+export PODBOX_STORE=/tmp/ostore155
+rm -rf /tmp/ostore155
+if [ -f /w/cacert.pem ]; then
+	export SSL_CERT_FILE=/w/cacert.pem
+fi
+d=/w/row155
+mkdir -p "$d" || exit 6
+rm -f "$d/out" "$d/err" "$d/rc"
+/pb pull "$1" >"$d/pull.log" 2>&1 || exit 3
+timeout 300 /pb run --rm "$1" /bin/bash -c 'cat <(echo hi)' >"$d/out" 2>"$d/err"
+echo "$?" >"$d/rc"
+exit 0
+ROW155_EOF
+	if [ ! -f "$WORK/w/cacert.pem" ]; then
+		eng_run 600 "$DRIVER" "" -- /bin/sh -c 'DEBIAN_FRONTEND=noninteractive apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ca-certificates && cp /etc/ssl/certs/ca-certificates.crt /w/cacert.pem && test -s /w/cacert.pem' \
+			>/dev/null 2>"$WORK/ca-install155.log" || leg_not_run "CA provision" "see $WORK/ca-install155.log"
+	fi
+	if [ ! -s "$WORK/worst" ]; then
+		eng_mount "$WORK/row155.sh" /drv/row155.sh || leg_not_run "stage row155.sh" "mount refused"
+	fi
+	if [ ! -s "$WORK/worst" ]; then
+		if eng_run 600 "$DRIVER" "" -- /bin/sh /drv/row155.sh "$RUN_IMAGE" 2>"$WORK/row155.stage"; then
+			cp "$WORK/w/row155/out" "$WORK/run155.out" && cp "$WORK/w/row155/err" "$WORK/run155.err" && cp "$WORK/w/row155/rc" "$WORK/run155.rc" || leg_not_run "read back row155" "copy failed"
+		else
+			leg_not_run "row155 driver" "see $WORK/row155.stage"
+		fi
+	fi
+fi
+if [ -f "$WORK/run155.rc" ]; then
+	rc="$(cat "$WORK/run155.rc")"
+	echo "  payload exit: $rc" >>"$WORK/report"
+	case "$rc" in
+	0) echo "  FAIL: the process-substitution payload succeeded; /proc may be mounted where none was expected" >>"$WORK/report"; fail=1 ;;
+	esac
+	if grep -q '/dev/fd' "$WORK/run155.err" 2>/dev/null; then
+		echo "  payload names /dev/fd: $(grep -o '/dev/fd[^ :]*' "$WORK/run155.err" | head -1)" >>"$WORK/report"
+	else
+		echo "  FAIL: the payload failed without naming /dev/fd; the failure is not the procfs shape" >>"$WORK/report"
+		fail=1
+	fi
+	if grep -q 'no /proc is mounted' "$WORK/run155.err" 2>/dev/null; then
+		echo "  banner names the missing procfs" >>"$WORK/report"
+	else
+		echo "  FAIL: the banner does not name the missing procfs" >>"$WORK/report"
+		fail=1
+	fi
 fi
 
 cat "$WORK/report"

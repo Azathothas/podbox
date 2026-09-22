@@ -79,6 +79,18 @@ pub fn entry_banner(f: &Findings, sel: &Selection, entered: Rung) -> String {
             entered.must_never_claim()
         ));
     }
+    // TODO/complete.md T-0413 part 1. The chroot entry sequence mounts
+    // nothing, so no /proc is mounted in the payload root. The failure this
+    // produces names /dev/fd rather than /proc (measured under T-0412:
+    // `/dev/fd/62: No such file or directory`), so the banner names the
+    // filesystem and the casualty before the payload meets either.
+    if entered == Rung::Chroot {
+        out.push_str(
+            "no /proc is mounted in the payload root: shell process substitution \
+             and /proc/self paths fail there, and the error names /dev/fd rather \
+             than /proc\n",
+        );
+    }
     // ⛔ Said, not dropped. A machine that would permit more than podbox took
     // is a fact the caller acts on, and printing only the mode would read as
     // "this is all this machine can do".
@@ -893,6 +905,29 @@ mod tests {
             "{e}"
         );
         assert!(e.contains("open(/dev/kvm, O_RDWR)=ENOENT"), "{e}");
+    }
+
+    #[test]
+    fn the_chroot_banner_names_the_missing_procfs() {
+        // TODO/complete.md T-0413 part 1. The entered rung mounts nothing,
+        // so the banner names the absent /proc and its casualty before the
+        // payload meets either.
+        let f = Findings::empty();
+        let sel = Selection::choose(&f);
+        let b = entry_banner(&f, &sel, Rung::Chroot);
+        assert!(b.contains("this mode does NOT provide:"), "{b}");
+        assert!(b.contains("/proc"), "{b}");
+        assert!(b.contains("process substitution"), "{b}");
+    }
+
+    #[test]
+    fn the_namespace_banner_names_no_procfs() {
+        // The line is printed where it is true (TODO/probe.md T-0108): a
+        // namespace entry mounts what it mounts, so no procfs sentence.
+        let f = Findings::empty();
+        let sel = Selection::choose(&f);
+        let b = entry_banner(&f, &sel, Rung::Namespace);
+        assert!(!b.contains("/proc"), "{b}");
     }
 
     #[test]

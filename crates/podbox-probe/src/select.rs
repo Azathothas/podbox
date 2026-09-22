@@ -58,7 +58,7 @@ impl Rung {
             Rung::Supervise => {
                 "anything whose arguments it cannot read; on this runtime, exec remapping"
             }
-            Rung::Chroot => "process, network, IPC or mount isolation",
+            Rung::Chroot => "process, network, IPC or mount isolation, or a /proc filesystem",
             Rung::Interpose => "any security property whatsoever",
             Rung::Unsupported => "",
         }
@@ -581,6 +581,7 @@ mod tests {
     #[test]
     fn the_chroot_rung_says_what_it_must_never_claim() {
         assert!(Rung::Chroot.must_never_claim().contains("network"));
+        assert!(Rung::Chroot.must_never_claim().contains("/proc"));
     }
 
     #[test]

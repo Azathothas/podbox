@@ -108,7 +108,7 @@ the blocker named and what would clear it.
 | [T-0410](complete.md) | P0 | complete | done | Supply `/etc/nsswitch.conf`, or the supplied `/etc/passwd` is a no-op |
 | [T-0411](complete.md) | P1 | complete | done | A payload whose package sources are `http://`, on a runtime where tcp/80 hangs |
 | [T-0412](complete.md) | P1 | complete | done | A fixup that has to run INSIDE the rootfs, and podbox runs it from outside |
-| [T-0413](complete.md) | P1 | complete | open | No `/proc` inside a chroot, and the shell feature that quietly stops working |
+| [T-0413](complete.md) | P1 | complete | done | No `/proc` inside a chroot, and the shell feature that quietly stops working |
 | [T-0414](complete.md) | P1 | complete | done | Two walls only one instance of the class has shown, and podbox has probed neither |
 | [T-0415](complete.md) | P1 | complete | done | A device stand-in is checked by type, because an absent one becomes a growing file |
 | [T-0501](enter.md) | P0 | enter | done | Open every descriptor before the root changes |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 4 open, 1 partial, 2 blocked, 135 done.
+142 items: 3 open, 1 partial, 2 blocked, 136 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -215,10 +215,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 2 | 1 | 2 | 61 | 66 |
+| P1 | 1 | 1 | 2 | 62 | 66 |
 | P2 | 1 | 0 | 0 | 18 | 19 |
 | P3 | 1 | 0 | 0 | 4 | 5 |
-| **All** | **4** | **1** | **2** | **135** | **142** |
+| **All** | **3** | **1** | **2** | **136** | **142** |
 
 ## How the current ordering is derived
 
