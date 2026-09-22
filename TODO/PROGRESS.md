@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 18 open, 3 partial, 2 blocked, 119 done.
+142 entries: 16 open, 3 partial, 2 blocked, 121 done.
 
 ## Baseline
 
@@ -358,6 +358,33 @@ red without the change. The entry Prove is amended to the broad map
 (`-e`; `-v` does not exist). `/proc` is unmounted in payloads
 (measured EXE_RC=1/FD_RC=1), so the tree prefix replaces the three
 named leaves and the store takes no entry.
+
+[T-0810](cli.md) closed in its own change: the container directory is
+made where the container is created. `supervise::create` ensures
+`containers/<id>/` after the table write, so the `create` and `run -d`
+memo renames land. A unit test pins the directory and the rename beside
+the record. The entry Prove ran as row E1 of the T-0708 drive on host
+podman with the shipped binary. A read-only sweep of the other
+beside-the-record writers (launcher log and control socket, lock opens,
+memo opens) shows each makes its own parent. Counts move to 17 open and
+120 done.
+
+[T-0708](interpose.md) closed in its own change: the four operations the
+runtime cannot provide now run as counted emulations. `mknod` writes a
+regular file, `mount` writes a tally chain and answers 0, `unshare`
+answers 0, and `clone` loses its namespace flags before the real call.
+The count rides the memo file beside the ownership records, and
+`inspect` reports it under `Interpose.Emulated` with the banner naming
+the tier on every load. Ten rows drove green on host podman with the
+shipped binary: tallies for all four calls on glibc and musl, threads
+untouched, the banner present, honest failures intact, the `NEWNET` strip
+loud, and a failed tally refusing instead of reporting. The `clone` row
+calls `clone()` directly through python ctypes, after a fork-based row
+proved to never reach the wrapper. Regression holds: 240 exits 0 at 10
+of 10 built and ran with no declines, and the T-0705 and T-0707 drives
+stay green. A review audit over the entry text against the code found one
+real defect (a mknod tally failure reported success) and the change fixes
+it with its own failing row. Counts move to 16 open and 121 done.
 
 What stays current from last time:
 

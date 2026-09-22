@@ -132,7 +132,7 @@ the blocker named and what would clear it.
 | [T-0705](interpose.md) | P1 | interpose | done | Reverse mapping, so the payload reads back what it wrote |
 | [T-0706](interpose.md) | P0 | interpose | done | Classify the payload and decline with a named reason |
 | [T-0707](interpose.md) | P1 | interpose | done | The paths that must not be rewritten |
-| [T-0708](interpose.md) | P2 | interpose | open | Intercept the operations the runtime cannot provide |
+| [T-0708](interpose.md) | P2 | interpose | done | Intercept the operations the runtime cannot provide |
 | [T-0709](interpose.md) | P0 | interpose | done | Select the interposer by `DT_NEEDED`, and refuse on the version predicate |
 | [T-0710](interpose.md) | P1 | interpose | done | The ownership memo lives where the payload can edit it, and answers by linear scan |
 | [T-0711](interpose.md) | P1 | interpose | done | The identity calls, and podbox's honesty rules point the other way from fakeroot's |
@@ -146,7 +146,7 @@ the blocker named and what would clear it.
 | [T-0807](cli.md) | P2 | cli | done | `podbox images --format` refuses a template no verb can answer, before it looks at the store |
 | [T-0808](cli.md) | P1 | cli | done | Drive every row of the parity table through the shipped binary |
 | [T-0809](cli.md) | P1 | cli | done | The spawn that fails with the wrong reason, and the one field that fixes it |
-| [T-0810](cli.md) | P1 | cli | open | `create` fails storing the memo: the container directory is never made |
+| [T-0810](cli.md) | P1 | cli | done | `create` fails storing the memo: the container directory is never made |
 | [T-0901](deps.md) | P1 | deps | done | Sweep: syscalls |
 | [T-0902](deps.md) | P2 | deps | done | Sweep: seccomp BPF |
 | [T-0903](deps.md) | P3 | deps | done | Sweep: Landlock |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 18 open, 3 partial, 2 blocked, 119 done.
+142 items: 16 open, 3 partial, 2 blocked, 121 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -215,10 +215,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 50 | 52 |
-| P1 | 8 | 2 | 2 | 54 | 66 |
-| P2 | 5 | 0 | 0 | 14 | 19 |
+| P1 | 7 | 2 | 2 | 55 | 66 |
+| P2 | 4 | 0 | 0 | 15 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **18** | **3** | **2** | **119** | **142** |
+| **All** | **16** | **3** | **2** | **121** | **142** |
 
 ## How the current ordering is derived
 

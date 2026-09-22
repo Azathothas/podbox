@@ -134,6 +134,12 @@ pub fn create(
         t.containers.push(c.clone());
         Ok(())
     })?;
+    // T-0810: the container's directory has to exist before anything is
+    // stored beside the record (the memo rename at create, the log and the
+    // lock at start). Nothing else makes it, and the rename fails with
+    // ENOENT where it does not exist.
+    let dir = table::dir(store, &id);
+    std::fs::create_dir_all(&dir).map_err(|e| Error(format!("{}: {e}", dir.display())))?;
     Ok(c)
 }
 
@@ -324,5 +330,36 @@ mod tests {
         let n = generated_name(&id);
         assert!(n.starts_with("podbox_"));
         assert!(id.starts_with(&n["podbox_".len()..]));
+    }
+
+    /// T-0810: creating a container makes its directory, or the memo rename
+    /// beside the record fails with ENOENT and no record can be inspected.
+    #[test]
+    fn creating_a_container_makes_its_directory() {
+        let d = std::env::temp_dir().join(format!("podbox-mkdir-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let s = Store::open(&d).unwrap();
+        let c = create(
+            &s,
+            Some("e1"),
+            "img",
+            "sha256:0",
+            "/tmp",
+            vec!["true".into()],
+            Vec::new(),
+            "/".into(),
+            "chroot",
+            Vec::new(),
+            0,
+        )
+        .unwrap();
+        assert!(table::dir(&s, &c.id).is_dir());
+        // The shape the cli rename needs: a file moves beside the record.
+        let src = d.join("ephemeral.tmp");
+        std::fs::write(&src, b"memo").unwrap();
+        let dest = table::memo_path(&s, &c.id);
+        std::fs::rename(&src, &dest).unwrap();
+        assert_eq!(std::fs::read(&dest).unwrap(), b"memo");
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

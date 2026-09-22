@@ -704,7 +704,7 @@ Source:      T-0708's drive, host podman 6.1.2
 Category:    cli
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     `podbox create --name e1 <image> ...` fails with `the ownership
              memo could not be stored: No such file or directory`, so no
@@ -728,3 +728,17 @@ Decision:    A failed directory fails the creation loudly, beside the
              answers `stat` with the real uid and contradicts every
              foreground run, which is the inconsistency T-0710 refuses.
 Prove:       `podbox create --name e1 public.ecr.aws/docker/library/alpine:3.20 true && podbox rm e1`
+
+**Done 2026-09-22.** `supervise::create` ensures `containers/<id>/` after the
+table write (`crates/podbox-supervise/src/lib.rs`). Both memo renames ride it
+with no change (`lifecycle.rs` `create`, `run.rs` detach). A directory the
+kernel refuses fails the creation loudly. `creating_a_container_makes_its_directory`
+creates a container, asserts the directory, and renames a file beside the
+record. The entry Prove ran as the E1 row of the T-0708 drive on host podman
+6.1.2 with the shipped binary: `create --name e1` succeeded, the payload
+`mknod` read back through `inspect` at 1, and `rm -f` removed the container.
+A read-only audit over every other beside-the-record write site (log, lock,
+control socket, memo opens in launcher and exec) names an independent
+guarantee for each (the launcher's own directory creation, the lock's parent
+creation, the memo helper's parent creation). No site writes beside a record
+without a directory behind it.
