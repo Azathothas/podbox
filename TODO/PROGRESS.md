@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 14 open, 3 partial, 2 blocked, 123 done.
+142 entries: 14 open, 2 partial, 2 blocked, 124 done.
 
 ## Baseline
 
@@ -427,6 +427,16 @@ podman with the shipped binary on both halves (file present, preload
 announced). The entry Prove is amended: its `/proc/self/environ`
 reading cannot work where `/proc` is unmounted. Counts move to 14 open
 and 123 done.
+
+[T-0503](enter.md) closed in its own change: one shared predicate
+answers whether `-t` may promise a pty, and `run` plus both `exec`
+paths ask it. Only the OPEN row with `Ok` counts; a five-case unit
+test pins denied, skipped, absent and stat-without-open as refusals.
+Driven on host podman with the shipped binary: ptmx usable, `run -t`
+exits 0 with no refusal text. A door sweep over the change found the
+third copy of the check in the second `exec` path and routed it
+through the same predicate. Counts move to 14 open, 2 partial and
+124 done.
 
 What stays current from last time:
 

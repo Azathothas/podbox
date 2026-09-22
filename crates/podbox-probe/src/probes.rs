@@ -768,6 +768,18 @@ fn p_open_ptmx() -> Outcome {
     }
 }
 
+/// Whether `-t` may promise a pty, T-0503.
+///
+/// One home for the question `run` and `exec` both ask: only the OPEN row
+/// counts, with an `Ok` verdict and nothing else. A `Skip` never ran, so it
+/// promises nothing (T-0109 rule 1); a `Denied` row is the refusal itself.
+/// Existence is not function, so the stat row does not answer.
+pub fn ptmx_usable(findings: &crate::Findings) -> bool {
+    findings.rows.iter().any(|(n, out)| {
+        n.starts_with("open(/dev/ptmx") && matches!(out.verdict, crate::verdict::Verdict::Ok)
+    })
+}
+
 fn p_tcp_listen() -> Outcome {
     // socket+bind+listen on 127.0.0.1 port 0: the kernel picks the port, so
     // no fixture can collide, and nothing is ever accepted on it. Closing
@@ -1324,5 +1336,36 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// T-0503: only the OPEN row with `Ok` promises a pty. Existence is not
+    /// function, a denial is the refusal itself, and a skip never ran.
+    #[test]
+    fn only_an_ok_open_promises_a_pty() {
+        fn findings(rows: Vec<(&'static str, Outcome)>) -> crate::Findings {
+            crate::Findings {
+                rows,
+                identity: crate::identity::Identity::default(),
+                writable: Vec::new(),
+                self_exe: String::new(),
+            }
+        }
+        let open = "open(/dev/ptmx, O_RDWR)";
+        let stat = "stat(/dev/ptmx)";
+        assert!(ptmx_usable(&findings(vec![(open, Outcome::ok())])));
+        assert!(!ptmx_usable(&findings(vec![(
+            open,
+            Outcome::denied(crate::sys::Errno(2))
+        )])));
+        assert!(!ptmx_usable(&findings(vec![(
+            open,
+            Outcome::skip(None, "nope")
+        )])));
+        assert!(!ptmx_usable(&findings(vec![])));
+        // Stat Ok beside an open denial: the node is there and will not open.
+        assert!(!ptmx_usable(&findings(vec![
+            (stat, Outcome::ok()),
+            (open, Outcome::denied(crate::sys::Errno(13))),
+        ])));
     }
 }

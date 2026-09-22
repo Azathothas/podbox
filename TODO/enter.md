@@ -112,7 +112,7 @@ Source:      `TOOL.md` section 0, section 6.5, section 6.8; `paper_final.md` sec
 Category:    enter
 Priority:    P1
 Effort:      S
-Status:      partial 2026-09-08
+Status:      done 2026-09-22
 
 Problem:     `-t` either works or it does not, and the corpus disagrees with
              itself about which. A degraded PTY that cannot open a terminal is
@@ -136,6 +136,17 @@ Decision:    Refuse rather than degrade. `-t` is a request for a terminal, and a
              terminal that is not there cannot be approximated by a pipe without
              changing what every interactive program does.
 Prove:       `podbox probe --json | jq -e 'has("ptmx")' && { podbox run --rm -t public.ecr.aws/docker/library/alpine:3.20 true || podbox run --rm -t public.ecr.aws/docker/library/alpine:3.20 true 2>&1 | grep -q 'ptmx'; }`
+
+**Done 2026-09-22.** Both verbs ask one shared predicate
+(`podbox-probe/src/probes.rs` `ptmx_usable`): only the OPEN row with `Ok`
+promises a pty. `run` and `exec` refuse by name otherwise, through two
+call sites that shared one had three copies of the check. A five-case
+unit test pins the predicate: denied, skipped, absent, and
+stat-Ok-beside-open-denied all refuse. Driven on host podman 6.1.2 with
+the shipped binary: the probe names ptmx present and usable, and
+`run --rm -t` exits 0 with no refusal text. The refusal arm cannot fire
+on this machine, which is the environmental skip 250 records rather
+than a gap in the wiring. The full lane check is green.
 
 **Partial, 2026-09-08.** The probe half is implemented and measured; the refusal
 half needs `run`, which is M3.

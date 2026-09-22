@@ -321,7 +321,7 @@ fn enter(
     {
         return code;
     }
-    if o.tty && !ptmx_usable(&findings) {
+    if o.tty && !podbox_probe::probes::ptmx_usable(&findings) {
         let _ = writeln!(err, "{TTY_REFUSAL}");
         return podbox_enter::EXIT_RUNTIME_ERROR;
     }
@@ -383,15 +383,9 @@ fn enter(
     }
 }
 
-/// ⛔ `Ok` and nothing else. `Skip` means the row never ran, and TODO/probe.md
-/// T-0109 rule 1 is that a skip may not read as a denial or as a pass: a pty
-/// podbox could not measure is not one it may promise.
-fn ptmx_usable(findings: &podbox_probe::Findings) -> bool {
-    findings.rows.iter().any(|(n, out)| {
-        n.starts_with("open(/dev/ptmx") && matches!(out.verdict, podbox_probe::verdict::Verdict::Ok)
-    })
-}
-
+/// The `-t` refusal, with T-0503's entry named. The usability predicate
+/// lives in `podbox-probe`, beside the rows it reads; `run` asks the same
+/// one.
 const TTY_REFUSAL: &str = "podbox exec: -t was asked for and /dev/ptmx is not usable on this \
 machine, so podbox cannot allocate a pty. It refuses rather than running without one and \
 letting the payload discover it (TODO/enter.md T-0503)";
@@ -565,20 +559,10 @@ pub fn exec(args: &[String]) -> i32 {
         return code;
     }
     if o.tty {
-        // ⛔ T-0503, and the same rule as `run`: `Ok` and nothing else, because
-        // a skip is not a pass.
-        let usable = findings.rows.iter().any(|(n, out)| {
-            n.starts_with("open(/dev/ptmx")
-                && matches!(out.verdict, podbox_probe::verdict::Verdict::Ok)
-        });
-        if !usable {
-            let _ = writeln!(
-                err,
-                "podbox exec: -t was asked for and /dev/ptmx is not usable on this \
-                 machine, so podbox cannot allocate a pty. It refuses rather than \
-                 running without one and letting the payload discover it \
-                 (TODO/enter.md T-0503)"
-            );
+        // ⛔ T-0503, and the same shared predicate `enter` asks above: `Ok`
+        // and nothing else, because a skip is not a pass.
+        if !podbox_probe::probes::ptmx_usable(&findings) {
+            let _ = writeln!(err, "{TTY_REFUSAL}");
             return podbox_enter::EXIT_RUNTIME_ERROR;
         }
     }

@@ -113,7 +113,7 @@ the blocker named and what would clear it.
 | [T-0415](complete.md) | P1 | complete | done | A device stand-in is checked by type, because an absent one becomes a growing file |
 | [T-0501](enter.md) | P0 | enter | done | Open every descriptor before the root changes |
 | [T-0502](enter.md) | P0 | enter | done | Resolve the program inside the new root, in the process that changed it |
-| [T-0503](enter.md) | P1 | enter | partial | Probe `/dev/ptmx`, and refuse `-t` by name where it is absent |
+| [T-0503](enter.md) | P1 | enter | done | Probe `/dev/ptmx`, and refuse `-t` by name where it is absent |
 | [T-0504](enter.md) | P1 | enter | done | Refuse a rootfs path that is a symlink |
 | [T-0505](enter.md) | P1 | enter | done | `exec` is a fresh chroot, and `inspect` says so |
 | [T-0506](enter.md) | P0 | enter | done | A foreign-architecture container, and never a rung measured by the emulator |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 14 open, 3 partial, 2 blocked, 123 done.
+142 items: 14 open, 2 partial, 2 blocked, 124 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -215,10 +215,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 50 | 52 |
-| P1 | 5 | 2 | 2 | 57 | 66 |
+| P1 | 5 | 1 | 2 | 58 | 66 |
 | P2 | 4 | 0 | 0 | 15 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **14** | **3** | **2** | **123** | **142** |
+| **All** | **14** | **2** | **2** | **124** | **142** |
 
 ## How the current ordering is derived
 

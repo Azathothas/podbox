@@ -710,16 +710,10 @@ pub(crate) fn prepare(
         let _ = write!(err, "{banner}");
     }
     if o.tty {
-        // ⛔ T-0503: refused BY NAME rather than silently degraded.
-        // ⛔ `Ok` and nothing else. `Skip` means the row never ran, and
-        // TODO/probe.md T-0109 rule 1 is that a skip may not read as either a
-        // denial or a pass: a pty podbox could not measure is not one it may
-        // promise.
-        let usable = findings.rows.iter().any(|(n, out)| {
-            n.starts_with("open(/dev/ptmx")
-                && matches!(out.verdict, podbox_probe::verdict::Verdict::Ok)
-        });
-        if !usable {
+        // ⛔ T-0503: refused BY NAME rather than silently degraded. The
+        // predicate lives in `podbox-probe`, beside the rows it reads, and
+        // `exec` asks the same one: one home for whether `-t` may promise.
+        if !podbox_probe::probes::ptmx_usable(&findings) {
             let _ = writeln!(
                 err,
                 "podbox {verb}: -t was asked for and /dev/ptmx is not usable on this \
