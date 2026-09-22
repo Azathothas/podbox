@@ -267,9 +267,13 @@ echo >>"$WORK/report"
 echo "== 5. a malformed --platform is a USAGE error, before any network" >>"$WORK/report"
 out="$(pb 120 pull --platform 'a/b/c/d' "$IMAGE" 2>&1)"
 rc=$?
-printf '  exit              %d (%s is a flag error, TODO/cli.md T-0802)\n' "$rc" "$PODBOX_EXIT_FLAG_ERROR" >>"$WORK/report"
+printf '  exit              %d (%s is a cli error, TODO/cli.md T-0802)\n' "$rc" "$PODBOX_EXIT_CLI_ERROR" >>"$WORK/report"
 printf '  says              %s\n' "$(printf '%s' "$out" | tr -d '\n' | cut -c1-96)" >>"$WORK/report"
-[ "$rc" -eq "$PODBOX_EXIT_FLAG_ERROR" ] || { printf '  FAIL: expected the flag-error code %s\n' "$PODBOX_EXIT_FLAG_ERROR" >>"$WORK/report"; fail=1; }
+# ⛔ The flag PARSED: podbox's arg loop takes any string as the value and the
+# verb refuses it, which is the `images --format '{{.Nope}}'` row of T-0802's
+# table (verb refuses afterwards, 1), not the `--pull=bogus` row (parser owns
+# the value domain, 125). The 125 expectation predates that measurement.
+[ "$rc" -eq "$PODBOX_EXIT_CLI_ERROR" ] || { printf '  FAIL: expected the cli-error code %s\n' "$PODBOX_EXIT_CLI_ERROR" >>"$WORK/report"; fail=1; }
 
 out="$(pb 120 pull --platform "$IMAGE" 2>&1)"
 rc=$?

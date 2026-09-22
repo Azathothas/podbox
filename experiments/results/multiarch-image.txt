@@ -1,5 +1,5 @@
 == conditions
-date              2026-09-21T06:06:21Z
+date              2026-09-22T05:56:10Z
 host kernel       3.6.9-b4195d69.x86_64
 host arch         x86_64
 podbox            podbox 0.1.0
@@ -25,7 +25,6 @@ store             a fresh container-local volume
   says              latest: Pulling from pkgforge-dev/archlinuxpodbox: this index offers no linux/nosucharch manifes
 
 == 5. a malformed --platform is a USAGE error, before any network
-  exit              1 (125 is a flag error, TODO/cli.md T-0802)
+  exit              1 (1 is a cli error, TODO/cli.md T-0802)
   says              podbox: "a/b/c/d" has 4 fields. A platform is os/arch or os/arch/variant, for example linux/arm6
-  FAIL: expected the flag-error code 125
   --platform with no value: exit 1

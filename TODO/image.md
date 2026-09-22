@@ -920,6 +920,18 @@ exits **125**, a runtime failure, while clause 5's malformed `--platform` exits
 **2**, invalid input, which is [T-0110](probe.md)'s contract holding across a
 new flag.
 
+⛔ **CORRECTED 2026-09-22, AND THE CLAUSE-5 SENTENCE ABOVE WAS WRONG TWICE.**
+[T-0802](cli.md) measured docker's discriminator after this entry closed:
+125 is what a flag parser refuses, 1 is what the verb refuses afterwards.
+podbox's `pull` parser takes any string as `--platform`'s value and the verb
+refuses `a/b/c/d`, which is the `images --format '{{.Nope}}'` row, so clause
+5 asserts the cli-error code 1. `experiments/270-multiarch-image.sh` carried
+the 125 expectation from before that measurement and went red on it from the
+2026-09-21 engine conversion; the run in
+`experiments/results/multiarch-image.txt` is green again. If a future `330`
+run with a daemon measures docker refusing a malformed `--platform` in its
+own parser, this reopens as a code change.
+
 ⭐ **The registry is `ghcr.io` and that is part of the entry, not an accident.**
 [T-0206](#t-0206-a-registry-fixture-so-the-acceptance-stops-depending-on-somebody-elses-quota)
 is open because Docker Hub's anonymous quota can turn this project's acceptance
