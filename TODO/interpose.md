@@ -405,7 +405,7 @@ Source:      `TOOL.md` section 6.7, `paper_final.md` section 9.3; `references/sa
 Category:    interpose
 Priority:    P0
 Effort:      L
-Status:      partial
+Status:      done 2026-09-22
 
 Problem:     `chown 0:42` fails identically with and without a path interposer
              loaded. This is the wall that stops the most tools, and clearing it
@@ -445,6 +445,22 @@ Decision:    Probe once and cache, rather than fakeroot's environment variable.
              exists, and the audience is automated.
 Prove:       `./experiments/105-interpose-ownership.sh` exits 0, and then `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` once T-0702 places the object
 
+**Done 2026-09-22.** Both items the entry left open landed under their own
+entries with driven evidence. The wiring is [T-0702](#t-0702-one-object-per-libc-and-it-must-live-inside-the-rootfs),
+done 2026-09-18: `place` writes the object to `/.podbox/interpose.so`
+before the chroot and `apply` sets `LD_PRELOAD` to it, driven by
+`experiments/159-interpose-placement.sh` clause A with the run in
+`experiments/results/interpose-placement.txt`. The identity half is
+[T-0711](#t-0711-the-identity-calls-and-podboxs-honesty-rules-point-the-other-way-from-fakeroots),
+done 2026-09-19: the operator's answer 3 rules the fork this entry left
+open, so the `Approach` sentence asking for success-plus-memo on
+`setuid`, `setgid` and `setgroups` is superseded by honest refusal by
+default with `--user` turning on the fakeroot behaviour, driven by
+`experiments/106-interpose-identity.sh` (14 checks, exit 0). The object
+half is re-driven since: `experiments/105-interpose-ownership.sh`
+check G runs it end to end through the host memo with
+`experiments/results/interpose-ownership.txt` carrying 7 checks, exit 0,
+and a guest `podbox run` smoke test answered `0:42`.
 
 **Partial, 2026-09-09.** The object does it and it is measured under both libcs;
 what is not in is the wiring that puts the object inside a rootfs `podbox run`

@@ -128,7 +128,7 @@ the blocker named and what would clear it.
 | [T-0701](interpose.md) | P0 | interpose | done | The cdylib build constraints |
 | [T-0702](interpose.md) | P0 | interpose | done | One object per libc, and it must live inside the rootfs |
 | [T-0703](interpose.md) | P0 | interpose | done | Path virtualization: the entry-point set and `*at` resolution |
-| [T-0704](interpose.md) | P0 | interpose | partial | Ownership virtualization: the half a path interposer does not have |
+| [T-0704](interpose.md) | P0 | interpose | done | Ownership virtualization: the half a path interposer does not have |
 | [T-0705](interpose.md) | P1 | interpose | done | Reverse mapping, so the payload reads back what it wrote |
 | [T-0706](interpose.md) | P0 | interpose | done | Classify the payload and decline with a named reason |
 | [T-0707](interpose.md) | P1 | interpose | done | The paths that must not be rewritten |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 13 open, 2 partial, 2 blocked, 125 done.
+142 items: 13 open, 1 partial, 2 blocked, 126 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -214,11 +214,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 1 | 1 | 0 | 50 | 52 |
+| P0 | 1 | 0 | 0 | 51 | 52 |
 | P1 | 4 | 1 | 2 | 59 | 66 |
 | P2 | 4 | 0 | 0 | 15 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **13** | **2** | **2** | **125** | **142** |
+| **All** | **13** | **1** | **2** | **126** | **142** |
 
 ## How the current ordering is derived
 

@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 13 open, 2 partial, 2 blocked, 125 done.
+142 entries: 13 open, 1 partial, 2 blocked, 126 done.
 
 ## Baseline
 
@@ -536,9 +536,10 @@ for clause 3. [T-1209](gate.md) and
 implementation entry is half-written. [T-1212](gate.md) went `blocked`
 in this change with its six runs and what clears each red half, and
 [T-1213](gate.md) went `blocked` in this change with its conversion,
-its three runs and its lane findings. Two entries
-remain `partial`: [T-0704](interpose.md) and
-[T-1109](milestones.md), each carrying its remaining conditions in its own file.
+its three runs and its lane findings. One entry
+remains `partial`: [T-1109](milestones.md), carrying its remaining conditions
+in its own file. [T-0704](interpose.md) closed in this change: its wiring and
+identity halves landed under T-0702 and T-0711 with driven evidence.
 
 [T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
 the 2026-09-11 reopen note, so the note moved verbatim to
