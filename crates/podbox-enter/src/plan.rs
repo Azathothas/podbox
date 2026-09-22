@@ -28,6 +28,16 @@ pub struct Plan {
 }
 
 impl Plan {
+    /// The request variable: names the launch rung the caller wants
+    /// ([`TODO/packaging.md`](../../../TODO/packaging.md) T-1003). Read from
+    /// the process environment before the plan is built, never from the plan
+    /// itself: a packed app launching another must not hand it a directive.
+    pub const MODE_REQUEST_VAR: &'static str = "PODBOX_MODE";
+
+    /// The result variable: names the rung actually entered. Set beside every
+    /// exec and always scrubbed from what the image or the caller declared, so
+    /// the two names can never agree by inheritance.
+    pub const MODE_ACTIVE_VAR: &'static str = "PODBOX_ACTIVE_MODE";
     /// The image's `Entrypoint` and `Cmd`, combined with what the caller wrote.
     ///
     /// ⛔ **docker's rules, and each one has a reason a caller relies on:**
@@ -81,6 +91,16 @@ impl Plan {
             out.retain(|existing: &String| existing.split('=').next().unwrap_or("") != name);
             out.push(e.clone());
         }
+        // ⭐ T-1003. The request variable and any stale result claim are scrubbed
+        // from what the image or the caller declared: the request is read from
+        // the process environment before the plan is built, and the result is
+        // set beside the exec by [`Plan::set_active_mode`]. Either one reaching
+        // the payload from here is a directive surviving into a nested
+        // `podbox run`, which reproduces only under nesting.
+        out.retain(|e| {
+            let name = e.split('=').next().unwrap_or("");
+            name != Self::MODE_REQUEST_VAR && name != Self::MODE_ACTIVE_VAR
+        });
         // ⭐ **DOCKER'S DEFAULTS, WHERE THE IMAGE DECLARES NONE**, and this was
         // found by running something rather than by reading a specification.
         //
@@ -131,6 +151,21 @@ impl Plan {
     /// the banner prints the `PATH` that was used.
     pub const DEFAULT_PATH: &'static str =
         "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+
+    /// Mark the entered rung on the way to `execve`, and scrub the request
+    /// beside it.
+    ///
+    /// The payload sees `PODBOX_ACTIVE_MODE=<entered>` and never `PODBOX_MODE`,
+    /// so a nested `podbox run` starts unforced. A stale result claim already in
+    /// the vector is replaced, never kept: only the rung about to be entered
+    /// may report itself.
+    pub fn set_active_mode(env: &mut Vec<String>, entered: &str) {
+        env.retain(|e| {
+            let name = e.split('=').next().unwrap_or("");
+            name != Self::MODE_REQUEST_VAR && name != Self::MODE_ACTIVE_VAR
+        });
+        env.push(format!("{}={entered}", Self::MODE_ACTIVE_VAR));
+    }
 
     pub fn path_from(env: &[String]) -> Vec<String> {
         let raw = env
@@ -292,6 +327,63 @@ mod tests {
         // ⚠ The LAST assignment wins, matching env_for's own rule.
         assert_eq!(Plan::path_from(&v(&["PATH=/a", "PATH=/b"])), v(&["/b"]));
         assert!(Plan::path_from(&[]).contains(&"/bin".to_string()));
+    }
+
+    /// ⭐ T-1003. The request variable never reaches the payload from the image
+    /// or the caller, from either side, and neither does a stale result claim:
+    /// both are read or set outside this vector, so either one surviving here
+    /// is a directive reaching a nested `podbox run`.
+    #[test]
+    fn the_mode_request_and_any_stale_result_are_scrubbed() {
+        let env = Plan::env_for(&["PODBOX_MODE=memfd".to_string()], &["A=1".to_string()]);
+        assert!(
+            !env.iter().any(|e| e.starts_with("PODBOX_MODE=")),
+            "{env:?}"
+        );
+        assert!(env.iter().any(|e| e == "A=1"), "{env:?}");
+
+        let env = Plan::env_for(&[], &["PODBOX_MODE=cache".to_string()]);
+        assert!(
+            !env.iter().any(|e| e.starts_with("PODBOX_MODE=")),
+            "{env:?}"
+        );
+
+        let env = Plan::env_for(&["PODBOX_ACTIVE_MODE=memfd".to_string()], &[]);
+        assert!(
+            !env.iter().any(|e| e.starts_with("PODBOX_ACTIVE_MODE=")),
+            "{env:?}"
+        );
+    }
+
+    /// ⭐ T-1003. Request in, result out, no request leak: the entered rung is
+    /// reported under a different name, and a stale claim is replaced rather
+    /// than doubled.
+    #[test]
+    fn the_entered_rung_is_reported_under_a_different_name() {
+        let mut env = v(&["PODBOX_MODE=memfd", "A=1"]);
+        Plan::set_active_mode(&mut env, "chroot");
+        assert!(
+            env.contains(&"PODBOX_ACTIVE_MODE=chroot".to_string()),
+            "{env:?}"
+        );
+        assert!(
+            !env.iter().any(|e| e.starts_with("PODBOX_MODE=")),
+            "{env:?}"
+        );
+        assert!(env.contains(&"A=1".to_string()), "{env:?}");
+
+        Plan::set_active_mode(&mut env, "memfd");
+        assert_eq!(
+            env.iter()
+                .filter(|e| e.starts_with("PODBOX_ACTIVE_MODE="))
+                .count(),
+            1,
+            "{env:?}"
+        );
+        assert!(
+            env.contains(&"PODBOX_ACTIVE_MODE=memfd".to_string()),
+            "{env:?}"
+        );
     }
 
     #[test]

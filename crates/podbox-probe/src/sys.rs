@@ -183,6 +183,13 @@ pub const SYS_CLOSE: i64 = nr!(close, __NR_close);
 pub const SYS_GETPID: i64 = nr!(getpid, __NR_getpid);
 pub const SYS_CLONE: i64 = nr!(clone, __NR_clone);
 pub const SYS_EXECVE: i64 = nr!(execve, __NR_execve);
+/// ⭐ The fd-exec number, and why it is `execveat` and not `fexecve`.
+/// Neither number crate names `fexecve` (`syscalls` 0.8.1 and `linux-raw-sys`
+/// 0.12.1 were read and neither spells it), so the `nr!` pattern cannot take
+/// it. `execveat` with an empty path and `AT_EMPTY_PATH` is the same kernel
+/// operation -- it is how libc implements `fexecve` -- and both crates name
+/// it on every architecture, so the ladder execs a memfd through this.
+pub const SYS_EXECVEAT: i64 = nr!(execveat, __NR_execveat);
 pub const SYS_WAIT4: i64 = nr!(wait4, __NR_wait4);
 pub const SYS_KILL: i64 = nr!(kill, __NR_kill);
 pub const SYS_PTRACE: i64 = nr!(ptrace, __NR_ptrace);
@@ -820,6 +827,16 @@ pub fn fcntl(fd: i64, cmd: u64, arg: u64) -> Sysres {
 /// `F_DUPFD_CLOEXEC`, which is `F_LINUX_SPECIFIC_BASE + 6`.
 pub const F_DUPFD_CLOEXEC: u64 = 1030;
 
+/// Seal commands for a memfd, from `linux/fcntl.h`. Arch-independent: `F_ADD_SEALS`
+/// is `F_LINUX_SPECIFIC_BASE + 9` and the seals are single bits. The ladder seals
+/// a written memfd with all four where the kernel accepts them; a kernel without
+/// sealing answers `EINVAL` and the payload runs unsealed rather than not at all.
+pub const F_ADD_SEALS: u64 = 1033;
+pub const F_SEAL_SEAL: u64 = 0x0001;
+pub const F_SEAL_SHRINK: u64 = 0x0002;
+pub const F_SEAL_GROW: u64 = 0x0004;
+pub const F_SEAL_WRITE: u64 = 0x0008;
+
 /// A second descriptor for the same open file description, at an unused number.
 ///
 /// ⛔ **Why this and not [`dup2`].** A caller that wants the child's stdout to
@@ -1213,6 +1230,29 @@ pub unsafe fn clone_fork(flags: u64) -> Sysres {
 /// `argv` and `envp` must be NUL-terminated arrays of valid C string pointers.
 pub unsafe fn execve(path: &CBuf, argv: *const *const u8, envp: *const *const u8) -> Sysres {
     unsafe { sys(SYS_EXECVE, [path.ptr(), argv as u64, envp as u64, 0, 0, 0]) }
+}
+
+/// Execute the file `dirfd` points at, without resolving a path.
+///
+/// `path` is the empty string and `flags` carries [`AT_EMPTY_PATH`]: the
+/// kernel execs the descriptor itself, which is the memfd rung's whole
+/// mechanism. Like [`execve`], it returns only on failure.
+///
+/// # Safety
+/// `argv` and `envp` must be NUL-terminated arrays of valid C string pointers.
+pub unsafe fn execveat(
+    dirfd: i64,
+    path: &CBuf,
+    argv: *const *const u8,
+    envp: *const *const u8,
+    flags: u64,
+) -> Sysres {
+    unsafe {
+        sys(
+            SYS_EXECVEAT,
+            [dirfd as u64, path.ptr(), argv as u64, envp as u64, flags, 0],
+        )
+    }
 }
 
 pub fn wait4(pid: i64, status: &mut i32) -> Sysres {

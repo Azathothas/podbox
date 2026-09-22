@@ -7,12 +7,10 @@ repository = "https://github.com/io12/userland-execve-rust"
 readme = "README.md"
 license = "MIT"
 
-[dependencies.goblin]
-version = "0.8.0"
-default-features = false
-features = ["elf32", "elf64", "endian_fd"]
-
-[dependencies.nix]
-version = "0.27.1"
-default-features = false
-features = ["mman", "feature", "user"]
+# ⛔ Patched out per TODO/deps.md T-0909 and TODO/packaging.md T-1003: `goblin`
+# is refused by T-0908 (a program-header walk of a few dozen lines replaces
+# it; `podbox-enter`'s `abi` module is that walk) and `nix` is replaced by the
+# `sys` module (`crates/podbox-probe/src/sys.rs`), which already declares the
+# trap the vendored sources need. The vendored sources still naming either are
+# rewired at ladder time. This tree stays out of the workspace and uncompiled
+# until then.

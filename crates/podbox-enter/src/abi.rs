@@ -374,6 +374,31 @@ impl Elf {
     }
 }
 
+/// `PT_INTERP` from bytes already in hand, without a section table.
+///
+/// [`Elf::parse`] refuses a file with no readable section table, which is the
+/// right answer when classifying a libc and the wrong gate for the memfd rung:
+/// a static-PIE payload has no `PT_INTERP` whatever its sections say, and the
+/// ladder answers that from the program headers alone. A script (`#!`) or a
+/// non-ELF file is an [`Unreadable`] naming that, never a silent `None`.
+pub fn interp_of(path: &str, b: &[u8]) -> Result<Option<String>, Unreadable> {
+    let why = |s: String| Unreadable(format!("{path}: {s}"));
+    if b.len() < 64 || &b[0..4] != b"\x7fELF" {
+        return Err(why("not an ELF file: the magic is not \\x7fELF".into()));
+    }
+    let class64 = match b[4] {
+        1 => false,
+        2 => true,
+        c => return Err(why(format!("unknown ELF class {c}"))),
+    };
+    let msb = match b[5] {
+        1 => false,
+        2 => true,
+        d => return Err(why(format!("unknown ELF data encoding {d}"))),
+    };
+    Ok(Bytes { b, msb, class64 }.interp())
+}
+
 /// What [`admits`] answers.
 ///
 /// ⛔ Two outcomes and each is actionable. A refusal names the libc the rootfs

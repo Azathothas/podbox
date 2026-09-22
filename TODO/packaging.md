@@ -159,6 +159,55 @@ Decision:    Two environment variables, request and result, from the start. The
              then it is a bug that reproduces only under nesting.
 Prove:       `PODBOX_MODE=memfd podbox run --rm public.ecr.aws/docker/library/alpine:3.20 true 2>&1 | grep -q 'memfd' && podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -z "$PODBOX_MODE" && test -n "$PODBOX_ACTIVE_MODE"'`
 
+**In work 2026-09-22 (Status stays open: the CLI wiring and the Prove drive
+are lane work, after T-0207 lands).** What this change holds, and what it does
+not:
+
+| rung | state | where |
+| --- | --- | --- |
+| env-var pair | rung-complete, unit-tested | `crates/podbox-enter/src/plan.rs`, `lib.rs` |
+| memfd driver | rung-complete, unit-tested | `crates/podbox-enter/src/memfd.rs`, `abi.rs` |
+| fd-exec number | rung-complete, unrun | `crates/podbox-probe/src/sys.rs` |
+| FUSE, tmpfs | sketched: ordered, probe-fed, named refusals | `crates/podbox-enter/src/ladder.rs` |
+| run-dir, cache | sketched: refused as not implemented | `crates/podbox-enter/src/ladder.rs` |
+| vendor patch | `goblin` and `nix` out, one at a time | `vendor/userland-execve/Cargo.toml` |
+| CLI wiring | follow-up: read `PODBOX_MODE`, feed `Availability`, drive the Prove | `crates/podbox-cli` (untouched here) |
+
+Decision: two environment variables, request and result, from the start. The
+single-variable form works until podbox runs inside itself, and then it is a
+bug that reproduces only under nesting. The scrub sits at both choke points:
+`Plan::env_for` strips `PODBOX_MODE` and any stale `PODBOX_ACTIVE_MODE` from
+what the image or the caller declared, and `spawn` filters them again on the
+way to `execve` while pushing `PODBOX_ACTIVE_MODE=<entered rung>`, so a
+hand-built plan cannot leak one either. Cost if wrong: a nested `podbox run`
+inherits a directive it was never given, and the outer run's forced mode
+decides the inner run's rung silently.
+
+⚠ Two substitutions the tree forced, recorded so the lane does not re-derive
+them. Neither number crate names `fexecve` (`syscalls` 0.8.1 and
+`linux-raw-sys` 0.12.1 were read on 2026-09-22 and neither spells it), so the
+fd-exec goes through `execveat` with the empty path and `AT_EMPTY_PATH`,
+which is the same kernel operation and the one libc implements `fexecve`
+with. The 10 MB synthetic-stack figure rides in the vendored file unchanged;
+the ladder review that decides whether it stays is this entry's follow-up,
+not this change.
+
+⚠ The "single file with embedded rootfs" byte store is OUT of scope: the
+Approach specifies only launch order. It is a follow-up line here, not a rung
+built beside it.
+
+Lane run 2026-09-22 over this change plus T-0207's: full `dev.sh
+check` green (fmt, workspace clippy with `-D warnings`, musl release
+build, workspace tests 469 passed 0 failed in 14 suites including the
+new scrub, eligibility, write/seal and ladder tests, interpose tests,
+`check-gate.sh --fast` 9 passed with the 2 familiar skips). The run
+found two defects, both fixed here: an unused test-only import in
+`ladder.rs` and an `Errno` without `Display` in the sealing test.
+`check-todo.py`'s only complaint is this file citing the then-untracked
+`ladder.rs`, which the commit clears. The Prove drive and the CLI
+wiring (read `PODBOX_MODE`, feed `Availability`) still owe, so the
+Status stays open.
+
 ---
 
 ### T-1004 A reproducible build, and the artefact's own inputs recorded

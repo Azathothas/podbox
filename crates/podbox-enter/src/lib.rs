@@ -30,6 +30,7 @@
 
 pub mod abi;
 pub mod binfmt;
+pub mod ladder;
 pub mod memfd;
 pub mod plan;
 
@@ -318,14 +319,26 @@ pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> 
                 .ok_or_else(|| Error::Runtime(format!("the argument {a:?} contains a NUL byte")))
         })
         .collect::<Result<_>>()?;
-    let envp_owned: Vec<CBuf> = plan
-        .env
-        .iter()
-        .map(|e| {
-            CBuf::new(e)
-                .ok_or_else(|| Error::Runtime(format!("the environment {e:?} contains a NUL")))
-        })
-        .collect::<Result<_>>()?;
+    let envp_owned: Vec<CBuf> = {
+        // ⭐ T-1003. The request variable never crosses the exec, whatever built
+        // the plan: [`Plan::env_for`] scrubs what it builds, and this filters
+        // what it is handed, so a hand-built plan cannot leak one either. The
+        // rung actually entered is reported under a different name beside it,
+        // so a nested `podbox run` starts unforced.
+        let active = format!("{}={}", Plan::MODE_ACTIVE_VAR, ENTERED_RUNG.word());
+        plan.env
+            .iter()
+            .filter(|e| {
+                let name = e.split('=').next().unwrap_or("");
+                name != Plan::MODE_REQUEST_VAR && name != Plan::MODE_ACTIVE_VAR
+            })
+            .chain(std::iter::once(&active))
+            .map(|e| {
+                CBuf::new(e)
+                    .ok_or_else(|| Error::Runtime(format!("the environment {e:?} contains a NUL")))
+            })
+            .collect::<Result<_>>()?
+    };
     let workdir = CBuf::new(if plan.working_dir.is_empty() {
         "/"
     } else {
