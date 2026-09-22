@@ -159,8 +159,41 @@ Decision:    Two environment variables, request and result, from the start. The
              then it is a bug that reproduces only under nesting.
 Prove:       `podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq busybox-static' && PODBOX_MODE=memfd podbox run --rm public.ecr.aws/debian/debian:bookworm-slim /bin/busybox sh -c 'echo $PODBOX_ACTIVE_MODE' | grep -qx memfd && podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -z "$PODBOX_MODE" && test -n "$PODBOX_ACTIVE_MODE"'`
 
-**In work 2026-09-22 (Status stays open: the CLI wiring and the Prove drive
-are lane work, after T-0207 lands).** What this change holds, and what it does
+**Done 2026-09-22.** The CLI wiring in
+`crates/podbox-cli/src/ladder.rs`, driven by foreground `run` and
+refused everywhere else. `prepare` reads `PODBOX_MODE` (an unknown word
+refuses with the rung list), refuses the force on `create`, `run -d`
+and the machine tier before anything is fetched, and admits the rung
+into `Prepared` beside the probe rows; the foreground path drives it
+through `enter_forced` with a banner line naming the entered rung, and
+`exec` refuses the force at entry. `Availability` feeds from the probe
+rows: FUSE from the open row, tmpfs from the attach verdict, rundir and
+cache down until wired, `PODBOX_CACHE` of `1` or `true` opting the
+cache rung in. The memfd leg stages bytes through `memfd::stage`
+(create, write, seal where accepted) and execs the fd through
+`run_ladder`, which closes the parent's copy past the fork on every
+path. Nine unit tests pin the request parse, the scope refusals, the
+three feeds and the three pre-entry refusals (sketch, script, missing),
+all fork-free; `staging_hands_back_a_live_cloexec_descriptor` pins the
+stage path with close-on-exec set. Driven by
+`experiments/163-ladder-drive.sh`, exit 0 twice on host podman 6.1.2
+with a lane-built musl binary: the forced memfd over a static payload
+enters on the rung (`ACTIVE_MODE=memfd`, rc 0), the default and
+scrubbed entries report chroot, and the fuse, unknown-word,
+exec-scope and dynamic-payload refusals each name their reason at 125,
+with raw transcripts in `experiments/results/sweep163/`. Two findings
+from the drive: alpine's busybox is dynamically linked (`PT_INTERP
+/lib/ld-musl-x86_64.so.1`, measured from the pinned image), so the
+rung correctly refuses it and the static payload is debian's
+busybox-static at `/bin/busybox` (the package ships that name;
+verified static with no `PT_INTERP` against the `.deb` ground truth,
+which also confirms apt under podbox installs byte-correct); and the
+setup run carries no `--rm`, which would delete the rootfs holding its
+install. Full `dev.sh check` green in the lane. The embedded-rootfs
+byte store stays the entry's named follow-up; rundir and cache stay
+sketched.
+
+**Build notes, 2026-09-22: the skeleton change.** What this change holds, and what it does
 not:
 
 | rung | state | where |
@@ -209,10 +242,9 @@ found two defects, both fixed here: an unused test-only import in
 `check-todo.py`'s only complaint is this file citing the then-untracked
 `ladder.rs`, which the commit clears. The Prove drive and the CLI
 wiring (read `PODBOX_MODE`, feed `Availability`) landed in the close
-below.
+above.
 
-**In work 2026-09-22 (Status stays open: the CLI wiring and the Prove drive
-are still lane work).** The memfd leg's three missing pieces:
+**Build notes, 2026-09-22: the memfd leg.** The memfd leg's three missing pieces:
 
 - the payload, read from outside the rootfs: `ladder::resolve_payload`
   searches `path_dirs` in order for a bare name and resolves a `/`-carrying
@@ -243,41 +275,7 @@ workspace clippy with `-D warnings`, musl release build, workspace tests
 with the 4 ladder and 2 probe tests new, gate 9 passed with the 2 familiar
 skips). The run found the `Result` arity above and three fmt spots, all
 fixed here. The CLI wiring (read `PODBOX_MODE`, feed `Availability`,
-drive the Prove) landed in the close below.
-
-**Done 2026-09-22.** The CLI wiring in
-`crates/podbox-cli/src/ladder.rs`, driven by foreground `run` and
-refused everywhere else. `prepare` reads `PODBOX_MODE` (an unknown word
-refuses with the rung list), refuses the force on `create`, `run -d`
-and the machine tier before anything is fetched, and admits the rung
-into `Prepared` beside the probe rows; the foreground path drives it
-through `enter_forced` with a banner line naming the entered rung, and
-`exec` refuses the force at entry. `Availability` feeds from the probe
-rows: FUSE from the open row, tmpfs from the attach verdict, rundir and
-cache down until wired, `PODBOX_CACHE` of `1` or `true` opting the
-cache rung in. The memfd leg stages bytes through `memfd::stage`
-(create, write, seal where accepted) and execs the fd through
-`run_ladder`, which closes the parent's copy past the fork on every
-path. Nine unit tests pin the request parse, the scope refusals, the
-three feeds and the three pre-entry refusals (sketch, script, missing),
-all fork-free; `staging_hands_back_a_live_cloexec_descriptor` pins the
-stage path with close-on-exec set. Driven by
-`experiments/163-ladder-drive.sh`, exit 0 twice on host podman 6.1.2
-with a lane-built musl binary: the forced memfd over a static payload
-enters on the rung (`ACTIVE_MODE=memfd`, rc 0), the default and
-scrubbed entries report chroot, and the fuse, unknown-word,
-exec-scope and dynamic-payload refusals each name their reason at 125,
-with raw transcripts in `experiments/results/sweep163/`. Two findings
-from the drive: alpine's busybox is dynamically linked (`PT_INTERP
-/lib/ld-musl-x86_64.so.1`, measured from the pinned image), so the
-rung correctly refuses it and the static payload is debian's
-busybox-static at `/bin/busybox` (the package ships that name;
-verified static with no `PT_INTERP` against the `.deb` ground truth,
-which also confirms apt under podbox installs byte-correct); and the
-setup run carries no `--rm`, which would delete the rootfs holding its
-install. Full `dev.sh check` green in the lane. The embedded-rootfs
-byte store stays the entry's named follow-up; rundir and cache stay
-sketched.
+drive the Prove) landed in the close above.
 
 ---
 
