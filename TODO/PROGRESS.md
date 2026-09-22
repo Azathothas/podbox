@@ -530,6 +530,28 @@ daemon, privilege, and two expectation owners. [T-1213](gate.md) is
 for clause 3. [T-1209](gate.md) and
 [T-1210](gate.md) are `done`.
 
+8. Two investigations landed 2026-09-22 and set the order below. Neither
+   changes a count.
+   [T-0206](image.md) has its fixture technology: `zot` as one pinned
+   binary plus config, storage dir, generated cert and htpasswd file,
+   serving the four loopback endpoints with a required credential for
+   [T-0209](image.md). It beats the entry's `registry:2` decision, whose
+   pull is circular against the quota the fixture exists to escape. Owed
+   first is the licence determination
+   [reference-map.md](reference-map.md) requires before a new tree is
+   used, then the registry-fixture experiment with all outbound
+   network blocked.
+   [T-0909](deps.md) and [T-1003](packaging.md) have their mechanism
+   mapped: `memfd-ng` 0.1.1 (0BSD, `libc` only) covers sealed-memfd
+   create/write/exec plus the tmpfs fallback, and podbox takes only the
+   `is_exe` pre-probe and unconditional `MFD_CLOEXEC` mechanisms from it
+   rather than vendoring it whole. One design constraint came with it:
+   `#!` scripts fail through fd-exec (upstream issue #2), so the
+   T-1003 ladder routes scripts past it.
+   No beta binary ships before [T-1004](packaging.md): a binary without
+   `version --verbose` provenance (commit, rustc, target, interposer
+   digests) is not something a client can report against.
+
 ## In progress
 
 [T-0808](cli.md) is `done` and [T-1310](image.md) is `done` and commits here. No
