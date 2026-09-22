@@ -59,6 +59,12 @@ pub enum Group {
     /// The machine tier's legs. `TODO/podvm.md` T-1301: one leg per fact and
     /// a verdict per leg, each measured, never inferred from another leg.
     Machine,
+    /// The supervise tier's legs. `TODO/supervise.md` T-0606: the tier's own
+    /// rows, not the census and attribution rows the selection used to
+    /// borrow. A borrowed row answers its own group's contract; a tier leg
+    /// answers the tier, so a rename moves the block, the constant and the
+    /// assessment together, like the machine legs above.
+    Supervise,
 }
 
 pub struct Probe {
@@ -245,6 +251,22 @@ pub static PROBES: &[Probe] = &[
             kind: Kind::Child { ns_flags: 0, body: m_space } },
     Probe { name: "qemu-system-x86_64 -accel help", group: Group::Machine,
             kind: Kind::Child { ns_flags: 0, body: m_accel } },
+
+    // ---------------------------------------------------------- supervise
+    // TODO/supervise.md T-0606. The supervise tier's own three legs, each
+    // measured by the operation itself: the notification listener by
+    // creating one, the argument channel by copying through it, the
+    // race-safety by asking for it. ⛔ Never infer a leg from another leg,
+    // and never borrow a row that answers another group's contract.
+    // The listener and ptrace rows share their bodies with the census and
+    // attribution rows that run the same operation: one implementation, two
+    // readings, so the operation cannot drift between the groups.
+    Probe { name: "seccomp(NEW_LISTENER) [supervise]", group: Group::Supervise,
+            kind: Kind::Child { ns_flags: 0, body: a_seccomp_listener } },
+    Probe { name: "process_vm_readv(own pid) [supervise]", group: Group::Supervise,
+            kind: Kind::Child { ns_flags: 0, body: s_read_channel } },
+    Probe { name: "ptrace(PTRACE_TRACEME) [supervise]", group: Group::Supervise,
+            kind: Kind::Child { ns_flags: 0, body: p_ptrace } },
 ];
 
 /// The machine tier's legs, in the order they run. [`crate::machine`] and the
@@ -256,6 +278,15 @@ pub const MACHINE_LEGS: &[&str] = &[
     "open(/dev/net/tun, O_RDWR)",
     "image space (statfs .)",
     "qemu-system-x86_64 -accel help",
+];
+
+/// The supervise tier's legs, in the order they run. [`crate::supervise`],
+/// the report and the selection read the verdicts through these names, so a
+/// rename moves all four.
+pub const SUPERVISE_LEGS: &[&str] = &[
+    "seccomp(NEW_LISTENER) [supervise]",
+    "process_vm_readv(own pid) [supervise]",
+    "ptrace(PTRACE_TRACEME) [supervise]",
 ];
 
 pub fn find(name: &str) -> Option<&'static Probe> {
@@ -947,6 +978,38 @@ fn a_process_vm_readv() -> Outcome {
     })
 }
 
+/// The supervise tier's argument channel, T-0606.
+///
+/// ⛔ Not the discriminator above. A bogus pid separates a filter from a
+/// later policy; it never copies a byte. This aims the remote end at one
+/// byte of our own memory and copies it: the returned count is the
+/// integrity check, so an `Ok` answers the channel carries arguments and a
+/// denial answers it is filtered or absent. `references/multikernel__sandlock`
+/// reads the child's arguments through exactly this call and has no
+/// `/proc/pid/mem` fallback anywhere in its tree.
+/// ⚠ The count is read through `Outcome::from` beside every other body: for
+/// a valid single-byte iov the kernel answers 1 or an errno, and a short
+/// count has no errno to carry, so there is no honest third verdict for it.
+fn s_read_channel() -> Outcome {
+    static MARK: u8 = 0x5a;
+    let mut buf = [0u8; 1];
+    let local = [buf.as_mut_ptr() as u64, 1u64];
+    let remote = [&MARK as *const u8 as u64, 1u64];
+    Outcome::from(unsafe {
+        sys::sys(
+            sys::SYS_PROCESS_VM_READV,
+            [
+                sys::getpid() as u64,
+                local.as_ptr() as u64,
+                1,
+                remote.as_ptr() as u64,
+                1,
+                0,
+            ],
+        )
+    })
+}
+
 fn a_pidfd_getfd() -> Outcome {
     let m1 = -1i64 as u64;
     Outcome::from(unsafe { sys::sys(sys::SYS_PIDFD_GETFD, [m1, m1, 0, 0, 0, 0]) })
@@ -1422,6 +1485,20 @@ mod tests {
             .map(|p| p.name)
             .collect();
         assert_eq!(got.as_slice(), MACHINE_LEGS);
+    }
+
+    #[test]
+    fn the_supervise_block_is_three_legs_in_order() {
+        // TODO/supervise.md T-0606: `crate::supervise`, the report and the
+        // selection read the verdicts through `SUPERVISE_LEGS`, so the
+        // block, the constant and the three readers answer together or not
+        // at all.
+        let got: Vec<&str> = PROBES
+            .iter()
+            .filter(|p| p.group == Group::Supervise)
+            .map(|p| p.name)
+            .collect();
+        assert_eq!(got.as_slice(), SUPERVISE_LEGS);
     }
 
     #[test]

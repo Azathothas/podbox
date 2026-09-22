@@ -192,6 +192,7 @@ pub fn evidence(f: &Findings, sel: &Selection) -> String {
         f.self_exe
     ));
     out.push_str(&machine_block(f));
+    out.push_str(&supervise_block(f));
     out.push_str(&non_goals_block(f));
     out
 }
@@ -215,7 +216,26 @@ fn machine_block(f: &Findings) -> String {
     out
 }
 
-/// TODO/podvm.md T-1306's non-goals, one measured stance per design the
+/// TODO/supervise.md T-0606's legs, one per fact, with the tier's refusal
+/// where any leg is missing. The shape is the machine block's above it: the
+/// verdicts are the rows that ran, and the refusal names the legs that did
+/// not hold, so a missing leg reads as a named refusal and never as a
+/// silent pass.
+fn supervise_block(f: &Findings) -> String {
+    let sup = crate::supervise::assess(f);
+    let mut out = String::from("\nsupervise, one leg per fact\n");
+    for leg in &sup.legs {
+        match &leg.outcome {
+            Some(o) => out.push_str(&format!("  {}\n", o.row(leg.name))),
+            None => out.push_str(&format!("  {name:<34} (not probed)\n", name = leg.name)),
+        }
+    }
+    match sup.refusal() {
+        Some(r) => out.push_str(&format!("  ⛔ {r}\n")),
+        None => out.push_str("  the tier holds: every leg ok\n"),
+    }
+    out
+}
 /// specification tried and this machine may or may not refuse. A refusal
 /// names its leg and errno with the remedy; an open mechanism says so with
 /// no refusal language; what the rows cannot say is unestablished rather
@@ -503,6 +523,7 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
                     match crate::probes::find(name).map(|p| p.group) {
                         Some(crate::probes::Group::Attribution) => "attribution",
                         Some(crate::probes::Group::Machine) => "machine",
+                        Some(crate::probes::Group::Supervise) => "supervise",
                         Some(crate::probes::Group::Census) | None => "census",
                     },
                 );
@@ -517,6 +538,10 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
     // read as a measured tier.
     let mach = crate::machine::assess(f);
     let refusal = mach.refusal();
+    // ⭐ TODO/supervise.md T-0606, assessed beside the machine tier so the
+    // document carries one `tiers` object and not two writers of one key.
+    let sup = crate::supervise::assess(f);
+    let sup_refusal = sup.refusal();
     o.obj("tiers", |t| {
         t.obj("machine", |m| {
             m.arr("legs", |a| {
@@ -541,6 +566,30 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
                 }
             });
             m.opt_str("refusal", refusal.as_deref());
+        });
+        t.obj("supervise", |m| {
+            m.arr("legs", |a| {
+                for leg in &sup.legs {
+                    a.obj(|e| {
+                        e.str("name", leg.name);
+                        match &leg.outcome {
+                            Some(out) => {
+                                e.str("verdict", out.verdict.word());
+                                e.opt_num("errno", out.errno.map(|x| x.0 as i64));
+                                e.opt_str("errno_name", out.errno_name().as_deref());
+                                e.opt_str("reason", none_if_empty(&out.reason));
+                            }
+                            None => {
+                                e.null("verdict");
+                                e.null("errno");
+                                e.null("errno_name");
+                                e.null("reason");
+                            }
+                        }
+                    });
+                }
+            });
+            m.opt_str("refusal", sup_refusal.as_deref());
         });
     });
 
@@ -706,8 +755,10 @@ mod tests {
 
     #[test]
     fn the_document_carries_six_machine_legs_with_no_null_verdict() {
-        // TODO/podvm.md T-1301's Prove reads exactly this shape.
-        let f = machine_ok();
+        // TODO/podvm.md T-1301's Prove reads exactly this shape. Both tiers'
+        // rows run, as a real run carries both, so no leg anywhere is null.
+        let mut f = machine_ok();
+        f.rows.extend(supervise_ok().rows);
         let sel = Selection::choose(&f);
         let doc = document(&f, &sel);
         assert!(doc.contains("\"tiers\":{\"machine\":{\"legs\":["), "{doc}");
@@ -722,14 +773,46 @@ mod tests {
     #[test]
     fn a_document_without_machine_rows_carries_nulls_and_a_refusal() {
         // A document written before the legs existed: every leg null, and
-        // the refusal names the absence rather than reading as a tier.
+        // the refusal names the absence rather than reading as a tier. Six
+        // machine legs and three supervise legs, so nine nulls, one refusal
+        // per tier.
         let f = Findings::empty();
         let sel = Selection::choose(&f);
         let doc = document(&f, &sel);
-        assert_eq!(doc.matches("\"verdict\":null").count(), 6, "{doc}");
+        assert_eq!(doc.matches("\"verdict\":null").count(), 9, "{doc}");
+        assert!(doc.contains("machine tier refused"), "{doc}");
+        assert!(doc.contains("supervise tier refused"), "{doc}");
         let refusal = field(&doc, "refusal").expect("a refusal string");
         assert!(refusal.contains("machine tier refused"), "{refusal}");
         assert!(refusal.contains("(not probed)"), "{refusal}");
+    }
+
+    /// Three supervise legs, all clear. Synthetic, so the shape is asserted
+    /// without depending on whether this machine permits the tier.
+    fn supervise_ok() -> Findings {
+        Findings {
+            rows: crate::probes::SUPERVISE_LEGS
+                .iter()
+                .map(|&name| (name, crate::verdict::Outcome::ok()))
+                .collect(),
+            ..Findings::empty()
+        }
+    }
+
+    #[test]
+    fn the_document_carries_three_supervise_legs_with_no_null_verdict() {
+        // TODO/supervise.md T-0606's Prove reads exactly this shape: the
+        // tier holds, so its refusal is null while the machine tier's is not
+        // (its rows never ran in this fixture).
+        let f = supervise_ok();
+        let sel = Selection::choose(&f);
+        let doc = document(&f, &sel);
+        assert!(doc.contains("\"supervise\":{\"legs\":["), "{doc}");
+        for name in crate::probes::SUPERVISE_LEGS {
+            assert!(doc.contains(&format!("\"name\":\"{name}\"")), "{doc}");
+        }
+        assert!(doc.contains("\"group\":\"supervise\""), "{doc}");
+        assert!(doc.contains("\"refusal\":null"), "{doc}");
     }
 
     #[test]

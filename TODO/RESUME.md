@@ -1,17 +1,17 @@
 ## The task
 
-Continuous session of 2026-09-22. T-0207 is done (`c5c8469`, CI green) and
-the T-1003 memfd-leg chunk is in the worktree, uncommitted. Gate the whole
-tree, commit it whole, push straight to main with no branches, verify CI by
-re-listing, then continue at T-1003's CLI wiring or T-0606 (P0).
+Continuous session of 2026-09-22. T-0606 is done in the worktree,
+uncommitted. Gate the whole tree, commit it whole, push straight to main
+with no branches, verify CI by re-listing, then continue at T-1003's CLI
+wiring (P2, the last packaging leg) or T-0413 (P1).
 
 ## The resume point
 
-Tree clean at the T-1003 memfd-leg commit. Counts: 142 entries, 5 open,
-1 partial, 2 blocked, 134 done. Next pool: packaging T-1003 (open: CLI
-wiring reads `PODBOX_MODE` and feeds `Availability`, then the Prove drive),
-supervise T-0606 (P0, the top of the open pool), gate T-1207 (needs a
-ruling), T-0413/T-1112 (need operator rulings: surface, do not implement).
+Tree clean at the T-0606 commit. Counts: 142 entries, 4 open, 1 partial,
+2 blocked, 135 done. Every P0 is done. Next pool: packaging T-1003 (open:
+CLI wiring reads `PODBOX_MODE` and feeds `Availability`, then the Prove
+drive), complete T-0413 (P1), gate T-1207 (needs a ruling), T-1112 (needs
+an operator ruling: surface, do not implement).
 
 ## In flight
 
@@ -21,8 +21,8 @@ live in `TODO/`.
 
 ## State
 
-The wsl-toolkit base is usable again: probe jobs and the full `dev.sh
-check` run through `sh scripts/windows/run-in-base.sh` against
+The wsl-toolkit base is usable: probe jobs and the full `dev.sh check`
+run through `sh scripts/windows/run-in-base.sh` against
 `wsl-toolkit-podbox`. The host-podman substitute
 (`scripts/windows/run-via-host-podman.sh`) stays as the fallback, not the
 route. Podman machine state on the host is left as found.

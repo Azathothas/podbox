@@ -279,7 +279,7 @@ Source:      `TOOL.md` section 4.1, section 6.6; `references/multikernel__sandlo
 Category:    supervise
 Priority:    P0
 Effort:      L
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     `supervise` is the only rung whose failure is silent by default. Its
              listener keeps working after its argument-reading channel dies, and
@@ -325,12 +325,27 @@ Premise:     ⭐ **Read at file and line, and the whole chain is traceable in on
              made race-safe if it had one. PR #29 also dropped path strings from
              the policy surface entirely, on the ruling that "path-based access
              control belongs in static Landlock rules".
-Approach:    Probe all three legs before selecting the tier: the listener, the
-             `SECCOMP_IOCTL_NOTIF_ADDFD` injection, and a working channel for
-             reading the child's arguments. Refuse the tier if any is missing.
+Approach:    Probe all three legs before selecting the tier: the listener, a
+             working channel for reading the child's arguments, and ptrace to
+             make a `Continue` race-safe. Refuse the tier if any is missing.
              ⛔ Never fall back per call. A per-call fallback is what produces a
              false report, and it is indistinguishable from success in the
              output.
+             ⚠ The third leg is ptrace, not the `SECCOMP_IOCTL_NOTIF_ADDFD`
+             injection an earlier revision of this Approach named. Nothing in
+             the tree injects a descriptor (no reference to `ADDFD` anywhere
+             in `crates/`), so a leg for it would green-light a mechanism
+             with no consumer and no incident behind it. What the Problem
+             needs is the only known fix for race-unsafe `Continue`, which
+             issue #27 settles is `PTRACE_SEIZE` before it, and the Decision
+             below refuses the tier where that fix cannot run.
+             ⚠ The channel leg aims `process_vm_readv` at live memory, not
+             `open /proc/self/mem`. The Premise's step 1 settles that the
+             lineage's only channel is `process_vm_readv` with no mem
+             fallback, so a mem leg would pass a channel the implementation
+             does not use. The legs are the tier's own rows
+             (`Group::Supervise`), never the census and attribution rows
+             that answer other groups' contracts.
 Decision:    Refuse the whole tier when any leg is missing, rather than offering
              a reduced `supervise`. A reduced one is what the corpus measures
              failing: the listener keeps working, so the mode reports as active,
@@ -350,7 +365,41 @@ Status note: **open, and it was wrongly marked blocked.** Reconciled on
              in the code, because the next runtime may permit a leg this one
              does not. Treating "the answer is known" as "the work is blocked"
              is what kept this entry closed to work for two sessions.
-Prove:       `podbox probe --json | jq -e '.tiers.supervise.legs | length == 3 and (map(select(.ok == false)) | length == 0 or (.[0].refused == true))'`
+Prove:       `podbox probe --json | jq -e '.tiers.supervise | (.legs | length == 3) and (([.legs[] | select(.verdict != "ok")] | length == 0) == (.refusal == null))'`
+             ⚠ Amended 2026-09-22: the committed spelling selected `.ok` and
+             `.refused` fields the legs never carried (they carry `verdict`
+             strings and the tier carries one `refusal`), so it could never
+             pass. The new spelling asserts what the tier promises: three
+             legs, and a refusal exactly where not every leg is `ok`.
+
+**Done 2026-09-22.** The tier's own three legs, and the refusal they drive.
+`crates/podbox-probe/src/probes.rs` gains `Group::Supervise` with the block
+and `SUPERVISE_LEGS`: `seccomp(NEW_LISTENER) [supervise]`, a live
+`process_vm_readv` aimed at one byte of own memory, and
+`ptrace(PTRACE_TRACEME) [supervise]`. The listener and ptrace rows share
+their bodies with the census and attribution rows that run the same
+operation: one implementation, two readings. `s_read_channel` is new; the
+bogus-pid discriminator beside it separates a filter from a policy and
+never copies a byte, so it cannot answer the channel question.
+`crates/podbox-probe/src/supervise.rs` assesses the legs the way
+`machine.rs` does, with the refusal naming every missing leg. The report
+carries both tiers in one `tiers` object plus a `supervise, one leg per
+fact` text block, and the selection reads the owned rows: all three `ok`
+enters the tier, anything else pushes the named `Rejection` and falls
+through. The "never fall back per call" half is an audit, not a deletion:
+no notify mediation exists anywhere in the tree (`podbox-supervise` is the
+lifecycle in `launcher.rs`/`table.rs`), so there is no per-call fallback
+to remove, and the refusal before entry is what enforces the Decision.
+Driven 2026-09-22 on a lane-built musl release binary: `probe --json`
+exits 0, the Prove exits 0, all three legs read `ok` with `refusal: null`
+(the lane container permits all three; the target refuses all three, and
+that path is covered by the assessment unit tests and the selection
+refusal test, not by this run). The lane found four defects, all fixed
+here: the tiers merge dropped the `o.obj` closure's `)` and broke the
+build, one new test asserted the text block against the JSON document,
+the machine-shape test needed both tiers' rows to keep its no-null
+guard honest, and one fmt spot in the selection fixture. Counts move to
+4 open and 135 done.
 
 ---
 

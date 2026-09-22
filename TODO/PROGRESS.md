@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 5 open, 1 partial, 2 blocked, 134 done.
+142 entries: 4 open, 1 partial, 2 blocked, 135 done. Every P0 is done.
 
 ## Baseline
 
@@ -61,6 +61,23 @@ and still have to be green. [RULES.md](RULES.md) section 2 carries it, and a
 publish branch is the fallback if protection is ever restored.
 
 ## What this session did
+
+Session of 2026-09-22, continued. [T-0606](supervise.md) closed in its own
+change: the supervise tier's own three legs (`Group::Supervise` with
+`SUPERVISE_LEGS`: the listener, a live `process_vm_readv` channel, and
+ptrace), the `supervise.rs` assessment beside `machine.rs`, both tiers in
+one `tiers` object with a text block, and the selection reading the owned
+rows. The entry's third leg was corrected from ADDFD injection to ptrace
+(nothing in the tree injects a descriptor; issue #27 settles ptrace-seize
+is the only known race-safe `Continue`) and the channel from mem-open to
+live readv (the lineage's only channel), and the Prove was amended (the
+committed jq selected fields the legs never carry). Driven on a lane-built
+musl release binary: `probe --json` exits 0, the Prove exits 0, all three
+legs `ok` with `refusal: null` on the permissive lane. The lane found
+three defects, all fixed here: a dropped `)` that broke the build, one
+test asserting the text block against the JSON document, and the
+machine-shape test rescoped to both tiers' rows. Counts move to 4 open
+and 135 done, and every P0 is done.
 
 Session of 2026-09-22. [T-0207](image.md) closed in its own change: layers
 fetch through a bounded pool of `FETCH_WORKERS = 4` threads with the

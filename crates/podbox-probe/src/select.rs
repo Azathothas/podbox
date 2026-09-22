@@ -171,9 +171,11 @@ impl Selection {
         // seccomp-notify's TOCTOU race needs PTRACE_SEIZE on every thread of
         // every process in the sandbox before a Continue, so a runtime where
         // ptrace is filtered has no way to make the tier race-safe.
-        let listener = ok(f, "seccomp(NEW_LISTENER)");
-        let arg_channel = ok(f, "open /proc/self/mem O_RDONLY");
-        let race_safe = ok(f, "ptrace(PTRACE_TRACEME)");
+        // ⛔ The legs are the tier's own rows (`Group::Supervise`), never the
+        // census and attribution rows that answer other groups' contracts.
+        let listener = ok(f, "seccomp(NEW_LISTENER) [supervise]");
+        let arg_channel = ok(f, "process_vm_readv(own pid) [supervise]");
+        let race_safe = ok(f, "ptrace(PTRACE_TRACEME) [supervise]");
         if listener && arg_channel && race_safe {
             return Selection {
                 rung: Rung::Supervise,
@@ -188,9 +190,9 @@ impl Selection {
             evidence: evidence_of(
                 f,
                 &[
-                    "seccomp(NEW_LISTENER)",
-                    "open /proc/self/mem O_RDONLY",
-                    "ptrace(PTRACE_TRACEME)",
+                    "seccomp(NEW_LISTENER) [supervise]",
+                    "process_vm_readv(own pid) [supervise]",
+                    "ptrace(PTRACE_TRACEME) [supervise]",
                 ],
             ),
         });
@@ -420,6 +422,8 @@ mod tests {
     fn target_shape() -> Findings {
         // The reconstruction of TOOL.md section 3: namespaces creatable by
         // clone, every mount attach denied, chroot permitted, ptrace filtered.
+        // Both the borrowed rows (census, attribution) and the supervise
+        // tier's own rows run, so both are in the fixture.
         findings(&[
             ("unshare(CLONE_NEWNS)", Outcome::denied(sys::EPERM)),
             ("clone(CLONE_NEWNS)", Outcome::ok()),
@@ -431,6 +435,12 @@ mod tests {
             ("seccomp(NEW_LISTENER)", Outcome::ok()),
             ("open /proc/self/mem O_RDONLY", Outcome::ok()),
             ("ptrace(PTRACE_TRACEME)", Outcome::denied(sys::EPERM)),
+            ("seccomp(NEW_LISTENER) [supervise]", Outcome::ok()),
+            ("process_vm_readv(own pid) [supervise]", Outcome::ok()),
+            (
+                "ptrace(PTRACE_TRACEME) [supervise]",
+                Outcome::denied(sys::EPERM),
+            ),
             ("chroot(/tmp)", Outcome::ok()),
             ("pidfd_getfd(-1,-1) [control]", Outcome::denied(sys::EBADF)),
             ("kcmp(-1,-1,...) [control]", Outcome::denied(sys::ESRCH)),
@@ -458,7 +468,8 @@ mod tests {
     #[test]
     fn a_listener_without_ptrace_does_not_reach_supervise() {
         // TODO/supervise.md T-0606: the tier is refused when any leg is
-        // missing, never entered and degraded per call.
+        // missing, never entered and degraded per call. The refusal names
+        // the tier's own leg, not the borrowed census row beside it.
         let s = Selection::choose(&target_shape());
         assert_eq!(s.rung, Rung::Chroot);
         let why = s
@@ -467,10 +478,26 @@ mod tests {
             .find(|r| r.rung == Rung::Supervise)
             .unwrap();
         assert!(
-            why.evidence.contains("ptrace(PTRACE_TRACEME)=EPERM"),
+            why.evidence
+                .contains("ptrace(PTRACE_TRACEME) [supervise]=EPERM"),
             "{}",
             why.evidence
         );
+    }
+
+    #[test]
+    fn three_clear_owned_legs_reach_supervise() {
+        // The positive path the test above refuses: namespaces unavailable,
+        // all three tier-owned legs ok, so the tier is entered.
+        let s = Selection::choose(&findings(&[
+            ("unshare(CLONE_NEWNS)", Outcome::denied(sys::EPERM)),
+            ("clone(CLONE_NEWNS)", Outcome::denied(sys::EPERM)),
+            ("seccomp(NEW_LISTENER) [supervise]", Outcome::ok()),
+            ("process_vm_readv(own pid) [supervise]", Outcome::ok()),
+            ("ptrace(PTRACE_TRACEME) [supervise]", Outcome::ok()),
+        ]));
+        assert_eq!(s.rung, Rung::Supervise);
+        assert!(s.rejected.iter().all(|r| r.rung != Rung::Supervise));
     }
 
     #[test]

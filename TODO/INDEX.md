@@ -122,7 +122,7 @@ the blocker named and what would clear it.
 | [T-0603](supervise.md) | P1 | supervise | done | `PR_SET_PDEATHSIG` fires on the creating thread's exit |
 | [T-0604](supervise.md) | P1 | supervise | done | Running state is launcher state |
 | [T-0605](supervise.md) | P2 | supervise | done | Capture logs at spawn, from the descriptors opened in step 2 |
-| [T-0606](supervise.md) | P0 | supervise | open | The notification tier: probe three legs, refuse the tier, never fall back per call |
+| [T-0606](supervise.md) | P0 | supervise | done | The notification tier: probe three legs, refuse the tier, never fall back per call |
 | [T-0607](supervise.md) | P0 | supervise | done | The lifecycle, twenty times, twenty passes |
 | [T-0608](supervise.md) | P1 | supervise | done | A detached container that reads `exited` with no launcher, seen twice and not reproduced |
 | [T-0701](interpose.md) | P0 | interpose | done | The cdylib build constraints |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 5 open, 1 partial, 2 blocked, 134 done.
+142 items: 4 open, 1 partial, 2 blocked, 135 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -214,11 +214,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 1 | 0 | 0 | 51 | 52 |
+| P0 | 0 | 0 | 0 | 52 | 52 |
 | P1 | 2 | 1 | 2 | 61 | 66 |
 | P2 | 1 | 0 | 0 | 18 | 19 |
 | P3 | 1 | 0 | 0 | 4 | 5 |
-| **All** | **5** | **1** | **2** | **134** | **142** |
+| **All** | **4** | **1** | **2** | **135** | **142** |
 
 ## How the current ordering is derived
 

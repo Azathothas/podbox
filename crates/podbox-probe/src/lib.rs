@@ -28,6 +28,7 @@ pub mod nongoals;
 pub mod probes;
 pub mod report;
 pub mod select;
+pub mod supervise;
 pub mod sys;
 pub mod verdict;
 pub mod writable;
