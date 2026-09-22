@@ -639,7 +639,7 @@ Source:      `references/dex4er__fakechroot`; `TOOL.md` section 6.7
 Category:    interpose
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Rewriting every path breaks the interposer's own machinery. The
              `*at` resolution reads `/proc/self/fd/<n>`, the classification
@@ -657,15 +657,38 @@ Premise:     Read at file and line.
              per entry point, which is the other half of what the tree
              demonstrates: coverage is per entry point and there is no shortcut.
 Approach:    A built-in exclusion list, not only a user-supplied one:
-             `/proc/self/fd`, `/proc/self/cwd`, `/proc/self/exe`, the store
-             path, and the interposer's own object. Match at a component
+             `/proc` (one tree prefix covers `/proc/self/fd`,
+             `/proc/self/cwd` and `/proc/self/exe`, the leaves the machinery
+             reads, and whatever it names next), and the interposer's own
+             object and memo under `/.podbox/`. The store takes no entry:
+             payload paths never address the host store. Match at a component
              boundary so `/proctor` is not excluded by `/proc`. Then accept a
-             user list on top of it.
+             user list on top of it, in `PODBOX_EXCLUDE_PATH`.
 Decision:    Built-in first, user list second, and the built-in entries are not
              removable. A user who removes `/proc/self/fd` from the list gets an
              interposer that cannot resolve `*at` calls, and the failure names
              nothing.
-Prove:       `podbox run --rm -v "$PWD:/mapped" public.ecr.aws/docker/library/alpine:3.20 sh -c 'readlink /proc/self/exe | grep -qv /mapped'`
+Prove:       `podbox run --rm -e PODBOX_MAPS=/proc:/etc public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -z "$(ls /proc)"'`
+             (The `-v` spelling the entry was authored with does not exist;
+             `-e` carries the same table. The broad map is the point: under a
+             map covering `/proc`, the directory still reads as itself, and
+             `/proc` is unmounted in payloads, so a `readlink` proof cannot
+             run there.)
+
+**Done 2026-09-22.** The never-rewrite predicate lives in `map.rs`:
+`excluded` answers the built-in `/proc` tree first (not removable) and
+the colon-separated `PODBOX_EXCLUDE_PATH` list second, consulted from
+both `longest` and `longest_to`, so machinery paths never rewrite
+forward and results naming them never read back virtual. Unit tests pin
+the tree, the boundary (`/proctor`, `/procself` still map), empty list
+items, and both directions under broad tables. Driven green on host
+podman with the shipped binary, four rows on alpine: `ls /proc` reads
+empty under `/proc:/etc` (red without the change),
+`readlink /proc/self/exe` still fails honestly where `/proc` is
+unmounted, a
+user-excluded `/mapped/hosts` is absent (red without), and a near-miss
+`/mappe` list still maps. The T-0705 eight-row drive re-ran green
+beside it, so narrow maps still rewrite and reverse.
 
 ---
 

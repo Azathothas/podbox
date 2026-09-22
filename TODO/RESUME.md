@@ -1,45 +1,44 @@
 ## The task
 
-Continuous session of 2026-09-22. Close T-0705 (reverse mapping, done in
-worktree, 15 dirty files), push straight to main, verify CI, then work the
-open entries (T-0707/T-0708 neighbourhood first). Engine clauses run on
-host podman; stop `podman-machine-default` at close-out.
+Continuous session of 2026-09-22. T-0705 is committed, pushed and CI-green
+(`e79725e`, run 35677703589 success). Implement T-0707 (exclusion paths),
+then work the open entries. Push straight to main, no branches. Engine
+clauses run on host podman; stop `podman-machine-default` at close-out.
 
 ## The resume point
 
-Lane rebuild of the binary is running (`.dev/artifacts-pb`, job
-`bash-u8m3duwx`). When it lands: run the arch/void full-stderr interpose
-probe plus the T-0705 8-row drive, then host gates, then the lane check
-only if the tree moved under it, then commit T-0705, push origin main,
-watch CI to green.
+Full lane check for the T-0707 tree is running (job `bash-kfr8x9t1`,
+`.dev/job-check.sh` wrapper with bootstrap). When green: rebuild the
+shipped binary, run `.dev/t0707-drive.sh` (expect D1..D4 RC=0; D1 and D3
+are red on the pre-fix binary, measured), re-run `.dev/t0705-drive.sh`
+for regression, close the entry with `todo-count --set T-0707 done`,
+commit, push origin main, watch CI to green.
 
 ## In flight
 
-T-0705's change is done in the worktree and uncommitted: `TODO/INDEX.md`,
-`TODO/PROGRESS.md`, `TODO/interpose.md`, `crates/podbox-interpose/`
-(`interpose.map`, `src/lib.rs`, `src/map.rs`),
-`experiments/results/distro-sweep.txt` plus eight sweep transcripts.
-`archlinux.out` and `voidlinux-musl.out` are unchanged on disk: measured
-as a `tail -5` transcript-window artifact (their CA-rehash step leaves
-five trailing warnings that push the interpose line out of the window;
-opensuse-leap with one trailing warning still shows it), not a missed
-run. A two-row full-stderr probe still owes to close that gap.
+T-0707 implemented in the worktree, uncommitted: `map::excluded`
+(built-in `/proc` tree first, `PODBOX_EXCLUDE_PATH` colon list second)
+consulted from `longest` and `longest_to`, four new unit tests, entry
+text still owes the update. Lane job ledger: kept job containers await
+GC at close-out (`gc --apply`, live jobs excluded).
 
 ## State
 
-Tree dirty, 15 files, HEAD `02592e1`. `fullcheck-T0705.log` read
-LANE_RC=0 at 2026-09-22T01:37Z on the final tree (re-verify before
-commit). Host gates owe a re-run after the last two PROGRESS/entry
-rewordings. Podman machine `podman-machine-default` running; lane job
-ledger: this session's containers await GC at close-out.
+Tree dirty, `map.rs` only, HEAD `e79725e`. Interpose unit tests 20 of 20
+on the lane (gnu target). Workspace clippy failed once on the
+three-leaf tree (message not captured); the rerun carries bootstrap
+(musl link needs zig) and will say whether it is code or environment.
+`real.rs:157` carries a pre-existing `needless_return` the host clippy
+names; the lane will say whether it fires there. Podman machine
+`podman-machine-default` running.
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Continuous session: T-0705 is done in the worktree and uncommitted;
-the lane binary rebuild is the first thing to check. Close T-0705,
-push straight to main with no branches, verify CI, then work the
-open entries. Engine clauses run on host podman; stop the podman
-machine at close-out.
+Continuous session: T-0705 is done and green; T-0707 is implemented
+in the worktree and its lane check is the first thing to look at.
+Close T-0707, push straight to main with no branches, verify CI,
+then work the open entries. Engine clauses run on host podman;
+stop the podman machine at close-out.
 ```

@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-141 entries: 18 open, 3 partial, 2 blocked, 118 done.
+141 entries: 17 open, 3 partial, 2 blocked, 119 done.
 
 ## Baseline
 
@@ -348,6 +348,16 @@ probe shows both silent rows run interposed (glibc and musl preloaded,
 zero decline lines in all ten transcripts); musl `getcwd` holds end to
 end through `pwd -P`; `nm -D` exports both names from both lane-built
 objects.
+
+[T-0707](interpose.md) closed in its own change: a never-rewrite
+predicate in `map.rs` (built-in `/proc` tree first,
+`PODBOX_EXCLUDE_PATH` second, both match directions), unit tests for
+the tree, the boundary and both directions, and a four-row drive green
+on host podman with the shipped binary. The two discriminating rows run
+red without the change. The entry Prove is amended to the broad map
+(`-e`; `-v` does not exist). `/proc` is unmounted in payloads
+(measured EXE_RC=1/FD_RC=1), so the tree prefix replaces the three
+named leaves and the store takes no entry.
 
 What stays current from last time:
 

@@ -8,7 +8,9 @@
 //! carries `FROM:TO[,FROM:TO...]` pairs, which mirrors pathmap's `PATH_MAPPING`
 //! syntax without sharing its name: one word, one meaning, and podbox never
 //! reads another tool's variable. No `-v` exists yet, so nothing sets it and
-//! every call takes the empty-table fast path below.
+//! every call takes the empty-table fast path below. T-0707's never-rewrite
+//! paths ride beside it: the built-in `/proc` tree in code, plus a
+//! colon-separated user list in `PODBOX_EXCLUDE_PATH`.
 //!
 //! ⛔ **No allocation and no locks on this path.** The table borrows the
 //! process's own environ memory as `(pointer, length)` pairs on the caller's
@@ -248,12 +250,75 @@ fn prefix(from_p: *const u8, from_n: usize, path: *const u8, path_n: usize) -> b
     path_n == from_n || unsafe { *path.add(from_n) } == b'/'
 }
 
+/// The variable that carries the user exclusion list, T-0707.
+pub const EXCLUDE_VAR: &[u8] = b"PODBOX_EXCLUDE_PATH";
+
+/// Built-in never-rewrite prefix, T-0707.
+///
+/// The interposer's own machinery reads through `/proc/self`: `*at`
+/// resolution reads `/proc/self/fd/<n>`, and classification reads the
+/// payload's ELF through `/proc/self/exe`. One tree prefix covers the
+/// leaves the machinery names today and whatever it names next; a mapping
+/// that moved them would virtualize the interposer itself, and the failure
+/// would name nothing. It is code, not configuration, so no user list
+/// removes it. The boundary below keeps `/proctor` out of it.
+fn builtin_excluded(path: *const u8, path_n: usize) -> bool {
+    const PROC: &[u8] = b"/proc";
+    prefix(PROC.as_ptr(), PROC.len(), path, path_n)
+}
+
+/// One user exclusion prefix against `path`, T-0707.
+///
+/// The value is colon-separated prefixes sharing the component-boundary
+/// rule above, so `/proc` excludes `/proc/self/exe` while `/proctor`
+/// excludes nothing. Empty items are skipped: a leading, trailing or
+/// doubled colon is a typo, not an entry.
+///
+/// # Safety
+/// `v_p` must be readable for `v_n` bytes, `path` for `path_n`.
+fn user_excluded(v_p: *const u8, v_n: usize, path: *const u8, path_n: usize) -> bool {
+    let mut at = 0usize;
+    while at <= v_n {
+        let mut end = at;
+        while end < v_n && unsafe { *v_p.add(end) } != b':' {
+            end += 1;
+        }
+        if end > at && prefix(unsafe { v_p.add(at) }, end - at, path, path_n) {
+            return true;
+        }
+        at = end + 1;
+    }
+    false
+}
+
+/// Never rewrite `path`, T-0707.
+///
+/// The built-in first, the user list second: the built-in entry is not
+/// removable, and the user list only adds. Both directions consult it:
+/// `longest` keeps machinery paths out of the forward map, and
+/// `longest_to` keeps results naming them out of the reverse one.
+///
+/// # Safety
+/// `path` must be readable for `path_n` bytes. Reads the process's environ
+/// for the user list, which the kernel keeps valid for the process's life.
+unsafe fn excluded(path: *const u8, path_n: usize) -> bool {
+    if builtin_excluded(path, path_n) {
+        return true;
+    }
+    match unsafe { lookup_env(EXCLUDE_VAR) } {
+        Some((v_p, v_n)) => user_excluded(v_p, v_n, path, path_n),
+        None => false,
+    }
+}
+
 /// The longest matching pair for an absolute `path`, or `None`.
 ///
 /// ⭐ Longest wins rather than first, so the answer does not depend on the
 /// order pairs were written in. ⛔ Paths under `/.podbox/` never match: the
 /// memo and the object itself live there, and a mapping that moved them
-/// would silently disarm the ownership wall.
+/// would silently disarm the ownership wall. T-0707's never-rewrite paths
+/// never match either, for the same reason in the other direction: they are
+/// the interposer's own machinery.
 ///
 /// # Safety
 /// `path` must be readable for `path_n` bytes.
@@ -263,6 +328,9 @@ pub unsafe fn longest(t: &Table, path: *const u8, path_n: usize) -> Option<(usiz
         return None;
     }
     if path_n == b"/.podbox".len() && eq(path, b"/.podbox".as_ptr(), path_n) {
+        return None;
+    }
+    if unsafe { excluded(path, path_n) } {
         return None;
     }
     let mut best: Option<(usize, usize)> = None;
@@ -324,7 +392,9 @@ pub unsafe fn rewrite(t: &Table, path: *const u8, path_n: usize, out: &mut [u8; 
 /// prefix a result lies under, so the result can be read back in virtual
 /// names. A trailing slash on TO is ignored for the match, or the pair
 /// could never match anything under it. The `/.podbox/` guard holds on
-/// this side too: the object and the memo live there.
+/// this side too: the object and the memo live there. T-0707's
+/// never-rewrite paths hold here as well: a result naming the machinery
+/// stays in real names.
 ///
 /// # Safety
 /// `path` must be readable for `path_n` bytes.
@@ -334,6 +404,9 @@ pub unsafe fn longest_to(t: &Table, path: *const u8, path_n: usize) -> Option<(u
         return None;
     }
     if path_n == b"/.podbox".len() && eq(path, b"/.podbox".as_ptr(), path_n) {
+        return None;
+    }
+    if unsafe { excluded(path, path_n) } {
         return None;
     }
     let mut best: Option<(usize, usize)> = None;
@@ -673,6 +746,86 @@ mod tests {
         // prefix string.
         let n = rw(&t, b"/.podbox2/x", &mut out);
         assert_eq!(&out[..n as usize], b"/anywhere/.podbox2/x");
+    }
+
+    #[test]
+    fn machinery_paths_never_rewrite() {
+        // Broad enough to catch everything: without the exclusion every one
+        // of these would join under `/anywhere`.
+        let env = env_of([b"PODBOX_MAPS=/:/anywhere\0"]);
+        let t = unsafe { parse(env.as_ptr()) };
+        let mut out = [0u8; OUT];
+        // The built-in tree: the leaves the machinery names, the tree
+        // itself, and deeper paths under it.
+        assert_eq!(rw(&t, b"/proc", &mut out), -1);
+        assert_eq!(rw(&t, b"/proc/self/fd", &mut out), -1);
+        assert_eq!(rw(&t, b"/proc/self/fd/3", &mut out), -1);
+        assert_eq!(rw(&t, b"/proc/self/cwd", &mut out), -1);
+        assert_eq!(rw(&t, b"/proc/self/exe", &mut out), -1);
+        assert_eq!(rw(&t, b"/proc/sys/kernel/ostype", &mut out), -1);
+        // ⭐ The boundary holds: siblings of the tree still map.
+        let n = rw(&t, b"/proctor/x", &mut out);
+        assert_eq!(&out[..n as usize], b"/anywhere/proctor/x");
+        let n = rw(&t, b"/procself", &mut out);
+        assert_eq!(&out[..n as usize], b"/anywhere/procself");
+    }
+
+    #[test]
+    fn results_naming_machinery_stay_real() {
+        // TO broad enough to catch everything: the reverse side holds the
+        // same exclusion, so machinery names never read back virtual.
+        let env = env_of([b"PODBOX_MAPS=/v:/\0"]);
+        let t = unsafe { parse(env.as_ptr()) };
+        let mut out = [0u8; OUT];
+        assert_eq!(unw(&t, b"/proc/self/exe", &mut out), -1);
+        assert_eq!(unw(&t, b"/proc/self/fd/3", &mut out), -1);
+        // Beside it the reverse map still answers.
+        let n = unw(&t, b"/etc/x", &mut out);
+        assert_eq!(&out[..n as usize], b"/v/etc/x");
+    }
+
+    /// `user_excluded` over byte strings, so the cases read as cases.
+    fn ux(v: &[u8], path: &[u8]) -> bool {
+        user_excluded(v.as_ptr(), v.len(), path.as_ptr(), path.len())
+    }
+
+    /// `builtin_excluded` over a byte string.
+    fn bx(path: &[u8]) -> bool {
+        builtin_excluded(path.as_ptr(), path.len())
+    }
+
+    #[test]
+    fn user_exclusions_add_prefixes_at_a_boundary() {
+        let cases: &[(&[u8], &[u8], bool)] = &[
+            (b"/x", b"/x/a", true),
+            (b"/x", b"/x", true),
+            (b"/x", b"/x2", false),
+            (b"/proc", b"/proc/self/exe", true),
+            (b"/proctor", b"/proctor/x", true),
+            (b"/proctor", b"/proc/x", false),
+            // Empty items are skipped, not matched.
+            (b"/x::/yy", b"/yy", true),
+            (b"/x::/yy", b"/", false),
+            (b"", b"/x", false),
+            (b":", b"/x", false),
+        ];
+        for (v, p, want) in cases {
+            assert_eq!(ux(v, p), *want);
+        }
+    }
+
+    #[test]
+    fn builtins_hold_without_any_user_list() {
+        // No environ involved: the built-in is code, and it answers the
+        // same with the user list absent.
+        assert!(bx(b"/proc"));
+        assert!(bx(b"/proc/self/fd/3"));
+        assert!(bx(b"/proc/self/cwd"));
+        assert!(bx(b"/proc/self/exe"));
+        assert!(bx(b"/proc/sys/kernel/ostype"));
+        assert!(!bx(b"/proctor"));
+        assert!(!bx(b"/procself"));
+        assert!(!bx(b"/etc/hosts"));
     }
 
     #[test]
