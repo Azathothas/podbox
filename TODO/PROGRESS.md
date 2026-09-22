@@ -62,6 +62,42 @@ publish branch is the fallback if protection is ever restored.
 
 ## What this session did
 
+Session of 2026-09-22, continued. [T-0413](complete.md) closed in its own
+change: the chroot banner names the missing `/proc` (`must_never_claim`
+plus a new `entry_banner` sentence; `run`, both `exec` paths and `probe`
+share it). No static fixture ships; `experiments/155-proc-absence.sh`
+clause 4 drives the payload to exit 1, names `/dev/fd`, and reads the
+banner naming `/proc`. Exits 0 three times on host podman 6.1.2.
+
+[T-1003](packaging.md) closed in its own change:
+`crates/podbox-cli/src/ladder.rs` reads `PODBOX_MODE`, scopes refusals
+for create, run -d, machine-tier and exec, feeds `Availability` from probe
+rows, and marks `enter_forced`; `memfd::stage` plus `kernel_takes_memfd`;
+`run_ladder` closes the parent fd; nine unit tests green.
+`experiments/163-ladder-drive.sh` exits 0 twice (forced memfd over the
+static payload reads `ACTIVE_MODE=memfd` rc 0; four named refusals at 125;
+default and scrub report chroot). A follow-up repairs the 163 static path,
+and a second follow-up opens the record with `**Done` per gate check 22.
+
+[T-1109](milestones.md) stays `partial`: 250 re-driven in the lane with a
+byte-identical report, zero FAILs, exit 2 on the two environmental skips
+(the `-t` positive arm and the census exit 2).
+
+⭐ **Beta `v0.1.0-beta.1` ships as a pre-release, the first tag.** The musl
+static-PIE binary (3503032 B, sha256 `42e34c3a…51cf2`) builds from
+`8d9dbd7`; crates and sources are identical to it. Downloaded back, the
+hash matches, and it runs `podbox 0.1.0` in the driver with both
+interposer digests and `crt-static: yes`. No tool takes credit anywhere.
+
+Two clause-1 reds preceded the green 163: first the alpine busybox is
+dynamic (`PT_INTERP /lib/ld-musl`, rightly refused), then the wrong path
+(`/bin/busybox-static` never exists; the package ships `/bin/busybox`,
+verified static against the `.deb` ground truth, which also proves
+apt-under-podbox byte-correct). A setup run must not carry `--rm`.
+
+Counts move to 142 entries, 2 open, 1 partial, 2 blocked, 137 done, and
+every P0 is done.
+
 Session of 2026-09-22, continued. [T-0606](supervise.md) closed in its own
 change: the supervise tier's own three legs (`Group::Supervise` with
 `SUPERVISE_LEGS`: the listener, a live `process_vm_readv` channel, and
@@ -639,6 +675,11 @@ for clause 3. [T-1209](gate.md) and
    [reference-map.md](reference-map.md) requires before a new tree is
    used, then the registry-fixture experiment with all outbound
    network blocked.
+
+9. Next: the two open rulings go to the operator ([T-1207](gate.md)
+   items 2 to 4, [T-1112](milestones.md) parked or not);
+   [T-1109](milestones.md) carries its remaining conditions in its own
+   file. Nothing else is open.
    [T-0909](deps.md) is done: `io12/userland-execve-rust` vendored whole
    to `vendor/userland-execve` at `02ef0e0`, and podbox's own
    three-syscall memfd path in `crates/podbox-enter/src/memfd.rs` with
@@ -654,42 +695,27 @@ for clause 3. [T-1209](gate.md) and
    fixture's required-credential mode, driven by the new 200 script
    with all 15 driver clauses green twice in a row; [T-1003](packaging.md) owns
    the launch ladder next.
-   No beta binary ships without the operator's go-ahead: creating a
-   GitHub release leaves the machine, so the artifact set rides as a
-   proposal, not a commit.
+   The beta line below is superseded: the operator ruled publishing
+   authorized once the top-10 priority tasks finish and the session ends,
+   under a pre-release tag, and `v0.1.0-beta.1` ships above in this same
+   record with its verification.
 
 ## In progress
 
-[T-0808](cli.md) is `done` and [T-1310](image.md) is `done` and commits here. No
-implementation entry is half-written. [T-1212](gate.md) went `blocked`
-in this change with its six runs and what clears each red half, and
-[T-1213](gate.md) went `blocked` in this change with its conversion,
-its three runs and its lane findings. One entry
-remains `partial`: [T-1109](milestones.md), carrying its remaining conditions
-in its own file. [T-0704](interpose.md) closed in this change: its wiring and
-identity halves landed under T-0702 and T-0711 with driven evidence.
-[T-0208](image.md) closed on [T-0212](image.md)'s green five-clause run:
-`--platform` and the platform-keyed store shipped there, and the 270
-script's stale 125 expectation (predating [T-0802](cli.md)'s
-discriminator) was corrected to the cli-error code in the preceding
-change. [T-0205](image.md) closed on a staged wall: vfs with
-`ignore_chown_errors` loads where the bare driver is refused, driven by
-the new 95 script with its seccomp filter helper.
-[T-1004](packaging.md) closed on its own verdict: `version --verbose`
-reports the recorded inputs and two lane builds match byte for byte,
-driven by the new 120 script.
-[T-0414](complete.md) closed on the probe half: three root-listing legs
-with their own errnos, driven by the new 155 script with a genuine
-denied arm. Its remedy decision stays open, and the proc-absence clause
-landed with [T-0413](complete.md)'s close: no static fixture ships.
-[T-0909](deps.md) closed in its own change (`fb9fc31`, CI success):
-the vendor tree, the own memfd path with four lane-green unit tests,
-the committed `bloat-memfd.txt` reading, the `THIRD_PARTY.md` vendored
-row, and the corrected `INDEX.md` section 4, which named two blocked
-entries neither of which is blocked (the blocked rows are
-[T-1212](gate.md) and [T-1213](gate.md)).
-[T-0206](image.md) closed in its own change: the `zot` fixture with the
-180 script green three consecutive runs and its reading committed.
+[T-0413](complete.md) is `done` and [T-1003](packaging.md) is `done` and
+both commit here. No implementation entry is half-written. One entry
+remains `partial`: [T-1109](milestones.md), carrying its remaining
+conditions in its own file. Two entries remain `open`, both needing a
+ruling and surfaced only: [T-1207](gate.md) (items 2 to 4: the symbol
+count against `interpose.map`, the per-libc size baseline, the
+third-state reporting; the question is whether they join `dev.sh check`
+or a slower gate) and [T-1112](milestones.md) (the P3 non-Linux guest;
+its prerequisites T-1301 through T-1304 are closed, and the recommendation
+is to keep it parked). [T-1212](gate.md) and [T-1213](gate.md) stay
+`blocked` with their blockers named in their own files. The beta
+`v0.1.0-beta.1` ships as a pre-release with the verified binary beside
+it. Kept wsl-toolkit job containers are pruned at session end
+(`gc --apply`); past results already live in `TODO/`.
 
 [T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
 the 2026-09-11 reopen note, so the note moved verbatim to
