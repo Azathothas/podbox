@@ -562,7 +562,7 @@ Source:      `TOOL.md` section 6.2; `docs/conventions/forbidden-patterns.md`, th
 Category:    image
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     `crates/podbox-image/src/pull.rs` fetches layers one after another.
              `docs/conventions/forbidden-patterns.md` names "a sequential
@@ -580,7 +580,7 @@ Approach:    A bounded pool of worker threads over the descriptor list, with the
              bound a named constant and not a per-machine guess. ⛔ The bound
              plus transient locks stays under sixteen concurrent `Lock`s in one
              process: every lock registers a fork-shed slot
-             (`crates/podbox-probe/src/sys.rs:680`), and
+             (`crates/podbox-probe/src/sys.rs:702`), and
              [T-1310](#t-1310-the-store-suite-exhausts-the-sixteen-fork-shed-slots-and-the-victim-varies)
              measured what exceeding it costs. Each worker
              stages, verifies and commits through the existing store functions,
@@ -600,6 +600,55 @@ Decision:    Threads over an async runtime. `TODO/deps.md` T-0906 ruled a
              machine's cores, and a CPU-scaled bound on a 96-core builder is how
              a client earns a rate limit.
 Prove:       `./experiments/190-parallel-layers.sh` exits 0 and records the wall time of both shapes against a multi-layer image
+
+**Done 2026-09-22.** `crates/podbox-image/src/pull.rs` fetches through a
+bounded pool of `FETCH_WORKERS = 4` threads over the descriptor list
+(layers plus config), `std::thread::scope` only, no new dependency. The
+bound is fixed per the Decision fork: the constraint is the registry, not
+cores. The arithmetic: 4 workers hold one staging lock each, plus
+`FETCH_LOCK_HEADROOM = 3` transients (the index lock at record time, a
+sweep on another thread, one spare) is 7 against the sixteen fork-shed
+slots (`crates/podbox-probe/src/sys.rs:702`), pinned by a `const` assert
+that refuses the build rather than a test. Each worker builds its own
+`Client::with_policy(policy.clone())`, because `Client::blob` takes
+`&mut self`, and stages, verifies and commits through the same store
+functions the loop used: one write path, not two. Each worker buffers its
+lines and the transcript prints in manifest order; a failure sets the
+cancellation, stops every worker starting another blob, and removes every
+staged file. Committed blobs stay: content-addressed and verified,
+harmless, reused by the next pull.
+
+`experiments/190-parallel-layers.sh` exits 0, with the run in
+`experiments/results/parallel-layers.txt`. The fixture is the T-0206
+shape (pinned zot v2.1.21, loopback, all outbound network blocked), the
+image is 8 random 6,291,456-byte layers (`multi:layers`, 50,341,652
+stored bytes), and the sequential shape is pull.rs at HEAD lane-built
+beside the worktree's pool. Cold store each leg, wall time in
+nanoseconds:
+
+| shape | run 1 | run 2 |
+| --- | --- | --- |
+| sequential | 5,539,108,423 | 5,079,339,904 |
+| pooled (4 workers) | 2,503,633,646 | 3,474,055,205 |
+
+Means 5.31 s against 2.99 s, a factor of 1.78 on container loopback,
+where the link is bandwidth-bound; a latency-bound link is where the
+pool buys more, and that number is not taken here. Both shapes exit 0
+and inspect to the seeded manifest digest
+`sha256:7d70123008878f90c66d7ac292666addacddc122a8c4fe0fb711b4c69c32bf62`.
+The failure leg poisons layer index 3: the pull exits 125 naming the
+digest mismatch, zero `*.partial` files remain, the lines it did print
+are in manifest order, and no record is written. The pool binary is
+2,814,904 bytes against 2,786,224 sequential (+28,680, no new crate).
+
+Unit proof: `cargo test -p podbox-image` 117 passed, 0 failed, and
+`cargo clippy -p podbox-image --all-targets -- -D warnings` clean. Each
+guard was seen red first in the lane: the bound as a build refusal
+(`error[E0080]`, 14 workers planted), the order test carrying job 5's
+lines at slot 0 on a rotated merge, the cancel test listing the 4
+surviving `*.partial` files with the cleanup pointed elsewhere.
+Conditions: lane-built binaries in `rust:1.98.1-bookworm` through
+host podman 6.1.2, network none, zot as pinned above.
 
 ---
 
@@ -1572,7 +1621,7 @@ and the failure was only ever in the safe direction by luck.
 
 ### T-1310 The store suite exhausts the sixteen fork-shed slots, and the victim varies
 
-Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podbox-image/src/store.rs:1003`; `crates/podbox-probe/src/sys.rs:680`
+Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podbox-image/src/store.rs:1003`; `crates/podbox-probe/src/sys.rs:702`
 Category:    image
 Priority:    P1
 Effort:      S
@@ -1584,7 +1633,7 @@ Problem:     Full parallel runs of the `podbox-image` suite intermittently refus
              (`two_holders_of_one_image...`, `two_staging_calls...`,
              `two_platforms...`). A serial run passes 97 of 97. The pool is
              process-wide and fixed at `FORK_CLOSE_SLOTS`
-             (`crates/podbox-probe/src/sys.rs:680`), and every
+             (`crates/podbox-probe/src/sys.rs:702`), and every
              `Lock::try_acquire` takes one slot
              (`crates/podbox-image/src/store.rs:1003-1021`). Libtest runs the
              suite in threads of one process, and each `two_*` test holds two or
@@ -1598,7 +1647,7 @@ Premise:     ⭐ **The figures above are inherited, not measured here.** They co
              rate from another lane is a reading from that lane.
              ⭐ **What was checked here, at file and line.**
              `FORK_CLOSE_SLOTS` is 16
-             (`crates/podbox-probe/src/sys.rs:680`). Every lock registers
+             (`crates/podbox-probe/src/sys.rs:702`). Every lock registers
              (`crates/podbox-image/src/store.rs:1003-1021`), including staging
              locks: a `StagedFile` holds one for its life
              (`crates/podbox-image/src/store.rs:867-871`). So do transient sweep

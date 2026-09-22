@@ -1,0 +1,54 @@
+== conditions
+date              2026-09-22T12:38:16Z
+host kernel       3.6.9-b4195d69.x86_64
+engine            podman version 6.1.2 (fixtures: podman)
+zot               v2.1.21 85459246 bytes sha256:d2422616a28dbae10a92c1df9daa23980e2f7f3deb0079968b928f23492196cb
+image             multi:layers, 8 layers of 6291456 bytes (random, incompressible)
+network           none (container loopback only; asserted in clause iso-1)
+
+== podbox (pool): not staged, building it in the lane
+== podbox (sequential): building pull.rs at HEAD in the lane
+== podbox: pool (2814904 bytes) and sequential (2786224 bytes) staged
+== zot pin
+  ok zot v2.1.21, 85459246 bytes, sha256 matches the release line
+== seed
+  ok seeded multi:layers sha256:7d70123008878f90c66d7ac292666addacddc122a8c4fe0fb711b4c69c32bf62, 8 layers, 50341652 stored bytes
+== config and cert
+  ok config written, cert carries SAN IP:127.0.0.1
+== driver image
+  ok driver ead05f6f6f05012a40d39e6ab2f1ce8ce0d1a07a83547b5c6c902701c028df1a
+== driver run (network none)
+-- staged binaries
+  pool: podbox 0.1.0
+  sequential: podbox 0.1.0
+-- isolation (asserted, not assumed)
+  ok iso-1: no default route (header only or loopback destinations)
+  ok iso-2: no name resolves from inside
+-- zot on 127.0.0.1:5000
+  ok cfg-1: open config verifies
+  ok seed-1: manifest by tag is the seeded bytes
+-- timing: sequential shape, cold store each leg
+  time-seq-1 5539108423
+  ok time-seq-1: exits 0 and inspects to the seeded digest
+  time-seq-2 5079339904
+  ok time-seq-2: exits 0 and inspects to the seeded digest
+-- timing: pooled shape, cold store each leg
+  time-new-1 2503633646
+  ok time-new-1: exits 0 and inspects to the seeded digest
+  time-new-2 3474055205
+  ok time-new-2: exits 0 and inspects to the seeded digest
+-- order: pooled transcript against manifest order
+  ok order-1: both pooled transcripts list layers in manifest order
+-- failure injection: one bad blob cancels the rest
+  ok fail-0: the poisoned blob no longer matches its digest
+  fail-rc 125
+  ok fail-1: pull of a poisoned image exits 125
+  ok fail-2: the refusal names the digest mismatch
+  ok fail-3: zero staged files left behind
+  ok fail-4: the failure transcript stays in manifest order
+  ok fail-5: the failed pull recorded nothing
+driver: all clauses held
+  ok driver run exits 0 with network none
+== verdict
+  ok driver ran to its verdict line
+== wall times (nanoseconds, cold store each leg)

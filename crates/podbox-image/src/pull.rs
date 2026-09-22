@@ -25,7 +25,7 @@ use crate::platform::Platform;
 use crate::reference::Reference;
 use crate::registry::Client;
 use crate::space;
-use crate::store::{self, Record, Store};
+use crate::store::{self, Record, StagedFile, Store};
 use crate::transport::Policy;
 
 /// What the store needs beyond the payload: the index, a staging copy of the
@@ -42,6 +42,254 @@ pub struct Pulled {
     pub reused: Vec<String>,
     pub fetched: Vec<String>,
     pub probe_source: crate::probe_cache::Source,
+}
+
+/// ⭐ `TODO/image.md` T-0207. How many blobs one pull fetches at once.
+///
+/// Fixed rather than scaled to the machine's cores: the constraint is the
+/// registry's willingness to serve, not this machine's cores, and a
+/// CPU-scaled bound on a many-core builder is how a client earns a rate
+/// limit. Threads over an async runtime: `TODO/deps.md` T-0906 ruled a
+/// blocking client on a measured size delta, and an async runtime for a
+/// handful of downloads would reopen a decision that was closed against a
+/// number.
+///
+/// ⛔ The arithmetic this has to satisfy: every worker holds exactly one
+/// staging [`Lock`](crate::store::Store::stage) while it writes, and every
+/// lock registers a fork-shed slot
+/// (`podbox_probe::sys::FORK_CLOSE_SLOTS`). `FETCH_WORKERS` workers plus
+/// [`FETCH_LOCK_HEADROOM`] transients stay under that ceiling, and a
+/// seventeenth lock is refused by name rather than held unsafely. The `const`
+/// assert below pins it at compile time.
+pub const FETCH_WORKERS: usize = 4;
+/// Transients any thread may hold while a fetch runs: the index lock at
+/// record time, a sweep on another thread, and one spare. See
+/// [`FETCH_WORKERS`].
+pub const FETCH_LOCK_HEADROOM: usize = 3;
+// ⛔ Pinned at compile time rather than in a test: raising `FETCH_WORKERS`
+// past the headroom refuses the build instead of leaking lock fds into
+// forked children in production. A `const` assert fires before any test
+// runs, which is what makes it stronger than the runtime test it replaces.
+const _: () = assert!(
+    FETCH_WORKERS + FETCH_LOCK_HEADROOM <= podbox_probe::sys::FORK_CLOSE_SLOTS,
+    "T-0207: workers plus transients must stay under the fork-shed slots"
+);
+
+/// One blob a worker fetches: a layer or the config, in manifest order.
+struct FetchJob {
+    digest: Digest,
+    size: u64,
+}
+
+/// What the fetch hands back per job: the worker wrote the bytes, this
+/// value says what to do with the staged file.
+///
+/// ⛔ The worker owns the staged file's lifecycle in every arm, and the fetch
+/// only writes: one staging discipline rather than one per fetch shape.
+enum FetchStep {
+    /// Written and verified; the worker flushes, syncs and commits it.
+    Done(StagedFile),
+    /// The rest was cancelled while this was staged; the worker drops the
+    /// file and removes the staged path without committing.
+    Skipped(StagedFile),
+}
+
+/// What one slot carries back to the thread that prints.
+enum SlotOutcome {
+    Done {
+        notes: Vec<u8>,
+    },
+    /// A job no worker started: another one failed first.
+    Skipped,
+    Failed(Error),
+}
+
+/// Per job, in manifest order: a finished worker's buffered lines where one
+/// finished, and the first failure in manifest order where one failed.
+struct FetchReport {
+    notes: Vec<Option<Vec<u8>>>,
+    error: Option<Error>,
+}
+
+/// Remove one staged file after a failed or cancelled fetch.
+///
+/// ⛔ Committed blobs are NOT removed here and must not be: they are
+/// content-addressed and verified, so keeping them is harmless and a later
+/// pull reuses them. Only the unverified staging file goes, so no pull
+/// leaves a partial store behind.
+fn discard_staged(staged: &std::path::Path) {
+    let _ = std::fs::remove_file(staged);
+}
+
+/// Fetch one job through the existing store functions: stage, let the fetch
+/// write and verify, then flush, sync and commit.
+///
+/// ⛔ The flush, the sync and the commit live here rather than in each fetch,
+/// so there is one write path and not two. A failure removes the staged file
+/// here and sets the cancellation, so no worker leaves a `*.partial` behind
+/// however the fetches interleave.
+fn fetch_one<F>(
+    store: &Store,
+    job: &FetchJob,
+    fetch: &F,
+    cancel: &std::sync::atomic::AtomicBool,
+) -> SlotOutcome
+where
+    F: Fn(&FetchJob, StagedFile, &mut Vec<u8>, &std::sync::atomic::AtomicBool) -> Result<FetchStep>
+        + Sync,
+{
+    use std::sync::atomic::Ordering;
+    let (staged, file) = match store.stage(job.digest.short()) {
+        Ok(x) => x,
+        Err(e) => {
+            cancel.store(true, Ordering::Release);
+            return SlotOutcome::Failed(e);
+        }
+    };
+    // ⛔ Re-checked after staging: another worker may have failed while this
+    // one staged, and a blob fetched past the cancellation is a download the
+    // pull then throws away.
+    if cancel.load(Ordering::Acquire) {
+        drop(file);
+        discard_staged(&staged);
+        return SlotOutcome::Skipped;
+    }
+    let mut notes = Vec::new();
+    match fetch(job, file, &mut notes, cancel) {
+        Ok(FetchStep::Done(mut file)) => {
+            let result = file
+                .flush()
+                .map_err(|e| Error::io(staged.display().to_string(), e))
+                .and_then(|()| {
+                    file.sync_all()
+                        .map_err(|e| Error::io(staged.display().to_string(), e))
+                })
+                .and_then(|()| store.commit(&staged, &job.digest));
+            match result {
+                Ok(()) => SlotOutcome::Done { notes },
+                Err(e) => {
+                    drop(file);
+                    discard_staged(&staged);
+                    cancel.store(true, Ordering::Release);
+                    SlotOutcome::Failed(e)
+                }
+            }
+        }
+        Ok(FetchStep::Skipped(file)) => {
+            drop(file);
+            discard_staged(&staged);
+            SlotOutcome::Skipped
+        }
+        Err(e) => {
+            discard_staged(&staged);
+            cancel.store(true, Ordering::Release);
+            SlotOutcome::Failed(e)
+        }
+    }
+}
+
+/// Fetch every job on at most [`FETCH_WORKERS`] threads, `std` only.
+///
+/// ⛔ Strided, not chunked: consecutive layers of one image are often one
+/// size, and contiguous chunks would put every large layer on one worker.
+/// ⛔ A failure in one worker cancels the rest: the flag stops any worker
+/// starting another job, and every staged file is removed by its own worker.
+/// What is already committed stays, content-addressed and harmless.
+/// ⛔ This prints nothing. The caller assembles the transcript from `notes`
+/// in manifest order, however the fetches interleaved.
+fn fetch_parallel<F>(store: &Store, jobs: &[FetchJob], fetch: F) -> FetchReport
+where
+    F: Fn(&FetchJob, StagedFile, &mut Vec<u8>, &std::sync::atomic::AtomicBool) -> Result<FetchStep>
+        + Sync,
+{
+    use std::sync::atomic::{AtomicBool, Ordering};
+    if jobs.is_empty() {
+        return FetchReport {
+            notes: Vec::new(),
+            error: None,
+        };
+    }
+    let cancel = AtomicBool::new(false);
+    // ⚠ Shared, not moved: each worker borrows the fetch and the flag through
+    // these, so the bounds stay `Sync` rather than growing a `Send` no caller
+    // needs. Both are `Copy` as shared references, so the `move` closures
+    // below share them instead of taking them.
+    let fetch = &fetch;
+    let cancel = &cancel;
+    // ⛔ A worker that ends without reporting is a loud refusal, never a
+    // silent default: a missing blob read as fetched is the corruption
+    // `docs/conventions/code.md` forbids.
+    let per_worker = match std::thread::scope(|s| {
+        let mut handles = Vec::with_capacity(FETCH_WORKERS);
+        for w in 0..FETCH_WORKERS {
+            handles.push(s.spawn(move || {
+                let mut mine = Vec::new();
+                let mut i = w;
+                while i < jobs.len() {
+                    if cancel.load(Ordering::Acquire) {
+                        mine.push((i, SlotOutcome::Skipped));
+                    } else {
+                        mine.push((i, fetch_one(store, &jobs[i], fetch, cancel)));
+                    }
+                    i += FETCH_WORKERS;
+                }
+                mine
+            }));
+        }
+        let mut out = Vec::with_capacity(FETCH_WORKERS);
+        for h in handles {
+            out.push(h.join().map_err(|_| {
+                Error::Store(
+                    "a fetch worker ended without reporting its jobs, so the \
+                     pull is refused rather than reported partial"
+                        .into(),
+                )
+            })?);
+        }
+        Ok::<_, Error>(out)
+    }) {
+        Ok(w) => w,
+        Err(e) => {
+            return FetchReport {
+                notes: (0..jobs.len()).map(|_| None).collect(),
+                error: Some(e),
+            };
+        }
+    };
+    // ⛔ Merged by INDEX, never in completion order: the transcript the
+    // caller prints from `notes` stays in manifest order however the fetches
+    // interleaved.
+    let mut slots: Vec<Option<SlotOutcome>> = (0..jobs.len()).map(|_| None).collect();
+    for (i, outcome) in per_worker.into_iter().flatten() {
+        slots[i] = Some(outcome);
+    }
+    let mut notes = Vec::with_capacity(jobs.len());
+    let mut error: Option<Error> = None;
+    for (i, slot) in slots.into_iter().enumerate() {
+        match slot {
+            Some(SlotOutcome::Done { notes: n }) => notes.push(Some(n)),
+            Some(SlotOutcome::Skipped) => notes.push(None),
+            Some(SlotOutcome::Failed(e)) => {
+                notes.push(None);
+                if error.is_none() {
+                    error = Some(e);
+                }
+            }
+            // ⛔ Unreachable by construction: every index is dealt to exactly
+            // one worker, and every worker reports every index it was dealt.
+            // A silent default here would be a missing blob read as fetched.
+            None => {
+                notes.push(None);
+                if error.is_none() {
+                    error = Some(Error::Store(format!(
+                        "worker assignment missed blob {i} of {}",
+                        jobs.len()
+                    )));
+                }
+            }
+        }
+    }
+    FetchReport { notes, error }
 }
 
 impl Pulled {
@@ -163,8 +411,6 @@ pub fn pull(
     )?;
 
     // ------------------------------------------------------------- the blobs
-    let mut reused = Vec::new();
-    let mut fetched = Vec::new();
 
     for (bytes, d, what) in [
         (&top.bytes, &resolved, "manifest"),
@@ -184,6 +430,64 @@ pub fn pull(
     // image with three layers. docker's transcript names layers only, and a
     // transcript that names something else is a display that lies.
     let announced = manifest.layers.len();
+    let mut present = Vec::new();
+    let mut jobs = Vec::new();
+    let mut reused = Vec::new();
+    for descriptor in manifest
+        .layers
+        .iter()
+        .chain(std::iter::once(&manifest.config))
+    {
+        let d = descriptor.parsed_digest()?;
+        if store.has_blob(&d) {
+            present.push(true);
+            reused.push(d.to_string());
+        } else {
+            present.push(false);
+            jobs.push(FetchJob {
+                digest: d,
+                size: descriptor.size,
+            });
+        }
+    }
+
+    // ⭐ TODO/image.md T-0207. One worker per thread, each with its own
+    // client: `Client::blob` takes `&mut self`, so a client is not shareable
+    // across threads, and each worker builds one from the same policy.
+    // ⛔ No `BufWriter` around the sink. T-0214 restarts it on a body that was
+    // cut short, and a `BufWriter` has no way to discard what it is holding;
+    // the fetch already writes one 128 KiB chunk at a time, so the buffer was
+    // adding a copy rather than a saving.
+    let report = fetch_parallel(store, &jobs, |job, file, buf, cancel| {
+        // ⛔ The flag is read here as well as before staging: another worker
+        // may have failed while this one staged, and a blob fetched past the
+        // cancellation is a download the pull then throws away.
+        if cancel.load(std::sync::atomic::Ordering::Acquire) {
+            return Ok(FetchStep::Skipped(file));
+        }
+        let mut client = Client::with_policy(policy.clone());
+        let back = client.blob(
+            &endpoint,
+            &repository,
+            &job.digest,
+            Some(job.size),
+            file,
+            buf,
+        )?;
+        Ok(FetchStep::Done(back))
+    });
+
+    // ⛔ The transcript is assembled HERE, in manifest order, however the
+    // fetches interleaved: every worker buffered its lines and this loop
+    // prints them by index. A progress display whose order depends on
+    // scheduling is a display that reports the machine's mood.
+    // ⚠ The completed lines print even where a later blob failed: the
+    // sequential loop this replaces printed what it had before returning the
+    // error, and the failure-injection leg of
+    // `experiments/190-parallel-layers.sh` asserts the
+    // order of what is there.
+    let mut fetched = Vec::new();
+    let mut notes = report.notes.iter();
     for (n, descriptor) in manifest
         .layers
         .iter()
@@ -192,38 +496,23 @@ pub fn pull(
     {
         let is_layer = n < announced;
         let d = descriptor.parsed_digest()?;
-        if store.has_blob(&d) {
+        if present[n] {
             if is_layer {
                 let _ = writeln!(out, "{}: Already exists", d.short());
             }
-            reused.push(d.to_string());
             continue;
         }
-        let (staged, file) = store.stage(d.short())?;
-        // ⚠ A staged file left behind by a failed fetch is removed here rather
-        // than swept later: it is named by this process's pid and nothing else
-        // will ever claim it.
-        // ⚠ No `BufWriter`. T-0214 restarts this sink on a body that was cut
-        // short, and a `BufWriter` has no way to discard what it is holding; the
-        // fetch already writes one 128 KiB chunk at a time, so the buffer was
-        // adding a copy rather than a saving.
-        let result = client
-            .blob(&endpoint, &repository, &d, Some(descriptor.size), file, out)
-            .and_then(|mut w| {
-                w.flush()
-                    .map_err(|e| Error::io(staged.display().to_string(), e))?;
-                w.sync_all()
-                    .map_err(|e| Error::io(staged.display().to_string(), e))
-            })
-            .and_then(|()| store.commit(&staged, &d));
-        if let Err(e) = result {
-            let _ = std::fs::remove_file(&staged);
-            return Err(e);
+        let lines = notes.next().expect("one note per missing blob");
+        if let Some(lines) = lines {
+            let _ = out.write_all(lines);
         }
         if is_layer {
             let _ = writeln!(out, "{}: Pull complete", d.short());
         }
         fetched.push(d.to_string());
+    }
+    if let Some(e) = report.error {
+        return Err(e);
     }
 
     // ------------------------------------------------------------ the record
@@ -290,6 +579,161 @@ pub fn local(store: &Store, want: &str) -> Result<Option<Digest>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn par_store(name: &str) -> Store {
+        let d = std::env::temp_dir().join(format!("podbox-pull-par-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        Store::open(d).unwrap()
+    }
+
+    fn par_jobs(n: usize) -> (Vec<String>, Vec<FetchJob>) {
+        let mut contents = Vec::new();
+        let mut jobs = Vec::new();
+        for i in 0..n {
+            let content = format!("t0207-blob-{i}");
+            contents.push(content.clone());
+            jobs.push(FetchJob {
+                digest: Digest::of(content.as_bytes()),
+                size: content.len() as u64,
+            });
+        }
+        (contents, jobs)
+    }
+
+    /// ⛔ TODO/image.md T-0207. The merge is by INDEX, never in completion
+    /// order. The forced interleave is job `i` sleeping `(n - i) * 25` ms, so
+    /// the last job in manifest order finishes first; a merge in completion
+    /// order would carry job 5's lines at index 0 and this would go red.
+    #[test]
+    fn the_transcript_stays_in_manifest_order_however_fetches_interleave() {
+        let store = par_store("order");
+        let n = 6;
+        let (contents, jobs) = par_jobs(n);
+        let report = fetch_parallel(&store, &jobs, |job, mut file, buf, _cancel| {
+            use std::io::Write;
+            let idx = jobs
+                .iter()
+                .position(|j| j.digest == job.digest)
+                .expect("a job this call was not given");
+            std::thread::sleep(std::time::Duration::from_millis(((n - idx) * 25) as u64));
+            // ⚠ The bytes match the digest, so the commit below stores a
+            // consistent blob rather than an unverified one.
+            file.write_all(contents[idx].as_bytes())
+                .map_err(|e| Error::io("t0207 order probe", e))?;
+            buf.write_all(format!("job {idx}").as_bytes())
+                .map_err(|e| Error::io("t0207 order probe", e))?;
+            Ok(FetchStep::Done(file))
+        });
+        assert!(
+            report.error.is_none(),
+            "no job fails here: {:?}",
+            report.error.map(|e| e.to_string())
+        );
+        assert_eq!(report.notes.len(), n);
+        for (i, note) in report.notes.iter().enumerate() {
+            assert_eq!(
+                note.as_deref(),
+                Some(format!("job {i}").as_bytes()),
+                "slot {i} carries another job's lines"
+            );
+        }
+        for job in &jobs {
+            assert!(store.has_blob(&job.digest));
+        }
+        let _ = std::fs::remove_dir_all(store.root());
+    }
+
+    /// ⛔ TODO/image.md T-0207. One worker's failure cancels the rest and no
+    /// staged file survives: the poisoned job fails with partial bytes on
+    /// disk, the in-flight jobs observe the cancellation rather than running
+    /// out their wait, the job never started stays skipped, and the staging
+    /// directory holds zero `*.partial` afterwards.
+    #[test]
+    fn a_failure_cancels_the_rest_and_leaves_no_staged_file() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        const POISON: usize = 1;
+        let store = par_store("cancel");
+        let n = 6;
+        let (_, jobs) = par_jobs(n);
+        let jobs_ref = &jobs;
+        let observed = AtomicUsize::new(0);
+        let report = fetch_parallel(&store, &jobs, |job, mut file, _buf, cancel| {
+            use std::io::Write;
+            let idx = jobs_ref
+                .iter()
+                .position(|j| j.digest == job.digest)
+                .expect("a job this call was not given");
+            if idx == POISON {
+                // ⛔ Let the others stage first, so the cancellation has
+                // something in flight to reach, then fail with partial
+                // bytes the worker must remove.
+                std::thread::sleep(std::time::Duration::from_millis(100));
+                file.write_all(b"partial")
+                    .map_err(|e| Error::io("t0207 poison probe", e))?;
+                drop(file);
+                return Err(Error::DigestMismatch {
+                    what: "t0207 poison probe".to_string(),
+                    want: job.digest.to_string(),
+                    got: "sha256:dead".to_string(),
+                });
+            }
+            // In flight: wait for the cancellation, bounded, then yield
+            // without committing.
+            let start = std::time::Instant::now();
+            let bound = std::time::Duration::from_secs(30);
+            while start.elapsed() < bound {
+                if cancel.load(Ordering::Acquire) {
+                    observed.fetch_add(1, Ordering::Release);
+                    return Ok(FetchStep::Skipped(file));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(2));
+            }
+            drop(file);
+            Err(Error::Store(
+                "t0207 cancel probe ran out its wait without seeing the cancellation".into(),
+            ))
+        });
+        // The poison's error, not a cancellation artefact, and every other
+        // slot holds nothing.
+        let Some(e) = report.error.as_ref() else {
+            panic!("the poisoned job did not fail");
+        };
+        assert!(
+            e.to_string().contains(&jobs[POISON].digest.to_string()),
+            "the reported failure is not the poisoned blob: {e}"
+        );
+        assert!(
+            report.notes.iter().all(|x| x.is_none()),
+            "a job committed beside a failure"
+        );
+        // Three in flight (0, 2, 3) observed the flag; jobs 4 and 5 never
+        // started, because their workers were busy on job 0 and the poison
+        // when it failed.
+        assert_eq!(
+            observed.load(Ordering::Acquire),
+            3,
+            "an in-flight worker missed the cancellation"
+        );
+        // ⛔ Zero staged files left, and nothing committed either.
+        let staging = store.root().join("staging");
+        let left: Vec<String> = std::fs::read_dir(&staging)
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|x| x.ends_with(".partial"))
+            .collect();
+        assert!(
+            left.is_empty(),
+            "staged files survived the failure: {left:?}"
+        );
+        for job in &jobs {
+            assert!(
+                !store.has_blob(&job.digest),
+                "a blob was committed beside a failure"
+            );
+        }
+        let _ = std::fs::remove_dir_all(store.root());
+    }
 
     /// ⛔ The refusal T-0201 won, kept, and now able to say what would permit
     /// it. A message a caller cannot act on is a message that costs a session.
