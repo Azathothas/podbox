@@ -109,7 +109,7 @@ the blocker named and what would clear it.
 | [T-0411](complete.md) | P1 | complete | done | A payload whose package sources are `http://`, on a runtime where tcp/80 hangs |
 | [T-0412](complete.md) | P1 | complete | done | A fixup that has to run INSIDE the rootfs, and podbox runs it from outside |
 | [T-0413](complete.md) | P1 | complete | open | No `/proc` inside a chroot, and the shell feature that quietly stops working |
-| [T-0414](complete.md) | P1 | complete | open | Two walls only one instance of the class has shown, and podbox has probed neither |
+| [T-0414](complete.md) | P1 | complete | done | Two walls only one instance of the class has shown, and podbox has probed neither |
 | [T-0415](complete.md) | P1 | complete | done | A device stand-in is checked by type, because an absent one becomes a growing file |
 | [T-0501](enter.md) | P0 | enter | done | Open every descriptor before the root changes |
 | [T-0502](enter.md) | P0 | enter | done | Resolve the program inside the new root, in the process that changed it |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 10 open, 1 partial, 2 blocked, 129 done.
+142 items: 9 open, 1 partial, 2 blocked, 130 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -215,10 +215,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 0 | 0 | 51 | 52 |
-| P1 | 4 | 1 | 2 | 59 | 66 |
+| P1 | 3 | 1 | 2 | 60 | 66 |
 | P2 | 3 | 0 | 0 | 16 | 19 |
 | P3 | 2 | 0 | 0 | 3 | 5 |
-| **All** | **10** | **1** | **2** | **129** | **142** |
+| **All** | **9** | **1** | **2** | **130** | **142** |
 
 ## How the current ordering is derived
 

@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 10 open, 1 partial, 2 blocked, 129 done.
+142 entries: 9 open, 1 partial, 2 blocked, 130 done.
 
 ## Baseline
 
@@ -572,6 +572,10 @@ the new 95 script with its seccomp filter helper.
 [T-1004](packaging.md) closed on its own verdict: `version --verbose`
 reports the recorded inputs and two lane builds match byte for byte,
 driven by the new 120 script.
+[T-0414](complete.md) closed on the probe half: three root-listing legs
+with their own errnos, driven by the new 155 script with a genuine
+denied arm. Its remedy decision stays open, and the proc-absence clause
+awaits [T-0413](complete.md)'s ruling.
 
 [T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
 the 2026-09-11 reopen note, so the note moved verbatim to

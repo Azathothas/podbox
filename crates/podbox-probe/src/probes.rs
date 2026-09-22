@@ -163,6 +163,15 @@ pub static PROBES: &[Probe] = &[
             kind: Kind::Child { ns_flags: 0, body: p_stat_ptmx } },
     Probe { name: "open(/dev/ptmx, O_RDWR)", group: Group::Census,
             kind: Kind::Child { ns_flags: 0, body: p_open_ptmx } },
+    // ⭐ TODO/complete.md T-0414, in the OUTER environment like the ptmx
+    // pair: list the root, open an entry in it by name, create a file at
+    // its top level. Each leg is its own verdict with its own errno.
+    Probe { name: "readdir(/)", group: Group::Census,
+            kind: Kind::Child { ns_flags: 0, body: p_list_root } },
+    Probe { name: "open(/bin, O_RDONLY) by name", group: Group::Census,
+            kind: Kind::Child { ns_flags: 0, body: p_open_by_name } },
+    Probe { name: "creat(/, O_CREAT|O_EXCL)", group: Group::Census,
+            kind: Kind::Child { ns_flags: 0, body: p_creat_toplevel } },
     // ⭐ TODO/podvm.md T-1306. The spec target answers EPERM to every TCP
     // bind, loopback or wildcard, which kills every hostfwd-based manager.
     // A census row because it asks what this machine permits, like the
@@ -768,6 +777,71 @@ fn p_open_ptmx() -> Outcome {
     }
 }
 
+// ⭐ TODO/complete.md T-0414. A third instance of the target class answers
+// EACCES to readdir("/") while opening entries by name still works, and
+// denies creat at the top level: a launcher died on the first, running
+// `find /` to collect bind sources. Three legs, each its own verdict, in
+// the outer environment before any chroot.
+fn p_list_root() -> Outcome {
+    match sys::open(
+        &c("/"),
+        sys::O_RDONLY | sys::O_DIRECTORY | sys::O_CLOEXEC,
+        0,
+    ) {
+        Err(e) => Outcome::denied(e),
+        Ok(fd) => {
+            let res = sys::getdents64(fd);
+            let _ = sys::close(fd);
+            match res {
+                Ok(entries) => Outcome::ok_with(format!("{} entries", entries.len())),
+                Err(e) => Outcome::denied(e),
+            }
+        }
+    }
+}
+
+fn p_open_by_name() -> Outcome {
+    // A fixed FHS name, documented: the leg asks whether opening by name
+    // works, not whether this name exists. ENOENT where it does not is the
+    // kernel's answer, not a harness failure.
+    match sys::open(&c("/bin"), sys::O_RDONLY | sys::O_CLOEXEC, 0) {
+        Ok(fd) => {
+            let _ = sys::close(fd);
+            Outcome::ok()
+        }
+        Err(e) => Outcome::denied(e),
+    }
+}
+
+fn p_creat_toplevel() -> Outcome {
+    let path = format!("/podbox-probe-creat-{}", std::process::id());
+    let cpath = match sys::CBuf::new(&path) {
+        Some(b) => b,
+        None => {
+            return Outcome::skip(None, "the creat path is unrepresentable".to_string());
+        }
+    };
+    // O_EXCL: refusing to clobber is part of the question, and the probe
+    // leaves nothing behind either way.
+    match sys::open(
+        &cpath,
+        sys::O_WRONLY | sys::O_CREAT | sys::O_EXCL | sys::O_CLOEXEC,
+        0o600,
+    ) {
+        Err(e) => Outcome::denied(e),
+        Ok(fd) => {
+            let _ = sys::close(fd);
+            match sys::unlink(&cpath) {
+                Ok(_) => Outcome::ok(),
+                Err(e) => Outcome::skip(
+                    Some(e),
+                    format!("created {path} but could not unlink it: left in place"),
+                ),
+            }
+        }
+    }
+}
+
 /// Whether `-t` may promise a pty, T-0503.
 ///
 /// One home for the question `run` and `exec` both ask: only the OPEN row
@@ -1367,5 +1441,36 @@ mod tests {
             (stat, Outcome::ok()),
             (open, Outcome::denied(crate::sys::Errno(13))),
         ])));
+    }
+
+    /// TODO/complete.md T-0414: the root-listing block is three legs, each
+    /// a separate verdict, in the outer environment before any chroot: list
+    /// the root, open an entry in it by name, create a file at its top
+    /// level. "Could not run" is a Skip, never a second Denied.
+    #[test]
+    fn the_root_listing_block_is_three_outer_legs_in_order() {
+        let want = [
+            "readdir(/)",
+            "open(/bin, O_RDONLY) by name",
+            "creat(/, O_CREAT|O_EXCL)",
+        ];
+        let mut at = 0;
+        for p in PROBES {
+            if at < want.len() && p.name == want[at] {
+                assert!(
+                    matches!(p.group, Group::Census),
+                    "{} is not a Census leg",
+                    p.name
+                );
+                match p.kind {
+                    Kind::Child { ns_flags, .. } => {
+                        assert_eq!(ns_flags, 0, "{} runs outside any namespace", p.name)
+                    }
+                    Kind::Clone(_) => panic!("{} is not a child probe", p.name),
+                }
+                at += 1;
+            }
+        }
+        assert_eq!(at, want.len(), "root-listing legs missing from PROBES");
     }
 }

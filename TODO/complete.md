@@ -989,7 +989,7 @@ Source:      `references/talaria0101__nix-experiment/tree/notes/seccomp-probe-ou
 Category:    complete
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     [probe.md](probe.md) asks what the runtime permits, and its question
              list came from two instances of the target class. **A third
@@ -1026,6 +1026,23 @@ Decision:    Not taken. The remedy for the listing denial is a design
              directory it was handed, or names the denial. The probe comes first
              because the remedy depends on how widely it bites.
 Prove:       `./experiments/155-proc-absence.sh` gains a root-listing clause and a `/dev/ptmx` clause, each printing its own errno, and exits 2 rather than 1 where a leg could not run
+
+**Done 2026-09-22.** The three legs exist, each its own verdict with
+its own errno, in the Census set in the outer environment before any
+chroot. `readdir(/)`, `open(/bin, O_RDONLY) by name` and
+`creat(/, O_CREAT|O_EXCL)` joined the probe set beside the ptmx pair;
+a structural unit test pins their names, order, group and namespace
+flags, watched fail before the registrations and pass after, and the
+full lane check is green. Driven by
+`experiments/155-proc-absence.sh`, exit 0: every row prints name,
+verdict and errno, and an unprivileged run in the driver shows the
+denied arm genuinely (`creat` denied `EACCES` beside an ok listing),
+recorded in `experiments/results/proc-absence.txt`. The proc-absence
+clause the filename promises is
+[T-0413](#t-0413-no-proc-inside-a-chroot-and-the-shell-feature-that-quietly-stops-working)'s
+and arrives with its ruling. The remedy this entry's Decision leaves open (avoid
+enumerating a handed directory, or name the denial) is not taken here;
+the probe the Approach puts first is what landed.
 
 ---
 
