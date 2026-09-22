@@ -69,9 +69,11 @@ if [ "$LANE" = "native" ]; then
 		leg_not_run "pull" "see $WORK/ladder/pull-*.log"
 	fi
 	# The static payload the memfd rung needs; see the driver block below
-	# for why alpine's own busybox does not qualify.
+	# for why alpine's own busybox does not qualify. No `--rm`: the setup
+	# run's install must survive in the shared rootfs for the clause. The
+	# trailing `test -x` fails the setup loudly where nothing landed.
 	if [ ! -s "$WORK/worst" ]; then
-		timeout 600 "$RUN" run --rm "$DEBIAN" /bin/sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq busybox-static' >"$WORK/ladder/setup.log" 2>&1 \
+		timeout 600 "$RUN" run "$DEBIAN" /bin/sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq busybox-static && ls -l /bin/busybox /bin/sh && test -x /bin/busybox' >"$WORK/ladder/setup.log" 2>&1 \
 			|| leg_not_run "busybox-static setup" "see $WORK/ladder/setup.log"
 	fi
 	c() {
@@ -80,7 +82,7 @@ if [ "$LANE" = "native" ]; then
 		echo "$?" >"$WORK/ladder/$n.rc"
 	}
 	[ -s "$WORK/worst" ] || PODBOX_MODE= c c1 run --rm "$ALPINE" /bin/sh -c 'echo $PODBOX_ACTIVE_MODE'
-	[ -s "$WORK/worst" ] || PODBOX_MODE=memfd c c1m run --rm "$DEBIAN" /bin/busybox-static sh -c 'echo $PODBOX_ACTIVE_MODE'
+	[ -s "$WORK/worst" ] || PODBOX_MODE=memfd c c1m run --rm "$DEBIAN" /bin/busybox sh -c 'echo $PODBOX_ACTIVE_MODE'
 	[ -s "$WORK/worst" ] || PODBOX_MODE= c c2 run --rm "$ALPINE" /bin/sh -c 'test -z "$PODBOX_MODE" && test -n "$PODBOX_ACTIVE_MODE" && echo $PODBOX_ACTIVE_MODE'
 	[ -s "$WORK/worst" ] || PODBOX_MODE= c c3 run --rm -e PODBOX_MODE=memfd "$ALPINE" /bin/sh -c 'test -z "$PODBOX_MODE" && echo $PODBOX_ACTIVE_MODE'
 	[ -s "$WORK/worst" ] || PODBOX_MODE=fuse c c4 run --rm "$ALPINE" /bin/sh -c 'echo unreachable'
@@ -122,14 +124,19 @@ DEBIAN="$2"
 # dynamically linked (PT_INTERP /lib/ld-musl-x86_64.so.1, measured
 # 2026-09-22), so the rung correctly refuses it; debian's busybox-static
 # is the static one, installed here once for the clauses below.
-timeout 600 /pb run --rm "$DEBIAN" /bin/sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq busybox-static' >"$d/setup.log" 2>&1 || exit 4
+# ⛔ No `--rm` on the setup run: it would delete the rootfs carrying the
+# install it just made (measured 2026-09-22: the forced clause then read a
+# pristine tree), and the forced clause would fail on a missing file.
+# The trailing `test -x` fails the setup loudly where the install did not
+# land, rather than leaving a pristine tree for the clause to misread.
+timeout 600 /pb run "$DEBIAN" /bin/sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq busybox-static && ls -l /bin/busybox /bin/sh && test -x /bin/busybox' >"$d/setup.log" 2>&1 || exit 4
 c() {
 	n="$1"; shift
 	timeout 300 /pb "$@" >"$d/$n.out" 2>"$d/$n.err"
 	echo "$?" >"$d/$n.rc"
 }
 PODBOX_MODE= c c1 run --rm "$ALPINE" /bin/sh -c 'echo $PODBOX_ACTIVE_MODE'
-PODBOX_MODE=memfd c c1m run --rm "$DEBIAN" /bin/busybox-static sh -c 'echo $PODBOX_ACTIVE_MODE'
+PODBOX_MODE=memfd c c1m run --rm "$DEBIAN" /bin/busybox sh -c 'echo $PODBOX_ACTIVE_MODE'
 PODBOX_MODE= c c2 run --rm "$ALPINE" /bin/sh -c 'test -z "$PODBOX_MODE" && test -n "$PODBOX_ACTIVE_MODE" && echo $PODBOX_ACTIVE_MODE'
 PODBOX_MODE= c c3 run --rm -e PODBOX_MODE=memfd "$ALPINE" /bin/sh -c 'test -z "$PODBOX_MODE" && echo $PODBOX_ACTIVE_MODE'
 PODBOX_MODE=fuse c c4 run --rm "$ALPINE" /bin/sh -c 'echo unreachable'
@@ -149,11 +156,21 @@ ROW163_EOF
 		else
 			leg_not_run "row163 driver" "see $WORK/row163.stage"
 		fi
+		# Whatever the driver left behind comes back either way: on a red
+		# run the setup and pull logs are the diagnosis, not litter.
+		cp "$WORK/w/lad/setup.log" "$WORK/ladder/setup.log" 2>/dev/null || true
+		cp "$WORK/w/lad/pull-alpine.log" "$WORK/ladder/pull-alpine.log" 2>/dev/null || true
+		cp "$WORK/w/lad/pull-debian.log" "$WORK/ladder/pull-debian.log" 2>/dev/null || true
 	fi
 fi
 
 # The assertions, shared by both lanes.
 rc_of() { cat "$WORK/ladder/$1.rc"; }
+if [ -f "$WORK/ladder/setup.log" ]; then
+	echo "== 0. setup: busybox-static into the debian rootfs" >>"$WORK/report"
+	tail -12 "$WORK/ladder/setup.log" >>"$WORK/report"
+	echo "" >>"$WORK/report"
+fi
 check() {
 	name="$1"; want_rc="$2"; want_out="$3"; want_err="$4"
 	if [ ! -f "$WORK/ladder/$name.rc" ]; then
@@ -223,6 +240,7 @@ cp "$WORK/report" "$OUT"
 mkdir -p "$REPO/experiments/results/sweep163"
 rm -f "$REPO/experiments/results/sweep163"/c*.out "$REPO/experiments/results/sweep163"/c*.err "$REPO/experiments/results/sweep163"/c*.rc
 cp "$WORK/ladder"/c*.out "$WORK/ladder"/c*.err "$WORK/ladder"/c*.rc "$REPO/experiments/results/sweep163/" 2>/dev/null || true
+cp "$WORK/ladder"/setup.log "$WORK/ladder"/pull-alpine.log "$WORK/ladder"/pull-debian.log "$REPO/experiments/results/sweep163/" 2>/dev/null || true
 echo ""
 echo "written to ${OUT#"$REPO"/}"
 [ -s "$WORK/worst" ] && exit 2
