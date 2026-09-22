@@ -540,8 +540,11 @@ its three runs and its lane findings. Two entries
 remain `partial`: [T-0704](interpose.md) and
 [T-1109](milestones.md), each carrying its remaining conditions in its own file.
 
-[T-0408](complete.md) is `open` rather than `done` for the simpler reason that
-reopened it: it carried a `Prove` line and nothing after it.
+[T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
+the 2026-09-11 reopen note, so the note moved verbatim to
+[`docs/history/2026-09-22-t0408-reopen-note.md`](../docs/history/2026-09-22-t0408-reopen-note.md) with the correction
+underneath it, and the `Status` line carries its date. The record below
+it was already green, which is why no count moves here.
 
 ⛔ **Read the CONDITIONS BLOCK of a reading before quoting its figures.**
 `experiments/results/store-lock-race.txt` prints whether the tree was modified

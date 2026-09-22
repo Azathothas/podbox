@@ -472,7 +472,7 @@ Source:      `TOOL.md` section 6.4, section 8
 Category:    complete
 Priority:    P2
 Effort:      S
-Status:      done
+Status:      done 2026-09-21
 
 Problem:     A naive edit to `/etc/zypp/repos.d/` reverts. `refresh-services`
              regenerates that directory from the RIS index and overwrites
@@ -509,20 +509,7 @@ written is satisfied.
 
 ---
 
-Status note: **Reopened on 2026-09-11 by reconciliation, and it never met the
-             bar.** [RULES.md](RULES.md) section 5 closes an entry in place with
-             its `Prove` command **actually run and the output recorded
-             underneath**. This entry carried a `Prove` line and nothing after
-             it: no run, no output, and no date on its `Status` line either,
-             where every other closed entry in this file carries one.
-             ⚠ **The approach is not in doubt and is not being relitigated.**
-             Editing the service definitions under the RIS index rather than the
-             generated `repos.d` is still the decision. What is missing is the
-             evidence that it works, which is one container run against the
-             distribution named in `Prove`.
-             ⛔ It is reopened rather than deleted or excused, because a closed
-             entry nobody ran is worse than an open one: the next session reads
-             the count and believes the row.
+The 2026-09-11 reopen note answered by the run above is kept at [`docs/history/2026-09-22-t0408-reopen-note.md`](../docs/history/2026-09-22-t0408-reopen-note.md).
 
 ### T-0409 Ownership failures from `dpkg`, `rpm` and `xbps` are warnings
 
