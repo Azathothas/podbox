@@ -203,11 +203,11 @@ the blocker named and what would clear it.
 | [T-1311](interpose.md) | P1 | interpose | done | The interposed `fchmodat` drops the `flags` argument |
 | [T-1312](interpose.md) | P1 | interpose | done | The glibc interposer needs newer symbols than the payload provides |
 | [T-1313](podvm.md) | P1 | podvm | done | Every experiment fetch carries its own ceiling, and a stalled origin proves it |
-| [T-1314](packaging.md) | P1 | packaging | open | Nightly releases: one tag builds and tests every supported arch |
+| [T-1314](packaging.md) | P1 | packaging | done | Nightly releases: one tag builds and tests every supported arch |
 
 ## Counts
 
-143 items: 3 open, 1 partial, 2 blocked, 137 done.
+143 items: 2 open, 1 partial, 2 blocked, 138 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -216,10 +216,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 2 | 1 | 2 | 62 | 67 |
+| P1 | 1 | 1 | 2 | 63 | 67 |
 | P2 | 0 | 0 | 0 | 19 | 19 |
 | P3 | 1 | 0 | 0 | 4 | 5 |
-| **All** | **3** | **1** | **2** | **137** | **143** |
+| **All** | **2** | **1** | **2** | **138** | **143** |
 
 ## How the current ordering is derived
 

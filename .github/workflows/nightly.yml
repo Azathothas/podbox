@@ -1,0 +1,138 @@
+name: nightly
+
+# TODO/packaging.md T-1314. One tag builds and smoke-tests every supported arch.
+#
+# Nothing in gate.yml moves: that workflow answers pushes to main and pull
+# requests, and this one answers version tags alone. Every `v*` tag publishes
+# a pre-release named nightly with the seven static binaries and their hashes
+# beside it. Stable releases stay manual and are not designed here.
+#
+# A tag that builds red publishes nothing: the publish job needs every matrix
+# leg, so one red arch skips the release instead of shipping six binaries.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build and smoke ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            triple: x86_64-unknown-linux-musl
+            qemu: ""
+          - arch: aarch64
+            triple: aarch64-unknown-linux-musl
+            qemu: qemu-aarch64-static
+          - arch: riscv64gc
+            triple: riscv64gc-unknown-linux-musl
+            qemu: qemu-riscv64-static
+          - arch: loongarch64
+            triple: loongarch64-unknown-linux-musl
+            qemu: qemu-loongarch64-static
+          - arch: armv7
+            triple: armv7-unknown-linux-musleabihf
+            qemu: qemu-arm-static
+          - arch: i686
+            triple: i686-unknown-linux-musl
+            qemu: qemu-i386-static
+          - arch: powerpc64le
+            triple: powerpc64le-unknown-linux-musl
+            qemu: qemu-ppc64le-static
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # One path: the same script a session runs in a fresh container, with
+      # only the components this job needs. The component list is what
+      # scripts/check-todo.py check 19 holds this job to.
+      - name: bootstrap
+        run: ./scripts/common/bootstrap-env.sh rust bloat cc zig tools
+
+      - name: rust target
+        run: rustup target add ${{ matrix.triple }}
+
+      # Before the binary, because the two objects are an input to it.
+      # crates/podbox-cli/build.rs embeds them; a binary built first embeds
+      # two empty placeholders and this job passes with a podbox that
+      # interposes nothing. The pair is the x86_64 one on every arch: the
+      # interposer is x86_64-only by design (TODO/interpose.md T-0704), and
+      # on other archs the tier declines by name on the machine mismatch.
+      - name: interposer, one object per libc
+        run: ./scripts/build-interpose.sh
+
+      - name: build
+        run: cargo build --release --target ${{ matrix.triple }}
+
+      # The emulator each non-native binary is smoked under. Static binaries
+      # need no sysroot: qemu-user runs them directly.
+      - name: emulator
+        if: matrix.qemu != ''
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-user-static
+
+      # The per-arch smoke: version runs, the verbose document names this
+      # triple, both interposer digests are present, crt-static reads yes,
+      # and no PT_INTERP. The script exits 2 where it could not run, never
+      # as a pass.
+      - name: smoke
+        run: sh scripts/nightly-smoke.sh target/${{ matrix.triple }}/release/podbox ${{ matrix.triple }} ${{ matrix.qemu }}
+
+      - name: stage the asset
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.triple }}/release/podbox dist/podbox-${{ matrix.arch }}
+          (cd dist && sha256sum podbox-${{ matrix.arch }} > podbox-${{ matrix.arch }}.sha256)
+
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: podbox-nightly-${{ matrix.arch }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: publish the nightly pre-release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: fetch every arch asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download ${{ github.run_id }} --repo ${{ github.repository }} --dir dist
+
+      - name: lay out the release files
+        run: |
+          cd dist
+          for d in podbox-nightly-*/; do mv "$d"* . && rmdir "$d"; done
+          ls -l podbox-*
+
+      # An existing release for this tag is re-uploaded rather than remade:
+      # deleting and recreating a release to publish is a wider action than
+      # replacing its files, and the files are this run's own.
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ github.ref_name }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" --clobber dist/podbox-*
+          else
+            gh release create "$tag" --title nightly --prerelease --notes "Nightly pre-release: all seven claimed archs built as static binaries, each smoke-tested on its own arch (version, both interposer digests, crt-static). The full acceptance stays host-arch. Each binary carries the x86_64 interposer pair, so interposition declines by name off x86_64 until per-arch objects exist (TODO/interpose.md T-0704)." dist/podbox-*
+          fi

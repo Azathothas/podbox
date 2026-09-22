@@ -257,7 +257,16 @@ pub const SYS_GETDENTS64: i64 = nr!(getdents64, __NR_getdents64);
 pub const SYS_MKDIRAT: i64 = nr!(mkdirat, __NR_mkdirat);
 pub const SYS_FCHOWNAT: i64 = nr!(fchownat, __NR_fchownat);
 pub const SYS_UNLINKAT: i64 = nr!(unlinkat, __NR_unlinkat);
+#[cfg(not(target_arch = "riscv64"))]
 pub const SYS_RENAMEAT: i64 = nr!(renameat, __NR_renameat);
+/// `riscv64` has no `renameat`: asm-generic removed it, and `renameat2` with
+/// flags 0 is the same operation (renameat2(2)). `syscalls` 0.8.1 has no such
+/// variant in its riscv64 table, so this is the one number taken by its newer
+/// spelling; the wrapper below already passes zero in the flags slot.
+/// Measured 2026-09-23: six archs link and riscv64 fails to compile until
+/// this line lands (TODO/packaging.md T-1314).
+#[cfg(target_arch = "riscv64")]
+pub const SYS_RENAMEAT: i64 = nr!(renameat2, __NR_renameat2);
 pub const SYS_LINKAT: i64 = nr!(linkat, __NR_linkat);
 pub const SYS_SYMLINKAT: i64 = nr!(symlinkat, __NR_symlinkat);
 pub const SYS_READLINKAT: i64 = nr!(readlinkat, __NR_readlinkat);

@@ -17,10 +17,13 @@ rustflags = ["-C", "target-feature=+crt-static"]
 # script, so this is the toolchain that builds them. Removing these two lines
 # now breaks the build rather than changing nothing.
 #
-# ⚠ The LINK is still the host `cc`, deliberately. Making zig the linker as
-# well fails on `duplicate symbol: _start`, because zig's driver adds its own
-# `crt1.o` despite rustc's `-nostartfiles`. scripts/zig-cc.sh carries that
-# measurement and the `-fno-sanitize=undefined` it takes instead.
+# ⚠ The LINK is the host `cc` on `x86_64` and `i686`, deliberately. Making zig
+# the linker as well fails on `duplicate symbol: _start`, because zig's driver
+# adds its own `crt1.o` despite rustc's `-nostartfiles`. scripts/zig-cc.sh
+# carries that measurement and the `-fno-sanitize=undefined` it takes instead.
+# The four cross targets below do not share it: the host `cc` cannot link
+# foreign objects at all. What it says instead is in the cross-link section
+# at the end of this file.
 #
 # `relative = true` resolves against the repository root, so the same config
 # works from any subdirectory. `force` is left at its default, so a machine
@@ -59,3 +62,41 @@ AR_powerpc64le_unknown_linux_musl = { value = "scripts/zig-ar.sh", relative = tr
 # under `qemu-s390x-static` from this host. T-0912 carries what that costs.
 CC_s390x_unknown_linux_gnu = { value = "scripts/zig-cc.sh", relative = true }
 AR_s390x_unknown_linux_gnu = { value = "scripts/zig-ar.sh", relative = true }
+
+# The cross link, TODO/packaging.md T-1314. `cargo check` never links, so the
+# workspace checked for six architectures while only two linked: the host `cc`
+# refuses foreign objects (`file in wrong format`, measured on rust's own
+# self-contained crt and on podbox's objects). The recipe is
+# `experiments/260-multiarch.sh` clauses 4 and 7, moved here so every
+# `cargo build --target` uses it instead of a third copy in the next script:
+# `rust-lld` as the linker over rust's self-contained objects, named bare.
+# The name is rustc's own to resolve: it is not on PATH
+# (`command -v rust-lld` fails where these builds link) and no path is stated.
+# `x86_64` and `i686` keep the host `cc`: they link today and are not touched.
+[target.aarch64-unknown-linux-musl]
+linker = "rust-lld"
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-self-contained=yes"]
+
+[target.riscv64gc-unknown-linux-musl]
+linker = "rust-lld"
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-self-contained=yes"]
+
+[target.loongarch64-unknown-linux-musl]
+linker = "rust-lld"
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-self-contained=yes"]
+
+[target.armv7-unknown-linux-musleabihf]
+linker = "rust-lld"
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-self-contained=yes"]
+
+[target.powerpc64le-unknown-linux-musl]
+linker = "rust-lld"
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-self-contained=yes"]
+
+# `i686` keeps the host `cc` as its linker (it links today) but takes the
+# static crt explicitly: without this line its verbose document reads
+# `crt-static: no`, measured 2026-09-23 in the T-1314 lane run, while every
+# other arch reads `yes`. Static here is the artefact's shape (T-1001), so
+# the outlier is the defect and not a second shape.
+[target.i686-unknown-linux-musl]
+rustflags = ["-C", "target-feature=+crt-static"]

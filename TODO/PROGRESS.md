@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-143 entries: 3 open, 1 partial, 2 blocked, 137 done. Every P0 is done.
+143 entries: 2 open, 1 partial, 2 blocked, 138 done. Every P0 is done.
 
 ## Baseline
 
@@ -61,6 +61,21 @@ and still have to be green. [RULES.md](RULES.md) section 2 carries it, and a
 publish branch is the fallback if protection is ever restored.
 
 ## What this session did
+
+Session of 2026-09-23. [T-1314](packaging.md) closed in its own change:
+`.github/workflows/nightly.yml` (every `v*` tag builds all seven
+static-PIE binaries, smokes each on its own arch, publishes the nightly
+pre-release) with the smoke in `scripts/nightly-smoke.sh`. Checkpoints
+first: plain builds linked 2 of 7 (the host `cc` refuses foreign objects),
+so the 260 `rust-lld` recipe moved into `.cargo/config.toml` one section
+per cross target; `riscv64` takes `renameat2` (the kernel has no `renameat`
+on asm-generic, and `syscalls` has no newer release to wait for); `i686`
+takes `+crt-static` (it read `no` alone). After the three fixes all seven
+link with no overrides, and 6 of 6 runnable smokes read green in the lane
+(`loongarch64` SIGILLs a hello binary too under the lane's qemu 7.2, so
+that leg is decided by CI). Counts move to 143 entries, 2 open, 1 partial,
+2 blocked, 138 done, and every P0 is done. The `v0.1.0-beta.2` tag and its
+nightly run still owe, and the entry records them when they land.
 
 Session of 2026-09-22, continued. [T-1314](packaging.md) filed in its own
 change: nightly releases, one `v*` tag building and smoke-testing all

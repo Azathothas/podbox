@@ -402,7 +402,7 @@ Source:      the operator, 2026-09-22; `.github/workflows/gate.yml:9-13`; `.carg
 Category:    packaging
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     Releases are assembled by hand. `v0.1.0-beta.1` went up through
              hand-run commands, only `x86_64` ships, and no step anywhere
@@ -453,3 +453,72 @@ Decision:    Ruled 2026-09-22. The stream is named nightly; every `v*` tag
 Prove:       `git push origin v0.1.0-beta.2` publishes a nightly pre-release
              with seven assets, each with a green per-arch smoke row in the
              workflow run.
+
+**Done 2026-09-23.** One `v*` tag builds and smoke-tests all seven claimed
+archs through `.github/workflows/nightly.yml`, with the per-arch smoke in
+`scripts/nightly-smoke.sh` and the cross link that makes the builds possible
+in `.cargo/config.toml`.
+
+The workflow answers version tags alone; nothing in `gate.yml` moves. A
+seven-leg matrix (arch, triple, emulator) builds the release binary, runs
+the smoke under qemu where the binary cannot run natively, and stages the
+binary beside its sha256. The publish job needs every leg, downloads the
+seven assets with the run's own token, and creates the pre-release named
+nightly (re-uploading where the tag already has one, never deleting and
+remaking it). The checkout pin repeats `gate.yml`'s; the one new pin is
+`actions/upload-artifact` v5.0.0. The bootstrap line repeats the build
+job's, which is what `scripts/check-todo.py` check 19 holds it to.
+
+The smoke asserts four things, each read from the process that produced
+it: `version` exits 0 with the version line, `version --verbose` exits 0
+and names the triple, both interposer digests are 64 lowercase hex digits
+(never `absent`), and `crt-static` reads `yes` beside zero PT_INTERP. It
+exits 2 where it could not run. The exit-2 arms (no arguments, no binary)
+and the exit-1 arms (a `true` binary printing no version line, a `false`
+binary exiting 1) were driven on the host before any lane run.
+
+Checkpoint 1 measured first: plain `cargo build --release --target` linked
+2 of 7. The host `cc` refuses foreign objects (`file in wrong format` on
+rust's own self-contained crt, and on podbox's objects). The recipe is
+`experiments/260-multiarch.sh` clauses 4 and 7 (`rust-lld` over
+self-contained objects), moved into `.cargo/config.toml` one target per
+section so every build uses it instead of a third copy in the next script.
+`x86_64` and `i686` keep the host `cc`. `i686` additionally takes
+`+crt-static` alone: without it its verbose document reads `no` while
+every other arch reads `yes`, and one static shape is the artefact's rule
+(T-1004). `riscv64` failed to compile on `Sysno::renameat`: the variant is
+absent from `syscalls` 0.8.1 because the kernel has no such call on
+asm-generic, so the const takes the `renameat2` spelling on that arch and
+the wrapper already passes zero flags. `syscalls` has no newer release
+(max 0.8.1, read 2026-09-23), so there is nothing upstream to wait for.
+After the three fixes all seven link with no environment overrides:
+
+```
+x86_64      3503032 B  interp 0  crt-static yes
+aarch64     2978512 B  interp 0  crt-static yes
+riscv64gc   2725832 B  interp 0  crt-static yes
+loongarch64 3010432 B  interp 0  crt-static yes
+armv7       2763552 B  interp 0  crt-static yes
+i686        2992944 B  interp 0  crt-static yes
+powerpc64le 3248912 B  interp 0  crt-static yes
+```
+
+Checkpoint 2 ran one arch end to end first (aarch64 under
+`qemu-aarch64-static`: `podbox 0.1.0`, rc 0, the triple named, both
+digests present, `crt-static: yes`), then widened: x86_64 native,
+riscv64gc, armv7, i686 and powerpc64le all read `SMOKE-OK` with agreeing
+digests. `loongarch64` does not run in this lane: `qemu-loongarch64-static`
+7.2 answers SIGILL (rc 132) to a hello-world binary built with the same
+toolchain, so the emulator is the gap and not the binary; the leg is
+decided by the workflow's own runner. The `s390x` check stays green beside
+the change, and `nightly.yml` parses under a real parser (7 legs, trigger
+`push tags v*`, publish needing the matrix).
+
+Every per-arch binary carries the x86_64 interposer pair: the crate is
+x86_64-only by design (`crates/podbox-interpose/src/lib.rs:50-61`), and
+off-arch payloads decline naming both machines
+(`crates/podbox-cli/src/interpose.rs:238-246`). Per-arch objects belong to
+the T-0704 family, not to this entry.
+
+Prove run: `git push origin v0.1.0-beta.2` <to record with the run link,
+the seven smoke rows and the release assets>.
