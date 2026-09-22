@@ -6,12 +6,12 @@ the close-out (gc, push, CI verify, record rewrite). All ten commit here.
 
 ## The resume point
 
-Tree clean at the rulings commit. Counts: 142 entries, 2 open, 1
-partial, 2 blocked, 137 done. Every P0 is done. T-1207 (gate.md) and
+Tree clean at the T-1314 filing commit. Counts: 143 entries, 3 open,
+1 partial, 2 blocked, 137 done. Every P0 is done. T-1207 (gate.md) and
 T-1112 (milestones.md) are ruled and recorded in their entries; T-1109
 (milestones.md) carries its remaining conditions in its own file. Next
-session: continuous until ten tasks finish, then the next beta
-pre-release for `x86_64` and `aarch64`.
+session: continuous until ten tasks finish with T-1314 (packaging.md)
+last, then the nightly matrix on the next `v*` tag.
 
 ## In flight
 
@@ -40,10 +40,10 @@ route. Podman machine state on the host is left as found. Beta
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Continuous session: the rulings are recorded (tree clean, CI green) and
-counts read 142 entries, 2 open, 1 partial, 2 blocked, 137 done. Work
-continuously until ten tasks finish in earnest, then publish the next
-beta pre-release with musl binaries for x86_64 and aarch64, each
-downloaded back and hash-checked. Push straight to main with no
-branches.
+Continuous session: T-1314 is filed (tree clean, CI green) and
+counts read 143 entries, 3 open, 1 partial, 2 blocked, 137 done. Work
+continuously until ten tasks finish in earnest, with T-1314
+(packaging.md) last before the gates, then push the next v-tag: it
+publishes the nightly pre-release with all seven archs built and
+smoke-tested. Push straight to main with no branches.
 ```

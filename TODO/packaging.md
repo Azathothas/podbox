@@ -393,3 +393,63 @@ tree: `crates/**/*.rs` with their sizes and mtimes, plus `Cargo.toml`,
 `Cargo.lock`, `rust-toolchain.toml` and `.cargo/config.toml`. ⛔ Deliberately
 not `find .`, because `target/` is 2.3 GB and `references/` is 154 MB and
 neither is an input to the build.
+
+---
+
+### T-1314 Nightly releases: one tag builds and tests every supported arch
+
+Source:      the operator, 2026-09-22; `.github/workflows/gate.yml:9-13`; `.cargo/config.toml:40-55`
+Category:    packaging
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     Releases are assembled by hand. `v0.1.0-beta.1` went up through
+             hand-run commands, only `x86_64` ships, and no step anywhere
+             builds or runs the other six architectures podbox claims.
+             `.github/workflows/gate.yml:9-13` triggers on pushes to main and
+             pull requests, never on tags, and carries no release job; its
+             build job at `.github/workflows/gate.yml:101-109` is `x86_64`
+             alone.
+Premise:     Read at file and line, not measured. `.cargo/config.toml:40-55`
+             points cc-rs at `scripts/zig-cc.sh` for seven musl targets:
+             `x86_64`, `aarch64`, `riscv64gc`, `loongarch64`, `armv7`
+             (`musleabihf`), `i686` and `powerpc64le`. [T-0911](deps.md) took
+             the workspace from one compiling architecture to six, and
+             [T-0912](deps.md) cleared the seventh gate, so seven is the
+             claimed set. Whether all seven still build, and what the
+             embedded interposer objects cost per arch, is what the
+             implementing session measures first. Whether
+             `scripts/build-interpose.sh` cross-builds the embedded objects
+             is unread at the lines that decide it; read it before promising
+             per-arch embeds.
+             ⚠ The beta verification is the per-arch bar to reuse: the binary
+             runs `podbox 0.1.0`, both interposer digests are present, and
+             `crt-static` reads yes.
+Approach:    One new workflow, `.github/workflows/nightly.yml`, and nothing
+             in `gate.yml` moves. On every `v*` tag it builds all seven
+             static-PIE binaries, runs each on its own arch through qemu, a
+             container, or a native runner (the route is per arch, the
+             invariant is not: no binary publishes without executing), and
+             publishes a pre-release named nightly with the binaries and
+             their hashes beside it. Stable releases stay manual and are
+             explicitly not designed here.
+             ⛔ A tag that builds red publishes nothing: the per-arch smoke is
+             the release gate, not a report beside it.
+             Checkpoints: all seven build green before any workflow runs;
+             one arch end to end before the matrix widens.
+             Pitfalls: qemu timing flakes (every wait is on a condition, per
+             [authoring](../docs/methodology/authoring.md) section 6, never
+             on a duration); tag pushes racing the gate's cancel-in-progress;
+             matrix failures hiding behind a green summary row.
+Decision:    Ruled 2026-09-22. The stream is named nightly; every `v*` tag
+             triggers it and pushes never do; the matrix covers all seven
+             claimed archs; each arch is smoke-tested (version, both
+             interposer digests, `crt-static`), and the full acceptance stays
+             host-arch; stable is manual and far in the future.
+             The rejected alternative is `nightly-*` tags: version tags would
+             then do nothing until a manual stable flow exists, which is a
+             second naming scheme for one stream.
+Prove:       `git push origin v0.1.0-beta.2` publishes a nightly pre-release
+             with seven assets, each with a green per-arch smoke row in the
+             workflow run.

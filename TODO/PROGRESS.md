@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 2 open, 1 partial, 2 blocked, 137 done. Every P0 is done.
+143 entries: 3 open, 1 partial, 2 blocked, 137 done. Every P0 is done.
 
 ## Baseline
 
@@ -62,6 +62,16 @@ publish branch is the fallback if protection is ever restored.
 
 ## What this session did
 
+Session of 2026-09-22, continued. [T-1314](packaging.md) filed in its own
+change: nightly releases, one `v*` tag building and smoke-testing all
+seven claimed archs with stable staying manual. The entry carries the
+ruled shape (nightly name, per-tag trigger, smoke per arch, full
+acceptance stays host-arch) and the checkpoints the implementation
+starts from. It is next session's task 10, last before the gates.
+
+Counts move to 143 entries, 3 open, 1 partial, 2 blocked, 137 done, and
+every P0 is done.
+
 Session of 2026-09-22, continued. [T-0413](complete.md) closed in its own
 change: the chroot banner names the missing `/proc` (`must_never_claim`
 plus a new `entry_banner` sentence; `run`, both `exec` paths and `probe`
@@ -95,8 +105,9 @@ dynamic (`PT_INTERP /lib/ld-musl`, rightly refused), then the wrong path
 verified static against the `.deb` ground truth, which also proves
 apt-under-podbox byte-correct). A setup run must not carry `--rm`.
 
-Counts move to 142 entries, 2 open, 1 partial, 2 blocked, 137 done, and
-every P0 is done.
+Counts stood at 142 entries, 2 open, 1 partial, 2 blocked, 137 done
+when the beta closed above, and every P0 is done. [T-1314](packaging.md)
+filed after it moves them on.
 
 Session of 2026-09-22, continued. [T-0606](supervise.md) closed in its own
 change: the supervise tier's own three legs (`Group::Supervise` with
@@ -685,9 +696,12 @@ for clause 3. [T-1209](gate.md) and
    [T-1112](milestones.md) stays parked as P3.
 
 10. The next session runs continuous until ten tasks finish in earnest,
-    then publishes the next beta pre-release with musl binaries for both
-    `x86_64` and `aarch64` beside it, each downloaded back and hash-checked
-    before the tag counts as published.
+    with [T-1314](packaging.md) as task 10, last before the gates. Then it
+    pushes the next `v*` tag, which publishes the nightly pre-release:
+    all seven claimed archs built as static-PIE binaries, each
+    smoke-tested on its own arch (version, both interposer digests,
+    `crt-static`), the full acceptance staying host-arch. Stable releases
+    stay manual and are not designed.
    [T-0909](deps.md) is done: `io12/userland-execve-rust` vendored whole
    to `vendor/userland-execve` at `02ef0e0`, and podbox's own
    three-syscall memfd path in `crates/podbox-enter/src/memfd.rs` with
@@ -750,7 +764,8 @@ asked in, and it lives in the entry.
 | whether a beta binary may be published | ruled 2026-09-22: yes, once the top-10 priority tasks finish and the session ends, under a pre-release tag; work first | PROGRESS.md (this file) |
 | where the three remaining interposer checks belong | ruled 2026-09-22: in `dev.sh check`, each with its plant; per-commit toolchain cost accepted | [T-1207](gate.md) |
 | whether the non-Linux guest starts | ruled 2026-09-22: keep parked as P3; schedulable, displaces nothing | [T-1112](milestones.md) |
-| what the next session owes | ruled 2026-09-22: continuous until ten tasks finish, then the next beta pre-release for `x86_64` and `aarch64` | PROGRESS.md (this file) |
+| what the next session owes | ruled 2026-09-22: continuous until ten tasks finish, with T-1314 last, then the nightly matrix on the next `v*` tag | PROGRESS.md (this file) |
+| how nightly releases work | ruled 2026-09-22: named nightly, every `v*` tag triggers, all seven archs, smoke per arch, stable manual later | [T-1314](packaging.md) |
 
 Every settled ruling is written into the entry that owns it, which
 is where an implementer reads it.
