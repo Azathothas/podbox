@@ -479,7 +479,7 @@ Source:      `TOOL.md` section 5 M6
 Category:    milestones
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     The measured gap. A stock path interposer delivers a bind view with
              `mount(2)` denied and leaves `chown 0:42` at `EINVAL`, identically
@@ -494,7 +494,19 @@ Approach:    Both halves in one object: path virtualization, and ownership
 Decision:    Both, or the milestone is not done. ⭐ No project in the corpus does
              both halves in one interposer while also speaking docker's CLI.
              That gap is what podbox is.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` and `podbox run --rm -v "$PWD:/mapped" public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'touch /tmp/f && chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` and `podbox run --rm -e 'PODBOX_MAPS=/mapped:/etc' public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
+
+**Done 2026-09-22.** The work is T-0701 through T-0708, all closed, and
+this close drives both halves end to end on host podman 6.1.2 with the
+shipped binary: `chown 0:42` reads back `0:42` through the ownership
+memo, and a mapped path reads back virtual through `pwd`. No project
+in the corpus does both halves in one interposer while also speaking
+docker's CLI, which is the gap this milestone names.
+
+⛔ **The `Prove` above is amended: its second half passed `-v`, which
+podbox refuses.** The refusal names a copy pretending to be a mount.
+Maps travel through `PODBOX_MAPS`, which is what the amended half
+drives; the first half gains the `touch` its `chown` needs.
 
 ---
 

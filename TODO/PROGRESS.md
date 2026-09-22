@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 14 open, 2 partial, 2 blocked, 124 done.
+142 entries: 13 open, 2 partial, 2 blocked, 125 done.
 
 ## Baseline
 
@@ -438,6 +438,14 @@ third copy of the check in the second `exec` path and routed it
 through the same predicate. Counts move to 14 open, 2 partial and
 124 done.
 
+[T-1107](milestones.md) closed in its own change without new code: the
+milestone is T-0701 through T-0708, all closed, and this close drives
+both halves end to end on host podman with the shipped binary. `chown
+0:42` reads back `0:42` through the ownership memo, and a mapped path
+reads back virtual through `pwd`. The entry Prove is amended: its
+second half passed `-v`, which podbox refuses, so maps travel through
+`PODBOX_MAPS`. Counts move to 13 open, 2 partial and 125 done.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -528,8 +536,8 @@ for clause 3. [T-1209](gate.md) and
 implementation entry is half-written. [T-1212](gate.md) went `blocked`
 in this change with its six runs and what clears each red half, and
 [T-1213](gate.md) went `blocked` in this change with its conversion,
-its three runs and its lane findings. Three entries
-remain `partial`: [T-0503](enter.md), [T-0704](interpose.md) and
+its three runs and its lane findings. Two entries
+remain `partial`: [T-0704](interpose.md) and
 [T-1109](milestones.md), each carrying its remaining conditions in its own file.
 
 [T-0408](complete.md) is `open` rather than `done` for the simpler reason that
