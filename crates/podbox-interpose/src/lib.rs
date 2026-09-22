@@ -294,14 +294,14 @@ crate::real!(pub fn next_execv = "execv"(*const c_char, *const *const c_char) ->
 crate::real!(pub fn next_execvp = "execvp"(*const c_char, *const *const c_char) -> c_int);
 crate::real!(pub fn next_execvpe = "execvpe"(*const c_char, *const *const c_char, *const *const c_char) -> c_int);
 crate::real!(pub fn next_execveat = "execveat"(c_int, *const c_char, *const *const c_char, *const *const c_char, c_int) -> c_int);
-crate::real!(pub fn next_posix_spawn = "posix_spawn"(*mut c_int, *const c_char, *const c_void, *const c_void, *const *const c_char, *const *const c_char) -> c_int);
-crate::real!(pub fn next_posix_spawnp = "posix_spawnp"(*mut c_int, *const c_char, *const c_void, *const c_void, *const *const c_char, *const *const c_char) -> c_int);
+crate::real!(pub fn next_posix_spawn = "posix_spawn" @ "GLIBC_2.15"(*mut c_int, *const c_char, *const c_void, *const c_void, *const *const c_char, *const *const c_char) -> c_int);
+crate::real!(pub fn next_posix_spawnp = "posix_spawnp" @ "GLIBC_2.15"(*mut c_int, *const c_char, *const c_void, *const c_void, *const *const c_char, *const *const c_char) -> c_int);
 crate::real!(pub fn next_chdir = "chdir"(*const c_char) -> c_int);
 crate::real!(pub fn next_opendir = "opendir"(*const c_char) -> *mut c_void);
 crate::real!(pub fn next_scandir = "scandir"(*const c_char, *mut *mut c_void, Filter, Compar) -> c_int);
 crate::real!(pub fn next_readlink = "readlink"(*const c_char, *mut c_char, usize) -> isize);
 crate::real!(pub fn next_readlinkat = "readlinkat"(c_int, *const c_char, *mut c_char, usize) -> isize);
-crate::real!(pub fn next_realpath = "realpath"(*const c_char, *mut c_char) -> *mut c_void);
+crate::real!(pub fn next_realpath = "realpath" @ "GLIBC_2.3"(*const c_char, *mut c_char) -> *mut c_void);
 crate::real!(pub fn next_canonicalize = "canonicalize_file_name"(*const c_char) -> *mut c_void);
 crate::real!(pub fn next_getxattr = "getxattr"(*const c_char, *const c_char, *mut c_void, usize) -> isize);
 crate::real!(pub fn next_lgetxattr = "lgetxattr"(*const c_char, *const c_char, *mut c_void, usize) -> isize);
@@ -345,12 +345,12 @@ crate::real!(pub fn next_tmpfile = "tmpfile"() -> *mut c_void);
 crate::real!(pub fn next_tmpfile64 = "tmpfile64"() -> *mut c_void);
 crate::real!(pub fn next_freopen = "freopen"(*const c_char, *const c_char, *mut c_void) -> *mut c_void);
 crate::real!(pub fn next_freopen64 = "freopen64"(*const c_char, *const c_char, *mut c_void) -> *mut c_void);
-crate::real!(pub fn next_glob = "glob"(*const c_char, c_int, ErrFunc, *mut c_void) -> c_int);
-crate::real!(pub fn next_glob64 = "glob64"(*const c_char, c_int, ErrFunc, *mut c_void) -> c_int);
+crate::real!(pub fn next_glob = "glob" @ "GLIBC_2.27"(*const c_char, c_int, ErrFunc, *mut c_void) -> c_int);
+crate::real!(pub fn next_glob64 = "glob64" @ "GLIBC_2.27"(*const c_char, c_int, ErrFunc, *mut c_void) -> c_int);
 crate::real!(pub fn next_ftw = "ftw"(*const c_char, FtwFunc, c_int) -> c_int);
 crate::real!(pub fn next_ftw64 = "ftw64"(*const c_char, FtwFunc, c_int) -> c_int);
-crate::real!(pub fn next_nftw = "nftw"(*const c_char, NftwFunc, c_int, c_int) -> c_int);
-crate::real!(pub fn next_nftw64 = "nftw64"(*const c_char, NftwFunc, c_int, c_int) -> c_int);
+crate::real!(pub fn next_nftw = "nftw" @ "GLIBC_2.3.3"(*const c_char, NftwFunc, c_int, c_int) -> c_int);
+crate::real!(pub fn next_nftw64 = "nftw64" @ "GLIBC_2.3.3"(*const c_char, NftwFunc, c_int, c_int) -> c_int);
 crate::real!(pub fn next_xstat64 = "__xstat64"(c_int, *const c_char, *mut c_void) -> c_int);
 crate::real!(pub fn next_lxstat64 = "__lxstat64"(c_int, *const c_char, *mut c_void) -> c_int);
 crate::real!(pub fn next_fxstatat64 = "__fxstatat64"(c_int, c_int, *const c_char, *mut c_void, c_int) -> c_int);
@@ -1717,11 +1717,11 @@ mod tests {
     /// still entered with all four registers set.
     type FchmodatFn = unsafe extern "C" fn(c_int, *const c_char, c_uint, c_int) -> c_int;
 
-    fn lookup(handle: *mut c_void, name: &str) -> FchmodatFn {
+    fn lookup<F>(handle: *mut c_void, name: &str) -> F {
         let sym = CString::new(name).expect("symbol name");
         let f = unsafe { dlsym(handle, sym.as_ptr()) };
         assert!(!f.is_null(), "dlsym {name}");
-        unsafe { std::mem::transmute(f) }
+        unsafe { std::mem::transmute_copy::<*mut c_void, F>(&f) }
     }
 
     /// libc's own `fchmodat`: the oracle the interposed entry point agrees
@@ -1771,6 +1771,111 @@ mod tests {
             let want = call(real, &link, flags);
             let got = call(wrapped, &link, flags);
             assert_eq!(got, want, "flags={flags:#x}");
+        }
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// The real `realpath` shape. A NULL second argument asks libc to
+    /// allocate the answer, which is what libdnf passes for each repodata
+    /// target. The dynamic symbol carries no arity, so the return type here
+    /// follows the wrapper rather than libc's own declaration.
+    type RealpathFn = unsafe extern "C" fn(*const c_char, *mut c_char) -> *mut c_void;
+
+    /// libc's own `realpath`: the oracle. A handle lookup answers the
+    /// default version, which is what a bare payload binds.
+    fn libc_realpath() -> RealpathFn {
+        for lib in ["libc.so.6", "libc.musl-x86_64.so.1"] {
+            let name = CString::new(lib).expect("library name");
+            let h = unsafe { dlopen(name.as_ptr(), RTLD_NOW) };
+            if !h.is_null() {
+                return lookup(h, "realpath");
+            }
+        }
+        panic!("no libc to compare against");
+    }
+
+    /// This object's own interposed entry point, looked up the way the
+    /// loader looks it up: the test binary defines the `#[no_mangle]`
+    /// symbol itself, so it wins over libc's without any preload.
+    fn wrapped_realpath() -> RealpathFn {
+        lookup(RTLD_DEFAULT, "realpath")
+    }
+
+    /// libc's own `free`, for the answers both sides allocate. Neither side
+    /// may free with the test binary's own allocator: the bytes come from
+    /// libc's.
+    fn libc_free() -> unsafe extern "C" fn(*mut c_void) {
+        for lib in ["libc.so.6", "libc.musl-x86_64.so.1"] {
+            let name = CString::new(lib).expect("library name");
+            let h = unsafe { dlopen(name.as_ptr(), RTLD_NOW) };
+            if !h.is_null() {
+                return lookup(h, "free");
+            }
+        }
+        panic!("no libc to compare against");
+    }
+
+    fn call_realpath(f: RealpathFn, path: &CString) -> (*mut c_void, c_int) {
+        clear_errno();
+        let r = unsafe { f(path.as_ptr(), core::ptr::null_mut()) };
+        (r, errno())
+    }
+
+    fn resolved_bytes(p: *mut c_void) -> Vec<u8> {
+        assert!(!p.is_null());
+        unsafe { std::ffi::CStr::from_ptr(p as *const c_char) }
+            .to_bytes()
+            .to_vec()
+    }
+
+    /// T-1309: the versioned resolver falls back to `dlsym` where the
+    /// named version does not exist. A version no libc defines exercises
+    /// the fallback on every libc, with no compatibility version needed.
+    /// Separate resolvers keep each lookup honest: sharing one would let
+    /// the second call answer from the first call's cache.
+    #[test]
+    fn versioned_lookup_falls_back_to_dlsym() {
+        let plain = crate::real::Next::new();
+        let want = unsafe { plain.get(c"realpath".to_bytes_with_nul()) };
+        assert!(!want.is_null(), "dlsym resolves realpath");
+        let versioned = crate::real::Next::new();
+        let got = unsafe {
+            versioned.get_versioned(
+                c"realpath".to_bytes_with_nul(),
+                c"GLIBC_9.9".to_bytes_with_nul(),
+            )
+        };
+        assert_eq!(got, want, "fallback answers the same definition");
+    }
+
+    /// T-1309: the interposed `realpath` forwards to the default version.
+    /// The compatibility version answers `EINVAL` where the second argument
+    /// is NULL, and an unversioned `dlsym` returns it on some payload libcs
+    /// (measured on rocky 9), so a wrapper that resolves it breaks every
+    /// caller that passes NULL. The test process runs without the preload, so the wrapper
+    /// resolves the real call through `RTLD_NEXT` and the only difference
+    /// under test is which version it resolves.
+    #[test]
+    fn realpath_null_resolved_matches_libc() {
+        let dir = std::env::temp_dir().join(format!("podbox-realpath-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let path = CString::new(dir.as_os_str().as_bytes()).expect("dir path");
+        let real = libc_realpath();
+        let wrapped = wrapped_realpath();
+        let free = libc_free();
+        // Adjacent and in the same order both sides.
+        let (want_ptr, want_errno) = call_realpath(real, &path);
+        let (got_ptr, got_errno) = call_realpath(wrapped, &path);
+        // The oracle guards the fixture: a temp dir that does not resolve
+        // proves nothing, so its failure fails the test rather than passing
+        // it vacuously.
+        assert!(!want_ptr.is_null(), "oracle resolves the temp dir");
+        assert_eq!(got_errno, want_errno, "errno");
+        assert!(!got_ptr.is_null(), "wrapped resolves the temp dir");
+        assert_eq!(resolved_bytes(got_ptr), resolved_bytes(want_ptr));
+        unsafe {
+            free(want_ptr);
+            free(got_ptr);
         }
         std::fs::remove_dir_all(&dir).ok();
     }

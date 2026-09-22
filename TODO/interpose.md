@@ -1078,7 +1078,7 @@ Source:      `experiments/240-distro-sweep.sh` rocky and rocky-minimal rows;
 Category:    interpose
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     The rocky and rocky-minimal rows of `240` fail under podbox
              while the engine control builds and runs 42 on the same image.
@@ -1103,18 +1103,51 @@ Premise:     Measured 2026-09-19 on host podman, fixed URL, back to back,
              shaping is refuted by reading; a file-path operation in the
              download path (`mkstemp`, `statx`, `openat` handling) is the
              suspect, unconfirmed.
+             Correction measured 2026-09-22 on host podman 6.1.2: the
+             suspect above is wrong. No file-path operation fails. An
+             `LD_PRELOAD` shim that forwards `realpath` untouched
+             reproduces the failure with no podbox and no interpose
+             object. librepo calls `realpath(path, NULL)`. The forwarded
+             call answers NULL with `EINVAL` on paths that `stat`
+             confirms exist. Bare succeeds on the same paths. An
+             in-process three-way resolution names the cause.
+             `dlsym(RTLD_NEXT, "realpath")` returns the `GLIBC_2.2.5`
+             compat. Its body tests `resolved` for NULL and answers
+             `EINVAL` (read with `objdump -d` from the pinned image
+             libc). `dlvsym` for `GLIBC_2.3` returns the default and
+             resolves the same paths. Bare binds the default through
+             the versioned PLT reference (`objdump -T` on librepo
+             shows `realpath@GLIBC_2.3`). An unversioned `dlsym` returns
+             the compat on this libc (measured in-process: the same
+             pointer `dlvsym` answers for 2.2.5). The payload
+             libc carries compat pairs for seven wrapped names:
+             `realpath`, `glob`, `glob64`, `nftw`, `nftw64`,
+             `posix_spawn`, `posix_spawnp` (read with `objdump -T`).
+             `canonicalize_file_name` carries one version and is safe.
+             A forward-only shim passes only where its own log shows
+             the wrapper never fired. Every run with a confirmed firing
+             wrapper fails.
              This blocks [T-1211](gate.md): `240` exits 1 while these two
              rows read no-compiler, and unsetting `LD_PRELOAD` in the sweep
              would test a different product, so the sweep stays as it is.
-Approach:    Strace the failing fetch inside a podbox run (or bisect the
-             interposed symbols against a fixed-URL `makecache`) to name
-             the call, then fix in the interposer with a regression test
-             that drives a rocky dnf fetch under the preload. Out of
+Approach:    Forward the seven multi-version names to their default
+             versions with `dlvsym(RTLD_NEXT, name, version)` on glibc,
+             with a `dlsym` fallback where the default is absent, so a
+             payload with an older libc keeps today's answer. musl keeps
+             `dlsym` and has no versions. Extend the `real!` resolver
+             with an optional version. No second resolver ships. Add a
+             unit test in the oracle pattern: the wrapped
+             `realpath(dir, NULL)` beside libc's, with the same non-NULL
+             answer. Prove the test red once by pointing the wrapper at
+             the 2.2.5 compat, then green after the fix. Out of
              scope: the T-1211 conversions (done, and 240's attribution is
              what found this), the static 1 MB `/dev/urandom` shim the
              probes also showed (T-0401's area, reported separately), and
              the almalinux row, which fails identically under the engine
-             and is the host's mirror, not the runtime.
+             and is the host's mirror, not the runtime. Versioned-pair
+             exports per caller version stay out: the swept payloads all
+             reference the defaults, and the fallback keeps older ones
+             working.
 Decision:    Fix in the interposer, not around it. The control exists to
              separate "podbox is missing a fixup" from "this machine
              cannot do it either", and here it names podbox: no sweep-side
@@ -1122,6 +1155,32 @@ Decision:    Fix in the interposer, not around it. The control exists to
 Prove:       `./experiments/240-distro-sweep.sh` exits 0 with both
              libdnf rows reading 42, on host podman, with the
              conditions block naming the driver.
+
+**Done 2026-09-22.** The seven multi-version names resolve to their
+defaults through `dlvsym` on glibc, with a `dlsym` fallback where
+the default is absent, and musl keeps `dlsym`. The `real!`
+resolver grows an optional version arm. No second resolver ships.
+Guard: `realpath_null_resolved_matches_libc` calls the wrapped
+`realpath(dir, NULL)` beside libc's and requires the same non-NULL
+answer, plus `versioned_lookup_falls_back_to_dlsym` for the
+fallback with a version no libc defines. The guard fires red on
+the planted unversioned resolution on the rocky payload libc
+(12 pass, 1 fail with the defect's signature) and green after
+the fix there (13 of 13) and in the lane (14 of 14).
+`versioned_lookup_falls_back_to_dlsym` covers the fallback branch
+with a version no libc defines. The lane build holds the 2.27 ceiling (newest
+need `GLIBC_2.14`). End to end on host podman 6.1.2 with the
+shipped binary: `240` reads 10 rows, 10 ran, 10 built and ran
+(`experiments/results/distro-sweep.txt`), both libdnf rows 0 0
+42, each filtered run exiting 0 observed. A link-time `dlvsym`
+reference was tried first and stamps `GLIBC_2.34`, which breaks
+the ceiling; resolving it at runtime through the pinned `dlsym`
+is the shape that holds. Refuted along the way, so nobody
+re-tries them: a file-path operation in the download path (the
+entry's first suspect), the socket layer, parenthood, command
+shape, mirror content, byte corruption, ABI mismatch and
+threads; the failure reproduces with a forwarding-only shim and
+no interposer at all.
 
 ### T-1312 The glibc interposer needs newer symbols than the payload provides
 

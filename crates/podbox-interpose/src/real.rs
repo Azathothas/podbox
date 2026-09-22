@@ -122,6 +122,78 @@ impl Next {
         }
         p
     }
+
+    /// The default-version definition of a symbol that also carries a
+    /// compatibility version, T-1309.
+    ///
+    /// Several forwarded names carry a compat beside the default
+    /// (`realpath@GLIBC_2.2.5` beside `realpath@@GLIBC_2.3`), and an
+    /// unversioned `dlsym` can return the compat: measured in-process on
+    /// the rocky 9 libc, where it answers the same pointer `dlvsym`
+    /// answers for 2.2.5. The compat answers `EINVAL` where the caller
+    /// passes NULL, so every `realpath(path, NULL)` fails once
+    /// interposed. Resolving the default version by name forwards what
+    /// the payload would have bound bare.
+    ///
+    /// Same cache discipline as [`Next::get`]: a null is retried, a pointer
+    /// is published once. Where the payload's libc predates the default,
+    /// `dlvsym` finds nothing and the lookup falls back to `dlsym`, which
+    /// keeps today's answer there instead of failing every call.
+    ///
+    /// `dlvsym` itself is resolved at runtime through the already-pinned
+    /// `dlsym`: a link-time `dlvsym` reference stamps the 2.34 version,
+    /// which breaks the 2.27 ceiling the build asserts. The looked-up
+    /// `dlvsym` is one body under both of its versions, so whichever it
+    /// answers behaves the same.
+    ///
+    /// # Safety
+    /// As [`Next::get`], for both `name` and `version`.
+    pub unsafe fn get_versioned(&self, name: &[u8], version: &[u8]) -> *mut c_void {
+        #[cfg(not(target_env = "gnu"))]
+        {
+            // musl defines no symbol versions and no `dlvsym`: one version
+            // per name exists there, so plain `dlsym` already answers it.
+            let _ = version;
+            return unsafe { self.get(name) };
+        }
+        #[cfg(target_env = "gnu")]
+        {
+            let cached = self.0.load(Ordering::Acquire);
+            if !cached.is_null() {
+                return cached;
+            }
+            debug_assert!(
+                name.last() == Some(&0),
+                "a dlsym name must be NUL-terminated"
+            );
+            debug_assert!(
+                version.last() == Some(&0),
+                "a dlvsym version must be NUL-terminated"
+            );
+            type DlvsymFn =
+                unsafe extern "C" fn(*mut c_void, *const c_char, *const c_char) -> *mut c_void;
+            let q = unsafe { dlsym(RTLD_NEXT, c"dlvsym".as_ptr()) };
+            let mut p = if q.is_null() {
+                core::ptr::null_mut()
+            } else {
+                let dlvsym: DlvsymFn = unsafe { core::mem::transmute(q) };
+                unsafe {
+                    dlvsym(
+                        RTLD_NEXT,
+                        name.as_ptr() as *const c_char,
+                        version.as_ptr() as *const c_char,
+                    )
+                }
+            };
+            if p.is_null() {
+                p = unsafe { dlsym(RTLD_NEXT, name.as_ptr() as *const c_char) };
+            }
+            if !p.is_null() {
+                self.0.store(p, Ordering::Release);
+            }
+            p
+        }
+    }
 }
 
 /// Declare one interposed entry point.
@@ -141,6 +213,37 @@ macro_rules! real {
         $vis fn $binding() -> Option<unsafe extern "C" fn($($arg),*) -> $ret> {
             static NEXT: $crate::real::Next = $crate::real::Next::new();
             let p = unsafe { NEXT.get(concat!($sym, "\0").as_bytes()) };
+            if p.is_null() {
+                None
+            } else {
+                // ⚠ The transmute is the whole point of this module and is why
+                // every use of it names the signature at the call site.
+                Some(unsafe { core::mem::transmute::<
+                    *mut core::ffi::c_void,
+                    unsafe extern "C" fn($($arg),*) -> $ret,
+                >(p) })
+            }
+        }
+    };
+    // T-1309: the same binding pinned to the symbol's default version.
+    // Several forwarded names carry a compatibility version beside the
+    // default, and an unversioned `dlsym` can return the compat instead.
+    // On musl the version is ignored: one version per name exists there,
+    // so plain `dlsym` already answers it.
+    ($vis:vis fn $binding:ident = $sym:literal @ $ver:literal ( $($arg:ty),* $(,)? ) -> $ret:ty) => {
+        /// The payload's own definition, resolved on first use.
+        ///
+        /// ⚠ The BINDING and the SYMBOL are named separately, because the
+        /// exported entry point in `lib.rs` has the symbol's own name: one
+        /// identifier for both would be podbox resolving `chown` to itself.
+        $vis fn $binding() -> Option<unsafe extern "C" fn($($arg),*) -> $ret> {
+            static NEXT: $crate::real::Next = $crate::real::Next::new();
+            let p = unsafe {
+                NEXT.get_versioned(
+                    concat!($sym, "\0").as_bytes(),
+                    concat!($ver, "\0").as_bytes(),
+                )
+            };
             if p.is_null() {
                 None
             } else {

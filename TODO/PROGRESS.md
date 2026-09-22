@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-141 entries: 20 open, 3 partial, 3 blocked, 115 done.
+141 entries: 19 open, 3 partial, 3 blocked, 116 done.
 
 ## Baseline
 
@@ -307,6 +307,19 @@ path, so 147 was re-run alone; the race is the eighth trap in
 `docs/containers.md`. 146's built binary rode home through
 `PODBOX_ARTIFACTS` and drove the host 152 run.
 
+[T-1309](interpose.md) closed in its own change: the rocky repodata
+failure is a symbol-version dispatch, not a file-path operation. An
+unversioned `dlsym(RTLD_NEXT, "realpath")` returns the `GLIBC_2.2.5`
+compat, which answers `EINVAL` where `resolved` is NULL, and librepo
+always passes NULL. Seven wrapped names carry such pairs; all seven
+forward to their defaults through a runtime-resolved `dlvsym` with a
+`dlsym` fallback, musl unchanged. Guards: a wrapped-vs-oracle
+NULL-resolved test (red on the planted code on the rocky libc, green
+after) and a fallback-branch test. `240` reads 10 rows, 10 ran, 10
+built and ran on host podman 6.1.2 with the shipped binary, both
+libdnf rows 0 0 42. [T-1211](gate.md)'s clearing conditions hold; its
+flip to done is next.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -382,9 +395,9 @@ store suite), so the change commits with the three reds named above.
    guest). The results file was recovered from the kept job transcript;
    a measurement job always names `PODBOX_ARTIFACTS`.
 
-[T-1211](gate.md) stays `blocked` on new [T-1309](interpose.md): the rocky
-rows read no-compiler under the interposer while the engine control reaches
-42. What clears it is T-1309 fixed. [T-1212](gate.md) is `blocked` on a
+[T-1211](gate.md) stays `blocked` pending its flip: [T-1309](interpose.md)
+is fixed and proven below, so the two rows read 42 and the sweep exits
+0, which is what its Blocked clause names. [T-1212](gate.md) is `blocked` on a
 daemon, privilege, and two expectation owners. [T-1213](gate.md) is
 `blocked` on a native lane for clause 2 and a same-machine reference
 for clause 3. [T-1209](gate.md) and

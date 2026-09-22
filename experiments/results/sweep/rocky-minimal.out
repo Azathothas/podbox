@@ -14,12 +14,13 @@ RESOLVER=10.255.255.254
 NSSWITCH=files sss systemd
 GETENT_ROOT=root
 PM=microdnf
-INSTALL_RC=1
-INSTALL_TAIL= (microdnf:114): GLib-CRITICAL **: 11:41:25.292: g_str_has_prefix: assertion 'str != NULL' failed error: cannot update repo 'baseos': Yum repo downloading error: Invalid path: repodata/8b6cf15633aa772e539ae25cb6088c2a148
-CC=none
-CC_VERSION=absent
-BUILD_RC=127
-BUILT_AND_RAN=no-compiler
+INSTALL_RC=0
+INSTALL_TAIL=Cleanup: glibc-minimal-langpack;2.34-266.el9_8;x86_64;installed Cleanup: glibc-common;2.34-266.el9_8;x86_64;installed Complete. 
+CC=/usr/bin/cc
+CC_VERSION=cc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-14)
+BUILD_RC=0
+BUILD_TAIL=
+BUILT_AND_RAN=42
 --- the completion layer said
 podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
 podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device w
@@ -43,19 +44,4 @@ probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM
         clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
 this mode does NOT provide: process, network, IPC or mount isolation
 ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
---- the control: the same subject under podman, no help
-ID=0:0
-DEVNULL=usable
-DEVNULL_WRITE=ok
-RESOLVER=10.255.255.254
-NSSWITCH=sss files systemd
-GETENT_ROOT=root
-PM=microdnf
-INSTALL_RC=0
-INSTALL_TAIL=Cleanup: glibc-minimal-langpack;2.34-266.el9_8;x86_64;installed Cleanup: glibc-common;2.34-266.el9_8;x86_64;installed Complete. 
-CC=/usr/bin/cc
-CC_VERSION=cc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-14)
-BUILD_RC=0
-BUILD_TAIL=
-BUILT_AND_RAN=42
+podbox run: interpose: declined for "/bin/sh": this podbox binary carries no glibc interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
