@@ -695,3 +695,36 @@ the byte-identical `fork/exec /bin/true: operation not permitted`, the
 clone half attributed in the plain context and the setgroups half under
 `unshare -Ur`, and the control payload exits 0 where setgroups is
 allowed. `experiments/results/spawn-ambiguity.txt` carries the run.
+
+---
+
+### T-0810 `create` fails storing the memo: the container directory is never made
+
+Source:      T-0708's drive, host podman 6.1.2
+Category:    cli
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     `podbox create --name e1 <image> ...` fails with `the ownership
+             memo could not be stored: No such file or directory`, so no
+             container with a record can be created and `inspect` has nothing
+             to read. `run --detach` shares the rename and fails the same way.
+Premise:     Read at file and line. `crates/podbox-cli/src/lifecycle.rs`
+             `create` renames the ephemeral memo into
+             `supervise::table::memo_path` beside the new record, and
+             `crates/podbox-cli/src/run.rs` (detach) does the same. Neither
+             the rename's parent (`table::dir`, a pure join) nor
+             `supervise::create` (a table-JSON write only) makes the
+             directory. Foreground `run` never renames, which is why every
+             drive to date stayed green past it.
+Approach:    Make the directory where the container is created, not where
+             the memo is renamed: `supervise::create` owns the container's
+             directories (`lock_path`, `log_path` and `control_path` all
+             live under `dir`), so it ensures `dir` after the table write.
+             Both rename call sites ride it with no change.
+Decision:    A failed directory fails the creation loudly, beside the
+             rename's own failure. A container with a record and no memo
+             answers `stat` with the real uid and contradicts every
+             foreground run, which is the inconsistency T-0710 refuses.
+Prove:       `podbox create --name e1 public.ecr.aws/docker/library/alpine:3.20 true && podbox rm e1`
