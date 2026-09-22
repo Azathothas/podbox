@@ -193,7 +193,6 @@ pub fn run(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<i32> {
 pub struct Child {
     pub pid: i64,
 }
-
 /// How a bounded wait ended. ⛔ Three outcomes and not two: `TimedOut` is
 /// `TODO/RULES.md` section 8's own rule, and a bound reached is neither a
 /// failure nor an exit status.
@@ -305,7 +304,70 @@ impl Child {
 /// closes it and the parent's read returns EOF, and any failure before the exec
 /// is written to it as an errno. There is no interval anywhere in it, so there
 /// is no scheduling assumption to be wrong about.
+///
+/// ⭐ **THE CHROOT-BY-PATH ENTRY.** The payload sees `PODBOX_ACTIVE_MODE`
+/// naming [`ENTERED_RUNG`], whatever the ladder chose: this is the rung the
+/// sequence implements, and [`spawn_ladder`] is the one that reports a rung.
 pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> {
+    spawn_with(root, plan, ENTERED_RUNG.word(), None, err)
+}
+
+/// Enter `root` on a ladder rung and exec the plan, returning on the exec.
+///
+/// ⭐ T-1003's drive beside [`spawn`]: the same sequence, except the payload
+/// sees `PODBOX_ACTIVE_MODE` naming the ladder rung and the child execs the
+/// memfd where one was handed in (`Some(fd)`), or the path candidates where
+/// the payload routes past fd-exec (`None`: a `#!` script, which fails
+/// through it).
+///
+/// ⛔ Only the memfd rung drives through here. FUSE, tmpfs, rundir and cache
+/// are ordered and refused by `ladder::choose`, and none of them is
+/// rung-complete: reaching this call with one is the caller skipping the
+/// choice, so it refuses rather than exec'ing down a rung nobody drove.
+pub fn spawn_ladder(
+    root: &RootDir,
+    plan: &Plan,
+    mode: ladder::Mode,
+    fd: Option<i64>,
+    err: &mut dyn Write,
+) -> Result<Child> {
+    if mode != ladder::Mode::Memfd {
+        return Err(Error::Runtime(format!(
+            "the {} rung is ordered by the ladder but not rung-complete: only \
+             memfd drives through this entry (TODO/packaging.md T-1003)",
+            mode.name()
+        )));
+    }
+    spawn_with(root, plan, mode.name(), fd, err)
+}
+
+/// Run a payload inside `root` on a ladder rung, and return its exit status.
+///
+/// ⛔ Like [`run`]: the exit status is the payload's, not podbox's.
+pub fn run_ladder(
+    root: &RootDir,
+    plan: &Plan,
+    mode: ladder::Mode,
+    fd: Option<i64>,
+    err: &mut dyn Write,
+) -> Result<i32> {
+    let child = spawn_ladder(root, plan, mode, fd, err)?;
+    child.wait()
+}
+
+/// The one entry sequence [`spawn`] and [`spawn_ladder`] share.
+///
+/// `active` is the word the payload reads as `PODBOX_ACTIVE_MODE`, and
+/// `fd_exec` is the written memfd the child execs where one was handed in.
+/// One function, so the fork, the chroot order and the readiness pipe cannot
+/// drift between the two entries (`docs/conventions/code.md`).
+fn spawn_with(
+    root: &RootDir,
+    plan: &Plan,
+    active: &str,
+    fd_exec: Option<i64>,
+    err: &mut dyn Write,
+) -> Result<Child> {
     // ---------------------------------------------------------- before the fork
     //
     // ⛔ Every allocation the child needs happens HERE. Between `clone` and
@@ -324,15 +386,17 @@ pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> 
         // the plan: [`Plan::env_for`] scrubs what it builds, and this filters
         // what it is handed, so a hand-built plan cannot leak one either. The
         // rung actually entered is reported under a different name beside it,
-        // so a nested `podbox run` starts unforced.
-        let active = format!("{}={}", Plan::MODE_ACTIVE_VAR, ENTERED_RUNG.word());
+        // so a nested `podbox run` starts unforced. Which name that is depends
+        // on the entry: [`spawn`] reports [`ENTERED_RUNG`], [`spawn_ladder`]
+        // reports the ladder rung that drove.
+        let active_var = format!("{}={active}", Plan::MODE_ACTIVE_VAR);
         plan.env
             .iter()
             .filter(|e| {
                 let name = e.split('=').next().unwrap_or("");
                 name != Plan::MODE_REQUEST_VAR && name != Plan::MODE_ACTIVE_VAR
             })
-            .chain(std::iter::once(&active))
+            .chain(std::iter::once(&active_var))
             .map(|e| {
                 CBuf::new(e)
                     .ok_or_else(|| Error::Runtime(format!("the environment {e:?} contains a NUL")))
@@ -347,6 +411,10 @@ pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> 
     .ok_or_else(|| Error::Runtime("the working directory contains a NUL byte".into()))?;
     let slash = CBuf::new("/").expect("a literal");
     let dot = CBuf::new(".").expect("a literal");
+    // ⭐ T-1003. The empty path `execveat` execs a descriptor through, built
+    // before the fork like everything else the child touches: between `clone`
+    // and `execve` only async-signal-safe work is permitted.
+    let empty = sys::cempty();
 
     let mut argv: Vec<*const u8> = argv_owned.iter().map(|c| c.ptr() as *const u8).collect();
     argv.push(std::ptr::null());
@@ -423,7 +491,18 @@ pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> 
             // so is better than refusing after the point of no return.
             let _ = sys::chdir(&workdir);
 
-            // ⭐ Resolved HERE, in the process that changed the root.
+            // ⭐ Resolved HERE, in the process that changed the root. Where the
+            // ladder handed a written memfd in, it is exec'd without resolving
+            // a path at all; the chroot above still holds beneath it.
+            if let Some(mfd) = fd_exec {
+                if let Err(e) =
+                    unsafe { crate::memfd::exec_fd(mfd, &empty, argv.as_ptr(), envp.as_ptr()) }
+                {
+                    let msg = [5u8, (e.0 & 0xff) as u8, ((e.0 >> 8) & 0xff) as u8, 0];
+                    let _ = sys::write(write_end, &msg);
+                }
+                sys::exit_group(EXIT_NOT_FOUND)
+            }
             let mut last = sys::Errno(2i32);
             for c in &candidates {
                 if let Err(e) = unsafe { sys::execve(c, argv.as_ptr(), envp.as_ptr()) } {
@@ -471,6 +550,8 @@ pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> 
             1 => "fchdir onto the rootfs descriptor",
             2 => "chroot(\".\")",
             3 => "chdir(\"/\") after the chroot",
+            // ⭐ T-1003: the ladder's fd-exec, which never resolves a path.
+            5 => "execveat of the memfd",
             _ => "execve of every candidate path",
         };
         let text = format!(
@@ -482,7 +563,7 @@ pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> 
             "{:?}: {text}",
             plan.argv.first().map(String::as_str).unwrap_or("")
         );
-        return Err(if buf[0] != 4 {
+        return Err(if buf[0] != 4 && buf[0] != 5 {
             Error::Runtime(text)
         } else if invocable_but_refused(errno) {
             // ⭐ 126 and not 127, and the difference is docker's. Measured by

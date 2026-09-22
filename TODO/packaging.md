@@ -168,6 +168,9 @@ not:
 | env-var pair | rung-complete, unit-tested | `crates/podbox-enter/src/plan.rs`, `lib.rs` |
 | memfd driver | rung-complete, unit-tested | `crates/podbox-enter/src/memfd.rs`, `abi.rs` |
 | fd-exec number | rung-complete, unrun | `crates/podbox-probe/src/sys.rs` |
+| payload resolve | rung-complete, unit-tested | `crates/podbox-enter/src/ladder.rs` |
+| ladder entry | rung-complete, unrun | `crates/podbox-enter/src/lib.rs` |
+| FUSE probe | rung-complete, unit-tested | `crates/podbox-probe/src/probes.rs` |
 | FUSE, tmpfs | sketched: ordered, probe-fed, named refusals | `crates/podbox-enter/src/ladder.rs` |
 | run-dir, cache | sketched: refused as not implemented | `crates/podbox-enter/src/ladder.rs` |
 | vendor patch | `goblin` and `nix` out, one at a time | `vendor/userland-execve/Cargo.toml` |
@@ -207,6 +210,40 @@ found two defects, both fixed here: an unused test-only import in
 `ladder.rs`, which the commit clears. The Prove drive and the CLI
 wiring (read `PODBOX_MODE`, feed `Availability`) still owe, so the
 Status stays open.
+
+**In work 2026-09-22 (Status stays open: the CLI wiring and the Prove drive
+are still lane work).** The memfd leg's three missing pieces:
+
+- the payload, read from outside the rootfs: `ladder::resolve_payload`
+  searches `path_dirs` in order for a bare name and resolves a `/`-carrying
+  argument under the root through `abi::resolve_in`, so a `..` that escapes
+  is refused rather than followed; `ladder::payload_bytes` bounds the read
+  at 128 MiB, which is `abi::Elf::read`'s own ceiling. Four unit tests pin
+  the order, the missing name, the escape and the bytes. The errors ride
+  the crate's one-parameter `Result` as `Error::Runtime`, which is the
+  file's own shape (`Mode::parse`); the first cut wrote
+  `Result<_, String>` and the lane's clippy refused it in eight places.
+- the entry the rung drives through: `spawn` is now `spawn_with` with the
+  entered rung word and no fd, and `spawn_ladder`/`run_ladder` drive beside
+  it with the ladder rung word and the written memfd. The child execs the
+  fd through `memfd::exec_fd` without resolving a path where one was handed
+  in, else falls to the path candidates (a `#!` script routes past
+  fd-exec). A non-memfd mode through this entry refuses: the other rungs
+  are ordered, not rung-complete. The parent names the new failure row
+  (`execveat of the memfd`) and keeps the 126/127 split for it. One entry
+  sequence, so the fork, the chroot order and the readiness pipe cannot
+  drift between the two (`docs/conventions/code.md`).
+- the FUSE rung's probe input: `open(/dev/fuse, O_RDWR)` as a Census leg in
+  the outer environment beside the ptmx pair it copies the rule from, and
+  `fuse_usable` beside `ptmx_usable`, true only on an `Ok` open. Two unit
+  tests pin the rule and the row's place.
+
+Lane run 2026-09-22 over this change: full `dev.sh check` green (fmt,
+workspace clippy with `-D warnings`, musl release build, workspace tests
+with the 4 ladder and 2 probe tests new, gate 9 passed with the 2 familiar
+skips). The run found the `Result` arity above and three fmt spots, all
+fixed here. The CLI wiring (read `PODBOX_MODE`, feed `Availability`,
+drive the Prove) still owes, so the Status stays open.
 
 ---
 

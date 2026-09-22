@@ -163,6 +163,12 @@ pub static PROBES: &[Probe] = &[
             kind: Kind::Child { ns_flags: 0, body: p_stat_ptmx } },
     Probe { name: "open(/dev/ptmx, O_RDWR)", group: Group::Census,
             kind: Kind::Child { ns_flags: 0, body: p_open_ptmx } },
+    // ⭐ TODO/packaging.md T-1003: the FUSE rung's probe input. Opened, not
+    // stat-ed, like the ptmx leg below T-0503: a node that exists and answers
+    // EACCES on open cannot carry the tier. In the outer environment before
+    // any chroot, like the ptmx pair above it.
+    Probe { name: "open(/dev/fuse, O_RDWR)", group: Group::Census,
+            kind: Kind::Child { ns_flags: 0, body: p_open_fuse } },
     // ⭐ TODO/complete.md T-0414, in the OUTER environment like the ptmx
     // pair: list the root, open an entry in it by name, create a file at
     // its top level. Each leg is its own verdict with its own errno.
@@ -775,6 +781,27 @@ fn p_open_ptmx() -> Outcome {
         }
         Err(e) => Outcome::denied(e),
     }
+}
+
+/// Whether the FUSE rung may promise a mount, T-1003.
+///
+/// One home for the question the ladder asks: only the OPEN row counts, with
+/// an `Ok` verdict and nothing else, which is `ptmx_usable`'s own rule. The
+/// `mknod` this runtime refuses cannot create the node where it is absent,
+/// so absence is the answer rather than a missing precondition.
+pub const FUSE: &str = "/dev/fuse";
+
+fn p_open_fuse() -> Outcome {
+    open_probe(FUSE, sys::O_RDWR | sys::O_CLOEXEC)
+}
+
+/// The FUSE rung's probe input, beside `ptmx_usable`: true only where the
+/// open row ran and answered `Ok`. A `Skip` never ran, so it promises
+/// nothing (T-0109 rule 1); a `Denied` row is the refusal itself.
+pub fn fuse_usable(findings: &crate::Findings) -> bool {
+    findings.rows.iter().any(|(n, out)| {
+        n.starts_with("open(/dev/fuse") && matches!(out.verdict, crate::verdict::Verdict::Ok)
+    })
 }
 
 // ⭐ TODO/complete.md T-0414. A third instance of the target class answers
@@ -1443,10 +1470,47 @@ mod tests {
         ])));
     }
 
-    /// TODO/complete.md T-0414: the root-listing block is three legs, each
-    /// a separate verdict, in the outer environment before any chroot: list
-    /// the root, open an entry in it by name, create a file at its top
-    /// level. "Could not run" is a Skip, never a second Denied.
+    /// T-1003: only an `Ok` open promises a FUSE mount. Existence is not
+    /// function, a denial is the refusal itself, and a skip never ran.
+    #[test]
+    fn only_an_ok_open_promises_a_fuse_mount() {
+        fn findings(rows: Vec<(&'static str, Outcome)>) -> crate::Findings {
+            crate::Findings {
+                rows,
+                identity: crate::identity::Identity::default(),
+                writable: Vec::new(),
+                self_exe: String::new(),
+            }
+        }
+        let open = "open(/dev/fuse, O_RDWR)";
+        assert!(fuse_usable(&findings(vec![(open, Outcome::ok())])));
+        assert!(!fuse_usable(&findings(vec![(
+            open,
+            Outcome::denied(crate::sys::Errno(2))
+        )])));
+        assert!(!fuse_usable(&findings(vec![(
+            open,
+            Outcome::skip(None, "nope")
+        )])));
+        assert!(!fuse_usable(&findings(vec![])));
+    }
+
+    /// T-1003: the FUSE row is a Census leg in the outer environment before
+    /// any chroot, beside the ptmx pair it copies the rule from.
+    #[test]
+    fn the_fuse_row_opens_the_node_outside_any_namespace() {
+        let p = PROBES
+            .iter()
+            .find(|p| p.name == "open(/dev/fuse, O_RDWR)")
+            .expect("the FUSE row is in PROBES");
+        assert!(matches!(p.group, Group::Census), "{}", p.name);
+        match p.kind {
+            Kind::Child { ns_flags, .. } => {
+                assert_eq!(ns_flags, 0, "{} runs outside any namespace", p.name)
+            }
+            Kind::Clone(_) => panic!("{} is not a child probe", p.name),
+        }
+    }
     #[test]
     fn the_root_listing_block_is_three_outer_legs_in_order() {
         let want = [

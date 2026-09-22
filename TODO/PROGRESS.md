@@ -62,6 +62,30 @@ publish branch is the fallback if protection is ever restored.
 
 ## What this session did
 
+Session of 2026-09-22. [T-0207](image.md) closed in its own change: layers
+fetch through a bounded pool of `FETCH_WORKERS = 4` threads with the
+transcript in manifest order and cancellation plus staged-file removal on
+failure, driven by the new `experiments/190-parallel-layers.sh` with its
+`results/parallel-layers.txt` reading. Counts move to 5 open and 134 done.
+
+[T-1003](packaging.md) stays open with two changes in it. The skeleton
+(env-var pair, memfd driver, fd-exec number, FUSE/tmpfs sketch, vendor
+patch-out) and then the memfd leg's three missing pieces: the payload
+resolve (`ladder::resolve_payload`/`payload_bytes`, 128 MiB ceiling, four
+unit tests), the ladder entry (`spawn_ladder`/`run_ladder` beside `spawn`
+through one `spawn_with`, fd-exec in the child, the named fifth errno
+row), and the FUSE probe input (`open(/dev/fuse, O_RDWR)` Census leg plus
+`fuse_usable`, two unit tests). The lane's clippy refused the first cut's
+`Result<_, String>` in eight places (the crate alias takes one parameter),
+and fmt named three spots; all fixed in the change. The CLI wiring (read
+`PODBOX_MODE`, feed `Availability`) and the Prove drive still owe.
+
+⭐ **The wsl-toolkit base is usable again.** A probe job and the full
+`dev.sh check` both ran through `sh scripts/windows/run-in-base.sh`
+against `wsl-toolkit-podbox` this session. The host-podman substitute
+(`scripts/windows/run-via-host-podman.sh`, committed while the base was
+down) stays as the fallback, not the route.
+
 Session of 2026-09-21. Closed [T-1212](gate.md) **blocked** after converting
 the last four engine scripts and running all six on host podman 6.1.2.
 
@@ -671,6 +695,8 @@ asked in, and it lives in the entry.
 | question | status | where it lives |
 | --- | --- | --- |
 | whether `experiments/lib/engine.sh` gains a bounded build entry, and whether the reconstruction's `--privileged` run gets an explicit escape or stays outside the helper | ruled 2026-09-21: build entry yes, narrow fixture-only escape yes | [T-1213](gate.md) |
+| whether kept podbox containers and unused base wsl machines may be pruned | ruled 2026-09-22: yes, prune what we do not use or need, safely, touching nothing else | PROGRESS.md (this file) |
+| whether a beta binary may be published | ruled 2026-09-22: yes, once the top-10 priority tasks finish and the session ends, under a pre-release tag; work first | PROGRESS.md (this file) |
 
 Every settled ruling is written into the entry that owns it, which
 is where an implementer reads it.

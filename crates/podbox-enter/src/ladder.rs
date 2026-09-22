@@ -133,6 +133,70 @@ impl Availability {
     }
 }
 
+/// The payload file, read from outside the rootfs, for the memfd leg.
+///
+/// An argument with a `/` in it names a path under the rootfs. A bare name is
+/// looked for along `path_dirs` and the first file wins, which is the order
+/// the child tries after the chroot. One walker for every reader of the
+/// payload from the host side: `crate::abi::resolve_in` owns the guest-kernel
+/// symlink walk, and this owns the `PATH` search over it, so a second copy of
+/// either is the copy that diverges (`docs/conventions/code.md`).
+pub fn resolve_payload(rootfs: &str, argv0: &str, path_dirs: &[String]) -> Result<String> {
+    use crate::abi::{resolve_in, ResolveKind};
+    let root = std::path::Path::new(rootfs);
+    if !root.is_dir() {
+        return Err(Error::Runtime(format!(
+            "{rootfs}: not a directory podbox can read"
+        )));
+    }
+    let say = |guest: &str, kind: ResolveKind| match kind {
+        ResolveKind::Absent => format!("{argv0} names no file in the image"),
+        ResolveKind::Escapes => format!("{guest} escapes the image"),
+        ResolveKind::Loop => format!("{guest} has too many levels of symlinks"),
+    };
+    if argv0.contains('/') {
+        return resolve_in(root, argv0)
+            .map(|p| p.display().to_string())
+            .map_err(|kind| Error::Runtime(say(argv0, kind)));
+    }
+    let mut refused: Option<Error> = None;
+    for d in path_dirs {
+        let guest = format!("{}/{argv0}", d.trim_end_matches('/'));
+        match resolve_in(root, &guest) {
+            Ok(p) => return Ok(p.display().to_string()),
+            Err(ResolveKind::Absent) => continue,
+            // ⚠ The first refusal wins, so a loop reads as a loop rather
+            // than as a missing file once the other directories miss.
+            Err(kind) => {
+                if refused.is_none() {
+                    refused = Some(Error::Runtime(say(&guest, kind)));
+                }
+            }
+        }
+    }
+    Err(refused.unwrap_or_else(|| Error::Runtime(format!("{argv0} names no file in the image"))))
+}
+
+/// The payload bytes the memfd leg is judged on.
+///
+/// Bounded at 128 MiB, which is `crate::abi::Elf::read`'s own ceiling: this
+/// runtime may not assume a file it was pointed at is the size it expected,
+/// and a payload past it is a named refusal rather than a buffer.
+pub fn payload_bytes(rootfs: &str, argv0: &str, path_dirs: &[String]) -> Result<Vec<u8>> {
+    const CEILING: u64 = 128 * 1024 * 1024;
+    let path = resolve_payload(rootfs, argv0, path_dirs)?;
+    let len = std::fs::metadata(&path)
+        .map_err(|e| Error::Runtime(format!("{path}: {e}")))?
+        .len();
+    if len > CEILING {
+        return Err(Error::Runtime(format!(
+            "{path} is {len} bytes, over the {CEILING}-byte ceiling podbox \
+             reads a payload within"
+        )));
+    }
+    std::fs::read(&path).map_err(|e| Error::Runtime(format!("{path}: {e}")))
+}
+
 /// Choose the rung: the forced one where asked, else the first one up.
 ///
 /// ⛔ A forced mode that is down REFUSES with a named reason rather than
@@ -295,5 +359,63 @@ mod tests {
     fn refusals_are_dockers_runtime_error() {
         let e = choose(Some(Mode::Fuse), &all_down(), None).unwrap_err();
         assert_eq!(e.exit_code(), EXIT_RUNTIME_ERROR);
+    }
+
+    fn fixture_root(tag: &str) -> std::path::PathBuf {
+        let d = std::env::temp_dir().join(format!("podbox-ladder-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("bin")).unwrap();
+        d
+    }
+
+    /// A bare name is found along `path_dirs`, in order, and an absolute
+    /// argument names the path under the rootfs.
+    #[test]
+    fn a_payload_resolves_along_path_dirs_and_by_path() {
+        let d = fixture_root("resolve");
+        std::fs::write(d.join("bin/prog"), b"\x7fELF").unwrap();
+        let root = d.to_string_lossy().to_string();
+        let dirs = ["/sbin", "/bin"]
+            .iter()
+            .map(|s| (*s).to_string())
+            .collect::<Vec<_>>();
+        let got = resolve_payload(&root, "prog", &dirs).unwrap();
+        assert!(got.ends_with("bin/prog"), "{got}");
+        let got = resolve_payload(&root, "/bin/prog", &dirs).unwrap();
+        assert!(got.ends_with("bin/prog"), "{got}");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// A name the image does not hold is a sentence, never a silent miss.
+    #[test]
+    fn a_missing_payload_is_a_sentence() {
+        let d = fixture_root("missing");
+        let root = d.to_string_lossy().to_string();
+        let e = resolve_payload(&root, "absent", &["/bin".to_string()]).unwrap_err();
+        assert!(e.to_string().contains("names no file"), "{e}");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// A `..` that escapes the root is refused rather than followed: the path
+    /// it names is the host's, and reading it answers about the wrong machine.
+    #[test]
+    fn a_payload_escaping_the_image_is_refused() {
+        let d = fixture_root("escape");
+        std::os::unix::fs::symlink("../../outside", d.join("bin/evil")).unwrap();
+        let root = d.to_string_lossy().to_string();
+        let e = resolve_payload(&root, "evil", &["/bin".to_string()]).unwrap_err();
+        assert!(e.to_string().contains("escapes the image"), "{e}");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// The bytes are what the file holds, whole.
+    #[test]
+    fn the_payload_bytes_are_the_files() {
+        let d = fixture_root("bytes");
+        std::fs::write(d.join("bin/prog"), b"#!/bin/sh\necho hi\n").unwrap();
+        let root = d.to_string_lossy().to_string();
+        let got = payload_bytes(&root, "prog", &["/bin".to_string()]).unwrap();
+        assert_eq!(got, b"#!/bin/sh\necho hi\n");
+        let _ = std::fs::remove_dir_all(&d);
     }
 }
