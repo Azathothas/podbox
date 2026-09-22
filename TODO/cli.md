@@ -734,9 +734,11 @@ table write (`crates/podbox-supervise/src/lib.rs`). Both memo renames ride it
 with no change (`lifecycle.rs` `create`, `run.rs` detach). A directory the
 kernel refuses fails the creation loudly. `creating_a_container_makes_its_directory`
 creates a container, asserts the directory, and renames a file beside the
-record. The entry Prove ran as the E1 row of the T-0708 drive on host podman
-6.1.2 with the shipped binary: `create --name e1` succeeded, the payload
-`mknod` read back through `inspect` at 1, and `rm -f` removed the container.
+record. The entry Prove ran verbatim on host podman 6.1.2 with the shipped
+binary (`create --name e1 ... true` then `rm e1`, both green). Row E1 of
+the T-0708 drive covers the same create with a payload that writes the
+memo: the `mknod` reads back through `inspect` at 1, and `rm -f` removes
+the container.
 A read-only audit over every other beside-the-record write site (log, lock,
 control socket, memo opens in launcher and exec) names an independent
 guarantee for each (the launcher's own directory creation, the lock's parent

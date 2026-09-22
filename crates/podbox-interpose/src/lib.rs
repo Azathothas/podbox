@@ -60,13 +60,14 @@ compile_error!(
      architecture needs its own measurement (TODO/interpose.md T-0704)"
 );
 
+pub mod emulate;
 pub mod identity;
 pub mod map;
 pub mod memo;
 pub mod real;
 pub mod say;
 
-use core::ffi::{c_char, c_int, c_uint, c_void};
+use core::ffi::{c_char, c_int, c_uint, c_ulong, c_void};
 
 // ------------------------------------------------------------- `struct stat`
 //
@@ -310,6 +311,18 @@ crate::real!(pub fn next_getxattr = "getxattr"(*const c_char, *const c_char, *mu
 crate::real!(pub fn next_lgetxattr = "lgetxattr"(*const c_char, *const c_char, *mut c_void, usize) -> isize);
 crate::real!(pub fn next_setxattr = "setxattr"(*const c_char, *const c_char, *const c_void, usize, c_int) -> c_int);
 crate::real!(pub fn next_lsetxattr = "lsetxattr"(*const c_char, *const c_char, *const c_void, usize, c_int) -> c_int);
+// T-0708: the emulated operations. All single-version on glibc (measured
+// with objdump -T on the build host's libc: mknod@2.33, mount@2.2.5,
+// unshare@2.4, clone@2.2.5, none with a compat beside the default), so
+// plain `dlsym` answers each, and musl carries one version per name.
+// `__xmknod` is the spelling payloads on glibc before 2.33 carry: `mknod`
+// itself is new in 2.33, and older headers compile the call to `__xmknod`.
+crate::real!(pub fn next_mknod = "mknod"(*const c_char, c_uint, u64) -> c_int);
+crate::real!(pub fn next_xmknod = "__xmknod"(c_int, *const c_char, c_uint, *const c_void) -> c_int);
+crate::real!(pub fn next_mount = "mount"(*const c_char, *const c_char, *const c_char, c_ulong, *const c_void) -> c_int);
+crate::real!(pub fn next_unshare = "unshare"(c_int) -> c_int);
+crate::real!(pub fn next_clone = "clone"(*mut c_void, *mut c_void, c_int, *mut c_void, *mut c_void, *mut c_void, *mut c_void) -> c_int);
+crate::real!(pub fn next_close = "close"(c_int) -> c_int);
 crate::real!(pub fn next_listxattr = "listxattr"(*const c_char, *mut c_char, usize) -> isize);
 crate::real!(pub fn next_llistxattr = "llistxattr"(*const c_char, *mut c_char, usize) -> isize);
 crate::real!(pub fn next_removexattr = "removexattr"(*const c_char, *const c_char) -> c_int);
@@ -1303,6 +1316,265 @@ pub unsafe extern "C" fn readlinkat(
         core::ptr::copy_nonoverlapping(vbuf.as_ptr(), buf as *mut u8, v as usize);
     }
     v
+}
+
+// --------------------------------------- the emulated operations, T-0708
+//
+// Four calls the runtime cannot honour, counted in the memo file beside
+// the ownership records (`emulate`, `inspect` reading them back). The one
+// rule across all four: no tally behind it, no emulation. Where the memo
+// descriptor was not handed, each falls back to the real call and its
+// honest failure instead of reporting an uncounted success.
+
+/// Linux `O_*` for the mknod stand-in, UAPI `asm-generic/fcntl.h`.
+/// Arch-generic on Linux.
+const O_WRONLY: c_int = 0o1;
+const O_CREAT: c_int = 0o100;
+const O_EXCL: c_int = 0o200;
+
+/// File-type bits, UAPI `linux/stat.h`. A directory is refused with the
+/// real call's answer; everything else becomes the regular file the
+/// specification names.
+const S_IFMT: c_uint = 0o170000;
+const S_IFDIR: c_uint = 0o40000;
+
+/// Say the `CLONE_NEWNET` strip out loud, T-0708's own rule. An empty netns
+/// is `ENETUNREACH` for every connection, which reads as a network outage
+/// rather than as a stripped flag, so the strip is never silent.
+fn say_newnet(what: &[u8], flags: u32) {
+    crate::say::line(&[
+        what,
+        b": stripping CLONE_NEWNET from flags=",
+        crate::say::Num::new(flags as u64).as_bytes(),
+        b": no new network namespace is made, so every connection uses \
+          the host network (TODO/interpose.md T-0708)",
+    ]);
+}
+
+/// Create the regular-file stand-in for `mknod`, T-0708.
+///
+/// The path is prepared, a directory is refused, `O_EXCL` answers the
+/// existing file honestly, and the mode's permission bits ride through
+/// `open` (which applies the umask exactly as the real call would). The
+/// device is ignored: there is no node to put it in.
+///
+/// Returns 0, or -1 with the kernel's errno.
+///
+/// # Safety
+/// `path` must be readable up to its NUL within `OUT` bytes.
+unsafe fn mknod_make(path: *const c_char, mode: c_uint) -> c_int {
+    let mut buf = [0u8; crate::map::OUT];
+    let p = unsafe { crate::map::prepare(b"mknod", crate::map::AT_FDCWD, path, &mut buf) };
+    if p.is_null() {
+        return -1;
+    }
+    if mode & S_IFMT == S_IFDIR {
+        set_errno(EPERM);
+        return -1;
+    }
+    let Some(open) = next_open() else {
+        set_errno(EINVAL);
+        return -1;
+    };
+    let Some(close) = next_close() else {
+        set_errno(EINVAL);
+        return -1;
+    };
+    let fd = unsafe { open(p, O_WRONLY | O_CREAT | O_EXCL, mode & 0o7777) };
+    if fd < 0 {
+        return -1;
+    }
+    unsafe { close(fd) };
+    // No tally behind it, no success: the tally is what counts this
+    // emulation, so one that does not land (a memo write failing under a
+    // full disk) unmakes the stand-in and fails with the write's own errno
+    // rather than reporting a file nothing counted.
+    if crate::emulate::tally(crate::emulate::OP_MKNOD, mode, 0, 0) {
+        return 0;
+    }
+    let e = errno();
+    if let Some(unlink) = next_unlink() {
+        unsafe { unlink(p) };
+    }
+    set_errno(e);
+    -1
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[no_mangle]
+pub unsafe extern "C" fn mknod(path: *const c_char, mode: c_uint, dev: u64) -> c_int {
+    let _ = dev;
+    // No tally behind it, no emulation: the real call and its honest
+    // failure (this runtime refuses the node) rather than an uncounted
+    // success.
+    if crate::memo::memo_fd().is_none() {
+        let Some(f) = next_mknod() else {
+            set_errno(EINVAL);
+            return -1;
+        };
+        return unsafe { f(path, mode, dev) };
+    }
+    unsafe { mknod_make(path, mode) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point: `__xmknod` is the
+/// spelling glibc before 2.33 compiles `mknod` to, version first.
+#[no_mangle]
+pub unsafe extern "C" fn __xmknod(
+    ver: c_int,
+    path: *const c_char,
+    mode: c_uint,
+    dev: *const c_void,
+) -> c_int {
+    if crate::memo::memo_fd().is_none() {
+        let Some(f) = next_xmknod() else {
+            set_errno(EINVAL);
+            return -1;
+        };
+        return unsafe { f(ver, path, mode, dev) };
+    }
+    unsafe { mknod_make(path, mode) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[no_mangle]
+pub unsafe extern "C" fn mount(
+    source: *const c_char,
+    target: *const c_char,
+    fstype: *const c_char,
+    flags: c_ulong,
+    data: *const c_void,
+) -> c_int {
+    let _ = fstype;
+    let _ = data;
+    // No tally behind it, no emulation.
+    if crate::memo::memo_fd().is_none() {
+        let Some(f) = next_mount() else {
+            set_errno(EINVAL);
+            return -1;
+        };
+        return unsafe { f(source, target, fstype, flags, data) };
+    }
+    let mut tbuf = [0u8; crate::map::OUT];
+    let t = unsafe { crate::map::prepare(b"mount", crate::map::AT_FDCWD, target, &mut tbuf) };
+    if t.is_null() {
+        return -1;
+    }
+    // The source is often not a path at all (`proc`, `tmpfs`, `none`): an
+    // absolute one is prepared, anything else travels as the caller said it.
+    // ⛔ `sbuf` lives to the end of the function because the tally below
+    // reads through `s`: returning through a narrower scope would borrow a
+    // dead buffer.
+    let mut sbuf = [0u8; crate::map::OUT];
+    let s = if !source.is_null() && unsafe { *(source as *const u8) } == b'/' {
+        let s = unsafe { crate::map::prepare(b"mount", crate::map::AT_FDCWD, source, &mut sbuf) };
+        if s.is_null() {
+            return -1;
+        }
+        s
+    } else {
+        source
+    };
+    let sn = if s.is_null() {
+        0
+    } else {
+        crate::map::strnlen(s, crate::map::OUT)
+    };
+    let tn = crate::map::strnlen(t, crate::map::OUT);
+    if sn >= crate::map::OUT || tn >= crate::map::OUT {
+        set_errno(ENAMETOOLONG);
+        return -1;
+    }
+    // Mount flags fit 32 bits (every `MS_*` is one), so the cast keeps them.
+    if unsafe { crate::emulate::tally_mount(flags as u32, s as *const u8, sn, t as *const u8, tn) }
+    {
+        return 0;
+    }
+    let Some(f) = next_mount() else {
+        set_errno(EINVAL);
+        return -1;
+    };
+    unsafe { f(source, target, fstype, flags, data) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[no_mangle]
+pub unsafe extern "C" fn unshare(flags: c_int) -> c_int {
+    // A flag-less call succeeds genuinely: forward it rather than counting
+    // a no-op as an emulation.
+    if flags == 0 {
+        let Some(f) = next_unshare() else {
+            set_errno(EINVAL);
+            return -1;
+        };
+        return unsafe { f(flags) };
+    }
+    // No tally behind it, no emulation.
+    if crate::memo::memo_fd().is_none() {
+        let Some(f) = next_unshare() else {
+            set_errno(EINVAL);
+            return -1;
+        };
+        return unsafe { f(flags) };
+    }
+    if (flags as u32) & crate::emulate::CLONE_NEWNET != 0 {
+        say_newnet(b"unshare", flags as u32);
+    }
+    if crate::emulate::tally(crate::emulate::OP_UNSHARE, flags as u32, 0, 0) {
+        return 0;
+    }
+    // The tally did not land: the real call and whatever it answers,
+    // rather than an uncounted success.
+    let Some(f) = next_unshare() else {
+        set_errno(EINVAL);
+        return -1;
+    };
+    unsafe { f(flags) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point: seven registers, so a
+/// caller passing four leaves garbage the callee never reads, and a caller
+/// passing seven has every one forwarded. Stable Rust cannot declare the
+/// C-variadic shape, so this is the fixed-arity equivalent (the `open`
+/// family in this file is the precedent).
+#[no_mangle]
+pub unsafe extern "C" fn clone(
+    func: *mut c_void,
+    stack: *mut c_void,
+    flags: c_int,
+    arg: *mut c_void,
+    ptid: *mut c_void,
+    tls: *mut c_void,
+    ctid: *mut c_void,
+) -> c_int {
+    let Some(f) = next_clone() else {
+        set_errno(EINVAL);
+        return -1;
+    };
+    let stripped = crate::emulate::strip_ns(flags as u32) as c_int;
+    // Nothing of ours in the flags: forward exactly, count nothing. This
+    // is the path every thread creation takes.
+    if stripped == flags {
+        return unsafe { f(func, stack, flags, arg, ptid, tls, ctid) };
+    }
+    // No tally behind it, no emulation: forward the caller's own flags.
+    if crate::memo::memo_fd().is_none() {
+        return unsafe { f(func, stack, flags, arg, ptid, tls, ctid) };
+    }
+    if (flags as u32) & crate::emulate::CLONE_NEWNET != 0 {
+        say_newnet(b"clone", flags as u32);
+    }
+    if crate::emulate::tally(crate::emulate::OP_CLONE, flags as u32, stripped as u32, 0) {
+        return unsafe { f(func, stack, stripped, arg, ptid, tls, ctid) };
+    }
+    // The tally did not land: the caller's own flags go through, so
+    // whatever the kernel answers is genuine rather than uncounted.
+    unsafe { f(func, stack, flags, arg, ptid, tls, ctid) }
 }
 
 // ------------------------------------------------- shapes no macro covers

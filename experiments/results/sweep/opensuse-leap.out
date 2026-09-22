@@ -15,7 +15,7 @@ NSSWITCH=files compat
 GETENT_ROOT=root
 PM=zypper
 INSTALL_RC=0
-INSTALL_TAIL=(22/24) Installing: glibc-devel-2.38-150600.14.46.1.x86_64 [..done] (23/24) Installing: gcc7-7.5.0+r278197-150000.4.44.1.x86_64 [................done] (24/24) Installing: gcc-7-3.9.1.x86_64 [..done] 
+INSTALL_TAIL=(22/24) Installing: glibc-devel-2.38-150600.14.46.1.x86_64 [..done] (23/24) Installing: gcc7-7.5.0+r278197-150000.4.44.1.x86_64 [...............done] (24/24) Installing: gcc-7-3.9.1.x86_64 [..done] 
 CC=/usr/bin/cc
 CC_VERSION=cc (SUSE Linux) 7.5.0
 BUILD_RC=0
@@ -52,8 +52,8 @@ podbox: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` (ca-hash
 podbox: complete: 26 fixup(s) applied to this image's rootfs, 9 degraded, 0 failed, 1 step(s) to run inside it; libc=glibc. ⛔ These are edits podbox made inside somebody else's image and the payload
 podbox: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` exited 0 in 0.0 s
 --- the last of stderr
-        clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
 this mode does NOT provide: process, network, IPC or mount isolation
 ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
 podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
 rehash: warning: skipping ca-certificates.crt,it does not contain exactly one certificate or CRL

@@ -115,7 +115,9 @@ fn u32_le(b: &[u8]) -> u32 {
 /// one. A negative number, an empty value and a non-numeric one are all the
 /// same absence: the host always hands a valid one where the tier loads, so
 /// anything else is a process that was not started through it.
-fn memo_fd() -> Option<c_int> {
+///
+/// `pub(crate)` for the emulation tally, which rides the same descriptor.
+pub(crate) fn memo_fd() -> Option<c_int> {
     let (p, n) = unsafe { crate::map::lookup_env(MEMO_FD_VAR) }?;
     if n == 0 || n > 10 {
         return None;

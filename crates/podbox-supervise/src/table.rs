@@ -238,6 +238,133 @@ pub fn open_memo(path: &std::path::Path) -> Result<std::fs::File, String> {
         .map_err(|e| format!("{}: {e}", path.display()))
 }
 
+/// Emulation tally counts, T-0708: how many times the preloaded tier told
+/// the payload a compatibility story (a regular file for a node, a mount
+/// success, an unshare success, a stripped clone) rather than the kernel's
+/// answer.
+///
+/// Read from the ownership memo file beside the container record: the
+/// interposer appends 32-byte tally records (device `u64::MAX`, the
+/// operation in the inode word, mount path chains behind their header)
+/// through the same descriptor it writes ownership intent through. Counts
+/// count complete records only: a mount header whose path chain breaks is
+/// dropped, never half-counted.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct EmulatedCounts {
+    pub mknod: u64,
+    pub mount: u64,
+    pub unshare: u64,
+    pub clone: u64,
+}
+
+/// Tally record kinds, in the inode word beside `u64::MAX`. One fact in two
+/// homes with `podbox-interpose`'s `emulate` module; the values agree by
+/// driving the behaviour end to end.
+const TALLY_MKNOD: u64 = 1;
+const TALLY_MOUNT: u64 = 2;
+const TALLY_UNSHARE: u64 = 3;
+const TALLY_CLONE: u64 = 4;
+
+fn tally_u64(b: &[u8]) -> u64 {
+    let mut a = [0u8; 8];
+    a.copy_from_slice(&b[..8]);
+    u64::from_le_bytes(a)
+}
+
+fn tally_u32(b: &[u8]) -> u32 {
+    let mut a = [0u8; 4];
+    a.copy_from_slice(&b[..4]);
+    u32::from_le_bytes(a)
+}
+
+/// Scan the memo file for complete tally records, T-0708.
+///
+/// Ownership records pass through untouched (their device word is a real
+/// one). A mount header opens a chain of exactly the continuations it
+/// names; anything else, including another header, drops the open chain.
+/// The scan streams in fixed chunks, so a memo grown large by a busy
+/// payload cannot grow this reader's memory with it.
+pub fn emulated_counts(memo: &std::path::Path) -> EmulatedCounts {
+    const REC: usize = 32;
+    const CHUNK_RECS: usize = 4096;
+    let mut out = EmulatedCounts::default();
+    let Ok(mut f) = std::fs::File::open(memo) else {
+        return out;
+    };
+    use std::io::Read;
+    let mut buf = vec![0u8; REC * CHUNK_RECS];
+    // Continuations still owed to an open mount header. Zero means none.
+    let mut pending: u64 = 0;
+    loop {
+        // Fill to a record boundary: a record never straddles two reads,
+        // so the scan below needs no carry-over.
+        let mut have = 0usize;
+        while have < buf.len() {
+            match f.read(&mut buf[have..]) {
+                Ok(0) => break,
+                Ok(n) => have += n,
+                Err(_) => break,
+            }
+        }
+        if have == 0 {
+            break;
+        }
+        let mut at = 0usize;
+        while at + REC <= have {
+            let r = &buf[at..at + REC];
+            if tally_u64(&r[0..8]) != u64::MAX {
+                // An ownership record. It also breaks any open chain: the
+                // writer places each chain contiguously, so anything else
+                // between a header and its continuations is a torn write.
+                pending = 0;
+                at += REC;
+                continue;
+            }
+            match tally_u64(&r[8..16]) {
+                TALLY_MKNOD => {
+                    pending = 0;
+                    out.mknod += 1;
+                }
+                TALLY_MOUNT => {
+                    let want = tally_u32(&r[20..24]) as u64 + tally_u32(&r[24..28]) as u64;
+                    if want == 0 {
+                        out.mount += 1;
+                    } else {
+                        pending = want;
+                    }
+                }
+                TALLY_UNSHARE => {
+                    pending = 0;
+                    out.unshare += 1;
+                }
+                TALLY_CLONE => {
+                    pending = 0;
+                    out.clone += 1;
+                }
+                // A continuation where one is owed feeds the open chain;
+                // anywhere else (stray, or an unknown kind) it is skipped,
+                // and an unknown header drops the open chain with it.
+                0 => {
+                    if pending > 0 {
+                        pending -= 1;
+                        if pending == 0 {
+                            out.mount += 1;
+                        }
+                    }
+                }
+                _ => {
+                    pending = 0;
+                }
+            }
+            at += REC;
+        }
+        if have < buf.len() {
+            break;
+        }
+    }
+    out
+}
+
 /// The control socket's path, in a form that FITS IN `sun_path`.
 ///
 /// ⛔ **A unix socket address is 108 bytes including the NUL, and a container
@@ -473,6 +600,69 @@ mod tests {
         std::fs::write(&p, b"first").unwrap();
         ensure_memo_file(&p).unwrap();
         assert_eq!(std::fs::read(&p).unwrap(), b"first");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    fn tally_rec(dev: u64, ino: u64, uid: u32, gid: u32, set: u32) -> Vec<u8> {
+        let mut r = Vec::with_capacity(32);
+        r.extend(dev.to_le_bytes());
+        r.extend(ino.to_le_bytes());
+        r.extend(uid.to_le_bytes());
+        r.extend(gid.to_le_bytes());
+        r.extend(set.to_le_bytes());
+        r.extend(0u32.to_le_bytes());
+        r
+    }
+
+    fn tally_cont(path: &[u8; 16]) -> Vec<u8> {
+        let mut r = Vec::with_capacity(32);
+        r.extend(u64::MAX.to_le_bytes());
+        r.extend(0u64.to_le_bytes());
+        r.extend(path);
+        r
+    }
+
+    /// T-0708: the tally scan counts complete records and drops torn chains.
+    #[test]
+    fn the_tally_scan_counts_complete_records_only() {
+        let d = std::env::temp_dir().join(format!("podbox-tally-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        let p = d.join("memo");
+        let mut b = Vec::new();
+        // An ownership record passes through untouched.
+        b.extend(tally_rec(7, 9, 0, 0, 0));
+        // Two mknods, one unshare, one clone.
+        b.extend(tally_rec(u64::MAX, TALLY_MKNOD, 0, 0, 0));
+        b.extend(tally_rec(u64::MAX, TALLY_MKNOD, 0o644, 0, 0));
+        b.extend(tally_rec(u64::MAX, TALLY_UNSHARE, 0x20000, 0, 0));
+        b.extend(tally_rec(u64::MAX, TALLY_CLONE, 0x20000, 0, 0));
+        // A mount with a one-record chain each side.
+        b.extend(tally_rec(u64::MAX, TALLY_MOUNT, 0, 1, 1));
+        b.extend(tally_cont(b"/src\0\0\0\0\0\0\0\0\0\0\0\0"));
+        b.extend(tally_cont(b"/tgt\0\0\0\0\0\0\0\0\0\0\0\0"));
+        // A header broken by an ownership record: a torn chain, dropped.
+        b.extend(tally_rec(u64::MAX, TALLY_MOUNT, 0, 1, 0));
+        b.extend(tally_rec(7, 9, 0, 0, 0));
+        // A header at EOF with its chain missing: dropped too.
+        b.extend(tally_rec(u64::MAX, TALLY_MOUNT, 0, 1, 0));
+        // An unknown kind: skipped.
+        b.extend(tally_rec(u64::MAX, 9, 0, 0, 0));
+        std::fs::write(&p, &b).unwrap();
+        assert_eq!(
+            emulated_counts(&p),
+            EmulatedCounts {
+                mknod: 2,
+                mount: 1,
+                unshare: 1,
+                clone: 1,
+            }
+        );
+        // A missing file counts nothing rather than failing.
+        assert_eq!(
+            emulated_counts(&d.join("absent")),
+            EmulatedCounts::default()
+        );
         let _ = std::fs::remove_dir_all(&d);
     }
 }

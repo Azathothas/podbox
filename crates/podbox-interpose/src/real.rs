@@ -154,7 +154,7 @@ impl Next {
             // musl defines no symbol versions and no `dlvsym`: one version
             // per name exists there, so plain `dlsym` already answers it.
             let _ = version;
-            return unsafe { self.get(name) };
+            unsafe { self.get(name) }
         }
         #[cfg(target_env = "gnu")]
         {

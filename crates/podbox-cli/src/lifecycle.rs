@@ -60,6 +60,10 @@ pub const CONTAINER_INSPECT_FIELDS: &[&str] = &[
     "Exec.Shares",
     "Contains",
     "Noticed",
+    "Interpose.Emulated.mknod",
+    "Interpose.Emulated.mount",
+    "Interpose.Emulated.unshare",
+    "Interpose.Emulated.clone",
 ];
 
 fn store() -> Result<podbox_image::Store, i32> {
@@ -744,6 +748,22 @@ pub fn inspect_container(want: &str, template: Option<&str>) -> Option<i32> {
 }
 
 fn container_fields(s: &podbox_image::Store, c: &Container) -> Vec<(&'static str, String)> {
+    // T-0708: the emulation tally beside the container record. A dash where
+    // the tier never ran (no memo file); counts where it did, zero included.
+    let memo = podbox_supervise::table::memo_path(s, &c.id);
+    let em = memo
+        .exists()
+        .then(|| podbox_supervise::table::emulated_counts(&memo));
+    let count = |f: fn(&podbox_supervise::table::EmulatedCounts) -> u64| {
+        em.as_ref()
+            .map(f)
+            .map(|x| x.to_string())
+            .unwrap_or_else(|| "-".into())
+    };
+    let mknod = count(|e| e.mknod);
+    let mount = count(|e| e.mount);
+    let unshare = count(|e| e.unshare);
+    let clone = count(|e| e.clone);
     vec![
         ("Id", c.id.clone()),
         ("Name", c.name.clone()),
@@ -803,6 +823,13 @@ fn container_fields(s: &podbox_image::Store, c: &Container) -> Vec<(&'static str
                 .to_string(),
         ),
         ("Noticed", c.noticed.clone().unwrap_or_else(|| "-".into())),
+        // T-0708: how many times the preloaded tier emulated an operation
+        // rather than running the kernel's answer. A dash where the tier
+        // never ran; `inspect --format` reads these names, `ps` does not.
+        ("Interpose.Emulated.mknod", mknod),
+        ("Interpose.Emulated.mount", mount),
+        ("Interpose.Emulated.unshare", unshare),
+        ("Interpose.Emulated.clone", clone),
     ]
 }
 

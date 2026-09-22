@@ -76,6 +76,11 @@
     mkdir;
     mkdirat;
     rmdir;
+    mknod;
+    __xmknod;
+    mount;
+    unshare;
+    clone;
     mkstemp;
     mkostemp;
     mkdtemp;

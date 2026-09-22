@@ -426,6 +426,16 @@ pub fn apply(
                              (TODO/interpose.md T-0711)\n"
                         ));
                     }
+                    // T-0708: the tier emulates four operations it cannot run,
+                    // and says so on every load rather than only where one
+                    // fires. The live counts ride `inspect` under
+                    // `Interpose.Emulated`; this line states the capability.
+                    note.push_str(
+                        "podbox: interpose: emulating mknod, mount, unshare \
+                         and clone flag-strip for this payload: each is \
+                         counted and `inspect` carries the tally under \
+                         Interpose.Emulated (TODO/interpose.md T-0708)\n",
+                    );
                 }
                 Err(e) => decline(
                     note,

@@ -698,7 +698,7 @@ Source:      `TOOL.md` section 6.7
 Category:    interpose
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     A payload that calls `mknod`, `mount`, `unshare` or `clone` with
              namespace flags gets an error the runtime already knows the reason
@@ -724,7 +724,53 @@ Decision:    Strip namespace flags from `clone` rather than failing it. Failing
              ⚠ Do not strip `CLONE_NEWNET` silently: an empty netns is
              `ENETUNREACH` for every connection, which reads as a network outage
              rather than as a stripped flag. Report it.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'mknod /tmp/n c 1 3 && test -f /tmp/n' && podbox inspect --format '{{.Interpose.Emulated.mknod}}' "$(podbox ps -lq)" | grep -q '^[1-9]'`
+Prove:       `podbox create --name e1 public.ecr.aws/docker/library/alpine:3.20 sh -c 'mknod /tmp/n c 1 3 && test -f /tmp/n' && podbox start e1 && podbox wait e1 && podbox inspect --format '{{.Interpose.Emulated.mknod}}' e1 | grep -q '^[1-9]'; rc=$?; podbox rm -f e1 >/dev/null 2>&1; exit $rc`
+
+**Done 2026-09-22.** The tally rides the ownership memo file through the
+same descriptor (`dev` `u64::MAX`, the operation in the inode word: 1
+mknod, 2 mount, 3 unshare, 4 clone). A mount header carries the flags and
+both chain lengths, and the paths follow as 32-byte continuation records
+in one `writev`, so concurrent payload processes cannot interleave a
+chain. The path takes no allocation and no lock. `inspect` reads the
+tally back (`Interpose.Emulated.mknod/mount/unshare/clone`, a dash where
+the tier never ran), and the banner states the capability on every load.
+Five entry points ship the four operations (`mknod`, the old-glibc
+spelling `__xmknod`, `mount`, `unshare`, `clone`), all single-version on
+glibc and one version per name on musl. `mknod` becomes a regular file
+and refuses a directory with `EPERM`. `mount` records its chains and
+answers 0. `unshare` records and answers 0, and forwards a flag-less call
+genuinely. `clone` strips the eight namespace flags and forwards the
+rest, exactly and uncounted where nothing stripped (the thread path). No
+tally behind it means the real call on all five: a success nothing
+counted never leaves the object. The `CLONE_NEWNET` strip is loud on the
+clone path and the unshare path. A mknod tally that does not land unmakes
+the stand-in and fails with the write errno; a review audit of the entry
+text against the code found the discarded return it replaces.
+
+Driven green on host podman 6.1.2 with the shipped binary
+(`ELF_MAGICS=8`), ten rows, one marker each (`.dev/t0708-drive.sh`):
+E1 mknod tally, E2 mount tally, E3 unshare tally, E4 a direct `clone()`
+with `NEWUSER|NEWNET` through python ctypes (`CDLL(None)`, an `_exit`
+child that never enters Python) asserting success, tally 1 or more, the
+loud line in `logs`, and `EPERM` on a directory `mknod`, E4m the same on
+musl, E5 eight threads starting and joining, E6 the banner line, E7 an
+existing path failing honestly, E8 the `NEWNET` loud line, E9 the memo
+symlinked to `/dev/full` where `mknod` fails and leaves no file (E9 reads
+no `inspect`: the scan streams, and only a regular memo terminates it).
+E4 replaces a fork-based row: busybox `unshare --fork` uses fork plus
+`unshare` and never calls `clone` with namespace flags. Regression: 240
+exits 0 with 10 rows run and 10 built and ran, zero decline lines, the
+only transcript diffs the new banner line and installer progress noise;
+the T-0705 eight-row drive and the T-0707 four-row drive stay green. Unit
+guards: five `emulate` tests, the tally-scan test that drops torn chains,
+and the interpose suite at 25 of 25 in the lane check.
+
+⛔ **The `Prove` above is amended, and the committed spelling could not
+work.** It ran `run --rm` and read `ps -lq`. A foreground run keeps no
+record: `--rm` removes the memo `inspect` reads, and without it the
+ephemeral memo is deleted on exit. `ps` takes no `-l` flag
+(`crates/podbox-cli/src/lifecycle.rs` `ps`). The tally rows use the
+create/start/wait/inspect/rm cycle.
 
 ---
 
