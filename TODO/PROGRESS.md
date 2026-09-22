@@ -446,6 +446,25 @@ reads back virtual through `pwd`. The entry Prove is amended: its
 second half passed `-v`, which podbox refuses, so maps travel through
 `PODBOX_MAPS`. Counts move to 13 open, 2 partial and 125 done.
 
+[T-0909](deps.md) closed in its own change: `io12/userland-execve-rust`
+vendored whole to `vendor/userland-execve` at `02ef0e0` (MIT, six source
+files plus `LICENSE`, `Cargo.toml`, `README.md`, byte-identical to the
+corpus tree), and podbox's own three-syscall memfd path in
+`crates/podbox-enter/src/memfd.rs` (`MFD_CLOEXEC` unconditional with an
+`EINVAL` fallback for sealing, the `has_shebang` router predicate, the
+`is_executable` probe of mode bits plus `faccessat` `X_OK`, `memfd_create`),
+with four unit tests watched fail on stubs and pass on the implementation
+(the `FD_CLOEXEC`-on-the-descriptor assertion guards the fork's exact
+regression). `110-bloat-delta.sh memfd` exits 0 twice in the lane with
+`experiments/results/bloat-memfd.txt` committed: total 2757488, 97
+third-party crates, scaffold control answering, and the reached path costs
+0 bytes by wired-minus-unwired subtraction. The `fexecve` call itself stays
+with [T-1003](packaging.md)'s ladder, which also owns patching the vendored
+tree's `goblin`/`nix` pins out. `THIRD_PARTY.md` carries the vendored row
+and drops the stale blocked sentence; [T-0909](deps.md)'s `Decision`
+already ruled neither `memfd-exec` tree vendors. Counts move to 8 open and
+131 done.
+
 What stays current from last time:
 
 ⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
@@ -541,16 +560,20 @@ for clause 3. [T-1209](gate.md) and
    [reference-map.md](reference-map.md) requires before a new tree is
    used, then the registry-fixture experiment with all outbound
    network blocked.
-   [T-0909](deps.md) and [T-1003](packaging.md) have their mechanism
-   mapped: `memfd-ng` 0.1.1 (0BSD, `libc` only) covers sealed-memfd
-   create/write/exec plus the tmpfs fallback, and podbox takes only the
-   `is_exe` pre-probe and unconditional `MFD_CLOEXEC` mechanisms from it
-   rather than vendoring it whole. One design constraint came with it:
-   `#!` scripts fail through fd-exec (upstream issue #2), so the
-   T-1003 ladder routes scripts past it.
-   No beta binary ships before [T-1004](packaging.md): a binary without
-   `version --verbose` provenance (commit, rustc, target, interposer
-   digests) is not something a client can report against.
+   [T-0909](deps.md) is done: `io12/userland-execve-rust` vendored whole
+   to `vendor/userland-execve` at `02ef0e0`, and podbox's own
+   three-syscall memfd path in `crates/podbox-enter/src/memfd.rs` with
+   four unit tests green in the lane. `110-bloat-delta.sh memfd` exits 0
+   with `experiments/results/bloat-memfd.txt` committed (total 2757488,
+   scaffold control answering, reached path 0 bytes by subtraction).
+   The `fexecve` call and the vendored tree's `goblin`/`nix` patch-out
+   belong to the [T-1003](packaging.md) ladder.
+   [T-0206](image.md) keeps its fixture technology (`zot`, licence
+   determined) and is next: its `Decision` still names `registry:2` and
+   is amended to `zot` in the same change that writes the 180 script.
+   No beta binary ships without the operator's go-ahead: creating a
+   GitHub release leaves the machine, so the artifact set rides as a
+   proposal, not a commit.
 
 ## In progress
 
@@ -576,6 +599,12 @@ driven by the new 120 script.
 with their own errnos, driven by the new 155 script with a genuine
 denied arm. Its remedy decision stays open, and the proc-absence clause
 awaits [T-0413](complete.md)'s ruling.
+[T-0909](deps.md) closed in its own change (`fb9fc31`, CI success):
+the vendor tree, the own memfd path with four lane-green unit tests,
+the committed `bloat-memfd.txt` reading, the `THIRD_PARTY.md` vendored
+row, and the corrected `INDEX.md` section 4, which named two blocked
+entries neither of which is blocked (the blocked rows are
+[T-1212](gate.md) and [T-1213](gate.md)).
 
 [T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
 the 2026-09-11 reopen note, so the note moved verbatim to
