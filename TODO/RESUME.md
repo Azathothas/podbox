@@ -6,11 +6,12 @@ the close-out (gc, push, CI verify, record rewrite). All ten commit here.
 
 ## The resume point
 
-Tree clean at the close-out commit. Counts: 142 entries, 2 open, 1
-partial, 2 blocked, 137 done. Every P0 is done. Next: the operator rules
-on T-1207 (gate.md items 2 to 4) and T-1112 (milestones.md, parked or
-not); T-1109 (milestones.md) carries its remaining conditions in its own
-file.
+Tree clean at the rulings commit. Counts: 142 entries, 2 open, 1
+partial, 2 blocked, 137 done. Every P0 is done. T-1207 (gate.md) and
+T-1112 (milestones.md) are ruled and recorded in their entries; T-1109
+(milestones.md) carries its remaining conditions in its own file. Next
+session: continuous until ten tasks finish, then the next beta
+pre-release for `x86_64` and `aarch64`.
 
 ## In flight
 
@@ -39,10 +40,10 @@ route. Podman machine state on the host is left as found. Beta
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Continuous session: the close-out is pushed (tree clean, CI green) and
-counts read 142 entries, 2 open, 1 partial, 2 blocked, 137 done. Next:
-rule on T-1207 (gate.md items 2-4: interpose.map count, per-libc size
-baseline, third-state reporting — dev.sh check or a slower gate) and
-T-1112 (milestones.md non-Linux guest — parked or not). Push straight to
-main with no branches.
+Continuous session: the rulings are recorded (tree clean, CI green) and
+counts read 142 entries, 2 open, 1 partial, 2 blocked, 137 done. Work
+continuously until ten tasks finish in earnest, then publish the next
+beta pre-release with musl binaries for x86_64 and aarch64, each
+downloaded back and hash-checked. Push straight to main with no
+branches.
 ```

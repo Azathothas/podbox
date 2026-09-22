@@ -680,6 +680,14 @@ for clause 3. [T-1209](gate.md) and
    items 2 to 4, [T-1112](milestones.md) parked or not);
    [T-1109](milestones.md) carries its remaining conditions in its own
    file. Nothing else is open.
+   Ruled 2026-09-22, both settled in the owning entries: [T-1207](gate.md)
+   items 2 through 4 belong in `dev.sh check`, each with its plant, and
+   [T-1112](milestones.md) stays parked as P3.
+
+10. The next session runs continuous until ten tasks finish in earnest,
+    then publishes the next beta pre-release with musl binaries for both
+    `x86_64` and `aarch64` beside it, each downloaded back and hash-checked
+    before the tag counts as published.
    [T-0909](deps.md) is done: `io12/userland-execve-rust` vendored whole
    to `vendor/userland-execve` at `02ef0e0`, and podbox's own
    three-syscall memfd path in `crates/podbox-enter/src/memfd.rs` with
@@ -740,6 +748,9 @@ asked in, and it lives in the entry.
 | whether `experiments/lib/engine.sh` gains a bounded build entry, and whether the reconstruction's `--privileged` run gets an explicit escape or stays outside the helper | ruled 2026-09-21: build entry yes, narrow fixture-only escape yes | [T-1213](gate.md) |
 | whether kept podbox containers and unused base wsl machines may be pruned | ruled 2026-09-22: yes, prune what we do not use or need, safely, touching nothing else | PROGRESS.md (this file) |
 | whether a beta binary may be published | ruled 2026-09-22: yes, once the top-10 priority tasks finish and the session ends, under a pre-release tag; work first | PROGRESS.md (this file) |
+| where the three remaining interposer checks belong | ruled 2026-09-22: in `dev.sh check`, each with its plant; per-commit toolchain cost accepted | [T-1207](gate.md) |
+| whether the non-Linux guest starts | ruled 2026-09-22: keep parked as P3; schedulable, displaces nothing | [T-1112](milestones.md) |
+| what the next session owes | ruled 2026-09-22: continuous until ten tasks finish, then the next beta pre-release for `x86_64` and `aarch64` | PROGRESS.md (this file) |
 
 Every settled ruling is written into the entry that owns it, which
 is where an implementer reads it.

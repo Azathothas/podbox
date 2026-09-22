@@ -860,4 +860,7 @@ Decision:    Not taken, and deliberately so. ⛔ It is recorded here so that it 
              not rediscovered as a new idea, and it is P3 so that it cannot
              displace M6 or M7. [RULES.md](RULES.md) section 5 is why it is open
              rather than absent: nothing closes as out of scope.
+             Ruled 2026-09-22: keep parked as P3. The prerequisites T-1301
+             through T-1304 are closed, so the entry is schedulable, but it
+             displaces nothing and stays open.
 Prove:       `podbox run --platform windows/amd64 IMAGE cmd /c ver` returns the guest's own version string and its exit code, or podbox refuses by name with the leg that is missing

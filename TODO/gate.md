@@ -482,6 +482,9 @@ Decision:    Not taken on the shape. ⚠ Whether this belongs in `dev.sh check`
              passes before it is committed and it is currently about 30 s, and
              a second toolchain invocation on every commit is a cost the
              operator should rule on rather than inherit.
+             Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check`,
+             each with its plant in the same change. The per-commit toolchain
+             cost is accepted; the entry stays open until all three land.
 Prove:       `./scripts/plant.sh` gains a case that introduces a clippy failure
              and an unformatted line in `crates/podbox-interpose` and asserts
              `./scripts/dev.sh check` goes red naming that crate, which it does
