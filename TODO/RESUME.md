@@ -7,21 +7,20 @@ renameat2, i686 crt-static. Counts: 143 entries, 2 open, 1 partial,
 
 ## The resume point
 
-Implementation commits here. Next: full lane `dev.sh check`, push main,
-push tag `v0.1.0-beta.2`, watch the nightly run, record the Prove in
-T-1314, then close out (PROGRESS rewrite, gc, summary, next prompt).
+Beta.3 nightly is green with fourteen assets verified. Next: commit the
+Prove record (this tree), push main, run the close-out (PROGRESS rewrite,
+gc, summary, next prompt).
 
 ## In flight
 
-T-1314 entry carries a Prove paragraph ending in a placeholder for the
-nightly run link and rows. Files open in it: none half-written; the
-staged tree is the change.
+T-1314 Prove paragraph filled with the beta.3 run. Files open in it: none
+half-written; the staged tree is the change.
 
 ## State
 
-Staged, gate `check-todo.py` re-run pending on this tree. Lane `dev.sh
-check` not yet run on this tree. No lane job running. `v0.1.0-beta.2`
-not yet created.
+Staged, gate `check-todo.py` re-run pending on this tree. No lane job
+running. `v0.1.0-beta.2` (matrix green, publish red) and `v0.1.0-beta.3`
+(nightly published) both pushed.
 
 ## Standing operator rulings, 2026-09-22
 

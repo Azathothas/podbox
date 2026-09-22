@@ -76,8 +76,10 @@ link with no overrides, and 6 of 6 runnable smokes read green in the lane
 that leg is decided by CI). Counts move to 143 entries, 2 open, 1 partial,
 2 blocked, 138 done, and every P0 is done. `v0.1.0-beta.2` ran the matrix
 green on all seven legs and died publishing (the publish job had no
-checkout); the fix rides here and `v0.1.0-beta.3` carries the publish proof,
-which the entry records when it lands.
+checkout); the fix rode the next commit and `v0.1.0-beta.3` carries the
+publish proof: run 35769985618 success, seven `SMOKE-OK` rows, and the
+pre-release named nightly with fourteen assets verified back. The gate is
+green on both commits and the tree is at the tag's commit plus this record.
 
 Session of 2026-09-22, continued. [T-1314](packaging.md) filed in its own
 change: nightly releases, one `v*` tag building and smoke-testing all

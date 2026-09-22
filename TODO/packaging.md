@@ -529,5 +529,13 @@ loongarch64 leg green under the runner's own qemu, which settles the lane's
 open question that way. The publish job died before creating anything:
 `gh release create` shells out to git and the job had no checkout (`failed
 to run git: not a git repository`). Nothing published, so the tag stands
-and the fix (the checkout above) rides the next tag. The beta.3 run below
-is the publish proof.
+and the fix (the checkout above) rides the next tag.
+
+Prove run 2026-09-23, continued: `git push origin v0.1.0-beta.3` ran the
+workflow as run 35769985618, conclusion success. All seven legs green with
+one `SMOKE-OK` row each (x86_64 native at 3503032 B; aarch64, riscv64gc,
+loongarch64, armv7, i686 and powerpc64le each under its qemu), and the
+publish job created the pre-release named nightly on the tag with fourteen
+assets: the seven binaries beside their seven sha256 files, verified back
+through the release API. The loongarch64 leg green on the runner's qemu
+settles the lane's SIGILL question as emulator age.
