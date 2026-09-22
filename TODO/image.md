@@ -369,7 +369,7 @@ Source:      Found while reading `references/containers__storage` against `paper
 Category:    image
 Priority:    P3
 Effort:      S
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     The corpus states that podman's layer application has no path on
              this runtime. The code carries a configuration option that turns
@@ -402,6 +402,25 @@ Decision:    This changes nothing about podbox's design and it changes a
              comparative claim podbox's own documentation would otherwise
              repeat. That is why it is P3 and not dropped.
 Prove:       `./experiments/95-podman-vfs-ignorechown.sh` exits 0 or 1, never 2, and its output is committed to `experiments/results/`
+
+**Done 2026-09-22.** The combination runs and the corpus claim is
+answered: vfs with `ignore_chown_errors` opens the path the bare driver
+refuses. Driven on host podman (client 6.1.2, machine 5.8.6) by
+`experiments/95-podman-vfs-ignorechown.sh`, exit 0, with the run in
+`experiments/results/podman-vfs-ignorechown.txt`. The chown wall is
+staged rather than assumed: a seccomp filter
+(`experiments/lib/chowndeny.py`) denies chown to any but the caller's
+own uid for the unpack tree, which is the target runtime's shape
+(mapped ids work, unmapped fail). Without the flag the load is refused
+(`lchown /data/greeting: operation not permitted`, a fixture file owned
+by uid 1234); with the flag the same load exits 0, and the loaded image
+runs and prints hello. Two userns stagings were measured and refused
+first: rootless maps every uid into the subuid range so nothing fails,
+and a hand-mapped namespace breaks podman's own newuidmap call. One
+observation is named rather than hidden: this podman prints no
+`ignoreChownErrors` warning on stderr where the corpus
+(`pkg/archive/archive.go`) prints one; the outcome is the flag's either
+way, and a control with the flag explicitly false fails as without it.
 
 ---
 

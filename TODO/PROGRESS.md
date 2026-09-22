@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 12 open, 1 partial, 2 blocked, 127 done.
+142 entries: 11 open, 1 partial, 2 blocked, 128 done.
 
 ## Baseline
 
@@ -566,7 +566,9 @@ identity halves landed under T-0702 and T-0711 with driven evidence.
 `--platform` and the platform-keyed store shipped there, and the 270
 script's stale 125 expectation (predating [T-0802](cli.md)'s
 discriminator) was corrected to the cli-error code in the preceding
-change.
+change. [T-0205](image.md) closed on a staged wall: vfs with
+`ignore_chown_errors` loads where the bare driver is refused, driven by
+the new 95 script with its seccomp filter helper.
 
 [T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
 the 2026-09-11 reopen note, so the note moved verbatim to

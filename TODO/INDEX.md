@@ -78,7 +78,7 @@ the blocker named and what would clear it.
 | [T-0202](image.md) | P0 | image | done | A content-addressed store, and digest parity with docker |
 | [T-0203](image.md) | P0 | image | done | Check `statvfs` for blocks and inodes, and name the destination |
 | [T-0204](image.md) | P1 | image | done | `images`, `rmi`, `tag`, and a store GC that cannot delete a running container's rootfs |
-| [T-0205](image.md) | P3 | image | open | Re-test podman with `vfs` and `ignore_chown_errors` before repeating "no path exists" |
+| [T-0205](image.md) | P3 | image | done | Re-test podman with `vfs` and `ignore_chown_errors` before repeating "no path exists" |
 | [T-0206](image.md) | P3 | image | open | A registry fixture, so the acceptance stops depending on somebody else's quota |
 | [T-0207](image.md) | P2 | image | open | Fetch layers with bounded concurrency, and measure what it buys |
 | [T-0208](image.md) | P2 | image | done | `--platform`, and a store that can hold two variants of one tag |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 12 open, 1 partial, 2 blocked, 127 done.
+142 items: 11 open, 1 partial, 2 blocked, 128 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -217,8 +217,8 @@ that disagrees with the rows cannot reach a commit.
 | P0 | 1 | 0 | 0 | 51 | 52 |
 | P1 | 4 | 1 | 2 | 59 | 66 |
 | P2 | 3 | 0 | 0 | 16 | 19 |
-| P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **12** | **1** | **2** | **127** | **142** |
+| P3 | 3 | 0 | 0 | 2 | 5 |
+| **All** | **11** | **1** | **2** | **128** | **142** |
 
 ## How the current ordering is derived
 

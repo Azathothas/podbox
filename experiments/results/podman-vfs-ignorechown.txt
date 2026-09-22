@@ -1,0 +1,21 @@
+== conditions
+date              2026-09-22T06:14:44Z
+host              MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64 x86_64
+podman client     podman version 6.1.2
+machine           podman version 5.8.6 (uid=1000(user) gid=1000(user) groups=1000(user),10(wheel))
+machine subuids   user:524288:65536 
+
+== 0. the fixture is valid (rootful control)
+  rootful run prints hello (image 188aba92263c)
+
+== A. without the flag the wall holds
+  load refused: lchown /data/greeting: operation not permitted
+
+== B. with ignore_chown_errors the same load succeeds
+  load exits 0 with ignore_chown_errors=true
+  NOTE: stderr carries NO ignoreChownErrors warning on this podman; the corpus prints one (archive.go), the outcome is the flag's either way
+
+== C. the flag-loaded image runs
+  run exits 0 and prints hello
+
+verdict           PASS: vfs with ignore_chown_errors opens the path the bare driver refuses
