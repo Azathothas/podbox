@@ -1,44 +1,38 @@
 ## The task
 
-Continuous session of 2026-09-22. T-0705/T-0707 done, pushed, CI-green.
-T-0708 (emulate mknod/mount/unshare/clone with memo tally) implemented in
-the worktree plus the T-0810 fix (mkdir in `supervise::create`). Drive
-both, close both, push straight to main with no branches. Engine clauses
+Continuous session of 2026-09-22. T-0415 (device stand-in type check)
+is implemented, tested and recorded in the worktree: shape pre-check
+in `devices.rs`, three unit tests, entry Decision taken with the
+replace-loudly/refuse-narrowly ruling. Commit, push, verify CI, then
+pick the next entry. Push straight to main, no branches. Engine clauses
 run on host podman; stop `podman-machine-default` at close-out.
 
 ## The resume point
 
-Lane full check on the final tree first (`run-in-base.sh`, one job at a
-time). Then rebuild the shipped binary (`.dev/t1309-build-pb.sh`, ELF>=3,
-verify strings), re-drive T-0708 E1-E8 with E4 rewritten as a direct
-`clone()` row (python ctypes, no toolchain in payload), 240 plus
-t0705/t0707 regressions, write the T-0810 Done and the T-0708 Prove
-amendment plus Done, host gates, commit each entry alone, push, verify
-each CI run by re-listing.
+Commit the T-0415 change (`devices.rs`, `TODO/complete.md`,
+`TODO/INDEX.md`, `TODO/PROGRESS.md`, three sweep transcripts, this
+file), push origin main, verify the CI run by re-listing. Then the next
+open entry from the pool: T-0413/T-0414 (complete), image T-0205-0209,
+T-1109 (partial), T-0503 (partial), T-0606, packaging T-1002-1004.
 
 ## In flight
 
-T-0708 plus T-0810-fix in the worktree, uncommitted: M
-`crates/podbox-interpose/{interpose.map,src/lib.rs,src/memo.rs,src/real.rs}`,
-?? `src/emulate.rs`, M `crates/podbox-cli/{src/interpose.rs,src/lifecycle.rs}`,
-M `crates/podbox-supervise/src/{table.rs,lib.rs}`. One comment fix applied
-(`ps` does not read the Emulated names). TODO text untouched: both entries
-still open, amendments owed at close. `.dev/t0708-drive.sh` E4 still the
-old fork row, rewrite owed before the drive.
+T-0415 change complete in the worktree, uncommitted. Full lane check
+green (rc=0), devices suite 47 of 47, host gates green, 240 exit 0 at
+10 of 10 with device rows identical. No code is half-written.
 
 ## State
 
-Tree dirty, 8 modified plus 1 untracked. Host `check-todo.py` green
-(RC=0, read from the process). Podman machine `podman-machine-default`
-running. No lane job running.
+Tree dirty with the T-0415 change only. Podman machine
+`podman-machine-default` running. No lane job running.
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Continuous session: T-0708 is implemented in the worktree with the T-0810
-fix beside it. Lane-check the final tree, drive E1-E8 with E4 as a direct
-clone row, regress, close both entries, push straight to main with no
-branches, verify CI. Engine clauses run on host podman; stop the podman
-machine at close-out.
+Continuous session: T-0415 is implemented and green, uncommitted in
+the worktree. Commit it whole (no subset staging without re-gating),
+push straight to main with no branches, verify CI by re-listing, then
+continue with the next open entry. Engine clauses run on host podman;
+stop the podman machine at close-out.
 ```

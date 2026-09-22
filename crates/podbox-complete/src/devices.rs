@@ -103,6 +103,53 @@ fn run(root: &Root) -> Result<Vec<Fixup>> {
             continue;
         }
 
+        // 1b. T-0415: name what is there before touching it. A directory
+        // is refused with its path named; anything else is replaced by
+        // the shim below, which says what it replaced. A symlink is
+        // removed before the `mknod` attempt, which then cannot follow it:
+        // on a machine that permits `mknod` the call would otherwise
+        // create the node at the link's target, inside this rootfs or
+        // outside it. Where the link cannot be removed the path is
+        // refused the same way a directory is, loudly instead of
+        // half-followed.
+        let displaced = match &k {
+            Kind::Missing | Kind::Regular { .. } => None,
+            Kind::Dir => {
+                out.push(
+                    Fixup::new("T-0401", "dev-shim", path, Action::Failed)
+                        .why(format!(
+                            "{path} is a directory in this image; podbox will not replace a \
+                             directory with a file, and --strict refuses the run"
+                        ))
+                        .degraded(),
+                );
+                continue;
+            }
+            Kind::Symlink(t) => {
+                if std::fs::remove_file(std::path::Path::new(root.path()).join(path)).is_err() {
+                    out.push(
+                        Fixup::new("T-0401", "dev-shim", path, Action::Failed)
+                            .why(format!(
+                                "{path} is a symlink to {t} that podbox could not remove; \
+                                 asking mknod(2) through it could create the node outside \
+                                 this rootfs, and --strict refuses the run"
+                            ))
+                            .degraded(),
+                    );
+                    continue;
+                }
+                Some(format!("a symlink to {t}"))
+            }
+            Kind::CharDev { major: a, minor: b } => Some(format!("a character device {a}:{b}")),
+            Kind::Other(m) => Some(match m & 0o170000 {
+                // File-type bits, UAPI `linux/stat.h`.
+                0o060000 => "a block device".into(),
+                0o140000 => "a socket".into(),
+                0o10000 => "a fifo".into(),
+                _ => format!("a file of type {m:o}"),
+            }),
+        };
+
         // 2. ⭐ ASK THE KERNEL. On a machine that permits `mknod` the payload
         // gets the real thing and this is not a degradation at all.
         match root.mknod_char(path, 0o666, *major, *minor)? {
@@ -139,7 +186,14 @@ fn run(root: &Root) -> Result<Vec<Fixup>> {
                         random_bytes(FILLED_BYTES).unwrap_or_else(|_| vec![0u8; FILLED_BYTES]),
                     )
                 });
-                out.extend(shim_for(root, path, &why, zeros, rand)?);
+                out.extend(shim_for(
+                    root,
+                    path,
+                    &why,
+                    displaced.as_deref(),
+                    zeros,
+                    rand,
+                )?);
             }
         }
     }
@@ -147,7 +201,14 @@ fn run(root: &Root) -> Result<Vec<Fixup>> {
 }
 
 /// The regular-file shim for one device, once `mknod` has refused.
-fn shim_for(root: &Root, path: &str, why: &str, zeros: &[u8], rand: &[u8]) -> Result<Vec<Fixup>> {
+fn shim_for(
+    root: &Root,
+    path: &str,
+    why: &str,
+    displaced: Option<&str>,
+    zeros: &[u8],
+    rand: &[u8],
+) -> Result<Vec<Fixup>> {
     if path == "dev/null" {
         // ⭐ Truncated on EVERY run, not created once. The failure this fixup
         // is for leaves a multi-gigabyte regular file behind, and a rootfs is
@@ -158,7 +219,7 @@ fn shim_for(root: &Root, path: &str, why: &str, zeros: &[u8], rand: &[u8]) -> Re
             _ => None,
         };
         let w = root.write(path, b"", 0o666)?;
-        let detail = match grew {
+        let mut detail = match grew {
             Some(len) => format!(
                 "mknod(2) refused with {why}, so this is a regular file, and it was \
                  {len} bytes: a payload had already redirected into it. Writes are \
@@ -169,6 +230,12 @@ fn shim_for(root: &Root, path: &str, why: &str, zeros: &[u8], rand: &[u8]) -> Re
                  kept until the next run rather than discarded, and reads give EOF"
             ),
         };
+        // T-0415: what the shim replaced, where it replaced anything. A
+        // reader auditing the rootfs can tell a deliberate stand-in from a
+        // fresh one without re-running the fixup.
+        if let Some(s) = displaced {
+            detail.push_str(&format!(" It replaced {s}."));
+        }
         return Ok(vec![shim(path, w, detail)]);
     }
     let (bytes, what) = if path == "dev/zero" {
@@ -176,10 +243,17 @@ fn shim_for(root: &Root, path: &str, why: &str, zeros: &[u8], rand: &[u8]) -> Re
     } else {
         (rand, "bytes read once from the host's getrandom(2)")
     };
-    filled(root, path, bytes, what, why)
+    filled(root, path, bytes, what, why, displaced)
 }
 
-fn filled(root: &Root, path: &str, bytes: &[u8], what: &str, why: &str) -> Result<Vec<Fixup>> {
+fn filled(
+    root: &Root,
+    path: &str,
+    bytes: &[u8],
+    what: &str,
+    why: &str,
+    displaced: Option<&str>,
+) -> Result<Vec<Fixup>> {
     // ⚠ A shim already the right length is left alone: rewriting a megabyte on
     // every container start is a cost with no reading behind it.
     if let Kind::Regular { len, .. } = root.kind(path)? {
@@ -195,16 +269,17 @@ fn filled(root: &Root, path: &str, bytes: &[u8], what: &str, why: &str) -> Resul
         }
     }
     let w = root.write(path, bytes, 0o666)?;
-    Ok(vec![shim(
-        path,
-        w,
-        format!(
-            "mknod(2) refused with {why}, so this is a regular file of {} {what}. \
-             ⛔ It ENDS: a read past {} bytes gives EOF where the device would not",
-            bytes.len(),
-            bytes.len()
-        ),
-    )])
+    let mut detail = format!(
+        "mknod(2) refused with {why}, so this is a regular file of {} {what}. \
+         ⛔ It ENDS: a read past {} bytes gives EOF where the device would not",
+        bytes.len(),
+        bytes.len()
+    );
+    // T-0415, as above: what the shim replaced.
+    if let Some(s) = displaced {
+        detail.push_str(&format!(" It replaced {s}."));
+    }
+    Ok(vec![shim(path, w, detail)])
 }
 
 fn shim(path: &str, w: Wrote, detail: impl Into<String>) -> Fixup {
@@ -267,7 +342,7 @@ mod tests {
         std::fs::create_dir_all(format!("{d}/dev")).unwrap();
         std::fs::write(format!("{d}/dev/null"), vec![b'x'; 4096]).unwrap();
         let root = Root::open(&d).unwrap();
-        let fs = shim_for(&root, "dev/null", "EPERM", &zeros(), &zeros()).unwrap();
+        let fs = shim_for(&root, "dev/null", "EPERM", None, &zeros(), &zeros()).unwrap();
         assert_eq!(fs[0].action, Action::Rewrote);
         assert!(fs[0].detail.contains("4096 bytes"), "{}", fs[0].detail);
         assert!(fs[0].detail.contains("EPERM"), "{}", fs[0].detail);
@@ -285,7 +360,7 @@ mod tests {
         root.mkdirs("dev").unwrap();
         let (z, r) = (zeros(), zeros());
         for (path, ..) in DEVICES {
-            let fs = shim_for(&root, path, "EPERM", &z, &r).unwrap();
+            let fs = shim_for(&root, path, "EPERM", None, &z, &r).unwrap();
             assert_eq!(fs.len(), 1, "{path}");
             assert!(fs[0].degraded, "{path}: {:?}", fs[0]);
             assert!(fs[0].detail.contains("EPERM"), "{path}: {:?}", fs[0]);
@@ -305,8 +380,8 @@ mod tests {
         root.mkdirs("dev").unwrap();
         let (z, r) = (zeros(), zeros());
         for p in ["dev/zero", "dev/urandom", "dev/random"] {
-            shim_for(&root, p, "EPERM", &z, &r).unwrap();
-            let fs = shim_for(&root, p, "EPERM", &z, &r).unwrap();
+            shim_for(&root, p, "EPERM", None, &z, &r).unwrap();
+            let fs = shim_for(&root, p, "EPERM", None, &z, &r).unwrap();
             assert_eq!(fs[0].action, Action::Unchanged, "{p}");
         }
         let _ = std::fs::remove_dir_all(&d);
@@ -344,6 +419,79 @@ mod tests {
         for f in run(&root).unwrap() {
             assert_eq!(f.action, Action::Unchanged, "{f:?}");
         }
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-0415: a directory where a node belongs is refused with its path
+    /// named, and the directory is left alone. The row is degraded, so
+    /// `--strict` refuses the run through the tested wiring in
+    /// `podbox-cli/src/complete.rs`.
+    #[test]
+    fn a_directory_at_a_device_path_is_a_named_failure() {
+        let d = scratch("dirshape");
+        std::fs::create_dir_all(format!("{d}/dev/null")).unwrap();
+        let root = Root::open(&d).unwrap();
+        let fs = run(&root).unwrap();
+        let f = fs
+            .iter()
+            .find(|f| f.entry == "T-0401" && f.path == "dev/null")
+            .unwrap();
+        assert_eq!(f.action, Action::Failed, "{f:?}");
+        assert!(f.degraded, "{f:?}");
+        assert!(f.detail.contains("dev/null"), "{}", f.detail);
+        assert!(f.detail.contains("directory"), "{}", f.detail);
+        assert!(std::fs::metadata(format!("{d}/dev/null")).unwrap().is_dir());
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-0415: a symlink where a node belongs is replaced by the shim, and
+    /// the row says what it replaced. Replacing the link removes the link
+    /// alone, so a target outside the rootfs stays untouched.
+    #[test]
+    fn a_symlink_at_a_device_path_is_replaced_and_named() {
+        let d = scratch("symshape");
+        std::fs::create_dir_all(format!("{d}/dev")).unwrap();
+        std::fs::write(format!("{d}/outside"), b"stay").unwrap();
+        std::os::unix::fs::symlink(format!("{d}/outside"), format!("{d}/dev/null")).unwrap();
+        let root = Root::open(&d).unwrap();
+        let fs = run(&root).unwrap();
+        let f = fs
+            .iter()
+            .find(|f| f.entry == "T-0401" && f.path == "dev/null")
+            .unwrap();
+        assert_eq!(f.action, Action::Created, "{f:?}");
+        assert!(f.degraded, "{f:?}");
+        assert!(f.detail.contains("symlink"), "{}", f.detail);
+        assert!(f.detail.contains("outside"), "{}", f.detail);
+        assert_eq!(std::fs::metadata(format!("{d}/dev/null")).unwrap().len(), 0);
+        assert_eq!(std::fs::read(format!("{d}/outside")).unwrap(), b"stay");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-0415: a fifo where a node belongs is replaced by the shim, and the
+    /// row says what it replaced. A fifo would hang a writer with no
+    /// reader, so leaving it is not an option.
+    #[test]
+    fn a_fifo_at_a_device_path_is_replaced_and_named() {
+        let d = scratch("fifoshape");
+        std::fs::create_dir_all(format!("{d}/dev")).unwrap();
+        assert!(std::process::Command::new("mkfifo")
+            .arg(format!("{d}/dev/zero"))
+            .status()
+            .unwrap()
+            .success());
+        let root = Root::open(&d).unwrap();
+        let fs = run(&root).unwrap();
+        let f = fs
+            .iter()
+            .find(|f| f.entry == "T-0401" && f.path == "dev/zero")
+            .unwrap();
+        assert_eq!(f.action, Action::Rewrote, "{f:?}");
+        assert!(f.detail.contains("a fifo"), "{}", f.detail);
+        assert_eq!(
+            std::fs::metadata(format!("{d}/dev/zero")).unwrap().len() as usize,
+            FILLED_BYTES
+        );
         let _ = std::fs::remove_dir_all(&d);
     }
 }

@@ -1049,7 +1049,7 @@ Source:      `references/Azathothas__sandbox-insights/tree/docs/capability-model
 Category:    complete
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done 2026-09-22
 
 Problem:     `crates/podbox-complete/src/devices.rs` writes regular-file
              stand-ins where `mknod` is refused. **Nothing checks afterwards
@@ -1072,14 +1072,53 @@ Premise:     **If `/dev/null` is absent, a shell redirection creates a growing
              branch never fired, so the redirection succeeded. Whether the
              image ships one is the image's business, so podbox must look rather
              than assume in either direction.
-Approach:    After completion, `lstat` every path the device table names and
-             assert the type podbox intended. A regular-file stand-in is a
-             regular file **on purpose**, so the check is that it is the
-             intended kind and not that it is a device.
-             The banner already says which completions are active; this adds
-             the one word that makes it checkable, so a reader can tell a
-             deliberate stand-in from an absent node.
-             Refuse to start where a path the table names is a directory or a
-             symlink out of the root, which is the case a later layer can create.
-Decision:    Not taken.
-Prove:       `./experiments/155-proc-absence.sh` gains a clause asserting every device-table path's type after completion, and a planted directory at one of them makes `podbox create` refuse with that path named
+Approach:    Check the shape before writing, not after. `run` reads each
+             device path's type first: a directory becomes a named `Failed`
+             row, and a symlink, fifo, socket or wrong-numbered node goes
+             to the shim, whose detail names what it replaced. A symlink is
+             removed before the `mknod` attempt so the call cannot follow
+             it to a target outside the rootfs; `mknod` on any other
+             existing shape answers `EEXIST` without changing it. No other
+             fixup writes under `dev/`, measured by reading every writer
+             in `crates/podbox-complete/src`, so an audit after the run
+             would only re-confirm this check. A directory refuses the run
+             through `--strict`, which names every degraded row. The run
+             itself never fails on a fixup, which `complete()` states as
+             doctrine.
+Decision:    Replace loudly, refuse narrowly. A symlink or fifo at a
+             device path becomes the shim with the replaced shape named in
+             the row: replacing the link removes the link alone, so a
+             target outside the rootfs stays untouched, and refusing would
+             break images that ship compat links without adding safety. A
+             directory becomes a named `Failed` row, and `--strict`
+             refuses the run on it. No new hard refusal: one fixup
+             refusing would contradict the layer's own rule.
+Prove:       `cargo test -p podbox-complete devices` green: a directory
+             reads back as a named `Failed` row, a symlink reads back
+             replaced with its target named, a fifo reads back replaced
+             and named. The `--strict` refusal of degraded rows is pinned
+             in `crates/podbox-cli/src/complete.rs`
+             `strict_names_every_reason_at_once`.
+
+**Done 2026-09-22.** `run` reads each device path's shape before the
+`mknod` attempt (`crates/podbox-complete/src/devices.rs`). A directory
+becomes a named `Failed` row and stays a directory. A symlink is
+removed so the attempt cannot follow it outside the rootfs, then
+becomes the shim with its target named. A fifo, socket or
+wrong-numbered node becomes the shim with its shape named. Clean and
+grown paths read byte-identical rows. Three unit tests pin the
+directory, symlink and fifo shapes with the devices suite at 47 of 47
+in the lane check, and the full lane check is green. The unlink-failure
+refusal arm carries no test: a link the fixup just stated barely fails
+removal, and the arm shares the directory row's shape. The `--strict`
+refusal of degraded rows is pinned in
+`crates/podbox-cli/src/complete.rs`. Regression: 240 exits 0 with 10
+rows run and 10 built and ran; every device row reads identical, and
+the only transcript diffs are the date, installer progress noise, and
+five T-0411 mirror rows that a re-drive restored (the mirror probe
+answers per run).
+
+⛔ **The `Prove` above is amended: the committed one named a clause in
+`155`, which does not exist.** T-0413 owns that script's creation. The
+committed tests prove the rows, and the named cli test proves the
+refusal wiring; a planted live image stays future work.

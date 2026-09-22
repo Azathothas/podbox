@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-142 entries: 16 open, 3 partial, 2 blocked, 121 done.
+142 entries: 15 open, 3 partial, 2 blocked, 122 done.
 
 ## Baseline
 
@@ -385,6 +385,27 @@ of 10 built and ran with no declines, and the T-0705 and T-0707 drives
 stay green. A review audit over the entry text against the code found one
 real defect (a mknod tally failure reported success) and the change fixes
 it with its own failing row. Counts move to 16 open and 121 done.
+
+[T-0415](complete.md) closed in its own change: the device fixup reads
+each path's shape before asking the kernel. Directories turn into named
+`Failed` rows, links come out before the attempt so no node lands
+outside the rootfs, and each replacement records what it displaced. The
+lane probe that grounded the work drove six shapes through the shim arm
+and showed the directory unnamed (its row carries no path) and the
+replacements silent (their rows read like fresh shims). Three unit tests
+pin the new rows with the devices suite at 47 of 47. The 240 sweep
+re-ran green at 10 of 10 with every device row identical; one row's
+mirror-dependent lines dropped out and came back on a re-drive, which is
+T-0411's live probe answering per run rather than this change. Counts
+move to 15 open and 122 done.
+
+One procedural lesson from the T-0810 push, which CI caught: staging
+`INDEX.md` with one entry's row while its text stayed open. A subset
+commit re-runs the gate on the staged tree before the commit
+(`git stash -u --keep-index`, gate, pop), because the gate reads the
+text being committed rather than the worktree around it. The procedure
+is verified in a toy repo; it rides here as the record until a hook
+holds it.
 
 What stays current from last time:
 

@@ -110,7 +110,7 @@ the blocker named and what would clear it.
 | [T-0412](complete.md) | P1 | complete | done | A fixup that has to run INSIDE the rootfs, and podbox runs it from outside |
 | [T-0413](complete.md) | P1 | complete | open | No `/proc` inside a chroot, and the shell feature that quietly stops working |
 | [T-0414](complete.md) | P1 | complete | open | Two walls only one instance of the class has shown, and podbox has probed neither |
-| [T-0415](complete.md) | P1 | complete | open | A device stand-in is checked by type, because an absent one becomes a growing file |
+| [T-0415](complete.md) | P1 | complete | done | A device stand-in is checked by type, because an absent one becomes a growing file |
 | [T-0501](enter.md) | P0 | enter | done | Open every descriptor before the root changes |
 | [T-0502](enter.md) | P0 | enter | done | Resolve the program inside the new root, in the process that changed it |
 | [T-0503](enter.md) | P1 | enter | partial | Probe `/dev/ptmx`, and refuse `-t` by name where it is absent |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-142 items: 16 open, 3 partial, 2 blocked, 121 done.
+142 items: 15 open, 3 partial, 2 blocked, 122 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -215,10 +215,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 50 | 52 |
-| P1 | 7 | 2 | 2 | 55 | 66 |
+| P1 | 6 | 2 | 2 | 56 | 66 |
 | P2 | 4 | 0 | 0 | 15 | 19 |
 | P3 | 4 | 0 | 0 | 1 | 5 |
-| **All** | **16** | **3** | **2** | **121** | **142** |
+| **All** | **15** | **3** | **2** | **122** | **142** |
 
 ## How the current ordering is derived
 
