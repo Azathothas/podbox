@@ -545,3 +545,11 @@ workflow as run 35805033988, conclusion success. All seven legs green
 with the publish job completing, and the pre-release named nightly on
 the tag carries fourteen assets, verified back through the release API.
 The tag sits at the T-1207 close-out commit, which moves no build input.
+
+Prove run 2026-09-23, continued: `git push origin v0.1.0-beta.5` ran the
+workflow as run 35809485405, conclusion success. All seven legs green
+with the publish job completing, and the pre-release named nightly on
+the tag carries fourteen assets, verified back through the release API:
+the x86_64 binary is 3503032 bytes, the same bytes this session
+measured. The tag sits at the T-1212 close-out commit, which moves no
+build input.

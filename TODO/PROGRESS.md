@@ -96,7 +96,9 @@ place with the measurements. `docs/containers.md` carries three new
 measured traps from the lane.
 
 `v0.1.0-beta.5` is tagged at the T-1212 close-out commit; the nightly
-run is in flight (see In progress).
+(run 35809485405) concluded success with all seven legs green, and the
+pre-release named nightly carries fourteen assets, verified back
+through the release API.
 
 ## Current work order
 
@@ -128,10 +130,9 @@ mutating clause prints the line it WROTE as well as the line it matched.
 
 ## In progress
 
-The beta.5 nightly (run 35809485405) had not concluded when this file
-was rewritten; the gate run on `main` for the T-1212 commit
-(35809470742) was in progress beside it. No implementation entry is
-half-written. The teardown in the work order above is still owed.
+Nothing is half-written: the beta.5 nightly concluded success and the
+T-1314 record commits here. The teardown in the work order above is
+still owed.
 
 ## Operator questions
 
