@@ -7,8 +7,8 @@ End-to-end acceptance is measured per entry. M7 packaging runs through
 the nightly workflow on every `v*` tag.
 
 143 entries: 1 open, 1 partial, 0 blocked, 141 done. Every P0 is done.
-The open entry is [T-1112](milestones.md) (ruled 2026-09-22: keep
-parked as P3). The partial entry is [T-1109](milestones.md), carrying
+The open entry is [T-1112](milestones.md) (ruled 2026-09-23: unparked,
+work next; stays P3). The partial entry is [T-1109](milestones.md), carrying
 its remaining conditions in its own file.
 
 ## Baseline
@@ -110,7 +110,8 @@ through the release API.
    --apply` the three kept job containers, confirm the podman machine
    rests as found (stopped), tree clean, gate green.
 3. [T-1109](milestones.md) carries its remaining conditions in its own
-   file; [T-1112](milestones.md) stays parked as P3. Nothing else is
+   file; [T-1112](milestones.md) is unparked (ruled 2026-09-23) and is
+   the next schedulable work, staying P3. Nothing else is
    open, and nothing is blocked.
 
 [T-0206](image.md) has its fixture technology: `zot` as one pinned
@@ -144,7 +145,7 @@ still owed.
 | whether kept podbox containers and unused base wsl machines may be pruned | ruled 2026-09-22: yes, prune what we do not use or need, safely, touching nothing else | PROGRESS.md (this file) |
 | whether a beta binary may be published | ruled 2026-09-22: yes, once the top-10 priority tasks finish and the session ends, under a pre-release tag; work first | PROGRESS.md (this file) |
 | where the three remaining interposer checks belong | ruled 2026-09-22: in `dev.sh check`, each with its plant; per-commit toolchain cost accepted | [T-1207](gate.md) |
-| whether the non-Linux guest starts | ruled 2026-09-22: keep parked as P3; schedulable, displaces nothing | [T-1112](milestones.md) |
+| whether the non-Linux guest starts | ruled 2026-09-23: unparked, work next; stays P3, displaces nothing | [T-1112](milestones.md) |
 | what the next session owes | ruled 2026-09-22: continuous until ten tasks finish, with T-1314 last, then the nightly matrix on the next `v*` tag | PROGRESS.md (this file) |
 | how nightly releases work | ruled 2026-09-22: named nightly, every `v*` tag triggers, all seven archs, smoke per arch, stable manual later | [T-1314](packaging.md) |
 

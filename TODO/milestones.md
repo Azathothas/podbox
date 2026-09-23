@@ -863,4 +863,5 @@ Decision:    Not taken, and deliberately so. ⛔ It is recorded here so that it 
              Ruled 2026-09-22: keep parked as P3. The prerequisites T-1301
              through T-1304 are closed, so the entry is schedulable, but it
              displaces nothing and stays open.
+             Ruled 2026-09-23: unparked, work it next. It stays P3.
 Prove:       `podbox run --platform windows/amd64 IMAGE cmd /c ver` returns the guest's own version string and its exit code, or podbox refuses by name with the leg that is missing
