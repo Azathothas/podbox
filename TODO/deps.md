@@ -904,7 +904,7 @@ Source:      issue 11, client beta testing 2026-09-22 (every fresh build
 Category:    deps
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     The committed lock is stale against the committed manifests
              (`podbox-cli` declares `sha2` under `[build-dependencies]`
@@ -931,3 +931,20 @@ Prove:       Clone pristine, `cargo build --release`, `git status
              showing the clean-tree build and the lock diff as the guard
              (a stale lock can no longer hide: any future manifest edit
              without its lock shows the same way).
+
+**Done 2026-09-23.** Lock refresh only, as decided: three missing edges,
+no manifest edits, no version moves (`podbox-image` -> `base64`,
+`podbox-cli` -> `sha2` as a `[build-dependencies]` entry,
+`podbox-extract` -> `sha2`, the last new with this session's T-1315).
+The entry premise stands corrected in place on those two points; the
+`webpki-roots` the report implied was missing was already listed, so no
+edge was added for it. The refresh ran through `cargo metadata --offline`
+(resolution only, no compile: the lock carries edges, and the three added
+lines are dependency edges, not versions). Proved at the lock commit
+(`fd9ee37`) in the lane
+(`rust:1.98.1-bookworm` through host podman 6.1.2): pristine clone,
+`cargo build --release`, `git status --porcelain` prints nothing, and
+`podbox version --verbose` reports the bare commit with no `-dirty`
+suffix. The guard that stops recurrence is the same mechanism that
+reported the defect: a future manifest edit without its lock dirties the
+tree on the next build and the binary self-reports `-dirty` again.

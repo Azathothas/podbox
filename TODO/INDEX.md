@@ -205,7 +205,7 @@ the blocker named and what would clear it.
 | [T-1313](podvm.md) | P1 | podvm | done | Every experiment fetch carries its own ceiling, and a stalled origin proves it |
 | [T-1314](packaging.md) | P1 | packaging | done | Nightly releases: one tag builds and tests every supported arch |
 | [T-1315](extract.md) | P1 | extract | done | Extract re-verifies the blob digest against the manifest |
-| [T-1316](deps.md) | P2 | deps | open | The committed lock matches the manifests, so a clean build leaves a clean tree |
+| [T-1316](deps.md) | P2 | deps | done | The committed lock matches the manifests, so a clean build leaves a clean tree |
 | [T-1317](enter.md) | P1 | enter | done | A chroot-denied host gets an up-front refusal naming chroot, not a 125 after the work |
 | [T-1318](supervise.md) | P3 | supervise | open | `logs -f` follows a container's log, bounded like the rest |
 | [T-1319](cli.md) | P1 | cli | done | `inspect` prints exactly one document for any reference |
@@ -229,7 +229,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-165 items: 18 open, 1 partial, 0 blocked, 146 done.
+165 items: 17 open, 1 partial, 0 blocked, 147 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -239,9 +239,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
 | P1 | 6 | 1 | 0 | 70 | 77 |
-| P2 | 10 | 0 | 0 | 19 | 29 |
+| P2 | 9 | 0 | 0 | 20 | 29 |
 | P3 | 2 | 0 | 0 | 5 | 7 |
-| **All** | **18** | **1** | **0** | **146** | **165** |
+| **All** | **17** | **1** | **0** | **147** | **165** |
 
 ## How the current ordering is derived
 

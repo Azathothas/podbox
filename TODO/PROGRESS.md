@@ -6,12 +6,12 @@ M0 through M8 are implemented and the machine tier holds its probe.
 End-to-end acceptance is measured per entry. M7 packaging runs through
 the nightly workflow on every `v*` tag.
 
-165 entries: 18 open, 1 partial, 0 blocked, 146 done. Every P0 is done.
-The open entries are [T-1316](deps.md), [T-1318](supervise.md),
+165 entries: 17 open, 1 partial, 0 blocked, 147 done. Every P0 is done.
+The open entries are [T-1318](supervise.md),
 [T-1320](image.md) through [T-1332](cli.md), and [T-1334](packaging.md) through
 [T-1336](cli.md): what remains of the 2026-09-23 triage from nineteen
 client-filed issues plus the operator-ordered `man` verb, after T-1112,
-T-1315, T-1317, T-1319 and T-1333 closed below. The
+T-1315, T-1316, T-1317, T-1319 and T-1333 closed below. The
 partial entry is [T-1109](milestones.md), carrying its remaining
 conditions in its own file.
 
