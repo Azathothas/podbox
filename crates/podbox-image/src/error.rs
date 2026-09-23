@@ -40,6 +40,11 @@ pub enum Error {
     NoSpace(String),
     /// A malformed or unsupported OCI document, naming the media type.
     Oci(String),
+    /// An index with no manifest for the wanted platform: the want and the
+    /// offered platform words, comma-joined. Typed (not an `Oci` string)
+    /// so `pull -a` can skip the tag deliberately while a single-tag pull
+    /// still fails on it (TODO/cli.md T-1331).
+    NoPlatform { want: String, offered: String },
     /// The store, its layout, or a lock.
     Store(String),
     /// Anything the filesystem refused, with the path.
@@ -104,6 +109,10 @@ impl fmt::Display for Error {
             ),
             Error::NoSpace(m) => write!(f, "{m}"),
             Error::Oci(m) => write!(f, "{m}"),
+            Error::NoPlatform { want, offered } => write!(
+                f,
+                "this index offers no {want} manifest. It offers: {offered}"
+            ),
             Error::Store(m) => write!(f, "store: {m}"),
             Error::Io { path, source } => write!(f, "{path}: {source}"),
             Error::NoSuchImage(r) => write!(f, "no such image: {r}"),

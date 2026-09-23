@@ -57,6 +57,38 @@ const BACKOFF_CAP: Duration = Duration::from_secs(30);
 /// forbids buffering a whole body with no ceiling.
 const MANIFEST_CEILING: u64 = 32 * 1024 * 1024;
 
+/// A tags listing is names, not bytes: a thousand names fit in kilobytes,
+/// and a megabyte ceiling leaves two orders of headroom before a runaway
+/// body is refused rather than buffered.
+const TAGS_CEILING: u64 = 1024 * 1024;
+
+/// A `null` tags list reads as empty: some registries send one for a
+/// repository with no tags rather than `[]`.
+fn null_to_default<'de, D>(d: D) -> std::result::Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(Option::<Vec<String>>::deserialize(d)?.unwrap_or_default())
+}
+
+/// The `rel="next"` target of a `Link` header, if one is present. A path
+/// (what registries send for tags pagination), not a URL.
+fn next_link(header: &str) -> Option<String> {
+    for part in header.split(',') {
+        let mut halves = part.splitn(2, ';');
+        let target = halves.next()?.trim();
+        let params = halves.next().unwrap_or("");
+        if params.contains("rel=\"next\"") || params.contains("rel='next'") {
+            let path = target.strip_prefix('<')?.strip_suffix('>')?.trim();
+            if path.is_empty() {
+                return None;
+            }
+            return Some(path.to_string());
+        }
+    }
+    None
+}
+
 /// What a fetched manifest carries. ⭐ `bytes` is what the digest was computed
 /// over, and the store writes those bytes verbatim: re-serialising a parsed
 /// document produces a different digest and breaks the parity M1 is accepted on.
@@ -221,6 +253,66 @@ impl Client {
             bytes,
             digest,
             media_type: media_type.unwrap_or_default(),
+        })
+    }
+
+    /// `GET /v2/<repository>/tags/list`, following `rel="next"` links.
+    ///
+    /// TODO/cli.md T-1331: `pull -a` fetches every offered tag, and the
+    /// offer is this listing. One page asks for a thousand tags, so most
+    /// registries answer once; the link walk covers the rest. The walk is
+    /// bounded: a registry that links forever is a hang, and a runtime
+    /// whose audience is automated may not wait unbounded.
+    pub fn tags(&mut self, endpoint: &str, repository: &str) -> Result<Vec<String>> {
+        #[derive(Deserialize)]
+        struct Listing {
+            #[serde(default, deserialize_with = "null_to_default")]
+            tags: Vec<String>,
+        }
+        const PAGE_SIZE: u32 = 1000;
+        const MAX_PAGES: u32 = 100;
+        let scope = format!("repository:{repository}:pull");
+        let mut path = format!("/v2/{repository}/tags/list?n={PAGE_SIZE}");
+        let mut tags = Vec::new();
+        for _ in 0..MAX_PAGES {
+            let resp = self.get(&path, endpoint, &scope, None)?;
+            let link = resp.header("Link").map(str::to_string);
+            let mut bytes = Vec::new();
+            resp.into_reader()
+                .take(TAGS_CEILING + 1)
+                .read_to_end(&mut bytes)
+                .map_err(|e| Error::Http {
+                    what: format!("GET {}", redact(&path)),
+                    detail: format!("reading the tags body: {e}"),
+                })?;
+            if bytes.len() as u64 > TAGS_CEILING {
+                return Err(Error::Http {
+                    what: format!("GET {}", redact(&path)),
+                    detail: format!(
+                        "the tags listing exceeds {TAGS_CEILING} bytes and was not read"
+                    ),
+                });
+            }
+            let listing: Listing = serde_json::from_slice(&bytes).map_err(|e| Error::Http {
+                what: format!("GET {}", redact(&path)),
+                detail: format!("the tags listing is not JSON: {e}"),
+            })?;
+            tags.extend(listing.tags);
+            let Some(next) = link.and_then(|l| next_link(&l)) else {
+                return Ok(tags);
+            };
+            // Registries send a path; an absolute URL is cut back to one
+            // rather than appended to the base a second time.
+            path = match next.find("/v2/") {
+                Some(i) if next.starts_with("http") => next[i..].to_string(),
+                _ => next,
+            };
+        }
+        Err(Error::Http {
+            what: format!("GET /v2/{repository}/tags/list"),
+            detail: format!(
+                "the listing paginates past {MAX_PAGES} pages and was not followed further"
+            ),
         })
     }
 
@@ -744,6 +836,24 @@ fn parse_challenge(challenge: &str) -> HashMap<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// TODO/cli.md T-1331. Pagination follows `rel="next"` and nothing
+    /// else, and an empty or absent target ends the walk.
+    #[test]
+    fn a_next_link_is_followed_and_a_last_link_is_not() {
+        assert_eq!(
+            next_link(r#"</v2/repo/tags/list?last=b&n=2>; rel="next""#),
+            Some("/v2/repo/tags/list?last=b&n=2".to_string())
+        );
+        assert_eq!(
+            next_link(
+                r#"</v2/repo/tags/list?last=b&n=2>; rel="next", </v2/repo/tags/list?n=2>; rel="last""#
+            ),
+            Some("/v2/repo/tags/list?last=b&n=2".to_string())
+        );
+        assert_eq!(next_link(r#"</v2/repo/tags/list?n=2>; rel="last""#), None);
+        assert_eq!(next_link(r#"<>; rel="next""#), None);
+    }
 
     #[test]
     fn a_bearer_challenge_parses_into_realm_service_and_scope() {

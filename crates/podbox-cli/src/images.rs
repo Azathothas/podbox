@@ -22,6 +22,13 @@ use crate::format;
 
 pub const PULL_USAGE: &str = "\
 usage: podbox pull [--platform os/arch[/variant]] <image>
+       podbox pull -a <repository>
+
+  -a, --all-tags   pull every offered tag of the repository, not one
+                   reference. Takes a bare repository: a tag on it is
+                   refused, because it would silently select one tag out
+                   of the all that was asked for.
+  -q, --quiet      print nothing per layer; errors still reach stderr.
 
   --tls-verify=B   verify the registry's certificate. Default true. false
                    applies to every registry THIS invocation touches, which is
@@ -94,6 +101,10 @@ usage: podbox images [options] [image]
       --digests    show the DIGEST column
       --no-trunc   print full IDs and digests
       --format T   a Go-template-shaped string of {{.Field}} placeholders
+      --filter key=value
+                   name=<substring> matches the repository or tag;
+                   label=<key>[=<value>] matches nothing, because image
+                   records carry no labels. Repeatable.
 
   Fields: .Repository .Tag .ID .Digest .CreatedSince .CreatedAt .Size
           .Platform .Store
@@ -163,6 +174,8 @@ pub fn pull(verb: &str, args: &[String]) -> i32 {
     let mut platform_flag: Option<String> = None;
     let mut insecure: Vec<String> = Vec::new();
     let mut tls_verify: Option<bool> = None;
+    let mut all_tags = false;
+    let mut quiet = false;
     // ⚠ Which flag is still waiting for its value, so `--platform <image>` is a
     // usage error naming the flag rather than a pull of something odd.
     let mut expecting: Option<&'static str> = None;
@@ -182,6 +195,8 @@ pub fn pull(verb: &str, args: &[String]) -> i32 {
             }
             "--platform" => expecting = Some("--platform"),
             "--insecure-registry" => expecting = Some("--insecure-registry"),
+            "-a" | "--all-tags" => all_tags = true,
+            "-q" | "--quiet" => quiet = true,
             // ⚠ A bare `--tls-verify` is `=true`, as docker and podman read it.
             "--tls-verify" => tls_verify = Some(true),
             other if other.starts_with("--platform=") => {
@@ -236,7 +251,48 @@ pub fn pull(verb: &str, args: &[String]) -> i32 {
         Ok(s) => s,
         Err(e) => return fail(e),
     };
-    let mut out = std::io::stdout().lock();
+    if all_tags {
+        // ⭐ TODO/cli.md T-1331. `-a` takes a bare repository: a tag on it
+        // would silently select one tag out of the all that was asked for.
+        // The default `:latest` is applied inside `Reference::parse`, so
+        // explicitness is read here, off the raw reference, by the same
+        // last-colon rule the parser uses.
+        let tail = want.rsplit('/').next().unwrap_or(want);
+        if tail.contains(':') || tail.contains('@') {
+            eprintln!(
+                "podbox {verb}: -a takes a repository, not {want:?}: a tag selects one out of the all it asks for"
+            );
+            return EXIT_FLAG_ERROR;
+        }
+        let reference = match podbox_image::reference::Reference::parse(want) {
+            Ok(r) => r,
+            Err(e) => return fail(e),
+        };
+        let mut out: Box<dyn std::io::Write> = if quiet {
+            Box::new(std::io::sink())
+        } else {
+            Box::new(std::io::stdout().lock())
+        };
+        return match podbox_image::pull::pull_all(
+            &store,
+            reference.endpoint(),
+            &reference.repository,
+            &platform,
+            &policy,
+            &mut out,
+        ) {
+            Ok(pulled) => {
+                eprintln!("podbox {verb}: pulled {} tag(s)", pulled.len());
+                0
+            }
+            Err(e) => fail(e),
+        };
+    }
+    let mut out: Box<dyn std::io::Write> = if quiet {
+        Box::new(std::io::sink())
+    } else {
+        Box::new(std::io::stdout().lock())
+    };
     match pull::pull(&store, want, &platform, &policy, &mut out) {
         Ok(done) => {
             // ⛔ The provenance of the probe answer is on stderr, never implied.
@@ -256,6 +312,7 @@ struct Options {
     no_trunc: bool,
     format: Option<String>,
     filter: Option<String>,
+    filters: Vec<crate::parity::Filter>,
 }
 
 /// `podbox images`.
@@ -275,6 +332,7 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
         no_trunc: false,
         format: None,
         filter: None,
+        filters: Vec::new(),
     };
     let mut it = args.iter();
     while let Some(a) = it.next() {
@@ -287,6 +345,28 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
             "-q" | "--quiet" => o.quiet = true,
             "--digests" => o.digests = true,
             "--no-trunc" => o.no_trunc = true,
+            "-f" | "--filter" => match it.next() {
+                Some(f) => match crate::parity::parse_filter(f) {
+                    Ok(p) => o.filters.push(p),
+                    Err(bad) => {
+                        eprintln!("podbox images: {bad}");
+                        return EXIT_FLAG_ERROR;
+                    }
+                },
+                None => {
+                    eprintln!("podbox images: --filter needs a key=value");
+                    return EXIT_FLAG_ERROR;
+                }
+            },
+            other if other.starts_with("--filter=") => {
+                match crate::parity::parse_filter(&other["--filter=".len()..]) {
+                    Ok(p) => o.filters.push(p),
+                    Err(bad) => {
+                        eprintln!("podbox images: {bad}");
+                        return EXIT_FLAG_ERROR;
+                    }
+                }
+            }
             "--format" => match it.next() {
                 Some(t) => o.format = Some(t.clone()),
                 None => {
@@ -339,6 +419,21 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
             Err(e) => return fail(e),
         },
     };
+    // ⭐ TODO/cli.md T-1331. Caller-side predicate over the listed
+    // records: `name=` matches the repository or tag substring, `label=`
+    // matches nothing (records carry no labels), every filter must match.
+    let records: Vec<_> = records
+        .into_iter()
+        .filter(|r| {
+            o.filters.iter().all(|f| match f.key.as_str() {
+                "name" => {
+                    r.repository.contains(&f.value)
+                        || r.tag.as_deref().is_some_and(|t| t.contains(&f.value))
+                }
+                _ => false,
+            })
+        })
+        .collect();
 
     let mut out = std::io::stdout().lock();
     if let Some(template) = &o.format {

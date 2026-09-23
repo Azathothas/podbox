@@ -263,14 +263,14 @@ pub fn select_platform<'a>(
     if let Some(m) = loose {
         return Ok(m);
     }
-    Err(Error::Oci(format!(
-        "this index offers no {want} manifest. It offers: {}",
-        if offered.is_empty() {
+    Err(Error::NoPlatform {
+        want: want.to_string(),
+        offered: if offered.is_empty() {
             "nothing with a platform".to_string()
         } else {
             offered.join(", ")
-        }
-    )))
+        },
+    })
 }
 
 #[cfg(test)]
@@ -315,6 +315,10 @@ mod tests {
             panic!("parsed as a manifest");
         };
         let e = select_platform(&index, &p("linux/riscv64")).unwrap_err();
+        let Error::NoPlatform { want, offered: _ } = &e else {
+            panic!("wrong variant: {e}");
+        };
+        assert_eq!(want, "linux/riscv64", "{e}");
         let text = format!("{e}");
         assert!(text.contains("linux/arm64/v8"), "{text}");
         assert!(text.contains("linux/amd64"), "{text}");

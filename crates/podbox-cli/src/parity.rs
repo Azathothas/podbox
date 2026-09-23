@@ -97,6 +97,8 @@ pub const CLUSTER_VALUES: &[(&str, char)] = &[
     ("login", 'u'),
     ("save", 'o'),
     ("load", 'i'),
+    ("ps", 'f'),
+    ("images", 'f'),
 ];
 
 /// Rows-keys whose parsers stop at the image: everything past it is the
@@ -116,6 +118,43 @@ pub fn refuse_member(verb: &str, member: &str, usage: &str) -> i32 {
     );
     eprint!("{usage}");
     podbox_image::error::EXIT_FLAG_ERROR
+}
+
+/// One `--filter key=value` predicate, for `ps` and `images`.
+///
+/// TODO/cli.md T-1331: caller-side, no new query language. `name=`
+/// matches a substring; `label=` matches nothing, because no record
+/// podbox keeps carries labels, and that is said in the usage rather
+/// than hidden. Anything else is the caller's mistake and refuses
+/// naming the two keys that exist.
+pub struct Filter {
+    pub key: String,
+    pub value: String,
+}
+
+/// Split one `--filter` value into its key and value.
+pub fn parse_filter(raw: &str) -> Result<Filter, String> {
+    match raw.split_once('=') {
+        Some((k, v)) if !k.is_empty() => {
+            let key = k.trim().to_string();
+            if key == "name" || key == "label" {
+                Ok(Filter {
+                    key,
+                    value: v.to_string(),
+                })
+            } else {
+                Err(format!(
+                    "--filter takes name= and label=, not {raw:?}: podbox records \
+                     carry no other key to filter on"
+                ))
+            }
+        }
+        _ => Err(format!(
+            "--filter takes key=value, not {raw:?}: `name=<substring>` selects, \
+             `label=<key>[=<value>]` matches nothing because podbox records \
+             carry no labels"
+        )),
+    }
 }
 
 /// `-aq` becomes `-a -q`; a member that takes a value consumes the rest
@@ -214,7 +253,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "create", flag: Option::None, status: Native, note: "writes a created record and starts nothing, as docker's does. ⚠ It is served by run's PARSER, so it takes run's flag set: those rows are listed once, under `run`, rather than copied here where the two could diverge (T-0801)" },
     Row { verb: "start", flag: Option::None, status: Native, note: "returns when the payload has reached its execve, established by a pipe rather than by a sleep (T-0602)" },
     Row { verb: "stop", flag: Option::None, status: Degraded, note: "SIGTERM then SIGKILL to the PAYLOAD. podbox has no PID namespace, so a grandchild that reparented is outside its reach and is not signalled" },
-    Row { verb: "restart", flag: Option::None, status: NoneStatus, note: "not implemented: `stop` then `start` is the same thing and says which half failed" },
+    Row { verb: "restart", flag: Option::None, status: Native, note: "stop then start in one verb, naming which half failed (TODO/cli.md T-1331)" },
     Row { verb: "kill", flag: Option::None, status: Degraded, note: "signals the payload. A pidfd addresses one process; it does not reach descendants that reparent" },
     Row { verb: "rm", flag: Option::None, status: Native, note: "removes the record and the container's own directory; -f kills a running one first" },
     Row { verb: "ps", flag: Option::None, status: Degraded, note: "reads the container table, never /proc. A container whose launcher was killed reads `dead` with the time it was noticed, and no exit code (T-0604)" },
@@ -319,8 +358,8 @@ pub const TABLE: &[Row] = &[
     Row { verb: "pull", flag: Some("--insecure-registry"), status: Native, note: "docker's flag and docker's meaning" },
     Row { verb: "pull", flag: Some("--tls-verify"), status: Native, note: "podman's flag and podman's meaning" },
     Row { verb: "pull", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "pull", flag: Some("-a, --all-tags"), status: NoneStatus, note: "podbox resolves one reference; fetching every tag of a repository is not implemented" },
-    Row { verb: "pull", flag: Some("-q, --quiet"), status: NoneStatus, note: "not implemented; the transcript is the output of this verb" },
+    Row { verb: "pull", flag: Some("-a, --all-tags"), status: Native, note: "fetch every offered tag of a bare repository; a tag on it is refused; a tag with no manifest for this platform is named and skipped (TODO/cli.md T-1331)" },
+    Row { verb: "pull", flag: Some("-q, --quiet"), status: Native, note: "per-layer transcript goes nowhere; errors still reach stderr (TODO/cli.md T-1331)" },
     // ---------------------------------------------------- images' own flags
     Row { verb: "images", flag: Some("--format"), status: Native, note: "{{.Field}} placeholders and literal text. No pipelines, no functions, and the `table` prefix is refused by name" },
     Row { verb: "images", flag: Some("-q, --quiet"), status: Native, note: "image IDs only, the same as --format '{{.ID}}'" },
@@ -328,7 +367,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "images", flag: Some("--no-trunc"), status: Native, note: "print full IDs and digests" },
     Row { verb: "images", flag: Some("-a, --all"), status: Stub, note: "accepted for parity: podbox stores no intermediate images, so every image is already listed" },
     Row { verb: "images", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "images", flag: Some("-f, --filter"), status: NoneStatus, note: "not implemented: --format plus a caller's own filter is what podbox offers instead" },
+    Row { verb: "images", flag: Some("-f, --filter"), status: Native, note: "caller-side predicate: name=<substring> over repository and tag, label= matches nothing (records carry no labels) (TODO/cli.md T-1331)" },
     // ------------------------------------------------------- the rest's flags
     Row { verb: "rmi", flag: Some("-f, --force"), status: Stub, note: "accepted for parity. podbox never prompts, so there is no confirmation to suppress, and it refuses a held image whether or not this is given" },
     Row { verb: "rmi", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
@@ -349,7 +388,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "ps", flag: Some("--no-trunc"), status: Native, note: "print full container ids" },
     Row { verb: "ps", flag: Some("--format"), status: Native, note: "the same template shape as the other verbs" },
     Row { verb: "ps", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "ps", flag: Some("-f, --filter"), status: NoneStatus, note: "not implemented: --format plus a caller's own filter is what podbox offers instead" },
+    Row { verb: "ps", flag: Some("-f, --filter"), status: Native, note: "caller-side predicate: name=<substring> over name and id prefix, label= matches nothing (records carry no labels) (TODO/cli.md T-1331)" },
     Row { verb: "stop", flag: Some("-t, --time, --timeout"), status: Native, note: "seconds between SIGTERM and SIGKILL. Default 10, and a kill is reported on stderr" },
     Row { verb: "stop", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "kill", flag: Some("-s, --signal"), status: Native, note: "by name or number. ⛔ An unknown one is refused rather than defaulted: sending the wrong signal is not something a caller can notice" },
@@ -632,6 +671,21 @@ mod tests {
                 r.verb
             );
         }
+    }
+
+    /// TODO/cli.md T-1331. `--filter` is `name=` and `label=` only, and
+    /// anything else refuses naming the two keys that exist.
+    #[test]
+    fn filter_parses_name_and_label_and_nothing_else() {
+        let f = parse_filter("name=web").unwrap();
+        assert_eq!(f.key, "name");
+        assert_eq!(f.value, "web");
+        let f = parse_filter("label=key=value").unwrap();
+        assert_eq!(f.key, "label");
+        assert_eq!(f.value, "key=value");
+        assert!(parse_filter("status=running").is_err());
+        assert!(parse_filter("name").is_err());
+        assert!(parse_filter("=x").is_err());
     }
 
     /// TODO/cli.md T-1330. Docker's cluster rule exactly: value-less

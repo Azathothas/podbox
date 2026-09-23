@@ -31,8 +31,13 @@ const WAIT_BOUND_MS: u64 = 3_600_000;
 
 pub const PS_USAGE: &str = "\
 usage: podbox ps [-a|--all] [-q|--quiet] [--format T] [--no-trunc]
+       [--filter key=value]
 
   Fields: .ID .Names .Image .Command .CreatedAt .Status .State .Ports .Pid
+
+  --filter takes name=<substring>, matched against the name (or the id
+  prefix), and label=<key>[=<value>], which matches nothing: podbox
+  records carry no labels. Repeatable; every filter must match.
 
   ⛔ .Ports is always empty and is not an oversight: the payload shares this
     machine's network namespace, so there is nothing to publish.
@@ -166,42 +171,8 @@ pub fn start(args: &[String]) -> i32 {
             return crate::parity::no_arm("start", want);
         }
         any = true;
-        let c = match podbox_supervise::get(&s, want) {
-            Ok(c) => c,
-            Err(e) => {
-                code = fail("start", e);
-                continue;
-            }
-        };
-        // ⚠ The image record is needed so the LAUNCHER can hold the image lock
-        // for the container's whole life. A lock this process took would go
-        // with this process, which exits as soon as the container is up.
-        let record = match s.find_one(&c.image) {
-            Ok(r) => r,
-            Err(e) => {
-                eprintln!("podbox start: {e}");
-                code = EXIT_RUNTIME_ERROR;
-                continue;
-            }
-        };
-        // ⭐ TODO/milestones.md T-1112. A container created before the OS gate
-        // (or by hand in the store) still names its image's OS here rather
-        // than inside the guest.
-        if let Err(c) = ensure_linux_guest("start", &record.os, &record.architecture) {
+        if let Err(c) = start_one(&s, "start", want) {
             code = c;
-            continue;
-        };
-        // ⭐ TODO/enter.md T-1317. The launcher chroots, so a denied chroot
-        // refuses here, naming chroot(2), before the container starts rather
-        // than dying at chroot(".") after the work.
-        let findings = podbox_probe::run();
-        if let Err(c) = ensure_chroot_usable("start", &findings) {
-            code = c;
-            continue;
-        }
-        match podbox_supervise::start(&s, want, &record) {
-            Ok(c) => println!("{}", c.name),
-            Err(e) => code = fail("start", e),
         }
     }
     if !any {
@@ -209,6 +180,43 @@ pub fn start(args: &[String]) -> i32 {
         return EXIT_CLI_ERROR;
     }
     code
+}
+
+/// Start one container: the per-name half of `start`, shared with
+/// `restart` (TODO/cli.md T-1331). `verb` names the caller in every
+/// message, because a restart's start-half failure must not read as a
+/// `start` failure.
+fn start_one(s: &podbox_image::Store, verb: &str, want: &str) -> Result<String, i32> {
+    let c = match podbox_supervise::get(s, want) {
+        Ok(c) => c,
+        Err(e) => return Err(fail(verb, e)),
+    };
+    // ⚠ The image record is needed so the LAUNCHER can hold the image lock
+    // for the container's whole life. A lock this process took would go
+    // with this process, which exits as soon as the container is up.
+    let record = match s.find_one(&c.image) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("podbox {verb}: {e}");
+            return Err(EXIT_RUNTIME_ERROR);
+        }
+    };
+    // ⭐ TODO/milestones.md T-1112. A container created before the OS gate
+    // (or by hand in the store) still names its image's OS here rather
+    // than inside the guest.
+    ensure_linux_guest(verb, &record.os, &record.architecture)?;
+    // ⭐ TODO/enter.md T-1317. The launcher chroots, so a denied chroot
+    // refuses here, naming chroot(2), before the container starts rather
+    // than dying at chroot(".") after the work.
+    let findings = podbox_probe::run();
+    ensure_chroot_usable(verb, &findings)?;
+    match podbox_supervise::start(s, want, &record) {
+        Ok(c) => {
+            println!("{}", c.name);
+            Ok(c.name)
+        }
+        Err(e) => Err(fail(verb, e)),
+    }
 }
 
 /// `podbox ps`
@@ -227,6 +235,7 @@ pub fn ps(args: &[String]) -> i32 {
     let mut quiet = false;
     let mut no_trunc = false;
     let mut template: Option<String> = None;
+    let mut filters: Vec<crate::parity::Filter> = Vec::new();
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -246,6 +255,28 @@ pub fn ps(args: &[String]) -> i32 {
             },
             other if other.starts_with("--format=") => {
                 template = Some(other["--format=".len()..].to_string())
+            }
+            "-f" | "--filter" => match it.next() {
+                Some(f) => match crate::parity::parse_filter(f) {
+                    Ok(p) => filters.push(p),
+                    Err(bad) => {
+                        eprintln!("podbox ps: {bad}");
+                        return EXIT_FLAG_ERROR;
+                    }
+                },
+                None => {
+                    eprintln!("podbox ps: --filter needs a key=value");
+                    return EXIT_FLAG_ERROR;
+                }
+            },
+            other if other.starts_with("--filter=") => {
+                match crate::parity::parse_filter(&other["--filter=".len()..]) {
+                    Ok(p) => filters.push(p),
+                    Err(bad) => {
+                        eprintln!("podbox ps: {bad}");
+                        return EXIT_FLAG_ERROR;
+                    }
+                }
             }
             other if other.starts_with('-') => {
                 if let Err(c) = crate::parity::admit("ps", other, PS_USAGE) {
@@ -278,6 +309,17 @@ pub fn ps(args: &[String]) -> i32 {
         Ok(l) => l,
         Err(e) => return fail("ps", e),
     };
+    // ⭐ TODO/cli.md T-1331. Caller-side predicate over the listed
+    // records: every `--filter` must match (docker ANDs them).
+    let list: Vec<_> = list
+        .into_iter()
+        .filter(|c| {
+            filters.iter().all(|f| match f.key.as_str() {
+                "name" => c.name.contains(&f.value) || c.id.starts_with(&f.value),
+                _ => false,
+            })
+        })
+        .collect();
     if quiet {
         for c in &list {
             println!("{}", if no_trunc { c.id.clone() } else { c.short_id() });
@@ -497,20 +539,92 @@ pub fn stop(args: &[String]) -> i32 {
     };
     let mut code = 0;
     for want in &names {
-        match podbox_supervise::stop(&s, want, grace) {
-            Ok((c, killed)) => {
-                if killed {
-                    // ⛔ Said, never silent. A caller that asked for a graceful
-                    // stop and got a SIGKILL has to be able to tell.
-                    eprintln!(
-                        "podbox stop: {} did not exit within {} s of SIGTERM and was killed",
-                        c.name,
-                        grace / 1000
-                    );
-                }
-                println!("{}", c.name);
+        if let Err(c) = stop_one(&s, "stop", want, grace) {
+            code = c;
+        }
+    }
+    code
+}
+
+/// Stop one container: the per-name half of `stop`, shared with
+/// `restart` (TODO/cli.md T-1331). Returns the name on success.
+fn stop_one(s: &podbox_image::Store, verb: &str, want: &str, grace: u64) -> Result<String, i32> {
+    match podbox_supervise::stop(s, want, grace) {
+        Ok((c, killed)) => {
+            if killed {
+                // ⛔ Said, never silent. A caller that asked for a graceful
+                // stop and got a SIGKILL has to be able to tell.
+                eprintln!(
+                    "podbox {verb}: {} did not exit within {} s of SIGTERM and was killed",
+                    c.name,
+                    grace / 1000
+                );
             }
-            Err(e) => code = fail("stop", e),
+            println!("{}", c.name);
+            Ok(c.name)
+        }
+        Err(e) => Err(fail(verb, e)),
+    }
+}
+
+/// `podbox restart <container>...`
+const RESTART_USAGE: &str = "usage: podbox restart <container> [container...]";
+
+/// `podbox restart`: stop-then-start in one verb (TODO/cli.md T-1331).
+///
+/// A composite, not a policy: each container stops with the default
+/// grace and starts again, and a failure names which half failed, so a
+/// caller can tell a container that never stopped from one that
+/// stopped and never came back.
+pub fn restart(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission
+    // (this verb takes none today; the call keeps the rule complete).
+    let expanded = match crate::parity::expand("restart", args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member("restart", &member, RESTART_USAGE),
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all("restart", args, RESTART_USAGE) {
+        return c;
+    }
+    let mut names = Vec::new();
+    for want in args {
+        match want.as_str() {
+            "-h" | "--help" => {
+                println!("{RESTART_USAGE}");
+                return 0;
+            }
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit("restart", other, RESTART_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm("restart", other);
+            }
+            other => names.push(other.to_string()),
+        }
+    }
+    if names.is_empty() {
+        println!("{RESTART_USAGE}");
+        return EXIT_CLI_ERROR;
+    }
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    let mut code = 0;
+    for want in &names {
+        match stop_one(&s, "restart", want, STOP_GRACE_MS) {
+            Ok(_) => match start_one(&s, "restart", want) {
+                Ok(_) => {}
+                Err(c) => {
+                    eprintln!("podbox restart: {want}: stopped, then the start half failed");
+                    code = c;
+                }
+            },
+            Err(c) => {
+                eprintln!("podbox restart: {want}: the stop half failed; not started");
+                code = c;
+            }
         }
     }
     code

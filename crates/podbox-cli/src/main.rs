@@ -66,6 +66,7 @@ usage: podbox <command> [options]
   ps           list containers, from podbox's own table and never from /proc
   logs         a container's captured output
   stop         SIGTERM, then SIGKILL after a bounded grace
+  restart      stop, then start, naming which half failed
   kill         send one signal to a container's payload
   wait         block until a container ends, and print its exit code
   rm           remove a container
@@ -133,6 +134,7 @@ fn main() -> std::process::ExitCode {
         Some("wait") => exit(lifecycle::wait(rest)),
         Some("kill") => exit(lifecycle::kill(rest)),
         Some("stop") => exit(lifecycle::stop(rest)),
+        Some("restart") => exit(lifecycle::restart(rest)),
         Some("logs") => exit(lifecycle::logs(rest)),
         Some("ps") => exit(lifecycle::ps(rest)),
         Some("start") => exit(lifecycle::start(rest)),

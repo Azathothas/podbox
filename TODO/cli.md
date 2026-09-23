@@ -968,7 +968,7 @@ Source:      issue 27, client beta testing 2026-09-22 (three refused
 Category:    cli
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     Three docker idioms break with 125 and have no work-order
              entry: `--filter` on `images` and `ps` (every `docker ps
@@ -988,13 +988,37 @@ Approach:    Implement the three behind the table rows that already name
              equality (named if dropped), restart policies (a different
              gap).
 Decision:    Caller-side filter, composite restart, per-tag pull. Each
-             reuses a path that already exists rather than forking one.
+             reuses a path that already exists rather than forking one. A
+             tag with no manifest for this platform is named and skipped
+             (typed `NoPlatform`, not a string match); any other failing
+             tag stops the run, and an offer with nothing for this
+             platform at all is an error.
 Prove:       `ps --filter name=x` selects, `restart` stops and starts
              with both halves named, `pull -a` fetches every offered tag
              and `-q` stays quiet; the three parity rows move status with
              the behavior. Close issue 27 (idiom thirds) with a comment
              showing the runs and the row-status moves as the guard that
              stops recurrence.
+
+**Done, 2026-09-23.** `--filter` is a caller-side predicate over listed
+records (`name=` substring, `label=` equality, any other key refused
+naming `name=` and `label=`), `restart` is stop-then-start in one verb
+naming which half failed, `pull -a` pulls every offered tag of a bare
+repository (a tag on it is refused) and `-q` sinks progress output. The
+first lane run caught the real case the entry had not named:
+`hello-world` offers windows-only `nanoserver` tags, so stop-on-first-
+failure made `pull -a` unusable against any multi-OS repository. A tag
+with no manifest for this platform is now named and skipped on a typed
+`NoPlatform` variant (not a string match), any other failing tag still
+stops the run, and an offer with nothing for this platform is an error
+rather than an empty success. A single-tag pull of such a tag still
+fails with the same text and code. Lane prove `.tmp/pb-w31-prove.sh`,
+verdict `fail=0`: filter units by exact name, suites, clippy clean,
+`ps --filter` selects/empty/refused-key, `images --filter` selects,
+`restart` composites with the stop half named, `pull -a` rc 0 with four
+`nanoserver` skip lines and `hello-world:latest` plus `:linux` in the
+store, explicit-tag `-a` refused, `-q` byte-quiet, the three parity rows
+moved. The guard is the three moved table rows plus the prove script.
 
 ---
 

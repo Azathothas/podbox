@@ -578,6 +578,58 @@ pub fn pull(
     })
 }
 
+/// Pull every offered tag of a repository: `pull -a` (TODO/cli.md T-1331).
+///
+/// The offer is the registry's tags listing; each tag pulls through
+/// `pull`, so per-tag verification, provenance and output are the same
+/// as a single pull. A tag with no manifest for this platform is named
+/// and skipped: stopping the run on it would make `pull -a` unusable
+/// against any repository that also serves another OS. Any other failing
+/// tag stops the run naming the tag: a partial set with a green exit
+/// would read as everything fetched. An offer with nothing for this
+/// platform at all is an error, not an empty success.
+pub fn pull_all(
+    store: &Store,
+    endpoint: &str,
+    repository: &str,
+    platform: &Platform,
+    policy: &Policy,
+    out: &mut dyn Write,
+) -> Result<Vec<Pulled>> {
+    let mut client = Client::with_policy(policy.clone());
+    let mut tags = client.tags(endpoint, repository)?;
+    tags.sort();
+    if tags.is_empty() {
+        return Err(Error::Store(format!(
+            "{endpoint}/{repository} offers no tags to pull"
+        )));
+    }
+    let _ = writeln!(out, "Pulling {} tag(s) from {repository}", tags.len());
+    let mut pulled = Vec::with_capacity(tags.len());
+    let mut skipped = 0usize;
+    for tag in &tags {
+        let want = format!("{endpoint}/{repository}:{tag}");
+        match pull(store, &want, platform, policy, out) {
+            Ok(p) => pulled.push(p),
+            Err(Error::NoPlatform { want, offered }) => {
+                let _ = writeln!(
+                    out,
+                    "tag {tag}: skipped, this index offers no {want} manifest. It offers: {offered}"
+                );
+                skipped += 1;
+            }
+            Err(e) => return Err(Error::Store(format!("pull -a stopped at tag {tag}: {e}"))),
+        }
+    }
+    if pulled.is_empty() {
+        return Err(Error::Store(format!(
+            "{endpoint}/{repository} offers no {platform} manifest under any of its {} tag(s) ({skipped} skipped)",
+            tags.len()
+        )));
+    }
+    Ok(pulled)
+}
+
 /// The digest a store already holds for a reference, for the "already present"
 /// path that never touches the network.
 pub fn local(store: &Store, want: &str) -> Result<Option<Digest>> {
