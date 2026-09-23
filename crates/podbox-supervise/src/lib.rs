@@ -295,6 +295,22 @@ pub fn get(store: &Store, want: &str) -> Result<Container> {
     table::find(&table, want)
 }
 
+/// Every container record referencing one manifest digest, running or not.
+///
+/// TODO/image.md T-1322. One query, three callers (`run --rm`, `rmi`,
+/// `prune`): docker's removal rule keys on any container, and `create`
+/// takes no hold, so only the records see a created container's
+/// reference. Reconciled first, so a dead launcher's record reads `Dead`
+/// rather than haunting the answer as `Running`.
+pub fn referencing(store: &Store, manifest_digest: &str) -> Result<Vec<Container>> {
+    let table = table::reconcile(store)?;
+    Ok(table
+        .containers
+        .into_iter()
+        .filter(|c| c.manifest_digest == manifest_digest)
+        .collect())
+}
+
 /// The container's captured output.
 pub fn logs(store: &Store, want: &str) -> Result<Vec<u8>> {
     let c = get(store, want)?;
@@ -439,6 +455,43 @@ mod tests {
         let dest = table::memo_path(&s, &c.id);
         std::fs::rename(&src, &dest).unwrap();
         assert_eq!(std::fs::read(&dest).unwrap(), b"memo");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-1322: the reference query sees created containers, which hold no
+    /// lock, and only the digest it is asked about.
+    #[test]
+    fn referencing_finds_records_by_manifest_digest() {
+        let d = std::env::temp_dir().join(format!("podbox-referrers-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let s = Store::open(&d).unwrap();
+        let mk = |name: &str, digest: &str| {
+            create(
+                &s,
+                Some(name),
+                "img",
+                digest,
+                "/tmp",
+                vec!["true".into()],
+                Vec::new(),
+                "/".into(),
+                "chroot",
+                Vec::new(),
+                0,
+            )
+            .unwrap()
+        };
+        mk("k1", "sha256:aaa");
+        mk("k2", "sha256:aaa");
+        mk("k3", "sha256:bbb");
+        let mut names: Vec<String> = referencing(&s, "sha256:aaa")
+            .unwrap()
+            .iter()
+            .map(|c| c.name.clone())
+            .collect();
+        names.sort();
+        assert_eq!(names, vec!["k1".to_string(), "k2".to_string()]);
+        assert!(referencing(&s, "sha256:zzz").unwrap().is_empty());
         let _ = std::fs::remove_dir_all(&d);
     }
 

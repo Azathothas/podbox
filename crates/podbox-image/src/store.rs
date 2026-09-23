@@ -734,6 +734,18 @@ impl Store {
     /// `podbox image prune`. Without `all`, only untagged records; with it,
     /// every record no container holds.
     pub fn prune(&self, all: bool) -> Result<Removed> {
+        let doomed = self.prune_candidates(all)?;
+        // ⛔ Invariant I4: what is held is decided under the lock, by `delete`,
+        // and `Held::Skip` is what makes a held image a named skip here where
+        // `rmi` refuses outright.
+        self.delete(&doomed, Held::Skip)
+    }
+
+    /// The records `prune` would consider, before any hold or reference
+    /// check. One home for the untagged/`all` filter, so the CLI's
+    /// record-gate (TODO/image.md T-1322) and `prune` cannot disagree
+    /// about the candidate set.
+    pub fn prune_candidates(&self, all: bool) -> Result<Vec<Record>> {
         let mut doomed = Vec::new();
         for r in self.list()? {
             if !all && r.tag.is_some() {
@@ -741,13 +753,21 @@ impl Store {
             }
             doomed.push(r);
         }
-        // ⛔ Invariant I4: what is held is decided under the lock, by `delete`,
-        // and `Held::Skip` is what makes a held image a named skip here where
-        // `rmi` refuses outright.
-        self.delete(&doomed, Held::Skip)
+        Ok(doomed)
     }
 
-    fn delete(&self, doomed: &[Record], on_held: Held) -> Result<Removed> {
+    /// Delete records with the hold check under the index lock.
+    ///
+    /// ⛔ INVARIANT I4 lives here: `in_use` is decided under the same lock
+    /// that guards the unlinks below, so a `hold` cannot be taken between
+    /// the answer and the act. What this does NOT see is container
+    /// records: `create` takes no hold, so a created container's
+    /// reference is invisible to the lock. Callers that delete on behalf
+    /// of a verb (TODO/image.md T-1322) gate records first with
+    /// `podbox_supervise::referencing` and pass only the unreferenced
+    /// remainder here; the hold check below stays the last word on
+    /// running payloads either way.
+    pub fn delete(&self, doomed: &[Record], on_held: Held) -> Result<Removed> {
         let _guard = self.lock()?;
         // ⛔ INVARIANT I4. Inside the lock, so a `hold` cannot be taken between
         // this answer and the unlinks below: `Store::hold` takes the same lock.
@@ -834,8 +854,10 @@ impl Store {
 /// ⛔ Two behaviours and one check, because the check has to happen under the
 /// index lock (invariant I4) and only the caller knows whether being held is a
 /// refusal (`rmi`, which names one image) or a skip (`prune`, which sweeps).
+/// Public for the same reason `delete` is: the CLI's record-gate
+/// (TODO/image.md T-1322) deletes the unreferenced remainder through it.
 #[derive(Debug, Clone, Copy)]
-enum Held {
+pub enum Held {
     Refuse,
     Skip,
 }

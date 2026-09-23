@@ -211,7 +211,7 @@ the blocker named and what would clear it.
 | [T-1319](cli.md) | P1 | cli | done | `inspect` prints exactly one document for any reference |
 | [T-1320](image.md) | P2 | image | done | Images move without a registry: save, load, import |
 | [T-1321](image.md) | P2 | image | done | A store-health verb and a pull-provenance record |
-| [T-1322](image.md) | P1 | image | open | A container record gates every removal of the image it references |
+| [T-1322](image.md) | P1 | image | done | A container record gates every removal of the image it references |
 | [T-1323](cli.md) | P2 | cli | open | `cp` reaches an image's extracted rootfs, and copies directories with the same checks |
 | [T-1324](complete.md) | P2 | complete | open | The README tells the truth: build order, rung map, status, auth scope |
 | [T-1325](gate.md) | P1 | gate | open | The gate checks what entries claim: reachable flags and true parity notes |
@@ -229,7 +229,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-165 items: 14 open, 1 partial, 0 blocked, 150 done.
+165 items: 13 open, 1 partial, 0 blocked, 151 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -238,10 +238,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 6 | 1 | 0 | 70 | 77 |
+| P1 | 5 | 1 | 0 | 71 | 77 |
 | P2 | 7 | 0 | 0 | 22 | 29 |
 | P3 | 1 | 0 | 0 | 6 | 7 |
-| **All** | **14** | **1** | **0** | **150** | **165** |
+| **All** | **13** | **1** | **0** | **151** | **165** |
 
 ## How the current ordering is derived
 

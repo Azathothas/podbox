@@ -24,7 +24,10 @@ use podbox_image::transport::Policy;
 pub const RUN_OPTIONS: &str = "\
   -d, --detach     start the container and print its id, and do not wait
   --name NAME      a name for the container. ⚠ Refused if one already has it
-  --rm             remove the extracted rootfs when the payload exits
+  --rm             remove the extracted rootfs when the payload exits,
+                   unless a container record references it: the rootfs is
+                   shared, and a failed run must not delete what `keeper`
+                   needs (TODO/image.md T-1322)
   -e, --env K=V    set an environment variable. Repeatable; a later one wins
   -w, --workdir D  working directory inside the container
   -u, --user U:G   run as this identity: numeric uid and gid, or names from
@@ -511,8 +514,30 @@ pub fn run(args: &[String]) -> i32 {
         // lock exists to protect, and holding it while deleting would be podbox
         // refusing its own request.
         drop(held);
-        if let Err(e) = podbox_extract::remove_extracted(&store, &p.record.manifest_digest) {
-            eprintln!("podbox run: --rm could not remove the rootfs: {e}");
+        // ⭐ TODO/image.md T-1322. The rootfs is shared, so `--rm` removes it
+        // only where no container record references it: a failed run must
+        // not delete the rootfs `keeper` needs. A run of its own writes no
+        // record, so an ephemeral run never counts itself. Where the query
+        // itself errors, the rootfs stays: deleting on an unanswered
+        // question is how the defect above happens.
+        match podbox_supervise::referencing(&store, &p.record.manifest_digest) {
+            Ok(referrers) if !referrers.is_empty() => {
+                let mut names: Vec<&str> = referrers.iter().map(|c| c.name.as_str()).collect();
+                names.sort_unstable();
+                eprintln!(
+                    "podbox run: --rm keeps the rootfs: it is referenced by container {}",
+                    names.join(", ")
+                );
+            }
+            Ok(_) => {
+                if let Err(e) = podbox_extract::remove_extracted(&store, &p.record.manifest_digest)
+                {
+                    eprintln!("podbox run: --rm could not remove the rootfs: {e}");
+                }
+            }
+            Err(e) => {
+                eprintln!("podbox run: --rm could not check references: {e}");
+            }
         }
     }
     code

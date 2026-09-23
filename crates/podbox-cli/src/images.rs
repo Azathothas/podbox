@@ -107,8 +107,8 @@ pub const RMI_USAGE: &str = "\
 usage: podbox rmi <image> [image...]
        podbox image rm <image> [image...]
 
-  Remove images and every blob no remaining image reaches. Refuses an image a
-  running container holds, and names it.
+  Remove images and every blob no remaining image reaches. Refuses an image
+  any container references or a running container holds, and names it.
 ";
 
 pub const TAG_USAGE: &str = "\
@@ -121,11 +121,13 @@ usage: podbox tag <source> <target>
 pub const PRUNE_USAGE: &str = "\
 usage: podbox image prune [-a|--all] [-f|--force]
 
-  -a, --all    remove every image no container holds, not only untagged ones
+  -a, --all    remove every image no container references or holds, not
+               only untagged ones
   -f, --force  accepted for docker parity. podbox never prompts, so there is
                no confirmation for this to suppress (TODO/cli.md T-0806)
 
-  Skips anything a running container holds and says which.
+  Skips anything a running container holds or any container references,
+  and says which.
 ";
 
 pub const INSPECT_USAGE: &str = "\
@@ -398,6 +400,40 @@ pub fn rmi(verb: &str, args: &[String]) -> i32 {
     };
     let mut code = 0;
     for want in wanted {
+        // ⭐ TODO/image.md T-1322. Records before holds: a created
+        // container takes no hold, so only its record sees the reference,
+        // and docker's rule keys on any container, running or stopped.
+        // Every record the name resolves to is checked, and
+        // `store.remove` below stays the last word on running payloads.
+        // Unresolvable here is `remove`'s own error to report below,
+        // once, rather than two refusals for one name.
+        if let Ok(records) = store.find(want) {
+            let mut failed = false;
+            let mut referrers: Vec<String> = Vec::new();
+            for record in &records {
+                match podbox_supervise::referencing(&store, &record.manifest_digest) {
+                    Ok(found) => referrers.extend(found.iter().map(|c| c.name.clone())),
+                    Err(e) => {
+                        eprintln!("podbox rmi: {e}");
+                        code = EXIT_RUNTIME_ERROR;
+                        failed = true;
+                    }
+                }
+            }
+            if failed {
+                continue;
+            }
+            if !referrers.is_empty() {
+                referrers.sort();
+                referrers.dedup();
+                eprintln!(
+                    "podbox rmi: {want} is referenced by container {} and was not removed",
+                    referrers.join(", ")
+                );
+                code = EXIT_RUNTIME_ERROR;
+                continue;
+            }
+        }
         match store.remove(want) {
             Ok(done) => {
                 for name in &done.untagged {
@@ -627,7 +663,32 @@ pub fn prune(verb: &str, args: &[String]) -> i32 {
         Ok(s) => s,
         Err(e) => return fail(e),
     };
-    match store.prune(all) {
+    // ⭐ TODO/image.md T-1322. The candidate set is the store's own
+    // (`prune_candidates`, the same filter `prune` uses), and records gate
+    // before holds: referenced candidates are skipped and named, and only
+    // the unreferenced remainder reaches `delete`, which stays the last
+    // word on running payloads.
+    let candidates = match store.prune_candidates(all) {
+        Ok(c) => c,
+        Err(e) => return fail(e),
+    };
+    let mut rest: Vec<podbox_image::Record> = Vec::new();
+    let mut referenced: Vec<(String, Vec<String>)> = Vec::new();
+    for record in candidates {
+        match podbox_supervise::referencing(&store, &record.manifest_digest) {
+            Ok(found) if !found.is_empty() => {
+                let mut names: Vec<String> = found.iter().map(|c| c.name.clone()).collect();
+                names.sort();
+                referenced.push((record.name(), names));
+            }
+            Ok(_) => rest.push(record),
+            Err(e) => {
+                eprintln!("podbox image prune: {e}");
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+    }
+    match store.delete(&rest, podbox_image::store::Held::Skip) {
         Ok(done) => {
             if !done.deleted.is_empty() {
                 println!("Deleted Images:");
@@ -640,9 +701,16 @@ pub fn prune(verb: &str, args: &[String]) -> i32 {
             }
             // ⛔ T-0204: prune skips anything locked AND SAYS WHICH. A silent
             // skip is a prune that reports success having done nothing it was
-            // asked to do.
+            // asked to do. T-1322's record-skips name their containers the
+            // same way.
             for name in &done.skipped {
                 println!("skipped: {name} is in use by a running container");
+            }
+            for (name, containers) in &referenced {
+                println!(
+                    "skipped: {name} is referenced by container {}",
+                    containers.join(", ")
+                );
             }
             println!("\nTotal reclaimed space: {}", space::mib(done.freed_bytes));
             0

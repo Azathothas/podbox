@@ -1976,7 +1976,7 @@ Source:      issues 19 and 20, client beta testing 2026-09-22 (`run
 Category:    image
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     Two removals ignore container records. `run --rm` drops the
              T-0204 hold deliberately and deletes the manifest-keyed rootfs
@@ -2009,3 +2009,55 @@ Prove:       The issue-19 repro ends with `podbox run --rm` leaving
              cleanly. Close issues 19
              and 20 with comments showing the runs and the reference
              query as the guard that stops recurrence.
+
+**Done 2026-09-23.** Reference query, as decided: `create` stays
+hold-free and the query sees records, not locks. One new function,
+`podbox_supervise::referencing` (reconciled records filtered by
+manifest digest), three callers. `run --rm` keeps the rootfs where any
+record references it, naming the containers, and removes where none
+does (an ephemeral run writes no record, so it never counts itself; a
+query error also keeps, with the error named, and the payload's code
+still returned). `rmi` checks every record the name resolves to and
+refuses naming all referrers, with `store.remove` staying the last word
+on running holds. `prune` partitions the store's own candidate set (new
+`prune_candidates`, the same filter `prune` uses, so the two cannot
+disagree) and deletes only the unreferenced remainder through the newly
+public `delete` with `Held::Skip`, whose I4 hold check under the index
+lock is unchanged; hold-skips and record-skips print side by side,
+each naming what held. `-f` still overrides nothing: deleting under a
+record orphans it either way, so the Stub stays a Stub. Usage lines and
+parity notes for `rmi`, `prune` and `run --rm` say the new rule.
+
+The query test was watched fail first (function hidden in-lane), then
+passes by exact name in the lane (`rust:1.98.1-bookworm` through host
+podman 6.1.2), with `cargo test --workspace` exiting 0 (cli 111, image
+123, extract 47 and 47, supervise 11, complete 50, probe 97) and clippy
+`-D warnings` clean (after one `single_match` fixup, re-proven).
+
+Driven on the shipped binary in the same lane:
+
+```
+$ podbox create --name keeper IMAGE true
+$ podbox run --rm IMAGE false; echo rc=$?
+podbox run: --rm keeps the rootfs: it is referenced by container keeper
+rc=1
+$ test -d $ROOTFS && podbox start keeper && echo KEEPER-STARTABLE
+KEEPER-STARTABLE
+$ podbox create --name k2 IMAGE true
+$ podbox rmi IMAGE; echo rc=$?
+podbox rmi: ... is referenced by container k2, keeper and was not removed
+rc=125
+$ podbox image prune -a
+skipped: ... is referenced by container k2, keeper
+Total reclaimed space: 0 B
+$ podbox inspect IMAGE && echo IMAGE-STILL-HERE
+IMAGE-STILL-HERE
+$ podbox rm keeper; podbox rm k2; podbox rmi IMAGE; echo rc=$?
+Untagged: ...
+Deleted: sha256:... (blobs)
+rc=0
+```
+
+The guard that stops recurrence is the reference query on all three
+removal paths: no record may reference a digest that is deleted, and
+the check names the containers that say so.
