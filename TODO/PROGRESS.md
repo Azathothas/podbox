@@ -73,6 +73,10 @@ sizes recorded beside the binary total, full check 10 passed 0 failed
 0 skipped, forced SKIP 9-0-1 green. `plant.sh` on the committed tree reads
 31 caught, 0 missed, 3 controls quiet, with all four new cases naming
 their defect, and the entry is closed in the same change with its counts.
+Tag `v0.1.0-beta.4` pushed at the close-out commit; nightly run
+35805033988 success with all seven legs and the publish job green, and
+the pre-release named nightly carries fourteen assets, verified back
+through the release API.
 
 Session of 2026-09-23. [T-1314](packaging.md) closed in its own change:
 `.github/workflows/nightly.yml` (every `v*` tag builds all seven

@@ -539,3 +539,9 @@ publish job created the pre-release named nightly on the tag with fourteen
 assets: the seven binaries beside their seven sha256 files, verified back
 through the release API. The loongarch64 leg green on the runner's qemu
 settles the lane's SIGILL question as emulator age.
+
+Prove run 2026-09-23, continued: `git push origin v0.1.0-beta.4` ran the
+workflow as run 35805033988, conclusion success. All seven legs green
+with the publish job completing, and the pre-release named nightly on
+the tag carries fourteen assets, verified back through the release API.
+The tag sits at the T-1207 close-out commit, which moves no build input.
