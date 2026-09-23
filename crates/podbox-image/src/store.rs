@@ -1697,6 +1697,55 @@ mod tests {
         let _ = std::fs::remove_dir_all(s.root());
     }
 
+    /// T-1321: the sweep reports exactly the blob whose bytes changed, and
+    /// a clean set verifies silent.
+    #[test]
+    fn verify_reports_the_flipped_blob_and_nothing_else() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        let s = scratch("health");
+        let dg = Digest::of(b"good bytes");
+        let db = Digest::of(b"bad bytes");
+        s.put_bytes(b"good bytes", &dg, "blob").unwrap();
+        s.put_bytes(b"bad bytes", &db, "blob").unwrap();
+        let path = s.blob_path(&db);
+        let mut bytes = std::fs::read(&path).unwrap();
+        bytes[0] ^= 1;
+        std::fs::write(&path, &bytes).unwrap();
+        let hits = s.verify_blobs(&[dg.to_string(), db.to_string()]).unwrap();
+        assert_eq!(hits.len(), 1, "{hits:?}");
+        assert_eq!(hits[0].want, db.to_string());
+        let clean = s.verify_blobs(&[dg.to_string()]).unwrap();
+        assert!(clean.is_empty(), "{clean:?}");
+        let _ = std::fs::remove_dir_all(s.root());
+    }
+
+    /// T-1321: a noted pull reads back with all six fields.
+    #[test]
+    fn provenance_round_trips_all_six_fields() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        let s = scratch("provenance");
+        let p = crate::health::Provenance {
+            registry: "registry-1.docker.io".into(),
+            repository: "docker.io/library/alpine".into(),
+            tag: Some("3.20".into()),
+            manifest_digest:
+                "sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e".into(),
+            pulled_at: clock::now(),
+            podbox_version: "0.1.0".into(),
+        };
+        s.note_pull(&p).unwrap();
+        let all = s.read_provenance().unwrap();
+        assert_eq!(all.len(), 1, "{all:?}");
+        let back = &all[0];
+        assert_eq!(back.registry, p.registry);
+        assert_eq!(back.repository, p.repository);
+        assert_eq!(back.tag, p.tag);
+        assert_eq!(back.manifest_digest, p.manifest_digest);
+        assert_eq!(back.pulled_at, p.pulled_at);
+        assert_eq!(back.podbox_version, p.podbox_version);
+        let _ = std::fs::remove_dir_all(s.root());
+    }
+
     /// T-1320: a saved image loads into a fresh store with the same record
     /// and readable blobs, under its own name.
     #[test]

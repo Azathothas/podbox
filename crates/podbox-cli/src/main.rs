@@ -60,6 +60,7 @@ usage: podbox <command> [options]
   tag          point a second name at one manifest digest
   image        ls | rm | prune | tag
   inspect      print one image's record
+  verify       hash the store's blobs against their digests
   create       write a container record, and start nothing
   start        start a created container, and return when its payload is running
   ps           list containers, from podbox's own table and never from /proc
@@ -147,6 +148,7 @@ fn main() -> std::process::ExitCode {
         Some("rmi") => exit(images::rmi("rmi", rest)),
         Some("tag") => exit(images::tag("tag", rest)),
         Some("inspect") => exit(images::inspect("inspect", rest)),
+        Some("verify") => exit(images::verify("verify", rest)),
         Some("image") => exit(image_group(rest)),
         Some("system") => exit(system::system(rest)),
         Some("info") => exit(system::info("info", rest)),

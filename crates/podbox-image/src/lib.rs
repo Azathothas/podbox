@@ -27,6 +27,7 @@ pub mod contain;
 pub mod credentials;
 pub mod digest;
 pub mod error;
+pub mod health;
 pub mod layout;
 pub mod oci;
 pub mod platform;

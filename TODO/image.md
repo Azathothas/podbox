@@ -1883,7 +1883,7 @@ Source:      issue 15, client beta testing 2026-09-22 (no `verify`, no
 Category:    image
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     Digests are enforced per read but nothing answers "is the
              store healthy, and how did the bytes get there": no sweep
@@ -1911,6 +1911,57 @@ Prove:       `podbox verify` on a store with one flipped blob byte
              six fields. Close issue 15 with a comment showing both runs
              and the sweep-plus-sidecar as the guard that stops
              recurrence.
+
+**Done 2026-09-23.** Product verb plus sidecar, as decided: no daemon, no
+background sweeping, no repair, no new authority. New module
+`podbox-image/src/health.rs` beside the store it extends (`impl Store`):
+`verify_blobs` streams every named blob through SHA-256 and reports one
+`{want, got}` mismatch per failure, silent where all hold; `note_pull`
+appends one JSON line per pulled manifest to `provenance.jsonl` under
+the store-wide lock; `read_provenance` reads them back, refusing a
+corrupt line with its number rather than skipping it. `pull` notes
+registry, repository, tag, manifest digest, pulled-at and the workspace
+version at pull time; the version is `CARGO_PKG_VERSION` because no
+build script carries the commit into this crate, and the sidecar says
+exactly that. The CLI adds `podbox verify [image|all]`: bare or `all`
+sweeps every record, one image prints its six provenance fields then its
+blobs, one line per mismatch plus a summary, exit 125 on any mismatch.
+The parity table gains the verb and help rows as `Native`.
+
+Both store tests were watched fail first (the module hidden in-lane:
+unresolved `crate::health`), then pass by exact name in the lane
+(`rust:1.98.1-bookworm` through host podman 6.1.2), with the CLI parse
+test, `cargo test --workspace` exiting 0 (cli 111, image 123, extract
+47 and 47, supervise 10, complete 50, probe 97) and clippy `-D warnings`
+clean.
+
+Driven on the shipped binary in the same lane, against a pulled
+`public.ecr.aws/docker/library/alpine:3.20`:
+
+```
+$ podbox verify; echo $?
+OK public.ecr.aws/docker/library/alpine:3.20 (4 blobs)
+verify: 4 blobs checked, 0 mismatched
+0
+$ # one layer byte flipped behind the store's back
+$ podbox verify; echo $?
+MISMATCH ... sha256:25f1d6b1...: computed sha256:40459f6e...
+verify: 4 blobs checked, 1 mismatched
+125
+$ podbox verify IMAGE
+registry: public.ecr.aws
+repository: public.ecr.aws/docker/library/alpine
+tag: 3.20
+manifest: sha256:c64c687c...
+pulled-at: 2026-09-23T04:28:09Z
+podbox-version: 0.1.0
+MISMATCH ... (as above)
+```
+
+Deleting the corrupt blob and re-pulling heals the store, and `verify`
+exits 0 again: verify reports, the operator repairs. The guard that
+stops recurrence is the sweep plus the sidecar: corruption gets a
+one-command check, and every future pull carries its own provenance.
 
 ---
 

@@ -548,6 +548,17 @@ pub fn pull(
         &platform.to_string(),
     )?;
     store.put_record(record.clone())?;
+    // ⭐ TODO/image.md T-1321. How the bytes got here, recorded at pull
+    // time rather than derived later: the sidecar never lives inside
+    // image metadata.
+    store.note_pull(&crate::health::Provenance {
+        registry: reference.endpoint().to_string(),
+        repository: reference.canonical_repository(),
+        tag: reference.tag.clone(),
+        manifest_digest: manifest_digest.to_string(),
+        pulled_at: record.pulled_at.clone(),
+        podbox_version: env!("CARGO_PKG_VERSION").to_string(),
+    })?;
 
     let _ = writeln!(out, "Digest: {resolved}");
     let _ = writeln!(

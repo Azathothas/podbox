@@ -1116,6 +1116,135 @@ fn loaded_name(record: &podbox_image::Record) -> String {
     }
 }
 
+pub const VERIFY_USAGE: &str = "\
+usage: podbox verify [image|all]
+
+  No argument (or `all`): hash every indexed blob of every record against
+  its digest. One image: print its provenance first, then sweep its blobs.
+
+  One line per mismatch plus a summary, and a non-zero exit where any
+  blob fails. Verify reports; it never refetches (TODO/image.md T-1321).
+";
+
+/// What `verify` was asked for.
+struct VerifyArgs {
+    want: Option<String>,
+}
+
+fn parse_verify(args: &[String]) -> std::result::Result<VerifyArgs, i32> {
+    let mut positionals: Vec<String> = Vec::new();
+    for a in args {
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{VERIFY_USAGE}");
+                return Err(0);
+            }
+            other if other.starts_with('-') => {
+                crate::parity::admit("verify", other, VERIFY_USAGE)?;
+                return Err(crate::parity::no_arm("verify", other));
+            }
+            other => positionals.push(other.to_string()),
+        }
+    }
+    if positionals.len() > 1 {
+        eprintln!("podbox verify: verify takes one image or `all`");
+        return Err(EXIT_CLI_ERROR);
+    }
+    Ok(VerifyArgs {
+        want: positionals.into_iter().next(),
+    })
+}
+
+pub fn verify(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, VERIFY_USAGE) {
+        return c;
+    }
+    let o = match parse_verify(args) {
+        Ok(o) => o,
+        Err(c) => return c,
+    };
+    let store = match podbox_image::open_store() {
+        Ok(s) => s,
+        Err(e) => return fail(e),
+    };
+    let records: Vec<podbox_image::Record> = match o.want.as_deref() {
+        None | Some("all") => match store.list() {
+            Ok(r) => r,
+            Err(e) => return fail(e),
+        },
+        Some(want) => match store.find_one(want) {
+            Ok(r) => vec![r],
+            Err(e) => {
+                eprintln!("podbox verify: {e}");
+                return e.exit_code();
+            }
+        },
+    };
+    let single = o.want.as_deref().is_some_and(|w| w != "all");
+    let mut checked = 0usize;
+    let mut mismatched = 0usize;
+    let mut code = 0;
+    for record in &records {
+        if single {
+            print_provenance(&store, record);
+        }
+        let name = match &record.tag {
+            Some(tag) => format!("{}:{tag}", record.repository),
+            None => record.repository.clone(),
+        };
+        let digests: Vec<String> = record.blobs().iter().map(|s| s.to_string()).collect();
+        match store.verify_blobs(&digests) {
+            Ok(hits) => {
+                checked += digests.len();
+                mismatched += hits.len();
+                for hit in &hits {
+                    println!("MISMATCH {name} {}: computed {}", hit.want, hit.got);
+                }
+                if hits.is_empty() {
+                    println!("OK {name} ({} blobs)", digests.len());
+                } else {
+                    code = EXIT_RUNTIME_ERROR;
+                }
+            }
+            Err(e) => {
+                eprintln!("podbox verify: {e}");
+                code = EXIT_RUNTIME_ERROR;
+            }
+        }
+    }
+    println!("verify: {checked} blobs checked, {mismatched} mismatched");
+    code
+}
+
+/// The provenance half of `verify <image>`: how this record's bytes got
+/// here, or the honest absence where no pull recorded one.
+fn print_provenance(store: &Store, record: &podbox_image::Record) {
+    match store.read_provenance() {
+        Ok(lines) => {
+            let mut shown = 0;
+            for p in lines
+                .iter()
+                .filter(|p| p.manifest_digest == record.manifest_digest)
+            {
+                println!("registry: {}", p.registry);
+                println!("repository: {}", p.repository);
+                println!("tag: {}", p.tag.as_deref().unwrap_or("(untagged)"));
+                println!("manifest: {}", p.manifest_digest);
+                println!("pulled-at: {}", p.pulled_at);
+                println!("podbox-version: {}", p.podbox_version);
+                shown += 1;
+            }
+            if shown == 0 {
+                println!(
+                    "no provenance line for {} (recorded before T-1321, imported, or loaded)",
+                    record.manifest_digest
+                );
+            }
+        }
+        Err(e) => eprintln!("podbox verify: {e}"),
+    }
+}
+
 pub fn inspect(verb: &str, args: &[String]) -> i32 {
     if let Some(c) = crate::parity::admit_all(verb, args, INSPECT_USAGE) {
         return c;
@@ -1437,6 +1566,19 @@ mod tests {
         let o = parse_import(&v(&["root.tar"])).unwrap();
         assert_eq!(o.reference, None);
         assert!(parse_import(&v(&[])).is_err());
+    }
+
+    /// TODO/image.md T-1321. `verify` takes one image, `all`, or nothing.
+    #[test]
+    fn verify_parses_one_image_all_or_nothing() {
+        let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let o = parse_verify(&v(&["img:tag"])).unwrap();
+        assert_eq!(o.want.as_deref(), Some("img:tag"));
+        let o = parse_verify(&v(&["all"])).unwrap();
+        assert_eq!(o.want.as_deref(), Some("all"));
+        let o = parse_verify(&v(&[])).unwrap();
+        assert_eq!(o.want, None);
+        assert!(parse_verify(&v(&["a", "b"])).is_err());
     }
 
     #[test]
