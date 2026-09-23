@@ -1697,6 +1697,111 @@ mod tests {
         let _ = std::fs::remove_dir_all(s.root());
     }
 
+    /// T-1320: a saved image loads into a fresh store with the same record
+    /// and readable blobs, under its own name.
+    #[test]
+    fn a_saved_image_loads_into_a_fresh_store() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        let a = scratch("save-a");
+        let layer = b"layer-bytes";
+        let config = br#"{"architecture":"amd64","os":"linux"}"#;
+        let dl = Digest::of(layer);
+        let dc = Digest::of(config);
+        let manifest = format!(
+            r#"{{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json","config":{{"mediaType":"application/vnd.oci.image.config.v1+json","digest":"{dc}","size":{}}},"layers":[{{"mediaType":"application/vnd.oci.image.layer.v1.tar","digest":"{dl}","size":{}}}]}}"#,
+            config.len(),
+            layer.len(),
+        );
+        let dm = Digest::of(manifest.as_bytes());
+        a.put_bytes(layer, &dl, "layer").unwrap();
+        a.put_bytes(config, &dc, "config").unwrap();
+        a.put_bytes(manifest.as_bytes(), &dm, "manifest").unwrap();
+        a.put_record(Record {
+            repository: "docker.io/library/saved-test".into(),
+            tag: Some("v1".into()),
+            digest: dm.to_string(),
+            digest_media_type: crate::oci::MEDIA_OCI_MANIFEST.into(),
+            manifest_digest: dm.to_string(),
+            config_digest: dc.to_string(),
+            platform: "linux/amd64".into(),
+            layers: vec![dl.to_string()],
+            stored_bytes: (layer.len() + config.len()) as u64,
+            architecture: "amd64".into(),
+            os: "linux".into(),
+            created: None,
+            pulled_at: clock::now(),
+        })
+        .unwrap();
+        let tarball = std::env::temp_dir().join(format!("podbox-save-{}.tar", std::process::id()));
+        let mut f = std::fs::File::create(&tarball).unwrap();
+        crate::layout::save(&a, "saved-test:v1", &mut f).unwrap();
+        drop(f);
+        let b = scratch("save-b");
+        let loaded = crate::layout::load(&b, &tarball).unwrap();
+        assert_eq!(loaded.manifest_digest, dm.to_string());
+        assert_eq!(loaded.layers, vec![dl.to_string()]);
+        let found = b.find_one("saved-test:v1").unwrap();
+        assert_eq!(found.manifest_digest, dm.to_string());
+        let back: Vec<u8> = b.read_blob(&dm).unwrap();
+        assert_eq!(back, manifest.as_bytes());
+        let _ = std::fs::remove_dir_all(a.root());
+        let _ = std::fs::remove_dir_all(b.root());
+        let _ = std::fs::remove_file(&tarball);
+    }
+
+    /// T-1320: a tarball whose bytes do not match their names is refused on
+    /// the way in, the same verification pull performs.
+    #[test]
+    fn a_tampered_tarball_is_refused_on_load() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        let a = scratch("save-tamper-a");
+        let layer = b"layer-bytes";
+        let dc = Digest::of(b"{}");
+        let dl = Digest::of(layer);
+        a.put_bytes(layer, &dl, "layer").unwrap();
+        a.put_bytes(b"{}", &dc, "config").unwrap();
+        let manifest = format!(
+            r#"{{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json","config":{{"mediaType":"application/vnd.oci.image.config.v1+json","digest":"{dc}","size":2}},"layers":[{{"mediaType":"application/vnd.oci.image.layer.v1.tar","digest":"{dl}","size":{}}}]}}"#,
+            layer.len(),
+        );
+        let dm = Digest::of(manifest.as_bytes());
+        a.put_bytes(manifest.as_bytes(), &dm, "manifest").unwrap();
+        a.put_record(Record {
+            repository: "docker.io/library/saved-test".into(),
+            tag: Some("v1".into()),
+            digest: dm.to_string(),
+            digest_media_type: crate::oci::MEDIA_OCI_MANIFEST.into(),
+            manifest_digest: dm.to_string(),
+            config_digest: dc.to_string(),
+            platform: "linux/amd64".into(),
+            layers: vec![dl.to_string()],
+            stored_bytes: (layer.len() + 2) as u64,
+            architecture: "amd64".into(),
+            os: "linux".into(),
+            created: None,
+            pulled_at: clock::now(),
+        })
+        .unwrap();
+        let tarball =
+            std::env::temp_dir().join(format!("podbox-tamper-{}.tar", std::process::id()));
+        let mut f = std::fs::File::create(&tarball).unwrap();
+        crate::layout::save(&a, "saved-test:v1", &mut f).unwrap();
+        drop(f);
+        let mut bytes = std::fs::read(&tarball).unwrap();
+        let at = bytes
+            .windows(layer.len())
+            .position(|w| w == layer)
+            .expect("the tarball carries the layer bytes");
+        bytes[at] ^= 1;
+        std::fs::write(&tarball, &bytes).unwrap();
+        let b = scratch("save-tamper-b");
+        let e = crate::layout::load(&b, &tarball).unwrap_err();
+        assert!(format!("{e}").contains("mismatch"), "{e}");
+        let _ = std::fs::remove_dir_all(a.root());
+        let _ = std::fs::remove_dir_all(b.root());
+        let _ = std::fs::remove_file(&tarball);
+    }
+
     #[test]
     fn a_blob_that_matches_is_stored_under_its_digest_and_reads_back() {
         let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());

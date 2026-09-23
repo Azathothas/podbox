@@ -51,6 +51,9 @@ usage: podbox <command> [options]
                sharing only the filesystem, never a namespace entry
   probe        report what this machine permits, and the rung podbox selects
   pull         fetch an image into the content-addressed store
+  save         write one image as an OCI-layout tarball
+  load         read an OCI-layout tarball into the store
+  import       build an image record from a plain rootfs tar
   extract      unpack a pulled image's layers into a rootfs
   images       list what the store holds
   rmi          remove images, and every blob no image reaches
@@ -135,6 +138,9 @@ fn main() -> std::process::ExitCode {
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
         Some("pull") => exit(images::pull("pull", rest)),
+        Some("save") => exit(images::save("save", rest)),
+        Some("load") => exit(images::load("load", rest)),
+        Some("import") => exit(images::import("import", rest)),
         Some("login") => exit(images::login("login", rest)),
         Some("extract") => exit(images::extract("extract", rest)),
         Some("images") => exit(images::images("images", rest)),

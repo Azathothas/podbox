@@ -808,6 +808,314 @@ pub fn extract(verb: &str, args: &[String]) -> i32 {
     }
 }
 
+pub const SAVE_USAGE: &str = "\
+usage: podbox save [--output FILE] <image>
+
+  -o, --output F  write the tarball to F instead of stdout.
+
+  Write one image as an OCI-layout tarball: oci-layout, index.json and
+  the blobs the record names, each verified on the way out. The tarball
+  goes to stdout (or F); human chatter to stderr, so the stream composes.
+  `podbox load` reads it back with every blob verified on the way in
+  (TODO/image.md T-1320).
+";
+
+pub const LOAD_USAGE: &str = "\
+usage: podbox load [--input FILE]
+
+  -i, --input F   read the tarball from F instead of stdin.
+
+  Read an OCI-layout tarball `podbox save` wrote: every blob is hashed
+  against its descriptor before it is committed, and the record is
+  registered under the tarball's own ref-name annotation. A tarball whose
+  bytes changed in transit is refused the way a bad pull is
+  (TODO/image.md T-1320).
+";
+
+pub const IMPORT_USAGE: &str = "\
+usage: podbox import <rootfs.tar> [REPOSITORY[:TAG]]
+
+  Build a runnable record from a plain rootfs tar: the tar becomes the
+  image's only layer, and the config and manifest are synthesized around
+  its digest. A compressed file is refused by name, because the record's
+  media type promises a plain tar. Unnamed imports are recorded as
+  `imported` with no tag (TODO/image.md T-1320).
+";
+
+/// What `save` was asked for.
+struct SaveArgs {
+    output: Option<String>,
+    want: String,
+}
+
+fn parse_save(args: &[String]) -> std::result::Result<SaveArgs, i32> {
+    let mut output = None;
+    let mut want: Option<String> = None;
+    let mut expect_output = false;
+    for a in args {
+        if expect_output {
+            output = Some(a.clone());
+            expect_output = false;
+            continue;
+        }
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{SAVE_USAGE}");
+                return Err(0);
+            }
+            "-o" | "--output" => expect_output = true,
+            other if other.starts_with("--output=") => {
+                output = Some(other["--output=".len()..].to_string())
+            }
+            other if other.starts_with('-') => {
+                crate::parity::admit("save", other, SAVE_USAGE)?;
+                return Err(crate::parity::no_arm("save", other));
+            }
+            other if want.is_none() => want = Some(other.to_string()),
+            other => {
+                eprintln!("podbox save: {other:?}: save takes one image");
+                return Err(EXIT_CLI_ERROR);
+            }
+        }
+    }
+    if expect_output {
+        eprintln!("podbox save: --output needs a file");
+        return Err(EXIT_FLAG_ERROR);
+    }
+    let Some(want) = want else {
+        print!("{SAVE_USAGE}");
+        return Err(EXIT_CLI_ERROR);
+    };
+    Ok(SaveArgs { output, want })
+}
+
+/// What `load` was asked for.
+struct LoadArgs {
+    input: Option<String>,
+}
+
+fn parse_load(args: &[String]) -> std::result::Result<LoadArgs, i32> {
+    let mut input = None;
+    let mut expect_input = false;
+    for a in args {
+        if expect_input {
+            input = Some(a.clone());
+            expect_input = false;
+            continue;
+        }
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{LOAD_USAGE}");
+                return Err(0);
+            }
+            "-i" | "--input" => expect_input = true,
+            other if other.starts_with("--input=") => {
+                input = Some(other["--input=".len()..].to_string())
+            }
+            other if other.starts_with('-') => {
+                crate::parity::admit("load", other, LOAD_USAGE)?;
+                return Err(crate::parity::no_arm("load", other));
+            }
+            other => {
+                eprintln!("podbox load: {other:?}: load takes no image argument, only --input");
+                return Err(EXIT_CLI_ERROR);
+            }
+        }
+    }
+    if expect_input {
+        eprintln!("podbox load: --input needs a file");
+        return Err(EXIT_FLAG_ERROR);
+    }
+    Ok(LoadArgs { input })
+}
+
+/// What `import` was asked for.
+struct ImportArgs {
+    tar: String,
+    reference: Option<String>,
+}
+
+fn parse_import(args: &[String]) -> std::result::Result<ImportArgs, i32> {
+    let mut positionals: Vec<String> = Vec::new();
+    for a in args {
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{IMPORT_USAGE}");
+                return Err(0);
+            }
+            other if other.starts_with('-') => {
+                crate::parity::admit("import", other, IMPORT_USAGE)?;
+                return Err(crate::parity::no_arm("import", other));
+            }
+            other => positionals.push(other.to_string()),
+        }
+    }
+    if positionals.len() > 2 {
+        eprintln!("podbox import: import takes a tarball and at most one name");
+        return Err(EXIT_CLI_ERROR);
+    }
+    let mut it = positionals.into_iter();
+    let Some(tar) = it.next() else {
+        print!("{IMPORT_USAGE}");
+        return Err(EXIT_CLI_ERROR);
+    };
+    let reference = it.next();
+    Ok(ImportArgs { tar, reference })
+}
+
+pub fn save(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, SAVE_USAGE) {
+        return c;
+    }
+    let o = match parse_save(args) {
+        Ok(o) => o,
+        Err(c) => return c,
+    };
+    let store = match podbox_image::open_store() {
+        Ok(s) => s,
+        Err(e) => return fail(e),
+    };
+    // ⛔ stdout carries the tarball and nothing else where no file was
+    // given, so the stream composes. T-0110 settled that channel contract.
+    if let Some(path) = o.output {
+        let mut file = match std::fs::File::create(&path) {
+            Ok(f) => f,
+            Err(e) => {
+                eprintln!("podbox save: {path}: {e}");
+                return EXIT_RUNTIME_ERROR;
+            }
+        };
+        match podbox_image::layout::save(&store, &o.want, &mut file) {
+            Ok(done) => {
+                eprintln!(
+                    "podbox save: saved {} as {} blobs ({} bytes), digest {}",
+                    o.want,
+                    done.blobs,
+                    podbox_image::space::mib(done.bytes),
+                    done.record.manifest_digest
+                );
+                println!("{path}");
+                0
+            }
+            Err(e) => {
+                eprintln!("podbox save: {e}");
+                // ⚠ A half-written tarball is a trap for the next load, so a
+                // failed save removes what it started.
+                let _ = std::fs::remove_file(&path);
+                EXIT_RUNTIME_ERROR
+            }
+        }
+    } else {
+        let mut out = std::io::stdout().lock();
+        match podbox_image::layout::save(&store, &o.want, &mut out) {
+            Ok(done) => {
+                eprintln!(
+                    "podbox save: saved {} as {} blobs ({} bytes), digest {}",
+                    o.want,
+                    done.blobs,
+                    podbox_image::space::mib(done.bytes),
+                    done.record.manifest_digest
+                );
+                0
+            }
+            Err(e) => {
+                eprintln!("podbox save: {e}");
+                EXIT_RUNTIME_ERROR
+            }
+        }
+    }
+}
+
+pub fn load(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, LOAD_USAGE) {
+        return c;
+    }
+    let o = match parse_load(args) {
+        Ok(o) => o,
+        Err(c) => return c,
+    };
+    let store = match podbox_image::open_store() {
+        Ok(s) => s,
+        Err(e) => return fail(e),
+    };
+    // ⚠ stdin spills to a file first: `load` needs a path, and a tarball
+    // is streamed, never held fully in memory for the copy.
+    let file_arg: Option<std::path::PathBuf> = o.input.map(std::path::PathBuf::from);
+    let temp: Option<std::path::PathBuf>;
+    let src: &std::path::Path = match &file_arg {
+        Some(p) => {
+            temp = None;
+            p
+        }
+        None => {
+            let path = std::env::temp_dir().join(format!("podbox-load-in-{}", std::process::id()));
+            let mut stdin = std::io::stdin().lock();
+            let mut file = match std::fs::File::create(&path) {
+                Ok(f) => f,
+                Err(e) => {
+                    eprintln!("podbox load: {path:?}: {e}");
+                    return EXIT_RUNTIME_ERROR;
+                }
+            };
+            if let Err(e) = std::io::copy(&mut stdin, &mut file) {
+                eprintln!("podbox load: stdin does not read: {e}");
+                let _ = std::fs::remove_file(&path);
+                return EXIT_RUNTIME_ERROR;
+            }
+            temp = Some(path);
+            temp.as_ref().expect("just set")
+        }
+    };
+    let code = match podbox_image::layout::load(&store, src) {
+        Ok(record) => {
+            println!("Loaded image: {}", loaded_name(&record));
+            0
+        }
+        Err(e) => {
+            eprintln!("podbox load: {e}");
+            EXIT_RUNTIME_ERROR
+        }
+    };
+    if let Some(path) = temp {
+        let _ = std::fs::remove_file(&path);
+    }
+    code
+}
+
+pub fn import(verb: &str, args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all(verb, args, IMPORT_USAGE) {
+        return c;
+    }
+    let o = match parse_import(args) {
+        Ok(o) => o,
+        Err(c) => return c,
+    };
+    let store = match podbox_image::open_store() {
+        Ok(s) => s,
+        Err(e) => return fail(e),
+    };
+    match podbox_image::layout::import(&store, std::path::Path::new(&o.tar), o.reference.as_deref())
+    {
+        Ok(record) => {
+            println!("Loaded image: {}", loaded_name(&record));
+            0
+        }
+        Err(e) => {
+            eprintln!("podbox import: {e}");
+            EXIT_RUNTIME_ERROR
+        }
+    }
+}
+
+/// The `Loaded image:` line both verbs print: the ref-name where one was
+/// recorded, the manifest digest where none was.
+fn loaded_name(record: &podbox_image::Record) -> String {
+    match &record.tag {
+        Some(tag) => format!("{}:{tag}", record.repository),
+        None => record.manifest_digest.clone(),
+    }
+}
+
 pub fn inspect(verb: &str, args: &[String]) -> i32 {
     if let Some(c) = crate::parity::admit_all(verb, args, INSPECT_USAGE) {
         return c;
@@ -1106,6 +1414,30 @@ fn fail(e: Error) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// TODO/image.md T-1320. save/load/import parse their own surface and
+    /// nothing else's.
+    #[test]
+    fn save_load_import_parse_their_flags() {
+        let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let o = parse_save(&v(&["-o", "f.tar", "img:tag"])).unwrap();
+        assert_eq!(o.output.as_deref(), Some("f.tar"));
+        assert_eq!(o.want, "img:tag");
+        let o = parse_save(&v(&["--output=f.tar", "img"])).unwrap();
+        assert_eq!(o.output.as_deref(), Some("f.tar"));
+        assert!(parse_save(&v(&[])).is_err());
+        assert!(parse_save(&v(&["a", "b"])).is_err());
+        let o = parse_load(&v(&["-i", "f.tar"])).unwrap();
+        assert_eq!(o.input.as_deref(), Some("f.tar"));
+        let o = parse_load(&v(&[])).unwrap();
+        assert_eq!(o.input, None);
+        let o = parse_import(&v(&["root.tar", "me:v1"])).unwrap();
+        assert_eq!(o.tar, "root.tar");
+        assert_eq!(o.reference.as_deref(), Some("me:v1"));
+        let o = parse_import(&v(&["root.tar"])).unwrap();
+        assert_eq!(o.reference, None);
+        assert!(parse_import(&v(&[])).is_err());
+    }
 
     #[test]
     fn the_table_pads_every_column_to_its_widest_cell() {

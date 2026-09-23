@@ -30,7 +30,7 @@ pub const SHA256: &str = "sha256";
 /// that type from `generic-array` to `hybrid-array`, which does not carry it.
 /// A formatting call against a dependency's type is a compile error on a
 /// version bump; a function over `&[u8]` is not.
-fn hex_of(bytes: &[u8]) -> String {
+pub(crate) fn hex_of(bytes: &[u8]) -> String {
     use fmt::Write as _;
     let mut s = String::with_capacity(bytes.len() * 2);
     for b in bytes {

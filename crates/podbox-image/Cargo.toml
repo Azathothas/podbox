@@ -20,5 +20,9 @@ ureq.workspace = true
 sha2.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+# TODO/image.md T-1320: the save/load tarball, taken for its Builder and
+# Archive file api. Already in the graph through podbox-extract at this
+# version, so no new crate enters the tree.
+tar.workspace = true
 # TODO/image.md T-0209: Basic credentials. Zero marginal crates (see the pin).
 base64.workspace = true

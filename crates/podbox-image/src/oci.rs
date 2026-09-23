@@ -67,6 +67,10 @@ pub struct Descriptor {
     pub size: u64,
     #[serde(default)]
     pub platform: Option<Platform>,
+    /// ⭐ TODO/image.md T-1320 reads the ref-name annotation `save` wrote.
+    /// Absent on registry descriptors, which never carry it.
+    #[serde(default)]
+    pub annotations: std::collections::HashMap<String, String>,
 }
 
 impl Descriptor {

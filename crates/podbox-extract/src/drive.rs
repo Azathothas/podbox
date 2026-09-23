@@ -676,12 +676,14 @@ fn a_blob_edited_after_pull_is_refused_and_never_written() {
             digest: want.to_string(),
             size: 0,
             platform: None,
+            annotations: std::collections::HashMap::new(),
         },
         layers: vec![podbox_image::oci::Descriptor {
             media_type: "application/vnd.oci.image.layer.v1.tar".to_string(),
             digest: want.to_string(),
             size: bytes.len() as u64,
             platform: None,
+            annotations: std::collections::HashMap::new(),
         }],
     };
     let digest = format!("sha256:{}", "7".repeat(64));

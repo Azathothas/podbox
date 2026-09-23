@@ -1785,7 +1785,7 @@ Source:      issue 16, client beta testing 2026-09-22 (registry-only
 Category:    image
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     `pull` is the only way into the store and nothing exports
              it: a host with no registry reachability cannot receive an
@@ -1813,6 +1813,63 @@ Prove:       `podbox save` an image to a tarball on host A, `podbox
              (save/load/import thirds) with a comment showing the
              air-gapped round trip and the layout reuse as the guard
              that stops recurrence.
+
+**Done 2026-09-23.** OCI layout, the store's own shape, as decided: one
+interchange tarball (`oci-layout`, `index.json`,
+`blobs/sha256/<hex>`), both directions, no new format and no new crate
+(`tar` was already in the graph through `podbox-extract`; the lock gains
+one edge). New module `podbox-image/src/layout.rs` beside the store it
+reuses: `save` streams the record's blobs (verified on the way out
+through `read_blob`) into the tarball on any writer; `load` streams each
+entry to a staging file while hashing, commits only the blobs whose
+computed digest a descriptor names, and registers the record under the
+tarball's ref-name annotation; `import` refuses compressed files by
+name, commits the plain tar as the only layer, and synthesizes the
+config and manifest around its digest (unnamed imports become
+`docker.io/library/imported:latest` through `Reference::parse`'s own
+central default). Three refusals are structural: a tarball entry outside
+the allowlist, more than one manifest, and blobs no descriptor names.
+The CLI adds the three verbs with `-o`/`--output`, `-i`/`--input` and
+usage lines, and the parity rows move to `Native`. `save` to stdout
+keeps stdout binary-clean (T-0110); a failed save removes its partial
+tarball rather than leaving a trap for the next load.
+
+The tests failed first (three compile errors in the new code: a
+`{:x}` format against `sha2` 0.11's array type, fixed by reusing the
+crate's `hex_of`; the tests calling `save` with a path where it takes a
+writer; a moved manifest buffer), then all five pass by exact name in
+the lane (`rust:1.98.1-bookworm` through host podman 6.1.2): the
+save-into-fresh-store round trip, the tampered-tarball refusal, both
+import tests, and the CLI parse test. `cargo test --workspace` exits 0
+beside them (cli 110, image 121, extract 47 and 47, supervise 10,
+complete 50, probe 97) and clippy `-D warnings` is clean. Two
+adjacent fixes landed with the change and were re-proven in the same
+run: the `annotations` field `load` reads broke two `Descriptor`
+literals in `podbox-extract`'s tests.
+
+Driven on the shipped binary in the same lane (host A pulls
+`public.ecr.aws/docker/library/alpine:3.20`; host B is a fresh store
+that never pulls and touches no registry):
+
+```
+$ podbox save -o /tmp/alpine.tar IMAGE
+podbox save: saved ... as 3 blobs (3.5 MiB bytes), digest sha256:c64c...
+$ podbox load -i /tmp/alpine.tar        # fresh store
+Loaded image: public.ecr.aws/docker/library/alpine:3.20
+$ podbox run --rm IMAGE echo air-gap-ran
+air-gap-ran
+$ tar -cf /tmp/rootfs.tar -C $ROOTFS . && podbox import /tmp/rootfs.tar reborn:v1
+Loaded image: docker.io/library/reborn:v1
+$ podbox run --rm reborn:v1 echo reborn-ran
+reborn-ran
+```
+
+An unnamed import records `docker.io/library/imported:latest`. (One job
+along the way also re-confirmed T-1322's premise live: a `run --rm`
+deleted the rootfs the retar needed, so the air-gap run keeps its
+container until after the retar.) The guard that stops recurrence is the
+layout reuse with per-blob verification: bytes enter the store only
+under a hash that matches, from a registry or a tarball alike.
 
 ---
 
