@@ -221,7 +221,7 @@ the blocker named and what would clear it.
 | [T-1329](packaging.md) | P2 | packaging | open | The per-arch smoke pulls and extracts, not just versions |
 | [T-1330](cli.md) | P2 | cli | done | Bundled short flags parse as docker reads them |
 | [T-1331](cli.md) | P2 | cli | done | `--filter`, `restart` and `pull -a/-q` answer the docker idiom |
-| [T-1332](cli.md) | P1 | cli | open | `podbox man` generates the manual from the binary, pager-aware |
+| [T-1332](cli.md) | P1 | cli | done | `podbox man` generates the manual from the binary, pager-aware |
 | [T-1333](probe.md) | P1 | probe | done | The probe cache key carries the capability set |
 | [T-1334](packaging.md) | P1 | packaging | open | The release carries its build commit's gate state and its reproducibility boundary |
 | [T-1335](supervise.md) | P3 | supervise | open | The launcher forwards its own shutdown signals to the payload |
@@ -229,7 +229,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-165 items: 7 open, 1 partial, 0 blocked, 157 done.
+165 items: 6 open, 1 partial, 0 blocked, 158 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -238,10 +238,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 3 | 1 | 0 | 73 | 77 |
+| P1 | 2 | 1 | 0 | 74 | 77 |
 | P2 | 3 | 0 | 0 | 26 | 29 |
 | P3 | 1 | 0 | 0 | 6 | 7 |
-| **All** | **7** | **1** | **0** | **157** | **165** |
+| **All** | **6** | **1** | **0** | **158** | **165** |
 
 ## How the current ordering is derived
 

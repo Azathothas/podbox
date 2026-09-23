@@ -1030,7 +1030,7 @@ Source:      operator order 2026-09-23 (drift-free human/AI manual;
 Category:    cli
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     Help text lives in docs or not at all, so every new flag is
              a chance for drift: the manual says what the binary said on
@@ -1067,6 +1067,34 @@ Prove:       A script diffs `podbox man` output against every `--help`
              man` print identical bytes with no pager spawned. The
              completeness script is the drift guard that stops
              recurrence.
+
+**Done, 2026-09-23.** New `man` verb in `crates/podbox-cli/src/man.rs`:
+version header, command list with one-line summaries (the first
+sentence of each implemented verb row's note), a Global section whose
+exit-code numbers render from the exit-code constants, then a command
+reference with one section per implemented verb carrying that verb's
+`--help` bytes captured by re-executing the binary, so a changed usage
+string arrives with no edit here. The verb set is the table's own
+implemented rows minus the argv0 aliases; group subverbs (`prune`,
+`install-names`, `abi`) render through their group path, pinned
+against `rows_of` by unit test. `man [verb]` renders one section;
+`--no-pager` and a non-terminal stdout print the same bytes with no
+pager spawned, and an unstartable pager falls back to stdout. Lane
+prove `.tmp/pb-w32-prove.sh`, verdict `fail=0`: seven man units by
+exact name, suites, clippy, every implemented verb's `--help` exiting
+0 with non-empty bytes contained in the manual, one-verb rendering,
+byte-identity between `--no-pager` and piped runs, the refusal codes,
+the moved `man` rows. One isolation gap is recorded, not hidden: the
+bogus-PAGER run asserts identical bytes and rc 0, which the stdout
+fallback also produces, so a follow-up prove should capture that run's
+stderr separately and assert it empty to isolate non-spawning. The
+prove caught two defects on the way: `restart --help` exited 125
+because T-1331's verb lacked its `-h, --help` row (added here), and a
+first pass of this change forgot the `--no-pager` row the same way
+(caught in review before the green run). The manual carries the usage
+strings verbatim, glyphs included: the ASCII scrub is the sibling
+entry T-1336, whose guard covers this output. The guard is the
+completeness script plus the pinned verb set.
 
 ---
 

@@ -246,6 +246,9 @@ pub const TABLE: &[Row] = &[
     Row { verb: "version", flag: Option::None, status: Native, note: "one artefact, so there is one version and no client/server split" },
     Row { verb: "version", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "version", flag: Some("--verbose"), status: Native, note: "reports the build's recorded inputs: commit, toolchain, target, interposer digests, static mode (T-1004)" },
+    Row { verb: "man", flag: Option::None, status: Native, note: "renders this manual from the binary's own usage strings and the parity table, paging through $PAGER unless --no-pager or a non-terminal stdout (TODO/cli.md T-1332)" },
+    Row { verb: "man", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "man", flag: Some("--no-pager"), status: Native, note: "print to stdout even on a terminal; without it a terminal pages through $PAGER" },
     Row { verb: "probe", flag: Option::None, status: Native, note: "podbox's own verb, with no docker equivalent: what this machine permits, and the rung podbox selects" },
     Row { verb: "extract", flag: Option::None, status: Native, note: "podbox's own verb, with no docker equivalent: unpack the layers and write the ownership sidecar" },
     // ⭐ M4, and each says the difference from docker's rather than implying
@@ -254,6 +257,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "start", flag: Option::None, status: Native, note: "returns when the payload has reached its execve, established by a pipe rather than by a sleep (T-0602)" },
     Row { verb: "stop", flag: Option::None, status: Degraded, note: "SIGTERM then SIGKILL to the PAYLOAD. podbox has no PID namespace, so a grandchild that reparented is outside its reach and is not signalled" },
     Row { verb: "restart", flag: Option::None, status: Native, note: "stop then start in one verb, naming which half failed (TODO/cli.md T-1331)" },
+    Row { verb: "restart", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "kill", flag: Option::None, status: Degraded, note: "signals the payload. A pidfd addresses one process; it does not reach descendants that reparent" },
     Row { verb: "rm", flag: Option::None, status: Native, note: "removes the record and the container's own directory; -f kills a running one first" },
     Row { verb: "ps", flag: Option::None, status: Degraded, note: "reads the container table, never /proc. A container whose launcher was killed reads `dead` with the time it was noticed, and no exit code (T-0604)" },
