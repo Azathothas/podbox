@@ -663,56 +663,152 @@ pub fn rm(args: &[String]) -> i32 {
     code
 }
 
-/// `podbox cp <src> <dest>`, where one side is `<container>:<path>`.
-pub fn cp(args: &[String]) -> i32 {
-    if let Some(c) = crate::parity::admit_all(
-        "cp",
-        args,
-        "usage: podbox cp <container>:<path> <dest>\n       podbox cp <src> <container>:<path>",
-    ) {
-        return c;
-    }
-    if args.len() == 1 && (args[0] == "-h" || args[0] == "--help") {
-        println!(
-            "usage: podbox cp <container>:<path> <dest>\n       \
-             podbox cp <src> <container>:<path>"
-        );
-        return 0;
-    }
+/// `podbox cp <src> <dest>`, where one side is `<name>:<path>` and the
+/// name is a container or, failing that, an image.
+const CP_USAGE: &str = "\
+usage: podbox cp [-r|--recursive] <container|image>:<path> <dest>
+       podbox cp [-r|--recursive] <src> <container|image>:<path>
+
+  -r, --recursive  copy a directory tree. A file copies with or without
+                   it; a directory without it is refused naming the flag.
+
+  The name before the colon is a container first (as before), then an
+  image, whose rootfs is extracted if needed. A directory copies its
+  contents into DEST: created where missing, and it must be a directory
+  where present. Symlinks are replicated as symlinks, never followed,
+  and every rootfs-side path passes the same containment gate as a
+  single file; special files are refused by name rather than recreated
+  (TODO/cli.md T-1323).
+";
+
+/// What `cp` was asked for.
+struct CpArgs {
+    recursive: bool,
+    a: String,
+    b: String,
+}
+
+fn parse_cp(args: &[String]) -> std::result::Result<CpArgs, i32> {
+    let mut recursive = false;
+    let mut positionals: Vec<String> = Vec::new();
     for a in args {
-        if a.starts_with('-') {
-            if let Err(c) = crate::parity::admit(
-                "cp",
-                a,
-                "usage: podbox cp <container>:<path> <dest>\n       podbox cp <src> <container>:<path>",
-            ) {
-                return c;
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{CP_USAGE}");
+                return Err(0);
             }
-            return crate::parity::no_arm("cp", a);
+            "-r" | "--recursive" => recursive = true,
+            other if other.starts_with('-') => {
+                crate::parity::admit("cp", other, CP_USAGE)?;
+                return Err(crate::parity::no_arm("cp", other));
+            }
+            other => positionals.push(other.to_string()),
         }
     }
-    if args.len() != 2 {
-        eprintln!("podbox cp: takes exactly two paths, one of them <container>:<path>");
-        return EXIT_CLI_ERROR;
+    if positionals.len() != 2 {
+        eprintln!("podbox cp: takes exactly two paths, one of them <name>:<path>");
+        return Err(EXIT_CLI_ERROR);
     }
+    let mut it = positionals.into_iter();
+    Ok(CpArgs {
+        recursive,
+        a: it.next().expect("checked"),
+        b: it.next().expect("checked"),
+    })
+}
+
+/// `podbox cp <src> <dest>`, where one side is `<container>:<path>`.
+pub fn cp(args: &[String]) -> i32 {
+    if let Some(c) = crate::parity::admit_all("cp", args, CP_USAGE) {
+        return c;
+    }
+    let o = match parse_cp(args) {
+        Ok(o) => o,
+        Err(c) => return c,
+    };
     let s = match store() {
         Ok(s) => s,
         Err(c) => return c,
     };
-    let (a, b) = (&args[0], &args[1]);
-    let (from_container, to_container) = (split(a), split(b));
-    match (from_container, to_container) {
-        (Some(_), Some(_)) => {
-            eprintln!("podbox cp: copying between two containers is not implemented");
+    let (a, b) = (o.a.as_str(), o.b.as_str());
+    let (from_named, to_named) = (named(a), named(b));
+    match (from_named, to_named) {
+        (true, true) => {
+            eprintln!("podbox cp: copying between two named filesystems is not implemented");
             EXIT_RUNTIME_ERROR
         }
-        (None, None) => {
-            eprintln!("podbox cp: one of the two paths has to be <container>:<path>");
+        (false, false) => {
+            eprintln!("podbox cp: one of the two paths has to be <name>:<path>");
             EXIT_CLI_ERROR
         }
-        (Some((name, inside)), None) => copy(&s, &name, &inside, std::path::Path::new(b), true),
-        (None, Some((name, inside))) => copy(&s, &name, &inside, std::path::Path::new(a), false),
+        (true, false) => copy_named(&s, a, std::path::Path::new(b), true, o.recursive),
+        (false, true) => copy_named(&s, b, std::path::Path::new(a), false, o.recursive),
     }
+}
+
+/// A side addresses a named filesystem: a container (`split`, no slashes)
+/// or an image reference (slashes, tags and all).
+fn named(arg: &str) -> bool {
+    split(arg).is_some() || split_image(arg).is_some()
+}
+
+/// Copy through a name that is a container first and an image second.
+/// Container-first keeps every existing invocation resolving exactly as
+/// before; the image half splits on the LAST colon, because a tag carries
+/// one (`alpine:3.20:/etc/hosts`).
+fn copy_named(
+    s: &podbox_image::Store,
+    arg: &str,
+    outside: &std::path::Path,
+    out_of: bool,
+    recursive: bool,
+) -> i32 {
+    if let Some((name, inside)) = split(arg) {
+        if let Ok(c) = podbox_supervise::get(s, &name) {
+            return copy_one(
+                std::path::Path::new(&c.rootfs),
+                &inside,
+                outside,
+                out_of,
+                recursive,
+            );
+        }
+    }
+    let (image, inside) = match arg.rsplit_once(':') {
+        Some((image, inside)) if !image.is_empty() && !inside.is_empty() => (image, inside),
+        _ => ("", ""),
+    };
+    let record = match s.find_one(image) {
+        Ok(r) => r,
+        Err(image_err) => {
+            match split(arg) {
+                Some((name, _)) => match podbox_supervise::get(s, &name) {
+                    Ok(_) => {}
+                    Err(container_err) => eprintln!("podbox cp: {container_err}"),
+                },
+                None => eprintln!("podbox cp: one of the two paths has to be <name>:<path>"),
+            }
+            eprintln!("podbox cp: {image_err}");
+            return EXIT_RUNTIME_ERROR;
+        }
+    };
+    // ⚠ The image lock for the whole copy: the rootfs below must not be
+    // deleted between the extraction check and the last byte, which is
+    // T-0204's hold and T-1322's query answering together.
+    let _held = match s.hold(&record) {
+        Ok(h) => h,
+        Err(e) => {
+            eprintln!("podbox cp: {e}");
+            return podbox_image::error::EXIT_RUNTIME_ERROR;
+        }
+    };
+    if !podbox_extract::is_extracted(s, &record.manifest_digest) {
+        if let Err(c) = crate::run::extract_now("cp", s, &record) {
+            return c;
+        }
+    }
+    let (rootfs, _) = podbox_extract::paths(s, &record.manifest_digest);
+    copy_one(&rootfs, inside, outside, out_of, recursive)
 }
 
 /// `name:/path` where the name is not a Windows drive letter or a bare path.
@@ -724,27 +820,56 @@ fn split(arg: &str) -> Option<(String, String)> {
     Some((name.to_string(), path.to_string()))
 }
 
-fn copy(
-    s: &podbox_image::Store,
-    name: &str,
+/// `reference:path` where the reference may carry a registry, a tag, or
+/// both. Slashes allowed, unlike a container name: this is the image half
+/// of addressing, and `copy_named` tries the container half first.
+fn split_image(arg: &str) -> Option<(String, String)> {
+    let (image, path) = arg.rsplit_once(':')?;
+    if image.is_empty() || path.is_empty() {
+        return None;
+    }
+    Some((image.to_string(), path.to_string()))
+}
+
+fn copy_one(
+    root: &std::path::Path,
     inside: &str,
     outside: &std::path::Path,
     out_of: bool,
+    recursive: bool,
 ) -> i32 {
-    let c = match podbox_supervise::get(s, name) {
-        Ok(c) => c,
-        Err(e) => return fail("cp", e),
-    };
-    let root = std::path::Path::new(&c.rootfs);
     let joined = root.join(inside.trim_start_matches('/'));
+    // ⚠ Stat BEFORE gating: a symlink source is gated on its own path
+    // (its parent), never resolved. `within` resolves, so gating a link
+    // that points outside would refuse a replication that escapes
+    // nothing — and distro rootfses are full of such links (`/etc/mtab
+    // -> /proc/self/mounts`, TODO/extract.md T-0305).
+    let src_side: &std::path::Path = if out_of { &joined } else { outside };
+    let src_is_link = is_link(src_side);
     // ⛔ THE SAME CONTAINMENT GATE every other path in this tree takes. A
-    // container path of `../../etc/shadow` is a request to write outside the
-    // rootfs, and `cp` is the verb most likely to be handed one.
-    let target = match podbox_image::contain::within(root, &joined) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("podbox cp: {e}");
-            return EXIT_RUNTIME_ERROR;
+    // path of `../../etc/shadow` is a request to touch outside the rootfs,
+    // and `cp` is the verb most likely to be handed one.
+    let target = if src_is_link && out_of {
+        match joined.parent() {
+            Some(parent) => match podbox_image::contain::within(root, parent) {
+                Ok(_) => joined.clone(),
+                Err(e) => {
+                    eprintln!("podbox cp: {e}");
+                    return EXIT_RUNTIME_ERROR;
+                }
+            },
+            None => {
+                eprintln!("podbox cp: {} has no parent to gate", joined.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+    } else {
+        match podbox_image::contain::within(root, &joined) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("podbox cp: {e}");
+                return EXIT_RUNTIME_ERROR;
+            }
         }
     };
     let (src, dst) = if out_of {
@@ -752,6 +877,47 @@ fn copy(
     } else {
         (outside.to_path_buf(), target)
     };
+    // ⛔ Never write through a pre-existing symlink: the path is gated but
+    // the write would land where the link points.
+    if is_link(&dst) {
+        eprintln!(
+            "podbox cp: {} is a symlink; writing through one is refused",
+            dst.display()
+        );
+        return EXIT_RUNTIME_ERROR;
+    }
+    if !out_of {
+        if let Err(msg) = clear_of_symlinks(root, &dst) {
+            eprintln!("podbox cp: {msg}");
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    // ⚠ Stat the SOURCE side: a missing destination directory on the way
+    // in must still read as a directory copy. (`src_is_link` above already
+    // decided the gate; this match decides the copy shape.)
+    match std::fs::symlink_metadata(&src).map(|m| m.file_type()) {
+        Ok(t) if t.is_symlink() => {
+            return replicate_link(&src, &dst);
+        }
+        Ok(t) if t.is_dir() => {
+            if !recursive {
+                eprintln!(
+                    "podbox cp: {} is a directory; pass -r to copy it",
+                    src.display()
+                );
+                return EXIT_FLAG_ERROR;
+            }
+            return copy_tree(&src, &dst, root, out_of);
+        }
+        Ok(t) if !t.is_file() => {
+            eprintln!(
+                "podbox cp: {} is not a file or directory; special files are refused",
+                src.display()
+            );
+            return EXIT_RUNTIME_ERROR;
+        }
+        _ => {}
+    }
     if let Some(parent) = dst.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
@@ -770,6 +936,248 @@ fn copy(
             EXIT_RUNTIME_ERROR
         }
     }
+}
+
+/// Whether the path itself is a symlink (never followed).
+fn is_link(path: &std::path::Path) -> bool {
+    std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink())
+}
+
+/// Replicate one symlink as a symlink: the target bytes are copied, never
+/// resolved, so an absolute target escapes nothing. The caller gates the
+/// link's own path; the target is opaque here by design.
+fn replicate_link(src: &std::path::Path, dst: &std::path::Path) -> i32 {
+    let target = match std::fs::read_link(src) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("podbox cp: {}: {e}", src.display());
+            return EXIT_RUNTIME_ERROR;
+        }
+    };
+    if let Some(parent) = dst.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            eprintln!("podbox cp: {}: {e}", parent.display());
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    match std::os::unix::fs::symlink(&target, dst) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            if dst.is_dir() && !is_link(dst) {
+                eprintln!("podbox cp: {} exists and is a directory", dst.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+            if let Err(e) = std::fs::remove_file(dst) {
+                eprintln!("podbox cp: {}: {e}", dst.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+            if let Err(e) = std::os::unix::fs::symlink(&target, dst) {
+                eprintln!("podbox cp: {}: {e}", dst.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+        Err(e) => {
+            eprintln!("podbox cp: {}: {e}", dst.display());
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    eprintln!(
+        "podbox cp: symlink {} -> {}",
+        dst.display(),
+        target.display()
+    );
+    0
+}
+
+/// Every component of `path` below `base`, checked without following: a
+/// write through a pre-existing symlink would land where the link points,
+/// so the first symlink refuses the copy by name. `base` itself was gated
+/// by the caller and is not re-checked.
+fn clear_of_symlinks(
+    base: &std::path::Path,
+    path: &std::path::Path,
+) -> std::result::Result<(), String> {
+    let mut probe = base.to_path_buf();
+    let rel = path
+        .strip_prefix(base)
+        .map_err(|_| format!("{} escapes {}", path.display(), base.display()))?;
+    for component in rel.components() {
+        probe.push(component);
+        if is_link(&probe) {
+            return Err(format!(
+                "{} is a symlink; writing through one is refused",
+                probe.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Copy a directory tree without following anything. Every rootfs-side
+/// path passes `contain::within`: destinations on the way in, sources on
+/// the way out — except a symlink source, which is gated on its own path
+/// (its parent) and replicated verbatim, never resolved, per T-0305's
+/// rule. Two passes: the first validates the whole tree, so a special
+/// file or a destination through a pre-existing symlink refuses before a
+/// byte lands and no half-made tree is left behind (TODO/cli.md T-1323).
+fn copy_tree(
+    src: &std::path::Path,
+    dst: &std::path::Path,
+    root: &std::path::Path,
+    out_of: bool,
+) -> i32 {
+    let gate = |p: &std::path::Path| podbox_image::contain::within(root, p);
+    // The destination side's base for the write-through check: the rootfs
+    // on the way in, the fresh-or-merging top on the way out. A write
+    // through a pre-existing link would land where the link points, so
+    // the first such destination refuses the copy by name.
+    let dst_base: &std::path::Path = if out_of { dst } else { root };
+    // Pass one: walk without following, gating and collecting. A special
+    // file anywhere, or a destination through a pre-existing symlink,
+    // refuses the whole copy by name.
+    let mut files: Vec<(std::path::PathBuf, std::path::PathBuf)> = Vec::new();
+    let mut links: Vec<(std::path::PathBuf, std::path::PathBuf)> = Vec::new();
+    let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+    let mut stack = vec![src.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(e) => e,
+            Err(e) => {
+                eprintln!("podbox cp: {}: {e}", dir.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+        };
+        for entry in entries {
+            let entry = match entry {
+                Ok(e) => e,
+                Err(e) => {
+                    eprintln!("podbox cp: {e}");
+                    return EXIT_RUNTIME_ERROR;
+                }
+            };
+            let src_path = entry.path();
+            let rel = match src_path.strip_prefix(src) {
+                Ok(r) => r,
+                Err(_) => {
+                    eprintln!(
+                        "podbox cp: {} escapes {}",
+                        src_path.display(),
+                        src.display()
+                    );
+                    return EXIT_RUNTIME_ERROR;
+                }
+            };
+            let dst_path = dst.join(rel);
+            // ⛔ Never follow: metadata, not metadata-through.
+            let kind = match std::fs::symlink_metadata(&src_path) {
+                Ok(m) => m.file_type(),
+                Err(e) => {
+                    eprintln!("podbox cp: {}: {e}", src_path.display());
+                    return EXIT_RUNTIME_ERROR;
+                }
+            };
+            if kind.is_symlink() {
+                // ⚠ Gated on its own path, never resolved: the target bytes
+                // are opaque, and an absolute target escapes nothing.
+                let own = if out_of {
+                    match src_path.parent() {
+                        Some(parent) => parent,
+                        None => {
+                            eprintln!("podbox cp: {} has no parent to gate", src_path.display());
+                            return EXIT_RUNTIME_ERROR;
+                        }
+                    }
+                } else {
+                    &dst_path
+                };
+                if let Err(e) = gate(own) {
+                    eprintln!("podbox cp: {e}");
+                    return EXIT_RUNTIME_ERROR;
+                }
+                if let Err(msg) = clear_of_symlinks(dst_base, &dst_path) {
+                    eprintln!("podbox cp: {msg}");
+                    return EXIT_RUNTIME_ERROR;
+                }
+                links.push((src_path, dst_path));
+                continue;
+            }
+            let gated = if out_of { &src_path } else { &dst_path };
+            if let Err(e) = gate(gated) {
+                eprintln!("podbox cp: {e}");
+                return EXIT_RUNTIME_ERROR;
+            }
+            if let Err(msg) = clear_of_symlinks(dst_base, &dst_path) {
+                eprintln!("podbox cp: {msg}");
+                return EXIT_RUNTIME_ERROR;
+            }
+            if kind.is_dir() {
+                dirs.push(dst_path);
+                stack.push(src_path);
+                continue;
+            }
+            if !kind.is_file() {
+                eprintln!(
+                    "podbox cp: {} is not a file or directory; special files are refused",
+                    src_path.display()
+                );
+                return EXIT_RUNTIME_ERROR;
+            }
+            files.push((src_path, dst_path));
+        }
+    }
+    // Pass two: the tree is validated, so only I/O can still fail, and
+    // each such error names its file. A refusal in pass one leaves no
+    // half-made tree behind.
+    if is_link(dst) {
+        eprintln!(
+            "podbox cp: {} is a symlink; writing through one is refused",
+            dst.display()
+        );
+        return EXIT_RUNTIME_ERROR;
+    }
+    if dst.is_file() {
+        eprintln!("podbox cp: {} exists and is not a directory", dst.display());
+        return EXIT_RUNTIME_ERROR;
+    }
+    if let Err(e) = std::fs::create_dir_all(dst) {
+        eprintln!("podbox cp: {}: {e}", dst.display());
+        return EXIT_RUNTIME_ERROR;
+    }
+    for dir in &dirs {
+        if let Err(e) = std::fs::create_dir_all(dir) {
+            eprintln!("podbox cp: {}: {e}", dir.display());
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    let mut bytes = 0u64;
+    for (from, to) in &files {
+        if let Some(parent) = to.parent() {
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                eprintln!("podbox cp: {}: {e}", parent.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+        match std::fs::copy(from, to) {
+            Ok(n) => bytes += n,
+            Err(e) => {
+                eprintln!("podbox cp: {}: {e}", from.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+    }
+    for (from, to) in &links {
+        if replicate_link(from, to) != 0 {
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    eprintln!(
+        "podbox cp: {} files ({bytes} bytes), {} symlinks {} -> {}",
+        files.len(),
+        links.len(),
+        src.display(),
+        dst.display()
+    );
+    0
 }
 
 /// `podbox inspect` against a container rather than an image.
@@ -1312,5 +1720,138 @@ mod tests {
         assert!(!o.follow);
         assert_eq!(o.want, "c1");
         assert!(parse_logs(&v(&[])).is_err());
+    }
+
+    /// TODO/cli.md T-1323. `cp` parses its flag and two positionals.
+    #[test]
+    fn cp_parses_recursive_and_two_paths() {
+        let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let o = parse_cp(&v(&["-r", "img:/a", "/b"])).unwrap();
+        assert!(o.recursive);
+        assert_eq!(o.a, "img:/a");
+        assert_eq!(o.b, "/b");
+        let o = parse_cp(&v(&["/b", "c:/a"])).unwrap();
+        assert!(!o.recursive);
+        assert!(parse_cp(&v(&["only"])).is_err());
+        assert!(parse_cp(&v(&["a", "b", "c"])).is_err());
+    }
+
+    /// TODO/cli.md T-1323. A clean tree round-trips through `copy_tree`
+    /// with bytes intact, in both directions.
+    #[test]
+    fn copy_tree_round_trips_a_clean_tree() {
+        let base = std::env::temp_dir().join(format!("podbox-cp-{}", std::process::id()));
+        let src = base.join("src");
+        let dst = base.join("dst");
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(src.join("sub")).unwrap();
+        std::fs::write(src.join("a"), b"aaa").unwrap();
+        std::fs::write(src.join("sub").join("b"), b"bbb").unwrap();
+        assert_eq!(copy_tree(&src, &dst, &src, true), 0);
+        assert_eq!(std::fs::read(dst.join("a")).unwrap(), b"aaa");
+        assert_eq!(std::fs::read(dst.join("sub").join("b")).unwrap(), b"bbb");
+        let back = base.join("back");
+        // ⚠ The inward root must exist, as a rootfs always does: the gate
+        // resolves the root before it resolves anything under it.
+        std::fs::create_dir_all(&back).unwrap();
+        assert_eq!(copy_tree(&dst, &back, &back, false), 0);
+        assert_eq!(std::fs::read(back.join("sub").join("b")).unwrap(), b"bbb");
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// TODO/cli.md T-1323. A symlink replicates as a symlink, verbatim
+    /// and unresolved: the target bytes are copied, so an absolute target
+    /// escapes nothing and no shadow bytes land. T-0305's rule, applied
+    /// to `cp` — distro rootfses are full of legitimate absolute links.
+    #[test]
+    fn copy_tree_replicates_a_symlink_without_resolving_it() {
+        let base = std::env::temp_dir().join(format!("podbox-cp-link-{}", std::process::id()));
+        let src = base.join("src");
+        let dst = base.join("dst");
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(src.join("good"), b"good").unwrap();
+        std::os::unix::fs::symlink("/etc/shadow", src.join("evil")).unwrap();
+        assert_eq!(copy_tree(&src, &dst, &src, true), 0);
+        assert_eq!(std::fs::read(dst.join("good")).unwrap(), b"good");
+        let meta = std::fs::symlink_metadata(dst.join("evil")).unwrap();
+        assert!(meta.file_type().is_symlink(), "evil replicates as a link");
+        assert_eq!(
+            std::fs::read_link(dst.join("evil")).unwrap(),
+            std::path::PathBuf::from("/etc/shadow")
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// TODO/cli.md T-1323. A destination through a pre-existing symlink
+    /// refuses the whole copy before a byte lands: the write would land
+    /// where the link points, not where it is named.
+    #[test]
+    fn copy_tree_refuses_a_destination_through_a_planted_symlink() {
+        let base = std::env::temp_dir().join(format!("podbox-cp-plant-{}", std::process::id()));
+        let src = base.join("src");
+        let back = base.join("back");
+        let planted = base.join("planted");
+        let _ = std::fs::remove_dir_all(&base);
+        // The source names sub/link/inner as real directories and files.
+        std::fs::create_dir_all(src.join("sub").join("link")).unwrap();
+        std::fs::write(src.join("sub").join("link").join("inner"), b"inner").unwrap();
+        std::fs::write(src.join("top"), b"top").unwrap();
+        // The destination already has sub/link as a symlink elsewhere.
+        std::fs::create_dir_all(back.join("sub")).unwrap();
+        std::fs::create_dir_all(&planted).unwrap();
+        std::os::unix::fs::symlink(&planted, back.join("sub").join("link")).unwrap();
+        assert_ne!(copy_tree(&src, &back, &back, false), 0);
+        assert!(
+            !planted.join("inner").exists(),
+            "nothing lands through the link"
+        );
+        assert!(
+            !back.join("top").exists(),
+            "a refused copy writes nothing else either"
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// TODO/cli.md T-1323. A single symlink out of a rootfs replicates
+    /// rather than refuses, even with an absolute target: the gate covers
+    /// the link's own path and the target stays opaque.
+    #[test]
+    fn copy_one_replicates_a_symlink_with_an_absolute_target() {
+        let base = std::env::temp_dir().join(format!("podbox-cp-one-link-{}", std::process::id()));
+        let root = base.join("rootfs");
+        let out = base.join("out");
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(root.join("etc")).unwrap();
+        std::fs::create_dir_all(&out).unwrap();
+        std::os::unix::fs::symlink("/proc/self/mounts", root.join("etc").join("mtab")).unwrap();
+        assert_eq!(
+            copy_one(&root, "/etc/mtab", &out.join("mtab"), true, false),
+            0
+        );
+        let got = out.join("mtab");
+        assert!(std::fs::symlink_metadata(&got)
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        assert_eq!(
+            std::fs::read_link(&got).unwrap(),
+            std::path::PathBuf::from("/proc/self/mounts")
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// TODO/cli.md T-1323. An `image:path` of `../../x` never leaves the
+    /// rootfs: the same gate as a single file.
+    #[test]
+    fn copy_one_refuses_an_escape() {
+        let base = std::env::temp_dir().join(format!("podbox-cp-escape-{}", std::process::id()));
+        let root = base.join("rootfs");
+        let out = base.join("out");
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&root).unwrap();
+        assert_ne!(copy_one(&root, "../../evil", &out, true, false), 0);
+        assert!(!base.join("evil").exists());
+        let _ = std::fs::remove_dir_all(&base);
     }
 }

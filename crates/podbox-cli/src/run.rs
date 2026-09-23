@@ -922,7 +922,12 @@ fn acquire(
     }
 }
 
-fn extract_now(
+/// Ensure the record is extracted, holding nothing: the caller holds the
+/// image lock across the check and the extract (T-0204), because the
+/// rootfs below must not be deleted between them. Shared by `run`'s
+/// prepare and `cp`'s image addressing (TODO/cli.md T-1323): one path
+/// for "the extracted rootfs in the store".
+pub(crate) fn extract_now(
     verb: &str,
     store: &podbox_image::Store,
     record: &podbox_image::Record,

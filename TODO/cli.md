@@ -844,7 +844,7 @@ Source:      issues 14 and 16, client beta testing 2026-09-22 (`cp`
 Category:    cli
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     `cp` only addresses `container:path`, and `run` leaves no
              record, so on a host where the payload cannot launch there
@@ -875,6 +875,32 @@ Prove:       `podbox cp image:/etc/os-release` on a host where
              escapes); `podbox cp --help` documents both. Close issues 14
              and 16 (cp half) with comments showing the commands and the
              shared containment check as the guard that stops recurrence.
+
+**Done, 2026-09-23.** `cp` addresses `container:path` first and
+`image:path` second (last-colon split, so a tag survives), extracting
+on demand under the image hold; `-r` copies a tree over the same
+`contain::within` gate in both directions. One deliberate deviation
+from the Prove letter: a symlink inside the tree replicates verbatim,
+it does not refuse. The first lane run proved the letter unworkable:
+`cp -r alpine:3.20:/etc` refused on `/etc/mtab -> /proc/mounts`, and
+every real rootfs carries such absolute links (TODO/extract.md
+T-0305 settled this for extraction: absolute targets replicate, never
+resolve). What refuses instead is a destination through a
+pre-existing symlink, which would land where the link points.
+Lane prove `.tmp/pb-w23c-prove.sh`, verdict `fail=0`:
+`cp IMAGE:/etc/os-release` retrieves Alpine bytes with pull only (no
+extract, no container); `cp -r IMAGE:/etc` lands 45 files plus 4
+symlinks with `mtab` a link to `/proc/mounts` verbatim against the
+rootfs; an imported absolute link replicates with its target intact
+and stays a link; a planted destination link refuses naming the
+symlink with nothing through it; the tree round-trips into a created
+container byte-identical (`cmp` clean); a directory without `-r`
+names `-r`; `--help` documents both addressings. Six unit tests by
+exact name, `cargo clippy --workspace --all-targets -- -D warnings`
+clean, `cargo test --workspace` exit 0. The guards that stop
+recurrence are the shared `within` gate on every rootfs-side path,
+the no-follow walk with verbatim link replication, and the
+write-through-symlink refusal on every destination.
 
 ---
 
