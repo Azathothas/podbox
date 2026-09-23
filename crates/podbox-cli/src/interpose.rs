@@ -414,7 +414,7 @@ pub fn apply(
                     // podbox wrote a file into somebody's image.
                     note.push_str(&format!(
                         "podbox: interpose: {GUEST_PATH} ({} object) is preloaded \
-                         for this payload. ⛔ podbox WROTE that file into the \
+                         for this payload. refused: podbox WROTE that file into the \
                          image's own rootfs and the payload can see it\n",
                         libc.word()
                     ));

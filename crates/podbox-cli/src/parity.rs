@@ -253,7 +253,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "extract", flag: Option::None, status: Native, note: "podbox's own verb, with no docker equivalent: unpack the layers and write the ownership sidecar" },
     // ⭐ M4, and each says the difference from docker's rather than implying
     // there is none. TODO/supervise.md T-0601 to T-0607.
-    Row { verb: "create", flag: Option::None, status: Native, note: "writes a created record and starts nothing, as docker's does. ⚠ It is served by run's PARSER, so it takes run's flag set: those rows are listed once, under `run`, rather than copied here where the two could diverge (T-0801)" },
+    Row { verb: "create", flag: Option::None, status: Native, note: "writes a created record and starts nothing, as docker's does. note: It is served by run's PARSER, so it takes run's flag set: those rows are listed once, under `run`, rather than copied here where the two could diverge (T-0801)" },
     Row { verb: "start", flag: Option::None, status: Native, note: "returns when the payload has reached its execve, established by a pipe rather than by a sleep (T-0602). A SIGINT or SIGTERM to the launcher is forwarded to the payload; the launcher holds no terminal to name it on, so the payload's signaled exit in the container record is the whole account (TODO/supervise.md T-1335)" },
     Row { verb: "stop", flag: Option::None, status: Degraded, note: "SIGTERM then SIGKILL to the PAYLOAD. podbox has no PID namespace, so a grandchild that reparented is outside its reach and is not signalled" },
     Row { verb: "restart", flag: Option::None, status: Native, note: "stop then start in one verb, naming which half failed (TODO/cli.md T-1331)" },
@@ -262,7 +262,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "rm", flag: Option::None, status: Native, note: "removes the record and the container's own directory; -f kills a running one first" },
     Row { verb: "ps", flag: Option::None, status: Degraded, note: "reads the container table, never /proc. A container whose launcher was killed reads `dead` with the time it was noticed, and no exit code (T-0604)" },
     Row { verb: "logs", flag: Option::None, status: Degraded, note: "the payload's stdout and stderr, interleaved into one file opened before the chroot. -f is not implemented (T-0605)" },
-    Row { verb: "wait", flag: Option::None, status: Degraded, note: "blocks on the launcher, bounded. ⛔ A container podbox did not see end has NO exit code and `wait` refuses rather than printing one" },
+    Row { verb: "wait", flag: Option::None, status: Degraded, note: "blocks on the launcher, bounded. refused: A container podbox did not see end has NO exit code and `wait` refuses rather than printing one" },
     Row { verb: "cp", flag: Option::None, status: Degraded, note: "one file at a time either way, or a directory tree with -r; a container or an image on either side, gated through the containment check (TODO/cli.md T-1323)" },
     Row { verb: "cp", flag: Some("-r, --recursive"), status: Native, note: "copy a directory tree with the same checks; symlinks replicate as symlinks, special files are refused (TODO/cli.md T-1323)" },
     Row { verb: "top", flag: Option::None, status: NoneStatus, note: "a chroot shares this machine's process table, so `top` would list the host's processes and call them the container's" },
@@ -395,7 +395,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "ps", flag: Some("-f, --filter"), status: Native, note: "caller-side predicate: name=<substring> over name and id prefix, label= matches nothing (records carry no labels) (TODO/cli.md T-1331)" },
     Row { verb: "stop", flag: Some("-t, --time, --timeout"), status: Native, note: "seconds between SIGTERM and SIGKILL. Default 10, and a kill is reported on stderr" },
     Row { verb: "stop", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "kill", flag: Some("-s, --signal"), status: Native, note: "by name or number. ⛔ An unknown one is refused rather than defaulted: sending the wrong signal is not something a caller can notice" },
+    Row { verb: "kill", flag: Some("-s, --signal"), status: Native, note: "by name or number. refused: An unknown one is refused rather than defaulted: sending the wrong signal is not something a caller can notice" },
     Row { verb: "kill", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "rm", flag: Some("-f, --force"), status: Native, note: "kill a running container before removing it" },
     Row { verb: "rm", flag: Some("-v, --volumes"), status: Stub, note: "accepted for parity: podbox has no volumes, so there are none to remove" },
@@ -596,6 +596,20 @@ pub fn text() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_parity_note_is_plain_ascii() {
+        // TODO/cli.md T-1336: the parity table is machine-readable
+        // (`system info --format '{{json .Parity}}'`), so a note needing
+        // a codepoint above U+007F forces every downstream parser to
+        // handle bytes that carry no meaning.
+        let bad: Vec<(&str, usize)> = TABLE
+            .iter()
+            .map(|r| (r.verb, r.note.bytes().filter(|b| *b > 0x7F).count()))
+            .filter(|(_, n)| *n > 0)
+            .collect();
+        assert!(bad.is_empty(), "non-ASCII parity notes: {bad:?}");
+    }
 
     /// ⭐ T-0801's `Prove`, as a unit test as well as a command: the table is
     /// the contract, so its size and its vocabulary are asserted here rather

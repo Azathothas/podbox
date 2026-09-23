@@ -343,4 +343,15 @@ mod tests {
         assert!(text.contains("GLOBAL"));
         assert!(text.contains("COMMAND REFERENCE"));
     }
+
+    #[test]
+    fn the_whole_manual_is_plain_ascii() {
+        // TODO/cli.md T-1336: usage strings, parity notes and the manual
+        // carry no marker glyphs on any path; a binary whose manual needs
+        // a codepoint above U+007F forces every downstream parser to
+        // handle bytes that carry no meaning.
+        let text = render(None, &stub).expect("the full manual renders");
+        let bad = text.bytes().filter(|b| *b > 0x7F).count();
+        assert_eq!(bad, 0, "the manual carries {bad} non-ASCII bytes");
+    }
 }

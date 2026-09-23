@@ -100,7 +100,7 @@ pub fn prepare(
             // ⛔ Even this is not fatal without --strict: the rootfs is there
             // and the payload may not need what podbox could not do.
             banner.push_str(&format!(
-                "podbox: complete: ⛔ the completion layer could not run at all: {e}. \
+                "podbox: complete: refused: the completion layer could not run at all: {e}. \
                  The payload is entering a rootfs podbox did not prepare\n"
             ));
             if ask.strict {
@@ -279,7 +279,7 @@ pub fn run_steps_with_memo(
             Ok(podbox_enter::Bounded::Exited(c)) => (
                 format!(
                     "podbox: complete: step {} of {}: `{}` exited {c} in {took:.1} s. \
-                     ⚠ podbox does NOT fail the run for it: the payload may not need \
+                     note: podbox does NOT fail the run for it: the payload may not need \
                      what it would have done",
                     i + 1,
                     steps.len(),

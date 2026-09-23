@@ -100,6 +100,12 @@
 25. `scripts/dev.sh check` reports a step that exits 2 as SKIP, never as a
      failure. TODO/gate.md T-1207 item 4: exit 2 is "could not run"
      everywhere in this tree.
+26. A done entry's Prove commands name only flags the parity table admits,
+     clusters expanded by docker's rule. TODO/gate.md T-1325.
+27. No parity note leans on a shipped milestone or claims a present verb
+     missing. TODO/gate.md T-1325.
+28. Every printed string is plain ASCII: no marker glyph, no emoji, on any
+     path the binary prints. TODO/cli.md T-1336.
 
 ⛔ Read the exit code from this process, unpiped.
 Exit: 0 everything agrees, 1 something disagrees, 2 could not run.
@@ -204,7 +210,7 @@ seen = {
     "size_ceiling": 0, "experiment_numbers": 0, "ci_components": 0,
     "exit_codes": 0, "prove_registry": 0, "closure_records": 0,
     "interpose_sizes": 0, "interpose_exports": 0, "devcheck_third_state": 0,
-    "prove_flags": 0, "parity_notes": 0,
+    "prove_flags": 0, "parity_notes": 0, "ascii_output": 0,
 }
 
 # ⛔ Check 17. The one file allowed to declare the release binary's ceiling, and
@@ -1208,6 +1214,41 @@ def check_parity_notes():
                         f"table is. TODO/gate.md T-1325.")
 
 
+# ⛔ Check 28. The binary prints plain ASCII on every path, so a usage
+# string, parity note, banner line or error carrying a marker glyph or
+# emoji rots the contract a downstream parser reads. TODO/cli.md T-1336:
+# the scrub replaced each glyph with the word it stands for, and this
+# holds the scrubbed state: any non-ASCII byte in a PRINTED string is a
+# finding. Comments (a line whose stripped form starts with `//`, doc
+# comments included) are out of scope: the markers check owns those.
+ASCII_SCOPES = ("crates/podbox-cli/src", "crates/podbox-probe/src",
+                "crates/podbox-image/src", "crates/podbox-enter/src",
+                "crates/podbox-complete/src")
+
+
+def check_ascii_output(files):
+    """Check 28: no printed string carries a non-ASCII byte."""
+    for rel in sorted(f for f in files
+                      if f.endswith(".rs")
+                      and f.startswith(ASCII_SCOPES)):
+        try:
+            text = read(os.path.join(ROOT, rel))
+        except (OSError, UnicodeDecodeError):
+            continue
+        for n, line in enumerate(text.splitlines(), 1):
+            seen["ascii_output"] += 1
+            if line.strip().startswith("//"):
+                continue
+            for ch in line:
+                if ord(ch) > 0x7F:
+                    err(f"{rel}:{n}",
+                        f"prints U+{ord(ch):04X}: the binary prints plain "
+                        f"ASCII on every path, and a glyph here is "
+                        f"unrenderable bytes in an automated caller's "
+                        f"stream. TODO/cli.md T-1336.")
+                    break
+
+
 def main():
     if not os.path.isdir(TODO):
         print("check-todo: TODO/ does not exist", file=sys.stderr)
@@ -1451,6 +1492,9 @@ def main():
 
     # -- 27. parity notes blame no shipped milestone, miss no verb ----------
     check_parity_notes()
+
+    # -- 28. printed strings are plain ASCII --------------------------------
+    check_ascii_output(files)
 
     # -- 16. coverage --------------------------------------------------------
     # ⭐ A check that examined nothing reports success otherwise, which is the

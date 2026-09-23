@@ -88,7 +88,7 @@ impl Interpreter {
                 interpreter,
                 evidence,
             } => Some(format!(
-                "⛔ MEASURED BY {interpreter}, NOT BY THIS MACHINE. {evidence}. Every \
+                "refused: MEASURED BY {interpreter}, NOT BY THIS MACHINE. {evidence}. Every \
                  row above is that emulator's answer: it answers for the syscalls it \
                  implements and reports its own confinement, whatever this host's is \
                  (TODO/enter.md T-0506)"

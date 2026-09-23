@@ -72,7 +72,7 @@ fn run_resolver(root: &Root, opts: &Options) -> Result<Vec<Fixup>> {
         host.len(),
         match was {
             Kind::Symlink(t) => format!(
-                ". ⛔ It was a symlink to {t}, which podbox replaced rather than \
+                ". refused: It was a symlink to {t}, which podbox replaced rather than \
                      wrote through"
             ),
             _ => String::new(),
@@ -199,12 +199,12 @@ fn run_mtab(root: &Root) -> Result<Vec<Fixup>> {
         // asserting a cause it did not check.
         Kind::Symlink(t) if t.starts_with("/proc/") || t.contains("/proc/") => format!(
             "it was a symlink to {t}, and /proc is not mounted inside a chroot, so \
-             the link does not resolve. ⛔ podbox REPLACED the link rather than \
+             the link does not resolve. refused: podbox REPLACED the link rather than \
              writing through it: an absolute target would have put this write on \
              the host"
         ),
         Kind::Symlink(t) => format!(
-            "it was a symlink to {t}. ⛔ podbox REPLACED the link rather than \
+            "it was a symlink to {t}. refused: podbox REPLACED the link rather than \
              writing through it: an absolute target would have put this write \
              outside the rootfs"
         ),

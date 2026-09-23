@@ -23,7 +23,7 @@ usage: podbox system info [--format T]
        podbox system abi <object> <libc>
        podbox info [--format T]
 
-  abi          ⭐ may <object> be preloaded into a payload served by <libc>?
+  abi          may <object> be preloaded into a payload served by <libc>?
                Answered by READING both, never by loading one:
                DT_NEEDED against the libc's own SONAME, then every imported
                symbol and every imported symbol VERSION, from .dynsym and
@@ -38,20 +38,20 @@ usage: podbox system info [--format T]
   --format T   {{.Field}} placeholders, plus `{{json .Field}}`. .Parity is
                already a JSON document, so both spellings print it.
 
-  ⛔ podbox has no daemon, so there is no client/server split to report. The
+  refused: podbox has no daemon, so there is no client/server split to report. The
     rung this machine permits stands where docker prints a server version,
     and it is measured rather than assumed.
 
-  ⛔ .Rung and .EnteredRung are TWO ANSWERS and a caller needs both. .Rung is
+  refused: .Rung and .EnteredRung are TWO ANSWERS and a caller needs both. .Rung is
     what this machine would permit; .EnteredRung is the sequence `podbox run`
     actually performs, which is a chroot on every machine. Reporting the first
     as if it were the second is the defect TODO/cli.md T-0804 was opened for.
 
-  ⚠ .ExitCodes is docker's exit-code contract as data: one object per case,
+  note: .ExitCodes is docker's exit-code contract as data: one object per case,
     with `case`, `code` and `what`. Measured against docker rather than read,
     by experiments/330-exit-codes.sh (TODO/cli.md T-0802).
 
-  ⚠ .Parity is the verb and flag parity table (TOOL.md section 6.8) as data:
+  note: .Parity is the verb and flag parity table (TOOL.md section 6.8) as data:
     one object per row, with `verb`, `flag`, `status` and `note`. `status` is
     one of Native, Degraded, Stub, None and there is no fifth.
 ";
@@ -391,6 +391,14 @@ fn human(fields: &[(&str, String)]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn system_usage_is_plain_ascii() {
+        // TODO/cli.md T-1336: `system --help` and its subverb usages
+        // print on a constrained host; a glyph there is unrenderable.
+        let bad = SYSTEM_USAGE.bytes().filter(|b| *b > 0x7F).count();
+        assert_eq!(bad, 0, "system usage carries {bad} non-ASCII bytes");
+    }
 
     /// ⛔ Every declared field is built, and every built field is declared. A
     /// name in one list and not the other is a field that `--format` accepts

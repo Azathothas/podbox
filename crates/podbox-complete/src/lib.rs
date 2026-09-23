@@ -286,7 +286,7 @@ impl Report {
         let degraded = self.degradations().len();
         s.push_str(&format!(
             "podbox: complete: {} fixup(s) applied to this image's rootfs, {} \
-             degraded, {} failed, {} step(s) to run inside it; libc={}. ⛔ These \
+             degraded, {} failed, {} step(s) to run inside it; libc={}. refused: These \
              are edits podbox made inside somebody else's image and the payload \
              can see them\n",
             changed,

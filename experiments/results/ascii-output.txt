@@ -1,0 +1,77 @@
+== T-1336: every printed byte is plain ASCII
+== taken 2026-09-23T11:38:17Z on Linux 7.2.0-WSL2-STABLE
+== bin: /work/target/x86_64-unknown-linux-musl/release/podbox
+podbox 0.1.0
+== every implemented verb's --help
+ASCII-OK: parity-json-stdout
+ASCII-OK: help-abi
+ASCII-OK: help-attach
+ASCII-OK: help-build
+ASCII-OK: help-builder
+ASCII-OK: help-commit
+ASCII-OK: help-compose
+ASCII-OK: help-container
+ASCII-OK: help-context
+ASCII-OK: help-cp
+ASCII-OK: help-create
+ASCII-OK: help-diff
+ASCII-OK: help-docker
+ASCII-OK: help-events
+ASCII-OK: help-exec
+ASCII-OK: help-export
+ASCII-OK: help-extract
+ASCII-OK: help-history
+ASCII-OK: help-image
+ASCII-OK: help-images
+ASCII-OK: help-import
+ASCII-OK: help-info
+ASCII-OK: help-inspect
+ASCII-OK: help-install-names
+ASCII-OK: help-kill
+ASCII-OK: help-load
+ASCII-OK: help-login
+ASCII-OK: help-logout
+ASCII-OK: help-logs
+ASCII-OK: help-man
+ASCII-OK: help-network
+ASCII-OK: help-pause
+ASCII-OK: help-podman
+ASCII-OK: help-podvm
+ASCII-OK: help-port
+ASCII-OK: help-probe
+ASCII-OK: help-prune
+ASCII-OK: help-ps
+ASCII-OK: help-pull
+ASCII-OK: help-push
+ASCII-OK: help-rename
+ASCII-OK: help-restart
+ASCII-OK: help-rm
+ASCII-OK: help-rmi
+ASCII-OK: help-run
+ASCII-OK: help-save
+ASCII-OK: help-search
+ASCII-OK: help-start
+ASCII-OK: help-stats
+ASCII-OK: help-stop
+ASCII-OK: help-swarm
+ASCII-OK: help-system
+ASCII-OK: help-tag
+ASCII-OK: help-top
+ASCII-OK: help-unpause
+ASCII-OK: help-update
+ASCII-OK: help-verify
+ASCII-OK: help-version
+ASCII-OK: help-volume
+ASCII-OK: help-wait
+== podbox man, both pagings
+ASCII-OK: man-no-pager-stdout
+ASCII-OK: man-no-pager-stderr
+ASCII-OK: man-piped-stdout
+ASCII-OK: man-piped-stderr
+== a catalog of error paths
+ASCII-OK: err-flag-refusal
+ASCII-OK: err-verb-refusal
+ASCII-OK: err-none-flag
+ASCII-OK: err-inspect-missing
+ASCII-OK: help-install-names
+== verdict fail=0

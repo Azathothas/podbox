@@ -511,7 +511,7 @@ fn p_mount_tmpfs() -> Outcome {
             match unsafe { sys::sys(sys::SYS_UMOUNT2, [tgt.ptr(), 0, 0, 0, 0, 0]) } {
                 Ok(_) => Outcome::ok(),
                 Err(e) => Outcome::ok_with(format!(
-                    "⚠ the tmpfs mounted at /mnt could not be removed: umount2 \
+                    "note: the tmpfs mounted at /mnt could not be removed: umount2 \
                      answered {} ({}). It is still mounted.",
                     e.name(),
                     e.0
@@ -1144,7 +1144,7 @@ fn a_move_mount_real() -> Outcome {
         Ok(_) => match unsafe { sys::sys(sys::SYS_UMOUNT2, [dest.ptr(), 0, 0, 0, 0, 0]) } {
             Ok(_) => Outcome::ok(),
             Err(e) => Outcome::ok_with(format!(
-                "⚠ the tmpfs attached at {DEST} could not be removed: umount2 \
+                "note: the tmpfs attached at {DEST} could not be removed: umount2 \
                  answered {} ({}). It is still mounted.",
                 e.name(),
                 e.0

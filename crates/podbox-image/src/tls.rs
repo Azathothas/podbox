@@ -205,7 +205,7 @@ pub fn client_config_unverified() -> (Arc<ClientConfig>, Roots) {
     (
         Arc::new(config),
         Roots {
-            source: "⚠ NONE: this registry was named insecure, so its \
+            source: "note: NONE: this registry was named insecure, so its \
                      certificate was not verified against any root"
                 .to_string(),
             count: 0,

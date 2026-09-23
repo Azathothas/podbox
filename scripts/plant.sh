@@ -46,7 +46,7 @@ command -v git >/dev/null 2>&1 || { echo "SKIP: no git" >&2; exit 2; }
 
 # ⛔ GUARD 3: ONE LIST. Everything any case may touch is named here once, and
 # both the backup and the restore iterate this and nothing else.
-FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/enter.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs crates/podbox-cli/src/parity.rs scripts/build-interpose.sh scripts/dev.sh"
+FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/enter.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs crates/podbox-cli/src/parity.rs crates/podbox-cli/src/run.rs scripts/build-interpose.sh scripts/dev.sh"
 
 # ⛔ CHECK 18'S SUBJECT IS A NUMBER THAT IS ALREADY TAKEN, so writing one here
 # literally would put a second name on it in this very file and make the clean
@@ -428,6 +428,13 @@ case_plant "27a a parity note leaning on a shipped milestone" "leans on M4" \
 
 case_plant "27b a parity note missing a present verb" "claims \`prune\`" \
   sh -c 'sed -i "s/df and events are not implemented/df, events and prune are not implemented/" crates/podbox-cli/src/parity.rs'
+
+# ⛔ CHECK 28, and its plant lands in a printed string on purpose. A glyph
+# in a printed string must go red naming U+26D4 and T-1336; comments stay
+# exempt (the markers check owns those), so the check reads the code and
+# not the file.
+case_plant "28 a glyph in a printed string" "prints U+26D4" \
+  sh -c 'sed -i "s/refused: do not run any COMMAND/refused: do not run any COMMAND \342\233\224/" crates/podbox-cli/src/run.rs'
 
 echo
 # ⛔ SAY WHAT IS NOT COVERED. A harness that lists passing cases without naming

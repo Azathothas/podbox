@@ -1110,7 +1110,7 @@ Source:      operator order 2026-09-23 (no place for either in a CLI
 Category:    cli
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     The binary's user-facing text carries ⛔/⚠/⭐ glyphs on
              dozens of paths: per-verb usage blocks (printed by every
@@ -1135,7 +1135,31 @@ Approach:    Scrub every printed string to ASCII, replacing each glyph
              (glyphs become words, nothing is reworded).
 Decision:    Words, not glyphs, everywhere printed. The manual entry
              (T-1332) inherits ASCII output from this one.
-Prove:       A script asserts bytes `0x00`-`0x7F` only across every
-             verb's `--help`, `podbox man`, and a catalog of error
-             paths, with the existing suite green; the guard runs in the
-             gate so a new glyph fails before it ships.
+Prove:       `./experiments/352-ascii-output.sh` exits 0, with the
+             existing suite green; the guard runs in the gate so a new
+             glyph fails before it ships.
+
+**Done 2026-09-23.** Words, not glyphs, as decided: every printed
+string across `crates/podbox-cli/src`, `crates/podbox-probe/src`,
+`crates/podbox-image/src/tls.rs`, `crates/podbox-enter/src/abi.rs`
+and `crates/podbox-complete/src` carries bytes `0x00`-`0x7F` only.
+U+26D4 reads `refused:`, U+26A0 reads `note:`, U+2B50 is deleted;
+source comments stay as they are. Twenty-two files, 84 insertions
+and 82 deletions, nothing reworded.
+
+`experiments/352-ascii-output.sh` drives the binary rather than
+grepping the source: every implemented verb's `--help` (verbs read
+out of the binary's own parity table, never listed), `man` under
+both pagings with stdout and stderr separated, and a catalog of
+five error paths. `experiments/results/ascii-output.txt` carries
+the run: 69 `ASCII-OK` lines, zero failures, verdict `fail=0`.
+
+Nine unit tests hold the constants the script drives (usage per
+module, every parity note, the whole manual through the stub):
+`cargo test -p podbox-cli ascii`, 9 passed. Clippy `-D warnings`
+clean in the same lane run. The gate guard is check 28 in
+`scripts/check-todo.py` (any non-ASCII byte in a printed string
+fails, comments exempt) with its plant case in `scripts/plant.sh`:
+a glyph planted in `run.rs` goes red naming `U+26D4` and T-1336.
+The guard is the check plus the 352 experiment: a new glyph fails
+the gate before it ships and fails the binary drive beside it.

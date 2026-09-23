@@ -271,7 +271,7 @@ fn filled(
     let w = root.write(path, bytes, 0o666)?;
     let mut detail = format!(
         "mknod(2) refused with {why}, so this is a regular file of {} {what}. \
-         ⛔ It ENDS: a read past {} bytes gives EOF where the device would not",
+         refused: It ENDS: a read past {} bytes gives EOF where the device would not",
         bytes.len(),
         bytes.len()
     );

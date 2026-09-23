@@ -129,7 +129,7 @@ fn run(root: &Root, opts: &Options) -> Result<Vec<Fixup>> {
                 out.push(
                     Fixup::new("T-0411", "source-scheme", &path, Action::Restored).why(
                         "--no-source-fixup: an earlier run had rewritten this file's \
-                         scheme, and podbox put the image's own bytes back. ⚠ A \
+                         scheme, and podbox put the image's own bytes back. note: A \
                          source that is http:// will hang rather than fail where \
                          tcp/80 is black-holed, and that is now the caller's choice",
                     ),
@@ -152,7 +152,7 @@ fn run(root: &Root, opts: &Options) -> Result<Vec<Fixup>> {
         let w = root.write(&path, new.as_bytes(), 0o644)?;
         out.push(
             Fixup::new("T-0411", "source-scheme", &path, crate::act(w)).why(format!(
-                "http:// -> https:// for {}. ⛔ The scheme only: the mirror this \
+                "http:// -> https:// for {}. refused: The scheme only: the mirror this \
                  image chose is the mirror podbox uses",
                 hosts.join(", ")
             )),
@@ -168,7 +168,7 @@ fn run(root: &Root, opts: &Options) -> Result<Vec<Fixup>> {
                 Fixup::new("T-0411", "source-reach", host, Action::Skipped)
                     .why(format!(
                         "left every http:// source naming this host alone: it did not \
-                         answer over HTTPS ({}). ⚠ Rewriting a source that then fails \
+                         answer over HTTPS ({}). note: Rewriting a source that then fails \
                          is worse than the hang, because the failure stops naming the \
                          cause",
                         a.why()

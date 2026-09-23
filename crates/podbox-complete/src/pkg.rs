@@ -274,7 +274,7 @@ fn ca_bundle(root: &Root, entry: &'static str, opts: &Options) -> Result<Vec<Fix
             )
             .why(
                 "the image has no CA bundle and this machine has none podbox can \
-                 find, so an https source in it will not verify. ⛔ podbox does \
+                 find, so an https source in it will not verify. refused: podbox does \
                  not disable verification to make one work",
             )
             .degraded()]);
@@ -368,7 +368,7 @@ fn ca_bundle(root: &Root, entry: &'static str, opts: &Options) -> Result<Vec<Fix
         .why(
             "the image ships its own bundle, and this machine's came from a \
                  default path rather than from $SSL_CERT_FILE, $CURL_CA_BUNDLE or \
-                 $REQUESTS_CA_BUNDLE. ⛔ That is no announcement, so podbox adds \
+                 $REQUESTS_CA_BUNDLE. refused: That is no announcement, so podbox adds \
                  nothing to somebody else's trust store",
         )]);
     };
@@ -381,7 +381,7 @@ fn ca_bundle(root: &Root, entry: &'static str, opts: &Options) -> Result<Vec<Fix
         )
         .why(format!(
             "--no-host-cas: this machine announced its own CA bundle in ${var} \
-                 and podbox left the image's trust store alone. ⚠ An https package \
+                 and podbox left the image's trust store alone. note: An https package \
                  source will fail to verify here if this machine intercepts TLS"
         ))
         .degraded()]);
@@ -461,7 +461,7 @@ fn ca_bundle(root: &Root, entry: &'static str, opts: &Options) -> Result<Vec<Fix
                 .why(format!(
                     "APPENDED this machine's CA bundle ({} bytes, announced in ${var} \
                      as {}). The image's own roots are kept and the added block is \
-                     marked. ⚠ This machine's trust is now the container's too; \
+                     marked. note: This machine's trust is now the container's too; \
                      --no-host-cas refuses it",
                     h.bytes.len(),
                     h.path
@@ -596,7 +596,7 @@ fn ca_hash_dir(root: &Root, opts: &Options) -> Result<(Vec<Fixup>, Vec<Step>)> {
             Action::Unchanged,
             false,
             "this machine's CA bundle came from a default path rather than from \
-             $SSL_CERT_FILE, $CURL_CA_BUNDLE or $REQUESTS_CA_BUNDLE. ⛔ That is no \
+             $SSL_CERT_FILE, $CURL_CA_BUNDLE or $REQUESTS_CA_BUNDLE. refused: That is no \
              announcement, so podbox adds nothing to somebody else's trust store"
                 .to_string(),
         ));
@@ -640,7 +640,7 @@ fn ca_hash_dir(root: &Root, opts: &Options) -> Result<(Vec<Fixup>, Vec<Step>)> {
             true,
             format!(
                 "--no-host-cas: this machine announced its own CA bundle in ${var} \
-                 and podbox left the image's hash-indexed trust store alone. ⚠ A \
+                 and podbox left the image's hash-indexed trust store alone. note: A \
                  tool reading a CApath -- libzypp is one -- will fail to verify \
                  here if this machine intercepts TLS"
             ),
@@ -668,7 +668,7 @@ fn ca_hash_dir(root: &Root, opts: &Options) -> Result<(Vec<Fixup>, Vec<Step>)> {
             true,
             "--no-steps: podbox did not write this machine's roots into the image's \
              hash-indexed CApath, because indexing them needs `openssl rehash` run \
-             inside the rootfs. ⚠ A tool reading a CApath will not verify here"
+             inside the rootfs. note: A tool reading a CApath will not verify here"
                 .to_string(),
         ));
     }
@@ -720,7 +720,7 @@ fn ca_hash_dir(root: &Root, opts: &Options) -> Result<(Vec<Fixup>, Vec<Step>)> {
             let body = format!(
                 "# podbox ({entry}): one root of this machine's own CA bundle, \
                  announced in ${var} as {}, that this image did not already \
-                 carry. ⛔ podbox added it to somebody else's trust store; \
+                 carry. refused: podbox added it to somebody else's trust store; \
                  --no-host-cas refuses it\n{pem}",
                 h.path
             );
@@ -767,7 +767,7 @@ fn ca_hash_dir(root: &Root, opts: &Options) -> Result<(Vec<Fixup>, Vec<Step>)> {
                 .why(format!(
                     "{} of this machine's {} announced roots are not in this image's \
                      CApath; written as one certificate per file ({}*.pem), {wrote} \
-                     changed, {removed} stale one(s) removed. ⚠ A hash-indexed \
+                     changed, {removed} stale one(s) removed. note: A hash-indexed \
                      CApath is read by NAME, so they stay invisible until `openssl \
                      rehash` links them; this machine's trust is then the \
                      container's too",
@@ -842,7 +842,7 @@ fn zypper(root: &Root, _opts: &Options) -> Result<Vec<Fixup>> {
             Action::Unchanged,
         )
         .why(
-            "a RIS service index is present. ⚠ Any scheme fixup (T-0411) is \
+            "a RIS service index is present. note: Any scheme fixup (T-0411) is \
              applied HERE as well as to repos.d, or `zypper refresh-services` \
              regenerates repos.d from the uncorrected index and reverts it",
         )

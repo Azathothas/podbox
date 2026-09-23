@@ -23,7 +23,7 @@ use podbox_image::transport::Policy;
 /// cannot be missing from the other verb's help. TODO/cli.md T-0801.
 pub const RUN_OPTIONS: &str = "\
   -d, --detach     start the container and print its id, and do not wait
-  --name NAME      a name for the container. ⚠ Refused if one already has it
+  --name NAME      a name for the container. note: Refused if one already has it
   --rm             remove the extracted rootfs when the payload exits,
                    unless a container record references it: the rootfs is
                    shared, and a failed run must not delete what `keeper`
@@ -35,37 +35,37 @@ pub const RUN_OPTIONS: &str = "\
                    is answered through the interposer identity memo for a
                    reachable payload, which the banner names and --strict
                    refuses (TODO/interpose.md T-0711)
-  --entrypoint P   replace the image's entrypoint. ⚠ As docker: this also
+  --entrypoint P   replace the image's entrypoint. note: As docker: this also
                    drops the image's Cmd, because those were that
                    entrypoint's default arguments
   --add-host N:IP  add a name to the container's /etc/hosts. Repeatable
   --no-source-fixup
                    leave the image's package sources exactly as extracted.
-                   ⚠ podbox rewrites http:// to https:// for a mirror that
+                   note: podbox rewrites http:// to https:// for a mirror that
                    answers over HTTPS, because tcp/80 HANGS on the runtimes
                    podbox targets. This turns that off, and UNDOES a rewrite
                    an earlier container made in the same shared rootfs
   --no-host-cas    do not append this machine's announced CA bundle
                    ($SSL_CERT_FILE, $CURL_CA_BUNDLE, $REQUESTS_CA_BUNDLE) to
-                   the image's own trust store. ⚠ Where this machine
+                   the image's own trust store. note: Where this machine
                    intercepts TLS, an https package source then fails to
                    verify inside the container, exactly as it does under
                    docker
-  --no-steps       ⛔ do not run any COMMAND inside the rootfs before the
+  --no-steps       refused: do not run any COMMAND inside the rootfs before the
                    payload. Two fixups cannot be made from outside the
                    chroot -- `pacman-key --init` for an empty keyring, and
                    `openssl rehash` for a hash-indexed CA directory, which is
                    the only trust store libzypp reads -- and podbox names
                    each on the banner before it runs it. This refuses them
                    all, and the fixup log then says what the caller gave up
-  --strict         ⛔ refuse to run at all where anything about this
+  --strict         refused: refuse to run at all where anything about this
                    invocation is Degraded or Stub: a flag, the selected rung,
                    or a fixup the completion layer had to make
   --platform P     which platform of a multi-platform image to run
   --pull WHEN      never | missing (default) | always
   --insecure-registry HOST, --tls-verify=B
                    as `podbox pull`; used only when something must be fetched
-  -t, --tty        ⛔ REFUSED BY NAME where /dev/ptmx is unusable, rather
+  -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
                    than silently degraded (TODO/enter.md T-0503)
   --podbox-tier T  podbox's own: machine selects the machine tier, chroot the
                    chroot tier. `podvm` defaults to machine; an explicit flag
@@ -80,16 +80,16 @@ pub const RUN_OPTIONS: &str = "\
                    guest over the RLIMIT_FSIZE ceiling is refused before it
                    starts, naming both numbers (TODO/podvm.md T-1305)
 
-  ⛔ podbox run enters a CHROOT, not a container. It shares this machine's
+  refused: podbox run enters a CHROOT, not a container. It shares this machine's
     process table, network, IPC and mount namespaces with the payload. The
     banner on stderr says so on every run and names what the selected rung
     must never claim.
 
-  ⚠ The payload owns stdout. Every word podbox prints goes to stderr, so
+  note: The payload owns stdout. Every word podbox prints goes to stderr, so
     `podbox run <image> cmd | consumer` gives the consumer the payload's
     bytes and nothing else.
 
-  ⚠ The exit code is the payload's own, and a signalled payload is 128+signal.
+  note: The exit code is the payload's own, and a signalled payload is 128+signal.
     125 is podbox failing to run the command, 126 the command found and not
     invocable, 127 not found. Those are docker's.
 ";
@@ -108,7 +108,7 @@ pub fn usage(verb: &str) -> String {
         // one parser serves both, and `podbox system info` says the same thing
         // about the same rows instead of holding a second copy of them.
         s.push_str(&format!(
-            "  ⚠ podbox {verb} takes podbox run's option set, listed below, because one\n    \
+            "  note: podbox {verb} takes podbox run's option set, listed below, because one\n    \
              parser serves both. `podbox system info` lists those rows under `run`.\n\n"
         ));
     }
@@ -681,7 +681,7 @@ pub(crate) fn prepare(
                         "podbox: this image is {}/{} and this machine is {}. Its \
                          interpreter {} is registered WITHOUT the binfmt F flag, so \
                          the kernel opens it by path at exec time and that path is \
-                         inside the container. ⛔ podbox has COPIED it to {} inside \
+                         inside the container. refused: podbox has COPIED it to {} inside \
                          the image's own rootfs; the payload can see that file.",
                         record.os,
                         record.architecture,
@@ -994,6 +994,16 @@ mod tests {
 
     fn v(xs: &[&str]) -> Vec<String> {
         xs.iter().map(|s| (*s).to_string()).collect()
+    }
+
+    #[test]
+    fn every_usage_string_is_plain_ascii() {
+        // TODO/cli.md T-1336: every `--help` path prints bytes 0x00-0x7F
+        // only. `run`'s usage is the shared one (`create` and `exec`
+        // print it too), so holding this one holds all three.
+        let text = usage("run") + &usage("create") + RUN_OPTIONS;
+        let bad = text.bytes().filter(|b| *b > 0x7F).count();
+        assert_eq!(bad, 0, "run usage carries {bad} non-ASCII bytes");
     }
 
     /// ⛔ The rule a caller cannot work around if podbox gets it wrong.

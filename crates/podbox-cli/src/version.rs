@@ -122,4 +122,13 @@ mod tests {
     fn info_matches_the_binary() {
         assert_eq!(info().version, env!("CARGO_PKG_VERSION"));
     }
+
+    #[test]
+    fn version_documents_are_plain_ascii() {
+        // TODO/cli.md T-1336: `version` and `version --verbose` print
+        // bytes 0x00-0x7F only.
+        let text = format!("podbox {}\n{}", info().version, unknown().render_verbose());
+        let bad = text.bytes().filter(|b| *b > 0x7F).count();
+        assert_eq!(bad, 0, "version output carries {bad} non-ASCII bytes");
+    }
 }

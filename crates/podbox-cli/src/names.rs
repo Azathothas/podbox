@@ -161,13 +161,13 @@ usage: podbox system install-names [--dir D] [--force] [name...]
   --force    install the `docker` name even where a docker daemon answers, and
              replace a file that is not already a link to this binary
 
-  ⛔ podbox REFUSES the `docker` name where a working docker daemon is
+  refused: podbox REFUSES the `docker` name where a working docker daemon is
     reachable, unless --force. A machine with a working daemon is a machine
     where podbox is the wrong tool. The check is on a reachable daemon and not
     on a `docker` binary being present: on the runtime podbox is for, that
     binary exists with nothing behind it.
 
-  ⛔ Symlinks, never copies and never a wrapper script. One binary is one
+  refused: Symlinks, never copies and never a wrapper script. One binary is one
     artefact, and a shell wrapper breaks the memfd rung (TODO/packaging.md
     T-1001).
 ";
@@ -262,7 +262,9 @@ pub fn install(verb: &str, args: &[String]) -> i32 {
                 Daemon::Unknown(why) => {
                     // ⚠ The guard says IT is degraded and continues, rather than
                     // going quiet or refusing on a check it did not make.
-                    eprintln!("podbox system install-names: ⚠ the daemon check is degraded: {why}");
+                    eprintln!(
+                        "podbox system install-names: note: the daemon check is degraded: {why}"
+                    );
                 }
                 _ => {}
             }
@@ -306,6 +308,14 @@ pub fn install(verb: &str, args: &[String]) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn install_names_usage_is_plain_ascii() {
+        // TODO/cli.md T-1336: `install-names --help` prints bytes
+        // 0x00-0x7F only.
+        let bad = INSTALL_USAGE.bytes().filter(|b| *b > 0x7F).count();
+        assert_eq!(bad, 0, "install-names usage carries {bad} non-ASCII bytes");
+    }
 
     /// ⛔ The names are the table's and this module's, and they have to be the
     /// same list: a name podbox answers to with no parity row is a surface

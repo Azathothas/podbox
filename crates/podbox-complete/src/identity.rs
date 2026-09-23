@@ -148,7 +148,7 @@ fn run_identity(root: &Root) -> Result<Vec<Fixup>> {
                         .why(format!(
                             "the image has no {path} ({}), so tooling that calls \
                              getpwuid(0) dies before reaching any syscall wall. \
-                             podbox synthesized a minimal one. ⚠ Only 0:0 is a real \
+                             podbox synthesized a minimal one. note: Only 0:0 is a real \
                              id on this machine; every other id in it is the \
                              image's convention",
                             match other {

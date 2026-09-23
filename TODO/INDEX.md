@@ -225,11 +225,11 @@ the blocker named and what would clear it.
 | [T-1333](probe.md) | P1 | probe | done | The probe cache key carries the capability set |
 | [T-1334](packaging.md) | P1 | packaging | open | The release carries its build commit's gate state and its reproducibility boundary |
 | [T-1335](supervise.md) | P3 | supervise | done | The launcher forwards its own shutdown signals to the payload |
-| [T-1336](cli.md) | P1 | cli | open | CLI output is plain ASCII: no emoji, no markers, on every path |
+| [T-1336](cli.md) | P1 | cli | done | CLI output is plain ASCII: no emoji, no markers, on every path |
 
 ## Counts
 
-165 items: 5 open, 1 partial, 0 blocked, 159 done.
+165 items: 4 open, 1 partial, 0 blocked, 160 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -238,10 +238,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 2 | 1 | 0 | 74 | 77 |
+| P1 | 1 | 1 | 0 | 75 | 77 |
 | P2 | 3 | 0 | 0 | 26 | 29 |
 | P3 | 0 | 0 | 0 | 7 | 7 |
-| **All** | **5** | **1** | **0** | **159** | **165** |
+| **All** | **4** | **1** | **0** | **160** | **165** |
 
 ## How the current ordering is derived
 

@@ -41,7 +41,7 @@ usage: podbox pull [--platform os/arch[/variant]] <image>
                    host per line in $PODBOX_CONFIG, else
                    $XDG_CONFIG_HOME/podbox/registries.conf.
 
-  ⛔ Every use of either is printed on stderr, naming the registry. podbox
+  refused: Every use of either is printed on stderr, naming the registry. podbox
     never decides on its own to stop verifying or to speak HTTP: a downgrade
     a caller did not ask for is the one thing an automated caller cannot
     notice.
@@ -52,7 +52,7 @@ usage: podbox pull [--platform os/arch[/variant]] <image>
                    was built for. A bare word is an ARCHITECTURE, as docker
                    reads it: --platform arm64 means linux/arm64.
 
-  ⚠ Pulling a platform this machine cannot execute is allowed and is not a
+  note: Pulling a platform this machine cannot execute is allowed and is not a
     warning here: it is what a caller building for another machine wants. What
     refuses is `podbox run`, and only where nothing can execute it.
 
@@ -73,7 +73,7 @@ usage: podbox extract [--force] <image>
   Unpack a pulled image's layers into a rootfs in the store, and write the
   ownership sidecar beside it. Prints the rootfs path.
 
-  ⛔ Ownership is NEVER restored. chown to an id this machine's user namespace
+  refused: Ownership is NEVER restored. chown to an id this machine's user namespace
   does not map returns EINVAL, and that is where five other tools stop. What
   the image intended is recorded in .meta.jsonl beside the rootfs, keyed by
   path; it changes no kernel permission check and is not presented as if it
@@ -87,7 +87,7 @@ usage: podbox extract [--force] <image>
   --force          extract again over an existing rootfs
   --platform P     which platform, where the store holds more than one
 
-  ⛔ A reference naming more than one image is REFUSED rather than resolved by
+  refused: A reference naming more than one image is REFUSED rather than resolved by
     position. The store holds one record per platform, and picking the most
     recently pulled would unpack an architecture nobody asked for.
 ";
@@ -109,7 +109,7 @@ usage: podbox images [options] [image]
   Fields: .Repository .Tag .ID .Digest .CreatedSince .CreatedAt .Size
           .Platform .Store
 
-  ⚠ .Size is the COMPRESSED bytes podbox holds in blobs/, not docker's
+  note: .Size is the COMPRESSED bytes podbox holds in blobs/, not docker's
     uncompressed total. M1 acquires and does not extract, so the uncompressed
     size is not a number podbox has measured.
 ";
@@ -148,10 +148,10 @@ usage: podbox inspect [--format T] <image> [image...]
           .Platform .Size .Store .Layers .RootfsPath .Extracted
           .Exec.Mode .Exec.Shares
 
-  ⚠ .RootfsPath is where the rootfs WOULD be. .Extracted says whether it is
+  note: .RootfsPath is where the rootfs WOULD be. .Extracted says whether it is
     there; `podbox extract` is what puts it there.
 
-  ⛔ .Exec.* is what `podbox exec` against this image WOULD be, not a property
+  refused: .Exec.* is what `podbox exec` against this image WOULD be, not a property
     of the image. It is a fresh chroot re-entry sharing only the filesystem
     (TODO/enter.md T-0505), and a caller reads it rather than assuming
     docker's namespace entry.
@@ -1765,6 +1765,30 @@ fn fail(e: Error) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_image_usage_is_plain_ascii() {
+        // TODO/cli.md T-1336: every image verb's `--help` prints bytes
+        // 0x00-0x7F only; the usages are constants, so one test holds
+        // all twelve.
+        let text = [
+            PULL_USAGE,
+            EXTRACT_USAGE,
+            IMAGES_USAGE,
+            RMI_USAGE,
+            TAG_USAGE,
+            PRUNE_USAGE,
+            INSPECT_USAGE,
+            LOGIN_USAGE,
+            SAVE_USAGE,
+            LOAD_USAGE,
+            IMPORT_USAGE,
+            VERIFY_USAGE,
+        ]
+        .concat();
+        let bad = text.bytes().filter(|b| *b > 0x7F).count();
+        assert_eq!(bad, 0, "image usage carries {bad} non-ASCII bytes");
+    }
 
     /// TODO/image.md T-1320. save/load/import parse their own surface and
     /// nothing else's.

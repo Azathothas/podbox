@@ -96,7 +96,7 @@ pub fn entry_banner(f: &Findings, sel: &Selection, entered: Rung) -> String {
     // "this is all this machine can do".
     if entered != sel.rung {
         out.push_str(&format!(
-            "⚠ this machine would permit `{}`; podbox's entry sequence is `{}` and \
+            "note: this machine would permit `{}`; podbox's entry sequence is `{}` and \
              creates no namespace and mounts nothing\n",
             sel.rung.word(),
             entered.word()
@@ -128,7 +128,7 @@ pub fn evidence(f: &Findings, sel: &Selection) -> String {
         out.push_str(&format!("  {half:<10} {}\n", short(o)));
     }
     if let Some(note) = m.capability_note() {
-        out.push_str(&format!("  ⭐ {note}\n"));
+        out.push_str(&format!("  {note}\n"));
     }
 
     out.push_str("\nwritable, by writing\n");
@@ -157,13 +157,13 @@ pub fn evidence(f: &Findings, sel: &Selection) -> String {
         }
     }
     if sel.controls_answered {
-        out.push_str("  ⭐ the discriminator is still separating a filter from a policy\n");
+        out.push_str("  the discriminator is still separating a filter from a policy\n");
     } else {
         for note in &sel.control_notes {
-            out.push_str(&format!("  ⛔ {note}\n"));
+            out.push_str(&format!("  refused: {note}\n"));
         }
         out.push_str(
-            "  ⛔ a probe whose control has stopped answering has stopped\n     \
+            "  refused: a probe whose control has stopped answering has stopped\n     \
              discriminating. Read the mechanism attributions below as unconfirmed.\n",
         );
     }
@@ -191,7 +191,7 @@ pub fn evidence(f: &Findings, sel: &Selection) -> String {
         .collect();
     if !skipped.is_empty() {
         out.push_str(
-            "\ncould not run. ⛔ None of these is a denial, and none of them was\n\
+            "\ncould not run. refused: None of these is a denial, and none of them was\n\
              counted as one when the rung above was chosen.\n",
         );
         for (name, o) in skipped {
@@ -222,7 +222,7 @@ fn machine_block(f: &Findings) -> String {
         }
     }
     match mach.refusal() {
-        Some(r) => out.push_str(&format!("  ⛔ {r}\n")),
+        Some(r) => out.push_str(&format!("  refused: {r}\n")),
         None => out.push_str("  the tier holds: every leg ok\n"),
     }
     out
@@ -243,7 +243,7 @@ fn supervise_block(f: &Findings) -> String {
         }
     }
     match sup.refusal() {
-        Some(r) => out.push_str(&format!("  ⛔ {r}\n")),
+        Some(r) => out.push_str(&format!("  refused: {r}\n")),
         None => out.push_str("  the tier holds: every leg ok\n"),
     }
     out
@@ -257,7 +257,7 @@ fn non_goals_block(f: &Findings) -> String {
     for g in crate::nongoals::assess(f) {
         match g.stance {
             crate::nongoals::Stance::Refused => {
-                out.push_str(&format!("  ⛔ {}\n", g.detail));
+                out.push_str(&format!("  refused: {}\n", g.detail));
             }
             crate::nongoals::Stance::Open => {
                 out.push_str(&format!("  {}\n", g.detail));
@@ -361,7 +361,7 @@ fn identity_block(id: &Identity) -> String {
     if let Some(map) = &id.uid_map {
         if crate::identity::is_single_id_map(map) {
             out.push_str(
-                "  ⭐ the uid map is a single range of one id. That is the fact that\n     \
+                "  the uid map is a single range of one id. That is the fact that\n     \
                  explains every EINVAL from chown(2) and setuid(2) here: the id is\n     \
                  not mapped, so no capability makes it valid.\n",
             );
@@ -369,12 +369,12 @@ fn identity_block(id: &Identity) -> String {
     }
     if id.groups.contains(&65534) {
         out.push_str(
-            "  ⚠ gid 65534 is overflowgid, which getgroups(2) returns for a group\n     \
+            "  note: gid 65534 is overflowgid, which getgroups(2) returns for a group\n     \
              with no mapping. It is not evidence of a supplementary group.\n",
         );
     }
     for why in &id.unreadable {
-        out.push_str(&format!("  ⚠ not read: {why}\n"));
+        out.push_str(&format!("  note: not read: {why}\n"));
     }
     out
 }

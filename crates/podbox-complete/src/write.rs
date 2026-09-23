@@ -104,7 +104,7 @@ impl Root {
             Some(false) => Ok(Reach::Unreachable(match kind {
                 Kind::Symlink(t) => format!(
                     "{dir} is a symlink to {t}, which does not resolve to a directory \
-                     inside this rootfs. ⛔ podbox will not write through it, and a \
+                     inside this rootfs. refused: podbox will not write through it, and a \
                      payload reading this path gets nothing"
                 ),
                 other => format!(

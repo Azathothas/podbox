@@ -190,7 +190,7 @@ impl Elf {
         let interp = r.interp();
         let sections = r.sections().ok_or_else(|| {
             why(
-                "no section table podbox could read. ⛔ podbox refuses rather \
+                "no section table podbox could read. refused: podbox refuses rather \
                  than preloading an object it could not check"
                     .into(),
             )
@@ -445,7 +445,7 @@ pub fn admits(object: &Elf, libc: &Elf) -> Verdict {
     if have == Flavour::Unknown {
         return refuse(format!(
             "podbox could not identify the C library in {}: it declares no \
-             SONAME podbox recognises and its name is not one either. ⛔ podbox \
+             SONAME podbox recognises and its name is not one either. refused: podbox \
              refuses rather than preloading an object it cannot check",
             libc.path
         ));
@@ -453,7 +453,7 @@ pub fn admits(object: &Elf, libc: &Elf) -> Verdict {
     if want != have {
         return refuse(format!(
             "{} names {} in DT_NEEDED, so it was built against {}, and this \
-             rootfs carries {} ({}). ⛔ A preloaded object is loaded by the \
+             rootfs carries {} ({}). refused: A preloaded object is loaded by the \
              payload's OWN loader and resolves its imports against the payload's \
              libc, so this one cannot serve it",
             object.path,
@@ -482,7 +482,7 @@ pub fn admits(object: &Elf, libc: &Elf) -> Verdict {
         if let Some(v) = &want.version {
             if !libc.declares.iter().any(|d| d == v) {
                 return refuse(format!(
-                    "{} imports `{}` at version `{v}`, and {} declares {}. ⛔ This \
+                    "{} imports `{}` at version `{v}`, and {} declares {}. refused: This \
                      is a build host newer than the target: the loader refuses \
                      naming the version, whatever the NAME resolves to",
                     object.path,
@@ -498,7 +498,7 @@ pub fn admits(object: &Elf, libc: &Elf) -> Verdict {
         }
         if !libc.defines(want) {
             return refuse(format!(
-                "{} imports `{}`, which {} does not define. ⚠ Read from .dynsym: \
+                "{} imports `{}`, which {} does not define. note: Read from .dynsym: \
                  a shipped libc is stripped and its .symtab defines nothing",
                 object.path, want.name, libc.path
             ));

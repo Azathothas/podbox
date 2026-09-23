@@ -48,7 +48,7 @@ const USAGE: &str = "\
 usage: podbox <command> [options]
 
   run          extract an image if needed and run a command inside it
-  exec         run a command in an already extracted image. ⛔ A FRESH CHROOT,
+  exec         run a command in an already extracted image. refused: A FRESH CHROOT,
                sharing only the filesystem, never a namespace entry
   probe        report what this machine permits, and the rung podbox selects
   man          render this manual from the binary's own usage strings
@@ -399,7 +399,7 @@ fn cached_probe(json: bool, strictness: Strictness) -> i32 {
         }
     }
     if let Some(why) = &probe.not_written {
-        let _ = writeln!(err, "podbox probe: ⚠ the answer was not cached: {why}");
+        let _ = writeln!(err, "podbox probe: note: the answer was not cached: {why}");
     }
 
     let Some(rung) = probe.rung() else {

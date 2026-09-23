@@ -39,9 +39,9 @@ usage: podbox exec [options] <image> <command> [arg...]
   --no-host-cas    as in run: leave the image's trust store alone
   --no-steps       as in run: run no COMMAND inside the rootfs before the
                    command asked for (TODO/complete.md T-0412)
-  --strict         ⛔ refuse to re-enter at all where anything about this
+  --strict         refused: refuse to re-enter at all where anything about this
                    invocation is Degraded or Stub (TODO/cli.md T-0804)
-  -t, --tty        ⛔ REFUSED BY NAME where /dev/ptmx is unusable, rather
+  -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
                    than silently degraded (TODO/enter.md T-0503)
   --podbox-tier T  as in run: machine selects the machine tier, chroot the
                    chroot tier, and an explicit flag wins over the podvm
@@ -53,11 +53,11 @@ usage: podbox exec [options] <image> <command> [arg...]
                    guest memory in bytes with an optional K/M/G/T suffix
                    (TODO/podvm.md T-1305)
 
-  ⛔ This is a FRESH CHROOT re-entry, not an entry into a running container.
+  refused: This is a FRESH CHROOT re-entry, not an entry into a running container.
     It shares the filesystem tree and nothing else. `podbox inspect --format
     '{{.Exec.Mode}}'` says the same thing to a program.
 
-  ⛔ The image must already be extracted. `podbox exec` never pulls and never
+  refused: The image must already be extracted. `podbox exec` never pulls and never
     extracts: there would be nothing to re-enter, and a verb that creates what
     it claims to attach to is the lie TOOL.md section 4.1 forbids.
 ";
@@ -259,7 +259,7 @@ fn enter(
     use podbox_supervise::table::State;
     if state == State::Created {
         eprintln!(
-            "podbox exec: {target} has been created and never started, so its rootfs              is there and nothing is running in it. ⚠ podbox will enter it anyway,              because a fresh chroot shares only the filesystem and needs nothing to              be running (TODO/enter.md T-0505)"
+            "podbox exec: {target} has been created and never started, so its rootfs              is there and nothing is running in it. note: podbox will enter it anyway,              because a fresh chroot shares only the filesystem and needs nothing to              be running (TODO/enter.md T-0505)"
         );
     }
     // ⚠ The container's own environment is not inherited: T-0505's whole
@@ -669,6 +669,14 @@ mod tests {
 
     fn v(xs: &[&str]) -> Vec<String> {
         xs.iter().map(|s| (*s).to_string()).collect()
+    }
+
+    #[test]
+    fn exec_usage_is_plain_ascii() {
+        // TODO/cli.md T-1336: `exec --help` prints on a constrained host
+        // with no terminal; a glyph there is unrenderable bytes.
+        let bad = EXEC_USAGE.bytes().filter(|b| *b > 0x7F).count();
+        assert_eq!(bad, 0, "exec usage carries {bad} non-ASCII bytes");
     }
 
     #[test]

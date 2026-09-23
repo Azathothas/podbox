@@ -104,6 +104,7 @@ decisions podbox has to make. Each writes its transcript to
 ./experiments/340-detached-stdio.sh             # `run -d` returns before its payload ends, however stdout is read
 ./experiments/350-tool-live.sh                  # the tool answers on a live machine, not only in fixtures
 ./experiments/351-signal-forward.sh             # a shutdown signal to a waiter reaches the payload (T-1335)
+./experiments/352-ascii-output.sh               # every printed byte is plain ASCII (T-1336)
 ```
 
 ⚠ **Not every numbered script is in the list above.** `325-`, `326-`, `330-`,

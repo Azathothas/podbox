@@ -39,7 +39,7 @@ usage: podbox ps [-a|--all] [-q|--quiet] [--format T] [--no-trunc]
   prefix), and label=<key>[=<value>], which matches nothing: podbox
   records carry no labels. Repeatable; every filter must match.
 
-  ⛔ .Ports is always empty and is not an oversight: the payload shares this
+  refused: .Ports is always empty and is not an oversight: the payload shares this
     machine's network namespace, so there is nothing to publish.
 ";
 
@@ -1715,6 +1715,16 @@ pub fn resolve_user(verb: &str, rootfs: &str, spec: &str) -> Result<(u32, u32), 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lifecycle_usage_strings_are_plain_ascii() {
+        // TODO/cli.md T-1336: `ps`, `logs`, `restart` and `cp` usages
+        // print on every `--help`; a glyph there is unrenderable bytes
+        // in an automated caller's stream.
+        let text = [PS_USAGE, LOGS_USAGE, RESTART_USAGE, CP_USAGE].concat();
+        let bad = text.bytes().filter(|b| *b > 0x7F).count();
+        assert_eq!(bad, 0, "lifecycle usage carries {bad} non-ASCII bytes");
+    }
 
     #[test]
     fn a_container_path_is_split_from_a_plain_one() {
