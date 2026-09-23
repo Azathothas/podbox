@@ -21,3 +21,7 @@ flate2.workspace = true
 ruzstd.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+# ⭐ TODO/extract.md T-1315: the per-extract re-verification hashes each blob
+# while it streams. `sha2` is already in the graph at this version (T-0908),
+# so this adds no crate, only the use.
+sha2.workspace = true

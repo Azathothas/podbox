@@ -198,6 +198,13 @@ fn key_of(document: &str) -> Option<ConfinementKey> {
         setgroups: get("setgroups"),
         seccomp: get("seccomp"),
         seccomp_filters: get("seccomp_filters"),
+        // ⭐ TODO/probe.md T-1333. A document written before podbox keyed on
+        // the capability sets carries neither field, so both stay `None` and
+        // never match a live key, which always has them. That is the intended
+        // behaviour and not a migration: an answer taken under unknown
+        // capabilities is exactly the answer that must not be served.
+        cap_eff: get("cap_eff"),
+        cap_bnd: get("cap_bnd"),
         // ⛔ TODO/enter.md T-0506 point 5. A document written before podbox
         // keyed on the instrument has no `interpreter`, so it stays `None` and
         // never matches a live key, which always has one. That is the intended
@@ -269,6 +276,8 @@ mod tests {
             setgroups: Some("allow".into()),
             seccomp: Some("0".into()),
             seccomp_filters: Some("0".into()),
+            cap_eff: Some("000001ffffffffff".into()),
+            cap_bnd: Some("000001ffffffffff".into()),
             interpreter: Some("none".into()),
         };
         let confined = ConfinementKey {

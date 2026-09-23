@@ -176,7 +176,7 @@ the blocker named and what would clear it.
 | [T-1109](milestones.md) | P1 | milestones | partial | The negative tests, which are tests |
 | [T-1110](milestones.md) | P0 | milestones | done | M6's acceptance: a payload the interposer is the only reason works |
 | [T-1111](milestones.md) | P1 | milestones | done | M8 the nix acceptance: a real payload the chroot tier is exactly the answer for |
-| [T-1112](milestones.md) | P3 | milestones | open | A disposable guest that is not Linux |
+| [T-1112](milestones.md) | P3 | milestones | done | A disposable guest that is not Linux |
 | [T-1201](gate.md) | P0 | gate | done | The gate reaches every file this project wrote |
 | [T-1202](gate.md) | P0 | gate | done | Every check is planted against, and a plant that stops reaching its subject says so |
 | [T-1203](gate.md) | P1 | gate | done | A measurement taken on one host is a property of that host |
@@ -204,11 +204,11 @@ the blocker named and what would clear it.
 | [T-1312](interpose.md) | P1 | interpose | done | The glibc interposer needs newer symbols than the payload provides |
 | [T-1313](podvm.md) | P1 | podvm | done | Every experiment fetch carries its own ceiling, and a stalled origin proves it |
 | [T-1314](packaging.md) | P1 | packaging | done | Nightly releases: one tag builds and tests every supported arch |
-| [T-1315](extract.md) | P1 | extract | open | Extract re-verifies the blob digest against the manifest |
+| [T-1315](extract.md) | P1 | extract | done | Extract re-verifies the blob digest against the manifest |
 | [T-1316](deps.md) | P2 | deps | open | The committed lock matches the manifests, so a clean build leaves a clean tree |
-| [T-1317](enter.md) | P1 | enter | open | A chroot-denied host gets an up-front refusal naming chroot, not a 125 after the work |
+| [T-1317](enter.md) | P1 | enter | done | A chroot-denied host gets an up-front refusal naming chroot, not a 125 after the work |
 | [T-1318](supervise.md) | P3 | supervise | open | `logs -f` follows a container's log, bounded like the rest |
-| [T-1319](cli.md) | P1 | cli | open | `inspect` prints exactly one document for any reference |
+| [T-1319](cli.md) | P1 | cli | done | `inspect` prints exactly one document for any reference |
 | [T-1320](image.md) | P2 | image | open | Images move without a registry: save, load, import |
 | [T-1321](image.md) | P2 | image | open | A store-health verb and a pull-provenance record |
 | [T-1322](image.md) | P1 | image | open | A container record gates every removal of the image it references |
@@ -222,14 +222,14 @@ the blocker named and what would clear it.
 | [T-1330](cli.md) | P2 | cli | open | Bundled short flags parse as docker reads them |
 | [T-1331](cli.md) | P2 | cli | open | `--filter`, `restart` and `pull -a/-q` answer the docker idiom |
 | [T-1332](cli.md) | P1 | cli | open | `podbox man` generates the manual from the binary, pager-aware |
-| [T-1333](probe.md) | P1 | probe | open | The probe cache key carries the capability set |
+| [T-1333](probe.md) | P1 | probe | done | The probe cache key carries the capability set |
 | [T-1334](packaging.md) | P1 | packaging | open | The release carries its build commit's gate state and its reproducibility boundary |
 | [T-1335](supervise.md) | P3 | supervise | open | The launcher forwards its own shutdown signals to the payload |
 | [T-1336](cli.md) | P1 | cli | open | CLI output is plain ASCII: no emoji, no markers, on every path |
 
 ## Counts
 
-165 items: 23 open, 1 partial, 0 blocked, 141 done.
+165 items: 18 open, 1 partial, 0 blocked, 146 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -238,10 +238,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 10 | 1 | 0 | 66 | 77 |
+| P1 | 6 | 1 | 0 | 70 | 77 |
 | P2 | 10 | 0 | 0 | 19 | 29 |
-| P3 | 3 | 0 | 0 | 4 | 7 |
-| **All** | **23** | **1** | **0** | **141** | **165** |
+| P3 | 2 | 0 | 0 | 5 | 7 |
+| **All** | **18** | **1** | **0** | **146** | **165** |
 
 ## How the current ordering is derived
 

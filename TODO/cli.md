@@ -771,7 +771,7 @@ Source:      issue 21, client beta testing 2026-09-22 (container
 Category:    cli
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     `podbox inspect <container>` prints two JSON documents: the
              container record (printed inside `inspect_container`) and a
@@ -797,6 +797,41 @@ Prove:       `podbox inspect <container>` piped to `python3 -c
              document; image inspect output is byte-identical before and
              after. Close issue 21 with a comment showing the parse and
              the single-print path as the guard that stops recurrence.
+
+**Done 2026-09-23.** Skip the second print on the container path, as
+decided. `inspect` (`crates/podbox-cli/src/images.rs`) tracks whether any
+reference resolved to a container; where the image `records` vec is empty
+and a container document is already on stdout, the trailing array print is
+skipped and the verb returns the container's code. The image path is byte
+for byte what it was: the array prints wherever a record resolved,
+including the empty store (`[]` with no container involved).
+
+Driven on the shipped binary in the lane (`rust:1.98.1-bookworm` through
+host podman 6.1.2), against `public.ecr.aws/docker/library/alpine:3.20`:
+
+```
+$ podbox create --name green1 ... true && podbox inspect green1
+[{"Command":"true",...,"Name":"green1",...}]
+$ podbox inspect green1 | python3 -c 'json.load(sys.stdin)' && echo PARSES
+ONE-DOCUMENT len=1
+$ podbox inspect public.ecr.aws/docker/library/alpine:3.20
+[{"Architecture":"amd64",...}]      # one array, 14 keys, as before
+```
+
+Before the fix the same container printed the record plus a trailing
+`[]`, and `json.load` failed with `Extra data: line 2 column 1`. The
+guard that stops recurrence is the single-print path: there is now one
+place that decides what `inspect` prints without `--format`, and a second
+document cannot be added without passing it. `--format` is untouched: it
+returns before the array either way.
+
+The `jq` half ran beside it on a clean store in the same lane
+(`rust:1.98.1-bookworm` through host podman 6.1.2):
+`create --name jq1`, then `inspect jq1 | jq .` (JQ-CONTAINER-OK) and
+`inspect <image> | jq .` (JQ-IMAGE-OK), one line each, both rc=0.
+(The first attempt reused the T-1315 job's store after its byte flip,
+so `create` failed there for the tampered-store reason; the rerun used a
+fresh store.)
 
 ---
 

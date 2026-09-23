@@ -867,6 +867,11 @@ pub fn inspect(verb: &str, args: &[String]) -> i32 {
 
     let mut records = Vec::new();
     let mut code = 0;
+    // ⭐ TODO/cli.md T-1319. A reference that resolved to a container already
+    // printed its one document inside `inspect_container`, so the image array
+    // below is skipped on that path: printing it as well is a second document
+    // no JSON parser can consume beside the first.
+    let mut saw_container = false;
     for want in &wanted {
         match store.find_one(want) {
             Ok(r) => records.push(r),
@@ -876,8 +881,11 @@ pub fn inspect(verb: &str, args: &[String]) -> i32 {
                 // checked against whichever kind the reference resolved to
                 // rather than against a union neither has.
                 match crate::lifecycle::inspect_container(want, template.as_deref()) {
-                    Some(0) => {}
-                    Some(c) => code = c,
+                    Some(0) => saw_container = true,
+                    Some(c) => {
+                        saw_container = true;
+                        code = c;
+                    }
                     None => {
                         eprintln!("podbox inspect: {e}");
                         code = e.exit_code();
@@ -899,6 +907,13 @@ pub fn inspect(verb: &str, args: &[String]) -> i32 {
         return code;
     }
     let docs: Vec<String> = records.iter().map(|r| inspect_json(r, &store)).collect();
+    // ⭐ TODO/cli.md T-1319. Where every reference resolved to a container,
+    // its document is already on stdout and the empty image array is not
+    // printed after it. Where an image resolved, the array below is byte for
+    // byte what it has always been.
+    if records.is_empty() && saw_container {
+        return code;
+    }
     println!("[{}]", docs.join(","));
     code
 }

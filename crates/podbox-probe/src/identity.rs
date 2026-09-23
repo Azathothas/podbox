@@ -155,6 +155,13 @@ pub struct ConfinementKey {
     pub setgroups: Option<String>,
     pub seccomp: Option<String>,
     pub seccomp_filters: Option<String>,
+    /// TODO/probe.md T-1333. The capability sets the verdicts turn on. The
+    /// chroot verdict is a live `chroot(2)` turning on `CAP_SYS_CHROOT`, so a
+    /// process that drops capabilities under the same mount namespace and
+    /// seccomp filter would otherwise be served the stale verdict. Read from
+    /// `id`, which already carries them; never re-read here (one reader).
+    pub cap_eff: Option<String>,
+    pub cap_bnd: Option<String>,
     /// ⛔ WHICH INSTRUMENT ANSWERED. TODO/enter.md T-0506 point 5: a probe run
     /// under `qemu-user` measures the emulator, so an answer taken there must
     /// never be served to a process that was not. `none` where podbox found no
@@ -164,9 +171,10 @@ pub struct ConfinementKey {
 }
 
 impl ConfinementKey {
-    /// The four components of T-0111's `Approach`, as `(name, value)`, in a
-    /// fixed order so two renderings of one key are byte-identical.
-    pub fn components(&self) -> [(&'static str, Option<&str>); 8] {
+    /// The ten components of T-0111's `Approach` plus T-1333's capability
+    /// pair, as `(name, value)`, in a fixed order so two renderings of one
+    /// key are byte-identical.
+    pub fn components(&self) -> [(&'static str, Option<&str>); 10] {
         [
             ("boot_id", self.boot_id.as_deref()),
             ("mnt_ns", self.mnt_ns.as_deref()),
@@ -175,6 +183,8 @@ impl ConfinementKey {
             ("setgroups", self.setgroups.as_deref()),
             ("seccomp", self.seccomp.as_deref()),
             ("seccomp_filters", self.seccomp_filters.as_deref()),
+            ("cap_eff", self.cap_eff.as_deref()),
+            ("cap_bnd", self.cap_bnd.as_deref()),
             ("interpreter", self.interpreter.as_deref()),
         ]
     }
@@ -221,6 +231,8 @@ pub fn confinement_key(id: &Identity) -> ConfinementKey {
         setgroups: id.setgroups.clone(),
         seccomp: id.seccomp.clone(),
         seccomp_filters: id.seccomp_filters.clone(),
+        cap_eff: id.cap_eff.clone(),
+        cap_bnd: id.cap_bnd.clone(),
         // ⛔ Always `Some`. T-0506 point 5: the key must name the instrument, and
         // an unset component would let an emulated answer match a native one by
         // both being unreadable. `interp::detect` has no failure state, only two
@@ -275,8 +287,8 @@ mod tests {
             ..Default::default()
         };
         assert!(!hole.is_complete());
-        assert_eq!(hole.missing().len(), 7);
-        assert_eq!(hole.differences(&hole).len(), 7);
+        assert_eq!(hole.missing().len(), 9);
+        assert_eq!(hole.differences(&hole).len(), 9);
     }
 
     #[test]
@@ -292,6 +304,8 @@ mod tests {
             setgroups: Some("allow".into()),
             seccomp: Some("0".into()),
             seccomp_filters: Some("0".into()),
+            cap_eff: Some("000001ffffffffff".into()),
+            cap_bnd: Some("000001ffffffffff".into()),
             interpreter: Some("none".into()),
         };
         let confined = ConfinementKey {
@@ -300,5 +314,37 @@ mod tests {
         };
         assert_eq!(host.differences(&confined), vec!["mnt_ns"]);
         assert!(host.differences(&host).is_empty());
+    }
+
+    /// TODO/probe.md T-1333. The capability set is part of the key: two
+    /// identities differing only in `cap_eff` are different keys, so a
+    /// process that drops capabilities under the same mount namespace and
+    /// seccomp filter is never served the stale verdict.
+    #[test]
+    fn two_identities_differing_only_in_capabilities_are_different_keys() {
+        let a = read();
+        let mut b = read();
+        // A mask guaranteed to differ from this process's own, whichever
+        // way it reads: the values are the machine's, the difference is
+        // the test's.
+        let flip = |v: &Option<String>| {
+            if v.as_deref() == Some("0000000000000000") {
+                Some("ffffffffffffffff".to_string())
+            } else {
+                Some("0000000000000000".to_string())
+            }
+        };
+        b.cap_eff = flip(&a.cap_eff);
+        b.cap_bnd = flip(&a.cap_bnd);
+        let ka = confinement_key(&a);
+        let kb = confinement_key(&b);
+        assert!(
+            !ka.differences(&kb).is_empty(),
+            "a dropped capability set reads as the same key"
+        );
+        assert!(kb
+            .differences(&ka)
+            .iter()
+            .any(|k| *k == "cap_eff" || *k == "cap_bnd"));
     }
 }

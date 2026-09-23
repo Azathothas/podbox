@@ -629,7 +629,7 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
     // key it is validated against travels inside it and there is no second
     // serializer to drift against the first.
     //
-    // ⚠ Five of the seven components are also in the `identity` block above.
+    // ⚠ Seven of the ten components are also in the `identity` block above.
     // `docs/conventions/forbidden-patterns.md` forbids a value in two places
     // WITH NO CHECK THAT THEY AGREE, and the check is
     // `the_cache_key_agrees_with_the_identity_block_it_is_derived_from` below.
@@ -707,7 +707,13 @@ mod tests {
                 );
                 if matches!(
                     name,
-                    "uid_map" | "gid_map" | "setgroups" | "seccomp" | "seccomp_filters"
+                    "uid_map"
+                        | "gid_map"
+                        | "setgroups"
+                        | "seccomp"
+                        | "seccomp_filters"
+                        | "cap_eff"
+                        | "cap_bnd"
                 ) {
                     assert_eq!(
                         id_field(&id, name).as_deref(),
@@ -726,6 +732,8 @@ mod tests {
             "setgroups" => id.setgroups.clone(),
             "seccomp" => id.seccomp.clone(),
             "seccomp_filters" => id.seccomp_filters.clone(),
+            "cap_eff" => id.cap_eff.clone(),
+            "cap_bnd" => id.cap_bnd.clone(),
             _ => None,
         }
     }

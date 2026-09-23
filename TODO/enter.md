@@ -420,7 +420,7 @@ Source:      issue 12, client beta testing 2026-09-22 (every rung dies at
 Category:    enter
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     On a host that denies `chroot(2)` itself, probe selects
              `interpose` and then every entry path (`run`, forced memfd,
@@ -453,4 +453,52 @@ Prove:       `podbox run` on a chroot-denied host (or a fixture that
              as before. Close issue 12 with a comment showing both
              outputs and the probe-gated refusal as the guard that stops
              recurrence.
+
+**Done 2026-09-23.** Up-front refusal, as decided. One helper,
+`lifecycle::ensure_chroot_usable` (`crates/podbox-cli/src/lifecycle.rs`),
+beside the T-1112 gate: it admits where `probes::chroot_usable` finds an
+`Ok` chroot row and otherwise refuses at 125 naming `chroot(2)` denied,
+the probe's chroot leg, and that no fixup has run. Three call sites.
+`run`/`run -d`/`create` share `run::prepare`, where the probe moved ahead
+of the fetch, the lock, the extraction and every fixup (its findings are
+reused for the banner, so the probe still runs once); `start` probes
+after the record lookup and refuses before the launcher starts. The
+machine tier returns before the gate and never chroots, so it is
+unaffected. `exec` is deliberately ungated: it re-enters a running
+container, and with `start` gated no running container exists on a
+chroot-denied host; the helper is one call away if that changes. The
+refusal precedes the banner on purpose, like the other pre-banner gates:
+the banner names fixups, and none have run.
+
+The gate test was watched fail first: with `chroot_usable` stubbed
+always-true, `only_an_ok_chroot_promises_entry` fails (the `Denied` and
+`Skip` rows promise entry); with the real predicate it passes. The
+helper's own test (`lifecycle::a_denied_chroot_is_refused_before_entry`:
+`Ok` admits, `Denied`/`Skip`/absent refuse at 125) passes by name in the
+lane (`rust:1.98.1-bookworm` through host podman 6.1.2), with full suites
+green beside it and clippy `-D warnings` clean.
+
+Driven on the shipped binary in the same lane with a seccomp fixture (a
+C launcher denying `chroot(2)` with EPERM, then execing podbox),
+`public.ecr.aws/docker/library/alpine:3.20`:
+
+```
+$ podbox probe            # unfiltered:  chroot=ok
+$ fixture podbox probe    # filtered:    chroot=EPERM
+$ fixture podbox run --rm IMG echo hi; echo $?
+podbox run: chroot(2) is denied on this machine, so the chroot tier
+cannot be entered. [...]
+125
+```
+
+`create` and `start` refuse the same way at 125 under the fixture. On a
+fresh store the refused `run` fetches nothing (no blobs); on the main
+store all 93 rootfs files verify unchanged after all three refusals
+(`sha256sum -c`), and unfiltered `run` still runs the payload. (A first
+pass at that check snapshotted before the capable run and blamed one
+file; the file was `etc/hosts`, rewritten by the capable run's own T-0403
+fixup, not by any refusal. The rerun snapshots after every unfiltered
+step, so the check isolates the refusals.) The guard that stops
+recurrence is the probe-gated refusal: no entry path reaches a fixup or
+an entry sequence without an `Ok` chroot row.
 

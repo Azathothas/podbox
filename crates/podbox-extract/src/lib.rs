@@ -216,13 +216,23 @@ fn extract_layers(
         // BEFORE this layer's own entries, which is the order that lets a layer
         // both delete a path and recreate it.
         // `references/indigo-dc__udocker/tree/udocker/container/structure.py:279`.
-        let mut first = layer::open(blob, *c)?;
+        //
+        // ⭐ T-1315: each pass hashes the raw blob bytes while they stream
+        // into the decompressor. The first pass is the gate: the digest is
+        // compared before any whiteout or entry touches the tree, so a blob
+        // edited after pull is refused with the tampered bytes never written.
+        // The second pass re-checks, so a change between the two reads is
+        // still caught (the error path below removes the partial tree).
+        let (mut first, hash1) = layer::open_hashed(blob, *c)?;
         let ops = remove::collect(&mut first)?;
         drop(first);
+        verified(&hash1, ld, blob)?;
         total.removed += remove::apply(root, &ops)?;
 
-        let mut second = layer::open(blob, *c)?;
+        let (mut second, hash2) = layer::open_hashed(blob, *c)?;
         let st = apply::apply_layer(root, ld, &mut second, ids, sidecar)?;
+        drop(second);
+        verified(&hash2, ld, blob)?;
         total.entries += st.entries;
         total.skipped += st.skipped;
         for k in st.skipped_kinds {
@@ -245,6 +255,22 @@ fn extract_layers(
 fn short(digest: &str) -> String {
     let hex = digest.split(':').next_back().unwrap_or(digest);
     hex.chars().take(12).collect()
+}
+
+/// TODO/extract.md T-1315. The manifest names the digest and the stored blob
+/// may have changed since pull, so the streamed hash is compared before the
+/// layer is trusted. A mismatch names the blob, the manifest's digest and
+/// the computed one, through the store's own error shape.
+fn verified(hash: &layer::HashedStream, want: &str, blob: &std::path::Path) -> Result<()> {
+    let got = hash.digest();
+    if got == want {
+        return Ok(());
+    }
+    Err(Error::Image(podbox_image::error::Error::DigestMismatch {
+        what: format!("stored blob {}", blob.display()),
+        want: want.to_string(),
+        got,
+    }))
 }
 
 /// ⭐ **The completion marker, written last and never before.**

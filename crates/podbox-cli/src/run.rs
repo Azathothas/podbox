@@ -581,9 +581,23 @@ pub(crate) fn prepare(
         &o.insecure,
         o.tls_verify,
     )?;
+    // ⭐ TODO/milestones.md T-1112. The OS gate sits before the fetch: there
+    // is nothing to pull for a platform no tier can enter.
+    crate::lifecycle::ensure_linux_guest(verb, &platform.os, &platform.arch)?;
+    // ⭐ TODO/enter.md T-1317. The probe runs HERE, before the fetch, the
+    // lock, the extraction and every fixup: the entered rung always
+    // chroots, so a denied chroot refuses now, naming chroot(2), with the
+    // rootfs untouched. The machine tier returned above and never chroots.
+    // `findings` is reused for the banner below, so the probe runs once.
+    let findings = podbox_probe::run();
+    crate::lifecycle::ensure_chroot_usable(verb, &findings)?;
 
     // ------------------------------------------------------------- the image
     let record = acquire(verb, store, &image, &platform, &policy, &o.pull)?;
+    // ⭐ TODO/milestones.md T-1112. The stored record is what gets entered,
+    // so its OS is gated too: a record for another OS answers here rather
+    // than inside the guest.
+    crate::lifecycle::ensure_linux_guest(verb, &record.os, &record.architecture)?;
 
     // ⛔ The lock BEFORE the extraction check, so a concurrent `rmi` cannot
     // delete the rootfs between podbox deciding it is there and entering it.
@@ -715,8 +729,8 @@ pub(crate) fn prepare(
     // ------------------------------------------------------------- the banner
     // ⭐ TODO/probe.md T-0107 and T-0108's remaining halves: the rung is
     // selected here, for a real entry, and the banner names it and what it must
-    // never claim.
-    let findings = podbox_probe::run();
+    // never claim. The probe ran up front (T-1317's gate); the banner reuses
+    // its findings.
     let selection = podbox_probe::select::Selection::choose(&findings);
     // ⭐ T-0804 rule 4. The banner is built from the rung podbox ENTERS with,
     // not the one the machine would permit: `podbox_enter::ENTERED_RUNG` is the

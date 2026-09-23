@@ -897,7 +897,7 @@ Source:      issue 28, client beta testing 2026-09-22 (same key across
 Category:    probe
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     `ConfinementKey`'s own rule is "everything a probe verdict
              depends on that podbox can read without re-running the
@@ -926,3 +926,35 @@ Prove:       `cargo test -p podbox-probe` green with a new test
              fixture where stageable). Close issue 28 with a comment
              showing the test and the widened key as the guard that stops
              recurrence.
+
+**Done 2026-09-23.** Key the two capability sets, as decided.
+`ConfinementKey` (`crates/podbox-probe/src/identity.rs`) gains `cap_eff`
+and `cap_bnd`, read from the `Identity` the probe already carries; the
+fixed-order `components()` goes from eight to ten, so `differences()`,
+`missing()`, `is_complete()` and the document's `cache_key` block (written
+through `components()` in `report.rs`) all follow with no second list.
+`probe_cache::key_of` reads the two fields from stored documents, and a
+document written before they were keyed carries neither: it stays `None`
+against a live key that always has them and is re-measured rather than
+served, which is the intended behaviour and not a migration (an answer
+taken under unknown capabilities is exactly the one that must not be
+served). The identity/key agreement test covers the new pair, and the two
+prose counts move with the shape (seven-hole to nine, eight-host to ten).
+
+The new test was watched fail first: two live identities differing only
+in `cap_eff`/`cap_bnd` read as the same key (`a dropped capability set
+reads as the same key`), then green after the widening
+(`identity::tests::two_identities_differing_only_in_capabilities_are_different_keys`,
+lane `rust:1.98.1-bookworm` through host podman 6.1.2). Full suites green
+beside it: podbox-probe 96, podbox-image 117, podbox-cli 107,
+podbox-extract 47, 0 failed.
+
+On the seccomp-identity half of the Decision: no measurement in this
+change stages two same-count filters, and none is claimed. `/proc` exposes
+a filter count (`Seccomp_filters`), never a filter identity, so two
+different filters read identically and there is nothing further to key
+from readable state; the count stays the keyed component. What would
+reopen it is a readable filter identity from the kernel, or a cache
+validation that re-runs a filter-sensitive discriminator probe on each
+read. The reporter's scenario (a live capability drop) is covered by the
+widened key above, which is the guard that stops recurrence.

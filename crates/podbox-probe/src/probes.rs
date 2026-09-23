@@ -900,6 +900,18 @@ fn p_creat_toplevel() -> Outcome {
     }
 }
 
+/// Whether the chroot rung may be entered, T-1317.
+///
+/// One home for the question `run`, `create` and `start` all ask before any
+/// fixup mutates the rootfs: only the chroot row with an `Ok` verdict
+/// promises entry. A `Skip` never ran, so it promises nothing (T-0109
+/// rule 1); a `Denied` row is the refusal itself.
+pub fn chroot_usable(findings: &crate::Findings) -> bool {
+    findings.rows.iter().any(|(n, out)| {
+        n.starts_with("chroot(") && matches!(out.verdict, crate::verdict::Verdict::Ok)
+    })
+}
+
 /// Whether `-t` may promise a pty, T-0503.
 ///
 /// One home for the question `run` and `exec` both ask: only the OPEN row
@@ -1570,6 +1582,31 @@ mod tests {
             Outcome::skip(None, "nope")
         )])));
         assert!(!fuse_usable(&findings(vec![])));
+    }
+
+    /// T-1317: only an `Ok` chroot row promises entry. A denial is the
+    /// up-front refusal itself, and a skip never ran.
+    #[test]
+    fn only_an_ok_chroot_promises_entry() {
+        fn findings(rows: Vec<(&'static str, Outcome)>) -> crate::Findings {
+            crate::Findings {
+                rows,
+                identity: crate::identity::Identity::default(),
+                writable: Vec::new(),
+                self_exe: String::new(),
+            }
+        }
+        let chroot = "chroot(/tmp)";
+        assert!(chroot_usable(&findings(vec![(chroot, Outcome::ok())])));
+        assert!(!chroot_usable(&findings(vec![(
+            chroot,
+            Outcome::denied(crate::sys::Errno(1))
+        )])));
+        assert!(!chroot_usable(&findings(vec![(
+            chroot,
+            Outcome::skip(None, "nope")
+        )])));
+        assert!(!chroot_usable(&findings(vec![])));
     }
 
     /// T-1003: the FUSE row is a Census leg in the outer environment before

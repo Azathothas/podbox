@@ -831,7 +831,7 @@ Source:      `https://github.com/carlbomsdata/winquick`; [podvm.md](podvm.md)
 Category:    milestones
 Priority:    P3
 Effort:      L
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     podbox turns an OCI reference into a process. Every rung it has
              assumes the payload is Linux, because every rung except the machine
@@ -865,3 +865,33 @@ Decision:    Not taken, and deliberately so. ⛔ It is recorded here so that it 
              displaces nothing and stays open.
              Ruled 2026-09-23: unparked, work it next. It stays P3.
 Prove:       `podbox run --platform windows/amd64 IMAGE cmd /c ver` returns the guest's own version string and its exit code, or podbox refuses by name with the leg that is missing
+
+**Done 2026-09-23.** The second arm: a non-Linux guest is refused by name
+with the missing leg, on every entry path, before anything is fetched or
+entered. `lifecycle::ensure_linux_guest` (`crates/podbox-cli/src/lifecycle.rs`)
+admits `linux` and refuses anything else at exit 125, naming the requested
+`os/arch`, that every tier runs Linux guests, and the missing leg (no
+Windows guest support). One helper, four call sites: `run`/`create`/`run -d`
+(`run.rs` `prepare`, requested platform before the fetch and the stored
+record after it), `exec` (requested platform before the store opens and the
+stored record after it), and `start` (the image record). No Windows guest
+runs anywhere: the machine tier boots Linux images and the chroot tier
+shares the host kernel, so there is no leg to implement, only the refusal
+to name. Pull is untouched per [T-0212](image.md): fetching bytes for
+another machine stays allowed; entering them is what refuses.
+
+The gate was watched fail first: `lifecycle::tests::a_non_linux_guest_is_refused_by_name`
+against an always-admit stub exits FAILED (`left: Ok(()), right: Err(125)`),
+then green after the implementation
+(`experiments` lane, `rust:1.98.1-bookworm` through host podman 6.1.2).
+
+```
+$ podbox run --platform windows/amd64 any/image:tag cmd /c ver; echo $?
+podbox run: windows/amd64 is not a Linux guest. podbox runs Linux guests only: the chroot tier shares the host kernel and the machine tier boots Linux images. No windows guest support exists (TODO/milestones.md T-1112), so there is nothing to pull or enter for this platform
+125
+```
+
+No registry was contacted: the refusal sits before the fetch, so the
+reference above never resolves and no store state changes. `podbox probe`
+is unchanged: there is no Windows leg to probe, and the entry's first arm
+(a guest version string) arrives with a guest podbox cannot enter.

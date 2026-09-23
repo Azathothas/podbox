@@ -431,7 +431,7 @@ Source:      issue 10, client beta testing 2026-09-22 (tampered store blob
 Category:    extract
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     `extract_layers` opens each layer with `File::open` plus a
              decompressor and never recomputes a digest, so a blob whose
@@ -465,3 +465,50 @@ Prove:       `cargo test -p podbox-extract` with a new test that commits
              with the tampered bytes never written). Close issue 10 with
              a comment showing the fix commit, the test output, and the
              per-extract hash as the guard that stops recurrence.
+
+**Done 2026-09-23.** Stream-and-compare, as decided, with one widening
+the Decision left open: two passes, not one. `layer::open_hashed`
+(`crates/podbox-extract/src/layer.rs`) returns the decompressor over a
+reader that hashes every raw byte delivered (`Rc<RefCell<Sha256>>` inside
+the file reader, so no decoder `into_inner` is needed), and
+`extract_layers` (`crates/podbox-extract/src/lib.rs`) verifies both
+passes through the store's own `DigestMismatch` shape. The first pass is
+the gate: whiteouts are collected in memory and the digest is compared
+before `remove::apply` or `apply_layer` touches the tree, so a blob
+edited after pull is refused with the tampered bytes never written. The
+second pass re-checks, so a change between the two reads is still caught.
+`layer::open` is deleted; no new crate (`sha2` joins `podbox-extract`,
+already ruled under T-0908).
+
+The new test was watched fail first
+(`a_blob_edited_after_pull_is_refused_and_never_written` panics with "a
+tampered blob extracted cleanly"), then green after the widening, in the
+lane (`rust:1.98.1-bookworm` through host podman 6.1.2). The test commits
+an uncompressed tar through the store scaffolding (the sharpest case in
+the Problem: no gzip CRC backstop), flips `hello` to `heLlo` in the
+stored blob, and asserts `extract` errors with a mismatch naming the
+manifest digest and the `greeting` file absent from the rootfs. Full
+suites green beside it: podbox-extract 47, podbox-cli 107,
+podbox-image 117, podbox-probe 96, 0 failed; clippy `-D warnings` clean.
+
+Driven on the shipped binary in the same lane, against
+`public.ecr.aws/docker/library/alpine:3.20` (one layer flipped at its
+midpoint, then `extract --force`):
+
+```
+tampered-extract-rc=125
+podbox extract: stored blob /tmp/px-store/blobs/sha256/25f1d6b1...:
+digest mismatch, expected sha256:25f1d6b1... and computed
+sha256:40459f6e.... The bytes were discarded
+```
+
+The refusal names the blob, both digests, and the discard. The code order
+(`lib.rs` pass 1: `open_hashed`, collect, `verified`, then apply) is why
+no entry was written: the gate at line 229 fires before the first tree
+mutation at line 230. One honest reading of the same run: afterwards the
+rootfs directory is absent, which is `--force`'s own documented
+remove-first (`images.rs` `remove_extracted`, before any blob is read),
+not applied tamper; a re-pull plus extract restores it. The guard that
+stops recurrence is the per-extract hash: every layer of every extract is
+hashed against the manifest before its entries touch the tree, so there
+is no read path left that trusts stored bytes.

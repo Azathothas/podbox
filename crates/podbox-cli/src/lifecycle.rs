@@ -172,6 +172,21 @@ pub fn start(args: &[String]) -> i32 {
                 continue;
             }
         };
+        // ⭐ TODO/milestones.md T-1112. A container created before the OS gate
+        // (or by hand in the store) still names its image's OS here rather
+        // than inside the guest.
+        if let Err(c) = ensure_linux_guest("start", &record.os, &record.architecture) {
+            code = c;
+            continue;
+        };
+        // ⭐ TODO/enter.md T-1317. The launcher chroots, so a denied chroot
+        // refuses here, naming chroot(2), before the container starts rather
+        // than dying at chroot(".") after the work.
+        let findings = podbox_probe::run();
+        if let Err(c) = ensure_chroot_usable("start", &findings) {
+            code = c;
+            continue;
+        }
         match podbox_supervise::start(&s, want, &record) {
             Ok(c) => println!("{}", c.name),
             Err(e) => code = fail("start", e),
@@ -896,6 +911,48 @@ pub fn rootfs_of(s: &podbox_image::Store, want: &str) -> Option<(String, State)>
     Some((c.rootfs, c.state))
 }
 
+/// TODO/milestones.md T-1112. Refuse a guest that is not Linux by name,
+/// with the missing leg, on every entry path.
+///
+/// podbox runs Linux guests only: the chroot tier shares the host kernel
+/// and the machine tier boots Linux images, so a request naming another OS
+/// is refused here, before anything is fetched or entered, rather than
+/// pulled and failed inside.
+pub fn ensure_linux_guest(verb: &str, os: &str, arch: &str) -> Result<(), i32> {
+    if os == podbox_image::platform::OS {
+        return Ok(());
+    }
+    eprintln!(
+        "podbox {verb}: {os}/{arch} is not a Linux guest. podbox runs Linux \
+         guests only: the chroot tier shares the host kernel and the machine \
+         tier boots Linux images. No {os} guest support exists \
+         (TODO/milestones.md T-1112), so there is nothing to pull or enter \
+         for this platform"
+    );
+    Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+}
+
+/// TODO/enter.md T-1317. Refuse entry where the entered rung's chroot is
+/// denied, before any fixup mutates the rootfs.
+///
+/// Every rung this gate guards enters through `chroot(2)`, so the probe's
+/// own chroot leg is the gate: a `Denied` row is the refusal itself, and a
+/// `Skip` never ran (T-0109 rule 1). The machine tier returns before this
+/// gate is reached and never chroots, so it is unaffected.
+pub fn ensure_chroot_usable(verb: &str, findings: &podbox_probe::Findings) -> Result<(), i32> {
+    if podbox_probe::probes::chroot_usable(findings) {
+        return Ok(());
+    }
+    eprintln!(
+        "podbox {verb}: chroot(2) is denied on this machine, so the chroot \
+         tier cannot be entered. The probe's chroot leg reports the denial \
+         (see `podbox probe`), and every rung guarded here enters through \
+         chroot(2): refusing before any fixup mutates the image \
+         (TODO/enter.md T-1317)"
+    );
+    Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+}
+
 /// Shared by `run` and `create`: everything a container needs before it exists.
 #[allow(clippy::too_many_arguments)]
 pub fn platform_and_policy(
@@ -1139,5 +1196,68 @@ mod tests {
         assert_eq!(built, ps_field_names());
         assert!(format::check("{{.Status}}", &ps_field_names()).is_ok());
         assert!(format::check("{{.Nope}}", &ps_field_names()).is_err());
+    }
+
+    /// TODO/milestones.md T-1112. A guest that is not Linux is refused by
+    /// name with the missing leg, on every entry path, rather than pulled
+    /// and failed inside.
+    #[test]
+    fn a_non_linux_guest_is_refused_by_name() {
+        assert_eq!(
+            ensure_linux_guest("run", "windows", "amd64"),
+            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+        );
+        assert_eq!(
+            ensure_linux_guest("exec", "darwin", "arm64"),
+            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+        );
+        assert!(ensure_linux_guest("run", "linux", "amd64").is_ok());
+        assert!(ensure_linux_guest("start", "linux", "arm64").is_ok());
+    }
+
+    /// TODO/enter.md T-1317. A denied or skipped chroot leg refuses entry by
+    /// name at 125; only an `Ok` chroot row promises it.
+    #[test]
+    fn a_denied_chroot_is_refused_before_entry() {
+        fn findings(
+            rows: Vec<(&'static str, podbox_probe::verdict::Outcome)>,
+        ) -> podbox_probe::Findings {
+            podbox_probe::Findings {
+                rows,
+                identity: podbox_probe::identity::Identity::default(),
+                writable: Vec::new(),
+                self_exe: String::new(),
+            }
+        }
+        let chroot = "chroot(/tmp)";
+        assert!(ensure_chroot_usable(
+            "run",
+            &findings(vec![(chroot, podbox_probe::verdict::Outcome::ok())])
+        )
+        .is_ok());
+        assert_eq!(
+            ensure_chroot_usable(
+                "run",
+                &findings(vec![(
+                    chroot,
+                    podbox_probe::verdict::Outcome::denied(podbox_probe::sys::Errno(1))
+                )])
+            ),
+            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+        );
+        assert_eq!(
+            ensure_chroot_usable(
+                "start",
+                &findings(vec![(
+                    chroot,
+                    podbox_probe::verdict::Outcome::skip(None, "nope")
+                )])
+            ),
+            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+        );
+        assert_eq!(
+            ensure_chroot_usable("create", &findings(vec![])),
+            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+        );
     }
 }

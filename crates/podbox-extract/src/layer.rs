@@ -12,6 +12,8 @@
 
 use std::io::{BufReader, Read, Seek, SeekFrom};
 
+use sha2::{Digest as _, Sha256};
+
 use crate::error::{Error, Result};
 
 /// What a layer's media type says it is compressed with.
@@ -45,18 +47,72 @@ impl Compression {
     }
 }
 
-/// A decompressed tar stream over a blob on disk.
-pub fn open(path: &std::path::Path, c: Compression) -> Result<Box<dyn Read>> {
+/// A blob stream that hashes the raw bytes while they are read.
+///
+/// TODO/extract.md T-1315: the manifest names the digest and the stored blob
+/// may have changed since pull, so each layer is hashed while it streams
+/// into the decompressor and compared before any entry is applied. One
+/// pass, no extra I/O: the bytes are read for extraction anyway, and the
+/// handle below reads the digest back out of them afterwards.
+pub struct HashedStream {
+    state: std::rc::Rc<std::cell::RefCell<Sha256>>,
+}
+
+/// Open `path` for decompression per `c`, hashing every raw byte on the way.
+/// The returned handle reports the digest of what the stream actually
+/// delivered once it has been read to the end.
+pub fn open_hashed(
+    path: &std::path::Path,
+    c: Compression,
+) -> Result<(Box<dyn Read>, HashedStream)> {
+    struct Hashing<R> {
+        inner: R,
+        state: std::rc::Rc<std::cell::RefCell<Sha256>>,
+    }
+    impl<R: Read> Read for Hashing<R> {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            let n = self.inner.read(buf)?;
+            // ⛔ Hash what arrived, not what was offered. A short read that
+            // hashed the whole buffer would verify bytes nobody saw, which
+            // is the same defect `podbox-image`'s Verifier documents.
+            self.state.borrow_mut().update(&buf[..n]);
+            Ok(n)
+        }
+    }
+    let state = std::rc::Rc::new(std::cell::RefCell::new(Sha256::new()));
     let f = std::fs::File::open(path)?;
-    let r = BufReader::with_capacity(64 * 1024, f);
-    Ok(match c {
+    let r = BufReader::with_capacity(
+        64 * 1024,
+        Hashing {
+            inner: f,
+            state: std::rc::Rc::clone(&state),
+        },
+    );
+    let stream: Box<dyn Read> = match c {
         Compression::None => Box::new(r),
         Compression::Gzip => Box::new(flate2::read::GzDecoder::new(r)),
         Compression::Zstd => Box::new(
             ruzstd::decoding::StreamingDecoder::new(r)
                 .map_err(|e| Error::Compression(format!("this zstd layer cannot be read: {e}")))?,
         ),
-    })
+    };
+    Ok((stream, HashedStream { state }))
+}
+
+impl HashedStream {
+    /// The `sha256:<hex>` of everything the stream delivered so far. Only
+    /// meaningful once the stream has been read to the end, which both
+    /// extraction passes do: whiteout collection and entry application each
+    /// walk every entry.
+    pub fn digest(&self) -> String {
+        let h = self.state.borrow().clone().finalize();
+        let mut s = String::with_capacity(71);
+        s.push_str("sha256:");
+        for b in h {
+            s.push_str(&format!("{b:02x}"));
+        }
+        s
+    }
 }
 
 /// How large the layer is once decompressed, for the space precheck.

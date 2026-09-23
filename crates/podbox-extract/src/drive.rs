@@ -640,3 +640,61 @@ fn a_mode_the_extractor_cannot_write_through_is_still_the_final_mode() {
         0o444
     );
 }
+
+// ---------------------------------------------------------------- T-1315
+
+/// TODO/extract.md T-1315. A blob whose bytes changed after pull is refused
+/// with a digest mismatch naming the blob, and the tampered bytes are never
+/// written: the manifest names the original digest and the stored blob no
+/// longer matches it.
+#[test]
+fn a_blob_edited_after_pull_is_refused_and_never_written() {
+    use std::io::Write;
+    let s = Scratch::new("tamper");
+    let store = podbox_image::Store::open(s.path().join("store")).unwrap();
+    let bytes = layer(&[E::File("greeting", b"hello honest world", 0o644)]);
+    let want = podbox_image::digest::Digest::of(&bytes);
+    let (staged, mut f) = store.stage("tamper").unwrap();
+    f.write_all(&bytes).unwrap();
+    drop(f);
+    store.commit(&staged, &want).unwrap();
+    // One content byte flipped in the stored blob, as the issue's repro does
+    // at blob offset 514: `hello` becomes `heLlo`.
+    let blob = store.blob_path(&want);
+    let mut stored = std::fs::read(&blob).unwrap();
+    let at = stored
+        .windows(b"hello".len())
+        .position(|w| w == b"hello")
+        .expect("the committed tar carries the greeting");
+    stored[at + 2] = b'L';
+    std::fs::write(&blob, &stored).unwrap();
+    let manifest = podbox_image::oci::Manifest {
+        schema_version: 2,
+        media_type: "application/vnd.oci.image.manifest.v1+json".to_string(),
+        config: podbox_image::oci::Descriptor {
+            media_type: "application/vnd.oci.image.config.v1+json".to_string(),
+            digest: want.to_string(),
+            size: 0,
+            platform: None,
+        },
+        layers: vec![podbox_image::oci::Descriptor {
+            media_type: "application/vnd.oci.image.layer.v1.tar".to_string(),
+            digest: want.to_string(),
+            size: bytes.len() as u64,
+            platform: None,
+        }],
+    };
+    let digest = format!("sha256:{}", "7".repeat(64));
+    let mut out = Vec::new();
+    let Err(e) = crate::extract(&store, &manifest, &digest, &mut out) else {
+        panic!("a tampered blob extracted cleanly");
+    };
+    let text = format!("{e}");
+    assert!(text.contains("mismatch"), "{text}");
+    assert!(text.contains(&want.to_string()), "{text}");
+    let (rootfs, _) = crate::paths(&store, &digest);
+    assert!(
+        std::fs::read(rootfs.join("greeting")).is_err(),
+        "the tampered bytes reached the rootfs"
+    );
+}

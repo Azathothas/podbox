@@ -429,6 +429,11 @@ pub fn exec(args: &[String]) -> i32 {
             return e.exit_code();
         }
     };
+    // ⭐ TODO/milestones.md T-1112. `exec` never pulls, so a platform no tier
+    // can enter is refused before the store is even opened.
+    if let Err(c) = crate::lifecycle::ensure_linux_guest("exec", &platform.os, &platform.arch) {
+        return c;
+    };
     let store = match podbox_image::open_store() {
         Ok(s) => s,
         Err(e) => {
@@ -484,6 +489,10 @@ pub fn exec(args: &[String]) -> i32 {
              extract {image}` is what puts one there"
         );
         return podbox_image::error::EXIT_RUNTIME_ERROR;
+    };
+    // ⭐ TODO/milestones.md T-1112. The stored record is what gets entered.
+    if let Err(c) = crate::lifecycle::ensure_linux_guest("exec", &record.os, &record.architecture) {
+        return c;
     }
     let (rootfs, _) = podbox_extract::paths(&store, &record.manifest_digest);
     let rootfs = rootfs.to_string_lossy().to_string();
