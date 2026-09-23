@@ -204,7 +204,7 @@ check)
 	# it. `crates/podbox-cli/build.rs` embeds the two objects, so a binary built
 	# first embeds two empty placeholders and this check would pass with a
 	# podbox that interposes nothing. TODO/interpose.md T-0702.
-	rc=0
+	pass=0; fail=0; skip=0
 	for step in \
 		"cargo fmt --all -- --check" \
 		"cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check" \
@@ -220,11 +220,32 @@ check)
 		# ⛔ The status is read from the step itself, unpiped. AGENTS.md
 		# absolute 8: piping a check into anything reports the pipeline's
 		# status, so a guard that failed reads as green.
-		if ! sh -c "$step"; then
-			echo "   FAILED: $step"
-			rc=1
-		fi
+		sh -c "$step"
+		step_rc=$?
+		# ⚠ TODO/gate.md T-1207 item 4: a step that cannot run reports the
+		# third state and does not read as a failure. Exit 2 is "could not
+		# run" everywhere in this tree; only a real failure fails the check.
+		case "$step_rc" in
+		0) pass=$((pass + 1)) ;;
+		2) echo "   SKIP: $step (it could not run here; nothing about its subject was verified)"
+			skip=$((skip + 1)) ;;
+		*) echo "   FAILED: $step"
+			fail=$((fail + 1)) ;;
+		esac
 	done
+	printf '== %s passed, %s failed, %s skipped\n' "$pass" "$fail" "$skip"
+	# ⛔ A RUN THAT PASSED NOTHING IS NOT A GREEN RUN. Zero failures out of
+	# zero checks executed is the shape scripts/common/check-gate.sh exists
+	# to refuse, and this check refuses it the same way.
+	if [ "$skip" -gt 0 ]; then
+		echo "   ⚠ A SKIP IS NOT A PASS. Those steps did not run and nothing about"
+		echo "     their subject was verified."
+	fi
+	if [ "$fail" -gt 0 ] || [ "$pass" -eq 0 ]; then
+		rc=1
+	else
+		rc=0
+	fi
 	[ "$rc" -eq 0 ] && { need_state; inputs_digest >"$STAMP"; }
 	exit "$rc"
 	;;

@@ -461,7 +461,18 @@ Premise:     The exclusion is right and is not what this entry proposes to
              substance. What has not landed is item 2 (exported-symbol count
              against the version script at the gate), item 3 (per-libc size in
              T-0910's baseline) and item 4 (third-state reporting). The
-             `Decision` below is still open and still needs its ruling.
+             Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check`,
+             each with its plant in the same change. The Decision below
+             carries it; what is open is the implementation, now landed
+             under the Prove.
+             Measured 2026-09-23 in the lane: with the version script
+             removed from the link both objects still export 112 names with
+             no personality on this profile, so the script-drop threat the
+             Approach names is dormant on this toolchain rather than live;
+             both pins stay as drift guards across toolchains and profiles.
+             The same run shows cargo never relinks on a map-only edit, so
+             a changed map against a stale object is a real staleness the
+             gate comparison catches, not a hypothetical one.
 Approach:    A second scope, not a second gate:
              1. `dev.sh check` runs the same four steps against
                 `crates/podbox-interpose` with its own target and linker, which
@@ -485,10 +496,47 @@ Decision:    Not taken on the shape. ⚠ Whether this belongs in `dev.sh check`
              Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check`,
              each with its plant in the same change. The per-commit toolchain
              cost is accepted; the entry stays open until all three land.
-Prove:       `./scripts/plant.sh` gains a case that introduces a clippy failure
-             and an unformatted line in `crates/podbox-interpose` and asserts
-             `./scripts/dev.sh check` goes red naming that crate, which it does
-             not today.
+Prove:       `./scripts/build-interpose.sh` exits 1 naming the export
+             mismatch on a blinded comparison and on a bogus map global;
+             `./experiments/110-bloat-delta.sh interpose` writes
+             `experiments/results/bloat-interpose.txt` with both sizes under
+             the declared ceiling; a full `./scripts/dev.sh check` with the
+             interpose build forced to SKIP reads SKIP and stays green;
+             `./scripts/plant.sh` exits 0 with the four new cases caught.
+             The committed clippy-and-fmt plant spelling is superseded:
+             item 1 landed in substance without it, recorded above.
+
+Implementation landed 2026-09-23. The entry stays open pending the full
+`plant.sh` run on the committed tree; every run below is taken.
+
+Item 2 runs in `scripts/build-interpose.sh`: each object's
+`nm -D --defined-only` `T` set against the `interpose.map` globals with
+`rust_eh_personality` refused, beside the DT_NEEDED, version-ceiling,
+gettid and libdl asserts. Lane 2026-09-23: 112 declared and 112
+exported on both objects with no personality. Guard plant: the map
+input blinded reads declared 0 against exported 112 and exits 1
+naming the mismatch on both. Subject plant: a bogus map global reads
+declared 113 against exported 112 with the diff naming it and exits
+1; the link tolerates it and cargo never relinks on a map-only edit,
+so a changed map against a stale object is the staleness this
+catches. Check 24 holds the step with its plant case, proven red with
+its own message on a trial run.
+Item 3 runs at link time under the ceiling declared once in
+`scripts/build-interpose.sh` and in the gate as check 23 over
+`experiments/results/bloat-interpose.txt`, taken by
+`experiments/110-bloat-delta.sh interpose` (lane 2026-09-23: musl
+335320, gnu 315432, binary total 3503032, the total under the binary
+ceiling and each object under the interpose ceiling). Check 23
+plants mirror the proven 17b/17c shapes.
+Item 4 runs in `dev.sh check`: each step's own status, 0 passing, 2
+reading SKIP with the step named, anything else FAILED; skips never
+fail the run and a run that passed nothing is red. Plant through the
+real gate with the interpose build forced to SKIP: 9 passed, 0
+failed, 1 skipped, exit 0. Check 25 holds the arm with its plant
+case, proven red with its own message on a trial run.
+Full `dev.sh check` green in the lane: 10 passed, 0 failed, 0
+skipped (fmt, clippy, interpose build, release build, 495 workspace
+tests, 25 interpose tests, gate, markers).
 
 
 ---

@@ -2,8 +2,9 @@
 # plant.sh - break each of the gate's checks on purpose and assert it goes red.
 #
 # ⛔ AN ASSERTION NOBODY HAS SEEN FAIL IS NOT AN ASSERTION. `check-todo.py`
-# carries twenty-two checks and this script carries twenty-seven cases, because
-# check 17 has four assertions that fail apart, and checks 18, 19 and 21 two. A check that
+# carries twenty-five checks and this script carries thirty-one cases, because
+# check 17 has four assertions that fail apart, checks 18, 19 and 21 two, and
+# check 23 two. A check that
 # quietly matches nothing exits 0 exactly like one whose assertions all passed,
 # and the second is what everybody assumes they are looking at. This script is
 # what tells them apart.
@@ -45,7 +46,7 @@ command -v git >/dev/null 2>&1 || { echo "SKIP: no git" >&2; exit 2; }
 
 # ⛔ GUARD 3: ONE LIST. Everything any case may touch is named here once, and
 # both the backup and the restore iterate this and nothing else.
-FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs"
+FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs scripts/build-interpose.sh scripts/dev.sh"
 
 # ⛔ CHECK 18'S SUBJECT IS A NUMBER THAT IS ALREADY TAKEN, so writing one here
 # literally would put a second name on it in this very file and make the clean
@@ -191,6 +192,17 @@ if [ -z "$CEILING_NUM" ]; then
   exit 2
 fi
 export CEILING_NUM
+
+# ⛔ SAME RULE, FOR CHECK 23. Its subject is a NUMBER that may appear in exactly
+# one tracked file, so writing that number literally in this source would make
+# the clean tree red and the harness would refuse to run. It is read out of the
+# one file that owns it, at run time.
+INTERPOSE_CEILING_NUM="$(awk -F= '/^INTERPOSE_CEILING_BYTES=/{print $2}' scripts/build-interpose.sh)"
+if [ -z "$INTERPOSE_CEILING_NUM" ]; then
+  echo "SKIP: scripts/build-interpose.sh declares no INTERPOSE_CEILING_BYTES" >&2
+  exit 2
+fi
+export INTERPOSE_CEILING_NUM
 
 echo "== plants"
 
@@ -361,6 +373,27 @@ case_plant "21b a docker.io image in a Prove line" "which pulls from Docker Hub"
 # expected substring names the defect rather than the victim.
 case_plant "22 a closed entry with no recorded run" "closes without a recorded run" \
   sh -c 'sed -i "s/^\*\*Done/*Done/" TODO/probe.md'
+
+# ⚠ Check 23 has two cases because its two arms fail apart: a size over the
+# ceiling and a reading that stopped recording sizes. One case would leave
+# the other unseen.
+case_plant "23a an interpose object over the ceiling" "at or over the interpose ceiling" \
+  sh -c 'sed -i -E "s/^(interpose_gnu_bytes) [0-9]+$/\1 ${INTERPOSE_CEILING_NUM}/" experiments/results/bloat-interpose.txt'
+
+case_plant "23b an interpose reading with no sizes" "carries no \`interpose_gnu_bytes" \
+  sh -c 'sed -i -E "s/^interpose_gnu_bytes /interpose_gnu_bytes_renamed /" experiments/results/bloat-interpose.txt'
+
+# ⛔ THE NEEDLE IS A TOKEN PAIR, and the plant removes one half of it. The
+# comparison reads interpose.map through nm -D --defined-only; with that
+# spelling gone the holding check must go red with its own message.
+case_plant "24 the export comparison removed" "carries no export-set comparison" \
+  sh -c 'sed -i "s/--defined-only/--defined-onlx/g" scripts/build-interpose.sh'
+
+# ⛔ THE ARM, retargeted. A step that exits 2 then reaches no arm that names
+# it, and the holding check must go red rather than pass a gate that stays
+# silent about skips.
+case_plant "25 the SKIP arm retargeted" "has no SKIP arm" \
+  sh -c 'sed -i "s/^\t\t2)/\t\t9)/" scripts/dev.sh'
 
 echo
 # ⛔ SAY WHAT IS NOT COVERED. A harness that lists passing cases without naming

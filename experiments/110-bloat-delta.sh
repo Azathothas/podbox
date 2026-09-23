@@ -7,6 +7,8 @@
 #
 #   ./110-bloat-delta.sh baseline       the "before": no dependencies at all
 #   ./110-bloat-delta.sh <area>         the "after": one entry from TODO/deps.md
+#   ./110-bloat-delta.sh interpose      the interposer pair's committed sizes
+#                                       (needs ./scripts/build-interpose.sh first)
 #
 # ⛔ THE CANDIDATE MUST BE REACHABLE FROM `main`, OR THIS MEASURES NOTHING.
 # `lto = true` deletes a dependency nothing calls, and the delta then reads
@@ -106,6 +108,25 @@ podbox\ *) scaffold_said="" ;;  # only the version line: the scaffold said nothi
 esac
 printf '  scaffold    %s\n' "${scaffold_said:-(said nothing)}"
 
+# ------------------------------------------------------- the interposer pair
+#
+# TODO/gate.md T-1207 item 3. Both preloaded objects embed in the binary the
+# total above measures, so their growth hides in its headroom. Their sizes
+# are recorded here per libc, beside the total, and each holds to the
+# ceiling declared once in scripts/build-interpose.sh. `absent` means the
+# objects were not built where this ran: run ./scripts/build-interpose.sh
+# first, because a reading taken without them measures nothing about them.
+echo
+echo "== the interposer pair, per libc"
+interpose_musl_so="$REPO/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so"
+interpose_gnu_so="$REPO/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so"
+interpose_musl_bytes="absent"
+interpose_gnu_bytes="absent"
+if [ -f "$interpose_musl_so" ]; then interpose_musl_bytes="$(stat -c%s "$interpose_musl_so")"; fi
+if [ -f "$interpose_gnu_so" ]; then interpose_gnu_bytes="$(stat -c%s "$interpose_gnu_so")"; fi
+printf '  musl %s\n' "$interpose_musl_bytes"
+printf '  gnu  %s\n' "$interpose_gnu_bytes"
+
 # ------------------------------------------------------------- the breakdown
 echo
 echo "== what is in it"
@@ -198,6 +219,8 @@ fi
 	printf 'headroom_bytes %s\n' "$((CEILING_BYTES - total))"
 	printf 'pt_interp %s\n' "$interp"
 	printf 'third_party_crates %s\n' "$deps"
+	printf 'interpose_musl_bytes %s\n' "$interpose_musl_bytes"
+	printf 'interpose_gnu_bytes %s\n' "$interpose_gnu_bytes"
 	printf 'delta             %s\n' "$delta_line"
 	printf 'unmeasured        %s\n' "$unmeasured"
 	printf 'scaffold_said     %s\n' "${scaffold_said:-(nothing)}"

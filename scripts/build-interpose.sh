@@ -38,6 +38,15 @@ TARGETS="${TARGETS:-x86_64-unknown-linux-musl x86_64-unknown-linux-gnu}"
 # `scripts/zig-cc.sh` records the whole determination.
 ZIG_LINKER="$ROOT/scripts/zig-cc.sh"
 
+# ⛔ THE PER-OBJECT CEILING, TODO/gate.md T-1207 item 3. Both objects embed in
+# the release binary, so their growth hides in that binary's headroom. The
+# committed per-libc reading is experiments/results/bloat-interpose.txt;
+# scripts/check-todo.py holds that this number is declared here and nowhere
+# else. Measured 2026-09-23 in the lane: musl 335320, gnu 315432 bytes for
+# 112 exports each; the ceiling holds about half again over the larger while
+# the entry set is stable.
+INTERPOSE_CEILING_BYTES=500000
+
 # What DT_NEEDED must name, per target. ⛔ Asserted rather than assumed: the
 # failure above is silent, and a build that exits 0 having produced the wrong
 # object is the shape TODO/interpose.md T-0702 exists to prevent.
@@ -52,6 +61,10 @@ rc=0
 for t in $TARGETS; do
   if ! rustup target list --installed 2>/dev/null | grep -qx "$t"; then
     printf 'SKIP %s: target not installed\n' "$t" >&2
+    # ⚠ TODO/gate.md T-1207 item 4: a target that cannot build here is the
+    # third state, never a silent pass. A failure outranks a skip, so a skip
+    # never clears one.
+    if [ "$rc" -ne 1 ]; then rc=2; fi
     continue
   fi
   printf '== %s\n' "$t"
@@ -64,7 +77,7 @@ for t in $TARGETS; do
     else
       printf 'SKIP %s: no zig, and the default linker produces a GLIBC object\n' "$t" >&2
       printf '      ./scripts/common/bootstrap-env.sh zig\n' >&2
-      rc=2
+      if [ "$rc" -ne 1 ]; then rc=2; fi
       continue
     fi
     ;;
@@ -82,7 +95,7 @@ for t in $TARGETS; do
     # musl has no `libdl` (its libc serves `dlsym` directly), so this stays
     # on the glibc arm the way `zig cc` stays on the musl one.
     stub_dir="$CRATE/target/dl-stub"
-    mkdir -p "$stub_dir" || { printf 'SKIP %s: no stub directory\n' "$t" >&2; rc=2; continue; }
+    mkdir -p "$stub_dir" || { printf 'SKIP %s: no stub directory\n' "$t" >&2; if [ "$rc" -ne 1 ]; then rc=2; fi; continue; }
     stub="$stub_dir/libdl-stub.so"
     if cc -shared -nostdlib -Wl,--version-script="$CRATE/dl-stub.map" -Wl,-soname,libdl.so.2 -o "$stub" "$CRATE/dl-stub.S"; then
       printf '   stub: %s (SONAME %s)\n' "$stub" \
@@ -172,6 +185,50 @@ for t in $TARGETS; do
       esac
       ;;
     esac
+    # ⛔ THE EXPORTED SET, TODO/gate.md T-1207 item 2. The version script is
+    # the source of this list and the object is what is compared with it, the
+    # same comparison experiments/105-interpose-ownership.sh check A makes
+    # with an engine: a name in interpose.map that the object does not export
+    # is a silent non-interposition, and one the object exports that the map
+    # does not list is a symbol some other library in the payload's process
+    # resolves to podbox. Without this a link that stopped applying the
+    # version script produces a working object exporting hundreds of names
+    # and exits 0.
+    declared_names="${TMPDIR:-/tmp}/podbox-declared-$t.txt"
+    exported_names="${TMPDIR:-/tmp}/podbox-exported-$t.txt"
+    awk '/global:/{g=1;next} /local:/{g=0} g && /;/{gsub(/[ \t;]/,"");if($0!="")print}' \
+      "$CRATE/interpose.map" | sort >"$declared_names"
+    if nm -D --defined-only "$so" 2>/dev/null | awk '$2=="T"{print $3}' | sort >"$exported_names"; then
+      n_declared="$(wc -l <"$declared_names")"
+      n_exported="$(wc -l <"$exported_names")"
+      if diff -q "$declared_names" "$exported_names" >/dev/null; then
+        printf '   ok: exports %s names, exactly what interpose.map declares\n' "$n_exported"
+      else
+        printf 'FAIL %s: exports differ from interpose.map (declared %s, exported %s)\n' "$t" "$n_declared" "$n_exported" >&2
+        diff "$declared_names" "$exported_names" | sed 's/^/      /' >&2
+        rc=1
+      fi
+    else
+      printf 'FAIL %s: nm could not read the exports of %s\n' "$t" "$so" >&2
+      rc=1
+    fi
+    if nm -D --defined-only "$so" 2>/dev/null | grep -q 'rust_eh_personality'; then
+      printf 'FAIL %s: rust_eh_personality is dynamically exported\n' "$t" >&2
+      rc=1
+    else
+      printf '   ok: rust_eh_personality is not exported\n'
+    fi
+    # ⛔ THE SIZE, TODO/gate.md T-1207 item 3. The committed reading is
+    # experiments/results/bloat-interpose.txt; this asserts the same ceiling
+    # where the object is linked, so every dev.sh check and CI build holds
+    # it rather than only a clone reading the record.
+    bytes="$(stat -c%s "$so")"
+    if [ "$bytes" -ge "$INTERPOSE_CEILING_BYTES" ]; then
+      printf 'FAIL %s: %s bytes is at or over the interpose ceiling of %s\n' "$t" "$bytes" "$INTERPOSE_CEILING_BYTES" >&2
+      rc=1
+    else
+      printf '   ok: %s bytes, under the interpose ceiling of %s\n' "$bytes" "$INTERPOSE_CEILING_BYTES"
+    fi
   else
     printf 'FAIL %s\n' "$t" >&2
     rc=1

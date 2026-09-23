@@ -88,6 +88,18 @@
  22. Every `done` entry opens its record with a bold `Done` paragraph on the
      first unindented line after `Prove`. TODO/gate.md T-1208: a closed entry
      nobody ran reads as done, and four of them did.
+23. Each preloaded object holds to the interpose ceiling declared once in
+     `scripts/build-interpose.sh`, per libc, in the committed
+     `experiments/results/bloat-interpose.txt`. TODO/gate.md T-1207 item 3:
+     both objects embed in the release binary, so their growth hides in its
+     headroom.
+24. `scripts/build-interpose.sh` compares each object's exports against
+     `interpose.map`. TODO/gate.md T-1207 item 2: a link that stopped
+     applying the version script produces a working object exporting
+     hundreds of names, and only this comparison says so at the gate.
+25. `scripts/dev.sh check` reports a step that exits 2 as SKIP, never as a
+     failure. TODO/gate.md T-1207 item 4: exit 2 is "could not run"
+     everywhere in this tree.
 
 ⛔ Read the exit code from this process, unpiped.
 Exit: 0 everything agrees, 1 something disagrees, 2 could not run.
@@ -191,6 +203,7 @@ seen = {
     "tree_citations": 0, "tree_links": 0, "bare_citations": 0,
     "size_ceiling": 0, "experiment_numbers": 0, "ci_components": 0,
     "exit_codes": 0, "prove_registry": 0, "closure_records": 0,
+    "interpose_sizes": 0, "interpose_exports": 0, "devcheck_third_state": 0,
 }
 
 # ⛔ Check 17. The one file allowed to declare the release binary's ceiling, and
@@ -772,6 +785,147 @@ def check_closure_records(entries):
                 f"TODO/gate.md T-1208.")
 
 
+# ⛔ Check 23. Each preloaded object is embedded in the release binary, so
+# its growth hides in that binary's headroom. TODO/gate.md T-1207 item 3:
+# the sizes are recorded per libc in the committed reading below and each
+# holds to the ceiling declared once in scripts/build-interpose.sh.
+INTERPOSE_BUILD = "scripts/build-interpose.sh"
+INTERPOSE_SIZES = "experiments/results/bloat-interpose.txt"
+INTERPOSE_CEIL_DECL = re.compile(r"^INTERPOSE_CEILING_BYTES=(\d+)$", re.M)
+INTERPOSE_SIZE_LINE = re.compile(r"^interpose_(gnu|musl)_bytes (\d+|absent)$", re.M)
+
+# Where dev.sh check lives, for check 25.
+DEVCHECK = "scripts/dev.sh"
+
+
+def check_interpose_sizes(files):
+    """Check 23: each preloaded object holds to its own ceiling, per libc.
+
+    ⛔ Text and the committed reading only. Nothing is built, so this runs on
+    a clone with no toolchain, which is this script's own constraint. The
+    build-time half is scripts/build-interpose.sh asserting the same ceiling
+    where it links. TODO/gate.md T-1207 item 3.
+    """
+    if INTERPOSE_BUILD not in files:
+        err(INTERPOSE_BUILD, "is where the interpose ceiling lives and it is "
+                             "not tracked. TODO/gate.md T-1207.")
+        return
+    m = INTERPOSE_CEIL_DECL.search(read(os.path.join(ROOT, INTERPOSE_BUILD)))
+    if not m:
+        err(INTERPOSE_BUILD, "declares no `INTERPOSE_CEILING_BYTES=<n>` line. "
+                             "That line is the ceiling's one home; without it "
+                             "every other file naming a size is unanchored.")
+        return
+    ceiling = m.group(1)
+    seen["interpose_sizes"] += 1
+
+    # ⛔ Nowhere else. A value in two places drifts. Result readings under
+    # experiments/results/ are written BY the measurement and are not
+    # scanned: they quote what they were taken against.
+    for rel in sorted(files):
+        if rel == INTERPOSE_BUILD or not is_ours(rel):
+            continue
+        if not rel.endswith(".md") and not rel.endswith(SOURCE_SUFFIXES):
+            continue
+        try:
+            text = read(os.path.join(ROOT, rel))
+        except (OSError, UnicodeDecodeError):
+            continue
+        seen["interpose_sizes"] += 1
+        for n, line in enumerate(text.splitlines(), 1):
+            if re.search(rf"(?<!\d){ceiling}(?!\d)", line):
+                err(f"{rel}:{n}",
+                    f"names the interpose ceiling {ceiling} itself. It is "
+                    f"declared in {INTERPOSE_BUILD} and nowhere else.")
+
+    if INTERPOSE_SIZES not in files:
+        err(INTERPOSE_SIZES,
+            "is not tracked. TODO/gate.md T-1207 item 3: without a committed "
+            "per-libc reading the objects' growth hides in the binary "
+            "total's headroom. Take it with "
+            "`./experiments/110-bloat-delta.sh interpose` after "
+            "`./scripts/build-interpose.sh`.")
+        return
+    seen["interpose_sizes"] += 1
+    got = dict(INTERPOSE_SIZE_LINE.findall(
+        read(os.path.join(ROOT, INTERPOSE_SIZES))))
+    for which in ("gnu", "musl"):
+        if which not in got:
+            err(INTERPOSE_SIZES,
+                f"carries no `interpose_{which}_bytes <n>` line, so the "
+                f"{which} object's size is not held.")
+            continue
+        seen["interpose_sizes"] += 1
+        if got[which] == "absent":
+            err(INTERPOSE_SIZES,
+                f"records `interpose_{which}_bytes absent`: the objects were "
+                f"not built where the reading was taken. Re-take it after "
+                f"`./scripts/build-interpose.sh`.")
+        elif int(got[which]) >= int(ceiling):
+            err(INTERPOSE_SIZES,
+                f"records interpose_{which}_bytes {got[which]}, which is at "
+                f"or over the interpose ceiling of {ceiling} declared in "
+                f"{INTERPOSE_BUILD}.")
+
+
+def check_interpose_exports(files):
+    """Check 24: the export comparison is in the interpose build.
+
+    TODO/gate.md T-1207 item 2. scripts/build-interpose.sh compares each
+    object's dynamic exports against interpose.map, where every dev.sh check
+    and CI build runs it. This holds that step in place: without it a link
+    that stopped applying the version script reads green.
+    """
+    if INTERPOSE_BUILD not in files:
+        err(INTERPOSE_BUILD, "is not tracked, so nothing holds the export "
+                             "comparison. TODO/gate.md T-1207.")
+        return
+    try:
+        text = read(os.path.join(ROOT, INTERPOSE_BUILD))
+    except (OSError, UnicodeDecodeError):
+        err(INTERPOSE_BUILD, "is not readable. TODO/gate.md T-1207.")
+        return
+    seen["interpose_exports"] += 1
+    if "interpose.map" not in text or "nm -D --defined-only" not in text:
+        err(INTERPOSE_BUILD,
+            "carries no export-set comparison against interpose.map. "
+            "TODO/gate.md T-1207 item 2: without it a link that stopped "
+            "applying the version script produces a working object and "
+            "exits 0.")
+
+
+def check_devcheck_third_state(files):
+    """Check 25: dev.sh check reports exit 2 as SKIP.
+
+    TODO/gate.md T-1207 item 4. Exit 2 is "could not run" everywhere in this
+    tree; a step that cannot run must read as SKIP, never as FAILED and
+    never as green.
+    """
+    if DEVCHECK not in files:
+        err(DEVCHECK, "is not tracked. TODO/gate.md T-1207.")
+        return
+    try:
+        text = read(os.path.join(ROOT, DEVCHECK))
+    except (OSError, UnicodeDecodeError):
+        err(DEVCHECK, "is not readable. TODO/gate.md T-1207.")
+        return
+    seen["devcheck_third_state"] += 1
+    head = text.find('case "$step_rc" in')
+    if head < 0:
+        err(DEVCHECK,
+            "runs its check steps without reading each step's own status. "
+            "TODO/gate.md T-1207 item 4.")
+        return
+    tail = text.find("esac", head)
+    end = tail if tail > 0 else len(text)
+    arm = text.find("\n\t\t2)", head, end)
+    if arm < 0 or "SKIP" not in text[arm:end]:
+        err(DEVCHECK,
+            "has no SKIP arm for a step that exits 2. TODO/gate.md T-1207 "
+            "item 4: a step that could not run must read as SKIP, never as "
+            "FAILED.")
+
+
 def main():
     if not os.path.isdir(TODO):
         print("check-todo: TODO/ does not exist", file=sys.stderr)
@@ -1000,6 +1154,15 @@ def main():
 
     # -- 22. A closed entry carries its recorded run -------------------------
     check_closure_records(entries)
+
+    # -- 23. Each preloaded object holds to its own ceiling ------------------
+    check_interpose_sizes(files)
+
+    # -- 24. The export comparison is in the interpose build -----------------
+    check_interpose_exports(files)
+
+    # -- 25. dev.sh check reports exit 2 as SKIP ------------------------------
+    check_devcheck_third_state(files)
 
     # -- 16. coverage --------------------------------------------------------
     # ⭐ A check that examined nothing reports success otherwise, which is the
