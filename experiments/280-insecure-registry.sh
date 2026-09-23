@@ -248,6 +248,15 @@ MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' OPENSSL_CONF="$(winpath "$WORK/empty.
 	echo "SKIP: the TLS fixture's certificate came out empty" >&2
 	exit 2
 }
+# The TLS fixture reads its certificate from /certs on every lane: the
+# native branch serves through the same eng_serve path, which mounts
+# only what eng_mount staged. Measured 2026-09-23 in the base lane:
+# without this the registry exits 1 on `open /certs/domain.crt`, the
+# TLS push fails, and clause 5 SKIPs on a missing fixture.
+eng_mount "$WORK/certs" /certs || {
+	echo "SKIP: the TLS fixture's certificate could not be staged" >&2
+	exit 2
+}
 if [ "$NATIVE" -eq 1 ]; then
 	TID="$(eng_serve "$TLS_NAME" "$REGISTRY_IMG" "$TLS_PORT:443" \
 		"REGISTRY_HTTP_ADDR=0.0.0.0:443 REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt REGISTRY_HTTP_TLS_KEY=/certs/domain.key" \
@@ -256,10 +265,6 @@ if [ "$NATIVE" -eq 1 ]; then
 		exit 2
 	}
 else
-	eng_mount "$WORK/certs" /certs || {
-		echo "SKIP: the TLS fixture's certificate could not be staged" >&2
-		exit 2
-	}
 	TID="$(eng_serve "$TLS_NAME" "$REGISTRY_IMG" "$TLS_PORT:443" \
 		"REGISTRY_HTTP_ADDR=0.0.0.0:443 REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt REGISTRY_HTTP_TLS_KEY=/certs/domain.key" \
 		--)" || {

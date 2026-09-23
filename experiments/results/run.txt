@@ -1,9 +1,9 @@
 == conditions
-date              2026-09-21T05:20:12Z
-host kernel       3.6.9-b4195d69.x86_64
+date              2026-09-23T02:06:32Z
+host kernel       7.2.0-WSL2-STABLE
 host arch         x86_64
 podbox            podbox 0.1.0
-engine            podman version 6.1.2
+engine            29.8.1
 image             ghcr.io/pkgforge-dev/archlinux:latest
 
 == 1. T-1104's own acceptance: a command runs and says so on stdout
@@ -20,7 +20,9 @@ image             ghcr.io/pkgforge-dev/archlinux:latest
 
 == 3. it is really a chroot into the image, not the host
   /etc/os-release   Arch Linux
-  the host's is     
+  the host's is     Arch Linux
+  ⚠ the image and the host report the same distribution, so this clause
+    cannot distinguish them. It asserts only that the file was readable.
 
 == 4. -e, -w and --entrypoint
   -e GREETING=hello  [hello]
@@ -29,15 +31,20 @@ image             ghcr.io/pkgforge-dev/archlinux:latest
   a bare name        [onpath]
 
 == 5. T-0506: a foreign image is run through an interpreter, or REFUSED
-  SKIP: binfmt_misc is not mounted, so neither half can be measured
+  arm64 image, uname -m inside it: [aarch64] rc=0
+  the host is                      x86_64
+  disclosed: Running it through the registered interpreter /usr/bin/qemu-aarch64-static
+  riscv64 executes through its registered interpreter here; the refusal half is unmeasurable
 
 == 6. --pull never on a platform the store does not hold
   exit              125
-  says              podbox run: the store holds ghcr.io/pkgforge-dev/archlinux:latest for linux/amd64, and linux/ppc
+  says              podbox run: the store holds ghcr.io/pkgforge-dev/archlinux:latest for linux/amd64, linux/arm64, 
 
 == 7. T-1104's own acceptance: inside the reconstruction
-  SKIP: no docker daemon, so the reconstruction cannot be entered
-  ⚠ clause 7 did not run, so the chroot rung is unmeasured here
+  stdout            [hi]
+  exit              0
+  rung inside       chroot   (this host selects namespace)
+  says it does NOT provide: does NOT provide: process, network, IPC or mount isolation, or a
 
 == 8. T-0505: exec is a fresh chroot, and every channel says so
   stdout            [marker]

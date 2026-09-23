@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-143 entries: 1 open, 1 partial, 1 blocked, 140 done. Every P0 is done.
+143 entries: 1 open, 1 partial, 0 blocked, 141 done. Every P0 is done.
 
 ## Baseline
 
@@ -698,8 +698,9 @@ store suite), so the change commits with the three reds named above.
 [T-1211](gate.md) is `done` in its own change: the T-1309 fix holds,
 so the two rows read 42 and the sweep exits 0 with 10 rows, 10 ran,
 10 built and ran. The other three scripts never load the interposer,
-so their recorded runs stand. [T-1212](gate.md) is `blocked` on a
-daemon, privilege, and two expectation owners. [T-1213](gate.md) is
+so their recorded runs stand. [T-1212](gate.md) closed 2026-09-23 on
+the base docker lane with two premise repairs in its own change.
+[T-1213](gate.md) is
 `done`: both clearing conditions hold on the native base lane.
 [T-1209](gate.md) and
 [T-1210](gate.md) are `done`.
@@ -736,7 +737,8 @@ daemon, privilege, and two expectation owners. [T-1213](gate.md) is
     31 caught 0 missed on the committed tree);
     [T-1109](milestones.md) carries its remaining conditions, re-driven
     green-minus-two-skips this session; [T-1112](milestones.md) stays
-    parked, [T-1212](gate.md) and [T-1213](gate.md) stay blocked.
+    parked; [T-1212](gate.md) and [T-1213](gate.md) closed 2026-09-23
+    on the base lane, the first with two premise repairs.
    [T-0909](deps.md) is done: `io12/userland-execve-rust` vendored whole
    to `vendor/userland-execve` at `02ef0e0`, and podbox's own
    three-syscall memfd path in `crates/podbox-enter/src/memfd.rs` with
@@ -767,9 +769,8 @@ carrying its remaining conditions in its own file and re-driven this
 session with zero FAILs and the same two environmental skips. One entry
 remains `open`: [T-1112](milestones.md) (ruled 2026-09-22: keep parked
 as P3).
-[T-1212](gate.md) stays `blocked` with its blockers
-named in its own file. [T-1213](gate.md) closed 2026-09-23 on the
-native base lane. The beta `v0.1.0-beta.1` ships as a pre-release
+[T-1212](gate.md) closed 2026-09-23 on the base docker lane.
+[T-1213](gate.md) closed 2026-09-23 on the native base lane. The beta `v0.1.0-beta.1` ships as a pre-release
 with the verified binary beside it, and `v0.1.0-beta.3` publishes the
 nightly with all seven archs. Kept wsl-toolkit job containers are pruned
 at session end (`gc --apply`); past results already live in `TODO/`.
@@ -823,11 +824,10 @@ to [T-0503](enter.md). [T-0414](complete.md) is the probe leg for it, and that
 entry also carries the second denial only one instance of the class has shown:
 `readdir("/")` answering `EACCES`.
 
-⛔ **Nothing is blocked except what names its blocker.** [T-1211](gate.md) on
-[T-1309](interpose.md) and [T-1212](gate.md) on a daemon, privilege, and two
-expectation owners. The docker-daemon gap stops the docker-driven experiment
-clauses, not the work: the next docker-driven item names its own route when it
-gets there.
+⛔ **Nothing is blocked except what names its blocker.** Nothing is
+blocked: [T-1212](gate.md) and [T-1213](gate.md) closed 2026-09-23 on
+the base lane, where dockerd answers and the docker-driven clauses
+measure.
 
 ## What the next session should decide, and neither needs the operator
 

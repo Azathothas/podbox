@@ -239,21 +239,40 @@ else
 		}
 	fi
 
-	# ⛔ The other half: an architecture nothing is registered for must be
-	# refused with a message a caller can act on, never an Exec format error.
-	err="$(pb 2400 run --platform linux/riscv64 "$IMAGE" /bin/true 2>&1 >/dev/null)"
-	rc=$?
-	say "  riscv64, nothing registered: rc=$rc"
-	say "    $(printf '%s' "$err" | grep -o 'podbox cannot execute it.*' | cut -c1-88)"
-	[ "$rc" -eq 125 ] || { say "  FAIL: expected exit 125"; fail=1; }
-	printf '%s' "$err" | grep -q 'cannot execute it' || {
-		say "  FAIL: the refusal does not say podbox cannot execute it"
-		fail=1
-	}
-	printf '%s' "$err" | grep -q 'linux/amd64' || {
-		say "  FAIL: the refusal does not name the HOST platform"
-		fail=1
-	}
+	# ⛔ The other half: an architecture nothing executes must be refused
+	# with a message a caller can act on, never an Exec format error. A
+	# lane whose binfmt already runs the candidate (handler enabled with
+	# its interpreter present) executes the payload through it, which is
+	# the first half working, not this half failing. Measured 2026-09-23
+	# in the base lane: handlers cover every offered architecture and
+	# qemu-user-static supplies every interpreter, so riscv64 answers
+	# rc=0 through qemu-riscv64-static. The half is unmeasurable there
+	# and SKIPs, as the binfmt-absent and qemu-absent halves do above.
+	riscv_runs=0
+	for _h in /proc/sys/fs/binfmt_misc/*riscv64*; do
+		[ -f "$_h" ] || continue
+		[ "$(sed -n '1p' "$_h" 2>/dev/null)" = "enabled" ] || continue
+		[ -x "$(sed -n 's/^interpreter //p' "$_h" 2>/dev/null | head -1)" ] || continue
+		riscv_runs=1
+	done
+	if [ "$riscv_runs" -eq 1 ]; then
+		say "  riscv64 executes through its registered interpreter here; the refusal half is unmeasurable"
+		skipped=1
+	else
+		err="$(pb 2400 run --platform linux/riscv64 "$IMAGE" /bin/true 2>&1 >/dev/null)"
+		rc=$?
+		say "  riscv64, nothing registered: rc=$rc"
+		say "    $(printf '%s' "$err" | grep -o 'podbox cannot execute it.*' | cut -c1-88)"
+		[ "$rc" -eq 125 ] || { say "  FAIL: expected exit 125"; fail=1; }
+		printf '%s' "$err" | grep -q 'cannot execute it' || {
+			say "  FAIL: the refusal does not say podbox cannot execute it"
+			fail=1
+		}
+		printf '%s' "$err" | grep -q 'linux/amd64' || {
+			say "  FAIL: the refusal does not name the HOST platform"
+			fail=1
+		}
+	fi
 fi
 
 # --------------------------------------------------------------------- 6

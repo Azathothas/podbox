@@ -1,10 +1,9 @@
 == conditions
-date              2026-09-21T05:57:24Z
-host kernel       3.6.9-b4195d69.x86_64
+date              2026-09-23T02:00:43Z
+host kernel       7.2.0-WSL2-STABLE
 podbox            podbox 0.1.0
-engine            podman version 6.1.2 (fixtures: podman)
+engine            29.8.1 (fixtures: docker)
 proxy in env      no (clause 3 is only meaningful when yes)
-forward           tcpfwd.c built with 0.16.0
 
 == 1. the default refuses an explicit http:// and NAMES the flag
   exit              1 (want 1, the cli-error code)
@@ -27,8 +26,8 @@ forward           tcpfwd.c built with 0.16.0
   --tls-verify=false with an http:// reference: exit 1
 
 == 6. every downgrade is announced on stderr
-  announced insecure          2
-  announced the http fallback 1
+  announced insecure          7
+  announced the http fallback 6
   a normal pull says it       0 time(s)
 
 == 7. the environment and the config file reach the same place

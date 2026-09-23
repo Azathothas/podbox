@@ -1,14 +1,14 @@
 == conditions
-date              2026-09-21T05:41:07Z
-host kernel       3.6.9-b4195d69.x86_64
+date              2026-09-23T01:57:25Z
+host kernel       7.2.0-WSL2-STABLE
 podbox            podbox 0.1.0
-engine            podman version 6.1.2
+engine            29.8.1
 jq                jq-1.8.2
 
 == 1. T-0801's own acceptance: the table is data
   exit              0
-  rows              141
-  of which verbs    53
+  rows              164
+  of which verbs    57
   statuses          Degraded Native None Stub
   length >= 60 and every status one of the four: rc=0
   rows with no note 0
@@ -33,7 +33,8 @@ jq                jq-1.8.2
   podman  stdout [hi] rc=0  banner says: invoked as `podman`
 
 == 5. T-0803's ruling: the docker name is refused where a daemon answers
-  a docker daemon here: absent
-  install-names     rc=0
-  ⚠ the refusal half could not be measured on this machine: no daemon
+  a docker daemon here: reachable
+  install-names     rc=125
+    podbox system install-names: a docker daemon is reachable (/var/run/docker.sock answered /_ping)
+  install-names --force rc=0, docker link: made
   every installed name is a symlink: yes
