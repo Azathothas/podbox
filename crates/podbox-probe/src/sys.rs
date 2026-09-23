@@ -232,6 +232,13 @@ pub const SYS_PIDFD_GETFD: i64 = nr!(pidfd_getfd, __NR_pidfd_getfd);
 pub const SYS_PIDFD_OPEN: i64 = nr!(pidfd_open, __NR_pidfd_open);
 pub const SYS_WAITID: i64 = nr!(waitid, __NR_waitid);
 pub const SYS_PPOLL: i64 = nr!(ppoll, __NR_ppoll);
+// ⭐ The shutdown-forwarding pair. TODO/supervise.md T-1335: a waiter that
+// forwards its own SIGINT/SIGTERM to the payload blocks them first and reads
+// them from a signalfd, so the signal never kills the waiter between the
+// decision and the forward. `rt_sigprocmask` and not `sigprocmask`: the raw
+// call takes the set size, and the libc wrapper's is not the kernel's.
+pub const SYS_RT_SIGPROCMASK: i64 = nr!(rt_sigprocmask, __NR_rt_sigprocmask);
+pub const SYS_SIGNALFD4: i64 = nr!(signalfd4, __NR_signalfd4);
 pub const SYS_LANDLOCK_CREATE_RULESET: i64 =
     nr!(landlock_create_ruleset, __NR_landlock_create_ruleset);
 pub const SYS_DUP3: i64 = nr!(dup3, __NR_dup3);
@@ -437,6 +444,23 @@ pub const CLONE_NEWUTS: u64 = 0x0400_0000;
 pub const CLONE_NEWUSER: u64 = 0x1000_0000;
 pub const CLONE_NEWPID: u64 = 0x2000_0000;
 pub const SIGCHLD: u64 = 17;
+/// The two shutdown signals TODO/supervise.md T-1335 forwards, as numbers:
+/// 2 is SIGINT (Ctrl-C on a terminal) and 15 is SIGTERM.
+pub const SIGINT: u64 = 2;
+pub const SIGTERM: u64 = 15;
+/// The signalfd/`sigprocmask` word: exactly those two signal numbers' bit
+/// indices, named once so the mask blocked and the descriptor read can never
+/// disagree about the set. ⛔ Signal NUMBER n is bit index (n-1): bit 1 is
+/// SIGHUP, bit 2+1 would be SIGINT's neighbour. `(1 << (SIGINT - 1)) |
+/// (1 << (SIGTERM - 1))` names SIGINT (bit 1, value 2) and SIGTERM (bit 14,
+/// value 16384); `(1 << SIGINT) | (1 << SIGTERM)` names bits 2 and 15
+/// (SIGQUIT and SIGSTKFLT), which would block nothing that arrives and
+/// leave the waiter dying on the real signals.
+pub const SHUTDOWN_SIGNALS: u64 = (1 << (SIGINT - 1)) | (1 << (SIGTERM - 1));
+/// `rt_sigprocmask` "block these", "set to this", and `signalfd4` "close on exec".
+pub const SIG_BLOCK: u64 = 0;
+pub const SIG_SETMASK: u64 = 2;
+pub const SFD_CLOEXEC: u64 = 0x080000;
 
 pub const MS_REC: u64 = 0x4000;
 pub const MS_SLAVE: u64 = 0x0008_0000;
@@ -1300,6 +1324,63 @@ pub fn getpid() -> i64 {
 /// namespace, so a grandchild that reparents is outside its reach.
 pub fn pidfd_open(pid: i64) -> Sysres {
     unsafe { sys(SYS_PIDFD_OPEN, [pid as u64, 0, 0, 0, 0, 0]) }
+}
+
+/// Block the two shutdown signals and report the previous mask, so the
+/// caller reads them from a signalfd instead of dying on them.
+/// TODO/supervise.md T-1335.
+///
+/// ⛔ The mask is one `u64` and not a libc `sigset_t`: the raw call sizes the
+/// set in bytes, 8 covers signals 1..64, and SIGINT (2) and SIGTERM (15) are
+/// both inside it. A 128-byte libc set handed with size 8 would leave the
+/// kernel reading the caller's first 8 bytes, which happen to be the same two
+/// bits, but "happens to be" is not an argument.
+pub fn sigblock_shutdown(old: &mut u64) -> Sysres {
+    let set: u64 = SHUTDOWN_SIGNALS;
+    unsafe {
+        sys(
+            SYS_RT_SIGPROCMASK,
+            [
+                SIG_BLOCK,
+                &set as *const u64 as u64,
+                old as *mut u64 as u64,
+                8,
+                0,
+                0,
+            ],
+        )
+    }
+}
+
+/// Restore a mask [`sigblock_shutdown`] reported.
+pub fn sigrestore(old: u64) -> Sysres {
+    unsafe {
+        sys(
+            SYS_RT_SIGPROCMASK,
+            [SIG_SETMASK, &old as *const u64 as u64, 0, 8, 0, 0],
+        )
+    }
+}
+
+/// A descriptor that reads as the blocked shutdown signals, `CLOEXEC` so an
+/// `execve` never inherits it. The set is [`SHUTDOWN_SIGNALS`], the same word
+/// [`sigblock_shutdown`] blocks: passed by address, because `signalfd4` takes
+/// a pointer and the value itself is an address the kernel must not read.
+pub fn signalfd_shutdown() -> Sysres {
+    let mask: u64 = SHUTDOWN_SIGNALS;
+    unsafe {
+        sys(
+            SYS_SIGNALFD4,
+            [
+                -1i64 as u64,
+                &mask as *const u64 as u64,
+                8,
+                SFD_CLOEXEC,
+                0,
+                0,
+            ],
+        )
+    }
 }
 
 /// `waitid(P_PIDFD, ...)`: a child's status, addressed by descriptor.

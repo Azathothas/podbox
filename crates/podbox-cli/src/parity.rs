@@ -231,7 +231,7 @@ pub fn expand(verb: &str, args: &[String]) -> Result<Vec<String>, String> {
 /// quieter and less honest, not smaller.
 pub const TABLE: &[Row] = &[
     // ------------------------------------------------------------- the verbs
-    Row { verb: "run", flag: Option::None, status: Degraded, note: "enters a chroot, never a namespace. The banner names what the selected rung does not provide, on every run" },
+    Row { verb: "run", flag: Option::None, status: Degraded, note: "enters a chroot, never a namespace. The banner names what the selected rung does not provide, on every run. A SIGINT or SIGTERM to a foreground run is forwarded to the payload and named on stderr with the payload's exit (TODO/supervise.md T-1335)" },
     Row { verb: "exec", flag: Option::None, status: Degraded, note: "a fresh chroot re-entry sharing only the filesystem, never an entry into a running container's namespaces (T-0505)" },
     Row { verb: "pull", flag: Option::None, status: Native, note: "HTTPS only. A registry offering only http:// is a named refusal, never a downgrade" },
     Row { verb: "images", flag: Option::None, status: Native, note: "one record per platform of a tag" },
@@ -254,7 +254,7 @@ pub const TABLE: &[Row] = &[
     // ⭐ M4, and each says the difference from docker's rather than implying
     // there is none. TODO/supervise.md T-0601 to T-0607.
     Row { verb: "create", flag: Option::None, status: Native, note: "writes a created record and starts nothing, as docker's does. ⚠ It is served by run's PARSER, so it takes run's flag set: those rows are listed once, under `run`, rather than copied here where the two could diverge (T-0801)" },
-    Row { verb: "start", flag: Option::None, status: Native, note: "returns when the payload has reached its execve, established by a pipe rather than by a sleep (T-0602)" },
+    Row { verb: "start", flag: Option::None, status: Native, note: "returns when the payload has reached its execve, established by a pipe rather than by a sleep (T-0602). A SIGINT or SIGTERM to the launcher is forwarded to the payload; the launcher holds no terminal to name it on, so the payload's signaled exit in the container record is the whole account (TODO/supervise.md T-1335)" },
     Row { verb: "stop", flag: Option::None, status: Degraded, note: "SIGTERM then SIGKILL to the PAYLOAD. podbox has no PID namespace, so a grandchild that reparented is outside its reach and is not signalled" },
     Row { verb: "restart", flag: Option::None, status: Native, note: "stop then start in one verb, naming which half failed (TODO/cli.md T-1331)" },
     Row { verb: "restart", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },

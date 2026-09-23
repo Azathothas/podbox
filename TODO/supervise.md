@@ -644,7 +644,7 @@ Source:      issue 16, client beta testing 2026-09-22 (Ctrl-C on
 Category:    supervise
 Priority:    P3
 Effort:      S
-Status:      open
+Status:      done 2026-09-23
 
 Problem:    `stop`/`kill` reach the payload by pidfd, but the inverse,
             the launcher itself receiving SIGINT/SIGTERM (Ctrl-C on a
@@ -660,10 +660,54 @@ Approach:    Forward SIGINT/SIGTERM to the payload and wait boundedly
              Out of scope: process groups beyond the payload, signal
              masks callers set themselves.
 Decision:    Forward-and-name, unless the drive shows PDEATHSIG already
-             covers it, in which case the sentence is the fix.
-Prove:       `podbox run` foreground sleep interrupted by Ctrl-C ends
-             the payload with the signal named on stderr and the
-             launcher's exit code documented; or the parity sentence
-             exists. Close issue 16 (signal third) with a comment
-             showing the behavior and the forward-or-sentence as the
-             guard that stops recurrence.
+             covers it, in which case the sentence is the fix. The drive
+             showed `prctl` is called nowhere: no PDEATHSIG covers any
+             path. Both waiters forward: the foreground waiter names on
+             stderr, and the setsid'd launcher (whose stdio is /dev/null)
+             forwards silently with the signaled exit recorded as today
+             and the parity sentence documenting it. Operator order
+             2026-09-23: full launcher coverage, not the foreground path
+             alone.
+Prove:       `./experiments/351-signal-forward.sh` exits 0. Close
+             issue 16 (signal third) with a comment showing the run
+             and the signalfd forward as the guard that stops
+             recurrence.
+
+**Done 2026-09-23.** Forward-and-name, as decided: both waiters block
+SIGINT/SIGTERM and read them from a signalfd beside the payload's
+pidfd in one `ppoll`, so the signal never kills the waiter between
+the decision and the forward, and a reused pid can never be signalled
+instead (`crates/podbox-probe/src/sys.rs` `sigblock_shutdown`,
+`signalfd_shutdown`; `crates/podbox-enter/src/lib.rs`
+`Child::wait_forwarding`, naming each forward and a signaled end on
+stderr; `crates/podbox-supervise/src/launcher.rs` `serve`, silent,
+the signaled exit in the table record). A payload that traps or
+ignores the signal is waited on, not killed. The parity rows carry
+the forward (`crates/podbox-cli/src/parity.rs`).
+
+`experiments/351-signal-forward.sh` drives it on the shipped binary
+in the lane (`rust:1.98.1-bookworm` through host podman 6.1.2),
+`experiments/results/signal-forward.txt` carrying the run: foreground
+TERM rc 143 with both lines, foreground INT rc 130 with both lines,
+a clean exit quiet, a TERM to the launcher pid recorded as 143 by
+`wait`, a TERM-ignoring payload waited on with the forward line, no
+orphan left by any clause.
+
+Two findings from the drive, both kept. The signalfd word is bit
+index (n-1), not (1 << n): the first build named SIGQUIT+SIGSTKFLT,
+blocked nothing, and every forwarded clause failed with empty
+stderr; `the_shutdown_mask_holds_exactly_the_forwarded_pair` pins
+16386 so the word cannot drift again. A `&`-backgrounded shell
+without job control bequeaths an ignored SIGINT that `trap -`
+cannot reset and SIG_IGN survives exec, so the harness runs every
+foreground leg through `env --default-signal=INT,QUIT`: no line of
+podbox resets a caller-bequeathed ignore, and whether a foreground
+`run` should is follow-up work recorded here, not expanded here.
+
+Units by exact name (`a_wait_status_becomes_dockers_exit_code`,
+`forwarded_signals_are_named_and_unknown_ones_numbered`,
+`the_shutdown_mask_holds_exactly_the_forwarded_pair`,
+`nothing_on_the_spawn_path_can_spawn_a_thread`), the workspace
+suites and clippy `-D warnings` green in the same lane run. The
+guard that stops recurrence is the forward itself plus the 351
+experiment: a waiter that stops forwarding fails its clauses.

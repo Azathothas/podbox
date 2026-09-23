@@ -98,7 +98,18 @@ decisions podbox has to make. Each writes its transcript to
 ./experiments/300-run.sh                        # M3's acceptance: a command inside an image, and the rung it got
 ./experiments/310-session-startup.sh            # what a cold session costs, and what dev.sh removes from it
 ./experiments/320-cli-contract.sh               # the parity table as data, and the docker and podman names
+./experiments/325-parity-drive.sh               # every parity row driven through the shipped binary
+./experiments/326-store-contention-prove.sh     # the store contention fix, and the mutations that prove it
+./experiments/330-exit-codes.sh                 # docker's exit codes, measured against docker
+./experiments/340-detached-stdio.sh             # `run -d` returns before its payload ends, however stdout is read
+./experiments/350-tool-live.sh                  # the tool answers on a live machine, not only in fixtures
+./experiments/351-signal-forward.sh             # a shutdown signal to a waiter reaches the payload (T-1335)
 ```
+
+⚠ **Not every numbered script is in the list above.** `325-`, `326-`, `330-`,
+`340-` and `350-` predate this list and are cited by their entries instead;
+the list names the scripts a newcomer runs first, not every script the tree
+holds.
 
 ⚠ **The numbers jump from `170-` to `210-`, and again from `230-` to `260-`.**
 `180-` to `200-` are reserved by entries M1 authored, and `240-` to `250-` by

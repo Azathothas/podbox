@@ -179,7 +179,7 @@ pub struct Fds {
 /// code lies in the field read first.
 pub fn run(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<i32> {
     let child = spawn(root, plan, err)?;
-    child.wait()
+    child.wait_forwarding(err)
 }
 
 /// A payload that has reached its `execve`, and its pid.
@@ -226,6 +226,138 @@ impl Child {
             }
         }
         Ok(exit_status(status))
+    }
+
+    /// Reap it, forwarding this process's own SIGINT/SIGTERM to it first.
+    ///
+    /// TODO/supervise.md T-1335: a foreground waiter holds the terminal but
+    /// the payload holds the work, so a Ctrl-C that kills only the waiter
+    /// orphans the payload. The two signals are blocked and read from a
+    /// signalfd beside the payload's pidfd in one `ppoll`, so the signal
+    /// never kills this process between the decision and the forward, and a
+    /// reused pid can never be signalled instead. Each forward and a
+    /// signaled end are named on `err`; a clean exit prints nothing.
+    ///
+    /// ⚠ No threads, and none can be added here: the T-0603 assertion scans
+    /// this crate, and a thread would make the clone below fork a threaded
+    /// process. The wait is single-threaded by construction.
+    ///
+    /// ⚠ A payload that ignores the signal is waited on, not killed: killing
+    /// it would be `stop`'s decision made inside `run`, and the caller that
+    /// wants it dead already has `stop` and `kill`.
+    ///
+    /// ⚠ SIGINT is forwarded, never re-raised: the waiter stays alive to
+    /// reap the payload, and the code it returns is the payload's own. A
+    /// payload that dies on the default disposition still ends 130; one
+    /// that traps or ignores SIGINT outlives it, and the waiter with it.
+    pub fn wait_forwarding(&self, err: &mut dyn Write) -> Result<i32> {
+        let mut old = 0u64;
+        if let Err(e) = sys::sigblock_shutdown(&mut old) {
+            return self.wait_unforwarded(
+                err,
+                &format!("the shutdown mask refused: {} ({})", e.name(), e.0),
+            );
+        }
+        let sfd = match sys::signalfd_shutdown() {
+            Ok(f) => f,
+            Err(e) => {
+                let _ = sys::sigrestore(old);
+                return self
+                    .wait_unforwarded(err, &format!("signalfd refused: {} ({})", e.name(), e.0));
+            }
+        };
+        let pidfd = match sys::pidfd_open(self.pid) {
+            Ok(f) => f,
+            Err(e) => {
+                let _ = sys::close(sfd);
+                let _ = sys::sigrestore(old);
+                return self
+                    .wait_unforwarded(err, &format!("pidfd_open refused: {} ({})", e.name(), e.0));
+            }
+        };
+        let code = self.forward_loop(pidfd, sfd, err);
+        let _ = sys::close(pidfd);
+        let _ = sys::close(sfd);
+        let _ = sys::sigrestore(old);
+        code
+    }
+
+    /// The old wait, named as the fallback: the forward could not be armed,
+    /// so the payload is reaped with signals unforwarded rather than left.
+    fn wait_unforwarded(&self, err: &mut dyn Write, why: &str) -> Result<i32> {
+        let _ = writeln!(
+            err,
+            "waiting without shutdown forwarding ({why}); a SIGINT or SIGTERM \
+             to this process will not reach the payload"
+        );
+        self.wait()
+    }
+
+    /// One `ppoll` over the payload's exit and this process's shutdown
+    /// signals, re-polled on the bound: reaching it means nothing happened
+    /// rather than anything being wrong (T-0602's shape, not a second one).
+    fn forward_loop(&self, pidfd: i64, sfd: i64, err: &mut dyn Write) -> Result<i32> {
+        loop {
+            // ⛔ Fresh set every poll: `ppoll` leaves old `revents` standing,
+            // and a stale one would reap or forward twice.
+            let mut fds = [
+                sys::PollFd {
+                    fd: pidfd as i32,
+                    events: sys::POLLIN,
+                    revents: 0,
+                },
+                sys::PollFd {
+                    fd: sfd as i32,
+                    events: sys::POLLIN,
+                    revents: 0,
+                },
+            ];
+            match sys::ppoll(&mut fds, 60_000) {
+                Ok(_) => {}
+                Err(e) if e == sys::EINTR => continue,
+                Err(_) => return self.wait(),
+            }
+            if fds[1].revents & (sys::POLLIN | sys::POLLHUP) != 0 {
+                let mut buf = [0u8; 128];
+                // ⛔ `ssi_signo` is the first word. A short read is not a
+                // signal, and anything but SIGINT/SIGTERM cannot arrive: the
+                // mask holds exactly those two bits.
+                if let Ok(n) = sys::read(sfd, &mut buf) {
+                    if n >= 4 {
+                        let signo = u32::from_ne_bytes([buf[0], buf[1], buf[2], buf[3]]) as i64;
+                        if signo == sys::SIGINT as i64 || signo == sys::SIGTERM as i64 {
+                            // ⚠ ESRCH is not a failure: the payload exited
+                            // between the read and this kill, and the pidfd
+                            // half reaps it below.
+                            let _ = sys::kill(self.pid, signo);
+                            let _ = writeln!(
+                                err,
+                                "forwarded {} to the payload (pid {})",
+                                signal_name(signo),
+                                self.pid
+                            );
+                        }
+                    }
+                }
+            }
+            if fds[0].revents & (sys::POLLIN | sys::POLLHUP) != 0 {
+                match sys::waitid_pidfd(pidfd, false) {
+                    Ok(Some(x)) if x.code == sys::CLD_EXITED => return Ok(x.status),
+                    Ok(Some(x)) => {
+                        let code = 128 + x.status;
+                        let _ = writeln!(
+                            err,
+                            "the payload died on {}: exit {code}",
+                            signal_name(x.status as i64)
+                        );
+                        return Ok(code);
+                    }
+                    // Spurious readiness: re-poll rather than verdict.
+                    Ok(None) => {}
+                    Err(_) => return self.wait(),
+                }
+            }
+        }
     }
 
     /// Reap it, but never wait longer than `ms`.
@@ -359,7 +491,7 @@ pub fn run_ladder(
         let _ = sys::close(f);
     }
     let child = r?;
-    child.wait()
+    child.wait_forwarding(err)
 }
 
 /// The one entry sequence [`spawn`] and [`spawn_ladder`] share.
@@ -614,6 +746,18 @@ pub fn exit_status(status: i32) -> i32 {
     }
 }
 
+/// The word the forwarding wait prints for a signal: the name for the two
+/// it forwards, `signal <n>` for anything the reap reports that it did not
+/// send (a terminal's SIGINT arrives both ways, so the reap can name a
+/// signal the forward never saw).
+fn signal_name(signo: i64) -> String {
+    match signo {
+        n if n == sys::SIGINT as i64 => "SIGINT".to_string(),
+        n if n == sys::SIGTERM as i64 => "SIGTERM".to_string(),
+        n => format!("signal {n}"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -625,6 +769,25 @@ mod tests {
         assert_eq!(exit_status(3 << 8), 3);
         assert_eq!(exit_status(9), 137, "a SIGKILLed payload is 128+9");
         assert_eq!(exit_status(15), 143, "a SIGTERMed payload is 128+15");
+    }
+
+    #[test]
+    fn forwarded_signals_are_named_and_unknown_ones_numbered() {
+        assert_eq!(signal_name(2), "SIGINT");
+        assert_eq!(signal_name(15), "SIGTERM");
+        assert_eq!(signal_name(9), "signal 9");
+    }
+
+    #[test]
+    fn the_shutdown_mask_holds_exactly_the_forwarded_pair() {
+        // ⛔ Signal NUMBER n is bit index (n-1): SIGINT is bit 1 (value 2)
+        // and SIGTERM is bit 14 (value 16384), so the word is 16386. The
+        // lookalike `(1 << SIGINT) | (1 << SIGTERM)` names bits 2 and 15
+        // (SIGQUIT and SIGSTKFLT): a mask with the wrong bits blocks
+        // nothing that arrives, and the waiter dies on the real signal.
+        // Measured 2026-09-23: the wrong word made the lane prove fail
+        // every forwarded clause with empty stderr (T-1335).
+        assert_eq!(sys::SHUTDOWN_SIGNALS, 2 | 16384);
     }
 
     #[test]

@@ -1,0 +1,80 @@
+== conditions
+bin: /work/target/x86_64-unknown-linux-musl/release/podbox
+podbox 0.1.0
+== pull
+3.20: Pulling from docker/library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20
+podbox: probed this machine rather than using the cache: /tmp/pb-351/probe.json does not exist yet
+== foreground TERM is forwarded and named, exit 143
+term-rc=143
+25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /tmp/pb-351/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+  extract without ownership and record the intended ids; intended metadata recorded in /tmp/pb-351/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+ownership: real; network: host-shared; pids: host-shared)
+probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+        clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
+podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
+podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
+podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
+podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
+podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. ⛔ podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+forwarded SIGTERM to the payload (pid 2956)
+the payload died on SIGTERM: exit 143
+TERM-FORWARDED-OK
+NO-ORPHAN-OK
+== foreground INT is forwarded and named, the payload decides the exit
+int-rc=130
+podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+ownership: real; network: host-shared; pids: host-shared)
+probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+        clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
+podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+forwarded SIGINT to the payload (pid 3038)
+the payload died on SIGINT: exit 130
+INT-FORWARDED-OK
+NO-ORPHAN-OK
+== a clean exit stays quiet
+QUIET-EXIT-OK
+== the launcher forwards its own TERM, exit 143 recorded
+podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+ownership: real; network: host-shared; pids: host-shared)
+probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+        clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
+podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost, the container name fw1
+podbox: complete: 1 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+5233fdb0824a96f7339b202fd23e77ad4627749994b1f11ce37aeb816d9fb4d6
+fw1
+launcher-pid=3252
+launcher-wait-rc=0
+143
+LAUNCHER-FORWARDED-OK
+fw1
+== a payload that ignores TERM is waited on, not killed
+TRAP-WAITED-OK
+TRAP-FORWARD-LINE-OK
+NO-ORPHAN-OK
+== verdict fail=0

@@ -472,6 +472,17 @@ fn supervise(
 /// zero has learned nothing.
 fn serve(listener: &UnixListener, pidfd: i64, child: &podbox_enter::Child) -> i32 {
     let mut waiters: Vec<UnixStream> = Vec::new();
+    // ⭐ TODO/supervise.md T-1335: the launcher's own SIGINT/SIGTERM are
+    // blocked and read from a signalfd beside the payload's pidfd, so a
+    // signal to the launcher reaches the payload instead of orphaning it.
+    // No naming here: this process's stdio is /dev/null (T-0608), so the
+    // signaled exit code in the table record is the record. The mask stays
+    // blocked through this process's exit; there is nothing left that waits
+    // on those signals.
+    let mut old = 0u64;
+    let sfd = sys::sigblock_shutdown(&mut old)
+        .and_then(|_| sys::signalfd_shutdown())
+        .unwrap_or(-1);
     loop {
         let mut fds = [
             sys::PollFd {
@@ -484,6 +495,14 @@ fn serve(listener: &UnixListener, pidfd: i64, child: &podbox_enter::Child) -> i3
                 events: sys::POLLIN,
                 revents: 0,
             },
+            // ⚠ A negative fd is ignored by the kernel, which is what keeps
+            // one shape here when the signalfd above refused: that launcher
+            // waits unforwarded rather than not at all.
+            sys::PollFd {
+                fd: sfd as i32,
+                events: if sfd >= 0 { sys::POLLIN } else { 0 },
+                revents: 0,
+            },
         ];
         // 60 s, and reaching it means nothing happened rather than anything
         // being wrong.
@@ -493,7 +512,23 @@ fn serve(listener: &UnixListener, pidfd: i64, child: &podbox_enter::Child) -> i3
             Err(_) => {
                 // ⚠ The poll itself failed. Fall back to a blocking reap rather
                 // than spinning: the payload is still this process's child.
+                if sfd >= 0 {
+                    let _ = sys::close(sfd);
+                }
                 return child.wait().unwrap_or(125);
+            }
+        }
+        if sfd >= 0 && fds[2].revents & (sys::POLLIN | sys::POLLHUP) != 0 {
+            let mut buf = [0u8; 128];
+            if let Ok(n) = sys::read(sfd, &mut buf) {
+                if n >= 4 {
+                    let signo = u32::from_ne_bytes([buf[0], buf[1], buf[2], buf[3]]) as i64;
+                    if signo == sys::SIGINT as i64 || signo == sys::SIGTERM as i64 {
+                        // The `kill`-and-not-`pidfd_send_signal` reasoning in
+                        // `handle` applies unchanged: parent, unreaped.
+                        let _ = sys::kill(child.pid, signo);
+                    }
+                }
             }
         }
         if fds[1].revents & (sys::POLLIN | sys::POLLHUP) != 0 {
@@ -511,6 +546,9 @@ fn serve(listener: &UnixListener, pidfd: i64, child: &podbox_enter::Child) -> i3
             };
             for mut w in waiters {
                 let _ = writeln!(w, "exit {code}");
+            }
+            if sfd >= 0 {
+                let _ = sys::close(sfd);
             }
             return code;
         }
