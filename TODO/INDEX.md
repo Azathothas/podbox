@@ -189,7 +189,7 @@ the blocker named and what would clear it.
 | [T-1210](gate.md) | P1 | gate | done | Convert the interpose engine scripts to `experiments/lib/engine.sh` |
 | [T-1211](gate.md) | P1 | gate | done | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
 | [T-1212](gate.md) | P1 | gate | blocked | Convert the image, registry and CLI engine scripts to `experiments/lib/engine.sh` |
-| [T-1213](gate.md) | P1 | gate | blocked | Convert the target-image pair and its probe consumer to `experiments/lib/engine.sh` |
+| [T-1213](gate.md) | P1 | gate | done | Convert the target-image pair and its probe consumer to `experiments/lib/engine.sh` |
 | [T-1301](podvm.md) | P0 | podvm | done | The machine tier is probed leg by leg, and a present file is not a working one |
 | [T-1302](podvm.md) | P1 | podvm | done | One binary, one parity table, and a VM-only flag that cannot collide |
 | [T-1303](podvm.md) | P1 | podvm | done | The image is a rootfs directory, and an initramfs with no console is a silent machine |
@@ -207,7 +207,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-143 items: 1 open, 1 partial, 2 blocked, 139 done.
+143 items: 1 open, 1 partial, 1 blocked, 140 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -216,10 +216,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 0 | 1 | 2 | 64 | 67 |
+| P1 | 0 | 1 | 1 | 65 | 67 |
 | P2 | 0 | 0 | 0 | 19 | 19 |
 | P3 | 1 | 0 | 0 | 4 | 5 |
-| **All** | **1** | **1** | **2** | **139** | **143** |
+| **All** | **1** | **1** | **1** | **140** | **143** |
 
 ## How the current ordering is derived
 
@@ -256,17 +256,14 @@ dependency order.
 
 ### 4. What is blocked, and on what?
 
-Two entries are blocked, both in `gate.md`, and neither blocks the current
+One entry is blocked, in `gate.md`, and it does not block the current
 M6 path:
 
 - [T-1212](gate.md) is blocked on its `Prove` not holding on this lane:
   the conversion is complete with assertions unchanged, but `150` and
   `270` exit 1 on engine differences and three scripts exit 2 on halves no
   lane here can measure. Each half names what clears it in the entry.
-- [T-1213](gate.md) is blocked on its `Prove` not holding on this lane:
-  the conversion is implemented under the 2026-09-21 ruling, but `130`
-  exits 1 on three lane findings named in the entry.
 
-⛔ Neither closes. Each names the blocker and what would clear it. T-0702 is
+⛔ It does not close. It names the blocker and what would clear it. T-0702 is
 open rather than blocked: the required musl tooling and per-libc objects now
 exist, and the remaining work is integration.

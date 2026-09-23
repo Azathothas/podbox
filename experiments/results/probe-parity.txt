@@ -1,11 +1,11 @@
 # podbox probe against experiments/results/attribute.txt
-# taken 2026-09-21T07:46:49Z on kernel 3.6.9-b4195d69.x86_64
+# taken 2026-09-23T01:41:26Z on kernel 7.2.0-WSL2-STABLE
 # TODO/milestones.md T-1101. Verdict and errno, never raw text.
 confined_rung     chroot
-unconfined_rung   supervise
-rows_matched      12
+unconfined_rung   namespace
+rows_matched      16
 rows_recorded     0   (kcmp control: ENOSYS is a skip here, a denial there)
-rows_differed     4
+rows_differed     0
 rows_missing      0
 
 ## every row podbox reported inside the reconstruction
@@ -43,6 +43,11 @@ write(/etc/probe)|denied|13
 write into uid-1000-owned dir|ok|-
 stat(/dev/ptmx)|denied|2
 open(/dev/ptmx, O_RDWR)|denied|2
+open(/dev/fuse, O_RDWR)|denied|2
+readdir(/)|ok|-
+open(/bin, O_RDONLY) by name|ok|-
+creat(/, O_CREAT|O_EXCL)|denied|13
+bind(127.0.0.1:0)+listen|ok|-
 mount(2) bogus target|denied|1
 umount2(2) bogus target|denied|1
 pivot_root(2) bogus paths|denied|1
@@ -59,3 +64,12 @@ seccomp(NEW_LISTENER)|ok|-
 open /proc/self/mem O_RDONLY|ok|-
 open /proc/self/mem O_RDWR|denied|13
 landlock_create_ruleset(VERSION)|ok|-
+qemu-system-x86_64 --version|denied|13
+open(/dev/kvm, O_RDWR)|denied|2
+prlimit(RLIMIT_FSIZE)|ok|-
+open(/dev/net/tun, O_RDWR)|denied|2
+image space (statfs .)|ok|-
+qemu-system-x86_64 -accel help|denied|13
+seccomp(NEW_LISTENER) [supervise]|ok|-
+process_vm_readv(own pid) [supervise]|denied|1
+ptrace(PTRACE_TRACEME) [supervise]|denied|1

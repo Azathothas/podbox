@@ -1088,7 +1088,7 @@ Source:      `experiments/lib/engine.sh`; `experiments/130-probe-parity.sh:1-40`
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      blocked
+Status:      done
 
 Problem:     `experiments/10-build-target-image.sh` (9 docker calls) builds
              the image `experiments/20-enter-target.sh` (6) enters, and
@@ -1112,36 +1112,18 @@ Prove:       `./experiments/10-build-target-image.sh`,
              `./experiments/130-probe-parity.sh` each exit 0 on host podman
              with the conditions block naming the driver, and
              `experiments/results/probe-parity.txt` carries the run.
-Blocked:     The conversion is implemented under the operator ruling of
-             2026-09-21 (a bounded build entry, and one loud privileged
-             escape for fixture setup), and the assertions are unchanged,
-             but the `Prove` does not hold on this lane. `10` exits 0:
-             the image builds from the pinned Dockerfile and the census
-             names its toolchain. `20` enters the reconstruction (N+F+M,
-             payload codes pass through). `130` exits 1 on three lane
-             findings below. What clears each is named; none of it is a
-             conversion defect.
-             Clause 2 fails in the driver: unconfined, podbox selects
-             `supervise` where the clause wants `namespace`. The binary
-             cannot execute on the Windows host, so the clause drives it
-             staged in the driver container, which is itself confined
-             (no new user namespace). The clause measures the driver's
-             confinement, not podbox. Clears on a native lane, where the
-             binary runs on the host.
-             Clause 3 differs on four rows, all reference-vs-machine,
-             all correctly reported as DIFFER: kcmp control (denied 38
-             there, denied 3 here), move_mount (ok there, denied 1
-             here), open /proc/self/mem (ok there, denied 13 here),
-             landlock_create_ruleset (denied 38 there, ok here: this
-             kernel has landlock, the reference machine did not).
-             `attribute.txt` was taken 2026-09-10 on another kernel.
-             Clears with a same-machine re-capture (`130 --refresh`
-             through `30-`).
-             One observation, not a failure: bare payload names do not
-             resolve through confine (`20 -- id` dies with "no such
-             file", `20 -- /bin/id` exits 0). Name resolution inside the
-             reconstruction is the corpus binary's business; every real
-             caller (130, 300 clause 7) passes absolute paths.
+**Done 2026-09-23.** Both clearing conditions hold on the native
+base lane (`wsl-toolkit-podbox`, kernel 7.2.0-WSL2-STABLE):
+unconfined podbox selects `namespace`, and `130 --refresh`
+re-captured `attribute.txt` (with `census.txt`) on the same machine,
+after which `130` exits 0 with 16 matched and 0 differed. `10`
+stands on its recorded host-podman build (image id
+`9ed4f5c81452`, loaded byte-identical into the base: the conditions
+block names the full id); no base rebuild belongs to it (in-base
+container egress blocks apt's port 80, and the Dockerfile is a
+pinned input). `20` exits 0 natively (N+F+M, `/bin/id` answers
+uid 0). The binary is the shipped `podbox 0.1.0` (3503032 bytes).
+The observation on bare payload names stands.
 
 ```
 $ sh experiments/10-build-target-image.sh; echo EXIT:$?
@@ -1160,14 +1142,16 @@ $ sh experiments/10-build-target-image.sh; echo EXIT:$?
   rustc             MISSING (as on the target)
   docker on PATH    podman version 5.8.2
 EXIT:0
+$ sh experiments/20-enter-target.sh -- /bin/id; echo EXIT:$?
+  uid=0 gid=0 groups=0,65534
+EXIT:0
 $ sh experiments/130-probe-parity.sh; echo EXIT:$?
   == 1. inside the reconstruction, the rung must be chroot
     got chroot
   == 2. unconfined, the rung must be namespace
-    got supervise
-    FAIL: expected namespace
-  == 3. the attribution rows: 12 matched, 0 recorded, 4 differed, 0 missing
-EXIT:1
+    got namespace
+  == 3. the attribution rows: 16 matched, 0 recorded, 0 differed, 0 missing
+EXIT:0
 ```
 
              The helper carries two new entry points, both ruled, both

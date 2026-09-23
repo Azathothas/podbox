@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-143 entries: 1 open, 1 partial, 2 blocked, 139 done. Every P0 is done.
+143 entries: 1 open, 1 partial, 1 blocked, 140 done. Every P0 is done.
 
 ## Baseline
 
@@ -212,15 +212,9 @@ before podbox ever sees a verb. One self-inflicted taint: editing `300`
 mid-run skipped one byte of the running script, so the run was repeated
 clean. Never edit a running script.
 
-⭐ **[T-1213](gate.md) is implemented under the operator ruling and
-blocked on lane findings.** The ruling (build entry yes, narrow
-privileged escape yes) arrived the same session, so the helper gained
-`eng_build` and `eng_privrun`, all three scripts converted with no
-assertion changed, and all three ran: `10` exits 0 (image builds,
-census green), `20` enters the reconstruction (N+F+M, payload codes
-pass), `130` exits 1 (unconfined rung is `supervise` in the driver,
-four rows differ against the reference kernel). The entry carries the
-runs, the refusal-path probes, and what clears each half.
+⭐ **[T-1213](gate.md) closed 2026-09-23 on the native base lane.**
+The entry carries the runs, the re-captured reference, and which
+half of the `Prove` each lane supplied.
 
 [T-0805](cli.md) closed in this change: the section-8 table as data with
 the ownership row wired to live maps, one shared report for `extract` and
@@ -706,8 +700,8 @@ so the two rows read 42 and the sweep exits 0 with 10 rows, 10 ran,
 10 built and ran. The other three scripts never load the interposer,
 so their recorded runs stand. [T-1212](gate.md) is `blocked` on a
 daemon, privilege, and two expectation owners. [T-1213](gate.md) is
-`blocked` on a native lane for clause 2 and a same-machine reference
-for clause 3. [T-1209](gate.md) and
+`done`: both clearing conditions hold on the native base lane.
+[T-1209](gate.md) and
 [T-1210](gate.md) are `done`.
 
 8. Two investigations landed 2026-09-22 and set the order below. Neither
@@ -773,8 +767,9 @@ carrying its remaining conditions in its own file and re-driven this
 session with zero FAILs and the same two environmental skips. One entry
 remains `open`: [T-1112](milestones.md) (ruled 2026-09-22: keep parked
 as P3).
-[T-1212](gate.md) and [T-1213](gate.md) stay `blocked` with their blockers
-named in their own files. The beta `v0.1.0-beta.1` ships as a pre-release
+[T-1212](gate.md) stays `blocked` with its blockers
+named in its own file. [T-1213](gate.md) closed 2026-09-23 on the
+native base lane. The beta `v0.1.0-beta.1` ships as a pre-release
 with the verified binary beside it, and `v0.1.0-beta.3` publishes the
 nightly with all seven archs. Kept wsl-toolkit job containers are pruned
 at session end (`gc --apply`); past results already live in `TODO/`.

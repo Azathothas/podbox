@@ -22,10 +22,10 @@ lchown(f,0,42)                     FAIL errno=22 EINVAL
 chown(f,1000,0)                    FAIL errno=22 EINVAL
 chroot(/tmp)                       OK
 memfd_create                       OK
-memfd_create+exec                  OK
+memfd_create+exec                  FAIL errno=13 EACCES
 setsid                             OK
 prctl(PR_SET_PDEATHSIG)            OK
-exec(/tmp/execprobe)               OK
+exec(/tmp/execprobe)               FAIL errno=13 EACCES
 getrandom                          OK
 write(/etc/probe)                  FAIL errno=13 EACCES
 write into uid-1000-owned dir      SKIP fixture /tmp/squash-probe absent; create it as uid 1000 outside the confinement
