@@ -164,12 +164,19 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
 #      which is the half of that lesson that holds on every machine.
 #
 # U+26D4 stop, U+2B50 star, U+26A0 warning, U+2705 pass, U+274C fail.
-M1=$(printf '\342\233\224')
-M2=$(printf '\342\255\220')
-M3=$(printf '\342\232\240')
-M4=$(printf '\342\234\205')
-M5=$(printf '\342\235\214')
-BOM=$(printf '\357\273\277')
+#
+# ⛔ THE SHELL NEVER BUILDS NON-ASCII HERE. `M1=$(printf '\342\233\224')`
+# mis-encodes under dash: inside a command substitution dash's `printf`
+# emits `e2 81 81 9b 94` for want `e2 9b 94`, so the check stops
+# recognising its own markers and reports every one in the tree as
+# illegal (TODO/gate.md T-1326). The decimal UTF-8 bytes travel as
+# digits, and awk assembles them in `BEGIN` under `LC_ALL=C`.
+M1="226 155 148"
+M2="226 173 144"
+M3="226 154 160"
+M4="226 156 133"
+M5="226 157 140"
+BOM="239 187 191"
 
 PROBLEMS=0
 NFILES=0
@@ -196,6 +203,14 @@ for f in $FILES; do
                -v BOM="$BOM" -v ISMD="$IS_MD" '
     BEGIN {
       for (i = 0; i < 256; i++) ORD[sprintf("%c", i)] = i
+      # ⭐ The shell passed digits, not bytes (see above): one split and
+      # three %c per marker, in the same C locale as the ORD table.
+      n = split(M1, b, " "); M1 = sprintf("%c%c%c", b[1], b[2], b[3])
+      n = split(M2, b, " "); M2 = sprintf("%c%c%c", b[1], b[2], b[3])
+      n = split(M3, b, " "); M3 = sprintf("%c%c%c", b[1], b[2], b[3])
+      n = split(M4, b, " "); M4 = sprintf("%c%c%c", b[1], b[2], b[3])
+      n = split(M5, b, " "); M5 = sprintf("%c%c%c", b[1], b[2], b[3])
+      n = split(BOM, b, " "); BOM = sprintf("%c%c%c", b[1], b[2], b[3])
       nmark = 0; nonblank = 0; fence = 0
     }
     {

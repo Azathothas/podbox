@@ -842,7 +842,7 @@ fn copy_one(
     // ⚠ Stat BEFORE gating: a symlink source is gated on its own path
     // (its parent), never resolved. `within` resolves, so gating a link
     // that points outside would refuse a replication that escapes
-    // nothing — and distro rootfses are full of such links (`/etc/mtab
+    // nothing: distro rootfses are full of such links (`/etc/mtab
     // -> /proc/self/mounts`, TODO/extract.md T-0305).
     let src_side: &std::path::Path = if out_of { &joined } else { outside };
     let src_is_link = is_link(src_side);
@@ -1015,7 +1015,7 @@ fn clear_of_symlinks(
 
 /// Copy a directory tree without following anything. Every rootfs-side
 /// path passes `contain::within`: destinations on the way in, sources on
-/// the way out — except a symlink source, which is gated on its own path
+/// the way out: except a symlink source, which is gated on its own path
 /// (its parent) and replicated verbatim, never resolved, per T-0305's
 /// rule. Two passes: the first validates the whole tree, so a special
 /// file or a destination through a pre-existing symlink refuses before a
@@ -1762,7 +1762,7 @@ mod tests {
     /// TODO/cli.md T-1323. A symlink replicates as a symlink, verbatim
     /// and unresolved: the target bytes are copied, so an absolute target
     /// escapes nothing and no shadow bytes land. T-0305's rule, applied
-    /// to `cp` — distro rootfses are full of legitimate absolute links.
+    /// to `cp`: distro rootfses are full of legitimate absolute links.
     #[test]
     fn copy_tree_replicates_a_symlink_without_resolving_it() {
         let base = std::env::temp_dir().join(format!("podbox-cp-link-{}", std::process::id()));

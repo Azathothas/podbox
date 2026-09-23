@@ -1276,7 +1276,7 @@ Source:      issue 24, client beta testing 2026-09-22 (5550 false
 Category:    gate
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     The marker constants are built with `M1=$(printf
              '\342\233\224')`, and dash's `printf` inside a command
@@ -1304,4 +1304,19 @@ Prove:       `sh scripts/common/check-markers.sh` (dash) and
              same count on this tree; a planted illegal byte fails under
              both. Close issue 24 with a comment showing both runs and
              the dual-shell drive as the guard that stops recurrence.
+
+**Done, 2026-09-23.** The awk-`BEGIN` shape, as decided: the six
+constants travel as decimal bytes and assemble via `split` plus
+`sprintf("%c%c%c")` in `BEGIN` under `LC_ALL=C`; the shell never
+builds non-ASCII. Lane prove `.tmp/pb-w26-prove.sh`, verdict
+`fail=0`: the old shape under dash exits 1 with 5628 false
+positives; dash and bash both exit 0 with byte-identical output
+(378 files, 5683 markers); a planted `U+00E9` fails under both,
+named. The fixed check caught three live em dashes in
+`crates/podbox-cli/src/lifecycle.rs` from this session's own T-1323
+work, scrubbed in the same change. Finding, out of scope:
+`scripts/doctor/doctor.sh:650-652` builds the same way for display
+(a warning glyph, no gate comparison), so it mis-renders rather than
+mis-fires; named here, not changed. The guard is the dual-shell
+drive: any new `$(printf)` non-ASCII breaks dash first.
 
