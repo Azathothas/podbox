@@ -308,6 +308,85 @@ pub fn logs(store: &Store, want: &str) -> Result<Vec<u8>> {
     }
 }
 
+/// Follow a container's log: print what is there, then poll-append until
+/// the container reaches a terminal state, with one bounded final drain
+/// so a write racing the state flip is still shown.
+///
+/// TODO/supervise.md T-1318. Bounded poll (100 ms), never inotify: no new
+/// crate, same behaviour everywhere. A shrink resets the offset rather
+/// than erroring; rotation itself is out of scope. A container that never
+/// exits follows forever, which is docker's answer too.
+pub fn follow(store: &Store, want: &str, out: &mut dyn std::io::Write) -> Result<()> {
+    const POLL: std::time::Duration = std::time::Duration::from_millis(100);
+    const FINAL_DRAIN: std::time::Duration = std::time::Duration::from_millis(200);
+    let c = get(store, want)?;
+    let path = table::log_path(store, &c.id);
+    let mut offset = append_from(&path, 0, out)?;
+    loop {
+        std::thread::sleep(POLL);
+        let (next, done) = follow_once(store, want, &path, offset, out)?;
+        offset = next;
+        if done {
+            std::thread::sleep(FINAL_DRAIN);
+            append_from(&path, offset, out)?;
+            return Ok(());
+        }
+    }
+}
+
+/// One poll step: append what arrived, and whether the container has ended.
+/// The final drain stays in [`follow`]: a write racing the state flip lands
+/// between this step's read and the drain.
+///
+/// A step rather than a loop so the test below drives arrivals
+/// deterministically: `podbox-supervise` spawns no thread anywhere, not
+/// even in tests (`launcher::nothing_on_the_spawn_path_can_spawn_a_thread`
+/// reads every source line), so no test may race `follow` with a writer
+/// thread.
+fn follow_once(
+    store: &Store,
+    want: &str,
+    path: &std::path::Path,
+    offset: u64,
+    out: &mut dyn std::io::Write,
+) -> Result<(u64, bool)> {
+    let offset = append_from(path, offset, out)?;
+    Ok((offset, terminal(get(store, want)?.state)))
+}
+
+/// A state `follow` stops at: the run ended, watched or not.
+fn terminal(state: table::State) -> bool {
+    matches!(state, table::State::Exited | table::State::Dead)
+}
+
+/// Write the bytes past `offset` and return the new offset. A missing file
+/// is an empty log (see [`logs`]); a shorter file resets the offset.
+fn append_from(path: &std::path::Path, offset: u64, out: &mut dyn std::io::Write) -> Result<u64> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut f = match std::fs::File::open(path) {
+        Ok(f) => f,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(offset),
+        Err(e) => return Err(Error(format!("{}: {e}", path.display()))),
+    };
+    let len = f
+        .metadata()
+        .map(|m| m.len())
+        .map_err(|e| Error(format!("{}: {e}", path.display())))?;
+    let mut offset = offset;
+    if len < offset {
+        offset = len;
+    }
+    f.seek(SeekFrom::Start(offset))
+        .map_err(|e| Error(format!("{}: {e}", path.display())))?;
+    let mut buf = Vec::new();
+    f.read_to_end(&mut buf)
+        .map_err(|e| Error(format!("{}: {e}", path.display())))?;
+    out.write_all(&buf)
+        .map_err(|e| Error(format!("writing the log: {e}")))?;
+    let _ = out.flush();
+    Ok(offset + buf.len() as u64)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -361,5 +440,63 @@ mod tests {
         std::fs::rename(&src, &dest).unwrap();
         assert_eq!(std::fs::read(&dest).unwrap(), b"memo");
         let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-1318: `logs -f` prints what is already there, then what arrives,
+    /// and stops after the container ends. Driven step by step: no thread
+    /// anywhere in this crate, so the test interleaves with `follow_once`
+    /// instead of racing `follow`.
+    #[test]
+    fn follow_prints_arrivals_then_stops_at_exit() {
+        let d = std::env::temp_dir().join(format!("podbox-follow-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let s = Store::open(&d).unwrap();
+        let c = create(
+            &s,
+            Some("f1"),
+            "img",
+            "sha256:0",
+            "/tmp",
+            vec!["true".into()],
+            Vec::new(),
+            "/".into(),
+            "chroot",
+            Vec::new(),
+            0,
+        )
+        .unwrap();
+        let log = table::log_path(&s, &c.id);
+        std::fs::write(&log, b"first\n").unwrap();
+        let mut out = Vec::new();
+        let (o1, done1) = follow_once(&s, "f1", &log, 0, &mut out).unwrap();
+        assert!(!done1, "a created container is not terminal");
+        assert_eq!(out, b"first\n");
+        append(&s, &c.id, b"second\n");
+        table::update(&s, |t| {
+            let c = t
+                .containers
+                .iter_mut()
+                .find(|c| c.name == "f1")
+                .expect("the followed container is still recorded");
+            c.state = table::State::Exited;
+            Ok(())
+        })
+        .unwrap();
+        let (_, done2) = follow_once(&s, "f1", &log, o1, &mut out).unwrap();
+        assert!(done2, "an exited container ends the follow");
+        assert_eq!(out, b"first\nsecond\n");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// Append-only writer for the follow test: the launcher holds the log
+    /// open in production, and the test is the second writer.
+    fn append(store: &Store, id: &str, bytes: &[u8]) {
+        use std::io::Write;
+        let path = table::log_path(store, id);
+        let mut f = std::fs::OpenOptions::new()
+            .append(true)
+            .open(&path)
+            .unwrap();
+        f.write_all(bytes).unwrap();
     }
 }

@@ -561,7 +561,7 @@ Source:      issue 16, client beta testing 2026-09-22 (automated
 Category:    supervise
 Priority:    P3
 Effort:      S
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     `logs` prints what the container has written; following it
              (`-f`) has no entry, so automated callers poll in a loop.
@@ -579,6 +579,59 @@ Prove:       `podbox logs -f` on a payload writing lines on a timer
              promptly after; `logs` without `-f` is byte-identical.
              Close issue 16 (logs third) with a comment showing the run
              and the bounded follow as the guard that stops recurrence.
+
+**Done 2026-09-23.** File-follow, as decided: bounded poll (100 ms),
+never inotify (no new crate, same behaviour everywhere).
+`podbox-supervise::follow` prints what is there, then poll-appends from
+the log file until the container reaches a terminal state (`Exited` or
+`Dead`), with one bounded final drain (200 ms) so a write racing the
+state flip is still shown. The poll step is its own function
+(`follow_once`) so the unit test drives arrivals deterministically: this
+crate spawns no thread anywhere, not even in tests (the
+`nothing_on_the_spawn_path_can_spawn_a_thread` guard reads every source
+line and failed the first version of the test, which used a writer
+thread; the step function is the shape that respects it). A shrink
+resets the offset; rotation stays out of scope. A container that never
+exits follows forever, which is docker's answer too. The CLI parses
+`-f`/`--follow` in one parser (a known flag is never accepted in one
+position and lost in another), the parity row moves `None` to `Native`,
+and the no-`-f` path is byte-for-byte the old code. One normalization to
+record: `logs <container> --help` now prints usage like every other
+position, instead of looking the container up; flags are honoured in any
+position, extra positionals still ignored.
+
+Both tests were watched fail first (`follow` and `parse_logs` missing),
+then pass by name in the lane (`rust:1.98.1-bookworm` through host
+podman 6.1.2), with full suites green beside them (cli 109, image 117,
+extract 47 and 47 across its two targets, supervise 10, complete 50,
+probe 97, 0 failed) and clippy `-D warnings`
+clean. Two fixups landed between the proves and each was re-proven: a
+stray `Write` import and a `question_mark` lint in the parser (both
+caught by clippy), and the writer-thread test rewritten as `follow_once`
+steps (caught by the spawn-path guard test).
+
+Driven on the shipped binary in the same lane: a detached payload
+writing `line1`..`line5` one second apart (one external `/bin/echo`
+process per line, so no stdio buffering can hold a line back):
+
+```
+$ podbox logs -f timer1 > follow.out & sleep 3; grep -c line follow.out
+2                                            # line1, line2 while running
+$ wait; echo rc=$?; cat follow.out
+rc=0
+line1
+line2
+line3
+line4
+line5
+$ podbox logs timer1 | cmp - follow.out && echo IDENTICAL
+IDENTICAL
+```
+
+`-f` on an exited container prints and exits promptly; on a missing
+container it errors at 125 like `logs` does. The guard that stops
+recurrence is the bounded follow itself: callers watch one command that
+ends, instead of polling in a loop.
 
 ---
 

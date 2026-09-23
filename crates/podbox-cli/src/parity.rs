@@ -240,7 +240,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "rm", flag: Some("-v, --volumes"), status: Stub, note: "accepted for parity: podbox has no volumes, so there are none to remove" },
     Row { verb: "rm", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "logs", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "logs", flag: Some("-f, --follow"), status: NoneStatus, note: "not implemented: the log is a file in the store and `tail -f` on it is the same thing" },
+    Row { verb: "logs", flag: Some("-f, --follow"), status: Native, note: "follows the container's log file with a bounded poll and exits after the container ends" },
     Row { verb: "wait", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "start", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "cp", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },

@@ -341,30 +341,66 @@ fn ps_fields(c: &Container, no_trunc: bool) -> Vec<(&'static str, String)> {
     ]
 }
 
-/// `podbox logs <container>`
+/// `podbox logs [-f|--follow] <container>`
+const LOGS_USAGE: &str = "usage: podbox logs [-f|--follow] <container>";
+
+/// What `logs` was asked for. One parser, so the flag cannot be accepted in
+/// one position and lost in another (TODO/supervise.md T-1318).
+struct LogsArgs {
+    follow: bool,
+    want: String,
+}
+
+fn parse_logs(args: &[String]) -> std::result::Result<LogsArgs, i32> {
+    let mut follow = false;
+    let mut want: Option<String> = None;
+    for a in args {
+        match a.as_str() {
+            "-f" | "--follow" => follow = true,
+            "-h" | "--help" => {
+                println!("{LOGS_USAGE}");
+                return Err(0);
+            }
+            other if other.starts_with('-') => {
+                crate::parity::admit("logs", other, LOGS_USAGE)?;
+                return Err(crate::parity::no_arm("logs", other));
+            }
+            // ⚠ The first positional wins and the rest are ignored, as before:
+            // `logs` names one container.
+            other if want.is_none() => want = Some(other.to_string()),
+            _ => {}
+        }
+    }
+    let Some(want) = want else {
+        println!("{LOGS_USAGE}");
+        return Err(EXIT_CLI_ERROR);
+    };
+    Ok(LogsArgs { follow, want })
+}
+
+/// `podbox logs [-f|--follow] <container>`
 pub fn logs(args: &[String]) -> i32 {
-    if let Some(c) = crate::parity::admit_all("logs", args, "usage: podbox logs <container>") {
+    if let Some(c) = crate::parity::admit_all("logs", args, LOGS_USAGE) {
         return c;
     }
-    let Some(want) = args.first() else {
-        println!("usage: podbox logs <container>");
-        return EXIT_CLI_ERROR;
+    let o = match parse_logs(args) {
+        Ok(o) => o,
+        Err(c) => return c,
     };
-    if want == "-h" || want == "--help" {
-        println!("usage: podbox logs <container>");
-        return 0;
-    }
-    if want.starts_with('-') {
-        if let Err(c) = crate::parity::admit("logs", want, "usage: podbox logs <container>") {
-            return c;
-        }
-        return crate::parity::no_arm("logs", want);
-    }
     let s = match store() {
         Ok(s) => s,
         Err(c) => return c,
     };
-    match podbox_supervise::logs(&s, want) {
+    if o.follow {
+        // ⚠ The payload's own bytes, to stdout, unaltered. `logs` is the one
+        // verb whose stdout is not podbox's, following or not.
+        let mut out = std::io::stdout().lock();
+        return match podbox_supervise::follow(&s, &o.want, &mut out) {
+            Ok(()) => 0,
+            Err(e) => fail("logs", e),
+        };
+    }
+    match podbox_supervise::logs(&s, &o.want) {
         Ok(bytes) => {
             // ⚠ The payload's own bytes, to stdout, unaltered. `logs` is the one
             // verb whose stdout is not podbox's.
@@ -1259,5 +1295,22 @@ mod tests {
             ensure_chroot_usable("create", &findings(vec![])),
             Err(podbox_image::error::EXIT_RUNTIME_ERROR)
         );
+    }
+
+    /// TODO/supervise.md T-1318. `-f`/`--follow` selects following; anything
+    /// else behaves as before.
+    #[test]
+    fn logs_follow_is_a_parsed_flag() {
+        let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let o = parse_logs(&v(&["-f", "c1"])).unwrap();
+        assert!(o.follow);
+        assert_eq!(o.want, "c1");
+        let o = parse_logs(&v(&["--follow", "c1"])).unwrap();
+        assert!(o.follow);
+        assert_eq!(o.want, "c1");
+        let o = parse_logs(&v(&["c1"])).unwrap();
+        assert!(!o.follow);
+        assert_eq!(o.want, "c1");
+        assert!(parse_logs(&v(&[])).is_err());
     }
 }
