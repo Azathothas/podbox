@@ -90,9 +90,9 @@ pub const TABLE: &[Row] = &[
     Row { verb: "tag", flag: Option::None, status: Native, note: "points a second name at one manifest digest; nothing is fetched" },
     Row { verb: "image", flag: Option::None, status: Native, note: "ls, rm, prune, tag, inspect, pull and extract" },
     Row { verb: "image", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "inspect", flag: Option::None, status: Degraded, note: "images only. podbox has no containers until M4, so a container reference is not resolvable" },
+    Row { verb: "inspect", flag: Option::None, status: Degraded, note: "images by reference and containers by name, one document either way; --format reads the same fields (TODO/cli.md T-1319)" },
     Row { verb: "verify", flag: Option::None, status: Native, note: "hashes indexed blobs against their digests, one line per mismatch plus a summary; prints provenance for one image (TODO/image.md T-1321)" },
-    Row { verb: "system", flag: Option::None, status: Degraded, note: "info, install-names and abi. df, events and prune are not implemented; the last two are podbox's own and docker has neither" },
+    Row { verb: "system", flag: Option::None, status: Degraded, note: "info, install-names and abi. `image prune` removes images; df and events are not implemented" },
     Row { verb: "info", flag: Option::None, status: Degraded, note: "podbox has no daemon, so the server half of docker's output is the rung this machine permits instead" },
     Row { verb: "version", flag: Option::None, status: Native, note: "one artefact, so there is one version and no client/server split" },
     Row { verb: "version", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
@@ -171,7 +171,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("--cap-add, --cap-drop"), status: NoneStatus, note: "capabilities are not what is denied here; the filter is" },
     Row { verb: "run", flag: Some("-m, --memory"), status: NoneStatus, note: "resource limits need a cgroup this runtime does not grant" },
     Row { verb: "run", flag: Some("--cpus"), status: NoneStatus, note: "resource limits need a cgroup this runtime does not grant" },
-    Row { verb: "run", flag: Some("--restart"), status: NoneStatus, note: "restarting needs a supervisor, which is M4" },
+    Row { verb: "run", flag: Some("--restart"), status: NoneStatus, note: "not implemented: `stop` then `start` is the same thing and says which half failed (TODO/cli.md T-1331)" },
     Row { verb: "run", flag: Some("--hostname"), status: NoneStatus, note: "sethostname needs a UTS namespace this runtime does not grant" },
     // ⭐ M5 and TODO/cli.md T-0804. Four flags docker does not have, and each
     // is here for the same reason every other row is: a surface with no row is

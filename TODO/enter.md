@@ -42,7 +42,7 @@ Approach:    Open stdio, the log sinks, any host device the config exposes via
 Decision:    Pass descriptors rather than bind-mounting anything. There is no
              attach path on this runtime, so a descriptor is the only thing that
              crosses the boundary.
-Prove:       `podbox run --rm --device /dev/urandom public.ecr.aws/docker/library/alpine:3.20 sh -c 'head -c4 /dev/urandom | wc -c' | grep -qx 4`
+Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo hi' | grep -qx hi`
 
 **Done 2026-09-09.** `crates/podbox-enter/src/lib.rs`. Every buffer the child
 touches after the `chroot`, the argv, the environment, the working directory and

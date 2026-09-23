@@ -46,7 +46,7 @@ command -v git >/dev/null 2>&1 || { echo "SKIP: no git" >&2; exit 2; }
 
 # ⛔ GUARD 3: ONE LIST. Everything any case may touch is named here once, and
 # both the backup and the restore iterate this and nothing else.
-FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs scripts/build-interpose.sh scripts/dev.sh"
+FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/enter.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs crates/podbox-cli/src/parity.rs scripts/build-interpose.sh scripts/dev.sh"
 
 # ⛔ CHECK 18'S SUBJECT IS A NUMBER THAT IS ALREADY TAKEN, so writing one here
 # literally would put a second name on it in this very file and make the clean
@@ -395,6 +395,33 @@ case_plant "24 the export comparison removed" "carries no export-set comparison"
 case_plant "25 the SKIP arm retargeted" "has no SKIP arm" \
   sh -c 'sed -i "s/^\t\t2)/\t\t9)/" scripts/dev.sh'
 
+# ⚠ Check 26 has four cases because its arms fail apart: a refused None-row
+# flag, a flag with no row at all, a refused verb, and a verb podbox never
+# named are four spellings of a Prove that never ran as written. All four
+# plants land on Prove lines in TODO/probe.md, which this script already
+# owns, by un-negating or respelling a command that runs there.
+case_plant "26a a done Prove naming a refused flag" "Prove names \`--network\`" \
+  sh -c 'sed -i "s/\`! podbox run --network=none --rm/\`podbox run --network=none --rm/" TODO/probe.md'
+
+case_plant "26b a done Prove naming an unlisted flag" "Prove names \`--frobnicate\`" \
+  sh -c 'sed -i "s/podbox probe --strict/podbox probe --strict --frobnicate/" TODO/probe.md'
+
+case_plant "26c a done Prove running a refused verb" "refuses outright" \
+  sh -c 'sed -i "s/podbox probe --strict/podbox pause/" TODO/probe.md'
+
+case_plant "26d a done Prove running an unknown verb" "is no verb" \
+  sh -c 'sed -i "s/podbox probe --strict/podbox frobnicate --strict/" TODO/probe.md'
+
+# ⚠ Check 27 has two cases because its two arms fail apart: a milestone a
+# shipped release already passed, and a verb the table carries, named
+# missing. Both plants land in crates/podbox-cli/src/parity.rs, added to
+# the owned list above for exactly these cases.
+case_plant "27a a parity note leaning on a shipped milestone" "leans on M4" \
+  sh -c 'sed -i "s/says which half failed (TODO\\/cli.md T-1331)/needs a supervisor, which is M4/" crates/podbox-cli/src/parity.rs'
+
+case_plant "27b a parity note missing a present verb" "claims \`prune\`" \
+  sh -c 'sed -i "s/df and events are not implemented/df, events and prune are not implemented/" crates/podbox-cli/src/parity.rs'
+
 echo
 # ⛔ SAY WHAT IS NOT COVERED. A harness that lists passing cases without naming
 # the check that has none implies a coverage it does not have, which is the same
@@ -416,6 +443,9 @@ case_control "a citation that does resolve" \
 
 case_control "a forward reference to a result" \
   sh -c 'printf "\nIt will land in \`experiments/results/not-yet-taken.txt\`.\n" >> README.md'
+
+case_control "a payload-side flag after the image" \
+  sh -c 'sed -i "s/sh -c .echo hi./sh -c '\''echo hi'\'' --not-a-podbox-flag/" TODO/enter.md'
 
 echo
 echo "== verdict"

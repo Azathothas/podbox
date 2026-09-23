@@ -305,7 +305,7 @@ Approach:    Hold a lock fd on each in-use rootfs, inherited across the exec, an
 Decision:    An inheritable lock fd rather than a pid file. A pid file is stale
              the moment a process dies unexpectedly, and the check that clears a
              stale one is the race this is closing.
-Prove:       `podbox run -d --name gc-probe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && ! podbox image prune -af 2>&1 | grep -q "$(podbox inspect --format '{{.Image}}' gc-probe)" && podbox rm -f gc-probe`
+Prove:       `podbox run -d --name gc-probe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && podbox image prune -a -f 2>&1 | grep -q "is referenced by container gc-probe" && podbox inspect public.ecr.aws/docker/library/alpine:3.20 >/dev/null && podbox rm -f gc-probe`
 
 **Done 2026-09-09, in the two halves below.** `images`, `image ls`, `rmi`, `image rm`, `tag`,
 `image prune` and `inspect` are implemented in `crates/podbox-cli/src/images.rs`

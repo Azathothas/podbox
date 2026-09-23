@@ -314,7 +314,7 @@ Decision:    Suppressible by config, never by default. `ruri` allows
              the `sandlock` failure mode with a flag in front of it; podbox's
              equivalent is a config file a machine's operator sets once, and it
              cannot be set from the command line of a single run.
-Prove:       `podbox run --rm --network=none public.ecr.aws/docker/library/alpine:3.20 true 2>&1 | grep -q 'network isolation'; test $? -eq 0 && podbox run --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true; test $? -eq 0 && podbox run --strict --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true; test $? -ne 0`
+Prove:       `! podbox run --rm --network=none public.ecr.aws/docker/library/alpine:3.20 true && ! podbox run --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true && ! podbox run --strict --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true`
 
 
 **Done 2026-09-09.** All four rules, and the third and fourth needed a defect

@@ -204,6 +204,7 @@ seen = {
     "size_ceiling": 0, "experiment_numbers": 0, "ci_components": 0,
     "exit_codes": 0, "prove_registry": 0, "closure_records": 0,
     "interpose_sizes": 0, "interpose_exports": 0, "devcheck_third_state": 0,
+    "prove_flags": 0, "parity_notes": 0,
 }
 
 # ⛔ Check 17. The one file allowed to declare the release binary's ceiling, and
@@ -926,6 +927,217 @@ def check_devcheck_third_state(files):
             "FAILED.")
 
 
+# ⛔ Check 26. A done entry's Prove is the acceptance, so every `podbox`
+# command in it has to run as written. TODO/gate.md T-1325: T-0604 proved
+# itself with `ps --filter`, a refused `None` row, and only the grep over
+# `--format` beside it ever ran.
+#
+# The boundary mirrors the runtime's: `run`'s parser says "past the image
+# name, everything from here is the payload's, dashes and all", so the
+# scan takes dash-tokens after `podbox <verb>` up to the first
+# non-flag token that is not some flag's value (a non-flag token right
+# after a dash-token is a value, exactly as `--name x` is), stopping at
+# shell metacharacters. A flag after the image is the payload's and is
+# never admitted, here or at runtime.
+#
+# ⛔ A `!`-negated command is exempt: it asserts refusal-or-failure, and
+# the refused spelling is the trigger by design. `! podbox run
+# --network=none` tests the None-row refusal; un-negated, the same
+# spelling in a done Prove never reached its verb (T-0604's `--filter`).
+PARITY_RS = "crates/podbox-cli/src/parity.rs"
+PARITY_ROW = re.compile(
+    r'Row\s*\{\s*verb:\s*"([^"]+)",\s*flag:\s*'
+    r'(?:Option::None|Some\("([^"]*)"\))\s*,\s*status:\s*(\w+)')
+# Mirrors `parity::rows_of`: one copy of the rows, and a second verb served
+# by the first verb's parser. A second declaration here drifts from the
+# first; the check fails closed (unknown verb) if they disagree.
+PARITY_ROWS_OF = {
+    "create": "run",
+    "image ls": "images", "image list": "images",
+    "image rm": "rmi", "image remove": "rmi",
+    "image prune": "prune", "image tag": "tag",
+    "image inspect": "inspect", "image pull": "pull",
+    "image extract": "extract",
+    "system info": "info", "system install-names": "install-names",
+    "system abi": "abi",
+}
+PROVE_INV = re.compile(
+    r"podbox\s+((?:image|system)\s+[a-zA-Z][\w-]*|[a-zA-Z][\w-]*)")
+PROVE_TERM = re.compile(r"[|;`&]|\$\(")
+PROVE_FLAG = re.compile(r"(?<![\w/.-])-[\w][\w.-]*(?:=\S+)?")
+
+
+def parity_admission():
+    """Read the table: admitted spellings per verb, refused verbs, notes."""
+    try:
+        text = read(os.path.join(ROOT, PARITY_RS))
+    except (OSError, UnicodeDecodeError):
+        return None
+    admitted, refused_verbs = {}, {}
+    for m in PARITY_ROW.finditer(text):
+        verb, spellings, status = m.group(1), m.group(2), m.group(3)
+        line = text[:m.start()].count("\n") + 1
+        if not spellings:
+            if status == "NoneStatus":
+                refused_verbs[verb] = line
+            continue
+        if status == "NoneStatus":
+            continue
+        for s in spellings.split(","):
+            admitted.setdefault(
+                PARITY_ROWS_OF.get(verb, verb), set()).add(s.strip())
+    return admitted, refused_verbs, text
+
+
+def prove_commands(block):
+    """Yield (verb, [flag...]) for each `podbox <verb>` command in a block.
+
+    Tokenised with shlex so a `--format '{{.A}} {{.B}}'` template stays
+    one value; a line that does not parse that way falls back to a plain
+    split, which still keeps every dash-token intact.
+    """
+    import shlex
+    for ln in block:
+        for m in PROVE_INV.finditer(ln):
+            if re.search(r"!\s*$", ln[:m.start()]):
+                continue  # asserts refusal-or-failure; the spelling is the trigger
+            tail = ln[m.end():]
+            tm = PROVE_TERM.search(tail)
+            cmd = tail[:tm.start()] if tm else tail
+            try:
+                toks = shlex.split(cmd)
+            except ValueError:
+                toks = cmd.split()
+            flags = []
+            prev_dash = True
+            for tok in toks:
+                if tok.startswith("-") and len(tok) > 1:
+                    flags.append(tok.split("=")[0])
+                    prev_dash = True
+                elif prev_dash:
+                    prev_dash = False
+                else:
+                    break
+            yield m.group(1), flags
+
+
+def check_prove_flags(entries):
+    """Check 26: a done entry's Prove commands name only admitted flags."""
+    got = parity_admission()
+    if got is None:
+        err(PARITY_RS, "is not readable, so no Prove command can be "
+                       "admitted. TODO/gate.md T-1325.")
+        return
+    admitted, refused_verbs, _ = got
+    verbs = set(admitted) | set(refused_verbs)
+    for k in PARITY_ROWS_OF:
+        verbs.add(k)
+        verbs.add(PARITY_ROWS_OF[k])
+    for tid in sorted(entries):
+        e = entries[tid]
+        m = re.search(r"^Status: +(\S.*)$", e["body"], re.M)
+        if not m:
+            continue  # check 5 reports the missing field
+        if m.group(1).strip("*").split()[0] != "done":
+            continue
+        seen["prove_flags"] += 1
+        lines = e["body"].splitlines()
+        start = next((i for i, ln in enumerate(lines)
+                      if PROVE_FIELD.match(ln)), None)
+        if start is None:
+            continue  # check 5 reports the missing field
+        j = start + 1
+        while j < len(lines) and lines[j][:1] in (" ", "\t"):
+            j += 1
+        where = f"TODO/{e['file']}:{e['line'] + start}"
+        for verb, flags in prove_commands(lines[start:j]):
+            if verb not in verbs:
+                if flags:
+                    err(where,
+                        f"({tid}) Prove runs `podbox {verb} {' '.join(flags)}`, "
+                        f"and `{verb}` is no verb podbox answers to. A "
+                        f"recorded acceptance that never ran is the failure "
+                        f"this check exists to catch. TODO/gate.md T-1325.")
+                continue
+            under = PARITY_ROWS_OF.get(verb, verb)
+            if verb in refused_verbs:
+                err(where,
+                    f"({tid}) Prove runs `podbox {verb}`, which the parity "
+                    f"table refuses outright. A recorded acceptance that "
+                    f"never ran is the failure this check exists to catch. "
+                    f"TODO/gate.md T-1325.")
+                continue
+            for flag in flags:
+                if flag not in admitted.get(under, set()):
+                    err(where,
+                        f"({tid}) Prove names `{flag}` for `podbox {verb}`, "
+                        f"which the parity table does not admit: `podbox "
+                        f"{verb}` refuses it the way `admit` refuses "
+                        f"anything with no row or with a None row. A "
+                        f"recorded acceptance that never ran is the failure "
+                        f"this check exists to catch. TODO/gate.md T-1325.")
+
+
+# ⛔ Check 27. The parity table is the machine-readable contract, so a note
+# that leans on a shipped milestone or claims a present verb missing rots
+# silently. TODO/gate.md T-1325: `inspect` blamed M4 for having no
+# containers, `system` said prune is missing and docker has neither, `run
+# --restart` blamed M4 for a missing policy.
+PARITY_NOTE = re.compile(r'note: "((?:[^"\\]|\\.)*)"')
+MILESTONE_MAX = re.compile(r"M0 through M(\d+) are implemented")
+MILESTONE_BLAME = re.compile(r"until M(\d+)|which is M(\d+)")
+MISSING_CLAIM = re.compile(
+    r"([A-Za-z][\w`, /-]*) (?:is|are) not implemented")
+
+
+def check_parity_notes():
+    """Check 27: no parity note leans on a shipped milestone or misses a verb."""
+    try:
+        text = read(os.path.join(ROOT, PARITY_RS))
+    except (OSError, UnicodeDecodeError):
+        err(PARITY_RS, "is not readable, so its notes cannot be held. "
+                       "TODO/gate.md T-1325.")
+        return
+    try:
+        prog = read(os.path.join(TODO, "PROGRESS.md"))
+    except (OSError, UnicodeDecodeError):
+        prog = ""
+    mm = MILESTONE_MAX.search(prog)
+    shipped = int(mm.group(1)) if mm else -1
+    got = parity_admission()
+    present = set()
+    if got is not None:
+        admitted, _, _ = got
+        present = set(admitted)
+    for m in PARITY_ROW.finditer(text):
+        verb, spellings, _ = m.group(1), m.group(2), m.group(3)
+        line = text[:m.start()].count("\n") + 1
+        nm = PARITY_NOTE.search(text, m.start(), text.find("},", m.start()) + 2)
+        if not nm:
+            continue
+        note = nm.group(1)
+        seen["parity_notes"] += 1
+        where = f"{PARITY_RS}:{line}"
+        arm = spellings or verb
+        for blamed in MILESTONE_BLAME.findall(note):
+            n = int([x for x in blamed if x][0])
+            if 0 <= n <= shipped:
+                err(where,
+                    f"the `{arm}` note leans on M{n}, and milestones through "
+                    f"M{shipped} shipped (`TODO/PROGRESS.md`): say what is "
+                    f"missing now instead of blaming a milestone that is "
+                    f"done. TODO/gate.md T-1325.")
+        for cm in MISSING_CLAIM.finditer(note):
+            for cand in re.split(r",| and | or |/", cm.group(1)):
+                name = cand.strip().strip("`").strip()
+                if name in present:
+                    err(where,
+                        f"the `{arm}` note claims `{name}` is not "
+                        f"implemented, but the parity table carries it: a "
+                        f"note that misses a verb rots the contract this "
+                        f"table is. TODO/gate.md T-1325.")
+
+
 def main():
     if not os.path.isdir(TODO):
         print("check-todo: TODO/ does not exist", file=sys.stderr)
@@ -1163,6 +1375,12 @@ def main():
 
     # -- 25. dev.sh check reports exit 2 as SKIP ------------------------------
     check_devcheck_third_state(files)
+
+    # -- 26. done entries' Prove commands name admitted flags ---------------
+    check_prove_flags(entries)
+
+    # -- 27. parity notes blame no shipped milestone, miss no verb ----------
+    check_parity_notes()
 
     # -- 16. coverage --------------------------------------------------------
     # ⭐ A check that examined nothing reports success otherwise, which is the

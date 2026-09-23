@@ -404,7 +404,7 @@ Decision:    Take `ruri`'s inversion and `udocker`'s precedence chain, and take
              rejected is a single global strictness level: it cannot express
              "this container asked for isolation and that one did not", which
              is the distinction the ladder exists for.
-Prove:       `podbox run --network=none --rm public.ecr.aws/docker/library/alpine:3.20 true; test $? -ne 0` and `podbox probe --strict` exits non-zero on any degraded rung
+Prove:       `! podbox run --network=none --rm public.ecr.aws/docker/library/alpine:3.20 true` and `podbox probe --strict` exits non-zero on any degraded rung
 
 **Done 2026-09-09.** The selection and the switch were implemented and measured
 on 2026-09-08; the first half of the `Prove` above was earned under M3 on

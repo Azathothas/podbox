@@ -207,7 +207,7 @@ Decision:    Reconcile on start rather than trust the table. A launcher killed
              with `SIGKILL` leaves the table saying "running", and the only
              honest answer after that is "this process exited while podbox was
              not watching".
-Prove:       `podbox run -d --name stateprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && kill -9 "$(podbox inspect --format '{{.Pid}}' stateprobe)" && podbox ps -a --format '{{.Status}}' --filter name=stateprobe | grep -qi exited && podbox rm stateprobe`
+Prove:       `podbox run -d --name stateprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && kill -9 "$(podbox inspect --format '{{.Pid}}' stateprobe)" && podbox ps -a --format '{{.Names}} {{.Status}}' | grep '^stateprobe ' | grep -qi exited && podbox rm stateprobe`
 
 **Done, 2026-09-09.** Clause 2 of `experiments/230-lifecycle-loop.sh` drives it:
 a detached container whose LAUNCHER is `SIGKILL`ed reads `dead`, `inspect

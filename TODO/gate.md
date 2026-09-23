@@ -1212,7 +1212,7 @@ Source:      issues 25 and 23, client beta testing 2026-09-22 (T-0604's
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     Two claim classes with no check. Closed entries' `Prove:`
              commands can name flags the parity table refuses (T-0604
@@ -1247,6 +1247,25 @@ Prove:       `plant.sh` breaks each new check on purpose and asserts red
              carries the three corrected notes. Close issues 25 and 23
              with comments showing the plant runs and the two checks as
              the guards that stop recurrence.
+
+**Done, 2026-09-23.** Checks 26 (done Prove commands admit) and 27
+(milestone-blame and missing-verb notes) in `scripts/check-todo.py`,
+six plant cases plus one control in `scripts/plant.sh`, in the same
+change. The sweep paid at once: besides T-0604's `--filter` it found
+T-0804's `--network`/`--memory` (asserted success, red at runtime),
+T-0501's `--device` (its own Done says not implemented), T-0107's
+`--network` (rewritten as the refusal it asserts), and T-0204's
+`-af` cluster. The `-a -f` fix then exposed a deeper inversion the
+lane proved empirically: the skip line names the reference, so `!
+prune | grep -q <reference>` is red whenever prune works; the line
+now asserts the skip (`is referenced by container gc-probe`) and the
+image's survival. T-0706's dead `run -v` one-liner became the 159
+script invocation; T-0504's `! ... --rootfs` stands, exempt by the
+documented `!` rule (it asserts refusal, and the spelling is the
+trigger). Lane prove `.tmp/pb-w25-prove.sh`, verdict `fail=0`:
+every rewritten line green verbatim, 159 exits 0, the three notes in
+`system info`, crate units and clippy clean. `plant.sh` green after
+the commit. The guards are the two checks themselves.
 
 ---
 
