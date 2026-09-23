@@ -18,7 +18,7 @@ legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
 the booting initramfs (T-1303), and the serial exec protocol (T-1304:
 147 green, every status distinct across the line).
 
-143 entries: 2 open, 1 partial, 2 blocked, 138 done. Every P0 is done.
+143 entries: 1 open, 1 partial, 2 blocked, 139 done. Every P0 is done.
 
 ## Baseline
 
@@ -70,8 +70,9 @@ one declared ceiling (check 23 holds them), and exit-2-as-SKIP in the
 check loop (check 25 holds the arm). Lane proves: 112 declared and 112
 exported on both objects, both plants red with their own messages,
 sizes recorded beside the binary total, full check 10 passed 0 failed
-0 skipped, forced SKIP 9-0-1 green. The entry stays open pending the
-full `plant.sh` run on the committed tree.
+0 skipped, forced SKIP 9-0-1 green. `plant.sh` on the committed tree reads
+31 caught, 0 missed, 3 controls quiet, with all four new cases naming
+their defect, and the entry is closed in the same change with its counts.
 
 Session of 2026-09-23. [T-1314](packaging.md) closed in its own change:
 `.github/workflows/nightly.yml` (every `v*` tag builds all seven
@@ -732,11 +733,12 @@ for clause 3. [T-1209](gate.md) and
     pre-release now exists: all seven claimed archs built as static-PIE
     binaries, each smoke-tested on its own arch (version, both interposer
     digests, `crt-static`), the full acceptance staying host-arch. Stable
-    releases stay manual and are not designed. Next: the `plant.sh` run on
-    this tree, then [T-1207](gate.md) closes (implemented 2026-09-23 with
-    lane proves, entry open); [T-1109](milestones.md) carries its remaining
-    conditions; [T-1112](milestones.md) stays parked, [T-1212](gate.md) and
-    [T-1213](gate.md) stay blocked.
+    releases stay manual and are not designed. [T-1207](gate.md) closed in
+    its own change (implemented 2026-09-23 with lane proves, `plant.sh`
+    31 caught 0 missed on the committed tree);
+    [T-1109](milestones.md) carries its remaining conditions, re-driven
+    green-minus-two-skips this session; [T-1112](milestones.md) stays
+    parked, [T-1212](gate.md) and [T-1213](gate.md) stay blocked.
    [T-0909](deps.md) is done: `io12/userland-execve-rust` vendored whole
    to `vendor/userland-execve` at `02ef0e0`, and podbox's own
    three-syscall memfd path in `crates/podbox-enter/src/memfd.rs` with
@@ -763,11 +765,10 @@ for clause 3. [T-1209](gate.md) and
 both commit here. [T-1314](packaging.md) is `done` with the beta.3 nightly
 carrying fourteen assets, recorded in the entry. No implementation entry
 is half-written. One entry remains `partial`: [T-1109](milestones.md),
-carrying its remaining conditions in its own file. Two entries remain
-`open`: [T-1207](gate.md) (implemented 2026-09-23: items 2 to 4 in
-`dev.sh check` with plants and lane proves; the entry stays open
-pending the full `plant.sh` run on the committed tree) and
-[T-1112](milestones.md) (ruled 2026-09-22: keep parked as P3).
+carrying its remaining conditions in its own file and re-driven this
+session with zero FAILs and the same two environmental skips. One entry
+remains `open`: [T-1112](milestones.md) (ruled 2026-09-22: keep parked
+as P3).
 [T-1212](gate.md) and [T-1213](gate.md) stay `blocked` with their blockers
 named in their own files. The beta `v0.1.0-beta.1` ships as a pre-release
 with the verified binary beside it, and `v0.1.0-beta.3` publishes the

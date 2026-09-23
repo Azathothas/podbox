@@ -432,7 +432,7 @@ Source:      `Cargo.toml:13-18`; `scripts/dev.sh:199-202`
 Category:    gate
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     ⛔ **`crates/podbox-interpose` is excluded from the workspace, and
              every step of `./scripts/dev.sh check` is scoped to the
@@ -506,8 +506,10 @@ Prove:       `./scripts/build-interpose.sh` exits 1 naming the export
              The committed clippy-and-fmt plant spelling is superseded:
              item 1 landed in substance without it, recorded above.
 
-Implementation landed 2026-09-23. The entry stays open pending the full
-`plant.sh` run on the committed tree; every run below is taken.
+**Done 2026-09-23.** Items 2 through 4 run in `dev.sh check`, each
+with its plant in the same change, and the full `plant.sh` run on the
+committed tree reads 31 caught, 0 missed, 3 controls quiet. Every run
+below is taken.
 
 Item 2 runs in `scripts/build-interpose.sh`: each object's
 `nm -D --defined-only` `T` set against the `interpose.map` globals with
