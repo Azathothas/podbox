@@ -1,36 +1,35 @@
 ## The task
 
-Continue the batch from checkpoint `a299ab5`: lane-prove T-1335, close
-T-1335 with proof plus client issue 16, then work the remaining TODO
-order. Tag-gated entries wait on `v0.1.0-beta.6`.
+Continue the batch: T-1336 (ASCII scrub) is next in entry order, then
+T-1327/T-1328/T-1329/T-1334 per PROGRESS. T-1328/T-1329/T-1334 prove
+against the next beta's release; tag `v0.1.0-beta.6` when the
+non-tag work is green.
 
 ## The resume point
 
-Lane-prove first, one lane job at a time:
-`PODBOX_ARTIFACTS=.tmp/pb-w35-out sh scripts/windows/run-in-base.sh
-.tmp/pb-w35-prove.sh`. Then close T-1335.
+T-1336 first: scrub `crates/podbox-cli/src` printed strings to ASCII
+(comments stay), add the gate guard, lane-prove. Commit at `2cc8bfd`
+(T-1335 close) is pushed; tree clean, gate green.
 
 ## In flight
 
-T-1335 implementation uncommitted in 5 files (`TODO/supervise.md`,
-`crates/podbox-cli/src/parity.rs`, `crates/podbox-enter/src/lib.rs`,
-`crates/podbox-probe/src/sys.rs`,
-`crates/podbox-supervise/src/launcher.rs`): foreground
-`wait_forwarding`, launcher serve signalfd, parity sentences, entry
-Decision. Signalfd pointer bug fixed, never lane-proven.
+Nothing half-written. T-1335 closed as `2cc8bfd` with
+`experiments/351-signal-forward.sh` (exit 0 in lane) and
+`experiments/results/signal-forward.txt`.
 
 ## State
 
-Tree dirty (5 files) at `a299ab5`. Gate green at the checkpoint, to be
-re-verified this session before any commit.
+Tree clean at `2cc8bfd`. Gate green (check-todo ok, check-gate
+--fast 10 passed 1 skip). 165 entries: 5 open, 1 partial, 0 blocked,
+159 done.
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
 Read TODO/PROGRESS.md first, then TODO/RESUME.md. Continue the podbox
-batch from checkpoint a299ab5: lane-prove T-1335
-(.tmp/pb-w35-prove.sh), close it with proof plus client issue 16,
-then work the remaining TODO order. Work unattended; push straight
-to main with no branches.
+batch from commit 2cc8bfd (T-1335 closed): implement T-1336, then
+T-1327/T-1328/T-1329/T-1334 per PROGRESS, tagging v0.1.0-beta.6 when
+the non-tag work is green. Work unattended; push straight to main
+with no branches.
 ```
