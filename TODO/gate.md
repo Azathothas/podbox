@@ -1133,8 +1133,9 @@ re-captured `attribute.txt` (with `census.txt`) on the same machine,
 after which `130` exits 0 with 16 matched and 0 differed. `10`
 stands on its recorded host-podman build (image id
 `9ed4f5c81452`, loaded byte-identical into the base: the conditions
-block names the full id); no base rebuild belongs to it (in-base
-container egress blocks apt's port 80, and the Dockerfile is a
+block names the full id); no base rebuild belongs to it (the
+podman-path build's apt hangs on port 80 while the docker path
+fetches: measured 2026-09-23, three runs, and the Dockerfile is a
 pinned input). `20` exits 0 natively (N+F+M, `/bin/id` answers
 uid 0). The binary is the shipped `podbox 0.1.0` (3503032 bytes).
 The observation on bare payload names stands.

@@ -204,7 +204,7 @@ machine stays running as found: never stop it, never prune without naming
 what goes. A first image pull outlasts a clause timeout, so scripts fetch
 their images before any timed clause starts rather than inside it.
 
-### ⛔ Nine traps this host produced, five on 2026-09-11, two on 2026-09-12 and two on 2026-09-22
+### ⛔ Twelve traps this host produced, five on 2026-09-11, two on 2026-09-12, two on 2026-09-22 and three on 2026-09-23
 
 - ⛔ **A Windows checkout carries no executable bit, so every script arrives
   unrunnable.** Measured on 2026-09-11: **396 of 396** had to be repaired. NTFS holds no POSIX mode and `core.fileMode` is false there.
@@ -276,6 +276,24 @@ their images before any timed clause starts rather than inside it.
   `rm -f ./NUL` from Git Bash. What would reopen it is the creator,
   which is not isolated: the `.gitignore` comment blames a shell not
   mapping `2>/dev/null`, and no shell in the driven chain names one.
+- ⛔ **Git Bash rewrites an absolute guest path before the tool sees it.**
+  Measured on 2026-09-23: a `base exec` payload naming `/tmp/...`
+  arrived in the guest as `C:/...Temp/...`, and the guest tried to
+  execute a Windows path (rc **127**). ⭐ Every call carrying an
+  absolute path sets `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'`.
+- ⚠ **Port 80 hangs from a podman-networked container and fetches from a
+  docker-networked one, on the same base in the same hour.** Measured on
+  2026-09-23, three runs: `apt-get update` under base podman times out
+  (rc **124**, zero bytes, an empty log: a SYN black-hole), while under
+  base dockerd it fetches **9379 kB in 1 s**. Registry traffic on 443
+  works on both. This is the product's own T-0201 premise manifesting
+  in the lane: a `10` build driven under podman cannot apt, and the
+  Dockerfile stays a pinned input, so the image travels by
+  `podman save` and `docker load` instead.
+- ⛔ **A killed dockerd launcher leaves a stale pid file, and the next
+  start dies on it.** Measured on 2026-09-23. ⭐ `rm -f
+  /var/run/docker.pid` before starting, and detach with `setsid`
+  plus `</dev/null`, or the daemon holds the launching shell.
 
 ### ⛔ Decommissioning
 

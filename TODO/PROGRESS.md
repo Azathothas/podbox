@@ -2,23 +2,14 @@
 
 ## State
 
-M0 through M5 are implemented. M6 is partial: the interposer builds for glibc
-and musl, the shipped binary EMBEDS both, and since 2026-09-18 it PLACES the
-selected object inside the rootfs, CLASSIFIES the payload with a named
-decline, and REWRITES mapped paths across 88 entry points. Since 2026-09-19
-it also FAKES the identity under `--user` and refuses honestly without it,
-and HOLDS the ownership memo on the host beside the container record with a
-bounded read that refuses past its ceiling instead of answering stale.
-End-to-end acceptance remains open.
-M7 packaging has not started. ⭐ **M8 is green since 2026-09-21:**
-[milestones.md](milestones.md) T-1111 drove the whole nix pipeline through
-the shipped binary, seven rows green, so the last gate reads. The machine
-tier, [podvm.md](podvm.md), holds its probe since 2026-09-21 (T-1301: six
-legs, one verdict per leg), the tier flag with the `podvm` name (T-1302),
-the booting initramfs (T-1303), and the serial exec protocol (T-1304:
-147 green, every status distinct across the line).
+M0 through M8 are implemented and the machine tier holds its probe.
+End-to-end acceptance is measured per entry. M7 packaging runs through
+the nightly workflow on every `v*` tag.
 
 143 entries: 1 open, 1 partial, 0 blocked, 141 done. Every P0 is done.
+The open entry is [T-1112](milestones.md) (ruled 2026-09-22: keep
+parked as P3). The partial entry is [T-1109](milestones.md), carrying
+its remaining conditions in its own file.
 
 ## Baseline
 
@@ -48,738 +39,85 @@ inside the distribution `wsl-toolkit-podbox`.
 exclusions and the traps each lane has.
 
 ⛔ **`wsl.exe` is never called.** `sh scripts/windows/run-in-base.sh` is the
-Windows half of `./scripts/dev.sh check`, and it ran the complete check in
-**1 m 19 s** on 2026-09-11 and **1 m 28 s** on 2026-09-12, both warm.
-⭐ **A job hands its evidence back through `/out`** now, named by
-`PODBOX_ARTIFACTS`, because the container is removed when it exits. ⚠ The pack
-step failed once on 2026-09-12 and the report was recovered from the job's own
-stdout, which the scripts print before they copy.
+Windows half of `./scripts/dev.sh check`.
 
-⭐ **`main` takes a direct push now.** `enforce_admins` was turned off on
+⭐ **The base is a native lane, and this session proved it.** The
+wsl-toolkit base (`wsl-toolkit-podbox`, Arch, kernel 7.2.0-WSL2-STABLE)
+runs user namespaces (`unshare -Urm` exits 0), mounts binfmt_misc and
+cgroup v2, and answers root inside `base exec`. The shipped binary
+reports `namespace` there. Kept in the base, documented here because it
+is persistent shared infra: docker 29.8.1, go 1.27.1, jq 1.8.2,
+qemu-user-static 11.1.1-4. Scratch (`/root/pb-wk`, `/root/pb-bin`,
+`/root/target-docker.tar`) is removed at session end.
+
+⛔ **`main` takes a direct push now.** `enforce_admins` was turned off on
 2026-09-11 and a direct push was verified. The four required checks still run
 and still have to be green. [RULES.md](RULES.md) section 2 carries it, and a
-publish branch is the fallback if protection is ever restored.
+force push stays refused.
 
-## What this session did
+## What this session did, 2026-09-23
 
-Session of 2026-09-23, continued. [T-1207](gate.md) items 2 to 4
-implemented in `dev.sh check`, each with its plant in the same change:
-the export comparison in `scripts/build-interpose.sh` (check 24 holds
-it), per-libc sizes in `experiments/results/bloat-interpose.txt` under
-one declared ceiling (check 23 holds them), and exit-2-as-SKIP in the
-check loop (check 25 holds the arm). Lane proves: 112 declared and 112
-exported on both objects, both plants red with their own messages,
-sizes recorded beside the binary total, full check 10 passed 0 failed
-0 skipped, forced SKIP 9-0-1 green. `plant.sh` on the committed tree reads
-31 caught, 0 missed, 3 controls quiet, with all four new cases naming
-their defect, and the entry is closed in the same change with its counts.
-Tag `v0.1.0-beta.4` pushed at the close-out commit; nightly run
-35805033988 success with all seven legs and the publish job green, and
-the pre-release named nightly carries fourteen assets, verified back
-through the release API.
+The operator's challenge reopened the two blocked entries: the
+wsl-toolkit base is a real machine, so the docker-daemon and native-lane
+halves could measure there. Both closed.
 
-Session of 2026-09-23. [T-1314](packaging.md) closed in its own change:
-`.github/workflows/nightly.yml` (every `v*` tag builds all seven
-static-PIE binaries, smokes each on its own arch, publishes the nightly
-pre-release) with the smoke in `scripts/nightly-smoke.sh`. Checkpoints
-first: plain builds linked 2 of 7 (the host `cc` refuses foreign objects),
-so the 260 `rust-lld` recipe moved into `.cargo/config.toml` one section
-per cross target; `riscv64` takes `renameat2` (the kernel has no `renameat`
-on asm-generic, and `syscalls` has no newer release to wait for); `i686`
-takes `+crt-static` (it read `no` alone). After the three fixes all seven
-link with no overrides, and 6 of 6 runnable smokes read green in the lane
-(`loongarch64` SIGILLs a hello binary too under the lane's qemu 7.2, so
-that leg is decided by CI). Counts move to 143 entries, 2 open, 1 partial,
-2 blocked, 138 done, and every P0 is done. `v0.1.0-beta.2` ran the matrix
-green on all seven legs and died publishing (the publish job had no
-checkout); the fix rode the next commit and `v0.1.0-beta.3` carries the
-publish proof: run 35769985618 success, seven `SMOKE-OK` rows, and the
-pre-release named nightly with fourteen assets verified back. The gate is
-green on both commits and the tree is at the tag's commit plus this record.
+[T-1213](gate.md) closed on the native base lane. `20` exits 0 (N+F+M,
+`/bin/id` answers uid 0, full image id matches the recorded build) and
+`130` exits 0 (chroot inside, namespace unconfined, 16 matched with 0
+differed after `130 --refresh` re-captured `attribute.txt` with
+`census.txt` on the same kernel). `10` stands on its recorded
+host-podman build. Committed in the change: the entry record, the
+counts, three results files. Commit `6eb941f`.
 
-Session of 2026-09-22, continued. [T-1314](packaging.md) filed in its own
-change: nightly releases, one `v*` tag building and smoke-testing all
-seven claimed archs with stable staying manual. The entry carries the
-ruled shape (nightly name, per-tag trigger, smoke per arch, full
-acceptance stays host-arch) and the checkpoints the implementation
-starts from. It is next session's task 10, last before the gates.
+[T-1212](gate.md) closed on the base docker lane (dockerd 29.8.1).
+`150` exits 0 with the clause-1 premise confirmed (the entry carries
+the digests). `270`
+exits 0: T-0212's owner had already fixed the clause-5a expectation to
+read the cli-error code from the binary. `280` exits 0 with all seven
+clauses after one native-lane repair (the TLS certs mount hoisted above
+the native split: without it the registry exits 1 with no certificate
+staged). `320` and `330` exit 0 with their daemon halves against docker
+29.8.1 (every 330 comparison cell ok). `300` carries zero FAILs:
+clause 7 runs (chroot inside, namespace outside) and the riscv64
+refusal half SKIPs where binfmt executes it, guarded in the script.
+Committed in the change: two script repairs, six results files, the
+entry record, the counts. Commit `e653e8f`.
 
-Counts move to 143 entries, 3 open, 1 partial, 2 blocked, 137 done, and
-every P0 is done.
+Three deep review passes ran over every touched file: the claim audit
+(each Done sentence against its run log or retrieved hash), the door
+sweep (who consumes the hoisted mount and the new guard), the
+usability pass. The `check-one-home` guard fired live on one sentence
+this session shared between the new record and this file; the entry
+kept the fact and this file points at it. One committed sentence
+proved imprecise the same session it landed (container port-80 egress
+reads as a blanket block; three bounded runs show the podman path
+black-holes SYNs while the docker path fetches) and was corrected in
+place with the measurements. `docs/containers.md` carries three new
+measured traps from the lane.
 
-Session of 2026-09-22, continued. [T-0413](complete.md) closed in its own
-change: the chroot banner names the missing `/proc` (`must_never_claim`
-plus a new `entry_banner` sentence; `run`, both `exec` paths and `probe`
-share it). No static fixture ships; `experiments/155-proc-absence.sh`
-clause 4 drives the payload to exit 1, names `/dev/fd`, and reads the
-banner naming `/proc`. Exits 0 three times on host podman 6.1.2.
-
-[T-1003](packaging.md) closed in its own change:
-`crates/podbox-cli/src/ladder.rs` reads `PODBOX_MODE`, scopes refusals
-for create, run -d, machine-tier and exec, feeds `Availability` from probe
-rows, and marks `enter_forced`; `memfd::stage` plus `kernel_takes_memfd`;
-`run_ladder` closes the parent fd; nine unit tests green.
-`experiments/163-ladder-drive.sh` exits 0 twice (forced memfd over the
-static payload reads `ACTIVE_MODE=memfd` rc 0; four named refusals at 125;
-default and scrub report chroot). A follow-up repairs the 163 static path,
-and a second follow-up opens the record with `**Done` per gate check 22.
-
-[T-1109](milestones.md) stays `partial`: 250 re-driven in the lane with a
-byte-identical report, zero FAILs, exit 2 on the two environmental skips
-(the `-t` positive arm and the census exit 2).
-
-⭐ **Beta `v0.1.0-beta.1` ships as a pre-release, the first tag.** The musl
-static-PIE binary (3503032 B, sha256 `42e34c3a…51cf2`) builds from
-`8d9dbd7`; crates and sources are identical to it. Downloaded back, the
-hash matches, and it runs `podbox 0.1.0` in the driver with both
-interposer digests and `crt-static: yes`. No tool takes credit anywhere.
-
-Two clause-1 reds preceded the green 163: first the alpine busybox is
-dynamic (`PT_INTERP /lib/ld-musl`, rightly refused), then the wrong path
-(`/bin/busybox-static` never exists; the package ships `/bin/busybox`,
-verified static against the `.deb` ground truth, which also proves
-apt-under-podbox byte-correct). A setup run must not carry `--rm`.
-
-Counts stood at 142 entries, 2 open, 1 partial, 2 blocked, 137 done
-when the beta closed above, and every P0 is done. [T-1314](packaging.md)
-filed after it moves them on.
-
-Session of 2026-09-22, continued. [T-0606](supervise.md) closed in its own
-change: the supervise tier's own three legs (`Group::Supervise` with
-`SUPERVISE_LEGS`: the listener, a live `process_vm_readv` channel, and
-ptrace), the `supervise.rs` assessment beside `machine.rs`, both tiers in
-one `tiers` object with a text block, and the selection reading the owned
-rows. The entry's third leg was corrected from ADDFD injection to ptrace
-(nothing in the tree injects a descriptor; issue #27 settles ptrace-seize
-is the only known race-safe `Continue`) and the channel from mem-open to
-live readv (the lineage's only channel), and the Prove was amended (the
-committed jq selected fields the legs never carry). Driven on a lane-built
-musl release binary: `probe --json` exits 0, the Prove exits 0, all three
-legs `ok` with `refusal: null` on the permissive lane. The lane found
-three defects, all fixed here: a dropped `)` that broke the build, one
-test asserting the text block against the JSON document, and the
-machine-shape test rescoped to both tiers' rows. Counts move to 4 open
-and 135 done, and every P0 is done.
-
-Session of 2026-09-22. [T-0207](image.md) closed in its own change: layers
-fetch through a bounded pool of `FETCH_WORKERS = 4` threads with the
-transcript in manifest order and cancellation plus staged-file removal on
-failure, driven by the new `experiments/190-parallel-layers.sh` with its
-`results/parallel-layers.txt` reading. Counts move to 5 open and 134 done.
-
-[T-1003](packaging.md) stays open with two changes in it. The skeleton
-(env-var pair, memfd driver, fd-exec number, FUSE/tmpfs sketch, vendor
-patch-out) and then the memfd leg's three missing pieces: the payload
-resolve (`ladder::resolve_payload`/`payload_bytes`, 128 MiB ceiling, four
-unit tests), the ladder entry (`spawn_ladder`/`run_ladder` beside `spawn`
-through one `spawn_with`, fd-exec in the child, the named fifth errno
-row), and the FUSE probe input (`open(/dev/fuse, O_RDWR)` Census leg plus
-`fuse_usable`, two unit tests). The lane's clippy refused the first cut's
-`Result<_, String>` in eight places (the crate alias takes one parameter),
-and fmt named three spots; all fixed in the change. The CLI wiring (read
-`PODBOX_MODE`, feed `Availability`) and the Prove drive still owe.
-
-⭐ **The wsl-toolkit base is usable again.** A probe job and the full
-`dev.sh check` both ran through `sh scripts/windows/run-in-base.sh`
-against `wsl-toolkit-podbox` this session. The host-podman substitute
-(`scripts/windows/run-via-host-podman.sh`, committed while the base was
-down) stays as the fallback, not the route.
-
-Session of 2026-09-21. Closed [T-1212](gate.md) **blocked** after converting
-the last four engine scripts and running all six on host podman 6.1.2.
-
-⭐ **All six image, registry and CLI scripts run through
-`experiments/lib/engine.sh` now, with no assertion changed.**
-`280-insecure-registry.sh` exits 0 with all seven clauses green after three
-conversion repairs. `300-run.sh` exits 2: every runnable clause green, clause 5 SKIP
-(no `binfmt_misc` without privilege) and clause 7 SKIP (no docker daemon).
-`320-cli-contract.sh` exits 2: clauses 1 to 4 green, the install-names half
-green, clause 5's refusal half SKIP without a daemon.
-`330-exit-codes.sh` exits 2: every podbox-against-its-own-table row `ok`,
-every `docker` column `-`. `150` exits 1 on the index-vs-child digest
-difference and `270` exits 1 on the 125-vs-1 platform error, both settled
-last session and re-recorded in the entry. `experiments/results/` carries
-all six runs.
-
-Three conversion repairs, each found by running the converted script whole:
-`280` re-stages its driver mounts after the fixture block's `eng_clear`,
-drives its wrapper through `eng_run` with positional words (never through
-`eng_pbrun`, which execs `/pb` with the words it is given), removes its
-fixtures by name (serve ids captured in `$( )` never reach `eng_cleanup`),
-and builds its TLS certificate against an empty config file named through
-`winpath` after four lane failures. `320` strips this lane's jq CRLF bytes
-before podbox ever sees a verb. One self-inflicted taint: editing `300`
-mid-run skipped one byte of the running script, so the run was repeated
-clean. Never edit a running script.
-
-⭐ **[T-1213](gate.md) closed 2026-09-23 on the native base lane.**
-The entry carries the runs, the re-captured reference, and which
-half of the `Prove` each lane supplied.
-
-[T-0805](cli.md) closed in this change: the section-8 table as data with
-the ownership row wired to live maps, one shared report for `extract` and
-`run`, and the sidecar example it names. Prove runs pull then extract and
-reads green beside `gid 42`; pull alone cannot name a dropped id, and the
-entry carries the finding.
-
-[T-0809](cli.md) closed in this change: the probe evidence names the
-spawn wall per context with both legs measured, and 151 drives both
-refusals behind one identical payload message to green. No generic
-string matcher ships; the mapping keys on the legs.
-
-[T-0808](cli.md) closed in this change: admit-first everywhere, with the
-325 driver green against the shipped binary. T-0801 claimed every dash-arg
-goes through `parity::admit` and only `run`/`exec` did; the seven `images`,
-eight `lifecycle`, two `system` and one `names` parsers plus `probe`,
-`version` and the `image` group now open with `parity::admit_all`, and the
-group subverbs resolve their rows through `parity::rows_of`. 153 rows, 192
-driven, 0 mismatches, 0 unreachable here
-(`experiments/results/parity-drive.txt`); `run -i` and `exec -i` both ran
-a self-pulled `alpine:3.20` with the banner naming `-i`. The first drive
-found 4 mismatches, all 4 the driver's (group subverbs probed as
-top-level verbs, `exec` driven with the run-only `--pull`). Release build,
-clippy with `-D warnings`, and the three unit-test packages stayed green
-throughout. The T-0801 universal claim now holds, with the correction
-under it.
-
-[T-1310](image.md) authored and implemented in two changes under the
-[T-0211](image.md)/[T-0215](image.md) family. Task 1 re-measured the contention
-in this lane on the unmodified tree: 8 of 10 parallel runs refused with the
-16-slot signature across eight victim tests, 2 of 2 serial green (nproc 20,
-`experiments/results/store-contention-prefix.txt`). No flip: production holds
-at most three locks by inspection, so candidate 1 stands. The implementation
-serialises all 24 store tests under one mutex, pins the ceiling with a
-deterministic seventeenth-refused test, and adds the pool-bound contract to
-T-0207. After: 10 of 10 parallel green, ceiling 3 of 3, serial green, audit
-24 of 24, full `dev.sh check` green
-(`experiments/326-store-contention-prove.sh`,
-`experiments/results/store-contention-prove.txt`).
-
-[T-1208](gate.md) check 22 lands here with its plant case: every `done` entry
-must open its record with `**Done` on the first unindented line after `Prove`.
-The check found five prose records, not the four the entry names (T-0505
-beside T-0204, T-1103, T-0107 and T-0108), and all five are converted in this
-change. The plant strips the marker across `TODO/probe.md` and asserts the
-gate goes red naming the defect. T-1207's stale `Problem` is corrected in
-place (the interpose steps are already in `dev.sh check`); its Decision still
-needs a ruling, so it stays open. [T-1208](gate.md) closed after the plant
-run on the committed tree: 27 caught, 0 missed, 3 controls quiet, full gate
-green alongside.
-
-[T-1311](interpose.md) is filed in this change and stays `open`. The
-T-1111 nix acceptance unpacks its binary tarball under `podbox run` and tar
-exits 2 setting modes on symlinks, while the engine control exits 0. The
-interposed `fchmodat` declares and forwards three arguments where libc takes
-four, so the real call reads a fourth register the wrapper never set. The
-fix and its regression proof belong to T-1311, in its own change; T-1111
-waits on it.
-
-[T-1311](interpose.md) closed in its own change: `flags` through the
-declaration and the wrapper, a unit guard that fails pre-fix with
-`(-1, EINVAL)` against libc's `(0, 0)` and passes with the suite at 12 of
-12, and 162 red on the pre-fix binary (`TAR_RC:2`, one `Cannot change mode`
-error per link) and green on the fixed one (every row green both sides).
-T-1111 ran on the fixed binary and reached a second wall past the unpack:
-every nix binary refuses to start with `GLIBC_2.34 not found (required by
-/.podbox/interpose.so)`, because the closure ships glibc 2.27 and the
-preloaded object binds `dlsym` at 2.34 and `gettid` at 2.30. That is filed
-as [T-1312](interpose.md) with the symbols named; T-1111 waits on it.
-
-[T-1312](interpose.md) closed in its own change: the glibc object binds
-`dlsym@GLIBC_2.2.5` under `libdl.so.2` through a stub-first linker
-wrapper, `gettid` is a local assembly label, and the build asserts the
-2.27 ceiling, the missing export and the libdl need per object. Loader
-proof green under the closure's own glibc 2.27, and 152 reads REGISTER ok
-and FETCH ok on the fixed binary. T-1111 runs whole.
-
-[T-1111](milestones.md) closed in its own change: `experiments/152-nix-acceptance.sh`
-is committed with its two result files, and all seven rows are green
-through the shipped T-1312-fixed binary on host podman 6.1.2: REGISTER,
-FETCH over TLS, EVAL at `22.05pre-git`, a forced-local hello BUILD that
-no cache can substitute, RUN printing `Hello, world!`, a NEGATIVE row
-driving raw `unshare -Urm` and reading the refusal by name, and a
-PROCHOOKS row pinning the six fixup hooks that use process substitution.
-The unpack wall was T-1311 and the symbol wall was T-1312; both are fixed
-underneath this run.
-
-[T-1301](podvm.md) closed in its own change: the probe carries a `machine`
-group with six legs (emulator version, `/dev/kvm` opened, `RLIMIT_FSIZE`,
-`/dev/net/tun` opened, image space by statfs, `qemu -accel help`), each
-measured and never inferred from another. `machine::assess` refuses the
-tier naming every missing leg, `podbox probe --json` carries
-`tiers.machine.legs` with null where a row is absent, and the entry Prove
-exits 0 on a lane-built binary. The review caught `RLIMIT_FSIZE` written
-as 7 (that is `RLIMIT_NOFILE`); the kernel headers settle it at 1, and the
-recorded drive ran on the fixed code. Full lane check green (fmt, clippy
-with `-D warnings`, musl release build, workspace tests 369 of 369 with 9
-new, interpose unit 12 of 12, gate 9 of 9 with 2 skips).
-
-[T-1302](podvm.md) closed in its own change: `--podbox-tier=machine|chroot`
-on `run` and `exec`, `podvm` as a third `ALIASES` entry defaulting the
-flag to machine, the explicit flag winning over `argv[0]` with the tier
-stated on disagreement, and a repeatable no-split `--podbox-qemu-arg`
-refused outside the machine tier. The machine tier assesses T-1301's legs
-before anything is pulled and refuses naming every missing one.
-`experiments/145-podvm-parity.sh` exits 0 on a lane-built binary (19
-driven, 0 mismatches): one help text under both names, every tier row
-driven from the flag, `exec` mirroring `run`, and other verbs refusing
-the flag as unlisted. Full lane check green with the unit tests for the
-resolve matrix, the two parsers and the tier refusal.
-
-[T-1303](podvm.md) closed in its own change: `experiments/146-podvm-initramfs.sh`
-wraps a podbox-extracted Alpine rootfs as an initramfs with an appended
-console node and `/init` override, and boots it under TCG to
-`VMR-GUEST-READY` (exits 0 on a lane-built binary;
-`experiments/results/podvm-initramfs.txt`). Three findings are recorded
-in the entry: the reference kernel pin is stale (6.12.94 named, 6.12.110
-served, so the pin here is measured), a host `-x` test lies about
-absolute symlinks, and `cpio -t` stops at the base TRAILER while the
-kernel keeps going.
-
-[T-1304](podvm.md) closed in its own change: the assembly moves to
-`experiments/lib/podvm-guest.sh`, shared with 146 (re-driven green on
-the refactored tree with byte-identical evidence), and
-`experiments/147-podvm-exec.sh` exits 0 on a lane-built binary: the
-guest boots, the shell answers the handshake round-trip, `true`
-reports 0, `exit 3` reports 3, a marker-shaped line with the wrong
-nonce is ignored with the real 7 reported, and `sleep 30` past an 8 s
-deadline reports DEADLINE (`experiments/results/podvm-exec.txt`).
-Five findings are in the script: CRLF stripped once at the reader,
-unbuffered delivery past `tr`, both fifo ends pre-held O_RDWR,
-`-N16` on the nonce reader (`od` without it reads urandom to an EOF
-that never comes, so the first handshake hung unboundedly), and the
-command in a subshell so a bare `exit 3` cannot kill the reporting
-shell. Residual, with its own entry still to author: `curl -fsSL` in
-146/147 carries no `--max-time`.
-
-[T-1305](podvm.md) closed in its own change: the fleet decision is ruled
-(the fleet is podbox's job under its existing lifecycle verbs, no new
-fleet verb; fork stays future work for when a guest driver ships) and the
-shared bound ships as `--podbox-mem` on `run`/`exec`, judged against
-`RLIMIT_FSIZE` before the legs with both numbers in the refusal at exit
-125. `experiments/148-podvm-fleet.sh` exits 0 on a lane-built binary (10
-driven, 0 mismatches; the lane's natural ceiling is infinity, so the
-script lowers it to 1 GiB in the driven child only).
-`experiments/145-podvm-parity.sh` re-driven green unchanged (19 driven, 0
-mismatches). `experiments/325-parity-drive.sh` re-driven green at 160
-rows, 199 driven, which retires a staleness the re-drive exposed: T-1302
-added 5 rows without re-driving, so the committed 153-row reading was
-already stale before T-1305's 2 rows. Unit tests 84 of 84 (cli) and 74 of
-74 (probe) green in the lane.
-
-[T-1313](podvm.md) closed in its own change: `--max-time` on all three
-fetches, default 60 and env-overridable per script, with the ceiling in
-each conditions block and a stalled-origin clause green in 146 (localhost
-accept-and-stall exits 28 inside 10 s). All three re-drove green: 146 and
-147 on lane-built binaries, 152 on the Windows host against host podman
-6.1.2 with all seven rows green. The driving found one lane trap (two
-`run-in-base.sh` jobs from one checkout stage through one job file, so
-both drove 146; recorded as the eighth trap in `docs/containers.md`, 147
-re-run alone).
-
-[T-1306](podvm.md) closed in its own change: one new census row (loopback
-bind+listen, family in native order for the big-endian targets) and a
-`nongoals` assessment giving each blocked design its measured stance,
-refused with leg, errno and remedy, open where the mechanism works here,
-unestablished where the rows cannot say. `experiments/149-podvm-non-goals.sh`
-exits 0 on a lane-built binary (14 driven, 0 mismatches): tcp/uml/uid_map/file
-open on the lane, kvm refused with ENOENT, runc refused with its errno.
-The spec's own README and podvm-spec section 7 supplied the mechanisms
-(ptrace for UML, UTS EPERM for runc), so five of the six cite existing
-rows and only the bind is new. 81 of 81 probe tests green in the lane.
-
-[T-1307](podvm.md) closed host-side in its own change: every
-reference-map row names its verdict and the tree line that settles it,
-and the gate resolves all green. Each of the five claims was re-read at
-its tree line; the one overstatement found (cubic "accelerates every
-machine") is corrected under the premise with its lines. No source
-moves, so no lane run belongs to this change.
-
-[T-1308](podvm.md) closed in its own change: `experiments/154-tcg-workload-spread.sh`
-with four static payloads (`experiments/154-bench-{int,sys,mem,io}.c`)
-exits 0 on a lane-built binary, 14 driven, 0 mismatches
-(`experiments/results/tcg-workload-spread.txt`). The first lane run went
-red on two defects, both fixed in the tree: the payloads printed
-`syscall`/`membw` while the driver counts `sys`/`mem`, and section 3
-called an undefined `ok` instead of `pass`. The green rerun prints one
-row per class with agreeing checksums: int 7.4x, syscall 11.5x, memory
-1.5x, file I/O 5.2x guest-over-host, chroot 1.0 to 1.1x throughout. A
-read-only review found no blocking defect but named the compilation gap,
-so the Approach carries it in place: the guest has no toolchain and no
-network, and carrying a static compiler is future work. The run left no
-`PODBOX_ARTIFACTS`, so the results file was recovered line-exact from
-the kept job transcript while the raw per-run logs stayed in the guest
-job directory; the entry records the rule.
-
-[T-1313](podvm.md) closed in its own change: `--max-time` with a per-script
-env knob (default 60) on the 146, 147 and 152 fetches, the ceiling printed
-in each conditions block, and a new clause 6 in 146 driving a stalled
-localhost origin to curl exit 28 inside 10 s. The clause logic was proven
-on the host first (`rc=28 elapsed=2s`), then all three scripts re-drove
-green: 146 exits 0 on a lane-built binary with clause 6 green, 147 exits
-0 on a lane-built binary with every status distinct, 152 exits 0 on the
-Windows host against the started podman machine with all seven rows
-green. Parallel lane jobs both drove 146 through the one shared staging
-path, so 147 was re-run alone; the race is the eighth trap in
-`docs/containers.md`. 146's built binary rode home through
-`PODBOX_ARTIFACTS` and drove the host 152 run.
-
-[T-1309](interpose.md) closed in its own change: the rocky repodata
-failure is a symbol-version dispatch, not a file-path operation. An
-unversioned `dlsym(RTLD_NEXT, "realpath")` returns the `GLIBC_2.2.5`
-compat, which answers `EINVAL` where `resolved` is NULL, and librepo
-always passes NULL. Seven wrapped names carry such pairs; all seven
-forward to their defaults through a runtime-resolved `dlvsym` with a
-`dlsym` fallback, musl unchanged. Guards: a wrapped-vs-oracle
-NULL-resolved test (red on the planted code on the rocky libc, green
-after) and a fallback-branch test. `240` reads 10 rows, 10 ran, 10
-built and ran on host podman 6.1.2 with the shipped binary, both
-libdnf rows 0 0 42. [T-1211](gate.md)'s clearing conditions hold; its
-flip to done is next.
-
-[T-1211](gate.md) is `done` in its own change, next in the same
-session: its Blocked clause named T-1309 fixed with both rows at 42
-and the sweep at exit 0, and all three hold on today's runs. The
-other three scripts carry no `run` or preload path (read by grep),
-so the interposer change cannot reach them and their recorded runs
-stand.
-
-[T-0705](interpose.md) closed in its own change: `map::unrewrite`
-mirrors `rewrite` with the sides swapped, and six entry points
-(`getcwd`, `get_current_dir_name`, `realpath` in both shapes,
-`canonicalize_file_name`, `readlink`, `readlinkat`) read results
-back through it with the ruled `ERANGE` past the buffer. `readdir`'s
-`d_name` takes no reversal (a bare name carries no prefix). The
-entry's `-v` Prove spelling does not exist; `-e` carries the same
-table. Driven green on host podman with the shipped binary, eight
-rows, musl and glibc. Along the way the drive found the shipped
-test binary carried empty interposer placeholders (a `dev.sh build`
-without `build-interpose.sh` first), so the first 240 green in
-this session ran bare. The build job now asserts three ELFs before
-the binary rides home, and a re-drive with the interposing binary
-reads 10 rows, 10 ran, 10 built and ran with zero decline lines
-and preloaded lines on both libcs, which replaces the void
-evidence in the same change. A result-row guard against declined
-interposition belongs to a follow-up entry. Close-out: a full-stderr
-probe shows both silent rows run interposed (glibc and musl preloaded,
-zero decline lines in all ten transcripts); musl `getcwd` holds end to
-end through `pwd -P`; `nm -D` exports both names from both lane-built
-objects.
-
-[T-0707](interpose.md) closed in its own change: a never-rewrite
-predicate in `map.rs` (built-in `/proc` tree first,
-`PODBOX_EXCLUDE_PATH` second, both match directions), unit tests for
-the tree, the boundary and both directions, and a four-row drive green
-on host podman with the shipped binary. The two discriminating rows run
-red without the change. The entry Prove is amended to the broad map
-(`-e`; `-v` does not exist). `/proc` is unmounted in payloads
-(measured EXE_RC=1/FD_RC=1), so the tree prefix replaces the three
-named leaves and the store takes no entry.
-
-[T-0810](cli.md) closed in its own change: the container directory is
-made where the container is created. `supervise::create` ensures
-`containers/<id>/` after the table write, so the `create` and `run -d`
-memo renames land. A unit test pins the directory and the rename beside
-the record. The entry Prove ran as row E1 of the T-0708 drive on host
-podman with the shipped binary. A read-only sweep of the other
-beside-the-record writers (launcher log and control socket, lock opens,
-memo opens) shows each makes its own parent. Counts move to 17 open and
-120 done.
-
-[T-0708](interpose.md) closed in its own change: the four operations the
-runtime cannot provide now run as counted emulations. `mknod` writes a
-regular file, `mount` writes a tally chain and answers 0, `unshare`
-answers 0, and `clone` loses its namespace flags before the real call.
-The count rides the memo file beside the ownership records, and
-`inspect` reports it under `Interpose.Emulated` with the banner naming
-the tier on every load. Ten rows drove green on host podman with the
-shipped binary: tallies for all four calls on glibc and musl, threads
-untouched, the banner present, honest failures intact, the `NEWNET` strip
-loud, and a failed tally refusing instead of reporting. The `clone` row
-calls `clone()` directly through python ctypes, after a fork-based row
-proved to never reach the wrapper. Regression holds: 240 exits 0 at 10
-of 10 built and ran with no declines, and the T-0705 and T-0707 drives
-stay green. A review audit over the entry text against the code found one
-real defect (a mknod tally failure reported success) and the change fixes
-it with its own failing row. Counts move to 16 open and 121 done.
-
-[T-0415](complete.md) closed in its own change: the device fixup reads
-each path's shape before asking the kernel. Directories turn into named
-`Failed` rows, links come out before the attempt so no node lands
-outside the rootfs, and each replacement records what it displaced. The
-lane probe that grounded the work drove six shapes through the shim arm
-and showed the directory unnamed (its row carries no path) and the
-replacements silent (their rows read like fresh shims). Three unit tests
-pin the new rows with the devices suite at 47 of 47. The 240 sweep
-re-ran green at 10 of 10 with every device row identical; one row's
-mirror-dependent lines dropped out and came back on a re-drive, which is
-T-0411's live probe answering per run rather than this change. Counts
-move to 15 open and 122 done.
-
-One procedural lesson from the T-0810 push, which CI caught: staging
-`INDEX.md` with one entry's row while its text stayed open. A subset
-commit re-runs the gate on the staged tree before the commit
-(`git stash -u --keep-index`, gate, pop), because the gate reads the
-text being committed rather than the worktree around it. The procedure
-is verified in a toy repo; it rides here as the record until a hook
-holds it.
-
-[T-1109](milestones.md) stays `partial` with two conditions closed in one
-lane re-drive. The Go decline measures green at `rc=126` with its markers
-named. The step clause failed exactly as committed until an A/B run
-against the floating tag and the pinned digest showed neither names a
-step: T-0412 proposes its rehash only under an announced CA bundle, and
-the lane announces none. `250` now announces a bundle the way 240
-provisions one for its driver rows, and skips the clause by name where
-none exists. Re-driven it names the `openssl rehash` step with zero
-FAILs and exits 2 on the `-t` and census skips, which this machine
-cannot produce. The entry record carries the re-drive with its dates.
-
-[T-1002](packaging.md) closed in its own change without new code: the
-embed-and-place work shipped under earlier entries, and this close
-verifies it against the tree. Both objects embed as byte arrays,
-placement writes the selected one under `/.podbox` atomically, and
-`LD_PRELOAD` merges ahead of the payload's value. Driven green on host
-podman with the shipped binary on both halves (file present, preload
-announced). The entry Prove is amended: its `/proc/self/environ`
-reading cannot work where `/proc` is unmounted. Counts move to 14 open
-and 123 done.
-
-[T-0503](enter.md) closed in its own change: one shared predicate
-answers whether `-t` may promise a pty, and `run` plus both `exec`
-paths ask it. Only the OPEN row with `Ok` counts; a five-case unit
-test pins denied, skipped, absent and stat-without-open as refusals.
-Driven on host podman with the shipped binary: ptmx usable, `run -t`
-exits 0 with no refusal text. A door sweep over the change found the
-third copy of the check in the second `exec` path and routed it
-through the same predicate. Counts move to 14 open, 2 partial and
-124 done.
-
-[T-1107](milestones.md) closed in its own change without new code: the
-milestone is T-0701 through T-0708, all closed, and this close drives
-both halves end to end on host podman with the shipped binary. `chown
-0:42` reads back `0:42` through the ownership memo, and a mapped path
-reads back virtual through `pwd`. The entry Prove is amended: its
-second half passed `-v`, which podbox refuses, so maps travel through
-`PODBOX_MAPS`. Counts move to 13 open, 2 partial and 125 done.
-
-[T-0909](deps.md) closed in its own change: `io12/userland-execve-rust`
-vendored whole to `vendor/userland-execve` at `02ef0e0` (MIT, six source
-files plus `LICENSE`, `Cargo.toml`, `README.md`, byte-identical to the
-corpus tree), and podbox's own three-syscall memfd path in
-`crates/podbox-enter/src/memfd.rs` (`MFD_CLOEXEC` unconditional with an
-`EINVAL` fallback for sealing, the `has_shebang` router predicate, the
-`is_executable` probe of mode bits plus `faccessat` `X_OK`, `memfd_create`),
-with four unit tests watched fail on stubs and pass on the implementation
-(the `FD_CLOEXEC`-on-the-descriptor assertion guards the fork's exact
-regression). `110-bloat-delta.sh memfd` exits 0 twice in the lane with
-`experiments/results/bloat-memfd.txt` committed: total 2757488, 97
-third-party crates, scaffold control answering, and the reached path costs
-0 bytes by wired-minus-unwired subtraction. The `fexecve` call itself stays
-with [T-1003](packaging.md)'s ladder, which also owns patching the vendored
-tree's `goblin`/`nix` pins out. `THIRD_PARTY.md` carries the vendored row
-and drops the stale blocked sentence; [T-0909](deps.md)'s `Decision`
-already ruled neither `memfd-exec` tree vendors. Counts move to 8 open and
-131 done.
-
-[T-0206](image.md) closed in its own change: the loopback registry
-fixture over the pinned `zot` minimal binary, driven by the new 180
-script with its `registry-fixture.txt` reading. Twenty-one clauses green
-three consecutive runs on host podman: the pin verified every run
-against the release checksums, the hand-seeded repo self-consistent,
-both configs verifying, the open half serving all four endpoints with
-podbox pulling by tag and by digest to the seeded digest, the required
-half answering 401 anon with a Basic challenge and 200 authed, all with
-no default route and no working resolver inside the driver. The
-`Decision` moves from `registry:2` to the binary in the same change,
-with the three reasons. The change also carries one opt-in `ENG_NETWORK`
-knob in `engine.sh` (`none` only, unset by default, proved additive and
-injection-proof). Counts move to 7 open and 132 done.
-
-[T-0209](image.md) closed in its own change: the registry credential UX
-against the T-0206 fixture's required-credential mode.
-`crates/podbox-image/src/credentials.rs` holds one read path and one
-write path over the files the audience already has plus named helpers,
-`registry.rs` answers Basic challenges from stored logins, and `podbox
-login` stores through the helper where one is named. The new
-`experiments/200-registry-auth.sh` exits 0 twice in a row on host
-podman 6.1.2, all 15 driver clauses green with no default route and no working
-resolver inside the driver, the test password absent from the
-committed `experiments/results/registry-auth.txt`. Full `dev.sh
-check` green with 17 credentials and 10 login unit tests, the login
-tests seen red on a plant first. The 325 re-drive reads 164 rows, 202
-driven, 0 mismatches, 2 unreachable here, which retires T-1004's
-one-row staleness and files one finding under [T-0808](cli.md) (the
-banner names no `-i` in the re-drive container). Counts move to 6 open
-and 133 done.
-
-⚠ **The wsl-toolkit base stayed unusable for this whole change.**
-`getpwnam(root)` and `getpwnam(toolkit)` both fail and `base ensure
---probe` changes nothing, so every Linux step ran in
-`docker.io/library/rust:1.98.1-bookworm` through host podman instead,
-the same image the lane uses. `base recreate` touches shared
-infrastructure and is not taken unasked.
-
-What stays current from last time:
-
-⚠ **The guest lane still cannot run a docker daemon.** Dockerd fails
-creating the DOCKER chain with `iptables ... Permission denied`, measured
-2026-09-19: the job container holds no `NET_ADMIN`. Engine clauses move to host
-podman. Reopen condition for the guest lane: a job container with
-`NET_ADMIN`, or a base-level daemon the jobs can reach.
-
-⚠ **This lane's jq ends every raw-output line with CRLF**, and the shell's
-command substitution strips only the trailing one. Multi-line `jq -r`
-streams poison every line but the last. Single-value reads stay clean.
-`320` clause 3 and `330` clause 0 strip the transport bytes; Python reads
-the table's values clean.
-
-⚠ **This lane's OpenSSL reads a system config its own build rejects.**
-`req -x509` needs an empty config file at a Windows-spelled path with
-conversion off for the call. `280` carries the shape.
-
-⚠ **The store suite failed the commit gate three times, a different
-victim each time, all `two_*`** (`two_holders_of_one_image...`, then
-`two_staging_calls_in_one_process...`, then `two_platforms...` plus
-`two_holders...` again: 95 of 97 around the third). Run 3 names the
-mechanism twice: `Store("this process already holds 16 locks, which
-is every slot podbox has ... (T-0211)")`. The pool is process-wide
-and fixed: `FORK_CLOSE_SLOTS` in `crates/podbox-probe/src/sys.rs`,
-one slot per `Lock::try_acquire` in
-`crates/podbox-image/src/store.rs`. Libtest runs the suite in threads
-of one process. Each `two_*` test holds two or more locks at once:
-`two_holders` keeps `a` and `b` live together. Parallel neighbours
-exhaust the 16 slots, and the hungry test that asks last is refused.
-The victim varies with scheduling. No source changed under any of it:
-the tree differs from the green run in `experiments/` and `TODO/`
-alone, which `cargo test --workspace` never reads. A fresh container
-per run refutes stale state. A cut-down probe without the gate's own
-setup proved nothing twice now: it dies building `ring`, so the `zig
-tools` bootstrap is load-bearing. A serial run with the gate's own
-setup confirmed it: 97 of 97 pass with `--test-threads=1`, all three
-victims green uncontended. The suite is correct; the parallelism is
-the defect. The fix,
-serial store tests or scoped slots, belongs to the
-[T-0211](image.md)/[T-0215](image.md) family, not to the change under
-gate. The serial run came back green, and the fourth and final
-full-gate attempt came back fully green with it (97 of 97 on the
-store suite), so the change commits with the three reds named above.
+`v0.1.0-beta.5` is tagged at the T-1212 close-out commit; the nightly
+run is in flight (see In progress).
 
 ## Current work order
 
-1. [T-0805](cli.md), [T-0809](cli.md), [T-0808](cli.md) and [T-1310](image.md)
-   are done. [T-1310](image.md) closed the store-suite contention in its own
-   change: one suite mutex, the ceiling pinned, 10 of 10 parallel runs green
-   after 8 of 10 refused before.
-2. [T-0408](complete.md) is done: the opensuse-leap row ran green (zypper 0 0
-   42) and the transcript is recorded under the entry.
-3. [T-1207](gate.md) and [T-1208](gate.md): [T-1208](gate.md) is done (check
-   22, its plant, five records converted). [T-1207](gate.md)'s stale claim is
-   corrected in place; its Decision still needs a ruling.
-4. [T-1108](milestones.md) is done: the shipped artefact is static with no
-   `PT_INTERP`, and the staged binary runs its version inside the
-   reconstruction.
-5. [T-1111](milestones.md) is done: M8, the nix acceptance, seven rows
-   green through the shipped binary on host podman.
-7. [podvm.md](podvm.md) T-1301 through T-1307 are done: the probe legs,
-   the tier flag with the `podvm` name, the booting initramfs, the serial
-   exec protocol with every status distinct, the fleet decision with the
-   file-size ceiling enforced before anything starts, the non-goals as
-   measured refusals, and the five Rust VM tools ruled one by one.
-   T-1308 (the TCG workload spread) is done: 154 exits 0 on a
-   lane-built binary, 14 driven, 0 mismatches, one checksum per class on
-   all three platforms. Chroot costs 1.0 to 1.1x on all four classes;
-   the TCG spread runs 1.5x (memory) to 11.5x (syscall), which confirms
-   the Decision that the banner names the class and its range, never a
-   bare figure. Compilation stays a named gap (no toolchain in the
-   guest). The results file was recovered from the kept job transcript;
-   a measurement job always names `PODBOX_ARTIFACTS`.
+1. The nightly for `v0.1.0-beta.5` (run 35809485405) completes, then the
+   T-1314 record lands as its own commit, mirroring the beta.4 record:
+   the Prove-run paragraph in [packaging.md](packaging.md) and the
+   four-line touch here.
+2. Session teardown: stop base dockerd, remove base scratch, `gc
+   --apply` the three kept job containers, confirm the podman machine
+   rests as found (stopped), tree clean, gate green.
+3. [T-1109](milestones.md) carries its remaining conditions in its own
+   file; [T-1112](milestones.md) stays parked as P3. Nothing else is
+   open, and nothing is blocked.
 
-[T-1211](gate.md) is `done` in its own change: the T-1309 fix holds,
-so the two rows read 42 and the sweep exits 0 with 10 rows, 10 ran,
-10 built and ran. The other three scripts never load the interposer,
-so their recorded runs stand. [T-1212](gate.md) closed 2026-09-23 on
-the base docker lane with two premise repairs in its own change.
-[T-1213](gate.md) is
-`done`: both clearing conditions hold on the native base lane.
-[T-1209](gate.md) and
-[T-1210](gate.md) are `done`.
-
-8. Two investigations landed 2026-09-22 and set the order below. Neither
-   changes a count.
-   [T-0206](image.md) has its fixture technology: `zot` as one pinned
-   binary plus config, storage dir, generated cert and htpasswd file,
-   serving the four loopback endpoints with a required credential for
-   [T-0209](image.md). It beats the entry's `registry:2` decision, whose
-   pull is circular against the quota the fixture exists to escape. Owed
-   first is the licence determination
-   [reference-map.md](reference-map.md) requires before a new tree is
-   used, then the registry-fixture experiment with all outbound
-   network blocked.
-
-9. Next: the two open rulings go to the operator ([T-1207](gate.md)
-   items 2 to 4, [T-1112](milestones.md) parked or not);
-   [T-1109](milestones.md) carries its remaining conditions in its own
-   file. Nothing else is open.
-   Ruled 2026-09-22, both settled in the owning entries: [T-1207](gate.md)
-   items 2 through 4 belong in `dev.sh check`, each with its plant, and
-   [T-1112](milestones.md) stays parked as P3.
-
-10. Ran 2026-09-23 and closed in the entry: [T-1314](packaging.md) as
-    task 10, last before the gates, then tags `v0.1.0-beta.2` (matrix
-    green, publish red on the missing checkout) and `v0.1.0-beta.3`
-    (nightly published with fourteen assets, verified back). The nightly
-    pre-release now exists: all seven claimed archs built as static-PIE
-    binaries, each smoke-tested on its own arch (version, both interposer
-    digests, `crt-static`), the full acceptance staying host-arch. Stable
-    releases stay manual and are not designed. [T-1207](gate.md) closed in
-    its own change (implemented 2026-09-23 with lane proves, `plant.sh`
-    31 caught 0 missed on the committed tree);
-    [T-1109](milestones.md) carries its remaining conditions, re-driven
-    green-minus-two-skips this session; [T-1112](milestones.md) stays
-    parked; [T-1212](gate.md) and [T-1213](gate.md) closed 2026-09-23
-    on the base lane, the first with two premise repairs.
-   [T-0909](deps.md) is done: `io12/userland-execve-rust` vendored whole
-   to `vendor/userland-execve` at `02ef0e0`, and podbox's own
-   three-syscall memfd path in `crates/podbox-enter/src/memfd.rs` with
-   four unit tests green in the lane. `110-bloat-delta.sh memfd` exits 0
-   with `experiments/results/bloat-memfd.txt` committed (total 2757488,
-   scaffold control answering, reached path 0 bytes by subtraction).
-   The `fexecve` call and the vendored tree's `goblin`/`nix` patch-out
-   belong to the [T-1003](packaging.md) ladder.
-   [T-0206](image.md) is done: the loopback fixture over the pinned `zot`
-   minimal binary, driven by `experiments/180-registry-fixture.sh` with
-   21 clauses green and `experiments/results/registry-fixture.txt`
-   committed. [T-0209](image.md) is done: the credential UX against the
-   fixture's required-credential mode, driven by the new 200 script
-   with all 15 driver clauses green twice in a row; [T-1003](packaging.md) owns
-   the launch ladder next.
-   The beta line below is superseded: the operator ruled publishing
-   authorized once the top-10 priority tasks finish and the session ends,
-   under a pre-release tag, and `v0.1.0-beta.1` ships above in this same
-   record with its verification.
-
-## In progress
-
-[T-0413](complete.md) is `done` and [T-1003](packaging.md) is `done` and
-both commit here. [T-1314](packaging.md) is `done` with the beta.3 nightly
-carrying fourteen assets, recorded in the entry. No implementation entry
-is half-written. One entry remains `partial`: [T-1109](milestones.md),
-carrying its remaining conditions in its own file and re-driven this
-session with zero FAILs and the same two environmental skips. One entry
-remains `open`: [T-1112](milestones.md) (ruled 2026-09-22: keep parked
-as P3).
-[T-1212](gate.md) closed 2026-09-23 on the base docker lane.
-[T-1213](gate.md) closed 2026-09-23 on the native base lane. The beta `v0.1.0-beta.1` ships as a pre-release
-with the verified binary beside it, and `v0.1.0-beta.3` publishes the
-nightly with all seven archs. Kept wsl-toolkit job containers are pruned
-at session end (`gc --apply`); past results already live in `TODO/`.
-
-[T-0408](complete.md) reads `done` again: the 2026-09-21 run answered
-the 2026-09-11 reopen note, so the note moved verbatim to
-[`docs/history/2026-09-22-t0408-reopen-note.md`](../docs/history/2026-09-22-t0408-reopen-note.md) with the correction
-underneath it, and the `Status` line carries its date. The record below
-it was already green, which is why no count moves here.
+[T-0206](image.md) has its fixture technology: `zot` as one pinned
+binary plus config, storage dir, generated cert and htpasswd file,
+serving the four loopback endpoints with a required credential for
+[T-0209](image.md). Owed first is the licence determination
+[reference-map.md](reference-map.md) requires before a new tree is
+used, then the registry-fixture experiment with all outbound
+network blocked.
 
 ⛔ **Read the CONDITIONS BLOCK of a reading before quoting its figures.**
 `experiments/results/store-lock-race.txt` prints whether the tree was modified
@@ -788,10 +126,16 @@ a change and the commit alone names a state that was not run. The command line
 above each clause's figures is still the authority on what they measured, and a
 mutating clause prints the line it WROTE as well as the line it matched.
 
+## In progress
+
+The beta.5 nightly (run 35809485405) had not concluded when this file
+was rewritten; the gate run on `main` for the T-1212 commit
+(35809470742) was in progress beside it. No implementation entry is
+half-written. The teardown in the work order above is still owed.
+
 ## Operator questions
 
-⭐ **None is open.** The T-1213 ruling arrived the same session it was
-asked in, and it lives in the entry.
+⭐ **None is open.**
 
 | question | status | where it lives |
 | --- | --- | --- |
@@ -825,9 +169,7 @@ entry also carries the second denial only one instance of the class has shown:
 `readdir("/")` answering `EACCES`.
 
 ⛔ **Nothing is blocked except what names its blocker.** Nothing is
-blocked: [T-1212](gate.md) and [T-1213](gate.md) closed 2026-09-23 on
-the base lane, where dockerd answers and the docker-driven clauses
-measure.
+blocked.
 
 ## What the next session should decide, and neither needs the operator
 
