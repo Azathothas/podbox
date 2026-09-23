@@ -419,3 +419,49 @@ never see because the escape is in the link target rather than in the path.
 ⚠ The `Prove` no longer runs `xbps-install` under `podbox run` (M3). The
 `Symbolic link loop` it watched for is the T-0305 case, and the extracted tree
 is asserted directly there.
+
+---
+
+### T-1315 Extract re-verifies the blob digest against the manifest
+
+Source:      issue 10, client beta testing 2026-09-22 (tampered store blob
+             extracts cleanly); `crates/podbox-extract/src/layer.rs:50`,
+             `crates/podbox-extract/src/layer.rs:105`,
+             `crates/podbox-image/src/store.rs:430`
+Category:    extract
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     `extract_layers` opens each layer with `File::open` plus a
+             decompressor and never recomputes a digest, so a blob whose
+             bytes changed after pull extracts and the payload-visible
+             file carries the tampered bytes while the manifest still
+             names the original digest. The read-side re-verification
+             the store already has (`Store::read_blob`) is not used on
+             this path: extract goes through `store.blob_path` and reads
+             the file directly. Gzip layers are caught only by gzip's own
+             CRC, zstd by frame checks, uncompressed tar by nothing.
+Premise:     Measured by the reporter on the beta.1 asset and on a
+             rebuild: a one-byte flip at blob offset 514 extracts as
+             `heLlo` for honest `hello`. The code path above confirms the
+             mechanism on this tree. SECURITY.md states the invariant
+             ("a blob is accepted only when its computed digest matches
+             the manifest"); the store is the operator's authority, so
+             this is a stated-invariant gap, not a threat-model bypass.
+Approach:    Hash each blob while streaming it into the decompressor in
+             `extract_layers` and compare against the manifest digest
+             before applying entries: one pass, no extra I/O. Out of
+             scope: changing what pull verifies, changing the store
+             layout, touching the threat model.
+Decision:    Stream-and-compare, not `read_blob` (which would read every
+             byte twice) and not a document amendment (the invariant is
+             worth keeping).
+Prove:       `cargo test -p podbox-extract` with a new test that commits
+             a tar through the store scaffolding, flips one content byte
+             in the stored blob, and asserts `extract` refuses with a
+             digest mismatch naming the blob; plus the reporter binary
+             repro (`podbox extract` after a one-byte flip exits non-zero
+             with the tampered bytes never written). Close issue 10 with
+             a comment showing the fix commit, the test output, and the
+             per-extract hash as the guard that stops recurrence.

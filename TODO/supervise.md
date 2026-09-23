@@ -549,3 +549,68 @@ $ ./experiments/340-detached-stdio.sh 40
   after:          detached starts that returned promptly and read running: 40 of 40
                   the longest `run -d` took: 1s, against a bound of 5s
 ```
+
+---
+
+### T-1318 `logs -f` follows a container's log, bounded like the rest
+
+Source:      issue 16, client beta testing 2026-09-22 (automated
+             callers poll `logs` in a loop);
+             `crates/podbox-cli/src/parity.rs` (the `logs` row: `-f`
+             not implemented, T-0605 covers capture-at-spawn only)
+Category:    supervise
+Priority:    P3
+Effort:      S
+Status:      open
+
+Problem:     `logs` prints what the container has written; following it
+             (`-f`) has no entry, so automated callers poll in a loop.
+             T-0605 covers capture at spawn, not following.
+Premise:     Read from the table: the row names the gap and the owner
+             of the other half.
+Approach:    Follow by tailing the container's log file (inotify where
+             present, bounded poll where not), exiting on container exit
+             with a bounded wait, never an unbounded one. Out of scope:
+             log rotation (named if needed), changing capture.
+Decision:    File-follow, not a new channel. The log file already
+             exists; the verb watches it.
+Prove:       `podbox logs -f` on a payload writing lines on a timer
+             shows each line before the container exits, and `-f` exits
+             promptly after; `logs` without `-f` is byte-identical.
+             Close issue 16 (logs third) with a comment showing the run
+             and the bounded follow as the guard that stops recurrence.
+
+---
+
+### T-1335 The launcher forwards its own shutdown signals to the payload
+
+Source:      issue 16, client beta testing 2026-09-22 (Ctrl-C on
+             foreground `run` has no specified behavior);
+             `crates/podbox-cli/src/parity.rs` (the `stop`/`kill` rows:
+             pidfd reach, reparented grandchildren out of reach)
+Category:    supervise
+Priority:    P3
+Effort:      S
+Status:      open
+
+Problem:    `stop`/`kill` reach the payload by pidfd, but the inverse,
+            the launcher itself receiving SIGINT/SIGTERM (Ctrl-C on a
+            foreground `podbox run`) has no specified behavior: no
+            entry says whether the payload is forwarded the signal or
+            dies with the launcher via `PR_SET_PDEATHSIG` (T-0603).
+Premise:    Read from the table and the T-0603 shape: the mechanism for
+            one direction exists, the other is unspecified.
+Approach:    Forward SIGINT/SIGTERM to the payload and wait boundedly
+             before exiting with the payload's disposition named; if the
+             design is PDEATHSIG-only, write the one parity-table
+             sentence naming it instead and close the question that way.
+             Out of scope: process groups beyond the payload, signal
+             masks callers set themselves.
+Decision:    Forward-and-name, unless the drive shows PDEATHSIG already
+             covers it, in which case the sentence is the fix.
+Prove:       `podbox run` foreground sleep interrupted by Ctrl-C ends
+             the payload with the signal named on stderr and the
+             launcher's exit code documented; or the parity sentence
+             exists. Close issue 16 (signal third) with a comment
+             showing the behavior and the forward-or-sentence as the
+             guard that stops recurrence.

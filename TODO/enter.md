@@ -409,3 +409,48 @@ podbox cannot start its own children without a registration. The rung read
 not, and the committed reading recorded only the first. The registration is now
 made once, before clause 4, and the trap removes it.
 
+---
+
+### T-1317 A chroot-denied host gets an up-front refusal naming chroot, not a 125 after the work
+
+Source:      issue 12, client beta testing 2026-09-22 (every rung dies at
+             `chroot(".")` EPERM while probe selects `interpose`);
+             `crates/podbox-enter/src/lib.rs` (fchdir/chroot/chdir entry
+             sequence, T-0502)
+Category:    enter
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     On a host that denies `chroot(2)` itself, probe selects
+             `interpose` and then every entry path (`run`, forced memfd,
+             `start`) dies at `chroot(".")` EPERM, exit 125, after fixups,
+             placement and the banner have all run. The ladder rungs
+             change where payload bytes come from, not whether a chroot
+             happens, so nothing reaches the payload on exactly the class
+             of host the README names first.
+Premise:     Measured by the reporter (uid 0, empty capability bounding
+             set, seccomp 2): probe prints `chroot=EPERM` beside "would
+             permit interpose", and the run fails post-banner. The entry
+             sequence design (chroot always happens) confirms the
+             mechanism on this tree.
+Approach:    Refuse `run`/`start`/`create` up front where the entered
+             rung's chroot is denied, naming `chroot(2)` before any
+             fixup mutates the rootfs, reusing the probe's own chroot
+             leg as the gate. Out of scope: a no-chroot rung (rejected
+             below), rewriting the ladder, touching the threat model.
+Decision:    Up-front refusal, for three reasons. A no-chroot rung would
+             be strictly weaker than today's chroot rung while costing a
+             subsystem, and the banner machinery would have to describe a
+             mode weaker than anything it names today. Documenting
+             chroot-denied hosts as unsupported contradicts the README's
+             first paragraph, which names these hosts as the audience.
+             The refused-rung table already has the legs to gate this.
+Prove:       `podbox run` on a chroot-denied host (or a fixture that
+             denies chroot) exits 125 naming `chroot(2)` denied with no
+             rootfs mutation, and `podbox probe` maps its chroot leg to
+             the same refusal; on a chroot-capable host every rung runs
+             as before. Close issue 12 with a comment showing both
+             outputs and the probe-gated refusal as the guard that stops
+             recurrence.
+

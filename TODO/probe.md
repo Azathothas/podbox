@@ -884,3 +884,45 @@ counter, and red with the tag reduced to the pid, reporting
 surfaced it, and the one thing `check` does differently is run clippy over every
 target first, which changes what is compiled and therefore how the suites are
 scheduled.
+
+---
+
+### T-1333 The probe cache key carries the capability set
+
+Source:      issue 28, client beta testing 2026-09-22 (same key across
+             a capability change serves a stale verdict);
+             `crates/podbox-probe/src/identity.rs:150`
+             (`ConfinementKey`: eight components, no capability field;
+             `cap_eff`/`cap_bnd` are read at `:26`-`:28` but never keyed)
+Category:    probe
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     `ConfinementKey`'s own rule is "everything a probe verdict
+             depends on that podbox can read without re-running the
+             probe", but `CapEff`/`CapBnd` are read into `Identity`,
+             printed by the probe, and missing from the key, while the
+             chroot verdict is a live `chroot(2)` turning on
+             `CAP_SYS_CHROOT`. A process that drops capabilities under
+             the same mount namespace and seccomp filter produces the
+             same key and is served the stale verdict.
+Premise:     Argued from the key's fields and the probe report, not
+             driven (the reporter could not stage a live capability
+             change: `CapBnd` already 0). Stated as read, per the issue's
+             own scope note: a gap against the cache's stated rule.
+Approach:    Add `cap_eff` and `cap_bnd` to the key (and its fixed-order
+             components); separately decide whether `seccomp_filters` (a
+             count) can stand for the filter's identity, since two
+             different filters read identically. Out of scope: changing
+             what the probe measures, invalidating strategies beyond the
+             key.
+Decision:    Key the two capability sets; the seccomp-identity question
+             is answered by measurement in the change (two filters, one
+             count, different strictness) and keyed too if they collide.
+Prove:       `cargo test -p podbox-probe` green with a new test
+             building two identities differing only in `cap_eff` and
+             asserting different keys (plus the reporter's scenario as a
+             fixture where stageable). Close issue 28 with a comment
+             showing the test and the widened key as the guard that stops
+             recurrence.

@@ -6,10 +6,12 @@ M0 through M8 are implemented and the machine tier holds its probe.
 End-to-end acceptance is measured per entry. M7 packaging runs through
 the nightly workflow on every `v*` tag.
 
-143 entries: 1 open, 1 partial, 0 blocked, 141 done. Every P0 is done.
-The open entry is [T-1112](milestones.md) (ruled 2026-09-23: unparked,
-work next; stays P3). The partial entry is [T-1109](milestones.md), carrying
-its remaining conditions in its own file.
+165 entries: 23 open, 1 partial, 0 blocked, 141 done. Every P0 is done.
+The open entries are [T-1112](milestones.md) (ruled 2026-09-23: unparked,
+work next; stays P3) and T-1315 through T-1336, triaged 2026-09-23 from
+nineteen client-filed issues plus the operator-ordered `man` verb. The
+partial entry is [T-1109](milestones.md), carrying its remaining
+conditions in its own file.
 
 ## Baseline
 
@@ -111,8 +113,12 @@ through the release API.
    rests as found (stopped), tree clean, gate green.
 3. [T-1109](milestones.md) carries its remaining conditions in its own
    file; [T-1112](milestones.md) is unparked (ruled 2026-09-23) and is
-   the next schedulable work, staying P3. Nothing else is
-   open, and nothing is blocked.
+   the next schedulable work, staying P3. Behind it: T-1315 through
+   T-1336, triaged from client issues 10-28 (every premise confirmed
+   live against the beta.5 tree before authoring; T-0210 extended for
+   issue 17 rather than a new entry). Each entry carries its issue's
+   closing task: fix commit, proof output, and the recurrence guard.
+   Nothing else is open, and nothing is blocked.
 
 [T-0206](image.md) has its fixture technology: `zot` as one pinned
 binary plus config, storage dir, generated cert and htpasswd file,
@@ -148,6 +154,7 @@ still owed.
 | whether the non-Linux guest starts | ruled 2026-09-23: unparked, work next; stays P3, displaces nothing | [T-1112](milestones.md) |
 | what the next session owes | ruled 2026-09-22: continuous until ten tasks finish, with T-1314 last, then the nightly matrix on the next `v*` tag | PROGRESS.md (this file) |
 | how nightly releases work | ruled 2026-09-22: named nightly, every `v*` tag triggers, all seven archs, smoke per arch, stable manual later | [T-1314](packaging.md) |
+| which identity signs the beta artefacts | ruled 2026-09-23: keyless via Sigstore, OIDC from the publish job | [T-1328](packaging.md) |
 
 Every settled ruling is written into the entry that owns it, which
 is where an implementer reads it.

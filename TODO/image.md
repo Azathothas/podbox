@@ -904,6 +904,24 @@ makes `$!` the pid of **`timeout`**, so `kill -9 "$!"` kills the wrapper and
 leaves podbox running. Clause 3 then read the sweep correctly refusing to take a
 live writer's file as a defect, and reported a FAIL that was the harness's.
 
+Follow-up 2026-09-23 (issue 17, client beta testing): the harness
+misclassifies two environmental outcomes. A registry HTTP 429
+(`TOOMANYREQUESTS`) is an HTTP-level refusal, not a connection failure,
+but check 1's network pattern (`connect|resolve|timed out|tls|
+certificate` at `experiments/210-store-concurrency.sh:124` and `:279`)
+does not match it, so a rate-limited worker reads as a contract
+failure. And check 2 cannot tell "holder died because prune removed
+its rootfs" from "holder died because it never started": on a
+chroot-denied host the holder exits 125 before prune runs, identical to
+a deleted rootfs. Fix in the script, not the product: add the 429 class
+to the network pattern (SKIP as quota, like a connect failure), and
+classify a holder dead with 125 whose banner predates prune as SKIP on
+hosts that cannot launch. Prove: the issue reporter's three runs
+re-driven green-or-SKIP with the work dir preserved showing the 429
+classified as quota. Close issue 17 with a comment showing the
+re-drive and the two classifications as the guard that stops
+recurrence.
+
 ---
 
 ### T-0211 An image lock outlives its holder whenever anything forks
@@ -1755,3 +1773,131 @@ the same lane on the working tree of this change
 (`experiments/results/store-contention-prove.txt`,
 `experiments/326-store-contention-prove.sh`). No flip: task 1 confirmed the
 production-hold inspection, so candidate 1 stands as decided.
+
+---
+
+### T-1320 Images move without a registry: save, load, import
+
+Source:      issue 16, client beta testing 2026-09-22 (registry-only
+             ingress strands air-gapped hosts);
+             `crates/podbox-cli/src/parity.rs` (the `save`, `load` and
+             `import` rows, each naming what is missing)
+Category:    image
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     `pull` is the only way into the store and nothing exports
+             it: a host with no registry reachability cannot receive an
+             image, and a podbox-built store cannot be handed to another
+             host. The parity rows say it plainly (`save`: nothing
+             exports the OCI blobs; `load`: only `pull` enters;
+             `import`: nothing builds a record from a rootfs tar).
+Premise:     Read from the table and confirmed against the verbs: no
+             `save`/`load`/`import` surface exists. The store is already
+             content-addressed, so `save` is close to a tar of `blobs/`
+             plus index plus manifest.
+Approach:    One direction first only if both prove heavy, else both:
+             an OCI-layout directory or tarball in and out, reusing the
+             pull-time verification on the way in and the digest names on
+             the way out. Out of scope: docker-archive compatibility
+             beyond what OCI layout covers (named if dropped, not
+             silently), registry protocol changes (none).
+Decision:    OCI layout, the store's own shape, not a new format. The
+             audience is CI executors and air-gapped hosts; the unit
+             closes most of that with one direction each way.
+Prove:       `podbox save` an image to a tarball on host A, `podbox
+             load` it on host B with no registry reachability, `run`
+             the payload there; `import` builds a runnable record from a
+             rootfs tar with the digest recorded. Close issue 16
+             (save/load/import thirds) with a comment showing the
+             air-gapped round trip and the layout reuse as the guard
+             that stops recurrence.
+
+---
+
+### T-1321 A store-health verb and a pull-provenance record
+
+Source:      issue 15, client beta testing 2026-09-22 (no `verify`, no
+             provenance); `crates/podbox-image/src/store.rs:430`
+             (`read_blob` re-verifies on read; nothing sweeps);
+             `experiments/210-store-concurrency.sh` (`verify()` shell
+             loop, the starting shape)
+Category:    image
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     Digests are enforced per read but nothing answers "is the
+             store healthy, and how did the bytes get there": no sweep
+             command hashes every blob against the index (corruption,
+             partial writes and bit-rot have no one-command check), and
+             pulls record no registry, tag, manifest digest, time or
+             podbox version beyond what the index implies.
+Premise:     Audited against the tree: `images`, `inspect` and `system
+             info` report no health or provenance; the `verify()` loop
+             in 210 is shell, not product. Filenames being digests is a
+             property worth keeping, not a substitute for a verdict.
+Approach:    `podbox verify [image|all]`: hash every blob (or one
+             image's), compare against index digests, one line per
+             mismatch plus a summary, non-zero exit on any mismatch.
+             Provenance as sidecar JSON beside the index (one line per
+             manifest pulled: registry, repository, tag, manifest
+             digest, pulled-at, podbox version), never inside image
+             metadata. Out of scope: repair (verify reports; it does not
+             refetch), trust policy (no new authority is introduced).
+Decision:    Product verb plus sidecar, reusing 210's loop shape and the
+             existing per-read hash. No daemon, no background sweeping.
+Prove:       `podbox verify` on a store with one flipped blob byte
+             reports exactly that blob and exits non-zero; a clean store
+             exits 0; a pulled image carries one provenance line with all
+             six fields. Close issue 15 with a comment showing both runs
+             and the sweep-plus-sidecar as the guard that stops
+             recurrence.
+
+---
+
+### T-1322 A container record gates every removal of the image it references
+
+Source:      issues 19 and 20, client beta testing 2026-09-22 (`run
+             --rm` deletes the shared rootfs; `rmi`/`prune` orphan
+             created containers); `crates/podbox-cli/src/run.rs`
+             (`--rm` drops the hold, then removes unconditionally);
+             `crates/podbox-cli/src/images.rs` (`rmi` consults running
+             holds only)
+Category:    image
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     Two removals ignore container records. `run --rm` drops the
+             T-0204 hold deliberately and deletes the manifest-keyed rootfs
+             unconditionally, even when the run never started, breaking
+             every other container of that image. `rmi` and `image prune
+             -a` refuse only images a running container holds; a created
+             container's reference is invisible (`create` takes no hold),
+             so the image record and blobs go while the container record
+             stays `Created` forever with an orphaned, unreachable rootfs
+             nothing ever reclaims. Docker's rule in both cases keys on
+             any container, running or stopped.
+Premise:     Measured by the reporter on the beta.3 asset: `--rm` after
+             a chroot-EPERM failure deletes the rootfs `keeper` needs;
+             `rmi` after `create` leaves `start` answering "no such
+             image". The code paths above confirm the mechanism: no
+             "does any record reference this digest" query exists.
+Approach:    One query, three callers: does any container record
+             reference this manifest digest. `--rm` removes the rootfs
+             only where no record references it (a run's own ephemeral
+             record never counts); `rmi`/`prune` refuse (or require
+             `--force`) where one does, naming it, docker's rule. Out of
+             scope: changing what a hold is, garbage-collecting
+             pre-existing orphans (reported, not reclaimed).
+Decision:    Reference query, not broader holds. `create` stays
+             hold-free; the query sees records, not locks.
+Prove:       The issue-19 repro ends with `podbox run --rm` leaving
+             the rootfs present and `keeper` startable; the issue-20
+             repro ends with `rmi` naming `k2` and refusing, and `prune
+             -a` likewise; a truly unreferenced image still removes
+             cleanly. Close issues 19
+             and 20 with comments showing the runs and the reference
+             query as the guard that stops recurrence.

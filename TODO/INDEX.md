@@ -204,10 +204,32 @@ the blocker named and what would clear it.
 | [T-1312](interpose.md) | P1 | interpose | done | The glibc interposer needs newer symbols than the payload provides |
 | [T-1313](podvm.md) | P1 | podvm | done | Every experiment fetch carries its own ceiling, and a stalled origin proves it |
 | [T-1314](packaging.md) | P1 | packaging | done | Nightly releases: one tag builds and tests every supported arch |
+| [T-1315](extract.md) | P1 | extract | open | Extract re-verifies the blob digest against the manifest |
+| [T-1316](deps.md) | P2 | deps | open | The committed lock matches the manifests, so a clean build leaves a clean tree |
+| [T-1317](enter.md) | P1 | enter | open | A chroot-denied host gets an up-front refusal naming chroot, not a 125 after the work |
+| [T-1318](supervise.md) | P3 | supervise | open | `logs -f` follows a container's log, bounded like the rest |
+| [T-1319](cli.md) | P1 | cli | open | `inspect` prints exactly one document for any reference |
+| [T-1320](image.md) | P2 | image | open | Images move without a registry: save, load, import |
+| [T-1321](image.md) | P2 | image | open | A store-health verb and a pull-provenance record |
+| [T-1322](image.md) | P1 | image | open | A container record gates every removal of the image it references |
+| [T-1323](cli.md) | P2 | cli | open | `cp` reaches an image's extracted rootfs, and copies directories with the same checks |
+| [T-1324](complete.md) | P2 | complete | open | The README tells the truth: build order, rung map, status, auth scope |
+| [T-1325](gate.md) | P1 | gate | open | The gate checks what entries claim: reachable flags and true parity notes |
+| [T-1326](gate.md) | P1 | gate | open | `check-markers.sh` builds its marker bytes portably across `/bin/sh` |
+| [T-1327](interpose.md) | P2 | interpose | open | The interposer builds per architecture, and the T-0704 citations point at it |
+| [T-1328](packaging.md) | P2 | packaging | open | The nightly signs its artefacts, with provenance a downloader can check |
+| [T-1329](packaging.md) | P2 | packaging | open | The per-arch smoke pulls and extracts, not just versions |
+| [T-1330](cli.md) | P2 | cli | open | Bundled short flags parse as docker reads them |
+| [T-1331](cli.md) | P2 | cli | open | `--filter`, `restart` and `pull -a/-q` answer the docker idiom |
+| [T-1332](cli.md) | P1 | cli | open | `podbox man` generates the manual from the binary, pager-aware |
+| [T-1333](probe.md) | P1 | probe | open | The probe cache key carries the capability set |
+| [T-1334](packaging.md) | P1 | packaging | open | The release carries its build commit's gate state and its reproducibility boundary |
+| [T-1335](supervise.md) | P3 | supervise | open | The launcher forwards its own shutdown signals to the payload |
+| [T-1336](cli.md) | P1 | cli | open | CLI output is plain ASCII: no emoji, no markers, on every path |
 
 ## Counts
 
-143 items: 1 open, 1 partial, 0 blocked, 141 done.
+165 items: 23 open, 1 partial, 0 blocked, 141 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -216,10 +238,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 0 | 1 | 0 | 66 | 67 |
-| P2 | 0 | 0 | 0 | 19 | 19 |
-| P3 | 1 | 0 | 0 | 4 | 5 |
-| **All** | **1** | **1** | **0** | **141** | **143** |
+| P1 | 10 | 1 | 0 | 66 | 77 |
+| P2 | 10 | 0 | 0 | 19 | 29 |
+| P3 | 3 | 0 | 0 | 4 | 7 |
+| **All** | **23** | **1** | **0** | **141** | **165** |
 
 ## How the current ordering is derived
 

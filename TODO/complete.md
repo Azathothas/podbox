@@ -1152,3 +1152,47 @@ answers per run).
 `155`, which does not exist.** T-0413 owns that script's creation. The
 committed tests prove the rows, and the named cli test proves the
 refusal wiring; a planted live image stays future work.
+
+---
+
+### T-1324 The README tells the truth: build order, rung map, status, auth scope
+
+Source:      issues 18 and 22, client beta testing 2026-09-22 (quick
+             start declines dynamic payloads; status and limits lines
+             false); `README.md:12-15`, `README.md:61`
+Category:    complete
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     Four README defects, all confirmed on this tree. The quick
+             start omits `scripts/build-interpose.sh`, so a first-run
+             binary embeds empty placeholder objects and declines every
+             dynamic payload with "interpose: declined" on the rung most
+             hosts select. No paragraph maps probe output to expected
+             `run` behavior (namespace host, chroot-capable host,
+             chroot-denied host). The Status paragraph says "M7 packaging
+             has not started" after M7 shipped (nightly workflow T-1314,
+             ladder T-1003, tier flag T-1302). The limits line says
+             "registry authentication is not implemented" while `login`
+             is Native in the parity table and T-0209 landed.
+Premise:     Read against the shipped beta.3 asset and this tree: every
+             cited line is still as reported.
+Approach:    Move `build-interpose.sh` before `cargo build` with one line
+             on what a binary without embedded objects can and cannot do
+             (pointing at `podbox system info`); a three-case rung table
+             keyed on probe output; regenerate the Status paragraph from
+             `TODO/PROGRESS.md` (or point there); replace the auth line
+             with the actual unsupported scope (`logout`, credential
+             helpers beyond `config.json`, or whatever the parity table
+             says). Out of scope: behavior changes (none), new docs pages
+             (this page only).
+Decision:    Amend in place, four lines of page. The README stays
+             onboarding and pointers, not a manual; the generated manual
+             is the `man` verb, a separate entry in cli.md.
+Prove:       `grep` finds none of the four old sentences, and a reader
+             following the quick start verbatim on a fresh machine runs
+             a dynamic payload green. Close issues 18
+             and 22 with comments showing the commands and the four
+             corrected lines as the guard (a stale-README check is future
+             work, named, not claimed).

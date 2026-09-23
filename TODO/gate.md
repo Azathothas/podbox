@@ -1201,3 +1201,88 @@ EXIT:0
              named. The contention fix itself belongs to the
              T-0211/T-0215 family.
 
+---
+
+### T-1325 The gate checks what entries claim: reachable flags and true parity notes
+
+Source:      issues 25 and 23, client beta testing 2026-09-22 (T-0604's
+             Prove names refused `--filter`; three parity notes stale);
+             `TODO/supervise.md:210`,
+             `crates/podbox-cli/src/parity.rs`
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     Two claim classes with no check. Closed entries' `Prove:`
+             commands can name flags the parity table refuses (T-0604
+             proves itself with `ps --filter`, a `None` row, rc 125: the
+             command never ran as written; only `230`'s grep-over-`--format`
+             drive is real), and the class was fixed once by hand, not
+             swept (`TODO/interpose.md:645` records its own `-v` the same
+             way). And parity notes go stale in the machine-readable
+             contract with no equivalent of the citation check: `inspect`
+             claims no containers post-M4, `system` claims prune missing
+             and "docker has neither" (docker has both `system prune` and
+             `events`), `run --restart` blames M4 for a missing policy.
+Premise:     Measured by the reporter on the beta.3 asset and confirmed
+             on this tree: the T-0604 line still carries `--filter`, all
+             three notes read as reported. `parity::TABLE` is data, so
+             both checks are cheap.
+Approach:    Two checks in `check-todo.py` (or beside it), each with its
+             plant in the same change: extract `podbox <verb> <flags>`
+             tokens from each `Prove:` line and admit them against the
+             table the way `admit` does at runtime; assert the three
+             named notes (and, by shape, every note naming a milestone or
+             a missing verb) against the verbs that exist. Fix T-0604's
+             line (grep over `--format`, as 230 drives it) and the three
+             notes in the same change. Out of scope: semantic truth of
+             every note (the check owns reachability and named
+             existentials, reviews own the rest).
+Decision:    Checks with plants, fixes beside them. A recorded acceptance
+             that never ran is the exact failure the gate exists to catch.
+Prove:       `plant.sh` breaks each new check on purpose and asserts red
+             with that defect's message; T-0604's rewritten line runs
+             green verbatim; `system info --format '{{json .Parity}}`
+             carries the three corrected notes. Close issues 25 and 23
+             with comments showing the plant runs and the two checks as
+             the guards that stop recurrence.
+
+---
+
+### T-1326 `check-markers.sh` builds its marker bytes portably across `/bin/sh`
+
+Source:      issue 24, client beta testing 2026-09-22 (5550 false
+             positives under dash); `scripts/common/check-markers.sh:167`
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     The marker constants are built with `M1=$(printf
+             '\342\233\224')`, and dash's `printf` inside a command
+             substitution mis-encodes bytes at or above 0x80, so the
+             check does not recognise its own markers and reports every
+             marker in the tree as illegal. `check-gate.sh` and CI run
+             the sh half with `sh`, so a dash host sees the repo gate red
+             with 5550 false positives while CI stays green.
+Premise:     Measured by the reporter with byte-level instrumentation
+             (dash emits `e2 81 81 9b 94` for want `e2 9b 94`), including
+             the minimal repro and the two non-fixes (`\0ooo` reads as
+             `\034` plus digits under dash; `printf '%b'` mis-encodes the
+             same way).
+Approach:    Build the bytes inside the awk pass (`BEGIN` with
+             `sprintf("%c%c%c", ...)` under `LC_ALL=C`) or write them to
+             a file once and read them back with `cat`; never
+             `$(printf ...)` for non-ASCII bytes. Prove under both dash
+             and bash. Out of scope: changing the five markers, changing
+             what the check scans.
+Decision:    The awk-`BEGIN` shape (no new files, one language already in
+             use), unless the drive shows gawk absent where the check
+             must run, in which case the file shape wins.
+Prove:       `sh scripts/common/check-markers.sh` (dash) and
+             `bash scripts/common/check-markers.sh` both exit 0 with the
+             same count on this tree; a planted illegal byte fails under
+             both. Close issue 24 with a comment showing both runs and
+             the dual-shell drive as the guard that stops recurrence.
+

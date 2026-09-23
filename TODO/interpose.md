@@ -1434,3 +1434,43 @@ the suite is 12 of 12 with fmt and clippy clean. End to end on host podman
 `experiments/results/tar-symlink-modes-prefix.txt`) and 0 on the fixed
 binary (unpack rc 0 with both links and the mode green on both sides;
 `experiments/results/tar-symlink-modes.txt`).
+
+---
+
+### T-1327 The interposer builds per architecture, and the T-0704 citations point at it
+
+Source:      issue 26, client beta testing 2026-09-22 (every binary
+             embeds x86_64 objects; T-0704 cited for another subject);
+             `.github/workflows/nightly.yml`, `crates/podbox-interpose`
+Category:    interpose
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     Every shipped binary embeds the x86_64 interposer pair
+             (two ELF headers, `e_machine=0x3e`), so `interpose` declines
+             off x86_64: on the project's own target class that leaves
+             no rung at all on six of seven archs. No TODO entry covers
+             per-arch objects (T-0702 is one object per libc), while the
+             workflow and the release note cite T-0704, which is
+             "ownership virtualization: the half a path interposer does
+             not have", a different subject.
+Premise:     Measured by the reporter across all seven beta.3 assets
+             (ELF headers read per binary). The citation mismatch is
+             read, not measured: T-0704's title names its subject.
+Approach:    Build the pair per target arch in the nightly matrix (the
+             cross link in `zig-cc.sh` is the shape to reuse), embed the
+             matching pair per artefact, and fix the two T-0704 citations
+             to name this entry. Out of scope: per-libc-per-arch
+             coverage beyond what the matrix can prove (named per arch,
+             not silently), changing the decline contract.
+Decision:    Per-arch objects where the matrix proves them; where a
+             target cannot build its pair, the artefact keeps the honest
+             decline and the release note names the arch.
+Prove:       `readelf -h` on each shipped binary's embedded objects
+             reads back the binary's own `e_machine`; an off-arch
+             payload on qemu-user selects `interpose` where the pair
+             exists; `grep` finds no T-0704 citation on the publish path.
+             Close issue 26 (objects third) with a comment showing the
+             header reads and the per-arch build as the guard that stops
+             recurrence.

@@ -553,3 +553,122 @@ the tag carries fourteen assets, verified back through the release API:
 the x86_64 binary is 3503032 bytes, the same bytes this session
 measured. The tag sits at the T-1212 close-out commit, which moves no
 build input.
+
+---
+
+### T-1328 The nightly signs its artefacts, with provenance a downloader can check
+
+Source:      issue 26, client beta testing 2026-09-22 (hash-only
+             sidecars from the same release prove truncation, not
+             origin); `.github/workflows/nightly.yml`,
+             `scripts/nightly-smoke.sh`
+Category:    packaging
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     Each `.sha256` sidecar is served from the same release as
+             its binary, so it protects against a truncated download,
+             not a compromised release: no signature, no attestation, no
+             SBOM (`grep -ri 'cosign|sigstore|sbom|attest' TODO/` returns
+             nothing). For a tool installed as `docker`/`podman` on PATH,
+             a verifiable signature is the one supply-chain control that
+             matters.
+Premise:     Read from the release (14 assets, hashes only) and the
+             tree (no signing surface anywhere). The gap is absence, and
+             absence is established by the empty grep.
+Approach:    Sign the artefacts at publish (Sigstore/cosign keyless is
+             the shape to evaluate: no long-lived key to guard, OIDC
+             from the publish job), publish the bundle beside the
+             binaries, and document one verification command a
+             downloader runs. Out of scope: SBOM generation (named as
+             future work if dropped), changing what is built.
+Decision:    Keyless signing at publish (Sigstore, OIDC from the
+             publish job): no long-lived key to guard and rotate, and
+             verification names the workflow identity. Ruled 2026-09-23
+             by the operator; the entry is workable as written.
+Prove:       `cosign verify-blob` (the documented command) run by a
+             fresh downloader against one artefact and its published
+             bundle names the workflow identity; a tampered byte fails
+             the check. Close issue
+             26 (signing third) with a comment showing the verification
+             and the publish-time signature as the guard that stops
+             recurrence.
+
+---
+
+### T-1329 The per-arch smoke pulls and extracts, not just versions
+
+Source:      issue 26, client beta testing 2026-09-22 (a broken
+             non-x86_64 binary publishes green);
+             `scripts/nightly-smoke.sh`
+Category:    packaging
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     The per-arch smoke asserts version, target, both interposer
+             digests, `crt-static` and no `PT_INTERP`, but never pulls,
+             extracts or runs a payload: a non-x86_64 binary broken for
+             its actual job still publishes green. The release note says
+             so parenthetically ("the full acceptance stays host-arch"),
+             so it is honest, but honesty about a gap is not the coverage.
+Premise:     Read from the smoke script: no pull, no extract, no run on
+             any arch leg.
+Approach:    `pull` plus `extract` per arch against a loopback fixture
+             (no registry access needed), asserting the payload bytes;
+             keep the run itself host-arch (qemu-user execution stays out
+             until T-1327's pairs exist to make it meaningful). Out of
+             scope: full per-arch acceptance (the note keeps saying
+             host-arch until that entry exists), registry-dependent
+             fixtures.
+Decision:    Loopback pull+extract per arch. The fixture shape already
+             exists in the registry-fixture work (T-0206 family); reuse
+             it rather than inventing a second fixture.
+Prove:       `scripts/nightly-smoke.sh` (or its per-arch leg) fails on a
+             fixture whose layer bytes are flipped and passes on the
+             honest one, on every arch leg. Close issue 26 (smoke third)
+             with a comment showing the failing-then-passing legs and the
+             pull+extract assertions as the guard that stops recurrence.
+
+---
+
+### T-1334 The release carries its build commit's gate state and its reproducibility boundary
+
+Source:      issue 13, client beta testing 2026-09-22 (beta.1 build
+             commit failed the repo gate; cross-host bytes differ);
+             `TODO/packaging.md:282` (T-1004)
+Category:    packaging
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Two release-integrity gaps. The beta.1 build commit shipped
+             with the repo's own consistency gate red (the fix landed
+             minutes later), and nothing in the release says the gate
+             state of the commit it names. And the notes read as
+             reproducible while cross-host builds differ in the embedded
+             glibc interposer object (host glibc version symbols via
+             `interpose.map`), so a downloader has no path ending in the
+             released bytes; T-1004's wording ("same toolchain, same
+             bytes") is met only intra-host.
+Premise:     Measured by the reporter: same rustc and zig, pristine
+             clone, different bytes (`interpose-gnu` digest differs,
+             `interpose-musl` matches). The gate failure (run 35755156697,
+             T-1004-shaped `check-todo` refusal) is record.
+Approach:    State both in the release path: the notes (or `version
+             --verbose`) carry the build commit's gate state, and one
+             line states the boundary ("byte-identical within one
+             host/toolchain; cross-host builds differ in the embedded
+             glibc interposer object, digest in `version --verbose`").
+             T-1004 keeps its intra-host claim with the boundary named.
+             Out of scope: pinned-glibc-header interposer builds (a real
+             fix for cross-host bytes, filed as future work, not done
+             here), signatures (T-1330).
+Decision:    Boundary statement, not a rebuild pipeline. The bytes are
+             honest once conditioned; the missing piece is the condition.
+Prove:       `grep -c` over the next beta's notes finds the build
+             commit's gate run and conclusion plus the boundary line;
+             `version --verbose` (or the notes) states it.
+             Close issue 13 with a comment showing the notes and the
+             boundary sentence as the guard that stops recurrence.

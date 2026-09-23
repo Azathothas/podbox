@@ -759,3 +759,250 @@ control socket, memo opens in launcher and exec) names an independent
 guarantee for each (the launcher's own directory creation, the lock's parent
 creation, the memo helper's parent creation). No site writes beside a record
 without a directory behind it.
+
+---
+
+### T-1319 `inspect` prints exactly one document for any reference
+
+Source:      issue 21, client beta testing 2026-09-22 (container
+             inspect emits the record plus a spurious `[]`);
+             `crates/podbox-cli/src/images.rs` (the `find_one`, then
+             `inspect_container`, then unconditional array print)
+Category:    cli
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     `podbox inspect <container>` prints two JSON documents: the
+             container record (printed inside `inspect_container`) and a
+             trailing `[]` (the empty image `records` vec, printed
+             unconditionally after). An automated caller parsing stdout
+             fails; `jq` cannot consume it. Image references print one
+             array correctly, and `--format` is unaffected, so only the
+             container path is broken.
+Premise:     Measured by the reporter (`json.load` fails with "Extra
+             data", `raw_decode` finds two documents) and confirmed
+             against the loop above: the container branch prints inside
+             the call and returns `Some(0)`, leaving `records` empty for
+             the final print.
+Approach:    Do not print the trailing image array where the reference
+             resolved to a container (or collect the rendered container
+             document into `records`, one path, one print). Out of
+             scope: changing either document's fields, touching image
+             inspect.
+Decision:    Skip the second print on the container path: the smaller
+             diff, and the image path keeps its exact bytes.
+Prove:       `podbox inspect <container>` piped to `python3 -c
+             'json.load(sys.stdin)'` and to `jq` both succeed with one
+             document; image inspect output is byte-identical before and
+             after. Close issue 21 with a comment showing the parse and
+             the single-print path as the guard that stops recurrence.
+
+---
+
+### T-1323 `cp` reaches an image's extracted rootfs, and copies directories with the same checks
+
+Source:      issues 14 and 16, client beta testing 2026-09-22 (`cp`
+             gated on container records; no recursive copy);
+             `crates/podbox-cli/src/parity.rs` (the `cp` row: one file
+             at a time, gated through the containment check)
+Category:    cli
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     `cp` only addresses `container:path`, and `run` leaves no
+             record, so on a host where the payload cannot launch there
+             is no checked way to stage or retrieve files: the only
+             interface with containment checks is gated on a started
+             container, which restricted hosts cannot always provide.
+             Separately, `cp` copies one file at a time; a recursive
+             option with the same checks has no entry.
+Premise:     Measured by the reporter: `cp alpine:latest:/etc/os-release`
+             refuses ("no such container"), `create`+`cp` works only
+             where `start` works, and raw store writes bypass every
+             check. The containment machinery (`podbox-extract` safety
+             module) and the extract walker already exist to make both
+             halves safe.
+Approach:    Accept `image:path` (the extracted rootfs in the store) as
+             well as `container:path`, reusing the containment-checked
+             path unchanged; add a recursive option over the same walker
+             with the same checks. Out of scope: a new stage/unstage
+             verb pair (rejected: `image:path` covers the workflow with
+             no new verb and no parity debt), documenting raw store
+             surgery (never an answer).
+Decision:    Extend `cp`, do not add verbs. One verb, one checker, two
+             new addressings.
+Prove:       `podbox cp image:/etc/os-release` on a host where
+             payloads cannot launch retrieves bytes, and `podbox cp` of
+             a directory tree round-trips with containment intact (a
+             hostile symlink inside the tree refuses rather than
+             escapes); `podbox cp --help` documents both. Close issues 14
+             and 16 (cp half) with comments showing the commands and the
+             shared containment check as the guard that stops recurrence.
+
+---
+
+### T-1330 Bundled short flags parse as docker reads them
+
+Source:      issue 27, client beta testing 2026-09-22 (`ps -aq`,
+             `run -it` refused); `crates/podbox-cli/src/parity.rs`
+             (the `-a`/`-q` and `-i`/`-t` rows, never mentioning
+             bundling)
+Category:    cli
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     Combined short flags are refused: `ps -aq` and `run -it`
+             answer `unknown option` with 125. Docker callers write
+             clusters constantly; the parity table lists the member flags
+             separately and never mentions bundling, so the refusal reads
+             as a missing flag rather than a missing spelling.
+Premise:     Measured by the reporter on the beta.3 asset, both forms,
+             both 125. The parser has no cluster path (each flag is
+             matched whole).
+Approach:    Parse a cluster of value-less short flags by docker's own
+             rule (a cluster containing a flag that takes a value
+             consumes the rest as its value; an unknown member refuses
+             naming the member). One parser change, every verb inherits
+             it. Out of scope: new flags, changing any refusal code.
+Decision:    Docker's cluster rule exactly, not a subset. A subset would
+             move the surprise rather than remove it.
+Prove:       `ps -aq`, `run -it` (and a cluster with an unknown member,
+             refusing by name) behave as docker's rule says across three
+             verbs; the existing flag tests still pass unchanged. Close
+             issue 27 (bundling third) with a comment showing the runs
+             and the single parser path as the guard that stops
+             recurrence.
+
+---
+
+### T-1331 `--filter`, `restart` and `pull -a/-q` answer the docker idiom
+
+Source:      issue 27, client beta testing 2026-09-22 (three refused
+             idioms with no entry);
+             `crates/podbox-cli/src/parity.rs` (the `None` rows for
+             `--filter`, `restart`, `pull -a`)
+Category:    cli
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     Three docker idioms break with 125 and have no work-order
+             entry: `--filter` on `images` and `ps` (every `docker ps
+             --filter name=x` one-liner), `restart` ("`stop` then `start`
+             is the same thing" is not the same verb), `pull
+             -a/--all-tags` and `pull -q`. The table is honest; the work
+             order does not know these are missing.
+Premise:     Measured by the reporter on the beta.3 asset, each form
+             with its refusal text. Bundled flags are the sibling entry;
+             these are per-verb gaps, not parser gaps.
+Approach:    Implement the three behind the table rows that already name
+             them: `--filter` as a caller-side predicate over listed
+             records (no new query language), `restart` as stop-then-
+             start in one verb reporting which half failed, `pull -a` as
+             all offered tags and `-q` as quiet output. Out of scope:
+             server-side filter syntax beyond `name=` and label
+             equality (named if dropped), restart policies (a different
+             gap).
+Decision:    Caller-side filter, composite restart, per-tag pull. Each
+             reuses a path that already exists rather than forking one.
+Prove:       `ps --filter name=x` selects, `restart` stops and starts
+             with both halves named, `pull -a` fetches every offered tag
+             and `-q` stays quiet; the three parity rows move status with
+             the behavior. Close issue 27 (idiom thirds) with a comment
+             showing the runs and the row-status moves as the guard that
+             stops recurrence.
+
+---
+
+### T-1332 `podbox man` generates the manual from the binary, pager-aware
+
+Source:      operator order 2026-09-23 (drift-free human/AI manual;
+             docs need not carry help text); `crates/podbox-cli/src`
+             (per-verb usage strings, the parity table as data)
+Category:    cli
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     Help text lives in docs or not at all, so every new flag is
+             a chance for drift: the manual says what the binary said on
+             the day somebody copied it. Nothing generates a readable
+             manual from the binary for humans (`less`) and agents
+             (plain text) alike.
+Premise:     Audited: no `man` surface exists in `crates/podbox-cli/src`
+             (only shell completion in `complete.rs`); per-verb usage
+             strings and the parity table already carry the content a
+             generator needs.
+Approach:    A `man` verb rendering every verb, flag and parity note
+             from the binary's own data (usage strings plus
+             `parity::TABLE`), plain text to stdout, shaped like
+             `wsl-toolkit man --no-pager`: version header, command list
+             with one-line summaries, a Global section, then a COMMAND
+             REFERENCE with one section per command carrying its
+             synopsis and flags. `podbox man [verb]` pages through
+             `$PAGER` (`less` where present), `--no-pager` (and non-tty
+             stdout) prints without paging. Progress and diagnostics
+             stay on stderr; stdout carries the answer alone. New verbs
+             and flags appear by construction, never by edit. The
+             generated output carries no emoji and no markers (the
+             binary-wide scrub is the sibling entry below). Out of
+             scope: troff/`man(1)` integration (no new dependency, no
+             roff to drift either), shell completions (unchanged),
+             `--json` (verbs that have structured answers keep it; the
+             manual is text).
+Decision:    Generated plain text, pager-aware, no troff. The audience
+             is a tired reader and an agent: both read text, neither
+             needs typesetting.
+Prove:       A script diffs `podbox man` output against every `--help`
+             output plus the parity rows and fails on any verb or flag
+             the manual lacks; `podbox man --no-pager` and piped `podbox
+             man` print identical bytes with no pager spawned. The
+             completeness script is the drift guard that stops
+             recurrence.
+
+---
+
+### T-1336 CLI output is plain ASCII: no emoji, no markers, on every path
+
+Source:      operator order 2026-09-23 (no place for either in a CLI
+             tool, let alone without a terminal or pty);
+             `crates/podbox-cli/src` (usage strings, error messages and
+             parity notes carry marker glyphs on dozens of paths:
+             `complete.rs:103`, `exec.rs:252`, `main.rs:372`,
+             `names.rs:259`, `parity.rs:103`, `run.rs:26`, and the
+             per-verb usage blocks behind every `--help`)
+Category:    cli
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     The binary's user-facing text carries ⛔/⚠/⭐ glyphs on
+             dozens of paths: per-verb usage blocks (printed by every
+             `--help`), error messages (`complete`, `exec`, `probe`
+             cache, `install-names`), and parity notes (the
+             machine-readable contract). On a constrained host with no
+             terminal or pty these are unrenderable bytes in an
+             automated caller's stream, and they force every downstream
+             parser to handle codepoints that carry no meaning.
+Premise:     Measured on this tree: non-ASCII bytes outside comments
+             across `crates/podbox-cli/src` (usage blocks, emitted
+             errors, table notes); comments and doc-comments that are
+             never printed are not in scope and stay.
+Approach:    Scrub every printed string to ASCII, replacing each glyph
+             with the word it stands for (`refused:`, `note:`), usage
+             blocks, errors, banner lines and parity notes alike; keep
+             source comments as they are. Add the guard that stops
+             recurrence: a test (or gate check) failing any non-ASCII
+             byte in `--help` output per verb, the `man` output, and the
+             error/catalog paths. Out of scope: docs and comments (the
+             markers check owns those), changing any message's meaning
+             (glyphs become words, nothing is reworded).
+Decision:    Words, not glyphs, everywhere printed. The manual entry
+             (T-1332) inherits ASCII output from this one.
+Prove:       A script asserts bytes `0x00`-`0x7F` only across every
+             verb's `--help`, `podbox man`, and a catalog of error
+             paths, with the existing suite green; the guard runs in the
+             gate so a new glyph fails before it ships.

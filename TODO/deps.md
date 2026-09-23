@@ -892,3 +892,40 @@ $ ./experiments/260-multiarch.sh
   exit 2, because binfmt_misc is not mounted on this host and clause 5
   therefore could not run. ⛔ Not a failure: it is the third state.
 ```
+
+---
+
+### T-1316 The committed lock matches the manifests, so a clean build leaves a clean tree
+
+Source:      issue 11, client beta testing 2026-09-22 (every fresh build
+             dirties `Cargo.lock` and the binary self-reports `-dirty`);
+             `Cargo.lock`, `crates/podbox-cli/Cargo.toml`,
+             `crates/podbox-image/Cargo.toml`
+Category:    deps
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     The committed lock is stale against the committed manifests
+             (`podbox-cli` declares `sha2`, `podbox-image` declares
+             `base64`, neither in the lock's lists; last lock commit
+             2026-09-11), so the first build on a pristine clone rewrites
+             the lock, `build.rs` sees a dirty tree, and the binary
+             records `-dirty`. Every released beta asset carries the
+             suffix for no reason.
+Premise:     Measured by the reporter on a pristine clone at the release
+             commit and confirmed on this tree: the two crates' lock
+             lists lack the two declared dependencies.
+Approach:    Refresh the lock (`cargo check`, then commit the lock) in
+             its own change, no manifest edits. Out of scope: whether
+             `build.rs` should distinguish cargo-caused dirt from
+             hand-edited dirt (recorded as future work in the entry if
+             wanted, not done here).
+Decision:    Lock refresh only. The `-dirty` semantics question is real
+             but widens the unit past one file.
+Prove:       Clone pristine, `cargo build --release`, `git status
+             --porcelain` prints nothing and `podbox version --verbose`
+             reports the bare commit. Close issue 11 with a comment
+             showing the clean-tree build and the lock diff as the guard
+             (a stale lock can no longer hide: any future manifest edit
+             without its lock shows the same way).
