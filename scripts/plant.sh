@@ -432,9 +432,11 @@ case_plant "27b a parity note missing a present verb" "claims \`prune\`" \
 # ⛔ CHECK 28, and its plant lands in a printed string on purpose. A glyph
 # in a printed string must go red naming U+26D4 and T-1336; comments stay
 # exempt (the markers check owns those), so the check reads the code and
-# not the file.
+# not the file. The octal bytes travel through one shell variable: a
+# literal backslash-digit run in this file would read as a regex back
+# reference under GNU sed and the mutation would land nowhere.
 case_plant "28 a glyph in a printed string" "prints U+26D4" \
-  sh -c 'sed -i "s/refused: do not run any COMMAND/refused: do not run any COMMAND \342\233\224/" crates/podbox-cli/src/run.rs'
+  sh -c 'GLYPH=$(printf "\342\233\224"); sed -i "s/refused: do not run any COMMAND/refused: do not run any COMMAND $GLYPH/" crates/podbox-cli/src/run.rs'
 
 echo
 # ⛔ SAY WHAT IS NOT COVERED. A harness that lists passing cases without naming
