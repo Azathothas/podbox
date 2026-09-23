@@ -316,6 +316,7 @@ dependencies = [
  "podbox-probe",
  "podbox-supervise",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -346,6 +347,7 @@ dependencies = [
  "ruzstd",
  "serde",
  "serde_json",
+ "sha2",
  "tar",
 ]
 
@@ -353,6 +355,7 @@ dependencies = [
 name = "podbox-image"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "podbox-probe",
  "rustls",
  "rustls-pemfile",

@@ -907,12 +907,14 @@ Effort:      S
 Status:      open
 
 Problem:     The committed lock is stale against the committed manifests
-             (`podbox-cli` declares `sha2`, `podbox-image` declares
-             `base64`, neither in the lock's lists; last lock commit
-             2026-09-11), so the first build on a pristine clone rewrites
-             the lock, `build.rs` sees a dirty tree, and the binary
-             records `-dirty`. Every released beta asset carries the
-             suffix for no reason.
+             (`podbox-cli` declares `sha2` under `[build-dependencies]`
+             (T-1004), `podbox-image` declares `base64`, neither in the
+             lock's lists; last lock commit 2026-09-11), and this
+             session's T-1315 adds a third stale edge (`podbox-extract`
+             declares `sha2`), so the first build on a pristine clone
+             rewrites the lock, `build.rs` sees a dirty tree, and the
+             binary records `-dirty`. Every released beta asset carries
+             the suffix for no reason.
 Premise:     Measured by the reporter on a pristine clone at the release
              commit and confirmed on this tree: the two crates' lock
              lists lack the two declared dependencies.
