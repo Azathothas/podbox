@@ -363,6 +363,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tar",
  "ureq",
  "webpki-roots 1.0.9",
 ]
