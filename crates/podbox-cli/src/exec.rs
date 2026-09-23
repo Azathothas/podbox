@@ -101,6 +101,16 @@ struct Opts {
 /// ⛔ Parsing stops at the image name, exactly as `run`'s does: everything
 /// after it is the payload's, dashes and all.
 fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
+    // ⭐ TODO/cli.md T-1330, as in `run`'s parser: bundled shorts expand
+    // before admission sees them.
+    let expanded;
+    let args = match crate::parity::expand("exec", args) {
+        Ok(a) => {
+            expanded = a;
+            &expanded
+        }
+        Err(member) => return Err(crate::parity::refuse_member("exec", &member, EXEC_USAGE)),
+    };
     let mut o = Opts {
         env: Vec::new(),
         workdir: None,

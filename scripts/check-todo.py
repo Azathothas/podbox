@@ -944,6 +944,11 @@ def check_devcheck_third_state(files):
 # the refused spelling is the trigger by design. `! podbox run
 # --network=none` tests the None-row refusal; un-negated, the same
 # spelling in a done Prove never reached its verb (T-0604's `--filter`).
+#
+# ⭐ Clusters expand here exactly as `parity::expand` expands them
+# (TODO/cli.md T-1330): the value-taking members come from
+# `CLUSTER_VALUES` in parity.rs, read as text, never redeclared. A member
+# with no row is reported as the member, the way the binary refuses it.
 PARITY_RS = "crates/podbox-cli/src/parity.rs"
 PARITY_ROW = re.compile(
     r'Row\s*\{\s*verb:\s*"([^"]+)",\s*flag:\s*'
@@ -965,6 +970,31 @@ PROVE_INV = re.compile(
     r"podbox\s+((?:image|system)\s+[a-zA-Z][\w-]*|[a-zA-Z][\w-]*)")
 PROVE_TERM = re.compile(r"[|;`&]|\$\(")
 PROVE_FLAG = re.compile(r"(?<![\w/.-])-[\w][\w.-]*(?:=\S+)?")
+CLUSTER_VALUE = re.compile(r'\(\s*"([^"]+)"\s*,\s*\'([A-Za-z0-9])\'\s*\)')
+
+
+def parity_cluster_values():
+    """Read `CLUSTER_VALUES` from parity.rs: the one declaration stands."""
+    try:
+        text = read(os.path.join(ROOT, PARITY_RS))
+    except (OSError, UnicodeDecodeError):
+        return set()
+    m = re.search(r"pub const CLUSTER_VALUES.*?\];", text, re.S)
+    if not m:
+        return set()
+    return set(CLUSTER_VALUE.findall(m.group(0)))
+
+
+def parity_cluster_boundary():
+    """Read `CLUSTER_BOUNDARY` from parity.rs: the one declaration stands."""
+    try:
+        text = read(os.path.join(ROOT, PARITY_RS))
+    except (OSError, UnicodeDecodeError):
+        return set()
+    m = re.search(r"const CLUSTER_BOUNDARY.*?\];", text, re.S)
+    if not m:
+        return set()
+    return set(re.findall(r'"([a-z]+)"', m.group(0)))
 
 
 def parity_admission():
@@ -973,34 +1003,45 @@ def parity_admission():
         text = read(os.path.join(ROOT, PARITY_RS))
     except (OSError, UnicodeDecodeError):
         return None
-    admitted, refused_verbs = {}, {}
+    admitted, refused_verbs, spellings = {}, {}, {}
     for m in PARITY_ROW.finditer(text):
-        verb, spellings, status = m.group(1), m.group(2), m.group(3)
+        verb, spelling_list, status = m.group(1), m.group(2), m.group(3)
         line = text[:m.start()].count("\n") + 1
-        if not spellings:
+        if spelling_list:
+            for s in spelling_list.split(","):
+                spellings.setdefault(
+                    PARITY_ROWS_OF.get(verb, verb), set()).add(s.strip())
+        if not spelling_list:
             if status == "NoneStatus":
                 refused_verbs[verb] = line
             continue
         if status == "NoneStatus":
             continue
-        for s in spellings.split(","):
+        for s in spelling_list.split(","):
             admitted.setdefault(
                 PARITY_ROWS_OF.get(verb, verb), set()).add(s.strip())
-    return admitted, refused_verbs, text
+    return admitted, refused_verbs, spellings, text
 
 
-def prove_commands(block):
-    """Yield (verb, [flag...]) for each `podbox <verb>` command in a block.
+def prove_commands(block, admitted, spellings, cluster_values, boundary):
+    """Yield (verb, [flags], bad-member-or-None) for each command in a block.
 
     Tokenised with shlex so a `--format '{{.A}} {{.B}}'` template stays
     one value; a line that does not parse that way falls back to a plain
-    split, which still keeps every dash-token intact.
+    split, which still keeps every dash-token intact. Bundled shorts
+    expand by the binary's rule inside the podbox region, so `ps -aq`
+    admits as `-a -q` and `-aZ` reports `-Z`. Verbs that stop at the
+    image (`run`, `exec`) end the region there: a payload-side cluster
+    is the payload's, here as at runtime.
     """
     import shlex
     for ln in block:
         for m in PROVE_INV.finditer(ln):
             if re.search(r"!\s*$", ln[:m.start()]):
                 continue  # asserts refusal-or-failure; the spelling is the trigger
+            verb = m.group(1)
+            under = PARITY_ROWS_OF.get(verb, verb)
+            bounded = under in boundary
             tail = ln[m.end():]
             tm = PROVE_TERM.search(tail)
             cmd = tail[:tm.start()] if tm else tail
@@ -1009,16 +1050,34 @@ def prove_commands(block):
             except ValueError:
                 toks = cmd.split()
             flags = []
-            prev_dash = True
+            bad = None
+            prev_dash = not bounded
             for tok in toks:
                 if tok.startswith("-") and len(tok) > 1:
+                    body = tok[1:]
+                    if (len(tok) > 2 and not tok.startswith("--")
+                            and body[0].isalnum() and body.isascii()):
+                        for i, c in enumerate(body):
+                            one = f"-{c}"
+                            if (under, c) in cluster_values:
+                                flags.append(one)
+                                break
+                            if not c.isalnum() or one not in spellings.get(
+                                    under, set()):
+                                bad = one
+                                break
+                            flags.append(one)
+                        if bad is not None:
+                            break
+                        prev_dash = False
+                        continue
                     flags.append(tok.split("=")[0])
                     prev_dash = True
                 elif prev_dash:
                     prev_dash = False
-                else:
+                elif bounded:
                     break
-            yield m.group(1), flags
+            yield verb, flags, bad
 
 
 def check_prove_flags(entries):
@@ -1028,7 +1087,9 @@ def check_prove_flags(entries):
         err(PARITY_RS, "is not readable, so no Prove command can be "
                        "admitted. TODO/gate.md T-1325.")
         return
-    admitted, refused_verbs, _ = got
+    admitted, refused_verbs, spellings, _ = got
+    cluster_values = parity_cluster_values()
+    boundary = parity_cluster_boundary()
     verbs = set(admitted) | set(refused_verbs)
     for k in PARITY_ROWS_OF:
         verbs.add(k)
@@ -1050,7 +1111,9 @@ def check_prove_flags(entries):
         while j < len(lines) and lines[j][:1] in (" ", "\t"):
             j += 1
         where = f"TODO/{e['file']}:{e['line'] + start}"
-        for verb, flags in prove_commands(lines[start:j]):
+        for verb, flags, bad in prove_commands(
+                lines[start:j], admitted, spellings, cluster_values,
+                boundary):
             if verb not in verbs:
                 if flags:
                     err(where,
@@ -1066,6 +1129,13 @@ def check_prove_flags(entries):
                     f"table refuses outright. A recorded acceptance that "
                     f"never ran is the failure this check exists to catch. "
                     f"TODO/gate.md T-1325.")
+                continue
+            if bad is not None:
+                err(where,
+                    f"({tid}) Prove names `{bad}` for `podbox {verb}`, "
+                    f"which has no row in the parity table: bundled shorts "
+                    f"expand by docker's rule and the member refuses by "
+                    f"name. TODO/gate.md T-1325.")
                 continue
             for flag in flags:
                 if flag not in admitted.get(under, set()):
@@ -1107,7 +1177,7 @@ def check_parity_notes():
     got = parity_admission()
     present = set()
     if got is not None:
-        admitted, _, _ = got
+        admitted, _, _, _ = got
         present = set(admitted)
     for m in PARITY_ROW.finditer(text):
         verb, spellings, _ = m.group(1), m.group(2), m.group(3)

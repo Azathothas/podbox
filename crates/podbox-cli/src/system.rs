@@ -143,6 +143,12 @@ pub fn system(args: &[String]) -> i32 {
 /// ⛔ Three exit codes and the third is not a failure: 0 admitted, 1 refused
 /// with the reason on stderr, 2 a file podbox could not read.
 pub fn abi(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, SYSTEM_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, SYSTEM_USAGE) {
         return c;
     }
@@ -198,6 +204,12 @@ pub fn abi(verb: &str, args: &[String]) -> i32 {
 }
 
 pub fn info(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, SYSTEM_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, SYSTEM_USAGE) {
         return c;
     }

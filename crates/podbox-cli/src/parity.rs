@@ -74,6 +74,116 @@ impl Row {
 
 use Status::{Degraded, Native, None as NoneStatus, Stub};
 
+/// Short flags that take a value, per rows-key (`rows_of` output).
+///
+/// Cluster expansion (TODO/cli.md T-1330) reads this and nothing else: a
+/// cluster member that takes a value consumes the rest of the cluster as
+/// its value, exactly as docker reads it. A short flag that takes a value
+/// and is missing here splits wrong (`stop -t5` would read `-t` plus an
+/// unknown `-5`), so adding a value-taking short means adding it here.
+/// `cluster_expands_docker_clusters` pins the rule; `check-todo.py` check
+/// 26 reads this same list, so the gate expands what the binary expands.
+pub const CLUSTER_VALUES: &[(&str, char)] = &[
+    ("run", 'e'),
+    ("run", 'w'),
+    ("run", 'u'),
+    ("exec", 'e'),
+    ("exec", 'w'),
+    ("exec", 'u'),
+    ("stop", 't'),
+    ("kill", 's'),
+    ("inspect", 'f'),
+    ("info", 'f'),
+    ("login", 'u'),
+    ("save", 'o'),
+    ("load", 'i'),
+];
+
+/// Rows-keys whose parsers stop at the image: everything past it is the
+/// payload's, dashes and all, so clusters stop there too. Every other
+/// verb reads its whole argv itself, and clusters expand anywhere in it.
+const CLUSTER_BOUNDARY: &[&str] = &["run", "exec"];
+
+/// Refuse a cluster member no row names, in `admit`'s wording.
+///
+/// Expansion happens before admission, so the member (not the cluster)
+/// is what has no row. The usage line matches `admit`'s: one refusal
+/// shape for one surface.
+pub fn refuse_member(verb: &str, member: &str, usage: &str) -> i32 {
+    eprintln!(
+        "podbox {verb}: unknown option {member:?}. It has no row in the parity \
+         table; `podbox system info` lists every flag this verb takes"
+    );
+    eprint!("{usage}");
+    podbox_image::error::EXIT_FLAG_ERROR
+}
+
+/// `-aq` becomes `-a -q`; a member that takes a value consumes the rest
+/// (`-t5` becomes `-t 5`, `-eFOO=bar` becomes `-e FOO=bar`,
+/// `-f{{.Id}}` becomes `-f {{.Id}}`); an unknown member refuses naming
+/// the member. Only the first member decides the shape: past a
+/// value-taking member the rest is opaque, past a value-less one every
+/// member is another flag. Verbs that stop at the image (`run`, `exec`)
+/// expand only before it: `run IMG -la` passes `-la` to the payload,
+/// exactly as their parsers do past the image name. Every other verb
+/// reads its whole argv, and clusters expand anywhere in it. Long flags,
+/// lone shorts, a lone `-`, and anything not opening with an
+/// alphanumeric short pass through for the parser (and `admit`) to judge
+/// as before: a value that starts with `-` must still use the `=` form.
+pub fn expand(verb: &str, args: &[String]) -> Result<Vec<String>, String> {
+    let under = rows_of(verb);
+    // A leading positional is the image (or the whole argv is podbox's):
+    // a value follows only its flag, so the walk starts past nothing.
+    let bounded = CLUSTER_BOUNDARY.contains(&under);
+    let mut prev_dash = !bounded;
+    let mut out = Vec::with_capacity(args.len());
+    let mut i = 0;
+    while i < args.len() {
+        let a = &args[i];
+        i += 1;
+        let bytes = a.as_bytes();
+        if bytes.len() > 2
+            && bytes[0] == b'-'
+            && bytes[1] != b'-'
+            && bytes[1].is_ascii_alphanumeric()
+        {
+            let mut members = a[1..].chars();
+            while let Some(c) = members.next() {
+                let one = format!("-{c}");
+                if CLUSTER_VALUES.contains(&(under, c)) {
+                    out.push(one);
+                    let rest = members.as_str();
+                    if !rest.is_empty() {
+                        out.push(rest.to_string());
+                    }
+                    break;
+                }
+                if !c.is_ascii_alphanumeric() || flag(under, &one).is_none() {
+                    return Err(one);
+                }
+                out.push(one);
+            }
+            prev_dash = false;
+            continue;
+        }
+        if a.starts_with('-') && a.len() > 1 {
+            out.push(a.clone());
+            prev_dash = true;
+            continue;
+        }
+        out.push(a.clone());
+        if prev_dash {
+            prev_dash = false;
+        } else if bounded {
+            // The image: the payload owns everything from here, clusters
+            // included.
+            out.extend(args[i..].iter().cloned());
+            break;
+        }
+    }
+    Ok(out)
+}
+
 /// ⛔ THE TABLE. Every verb podbox answers to and every flag it accepts, plus
 /// the docker verbs and flags it does not, each with the reason it does not.
 ///
@@ -258,7 +368,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "prune", flag: Some("-f, --force"), status: Stub, note: "accepted for parity: podbox never prompts, so there is nothing to suppress" },
     Row { verb: "prune", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "system", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "info", flag: Some("--format"), status: Native, note: "the same template shape as the other verbs, plus `json .Field` for a field that is a document" },
+    Row { verb: "info", flag: Some("-f, --format"), status: Native, note: "the same template shape as the other verbs, plus `json .Field` for a field that is a document" },
     Row { verb: "info", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "install-names", flag: Option::None, status: Native, note: "installs the docker, podman and podvm names as symlinks to this binary, refusing docker where a daemon answers unless --force (T-0803). Invoke it as `system install-names`" },
     Row { verb: "install-names", flag: Some("--dir"), status: Native, note: "install-names: where to put the symlinks. Default: the directory this binary is in" },
@@ -520,6 +630,68 @@ mod tests {
                 verb(r.verb).is_some(),
                 "{} has flags and no verb row",
                 r.verb
+            );
+        }
+    }
+
+    /// TODO/cli.md T-1330. Docker's cluster rule exactly: value-less
+    /// shorts split, a value-taking member consumes the rest, an unknown
+    /// member refuses naming the member. Longs, lone shorts and values
+    /// starting with `-` pass through untouched.
+    #[test]
+    fn cluster_expands_docker_clusters() {
+        let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(expand("ps", &v(&["-aq"])), Ok(v(&["-a", "-q"])));
+        assert_eq!(expand("run", &v(&["-it"])), Ok(v(&["-i", "-t"])));
+        // ⚠ Per verb: `-t` takes a value for `stop` and is a boolean for
+        // `run`, so the same spelling expands two ways.
+        assert_eq!(expand("stop", &v(&["-t5"])), Ok(v(&["-t", "5"])));
+        assert_eq!(
+            expand("run", &v(&["-eFOO=bar", "img"])),
+            Ok(v(&["-e", "FOO=bar", "img"]))
+        );
+        // ⛔ Unknown member refuses naming the member, not the cluster.
+        assert_eq!(expand("ps", &v(&["-aZ"])), Err("-Z".to_string()));
+        assert_eq!(expand("ps", &v(&["-Zq"])), Err("-Z".to_string()));
+        // Untouched: longs, lone shorts, `-`, values. A digit member is
+        // an unknown member, exactly as docker reads it.
+        assert_eq!(
+            expand("ps", &v(&["--format", "x", "-a", "-", "img"])),
+            Ok(v(&["--format", "x", "-a", "-", "img"]))
+        );
+        assert_eq!(expand("ps", &v(&["-a1"])), Err("-1".to_string()));
+        // ⚠ Past a value-taking member the rest is opaque, braces and
+        // all: the template never parses as members.
+        assert_eq!(
+            expand("inspect", &v(&["-f{{.Id}}", "img"])),
+            Ok(v(&["-f", "{{.Id}}", "img"]))
+        );
+        // ⚠ The image boundary: `run` and `exec` stop expanding past
+        // it, so payload flags reach the payload. Every other verb
+        // reads its whole argv, and clusters expand anywhere in it.
+        assert_eq!(
+            expand("run", &v(&["-it", "img", "ls", "-la"])),
+            Ok(v(&["-i", "-t", "img", "ls", "-la"]))
+        );
+        assert_eq!(
+            expand("stop", &v(&["c1", "-t5"])),
+            Ok(v(&["c1", "-t", "5"]))
+        );
+        // ⚠ `create` is served by `run`'s parser, so it expands by run's rows.
+        assert_eq!(expand("create", &v(&["-it"])), Ok(v(&["-i", "-t"])));
+    }
+
+    /// ⛔ `CLUSTER_VALUES` is the one declaration of which shorts take
+    /// values. A member listed here with no table row would expand into a
+    /// flag `admit` then refuses as unknown, so the list is held to the
+    /// table it expands against.
+    #[test]
+    fn every_cluster_value_has_a_table_row() {
+        for (under, c) in CLUSTER_VALUES {
+            let one = format!("-{c}");
+            assert!(
+                flag(under, &one).is_some(),
+                "{under} takes a value for `{one}` with no table row"
             );
         }
     }

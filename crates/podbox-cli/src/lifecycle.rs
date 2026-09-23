@@ -125,6 +125,18 @@ pub fn create(args: &[String]) -> i32 {
 
 /// `podbox start <container>...`
 pub fn start(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("start", args) {
+        Ok(a) => a,
+        Err(member) => {
+            return crate::parity::refuse_member(
+                "start",
+                &member,
+                "usage: podbox start <container> [container...]",
+            )
+        }
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(
         "start",
         args,
@@ -201,6 +213,13 @@ pub fn start(args: &[String]) -> i32 {
 
 /// `podbox ps`
 pub fn ps(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission, so
+    // `ps -aq` reads as `-a -q` everywhere below.
+    let expanded = match crate::parity::expand("ps", args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member("ps", &member, PS_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all("ps", args, PS_USAGE) {
         return c;
     }
@@ -380,6 +399,12 @@ fn parse_logs(args: &[String]) -> std::result::Result<LogsArgs, i32> {
 
 /// `podbox logs [-f|--follow] <container>`
 pub fn logs(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("logs", args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member("logs", &member, LOGS_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all("logs", args, LOGS_USAGE) {
         return c;
     }
@@ -414,6 +439,18 @@ pub fn logs(args: &[String]) -> i32 {
 
 /// `podbox stop [-t N] <container>...`
 pub fn stop(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: `stop -t5` reads as `-t 5` before admission.
+    let expanded = match crate::parity::expand("stop", args) {
+        Ok(a) => a,
+        Err(member) => {
+            return crate::parity::refuse_member(
+                "stop",
+                &member,
+                "usage: podbox stop [-t seconds] <container> [container...]",
+            )
+        }
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(
         "stop",
         args,
@@ -481,6 +518,18 @@ pub fn stop(args: &[String]) -> i32 {
 
 /// `podbox kill [-s SIG] <container>...`
 pub fn kill(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("kill", args) {
+        Ok(a) => a,
+        Err(member) => {
+            return crate::parity::refuse_member(
+                "kill",
+                &member,
+                "usage: podbox kill [-s SIGNAL] <container> [container...]",
+            )
+        }
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(
         "kill",
         args,
@@ -564,6 +613,18 @@ fn signal_number(v: &str) -> Option<i32> {
 
 /// `podbox wait <container>...`
 pub fn wait(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("wait", args) {
+        Ok(a) => a,
+        Err(member) => {
+            return crate::parity::refuse_member(
+                "wait",
+                &member,
+                "usage: podbox wait <container> [container...]",
+            )
+        }
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(
         "wait",
         args,
@@ -615,6 +676,18 @@ pub fn wait(args: &[String]) -> i32 {
 
 /// `podbox rm [-f] <container>...`
 pub fn rm(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("rm", args) {
+        Ok(a) => a,
+        Err(member) => {
+            return crate::parity::refuse_member(
+                "rm",
+                &member,
+                "usage: podbox rm [-f|--force] <container> [container...]",
+            )
+        }
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(
         "rm",
         args,
@@ -719,6 +792,12 @@ fn parse_cp(args: &[String]) -> std::result::Result<CpArgs, i32> {
 
 /// `podbox cp <src> <dest>`, where one side is `<container>:<path>`.
 pub fn cp(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("cp", args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member("cp", &member, CP_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all("cp", args, CP_USAGE) {
         return c;
     }

@@ -412,6 +412,13 @@ case_plant "26c a done Prove running a refused verb" "refuses outright" \
 case_plant "26d a done Prove running an unknown verb" "is no verb" \
   sh -c 'sed -i "s/podbox probe --strict/podbox frobnicate --strict/" TODO/probe.md'
 
+# ⚠ Check 26 learned clusters in T-1330, and the member arm fails apart
+# from the whole-flag arms: only a bad member inside an otherwise fine
+# cluster reaches it. The plant stages a scratch done entry, the same
+# shape the gate itself was verified against during review.
+case_plant "26e a done Prove with a bad cluster member" "Prove names \`-Z\`" \
+  sh -c 'printf "\n---\n\n### T-9998 Cluster plant\n\nSource: plant\nCategory: probe\nPriority: P3\nEffort: S\nStatus: done\n\nProblem: plant\nPremise: plant\nApproach: plant\nDecision: plant\nProve: \`podbox ps -aZ\`\n\n**Done.** plant.\n" >> TODO/probe.md'
+
 # ⚠ Check 27 has two cases because its two arms fail apart: a milestone a
 # shipped release already passed, and a verb the table carries, named
 # missing. Both plants land in crates/podbox-cli/src/parity.rs, added to

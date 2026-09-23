@@ -153,6 +153,17 @@ fn main() -> std::process::ExitCode {
         Some("system") => exit(system::system(rest)),
         Some("info") => exit(system::info("info", rest)),
         Some("version") | Some("--version") | Some("-v") => {
+            // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+            let rest: &[String] = &match crate::parity::expand("version", rest) {
+                Ok(a) => a,
+                Err(member) => {
+                    return exit(crate::parity::refuse_member(
+                        "version",
+                        &member,
+                        "usage: podbox version [--verbose]",
+                    ))
+                }
+            };
             let mut verbose = false;
             for a in rest {
                 if a == "-h" || a == "--help" {
@@ -266,6 +277,12 @@ fn image_group(args: &[String]) -> i32 {
 }
 
 fn probe(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand("probe", args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member("probe", &member, PROBE_USAGE),
+    };
+    let args: &[String] = &expanded;
     let mut json = false;
     let mut rows = false;
     let mut cached = false;

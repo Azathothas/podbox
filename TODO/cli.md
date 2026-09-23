@@ -913,7 +913,7 @@ Source:      issue 27, client beta testing 2026-09-22 (`ps -aq`,
 Category:    cli
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     Combined short flags are refused: `ps -aq` and `run -it`
              answer `unknown option` with 125. Docker callers write
@@ -936,6 +936,26 @@ Prove:       `ps -aq`, `run -it` (and a cluster with an unknown member,
              issue 27 (bundling third) with a comment showing the runs
              and the single parser path as the guard that stops
              recurrence.
+
+**Done, 2026-09-23.** One rule, `parity::expand`, called at the top of
+every flag-taking verb before admission: value-less shorts split
+(`ps -aq`, `run -it`), a value-taking member consumes the rest
+(`stop -t5`, `-eFOO=bar`, `-f{{.Id}}`), an unknown member refuses
+naming the member. The value-taking shorts live once in
+`CLUSTER_VALUES`, held to the table by unit test; verbs that stop at
+the image (`run`, `exec`, in `CLUSTER_BOUNDARY`) expand only before
+it, so `run IMG -la` still reaches the payload. The first lane run
+caught the boundary missing (payload clusters refused) and the
+opaque value rest (`-eFOO=bar` passed through); both fixed and
+pinned by unit test. Prune's local `a`/`f` splitter is gone, replaced
+by the shared rule, and check 26 expands the same way from the same
+lists, with its own plant case. The work also found one dead arm:
+`system info` accepted `-f` with no table row; the row carries both
+spellings now. Lane prove `.tmp/pb-w30-prove.sh`, verdict `fail=0`:
+cluster units by exact name, the pre-existing flag tests unchanged,
+clippy clean, `ps -aq`, `run -it`, `inspect -f` and `ls -la` through
+a payload green, `-aZ` refusing 125 naming `-Z`. The guard is the
+single expansion path plus check 26's mirror.
 
 ---
 

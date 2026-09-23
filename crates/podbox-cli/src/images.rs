@@ -150,6 +150,12 @@ usage: podbox inspect [--format T] <image> [image...]
 
 /// `podbox pull`.
 pub fn pull(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, PULL_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, PULL_USAGE) {
         return c;
     }
@@ -254,6 +260,12 @@ struct Options {
 
 /// `podbox images`.
 pub fn images(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, IMAGES_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, IMAGES_USAGE) {
         return c;
     }
@@ -366,6 +378,12 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
 
 /// `podbox rmi` and `podbox image rm`.
 pub fn rmi(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, RMI_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, RMI_USAGE) {
         return c;
     }
@@ -454,6 +472,12 @@ pub fn rmi(verb: &str, args: &[String]) -> i32 {
 
 /// `podbox tag`.
 pub fn tag(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, TAG_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, TAG_USAGE) {
         return c;
     }
@@ -505,6 +529,12 @@ usage: podbox login [-u|--username USER] [--password-stdin] [SERVER]
 
 /// `podbox login`.
 pub fn login(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, LOGIN_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, LOGIN_USAGE) {
         return c;
     }
@@ -623,20 +653,13 @@ fn parse_login_args(verb: &str, args: &[String]) -> Result<LoginArgs, i32> {
 /// `podbox image prune`.
 pub fn prune(verb: &str, args: &[String]) -> i32 {
     let mut all = false;
-    // docker clusters argless shorts (`-af`); expand before the table sees
-    // the flag, or a listed spelling reads as unlisted. T-0808.
-    let mut expanded: Vec<String> = Vec::new();
-    for a in args {
-        if a.starts_with('-')
-            && !a.starts_with("--")
-            && a.len() > 2
-            && a[1..].chars().all(|c| c == 'a' || c == 'f')
-        {
-            expanded.extend(a[1..].chars().map(|c| format!("-{c}")));
-        } else {
-            expanded.push(a.clone());
-        }
-    }
+    // ⭐ TODO/cli.md T-1330. Bundled shorts expand by the one shared rule
+    // (`parity::expand`) before the table sees them; the local `a`/`f`
+    // splitter this replaces knew only those two members.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, PRUNE_USAGE),
+    };
     if let Some(c) = crate::parity::admit_all(verb, &expanded, PRUNE_USAGE) {
         return c;
     }
@@ -648,8 +671,8 @@ pub fn prune(verb: &str, args: &[String]) -> i32 {
             }
             "-a" | "--all" => all = true,
             "-f" | "--force" => {}
-            // docker takes `-af` as one cluster, and the acceptance in
-            // TODO/image.md T-0204 writes it that way.
+            // docker takes `-af` as one cluster, expanded above by the
+            // shared rule (TODO/cli.md T-1330).
             other if other.starts_with('-') => {
                 if let Err(c) = crate::parity::admit(verb, other, PRUNE_USAGE) {
                     return c;
@@ -727,6 +750,12 @@ pub fn prune(verb: &str, args: &[String]) -> i32 {
 /// otherwise be implemented with nothing able to exercise it until another
 /// milestone lands. That is how a component ships untested.
 pub fn extract(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, EXTRACT_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, EXTRACT_USAGE) {
         return c;
     }
@@ -1032,6 +1061,12 @@ fn parse_import(args: &[String]) -> std::result::Result<ImportArgs, i32> {
 }
 
 pub fn save(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, SAVE_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, SAVE_USAGE) {
         return c;
     }
@@ -1095,6 +1130,12 @@ pub fn save(verb: &str, args: &[String]) -> i32 {
 }
 
 pub fn load(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, LOAD_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, LOAD_USAGE) {
         return c;
     }
@@ -1151,6 +1192,12 @@ pub fn load(verb: &str, args: &[String]) -> i32 {
 }
 
 pub fn import(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, IMPORT_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, IMPORT_USAGE) {
         return c;
     }
@@ -1224,6 +1271,12 @@ fn parse_verify(args: &[String]) -> std::result::Result<VerifyArgs, i32> {
 }
 
 pub fn verify(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, VERIFY_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, VERIFY_USAGE) {
         return c;
     }
@@ -1314,6 +1367,12 @@ fn print_provenance(store: &Store, record: &podbox_image::Record) {
 }
 
 pub fn inspect(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, INSPECT_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, INSPECT_USAGE) {
         return c;
     }

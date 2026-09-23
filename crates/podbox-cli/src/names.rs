@@ -173,6 +173,12 @@ usage: podbox system install-names [--dir D] [--force] [name...]
 ";
 
 pub fn install(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, INSTALL_USAGE),
+    };
+    let args: &[String] = &expanded;
     if let Some(c) = crate::parity::admit_all(verb, args, INSTALL_USAGE) {
         return c;
     }

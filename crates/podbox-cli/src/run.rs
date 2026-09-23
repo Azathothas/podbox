@@ -159,6 +159,17 @@ struct Opts {
 /// `create` is served here too, and every message this function writes has to
 /// name what the caller ran.
 fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
+    // ⭐ TODO/cli.md T-1330. Bundled shorts expand here, once, for `run`
+    // and for `create`, which this parser serves: admission below then sees
+    // one flag per argument, exactly as a caller spelling them out.
+    let expanded;
+    let args = match crate::parity::expand(verb, args) {
+        Ok(a) => {
+            expanded = a;
+            &expanded
+        }
+        Err(member) => return Err(crate::parity::refuse_member(verb, &member, &usage(verb))),
+    };
     let mut o = Opts {
         rm: false,
         detach: false,
