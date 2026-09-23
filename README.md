@@ -9,11 +9,10 @@ choosing an execution rung, and names every degradation it cannot avoid.
 
 ## Status
 
-Milestones M0 through M5 are implemented: probing, image acquisition,
-ownership-neutral extraction, constrained entry, lifecycle supervision, and
-environment completion. M6, ownership virtualization through a per-libc
-interposer, is partial. M7 packaging has not started.
-
+Milestones M0 through M8 are implemented and the machine tier holds its
+probe: probing, image acquisition, ownership-neutral extraction,
+constrained entry, lifecycle supervision, environment completion,
+ownership virtualization through a per-libc interposer, and packaging.
 The current tree is useful for development and controlled experiments. It is
 not a general container isolation boundary and it is not release-complete. See
 [`TODO/PROGRESS.md`](TODO/PROGRESS.md) for the live work order and open limits.
@@ -24,11 +23,17 @@ On Linux:
 
 ```sh
 ./scripts/common/bootstrap-env.sh rust bloat cc zig tools
+./scripts/build-interpose.sh
 cargo build --release --target x86_64-unknown-linux-musl
 ./target/x86_64-unknown-linux-musl/release/podbox probe
 ./target/x86_64-unknown-linux-musl/release/podbox pull alpine:latest
 ./target/x86_64-unknown-linux-musl/release/podbox run alpine:latest /bin/echo hello
 ```
+
+The interposer build comes before the Cargo build because the objects are
+embedded in the binary: without them it still runs, but the interpose rung
+declines every dynamic payload by name. `podbox system info` reports what a
+binary carries.
 
 For repository work, the fast path starts the environment and build in the
 background:
@@ -46,6 +51,20 @@ libc:
 ./scripts/build-interpose.sh
 ```
 
+## Which rung a host gets
+
+`podbox probe` decides, and `run` follows it. Three cases cover most hosts:
+
+| `probe` says | `run` does |
+| --- | --- |
+| namespace creation, mounts and ID maps all succeed | the `namespace` rung: the only rung with namespace isolation |
+| namespaces denied, `chroot(/tmp)` succeeds | the `chroot` rung family: path resolution changes, the kernel is shared |
+| `chroot(/tmp)` denied | refusal naming `chroot(2)` before anything runs; the machine tier, which never chroots, is unaffected |
+
+Entry reports the rung it actually achieved, so a planned stronger mechanism
+never silently becomes a weaker one. None of the rungs below `namespace` is a
+security boundary against a hostile payload.
+
 ## Guarantees and limits
 
 - Every claimed execution rung is derived from probes, not from uid or a build
@@ -58,7 +77,8 @@ libc:
   exits with a named refusal.
 - The chroot and interpose rungs share the host kernel and are not security
   boundaries against a hostile payload.
-- Registry authentication is not implemented. Foreign-architecture execution
+- Registry `login` writes `~/.docker/config.json` (or the named credential
+  helper) with the password on stdin; `logout` is not implemented. Foreign-architecture execution
   depends on host `binfmt_misc` and QEMU support.
 
 The complete product contract is the pinned

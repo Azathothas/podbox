@@ -1163,7 +1163,7 @@ Source:      issues 18 and 22, client beta testing 2026-09-22 (quick
 Category:    complete
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     Four README defects, all confirmed on this tree. The quick
              start omits `scripts/build-interpose.sh`, so a first-run
@@ -1196,3 +1196,19 @@ Prove:       `grep` finds none of the four old sentences, and a reader
              and 22 with comments showing the commands and the four
              corrected lines as the guard (a stale-README check is future
              work, named, not claimed).
+
+**Done, 2026-09-23.** Four edits in place: `build-interpose.sh`
+moves before `cargo build` with the line on what a binary without
+embedded objects can and cannot do (pointing at `podbox system
+info`); a three-case rung table keyed on `probe` output (namespace
+host, chroot-capable host, chroot-denied host); the Status paragraph
+regenerated from `TODO/PROGRESS.md` (M0 through M8 implemented); the
+auth line replaced with the actual unsupported scope (`login`
+Native, `logout` not implemented). Prove, lane job
+`.tmp/pb-w24-prove.sh`, verdict `fail=0`: on a fresh container the
+verbatim quick start runs green, a Debian dynamic payload runs with
+rc 0 and no `declined` anywhere, and `system info` reports `glibc
+and musl objects embedded`. Host greps: `M7 packaging has not
+started` and `Registry authentication is not implemented` both
+absent, `build-interpose.sh` before `cargo build`. The guard is the
+named future stale-README check, not claimed here.
