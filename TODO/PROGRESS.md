@@ -139,15 +139,21 @@ and the T-1109 close, and a doc sweep that found no stale claim (the
 README status, the architecture page and the containers page all still
 read true; `check-docs` green).
 
+`v0.1.0-beta.7` is tagged at the non-tag commit `4f087d0`, whose gate
+CI is green (run 36117430690, success). The nightly (run 36117747572)
+concluded success with all seven legs green plus the publish job, and
+the pre-release named nightly carries twenty-one assets: seven
+binaries, seven hashes, seven bundles. `sh scripts/verify-release.sh
+v0.1.0-beta.7 x86_64` and the aarch64 leg each exit 0 with `Verified
+OK`; the notes, read back through the release API, carry the build
+commit, the gate success with its run URL, and the reproducibility
+boundary line.
+
 ## Current work order
 
-1. Tag `v0.1.0-beta.7` as a nightly pre-release (ruled 2026-09-25),
-   through the beta.6 pipeline unchanged: the non-tag work is done
-   ([T-1109](milestones.md) closed, polish in), tag only when its
-   gate is green, then the bundles verify and the notes carry the
-   gate state plus the boundary, each read back.
-2. Work unattended; push straight to `main` with no branches.
-   Nothing else is open, and nothing is blocked.
+Nothing is open. 165 entries are done, no issue is open, and the final
+beta `v0.1.0-beta.7` is published and verified. The next session takes
+whatever the operator orders.
 
 [T-0206](image.md) has its fixture technology: `zot` as one pinned
 binary plus config, storage dir, generated cert and htpasswd file,
@@ -166,8 +172,9 @@ mutating clause prints the line it WROTE as well as the line it matched.
 
 ## In progress
 
-The non-tag change (T-1109 close plus polish) is committed below and
-awaits its gate before the `v0.1.0-beta.7` tag.
+Nothing half-written. The teardown is done: the kept lane job
+containers went through `gc --apply`, session scratch is removed,
+and the tree is clean with the gate green.
 
 ## Operator questions
 
