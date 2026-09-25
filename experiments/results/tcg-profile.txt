@@ -1,0 +1,172 @@
+== conditions
+date              2026-09-25T14:15:28Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+bootstrap         ok
+interpose         ok
+build             ok
+podbox            podbox 0.1.0-beta.7
+qemu              absent: installing qemu-system-x86
+qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3) (installed)
+kvm               absent (TCG lane)
+probe exit        0
+refusal           null
+profile           tcg
+accel lists       tcg
+denied            open(/dev/kvm, O_RDWR)
+denied            open(/dev/net/tun, O_RDWR)
+
+== evidence
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox probe
+exit              0
+output:
+  supervise
+  podbox 0.1.0-beta.7: mode=supervise (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: anything whose arguments it cannot read; on this runtime, exec remapping
+  
+  identity
+    uid=0 gid=0 groups=[]
+    /proc/self/uid_map: 0 1000 1; 1 100000 65536
+    /proc/self/gid_map: 0 1000 1; 1 100000 65536
+    /proc/self/setgroups: allow
+    CapEff: 00000000800405fb
+    Seccomp: 2
+    Seccomp_filters: 1
+    NoNewPrivs: 0
+    Threads: 1
+  
+  mounts, as four verdicts and not one
+    create     denied EPERM
+    configure  skip (EPERM)
+    attach     skip (EPERM)
+    use        skip (EPERM)
+  
+  writable, by writing
+    /tmp                       ok       247743077 blocks of 4096 B free, 66830707 inodes free  [the candidate list]
+    /dev/shm                   ok       16000 blocks of 4096 B free, 4082283 inodes free  [the candidate list]
+    /workspace                 skip (ENOENT) statfs: ENOENT (2)  [the candidate list]
+    /state                     skip (ENOENT) statfs: ENOENT (2)  [the candidate list]
+    /var/tmp                   ok       247743077 blocks of 4096 B free, 66830707 inodes free  [the candidate list]
+    /run                       ok       247743077 blocks of 4096 B free, 66830707 inodes free  [the candidate list]
+    /work/experiments/.sweep357-work/store ok       247743077 blocks of 4096 B free, 66830707 inodes free  [$PODBOX_STORE]
+    /root                      ok       247743077 blocks of 4096 B free, 66830707 inodes free  [$HOME]
+    /work                      ok       247743077 blocks of 4096 B free, 66830707 inodes free  [the working directory]
+  
+  controls for the bogus-argument discriminator
+    pidfd_getfd(-1,-1) [control]       FAIL errno=9 EBADF
+    kcmp(-1,-1,...) [control]          FAIL errno=1 EPERM
+    refused: kcmp(-1,-1,...) [control] answered EPERM where the discriminator needs ESRCH; it has stopped separating a filter from a policy
+    refused: a probe whose control has stopped answering has stopped
+       discriminating. Read the mechanism attributions below as unconfirmed.
+  
+  spawn, and the two calls behind one string
+    A Go payload that spawns a child fails `fork/exec <path>: operation not permitted` whether the clone or the setgroups met the denial.
+    clone(CLONE_NEWNS) here: denied EPERM. setgroups(0,NULL) here: ok.
+    A payload that sets clone flags meets the clone denial here.
+    Setgroups is clear here, so a failing spawn did not meet it.
+  
+  rungs considered and not reached
+    namespace    needs namespace creation and mounts and ID maps for what was asked
+                   got  unshare(CLONE_NEWNS)=EPERM clone(CLONE_NEWNS)=EPERM mount(tmpfs,/mnt)=EPERM mount(tmpfs,/mnt) in clone(NEWNS)=skip
+  
+  could not run. refused: None of these is a denial, and none of them was
+  counted as one when the rung above was chosen.
+    sethostname(in NEWUTS)
+        clone(2) with flags 0x4000000 was refused, so the namespace this probe needs was never entered and the operation was never attempted
+    mount(tmpfs,/mnt) in clone(NEWNS)
+        clone(2) with flags 0x20000 was refused, so the namespace this probe needs was never entered and the operation was never attempted
+    mount(MS_SLAVE,/) in clone(NEWNS)
+        clone(2) with flags 0x20000 was refused, so the namespace this probe needs was never entered and the operation was never attempted
+    write into uid-1000-owned dir
+        no fixture directory owned by an unmapped id: neither /workspace/.fixtures/squash-probe nor /tmp/squash-probe exists. Create one as another uid outside the confinement.
+    fsmount(tmpfs)
+        fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted
+    move_mount(-> bogus dest)
+        fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted
+    move_mount(-> /tmp/mm-probe)
+        fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted
+    openat(detached tmpfs, O_DIRECTORY)
+        fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted
+  
+  probe children were re-executed from /proc/self/exe
+  
+  machine, one leg per fact
+    qemu-system-x86_64 --version       OK
+    open(/dev/kvm, O_RDWR)             FAIL errno=2 ENOENT
+    prlimit(RLIMIT_FSIZE)              OK
+    open(/dev/net/tun, O_RDWR)         FAIL errno=2 ENOENT
+    image space (statfs .)             OK
+    qemu-system-x86_64 -accel help     OK
+    profile: tcg (the emulator process is the boundary, not hardware isolation; no /dev/net/tun: user-mode networking)
+  
+  supervise, one leg per fact
+    seccomp(NEW_LISTENER) [supervise]  OK
+    process_vm_readv(own pid) [supervise] OK
+    ptrace(PTRACE_TRACEME) [supervise] OK
+    the tier holds: every leg ok
+  
+  non-goals, one stance per blocked design
+    tcp listener open here: bind(127.0.0.1:0)+listen permitted
+    refused: kvm acceleration refused: open(/dev/kvm, O_RDWR)=ENOENT; no KVM here; the machine tier runs TCG
+    refused: runc-style oci refused: clone(CLONE_NEWUTS)=EPERM unshare(CLONE_NEWNS)=EPERM; namespaces denied here; podbox runs the chroot rung instead
+    user-mode linux guest open here: ptrace(PTRACE_TRACEME) permitted
+    uid_map identity switch open here: setuid(1000) setgroups(0,NULL) permitted
+    guest file over the ceiling open here: no per-file ceiling on this machine
+
+== tier-run
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --podbox-tier=machine never-pulled-357:tag /bin/true
+exit              125
+output:
+  podbox run: the machine tier runs TCG on this machine: the emulator process is the boundary, not hardware isolation. /dev/net/tun is missing, so guests use user-mode networking. Running a guest arrives with TODO/podvm.md T-1303 and T-1304
+
+== tier-pvm
+command           /work/experiments/.sweep357-work/podvm run never-pulled-357:tag /bin/true
+exit              125
+output:
+  podbox: invoked as `podvm`. This is podbox 0.1.0-beta.7, selecting the machine tier; --podbox-tier=chroot runs the chroot tier instead (TODO/podvm.md T-1302)
+  podbox run: the machine tier runs TCG on this machine: the emulator process is the boundary, not hardware isolation. /dev/net/tun is missing, so guests use user-mode networking. Running a guest arrives with TODO/podvm.md T-1303 and T-1304
+
+== tier-noemu
+command           env PATH=/work/experiments/.sweep357-work/empty-path PODBOX_STORE=/work/experiments/.sweep357-work/store-noemu /work/target/x86_64-unknown-linux-musl/debug/podbox run --podbox-tier=machine never-pulled-357:tag /bin/true
+exit              125
+output:
+  podbox run: machine tier refused: qemu-system-x86_64 --version=skip: no qemu-system-x86_64 on PATH, so the emulator leg could not run open(/dev/kvm, O_RDWR)=ENOENT qemu-system-x86_64 -accel help=skip: no qemu-system-x86_64 on PATH, so the accelerator list could not be read
+== conditions
+date              2026-09-25T14:19:13Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0-beta.7
+qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
+image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
+boot timeout      180 s
+curl timeout      60 s
+
+== 1. pull and extract the pinned image
+  ok: rootfs at /work/experiments/.sweep146-work/store/rootfs/sha256_3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764/rootfs
+  ok: the rootfs carries a guest-executable /bin/sh
+
+== 2. the base archive
+  base: 8365568 bytes
+
+== 3. the appended archive: console node and init override
+  full: 8366168 bytes
+
+== 4. the console node is in the appended archive
+  ok: dev/console is in the appended archive
+
+== 5. boot under TCG to the marker
+/work/experiments/.sweep146-work/vmlinuz-virt: OK
+  qemu rc=124 (124 is the halt the spec records: poweroff halts on pc,acpi=off)
+  ok: the guest printed VMR-GUEST-READY
+
+== 6. a stalled origin proves the fetch ceiling
+  ok: the stalled origin exited 28 inside 10 s
+
+146 acceptance: the assembly boots and the node is in it
+
+written to experiments/results/podvm-initramfs.txt
+boot              VMR-GUEST-READY through TCG
+
+verdict           TCG PROFILE RUNS

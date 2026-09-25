@@ -209,9 +209,9 @@ pub fn evidence(f: &Findings, sel: &Selection) -> String {
     out
 }
 
-/// TODO/podvm.md T-1301's legs, one per fact, with the tier's refusal where
-/// any leg is missing. The verdicts are the rows that ran; the refusal names
-/// the legs that did not hold.
+/// TODO/podvm.md T-1301's legs, one per fact, with the tier's profile or
+/// its refusal. The verdicts are the rows that ran; a profile names what
+/// runs, and the refusal names the legs blocking every profile.
 fn machine_block(f: &Findings) -> String {
     let mach = crate::machine::assess(f);
     let mut out = String::from("\nmachine, one leg per fact\n");
@@ -221,9 +221,25 @@ fn machine_block(f: &Findings) -> String {
             None => out.push_str(&format!("  {name:<34} (not probed)\n", name = leg.name)),
         }
     }
-    match mach.refusal() {
-        Some(r) => out.push_str(&format!("  refused: {r}\n")),
-        None => out.push_str("  the tier holds: every leg ok\n"),
+    match mach.profile {
+        Some(crate::machine::Profile::Full) => out.push_str("  the tier holds: every leg ok\n"),
+        Some(crate::machine::Profile::Tcg) => {
+            // ⛔ The TCG boundary is the emulator process, never hardware
+            // isolation, and tun decides the network shape. Both are said
+            // here, on every TCG run, not just where they are missing.
+            let net = if mach.tun_ok() {
+                "/dev/net/tun holds"
+            } else {
+                "no /dev/net/tun: user-mode networking"
+            };
+            out.push_str(&format!(
+                "  profile: tcg (the emulator process is the boundary, not hardware isolation; {net})\n"
+            ));
+        }
+        None => match mach.refusal() {
+            Some(r) => out.push_str(&format!("  refused: {r}\n")),
+            None => out.push_str("  refused: machine tier refused\n"),
+        },
     }
     out
 }
@@ -544,12 +560,14 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
     });
 
     // ⭐ TODO/podvm.md T-1301. The machine tier's legs, one per fact, each
-    // with the verdict the run established. A leg whose row is absent --
-    // a document written before the legs existed -- carries a null verdict,
-    // which is missing rather than any verdict, so a stale cache cannot
-    // read as a measured tier.
+    // with the verdict the run established, and the profile they
+    // establish (`full`, `tcg`, or null where no profile runs). A leg
+    // whose row is absent -- a document written before the legs existed
+    // -- carries a null verdict, which is missing rather than any
+    // verdict, so a stale cache cannot read as a measured tier.
     let mach = crate::machine::assess(f);
     let refusal = mach.refusal();
+    let profile = mach.profile.map(|p| p.word());
     // ⭐ TODO/supervise.md T-0606, assessed beside the machine tier so the
     // document carries one `tiers` object and not two writers of one key.
     let sup = crate::supervise::assess(f);
@@ -578,6 +596,7 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
                 }
             });
             m.opt_str("refusal", refusal.as_deref());
+            m.opt_str("profile", profile);
         });
         t.obj("supervise", |m| {
             m.arr("legs", |a| {
@@ -763,11 +782,22 @@ mod tests {
 
     /// Six machine legs, all clear. Synthetic, so the shape is asserted
     /// without depending on whether this machine carries an emulator.
+    /// The accel leg carries the producer's list format, like a real
+    /// run: an `Ok` without a list promises no accelerator.
     fn machine_ok() -> Findings {
         Findings {
             rows: crate::probes::MACHINE_LEGS
                 .iter()
-                .map(|&name| (name, crate::verdict::Outcome::ok()))
+                .map(|&name| {
+                    if name == "qemu-system-x86_64 -accel help" {
+                        (
+                            name,
+                            crate::verdict::Outcome::ok_with("accelerators: kvm tcg"),
+                        )
+                    } else {
+                        (name, crate::verdict::Outcome::ok())
+                    }
+                })
                 .collect(),
             ..Findings::empty()
         }
@@ -788,6 +818,7 @@ mod tests {
         assert!(doc.contains("\"group\":\"machine\""), "{doc}");
         assert!(!doc.contains("\"verdict\":null"), "{doc}");
         assert!(doc.contains("\"refusal\":null"), "{doc}");
+        assert!(doc.contains("\"profile\":\"full\""), "{doc}");
     }
 
     #[test]
@@ -802,6 +833,7 @@ mod tests {
         assert_eq!(doc.matches("\"verdict\":null").count(), 9, "{doc}");
         assert!(doc.contains("machine tier refused"), "{doc}");
         assert!(doc.contains("supervise tier refused"), "{doc}");
+        assert!(doc.contains("\"profile\":null"), "{doc}");
         let refusal = field(&doc, "refusal").expect("a refusal string");
         assert!(refusal.contains("machine tier refused"), "{refusal}");
         assert!(refusal.contains("(not probed)"), "{refusal}");
@@ -836,7 +868,9 @@ mod tests {
     }
 
     #[test]
-    fn the_evidence_names_the_missing_machine_leg() {
+    fn the_evidence_names_the_tcg_profile_where_kvm_is_denied() {
+        // The lane shape: kvm absent, the emulator listing tcg. No
+        // refusal prints; the profile and the denied leg do.
         let mut f = machine_ok();
         f.rows[1] = (
             "open(/dev/kvm, O_RDWR)",
@@ -845,8 +879,35 @@ mod tests {
         let sel = Selection::choose(&f);
         let e = evidence(&f, &sel);
         assert!(e.contains("machine, one leg per fact"), "{e}");
+        assert!(e.contains("profile: tcg"), "{e}");
+        assert!(e.contains("not hardware isolation"), "{e}");
+        assert!(e.contains("open(/dev/kvm, O_RDWR)=ENOENT"), "{e}");
+        assert!(!e.contains("machine tier refused"), "{e}");
+        let doc = document(&f, &sel);
+        assert!(doc.contains("\"profile\":\"tcg\""), "{doc}");
+        assert!(doc.contains("\"refusal\":null"), "{doc}");
+    }
+
+    #[test]
+    fn the_evidence_refuses_where_no_accelerator_holds() {
+        // Neither leg of acceleration: the node denied and tcg unlisted.
+        // The refusal names both, in run order.
+        let mut f = machine_ok();
+        f.rows[1] = (
+            "open(/dev/kvm, O_RDWR)",
+            crate::verdict::Outcome::denied(crate::sys::ENOENT),
+        );
+        f.rows[5] = (
+            "qemu-system-x86_64 -accel help",
+            crate::verdict::Outcome::ok_with("accelerators: kvm"),
+        );
+        let sel = Selection::choose(&f);
+        let e = evidence(&f, &sel);
         assert!(e.contains("machine tier refused"), "{e}");
         assert!(e.contains("open(/dev/kvm, O_RDWR)=ENOENT"), "{e}");
+        assert!(e.contains("tcg not listed"), "{e}");
+        let doc = document(&f, &sel);
+        assert!(doc.contains("\"profile\":null"), "{doc}");
     }
 
     /// Every row T-1306 cites, all clear. Synthetic, so the shape is

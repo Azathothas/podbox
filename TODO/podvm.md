@@ -45,7 +45,7 @@ Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec docume
 Category:    podvm
 Priority:    P0
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     podbox reports a rung and never claims a stronger one than it
              achieved. The machine tier has no probe at all, so `podvm` today
@@ -93,7 +93,12 @@ Decision:    The tier is refused when any leg is missing, and the refusal names
              mode never satisfies a stronger request, and a machine tier with no
              acceleration and no network is two different products depending on
              which leg failed.
-Prove:       `podbox probe --json | jq -e '.tiers.machine.legs | length >= 5 and (map(select(.verdict == null)) | length == 0)'`
+Prove:       `experiments/357-tcg-profile.sh` exits 0 (report in
+             `experiments/results/tcg-profile.txt`): `tiers.machine.refusal`
+             null with `profile` `tcg` on a kvm-less host whose emulator
+             lists tcg, the TCG holds message at 125 under both names,
+             refusal naming the emulator with qemu hidden, and 146
+             re-driven with the same binary booting to VMR-GUEST-READY.
 
 **Done 2026-09-21.** Six legs in `Group::Machine`
 (`crates/podbox-probe/src/probes.rs`, `MACHINE_LEGS`), one verdict per
@@ -142,6 +147,62 @@ assessor. Risk if wrong is emulated execution claimed as hardware
 isolated. Prove is `tiers.machine.refusal` null for the TCG
 profile on a kvm-less but tcg-capable host, with the initramfs
 boot and its ready marker through TCG.
+
+**Done, 2026-09-25.** The legs split into required, accelerated and
+networked without adding or renaming a row: `machine.rs` establishes
+`full` where every leg holds and the emulator lists `kvm`, `tcg`
+where the emulator, its `tcg` accelerator, the file-size bound and
+image space hold without kvm or tun, and no profile elsewhere. The
+accelerator list is read word-wise from the accel leg's own reason,
+and kvm needs the list entry and the opened node together: neither
+half infers the other. `tiers.machine` carries `profile`
+(`full`, `tcg`, null) beside `refusal`, which is null where a
+profile holds and otherwise names the legs blocking every profile
+with the kvm leg beside them; the evidence prints the TCG boundary
+(the emulator process, never hardware isolation) and the tun shape
+(real tun, or user-mode networking) on every TCG run. `enter_machine`
+prints the TCG holds message at 125 under both names, still 125
+where the tier holds without a guest driver, and the unchanged
+refusal where no profile holds. Three designs were weighed before
+testing (a separate tcg_refusal key; a required-only weakening; the
+profile split): the first fails the Prove as written (it demands
+`refusal` null), the second drops the accelerated and networked
+distinction the entry requires, so the split shipped. Prove is
+`experiments/357-tcg-profile.sh` (exit 0,
+`experiments/results/tcg-profile.txt`) on the lane with qemu
+7.2.22 installed, kvm and tun absent:
+
+```
+$ podbox probe --json | jq -e '.tiers.machine.refusal == null'
+0
+$ jq -r '.tiers.machine.profile' probe.json
+tcg
+$ podbox run --podbox-tier=machine never-pulled-357:tag /bin/true; echo $?
+podbox run: the machine tier runs TCG on this machine: the emulator
+process is the boundary, not hardware isolation. /dev/net/tun is
+missing, so guests use user-mode networking. [...]
+125
+$ podvm run never-pulled-357:tag /bin/true; echo $?
+podbox: invoked as `podvm`. [...]
+podbox run: the machine tier runs TCG on this machine: [...]
+125
+$ PATH=<empty> PODBOX_STORE=<fresh> podbox run --podbox-tier=machine [...]; echo $?
+podbox run: machine tier refused: qemu-system-x86_64 --version=skip:
+no qemu-system-x86_64 on PATH [...] open(/dev/kvm, O_RDWR)=ENOENT [...]
+125
+```
+
+and 146 re-driven inside with the same binary boots to
+`VMR-GUEST-READY` under TCG (clause 5 green). Unit guards: the
+`machine.rs` profile matrix (full, kvm-denied, tun-denied,
+accel-without-tcg, node-without-listing, skipped emulator, absent
+row, word-wise list parsing), the report document and evidence
+tests, `tier.rs` still 125 on any machine; lane suites green beside
+the drive (podbox-cli 143, podbox-probe 101 passed, 0 failed). Two
+limits ride named, not silent: 145 and 148 assert the refusal text
+and run on qemu-less lanes, so a qemu host would need their TCG
+arms; and a kvm node opening under an emulator that does not list
+kvm is TCG, never full.
 
 ---
 

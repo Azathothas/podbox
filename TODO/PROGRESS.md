@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 15 partial, 0 blocked, 150 done. The 2026-09-25
+168 entries: 3 open, 14 partial, 0 blocked, 151 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -13,7 +13,11 @@ everywhere, `--env-file` is real, `--log-driver` takes
 `json-file`. T-0503 and T-1317 closed 2026-09-25 on the no-chroot
 drive (356): `-t` refuses naming ptmx ahead of the chroot gate,
 and both no-chroot families run (loader for dynamic, memfd for
-static) with the banner naming the rung. No other open issue is closed:
+static) with the banner naming the rung. T-1301 closed 2026-09-25
+on the TCG drive (357): the machine legs split into required,
+accelerated and networked, `tiers.machine.refusal` null with
+`profile` `tcg` on the kvm-less tcg-listing lane, 146 re-driven
+to VMR-GUEST-READY. No other open issue is closed:
 each closes with its fix commit, drive output and guard, per the
 operator rule.
 
@@ -211,15 +215,17 @@ mutating clause prints the line it WROTE as well as the line it matched.
 
 ## In progress
 
-Item 2 done on the lane (`rust:1.98.1-bookworm` job containers in
-`wsl-toolkit-podbox`, host kernel `7.2.0-WSL2-STABLE`):
-`experiments/356-no-chroot-rung.sh` exits 0
-(`experiments/results/no-chroot-rung.txt`), targeted units green,
-`cargo test -p podbox-enter -p podbox-cli -p podbox-probe` green
-(143, 64 and 97 passed, 0 failed). Next is item 3 (T-1301 TCG
-split). The teardown owes the kept lane job containers
-(`gc --apply`) and session scratch removal, then the final gate
-and the push.
+Item 3 done on the lane (`rust:1.98.1-bookworm` job containers in
+`wsl-toolkit-podbox`, host kernel `7.2.0-WSL2-STABLE`, qemu 7.2.22
+installed where absent, kvm and tun absent):
+`experiments/357-tcg-profile.sh` exits 0
+(`experiments/results/tcg-profile.txt`), targeted units green,
+`cargo test -p podbox-probe -p podbox-cli` green (143 and 101
+passed, 0 failed). Next is item 4 (T-1003 rundir and cache, then
+FUSE and tmpfs). The teardown owes the kept lane job containers
+(`wsl-toolkit --instance podbox gc --apply`: host `gc` without the
+instance says nothing is registered) and session scratch removal,
+then the final gate and the push.
 
 ## Operator questions
 

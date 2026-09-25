@@ -129,10 +129,11 @@ pub fn resolve(invoked: &str, flag: Option<Want>) -> Resolved {
 /// configured, and where the ceiling cannot be read the refusal names that
 /// instead of running a guest no bound was checked against.
 ///
-/// Where the tier holds there is still nothing that runs a guest: that
+/// Where a profile holds there is still nothing that runs a guest: that
 /// arrives with `TODO/podvm.md` T-1303 and T-1304, and this says so rather
 /// than running something else. Either way the command cannot run, which is
-/// docker's 125.
+/// docker's 125. Under TCG the message states the boundary honestly: the
+/// emulator process, never hardware isolation.
 pub fn enter_machine(verb: &str, mem: Option<u64>) -> i32 {
     // ⭐ The name is said here because this path never reaches the banner,
     // which is where the alias note otherwise prints. A refusal that names
@@ -163,18 +164,42 @@ pub fn enter_machine(verb: &str, mem: Option<u64>) -> i32 {
         }
     }
     let findings = podbox_probe::run();
-    match podbox_probe::machine::assess(&findings).refusal() {
-        Some(r) => {
-            eprintln!("podbox {verb}: {r}");
-            EXIT_RUNTIME_ERROR
-        }
-        None => {
+    let assessed = podbox_probe::machine::assess(&findings);
+    match assessed.profile {
+        Some(podbox_probe::machine::Profile::Full) => {
             eprintln!(
                 "podbox {verb}: the machine tier holds on this machine; running \
                  a guest arrives with TODO/podvm.md T-1303 and T-1304"
             );
             EXIT_RUNTIME_ERROR
         }
+        Some(podbox_probe::machine::Profile::Tcg) => {
+            // ⭐ TODO/podvm.md T-1301. The tier runs TCG here: kvm, tun or
+            // both are missing, and the message states both halves rather
+            // than letting the banner's `tcg` read as acceleration.
+            let net = if assessed.tun_ok() {
+                "/dev/net/tun holds"
+            } else {
+                "/dev/net/tun is missing, so guests use user-mode networking"
+            };
+            eprintln!(
+                "podbox {verb}: the machine tier runs TCG on this machine: \
+                 the emulator process is the boundary, not hardware \
+                 isolation. {net}. Running a guest arrives with \
+                 TODO/podvm.md T-1303 and T-1304"
+            );
+            EXIT_RUNTIME_ERROR
+        }
+        None => match assessed.refusal() {
+            Some(r) => {
+                eprintln!("podbox {verb}: {r}");
+                EXIT_RUNTIME_ERROR
+            }
+            None => {
+                eprintln!("podbox {verb}: machine tier refused");
+                EXIT_RUNTIME_ERROR
+            }
+        },
     }
 }
 
