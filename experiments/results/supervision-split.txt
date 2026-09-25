@@ -1,0 +1,26 @@
+== conditions
+date              2026-09-25T15:36:23Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+input             public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+bootstrap         ok
+interpose         ok
+build             ok
+podbox            podbox 0.1.0-beta.7
+probe json        ok
+clause 1          mediation Prove holds
+clause 2          supervision available
+{"name":"pidfd_open(own pid) [supervise]","verdict":"ok"}
+{"name":"waitid(P_PIDFD, child) [supervise]","verdict":"ok"}
+probe rows        ok
+clause 3          row present: pidfd_open(own pid)
+clause 3          row present: waitid(P_PIDFD, child)
+3.20: Pulling from docker/library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+podbox: probed this machine rather than using the cache: /work/experiments/.sweep359-work/store/probe.json does not exist yet
+run               ok
+clause 4          banner silent where mediation holds
+clause 5          loop 20 of 20
+
+verdict           SUPERVISION SPLIT HOLDS

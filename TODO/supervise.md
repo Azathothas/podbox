@@ -308,7 +308,7 @@ Source:      `TOOL.md` section 4.1, section 6.6; `references/multikernel__sandlo
 Category:    supervise
 Priority:    P0
 Effort:      L
-Status:      partial 2026-09-22
+Status:      done 2026-09-25
 
 Problem:     `supervise` is the only rung whose failure is silent by default. Its
              listener keeps working after its argument-reading channel dies, and
@@ -453,6 +453,37 @@ mediation off wherever the fallback runs. Prove is the probe Prove
 extended with supervision available where `pidfd` and `waitid` hold
 even when the notify legs are denied, with the lifecycle loop 230
 still 20 of 20 on such a host.
+
+**Done 2026-09-25.** Mediation and supervision are split. Two new
+`Group::Supervise` rows measure the pair the lifecycle runs on:
+`pidfd_open(own pid)` (the number answering on its own pid) and
+`waitid(P_PIDFD, child)` (a trivial fork reaped through its pidfd,
+the composition the launcher runs; the verdict comes from waitid
+answering under WNOHANG, so nothing waits). `supervise.rs` reads
+them through `SUPERVISION_LEGS` beside mediation's three, with its
+own `supervision refused:` sentence. The document carries
+`tiers.supervision` (legs plus refusal) beside `tiers.supervise`,
+whose three legs and Prove are unchanged; the evidence prints a
+`supervision, one leg per fact` block; the run banner states `no
+syscall mediation on this machine` exactly where mediation is
+refused and supervision holds, and stays silent where mediation
+holds. Selection is untouched: a refused mediation still keeps
+the Supervise rung out.
+
+Driven by `experiments/359-supervision-split.sh`, exit 0 on the
+lane (`rust:1.98.1-bookworm` job container, kernel
+`7.2.0-WSL2-STABLE`), report in
+`experiments/results/supervision-split.txt`: the mediation Prove
+holds (three legs, refusal null iff all ok); supervision is
+available (two legs, refusal null, both rows `ok` in
+`probe --rows`); the banner carries no mediation-off line on a
+run; the 230 loop passes 20 of 20 on the debug binary over the
+pinned alpine. The denied-notify shape is unit-pinned (mediation
+refused naming EPERM beside held supervision, banner line on,
+banner line off where mediation holds): the lane permits all
+three notify legs, so no lane run can show the fallback. Full
+`podbox-probe` suite green on the same drive (107 passed,
+0 failed).
 
 ---
 

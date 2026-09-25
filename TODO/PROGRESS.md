@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 13 partial, 0 blocked, 152 done. The 2026-09-25
+168 entries: 3 open, 12 partial, 0 blocked, 153 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -24,7 +24,12 @@ the mount and the node, memfd regresses green, the unknown word
 lists the rungs; tmpfs is wired (`sys::mount`/`umount`,
 `stage_tmpfs`/`release_tmpfs`) with its entry arm undriven where
 no mount holds, and FUSE stays ordered-and-refused with its
-blocker named in the entry. No other open issue is closed:
+blocker named in the entry. T-0606 closed 2026-09-25 on the
+supervision drive (359): mediation and supervision split into two
+assessments, `tiers.supervision` available with both new rows ok,
+the banner silent where mediation holds, the 230 loop 20 of 20;
+the denied-notify fallback is unit-pinned where the lane cannot
+show it. No other open issue is closed:
 each closes with its fix commit, drive output and guard, per the
 operator rule.
 
@@ -228,8 +233,13 @@ and fuse absent): `experiments/358-ladder-rungs.sh` exits 0
 (`experiments/results/ladder-rungs.txt`), targeted units green
 (`podbox-enter` stage+ladder 23 passed, `podbox-cli` ladder 14
 passed), full suites green (`podbox-enter` 74 passed, the
-`podbox-cli` binary 146 passed, 0 failed). Next is item 5
-(T-0606 fallback supervision, T-1306 one promotion). The teardown
+`podbox-cli` binary 146 passed, 0 failed). Item 5 first half
+done on the same lane: `experiments/359-supervision-split.sh`
+exits 0 (`experiments/results/supervision-split.txt`), mediation
+Prove holds, supervision available with both new rows ok, banner
+silent where mediation holds, 230 loop 20 of 20, full
+`podbox-probe` suite 107 passed 0 failed. Next is item 5's
+second half (T-1306 one promotion). The teardown
 owes the kept lane job containers (`wsl-toolkit --instance
 podbox gc --apply`: host `gc` without the instance says nothing
 is registered) and session scratch removal, then the final gate

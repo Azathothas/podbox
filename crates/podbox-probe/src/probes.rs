@@ -267,6 +267,16 @@ pub static PROBES: &[Probe] = &[
             kind: Kind::Child { ns_flags: 0, body: s_read_channel } },
     Probe { name: "ptrace(PTRACE_TRACEME) [supervise]", group: Group::Supervise,
             kind: Kind::Child { ns_flags: 0, body: p_ptrace } },
+    // TODO/supervise.md T-0606. Supervision's own two legs beside
+    // mediation's three: the lifecycle tracks each direct child through
+    // a pidfd and reaps it through waitid(P_PIDFD) (T-0601, T-0602), so
+    // these measure exactly that pair. ⛔ A leg for anything the
+    // launcher does not use would green-light a mechanism with no
+    // consumer, the ADDFD mistake the entry records.
+    Probe { name: "pidfd_open(own pid) [supervise]", group: Group::Supervise,
+            kind: Kind::Child { ns_flags: 0, body: s_pidfd_self } },
+    Probe { name: "waitid(P_PIDFD, child) [supervise]", group: Group::Supervise,
+            kind: Kind::Child { ns_flags: 0, body: s_waitid_child } },
 ];
 
 /// The machine tier's legs, in the order they run. [`crate::machine`] and the
@@ -287,6 +297,14 @@ pub const SUPERVISE_LEGS: &[&str] = &[
     "seccomp(NEW_LISTENER) [supervise]",
     "process_vm_readv(own pid) [supervise]",
     "ptrace(PTRACE_TRACEME) [supervise]",
+];
+
+/// Supervision's legs beside mediation's: the pair the lifecycle runs on.
+/// Read through these names by [`crate::supervise::assess_supervision`],
+/// so a rename moves the rows and the reader together.
+pub const SUPERVISION_LEGS: &[&str] = &[
+    "pidfd_open(own pid) [supervise]",
+    "waitid(P_PIDFD, child) [supervise]",
 ];
 
 pub fn find(name: &str) -> Option<&'static Probe> {
@@ -1027,6 +1045,61 @@ fn a_pidfd_getfd() -> Outcome {
     Outcome::from(unsafe { sys::sys(sys::SYS_PIDFD_GETFD, [m1, m1, 0, 0, 0, 0]) })
 }
 
+/// TODO/supervise.md T-0606. Supervision's first leg: a pidfd for the
+/// caller's own pid, which answers wherever the number exists. ENOSYS is
+/// "this kernel cannot answer" (pidfd_open needs 5.3), not a refusal.
+fn s_pidfd_self() -> Outcome {
+    match sys::pidfd_open(sys::getpid()) {
+        Ok(fd) => {
+            let _ = sys::close(fd);
+            Outcome::ok()
+        }
+        Err(sys::ENOSYS) => Outcome::skip(
+            Some(sys::ENOSYS),
+            "pidfd_open(2) is not present on this kernel, so supervision through pidfds cannot be measured here",
+        ),
+        Err(e) => Outcome::denied(e),
+    }
+}
+
+/// TODO/supervise.md T-0606. Supervision's second leg: a trivial child
+/// reaped through its pidfd, the composition the launcher runs (T-0601,
+/// T-0602). The verdict comes from waitid answering, never from the
+/// reap: WNOHANG returns at once, so nothing here waits, and a child
+/// that outruns the cap is reaped by init with the mechanism proven.
+fn s_waitid_child() -> Outcome {
+    let child = match unsafe { sys::clone_fork(sys::SIGCHLD) } {
+        Err(e) => return Outcome::from(Err(e)),
+        Ok(0) => sys::exit_group(0),
+        Ok(pid) => pid,
+    };
+    let fd = match sys::pidfd_open(child) {
+        Err(e) => return Outcome::from(Err(e)),
+        Ok(fd) => fd,
+    };
+    for _ in 0..4096 {
+        match sys::waitid_pidfd(fd, true) {
+            Err(e) => {
+                let _ = sys::close(fd);
+                if e == sys::ENOSYS {
+                    return Outcome::skip(
+                        Some(sys::ENOSYS),
+                        "waitid(P_PIDFD) is not present on this kernel, so supervision through pidfds cannot be measured here",
+                    );
+                }
+                return Outcome::denied(e);
+            }
+            Ok(Some(_)) => {
+                let _ = sys::close(fd);
+                return Outcome::ok();
+            }
+            Ok(None) => {}
+        }
+    }
+    let _ = sys::close(fd);
+    Outcome::ok()
+}
+
 fn a_kcmp() -> Outcome {
     let m1 = -1i64 as u64;
     let r = unsafe { sys::sys(sys::SYS_KCMP, [m1, m1, 0, 0, 0, 0]) };
@@ -1500,17 +1573,19 @@ mod tests {
     }
 
     #[test]
-    fn the_supervise_block_is_three_legs_in_order() {
+    fn the_supervise_block_is_mediation_then_supervision_in_order() {
         // TODO/supervise.md T-0606: `crate::supervise`, the report and the
-        // selection read the verdicts through `SUPERVISE_LEGS`, so the
-        // block, the constant and the three readers answer together or not
-        // at all.
+        // selection read the verdicts through `SUPERVISE_LEGS` and
+        // `SUPERVISION_LEGS`, so the block, the constants and the readers
+        // answer together or not at all.
         let got: Vec<&str> = PROBES
             .iter()
             .filter(|p| p.group == Group::Supervise)
             .map(|p| p.name)
             .collect();
-        assert_eq!(got.as_slice(), SUPERVISE_LEGS);
+        let mut want: Vec<&str> = SUPERVISE_LEGS.to_vec();
+        want.extend(SUPERVISION_LEGS.iter());
+        assert_eq!(got.as_slice(), want.as_slice());
     }
 
     #[test]

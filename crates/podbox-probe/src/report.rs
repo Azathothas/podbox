@@ -79,6 +79,17 @@ pub fn entry_banner(f: &Findings, sel: &Selection, entered: Rung) -> String {
             entered.must_never_claim()
         ));
     }
+    // TODO/supervise.md T-0606. Where syscall mediation is refused but
+    // the lifecycle still tracks, the banner says so: supervision
+    // without mediation is the fallback, and a silent one would be the
+    // Continue-style false success the entry refuses. Where mediation
+    // holds there is no fallback to state, so the line stays off.
+    if crate::supervise::assess(f).refused() && !crate::supervise::assess_supervision(f).refused() {
+        out.push_str(
+            "supervision tracks the payload through pidfd and waitid; \
+             no syscall mediation on this machine\n",
+        );
+    }
     // TODO/complete.md T-0413 part 1. The chroot entry sequence mounts
     // nothing, so no /proc is mounted in the payload root. The failure this
     // produces names /dev/fd rather than /proc (measured under T-0412:
@@ -261,6 +272,21 @@ fn supervise_block(f: &Findings) -> String {
     match sup.refusal() {
         Some(r) => out.push_str(&format!("  refused: {r}\n")),
         None => out.push_str("  the tier holds: every leg ok\n"),
+    }
+    // TODO/supervise.md T-0606. Supervision beside mediation, one writer
+    // of the section: the pair the lifecycle runs on, with its own
+    // refusal where the launcher cannot track.
+    let vis = crate::supervise::assess_supervision(f);
+    out.push_str("\nsupervision, one leg per fact\n");
+    for leg in &vis.legs {
+        match &leg.outcome {
+            Some(o) => out.push_str(&format!("  {}\n", o.row(leg.name))),
+            None => out.push_str(&format!("  {name:<34} (not probed)\n", name = leg.name)),
+        }
+    }
+    match vis.refusal() {
+        Some(r) => out.push_str(&format!("  refused: {r}\n")),
+        None => out.push_str("  supervision holds: every leg ok\n"),
     }
     out
 }
@@ -622,6 +648,36 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
             });
             m.opt_str("refusal", sup_refusal.as_deref());
         });
+        // TODO/supervise.md T-0606. Supervision beside mediation: the
+        // pair the lifecycle runs on, available where both hold even as
+        // mediation is refused. Same legs-and-refusal shape, so one
+        // reader serves both assessments.
+        let vis = crate::supervise::assess_supervision(f);
+        let vis_refusal = vis.refusal();
+        t.obj("supervision", |m| {
+            m.arr("legs", |a| {
+                for leg in &vis.legs {
+                    a.obj(|e| {
+                        e.str("name", leg.name);
+                        match &leg.outcome {
+                            Some(out) => {
+                                e.str("verdict", out.verdict.word());
+                                e.opt_num("errno", out.errno.map(|x| x.0 as i64));
+                                e.opt_str("errno_name", out.errno_name().as_deref());
+                                e.opt_str("reason", none_if_empty(&out.reason));
+                            }
+                            None => {
+                                e.null("verdict");
+                                e.null("errno");
+                                e.null("errno_name");
+                                e.null("reason");
+                            }
+                        }
+                    });
+                }
+            });
+            m.opt_str("refusal", vis_refusal.as_deref());
+        });
     });
 
     // ⭐ TODO/podvm.md T-1306. The non-goals as measured stances, one per
@@ -805,10 +861,12 @@ mod tests {
 
     #[test]
     fn the_document_carries_six_machine_legs_with_no_null_verdict() {
-        // TODO/podvm.md T-1301's Prove reads exactly this shape. Both tiers'
-        // rows run, as a real run carries both, so no leg anywhere is null.
+        // TODO/podvm.md T-1301's Prove reads exactly this shape. All three
+        // assessments' rows run, as a real run carries all of them, so no
+        // leg anywhere is null.
         let mut f = machine_ok();
         f.rows.extend(supervise_ok().rows);
+        f.rows.extend(supervision_ok().rows);
         let sel = Selection::choose(&f);
         let doc = document(&f, &sel);
         assert!(doc.contains("\"tiers\":{\"machine\":{\"legs\":["), "{doc}");
@@ -825,14 +883,15 @@ mod tests {
     fn a_document_without_machine_rows_carries_nulls_and_a_refusal() {
         // A document written before the legs existed: every leg null, and
         // the refusal names the absence rather than reading as a tier. Six
-        // machine legs and three supervise legs, so nine nulls, one refusal
-        // per tier.
+        // machine legs, three mediation legs and two supervision legs, so
+        // eleven nulls, one refusal per assessment.
         let f = Findings::empty();
         let sel = Selection::choose(&f);
         let doc = document(&f, &sel);
-        assert_eq!(doc.matches("\"verdict\":null").count(), 9, "{doc}");
+        assert_eq!(doc.matches("\"verdict\":null").count(), 11, "{doc}");
         assert!(doc.contains("machine tier refused"), "{doc}");
         assert!(doc.contains("supervise tier refused"), "{doc}");
+        assert!(doc.contains("supervision refused"), "{doc}");
         assert!(doc.contains("\"profile\":null"), "{doc}");
         let refusal = field(&doc, "refusal").expect("a refusal string");
         assert!(refusal.contains("machine tier refused"), "{refusal}");
@@ -849,6 +908,73 @@ mod tests {
                 .collect(),
             ..Findings::empty()
         }
+    }
+
+    /// Both supervision legs, all clear. Synthetic beside the mediation
+    /// fixture above.
+    fn supervision_ok() -> Findings {
+        Findings {
+            rows: crate::probes::SUPERVISION_LEGS
+                .iter()
+                .map(|&name| (name, crate::verdict::Outcome::ok()))
+                .collect(),
+            ..Findings::empty()
+        }
+    }
+
+    /// The target shape: mediation denied, supervision holding. The
+    /// document refuses mediation in its own sentence and carries
+    /// supervision with a null refusal; the evidence states the
+    /// fallback instead of staying silent about it.
+    fn fallback_shape() -> Findings {
+        let mut f = supervision_ok();
+        f.rows.extend(
+            [
+                "seccomp(NEW_LISTENER) [supervise]",
+                "process_vm_readv(own pid) [supervise]",
+                "ptrace(PTRACE_TRACEME) [supervise]",
+            ]
+            .iter()
+            .map(|&name| (name, crate::verdict::Outcome::denied(crate::sys::EPERM))),
+        );
+        f
+    }
+
+    #[test]
+    fn the_fallback_shape_refuses_mediation_beside_held_supervision() {
+        let f = fallback_shape();
+        let sel = Selection::choose(&f);
+        let doc = document(&f, &sel);
+        assert!(doc.contains("\"supervision\":{\"legs\":["), "{doc}");
+        for name in crate::probes::SUPERVISION_LEGS {
+            assert!(doc.contains(&format!("\"name\":\"{name}\"")), "{doc}");
+        }
+        assert!(doc.contains("supervise tier refused"), "{doc}");
+        assert!(!doc.contains("supervision refused"), "{doc}");
+        let e = evidence(&f, &sel);
+        assert!(e.contains("supervision holds: every leg ok"), "{e}");
+        assert!(e.contains("supervise tier refused"), "{e}");
+    }
+
+    #[test]
+    fn the_banner_states_mediation_off_where_supervision_covers() {
+        // TODO/supervise.md T-0606: the fallback is stated, never silent.
+        let f = fallback_shape();
+        let sel = Selection::choose(&f);
+        let b = entry_banner(&f, &sel, Rung::Chroot);
+        assert!(b.contains("no syscall mediation on this machine"), "{b}");
+        assert!(b.contains("pidfd and waitid"), "{b}");
+    }
+
+    #[test]
+    fn the_banner_states_no_fallback_where_mediation_holds() {
+        // Where the tier holds there is no fallback to state: the line
+        // stays off, so a mediated run never reads as a degraded one.
+        let mut f = supervise_ok();
+        f.rows.extend(supervision_ok().rows);
+        let sel = Selection::choose(&f);
+        let b = entry_banner(&f, &sel, Rung::Chroot);
+        assert!(!b.contains("no syscall mediation"), "{b}");
     }
 
     #[test]
