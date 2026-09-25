@@ -61,17 +61,18 @@ M4's, and `-t` is refused by name rather than degraded.
 **Partial, 2026-09-25.** Issue 55 reopens the `--device` half: the
 Approach names `--device` among the descriptors opened before the
 root changes, the Done records it not implemented, and the parity
-table carries no row for it, so `run --device` answers `unknown
+table carried no row for it, so `run --device` answered `unknown
 option` with no reason. Either implement `--device
 host[:container[:perms]]` through the device plan, or add a `None`
 row naming why and let the parser refuse it by name. The parser keeps
-asking the table (T-0801), not a second list. Fix area is
-`crates/podbox-cli/src/parity.rs`, the `run` and `exec` parsers, and
-the `crates/podbox-enter` device plan. Risk if wrong is a docker flag
+asking the table (T-0801), not a second list. The `None` row half
+landed with T-0801 (`--device` refused naming shims, not devices);
+the device-map run below stays open. Fix area is
+`crates/podbox-enter`'s device plan. Risk if wrong is a docker flag
 answered as an omission rather than a decision. Prove is one run
-mapping a host device and reading it inside, the refusal arm naming
-its reason, and the T-1325 gate extended so every docker flag an
-entry's Done calls unimplemented has a row.
+mapping a host device and reading it inside, with the refusal arm
+(`experiments/355-parity-curated.sh` clause 1, `--device` at 125
+naming status None) beside it.
 
 ---
 

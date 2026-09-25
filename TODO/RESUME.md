@@ -1,25 +1,23 @@
 ## The task
 
-Triage all 22 open issues (29-38, 49-60) with the dependabot PR and
-the Actions deprecation audit. Done: drives 353/354 green, 20
-entries reopened partial with decisions, 3 opened new, README and
-parity note fixed, PR 9 merged, no issue closed (each closes with
-proof from its fix).
+Work the PROGRESS work order entry by entry, unattended, pushing
+straight to main. Item 1 first: T-0801 parity rows plus the T-1325
+curated-list check and plant.
 
 ## The resume point
 
-Gate green, tree clean, pushed to `main`. Next session implements
-the work order in TODO/PROGRESS.md, entry by entry, unattended.
+Item 1 in progress: T-0801 (46 run flags, 10 verbs) with the T-1325
+check extension. Next: T-0503 ordering with T-1317.
 
 ## In flight
 
-Nothing half-written. The triage commit is pushed. Kept lane job
-containers went through `gc --apply`, session scratch removed.
+Reading `crates/podbox-cli/src/parity.rs` (done, 856 lines) and the
+`run` parser. Nothing half-written.
 
 ## State
 
-Tree clean. `check-todo.py` green. 168 entries: 3 open, 20
-partial, 0 blocked, 145 done. PR 9 merged on origin.
+Tree clean at `0b89c3c`. `check-todo.py` green (168 rows: 3 open,
+20 partial, 0 blocked, 145 done).
 
 ## The paste
 

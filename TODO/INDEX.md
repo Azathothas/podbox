@@ -121,7 +121,7 @@ the blocker named and what would clear it.
 | [T-0602](supervise.md) | P0 | supervise | done | Never decide "running" by sleeping and looking |
 | [T-0603](supervise.md) | P1 | supervise | done | `PR_SET_PDEATHSIG` fires on the creating thread's exit |
 | [T-0604](supervise.md) | P1 | supervise | done | Running state is launcher state |
-| [T-0605](supervise.md) | P2 | supervise | partial | Capture logs at spawn, from the descriptors opened in step 2 |
+| [T-0605](supervise.md) | P2 | supervise | done | Capture logs at spawn, from the descriptors opened in step 2 |
 | [T-0606](supervise.md) | P0 | supervise | partial | The notification tier: probe three legs, refuse the tier, never fall back per call |
 | [T-0607](supervise.md) | P0 | supervise | done | The lifecycle, twenty times, twenty passes |
 | [T-0608](supervise.md) | P1 | supervise | done | A detached container that reads `exited` with no launcher, seen twice and not reproduced |
@@ -137,7 +137,7 @@ the blocker named and what would clear it.
 | [T-0710](interpose.md) | P1 | interpose | done | The ownership memo lives where the payload can edit it, and answers by linear scan |
 | [T-0711](interpose.md) | P1 | interpose | partial | The identity calls, and podbox's honesty rules point the other way from fakeroot's |
 | [T-0712](interpose.md) | P2 | interpose | done | A reach matrix holds its arguments constant, or it measures two things |
-| [T-0801](cli.md) | P0 | cli | partial | The verb and flag parity table |
+| [T-0801](cli.md) | P0 | cli | done | The verb and flag parity table |
 | [T-0802](cli.md) | P0 | cli | done | docker's exit codes, unaltered |
 | [T-0803](cli.md) | P1 | cli | done | Answer to `docker` and `podman` on PATH |
 | [T-0804](cli.md) | P0 | cli | done | The honesty rules, and one switch that makes every degradation fatal |
@@ -232,7 +232,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-168 items: 3 open, 20 partial, 0 blocked, 145 done.
+168 items: 3 open, 18 partial, 0 blocked, 147 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -240,11 +240,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 4 | 0 | 48 | 52 |
+| P0 | 0 | 3 | 0 | 49 | 52 |
 | P1 | 1 | 10 | 0 | 67 | 78 |
-| P2 | 2 | 5 | 0 | 24 | 31 |
+| P2 | 2 | 4 | 0 | 25 | 31 |
 | P3 | 0 | 1 | 0 | 6 | 7 |
-| **All** | **3** | **20** | **0** | **145** | **168** |
+| **All** | **3** | **18** | **0** | **147** | **168** |
 
 ## How the current ordering is derived
 

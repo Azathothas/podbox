@@ -29,6 +29,9 @@ pub const RUN_OPTIONS: &str = "\
                    shared, and a failed run must not delete what `keeper`
                    needs (TODO/image.md T-1322)
   -e, --env K=V    set an environment variable. Repeatable; a later one wins
+  --env-file F     read KEY=VALUE lines from F into the environment.
+                   Repeatable; entries load at the flag's position, so a
+                   later -e wins over the file (TODO/cli.md T-0801)
   -w, --workdir D  working directory inside the container
   -u, --user U:G   run as this identity: numeric uid and gid, or names from
                    the image's own passwd and group files. The requested id
@@ -151,6 +154,70 @@ struct Opts {
     ask: crate::complete::Ask,
 }
 
+/// `--env-file`: docker's file of `KEY=VALUE` lines, loaded at the flag's
+/// position so a later `-e` wins over the file and a later file over an
+/// earlier flag, the same rule `-e` already documents. TODO/cli.md T-0801.
+///
+/// The file is bounded (1 MiB) and must be UTF-8: buffering an unbounded
+/// body or guessing at bytes is the shape
+/// `docs/conventions/forbidden-patterns.md` refuses. A line without `=`
+/// is refused naming its number rather than skipped, because a skipped
+/// line is a variable the caller thinks is set.
+fn read_env_file(verb: &str, path: &str) -> std::result::Result<Vec<String>, i32> {
+    const MAX_ENV_FILE: u64 = 1_048_576;
+    let meta = std::fs::metadata(path).map_err(|e| {
+        eprintln!("podbox {verb}: --env-file {path:?}: {e}");
+        EXIT_FLAG_ERROR
+    })?;
+    if !meta.is_file() {
+        eprintln!("podbox {verb}: --env-file {path:?} is not a file");
+        return Err(EXIT_FLAG_ERROR);
+    }
+    if meta.len() > MAX_ENV_FILE {
+        eprintln!(
+            "podbox {verb}: --env-file {path:?} is {} bytes, over the 1048576-byte ceiling",
+            meta.len()
+        );
+        return Err(EXIT_FLAG_ERROR);
+    }
+    let text = std::fs::read_to_string(path).map_err(|e| {
+        eprintln!("podbox {verb}: --env-file {path:?}: {e}");
+        EXIT_FLAG_ERROR
+    })?;
+    let mut out = Vec::new();
+    for (n, raw) in text.lines().enumerate() {
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let Some((k, v)) = line.split_once('=') else {
+            eprintln!(
+                "podbox {verb}: --env-file {path:?} line {} has no `=`: {line:?}",
+                n + 1
+            );
+            return Err(EXIT_FLAG_ERROR);
+        };
+        let key = k.trim();
+        if key.is_empty() {
+            eprintln!(
+                "podbox {verb}: --env-file {path:?} line {} has no name: {line:?}",
+                n + 1
+            );
+            return Err(EXIT_FLAG_ERROR);
+        }
+        let mut value = v.trim().to_string();
+        if value.len() >= 2
+            && value.starts_with(['\'', '"'])
+            && value.ends_with(value.as_bytes()[0] as char)
+        {
+            value.remove(0);
+            value.pop();
+        }
+        out.push(format!("{key}={value}"));
+    }
+    Ok(out)
+}
+
 /// ⛔ Parsing stops at the image name: everything after it is the payload's.
 /// `podbox run alpine ls -l` must pass `-l` to `ls` and not read it as podbox's,
 /// which is docker's rule and the one thing a caller cannot work around.
@@ -197,6 +264,30 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
         if let Some(flag) = expecting.take() {
             match flag {
                 "-e" => o.env.push(a.clone()),
+                "--env-file" => {
+                    let es = read_env_file(verb, a)?;
+                    o.env.extend(es);
+                }
+                "--log-driver" => match a.as_str() {
+                    // ⚠ Stub by the table, by value: `json-file` is the one
+                    // driver this runtime's single sink already is, so it is
+                    // accepted and changes nothing. Anything else names a
+                    // driver podbox does not have and is refused naming it.
+                    // TODO/supervise.md T-0605.
+                    "json-file" => {}
+                    other => {
+                        eprintln!(
+                            "podbox {verb}: --log-driver takes json-file, not {other:?}: \
+                             podbox captures into one interleaved file per container"
+                        );
+                        return Err(EXIT_FLAG_ERROR);
+                    }
+                },
+                "--label" => {
+                    // ⚠ Stub by the table: accepted and dropped. Podbox
+                    // records carry no labels, so there is nowhere to keep
+                    // it, and `ps --filter label=` says so out loud.
+                }
                 "-w" => o.workdir = Some(a.clone()),
                 "--entrypoint" => o.entrypoint = Some(a.clone()),
                 "--platform" => o.platform = Some(a.clone()),
@@ -265,6 +356,17 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                 // TODO/cli.md T-0801 calls this Stub and the banner lists it.
             }
             "-e" | "--env" => expecting = Some("-e"),
+            "--env-file" => expecting = Some("--env-file"),
+            "--label" => expecting = Some("--label"),
+            "--log-driver" => expecting = Some("--log-driver"),
+            "--attach" => {
+                // ⚠ Stub by the table: podbox always captures stdout and
+                // stderr together, so stream selection changes nothing.
+            }
+            "--expose" => {
+                // ⚠ Stub by the table: docker's --expose only documents
+                // ports and podbox publishes none, so the run is unchanged.
+            }
             "-w" | "--workdir" => expecting = Some("-w"),
             "-u" | "--user" => expecting = Some("--user"),
             "--entrypoint" => expecting = Some("--entrypoint"),
@@ -284,6 +386,23 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             "--no-steps" => o.ask.no_steps = true,
             "--strict" => o.ask.strict = true,
             other if other.starts_with("--env=") => o.env.push(other[6..].to_string()),
+            other if other.starts_with("--log-driver=") => match &other[13..] {
+                "json-file" => {}
+                v => {
+                    eprintln!(
+                        "podbox {verb}: --log-driver takes json-file, not {v:?}: \
+                         podbox captures into one interleaved file per container"
+                    );
+                    return Err(EXIT_FLAG_ERROR);
+                }
+            },
+            other if other.starts_with("--env-file=") => {
+                let es = read_env_file(verb, &other[11..])?;
+                o.env.extend(es);
+            }
+            other if other.starts_with("--label=") => {
+                // ⚠ As above: Stub, accepted and dropped.
+            }
             other if other.starts_with("--user=") => o.user = Some(other[7..].to_string()),
             other if other.starts_with("--workdir=") => o.workdir = Some(other[10..].to_string()),
             other if other.starts_with("--entrypoint=") => {
@@ -1172,6 +1291,83 @@ mod tests {
         );
         assert_eq!(
             parse("run", &v(&["--podbox-mem", "0", "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+    }
+
+    /// ⭐ TODO/cli.md T-0801, issue 60: `--env-file` loads docker's
+    /// `KEY=VALUE` lines at the flag's position, and the stub trio
+    /// (`--label`, `--attach`, `--expose`) parses without reaching an arm
+    /// that acts on them.
+    #[test]
+    fn env_file_loads_and_stubs_parse() {
+        let dir = std::env::temp_dir().join(format!("pb-envfile-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("test.env");
+        std::fs::write(
+            &file,
+            "# a comment\n\nA=1\nB = two words\nC=\"quoted\"\nD='single'\n",
+        )
+        .unwrap();
+        let path = file.to_str().unwrap().to_string();
+        // Both spellings land in the same place, at the flag's position:
+        // a later -e wins over the file.
+        let o = parse("run", &v(&["--env-file", &path, "-e", "A=9", "img"])).unwrap();
+        assert_eq!(
+            o.env,
+            v(&["A=1", "B=two words", "C=quoted", "D=single", "A=9"])
+        );
+        let o = parse("run", &v(&[&format!("--env-file={path}"), "img"])).unwrap();
+        assert_eq!(o.env, v(&["A=1", "B=two words", "C=quoted", "D=single"]));
+        // A line without `=` is refused naming the file, never skipped.
+        let bad = dir.join("bad.env");
+        std::fs::write(&bad, "A=1\nNOEQUALS\n").unwrap();
+        assert_eq!(
+            parse("run", &v(&["--env-file", bad.to_str().unwrap(), "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+        // A missing file is refused naming the path, never empty env.
+        assert_eq!(
+            parse(
+                "run",
+                &v(&[
+                    "--env-file",
+                    dir.join("absent.env").to_str().unwrap(),
+                    "img"
+                ])
+            )
+            .unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+        std::fs::remove_dir_all(&dir).ok();
+        // The stub trio parses and changes nothing about the run.
+        let o = parse(
+            "run",
+            &v(&["--label", "k=v", "--attach", "--expose", "img"]),
+        )
+        .unwrap();
+        assert_eq!(o.image.as_deref(), Some("img"));
+        assert!(o.env.is_empty());
+    }
+
+    /// ⭐ TODO/supervise.md T-0605, issue 56: `--log-driver` takes
+    /// `json-file` and nothing else. The accepted value parses in both
+    /// spellings; any other value, or none, is a flag error naming the
+    /// value rather than a silent substitution.
+    #[test]
+    fn log_driver_takes_json_file_and_nothing_else() {
+        assert!(parse("run", &v(&["--log-driver", "json-file", "img"])).is_ok());
+        assert!(parse("run", &v(&["--log-driver=json-file", "img"])).is_ok());
+        assert_eq!(
+            parse("run", &v(&["--log-driver", "syslog", "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+        assert_eq!(
+            parse("run", &v(&["--log-driver=syslog", "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+        assert_eq!(
+            parse("run", &v(&["--log-driver", "img"])).unwrap_err(),
             EXIT_FLAG_ERROR
         );
     }

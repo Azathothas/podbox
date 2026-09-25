@@ -302,6 +302,19 @@ pub const TABLE: &[Row] = &[
     Row { verb: "builder", flag: Option::None, status: NoneStatus, note: "the counterpart of a verb podbox does not have" },
     Row { verb: "context", flag: Option::None, status: NoneStatus, note: "there is no daemon to point a context at" },
     Row { verb: "container", flag: Option::None, status: NoneStatus, note: "the sub-command group is not implemented; every verb it holds is a top-level verb here and is listed above" },
+    // ------------------------------------------------- issue 60: ten docker
+    // verbs with no row anywhere. Each takes an existing reason: no daemon,
+    // or out of the shape TOOL.md section 2.0 describes. TODO/cli.md T-0801.
+    Row { verb: "manifest", flag: Option::None, status: NoneStatus, note: "podbox resolves a reference and does not browse a registry; `inspect` prints the record it holds" },
+    Row { verb: "service", flag: Option::None, status: NoneStatus, note: "services need a swarm scheduler and a daemon, and podbox has neither: out of the shape TOOL.md section 2.0 describes" },
+    Row { verb: "stack", flag: Option::None, status: NoneStatus, note: "stacks deploy to a swarm scheduler, and podbox has neither scheduler nor daemon: out of the shape TOOL.md section 2.0 describes" },
+    Row { verb: "node", flag: Option::None, status: NoneStatus, note: "nodes are swarm members, and podbox has no swarm: out of the shape TOOL.md section 2.0 describes" },
+    Row { verb: "secret", flag: Option::None, status: NoneStatus, note: "there is no daemon to hold secrets; the store holds images, and a credential never enters this tree (TODO/image.md T-0209)" },
+    Row { verb: "config", flag: Option::None, status: NoneStatus, note: "there is no daemon to hold configs; the store holds images" },
+    Row { verb: "trust", flag: Option::None, status: NoneStatus, note: "podbox always verifies digests (TODO/extract.md T-1315); there is no trust metadata to manage" },
+    Row { verb: "plugin", flag: Option::None, status: NoneStatus, note: "there is no daemon to load plugins into" },
+    Row { verb: "scan", flag: Option::None, status: NoneStatus, note: "podbox ships no image scanner" },
+    Row { verb: "checkpoint", flag: Option::None, status: NoneStatus, note: "freezing a process group needs a cgroup this runtime does not grant, as `pause` says" },
     // ------------------------------------------------------- run's own flags
     Row { verb: "run", flag: Some("--rm"), status: Native, note: "removes the extracted rootfs when the payload exits, unless a container record references it (TODO/image.md T-1322)" },
     Row { verb: "run", flag: Some("-e, --env"), status: Native, note: "repeatable; a later one wins" },
@@ -340,6 +353,45 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("--podbox-tier"), status: Native, note: "podbox's own: machine selects the machine tier, chroot the chroot tier. `podvm` is this binary under another name and defaults to machine; an explicit flag wins over argv[0], and podbox states the tier where the two disagree (T-1302)" },
     Row { verb: "run", flag: Some("--podbox-qemu-arg"), status: Native, note: "podbox's own, machine tier only and refused elsewhere: one token for the emulator per occurrence, repeatable, never split on whitespace (T-1302)" },
     Row { verb: "run", flag: Some("--podbox-mem"), status: Native, note: "podbox's own, machine tier only and refused elsewhere: the guest memory in bytes with an optional K/M/G/T suffix, judged against the RLIMIT_FSIZE ceiling before anything starts (T-1305)" },
+    // ------------------------------------------------ issue 60: the rest of
+    // docker's `run` surface. TODO/cli.md T-0801: a flag with no row is a
+    // bug in the table, so every docker spelling lands here, honored or
+    // refused with its reason. `--env-file` is real behavior; `--label`,
+    // `--attach` and `--expose` are Stub; the rest are None.
+    Row { verb: "run", flag: Some("--env-file"), status: Native, note: "repeatable; entries load at the flag's position, so a later -e wins over the file and a later file over an earlier flag. Lines are KEY=VALUE, `#` comments and blank lines ignored, one matching quote pair stripped, a line without `=` refused naming its number" },
+    Row { verb: "run", flag: Some("--label"), status: Stub, note: "accepted and does nothing: podbox records carry no labels, so `ps --filter label=` matches nothing, and --strict refuses" },
+    Row { verb: "run", flag: Some("--attach"), status: Stub, note: "accepted and does nothing: podbox always captures the payload's stdout and stderr together (TODO/supervise.md T-0605), and --strict refuses" },
+    Row { verb: "run", flag: Some("--expose"), status: Stub, note: "accepted and does nothing: docker's --expose only documents ports and podbox publishes none, so the run is unchanged, and --strict refuses" },
+    Row { verb: "run", flag: Some("--read-only"), status: NoneStatus, note: "the rootfs cannot be remounted read-only without mount(2), which this runtime denies; the payload runs with the store's writability" },
+    Row { verb: "run", flag: Some("--mount"), status: NoneStatus, note: "podbox cannot mount(2) on this runtime, so a mount would be a copy pretending to be a mount" },
+    Row { verb: "run", flag: Some("--tmpfs"), status: NoneStatus, note: "podbox cannot mount(2) on this runtime, so a tmpfs would be a directory pretending to be one" },
+    Row { verb: "run", flag: Some("--volume-driver"), status: NoneStatus, note: "podbox cannot mount(2) on this runtime, so a named volume would be a copy pretending to be a mount" },
+    Row { verb: "run", flag: Some("--volumes-from"), status: NoneStatus, note: "podbox cannot mount(2) on this runtime, so another container's volumes cannot be attached" },
+    Row { verb: "run", flag: Some("--device"), status: NoneStatus, note: "device nodes are shims, not devices (TODO/complete.md T-0401); no host device is mapped into the payload (TODO/enter.md T-0501)" },
+    Row { verb: "run", flag: Some("--device-cgroup-rule"), status: NoneStatus, note: "a device rule needs a cgroup this runtime does not grant" },
+    Row { verb: "run", flag: Some("--gpus"), status: NoneStatus, note: "no device passthrough: device nodes are shims, not devices (TODO/complete.md T-0401)" },
+    Row { verb: "run", flag: Some("--shm-size"), status: NoneStatus, note: "sizing /dev/shm needs a tmpfs mount, and podbox cannot mount(2) on this runtime" },
+    Row { verb: "run", flag: Some("--dns, --dns-option, --dns-search"), status: NoneStatus, note: "podbox always installs the host's own resolv.conf (TODO/complete.md T-0402); there is no per-container resolver to configure" },
+    Row { verb: "run", flag: Some("--domainname"), status: NoneStatus, note: "the payload shares this machine's network namespace and hostname; sethostname needs a UTS namespace this runtime does not grant" },
+    Row { verb: "run", flag: Some("--mac-address"), status: NoneStatus, note: "the payload shares this machine's network namespace and interface; there is no address to assign" },
+    Row { verb: "run", flag: Some("--link"), status: NoneStatus, note: "the payload shares this machine's network namespace, so there is nothing to link to" },
+    Row { verb: "run", flag: Some("--blkio-weight, --cgroup-parent, --cpu-period, --cpu-quota, --cpu-shares, --cpuset-cpus, --oom-kill-disable, --pids-limit"), status: NoneStatus, note: "resource limits need a cgroup this runtime does not grant" },
+    Row { verb: "run", flag: Some("--ulimit"), status: NoneStatus, note: "per-container rlimits are not applied; the payload inherits this process's limits" },
+    Row { verb: "run", flag: Some("--pid, --ipc, --uts, --userns"), status: NoneStatus, note: "the payload shares this machine's namespaces; there is no PID, IPC, UTS or user namespace to select" },
+    Row { verb: "run", flag: Some("--isolation"), status: NoneStatus, note: "there is no isolation backend to select: one chroot rung, chosen by the probe" },
+    Row { verb: "run", flag: Some("--runtime"), status: NoneStatus, note: "one runtime, not a set: podbox enters a chroot and selects no OCI runtime" },
+    Row { verb: "run", flag: Some("--security-opt"), status: NoneStatus, note: "no security backend takes per-container options; the syscall filter is the runtime's own" },
+    Row { verb: "run", flag: Some("--group-add"), status: NoneStatus, note: "the runtime grants no supplementary groups; --user names the identity instead (TODO/interpose.md T-0711)" },
+    Row { verb: "run", flag: Some("--health-cmd"), status: NoneStatus, note: "there is no daemon to run health checks; `ps` reads the container table" },
+    Row { verb: "run", flag: Some("--cidfile"), status: NoneStatus, note: "a detached run prints its id on stdout and the record keeps it; no cidfile is written" },
+    Row { verb: "run", flag: Some("--detach-keys"), status: NoneStatus, note: "there is no attach session to detach keys from" },
+    Row { verb: "run", flag: Some("--log-driver"), status: Stub, note: "json-file accepted and changes nothing: the payload's output is captured into one interleaved file per container either way, raw bytes rather than JSON (TODO/supervise.md T-0605). Any other driver is refused naming it, and --strict refuses" },
+    Row { verb: "run", flag: Some("--log-opt"), status: NoneStatus, note: "no log driver takes options here: one file per container (TODO/supervise.md T-0605)" },
+    Row { verb: "run", flag: Some("--stop-signal"), status: NoneStatus, note: "stop always sends SIGTERM then SIGKILL after the bounded grace; no per-container stop signal is stored" },
+    Row { verb: "run", flag: Some("--stop-timeout"), status: NoneStatus, note: "the stop grace is `stop -t` (default 10); `run` carries no per-container timeout" },
+    Row { verb: "run", flag: Some("--sysctl"), status: NoneStatus, note: "the payload shares the host's namespaces, so a per-container sysctl would be a host sysctl; none is applied" },
+    Row { verb: "run", flag: Some("--disable-content-trust"), status: NoneStatus, note: "podbox always verifies digests (TODO/extract.md T-1315); disabling trust is refused rather than honored" },
+    Row { verb: "run", flag: Some("--init"), status: NoneStatus, note: "no PID namespace and no init to run: orphaned grandchildren reparent to the host init, and no flag changes that" },
     // ------------------------------------------------------ exec's own flags
     Row { verb: "exec", flag: Some("-e, --env"), status: Native, note: "repeatable; a later one wins" },
     Row { verb: "exec", flag: Some("-w, --workdir"), status: Native, note: "chdir inside the new root, after the chroot" },
@@ -852,5 +904,85 @@ mod tests {
             None
         );
         assert_eq!(admit_all("images", &[], usage), None);
+    }
+
+    /// ⭐ TODO/cli.md T-0801, issue 60: the curated docker surface stays
+    /// covered. Every flag in the issue's list resolves under `run` (any
+    /// status: honored or refused with its reason), and every verb in its
+    /// list has a verb row. `scripts/check-todo.py` check 27 holds the
+    /// same list from outside the binary; this holds it from inside.
+    #[test]
+    fn issue_60_curated_surface_stays_covered() {
+        const FLAGS: &[&str] = &[
+            "--attach",
+            "--blkio-weight",
+            "--cgroup-parent",
+            "--cidfile",
+            "--cpu-period",
+            "--cpu-quota",
+            "--cpu-shares",
+            "--cpuset-cpus",
+            "--detach-keys",
+            "--device",
+            "--device-cgroup-rule",
+            "--disable-content-trust",
+            "--dns",
+            "--dns-option",
+            "--dns-search",
+            "--domainname",
+            "--env-file",
+            "--expose",
+            "--gpus",
+            "--group-add",
+            "--health-cmd",
+            "--init",
+            "--ipc",
+            "--isolation",
+            "--label",
+            "--link",
+            "--log-driver",
+            "--log-opt",
+            "--mac-address",
+            "--mount",
+            "--oom-kill-disable",
+            "--pid",
+            "--pids-limit",
+            "--read-only",
+            "--runtime",
+            "--security-opt",
+            "--shm-size",
+            "--stop-signal",
+            "--stop-timeout",
+            "--sysctl",
+            "--tmpfs",
+            "--ulimit",
+            "--userns",
+            "--uts",
+            "--volume-driver",
+            "--volumes-from",
+        ];
+        const VERBS: &[&str] = &[
+            "manifest",
+            "node",
+            "plugin",
+            "scan",
+            "secret",
+            "service",
+            "stack",
+            "trust",
+            "checkpoint",
+            "config",
+        ];
+        assert_eq!(FLAGS.len(), 46, "the issue lists 46 run flags");
+        assert_eq!(VERBS.len(), 10, "the issue lists 10 verbs");
+        for f in FLAGS {
+            assert!(
+                flag("run", f).is_some(),
+                "curated flag {f} has no row under `run`"
+            );
+        }
+        for v in VERBS {
+            assert!(verb(v).is_some(), "curated verb {v} has no verb row");
+        }
     }
 }

@@ -236,7 +236,7 @@ Source:      `TOOL.md` section 6.6, section 6.5
 Category:    supervise
 Priority:    P2
 Effort:      S
-Status:      partial 2026-09-09
+Status:      done 2026-09-09
 
 Problem:     A log sink opened after the chroot cannot reach the store, which is
              outside the new root. Opening it afterwards is the same mistake as
@@ -286,6 +286,19 @@ and the `crates/podbox-supervise` sink. Risk if wrong is a docker
 flag that reads as an omission rather than a decision. Prove is the
 accept arm and the refusal arm through the shipped binary, beside
 the table row.
+
+**Done, 2026-09-25.** The row and both arms landed with T-0801:
+`--log-driver` is Stub in the parity table (`json-file` accepted
+and changing nothing: one raw interleaved file per container
+either way), the `run` parser accepts `json-file` in both
+spellings and refuses any other value naming it. No sink change:
+the single file is what `json-file` selects here, and a stream
+split stays out of scope as decided. Prove through the shipped
+binary on the lane (`experiments/355-parity-curated.sh`, same
+conditions as T-0801 above): `log-driver-json` and
+`log-driver-json-eq` exit 0, `log-driver-syslog` exits 125
+naming the value. In-suite:
+`log_driver_takes_json_file_and_nothing_else`.
 
 ---
 

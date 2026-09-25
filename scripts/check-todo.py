@@ -1165,6 +1165,31 @@ MILESTONE_BLAME = re.compile(r"until M(\d+)|which is M(\d+)")
 MISSING_CLAIM = re.compile(
     r"([A-Za-z][\w`, /-]*) (?:is|are) not implemented")
 
+# ⭐ TODO/gate.md T-1325, issue 60: the curated docker surface the table
+# must cover. Every flag here must resolve under `run` (honored or
+# refused with its reason) and every verb must have a verb row, so a new
+# parser flag cannot land without a row and a missing row cannot pass
+# as a refusal. This list is the issue's list verbatim; the Rust test
+# `issue_60_curated_surface_stays_covered` holds the same list inside
+# the binary, and the two are kept identical by review.
+CURATED_RUN_FLAGS = (
+    "--attach", "--blkio-weight", "--cgroup-parent", "--cidfile",
+    "--cpu-period", "--cpu-quota", "--cpu-shares", "--cpuset-cpus",
+    "--detach-keys", "--device", "--device-cgroup-rule",
+    "--disable-content-trust", "--dns", "--dns-option", "--dns-search",
+    "--domainname", "--env-file", "--expose", "--gpus", "--group-add",
+    "--health-cmd", "--init", "--ipc", "--isolation", "--label",
+    "--link", "--log-driver", "--log-opt", "--mac-address", "--mount",
+    "--oom-kill-disable", "--pid", "--pids-limit", "--read-only",
+    "--runtime", "--security-opt", "--shm-size", "--stop-signal",
+    "--stop-timeout", "--sysctl", "--tmpfs", "--ulimit", "--userns",
+    "--uts", "--volume-driver", "--volumes-from",
+)
+CURATED_VERBS = (
+    "manifest", "node", "plugin", "scan", "secret", "service", "stack",
+    "trust", "checkpoint", "config",
+)
+
 
 def check_parity_notes():
     """Check 27: no parity note leans on a shipped milestone or misses a verb."""
@@ -1212,6 +1237,30 @@ def check_parity_notes():
                         f"implemented, but the parity table carries it: a "
                         f"note that misses a verb rots the contract this "
                         f"table is. TODO/gate.md T-1325.")
+    # ⭐ Issue 60's curated surface: every flag resolves under `run`, every
+    # verb has a verb row. `spellings` carries every spelling the table
+    # names (honored or refused); a curated name missing from it is a row
+    # the table never gained.
+    _, _, spellings_all, _ = got if got is not None else (None, None, {}, None)
+    run_spellings = spellings_all.get("run", set())
+    for name in CURATED_RUN_FLAGS:
+        seen["parity_notes"] += 1
+        if name not in run_spellings:
+            err(PARITY_RS,
+                f"the curated docker surface (issue 60) names `{name}` for "
+                f"`run`, and the parity table has no row for it: a missing "
+                f"row cannot pass as a refusal. TODO/gate.md T-1325.")
+    verbs_present = set()
+    for m in PARITY_ROW.finditer(text):
+        if not m.group(2):
+            verbs_present.add(m.group(1))
+    for name in CURATED_VERBS:
+        seen["parity_notes"] += 1
+        if name not in verbs_present:
+            err(PARITY_RS,
+                f"the curated docker surface (issue 60) names `{name}`, and "
+                f"the parity table has no verb row for it. TODO/gate.md "
+                f"T-1325.")
 
 
 # ⛔ Check 28. The binary prints plain ASCII on every path, so a usage

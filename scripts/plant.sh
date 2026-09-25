@@ -2,9 +2,9 @@
 # plant.sh - break each of the gate's checks on purpose and assert it goes red.
 #
 # ⛔ AN ASSERTION NOBODY HAS SEEN FAIL IS NOT AN ASSERTION. `check-todo.py`
-# carries twenty-five checks and this script carries thirty-one cases, because
-# check 17 has four assertions that fail apart, checks 18, 19 and 21 two, and
-# check 23 two. A check that
+# carries twenty-eight checks and this script carries forty cases, because
+# check 17 has four assertions that fail apart, checks 18, 19, 21 and 23
+# two each, and checks 26 and 27 five and three. A check that
 # quietly matches nothing exits 0 exactly like one whose assertions all passed,
 # and the second is what everybody assumes they are looking at. This script is
 # what tells them apart.
@@ -428,6 +428,12 @@ case_plant "27a a parity note leaning on a shipped milestone" "leans on M4" \
 
 case_plant "27b a parity note missing a present verb" "claims \`prune\`" \
   sh -c 'sed -i "s/df and events are not implemented/df, events and prune are not implemented/" crates/podbox-cli/src/parity.rs'
+
+# ⚠ Check 27's curated arm fails apart from the note arms: only a dropped
+# row for a curated name reaches it. The plant deletes the --read-only
+# row, and the holding check must go red naming it.
+case_plant "27c a curated flag with no parity row" "names \`--read-only\`" \
+  sh -c 'sed -i "/--read-only/d" crates/podbox-cli/src/parity.rs'
 
 # ⛔ CHECK 28, and its plant lands in a printed string on purpose. A glyph
 # in a printed string must go red naming U+26D4 and T-1336; comments stay

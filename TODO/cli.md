@@ -19,7 +19,7 @@ Source:      `TOOL.md` section 6.8
 Category:    cli
 Priority:    P0
 Effort:      L
-Status:      partial 2026-09-09
+Status:      done 2026-09-09
 
 Problem:     A tool that needs its user to learn its differences has not
              replaced anything. Thousands of agents reach for `docker` because
@@ -57,8 +57,8 @@ against the shipped binary.
 
 | | |
 | --- | --- |
-| rows | **141**. ⚠ 131 when this closed; the table grows with the flags, and this row is the CURRENT count so the two cannot drift apart |
-| of which verbs | **53** |
+| rows | **220**. ⚠ 131 when this closed; the table grows with the flags, and this row is the CURRENT count so the two cannot drift apart |
+| of which verbs | **69** |
 | statuses used | Native, Degraded, Stub, None, and no fifth |
 | rows with no reason | **0** |
 
@@ -158,6 +158,37 @@ trusting an enumerable table that omits the docker surface they
 script against. Prove is the curated flag list from the issue
 driven row by row through the shipped binary with every refusal
 naming its reason, beside the T-1325 check extension below.
+
+**Done, 2026-09-25.** Every one of the issue's 46 flags and 10
+verbs has a row, in `crates/podbox-cli/src/parity.rs` (220 rows,
+69 verbs). `--env-file` is Native with a parser arm and a reader
+(`run.rs read_env_file`: `KEY=VALUE` lines loaded at the flag's
+position, `#` comments and blanks ignored, one matching quote pair
+stripped, 1 MiB ceiling, UTF-8, a line without `=` refused naming
+its number). `--label`, `--attach` and `--expose` are Stub.
+`--log-driver` is Stub for `json-file`, accepted and changing
+nothing (one raw interleaved file either way), with any other
+driver refused naming it: the shape T-0605 prescribes. The
+remaining 41 flags are None with the fitting reason, and the 10
+verbs are None on the existing no-daemon and out-of-shape
+reasons. The usage sentence in `main.rs` stands unchanged: with
+the rows added it is true again, and check 27 holds it.
+Prove: `experiments/355-parity-curated.sh` exit 0 on the lane
+(kernel 7.2.0-WSL2-STABLE, lane-built musl debug binary
+0.1.0-beta.7, pinned alpine:3.20 digest `d9e853e8`):
+clause-1 41/41 refused with status None at 125, clause-2 10/10
+verbs refused at 125 with their notes, `--env-file` end to end
+(`from-file` on payload stdout, a later `-e` winning, the `=`
+form equal, a bad line and a missing file at 125), the stub
+trio admitted at 0 with `--strict` refusing at 125 naming Stub,
+`--log-driver=json-file` accepted in both forms with `syslog`
+refused at 125 naming the value, `create` inheriting all of it.
+Report in `experiments/results/parity-curated.txt`. In-suite:
+`issue_60_curated_surface_stays_covered`,
+`env_file_loads_and_stubs_parse`,
+`log_driver_takes_json_file_and_nothing_else`, podbox-cli 139
+passed, 0 failed. Guards are check 27's curated arm and the
+in-suite test beside it.
 
 ---
 
