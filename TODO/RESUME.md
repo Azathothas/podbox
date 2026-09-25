@@ -1,16 +1,17 @@
 ## The task
 
-None open. The client-beta batch is finished, `v0.1.0-beta.6` is
-published and verified, all twelve open issues are closed with
-proof comments, and the T-0210 follow-up is implemented and driven
-as commit `9899280`.
+Finish all tasks and release the final beta binary (ruled
+2026-09-25): T-1109's remaining conditions plus T-1112 plus release
+polish (version bump, changelog pass, doc sweep), then tag
+`v0.1.0-beta.7` as a nightly pre-release through the beta.6
+pipeline unchanged.
 
 ## The resume point
 
-Teardown is still owed: `gc --apply` the kept lane job container,
-remove session scratch, stop the podman machine this session
-started (found stopped), tree clean, gate green. Then continue
-with T-1112 per PROGRESS.
+Start with T-1109/T-1112 per PROGRESS. Tag only when the non-tag
+work is green; the bundles verify and the notes carry the gate
+state plus the boundary, each read back, before anything is called
+done.
 
 ## In flight
 
@@ -31,9 +32,11 @@ schedulable work, staying P3.
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Read TODO/PROGRESS.md first, then TODO/RESUME.md. Teardown is owed
-from the issue-closing session (lane job gc, scratch, stop the
-podman machine, tree clean, gate green), then continue with T-1112
-per PROGRESS. Work unattended; push straight to main with no
-branches.
+Read TODO/PROGRESS.md first, then TODO/RESUME.md. Finish all tasks
+and release the final beta binary: T-1109's remaining conditions
+plus T-1112 plus release polish (version bump, changelog pass, doc
+sweep), then tag v0.1.0-beta.7 as a nightly pre-release through the
+beta.6 pipeline unchanged (tag only when green; bundles verify and
+notes carry gate plus boundary, each read back). Work unattended;
+push straight to main with no branches.
 ```

@@ -119,13 +119,17 @@ orders themselves direct the close with proof.
 
 ## Current work order
 
-1. Session teardown: `gc --apply` the kept lane job containers,
-   remove session scratch, confirm the podman machine rests as found
-   (stopped), tree clean, gate green.
-2. [T-1109](milestones.md) carries its remaining conditions in its own
-   file; [T-1112](milestones.md) is unparked (ruled 2026-09-23) and is
-   the next schedulable work, staying P3. Nothing else is open, and
-   nothing is blocked.
+1. Finish all tasks, then release the final beta (ruled 2026-09-25):
+   [T-1109](milestones.md) carries its remaining conditions in its own
+   file; [T-1112](milestones.md) is unparked (ruled 2026-09-23),
+   staying P3; plus release polish on top (version bump, changelog
+   pass, doc sweep).
+2. Tag `v0.1.0-beta.7` as a nightly pre-release (ruled 2026-09-25),
+   through the beta.6 pipeline unchanged: tag only when the non-tag
+   work is green, then the bundles verify and the notes carry the
+   gate state plus the boundary, each read back.
+3. Work unattended; push straight to `main` with no branches.
+   Nothing else is open, and nothing is blocked.
 
 [T-0206](image.md) has its fixture technology: `zot` as one pinned
 binary plus config, storage dir, generated cert and htpasswd file,
