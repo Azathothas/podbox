@@ -33,6 +33,7 @@ pub mod binfmt;
 pub mod ladder;
 pub mod memfd;
 pub mod plan;
+pub mod userland;
 
 use std::io::Write;
 
@@ -59,6 +60,20 @@ pub use plan::{Plan, Program};
 /// ⚠ When the `namespace` rung is implemented this constant moves with it, and
 /// it is one constant so it cannot move in one place and not another.
 pub const ENTERED_RUNG: podbox_probe::select::Rung = podbox_probe::select::Rung::Chroot;
+
+/// The entered word for a probe selection.
+///
+/// `userland` where the probe selects `interpose`: chroot is denied
+/// there, so a run enters without it where a family holds, and refuses
+/// where none does. Every other selection enters the chroot sequence
+/// (`namespace` maps here until T-1339 enters it). TODO/enter.md T-1317.
+pub fn entered_word(selection: podbox_probe::select::Rung) -> &'static str {
+    use podbox_probe::select::Rung as R;
+    match selection {
+        R::Interpose => R::Userland.word(),
+        _ => ENTERED_RUNG.word(),
+    }
+}
 
 // ⛔ **docker's codes, from the one file that holds them.**
 // [`TODO/cli.md`](../../../TODO/cli.md) T-0802. This crate declared its own 125,
@@ -441,7 +456,7 @@ impl Child {
 /// naming [`ENTERED_RUNG`], whatever the ladder chose: this is the rung the
 /// sequence implements, and [`spawn_ladder`] is the one that reports a rung.
 pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> {
-    spawn_with(root, plan, ENTERED_RUNG.word(), None, err)
+    spawn_with(root, plan, ENTERED_RUNG.word(), None, None, true, err)
 }
 
 /// Enter `root` on a ladder rung and exec the plan, returning on the exec.
@@ -470,7 +485,60 @@ pub fn spawn_ladder(
             mode.name()
         )));
     }
-    spawn_with(root, plan, mode.name(), fd, err)
+    spawn_with(root, plan, mode.name(), None, fd, true, err)
+}
+
+/// Enter `root` without `chroot(2)` and exec, returning on the exec.
+///
+/// TODO/enter.md T-1317. The payload runs with the host's root and its
+/// working directory inside the image: `exec_argv` is the exact argv the
+/// child execs (the image's loader, the payload by host path, then the
+/// payload's own arguments), or `plan.argv` where `fd_exec` carries a
+/// staged memfd. `active` is the word the payload reads as
+/// `PODBOX_ACTIVE_MODE`. The readiness pipe, the exit codes and the
+/// forwarding wait are the chroot entry's: one fork shape, not two.
+pub fn spawn_userland(
+    root: &RootDir,
+    plan: &Plan,
+    exec_argv: Vec<String>,
+    active: &str,
+    fd_exec: Option<i64>,
+    err: &mut dyn Write,
+) -> Result<Child> {
+    if fd_exec.is_none() && exec_argv.is_empty() {
+        return Err(Error::Runtime(
+            "the userland entry was handed no argv and no memfd: there is nothing to exec".into(),
+        ));
+    }
+    let override_argv: Vec<CBuf> = exec_argv
+        .iter()
+        .map(|a| {
+            CBuf::new(a)
+                .ok_or_else(|| Error::Runtime(format!("the argument {a:?} contains a NUL byte")))
+        })
+        .collect::<Result<_>>()?;
+    spawn_with(root, plan, active, Some(override_argv), fd_exec, false, err)
+}
+
+/// Run a payload inside `root` without `chroot(2)`, and return its exit status.
+///
+/// ⛔ Like [`run`]: the exit status is the payload's, not podbox's.
+pub fn run_userland(
+    root: &RootDir,
+    plan: &Plan,
+    exec_argv: Vec<String>,
+    active: &str,
+    fd_exec: Option<i64>,
+    err: &mut dyn Write,
+) -> Result<i32> {
+    let child = spawn_userland(root, plan, exec_argv, active, fd_exec, err)?;
+    // The parent's copy of the memfd serves nothing past the fork: the
+    // child execs from its own. It closes here, on the only path that
+    // holds one, so no caller leaks a descriptor.
+    if let Some(f) = fd_exec {
+        let _ = sys::close(f);
+    }
+    child.wait_forwarding(err)
 }
 
 /// Run a payload inside `root` on a ladder rung, and return its exit status.
@@ -494,17 +562,22 @@ pub fn run_ladder(
     child.wait_forwarding(err)
 }
 
-/// The one entry sequence [`spawn`] and [`spawn_ladder`] share.
+/// The one entry sequence [`spawn`], [`spawn_ladder`] and [`spawn_userland`] share.
 ///
 /// `active` is the word the payload reads as `PODBOX_ACTIVE_MODE`, and
 /// `fd_exec` is the written memfd the child execs where one was handed in.
-/// One function, so the fork, the chroot order and the readiness pipe cannot
-/// drift between the two entries (`docs/conventions/code.md`).
+/// `argv_exec` is the exact argv the child execs instead of resolving
+/// candidates (the userland loader invocation); `chroot` selects the
+/// chroot sequence or the fchdir-only one. One function, so the fork, the
+/// root discipline and the readiness pipe cannot drift between the three
+/// entries (`docs/conventions/code.md`).
 fn spawn_with(
     root: &RootDir,
     plan: &Plan,
     active: &str,
+    argv_exec: Option<Vec<CBuf>>,
     fd_exec: Option<i64>,
+    chroot: bool,
     err: &mut dyn Write,
 ) -> Result<Child> {
     // ---------------------------------------------------------- before the fork
@@ -548,6 +621,20 @@ fn spawn_with(
         &plan.working_dir
     })
     .ok_or_else(|| Error::Runtime("the working directory contains a NUL byte".into()))?;
+    // ⭐ T-1317. Without a chroot the working directory is addressed
+    // relatively from the rootfs descriptor the child fchdirs onto: the
+    // guest-absolute path minus its leading slash. A NUL byte falls back
+    // to the rootfs itself rather than refusing past allocation time.
+    let workdir_rel: Option<CBuf> = if chroot {
+        None
+    } else {
+        let rel = plan.working_dir.trim_start_matches('/');
+        if rel.is_empty() {
+            None
+        } else {
+            CBuf::new(rel)
+        }
+    };
     let slash = CBuf::new("/").expect("a literal");
     let dot = CBuf::new(".").expect("a literal");
     // ⭐ T-1003. The empty path `execveat` execs a descriptor through, built
@@ -559,6 +646,13 @@ fn spawn_with(
     argv.push(std::ptr::null());
     let mut envp: Vec<*const u8> = envp_owned.iter().map(|c| c.ptr() as *const u8).collect();
     envp.push(std::ptr::null());
+    // ⭐ T-1317. The exact argv's pointer table, built here for the same
+    // reason: nothing below the fork may allocate.
+    let argv_exec_ptrs: Option<Vec<*const u8>> = argv_exec.as_ref().map(|ov| {
+        let mut v: Vec<*const u8> = ov.iter().map(|c| c.ptr() as *const u8).collect();
+        v.push(std::ptr::null());
+        v
+    });
 
     // ⭐ T-0502. The program is resolved INSIDE the new root, so the candidate
     // paths are built here and tried there. A parent-resolved absolute path
@@ -616,19 +710,29 @@ fn spawn_with(
             if let Err(e) = sys::fchdir(root.fd) {
                 report(1, e);
             }
-            if let Err(e) = sys::chroot(&dot) {
-                report(2, e);
+            if chroot {
+                if let Err(e) = sys::chroot(&dot) {
+                    report(2, e);
+                }
+                // ⛔ `chdir("/")` after the chroot. Without it the working directory
+                // is still the old root's inode, which is a documented way out of a
+                // chroot and is not a containment podbox may claim.
+                if let Err(e) = sys::chdir(&slash) {
+                    report(3, e);
+                }
+                // The image's WorkingDir, if it exists. ⚠ A missing one is not
+                // fatal: docker creates it, and podbox running from `/` and saying
+                // so is better than refusing after the point of no return.
+                let _ = sys::chdir(&workdir);
+            } else {
+                // ⭐ T-1317. No chroot: the working directory stays inside
+                // the image, addressed relatively from the descriptor above.
+                // A missing one is not fatal either: podbox runs from the
+                // rootfs and the banner says where the payload started.
+                if let Some(w) = &workdir_rel {
+                    let _ = sys::chdir(w);
+                }
             }
-            // ⛔ `chdir("/")` after the chroot. Without it the working directory
-            // is still the old root's inode, which is a documented way out of a
-            // chroot and is not a containment podbox may claim.
-            if let Err(e) = sys::chdir(&slash) {
-                report(3, e);
-            }
-            // The image's WorkingDir, if it exists. ⚠ A missing one is not
-            // fatal: docker creates it, and podbox running from `/` and saying
-            // so is better than refusing after the point of no return.
-            let _ = sys::chdir(&workdir);
 
             // ⭐ Resolved HERE, in the process that changed the root. Where the
             // ladder handed a written memfd in, it is exec'd without resolving
@@ -638,6 +742,20 @@ fn spawn_with(
                     unsafe { crate::memfd::exec_fd(mfd, &empty, argv.as_ptr(), envp.as_ptr()) }
                 {
                     let msg = [5u8, (e.0 & 0xff) as u8, ((e.0 >> 8) & 0xff) as u8, 0];
+                    let _ = sys::write(write_end, &msg);
+                }
+                sys::exit_group(EXIT_NOT_FOUND)
+            }
+            // ⭐ T-1317. The exact argv, exec'd once: the loader names its own
+            // failures, so there is no candidate list to walk. A memfd above
+            // takes precedence: it is the staged bytes, not a path.
+            if let Some(ov) = &argv_exec {
+                let ptrs = argv_exec_ptrs
+                    .as_ref()
+                    .map(|v| v.as_ptr())
+                    .unwrap_or(std::ptr::null());
+                if let Err(e) = unsafe { sys::execve(&ov[0], ptrs, envp.as_ptr()) } {
+                    let msg = [6u8, (e.0 & 0xff) as u8, ((e.0 >> 8) & 0xff) as u8, 0];
                     let _ = sys::write(write_end, &msg);
                 }
                 sys::exit_group(EXIT_NOT_FOUND)
@@ -691,6 +809,8 @@ fn spawn_with(
             3 => "chdir(\"/\") after the chroot",
             // ⭐ T-1003: the ladder's fd-exec, which never resolves a path.
             5 => "execveat of the memfd",
+            // ⭐ T-1317: the userland entry argv, exec'd once.
+            6 => "execve of the userland entry argv",
             _ => "execve of every candidate path",
         };
         let text = format!(
@@ -702,7 +822,7 @@ fn spawn_with(
             "{:?}: {text}",
             plan.argv.first().map(String::as_str).unwrap_or("")
         );
-        return Err(if buf[0] != 4 && buf[0] != 5 {
+        return Err(if buf[0] != 4 && buf[0] != 5 && buf[0] != 6 {
             Error::Runtime(text)
         } else if invocable_but_refused(errno) {
             // ⭐ 126 and not 127, and the difference is docker's. Measured by

@@ -113,7 +113,7 @@ the blocker named and what would clear it.
 | [T-0415](complete.md) | P1 | complete | partial | A device stand-in is checked by type, because an absent one becomes a growing file |
 | [T-0501](enter.md) | P0 | enter | partial | Open every descriptor before the root changes |
 | [T-0502](enter.md) | P0 | enter | done | Resolve the program inside the new root, in the process that changed it |
-| [T-0503](enter.md) | P1 | enter | partial | Probe `/dev/ptmx`, and refuse `-t` by name where it is absent |
+| [T-0503](enter.md) | P1 | enter | done | Probe `/dev/ptmx`, and refuse `-t` by name where it is absent |
 | [T-0504](enter.md) | P1 | enter | done | Refuse a rootfs path that is a symlink |
 | [T-0505](enter.md) | P1 | enter | done | `exec` is a fresh chroot, and `inspect` says so |
 | [T-0506](enter.md) | P0 | enter | done | A foreign-architecture container, and never a rung measured by the emulator |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 | [T-1314](packaging.md) | P1 | packaging | done | Nightly releases: one tag builds and tests every supported arch |
 | [T-1315](extract.md) | P1 | extract | done | Extract re-verifies the blob digest against the manifest |
 | [T-1316](deps.md) | P2 | deps | done | The committed lock matches the manifests, so a clean build leaves a clean tree |
-| [T-1317](enter.md) | P1 | enter | partial | A chroot-denied host gets an up-front refusal naming chroot, not a 125 after the work |
+| [T-1317](enter.md) | P1 | enter | done | A chroot-denied host gets an up-front refusal naming chroot, not a 125 after the work |
 | [T-1318](supervise.md) | P3 | supervise | done | `logs -f` follows a container's log, bounded like the rest |
 | [T-1319](cli.md) | P1 | cli | done | `inspect` prints exactly one document for any reference |
 | [T-1320](image.md) | P2 | image | done | Images move without a registry: save, load, import |
@@ -232,7 +232,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-168 items: 3 open, 17 partial, 0 blocked, 148 done.
+168 items: 3 open, 15 partial, 0 blocked, 150 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -241,10 +241,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 3 | 0 | 49 | 52 |
-| P1 | 1 | 9 | 0 | 68 | 78 |
+| P1 | 1 | 7 | 0 | 70 | 78 |
 | P2 | 2 | 4 | 0 | 25 | 31 |
 | P3 | 0 | 1 | 0 | 6 | 7 |
-| **All** | **3** | **17** | **0** | **148** | **168** |
+| **All** | **3** | **15** | **0** | **150** | **168** |
 
 ## How the current ordering is derived
 

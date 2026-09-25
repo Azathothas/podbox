@@ -143,6 +143,45 @@ pub(crate) fn enter_forced(
         }
     }
     let avail = availability(findings, memfd_up, cache_requested());
+    // ⭐ TODO/enter.md T-1317. Without chroot the ladder's fd-exec still
+    // runs a static payload: the memfd enters with the host's root. A
+    // forced memfd over anything else refuses naming the force and the
+    // unforced loader family, and every other forced rung refuses naming
+    // the force: their mechanisms need what this host denies.
+    if !podbox_probe::probes::chroot_usable(findings) {
+        if mode == Mode::Memfd {
+            match staged {
+                Some(bytes) => {
+                    let fd = memfd::stage(&bytes)?;
+                    return podbox_enter::run_userland(
+                        root,
+                        plan,
+                        plan.argv.clone(),
+                        podbox_probe::select::Rung::Userland.word(),
+                        Some(fd),
+                        err,
+                    );
+                }
+                None => {
+                    return Err(podbox_enter::Error::Runtime(format!(
+                        "PODBOX_MODE=memfd was forced but {}: without chroot(2) \
+                         only a static payload enters, through the unforced \
+                         loader family where the tier reaches it: run without \
+                         PODBOX_MODE (TODO/enter.md T-1317)",
+                        memfd_why
+                            .as_ref()
+                            .map(|w| w.to_string())
+                            .unwrap_or_else(|| { "the payload did not stage".to_string() })
+                    )));
+                }
+            }
+        }
+        return Err(podbox_enter::Error::Runtime(format!(
+            "PODBOX_MODE={} was forced but chroot(2) is denied on this machine, \
+             and only the memfd rung enters without it (TODO/enter.md T-1317)",
+            mode.name()
+        )));
+    }
     let chosen = ladder::choose(Some(mode), &avail, memfd_why.as_ref())?;
     if chosen == Mode::Memfd {
         match staged {
@@ -252,7 +291,8 @@ mod tests {
 
     /// A forced sketch rung refuses naming the sketch rather than falling
     /// through to a rung the caller did not ask for. No fork happens: the
-    /// refusal precedes every entry.
+    /// refusal precedes every entry. The findings admit chroot, so the
+    /// no-chroot branch below is not what refuses here.
     #[test]
     fn a_forced_sketch_rung_refuses_before_any_entry() {
         let dir = std::env::temp_dir().join(format!("podbox-ladder-cli-{}", std::process::id()));
@@ -268,6 +308,7 @@ mod tests {
             path_dirs: vec!["/bin".to_string()],
         };
         let mut sink = Vec::new();
+        let usable = findings_with(vec![("chroot(/tmp)", Outcome::ok())]);
         let e = enter_forced(
             &root,
             &plan,
@@ -275,12 +316,53 @@ mod tests {
             dir.to_str().unwrap(),
             "true",
             &plan.path_dirs,
-            &Findings::empty(),
+            &usable,
             &mut sink,
         )
         .unwrap_err();
         let text = format!("{e}");
         assert!(text.contains("not implemented"), "{text}");
+        assert_eq!(e.exit_code(), podbox_enter::EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// TODO/enter.md T-1317. Where chroot is denied, a forced sketch rung
+    /// refuses naming the force and the denial rather than the sketch:
+    /// their mechanisms need what this host denies, and only the memfd
+    /// rung enters without it.
+    #[test]
+    fn a_forced_sketch_rung_without_chroot_names_the_denial() {
+        let dir = std::env::temp_dir().join(format!("podbox-ladder-cli-nc{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let root = RootDir::open(dir.to_str().unwrap()).expect("a temp dir opens");
+        let plan = Plan {
+            argv: vec!["true".to_string()],
+            env: Vec::new(),
+            working_dir: "/".to_string(),
+            fds: podbox_enter::Fds::default(),
+            banner: String::new(),
+            path_dirs: vec!["/bin".to_string()],
+        };
+        let mut sink = Vec::new();
+        let denied = findings_with(vec![(
+            "chroot(/tmp)",
+            Outcome::denied(podbox_probe::sys::EPERM),
+        )]);
+        let e = enter_forced(
+            &root,
+            &plan,
+            Mode::RunDir,
+            dir.to_str().unwrap(),
+            "true",
+            &plan.path_dirs,
+            &denied,
+            &mut sink,
+        )
+        .unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("PODBOX_MODE=rundir was forced"), "{text}");
+        assert!(text.contains("chroot(2) is denied"), "{text}");
         assert_eq!(e.exit_code(), podbox_enter::EXIT_RUNTIME_ERROR);
         let _ = std::fs::remove_dir_all(&dir);
     }

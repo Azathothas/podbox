@@ -128,7 +128,7 @@ Source:      `TOOL.md` section 0, section 6.5, section 6.8; `paper_final.md` sec
 Category:    enter
 Priority:    P1
 Effort:      S
-Status:      partial 2026-09-22
+Status:      done 2026-09-22
 
 Problem:     `-t` either works or it does not, and the corpus disagrees with
              itself about which. A degraded PTY that cannot open a terminal is
@@ -203,6 +203,32 @@ gate against the `ptmx_usable` predicate. Risk if wrong is a second
 ordering mask beside the first. Prove is `run --rm -t` on a fixture
 denying both, naming ptmx, beside the chroot-only arm naming
 chroot.
+
+**Done, 2026-09-25.** The flag-specific refusal moved ahead of the
+generic gate: `run.rs` `prepare` asks `probes::ptmx_usable` first
+where `-t` was given, naming ptmx at 125 whatever else holds, and
+prints the chroot sentence beside it where chroot is denied too, so
+neither reason masks the other. `create` keeps the strict chroot
+gate; foreground `run` takes the two-tier `ensure_entry_possible`
+gate; the late `-t` check in `prepare` is gone and `exec` keeps its
+own. Prove is `experiments/356-no-chroot-rung.sh` (exit 0,
+`experiments/results/no-chroot-rung.txt`), whose fixture is a mount
+namespace hiding `/dev/pts` plus `experiments/deny-chroot.c`
+denying `chroot(2)` with EPERM:
+
+```
+$ fixture podbox run --rm -t ALPINE true; echo $?
+podbox run: -t was asked for and /dev/ptmx is not usable on this machine [...]
+podbox run: chroot(2) is denied on this machine as well [...]
+125
+```
+
+The chroot-only arm is the same drive's `fx-refuse` (125 naming
+`chroot(2) is denied`, rootfs byte-identical after), and the capable
+arm is `sane-tty` (`run --rm -t` exits 0, `system info`
+`.EnteredRung` reads `chroot`). The guard is the order itself with
+the late check deleted: no `-t` path reaches a gate that can mask
+it.
 
 ---
 
@@ -450,7 +476,7 @@ Source:      issue 12, client beta testing 2026-09-22 (every rung dies at
 Category:    enter
 Priority:    P1
 Effort:      M
-Status:      partial 2026-09-23
+Status:      done 2026-09-23
 
 Problem:     On a host that denies `chroot(2)` itself, probe selects
              `interpose` and then every entry path (`run`, forced memfd,
@@ -552,6 +578,63 @@ T-1003 ladder. Risk if wrong is weaker isolation stated as equal.
 Prove is `run --rm alpine echo hi` at exit 0 with the banner naming
 the rung on the chroot-denying fixture, beside the current refusal
 test as the strict arm, with no rootfs mutation on the refusal path.
+
+**Done, 2026-09-25.** Both no-chroot families run, decided in
+`lifecycle::decide_entry` before any fixup mutates the rootfs:
+dynamic payloads through the image's own loader with the image's
+library directories and the interposer preloaded by host path
+(`podbox-enter/src/userland.rs` `loader_plan`, `host_env`), static
+payloads from a staged memfd exactly as the ladder stages it
+(`Family::Memfd`). `Rung::Userland` orders after chroot and never
+claims isolation: the banner, `PODBOX_ACTIVE_MODE=userland` and
+`system info` `.EnteredRung` read `userland` on every userland run.
+Refusals name every tried rung with its missing leg at 125: scripts,
+foreign images, unresolvable payloads, `--strict` against the weaker
+rung, `run -d` and `create` staying chroot-gated, forced non-memfd
+rungs, and forced memfd over a dynamic payload naming the unforced
+loader family. Three candidates were tested for the alpine 127 seen
+mid-drive (unresolvable payload; loader argv shape; applet dispatch);
+the lane refuted the first two and confirmed the third: alpine's
+`/bin/sh` points at the absolute `/bin/busybox`, which dangles on
+the host side, so the resolved file opens and `loader_argv_for`
+passes the invoked name as the applet (`busybox sh ...`), the same
+selection a chrooted kernel would make. Prove is
+`experiments/356-no-chroot-rung.sh` (exit 0,
+`experiments/results/no-chroot-rung.txt`) on the both-denied
+fixture (pinned alpine `d9e853e8`, pinned debian `833d7afe`,
+locally built static hello):
+
+```
+$ fixture podbox run --rm DEBIAN sh -c 'echo $PODBOX_ACTIVE_MODE'; echo $?
+entering without chroot on the loader family: [...] runs [...]/usr/bin/sh [...]
+userland
+0
+$ fixture podbox run --rm ALPINE sh -c 'echo $PODBOX_ACTIVE_MODE'; echo $?
+entering without chroot on the loader family: [...] runs [...]/bin/busybox
+[...] the invoked name "sh" rides as the applet [...]
+userland
+0
+$ fixture podbox run --rm static-hello:1 /hello; echo $?
+entering without chroot on the memfd family: [...]
+static-hi
+0
+$ fixture podbox run --rm --strict ALPINE true; echo $?
+podbox run: --strict, and this run is degraded in 6 way(s). [...]
+125
+$ fixture podbox run --rm ALPINE /nonexistent-probe-target; echo $?
+podbox run: chroot(2) is denied [...] no no-chroot family runs [...]
+125         (rootfs byte-identical after)
+```
+
+Forced `PODBOX_MODE=memfd` enters the static hello at 0, refuses
+over dynamic alpine naming the unforced family at 125, and forced
+`fuse` refuses naming the force at 125. Unit guards:
+`userland.rs` (loader plan, lib dirs, host env, invocation name,
+applet argv), `lifecycle.rs` (rung decision), `ladder.rs` (forced
+no-chroot drives and refusals), `system.rs` (`.EnteredRung`
+`userland` where chroot is denied); lane `cargo test` green over
+the three crates beside the drive (podbox-cli 143, podbox-enter 64,
+podbox-probe 97 passed, 0 failed).
 
 
 ---

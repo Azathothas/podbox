@@ -16,6 +16,7 @@
 
 use crate::{format, parity};
 use podbox_image::error::{EXIT_CLI_ERROR, EXIT_FLAG_ERROR};
+use podbox_probe::select::Rung;
 
 pub const SYSTEM_USAGE: &str = "\
 usage: podbox system info [--format T]
@@ -44,7 +45,9 @@ usage: podbox system info [--format T]
 
   refused: .Rung and .EnteredRung are TWO ANSWERS and a caller needs both. .Rung is
     what this machine would permit; .EnteredRung is the sequence `podbox run`
-    actually performs, which is a chroot on every machine. Reporting the first
+    actually performs, which is a chroot everywhere except where chroot(2) is
+    denied and a no-chroot family runs (TODO/enter.md T-1317), where it reads
+    `userland`. Reporting the first
     as if it were the second is the defect TODO/cli.md T-0804 was opened for.
 
   note: .ExitCodes is docker's exit-code contract as data: one object per case,
@@ -69,8 +72,9 @@ pub const FIELDS: &[&str] = &[
     "ExitCodes",
     "Version",
     "Rung",
-    // ⭐ T-0804 rule 4, as DATA. `podbox_enter::ENTERED_RUNG` is the one
-    // constant the banner is built from, and a script that had only `.Rung` to
+    // ⭐ T-0804 rule 4, as DATA. The entered rung is the one constant the
+    // banner is built from wherever chroot holds, and `userland` where it
+    // does not (TODO/enter.md T-1317): a script that had only `.Rung` to
     // read could print "the rung podbox uses" and name a rung podbox does not
     // enter with -- which `experiments/240-distro-sweep.sh` did.
     "EnteredRung",
@@ -285,13 +289,13 @@ fn collect() -> Vec<(&'static str, String)> {
         .map(|s| s.root().display().to_string())
         .unwrap_or_else(|e| format!("unavailable: {e}"));
     fields_from(
-        selection.rung.word(),
+        selection.rung,
         selection.exit_code(podbox_probe::select::Strictness::Refuse) == 0,
         store,
     )
 }
 
-fn fields_from(rung: &str, strict_ok: bool, store: String) -> Vec<(&'static str, String)> {
+fn fields_from(selection: Rung, strict_ok: bool, store: String) -> Vec<(&'static str, String)> {
     let count = |s: parity::Status| {
         parity::TABLE
             .iter()
@@ -304,8 +308,11 @@ fn fields_from(rung: &str, strict_ok: bool, store: String) -> Vec<(&'static str,
         ("ParityRows", parity::TABLE.len().to_string()),
         ("ExitCodes", podbox_probe::exit::json()),
         ("Version", env!("CARGO_PKG_VERSION").to_string()),
-        ("Rung", rung.to_string()),
-        ("EnteredRung", podbox_enter::ENTERED_RUNG.word().to_string()),
+        ("Rung", selection.word().to_string()),
+        (
+            "EnteredRung",
+            podbox_enter::entered_word(selection).to_string(),
+        ),
         ("StrictOk", strict_ok.to_string()),
         ("Store", store),
         // ⭐ T-0804 rule 1: the banner is suppressible by CONFIG and never by
@@ -405,7 +412,7 @@ mod tests {
     /// and renders blank, which is the wrong answer that looks right.
     #[test]
     fn the_declared_fields_are_the_built_ones() {
-        let built: Vec<&str> = fields_from("chroot", false, "/nowhere".into())
+        let built: Vec<&str> = fields_from(Rung::Chroot, false, "/nowhere".into())
             .iter()
             .map(|(k, _)| *k)
             .collect();
@@ -415,20 +422,32 @@ mod tests {
         }
     }
 
-    /// ⭐ T-0804 rule 4, as an assertion. `.EnteredRung` is
-    /// [`podbox_enter::ENTERED_RUNG`] and NOT the rung the probe selected, so a
-    /// script reading it cannot print a rung podbox does not enter with. ⚠ The
-    /// argument here is deliberately a rung podbox does not implement, so the
+    /// ⭐ T-0804 rule 4, as an assertion. `.EnteredRung` is the entered
+    /// sequence and NOT the rung the probe selected, so a script reading
+    /// it cannot print a rung podbox does not enter with. ⚠ The argument
+    /// here is deliberately a rung podbox does not implement, so the
     /// test fails if the field is ever wired to the wrong one.
     #[test]
     fn the_entered_rung_is_the_sequence_and_not_the_selection() {
-        let fields = fields_from("namespace", true, "/nowhere".into());
+        let fields = fields_from(Rung::Namespace, true, "/nowhere".into());
         assert_eq!(pick(&fields, "Rung"), "namespace");
         assert_eq!(
             pick(&fields, "EnteredRung"),
             podbox_enter::ENTERED_RUNG.word()
         );
         assert_ne!(pick(&fields, "EnteredRung"), pick(&fields, "Rung"));
+    }
+
+    /// ⭐ TODO/enter.md T-1317. Where the probe selects `interpose`
+    /// (chroot denied), the entered sequence is `userland`, not the
+    /// selection: the field names what `run` enters with.
+    #[test]
+    fn the_entered_rung_is_userland_where_chroot_is_denied() {
+        let fields = fields_from(Rung::Interpose, false, "/nowhere".into());
+        assert_eq!(pick(&fields, "Rung"), "interpose");
+        assert_eq!(pick(&fields, "EnteredRung"), "userland");
+        let fields = fields_from(Rung::Chroot, false, "/nowhere".into());
+        assert_eq!(pick(&fields, "EnteredRung"), "chroot");
     }
 
     /// ⭐ T-0801's `Prove`, without a shell: the template it names renders the

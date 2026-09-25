@@ -625,13 +625,72 @@ pub fn run(args: &[String]) -> i32 {
                 }
             }
         }
-        None => match podbox_enter::run(&root, &plan, &mut err) {
-            Ok(c) => c,
-            Err(e) => {
-                let _ = writeln!(err, "podbox run: {e}");
-                e.exit_code()
+        None => {
+            // ⭐ TODO/enter.md T-1317. The no-chroot families enter here: the
+            // loader argv was decided pre-fixup, and the static family's
+            // memfd stages now, against post-fixup bytes, mirroring the
+            // ladder's forced drive.
+            if let Some(u) = &p.userland {
+                let active = podbox_probe::select::Rung::Userland.word();
+                let (exec_argv, fd) = match u.family {
+                    podbox_enter::userland::Family::Loader => (u.loader_argv.clone(), None),
+                    podbox_enter::userland::Family::Memfd => {
+                        let argv0 = plan.argv.first().cloned().unwrap_or_default();
+                        let bytes = match podbox_enter::ladder::payload_bytes(
+                            &p.rootfs,
+                            &argv0,
+                            &plan.path_dirs,
+                        ) {
+                            Ok(b) => b,
+                            Err(e) => {
+                                let _ = writeln!(err, "podbox run: {e}");
+                                drop(memo);
+                                let _ = std::fs::remove_file(&p.memo_host_path);
+                                return e.exit_code();
+                            }
+                        };
+                        if podbox_enter::memfd::eligible(&bytes).is_err() {
+                            // Fixups changed what the decision read: loud,
+                            // never silent, and the fixups stay (they are the
+                            // image's now, not this run's).
+                            let _ = writeln!(
+                                err,
+                                "podbox run: the payload the memfd family was decided \
+                                 on no longer stages: refusing rather than entering \
+                                 something unjudged (TODO/enter.md T-1317)"
+                            );
+                            drop(memo);
+                            let _ = std::fs::remove_file(&p.memo_host_path);
+                            return podbox_image::error::EXIT_RUNTIME_ERROR;
+                        }
+                        match podbox_enter::memfd::stage(&bytes) {
+                            Ok(f) => (plan.argv.clone(), Some(f)),
+                            Err(e) => {
+                                let _ = writeln!(err, "podbox run: {e}");
+                                drop(memo);
+                                let _ = std::fs::remove_file(&p.memo_host_path);
+                                return e.exit_code();
+                            }
+                        }
+                    }
+                };
+                match podbox_enter::run_userland(&root, &plan, exec_argv, active, fd, &mut err) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        let _ = writeln!(err, "podbox run: {e}");
+                        e.exit_code()
+                    }
+                }
+            } else {
+                match podbox_enter::run(&root, &plan, &mut err) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        let _ = writeln!(err, "podbox run: {e}");
+                        e.exit_code()
+                    }
+                }
             }
-        },
+        }
     };
     drop(err);
     // ⭐ T-0710: the ephemeral memo goes with the run. The child holds its own
@@ -745,7 +804,36 @@ pub(crate) fn prepare(
     // rootfs untouched. The machine tier returned above and never chroots.
     // `findings` is reused for the banner below, so the probe runs once.
     let findings = podbox_probe::run();
-    crate::lifecycle::ensure_chroot_usable(verb, &findings)?;
+    // ⭐ TODO/enter.md T-0503. The flag-specific refusal fires where the
+    // flag alone decides, ahead of every gate: `-t` with an unusable ptmx
+    // refuses naming ptmx whatever else holds, because no rung here
+    // allocates a pty without it. Where chroot is denied too the chroot
+    // sentence prints beside it rather than being masked by it. Exit
+    // stays 125, one line per reason.
+    if o.tty && !podbox_probe::probes::ptmx_usable(&findings) {
+        eprintln!(
+            "podbox {verb}: -t was asked for and /dev/ptmx is not usable on this \
+             machine, so podbox cannot allocate a pty. It refuses rather than \
+             running without one and letting the payload discover it \
+             (TODO/enter.md T-0503)"
+        );
+        if !podbox_probe::probes::chroot_usable(&findings) {
+            eprintln!(
+                "podbox {verb}: chroot(2) is denied on this machine as well \
+                 (see `podbox probe`) (TODO/enter.md T-1317)"
+            );
+        }
+        return Err(podbox_enter::EXIT_RUNTIME_ERROR);
+    }
+    // ⭐ TODO/enter.md T-1317. Records promise a launcher entry, which
+    // chroots, so `create` keeps the strict gate. Foreground `run` takes
+    // the two-tier gate: the exact rung needs the payload, which is
+    // post-extract, so this refuses only where nothing could run.
+    if verb == "create" {
+        crate::lifecycle::ensure_chroot_usable(verb, &findings)?;
+    } else {
+        crate::lifecycle::ensure_entry_possible(verb, &findings)?;
+    }
 
     // ------------------------------------------------------------- the image
     let record = acquire(verb, store, &image, &platform, &policy, &o.pull)?;
@@ -833,6 +921,7 @@ pub(crate) fn prepare(
             return Err(podbox_enter::EXIT_RUNTIME_ERROR);
         }
     }
+    let support_native = matches!(support, binfmt::Support::Native);
 
     // --------------------------------------------------------------- the plan
     let cfg = config_of(verb, store, &record)?;
@@ -867,6 +956,22 @@ pub(crate) fn prepare(
     }
     env.retain(|e| e.split('=').next().unwrap_or("") != crate::interpose::MEMO_FD_VAR);
     env.push(crate::interpose::memo_fd_env());
+    // ⭐ TODO/enter.md T-1317. The exact rung, decided here: the rootfs
+    // exists and nothing has been written into it yet (`place` and the
+    // fixups run below). `create` never decides past its strict gate
+    // above, so only foreground `run` takes a no-chroot entry here.
+    // A detached run has no userland launcher yet and refuses naming
+    // the foreground fallback rather than starting unstartable.
+    let userland =
+        crate::lifecycle::decide_entry(verb, &rootfs, &argv, &env, support_native, &findings)?;
+    if userland.is_some() && o.detach {
+        eprintln!(
+            "podbox {verb}: chroot(2) is denied and only the no-chroot families \
+             run here, which `run -d` does not drive: run foreground \
+             (TODO/enter.md T-1317)"
+        );
+        return Err(podbox_image::error::EXIT_RUNTIME_ERROR);
+    }
     // ⭐ T-0702 and T-0706: classify the payload and place the object BEFORE
     // the banner is built, so the banner names the write before anything of
     // the payload's runs. The note joins the banner below.
@@ -874,6 +979,23 @@ pub(crate) fn prepare(
     if let Err(e) = crate::interpose::apply(verb, &rootfs, &argv, &mut env, &mut interpose_note) {
         eprintln!("{e}");
         return Err(podbox_image::error::EXIT_RUNTIME_ERROR);
+    }
+    // ⭐ TODO/enter.md T-1317. Without a chroot the loader resolves guest
+    // paths on the host root: the preload becomes the host path and the
+    // libraries come from the image. A caller preload naming guest paths
+    // is dropped and named, because it cannot resolve.
+    let mut dropped_preload: Option<String> = None;
+    if let Some(u) = &userland {
+        if u.family == podbox_enter::userland::Family::Loader {
+            let (hosted, dropped) = podbox_enter::userland::host_env(
+                &rootfs,
+                crate::interpose::GUEST_PATH,
+                &env,
+                &u.lib_dirs,
+            );
+            env = hosted;
+            dropped_preload = dropped;
+        }
     }
     let path_dirs = Plan::path_from(&env);
     let working_dir = o
@@ -888,10 +1010,14 @@ pub(crate) fn prepare(
     // its findings.
     let selection = podbox_probe::select::Selection::choose(&findings);
     // ⭐ T-0804 rule 4. The banner is built from the rung podbox ENTERS with,
-    // not the one the machine would permit: `podbox_enter::ENTERED_RUNG` is the
-    // sequence that crate implements, and it is one constant so the banner, the
-    // container record and `--strict` cannot disagree.
-    let entered = podbox_enter::ENTERED_RUNG;
+    // not the one the machine would permit: the chroot sequence or, where
+    // chroot is denied and a no-chroot family runs, the userland one. One
+    // value, so the banner, the container record and `--strict` cannot
+    // disagree.
+    let entered = userland
+        .as_ref()
+        .map(|_| podbox_probe::select::Rung::Userland)
+        .unwrap_or(podbox_enter::ENTERED_RUNG);
     let mut banner = podbox_probe::report::entry_banner(&findings, &selection, entered);
     // ⭐ TODO/cli.md T-0803. Where podbox was reached under somebody else's
     // name, the banner says which name was used and that this is podbox.
@@ -901,6 +1027,18 @@ pub(crate) fn prepare(
         banner.push_str(&note);
     }
     banner.push_str(&interpose_note);
+    // ⭐ TODO/enter.md T-1317. The family account joins the banner beside
+    // the mode: what runs the payload and what it does not isolate.
+    if let Some(u) = &userland {
+        banner.push_str(&u.banner);
+        banner.push('\n');
+        if let Some(d) = &dropped_preload {
+            banner.push_str(&format!(
+                "podbox: userland: caller LD_PRELOAD {d:?} dropped: it names guest \
+                 paths, which resolve on the host without a chroot\n"
+            ));
+        }
+    }
     // ⭐ M5. The completion layer runs HERE: after the rootfs exists and the
     // image lock is held, and before anything is entered. Its report is part of
     // the banner, because every one of these is an edit podbox made inside
@@ -927,21 +1065,10 @@ pub(crate) fn prepare(
     if !quiet {
         let _ = write!(err, "{banner}");
     }
-    if o.tty {
-        // ⛔ T-0503: refused BY NAME rather than silently degraded. The
-        // predicate lives in `podbox-probe`, beside the rows it reads, and
-        // `exec` asks the same one: one home for whether `-t` may promise.
-        if !podbox_probe::probes::ptmx_usable(&findings) {
-            let _ = writeln!(
-                err,
-                "podbox {verb}: -t was asked for and /dev/ptmx is not usable on this \
-                 machine, so podbox cannot allocate a pty. It refuses rather than \
-                 running without one and letting the payload discover it \
-                 (TODO/enter.md T-0503)"
-            );
-            return Err(podbox_enter::EXIT_RUNTIME_ERROR);
-        }
-    }
+    // ⛔ T-0503, decided up front beside the entry gate above: `-t` with
+    // an unusable ptmx refuses there naming ptmx, so no `-t` check
+    // remains here. `exec` keeps its own: it is ungated by chroot, so
+    // nothing there masks it.
     // ⭐ T-0804, and it is the LAST thing before the run is committed to, so a
     // refused caller still gets the whole account of why on stderr. ⛔ The
     // refusal prints even where the banner is suppressed: the config switch
@@ -999,6 +1126,7 @@ pub(crate) fn prepare(
             })
             .collect(),
         completion_degraded: completion.degradations().len(),
+        userland,
     })
 }
 

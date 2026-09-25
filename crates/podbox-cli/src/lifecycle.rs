@@ -1536,6 +1536,9 @@ pub struct Prepared {
     /// changed a byte or failed, carried into the container record.
     pub completion: Vec<String>,
     pub completion_degraded: usize,
+    /// ⭐ TODO/enter.md T-1317. The no-chroot entry foreground `run` takes
+    /// where chroot is denied. None is the chroot sequence, as before.
+    pub userland: Option<Userland>,
 }
 
 /// Resolve a container reference to the rootfs `exec` re-enters.
@@ -1588,6 +1591,211 @@ pub fn ensure_chroot_usable(verb: &str, findings: &podbox_probe::Findings) -> Re
          (TODO/enter.md T-1317)"
     );
     Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+}
+
+/// The pure half of [`ensure_entry_possible`]: anything could run where
+/// chroot holds, the static family needs the kernel's memfd, and the
+/// loader family needs an interposer object in this binary. Tests pin
+/// the table; the wrapper below reads the machine.
+fn entry_possible(chroot_ok: bool, memfd_ok: bool, objects: bool) -> bool {
+    chroot_ok || memfd_ok || objects
+}
+
+/// TODO/enter.md T-1317. The pre-fetch tier of the entry gate: refuse only
+/// where nothing could run.
+///
+/// The exact rung needs the payload, which is post-extract, so this gate
+/// admits where chroot holds, where the kernel takes a memfd (the static
+/// no-chroot family may run), or where this binary embeds an interposer
+/// object (the loader no-chroot family may run). Refusal names all three
+/// misses at 125, fetching nothing.
+pub fn ensure_entry_possible(verb: &str, findings: &podbox_probe::Findings) -> Result<(), i32> {
+    if entry_possible(
+        podbox_probe::probes::chroot_usable(findings),
+        podbox_enter::memfd::kernel_takes_memfd(),
+        crate::interpose::object(crate::interpose::Libc::Gnu).is_some()
+            || crate::interpose::object(crate::interpose::Libc::Musl).is_some(),
+    ) {
+        return Ok(());
+    }
+    eprintln!(
+        "podbox {verb}: chroot(2) is denied on this machine, and no no-chroot \
+         family can run either: the kernel takes no memfd, and this podbox \
+         binary embeds no interposer object for the loader family (see \
+         `podbox probe`, and ./scripts/build-interpose.sh builds them) \
+         (TODO/enter.md T-1317)"
+    );
+    Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+}
+
+/// A no-chroot entry this run takes, decided post-extract and pre-fixup.
+#[derive(Debug, Clone)]
+pub struct Userland {
+    /// Which family runs the payload.
+    pub family: podbox_enter::userland::Family,
+    /// The exact argv the child execs (the loader family: loader, payload
+    /// by host path, then the payload's own arguments).
+    pub loader_argv: Vec<String>,
+    /// The image's library directories by host path (the loader family).
+    pub lib_dirs: Vec<String>,
+    /// The rung account lines for the banner.
+    pub banner: String,
+}
+
+/// TODO/enter.md T-1317. The exact rung, post-extract and pre-fixup: the
+/// rootfs exists and nothing has been written into it yet.
+///
+/// `None` is the chroot sequence, as before. Where chroot is denied the
+/// loader family runs a dynamic payload the tier reaches (loader present,
+/// libraries present, native image) and the memfd family runs a static
+/// one; where neither runs the refusal at 125 names every tried rung
+/// with its missing leg: the last resort, never the whole answer.
+///
+/// Read-only: classification, resolution and ELF reads only. Placement
+/// (`place`) and fixups run after this decides, so a refusal writes
+/// nothing into the image.
+#[allow(clippy::too_many_arguments)]
+pub fn decide_entry(
+    verb: &str,
+    rootfs: &str,
+    argv: &[String],
+    env: &[String],
+    support_native: bool,
+    findings: &podbox_probe::Findings,
+) -> Result<Option<Userland>, i32> {
+    if podbox_probe::probes::chroot_usable(findings) {
+        return Ok(None);
+    }
+    let argv0 = argv.first().map(String::as_str).unwrap_or("");
+    let path_dirs = podbox_enter::Plan::path_from(env);
+    let no_chroot = |family_note: String| {
+        eprintln!(
+            "podbox {verb}: chroot(2) is denied on this machine, and no \
+             no-chroot family runs this payload: {family_note}. The probe's \
+             chroot leg reports the denial (see `podbox probe`) \
+             (TODO/enter.md T-1317)"
+        );
+        Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+    };
+    // The payload bytes decide the family. A payload nothing resolved is
+    // a refusal naming it, not a rung decision: no rung runs what nothing
+    // resolved, chrooted or not.
+    let bytes = match podbox_enter::ladder::payload_bytes(rootfs, argv0, &path_dirs) {
+        Ok(b) => b,
+        Err(e) => {
+            return no_chroot(format!("{argv0} resolves to nothing runnable: {e}"));
+        }
+    };
+    let interp = match podbox_enter::memfd::eligible(&bytes) {
+        Ok(()) => None,
+        Err(podbox_enter::memfd::MemfdRefusal::RoutePastScript) => {
+            return no_chroot(
+                "the payload is a #! script, whose interpreter path resolves on \
+                 the host root without a chroot: the image's script would run \
+                 under the host's interpreter"
+                    .to_string(),
+            );
+        }
+        Err(podbox_enter::memfd::MemfdRefusal::NotElf(why)) => {
+            return no_chroot(format!("the payload is not an ELF file: {why}"));
+        }
+        Err(podbox_enter::memfd::MemfdRefusal::HasInterp(interp)) => Some(interp),
+    };
+    if interp.is_none() {
+        // Static: the memfd family, where the kernel takes one.
+        if !support_native {
+            return no_chroot(
+                "the payload is statically linked but the image is foreign: \
+                 binfmt resolution without a chroot is refused (T-0506)"
+                    .to_string(),
+            );
+        }
+        if !podbox_enter::memfd::kernel_takes_memfd() {
+            return no_chroot(
+                "the payload is statically linked but the kernel takes no \
+                 memfd on this machine"
+                    .to_string(),
+            );
+        }
+        return Ok(Some(Userland {
+            family: podbox_enter::userland::Family::Memfd,
+            loader_argv: Vec::new(),
+            lib_dirs: Vec::new(),
+            banner: "entering without chroot on the memfd family: the payload \
+             runs from a staged memfd with the host's root and its working \
+             directory inside the image; absolute paths resolve on the host \
+             (TODO/enter.md T-1317)"
+                .to_string(),
+        }));
+    }
+    // Dynamic: the loader family, where the tier reaches the payload.
+    let interp = interp.unwrap_or_default();
+    if !support_native {
+        return no_chroot(
+            "the payload is dynamically linked but the image is foreign: binfmt \
+             resolution without a chroot is refused (T-0506)"
+                .to_string(),
+        );
+    }
+    let resolved = match podbox_enter::ladder::resolve_payload(rootfs, argv0, &path_dirs) {
+        Ok(p) => p,
+        Err(e) => {
+            return no_chroot(format!("{argv0} resolves to nothing runnable: {e}"));
+        }
+    };
+    // The loader opens by path and the payload dispatches on argv[0]'s
+    // basename, so the invocation keeps the invoked name where it names
+    // something openable. Measured on the lane (probe-3): alpine's
+    // `/bin/sh` points at the absolute `/bin/busybox`, which dangles on
+    // the host side, so the resolved file is what opens and
+    // `loader_argv_for` below carries the invoked name as the applet.
+    // A relative link (debian's `/bin/sh`) opens as invoked.
+    let payload_host =
+        podbox_enter::userland::invocation_path(rootfs, argv0, &path_dirs, &resolved);
+    let plan = match podbox_enter::userland::loader_plan(rootfs, &interp, &payload_host) {
+        Ok(p) => p,
+        Err(why) => {
+            return no_chroot(why);
+        }
+    };
+    match crate::interpose::classify(rootfs, argv0, &path_dirs) {
+        crate::interpose::Reach::Declined(why) => {
+            return no_chroot(format!("the loader family declines the payload: {why}"));
+        }
+        crate::interpose::Reach::Preload { .. } => {}
+    }
+    // The loader consumes argv[0] (its own path) and argv[1] (the program):
+    // the payload sees its own arguments with argv[0] as the host path.
+    // That path is what was executed, and the banner says so. Where the
+    // payload resolved to busybox through another name, the invoked name
+    // rides beside the opened file so the applet selection survives.
+    let (loader_argv, applet) = podbox_enter::userland::loader_argv_for(
+        &plan.loader_host,
+        &plan.payload_host,
+        argv0,
+        argv.get(1..).unwrap_or(&[]),
+    );
+    Ok(Some(Userland {
+        family: podbox_enter::userland::Family::Loader,
+        loader_argv,
+        lib_dirs: plan.lib_dirs,
+        banner: format!(
+            "entering without chroot on the loader family: {} runs {} with the \
+             image's libraries; absolute paths resolve on the host except where \
+             the interposer rewrites them, and argv[0] keeps the invoked name{} \
+             (TODO/enter.md T-1317)",
+            plan.loader_host,
+            plan.payload_host,
+            if applet {
+                format!(
+                    "; the invoked name {argv0:?} rides as the applet the resolved \
+                     busybox file selects"
+                )
+            } else {
+                String::new()
+            },
+        ),
+    }))
 }
 
 /// Shared by `run` and `create`: everything a container needs before it exists.
@@ -1906,6 +2114,86 @@ mod tests {
             ensure_chroot_usable("create", &findings(vec![])),
             Err(podbox_image::error::EXIT_RUNTIME_ERROR)
         );
+    }
+
+    /// TODO/enter.md T-1317. The pre-fetch tier's truth table: chroot, the
+    /// kernel's memfd, or an interposer object each admit; only all three
+    /// missing refuse. The wrapper reads the machine; this pins the
+    /// decision it feeds.
+    #[test]
+    fn entry_is_possible_where_any_family_may_run() {
+        assert!(entry_possible(true, false, false));
+        assert!(entry_possible(false, true, false));
+        assert!(entry_possible(false, false, true));
+        assert!(entry_possible(true, true, true));
+        assert!(!entry_possible(false, false, false));
+    }
+
+    /// TODO/enter.md T-1317. The exact rung, decided pre-fixup: a usable
+    /// chroot decides chroot without reading the payload; a static
+    /// payload on a native image with a memfd kernel decides the memfd
+    /// family; a script and a foreign image refuse naming why.
+    #[test]
+    fn the_rung_decision_names_its_family_or_its_refusal() {
+        fn findings(
+            rows: Vec<(&'static str, podbox_probe::verdict::Outcome)>,
+        ) -> podbox_probe::Findings {
+            podbox_probe::Findings {
+                rows,
+                identity: podbox_probe::identity::Identity::default(),
+                writable: Vec::new(),
+                self_exe: String::new(),
+            }
+        }
+        let chroot = "chroot(/tmp)";
+        let ok = findings(vec![(chroot, podbox_probe::verdict::Outcome::ok())]);
+        let denied = findings(vec![(
+            chroot,
+            podbox_probe::verdict::Outcome::denied(podbox_probe::sys::Errno(1)),
+        )]);
+        // Chroot usable: the payload is never read.
+        assert!(decide_entry("run", "/nowhere", &[], &[], true, &ok)
+            .unwrap()
+            .is_none());
+        // Static payload, native, memfd kernel: the memfd family.
+        let d = std::env::temp_dir().join(format!("podbox-decide-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("bin")).unwrap();
+        std::fs::write(d.join("bin/prog"), static_pie()).unwrap();
+        let root = d.to_string_lossy().to_string();
+        let argv = ["prog".to_string()];
+        let env = ["PATH=/bin".to_string()];
+        if podbox_enter::memfd::kernel_takes_memfd() {
+            let u = decide_entry("run", &root, &argv, &env, true, &denied)
+                .unwrap()
+                .expect("a static payload decides a family");
+            assert_eq!(u.family, podbox_enter::userland::Family::Memfd);
+        }
+        // A script refuses naming the interpreter problem.
+        std::fs::write(d.join("bin/tool.sh"), b"#!/bin/sh\necho hi\n").unwrap();
+        let argv = ["tool.sh".to_string()];
+        let e = decide_entry("run", &root, &argv, &env, true, &denied).unwrap_err();
+        assert_eq!(e, podbox_image::error::EXIT_RUNTIME_ERROR);
+        // A foreign image refuses naming binfmt.
+        let argv = ["prog".to_string()];
+        let e = decide_entry("run", &root, &argv, &env, false, &denied).unwrap_err();
+        assert_eq!(e, podbox_image::error::EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// A 64-bit little-endian static PIE: the smallest bytes the memfd
+    /// family decides on. Mirrors `podbox-enter/src/memfd.rs`'s own
+    /// builder, which this crate cannot reach across its test gate.
+    fn static_pie() -> Vec<u8> {
+        let mut b = vec![0u8; 64 + 56];
+        b[0..4].copy_from_slice(b"\x7fELF");
+        b[4] = 2;
+        b[5] = 1;
+        b[32..40].copy_from_slice(&64u64.to_le_bytes());
+        b[54..56].copy_from_slice(&56u16.to_le_bytes());
+        b[56..58].copy_from_slice(&1u16.to_le_bytes());
+        b[64..68].copy_from_slice(&1u32.to_le_bytes());
+        b
     }
 
     /// TODO/supervise.md T-1318. `-f`/`--follow` selects following; anything

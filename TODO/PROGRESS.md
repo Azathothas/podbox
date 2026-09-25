@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 17 partial, 0 blocked, 148 done. The 2026-09-25
+168 entries: 3 open, 15 partial, 0 blocked, 150 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -10,7 +10,10 @@ partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
 closed 2026-09-25 on the issue-60 drive (355) with the curated
 check and its plant: the curated docker surface has a row
 everywhere, `--env-file` is real, `--log-driver` takes
-`json-file`. No other open issue is closed:
+`json-file`. T-0503 and T-1317 closed 2026-09-25 on the no-chroot
+drive (356): `-t` refuses naming ptmx ahead of the chroot gate,
+and both no-chroot families run (loader for dynamic, memfd for
+static) with the banner naming the rung. No other open issue is closed:
 each closes with its fix commit, drive output and guard, per the
 operator rule.
 
@@ -208,9 +211,15 @@ mutating clause prints the line it WROTE as well as the line it matched.
 
 ## In progress
 
-Nothing half-written. PR 9 merged (rustls 0.23.45). The teardown
-owes the kept lane job containers (`gc --apply`) and session
-scratch removal, then the final gate and the push.
+Item 2 done on the lane (`rust:1.98.1-bookworm` job containers in
+`wsl-toolkit-podbox`, host kernel `7.2.0-WSL2-STABLE`):
+`experiments/356-no-chroot-rung.sh` exits 0
+(`experiments/results/no-chroot-rung.txt`), targeted units green,
+`cargo test -p podbox-enter -p podbox-cli -p podbox-probe` green
+(143, 64 and 97 passed, 0 failed). Next is item 3 (T-1301 TCG
+split). The teardown owes the kept lane job containers
+(`gc --apply`) and session scratch removal, then the final gate
+and the push.
 
 ## Operator questions
 

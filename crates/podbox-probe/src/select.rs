@@ -36,6 +36,10 @@ pub enum Rung {
     Namespace,
     Supervise,
     Chroot,
+    /// Entered without `chroot(2)`: the payload runs with the host's root,
+    /// its working directory inside the image. Weaker than chroot, which
+    /// is what the order says. TODO/enter.md T-1317.
+    Userland,
     Interpose,
     Unsupported,
 }
@@ -46,6 +50,7 @@ impl Rung {
             Rung::Namespace => "namespace",
             Rung::Supervise => "supervise",
             Rung::Chroot => "chroot",
+            Rung::Userland => "userland",
             Rung::Interpose => "interpose",
             Rung::Unsupported => "unsupported",
         }
@@ -59,6 +64,7 @@ impl Rung {
                 "anything whose arguments it cannot read; on this runtime, exec remapping"
             }
             Rung::Chroot => "process, network, IPC or mount isolation, or a /proc filesystem",
+            Rung::Userland => "isolation of any kind, a private root, or host-absolute paths resolving inside the image",
             Rung::Interpose => "any security property whatsoever",
             Rung::Unsupported => "",
         }
