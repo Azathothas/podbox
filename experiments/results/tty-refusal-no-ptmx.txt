@@ -1,0 +1,41 @@
+== conditions
+date              2026-09-25T09:07:07Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0-beta.7
+image             public.ecr.aws/docker/library/alpine:3.20
+flag-error code   125
+cli-error code    1
+runtime-error     125
+ptmx usable here  true
+
+namespaces answer: the drive re-runs under unshare --user --map-root-user --mount.
+== cover
+  /dev/ptmx is a symlink to pts/ptmx.
+  an empty directory covers /dev/pts (mount --bind).
+  the mount table carries the cover (1 -> 2 lines).
+  probe --json under the cover: exit 0, 14097 bytes.
+  ptmx usable under the cover: false.
+
+== focused refusal: run -t where ptmx is unusable
+  run -t --rm public.ecr.aws/docker/library/alpine:3.20 true   rc=125 (want 125)
+  ok: refused and named:
+    podbox run: -t was asked for and /dev/ptmx is not usable on this machine, so podbox cannot allocate a pty. It refu
+
+== full 250 under the same cover
+  250 exit: 0 (0 every refusal measured, 2 a clause could not run).
+      run -t                             rc=125  ok
+        -  run -t                             rc=0 (a pty is available, so 0)
+        +  run -t                             rc=125  ok
+      30-attribution-census.sh           rc=2
+
+== why the census clause is not green (one more run, as the control)
+  census exit on the repeat: 2.
+    == conditions
+    date              2026-09-25T09:07:33Z
+    host kernel       7.2.0-WSL2-STABLE
+    landlock on host  no
+    
+    SKIP: the reconstruction produced no census
+
+== verdict
+  the refusal fired where ptmx is unusable, and named its reason.

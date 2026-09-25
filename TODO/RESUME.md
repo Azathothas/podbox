@@ -1,32 +1,30 @@
 ## The task
 
-Finish all tasks and release the final beta binary (ruled
-2026-09-25): T-1109's remaining conditions plus T-1112 plus release
-polish (version bump, changelog pass, doc sweep), then tag
-`v0.1.0-beta.7` as a nightly pre-release through the beta.6
-pipeline unchanged.
+Release the final beta (ruled 2026-09-25): T-1109 closed on its own
+Prove, T-1112 already done, polish in. Tag `v0.1.0-beta.7` as a
+nightly pre-release through the beta.6 pipeline unchanged.
 
 ## The resume point
 
-Start with T-1109/T-1112 per PROGRESS. Tag only when the non-tag
-work is green; the bundles verify and the notes carry the gate
-state plus the boundary, each read back, before anything is called
-done.
+The non-tag change sits in the tree below, uncommitted. Run the gate
+(host plus lane), commit, push straight to `main`, and tag only when
+the gate on that commit is green. Then the bundles verify and the
+notes carry the gate state plus the boundary, each read back, before
+anything is called done.
 
 ## In flight
 
-Nothing half-written. Commits `6d86129` (non-tag work), tag
-`v0.1.0-beta.6`, `bc7e39a` (T-1328/T-1334 close-out) and `9899280`
-(210 fix) are pushed; the PROGRESS/RESUME record of the
-issue-closing pass is next.
+T-1109 close (251 script plus two result files, entry Done with the
+drive and the census cause), version bump to 0.1.0-beta.7 with the
+lock regenerated, changelog entry, PROGRESS rewrite. Nothing is
+half-written; the lane control rerun reproduced the drive and named
+the census cause.
 
 ## State
 
-Tree clean at `9899280` plus the uncommitted record change. Gate
-green on the record bytes (check-todo ok, host ps1 gate 10 passed
-1 skip). 165 entries: 0 open, 1 partial, 0 blocked, 164 done. No
-open issue remains. The partial entry is T-1109; T-1112 is the next
-schedulable work, staying P3.
+165 entries: 0 open, 0 partial, 0 blocked, 165 done. No open issue
+remains. Host `check-todo` green; the lane `dev.sh check` runs before
+the commit.
 
 ## The paste
 

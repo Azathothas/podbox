@@ -552,7 +552,7 @@ Source:      `TOOL.md` section 9
 Category:    milestones
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     Every honesty rule in section 4.1 and section 6.8 is unenforced until something
              asserts that the refusal happens. A rule that is only prose is a
@@ -573,6 +573,24 @@ Decision:    Negative tests live in `experiments/` with the positive ones and
              that regresses, and splitting them makes one of the two easier to
              skip.
 Prove:       `./experiments/250-negative-tests.sh` exits 0
+
+**Done 2026-09-25.** `./experiments/250-negative-tests.sh` exits 0 under the
+cover `experiments/251-tty-refusal-no-ptmx.sh` builds: a private mount
+namespace (`unshare --user --map-root-user --mount`) where an empty
+directory covers `/dev/pts`, because `/dev/ptmx` is a symlink to
+`pts/ptmx` and a directory binds onto a directory only. The probe reads
+`ptmx.usable: false` there; the focused drive refuses `run -t` at
+`rc=125` naming `cannot allocate a pty`; the full 250 then runs with
+zero FAILs. The census stays in the third state (`rc=2`), which the
+entry's own rule allows; the repeat names the cause: `SKIP: the
+reconstruction produced no census`, and the host kernel carries no
+Landlock (`landlock on host no`), so the M rows stay unattested here.
+Driven twice in the lane on kernel
+`7.2.0-WSL2-STABLE` with the lane-built `0.1.0-beta.7` binary (both
+interposer objects built before it in the same job). Reports: `experiments/results/negative-tests.txt`
+(renewed, clause 3 now the refusal arm) and
+`experiments/results/tty-refusal-no-ptmx.txt` (the cover, the focused
+verdict, the 250 exit).
 
 **Partial, 2026-09-09.** `experiments/250-negative-tests.sh` drives eleven
 refusals through the shipped binary and exits **2**, because three of them
@@ -603,6 +621,7 @@ What ran and held:
 ```
   run --network=none                 rc=125  named: "no network namespace to select"
   run -v host:/mapped:ro             rc=125  named: "a copy pretending to be a mount"
+  run -t refused by name              rc=125  named: "cannot allocate a pty" (closed 2026-09-25, under the 251 cover)
   go payload declined                rc=126  named: "Go build markers" (closed 2026-09-22)
   strict-against-step                rc=125  1 step named (closed 2026-09-22)
   run --strict                       rc=125  5 reasons listed, each on its own line
@@ -614,13 +633,11 @@ What ran and held:
   30-attribution-census.sh           rc=2    the third state, never 1
 ```
 
-⚠ **Two clauses do not run on this machine, and each says so rather than
-passing quietly**:
-
-1. `-t` refused by name: this machine's `/dev/ptmx` IS usable, so the arm that
-   ran is the positive one and the refusal could not be driven;
-2. the attribution census: `30-attribution-census.sh` exits 2 here, which is
-   the third state the entry's own rule allows, never 1.
+⚠ **One clause stays in the third state on this machine, and it says so rather
+than passing quietly**: the attribution census: `30-attribution-census.sh`
+exits 2 here. The repeat names the cause: the reconstruction produces no
+census in the lane job container, and the host kernel carries no Landlock,
+so the M rows stay unattested here. The entry's rule allows 0 or 2, never 1.
 
 ⛔ The `pull http://` clause runs under a `timeout` and asserts the code is not
 124, because the failure that refusal exists to prevent is a **hang** rather

@@ -1,7 +1,7 @@
 == conditions
-date              2026-09-22T05:03:08Z
+date              2026-09-25T09:07:12Z
 host kernel       7.2.0-WSL2-STABLE
-podbox            podbox 0.1.0
+podbox            podbox 0.1.0-beta.7
 image             public.ecr.aws/docker/library/alpine:3.20
 flag-error code   125
 cli-error code    1
@@ -24,9 +24,9 @@ cli-error code    1
         - podbox would run `/usr/bin/openssl rehash /etc/ssl/certs` (T-0412) inside this image before the payload: /etc/
 
 == 3. -t is a NAMED refusal where /dev/ptmx is unusable (T-0503)
-  /dev/ptmx usable here              true
-  run -t                             rc=0 (a pty is available, so 0)
-  ⚠ the refusal arm could not be measured here: this machine has a pty
+  /dev/ptmx usable here              false
+  run -t                             rc=125  ok
+      podbox run: -t was asked for and /dev/ptmx is not usable on this machine, so podbox cannot allocate a pty. It refuses 
 
 == 4. the table decides, and an unlisted flag cannot be quietly accepted
   an unlisted flag                   rc=125  ok

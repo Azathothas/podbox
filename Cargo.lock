@@ -307,7 +307,7 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "podbox-cli"
-version = "0.1.0"
+version = "0.1.0-beta.7"
 dependencies = [
  "podbox-complete",
  "podbox-enter",
@@ -321,7 +321,7 @@ dependencies = [
 
 [[package]]
 name = "podbox-complete"
-version = "0.1.0"
+version = "0.1.0-beta.7"
 dependencies = [
  "podbox-extract",
  "podbox-image",
@@ -332,14 +332,14 @@ dependencies = [
 
 [[package]]
 name = "podbox-enter"
-version = "0.1.0"
+version = "0.1.0-beta.7"
 dependencies = [
  "podbox-probe",
 ]
 
 [[package]]
 name = "podbox-extract"
-version = "0.1.0"
+version = "0.1.0-beta.7"
 dependencies = [
  "flate2",
  "podbox-image",
@@ -353,7 +353,7 @@ dependencies = [
 
 [[package]]
 name = "podbox-image"
-version = "0.1.0"
+version = "0.1.0-beta.7"
 dependencies = [
  "base64",
  "podbox-probe",
@@ -370,7 +370,7 @@ dependencies = [
 
 [[package]]
 name = "podbox-probe"
-version = "0.1.0"
+version = "0.1.0-beta.7"
 dependencies = [
  "linux-raw-sys",
  "syscalls",
@@ -378,7 +378,7 @@ dependencies = [
 
 [[package]]
 name = "podbox-supervise"
-version = "0.1.0"
+version = "0.1.0-beta.7"
 dependencies = [
  "podbox-enter",
  "podbox-image",

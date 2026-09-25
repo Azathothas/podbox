@@ -173,7 +173,7 @@ the blocker named and what would clear it.
 | [T-1106](milestones.md) | P1 | milestones | done | M5 environment completion, ten distributions |
 | [T-1107](milestones.md) | P1 | milestones | done | M6 the interposer |
 | [T-1108](milestones.md) | P2 | milestones | done | M7 packaging |
-| [T-1109](milestones.md) | P1 | milestones | partial | The negative tests, which are tests |
+| [T-1109](milestones.md) | P1 | milestones | done | The negative tests, which are tests |
 | [T-1110](milestones.md) | P0 | milestones | done | M6's acceptance: a payload the interposer is the only reason works |
 | [T-1111](milestones.md) | P1 | milestones | done | M8 the nix acceptance: a real payload the chroot tier is exactly the answer for |
 | [T-1112](milestones.md) | P3 | milestones | done | A disposable guest that is not Linux |
@@ -229,7 +229,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-165 items: 0 open, 1 partial, 0 blocked, 164 done.
+165 items: 0 open, 0 partial, 0 blocked, 165 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -238,10 +238,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 0 | 1 | 0 | 76 | 77 |
+| P1 | 0 | 0 | 0 | 77 | 77 |
 | P2 | 0 | 0 | 0 | 29 | 29 |
 | P3 | 0 | 0 | 0 | 7 | 7 |
-| **All** | **0** | **1** | **0** | **164** | **165** |
+| **All** | **0** | **0** | **0** | **165** | **165** |
 
 ## How the current ordering is derived
 

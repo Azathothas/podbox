@@ -6,13 +6,14 @@ M0 through M8 are implemented and the machine tier holds its probe.
 End-to-end acceptance is measured per entry. M7 packaging runs through
 the nightly workflow on every `v*` tag.
 
-165 entries: 0 open, 1 partial, 0 blocked, 164 done. Every P0 is done.
+165 entries: 0 open, 0 partial, 0 blocked, 165 done. Every P0 is done.
 The 2026-09-23 triage from nineteen client-filed issues plus the
 operator-ordered `man` verb is fully closed: T-1112, T-1315 through
 T-1322, T-1330, T-1331, T-1332, T-1333, T-1335, T-1336, T-1327,
-T-1329, T-1328 and T-1334 closed below. The partial entry is
-[T-1109](milestones.md), carrying its remaining conditions in its
-own file. Nothing is blocked. Issues 10-13, 15-17, 19-21, 26 and 28
+T-1329, T-1328 and T-1334 closed below. [T-1109](milestones.md)
+closed this session on its own Prove: 250 exits 0 under the 251
+cover, with the census in its allowed third state. Nothing is
+blocked. Issues 10-13, 15-17, 19-21, 26 and 28
 are closed, each with its proof comment (fix commit, drive output,
 guard); no open issue remains.
 
@@ -117,18 +118,35 @@ overrode the read-only API rule per the precedence in section 0:
 operator instruction outranks project methodology, and the work
 orders themselves direct the close with proof.
 
+[T-1109](milestones.md) closed on its own Prove this session; the
+entry carries the drive. `experiments/251-tty-refusal-no-ptmx.sh` is
+new and builds the missing pty-less machine, drives the focused
+`run -t` refusal with its reason, and runs the full 250 under the
+same cover to exit 0 with zero FAILs. The census stays in the allowed
+third state, with the cause recorded. Driven twice in the lane
+(kernel `7.2.0-WSL2-STABLE`, `0.1.0-beta.7` binary); reports renewed
+under `experiments/results/`. Two script defects were found and fixed
+before any claim: the first shape bound over the symlink and the
+mount answered `not a directory`; the reader then used jq
+`// "missing"`, which fires on false as well as null and hid the
+covered `false` for one run.
+
+Release polish rode in the same change: workspace version `0.1.0` to
+`0.1.0-beta.7` (`Cargo.lock` carries the same seven lines and nothing
+else; the prerelease sorts below the future stable `0.1.0`, so the
+final beta stays distinct from it), a changelog entry naming the bump
+and the T-1109 close, and a doc sweep that found no stale claim (the
+README status, the architecture page and the containers page all still
+read true; `check-docs` green).
+
 ## Current work order
 
-1. Finish all tasks, then release the final beta (ruled 2026-09-25):
-   [T-1109](milestones.md) carries its remaining conditions in its own
-   file; [T-1112](milestones.md) is unparked (ruled 2026-09-23),
-   staying P3; plus release polish on top (version bump, changelog
-   pass, doc sweep).
-2. Tag `v0.1.0-beta.7` as a nightly pre-release (ruled 2026-09-25),
-   through the beta.6 pipeline unchanged: tag only when the non-tag
-   work is green, then the bundles verify and the notes carry the
+1. Tag `v0.1.0-beta.7` as a nightly pre-release (ruled 2026-09-25),
+   through the beta.6 pipeline unchanged: the non-tag work is done
+   ([T-1109](milestones.md) closed, polish in), tag only when its
+   gate is green, then the bundles verify and the notes carry the
    gate state plus the boundary, each read back.
-3. Work unattended; push straight to `main` with no branches.
+2. Work unattended; push straight to `main` with no branches.
    Nothing else is open, and nothing is blocked.
 
 [T-0206](image.md) has its fixture technology: `zot` as one pinned
@@ -148,8 +166,8 @@ mutating clause prints the line it WROTE as well as the line it matched.
 
 ## In progress
 
-[T-1328](packaging.md) and [T-1334](packaging.md) closed this
-session, above. The teardown in the work order above is still owed.
+The non-tag change (T-1109 close plus polish) is committed below and
+awaits its gate before the `v0.1.0-beta.7` tag.
 
 ## Operator questions
 

@@ -6,6 +6,24 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-25T09:06:00Z: the final beta takes its own version number
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). Version bump to
+`0.1.0-beta.7`; deploys as nightly pre-release `v0.1.0-beta.7`.
+
+The workspace version moves from `0.1.0` to `0.1.0-beta.7`. Every beta
+so far reported `podbox 0.1.0`, so no bare version line could name its
+beta. The prerelease number sorts below the future stable `0.1.0` and
+keeps the final beta distinct from it. `Cargo.lock` carries the same
+seven lines and nothing else.
+
+The same change closes the last partial entry.
+[`TODO/milestones.md`](TODO/milestones.md) T-1109 drove its final
+refusal arm through `experiments/251-tty-refusal-no-ptmx.sh`, which
+covers `/dev/pts` in a private mount namespace and asserts the `run
+-t` refusal with its reason; the full 250 then exits 0. The attribution
+census stays in its allowed third state.
+
 ### 2026-09-12T08:05:00Z: the store lock race is closed, and closing a descriptor was never a release
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
