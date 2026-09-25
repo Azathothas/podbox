@@ -12,9 +12,9 @@ operator-ordered `man` verb is fully closed: T-1112, T-1315 through
 T-1322, T-1330, T-1331, T-1332, T-1333, T-1335, T-1336, T-1327,
 T-1329, T-1328 and T-1334 closed below. The partial entry is
 [T-1109](milestones.md), carrying its remaining conditions in its
-own file. Nothing is blocked. Issues 13 and 26 stay open for the
-operator's close-out comments: agent API writes stay read-only
-under `docs/security/remote-ops.md`.
+own file. Nothing is blocked. Issues 10-13, 15-17, 19-21, 26 and 28
+are closed, each with its proof comment (fix commit, drive output,
+guard); no open issue remains.
 
 ## Baseline
 
@@ -100,14 +100,29 @@ CI is green (4/4 jobs), so the notes' gate line and the bytes agree.
 pre-release named nightly carries twenty-one assets, verified back
 through the release API.
 
+The operator then ordered every open issue closed with proof. Eleven
+closed directly from their entries' recorded drives (10: T-1315,
+11: T-1316, 12: T-1317, 13: T-1334 on beta.6, 15: T-1321, 16:
+T-1318/T-1320/T-1323/T-1335, 19 and 20: T-1322, 21: T-1319, 26:
+T-1327/T-1328/T-1329 on beta.6, 28: T-1333), each comment showing
+the fix commit, the proof output and the guard. The twelfth, issue
+17, had no proof to show: T-0210 carried its follow-up as prose the
+script never received. Implemented as commit `9899280` (429 and
+TOOMANYREQUESTS join both network patterns; check 2 captures the
+holder output and a 125 naming `chroot(2)` denied reads SKIP),
+driven exit 0 in the lane with all four clauses green, patterns
+proved against synthetic transcripts, results file renewed. Issue
+17 closed on that drive. The direct order to write the tracker
+overrode the read-only API rule per the precedence in section 0:
+operator instruction outranks project methodology, and the work
+orders themselves direct the close with proof.
+
 ## Current work order
 
-1. Session teardown: `gc --apply` the kept lane job container(s),
-   remove base scratch, confirm the podman machine rests as found
+1. Session teardown: `gc --apply` the kept lane job containers,
+   remove session scratch, confirm the podman machine rests as found
    (stopped), tree clean, gate green.
-2. Operator-owed tracker transitions: the close-out comments on
-   issues 13 (T-1334) and 26 (T-1328 thirds) with their proofs.
-3. [T-1109](milestones.md) carries its remaining conditions in its own
+2. [T-1109](milestones.md) carries its remaining conditions in its own
    file; [T-1112](milestones.md) is unparked (ruled 2026-09-23) and is
    the next schedulable work, staying P3. Nothing else is open, and
    nothing is blocked.
