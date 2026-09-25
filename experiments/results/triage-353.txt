@@ -1,0 +1,1106 @@
+== conditions
+date              2026-09-25T11:15:06Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+rustc             info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+info: latest update on 2026-09-03 for version 1.98.1 (48a229cea 2026-09-01)
+info: downloading 6 components
+warn: the missing active toolchain `stable-x86_64-unknown-linux-gnu` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
+rustc 1.98.1 (48a229cea 2026-09-01)
+cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
+image input       public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+bootstrap         ok
+build             ok
+podbox            podbox 0.1.0-beta.7
+podbox verbose    version: 0.1.0-beta.7 commit: 3ac5a72ac100ef0f629ac673586e20eb3a56ce92-dirty rustc: rustc 1.98.1 (48a229cea 2026-09-01) target: x86_64-unknown-linux-musl interpose-gnu: absent interpose-musl: absent crt-static: yes 
+
+== pull
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox pull public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+store             isolated /work/experiments/.sweep353-work/store-pull
+exit              0
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Pull complete
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  podbox: probed this machine rather than using the cache: /work/experiments/.sweep353-work/store-pull/probe.json does not exist yet
+
+== 29-platform
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
+store             isolated /work/experiments/.sweep353-work/store-29-platform
+exit              125
+output:
+  podbox run: windows/amd64 is not a Linux guest. podbox runs Linux guests only: the chroot tier shares the host kernel and the machine tier boots Linux images. No windows guest support exists (TODO/milestones.md T-1112), so there is nothing to pull or enter for this platform
+
+== 30-probe-chroot
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox probe --json
+store             isolated /work/experiments/.sweep353-work/store-30-probe-chroot
+exit              0
+output:
+  {"podbox":"0.1.0-beta.7","rung":"supervise","rung_must_never_claim":"anything whose arguments it cannot read; on this runtime, exec remapping","strict_ok":false,"controls_answered":false,"self_exe":"/proc/self/exe","measured_by":{"emulated":false,"interpreter":"none","checked":["no qemu-user environment variable is set (QEMU_LD_PREFIX, QEMU_CPU, QEMU_GUEST_BASE, QEMU_UNAME, QEMU_STACK_SIZE, QEMU_LOG, QEMU_STRACE)","none of the 0 enabled binfmt_misc registration(s) selects ELF machine 0x3e, which is this binary's own"]},"control_notes":["kcmp(-1,-1,...) [control] answered EPERM where the discriminator needs ESRCH; it has stopped separating a filter from a policy"],"controls":{"pidfd_getfd":"EBADF","kcmp":"EPERM"},"ptmx":{"path":"/dev/ptmx","present":true,"usable":true,"stat_verdict":"ok","stat_detail":"chardev 5:2 mode 666","stat_errno_name":null,"open_verdict":"ok","open_errno_name":null},"mounts":{"create":"denied","configure":"skip","attach":"skip","use":"skip","summary":"none","capability_note":null},"identity":{"uid":0,"gid":0,"groups":[],"uid_map":"0 1000 1; 1 100000 65536","gid_map":"0 1000 1; 1 100000 65536","setgroups":"allow","cap_eff":"00000000800405fb","cap_prm":"00000000800405fb","cap_bnd":"00000000800405fb","seccomp":"2","seccomp_filters":"1","no_new_privs":"0","threads":"1","unreadable":[]},"writable":[{"path":"/tmp","source":"the candidate list","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":201070853,"block_size":4096,"inodes_free":64429949,"reason":null},{"path":"/dev/shm","source":"the candidate list","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":16000,"block_size":4096,"inodes_free":4082283,"reason":null},{"path":"/workspace","source":"the candidate list","writable":false,"verdict":"skip","errno":2,"errno_name":"ENOENT","blocks_free":null,"block_size":null,"inodes_free":null,"reason":"/workspace does not exist on this machine, so no write was attempted"},{"path":"/state","source":"the candidate list","writable":false,"verdict":"skip","errno":2,"errno_name":"ENOENT","blocks_free":null,"block_size":null,"inodes_free":null,"reason":"/state does not exist on this machine, so no write was attempted"},{"path":"/var/tmp","source":"the candidate list","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":201070853,"block_size":4096,"inodes_free":64429949,"reason":null},{"path":"/run","source":"the candidate list","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":201070853,"block_size":4096,"inodes_free":64429949,"reason":null},{"path":"/work/experiments/.sweep353-work/store-30-probe-chroot","source":"$PODBOX_STORE","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":201070853,"block_size":4096,"inodes_free":64429949,"reason":null},{"path":"/root","source":"$HOME","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":201070853,"block_size":4096,"inodes_free":64429949,"reason":null},{"path":"/work","source":"the working directory","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":201070853,"block_size":4096,"inodes_free":64429949,"reason":null}],"probes":[{"name":"unshare(CLONE_NEWNS)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"unshare(CLONE_NEWUSER)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"unshare(CLONE_NEWPID)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"clone(CLONE_NEWNS)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"clone(CLONE_NEWUTS|NEWNS)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"clone(CLONE_NEWUSER)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"clone(CLONE_NEWUTS)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"sethostname(in NEWUTS)","verdict":"skip","errno":1,"errno_name":"EPERM","reason":"clone(2) with flags 0x4000000 was refused, so the namespace this probe needs was never entered and the operation was never attempted","group":"census"},{"name":"mount(tmpfs,/mnt)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"mount(tmpfs,/mnt) in clone(NEWNS)","verdict":"skip","errno":1,"errno_name":"EPERM","reason":"clone(2) with flags 0x20000 was refused, so the namespace this probe needs was never entered and the operation was never attempted","group":"census"},{"name":"mount(MS_SLAVE,/) in clone(NEWNS)","verdict":"skip","errno":1,"errno_name":"EPERM","reason":"clone(2) with flags 0x20000 was refused, so the namespace this probe needs was never entered and the operation was never attempted","group":"census"},{"name":"pivot_root(/tmp,/tmp)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"ptrace(PTRACE_TRACEME)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"mknod(chr 1:3 /tmp/nodprobe)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"mknod(chr 0:0 = whiteout)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"setuid(1000)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"setuid(0)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"setgid(0)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"setgroups(0,NULL)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"chown(f,0,0)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"chown(f,0,42)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"lchown(f,0,42)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"chown(f,1000,0)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"chroot(/tmp)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"memfd_create","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"memfd_create+exec","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"setsid","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"prctl(PR_SET_PDEATHSIG)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"exec(/tmp/execprobe)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"getrandom","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"write(/etc/probe)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"write into uid-1000-owned dir","verdict":"skip","errno":2,"errno_name":"ENOENT","reason":"no fixture directory owned by an unmapped id: neither /workspace/.fixtures/squash-probe nor /tmp/squash-probe exists. Create one as another uid outside the confinement.","group":"census"},{"name":"stat(/dev/ptmx)","verdict":"ok","errno":null,"errno_name":null,"reason":"chardev 5:2 mode 666","group":"census"},{"name":"open(/dev/ptmx, O_RDWR)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"open(/dev/fuse, O_RDWR)","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"census"},{"name":"readdir(/)","verdict":"ok","errno":null,"errno_name":null,"reason":"22 entries","group":"census"},{"name":"open(/bin, O_RDONLY) by name","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"creat(/, O_CREAT|O_EXCL)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"bind(127.0.0.1:0)+listen","verdict":"ok","errno":null,"errno_name":null,"reason":"loopback TCP bind+listen permitted","group":"census"},{"name":"mount(2) bogus target","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"attribution"},{"name":"umount2(2) bogus target","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"attribution"},{"name":"pivot_root(2) bogus paths","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"attribution"},{"name":"process_vm_readv(bogus pid)","verdict":"denied","errno":3,"errno_name":"ESRCH","reason":null,"group":"attribution"},{"name":"pidfd_getfd(-1,-1) [control]","verdict":"denied","errno":9,"errno_name":"EBADF","reason":null,"group":"attribution"},{"name":"kcmp(-1,-1,...) [control]","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"attribution"},{"name":"fsopen(tmpfs)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"attribution"},{"name":"fsmount(tmpfs)","verdict":"skip","errno":1,"errno_name":"EPERM","reason":"fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted","group":"attribution"},{"name":"open_tree(/tmp, CLONE)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"attribution"},{"name":"move_mount(-> bogus dest)","verdict":"skip","errno":1,"errno_name":"EPERM","reason":"fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted","group":"attribution"},{"name":"move_mount(-> /tmp/mm-probe)","verdict":"skip","errno":1,"errno_name":"EPERM","reason":"fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted","group":"attribution"},{"name":"openat(detached tmpfs, O_DIRECTORY)","verdict":"skip","errno":1,"errno_name":"EPERM","reason":"fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted","group":"attribution"},{"name":"seccomp(NEW_LISTENER)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"attribution"},{"name":"open /proc/self/mem O_RDONLY","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"attribution"},{"name":"open /proc/self/mem O_RDWR","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"attribution"},{"name":"landlock_create_ruleset(VERSION)","verdict":"ok","errno":null,"errno_name":null,"reason":"ABI 10","group":"attribution"},{"name":"qemu-system-x86_64 --version","verdict":"skip","errno":2,"errno_name":"ENOENT","reason":"no qemu-system-x86_64 on PATH, so the emulator leg could not run","group":"machine"},{"name":"open(/dev/kvm, O_RDWR)","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"machine"},{"name":"prlimit(RLIMIT_FSIZE)","verdict":"ok","errno":null,"errno_name":null,"reason":"RLIMIT_FSIZE cur=infinity max=infinity","group":"machine"},{"name":"open(/dev/net/tun, O_RDWR)","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"machine"},{"name":"image space (statfs .)","verdict":"ok","errno":null,"errno_name":null,"reason":"201070853 blocks of 4096 B free, 64429949 inodes free at /work","group":"machine"},{"name":"qemu-system-x86_64 -accel help","verdict":"skip","errno":2,"errno_name":"ENOENT","reason":"no qemu-system-x86_64 on PATH, so the accelerator list could not be read","group":"machine"},{"name":"seccomp(NEW_LISTENER) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"supervise"},{"name":"process_vm_readv(own pid) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"supervise"},{"name":"ptrace(PTRACE_TRACEME) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"supervise"}],"tiers":{"machine":{"legs":[{"name":"qemu-system-x86_64 --version","verdict":"skip","errno":2,"errno_name":"ENOENT","reason":"no qemu-system-x86_64 on PATH, so the emulator leg could not run"},{"name":"open(/dev/kvm, O_RDWR)","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null},{"name":"prlimit(RLIMIT_FSIZE)","verdict":"ok","errno":null,"errno_name":null,"reason":"RLIMIT_FSIZE cur=infinity max=infinity"},{"name":"open(/dev/net/tun, O_RDWR)","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null},{"name":"image space (statfs .)","verdict":"ok","errno":null,"errno_name":null,"reason":"201070853 blocks of 4096 B free, 64429949 inodes free at /work"},{"name":"qemu-system-x86_64 -accel help","verdict":"skip","errno":2,"errno_name":"ENOENT","reason":"no qemu-system-x86_64 on PATH, so the accelerator list could not be read"}],"refusal":"machine tier refused: qemu-system-x86_64 --version=skip: no qemu-system-x86_64 on PATH, so the emulator leg could not run open(/dev/kvm, O_RDWR)=ENOENT open(/dev/net/tun, O_RDWR)=ENOENT qemu-system-x86_64 -accel help=skip: no qemu-system-x86_64 on PATH, so the accelerator list could not be read"},"supervise":{"legs":[{"name":"seccomp(NEW_LISTENER) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null},{"name":"process_vm_readv(own pid) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null},{"name":"ptrace(PTRACE_TRACEME) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null}],"refusal":null}},"non_goals":[{"name":"tcp listener","spec":"E-75","stance":"open","detail":"tcp listener open here: bind(127.0.0.1:0)+listen permitted","remedy":"no TCP listener here; guests talk UDP hostfwd, control over unix sockets and FIFOs"},{"name":"kvm acceleration","spec":"E-30/60","stance":"refused","detail":"kvm acceleration refused: open(/dev/kvm, O_RDWR)=ENOENT; no KVM here; the machine tier runs TCG","remedy":"no KVM here; the machine tier runs TCG"},{"name":"runc-style oci","spec":"E-43","stance":"refused","detail":"runc-style oci refused: clone(CLONE_NEWUTS)=EPERM unshare(CLONE_NEWNS)=EPERM; namespaces denied here; podbox runs the chroot rung instead","remedy":"namespaces denied here; podbox runs the chroot rung instead"},{"name":"user-mode linux guest","spec":"E-50","stance":"open","detail":"user-mode linux guest open here: ptrace(PTRACE_TRACEME) permitted","remedy":"ptrace denied here; the machine tier runs qemu TCG instead"},{"name":"uid_map identity switch","spec":"E-70","stance":"open","detail":"uid_map identity switch open here: setuid(1000) setgroups(0,NULL) permitted","remedy":"switch ids outside the container; inside, the interposer memo answers (T-0711)"},{"name":"guest file over the ceiling","spec":"E-34","stance":"open","detail":"guest file over the ceiling open here: no per-file ceiling on this machine","remedy":"size guests under the ceiling (--podbox-mem, T-1305)"}],"cache_key":{"boot_id":"fb526711-e100-48be-8271-401570630044","mnt_ns":"mnt:[4026532322]","uid_map":"0 1000 1; 1 100000 65536","gid_map":"0 1000 1; 1 100000 65536","setgroups":"allow","seccomp":"2","seccomp_filters":"1","cap_eff":"00000000800405fb","cap_bnd":"00000000800405fb","interpreter":"none","complete":true},"rejected":[{"rung":"namespace","requirement":"namespace creation and mounts and ID maps for what was asked","evidence":"unshare(CLONE_NEWNS)=EPERM clone(CLONE_NEWNS)=EPERM mount(tmpfs,/mnt)=EPERM mount(tmpfs,/mnt) in clone(NEWNS)=skip"}]}
+
+== 30-run
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo hi
+store             isolated /work/experiments/.sweep353-work/store-30-run
+exit              0
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Pull complete
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep353-work/store-30-run/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep353-work/store-30-run/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox run: interpose: declined for "echo": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  hi
+
+== 30-memfd
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo hi
+store             isolated /work/experiments/.sweep353-work/store-30-memfd
+exit              125
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Pull complete
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep353-work/store-30-memfd/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep353-work/store-30-memfd/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox run: interpose: declined for "echo": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox run: entering on the memfd rung at PODBOX_MODE's request (TODO/packaging.md T-1003)
+  podbox run: PODBOX_MODE=memfd was forced but memfd mode is unavailable: dynamically linked against /lib/ld-musl-x86_64.so.1: a memfd exec never puts its libraries on disk, so the loader would fail on the first one it cannot find
+
+== 30-create
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox create --name triage30 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+store             isolated /work/experiments/.sweep353-work/store-30-create
+exit              0
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Pull complete
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep353-work/store-30-create/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep353-work/store-30-create/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox create: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost, the container name triage30
+  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  6b89776d898545ee122e72531525e4eab30a49edd9b6ad40bb238fa64419a3ea
+
+== 30-start-missing
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox start triage30
+store             isolated /work/experiments/.sweep353-work/store-30-start-missing
+exit              125
+output:
+  podbox start: no such container: triage30. `podbox ps -a` lists what there is
+
+== 31-rundir
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo hi
+store             isolated /work/experiments/.sweep353-work/store-31-rundir
+exit              125
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Pull complete
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep353-work/store-31-rundir/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep353-work/store-31-rundir/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox run: interpose: declined for "echo": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox run: entering on the rundir rung at PODBOX_MODE's request (TODO/packaging.md T-1003)
+  podbox run: PODBOX_MODE=rundir was forced but the private run-directory rung is not implemented yet (TODO/packaging.md T-1003: sketched, not rung-complete)
+
+== 31-bogus
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo hi
+store             isolated /work/experiments/.sweep353-work/store-31-bogus
+exit              125
+output:
+  podbox run: PODBOX_MODE="bogus" names no launch rung. The rungs are: memfd, fuse, tmpfs, rundir, cache (TODO/packaging.md T-1003)
+
+== 31-verbose
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox version --verbose
+store             isolated /work/experiments/.sweep353-work/store-31-verbose
+exit              0
+output:
+  version: 0.1.0-beta.7
+  commit: 3ac5a72ac100ef0f629ac673586e20eb3a56ce92-dirty
+  rustc: rustc 1.98.1 (48a229cea 2026-09-01)
+  target: x86_64-unknown-linux-musl
+  interpose-gnu: absent
+  interpose-musl: absent
+  crt-static: yes
+census rows:
+tiers:
+  /machine/legs = [{'name': 'qemu-system-x86_64 --version', 'verdict': 'skip', 'errno': 2, 'errno_name': 'ENOENT', 'reason': 'no qemu-system-x86_64 on PATH, so the emulator leg could not run'}, {'name': 'open(/dev/kvm, O_RDWR)', 'verdict': 'denied', 'errno': 2, 'errno_name': 'ENOENT', 'reason': None}, {'name': 'prlimit(RLIMIT_FSIZE)', 'verdict': 'ok', 'errno': None, 'errno_name': None, 'reason': 'RLIMIT_FSIZE cur=infinity max=infinity'}, {'name': 'open(/dev/net/tun, O_RDWR)', 'verdict': 'denied', 'errno': 2, 'errno_name': 'ENOENT', 'reason': None}, {'name': 'image space (statfs .)', 'verdict': 'ok', 'errno': None, 'errno_name': None, 'reason': '201070853 blocks of 4096 B free, 64429949 inodes free at /work'}, {'name': 'qemu-system-x86_64 -accel help', 'verdict': 'skip', 'errno': 2, 'errno_name': 'ENOENT', 'reason': 'no qemu-system-x86_64 on PATH, so the accelerator list could not be read'}]
+  /machine/refusal = 'machine tier refused: qemu-system-x86_64 --version=skip: no qemu-system-x86_64 on PATH, so the emulator leg could not run open(/dev/kvm, O_RDWR)=ENOENT open(/dev/net/tun, O_RDWR)=ENOENT qemu-system-x86_64 -accel help=skip: no qemu-system-x86_64 on PATH, so the accelerator list could not be read'
+  /supervise/legs = [{'name': 'seccomp(NEW_LISTENER) [supervise]', 'verdict': 'ok', 'errno': None, 'errno_name': None, 'reason': None}, {'name': 'process_vm_readv(own pid) [supervise]', 'verdict': 'ok', 'errno': None, 'errno_name': None, 'reason': None}, {'name': 'ptrace(PTRACE_TRACEME) [supervise]', 'verdict': 'ok', 'errno': None, 'errno_name': None, 'reason': None}]
+  /supervise/refusal = None
+non_goals:
+   = [{'name': 'tcp listener', 'spec': 'E-75', 'stance': 'open', 'detail': 'tcp listener open here: bind(127.0.0.1:0)+listen permitted', 'remedy': 'no TCP listener here; guests talk UDP hostfwd, control over unix sockets and FIFOs'}, {'name': 'kvm acceleration', 'spec': 'E-30/60', 'stance': 'refused', 'detail': 'kvm acceleration refused: open(/dev/kvm, O_RDWR)=ENOENT; no KVM here; the machine tier runs TCG', 'remedy': 'no KVM here; the machine tier runs TCG'}, {'name': 'runc-style oci', 'spec': 'E-43', 'stance': 'refused', 'detail': 'runc-style oci refused: clone(CLONE_NEWUTS)=EPERM unshare(CLONE_NEWNS)=EPERM; namespaces denied here; podbox runs the chroot rung instead', 'remedy': 'namespaces denied here; podbox runs the chroot rung instead'}, {'name': 'user-mode linux guest', 'spec': 'E-50', 'stance': 'open', 'detail': 'user-mode linux guest open here: ptrace(PTRACE_TRACEME) permitted', 'remedy': 'ptrace denied here; the machine tier runs qemu TCG instead'}, {'name': 'uid_map identity switch', 'spec': 'E-70', 'stance': 'open', 'detail': 'uid_map identity switch open here: setuid(1000) setgroups(0,NULL) permitted', 'remedy': 'switch ids outside the container; inside, the interposer memo answers (T-0711)'}, {'name': 'guest file over the ceiling', 'spec': 'E-34', 'stance': 'open', 'detail': 'guest file over the ceiling open here: no per-file ceiling on this machine', 'remedy': 'size guests under the ceiling (--podbox-mem, T-1305)'}]
+
+== 35-tier-machine
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --podbox-tier=machine --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo hi
+store             isolated /work/experiments/.sweep353-work/store-35-tier-machine
+exit              125
+output:
+  podbox run: machine tier refused: qemu-system-x86_64 --version=skip: no qemu-system-x86_64 on PATH, so the emulator leg could not run open(/dev/kvm, O_RDWR)=ENOENT open(/dev/net/tun, O_RDWR)=ENOENT qemu-system-x86_64 -accel help=skip: no qemu-system-x86_64 on PATH, so the accelerator list could not be read
+
+== 35-podvm
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox podvm triage35 run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo hi
+store             isolated /work/experiments/.sweep353-work/store-35-podvm
+exit              125
+output:
+  podbox: podvm: podbox answers to its own `podvm` name on PATH through argv[0], selecting the machine tier unless --podbox-tier says otherwise, and says both in the banner (T-1302)
+  podbox: `podbox system info --format '{{json .Parity}}'` is every verb and flag podbox has and every one it does not
+  podbox: invoked as /work/target/x86_64-unknown-linux-musl/debug/podbox
+
+== 37-parity
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox system info --format {{json .Parity}}
+store             isolated /work/experiments/.sweep353-work/store-37-parity
+exit              0
+output:
+  [{"flag":null,"note":"enters a chroot, never a namespace. The banner names what the selected rung does not provide, on every run. A SIGINT or SIGTERM to a foreground run is forwarded to the payload and named on stderr with the payload's exit (TODO/supervise.md T-1335)","status":"Degraded","verb":"run"},{"flag":null,"note":"a fresh chroot re-entry sharing only the filesystem, never an entry into a running container's namespaces (T-0505)","status":"Degraded","verb":"exec"},{"flag":null,"note":"HTTPS only. A registry offering only http:// is a named refusal, never a downgrade","status":"Native","verb":"pull"},{"flag":null,"note":"one record per platform of a tag","status":"Native","verb":"images"},{"flag":null,"note":"refuses an image any container references or a running container holds, and names it","status":"Native","verb":"rmi"},{"flag":null,"note":"points a second name at one manifest digest; nothing is fetched","status":"Native","verb":"tag"},{"flag":null,"note":"ls, rm, prune, tag, inspect, pull and extract","status":"Native","verb":"image"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"image"},{"flag":null,"note":"images by reference and containers by name, one document either way; --format reads the same fields (TODO/cli.md T-1319)","status":"Degraded","verb":"inspect"},{"flag":null,"note":"hashes indexed blobs against their digests, one line per mismatch plus a summary; prints provenance for one image (TODO/image.md T-1321)","status":"Native","verb":"verify"},{"flag":null,"note":"info, install-names and abi. `image prune` removes images; df and events are not implemented","status":"Degraded","verb":"system"},{"flag":null,"note":"podbox has no daemon, so the server half of docker's output is the rung this machine permits instead","status":"Degraded","verb":"info"},{"flag":null,"note":"one artefact, so there is one version and no client/server split","status":"Native","verb":"version"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"version"},{"flag":"--verbose","note":"reports the build's recorded inputs: commit, toolchain, target, interposer digests, static mode (T-1004)","status":"Native","verb":"version"},{"flag":null,"note":"renders this manual from the binary's own usage strings and the parity table, paging through $PAGER unless --no-pager or a non-terminal stdout (TODO/cli.md T-1332)","status":"Native","verb":"man"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"man"},{"flag":"--no-pager","note":"print to stdout even on a terminal; without it a terminal pages through $PAGER","status":"Native","verb":"man"},{"flag":null,"note":"podbox's own verb, with no docker equivalent: what this machine permits, and the rung podbox selects","status":"Native","verb":"probe"},{"flag":null,"note":"podbox's own verb, with no docker equivalent: unpack the layers and write the ownership sidecar","status":"Native","verb":"extract"},{"flag":null,"note":"writes a created record and starts nothing, as docker's does. note: It is served by run's PARSER, so it takes run's flag set: those rows are listed once, under `run`, rather than copied here where the two could diverge (T-0801)","status":"Native","verb":"create"},{"flag":null,"note":"returns when the payload has reached its execve, established by a pipe rather than by a sleep (T-0602). A SIGINT or SIGTERM to the launcher is forwarded to the payload; the launcher holds no terminal to name it on, so the payload's signaled exit in the container record is the whole account (TODO/supervise.md T-1335)","status":"Native","verb":"start"},{"flag":null,"note":"SIGTERM then SIGKILL to the PAYLOAD. podbox has no PID namespace, so a grandchild that reparented is outside its reach and is not signalled","status":"Degraded","verb":"stop"},{"flag":null,"note":"stop then start in one verb, naming which half failed (TODO/cli.md T-1331)","status":"Native","verb":"restart"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"restart"},{"flag":null,"note":"signals the payload. A pidfd addresses one process; it does not reach descendants that reparent","status":"Degraded","verb":"kill"},{"flag":null,"note":"removes the record and the container's own directory; -f kills a running one first","status":"Native","verb":"rm"},{"flag":null,"note":"reads the container table, never /proc. A container whose launcher was killed reads `dead` with the time it was noticed, and no exit code (T-0604)","status":"Degraded","verb":"ps"},{"flag":null,"note":"the payload's stdout and stderr, interleaved into one file opened before the chroot. -f is not implemented (T-0605)","status":"Degraded","verb":"logs"},{"flag":null,"note":"blocks on the launcher, bounded. refused: A container podbox did not see end has NO exit code and `wait` refuses rather than printing one","status":"Degraded","verb":"wait"},{"flag":null,"note":"one file at a time either way, or a directory tree with -r; a container or an image on either side, gated through the containment check (TODO/cli.md T-1323)","status":"Degraded","verb":"cp"},{"flag":"-r, --recursive","note":"copy a directory tree with the same checks; symlinks replicate as symlinks, special files are refused (TODO/cli.md T-1323)","status":"Native","verb":"cp"},{"flag":null,"note":"a chroot shares this machine's process table, so `top` would list the host's processes and call them the container's","status":"None","verb":"top"},{"flag":null,"note":"not implemented: `logs` is the same bytes and it does not need a signal proxy","status":"None","verb":"attach"},{"flag":null,"note":"freezing a process group needs a cgroup this runtime does not grant","status":"None","verb":"pause"},{"flag":null,"note":"the counterpart of a verb podbox does not have","status":"None","verb":"unpause"},{"flag":null,"note":"resource accounting needs a cgroup this runtime does not grant","status":"None","verb":"stats"},{"flag":null,"note":"podbox extracts into one directory and keeps no upper layer to difference against","status":"None","verb":"diff"},{"flag":null,"note":"podbox publishes no ports: the payload shares this machine's network namespace","status":"None","verb":"port"},{"flag":null,"note":"not implemented: `rm` and a fresh `create` under the other name is what podbox offers","status":"None","verb":"rename"},{"flag":null,"note":"there are no resource limits to update","status":"None","verb":"update"},{"flag":null,"note":"building runs a payload per layer and commits the result; podbox can run one but cannot commit one","status":"None","verb":"build"},{"flag":null,"note":"podbox cannot restore ownership, so a committed layer would misrepresent what it holds (TODO/extract.md T-0302)","status":"None","verb":"commit"},{"flag":null,"note":"podbox reads registries and does not write to them","status":"None","verb":"push"},{"flag":null,"note":"writes ~/.docker/config.json, or the configured credential helper where one is named; the password arrives on stdin, never as an argument (TODO/image.md T-0209)","status":"Native","verb":"login"},{"flag":"-u, --username","note":"the registry user; the password arrives on stdin, never as an argument (TODO/image.md T-0209)","status":"Native","verb":"login"},{"flag":"--password-stdin","note":"read the password from stdin; required, because podbox never prompts (TODO/image.md T-0209)","status":"Native","verb":"login"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"login"},{"flag":null,"note":"the counterpart of a verb podbox does not have","status":"None","verb":"logout"},{"flag":null,"note":"writes one image as an OCI-layout tarball, to stdout or -o (TODO/image.md T-1320)","status":"Native","verb":"save"},{"flag":"-o, --output","note":"write the tarball to a file instead of stdout (TODO/image.md T-1320)","status":"Native","verb":"save"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"save"},{"flag":null,"note":"reads an OCI-layout tarball into the store with every blob verified on the way in (TODO/image.md T-1320)","status":"Native","verb":"load"},{"flag":"-i, --input","note":"read the tarball from a file instead of stdin (TODO/image.md T-1320)","status":"Native","verb":"load"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"load"},{"flag":null,"note":"an exported rootfs would carry the ownership podbox could not apply, and would misrepresent what it holds","status":"None","verb":"export"},{"flag":null,"note":"builds a runnable record from a plain rootfs tar; a compressed file is refused by name (TODO/image.md T-1320)","status":"Native","verb":"import"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"import"},{"flag":null,"note":"not implemented; `inspect` prints the record podbox holds","status":"None","verb":"history"},{"flag":null,"note":"there is no daemon to emit events","status":"None","verb":"events"},{"flag":null,"note":"not implemented; podbox resolves a reference and does not browse a registry","status":"None","verb":"search"},{"flag":null,"note":"the payload shares this machine's network namespace, so there is nothing to create or attach","status":"None","verb":"network"},{"flag":null,"note":"podbox cannot mount, so a volume would be a copy pretending to be a mount","status":"None","verb":"volume"},{"flag":null,"note":"not implemented; it needs the lifecycle and a network","status":"None","verb":"compose"},{"flag":null,"note":"not implemented, and out of the shape TOOL.md section 2.0 describes","status":"None","verb":"swarm"},{"flag":null,"note":"the counterpart of a verb podbox does not have","status":"None","verb":"builder"},{"flag":null,"note":"there is no daemon to point a context at","status":"None","verb":"context"},{"flag":null,"note":"the sub-command group is not implemented; every verb it holds is a top-level verb here and is listed above","status":"None","verb":"container"},{"flag":"--rm","note":"removes the extracted rootfs when the payload exits, unless a container record references it (TODO/image.md T-1322)","status":"Native","verb":"run"},{"flag":"-e, --env","note":"repeatable; a later one wins","status":"Native","verb":"run"},{"flag":"-w, --workdir","note":"chdir inside the new root, after the chroot","status":"Native","verb":"run"},{"flag":"--entrypoint","note":"as docker: replacing it also drops the image's Cmd","status":"Native","verb":"run"},{"flag":"--platform","note":"a bare word is an architecture, as docker reads it","status":"Native","verb":"run"},{"flag":"--pull","note":"never, missing (default) or always","status":"Native","verb":"run"},{"flag":"--insecure-registry","note":"docker's flag and docker's meaning; every use is disclosed on stderr","status":"Native","verb":"run"},{"flag":"--tls-verify","note":"podman's flag and podman's meaning; every use is disclosed on stderr","status":"Native","verb":"run"},{"flag":"-t, --tty","note":"REFUSED BY NAME where /dev/ptmx is unusable, rather than running without a pty and letting the payload discover it (T-0503)","status":"Degraded","verb":"run"},{"flag":"-i, --interactive","note":"accepted and a no-op: podbox never detaches stdin, so it is already interactive when the caller's is","status":"Stub","verb":"run"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"run"},{"flag":"-d, --detach","note":"starts a detached launcher and prints the container id, returning when the payload is running","status":"Native","verb":"run"},{"flag":"--name","note":"names the container. A name already in use is refused rather than making the second one unreachable","status":"Native","verb":"run"},{"flag":"-v, --volume","note":"podbox cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount","status":"None","verb":"run"},{"flag":"-p, --publish","note":"the payload shares this machine's network namespace, so a published port is already this machine's port","status":"None","verb":"run"},{"flag":"--network","note":"there is no network namespace to select","status":"None","verb":"run"},{"flag":"-u, --user","note":"uid[:gid] or a name from the image's own passwd, answered through the interposer identity memo for a reachable payload, which the banner names and --strict refuses (T-0711)","status":"Degraded","verb":"run"},{"flag":"--privileged","note":"podbox holds every capability bit already and can still do none of what they name","status":"None","verb":"run"},{"flag":"--cap-add, --cap-drop","note":"capabilities are not what is denied here; the filter is","status":"None","verb":"run"},{"flag":"-m, --memory","note":"resource limits need a cgroup this runtime does not grant","status":"None","verb":"run"},{"flag":"--cpus","note":"resource limits need a cgroup this runtime does not grant","status":"None","verb":"run"},{"flag":"--restart","note":"not implemented: `stop` then `start` is the same thing and says which half failed (TODO/cli.md T-1331)","status":"None","verb":"run"},{"flag":"--hostname","note":"sethostname needs a UTS namespace this runtime does not grant","status":"None","verb":"run"},{"flag":"--add-host","note":"name:ip, appended to the /etc/hosts the completion layer writes. Repeatable (T-0403)","status":"Native","verb":"run"},{"flag":"--no-source-fixup","note":"podbox's own: leave the image's package sources exactly as extracted, http:// and all, and UNDO any rewrite an earlier run made (T-0411)","status":"Native","verb":"run"},{"flag":"--no-host-cas","note":"podbox's own: do not append this machine's announced CA bundle ($SSL_CERT_FILE and friends) to the image's own trust store, even where the machine intercepts TLS (T-0407)","status":"Native","verb":"run"},{"flag":"--no-steps","note":"podbox's own: run no command inside the rootfs before the payload. Two fixups cannot be made from outside the chroot -- pacman-key for an empty keyring and openssl rehash for a hash-indexed CA directory -- and this refuses both (T-0412)","status":"Native","verb":"run"},{"flag":"--strict","note":"podbox's own: refuse rather than run where anything about this invocation is Degraded or Stub -- a flag, the selected rung, a completion fixup, or a step podbox would run inside the image (T-0804)","status":"Native","verb":"run"},{"flag":"--podbox-tier","note":"podbox's own: machine selects the machine tier, chroot the chroot tier. `podvm` is this binary under another name and defaults to machine; an explicit flag wins over argv[0], and podbox states the tier where the two disagree (T-1302)","status":"Native","verb":"run"},{"flag":"--podbox-qemu-arg","note":"podbox's own, machine tier only and refused elsewhere: one token for the emulator per occurrence, repeatable, never split on whitespace (T-1302)","status":"Native","verb":"run"},{"flag":"--podbox-mem","note":"podbox's own, machine tier only and refused elsewhere: the guest memory in bytes with an optional K/M/G/T suffix, judged against the RLIMIT_FSIZE ceiling before anything starts (T-1305)","status":"Native","verb":"run"},{"flag":"-e, --env","note":"repeatable; a later one wins","status":"Native","verb":"exec"},{"flag":"-w, --workdir","note":"chdir inside the new root, after the chroot","status":"Native","verb":"exec"},{"flag":"--platform","note":"which platform of a multi-platform image to enter","status":"Native","verb":"exec"},{"flag":"-t, --tty","note":"REFUSED BY NAME where /dev/ptmx is unusable (T-0503)","status":"Degraded","verb":"exec"},{"flag":"-i, --interactive","note":"accepted and a no-op, as in run","status":"Stub","verb":"exec"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"exec"},{"flag":"-d, --detach","note":"not implemented: an exec podbox does not watch has no exit code to report, which is the state T-0604 exists to avoid","status":"None","verb":"exec"},{"flag":"-u, --user","note":"as in run: faked through the interposer identity memo for a reachable payload (T-0711)","status":"Degraded","verb":"exec"},{"flag":"--add-host","note":"name:ip, appended to the /etc/hosts the completion layer writes (T-0403)","status":"Native","verb":"exec"},{"flag":"--no-source-fixup","note":"as in run: leave the image's package sources as extracted, and undo an earlier rewrite (T-0411)","status":"Native","verb":"exec"},{"flag":"--no-host-cas","note":"as in run: leave the image's own trust store alone (T-0407)","status":"Native","verb":"exec"},{"flag":"--no-steps","note":"as in run: run no command inside the rootfs before the command asked for (T-0412)","status":"Native","verb":"exec"},{"flag":"--strict","note":"as in run: refuse rather than re-enter where anything about this invocation is Degraded or Stub (T-0804)","status":"Native","verb":"exec"},{"flag":"--podbox-tier","note":"as in run: machine selects the machine tier, chroot the chroot tier, and an explicit flag wins over the podvm default with the tier stated (T-1302)","status":"Native","verb":"exec"},{"flag":"--podbox-qemu-arg","note":"as in run: machine tier only and refused elsewhere, one emulator token per occurrence, repeatable, never split (T-1302)","status":"Native","verb":"exec"},{"flag":"--podbox-mem","note":"as in run: machine tier only and refused elsewhere, the guest memory in bytes with an optional K/M/G/T suffix, judged against the RLIMIT_FSIZE ceiling before anything starts (T-1305)","status":"Native","verb":"exec"},{"flag":"--platform","note":"a bare word is an architecture, as docker reads it","status":"Native","verb":"pull"},{"flag":"--insecure-registry","note":"docker's flag and docker's meaning","status":"Native","verb":"pull"},{"flag":"--tls-verify","note":"podman's flag and podman's meaning","status":"Native","verb":"pull"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"pull"},{"flag":"-a, --all-tags","note":"fetch every offered tag of a bare repository; a tag on it is refused; a tag with no manifest for this platform is named and skipped (TODO/cli.md T-1331)","status":"Native","verb":"pull"},{"flag":"-q, --quiet","note":"per-layer transcript goes nowhere; errors still reach stderr (TODO/cli.md T-1331)","status":"Native","verb":"pull"},{"flag":"--format","note":"{{.Field}} placeholders and literal text. No pipelines, no functions, and the `table` prefix is refused by name","status":"Native","verb":"images"},{"flag":"-q, --quiet","note":"image IDs only, the same as --format '{{.ID}}'","status":"Native","verb":"images"},{"flag":"--digests","note":"show the DIGEST column","status":"Native","verb":"images"},{"flag":"--no-trunc","note":"print full IDs and digests","status":"Native","verb":"images"},{"flag":"-a, --all","note":"accepted for parity: podbox stores no intermediate images, so every image is already listed","status":"Stub","verb":"images"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"images"},{"flag":"-f, --filter","note":"caller-side predicate: name=<substring> over repository and tag, label= matches nothing (records carry no labels) (TODO/cli.md T-1331)","status":"Native","verb":"images"},{"flag":"-f, --force","note":"accepted for parity. podbox never prompts, so there is no confirmation to suppress, and it refuses a held image whether or not this is given","status":"Stub","verb":"rmi"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"rmi"},{"flag":"-f, --format","note":"the same template shape as `images --format`","status":"Native","verb":"inspect"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"inspect"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"verify"},{"flag":"--force","note":"extract again over an existing rootfs","status":"Native","verb":"extract"},{"flag":"--platform","note":"which platform, where the store holds more than one","status":"Native","verb":"extract"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"extract"},{"flag":"--json","note":"the findings as one JSON document on stdout","status":"Native","verb":"probe"},{"flag":"--rows","note":"every probe as one row, in the format verification/probe emits","status":"Native","verb":"probe"},{"flag":"--strict","note":"exit non-zero below the namespace rung, so a caller gates without parsing","status":"Native","verb":"probe"},{"flag":"--cached","note":"serve $store/probe.json where its key still holds","status":"Native","verb":"probe"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"probe"},{"flag":"-a, --all","note":"list containers that are not running too","status":"Native","verb":"ps"},{"flag":"-q, --quiet","note":"ids only","status":"Native","verb":"ps"},{"flag":"--no-trunc","note":"print full container ids","status":"Native","verb":"ps"},{"flag":"--format","note":"the same template shape as the other verbs","status":"Native","verb":"ps"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"ps"},{"flag":"-f, --filter","note":"caller-side predicate: name=<substring> over name and id prefix, label= matches nothing (records carry no labels) (TODO/cli.md T-1331)","status":"Native","verb":"ps"},{"flag":"-t, --time, --timeout","note":"seconds between SIGTERM and SIGKILL. Default 10, and a kill is reported on stderr","status":"Native","verb":"stop"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"stop"},{"flag":"-s, --signal","note":"by name or number. refused: An unknown one is refused rather than defaulted: sending the wrong signal is not something a caller can notice","status":"Native","verb":"kill"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"kill"},{"flag":"-f, --force","note":"kill a running container before removing it","status":"Native","verb":"rm"},{"flag":"-v, --volumes","note":"accepted for parity: podbox has no volumes, so there are none to remove","status":"Stub","verb":"rm"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"rm"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"logs"},{"flag":"-f, --follow","note":"follows the container's log file with a bounded poll and exits after the container ends","status":"Native","verb":"logs"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"wait"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"start"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"cp"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"tag"},{"flag":null,"note":"removes untagged images, and tagged ones too with --all. Held or referenced ones are named and kept (T-0204, TODO/image.md T-1322). Invoke it as `image prune`","status":"Native","verb":"prune"},{"flag":"-a, --all","note":"take tagged images too, where no container references or holds them","status":"Native","verb":"prune"},{"flag":"-f, --force","note":"accepted for parity: podbox never prompts, so there is nothing to suppress","status":"Stub","verb":"prune"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"prune"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"system"},{"flag":"-f, --format","note":"the same template shape as the other verbs, plus `json .Field` for a field that is a document","status":"Native","verb":"info"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"info"},{"flag":null,"note":"installs the docker, podman and podvm names as symlinks to this binary, refusing docker where a daemon answers unless --force (T-0803). Invoke it as `system install-names`","status":"Native","verb":"install-names"},{"flag":"--dir","note":"install-names: where to put the symlinks. Default: the directory this binary is in","status":"Native","verb":"install-names"},{"flag":"--force","note":"install-names: take the `docker` name even where a docker daemon answers, and replace a file that is not already a link to this binary","status":"Native","verb":"install-names"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"install-names"},{"flag":null,"note":"answers whether an object may be preloaded into a libc payload (T-0709). Invoke it as `system abi`","status":"Native","verb":"abi"},{"flag":"-h, --help","note":"prints this verb's usage and exits 0","status":"Native","verb":"abi"},{"flag":null,"note":"podbox answers to the `docker` name on PATH through argv[0], and says so in the banner. It REFUSES to install that name where a working docker daemon is reachable, unless --force (T-0803)","status":"Degraded","verb":"docker"},{"flag":null,"note":"podbox answers to the `podman` name on PATH through argv[0], and says so in the banner (T-0803)","status":"Degraded","verb":"podman"},{"flag":null,"note":"podbox answers to its own `podvm` name on PATH through argv[0], selecting the machine tier unless --podbox-tier says otherwise, and says both in the banner (T-1302)","status":"Degraded","verb":"podvm"}]
+
+== 37-logs-help
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox logs --help
+store             isolated /work/experiments/.sweep353-work/store-37-logs-help
+exit              0
+output:
+  usage: podbox logs [-f|--follow] <container>
+
+== 37-tty
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm -t public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+store             isolated /work/experiments/.sweep353-work/store-37-tty
+exit              0
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Pull complete
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep353-work/store-37-tty/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep353-work/store-37-tty/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox run: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+
+== 38-system-help
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox system --help
+store             isolated /work/experiments/.sweep353-work/store-38-system-help
+exit              0
+output:
+  usage: podbox system info [--format T]
+         podbox system install-names [--dir D] [--force]
+         podbox system abi <object> <libc>
+         podbox info [--format T]
+  
+    abi          may <object> be preloaded into a payload served by <libc>?
+                 Answered by READING both, never by loading one:
+                 DT_NEEDED against the libc's own SONAME, then every imported
+                 symbol and every imported symbol VERSION, from .dynsym and
+                 never .symtab (TODO/interpose.md T-0709).
+                 Exit 0 it may, 1 it may not and the reason is on stderr, 2 a
+                 file could not be read.
+  
+    Fields: .Parity .ParityRows .ExitCodes .Version .Rung .EnteredRung
+            .StrictOk .Store .Banner .Platform .Kernel .Verbs .VerbsNative
+            .VerbsDegraded .VerbsStub .VerbsNone
+  
+    --format T   {{.Field}} placeholders, plus `{{json .Field}}`. .Parity is
+                 already a JSON document, so both spellings print it.
+  
+    refused: podbox has no daemon, so there is no client/server split to report. The
+      rung this machine permits stands where docker prints a server version,
+      and it is measured rather than assumed.
+  
+    refused: .Rung and .EnteredRung are TWO ANSWERS and a caller needs both. .Rung is
+      what this machine would permit; .EnteredRung is the sequence `podbox run`
+      actually performs, which is a chroot on every machine. Reporting the first
+      as if it were the second is the defect TODO/cli.md T-0804 was opened for.
+  
+    note: .ExitCodes is docker's exit-code contract as data: one object per case,
+      with `case`, `code` and `what`. Measured against docker rather than read,
+      by experiments/330-exit-codes.sh (TODO/cli.md T-0802).
+  
+    note: .Parity is the verb and flag parity table (TOOL.md section 6.8) as data:
+      one object per row, with `verb`, `flag`, `status` and `note`. `status` is
+      one of Native, Degraded, Stub, None and there is no fifth.
+
+== 38-logs-help
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox logs --help
+store             isolated /work/experiments/.sweep353-work/store-38-logs-help
+exit              0
+output:
+  usage: podbox logs [-f|--follow] <container>
+
+== 54-logout
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox logout example.com
+store             isolated /work/experiments/.sweep353-work/store-54-logout
+exit              125
+output:
+  podbox: logout: the counterpart of a verb podbox does not have
+  podbox: `podbox system info --format '{{json .Parity}}'` is every verb and flag podbox has and every one it does not
+  podbox: invoked as /work/target/x86_64-unknown-linux-musl/debug/podbox
+
+== 54-login-help
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox login --help
+store             isolated /work/experiments/.sweep353-work/store-54-login-help
+exit              0
+output:
+  usage: podbox login [-u|--username USER] [--password-stdin] [SERVER]
+  
+    Log in to a registry. The password arrives on stdin, never as an
+    argument: an argument lives in the shell history and the process table.
+    There is no interactive prompt; an automated caller pipes the password
+    in, and a runtime that blocks on input is the hang AGENTS.md forbids.
+  
+    Stores in ~/.docker/config.json, the file docker writes, or through the
+    configured credential helper where one is named for the server. SERVER
+    defaults to https://index.docker.io/v1/, docker's canonical key.
+  
+    The stored login is used, never printed: pulls send it, errors name the
+    registry, and result files never carry it (TODO/image.md T-0209).
+
+== 55-device-run
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --device /dev/urandom public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+store             isolated /work/experiments/.sweep353-work/store-55-device-run
+exit              125
+output:
+  podbox run: unknown option "--device". It has no row in the parity table; `podbox system info` lists every flag this verb takes
+  usage: podbox run [options] <image> [command] [arg...]
+  
+  -d, --detach     start the container and print its id, and do not wait
+    --name NAME      a name for the container. note: Refused if one already has it
+    --rm             remove the extracted rootfs when the payload exits,
+                     unless a container record references it: the rootfs is
+                     shared, and a failed run must not delete what `keeper`
+                     needs (TODO/image.md T-1322)
+    -e, --env K=V    set an environment variable. Repeatable; a later one wins
+    -w, --workdir D  working directory inside the container
+    -u, --user U:G   run as this identity: numeric uid and gid, or names from
+                     the image's own passwd and group files. The requested id
+                     is answered through the interposer identity memo for a
+                     reachable payload, which the banner names and --strict
+                     refuses (TODO/interpose.md T-0711)
+    --entrypoint P   replace the image's entrypoint. note: As docker: this also
+                     drops the image's Cmd, because those were that
+                     entrypoint's default arguments
+    --add-host N:IP  add a name to the container's /etc/hosts. Repeatable
+    --no-source-fixup
+                     leave the image's package sources exactly as extracted.
+                     note: podbox rewrites http:// to https:// for a mirror that
+                     answers over HTTPS, because tcp/80 HANGS on the runtimes
+                     podbox targets. This turns that off, and UNDOES a rewrite
+                     an earlier container made in the same shared rootfs
+    --no-host-cas    do not append this machine's announced CA bundle
+                     ($SSL_CERT_FILE, $CURL_CA_BUNDLE, $REQUESTS_CA_BUNDLE) to
+                     the image's own trust store. note: Where this machine
+                     intercepts TLS, an https package source then fails to
+                     verify inside the container, exactly as it does under
+                     docker
+    --no-steps       refused: do not run any COMMAND inside the rootfs before the
+                     payload. Two fixups cannot be made from outside the
+                     chroot -- `pacman-key --init` for an empty keyring, and
+                     `openssl rehash` for a hash-indexed CA directory, which is
+                     the only trust store libzypp reads -- and podbox names
+                     each on the banner before it runs it. This refuses them
+                     all, and the fixup log then says what the caller gave up
+    --strict         refused: refuse to run at all where anything about this
+                     invocation is Degraded or Stub: a flag, the selected rung,
+                     or a fixup the completion layer had to make
+    --platform P     which platform of a multi-platform image to run
+    --pull WHEN      never | missing (default) | always
+    --insecure-registry HOST, --tls-verify=B
+                     as `podbox pull`; used only when something must be fetched
+    -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
+                     than silently degraded (TODO/enter.md T-0503)
+    --podbox-tier T  podbox's own: machine selects the machine tier, chroot the
+                     chroot tier. `podvm` defaults to machine; an explicit flag
+                     wins over argv[0], and podbox states the tier where the two
+                     disagree (TODO/podvm.md T-1302)
+    --podbox-qemu-arg A
+                     podbox's own, machine tier only and refused elsewhere: one
+                     token for the emulator per occurrence. Repeatable, and never
+                     split on whitespace (TODO/podvm.md T-1302)
+    --podbox-mem S   podbox's own, machine tier only and refused elsewhere: the
+                     guest memory in bytes, with an optional K/M/G/T suffix. A
+                     guest over the RLIMIT_FSIZE ceiling is refused before it
+                     starts, naming both numbers (TODO/podvm.md T-1305)
+  
+    refused: podbox run enters a CHROOT, not a container. It shares this machine's
+      process table, network, IPC and mount namespaces with the payload. The
+      banner on stderr says so on every run and names what the selected rung
+      must never claim.
+  
+    note: The payload owns stdout. Every word podbox prints goes to stderr, so
+      `podbox run <image> cmd | consumer` gives the consumer the payload's
+      bytes and nothing else.
+  
+    note: The exit code is the payload's own, and a signalled payload is 128+signal.
+      125 is podbox failing to run the command, 126 the command found and not
+      invocable, 127 not found. Those are docker's.
+
+== 55-device-exec
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox exec --device /dev/urandom triage30 true
+store             isolated /work/experiments/.sweep353-work/store-55-device-exec
+exit              125
+output:
+  podbox exec: unknown option "--device". It has no row in the parity table; `podbox system info` lists every flag this verb takes
+  usage: podbox exec [options] <image> <command> [arg...]
+  
+    -e, --env K=V    set an environment variable. Repeatable; a later one wins
+    -w, --workdir D  working directory inside the container
+    -u, --user U:G   as in run: fake the identity through the interposer memo
+                     (TODO/interpose.md T-0711)
+    --platform P     which platform of a multi-platform image to enter
+    --add-host N:IP  add a name to the container's /etc/hosts. Repeatable
+    --no-source-fixup
+                     leave the image's package sources exactly as extracted, and
+                     undo a rewrite an earlier run made (TODO/complete.md T-0411)
+    --no-host-cas    as in run: leave the image's trust store alone
+    --no-steps       as in run: run no COMMAND inside the rootfs before the
+                     command asked for (TODO/complete.md T-0412)
+    --strict         refused: refuse to re-enter at all where anything about this
+                     invocation is Degraded or Stub (TODO/cli.md T-0804)
+    -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
+                     than silently degraded (TODO/enter.md T-0503)
+    --podbox-tier T  as in run: machine selects the machine tier, chroot the
+                     chroot tier, and an explicit flag wins over the podvm
+                     default with the tier stated (TODO/podvm.md T-1302)
+    --podbox-qemu-arg A
+                     as in run: machine tier only and refused elsewhere, one
+                     emulator token per occurrence, repeatable, never split
+    --podbox-mem S   as in run: machine tier only and refused elsewhere, the
+                     guest memory in bytes with an optional K/M/G/T suffix
+                     (TODO/podvm.md T-1305)
+  
+    refused: This is a FRESH CHROOT re-entry, not an entry into a running container.
+      It shares the filesystem tree and nothing else. `podbox inspect --format
+      '{{.Exec.Mode}}'` says the same thing to a program.
+  
+    refused: The image must already be extracted. `podbox exec` never pulls and never
+      extracts: there would be nothing to re-enter, and a verb that creates what
+      it claims to attach to is the lie TOOL.md section 4.1 forbids.
+
+== 56-log-driver
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --log-driver json-file public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+store             isolated /work/experiments/.sweep353-work/store-56-log-driver
+exit              125
+output:
+  podbox run: unknown option "--log-driver". It has no row in the parity table; `podbox system info` lists every flag this verb takes
+  usage: podbox run [options] <image> [command] [arg...]
+  
+  -d, --detach     start the container and print its id, and do not wait
+    --name NAME      a name for the container. note: Refused if one already has it
+    --rm             remove the extracted rootfs when the payload exits,
+                     unless a container record references it: the rootfs is
+                     shared, and a failed run must not delete what `keeper`
+                     needs (TODO/image.md T-1322)
+    -e, --env K=V    set an environment variable. Repeatable; a later one wins
+    -w, --workdir D  working directory inside the container
+    -u, --user U:G   run as this identity: numeric uid and gid, or names from
+                     the image's own passwd and group files. The requested id
+                     is answered through the interposer identity memo for a
+                     reachable payload, which the banner names and --strict
+                     refuses (TODO/interpose.md T-0711)
+    --entrypoint P   replace the image's entrypoint. note: As docker: this also
+                     drops the image's Cmd, because those were that
+                     entrypoint's default arguments
+    --add-host N:IP  add a name to the container's /etc/hosts. Repeatable
+    --no-source-fixup
+                     leave the image's package sources exactly as extracted.
+                     note: podbox rewrites http:// to https:// for a mirror that
+                     answers over HTTPS, because tcp/80 HANGS on the runtimes
+                     podbox targets. This turns that off, and UNDOES a rewrite
+                     an earlier container made in the same shared rootfs
+    --no-host-cas    do not append this machine's announced CA bundle
+                     ($SSL_CERT_FILE, $CURL_CA_BUNDLE, $REQUESTS_CA_BUNDLE) to
+                     the image's own trust store. note: Where this machine
+                     intercepts TLS, an https package source then fails to
+                     verify inside the container, exactly as it does under
+                     docker
+    --no-steps       refused: do not run any COMMAND inside the rootfs before the
+                     payload. Two fixups cannot be made from outside the
+                     chroot -- `pacman-key --init` for an empty keyring, and
+                     `openssl rehash` for a hash-indexed CA directory, which is
+                     the only trust store libzypp reads -- and podbox names
+                     each on the banner before it runs it. This refuses them
+                     all, and the fixup log then says what the caller gave up
+    --strict         refused: refuse to run at all where anything about this
+                     invocation is Degraded or Stub: a flag, the selected rung,
+                     or a fixup the completion layer had to make
+    --platform P     which platform of a multi-platform image to run
+    --pull WHEN      never | missing (default) | always
+    --insecure-registry HOST, --tls-verify=B
+                     as `podbox pull`; used only when something must be fetched
+    -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
+                     than silently degraded (TODO/enter.md T-0503)
+    --podbox-tier T  podbox's own: machine selects the machine tier, chroot the
+                     chroot tier. `podvm` defaults to machine; an explicit flag
+                     wins over argv[0], and podbox states the tier where the two
+                     disagree (TODO/podvm.md T-1302)
+    --podbox-qemu-arg A
+                     podbox's own, machine tier only and refused elsewhere: one
+                     token for the emulator per occurrence. Repeatable, and never
+                     split on whitespace (TODO/podvm.md T-1302)
+    --podbox-mem S   podbox's own, machine tier only and refused elsewhere: the
+                     guest memory in bytes, with an optional K/M/G/T suffix. A
+                     guest over the RLIMIT_FSIZE ceiling is refused before it
+                     starts, naming both numbers (TODO/podvm.md T-1305)
+  
+    refused: podbox run enters a CHROOT, not a container. It shares this machine's
+      process table, network, IPC and mount namespaces with the payload. The
+      banner on stderr says so on every run and names what the selected rung
+      must never claim.
+  
+    note: The payload owns stdout. Every word podbox prints goes to stderr, so
+      `podbox run <image> cmd | consumer` gives the consumer the payload's
+      bytes and nothing else.
+  
+    note: The exit code is the payload's own, and a signalled payload is 128+signal.
+      125 is podbox failing to run the command, 126 the command found and not
+      invocable, 127 not found. Those are docker's.
+
+== 59-rung
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox probe
+store             isolated /work/experiments/.sweep353-work/store-59-rung
+exit              0
+output:
+  supervise
+  podbox 0.1.0-beta.7: mode=supervise (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: anything whose arguments it cannot read; on this runtime, exec remapping
+  
+  identity
+    uid=0 gid=0 groups=[]
+    /proc/self/uid_map: 0 1000 1; 1 100000 65536
+    /proc/self/gid_map: 0 1000 1; 1 100000 65536
+    /proc/self/setgroups: allow
+    CapEff: 00000000800405fb
+    Seccomp: 2
+    Seccomp_filters: 1
+    NoNewPrivs: 0
+    Threads: 1
+  
+  mounts, as four verdicts and not one
+    create     denied EPERM
+    configure  skip (EPERM)
+    attach     skip (EPERM)
+    use        skip (EPERM)
+  
+  writable, by writing
+    /tmp                       ok       201063378 blocks of 4096 B free, 64429278 inodes free  [the candidate list]
+    /dev/shm                   ok       16000 blocks of 4096 B free, 4082283 inodes free  [the candidate list]
+    /workspace                 skip (ENOENT) statfs: ENOENT (2)  [the candidate list]
+    /state                     skip (ENOENT) statfs: ENOENT (2)  [the candidate list]
+    /var/tmp                   ok       201063378 blocks of 4096 B free, 64429278 inodes free  [the candidate list]
+    /run                       ok       201063378 blocks of 4096 B free, 64429278 inodes free  [the candidate list]
+    /work/experiments/.sweep353-work/store-59-rung ok       201063378 blocks of 4096 B free, 64429278 inodes free  [$PODBOX_STORE]
+    /root                      ok       201063378 blocks of 4096 B free, 64429278 inodes free  [$HOME]
+    /work                      ok       201063378 blocks of 4096 B free, 64429278 inodes free  [the working directory]
+  
+  controls for the bogus-argument discriminator
+    pidfd_getfd(-1,-1) [control]       FAIL errno=9 EBADF
+    kcmp(-1,-1,...) [control]          FAIL errno=1 EPERM
+    refused: kcmp(-1,-1,...) [control] answered EPERM where the discriminator needs ESRCH; it has stopped separating a filter from a policy
+    refused: a probe whose control has stopped answering has stopped
+       discriminating. Read the mechanism attributions below as unconfirmed.
+  
+  spawn, and the two calls behind one string
+    A Go payload that spawns a child fails `fork/exec <path>: operation not permitted` whether the clone or the setgroups met the denial.
+    clone(CLONE_NEWNS) here: denied EPERM. setgroups(0,NULL) here: ok.
+    A payload that sets clone flags meets the clone denial here.
+    Setgroups is clear here, so a failing spawn did not meet it.
+  
+  rungs considered and not reached
+    namespace    needs namespace creation and mounts and ID maps for what was asked
+                   got  unshare(CLONE_NEWNS)=EPERM clone(CLONE_NEWNS)=EPERM mount(tmpfs,/mnt)=EPERM mount(tmpfs,/mnt) in clone(NEWNS)=skip
+  
+  could not run. refused: None of these is a denial, and none of them was
+  counted as one when the rung above was chosen.
+    sethostname(in NEWUTS)
+        clone(2) with flags 0x4000000 was refused, so the namespace this probe needs was never entered and the operation was never attempted
+    mount(tmpfs,/mnt) in clone(NEWNS)
+        clone(2) with flags 0x20000 was refused, so the namespace this probe needs was never entered and the operation was never attempted
+    mount(MS_SLAVE,/) in clone(NEWNS)
+        clone(2) with flags 0x20000 was refused, so the namespace this probe needs was never entered and the operation was never attempted
+    write into uid-1000-owned dir
+        no fixture directory owned by an unmapped id: neither /workspace/.fixtures/squash-probe nor /tmp/squash-probe exists. Create one as another uid outside the confinement.
+    fsmount(tmpfs)
+        fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted
+    move_mount(-> bogus dest)
+        fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted
+    move_mount(-> /tmp/mm-probe)
+        fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted
+    openat(detached tmpfs, O_DIRECTORY)
+        fsopen(tmpfs) failed with EPERM (1), so this operation was never attempted
+    qemu-system-x86_64 --version
+        no qemu-system-x86_64 on PATH, so the emulator leg could not run
+    qemu-system-x86_64 -accel help
+        no qemu-system-x86_64 on PATH, so the accelerator list could not be read
+  
+  probe children were re-executed from /proc/self/exe
+  
+  machine, one leg per fact
+    qemu-system-x86_64 --version       SKIP no qemu-system-x86_64 on PATH, so the emulator leg could not run
+    open(/dev/kvm, O_RDWR)             FAIL errno=2 ENOENT
+    prlimit(RLIMIT_FSIZE)              OK
+    open(/dev/net/tun, O_RDWR)         FAIL errno=2 ENOENT
+    image space (statfs .)             OK
+    qemu-system-x86_64 -accel help     SKIP no qemu-system-x86_64 on PATH, so the accelerator list could not be read
+    refused: machine tier refused: qemu-system-x86_64 --version=skip: no qemu-system-x86_64 on PATH, so the emulator leg could not run open(/dev/kvm, O_RDWR)=ENOENT open(/dev/net/tun, O_RDWR)=ENOENT qemu-system-x86_64 -accel help=skip: no qemu-system-x86_64 on PATH, so the accelerator list could not be read
+  
+  supervise, one leg per fact
+    seccomp(NEW_LISTENER) [supervise]  OK
+    process_vm_readv(own pid) [supervise] OK
+    ptrace(PTRACE_TRACEME) [supervise] OK
+    the tier holds: every leg ok
+  
+  non-goals, one stance per blocked design
+    tcp listener open here: bind(127.0.0.1:0)+listen permitted
+    refused: kvm acceleration refused: open(/dev/kvm, O_RDWR)=ENOENT; no KVM here; the machine tier runs TCG
+    refused: runc-style oci refused: clone(CLONE_NEWUTS)=EPERM unshare(CLONE_NEWNS)=EPERM; namespaces denied here; podbox runs the chroot rung instead
+    user-mode linux guest open here: ptrace(PTRACE_TRACEME) permitted
+    uid_map identity switch open here: setuid(1000) setgroups(0,NULL) permitted
+    guest file over the ceiling open here: no per-file ceiling on this machine
+
+== 59-entered
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox system info --format {{.Rung}} {{.EnteredRung}}
+store             isolated /work/experiments/.sweep353-work/store-59-entered
+exit              0
+output:
+  supervise chroot
+
+== 60-read-only
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --read-only public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+store             isolated /work/experiments/.sweep353-work/store-60-read-only
+exit              125
+output:
+  podbox run: unknown option "--read-only". It has no row in the parity table; `podbox system info` lists every flag this verb takes
+  usage: podbox run [options] <image> [command] [arg...]
+  
+  -d, --detach     start the container and print its id, and do not wait
+    --name NAME      a name for the container. note: Refused if one already has it
+    --rm             remove the extracted rootfs when the payload exits,
+                     unless a container record references it: the rootfs is
+                     shared, and a failed run must not delete what `keeper`
+                     needs (TODO/image.md T-1322)
+    -e, --env K=V    set an environment variable. Repeatable; a later one wins
+    -w, --workdir D  working directory inside the container
+    -u, --user U:G   run as this identity: numeric uid and gid, or names from
+                     the image's own passwd and group files. The requested id
+                     is answered through the interposer identity memo for a
+                     reachable payload, which the banner names and --strict
+                     refuses (TODO/interpose.md T-0711)
+    --entrypoint P   replace the image's entrypoint. note: As docker: this also
+                     drops the image's Cmd, because those were that
+                     entrypoint's default arguments
+    --add-host N:IP  add a name to the container's /etc/hosts. Repeatable
+    --no-source-fixup
+                     leave the image's package sources exactly as extracted.
+                     note: podbox rewrites http:// to https:// for a mirror that
+                     answers over HTTPS, because tcp/80 HANGS on the runtimes
+                     podbox targets. This turns that off, and UNDOES a rewrite
+                     an earlier container made in the same shared rootfs
+    --no-host-cas    do not append this machine's announced CA bundle
+                     ($SSL_CERT_FILE, $CURL_CA_BUNDLE, $REQUESTS_CA_BUNDLE) to
+                     the image's own trust store. note: Where this machine
+                     intercepts TLS, an https package source then fails to
+                     verify inside the container, exactly as it does under
+                     docker
+    --no-steps       refused: do not run any COMMAND inside the rootfs before the
+                     payload. Two fixups cannot be made from outside the
+                     chroot -- `pacman-key --init` for an empty keyring, and
+                     `openssl rehash` for a hash-indexed CA directory, which is
+                     the only trust store libzypp reads -- and podbox names
+                     each on the banner before it runs it. This refuses them
+                     all, and the fixup log then says what the caller gave up
+    --strict         refused: refuse to run at all where anything about this
+                     invocation is Degraded or Stub: a flag, the selected rung,
+                     or a fixup the completion layer had to make
+    --platform P     which platform of a multi-platform image to run
+    --pull WHEN      never | missing (default) | always
+    --insecure-registry HOST, --tls-verify=B
+                     as `podbox pull`; used only when something must be fetched
+    -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
+                     than silently degraded (TODO/enter.md T-0503)
+    --podbox-tier T  podbox's own: machine selects the machine tier, chroot the
+                     chroot tier. `podvm` defaults to machine; an explicit flag
+                     wins over argv[0], and podbox states the tier where the two
+                     disagree (TODO/podvm.md T-1302)
+    --podbox-qemu-arg A
+                     podbox's own, machine tier only and refused elsewhere: one
+                     token for the emulator per occurrence. Repeatable, and never
+                     split on whitespace (TODO/podvm.md T-1302)
+    --podbox-mem S   podbox's own, machine tier only and refused elsewhere: the
+                     guest memory in bytes, with an optional K/M/G/T suffix. A
+                     guest over the RLIMIT_FSIZE ceiling is refused before it
+                     starts, naming both numbers (TODO/podvm.md T-1305)
+  
+    refused: podbox run enters a CHROOT, not a container. It shares this machine's
+      process table, network, IPC and mount namespaces with the payload. The
+      banner on stderr says so on every run and names what the selected rung
+      must never claim.
+  
+    note: The payload owns stdout. Every word podbox prints goes to stderr, so
+      `podbox run <image> cmd | consumer` gives the consumer the payload's
+      bytes and nothing else.
+  
+    note: The exit code is the payload's own, and a signalled payload is 128+signal.
+      125 is podbox failing to run the command, 126 the command found and not
+      invocable, 127 not found. Those are docker's.
+
+== 60-mount
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --mount type=tmpfs,destination=/tmp public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+store             isolated /work/experiments/.sweep353-work/store-60-mount
+exit              125
+output:
+  podbox run: unknown option "--mount". It has no row in the parity table; `podbox system info` lists every flag this verb takes
+  usage: podbox run [options] <image> [command] [arg...]
+  
+  -d, --detach     start the container and print its id, and do not wait
+    --name NAME      a name for the container. note: Refused if one already has it
+    --rm             remove the extracted rootfs when the payload exits,
+                     unless a container record references it: the rootfs is
+                     shared, and a failed run must not delete what `keeper`
+                     needs (TODO/image.md T-1322)
+    -e, --env K=V    set an environment variable. Repeatable; a later one wins
+    -w, --workdir D  working directory inside the container
+    -u, --user U:G   run as this identity: numeric uid and gid, or names from
+                     the image's own passwd and group files. The requested id
+                     is answered through the interposer identity memo for a
+                     reachable payload, which the banner names and --strict
+                     refuses (TODO/interpose.md T-0711)
+    --entrypoint P   replace the image's entrypoint. note: As docker: this also
+                     drops the image's Cmd, because those were that
+                     entrypoint's default arguments
+    --add-host N:IP  add a name to the container's /etc/hosts. Repeatable
+    --no-source-fixup
+                     leave the image's package sources exactly as extracted.
+                     note: podbox rewrites http:// to https:// for a mirror that
+                     answers over HTTPS, because tcp/80 HANGS on the runtimes
+                     podbox targets. This turns that off, and UNDOES a rewrite
+                     an earlier container made in the same shared rootfs
+    --no-host-cas    do not append this machine's announced CA bundle
+                     ($SSL_CERT_FILE, $CURL_CA_BUNDLE, $REQUESTS_CA_BUNDLE) to
+                     the image's own trust store. note: Where this machine
+                     intercepts TLS, an https package source then fails to
+                     verify inside the container, exactly as it does under
+                     docker
+    --no-steps       refused: do not run any COMMAND inside the rootfs before the
+                     payload. Two fixups cannot be made from outside the
+                     chroot -- `pacman-key --init` for an empty keyring, and
+                     `openssl rehash` for a hash-indexed CA directory, which is
+                     the only trust store libzypp reads -- and podbox names
+                     each on the banner before it runs it. This refuses them
+                     all, and the fixup log then says what the caller gave up
+    --strict         refused: refuse to run at all where anything about this
+                     invocation is Degraded or Stub: a flag, the selected rung,
+                     or a fixup the completion layer had to make
+    --platform P     which platform of a multi-platform image to run
+    --pull WHEN      never | missing (default) | always
+    --insecure-registry HOST, --tls-verify=B
+                     as `podbox pull`; used only when something must be fetched
+    -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
+                     than silently degraded (TODO/enter.md T-0503)
+    --podbox-tier T  podbox's own: machine selects the machine tier, chroot the
+                     chroot tier. `podvm` defaults to machine; an explicit flag
+                     wins over argv[0], and podbox states the tier where the two
+                     disagree (TODO/podvm.md T-1302)
+    --podbox-qemu-arg A
+                     podbox's own, machine tier only and refused elsewhere: one
+                     token for the emulator per occurrence. Repeatable, and never
+                     split on whitespace (TODO/podvm.md T-1302)
+    --podbox-mem S   podbox's own, machine tier only and refused elsewhere: the
+                     guest memory in bytes, with an optional K/M/G/T suffix. A
+                     guest over the RLIMIT_FSIZE ceiling is refused before it
+                     starts, naming both numbers (TODO/podvm.md T-1305)
+  
+    refused: podbox run enters a CHROOT, not a container. It shares this machine's
+      process table, network, IPC and mount namespaces with the payload. The
+      banner on stderr says so on every run and names what the selected rung
+      must never claim.
+  
+    note: The payload owns stdout. Every word podbox prints goes to stderr, so
+      `podbox run <image> cmd | consumer` gives the consumer the payload's
+      bytes and nothing else.
+  
+    note: The exit code is the payload's own, and a signalled payload is 128+signal.
+      125 is podbox failing to run the command, 126 the command found and not
+      invocable, 127 not found. Those are docker's.
+
+== 60-env-file
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --env-file /dev/null public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+store             isolated /work/experiments/.sweep353-work/store-60-env-file
+exit              125
+output:
+  podbox run: unknown option "--env-file". It has no row in the parity table; `podbox system info` lists every flag this verb takes
+  usage: podbox run [options] <image> [command] [arg...]
+  
+  -d, --detach     start the container and print its id, and do not wait
+    --name NAME      a name for the container. note: Refused if one already has it
+    --rm             remove the extracted rootfs when the payload exits,
+                     unless a container record references it: the rootfs is
+                     shared, and a failed run must not delete what `keeper`
+                     needs (TODO/image.md T-1322)
+    -e, --env K=V    set an environment variable. Repeatable; a later one wins
+    -w, --workdir D  working directory inside the container
+    -u, --user U:G   run as this identity: numeric uid and gid, or names from
+                     the image's own passwd and group files. The requested id
+                     is answered through the interposer identity memo for a
+                     reachable payload, which the banner names and --strict
+                     refuses (TODO/interpose.md T-0711)
+    --entrypoint P   replace the image's entrypoint. note: As docker: this also
+                     drops the image's Cmd, because those were that
+                     entrypoint's default arguments
+    --add-host N:IP  add a name to the container's /etc/hosts. Repeatable
+    --no-source-fixup
+                     leave the image's package sources exactly as extracted.
+                     note: podbox rewrites http:// to https:// for a mirror that
+                     answers over HTTPS, because tcp/80 HANGS on the runtimes
+                     podbox targets. This turns that off, and UNDOES a rewrite
+                     an earlier container made in the same shared rootfs
+    --no-host-cas    do not append this machine's announced CA bundle
+                     ($SSL_CERT_FILE, $CURL_CA_BUNDLE, $REQUESTS_CA_BUNDLE) to
+                     the image's own trust store. note: Where this machine
+                     intercepts TLS, an https package source then fails to
+                     verify inside the container, exactly as it does under
+                     docker
+    --no-steps       refused: do not run any COMMAND inside the rootfs before the
+                     payload. Two fixups cannot be made from outside the
+                     chroot -- `pacman-key --init` for an empty keyring, and
+                     `openssl rehash` for a hash-indexed CA directory, which is
+                     the only trust store libzypp reads -- and podbox names
+                     each on the banner before it runs it. This refuses them
+                     all, and the fixup log then says what the caller gave up
+    --strict         refused: refuse to run at all where anything about this
+                     invocation is Degraded or Stub: a flag, the selected rung,
+                     or a fixup the completion layer had to make
+    --platform P     which platform of a multi-platform image to run
+    --pull WHEN      never | missing (default) | always
+    --insecure-registry HOST, --tls-verify=B
+                     as `podbox pull`; used only when something must be fetched
+    -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
+                     than silently degraded (TODO/enter.md T-0503)
+    --podbox-tier T  podbox's own: machine selects the machine tier, chroot the
+                     chroot tier. `podvm` defaults to machine; an explicit flag
+                     wins over argv[0], and podbox states the tier where the two
+                     disagree (TODO/podvm.md T-1302)
+    --podbox-qemu-arg A
+                     podbox's own, machine tier only and refused elsewhere: one
+                     token for the emulator per occurrence. Repeatable, and never
+                     split on whitespace (TODO/podvm.md T-1302)
+    --podbox-mem S   podbox's own, machine tier only and refused elsewhere: the
+                     guest memory in bytes, with an optional K/M/G/T suffix. A
+                     guest over the RLIMIT_FSIZE ceiling is refused before it
+                     starts, naming both numbers (TODO/podvm.md T-1305)
+  
+    refused: podbox run enters a CHROOT, not a container. It shares this machine's
+      process table, network, IPC and mount namespaces with the payload. The
+      banner on stderr says so on every run and names what the selected rung
+      must never claim.
+  
+    note: The payload owns stdout. Every word podbox prints goes to stderr, so
+      `podbox run <image> cmd | consumer` gives the consumer the payload's
+      bytes and nothing else.
+  
+    note: The exit code is the payload's own, and a signalled payload is 128+signal.
+      125 is podbox failing to run the command, 126 the command found and not
+      invocable, 127 not found. Those are docker's.
+
+== 60-manifest
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox manifest inspect public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+store             isolated /work/experiments/.sweep353-work/store-60-manifest
+exit              1
+output:
+  podbox: manifest: podbox has no such command, and neither does the parity table (TOOL.md section 6.8)
+  usage: podbox <command> [options]
+  
+    run          extract an image if needed and run a command inside it
+    exec         run a command in an already extracted image. refused: A FRESH CHROOT,
+                 sharing only the filesystem, never a namespace entry
+    probe        report what this machine permits, and the rung podbox selects
+    man          render this manual from the binary's own usage strings
+    pull         fetch an image into the content-addressed store
+    save         write one image as an OCI-layout tarball
+    load         read an OCI-layout tarball into the store
+    import       build an image record from a plain rootfs tar
+    extract      unpack a pulled image's layers into a rootfs
+    images       list what the store holds
+    rmi          remove images, and every blob no image reaches
+    tag          point a second name at one manifest digest
+    image        ls | rm | prune | tag
+    inspect      print one image's record
+    verify       hash the store's blobs against their digests
+    create       write a container record, and start nothing
+    start        start a created container, and return when its payload is running
+    ps           list containers, from podbox's own table and never from /proc
+    logs         a container's captured output
+    stop         SIGTERM, then SIGKILL after a bounded grace
+    restart      stop, then start, naming which half failed
+    kill         send one signal to a container's payload
+    wait         block until a container ends, and print its exit code
+    rm           remove a container
+    cp           copy one file into or out of a container's rootfs
+    system info  what this podbox is, and the verb and flag parity table AS DATA
+    system install-names
+                 install `docker` and `podman` as symlinks to this binary
+    version      print the version
+  
+    podvm        this same binary under another name. It takes the same verbs
+                 and flags, and selects the machine tier unless --podbox-tier
+                 says otherwise (TODO/podvm.md T-1302)
+  
+    Every other docker verb is named in that table with the reason podbox does
+    not have it, and says so with exit 125 rather than being silently ignored.
+    A verb neither podbox nor docker has exits 1, which is docker's own code for
+    it (TODO/cli.md T-0802).
+  podbox: invoked as /work/target/x86_64-unknown-linux-musl/debug/podbox
+
+== 60-service
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox service ls
+store             isolated /work/experiments/.sweep353-work/store-60-service
+exit              1
+output:
+  podbox: service: podbox has no such command, and neither does the parity table (TOOL.md section 6.8)
+  usage: podbox <command> [options]
+  
+    run          extract an image if needed and run a command inside it
+    exec         run a command in an already extracted image. refused: A FRESH CHROOT,
+                 sharing only the filesystem, never a namespace entry
+    probe        report what this machine permits, and the rung podbox selects
+    man          render this manual from the binary's own usage strings
+    pull         fetch an image into the content-addressed store
+    save         write one image as an OCI-layout tarball
+    load         read an OCI-layout tarball into the store
+    import       build an image record from a plain rootfs tar
+    extract      unpack a pulled image's layers into a rootfs
+    images       list what the store holds
+    rmi          remove images, and every blob no image reaches
+    tag          point a second name at one manifest digest
+    image        ls | rm | prune | tag
+    inspect      print one image's record
+    verify       hash the store's blobs against their digests
+    create       write a container record, and start nothing
+    start        start a created container, and return when its payload is running
+    ps           list containers, from podbox's own table and never from /proc
+    logs         a container's captured output
+    stop         SIGTERM, then SIGKILL after a bounded grace
+    restart      stop, then start, naming which half failed
+    kill         send one signal to a container's payload
+    wait         block until a container ends, and print its exit code
+    rm           remove a container
+    cp           copy one file into or out of a container's rootfs
+    system info  what this podbox is, and the verb and flag parity table AS DATA
+    system install-names
+                 install `docker` and `podman` as symlinks to this binary
+    version      print the version
+  
+    podvm        this same binary under another name. It takes the same verbs
+                 and flags, and selects the machine tier unless --podbox-tier
+                 says otherwise (TODO/podvm.md T-1302)
+  
+    Every other docker verb is named in that table with the reason podbox does
+    not have it, and says so with exit 125 rather than being silently ignored.
+    A verb neither podbox nor docker has exits 1, which is docker's own code for
+    it (TODO/cli.md T-0802).
+  podbox: invoked as /work/target/x86_64-unknown-linux-musl/debug/podbox
+
+== lifecycle-run
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo lane-hi
+store             isolated /work/experiments/.sweep353-work/store-lifecycle-run
+exit              0
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Pull complete
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep353-work/store-lifecycle-run/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep353-work/store-lifecycle-run/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox run: interpose: declined for "echo": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  lane-hi
+
+== lifecycle-create
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox create --name triageLC public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+store             isolated /work/experiments/.sweep353-work/store-lifecycle-create
+exit              0
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Pull complete
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep353-work/store-lifecycle-create/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep353-work/store-lifecycle-create/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox create: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost, the container name triageLC
+  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  49c42e9200cf85afebcde98fe3462193080e914ac175ba49b28d6b87412260bc
+
+== lifecycle-start
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox start triageLC
+store             isolated /work/experiments/.sweep353-work/store-lifecycle-start
+exit              125
+output:
+  podbox start: no such container: triageLC. `podbox ps -a` lists what there is
+
+== lifecycle-exec
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox exec triageLC echo exec-hi
+store             isolated /work/experiments/.sweep353-work/store-lifecycle-exec
+exit              125
+output:
+  podbox exec: triageLC is not in the store. `podbox exec` never pulls: `podbox run triageLC ...` is what puts it there
+
+== lifecycle-ps
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox ps
+store             isolated /work/experiments/.sweep353-work/store-lifecycle-ps
+exit              0
+output:
+  CONTAINER ID   IMAGE   COMMAND   CREATED   STATUS   NAMES
+
+== lifecycle-logs
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox logs triageLC
+store             isolated /work/experiments/.sweep353-work/store-lifecycle-logs
+exit              125
+output:
+  podbox logs: no such container: triageLC. `podbox ps -a` lists what there is
+
+== lifecycle-stop
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox stop triageLC
+store             isolated /work/experiments/.sweep353-work/store-lifecycle-stop
+exit              125
+output:
+  podbox stop: no such container: triageLC. `podbox ps -a` lists what there is
+
+== lifecycle-rm
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox rm triageLC
+store             isolated /work/experiments/.sweep353-work/store-lifecycle-rm
+exit              125
+output:
+  podbox rm: no such container: triageLC. `podbox ps -a` lists what there is
+
+verdict           DRIVE COMPLETE

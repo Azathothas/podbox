@@ -23,7 +23,7 @@ Source:      `TOOL.md` section 6.5, `paper_final.md` section 10.5
 Category:    enter
 Priority:    P0
 Effort:      M
-Status:      done 2026-09-09
+Status:      partial 2026-09-09
 
 Problem:     A chroot cuts off every path outside the new root. A child with no
              explicit stdio opens `/dev/null`, which an extracted rootfs does
@@ -57,6 +57,21 @@ stdio: a child with none opens `/dev/null`, which an extracted rootfs does not
 have. ⛔ `--device` and the PTY pair are **not implemented**; they are
 [T-0503](#t-0503-probe-devptmx-and-refuse--t-by-name-where-it-is-absent)'s and
 M4's, and `-t` is refused by name rather than degraded.
+
+**Partial, 2026-09-25.** Issue 55 reopens the `--device` half: the
+Approach names `--device` among the descriptors opened before the
+root changes, the Done records it not implemented, and the parity
+table carries no row for it, so `run --device` answers `unknown
+option` with no reason. Either implement `--device
+host[:container[:perms]]` through the device plan, or add a `None`
+row naming why and let the parser refuse it by name. The parser keeps
+asking the table (T-0801), not a second list. Fix area is
+`crates/podbox-cli/src/parity.rs`, the `run` and `exec` parsers, and
+the `crates/podbox-enter` device plan. Risk if wrong is a docker flag
+answered as an omission rather than a decision. Prove is one run
+mapping a host device and reading it inside, the refusal arm naming
+its reason, and the T-1325 gate extended so every docker flag an
+entry's Done calls unimplemented has a row.
 
 ---
 
@@ -112,7 +127,7 @@ Source:      `TOOL.md` section 0, section 6.5, section 6.8; `paper_final.md` sec
 Category:    enter
 Priority:    P1
 Effort:      S
-Status:      done 2026-09-22
+Status:      partial 2026-09-22
 
 Problem:     `-t` either works or it does not, and the corpus disagrees with
              itself about which. A degraded PTY that cannot open a terminal is
@@ -173,6 +188,20 @@ repeated back, not an independent measurement. ⭐ What HAS changed is that the
 question is now one command on the machine that matters: `podbox probe --json |
 jq .ptmx` on the target, by anyone who can reach it. Until somebody runs it
 there, the premise stays unresolved and is stated as unresolved.
+
+**Partial, 2026-09-25.** Issue 37 reopens the ordering half: where
+both chroot and ptmx are denied, `run --rm -t` exits 125 at the
+T-1317 gate (`run.rs` `prepare`) naming `chroot(2)` denied and never
+reaches the ptmx refusal (`run.rs` below it), so the T-0503 arm is
+unreachable on exactly the constrained hosts it serves. Check the
+flag-specific refusal before the generic chroot gate where the flag
+alone decides (ptmx before chroot for `-t`), or append the masked
+reasons to the chroot message. Exit stays 125, one line per the
+honesty rules. Fix area is `run.rs` `prepare` order, the `lifecycle`
+gate against the `ptmx_usable` predicate. Risk if wrong is a second
+ordering mask beside the first. Prove is `run --rm -t` on a fixture
+denying both, naming ptmx, beside the chroot-only arm naming
+chroot.
 
 ---
 
@@ -420,7 +449,7 @@ Source:      issue 12, client beta testing 2026-09-22 (every rung dies at
 Category:    enter
 Priority:    P1
 Effort:      M
-Status:      done 2026-09-23
+Status:      partial 2026-09-23
 
 Problem:     On a host that denies `chroot(2)` itself, probe selects
              `interpose` and then every entry path (`run`, forced memfd,
@@ -502,3 +531,76 @@ step, so the check isolates the refusals.) The guard that stops
 recurrence is the probe-gated refusal: no entry path reaches a fixup or
 an entry sequence without an `Ok` chroot row.
 
+**Partial, 2026-09-25.** Issue 30 reopens this entry: the up-front
+refusal is the correct last resort and the wrong whole answer. On a
+chroot-denied host no entry path runs, including forced memfd. Two
+corrections ride here. The Done names `exec` among the gated paths;
+`exec` is deliberately ungated (no running container exists where
+`start` is gated, and the helper is one call away if that changes).
+Implement one no-chroot entry rung: userland-exec with the interposer
+and no chroot for dynamic payloads, memfd exec with no chroot for
+static payloads, or an automatic machine-tier bridge where the T-1301
+legs hold. The banner names the entered rung and what it does not
+isolate; the up-front gate stays as the last resort with the tried
+rungs named. Acceptance names the target shape: chroot `EPERM` with
+kvm, tun and ptmx absent, one of the two families runs with the
+banner naming the rung, and refusal stays only where neither family
+can run with both refusals named. Fix area is
+`crates/podbox-enter` entry sequence, the `lifecycle` gate, and the
+T-1003 ladder. Risk if wrong is weaker isolation stated as equal.
+Prove is `run --rm alpine echo hi` at exit 0 with the banner naming
+the rung on the chroot-denying fixture, beside the current refusal
+test as the strict arm, with no rootfs mutation on the refusal path.
+
+
+---
+
+### T-1339 Enter the namespace rung where the probe permits it
+
+Source:      issue 59, beta.7 drive 2026-09-25 (`README.md:56-62`
+             promised it, `run` never did); `crates/podbox-enter/src/lib.rs:47-61`
+             (`ENTERED_RUNG` is `Chroot` on every machine),
+             `crates/podbox-probe/src/select.rs:138-155` (returns
+             `Rung::Namespace`), `crates/podbox-cli/src/system.rs:428-431`
+             (asserts the two differ)
+Category:    enter
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     No TODO entry mentions the `namespace` rung, and nothing
+             enters it. Where the probe succeeds at
+             `unshare(CLONE_NEWNS)` and mount, `select.rs` returns
+             `Rung::Namespace` and `run` still enters a plain chroot.
+             The binary reports both facts (`system info` carries
+             `.Rung` and `.EnteredRung` with the guard asserting they
+             differ); the rung itself has no backlog entry.
+Premise:     Read at file and line on 2026-09-25: the constant, the
+             selection, and the assert are as cited. No production
+             path calls `unshare` or `clone` with a `CLONE_NEW*`
+             flag; the only `unshare` in the tree is the
+             interposer's emulation. `docs/architecture.md:32-40`
+             stays carefully worded and needs no change.
+Approach:    Enter the rung the probe already selects: where the
+             namespace legs hold, `unshare` with mount and ID maps,
+             then the existing chroot sequence inside; where they do
+             not, the chroot rung as today. The banner names the
+             achieved rung with what it does not isolate, and
+             `.EnteredRung` reports `namespace` where entered. The
+             `system.rs` guard stays: the two facts must never be
+             conflated again. The README correction of 2026-09-25
+             (run enters chroot, both facts carried) stands until
+             this lands, then reads the new behavior.
+Decision:    Implement behind the probe, not beside it. No flag
+             selects the rung; the legs do, the way every other rung
+             is selected. A host that loses a leg between probe and
+             entry falls back to chroot with the banner naming it,
+             never failing a run the chroot rung could carry.
+Out of scope: a network or pid namespace (mount and ID maps
+             first), changing the probe legs, touching the machine
+             tier.
+Prove:       on a namespace-capable host `podbox probe` reports
+             `namespace` and `podbox system info --format
+             '{{.EnteredRung}}'` reports `namespace` after a run
+             that isolates a mount the host cannot see; on a denied
+             host both report `chroot` as today.

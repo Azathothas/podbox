@@ -941,7 +941,7 @@ Source:      `https://github.com/talaria0101/nix-experiment`, its REPORT documen
 Category:    complete
 Priority:    P1
 Effort:      M
-Status:      done 2026-09-22
+Status:      partial 2026-09-22
 
 Problem:     A chroot has no `/proc` unless something mounts one, and `mount` is
              refused on every runtime podbox targets. podbox already knows this
@@ -1005,6 +1005,23 @@ ok listing, and the procfs clause at payload exit 1. Full
 release build, workspace tests, interpose tests, gate 9 passed with the
 2 familiar skips).
 
+**Partial, 2026-09-25.** Issue 32 reopens this entry: the banner
+half shipped, the fixture half measured itself out, and payloads
+needing `/proc` still fail by design. Implement one honest
+emulation: the interposer answers `/proc/self/fd/N` from tracked
+descriptors, `/proc/self/exe` from the staged fd or a host
+passthrough where present, and mount-table readers from a generated
+fixture built from the real topology (the TOOL section 10 half it
+allows). Count and banner it as T-0708 does. Never mount and never
+claim to have mounted. Fix area is `crates/podbox-complete`, the
+interposer map with the `/proc` exclusion in T-0707, and the probe
+banner. Risk if wrong is a fixture that looks like procfs and
+answers wrongly where it looks right, which is worse than absent:
+emulation must be exact or refused. Prove is `155` extended with a
+process-substitution payload that succeeds through emulation,
+beside the current failure arm where emulation cannot apply, each
+naming what answered.
+
 
 ---
 
@@ -1015,7 +1032,7 @@ Source:      `references/talaria0101__nix-experiment/tree/notes/seccomp-probe-ou
 Category:    complete
 Priority:    P1
 Effort:      M
-Status:      done 2026-09-22
+Status:      partial 2026-09-22
 
 Problem:     [probe.md](probe.md) asks what the runtime permits, and its question
              list came from two instances of the target class. **A third
@@ -1070,6 +1087,22 @@ and arrives with its ruling. The remedy this entry's Decision leaves open (avoid
 enumerating a handed directory, or name the denial) is not taken here;
 the probe the Approach puts first is what landed.
 
+**Partial, 2026-09-25.** Issue 33 reopens this entry on the remedy:
+audit `podbox-complete` and `podbox-enter` for listings of handed
+paths, replace them with by-name opens where possible, default the
+rootfs under the writable store path, and refuse by name where a
+listing is required. Measured on the lane 2026-09-25
+(`experiments/results/triage-353.txt` clause `30-probe-chroot`):
+`readdir(/)` ok with 22 entries, `open(/bin)` ok, `creat(/)` ok,
+ptmx stat and open ok, so the legs read correctly where nothing is
+denied; the enumeration-free path stays the work. Fix area is the
+Census legs in `crates/podbox-probe/src/probes.rs` and every call
+site that enumerates. Risk if wrong is a failure that reads as a
+missing file rather than a listing denial. Prove is `155` extended
+with a payload that lists `/` on an `EACCES` host and still runs
+(or refuses naming `readdir` `EACCES` with the remedy), plus a unit
+test for the enumeration-free path.
+
 ---
 
 ### T-0415 A device stand-in is checked by type, because an absent one becomes a growing file
@@ -1079,7 +1112,7 @@ Source:      `references/Azathothas__sandbox-insights/tree/docs/capability-model
 Category:    complete
 Priority:    P1
 Effort:      S
-Status:      done 2026-09-22
+Status:      partial 2026-09-22
 
 Problem:     `crates/podbox-complete/src/devices.rs` writes regular-file
              stand-ins where `mknod` is refused. **Nothing checks afterwards
@@ -1152,6 +1185,19 @@ answers per run).
 `155`, which does not exist.** T-0413 owns that script's creation. The
 committed tests prove the rows, and the named cli test proves the
 refusal wiring; a planted live image stays future work.
+
+**Partial, 2026-09-25.** Issue 49 reopens this entry on its own
+two gaps: the unlink-failure refusal arm
+(`crates/podbox-complete/src/devices.rs:129`,
+`remove_file(...).is_err()`) carries no test, and the planted live
+image stays future work. Add a unit test that drives the
+unlink-failure arm with the link stated and then unremovable. Add
+the planted live-image arm, or drop the claim from the Done. Point
+the Prove at a clause that exists. Fix area is
+`crates/podbox-complete/src/devices.rs`. Risk if wrong is refusal
+wiring that regresses with the suite still green. Prove is the new
+unit test green beside the devices suite, and the live-image arm or
+the dropped claim.
 
 ---
 

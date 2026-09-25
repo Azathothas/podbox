@@ -1212,7 +1212,7 @@ Source:      issues 25 and 23, client beta testing 2026-09-22 (T-0604's
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      done 2026-09-23
+Status:      partial 2026-09-23
 
 Problem:     Two claim classes with no check. Closed entries' `Prove:`
              commands can name flags the parity table refuses (T-0604
@@ -1267,6 +1267,16 @@ every rewritten line green verbatim, 159 exits 0, the three notes in
 `system info`, crate units and clippy clean. `plant.sh` green after
 the commit. The guards are the two checks themselves.
 
+**Partial, 2026-09-25.** Issue 60 extends check 27: assert a
+curated docker flag list covered, so a new parser flag cannot
+land without a row and a missing row cannot pass as a refusal.
+The check extension with its plant lands in the same change as
+the T-0801 rows above, per the gate rule that a check and its
+plant arrive together. Fix area is `scripts/check-todo.py` check
+27 with `scripts/plant.sh`. Risk if wrong is a green gate over
+an omission the table exists to prevent. Prove is `plant.sh`
+green with the new plant case red-first.
+
 ---
 
 ### T-1326 `check-markers.sh` builds its marker bytes portably across `/bin/sh`
@@ -1320,3 +1330,60 @@ work, scrubbed in the same change. Finding, out of scope:
 mis-fires; named here, not changed. The guard is the dual-shell
 drive: any new `$(printf)` non-ASCII breaks dash first.
 
+
+---
+
+### T-1338 A performance harness with baselines and a regression gate
+
+Source:      issue 57, 2026-09-25 (claims scattered across
+             single-purpose experiments); `experiments/190-parallel-layers.sh`
+             with `TODO/image.md` T-0207, `TODO/podvm.md` T-1308,
+             `TODO/deps.md` T-0910, `TODO/packaging.md` T-1001
+Category:    gate
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     podbox's performance claims live in single-purpose
+             experiments, each on one host and one shape: the pull
+             pool ratio (T-0207), the TCG guest overhead (T-1308),
+             binary size and bloat (T-0910, T-1001). Nothing answers
+             how fast podbox is here, against what budget, and
+             whether today's commit regressed it.
+Premise:     Read: the cited experiments each name one host and one
+             shape, and no harness aggregates them. Seed numbers on
+             record are the pull pool 1.78x on container loopback
+             (T-0207, the latency-bound figure still missing) and the
+             TCG guest 1.5x to 11.5x across four classes (T-1308).
+Approach:    One harness under `experiments/` emitting
+             machine-readable rows (commit, host, kernel, arch, qemu
+             version, filesystem, network shape, metric, value,
+             unit), with results in `experiments/results/perf-SHAPE.txt`
+             and the exit contract 0 ok, 1 over budget, 2 could not
+             run. Metrics are cold and warm wall time with peak RSS
+             for probe, pull by tag and by digest, extract, store GC,
+             run, create, start, exec, stop, ps, logs, cp, save, load,
+             each ladder rung, guest boot and command latency under
+             TCG against KVM, `man`, and binary size with PT_INTERP
+             state. Shapes cover tiers and rungs, bare metal, VM,
+             WSL2, container and the constrained host, all seven
+             archs, offline, loopback, bandwidth-bound and
+             latency-bound links, and tmpfs, ext4, overlayfs and
+             NTFS-backed filesystems. Baselines commit per shape with
+             the seed numbers folded in, and the gate compares the
+             newest reading under a ceiling with a stated tolerance
+             and fails on regression, recording could-not-run as its
+             own state. No tuning before the baseline exists.
+Decision:    The harness lands before any optimization follow-up.
+             The gate check with its plant lands in the same change
+             as the check. This entry closes when the harness, one
+             baseline per shape, and the gate land; the first run
+             files optimization follow-ups as new entries.
+Out of scope: any claim of hardware isolation from a TCG number
+             (every figure carries its rung, per T-1301 and T-1306),
+             tuning.
+Prove:       `./experiments/360-perf-harness.sh` exits 0 on the
+             constrained sandbox and on one KVM-capable host emitting
+             every metric above; the gate fails on a planted
+             regression past tolerance and reports could-not-run as
+             its own state.

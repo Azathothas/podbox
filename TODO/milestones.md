@@ -848,7 +848,7 @@ Source:      `https://github.com/carlbomsdata/winquick`; [podvm.md](podvm.md)
 Category:    milestones
 Priority:    P3
 Effort:      L
-Status:      done 2026-09-23
+Status:      partial 2026-09-23
 
 Problem:     podbox turns an OCI reference into a process. Every rung it has
              assumes the payload is Linux, because every rung except the machine
@@ -912,3 +912,25 @@ No registry was contacted: the refusal sits before the fetch, so the
 reference above never resolves and no store state changes. `podbox probe`
 is unchanged: there is no Windows leg to probe, and the entry's first arm
 (a guest version string) arrives with a guest podbox cannot enter.
+
+**Partial, 2026-09-25.** Issue 29 reopens this entry: the refusal arm
+holds, the guest arm does not exist. Study order is
+`references/carlbomsdata__winquick/tree/docs/architecture.md`, then
+`tree/src/platform.rs`, `tree/src/qemu.rs` `boot_command`,
+`tree/src/mailbox.rs` with `guest/agent.cmd`, then a release build and
+its `doctor` (tree version `0.5.0`, not `0.5.1`). First target is a
+Linux KVM Windows guest in that shape (NVMe root overlay, FAT mailbox,
+`cmd.exe` agent, `-nic none`, per-run overlay discarded), never TCG:
+the reference refuses TCG as a different product, and its Linux guest
+path is itself unverified. Prerequisites in order are QEMU 11 or newer
+with `qemu-img` (T-1301), KVM opened not stated, UEFI code and vars,
+a mount-free setup writer, a licensed image fetch with an accept-terms
+gate (never redistributed, never committed), and the T-1301 space and
+fsize checks before a guest starts. Keep pull allowed per T-0212.
+Fix area is a new `podvm` windows driver beside T-1303 and T-1304,
+with the `lifecycle` gate kept as the last resort. Risk if wrong is a
+slow TCG guest claimed as equivalent, or a licensed image
+redistributed. Prove is the entry's first arm on a KVM host with the
+image installed, plus the refusal arm naming the exact missing leg
+with nothing fetched or mutated, and a KVM-denying fixture beside the
+T-1317 one so the refusal stays driven where KVM is absent.

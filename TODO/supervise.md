@@ -236,7 +236,7 @@ Source:      `TOOL.md` section 6.6, section 6.5
 Category:    supervise
 Priority:    P2
 Effort:      S
-Status:      done 2026-09-09
+Status:      partial 2026-09-09
 
 Problem:     A log sink opened after the chroot cannot reach the store, which is
              outside the new root. Opening it afterwards is the same mistake as
@@ -271,6 +271,22 @@ is step 2 of `TOOL.md` section 6.5 made in a different place.
 ⚠ The two streams are interleaved into one file rather than kept apart, which
 is what `json-file` does and is why `logs` has no `--tail` or stream selector.
 
+**Partial, 2026-09-25.** Issue 56 reopens the `--log-driver`
+half: the Approach requires `--log-driver` to accept `json-file`
+only with any other value a named refusal, the Done records it not
+implemented at all, and the parity table carries no row for it, so
+the parser answers `unknown option`. Measured on the lane
+2026-09-25 (`experiments/results/triage-353.txt` clause
+`56-log-driver`): exit 125 with the no-row message. Add the
+`--log-driver` row with its parser arm: `json-file` accepted, any
+other value refused naming the value and this runtime's single
+sink. A stream split stays a separate entry; it does not ride here.
+Fix area is `crates/podbox-cli/src/parity.rs`, the `run` parser,
+and the `crates/podbox-supervise` sink. Risk if wrong is a docker
+flag that reads as an omission rather than a decision. Prove is the
+accept arm and the refusal arm through the shipped binary, beside
+the table row.
+
 ---
 
 ### T-0606 The notification tier: probe three legs, refuse the tier, never fall back per call
@@ -279,7 +295,7 @@ Source:      `TOOL.md` section 4.1, section 6.6; `references/multikernel__sandlo
 Category:    supervise
 Priority:    P0
 Effort:      L
-Status:      done 2026-09-22
+Status:      partial 2026-09-22
 
 Problem:     `supervise` is the only rung whose failure is silent by default. Its
              listener keeps working after its argument-reading channel dies, and
@@ -400,6 +416,30 @@ build, one new test asserted the text block against the JSON document,
 the machine-shape test needed both tiers' rows to keep its no-null
 guard honest, and one fmt spot in the selection fixture. Counts move to
 4 open and 135 done.
+
+**Partial, 2026-09-25.** Issue 34 reopens this entry: the tier
+refusal shipped, and no degraded supervision exists. Where
+`process_vm_readv` or ptrace is `EPERM` the whole tier is gone,
+including lifecycle tracking that needs neither. Split mediation
+(notify) from supervision (`pidfd` with `waitid` with the launcher
+state, as T-0601, T-0602 and T-0604 already hold): refuse mediation
+where the legs are missing, keep supervision with a banner stating
+no syscall mediation. One citation correction: the issue traces the
+`Continue` dispatch to `notif.rs:1015-1034`, but those lines carry
+only the `read_child_mem_vm` helper; the chroot and cow dispatch
+half of the chain lives where this entry's Premise puts it
+(`chroot/dispatch.rs:213-231`, `cow/dispatch.rs:200-293`), so a
+re-check starts there. Measured on the lane 2026-09-25
+(`experiments/results/triage-353.txt` clause `30-probe-chroot`):
+all three supervise legs `ok` with `refusal: null`, so the lane
+cannot show the fallback; the target shape (`ok`, `EPERM`,
+`EPERM`) is the driver. Fix area is `crates/podbox-probe/src/probes.rs`
+with `supervise.rs` and the report selection. Risk if wrong is a
+silent `Continue`-style false success: the banner must state
+mediation off wherever the fallback runs. Prove is the probe Prove
+extended with supervision available where `pidfd` and `waitid` hold
+even when the notify legs are denied, with the lifecycle loop 230
+still 20 of 20 on such a host.
 
 ---
 

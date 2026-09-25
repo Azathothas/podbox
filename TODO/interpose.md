@@ -1036,7 +1036,7 @@ Source:      `TOOL.md` section 6.7; `references/salsa-debian__fakeroot/tree/libf
 Category:    interpose
 Priority:    P1
 Effort:      L
-Status:      done
+Status:      partial
 
 Problem:     A payload that is already uid 0 still calls `setuid`, `setgid` and
              `setgroups`, and on the runtimes podbox targets they fail. A
@@ -1129,6 +1129,15 @@ in `interpose.map` and asserted against it by `105` check A. What the
 entry's `Approach` still names as owed, the errno-by-call measurement
 on a real target deciding the honest refusal's shape, stays open as
 follow-up work, not as this entry: the default no longer depends on it.
+
+**Partial, 2026-09-25.** Issue 52 reopens this entry on that owed
+measurement: take the errno-by-call reading on a real target and
+record it, then let the refusal text name the call and the errno.
+Keep the current default as the fallback. Fix area is
+`crates/podbox-interpose/src/identity.rs` with `interpose.map`.
+Risk is low: the gap is the honesty of the refusal wording, not a
+silent wrong answer. Prove is the recorded reading with the
+refusal naming the call and the errno beside it.
 
 ⚠ **Two substitutions this run records.** The job container cannot run a
 docker daemon (dockerd fails creating the DOCKER chain, `iptables ...
@@ -1453,7 +1462,7 @@ Source:      issue 26, client beta testing 2026-09-22 (every binary
 Category:    interpose
 Priority:    P2
 Effort:      L
-Status:      done 2026-09-23
+Status:      partial 2026-09-23
 
 Problem:     Every shipped binary embeds the x86_64 interposer pair
              (two ELF headers, `e_machine=0x3e`), so `interpose` declines
@@ -1513,3 +1522,28 @@ the decline and the release note names the arch, which is exactly
 what the Decision already says. The guard is the citation fix plus
 the compile-time refusal: a second arch's objects cannot arrive
 silently, and no publish path claims T-0704 for them.
+
+**Partial, 2026-09-25.** Issue 58 reopens this entry on the
+coverage axis: the pair stays x86_64-only by decision, six of the
+seven shipped binaries embed the x86_64 pair and decline the tier
+by machine mismatch, and no payload runs off x86_64 at all. Make
+the smoke report the embedded objects' `e_machine` beside their
+digests, so a wrong-arch embed cannot read green. State the
+x86_64-only interposer in `README.md` beside the rung list (done
+2026-09-25 in the triage change), not only in the release note.
+Either take the per-arch offset measurements and build the pair
+per arch, or add the qemu-user payload-execution leg for one arch
+(aarch64 first) so at least one non-x86_64 arch proves `run` end
+to end. While it stays x86_64-only, name the consequence here:
+on chroot-denied non-x86_64 hosts there is no fallback rung.
+Fix area is `crates/podbox-interpose`,
+`crates/podbox-cli/src/interpose.rs` with `build.rs`,
+`scripts/build-interpose.sh` `TARGETS`,
+`scripts/nightly-smoke.sh`, and `.github/workflows/nightly.yml`.
+Risk if wrong is a release reading all-arch supported while six
+archs run no payload with no fallback rung. Prove is the entry's
+Prove: `readelf -h` on each shipped binary's embedded objects
+reads back the binary's own `e_machine`, with the smoke asserting
+it. Verified 2026-09-25: all seven `v0.1.0-beta.7` assets
+sha256-ok, outer `e_machine` per arch, exactly two embedded
+`0x3e` `ET_DYN` objects in each.

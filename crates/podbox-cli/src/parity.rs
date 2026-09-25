@@ -261,7 +261,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "kill", flag: Option::None, status: Degraded, note: "signals the payload. A pidfd addresses one process; it does not reach descendants that reparent" },
     Row { verb: "rm", flag: Option::None, status: Native, note: "removes the record and the container's own directory; -f kills a running one first" },
     Row { verb: "ps", flag: Option::None, status: Degraded, note: "reads the container table, never /proc. A container whose launcher was killed reads `dead` with the time it was noticed, and no exit code (T-0604)" },
-    Row { verb: "logs", flag: Option::None, status: Degraded, note: "the payload's stdout and stderr, interleaved into one file opened before the chroot. -f is not implemented (T-0605)" },
+    Row { verb: "logs", flag: Option::None, status: Degraded, note: "the payload's stdout and stderr, interleaved into one file opened before the chroot, which `-f` follows with a bounded poll (TODO/supervise.md T-1318)" },
     Row { verb: "wait", flag: Option::None, status: Degraded, note: "blocks on the launcher, bounded. refused: A container podbox did not see end has NO exit code and `wait` refuses rather than printing one" },
     Row { verb: "cp", flag: Option::None, status: Degraded, note: "one file at a time either way, or a directory tree with -r; a container or an image on either side, gated through the containment check (TODO/cli.md T-1323)" },
     Row { verb: "cp", flag: Some("-r, --recursive"), status: Native, note: "copy a directory tree with the same checks; symlinks replicate as symlinks, special files are refused (TODO/cli.md T-1323)" },

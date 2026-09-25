@@ -562,7 +562,7 @@ Source:      `TOOL.md` section 6.2; `docs/conventions/forbidden-patterns.md`, th
 Category:    image
 Priority:    P2
 Effort:      L
-Status:      done 2026-09-22
+Status:      partial 2026-09-22
 
 Problem:     `crates/podbox-image/src/pull.rs` fetches layers one after another.
              `docs/conventions/forbidden-patterns.md` names "a sequential
@@ -650,6 +650,21 @@ surviving `*.partial` files with the cleanup pointed elsewhere.
 Conditions: lane-built binaries in `rust:1.98.1-bookworm` through
 host podman 6.1.2, network none, zot as pinned above.
 
+**Partial, 2026-09-25.** Issue 51 reopens this entry on its own
+title: the pool shipped, and the entry is "measure what it buys".
+The one number on record is 1.78x on container loopback, a
+bandwidth-bound link; a latency-bound link is where the pool buys
+more, and that number is not taken here. Add a latency-bound shape
+to `experiments/190-parallel-layers.sh` (small layers with an
+injected delay or a shaped link) and record the ratio beside the
+loopback one. Keep the fixed bound of 4 workers unless the new
+number changes the Decision. Fix area is
+`crates/podbox-image/src/pull.rs` with
+`experiments/190-parallel-layers.sh`. Risk if wrong is a close
+claiming a measurement the entry itself says it did not take.
+Prove is `190` exiting 0 with both shapes and both ratios in
+`experiments/results/parallel-layers.txt`.
+
 ---
 
 ### T-0208 `--platform`, and a store that can hold two variants of one tag
@@ -720,7 +735,7 @@ Source:      `TOOL.md` section 6.2, section 11.1
 Category:    image
 Priority:    P2
 Effort:      L
-Status:      done
+Status:      partial
 
 Problem:     Every request podbox makes is anonymous. A private registry answers
              401 and podbox has nothing to answer with, so the whole class of
@@ -819,6 +834,24 @@ restored from the index. What this does not establish: the
 project's own lane procedure. A re-drive from a repaired base
 would clear it; `base recreate` touches shared infrastructure and
 is not taken unasked.
+
+**Partial, 2026-09-25.** Issue 54 reopens this entry on the
+residual list: a TTY stdin blocks in `read_to_string` with no
+guard, `login` performs no network verification, and there is no
+`logout` verb. Measured on the lane 2026-09-25
+(`experiments/results/triage-353.txt` clauses `54-logout` and
+`54-login-help`): `logout` exits 125 on its `None` parity row,
+and the login help documents stdin-only passwords with no
+prompt. Add an `IsTerminal` refusal for stdin with its test, so
+a pipe-less caller is told rather than hung. Implement `logout`
+(removing the registry entry) or keep the `None` row and say why
+here. Record the docker exit code for `image login` if that
+comparison is kept. Fix area is
+`crates/podbox-image/src/credentials.rs` with `crates/podbox-cli`.
+Risk if wrong is an agent with a TTY stdin hanging where docker
+refuses or prompts. Prove is the TTY refusal through the shipped
+binary with its test, the `logout` arm either way, and the exit
+code note.
 
 ---
 

@@ -45,7 +45,7 @@ Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec docume
 Category:    podvm
 Priority:    P0
 Effort:      M
-Status:      done
+Status:      partial
 
 Problem:     podbox reports a rung and never claims a stronger one than it
              achieved. The machine tier has no probe at all, so `podvm` today
@@ -119,6 +119,29 @@ descriptor ceiling as a file size. The kernel's own headers settle it
 (`RLIMIT_FSIZE` 1, `RLIMIT_NOFILE` 7, measured in the lane), the constant
 is 1, and the re-drive above ran on the fixed code. Every non-ok leg on
 that machine carries its errno, so T-0101's invariant holds.
+
+**Partial, 2026-09-25.** Issue 35 reopens this entry: six legs and
+a refuse-where-any-missing rule ship, so on hosts without
+`/dev/kvm` or `/dev/net/tun` the whole machine tier is refused even
+where QEMU TCG is present. Split the legs into required (emulator
+present, `tcg` in the accelerator list, space, fsize), accelerated
+(`kvm`) and networked (`tun`): TCG with user-mode networking runs
+with a banner stating no hardware isolation and no tun, and refusal
+stays only where no accelerator at all or no space holds. The
+Premise already states a TCG boundary is the emulator process, not
+hardware, and the reference refuses TCG as a different product, so
+the banner must never claim hardware isolation under TCG. Measured
+on the lane 2026-09-25
+(`experiments/results/triage-353.txt` clauses `35-tier-machine`
+and `35-podvm`): refusal names the missing legs at 125 on a host
+whose only gap is the emulator and the two nodes; the `podvm`
+subverb spelling is refused by name per T-1302 (the name is
+`argv[0]`, not a verb). Fix area is `MACHINE_LEGS` in
+`crates/podbox-probe/src/probes.rs` with the `machine.rs`
+assessor. Risk if wrong is emulated execution claimed as hardware
+isolated. Prove is `tiers.machine.refusal` null for the TCG
+profile on a kvm-less but tcg-capable host, with the initramfs
+boot and its ready marker through TCG.
 
 ---
 
@@ -451,7 +474,7 @@ Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec docume
 Category:    podvm
 Priority:    P1
 Effort:      M
-Status:      done
+Status:      partial
 
 Problem:     The specification lists designs that were tried and do not work on
              its target: a TCP listener of any kind, anything KVM-accelerated, a
@@ -503,6 +526,18 @@ stances: tcp open, kvm refused naming
 uid_map and file open (ptrace permitted, setuid works as root, no finite
 ceiling there). Five assessment unit tests and two report tests; 81 of 81
 probe tests green in the lane.
+
+**Partial, 2026-09-25.** Issue 36 reopens this entry: each non-goal
+is a refusal the code makes, and none is implemented. Promote one
+non-goal instead of banking all six as permanent refusals. Smallest
+is guest networking through the user-mode hostfwd the TCP remedy
+already names, or the TCG path from T-1301 that makes the kvm
+refusal conditional. Fix area is the machine and non-goal
+assessment with `149-podvm-non-goals.sh`. Risk if wrong is a new
+implementation that weakens the honesty rules: the banner states
+what is emulated. Prove is `149` extended with a positive arm
+where the promoted goal runs (a guest reaching the host through
+UDP hostfwd, for example) with the remaining refusals unchanged.
 
 ---
 
@@ -595,7 +630,7 @@ Source:      `references/talaria0101__vm-research/tree/experiments/logs/66-tcg-b
 Category:    podvm
 Priority:    P1
 Effort:      M
-Status:      done
+Status:      partial
 
 Problem:     [T-1301](podvm.md) selects the machine tier and the selection is a
              cost decision, so podbox will have to tell an operator what the
@@ -673,6 +708,18 @@ Prove:       `./experiments/154-tcg-workload-spread.sh` prints one row per workl
              job transcript: the run left no `PODBOX_ARTIFACTS`, so the raw
              per-run logs stayed in the guest job directory. A measurement
              job always names `PODBOX_ARTIFACTS`.
+
+**Partial, 2026-09-25.** Issue 53 reopens this entry on its own
+two notes: an `io error=` line counts as a run in section 2 while
+section 4 still refuses it (report-internal only, the exit stays
+1), and the conditions block does not repeat the qemu flags or
+CFLAGS. Make section 2 count an `io error=` line the way section
+4 does, or say in both why not, and repeat the flags in the
+conditions block. Fix area is the measurement script with
+`experiments/results`. Risk if wrong is a reader adding two
+numbers that should agree and getting a total that does not.
+Prove is the re-driven `154` with both tallies agreeing and the
+flags in the conditions.
 
 ---
 

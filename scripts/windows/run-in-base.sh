@@ -15,6 +15,11 @@
 # payload handed to wsl.exe as an argument is expanded before the guest reads
 # it, and the guest then parses the result a second time.
 #
+# ⛔ DO NOT DISABLE PATH CONVERSION FOR THIS CALL. With MSYS_NO_PATHCONV set
+# the wrapper path reaches wsl-toolkit untranslated and the job fails to
+# start naming a C:\tmp path that exists nowhere. The conversion the
+# engine helper carries for podman arguments does not apply here.
+#
 # ⚠ Two repairs happen before the job, and both are for the same cause. NTFS
 # carries no POSIX mode bit, so the copy arrives with no executable file and
 # any CRLF in the payload reaches a POSIX shell as part of a word.

@@ -19,7 +19,7 @@ Source:      `TOOL.md` section 6.8
 Category:    cli
 Priority:    P0
 Effort:      L
-Status:      done 2026-09-09
+Status:      partial 2026-09-09
 
 Problem:     A tool that needs its user to learn its differences has not
              replaced anything. Thousands of agents reach for `docker` because
@@ -129,6 +129,35 @@ Prove: `a_verb_served_by_another_parser_resolves_that_verbs_rows_and_says_so`
 asserts both halves, and driven: `podbox create --no-such-flag` now names
 `create`, `podbox create --no-steps` is still accepted, and the table is 141
 rows as before, because the fix added none.
+
+**Partial, 2026-09-25.** Issue 60 reopens this entry on its own
+invariant: a flag with no row is a bug in the table, and 46 `run`
+flags (`--read-only`, `--mount`, `--env-file`, `--label`,
+`--init` among them) plus 10 verbs (`manifest`, `service`,
+`secret`, `trust`, `config`, `node`, `plugin`, `stack`,
+`checkpoint`, `scan`) have no row at all. Measured on the lane
+2026-09-25 (`experiments/results/triage-353.txt` clauses
+`60-read-only`, `60-mount`, `60-env-file`, `60-manifest`,
+`60-service`): each flag answers `unknown option` with no reason
+at 125, each verb exits 1 on the neither-podbox-nor-docker arm
+with the usage text claiming every other docker verb is named in
+the table, which is not true while these are missing. Add a
+`None` row with the fitting reason for each refused flag (the
+peers already name the reasons: no mount, no namespace, no
+cgroup), a `Native` row with a parser arm for any flag promoted
+to real behavior (`--env-file`, `--label`, `--init`,
+`--read-only`), and rows for the ten verbs on the existing
+no-daemon and out-of-shape reasons. Correct the usage sentence
+beside the rows. Keep the parser answering `unknown option` only
+as the backstop, never as the documented answer. The `--device`
+and `--log-driver` rows ride here too (issues 55 and 56, filed
+apart because entries name them). Fix area is
+`crates/podbox-cli/src/parity.rs` with the `run` and `exec`
+parsers for promoted flags. Risk if wrong is an operator
+trusting an enumerable table that omits the docker surface they
+script against. Prove is the curated flag list from the issue
+driven row by row through the shipped binary with every refusal
+naming its reason, beside the T-1325 check extension below.
 
 ---
 
@@ -1030,7 +1059,7 @@ Source:      operator order 2026-09-23 (drift-free human/AI manual;
 Category:    cli
 Priority:    P1
 Effort:      M
-Status:      done 2026-09-23
+Status:      partial 2026-09-23
 
 Problem:     Help text lives in docs or not at all, so every new flag is
              a chance for drift: the manual says what the binary said on
@@ -1095,6 +1124,17 @@ first pass of this change forgot the `--no-pager` row the same way
 strings verbatim, glyphs included: the ASCII scrub is the sibling
 entry T-1336, whose guard covers this output. The guard is the
 completeness script plus the pinned verb set.
+
+**Partial, 2026-09-25.** Issue 50 reopens this entry on the
+recorded isolation gap: the bogus-PAGER run asserts identical
+bytes and rc 0, which the stdout fallback also produces, so the
+test cannot tell non-spawning from a silent fallback. Capture the
+bogus-PAGER run's stderr separately and assert it empty, keeping
+the byte-identity assertion beside it. Fix area is the T-1332
+prove script with `crates/podbox-cli/src/man.rs`. Risk if wrong
+is a regression that silently falls back to stdout and still
+passes. Prove is the extended bogus-PAGER run with stderr
+asserted empty.
 
 ---
 
@@ -1163,3 +1203,56 @@ fails, comments exempt) with its plant case in `scripts/plant.sh`:
 a glyph planted in `run.rs` goes red naming `U+26D4` and T-1336.
 The guard is the check plus the 352 experiment: a new glyph fails
 the gate before it ships and fails the binary drive beside it.
+
+---
+
+### T-1337 Doctor, disk usage, and log tail for operators
+
+Source:      issue 38, beta.7 drive 2026-09-25 (no `doctor`, no `df`,
+             `logs` without `--tail`); `references/carlbomsdata__winquick`
+             `tree/src/bin/main.rs:50` with `tree/src/facts.rs` (the shape
+             to copy, not the content)
+Category:    cli
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     Three operator gaps found while driving beta.7. `podbox
+             probe` prints the measurement half (legs, verdicts,
+             refusals) and never the setup half: a QEMU too old for
+             migration, firmware present or absent, helper tools
+             present, image installed, disk free against the ceiling.
+             No `system df` sums stored, extracted and reclaimable
+             bytes, which operators on small stores need beside the
+             prune path. `logs -f` replays from the start on every
+             reconnect, because there is no `--tail N` (and later no
+             `--since`).
+Premise:     Read on the lane-built binary 2026-09-25
+             (`experiments/results/triage-353.txt` clauses
+             `38-system-help` and `38-logs-help`): `system --help`
+             lists no doctor and no df, `logs --help` lists only
+             `-f|--follow`, and `probe --json` already carries every
+             leg a doctor would consume. `TODO/supervise.md:272`
+             already documents that `logs` has no `--tail`.
+Approach:    Three small parity additions, each with its row and its
+             Prove through the shipped binary, and no spec change
+             beyond one row each. `podbox doctor` (or `probe --fix`)
+             reuses the machine legs with the T-1301 checks and prints
+             one fix line per missing piece, with the third-state
+             exits (0 ok, 1 problem, 2 could not run). `podbox system
+             df` (with image du rows) reports stored, extracted and
+             reclaimable bytes with the container gate applied, and
+             never exits non-zero for accounting alone. `logs --tail
+             N` (with `--since` as a second step) reads the same
+             captured file T-0605 owns, bounded like `-f`, with
+             byte-identical default output unchanged.
+Decision:    One entry, three verbs in order doctor, df, tail, each
+             shippable alone. The doctor copies the reference's shape
+             (check lines with fix lines) and none of its content.
+Out of scope: a log stream split (T-0605), a network check needing
+             a registry, any new exit-code meaning.
+Prove:       `podbox doctor` on a kvm-less host exits 1 naming the
+             missing legs with one fix line each; `podbox system df`
+             sums to the store's own accounting; `podbox logs --tail 5`
+             prints the last five lines and `podbox logs` prints all
+             lines byte-identical to before.

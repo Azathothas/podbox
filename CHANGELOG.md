@@ -6,6 +6,24 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-25T11:29:10Z: triage of twenty-two open issues, three entries opened, PR 9 merged
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no
+deployment.
+
+Twenty-two open issues (29 through 38, 49 through 60) triaged with
+lane drives: `experiments/353-open-issue-triage.sh` (37 clauses,
+exit 0) and `experiments/354-lifecycle-same-store.sh` (full loop
+in one store, exit 0), reports committed under
+`experiments/results/`. Twenty entries reopened as partial with
+the decision underneath each; three opened new (T-1337 doctor, df
+and tail; T-1338 perf harness and gate; T-1339 namespace rung).
+No issue closed: each closes with its fix commit, drive output
+and guard. Fixed in place: the README rung table and the `logs`
+parity base note. Dependabot PR 9 (rustls 0.23.44 to 0.23.45)
+merged on green CI. Actions audit: no deprecated action, the only
+notice is the ubuntu-latest to Ubuntu 26 migration.
+
 ### 2026-09-25T09:06:00Z: the final beta takes its own version number
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). Version bump to

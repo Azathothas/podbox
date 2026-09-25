@@ -57,9 +57,9 @@ libc:
 
 | `probe` says | `run` does |
 | --- | --- |
-| namespace creation, mounts and ID maps all succeed | the `namespace` rung: the only rung with namespace isolation |
+| namespace creation, mounts and ID maps all succeed | the `chroot` rung: `probe` reports `namespace` as permitted, `run` still enters a plain chroot, and `system info` carries both `.Rung` and `.EnteredRung` |
 | namespaces denied, `chroot(/tmp)` succeeds | the `chroot` rung family: path resolution changes, the kernel is shared |
-| `chroot(/tmp)` denied | refusal naming `chroot(2)` before anything runs; the machine tier, which never chroots, is unaffected |
+| `chroot(/tmp)` denied | refusal naming `chroot(2)` before anything runs; the machine tier never chroots and runs where its own legs hold (emulator, accelerator, space), else it refuses naming the missing legs |
 
 Entry reports the rung it actually achieved, so a planned stronger mechanism
 never silently becomes a weaker one. None of the rungs below `namespace` is a
@@ -79,7 +79,9 @@ security boundary against a hostile payload.
   boundaries against a hostile payload.
 - Registry `login` writes `~/.docker/config.json` (or the named credential
   helper) with the password on stdin; `logout` is not implemented. Foreign-architecture execution
-  depends on host `binfmt_misc` and QEMU support.
+  depends on host `binfmt_misc` and QEMU support. The interposer pair is x86_64-only:
+  other architectures decline the tier by machine mismatch, so a chroot-denied host off
+  x86_64 has no fallback rung.
 
 The complete product contract is the pinned
 [`TOOL.md`](references/Azathothas__container-research/tree/TOOL.md) in the

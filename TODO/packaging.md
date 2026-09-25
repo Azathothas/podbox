@@ -116,7 +116,7 @@ Source:      `TOOL.md` section 5 M7, section 6.7; `references/qaidvoid__onelf`
 Category:    packaging
 Priority:    P2
 Effort:      L
-Status:      done 2026-09-22
+Status:      partial 2026-09-22
 
 Problem:     A runtime that can only start from a filesystem cannot start on a
              machine whose writable paths are full, and the machines this is for
@@ -276,6 +276,27 @@ with the 4 ladder and 2 probe tests new, gate 9 passed with the 2 familiar
 skips). The run found the `Result` arity above and three fmt spots, all
 fixed here. The CLI wiring (read `PODBOX_MODE`, feed `Availability`,
 drive the Prove) landed in the close above.
+
+**Partial, 2026-09-25.** Issue 31 reopens this entry on its own
+table: rundir and cache are sketched and refused as not implemented,
+FUSE and tmpfs are sketched and probe-fed only, and the embedded
+rootfs byte store is out of scope. Only the env-var pair and memfd
+are rung-complete. Wire rundir (a private run directory under the
+writable store) and cache (persistent, opt-in through
+`PODBOX_CACHE=1`), then FUSE where `open(/dev/fuse)` holds and
+tmpfs where attach holds, each with probe-fed `Availability` and
+unit tests as memfd has. The table above stays the work list.
+Measured on the lane 2026-09-25
+(`experiments/results/triage-353.txt` clauses `31-rundir` and
+`31-bogus`): the rundir refusal and the unknown-word refusal both
+name their reason at 125 where chroot holds, so the rung messages
+are reachable and only the rungs are missing. Fix area is
+`crates/podbox-enter/src/ladder.rs` and `plan.rs`, the probe feeds
+in `crates/podbox-probe`, and `crates/podbox-cli/src/ladder.rs`.
+Risk if wrong is a rung that fetches bytes but never enters. Prove
+is the entry's Prove extended per rung: a forced run over the
+matching fixture enters with the rung word in `PODBOX_ACTIVE_MODE`,
+and the remaining refusals keep naming their reason.
 
 ---
 

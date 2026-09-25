@@ -80,9 +80,9 @@ the blocker named and what would clear it.
 | [T-0204](image.md) | P1 | image | done | `images`, `rmi`, `tag`, and a store GC that cannot delete a running container's rootfs |
 | [T-0205](image.md) | P3 | image | done | Re-test podman with `vfs` and `ignore_chown_errors` before repeating "no path exists" |
 | [T-0206](image.md) | P3 | image | done | A registry fixture, so the acceptance stops depending on somebody else's quota |
-| [T-0207](image.md) | P2 | image | done | Fetch layers with bounded concurrency, and measure what it buys |
+| [T-0207](image.md) | P2 | image | partial | Fetch layers with bounded concurrency, and measure what it buys |
 | [T-0208](image.md) | P2 | image | done | `--platform`, and a store that can hold two variants of one tag |
-| [T-0209](image.md) | P2 | image | done | Registry authentication, without a credential ever entering this tree |
+| [T-0209](image.md) | P2 | image | partial | Registry authentication, without a credential ever entering this tree |
 | [T-0210](image.md) | P1 | image | done | The store's concurrency contract, written down and driven |
 | [T-0211](image.md) | P1 | image | done | An image lock outlives its holder whenever anything forks |
 | [T-0212](image.md) | P0 | image | done | The platform is decided at run time, and the store holds more than one |
@@ -108,12 +108,12 @@ the blocker named and what would clear it.
 | [T-0410](complete.md) | P0 | complete | done | Supply `/etc/nsswitch.conf`, or the supplied `/etc/passwd` is a no-op |
 | [T-0411](complete.md) | P1 | complete | done | A payload whose package sources are `http://`, on a runtime where tcp/80 hangs |
 | [T-0412](complete.md) | P1 | complete | done | A fixup that has to run INSIDE the rootfs, and podbox runs it from outside |
-| [T-0413](complete.md) | P1 | complete | done | No `/proc` inside a chroot, and the shell feature that quietly stops working |
-| [T-0414](complete.md) | P1 | complete | done | Two walls only one instance of the class has shown, and podbox has probed neither |
-| [T-0415](complete.md) | P1 | complete | done | A device stand-in is checked by type, because an absent one becomes a growing file |
-| [T-0501](enter.md) | P0 | enter | done | Open every descriptor before the root changes |
+| [T-0413](complete.md) | P1 | complete | partial | No `/proc` inside a chroot, and the shell feature that quietly stops working |
+| [T-0414](complete.md) | P1 | complete | partial | Two walls only one instance of the class has shown, and podbox has probed neither |
+| [T-0415](complete.md) | P1 | complete | partial | A device stand-in is checked by type, because an absent one becomes a growing file |
+| [T-0501](enter.md) | P0 | enter | partial | Open every descriptor before the root changes |
 | [T-0502](enter.md) | P0 | enter | done | Resolve the program inside the new root, in the process that changed it |
-| [T-0503](enter.md) | P1 | enter | done | Probe `/dev/ptmx`, and refuse `-t` by name where it is absent |
+| [T-0503](enter.md) | P1 | enter | partial | Probe `/dev/ptmx`, and refuse `-t` by name where it is absent |
 | [T-0504](enter.md) | P1 | enter | done | Refuse a rootfs path that is a symlink |
 | [T-0505](enter.md) | P1 | enter | done | `exec` is a fresh chroot, and `inspect` says so |
 | [T-0506](enter.md) | P0 | enter | done | A foreign-architecture container, and never a rung measured by the emulator |
@@ -121,8 +121,8 @@ the blocker named and what would clear it.
 | [T-0602](supervise.md) | P0 | supervise | done | Never decide "running" by sleeping and looking |
 | [T-0603](supervise.md) | P1 | supervise | done | `PR_SET_PDEATHSIG` fires on the creating thread's exit |
 | [T-0604](supervise.md) | P1 | supervise | done | Running state is launcher state |
-| [T-0605](supervise.md) | P2 | supervise | done | Capture logs at spawn, from the descriptors opened in step 2 |
-| [T-0606](supervise.md) | P0 | supervise | done | The notification tier: probe three legs, refuse the tier, never fall back per call |
+| [T-0605](supervise.md) | P2 | supervise | partial | Capture logs at spawn, from the descriptors opened in step 2 |
+| [T-0606](supervise.md) | P0 | supervise | partial | The notification tier: probe three legs, refuse the tier, never fall back per call |
 | [T-0607](supervise.md) | P0 | supervise | done | The lifecycle, twenty times, twenty passes |
 | [T-0608](supervise.md) | P1 | supervise | done | A detached container that reads `exited` with no launcher, seen twice and not reproduced |
 | [T-0701](interpose.md) | P0 | interpose | done | The cdylib build constraints |
@@ -135,9 +135,9 @@ the blocker named and what would clear it.
 | [T-0708](interpose.md) | P2 | interpose | done | Intercept the operations the runtime cannot provide |
 | [T-0709](interpose.md) | P0 | interpose | done | Select the interposer by `DT_NEEDED`, and refuse on the version predicate |
 | [T-0710](interpose.md) | P1 | interpose | done | The ownership memo lives where the payload can edit it, and answers by linear scan |
-| [T-0711](interpose.md) | P1 | interpose | done | The identity calls, and podbox's honesty rules point the other way from fakeroot's |
+| [T-0711](interpose.md) | P1 | interpose | partial | The identity calls, and podbox's honesty rules point the other way from fakeroot's |
 | [T-0712](interpose.md) | P2 | interpose | done | A reach matrix holds its arguments constant, or it measures two things |
-| [T-0801](cli.md) | P0 | cli | done | The verb and flag parity table |
+| [T-0801](cli.md) | P0 | cli | partial | The verb and flag parity table |
 | [T-0802](cli.md) | P0 | cli | done | docker's exit codes, unaltered |
 | [T-0803](cli.md) | P1 | cli | done | Answer to `docker` and `podman` on PATH |
 | [T-0804](cli.md) | P0 | cli | done | The honesty rules, and one switch that makes every degradation fatal |
@@ -161,7 +161,7 @@ the blocker named and what would clear it.
 | [T-0912](deps.md) | P2 | deps | done | The powerpc gate is the crate's and it is stale, so podbox can clear it |
 | [T-1001](packaging.md) | P0 | packaging | **done** | A single static binary with no `PT_INTERP` |
 | [T-1002](packaging.md) | P1 | packaging | done | Embed the interposer as bytes and place it inside the rootfs |
-| [T-1003](packaging.md) | P2 | packaging | done | The launch ladder, and a single file with an embedded rootfs |
+| [T-1003](packaging.md) | P2 | packaging | partial | The launch ladder, and a single file with an embedded rootfs |
 | [T-1004](packaging.md) | P3 | packaging | done | A reproducible build, and the artefact's own inputs recorded |
 | [T-1005](packaging.md) | P1 | packaging | done | A session reaches the code in one command, and the build runs behind the reading |
 | [T-1100](milestones.md) | P0 | milestones | **done** | M-1 the corpus, the work index and the skeleton |
@@ -176,7 +176,7 @@ the blocker named and what would clear it.
 | [T-1109](milestones.md) | P1 | milestones | done | The negative tests, which are tests |
 | [T-1110](milestones.md) | P0 | milestones | done | M6's acceptance: a payload the interposer is the only reason works |
 | [T-1111](milestones.md) | P1 | milestones | done | M8 the nix acceptance: a real payload the chroot tier is exactly the answer for |
-| [T-1112](milestones.md) | P3 | milestones | done | A disposable guest that is not Linux |
+| [T-1112](milestones.md) | P3 | milestones | partial | A disposable guest that is not Linux |
 | [T-1201](gate.md) | P0 | gate | done | The gate reaches every file this project wrote |
 | [T-1202](gate.md) | P0 | gate | done | Every check is planted against, and a plant that stops reaching its subject says so |
 | [T-1203](gate.md) | P1 | gate | done | A measurement taken on one host is a property of that host |
@@ -190,14 +190,14 @@ the blocker named and what would clear it.
 | [T-1211](gate.md) | P1 | gate | done | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
 | [T-1212](gate.md) | P1 | gate | done | Convert the image, registry and CLI engine scripts to `experiments/lib/engine.sh` |
 | [T-1213](gate.md) | P1 | gate | done | Convert the target-image pair and its probe consumer to `experiments/lib/engine.sh` |
-| [T-1301](podvm.md) | P0 | podvm | done | The machine tier is probed leg by leg, and a present file is not a working one |
+| [T-1301](podvm.md) | P0 | podvm | partial | The machine tier is probed leg by leg, and a present file is not a working one |
 | [T-1302](podvm.md) | P1 | podvm | done | One binary, one parity table, and a VM-only flag that cannot collide |
 | [T-1303](podvm.md) | P1 | podvm | done | The image is a rootfs directory, and an initramfs with no console is a silent machine |
 | [T-1304](podvm.md) | P1 | podvm | done | The exec protocol is a serial pair with a nonce, and every wait is bounded |
 | [T-1305](podvm.md) | P2 | podvm | done | The fleet and the fork, and the file-size ceiling that bounds both |
-| [T-1306](podvm.md) | P1 | podvm | done | The non-goals are refusals the code makes, not notes in a document |
+| [T-1306](podvm.md) | P1 | podvm | partial | The non-goals are refusals the code makes, not notes in a document |
 | [T-1307](podvm.md) | P2 | podvm | done | The five Rust VM tools, ruled one by one, so nobody surveys them again |
-| [T-1308](podvm.md) | P1 | podvm | done | One TCG number is a claim about one benchmark, and the range is 3x to 21x |
+| [T-1308](podvm.md) | P1 | podvm | partial | One TCG number is a claim about one benchmark, and the range is 3x to 21x |
 | [T-1309](interpose.md) | P1 | interpose | done | libdnf repodata downloads fail under the preloaded interposer |
 | [T-1310](image.md) | P1 | image | done | The store suite exhausts the sixteen fork-shed slots, and the victim varies |
 | [T-1311](interpose.md) | P1 | interpose | done | The interposed `fchmodat` drops the `flags` argument |
@@ -206,7 +206,7 @@ the blocker named and what would clear it.
 | [T-1314](packaging.md) | P1 | packaging | done | Nightly releases: one tag builds and tests every supported arch |
 | [T-1315](extract.md) | P1 | extract | done | Extract re-verifies the blob digest against the manifest |
 | [T-1316](deps.md) | P2 | deps | done | The committed lock matches the manifests, so a clean build leaves a clean tree |
-| [T-1317](enter.md) | P1 | enter | done | A chroot-denied host gets an up-front refusal naming chroot, not a 125 after the work |
+| [T-1317](enter.md) | P1 | enter | partial | A chroot-denied host gets an up-front refusal naming chroot, not a 125 after the work |
 | [T-1318](supervise.md) | P3 | supervise | done | `logs -f` follows a container's log, bounded like the rest |
 | [T-1319](cli.md) | P1 | cli | done | `inspect` prints exactly one document for any reference |
 | [T-1320](image.md) | P2 | image | done | Images move without a registry: save, load, import |
@@ -214,22 +214,25 @@ the blocker named and what would clear it.
 | [T-1322](image.md) | P1 | image | done | A container record gates every removal of the image it references |
 | [T-1323](cli.md) | P2 | cli | done | `cp` reaches an image's extracted rootfs, and copies directories with the same checks |
 | [T-1324](complete.md) | P2 | complete | done | The README tells the truth: build order, rung map, status, auth scope |
-| [T-1325](gate.md) | P1 | gate | done | The gate checks what entries claim: reachable flags and true parity notes |
+| [T-1325](gate.md) | P1 | gate | partial | The gate checks what entries claim: reachable flags and true parity notes |
 | [T-1326](gate.md) | P1 | gate | done | `check-markers.sh` builds its marker bytes portably across `/bin/sh` |
-| [T-1327](interpose.md) | P2 | interpose | done | The interposer builds per architecture, and the T-0704 citations point at it |
+| [T-1327](interpose.md) | P2 | interpose | partial | The interposer builds per architecture, and the T-0704 citations point at it |
 | [T-1328](packaging.md) | P2 | packaging | done | The nightly signs its artefacts, with provenance a downloader can check |
 | [T-1329](packaging.md) | P2 | packaging | done | The per-arch smoke pulls and extracts, not just versions |
 | [T-1330](cli.md) | P2 | cli | done | Bundled short flags parse as docker reads them |
 | [T-1331](cli.md) | P2 | cli | done | `--filter`, `restart` and `pull -a/-q` answer the docker idiom |
-| [T-1332](cli.md) | P1 | cli | done | `podbox man` generates the manual from the binary, pager-aware |
+| [T-1332](cli.md) | P1 | cli | partial | `podbox man` generates the manual from the binary, pager-aware |
 | [T-1333](probe.md) | P1 | probe | done | The probe cache key carries the capability set |
 | [T-1334](packaging.md) | P1 | packaging | done | The release carries its build commit's gate state and its reproducibility boundary |
 | [T-1335](supervise.md) | P3 | supervise | done | The launcher forwards its own shutdown signals to the payload |
 | [T-1336](cli.md) | P1 | cli | done | CLI output is plain ASCII: no emoji, no markers, on every path |
+| [T-1337](cli.md) | P2 | cli | open | Doctor, disk usage, and log tail for operators |
+| [T-1338](gate.md) | P2 | gate | open | A performance harness with baselines and a regression gate |
+| [T-1339](enter.md) | P1 | enter | open | Enter the namespace rung where the probe permits it |
 
 ## Counts
 
-165 items: 0 open, 0 partial, 0 blocked, 165 done.
+168 items: 3 open, 20 partial, 0 blocked, 145 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -237,11 +240,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 0 | 0 | 0 | 77 | 77 |
-| P2 | 0 | 0 | 0 | 29 | 29 |
-| P3 | 0 | 0 | 0 | 7 | 7 |
-| **All** | **0** | **0** | **0** | **165** | **165** |
+| P0 | 0 | 4 | 0 | 48 | 52 |
+| P1 | 1 | 10 | 0 | 67 | 78 |
+| P2 | 2 | 5 | 0 | 24 | 31 |
+| P3 | 0 | 1 | 0 | 6 | 7 |
+| **All** | **3** | **20** | **0** | **145** | **168** |
 
 ## How the current ordering is derived
 
