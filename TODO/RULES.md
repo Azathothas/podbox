@@ -193,6 +193,28 @@ that are not resolved and are therefore not vendored.
 ⚠ Writable space is a fixed allowance, so `df` misleads: "Avail 0" beside a low
 "Used" means the allowance is spent, not that the machine is broken.
 
+### Post-task cleanup, after every task
+
+Storage on this host is a fixed allowance, so cleanup is mechanical,
+not remembered. After every lane job, before the next one starts:
+
+1. Collect the kept job id the job prints on exit, and remove it:
+   `wsl-toolkit --instance podbox gc --job <id> --apply`.
+2. Once a drive's report is saved under `experiments/results/`,
+   delete that drive's `.tmp/` artifacts (`.tmp/art-*`,
+   `.tmp/job-*.log`).
+3. At session end, or when space presses:
+   `wsl-toolkit --instance podbox gc --apply` for the whole
+   ledger, then clear remaining `.tmp/` scratch.
+4. ⛔ Nothing is deleted until its evidence is committed. A report
+   lands in `experiments/results/` first, scratch is removed
+   second.
+
+Check 29 of `scripts/check-todo.py` holds this section: the
+procedure stays written, and the ledger stays empty where
+`wsl-toolkit` answers. Where the tool is absent there is no
+ledger to hold, and the procedure half still binds.
+
 ## 9. Prose
 
 `docs/conventions/prose.md` binds. The three that are broken most often here:

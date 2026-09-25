@@ -106,6 +106,10 @@
      missing. TODO/gate.md T-1325.
 28. Every printed string is plain ASCII: no marker glyph, no emoji, on any
      path the binary prints. TODO/cli.md T-1336.
+29. Post-task cleanup stays mechanical: TODO/RULES.md carries the
+     procedure, and the lane-job ledger holds no open record where
+     `wsl-toolkit` answers. Storage on the lane host is a fixed
+     allowance, and a kept job directory is how a session fills it.
 
 ⛔ Read the exit code from this process, unpiped.
 Exit: 0 everything agrees, 1 something disagrees, 2 could not run.
@@ -122,6 +126,7 @@ docs/methodology/work-todo.md names a pair of scripts and not a language.
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -211,6 +216,7 @@ seen = {
     "exit_codes": 0, "prove_registry": 0, "closure_records": 0,
     "interpose_sizes": 0, "interpose_exports": 0, "devcheck_third_state": 0,
     "prove_flags": 0, "parity_notes": 0, "ascii_output": 0,
+    "post_task_cleanup": 0,
 }
 
 # ⛔ Check 17. The one file allowed to declare the release binary's ceiling, and
@@ -1275,6 +1281,61 @@ ASCII_SCOPES = ("crates/podbox-cli/src", "crates/podbox-probe/src",
                 "crates/podbox-complete/src")
 
 
+def check_post_task_cleanup():
+    """Check 29: post-task cleanup stays mechanical.
+
+    Two halves that fail apart. The procedure half asserts TODO/RULES.md
+    still carries the cleanup steps, on every machine. The ledger half
+    asks the lane tool for its open job records and refuses each one by
+    name; where the tool is absent there is no ledger to hold, and the
+    procedure half still binds. The ledger half owns no repository state
+    to plant a defect in (see plant.sh's "not planted against"), so its
+    failure was demonstrated live against a kept job before it landed
+    rather than through the plant harness.
+    """
+    rules = os.path.join(TODO, "RULES.md")
+    if not os.path.isfile(rules):
+        err("TODO/RULES.md", "does not exist, and check 29 holds the "
+                              "post-task cleanup procedure it must carry")
+        return
+    text = read(rules)
+    for anchor in ("Post-task cleanup, after every task",
+                   "gc --job <id> --apply",
+                   "gc --apply",
+                   "experiments/results/"):
+        seen["post_task_cleanup"] += 1
+        if anchor not in text:
+            err("TODO/RULES.md", f"names no post-task cleanup procedure: "
+                                 f"{anchor!r} is gone, and storage on the "
+                                 f"lane host is a fixed allowance")
+    tool = shutil.which("wsl-toolkit")
+    if tool is None:
+        return
+    try:
+        r = subprocess.run([tool, "--instance", "podbox", "gc"],
+                           capture_output=True, text=True, timeout=180)
+    except (OSError, subprocess.SubprocessError) as e:
+        err("wsl-toolkit", f"the lane-job ledger could not be read: {e}")
+        return
+    if r.returncode != 0:
+        err("wsl-toolkit", "the lane-job ledger could not be read: "
+                           f"exit {r.returncode}: {(r.stderr or '').strip()[:120]}")
+        return
+    # ⚠ The ledger report travels on stderr ("progress goes to stderr;
+    # stdout carries the answer alone"), so stdout alone reads empty and
+    # an empty ledger reads as examined-nothing. Both channels are
+    # scanned; stdout stays first for the version that swaps them.
+    for line in (r.stdout + "\n" + r.stderr).splitlines():
+        if not line.strip():
+            continue
+        seen["post_task_cleanup"] += 1
+        m = re.match(r"\s+(container|guest dir|host dir)\s+(.*\S)\s*$", line)
+        if m:
+            err("wsl-toolkit", f"lane job still kept: {m.group(2)} -- remove "
+                               f"it with `wsl-toolkit --instance podbox gc "
+                               f"--job <id> --apply` before the next job")
+
+
 def check_ascii_output(files):
     """Check 28: no printed string carries a non-ASCII byte."""
     for rel in sorted(f for f in files
@@ -1544,6 +1605,9 @@ def main():
 
     # -- 28. printed strings are plain ASCII --------------------------------
     check_ascii_output(files)
+
+    # -- 29. post-task cleanup stays mechanical -------------------------------
+    check_post_task_cleanup()
 
     # -- 16. coverage --------------------------------------------------------
     # ⭐ A check that examined nothing reports success otherwise, which is the

@@ -2,7 +2,7 @@
 # plant.sh - break each of the gate's checks on purpose and assert it goes red.
 #
 # ⛔ AN ASSERTION NOBODY HAS SEEN FAIL IS NOT AN ASSERTION. `check-todo.py`
-# carries twenty-eight checks and this script carries forty cases, because
+# carries twenty-nine checks and this script carries forty-one cases, because
 # check 17 has four assertions that fail apart, checks 18, 19, 21 and 23
 # two each, and checks 26 and 27 five and three. A check that
 # quietly matches nothing exits 0 exactly like one whose assertions all passed,
@@ -46,7 +46,7 @@ command -v git >/dev/null 2>&1 || { echo "SKIP: no git" >&2; exit 2; }
 
 # ⛔ GUARD 3: ONE LIST. Everything any case may touch is named here once, and
 # both the backup and the restore iterate this and nothing else.
-FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/enter.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs crates/podbox-cli/src/parity.rs crates/podbox-cli/src/run.rs scripts/build-interpose.sh scripts/dev.sh"
+FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/enter.md TODO/RULES.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs crates/podbox-cli/src/parity.rs crates/podbox-cli/src/run.rs scripts/build-interpose.sh scripts/dev.sh"
 
 # ⛔ CHECK 18'S SUBJECT IS A NUMBER THAT IS ALREADY TAKEN, so writing one here
 # literally would put a second name on it in this very file and make the clean
@@ -444,6 +444,12 @@ case_plant "27c a curated flag with no parity row" "names \`--read-only\`" \
 case_plant "28 a glyph in a printed string" "prints U+26D4" \
   sh -c 'GLYPH=$(printf "\342\233\224"); sed -i "s/refused: do not run any COMMAND/refused: do not run any COMMAND $GLYPH/" crates/podbox-cli/src/run.rs'
 
+# ⛔ CHECK 29, and the plant breaks the procedure's own heading. The anchor
+# is the section title the check holds, so removing it is the defect: a
+# session that silently drops the cleanup rule.
+case_plant "29 a dropped cleanup procedure" "post-task cleanup procedure" \
+  sh -c 'sed -i "s/Post-task cleanup, after every task/Post-task cleanup, someday/" TODO/RULES.md'
+
 echo
 # ⛔ SAY WHAT IS NOT COVERED. A harness that lists passing cases without naming
 # the check that has none implies a coverage it does not have, which is the same
@@ -454,6 +460,11 @@ echo "                       nothing, which requires editing check-todo.py's own
 echo "                       matchers rather than the tree. Every other check's"
 echo "                       counter is asserted non-zero on every run instead,"
 echo "                       and a zero is reported as a failure."
+echo "  29 ledger arm        no case. The arm owns no repository state to plant"
+echo "                       a defect in: it refuses a kept lane job, and the"
+echo "                       only way to plant one is a real lane run. Its"
+echo "                       failure was demonstrated live against a kept job"
+echo "                       before it landed (case 29a plants the rule half)."
 echo
 echo "== controls"
 
