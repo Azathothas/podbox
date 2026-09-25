@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 14 partial, 0 blocked, 151 done. The 2026-09-25
+168 entries: 3 open, 13 partial, 0 blocked, 152 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -17,7 +17,14 @@ static) with the banner naming the rung. T-1301 closed 2026-09-25
 on the TCG drive (357): the machine legs split into required,
 accelerated and networked, `tiers.machine.refusal` null with
 `profile` `tcg` on the kvm-less tcg-listing lane, 146 re-driven
-to VMR-GUEST-READY. No other open issue is closed:
+to VMR-GUEST-READY. T-1003 closed 2026-09-25 on the ladder drive
+(358): forced rundir and cache enter with the rung word (`runs/`
+cleaned, cache persistent), tmpfs and fuse refuse at 125 naming
+the mount and the node, memfd regresses green, the unknown word
+lists the rungs; tmpfs is wired (`sys::mount`/`umount`,
+`stage_tmpfs`/`release_tmpfs`) with its entry arm undriven where
+no mount holds, and FUSE stays ordered-and-refused with its
+blocker named in the entry. No other open issue is closed:
 each closes with its fix commit, drive output and guard, per the
 operator rule.
 
@@ -215,17 +222,18 @@ mutating clause prints the line it WROTE as well as the line it matched.
 
 ## In progress
 
-Item 3 done on the lane (`rust:1.98.1-bookworm` job containers in
-`wsl-toolkit-podbox`, host kernel `7.2.0-WSL2-STABLE`, qemu 7.2.22
-installed where absent, kvm and tun absent):
-`experiments/357-tcg-profile.sh` exits 0
-(`experiments/results/tcg-profile.txt`), targeted units green,
-`cargo test -p podbox-probe -p podbox-cli` green (143 and 101
-passed, 0 failed). Next is item 4 (T-1003 rundir and cache, then
-FUSE and tmpfs). The teardown owes the kept lane job containers
-(`wsl-toolkit --instance podbox gc --apply`: host `gc` without the
-instance says nothing is registered) and session scratch removal,
-then the final gate and the push.
+Item 4 done on the lane (`rust:1.98.1-bookworm` job containers in
+`wsl-toolkit-podbox`, host kernel `7.2.0-WSL2-STABLE`, kvm, tun
+and fuse absent): `experiments/358-ladder-rungs.sh` exits 0
+(`experiments/results/ladder-rungs.txt`), targeted units green
+(`podbox-enter` stage+ladder 23 passed, `podbox-cli` ladder 14
+passed), full suites green (`podbox-enter` 74 passed, the
+`podbox-cli` binary 146 passed, 0 failed). Next is item 5
+(T-0606 fallback supervision, T-1306 one promotion). The teardown
+owes the kept lane job containers (`wsl-toolkit --instance
+podbox gc --apply`: host `gc` without the instance says nothing
+is registered) and session scratch removal, then the final gate
+and the push.
 
 ## Operator questions
 

@@ -33,6 +33,7 @@ pub mod binfmt;
 pub mod ladder;
 pub mod memfd;
 pub mod plan;
+pub mod stage;
 pub mod userland;
 
 use std::io::Write;
@@ -467,9 +468,10 @@ pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> 
 /// the payload routes past fd-exec (`None`: a `#!` script, which fails
 /// through it).
 ///
-/// ⛔ Only the memfd rung drives through here. FUSE, tmpfs, rundir and cache
-/// are ordered and refused by `ladder::choose`, and none of them is
-/// rung-complete: reaching this call with one is the caller skipping the
+/// ⛔ Only rung-complete rungs drive through here: memfd, the run
+/// directory and the tmpfs mount the CLI stages before calling, and the
+/// persistent cache (FUSE is ordered and refused by `ladder::choose`).
+/// Reaching this call with an unwired rung is the caller skipping the
 /// choice, so it refuses rather than exec'ing down a rung nobody drove.
 pub fn spawn_ladder(
     root: &RootDir,
@@ -478,12 +480,16 @@ pub fn spawn_ladder(
     fd: Option<i64>,
     err: &mut dyn Write,
 ) -> Result<Child> {
-    if mode != ladder::Mode::Memfd {
-        return Err(Error::Runtime(format!(
-            "the {} rung is ordered by the ladder but not rung-complete: only \
-             memfd drives through this entry (TODO/packaging.md T-1003)",
-            mode.name()
-        )));
+    use ladder::Mode as M;
+    match mode {
+        M::Memfd | M::RunDir | M::Cache | M::Tmpfs => {}
+        M::Fuse => {
+            return Err(Error::Runtime(format!(
+                "the {} rung is ordered by the ladder but not rung-complete: only \
+                 rung-complete rungs drive through this entry (TODO/packaging.md T-1003)",
+                mode.name()
+            )));
+        }
     }
     spawn_with(root, plan, mode.name(), None, fd, true, err)
 }

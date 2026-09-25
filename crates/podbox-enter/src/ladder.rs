@@ -8,13 +8,15 @@
 //! it. Each **forced** mode refuses with a named reason rather than falling
 //! through, copying that file's `:216-218`, `:235-237` and `:255-257`.
 //!
-//! ⭐ **Rung-complete is the memfd rung; the rest is sketched.** The memfd
-//! driver ([`crate::memfd`]) writes bytes, seals where accepted, and execs the
-//! fd. FUSE and tmpfs are probe inputs: this module orders them and refuses
-//! them by name, and `podbox-probe` measures them. The run-dir and cache rungs
-//! need extraction the CLI does not wire yet, so they answer "not implemented"
-//! until it does. The single file with an embedded rootfs is a follow-up the
-//! entry names, not a rung built here.
+//! ⭐ **Rung-complete is the memfd rung, the run-directory rung, the
+//! ephemeral-tmpfs rung and the persistent-cache rung.** The memfd
+//! driver ([`crate::memfd`]) writes bytes, seals where accepted, and
+//! execs the fd. The directory rungs replicate the extracted tree into
+//! a private per-run directory, onto a per-run tmpfs mount, or into a
+//! persistent per-image directory ([`crate::stage`]). FUSE is a probe
+//! input: this module orders it and refuses it by name, and
+//! `podbox-probe` measures it. The single file with an embedded rootfs
+//! is a follow-up the entry names, not a rung built here.
 //!
 //! ⚠ This module orders and refuses; it never measures. What the machine
 //! permits arrives as [`Availability`], read by the caller from the probe, so
@@ -85,11 +87,12 @@ pub struct Availability {
     pub fuse: bool,
     /// A mount is permitted.
     pub tmpfs: bool,
-    /// ⛔ Sketch: extraction to a private run directory is not wired yet, so
-    /// this stays false until the CLI wires it. Setting it true claims a rung
-    /// that does not exist.
+    /// The store's runs/ staging accepted a directory: the CLI admits
+    /// the run-directory rung only where it staged one.
     pub rundir: bool,
-    /// ⛔ Sketch, as above, for the persistent cache.
+    /// The store's cache/ staging accepted a directory and the cache was
+    /// asked for: the CLI admits the persistent-cache rung only where
+    /// both hold.
     pub cache: bool,
     /// The publisher asked for cache at pack time, or `PODBOX_CACHE` opts this
     /// launch in: the cache rung runs only when asked for, copying onelf's
@@ -113,11 +116,12 @@ impl Availability {
             Mode::Tmpfs => {
                 "a mount is refused on this runtime, so tmpfs mode is unavailable".to_string()
             }
-            Mode::RunDir => "the private run-directory rung is not implemented yet \
-                 (TODO/packaging.md T-1003: sketched, not rung-complete)"
+            Mode::RunDir => "the store's runs/ staging is not writable on this \
+                 machine, so the run-directory rung is unavailable"
                 .to_string(),
-            Mode::Cache => "the persistent-cache rung is not implemented yet \
-                 (TODO/packaging.md T-1003: sketched, not rung-complete)"
+            Mode::Cache => "the store's cache/ staging is not writable on this \
+                 machine, or the cache was not asked for (PODBOX_CACHE=1), so \
+                 the persistent-cache rung is unavailable"
                 .to_string(),
         }
     }

@@ -616,6 +616,8 @@ pub fn run(args: &[String]) -> i32 {
                 &argv0,
                 &plan.path_dirs,
                 &p.findings,
+                store.root(),
+                &p.record.manifest_digest,
                 &mut err,
             ) {
                 Ok(c) => c,

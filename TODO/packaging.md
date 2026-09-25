@@ -116,7 +116,7 @@ Source:      `TOOL.md` section 5 M7, section 6.7; `references/qaidvoid__onelf`
 Category:    packaging
 Priority:    P2
 Effort:      L
-Status:      partial 2026-09-22
+Status:      done 2026-09-25
 
 Problem:     A runtime that can only start from a filesystem cannot start on a
              machine whose writable paths are full, and the machines this is for
@@ -297,6 +297,54 @@ Risk if wrong is a rung that fetches bytes but never enters. Prove
 is the entry's Prove extended per rung: a forced run over the
 matching fixture enters with the rung word in `PODBOX_ACTIVE_MODE`,
 and the remaining refusals keep naming their reason.
+
+**Done 2026-09-25.** Rundir, cache and tmpfs are rung-complete.
+FUSE stays ordered and refused, with its blocker named below.
+
+| rung | state | where |
+| --- | --- | --- |
+| rundir | rung-complete, driven | `podbox-enter/src/stage.rs` `copy_tree`, `podbox-cli/src/ladder.rs` `stage_rundir` + arm, `spawn_ladder` admits |
+| cache | rung-complete, driven | `stage.rs` `stage_cache` (copy once, marker-gated reuse), CLI arm keeps on exit, `PODBOX_CACHE=1` opts in |
+| tmpfs | rung-complete, refusal driven, entry wired but undriven on the lane | `podbox-probe/src/sys.rs` `mount`/`umount`, `stage.rs` `stage_tmpfs`/`release_tmpfs`, CLI arm unmounts and removes on exit |
+| FUSE | ordered, probe-fed, refused; blocker named | `ladder.rs` choice, `fuse_usable`, `spawn_ladder` refuses |
+
+Driven by `experiments/358-ladder-rungs.sh`, exit 0 on the lane
+(`rust:1.98.1-bookworm` job container, kernel
+`7.2.0-WSL2-STABLE`), report in
+`experiments/results/ladder-rungs.txt` over the pinned alpine
+`3.20@sha256:d9e853e8`: forced rundir exits 0 with
+`PODBOX_ACTIVE_MODE=rundir` and `runs/` cleaned; forced cache
+without the opt-in exits 125 naming `PODBOX_CACHE=1`, with it
+exits 0 with `cache` and the cache persistent; forced tmpfs
+exits 125 with "a mount is refused on this runtime, so tmpfs
+mode is unavailable"; forced fuse exits 125 with "/dev/fuse did
+not open on this machine, so FUSE mode is unavailable"; forced
+memfd over the static hello exits 0 with `static-hi`; an
+unknown word exits 125 listing the rungs. Targeted suites on
+the same drive: `podbox-enter` stage+ladder 23 passed,
+`podbox-cli` ladder 14 passed; full suites `podbox-enter` 74
+passed and the `podbox-cli` binary 146 passed, 0 failed
+everywhere. The tmpfs entry arm runs where a mount holds; the
+lane denies the mount (`mount(tmpfs,/mnt)` EPERM, attach
+`skip`), so the lane drives the refusal arm and the unit test
+`tmpfs_stages_onto_a_mount_or_refuses_naming_it` pins both
+arms.
+
+FUSE took the three-candidate procedure before this verdict.
+(1) Port onelf's `fuse/` server shape (`references/qaidvoid__onelf/tree/crates/onelf-rt/src/fuse/`,
+2,045 lines) cut to read-only lookup/getattr/open/read/readdir
+with mount plumbing: refuted on cost against reach (no
+reachable machine holds `/dev/fuse` (lane `open` ENOENT), so
+the entry path would ship undriven, and on the true target
+shape the FUSE mount needs the same denied mount). (2) Hand the
+node to the kernel another way: refuted by probe
+(`mknod` is EPERM, so the node cannot be created where it is
+absent. (3) Keep FUSE ordered, probe-fed and refused, with the
+blocker named: holds. The missing pass would need a machine
+with `/dev/fuse` and a granted mount; what would reopen it is
+that machine. Blocker: `/dev/fuse` absent on every reachable
+machine. Guard: the 358 fuse clause (125 naming the node)
+beside `fuse_usable`'s rule tests.
 
 ---
 

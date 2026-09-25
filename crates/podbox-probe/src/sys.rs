@@ -895,6 +895,24 @@ pub fn chroot(path: &CBuf) -> Sysres {
     unsafe { sys(SYS_CHROOT, [path.ptr(), 0, 0, 0, 0, 0]) }
 }
 
+/// `mount(2)` on a target already held, and `umount2(2)` on one.
+/// TODO/packaging.md T-1003: the tmpfs rung mounts with kernel defaults
+/// (flags 0, no data: no invented size) and unmounts before removing the
+/// staging directory, so a failed mount never leaves a directory behind
+/// that a later run could mistake for a staged tree.
+pub fn mount(source: &CBuf, target: &CBuf, fstype: &CBuf, flags: u64) -> Sysres {
+    unsafe {
+        sys(
+            SYS_MOUNT,
+            [source.ptr(), target.ptr(), fstype.ptr(), flags, 0, 0],
+        )
+    }
+}
+
+pub fn umount(target: &CBuf) -> Sysres {
+    unsafe { sys(SYS_UMOUNT2, [target.ptr(), 0, 0, 0, 0, 0]) }
+}
+
 pub fn chdir(path: &CBuf) -> Sysres {
     unsafe { sys(SYS_CHDIR, [path.ptr(), 0, 0, 0, 0, 0]) }
 }
