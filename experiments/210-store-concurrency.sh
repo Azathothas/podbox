@@ -121,8 +121,8 @@ say "  verify           $(verify "$S1")"
 if [ "$worst" -ne 0 ]; then
 	# ⚠ A network failure is not a contract failure, and the two must not be
 	# collapsed. The transcripts say which.
-	if grep -qiE 'connect|resolve|timed out|tls|certificate' "$WORK"/w*.out; then
-		say "  SKIP: a worker could not reach the registry, so the contract was not tested"
+	if grep -qiE 'connect|resolve|timed out|tls|certificate|429|toomanyrequests|too many requests' "$WORK"/w*.out; then
+		say "  SKIP: a worker could not pull from the registry (unreachable or quota), so the contract was not tested"
 		sed -n '1,3p' "$WORK/w0.out" | sed 's/^/    /' >>"$WORK/report"
 		skipped=1
 	else
@@ -166,7 +166,7 @@ else
 	ref="${REFS[0]}"
 	# A holder that lives for a few seconds, taken through the real verb.
 	PODBOX_STORE="$S1" timeout 300 "$BIN" run --pull never "$ref" /bin/sleep 6 \
-		>/dev/null 2>&1 &
+		>"$WORK/holder.out" 2>&1 &
 	holder=$!
 	# ⚠ Give the holder time to reach its hold. It extracts first, so the
 	# window is not instant; the loop below is what waits, bounded.
@@ -187,6 +187,9 @@ else
 	say "  the holder exited $hrc"
 	if [ "$held" -eq 0 ]; then
 		say "  SKIP: the holder never took a lock, so nothing raced"
+		skipped=1
+	elif [ "$hrc" -eq 125 ] && grep -qi 'chroot(2) is denied' "$WORK/holder.out" 2>/dev/null; then
+		say "  SKIP: the holder refused on a chroot-denied host before prune ran, so nothing raced"
 		skipped=1
 	else
 		[ "$hrc" -eq 0 ] || { say "  FAIL: the payload died while a prune ran"; fail=1; }
@@ -276,8 +279,8 @@ say "  the pull exited               $wrc  (a sweep that took its file would not
 if [ "$during" -eq 0 ]; then
 	say "  SKIP: the pull never staged anything, so no sweep raced it"
 	skipped=1
-elif [ "$wrc" -ne 0 ] && grep -qiE 'connect|resolve|timed out|tls|certificate' "$WORK/s4.out"; then
-	say "  SKIP: the pull could not reach the registry"
+elif [ "$wrc" -ne 0 ] && grep -qiE 'connect|resolve|timed out|tls|certificate|429|toomanyrequests|too many requests' "$WORK/s4.out"; then
+	say "  SKIP: the pull could not be fetched (unreachable or quota)"
 	skipped=1
 else
 	[ "$wrc" -eq 0 ] || { say "  FAIL: a concurrent sweep broke a pull in flight"; fail=1; }

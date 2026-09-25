@@ -922,6 +922,27 @@ classified as quota. Close issue 17 with a comment showing the
 re-drive and the two classifications as the guard that stops
 recurrence.
 
+Implemented 2026-09-25, in the script. Both network patterns (checks
+1 and 4) now match `429`, `toomanyrequests` and `too many requests`
+beside the connect failure classes, and check 2 captures the
+holder's output: a holder dead at 125 naming `chroot(2) is denied`
+reads SKIP instead of FAIL. The patterns were proved against
+synthetic transcripts (a 429 body fires the SKIP arm, the T-1317
+refusal fires the holder arm, an unrelated mismatch fires neither).
+
+Driven the same day in the lane (`rust:1.98.1-bookworm`, kernel
+7.2.0-WSL2-STABLE, binary built from these sources): exit 0 with
+all four clauses genuinely green, none skipped (8 exits of 0 with
+12 blobs and 3 records; holder ran with 1 lock held and exited 0;
+SIGKILL staging swept to 0; live-writer pull exited 0). The new
+SKIP arms did not fire there: no quota hit and no chroot-denied
+host, so the reporter's exact 429 run is classified by the pattern
+proof above rather than reproduced. One reading differs from the
+committed 2026-09-09 run: clause 3 verifies `blobs=0` where it read
+`blobs=2`. That is racy progress, not a verdict: the SIGKILL landed
+before any blob committed this time, and `bad=0` with `partials=0`
+after the sweep both times.
+
 ---
 
 ### T-0211 An image lock outlives its holder whenever anything forks
