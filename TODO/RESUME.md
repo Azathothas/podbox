@@ -1,30 +1,27 @@
 ## The task
 
-Release the final beta (ruled 2026-09-25): T-1109 closed on its own
-Prove, T-1112 already done, polish in. Tag `v0.1.0-beta.7` as a
-nightly pre-release through the beta.6 pipeline unchanged.
+Done. T-1109 closed on its Prove, polish in, `v0.1.0-beta.7` tagged at
+the green commit `4f087d0` and verified through the beta.6 pipeline
+unchanged (seven legs green, twenty-one assets, two bundles verify,
+notes read back with gate plus boundary).
 
 ## The resume point
 
-The non-tag change sits in the tree below, uncommitted. Run the gate
-(host plus lane), commit, push straight to `main`, and tag only when
-the gate on that commit is green. Then the bundles verify and the
-notes carry the gate state plus the boundary, each read back, before
-anything is called done.
+Nothing is open: 165 entries done, no open issue, the final beta
+published and verified. The next session takes whatever the operator
+orders. Start it per AGENTS.md: session-start, PROGRESS, RESUME, gate.
 
 ## In flight
 
-T-1109 close (251 script plus two result files, entry Done with the
-drive and the census cause), version bump to 0.1.0-beta.7 with the
-lock regenerated, changelog entry, PROGRESS rewrite. Nothing is
-half-written; the lane control rerun reproduced the drive and named
-the census cause.
+Nothing half-written. The close-out record is the uncommitted change
+below (this file plus PROGRESS with the beta.7 verification). The lane
+gate runs before the commit; teardown is done.
 
 ## State
 
-165 entries: 0 open, 0 partial, 0 blocked, 165 done. No open issue
-remains. Host `check-todo` green; the lane `dev.sh check` runs before
-the commit.
+Tree at `4f087d0` plus the uncommitted record change. 165 entries: 0
+open, 0 partial, 0 blocked, 165 done. Tag `v0.1.0-beta.7` sits at
+`4f087d0`; nightly run 36117747572 concluded success.
 
 ## The paste
 
