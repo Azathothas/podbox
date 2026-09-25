@@ -6,17 +6,15 @@ M0 through M8 are implemented and the machine tier holds its probe.
 End-to-end acceptance is measured per entry. M7 packaging runs through
 the nightly workflow on every `v*` tag.
 
-165 entries: 2 open, 1 partial, 0 blocked, 162 done. Every P0 is done.
-The open entries are [T-1328](packaging.md)
-and [T-1334](packaging.md): what remains of the
-2026-09-23 triage from nineteen client-filed issues plus the
-operator-ordered `man` verb, after T-1112, T-1315 through T-1322, T-1330,
-T-1331, T-1332,
-T-1333, T-1335, T-1336, T-1327 and T-1329 closed below. The
-partial entry is [T-1109](milestones.md), carrying its remaining
-conditions in its own file. T-1328 and T-1334 stay open tag-gated:
-their Prove artefacts (bundles, notes) only exist once the nightly
-publish job runs on the next tag.
+165 entries: 0 open, 1 partial, 0 blocked, 164 done. Every P0 is done.
+The 2026-09-23 triage from nineteen client-filed issues plus the
+operator-ordered `man` verb is fully closed: T-1112, T-1315 through
+T-1322, T-1330, T-1331, T-1332, T-1333, T-1335, T-1336, T-1327,
+T-1329, T-1328 and T-1334 closed below. The partial entry is
+[T-1109](milestones.md), carrying its remaining conditions in its
+own file. Nothing is blocked. Issues 13 and 26 stay open for the
+operator's close-out comments: agent API writes stay read-only
+under `docs/security/remote-ops.md`.
 
 ## Baseline
 
@@ -62,68 +60,57 @@ qemu-user-static 11.1.1-4. Scratch (`/root/pb-wk`, `/root/pb-bin`,
 and still have to be green. [RULES.md](RULES.md) section 2 carries it, and a
 force push stays refused.
 
-## What this session did, 2026-09-23
+## What this session did, 2026-09-25
 
-The operator's challenge reopened the two blocked entries: the
-wsl-toolkit base is a real machine, so the docker-daemon and native-lane
-halves could measure there. Both closed.
+The handover named commit `6f2aa79` with T-1336 next; the tree had
+moved past it (T-1336 done at `7ec5085`, T-1327 and T-1329 closed in
+staged work). Reconciled first, then finished the batch: the staged
+non-tag work for T-1328/T-1334 plus the two closes, committed as
+`6d86129` and pushed to `main`.
 
-[T-1213](gate.md) closed on the native base lane. `20` exits 0 (N+F+M,
-`/bin/id` answers uid 0, full image id matches the recorded build) and
-`130` exits 0 (chroot inside, namespace unconfined, 16 matched with 0
-differed after `130 --refresh` re-captured `attribute.txt` with
-`census.txt` on the same kernel). `10` stands on its recorded
-host-podman build. Committed in the change: the entry record, the
-counts, three results files. Commit `6eb941f`.
+Three review lenses ran over the staged files before the commit. The
+claim audit verified the T-0704 citation fix (`grep` empty on the
+publish path), the cosign-installer pin (digest matches tag
+`v3.10.1` through the API), and the release-notes drive against
+`v0.1.0-beta.5`. It found the defect that mattered: the staged
+verifier expected the publish identity at `@refs/heads/main`, but
+the nightly answers version tags alone, so a tag-built bundle
+carries `@refs/tags/<tag>` and the staged command would have failed
+closed on honest artefacts. Fixed before the commit, and the beta.6
+Prove below confirms it. Three prose fixes rode along: the smoke
+header now describes save/load instead of a loopback helper, the
+T-1329 Done names the save/load substitution and the native-leg
+boundary, and the T-1327 Done cites the unit test that pins the
+decline instead of the smoke leg.
 
-[T-1212](gate.md) closed on the base docker lane (dockerd 29.8.1).
-`150` exits 0 with the clause-1 premise confirmed (the entry carries
-the digests). `270`
-exits 0: T-0212's owner had already fixed the clause-5a expectation to
-read the cli-error code from the binary. `280` exits 0 with all seven
-clauses after one native-lane repair (the TLS certs mount hoisted above
-the native split: without it the registry exits 1 with no certificate
-staged). `320` and `330` exit 0 with their daemon halves against docker
-29.8.1 (every 330 comparison cell ok). `300` carries zero FAILs:
-clause 7 runs (chroot inside, namespace outside) and the riscv64
-refusal half SKIPs where binfmt executes it, guarded in the script.
-Committed in the change: two script repairs, six results files, the
-entry record, the counts. Commit `e653e8f`.
+[T-1328](packaging.md) closed on `v0.1.0-beta.6` (nightly run
+36110971684, conclusion success, 21 assets: seven binaries, seven
+hashes, seven bundles). `sh scripts/verify-release.sh v0.1.0-beta.6
+x86_64` exits 0 with `Verified OK`; the same check against a binary
+with one flipped byte exits 1 on the digest mismatch.
 
-Three deep review passes ran over every touched file: the claim audit
-(each Done sentence against its run log or retrieved hash), the door
-sweep (who consumes the hoisted mount and the new guard), the
-usability pass. The `check-one-home` guard fired live on one sentence
-this session shared between the new record and this file; the entry
-kept the fact and this file points at it. One committed sentence
-proved imprecise the same session it landed (container port-80 egress
-reads as a blanket block; three bounded runs show the podman path
-black-holes SYNs while the docker path fetches) and was corrected in
-place with the measurements. `docs/containers.md` carries three new
-measured traps from the lane.
+[T-1334](packaging.md) closed on the same tag's notes, read back
+through the release API; the entry names the facts found there.
+Committed in the change: the two entry records, the
+counts, this file. The tag sits at the non-tag commit, whose gate
+CI is green (4/4 jobs), so the notes' gate line and the bytes agree.
 
-`v0.1.0-beta.5` is tagged at the T-1212 close-out commit; the nightly
-(run 35809485405) concluded success with all seven legs green, and the
-pre-release named nightly carries fourteen assets, verified back
+`v0.1.0-beta.6` is tagged at the close-out commit; the nightly (run
+36110971684) concluded success with all seven legs green, and the
+pre-release named nightly carries twenty-one assets, verified back
 through the release API.
 
 ## Current work order
 
-1. The nightly for `v0.1.0-beta.5` (run 35809485405) completes, then the
-   T-1314 record lands as its own commit, mirroring the beta.4 record:
-   the Prove-run paragraph in [packaging.md](packaging.md) and the
-   four-line touch here.
-2. Session teardown: stop base dockerd, remove base scratch, `gc
-   --apply` the three kept job containers, confirm the podman machine
-   rests as found (stopped), tree clean, gate green.
+1. Session teardown: `gc --apply` the kept lane job container(s),
+   remove base scratch, confirm the podman machine rests as found
+   (stopped), tree clean, gate green.
+2. Operator-owed tracker transitions: the close-out comments on
+   issues 13 (T-1334) and 26 (T-1328 thirds) with their proofs.
 3. [T-1109](milestones.md) carries its remaining conditions in its own
    file; [T-1112](milestones.md) is unparked (ruled 2026-09-23) and is
-   the next schedulable work, staying P3. Behind it: T-1315 through
-   T-1336, triaged from client issues 10-28 (every premise confirmed
-   live against the beta.5 tree before authoring; T-0210 extended for
-   issue 17 rather than a new entry). Each entry carries its issue's
-   closing task: fix commit, proof output, and the recurrence guard.
-   Nothing else is open, and nothing is blocked.
+   the next schedulable work, staying P3. Nothing else is open, and
+   nothing is blocked.
 
 [T-0206](image.md) has its fixture technology: `zot` as one pinned
 binary plus config, storage dir, generated cert and htpasswd file,
@@ -142,8 +129,8 @@ mutating clause prints the line it WROTE as well as the line it matched.
 
 ## In progress
 
-[T-1335](supervise.md) closed this session, below. The teardown in the
-work order above is still owed.
+[T-1328](packaging.md) and [T-1334](packaging.md) closed this
+session, above. The teardown in the work order above is still owed.
 
 ## Operator questions
 

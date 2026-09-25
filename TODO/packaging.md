@@ -565,7 +565,7 @@ Source:      issue 26, client beta testing 2026-09-22 (hash-only
 Category:    packaging
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done 2026-09-25
 
 Problem:     Each `.sha256` sidecar is served from the same release as
              its binary, so it protects against a truncated download,
@@ -587,15 +587,6 @@ Decision:    Keyless signing at publish (Sigstore, OIDC from the
              publish job): no long-lived key to guard and rotate, and
              verification names the workflow identity. Ruled 2026-09-23
              by the operator; the entry is workable as written.
-Status note: **open, and it proves on the next tag, not on this
-             tree.** The workflow change (install, sign, upload) and
-             the verifier script are committed here, but no `.sigstore`
-             bundle exists until the nightly publish job runs one: the
-             Prove command names `<tag>`, and only a tag push runs it.
-             T-1334's notes half is in the same position. Both close on
-             `v0.1.0-beta.6` (RESUME's tag-gated instruction), each with
-             its own artefact read back.
-
 Prove:       `sh scripts/verify-release.sh <tag> <arch>` (the documented
              command, wrapping `cosign verify-blob`) run by a fresh
              downloader against one artefact and its published bundle
@@ -604,6 +595,20 @@ Prove:       `sh scripts/verify-release.sh <tag> <arch>` (the documented
              26 (signing third) with a comment showing the verification
              and the publish-time signature as the guard that stops
              recurrence.
+
+**Done 2026-09-25.** Proved on `v0.1.0-beta.6` (nightly run
+36110971684, conclusion success): seven `.sigstore` bundles beside
+the seven binaries (21 assets), `sh scripts/verify-release.sh
+v0.1.0-beta.6 x86_64` exits 0 with `Verified OK` naming the
+workflow identity, and the same check against a binary with one
+flipped byte exits 1 on the digest mismatch. The review before the
+tag corrected the expected identity from `@refs/heads/main` to
+`@refs/tags/<tag>`: the workflow answers version tags alone, so a
+tag-built bundle carries the tag's ref and the earlier identity
+would have failed closed on honest artefacts. The guard is the
+sign step plus the verifier script. Issue 26 (signing third) stays
+open for the operator's close-out comment: agent API writes stay
+read-only under `docs/security/remote-ops.md`.
 
 ---
 
@@ -673,7 +678,7 @@ Source:      issue 13, client beta testing 2026-09-22 (beta.1 build
 Category:    packaging
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done 2026-09-25
 
 Problem:     Two release-integrity gaps. The beta.1 build commit shipped
              with the repo's own consistency gate red (the fix landed
@@ -699,17 +704,17 @@ Approach:    State both in the release path: the notes (or `version
              here), signatures (T-1330).
 Decision:    Boundary statement, not a rebuild pipeline. The bytes are
              honest once conditioned; the missing piece is the condition.
-Status note: **open, and it proves on the next tag, not on this
-             tree.** `scripts/release-notes.sh` is committed and was
-             driven locally against `v0.1.0-beta.5` (build commit plus
-             gate run and conclusion plus boundary line, all present),
-             but the notes it generates only publish when the nightly
-             publish job runs one: the Prove reads the next beta's
-             notes, and only a tag push writes them. Closes on
-             `v0.1.0-beta.6` beside T-1328, each with its own artefact
-             read back.
 Prove:       `grep -c` over the next beta's notes finds the build
              commit's gate run and conclusion plus the boundary line;
              `version --verbose` (or the notes) states it.
              Close issue 13 with a comment showing the notes and the
              boundary sentence as the guard that stops recurrence.
+
+**Done 2026-09-25.** Proved on `v0.1.0-beta.6`'s notes, read back
+through the release API: build commit `6d86129`, gate `success` with
+its run URL, and the reproducibility boundary line, all present.
+(The full forty-hex commit is in the notes themselves.)
+The guard is the notes step itself: a future release whose build
+commit is red says so in its own notes. Issue 13 stays open for
+the operator's close-out comment: agent API writes stay read-only
+under `docs/security/remote-ops.md`.
