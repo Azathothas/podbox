@@ -1212,7 +1212,7 @@ Source:      issues 25 and 23, client beta testing 2026-09-22 (T-0604's
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      partial 2026-09-23
+Status:      done 2026-09-23
 
 Problem:     Two claim classes with no check. Closed entries' `Prove:`
              commands can name flags the parity table refuses (T-0604
@@ -1276,6 +1276,17 @@ plant arrive together. Fix area is `scripts/check-todo.py` check
 27 with `scripts/plant.sh`. Risk if wrong is a green gate over
 an omission the table exists to prevent. Prove is `plant.sh`
 green with the new plant case red-first.
+
+**Done, 2026-09-25.** Check 27 carries the curated arm:
+`CURATED_RUN_FLAGS` (the issue's 46) must each resolve under
+`run` and `CURATED_VERBS` (its 10) must each have a verb row,
+whatever their status. Prove: `scripts/plant.sh` on the lane
+exits 0 with 40 caught, 0 missed, 4 controls quiet, 0 fired,
+including `27c a curated flag with no parity row red, and it
+named it` (the plant deletes the `--read-only` row and the gate
+goes red naming it). The in-binary twin is
+`issue_60_curated_surface_stays_covered`. Guards are the check
+itself and its plant, which arrived in the same change.
 
 ---
 

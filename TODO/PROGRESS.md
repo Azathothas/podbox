@@ -2,13 +2,14 @@
 
 ## State
 
-168 entries: 3 open, 18 partial, 0 blocked, 147 done. The 2026-09-25
+168 entries: 3 open, 17 partial, 0 blocked, 148 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
-0.23.44 to 0.23.45) merged on green CI. T-0801 and T-0605 closed
-2026-09-25 on the issue-60 drive (355): the curated docker surface
-has a row everywhere, `--env-file` is real, `--log-driver` takes
+0.23.44 to 0.23.45) merged on green CI. T-0801, T-0605 and T-1325
+closed 2026-09-25 on the issue-60 drive (355) with the curated
+check and its plant: the curated docker surface has a row
+everywhere, `--env-file` is real, `--log-driver` takes
 `json-file`. No other open issue is closed:
 each closes with its fix commit, drive output and guard, per the
 operator rule.

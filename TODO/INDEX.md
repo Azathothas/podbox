@@ -214,7 +214,7 @@ the blocker named and what would clear it.
 | [T-1322](image.md) | P1 | image | done | A container record gates every removal of the image it references |
 | [T-1323](cli.md) | P2 | cli | done | `cp` reaches an image's extracted rootfs, and copies directories with the same checks |
 | [T-1324](complete.md) | P2 | complete | done | The README tells the truth: build order, rung map, status, auth scope |
-| [T-1325](gate.md) | P1 | gate | partial | The gate checks what entries claim: reachable flags and true parity notes |
+| [T-1325](gate.md) | P1 | gate | done | The gate checks what entries claim: reachable flags and true parity notes |
 | [T-1326](gate.md) | P1 | gate | done | `check-markers.sh` builds its marker bytes portably across `/bin/sh` |
 | [T-1327](interpose.md) | P2 | interpose | partial | The interposer builds per architecture, and the T-0704 citations point at it |
 | [T-1328](packaging.md) | P2 | packaging | done | The nightly signs its artefacts, with provenance a downloader can check |
@@ -232,7 +232,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-168 items: 3 open, 18 partial, 0 blocked, 147 done.
+168 items: 3 open, 17 partial, 0 blocked, 148 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -241,10 +241,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 3 | 0 | 49 | 52 |
-| P1 | 1 | 10 | 0 | 67 | 78 |
+| P1 | 1 | 9 | 0 | 68 | 78 |
 | P2 | 2 | 4 | 0 | 25 | 31 |
 | P3 | 0 | 1 | 0 | 6 | 7 |
-| **All** | **3** | **18** | **0** | **147** | **168** |
+| **All** | **3** | **17** | **0** | **148** | **168** |
 
 ## How the current ordering is derived
 
