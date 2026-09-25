@@ -216,9 +216,9 @@ the blocker named and what would clear it.
 | [T-1324](complete.md) | P2 | complete | done | The README tells the truth: build order, rung map, status, auth scope |
 | [T-1325](gate.md) | P1 | gate | done | The gate checks what entries claim: reachable flags and true parity notes |
 | [T-1326](gate.md) | P1 | gate | done | `check-markers.sh` builds its marker bytes portably across `/bin/sh` |
-| [T-1327](interpose.md) | P2 | interpose | open | The interposer builds per architecture, and the T-0704 citations point at it |
+| [T-1327](interpose.md) | P2 | interpose | done | The interposer builds per architecture, and the T-0704 citations point at it |
 | [T-1328](packaging.md) | P2 | packaging | open | The nightly signs its artefacts, with provenance a downloader can check |
-| [T-1329](packaging.md) | P2 | packaging | open | The per-arch smoke pulls and extracts, not just versions |
+| [T-1329](packaging.md) | P2 | packaging | done | The per-arch smoke pulls and extracts, not just versions |
 | [T-1330](cli.md) | P2 | cli | done | Bundled short flags parse as docker reads them |
 | [T-1331](cli.md) | P2 | cli | done | `--filter`, `restart` and `pull -a/-q` answer the docker idiom |
 | [T-1332](cli.md) | P1 | cli | done | `podbox man` generates the manual from the binary, pager-aware |
@@ -229,7 +229,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-165 items: 4 open, 1 partial, 0 blocked, 160 done.
+165 items: 2 open, 1 partial, 0 blocked, 162 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -239,9 +239,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
 | P1 | 1 | 1 | 0 | 75 | 77 |
-| P2 | 3 | 0 | 0 | 26 | 29 |
+| P2 | 1 | 0 | 0 | 28 | 29 |
 | P3 | 0 | 0 | 0 | 7 | 7 |
-| **All** | **4** | **1** | **0** | **160** | **165** |
+| **All** | **2** | **1** | **0** | **162** | **165** |
 
 ## How the current ordering is derived
 

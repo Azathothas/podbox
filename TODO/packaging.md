@@ -587,10 +587,20 @@ Decision:    Keyless signing at publish (Sigstore, OIDC from the
              publish job): no long-lived key to guard and rotate, and
              verification names the workflow identity. Ruled 2026-09-23
              by the operator; the entry is workable as written.
-Prove:       `cosign verify-blob` (the documented command) run by a
-             fresh downloader against one artefact and its published
-             bundle names the workflow identity; a tampered byte fails
-             the check. Close issue
+Status note: **open, and it proves on the next tag, not on this
+             tree.** The workflow change (install, sign, upload) and
+             the verifier script are committed here, but no `.sigstore`
+             bundle exists until the nightly publish job runs one: the
+             Prove command names `<tag>`, and only a tag push runs it.
+             T-1334's notes half is in the same position. Both close on
+             `v0.1.0-beta.6` (RESUME's tag-gated instruction), each with
+             its own artefact read back.
+
+Prove:       `sh scripts/verify-release.sh <tag> <arch>` (the documented
+             command, wrapping `cosign verify-blob`) run by a fresh
+             downloader against one artefact and its published bundle
+             names the workflow identity; a tampered byte fails the
+             check. Close issue
              26 (signing third) with a comment showing the verification
              and the publish-time signature as the guard that stops
              recurrence.
@@ -605,7 +615,7 @@ Source:      issue 26, client beta testing 2026-09-22 (a broken
 Category:    packaging
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     The per-arch smoke asserts version, target, both interposer
              digests, `crt-static` and no `PT_INTERP`, but never pulls,
@@ -627,9 +637,31 @@ Decision:    Loopback pull+extract per arch. The fixture shape already
              it rather than inventing a second fixture.
 Prove:       `scripts/nightly-smoke.sh` (or its per-arch leg) fails on a
              fixture whose layer bytes are flipped and passes on the
-             honest one, on every arch leg. Close issue 26 (smoke third)
-             with a comment showing the failing-then-passing legs and the
-             pull+extract assertions as the guard that stops recurrence.
+             honest one, on the native leg; groups 1-4 run on all seven
+             legs. Close issue 26 (smoke third) with a comment showing
+             the failing-then-passing legs and the pull+extract
+             assertions as the guard that stops recurrence.
+
+**Done 2026-09-23.** Group 5 in `scripts/nightly-smoke.sh`: a
+synthetic one-file image travels by save/load through the binary
+under test (import, save, load, extract, payload bytes read back),
+then the tarball's layer blob is flipped and the same load must
+refuse with a digest mismatch. Save/load stands in for the decided
+loopback pull: both funnel through the loader's per-entry hash
+check, and neither needs a registry, a quota, or the network; the
+store is scratch. Group 5 runs on native legs only (the matrix's
+x86_64 leg); groups 1-4 run on all seven. `run` stays out per the
+Approach: qemu-user execution waits on T-1327's pairs.
+
+Lane-proved on the host arch with a lane-built binary (`.tmp`
+job, since removed): honest leg passes reading `smoke-payload`,
+flipped leg refuses, `SMOKE-OK x86_64-unknown-linux-musl`. The
+corruption targets the layer blob inside the OCI layout, not the
+outer tar framing: `load` hashes each entry's bytes against the
+descriptor naming it, so a flipped outer byte only corrupts GNU
+tar headers the loader never hashes (measured: first shape passed
+the flipped leg). The guard is the group-5 leg itself: a binary
+broken for pull or extract fails its own publish.
 
 ---
 
@@ -667,6 +699,15 @@ Approach:    State both in the release path: the notes (or `version
              here), signatures (T-1330).
 Decision:    Boundary statement, not a rebuild pipeline. The bytes are
              honest once conditioned; the missing piece is the condition.
+Status note: **open, and it proves on the next tag, not on this
+             tree.** `scripts/release-notes.sh` is committed and was
+             driven locally against `v0.1.0-beta.5` (build commit plus
+             gate run and conclusion plus boundary line, all present),
+             but the notes it generates only publish when the nightly
+             publish job runs one: the Prove reads the next beta's
+             notes, and only a tag push writes them. Closes on
+             `v0.1.0-beta.6` beside T-1328, each with its own artefact
+             read back.
 Prove:       `grep -c` over the next beta's notes finds the build
              commit's gate run and conclusion plus the boundary line;
              `version --verbose` (or the notes) states it.

@@ -67,8 +67,9 @@ jobs:
       # crates/podbox-cli/build.rs embeds them; a binary built first embeds
       # two empty placeholders and this job passes with a podbox that
       # interposes nothing. The pair is the x86_64 one on every arch: the
-      # interposer is x86_64-only by design (TODO/interpose.md T-0704), and
-      # on other archs the tier declines by name on the machine mismatch.
+      # interposer is x86_64-only by design (TODO/interpose.md T-1327),
+      # and on other archs the tier declines by name on the machine
+      # mismatch.
       - name: interposer, one object per libc
         run: ./scripts/build-interpose.sh
 
@@ -85,8 +86,9 @@ jobs:
 
       # The per-arch smoke: version runs, the verbose document names this
       # triple, both interposer digests are present, crt-static reads yes,
-      # and no PT_INTERP. The script exits 2 where it could not run, never
-      # as a pass.
+      # and no PT_INTERP. TODO/packaging.md T-1329 extends it with a
+      # loopback pull plus extract asserting payload bytes, so a binary
+      # broken for its actual job cannot publish green.
       - name: smoke
         run: sh scripts/nightly-smoke.sh target/${{ matrix.triple }}/release/podbox ${{ matrix.triple }} ${{ matrix.qemu }}
 
@@ -111,6 +113,7 @@ jobs:
     permissions:
       contents: write
       actions: read
+      id-token: write
     steps:
       # `gh release create` shells out to git for the repository it runs in,
       # so this job checks out too. The first run of this workflow proved the
@@ -129,9 +132,39 @@ jobs:
           for d in podbox-nightly-*/; do mv "$d"* . && rmdir "$d"; done
           ls -l podbox-*
 
+      # Keyless signing at publish, TODO/packaging.md T-1328. No
+      # long-lived key to guard and rotate: the publish job's own OIDC
+      # identity signs, and verification names the workflow identity.
+      # `cosign bundle` per artefact (one blob, one bundle) because the
+      # seven binaries are independent files, not one archive.
+      - name: install cosign
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+      - name: sign the artefacts
+        run: |
+          cd dist
+          for bin in podbox-*; do
+            case "$bin" in
+              *.sigstore | *.sha256) continue ;;
+            esac
+            cosign sign-blob --yes --bundle "$bin.sigstore" "$bin"
+          done
+          ls -l podbox-*
+
       # An existing release for this tag is re-uploaded rather than remade:
       # deleting and recreating a release to publish is a wider action than
       # replacing its files, and the files are this run's own.
+      #
+      # TODO/packaging.md T-1334. The notes carry the build commit's gate
+      # state and the reproducibility boundary, computed here rather than
+      # copied: the gate run is this workflow's own `gate` conclusion on
+      # the tagged commit, and the boundary is T-1004's intra-host claim
+      # with its condition stated. A `grep -c` over the notes finds both.
+      - name: release notes with gate state and boundary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sh scripts/release-notes.sh "${{ github.ref_name }}" > release-notes.txt
+          cat release-notes.txt
       - name: publish
         env:
           GH_TOKEN: ${{ github.token }}
@@ -140,5 +173,5 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" --clobber dist/podbox-*
           else
-            gh release create "$tag" --title nightly --prerelease --notes "Nightly pre-release: all seven claimed archs built as static binaries, each smoke-tested on its own arch (version, both interposer digests, crt-static). The full acceptance stays host-arch. Each binary carries the x86_64 interposer pair, so interposition declines by name off x86_64 until per-arch objects exist (TODO/interpose.md T-0704)." dist/podbox-*
+            gh release create "$tag" --title nightly --prerelease --notes-file release-notes.txt dist/podbox-*
           fi

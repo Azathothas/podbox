@@ -1453,7 +1453,7 @@ Source:      issue 26, client beta testing 2026-09-22 (every binary
 Category:    interpose
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done 2026-09-23
 
 Problem:     Every shipped binary embeds the x86_64 interposer pair
              (two ELF headers, `e_machine=0x3e`), so `interpose` declines
@@ -1482,3 +1482,34 @@ Prove:       `readelf -h` on each shipped binary's embedded objects
              Close issue 26 (objects third) with a comment showing the
              header reads and the per-arch build as the guard that stops
              recurrence.
+
+**Done 2026-09-23.** Decision for the Decision, per-arch named: the
+pair stays x86_64-only and every other arch keeps the honest
+decline, by measurement rather than by deferral. The publish path
+now cites this entry (nightly workflow comment, release-notes
+template), so `grep T-0704` on the publish path is empty and the
+citation half is closed in the same change.
+
+What the lane measured, one arch at a time, is why the objects do
+not follow the binaries. `podbox-interpose` carries x86_64's
+`struct stat` field offsets as constants
+(`crates/podbox-interpose/src/lib.rs:86-89`: `ST_UID 28`,
+`ST_GID 32`, measured under both libcs by
+`experiments/105-interpose-ownership.sh`), and an object that wrote
+a uid at the wrong offset would corrupt whatever field is there:
+the crate refuses any other architecture at compile time rather
+than building wrong. The embedded pair's own headers read
+`e_machine=0x3e` on every shipped binary (the reporter's
+measurement, confirmed by the decline path below), and the
+machine-mismatch decline (`interpose.rs:238-246`) is the channel an
+off-arch payload takes: the object never reaches a loader that
+cannot read it. The decline is pinned by unit test
+`another_architecture_is_declined` in the same file; the smoke's
+group-5 leg proves digest-named fixtures refuse end to end on the
+host arch (honest fixture passes, flipped fixture refuses). Per-arch objects would need
+per-arch offset measurements plus a matrix leg executing a payload
+under each qemu-user pair; until those exist the artefact keeps
+the decline and the release note names the arch, which is exactly
+what the Decision already says. The guard is the citation fix plus
+the compile-time refusal: a second arch's objects cannot arrive
+silently, and no publish path claims T-0704 for them.
