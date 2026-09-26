@@ -27,6 +27,13 @@ pub struct BuildInfo {
     /// Hex sha256 of the embedded glibc interposer object, or `absent`
     /// where `build.rs` embedded the placeholder.
     pub interpose_gnu: &'static str,
+    /// ELF `e_machine` of the embedded glibc object as `0x` hex, or
+    /// `absent` where the placeholder went in (TODO/interpose.md
+    /// T-1327: the smoke asserts the embed per arch).
+    pub interpose_gnu_machine: &'static str,
+    /// ELF `e_machine` of the embedded musl object as `0x` hex, or
+    /// `absent` where the placeholder went in.
+    pub interpose_musl_machine: &'static str,
     /// Hex sha256 of the embedded musl interposer object, or `absent`.
     pub interpose_musl: &'static str,
     /// `yes` where the binary links `crt-static`, else `no`.
@@ -42,7 +49,9 @@ pub fn info() -> BuildInfo {
         rustc: env!("PODBOX_BUILD_RUSTC"),
         target: env!("PODBOX_BUILD_TARGET"),
         interpose_gnu: env!("PODBOX_INTERPOSE_GNU"),
+        interpose_gnu_machine: env!("PODBOX_INTERPOSE_GNU_MACHINE"),
         interpose_musl: env!("PODBOX_INTERPOSE_MUSL"),
+        interpose_musl_machine: env!("PODBOX_INTERPOSE_MUSL_MACHINE"),
         crt_static: env!("PODBOX_BUILD_CRT_STATIC"),
     }
 }
@@ -53,13 +62,15 @@ impl BuildInfo {
     /// name, never by position.
     pub fn render_verbose(&self) -> String {
         format!(
-            "version: {}\ncommit: {}\nrustc: {}\ntarget: {}\ninterpose-gnu: {}\ninterpose-musl: {}\ncrt-static: {}\n",
+            "version: {}\ncommit: {}\nrustc: {}\ntarget: {}\ninterpose-gnu: {}\ninterpose-gnu-machine: {}\ninterpose-musl: {}\ninterpose-musl-machine: {}\ncrt-static: {}\n",
             self.version,
             self.commit,
             self.rustc,
             self.target,
             self.interpose_gnu,
+            self.interpose_gnu_machine,
             self.interpose_musl,
+            self.interpose_musl_machine,
             self.crt_static,
         )
     }
@@ -76,7 +87,9 @@ mod tests {
             rustc: "unknown",
             target: "unknown",
             interpose_gnu: "absent",
+            interpose_gnu_machine: "absent",
             interpose_musl: "absent",
+            interpose_musl_machine: "absent",
             crt_static: "unknown",
         }
     }
@@ -92,7 +105,9 @@ mod tests {
             "rustc",
             "target",
             "interpose-gnu",
+            "interpose-gnu-machine",
             "interpose-musl",
+            "interpose-musl-machine",
             "crt-static",
         ] {
             assert!(

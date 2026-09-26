@@ -1493,7 +1493,7 @@ Source:      issue 26, client beta testing 2026-09-22 (every binary
 Category:    interpose
 Priority:    P2
 Effort:      L
-Status:      partial 2026-09-23
+Status:      done 2026-09-23
 
 Problem:     Every shipped binary embeds the x86_64 interposer pair
              (two ELF headers, `e_machine=0x3e`), so `interpose` declines
@@ -1578,3 +1578,27 @@ reads back the binary's own `e_machine`, with the smoke asserting
 it. Verified 2026-09-25: all seven `v0.1.0-beta.7` assets
 sha256-ok, outer `e_machine` per arch, exactly two embedded
 `0x3e` `ET_DYN` objects in each.
+
+**Done 2026-09-26.** The smoke asserts the embed per arch, and
+the aarch64 leg proves `run` end to end. `build.rs` records each
+embedded object's ELF `e_machine` beside its digest
+(`PODBOX_INTERPOSE_{GNU,MUSL}_MACHINE`), `version --verbose`
+renders the two `interpose-gnu-machine` and
+`interpose-musl-machine` lines, and `nightly-smoke.sh` group 6
+reports outer beside embedded: on x86_64 legs the embeds must
+equal the artefact (a wrong-arch embed fails the smoke), on
+other legs the mismatch is printed and expected, never
+silent. Lane drive: the release binary reports
+`SMOKE-EMBED-MACHINE x86_64-unknown-linux-musl outer=0x3e
+gnu=0x3e musl=0x3e` beside groups 1 through 5 green.
+`experiments/367-qemu-user-aarch64.sh` exits 0
+(`experiments/results/qemu-user-aarch64.txt`): 5 clauses green
+on the KVM base (binfmt aarch64 with qemu-aarch64-static, the
+pinned 3.20 tag pulled with `--platform linux/arm64`, the
+extracted payload reading AArch64, the foreign run exiting 0
+with stderr naming the 0xb7-against-0x3e decline, EnteredRung
+namespace). The per-arch objects stay unbuilt by the Decision
+above; the consequence stands as written (no fallback rung on
+chroot-denied non-x86_64 hosts). Issue 26 needs no action: it
+closed with the objects decision, and this drive is its
+coverage proof on record here.

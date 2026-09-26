@@ -39,6 +39,18 @@ fn hex_digest(bytes: &[u8]) -> String {
     s
 }
 
+/// The ELF `e_machine` of the embedded object bytes, as `0x` hex, or
+/// `absent` where the bytes are no ELF at all. The smoke reports what
+/// the binary embedded, per arch (TODO/interpose.md T-1327): magic at
+/// 0..4, little-endian `e_machine` at 18..20.
+fn machine_of(bytes: &[u8]) -> String {
+    if bytes.len() >= 20 && bytes[0..4] == [0x7f, b'E', b'L', b'F'] {
+        format!("0x{:x}", u16::from_le_bytes([bytes[18], bytes[19]]))
+    } else {
+        "absent".to_string()
+    }
+}
+
 /// The two objects, by the libc they are linked against.
 ///
 /// ⚠ The triples are the ones `scripts/build-interpose.sh` builds by default.
@@ -100,6 +112,17 @@ fn main() {
                 "absent".to_string()
             } else {
                 hex_digest(&bytes)
+            }
+        );
+        // The object's architecture beside its digest (T-1327): the
+        // smoke asserts the embed matches the artefact, per arch.
+        println!(
+            "cargo::rustc-env=PODBOX_INTERPOSE_{}_MACHINE={}",
+            name.to_ascii_uppercase(),
+            if bytes.is_empty() {
+                "absent".to_string()
+            } else {
+                machine_of(&bytes)
             }
         );
     }

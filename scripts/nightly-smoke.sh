@@ -5,7 +5,7 @@
 # Usage: sh scripts/nightly-smoke.sh BINARY TRIPLE [QEMU]
 #
 # BINARY is the release binary for TRIPLE. QEMU names the user-mode emulator
-# that runs it, and is empty where the binary runs natively. Five assertion
+# that runs it, and is empty where the binary runs natively. Six assertion
 # groups, each read from the process that produced it:
 #   1. `version` exits 0 and prints the artefact's version line;
 #   2. `version --verbose` exits 0 and names TRIPLE as its target;
@@ -18,6 +18,11 @@
 #      digest mismatch; the honest one passes. No registry, no quota,
 #      no network. Native legs only: groups 1-4 run on all seven legs,
 #      group 5 where the binary runs natively.
+#   6. the embedded objects' e_machine beside the binary's own
+#      (TODO/interpose.md T-1327): a wrong-arch embed never reads
+#      green. On x86_64 legs the embeds must equal the artefact;
+#      elsewhere the mismatch is printed and expected (the
+#      x86_64-only decline stands), never silent.
 #
 # Exit: 0 the smoke is green, 1 it ran and something failed, 2 it could not run.
 set -u
@@ -76,6 +81,35 @@ if command -v readelf >/dev/null 2>&1; then
 else
   unrun "$TRIPLE: readelf is not installed, so static-ness is unchecked"
 fi
+
+# Group 6, TODO/interpose.md T-1327: the embedded pair's e_machine
+# beside the artefact's own. The verbose document carries what the
+# build embedded; `od` reads what the file holds. A present object
+# with no machine is a build that did not record; an x86_64 artefact
+# embedding anything but 0x3e is the wrong-arch embed this group
+# exists to catch. Off x86_64 the mismatch is the decided decline,
+# printed with both values and expected, never silent.
+command -v od >/dev/null 2>&1 || unrun "$TRIPLE: od is not installed, so e_machine is unchecked"
+OUTER_M="$(od -A n -t x2 -j 18 -N 2 "$BIN" 2>/dev/null | tr -d ' \n' | sed 's/^0*//')" || unrun "$TRIPLE: e_machine unreadable"
+[ -n "$OUTER_M" ] || unrun "$TRIPLE: e_machine unreadable"
+GNU_M="$(line interpose-gnu-machine)"
+MUSL_M="$(line interpose-musl-machine)"
+[ -n "$GNU_M" ] || fail "$TRIPLE: no interpose-gnu-machine line in version --verbose"
+[ -n "$MUSL_M" ] || fail "$TRIPLE: no interpose-musl-machine line in version --verbose"
+echo "SMOKE-EMBED-MACHINE $TRIPLE outer=0x$OUTER_M gnu=$GNU_M musl=$MUSL_M"
+case "$TRIPLE" in
+x86_64-*)
+  [ "$GNU_M" = "0x$OUTER_M" ] || fail "$TRIPLE: gnu embed $GNU_M is not the artefact 0x$OUTER_M"
+  [ "$MUSL_M" = "0x$OUTER_M" ] || fail "$TRIPLE: musl embed $MUSL_M is not the artefact 0x$OUTER_M"
+  ;;
+*)
+  if [ "$GNU_M" = "0x$OUTER_M" ] && [ "$MUSL_M" = "0x$OUTER_M" ]; then
+    echo "SMOKE-EMBED-MACHINE $TRIPLE embeds match the artefact"
+  else
+    echo "SMOKE-EMBED-MACHINE $TRIPLE embeds differ (expected: x86_64-only pair, honest decline stands)"
+  fi
+  ;;
+esac
 
 # Group 5, TODO/packaging.md T-1329: the binary pulls and extracts for
 # its actual job, not only versions. A synthetic one-file image travels
