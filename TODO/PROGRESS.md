@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 2 open, 1 partial, 1 blocked, 164 done. The 2026-09-25
+168 entries: 1 open, 1 partial, 1 blocked, 165 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
