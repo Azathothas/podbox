@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 1 partial, 1 blocked, 163 done. The 2026-09-25
+168 entries: 2 open, 1 partial, 1 blocked, 164 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -309,7 +309,17 @@ a missing parent, the image-shadow boundary pinned, stat
 honest, refusals at 125, musl served with the static opener
 honestly ENOENT, the launcher round trip, and `exec`
 re-serving the record's mapping; `355` exits 0
-beside it. Small batch continues with T-0605.
+beside it. T-0605 needed no work (done 2026-09-25 with T-0801),
+so the small batch is closed. T-1337 closed 2026-09-26 on the
+QOL drive (`364` exits 0, `experiments/results/qol.txt`): 5
+tail clauses, 4 df clauses and 3 doctor clauses green on the
+lane. `logs --tail N` prints the last lines then follows from
+them; `system df` rows stored beside extracted bytes with
+Reclaimable the exact string `image prune` frees (3.7 MiB
+agreement on a digest-pulled dangling alpine); `doctor` exits
+0 with profile tcg and no fix where everything holds, 1
+naming the emulator leg with its fix where QEMU is absent.
+Item 9 continues with T-1339 and T-1338.
 
 ## Operator questions
 

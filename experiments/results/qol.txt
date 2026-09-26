@@ -1,5 +1,5 @@
 == conditions
-date              2026-09-26T09:16:20Z
+date              2026-09-26T10:04:33Z
 host kernel       Linux 7.2.0-WSL2-STABLE
 podbox            podbox 0.1.0-beta.7
 debian            public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
@@ -41,7 +41,7 @@ podbox: complete: created etc/apt/apt.conf.d/99podbox (apt-sandbox, T-0407): APT
 podbox: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from /etc/ssl/certs/ca-certificates.crt
 podbox: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. refused: The scheme only: the mirror this image chose is the mirror podbox uses
 podbox: complete: 14 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. refused: These are edits podbox made inside somebody else's image and the payload can see them
-a1ea7794cecf2250eaa91e065c0485eb71fb08f429efefcd10eca055c947152e
+f46721a6e4e66aab03e002d807a413d632ade9b0ad0cb4d7a741b102e78ad447
 t364a
 0
   ok: --tail 5 prints lines 6 to 10 exactly
@@ -67,7 +67,7 @@ note: this machine would permit `supervise`; podbox's entry sequence is `chroot`
 podbox create: interpose: declined for "/bin/bash": this podbox binary carries no glibc interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
 podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost, the container name t364b
 podbox: complete: 1 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. refused: These are edits podbox made inside somebody else's image and the payload can see them
-4538b7a79ed1519d6a2b11877fd6fbcfabf824e41d02b85b004d0f25aceb52b9
+155d80e18cb64acf320e5d96aa4693a624b300709a96224da6809b19e94effd7
 t364b
 0
   ok: -f --tail 3 prints the last three and exits
@@ -106,5 +106,17 @@ public.ecr.aws/debian/debian           bookworm-slim   160466e67bb8   1 month ag
   ok: system df --bogus refused at 125
   ok: system df --help prints usage at 0
 
-verdict           QOL TAIL+DF SERVED
-== counts: 5 tail clauses, 4 df clauses, fail=0
+== doctor-1. doctor holds with profile tcg and no fix
+  ok: doctor exits 0 with profile tcg
+  ok: doctor reports the kvm node and the ceiling line
+  ok: no fix line where every check holds
+
+== doctor-2. with no emulator on PATH, doctor fails with a fix
+  ok: doctor exits 1 naming the emulator leg with its fix
+
+== doctor-3. a bad doctor flag is a flag error, --help prints usage
+  ok: doctor --bogus refused at 125
+  ok: doctor --help prints usage at 0
+
+verdict           QOL TAIL+DF+DOCTOR SERVED
+== counts: 5 tail clauses, 4 df clauses, 3 doctor clauses, fail=0

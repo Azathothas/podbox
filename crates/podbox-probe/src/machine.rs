@@ -57,7 +57,10 @@ impl Leg {
         }
     }
 
-    fn detail(&self) -> String {
+    /// One leg's verdict in words. Public for `podbox doctor`
+    /// (TODO/cli.md T-1337), which prints the legs: a second renderer
+    /// would drift from this one.
+    pub fn detail(&self) -> String {
         match &self.outcome {
             Some(o) => match (o.verdict, o.errno) {
                 (crate::verdict::Verdict::Ok, _) => format!("{}=ok", self.name),
@@ -137,12 +140,17 @@ impl Assessment {
 /// rows, the constant and every use below together. `assess` carries a
 /// debug assertion on each, so a drift fails fast in tests rather than
 /// assessing the wrong legs.
-const EMU_LEG: &str = "qemu-system-x86_64 --version";
-const KVM_LEG: &str = "open(/dev/kvm, O_RDWR)";
-const FSIZE_LEG: &str = "prlimit(RLIMIT_FSIZE)";
-const TUN_LEG: &str = "open(/dev/net/tun, O_RDWR)";
-const SPACE_LEG: &str = "image space (statfs .)";
-const ACCEL_LEG: &str = "qemu-system-x86_64 -accel help";
+///
+/// ⭐ Public for `podbox doctor` (TODO/cli.md T-1337), which classifies
+/// and remedies by leg: matching its own copies of these strings would
+/// be a second list that drifts, and the one nobody reads is the one
+/// that does.
+pub const EMU_LEG: &str = "qemu-system-x86_64 --version";
+pub const KVM_LEG: &str = "open(/dev/kvm, O_RDWR)";
+pub const FSIZE_LEG: &str = "prlimit(RLIMIT_FSIZE)";
+pub const TUN_LEG: &str = "open(/dev/net/tun, O_RDWR)";
+pub const SPACE_LEG: &str = "image space (statfs .)";
+pub const ACCEL_LEG: &str = "qemu-system-x86_64 -accel help";
 
 /// The accelerator words the emulator listed, read from the leg's reason
 /// (`accelerators: kvm tcg ...`, the shape the accel leg writes). Empty

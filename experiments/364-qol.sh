@@ -21,6 +21,12 @@
 #      and df after reads zero;
 #   df-4. `system df --bogus` is a flag error and `system df --help`
 #      prints usage at 0.
+#   doctor-1. `doctor` exits 0 on the lane with profile tcg, a check
+#      line for the kvm node, the ceiling line, and no fix line;
+#   doctor-2. with no emulator on PATH, `doctor` exits 1 naming the
+#      emulator leg with its fix line;
+#   doctor-3. `doctor --bogus` is a flag error and `doctor --help`
+#      prints usage at 0.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no binary, no pull).
@@ -230,7 +236,61 @@ else
 fi
 
 echo "" >>"$WORK/report"
-if [ "$fail" -eq 0 ]; then echo "verdict           QOL TAIL+DF SERVED" >>"$WORK/report"; else echo "verdict           QOL TAIL+DF OPEN" >>"$WORK/report"; fi
-echo "== counts: 5 tail clauses, 4 df clauses, fail=$fail" >>"$WORK/report"
+echo "== doctor-1. doctor holds with profile tcg and no fix" >>"$WORK/report"
+timeout 120 "$BIN" doctor >"$WORK/doctor.out" 2>"$WORK/doctor.err"
+rc=$?
+if [ "$rc" -eq 0 ] && grep -q "^profile: tcg" "$WORK/doctor.out"; then
+	pass "doctor exits 0 with profile tcg"
+else
+	miss "doctor rc=$rc"
+	cat "$WORK/doctor.out" >>"$WORK/report"
+fi
+if grep -q "^\(note\|ok\) open(/dev/kvm" "$WORK/doctor.out" \
+	&& grep -q "disk free against the file-size ceiling" "$WORK/doctor.out"; then
+	pass "doctor reports the kvm node and the ceiling line"
+else
+	miss "doctor is missing the kvm or ceiling line"
+fi
+if grep -q "^fix:" "$WORK/doctor.out"; then
+	miss "doctor prints a fix where every check holds"
+	cat "$WORK/doctor.out" >>"$WORK/report"
+else
+	pass "no fix line where every check holds"
+fi
+
+echo "" >>"$WORK/report"
+echo "== doctor-2. with no emulator on PATH, doctor fails with a fix" >>"$WORK/report"
+mkdir -p "$WORK/empty" || exit 2
+timeout 120 env "PATH=$WORK/empty" "$BIN" doctor >"$WORK/doctor-nq.out" 2>"$WORK/doctor-nq.err"
+rc=$?
+if [ "$rc" -eq 1 ] \
+	&& grep -q "^fail qemu-system-x86_64 --version" "$WORK/doctor-nq.out" \
+	&& grep -q "^fix: install QEMU" "$WORK/doctor-nq.out"; then
+	pass "doctor exits 1 naming the emulator leg with its fix"
+else
+	miss "doctor without qemu rc=$rc"
+	cat "$WORK/doctor-nq.out" >>"$WORK/report"
+fi
+
+echo "" >>"$WORK/report"
+echo "== doctor-3. a bad doctor flag is a flag error, --help prints usage" >>"$WORK/report"
+timeout 120 "$BIN" doctor --bogus >"$WORK/doctorbogus.out" 2>"$WORK/doctorbogus.err"
+rc=$?
+if [ "$rc" -eq "$FLAG" ]; then
+	pass "doctor --bogus refused at $rc"
+else
+	miss "doctor --bogus rc=$rc (want $FLAG)"
+fi
+timeout 120 "$BIN" doctor --help >"$WORK/doctorhelp.out" 2>"$WORK/doctorhelp.err"
+rc=$?
+if [ "$rc" -eq 0 ] && grep -q "podbox doctor" "$WORK/doctorhelp.out"; then
+	pass "doctor --help prints usage at 0"
+else
+	miss "doctor --help rc=$rc"
+fi
+
+echo "" >>"$WORK/report"
+if [ "$fail" -eq 0 ]; then echo "verdict           QOL TAIL+DF+DOCTOR SERVED" >>"$WORK/report"; else echo "verdict           QOL TAIL+DF+DOCTOR OPEN" >>"$WORK/report"; fi
+echo "== counts: 5 tail clauses, 4 df clauses, 3 doctor clauses, fail=$fail" >>"$WORK/report"
 cp "$WORK/report" "$OUT"
 [ "$fail" -eq 0 ]

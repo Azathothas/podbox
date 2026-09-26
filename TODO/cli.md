@@ -1261,7 +1261,7 @@ Source:      issue 38, beta.7 drive 2026-09-25 (no `doctor`, no `df`,
 Category:    cli
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     Three operator gaps found while driving beta.7. `podbox
              probe` prints the measurement half (legs, verdicts,
@@ -1303,7 +1303,8 @@ Prove:       `podbox doctor` on a kvm-less host exits 1 naming the
              prints the last five lines and `podbox logs` prints all
              lines byte-identical to before.
 
-**Tail, 2026-09-26.** The third verb landed first: `logs --tail N`
+**Done, 2026-09-26.** Three verbs in commit order tail, df,
+doctor. Tail landed first: `logs --tail N`
 (`--tail=N`, both in any position) prints the last N lines of the
 same captured file, byte-identical default untouched, and `-f
 --tail N` prints the tail then follows from the chained offset
@@ -1358,7 +1359,10 @@ release build failed after printing Finished with no error
 captured, and `build-interpose.sh` failed its musl half once
 with no error captured; each went green on the identical tree
 on retry, and all three are recorded here rather than
-explained away. Doctor stays open
+explained away. CI went red on the df commit itself (plant
+27b MISS: the shipped note moved out from under its sed) and
+green on the plant retarget one commit later; the MISS line is
+what T-1202 exists for. Doctor stays open
 below.
 
 ⚠ Citation correction, read at file and line 2026-09-26: the
@@ -1369,3 +1373,33 @@ ok/note/fail, health agreeing with the problem list) - there is
 no `tree/src/bin/` directory. The tree was read at one pass
 ([history/2026-09-11-reference-sweep.md](../docs/history/2026-09-11-reference-sweep.md)),
 so only the shape travels, none of the content.
+
+**Doctor, 2026-09-26.** The first verb landed last:
+`podbox doctor` prints every machine leg as a check line, one
+fix line per failed required leg, and the profile. Required
+legs fail with fixes (install QEMU where the emulator or its
+accelerator list does not answer; the failing call named with
+its errno for the fsize and space legs); kvm and tun missing
+alone are notes (TCG without hardware acceleration,
+user-mode networking); a required leg never measured is
+unmeasured and exits 2 rather than guessing a fix. A final
+check compares the disk free at the store (or `.` with no
+store) against the RLIMIT_FSIZE ceiling read by syscall:
+below it fails with room-freeing fixes, infinity notes, an
+unreadable limit or room notes where the legs already refuse.
+Exits 0, 1, 2 in that precedence. No firmware, helper-tool or
+image-presence checks: the tier boots `-kernel` directly and
+the runtime consumes no helpers, so each would check what
+nothing reads. The leg names and the leg renderer are public
+from `podbox-probe::machine` rather than copied, so the
+wording cannot drift. Top-level parity row with its `-h` row.
+Prove through the shipped binary (`experiments/364-qol.sh`
+doctor clauses, exit 0, `experiments/results/qol.txt`): exit
+0 with profile tcg on the kvm-less lane, the kvm line and the
+ceiling line present with no fix; PATH stripped of the
+emulator exits 1 naming the emulator leg with its install-QEMU
+fix; `--bogus` at 125, `--help` at 0. Unit-pinned: health
+agrees with the problem list (fail carries exactly one fix,
+unmeasured outranks failed), help and bad flags need no probe.
+With all three verbs driven and 364 fully green, issue 38
+closes below.

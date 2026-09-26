@@ -16,6 +16,7 @@
 
 mod complete;
 mod diagnose;
+mod doctor;
 mod exec;
 mod format;
 mod images;
@@ -51,6 +52,7 @@ usage: podbox <command> [options]
   exec         run a command in an already extracted image. refused: A FRESH CHROOT,
                sharing only the filesystem, never a namespace entry
   probe        report what this machine permits, and the rung podbox selects
+  doctor       check what this machine can run, with one fix line per missing piece
   man          render this manual from the binary's own usage strings
   pull         fetch an image into the content-addressed store
   save         write one image as an OCI-layout tarball
@@ -142,6 +144,7 @@ fn main() -> std::process::ExitCode {
         Some("start") => exit(lifecycle::start(rest)),
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
+        Some("doctor") => exit(doctor::doctor("doctor", rest)),
         Some("man") => exit(man::man(rest)),
         Some("pull") => exit(images::pull("pull", rest)),
         Some("save") => exit(images::save("save", rest)),
