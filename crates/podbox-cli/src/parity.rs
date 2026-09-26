@@ -438,6 +438,19 @@ pub const TABLE: &[Row] = &[
     Row { verb: "probe", flag: Some("--strict"), status: Native, note: "exit non-zero below the namespace rung, so a caller gates without parsing" },
     Row { verb: "probe", flag: Some("--cached"), status: Native, note: "serve $store/probe.json where its key still holds" },
     Row { verb: "probe", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    // ⭐ TODO/milestones.md T-1112. The one verb with no docker equivalent
+    // at all: a disposable Windows guest, which is a disk image rather than
+    // an OCI rootfs, so it is stated separately instead of folded into `run`.
+    Row { verb: "windows", flag: Option::None, status: Native, note: "podbox's own verb, with no docker equivalent: doctor, fetch, setup and run for a disposable Windows guest booted under the machine tier's own profile. The guest is a disk image and the command is one cmd.exe line" },
+    Row { verb: "windows", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "windows", flag: Some("--image"), status: Native, note: "the Windows disk image to boot, or for fetch the path to write the download to; a path, not a registry reference" },
+    Row { verb: "windows", flag: Some("--url"), status: Native, note: "fetch: the base image to download; nothing is fetched unless this names an origin and no Windows image is ever redistributed" },
+    Row { verb: "windows", flag: Some("--sha256"), status: Native, note: "fetch: the pinned digest; without it the download is bounded but unverified, and a mismatch removes the file rather than keeping it" },
+    Row { verb: "windows", flag: Some("--max-bytes"), status: Native, note: "fetch: the download ceiling, never above RLIMIT_FSIZE; judged against the declared length before the transfer and against the arriving bytes during it" },
+    Row { verb: "windows", flag: Some("--podbox-mem"), status: Native, note: "guest memory, judged against RLIMIT_FSIZE as the machine tier judges its own (T-1305)" },
+    Row { verb: "windows", flag: Some("--podbox-cpus"), status: Native, note: "guest cpus" },
+    Row { verb: "windows", flag: Some("--podbox-timeout"), status: Native, note: "how long a run may take before the guest is stopped; a timeout is a refusal, never an empty success" },
+    Row { verb: "windows", flag: Some("--podbox-qemu-arg"), status: Native, note: "one extra emulator argument, appended last so a caller can override a default the driver set" },
     // ------------------------------------------------ the lifecycle's flags
     Row { verb: "ps", flag: Some("-a, --all"), status: Native, note: "list containers that are not running too" },
     Row { verb: "ps", flag: Some("-q, --quiet"), status: Native, note: "ids only" },

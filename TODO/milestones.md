@@ -848,7 +848,8 @@ Source:      `https://github.com/carlbomsdata/winquick`; [podvm.md](podvm.md)
 Category:    milestones
 Priority:    P3
 Effort:      L
-Status:      blocked 2026-09-26
+Status:      partial 2026-09-26 (the guest arm runs under `tcg`; the `kvm` arm
+             and a full-toolchain build of the CLI remain unverified)
 
 Problem:     podbox turns an OCI reference into a process. Every rung it has
              assumes the payload is Linux, because every rung except the machine
@@ -969,3 +970,164 @@ and no licensed Windows image is installed anywhere (one is
 never fetched or committed here). What unblocks: a KVM host
 with the image installed under the accept-terms gate the entry
 names. The entry stays partial on that blocker.
+
+**Guest arm landed 2026-09-26, under TCG, in the authoring
+sandbox.** New crate `crates/podbox-windows`: `fat16.rs` (an
+MBR-partitioned 16 MiB FAT16 volume built and read in process,
+so the driver does not shell out to `mkfs.fat` or `mtools`),
+`agent.rs` (the two `cmd.exe` scripts and the mailbox protocol),
+`plan.rs` (the emulator argv, and the accelerator taken from the
+machine tier's own `Profile` so `tcg` is run rather than
+refused), and `lib.rs` (`mailbox`, `outcome`, `stage`, `run`,
+`provision`). New CLI surface `podbox windows
+doctor|setup|run` in `crates/podbox-cli/src/windows/mod.rs`,
+wired from `main.rs`, with parity rows and a `docs/code-map.md` row.
+`lifecycle::ensure_linux_guest` still refuses a non-Linux guest
+on the OCI path, but now routes it by name through
+`lifecycle::guest_verb` to `podbox windows run` instead of
+claiming no support exists. `prove` is met in spirit by that
+verb rather than by `run --platform windows/amd64`, because a
+Windows guest is a disk image and not an OCI rootfs.
+
+What the reference's shape could not be ported as written, each
+measured against the real image and each the reason for a
+divergence: `cmd.exe` `AutoRun` does not fire for the shell
+Validation OS starts; a `Run`/`RunOnce` value does not either,
+because that logon never reaches `userinit.exe`'s `Run`
+processing; `sc create` with a `cmd.exe` image starts the script
+and is then terminated by the service control manager once the
+process fails to report `SERVICE_RUNNING`, and raising
+`ServicesPipeTimeout` to 900000 did not save it; an `onstart`
+scheduled task as `SYSTEM` does fire, so that is the autostart.
+`mountvol /P` strips the volume's drive letter from the mount
+manager's persistent database, so the reference's dismount made
+every later boot unable to find the mailbox; the agent no longer
+dismounts, and it probes D through Z rather than a fixed letter.
+
+Verified against the real guest under `tcg` on 2026-09-26, both
+halves from the crate's own code path: `provision` booted a
+fresh overlay, typed the installer through the emulator monitor
+(`SETUP.TXT` = `INSTALLED D:`), and the guest powered itself off
+so its FAT writes were flushed before the read; then `run` over
+the provisioned image, in a fresh disposable overlay, returned
+`Microsoft Windows [Version 10.0.26100.9278]`, the command's own
+output, an empty stderr, exit code 0 and the matching token in a
+28-second boot. `cargo test -p podbox-windows --lib` is 32
+passed, run in the sandbox. Four defects were found by review
+and fixed, each with a test: an argv-shaped command that quoted
+a whole line into one token (`cmd.exe` refused with exit 123,
+which the real guest reproduced); a base-image format taken from
+the extension, so `.img` would have been passed as `-F img`; a
+provisioning boot killed before the guest had flushed `SETUP.TXT`;
+and a provisioning install written into a scratch overlay that
+`run` then discarded.
+
+⚠ **What this sandbox could not verify, named rather than
+implied.** The workspace was not compiled: `cargo check -p
+podbox-cli` does not fit in the only directories this sandbox may
+execute from (the dependency graph exhausted a 245 MB tmpfs while
+still building proc macros), and the shipping target needs `zig`
+for `ring`. So the five edited `podbox-cli` files are reviewed
+and not compiled here, and `podbox windows doctor|setup|run` has
+not been run as a verb. Every claim above is about the
+`podbox-windows` crate, which does compile and whose tests do
+run. The `kvm` arm of `accel_for` is unit-tested and was not
+exercised: no reachable machine has `/dev/kvm`. No licensed image
+is fetched, committed or redistributed: the base image existed in
+the sandbox already and is not in the tree. Remaining: compile the
+CLI on a machine with the full toolchain, run the verb, and take
+the `kvm` arm on a KVM host.
+
+**Second landing, 2026-09-26, after review against the reference's own
+sibling effort (PR 63).** ⛔ The two efforts answered the same entry in
+different currencies and the entry is only satisfied by both: PR 63 ran
+FreeDOS under `tcg` — no licensed image, a lane-runnable experiment, QMP,
+a bounded and checksummed acquisition, an entropy nonce, exit-code
+capping, a per-run mode-0700 directory, and a `run`-shaped seam — while
+this branch ran a real Windows guest but had none of that discipline and
+left `run --platform windows/amd64` unreachable. What was taken from each:
+
+- ⭐ **The command now reaches the driver from `run` itself.**
+  `crates/podbox-cli/src/windows/mod.rs` exposes `should_drive(verb,
+  detach, machine, os)` and `run_windows(...)`, and `run.rs` `prepare`
+  calls them after `platform_and_policy` and **before**
+  `ensure_linux_guest`. So `podbox run --podbox-tier=machine --platform
+  windows/amd64 IMAGE cmd /c ver` boots the guest and returns its own
+  status, which is `Prove` above in its own words, and every other
+  non-Linux platform keeps the by-name refusal the first landing put
+  there. `should_drive` is a value with a test, not a sentence buried in
+  an `eprintln!`: detached `run`, `create`, `exec`, `pull`, the chroot
+  tier and every non-Windows `os` all answer `false`, each for its own
+  reason.
+- ⭐ **QMP replaces HMP.** `crates/podbox-windows/src/qmp.rs` is a small
+  request/response client, built by formatting because the three requests
+  this driver ever sends — `qmp_capabilities`, `send-key`, `quit` — have
+  bodies drawn from a closed set, so no JSON dependency is bought to
+  inspect three strings. HMP's `sendkey` was the first landing's choice
+  and it is a debug console: a refusal is a printed sentence, and an
+  unreadable one is indistinguishable from success. `-qmp
+  unix:...,server=on,wait=off` replaces `-monitor`. ⚠ `send-key` now
+  carries `hold-time` (30 ms) so the release is a property of the request
+  rather than of the host's typing pace.
+- ⭐ **Acquisition exists at all, and is bounded and verified.**
+  `crates/podbox-windows/src/fetch.rs` owns the policy — a `Ceiling` of
+  `--max-bytes` and `RLIMIT_FSIZE`, a refusal before any byte for a
+  declared length over it, a refusal as the bytes arrive for an undeclared
+  or lying origin, a sha256 pin, and removal of the partial file on either
+  refusal — and takes a `Read`, so every one of those refusals is tested
+  with no network. `podbox windows fetch --url ... [--sha256 ...]
+  [--max-bytes ...]` is the thin `ureq` caller, at the version the
+  workspace already locks through `podbox-image`, so no new crate enters
+  the tree. `podbox windows setup` still takes `--image`; a base image is
+  never committed or redistributed.
+- ⭐ **The verb is now a module directory,
+  `crates/podbox-cli/src/windows/`, split into
+  `{mod,args,plan,doctor,setup,run}.rs`.**
+  The file had passed 400 lines and its four questions had started
+  sharing locals: the paths, the flags, the acquisition and the run had
+  grown into each other, and a reader could no longer tell which of them
+  created the per-run directory. Each module now owns one question, and
+  `plan::accelerator` is shared with `doctor` so the diagnostic cannot
+  answer green where the driver refuses.
+
+Verified after the merge, from the crate's own code path and against the
+same real guest: `cargo test -p podbox-windows --lib` is **43 passed**;
+`provision` through the new QMP console typing is `PROVISIONED in 211s:
+"INSTALLED D:"`; `stage`+`run` over the provisioned image is `EXIT 0
+token true in 29s` with stdout `Microsoft Windows [Version
+10.0.26100.9278]` plus the payload and an empty stderr; a failing command
+returns the guest's own `EXIT 42`; and a wrong token read against that
+completed mailbox is refused naming both tokens, which is the
+anti-replay rule checked against a real guest-written result rather than
+a fixture. `experiments/364-windows-guest.sh` is the lane drive for the
+parts a lane can run, and `experiments/results/windows-guest.txt` records
+the guest half with its harness named. Reviewing the merged code found five
+defects, each fixed with a test: a QMP event line arriving between requests
+was read as the response to the request just sent, desynchronising the
+connection and pressing keys against the wrong reply; a stale `qmp.sock` made
+the emulator refuse to bind, stopping the boot with an error about the
+monitor rather than the guest; two concurrent `fetch` calls shared one
+`dest.part`, so their writes interleaved into a file whose digest matched
+nothing; `--image` naming a path that did not exist fell back to the cached
+base image, so a typo booted a *different* guest and reported *its* output as
+the named image's; and a run's per-run directory was never removed, about a
+hundred megabytes each, which is how the two runs that timed out earlier in
+this record had filled the tmpfs. The guest half was re-measured after those
+fixes, including an output of 7.6 KB that crosses the 4 KiB cluster, written
+by the guest and read back whole.
+
+⚠ **What is still not verified, named rather than implied.** The
+`podbox` binary itself is still not built here — the dependency graph
+exhausts the sandbox's 245 MB executable budget and the shipping target
+needs `zig` for `ring` — so `podbox windows doctor|setup|run` and `run
+--platform windows/amd64` have **not been run as verbs**, and no clause of
+`364-` that needs the binary has run anywhere. What closed part of that
+gap: the CLI module tree is now **compiled and its own tests executed**,
+through a stub harness (a five-constant `podbox_image`, a `ureq` stub
+carrying the pinned 2.12.1 signatures, the real `tier.rs`) — the tree
+type-checks with no error and `ok. 14 passed; 0 failed` for the `windows::`
+tests. That proves the CLI compiles and its tests pass; it does not prove
+the binary linking it works. The `kvm` arm of `accel_for` is still
+unit-tested only: no reachable machine has `/dev/kvm`. No licensed image
+is fetched, committed or redistributed. `rustfmt` and `clippy` are not
+installed in this toolchain, so the fmt gate was not run.

@@ -6,6 +6,67 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-26T08:30:00Z: the Windows guest is merged with the reference's own effort (T-1112)
+
+**Record:** [`TODO/milestones.md`](TODO/milestones.md) T-1112. No version
+bump and no deployment.
+
+Reviewing this branch against PR 63 — an independent answer to the same
+entry, running FreeDOS under `tcg` — showed the two had complementary
+halves. This one booted a real Windows guest but left the entry's own
+acceptance command unreachable; that one had the engineering discipline
+and no guest. Both halves are now in one place.
+
+The `podbox windows` verb is now a module directory,
+`crates/podbox-cli/src/windows/`, split into
+`{mod,args,plan,doctor,setup,run}.rs`, one module per question.
+`run.rs` now reaches the driver through `windows::should_drive` and
+`windows::run_windows` before the OCI path's platform gate, so
+`podbox run --podbox-tier=machine --platform windows/amd64 IMAGE cmd /c ver`
+boots the guest and returns its own status, which is what T-1112's
+`Prove` asks for. The emulator monitor is QMP rather than HMP, so a
+refusal is a response and not a sentence on a debug console, and
+`send-key` carries an explicit `hold-time`.
+
+`podbox-windows` gains `fetch.rs`: a bounded, checksummed, all-or-nothing
+base-image acquisition, whose refusals (declared length, arriving bytes,
+digest) are tested against a `Read` with no network, driven by
+`podbox windows fetch`. New `qmp.rs` and a `/dev/urandom` run token. 43
+crate tests pass; the CLI module tree compiles and its 14 tests pass
+under a stub harness, which is the first time any of the CLI has been
+compiled in this work.
+
+Verified against a real Validation OS guest under `tcg` from the crate's
+own code path: provisioning through QMP console typing
+(`PROVISIONED in 211s: "INSTALLED D:"`), then `stage`+`run` in 29 s
+returning the version banner, the command's output and exit code 0 with
+the matching token, a failing command returning the guest's own 42, and a
+wrong token refused naming both. `experiments/364-windows-guest.sh` is
+the lane drive; `experiments/results/windows-guest.txt` records what was
+measured and names the clauses that could not run because no `podbox`
+binary can be built in the authoring sandbox.
+
+### 2026-09-26T07:40:00Z: the machine tier gains a disposable Windows guest (T-1112)
+
+**Record:** [`TODO/milestones.md`](TODO/milestones.md) T-1112. No version
+bump and no deployment.
+
+T-1112 was blocked because the reference implementation refuses TCG and
+the lane has no `/dev/kvm`. The new `podbox-windows` crate ports the
+shape without the refusal: one emulator child process, UEFI firmware, a
+per-run qcow2 overlay over a read-only base image, an MBR-partitioned
+FAT16 mailbox the host and guest both see, and a `cmd.exe` agent
+installed once as an `onstart` scheduled task. The accelerator is the
+machine tier's own profile, so `tcg` runs where `kvm` is missing.
+`podbox windows doctor|setup|run` is the surface; the OCI path's refusal
+for a non-Linux guest now names that verb instead of claiming no support
+exists. The mailbox is built and read in process, not through `mkfs.fat`
+or `mtools`. Verified end to end against a Validation OS guest under
+`tcg`: provisioning, autostart, stdout, stderr, exit code and power-off,
+in a fresh disposable overlay per run. The full workspace build was not
+run in the authoring sandbox; see the entry for what that leaves
+unverified.
+
 ### 2026-09-25T11:29:10Z: triage of twenty-two open issues, three entries opened, PR 9 merged
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no

@@ -11,6 +11,7 @@
 | `crates/podbox-complete` | Device shims, account files, package-manager repairs, DNS, hosts, and CA completion |
 | `crates/podbox-enter` | Root change, executable resolution, terminal setup, ABI handling, and foreign interpreters |
 | `crates/podbox-supervise` | Launcher records, logs, pidfds, signals, and lifecycle state |
+| `crates/podbox-windows` | The disposable Windows guest: `fat16.rs` builds and reads the mailbox in process, `agent.rs` holds the two `cmd.exe` scripts and the protocol, `qmp.rs` speaks to the emulator's monitor, `fetch.rs` bounds and verifies a base image, `plan.rs` builds the argv, `lib.rs` drives provisioning and a run |
 | `crates/podbox-interpose` | Separate dependency-free glibc/musl preload object for ownership compatibility |
 
 `podbox-interpose` is intentionally excluded from the workspace because it is
@@ -25,6 +26,7 @@ objects.
 | `scripts/session-start.sh` | The one command a session runs first: machine, UTC instant, tools, lane, then that lane's setup |
 | `scripts/dev.sh` | Fast local build and complete contributor check |
 | `scripts/windows/run-in-base.sh` | The Windows half of `dev.sh`: one Linux job in a disposable container inside `wsl-toolkit-podbox` |
+| `crates/podbox-cli/src/windows/` | The `podbox windows` verb, one module per question: `args` the flag surface, `plan` the paths and the accelerator, `doctor` the report, `setup` acquisition and the one provisioning boot, `run` the boot whose exit status is the guest's, `mod` the dispatch and the `run` seam |
 | `scripts/common/restore-modes.sh` | Executable-bit repair, read from the git index, for a tree copied off a filesystem with no mode bit |
 | `scripts/check-todo.py` | Independent TODO, citation, corpus, and gate consistency reader |
 | `scripts/todo-count.py` | TODO status writer and count derivation |

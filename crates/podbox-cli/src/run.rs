@@ -778,6 +778,29 @@ pub(crate) fn prepare(
         &o.insecure,
         o.tls_verify,
     )?;
+    // ⭐ TODO/milestones.md T-1112. A Windows guest on the machine tier is
+    // the one platform where the OCI path below has nothing to do: the
+    // positional is a disk image, the accelerator comes from the same probe
+    // that chose the tier, and the result is the guest's own stdout, stderr
+    // and exit code. So it takes the driver's door — the very invocation the
+    // entry writes down, `run --podbox-tier=machine --platform windows/amd64`
+    // — ahead of the OS gate, which is the refusal for every *other*
+    // non-Linux platform.
+    if crate::windows::should_drive(
+        verb,
+        o.detach,
+        tier.tier == crate::tier::Tier::Machine,
+        &platform.os,
+    ) {
+        return Err(crate::windows::run_windows(
+            verb,
+            o.mem,
+            &platform.arch,
+            o.image.as_deref().unwrap_or_default(),
+            &o.command,
+            &o.qemu_args,
+        ));
+    }
     // ⭐ TODO/milestones.md T-1112. The OS gate sits before the tier
     // dispatch and the fetch: a platform no tier can enter refuses
     // naming it, rather than reaching the machine tier's leg refusal

@@ -26,3 +26,14 @@ podbox-extract = { path = "../podbox-extract" }
 podbox-complete = { path = "../podbox-complete" }
 podbox-enter = { path = "../podbox-enter" }
 podbox-supervise = { path = "../podbox-supervise" }
+# ⭐ TODO/milestones.md T-1112. The disposable Windows guest. Its own crate
+# because the whole guest side is `cmd.exe` and a FAT mailbox and none of it
+# shares a line with the OCI path.
+podbox-windows = { path = "../podbox-windows" }
+
+# ⚠ TODO/deps.md T-0911's rule and the same case as the line above: the
+# acquisition path in `windows/setup.rs` needs an HTTP client, and `ureq` is
+# already in the resolve graph at exactly this version because `podbox-image`
+# pulls OCI blobs with it. Reusing the workspace's lock rather than adding a
+# second HTTP stack, and adding no crate that was not already being built.
+ureq.workspace = true
