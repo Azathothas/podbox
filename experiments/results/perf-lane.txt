@@ -1,0 +1,131 @@
+== conditions
+date              2026-09-26T13:59:43Z
+shape             lane
+commit            0727a6c
+host              Linux 7.2.0-WSL2-STABLE x86_64
+kernel            7.2.0-WSL2-STABLE
+arch              x86_64
+io backing        /dev/sdd/ext4
+podbox            podbox 0.1.0-beta.7
+qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
+debian            public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+alpine            public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel pin        https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
+link shape        loopback (registry via local mirror or direct; 190 covers latency-bound)
+guest poll        0.1 s console poll for READY/DONE markers
+== rows: commit host kernel arch shape metric cond value unit state
+
+== pulls (cold store)
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	pull.tag.cold	loopback	4.347	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	pull.tag.cold.rss	loopback	30288	kB peak	ok
+  ok: pull.tag.cold [loopback] 4.347s wall, 30288kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	pull.digest.cold	loopback	3.358	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	pull.digest.cold.rss	loopback	3180	kB peak	ok
+  ok: pull.digest.cold [loopback] 3.358s wall, 3180kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	probe.cold	loopback	0.048	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	probe.cold.rss	loopback	30084	kB peak	ok
+  ok: probe.cold [loopback] 0.048s wall, 30084kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	extract.cold	loopback	0.966	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	extract.cold.rss	loopback	2752	kB peak	ok
+  ok: extract.cold [loopback] 0.966s wall, 2752kB peak
+
+== payload runs: three runs across the drive, named by order
+  (early runs read ~2 s, the late one ~0.08 s; the decay is
+  recorded, not explained - consistent with cold file caches,
+  not isolated: TODO/gate.md T-1340)
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	run.first	loopback	1.820	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	run.first.rss	loopback	30356	kB peak	ok
+  ok: run.first [loopback] 1.820s wall, 30356kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	run.repeat	loopback	1.868	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	run.repeat.rss	loopback	30336	kB peak	ok
+  ok: run.repeat [loopback] 1.868s wall, 30336kB peak
+
+== lifecycle verbs (sleep payload, so stop meets it alive)
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	create	loopback	1.826	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	create.rss	loopback	30220	kB peak	ok
+  ok: create [loopback] 1.826s wall, 30220kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	start	loopback	0.088	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	start.rss	loopback	30060	kB peak	ok
+  ok: start [loopback] 0.088s wall, 30060kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	exec	loopback	0.054	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	exec.rss	loopback	30288	kB peak	ok
+  ok: exec [loopback] 0.054s wall, 30288kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	stop	loopback	0.003	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	stop.rss	loopback	1888	kB peak	ok
+  ok: stop [loopback] 0.003s wall, 1888kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	logs	loopback	0.002	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	logs.rss	loopback	2088	kB peak	ok
+  ok: logs [loopback] 0.002s wall, 2088kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	ps	loopback	0.002	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	ps.rss	loopback	2088	kB peak	ok
+  ok: ps [loopback] 0.002s wall, 2088kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	rm	loopback	0.002	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	rm.rss	loopback	1888	kB peak	ok
+  ok: rm [loopback] 0.002s wall, 1888kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	run.late	loopback	0.084	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	run.late.rss	loopback	30060	kB peak	ok
+  ok: run.late [loopback] 0.084s wall, 30060kB peak
+
+== data verbs
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	cp	loopback	0.949	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	cp.rss	loopback	2400	kB peak	ok
+  ok: cp [loopback] 0.949s wall, 2400kB peak
+  ok: cp landed 43856 bytes
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	save	loopback	0.043	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	save.rss	loopback	29600	kB peak	ok
+  ok: save [loopback] 0.043s wall, 29600kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	load	loopback	0.046	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	load.rss	loopback	2080	kB peak	ok
+  ok: load [loopback] 0.046s wall, 2080kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	prune	loopback	0.005	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	prune.rss	loopback	2080	kB peak	ok
+  ok: prune [loopback] 0.005s wall, 2080kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	man	loopback	0.002	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	man.rss	loopback	1888	kB peak	ok
+  ok: man [loopback] 0.002s wall, 1888kB peak
+
+== ladder rungs (forced; a 125 refusal is the rung's honest answer, not a time)
+Loaded image: docker.io/library/perfstatic:1
+  note: static fixture imported as perfstatic:1
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	rung.rundir	loopback	2.564	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	rung.rundir.rss	loopback	29872	kB peak	ok
+  ok: rung rundir enters: 2.564s wall, 29872kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	rung.cache	loopback	1.970	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	rung.cache.rss	loopback	30152	kB peak	ok
+  ok: rung cache enters: 1.970s wall, 30152kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	rung.memfd	loopback	0.072	s wall	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	rung.memfd.rss	loopback	30116	kB peak	ok
+  ok: rung memfd enters: 0.072s wall, 30116kB peak
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	rung.tmpfs	loopback	-	s wall	refused
+  note: forced tmpfs rung refuses at 125 here (m.err head)
+a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
+podbox: 10 of 4224 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep360-work-lane/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	rung.fuse	loopback	-	s wall	refused
+  note: forced fuse rung refuses at 125 here (m.err head)
+a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
+podbox: 10 of 4224 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep360-work-lane/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+
+== binary size (read off the artefact, not its self-report)
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	size.bytes	release-musl	3769272	B	ok
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	size.interp	release-musl	0	present	ok
+  ok: binary 3769272 bytes, PT_INTERP row recorded
+
+== guest boot and command (qemu-direct, the emulator path the machine tier will use)
+sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764: Pulling from docker/library/alpine
+53f8f5e03afd: Pull complete
+Digest: sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+Status: Downloaded newer image for public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+/work/experiments/.sweep360-work-lane/vmlinuz-virt: OK
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	guest.tcg.boot	tcg	1.861	s wall	ok
+  ok: guest tcg boot 1.861s to READY
+0727a6c	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	guest.tcg.cmd	tcg	0.000	s wall	ok
+  ok: guest tcg command under one 0.1 s poll tick
+
+verdict           PERF lane SERVED
+== counts: fail=0 ( )

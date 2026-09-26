@@ -1,0 +1,63 @@
+# Perf budgets T-1338 holds the committed readings against. Columns:
+# metric, unit, ceiling, tolerance. A reading compares only where its
+# state is ok and its metric names a row here; failed and
+# could-not-run rows are their own state and never compare.
+# Rule for the numbers: about twice the observed lane maximum,
+# rounded to a round figure, tolerance 0.10 everywhere. The binary
+# size ceiling repeats experiments/110-bloat-delta.sh CEILING_BYTES
+# (8,000,000) rather than declaring a second budget for the same bytes.
+pull.tag.cold	s wall	12	0.10
+pull.tag.cold.rss	kB peak	65536	0.10
+pull.digest.cold	s wall	8	0.10
+pull.digest.cold.rss	kB peak	65536	0.10
+probe.cold	s wall	0.5	0.10
+probe.cold.rss	kB peak	65536	0.10
+extract.cold	s wall	4	0.10
+extract.cold.rss	kB peak	16384	0.10
+run.first	s wall	5	0.10
+run.first.rss	kB peak	65536	0.10
+run.repeat	s wall	5	0.10
+run.repeat.rss	kB peak	65536	0.10
+create	s wall	6	0.10
+create.rss	kB peak	65536	0.10
+start	s wall	1	0.10
+start.rss	kB peak	65536	0.10
+exec	s wall	1	0.10
+exec.rss	kB peak	65536	0.10
+stop	s wall	0.5	0.10
+stop.rss	kB peak	16384	0.10
+logs	s wall	0.5	0.10
+logs.rss	kB peak	16384	0.10
+ps	s wall	0.5	0.10
+ps.rss	kB peak	16384	0.10
+rm	s wall	0.5	0.10
+rm.rss	kB peak	16384	0.10
+run.late	s wall	5	0.10
+run.late.rss	kB peak	65536	0.10
+cp	s wall	4	0.10
+cp.rss	kB peak	16384	0.10
+save	s wall	1	0.10
+save.rss	kB peak	65536	0.10
+load	s wall	2	0.10
+load.rss	kB peak	16384	0.10
+prune	s wall	0.5	0.10
+prune.rss	kB peak	16384	0.10
+man	s wall	0.5	0.10
+man.rss	kB peak	16384	0.10
+rung.rundir	s wall	6	0.10
+rung.rundir.rss	kB peak	65536	0.10
+rung.cache	s wall	5	0.10
+rung.cache.rss	kB peak	65536	0.10
+rung.memfd	s wall	1	0.10
+rung.memfd.rss	kB peak	65536	0.10
+size.bytes	B	8000000	0
+size.interp	present	0	0
+guest.tcg.boot	s wall	30	0.10
+guest.tcg.cmd	s wall	5	0.10
+guest.kvm.boot	s wall	30	0.10
+guest.kvm.cmd	s wall	5	0.10
+pull.pool.share	ratio	0.7	0.10
+guest.workload.int.ratio	ratio	10	0.10
+guest.workload.sys.ratio	ratio	14	0.10
+guest.workload.mem.ratio	ratio	2	0.10
+guest.workload.io.ratio	ratio	7	0.10

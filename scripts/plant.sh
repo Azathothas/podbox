@@ -46,7 +46,7 @@ command -v git >/dev/null 2>&1 || { echo "SKIP: no git" >&2; exit 2; }
 
 # ⛔ GUARD 3: ONE LIST. Everything any case may touch is named here once, and
 # both the backup and the restore iterate this and nothing else.
-FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/enter.md TODO/RULES.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs crates/podbox-cli/src/parity.rs crates/podbox-cli/src/run.rs scripts/build-interpose.sh scripts/dev.sh"
+FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/enter.md TODO/RULES.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt experiments/360-perf-harness.sh experiments/perf-ceilings.tsv experiments/results/perf-lane.txt experiments/results/perf-seeds.tsv .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs crates/podbox-cli/src/parity.rs crates/podbox-cli/src/run.rs scripts/build-interpose.sh scripts/dev.sh"
 
 # ⛔ CHECK 18'S SUBJECT IS A NUMBER THAT IS ALREADY TAKEN, so writing one here
 # literally would put a second name on it in this very file and make the clean
@@ -449,6 +449,13 @@ case_plant "28 a glyph in a printed string" "prints U+26D4" \
 # session that silently drops the cleanup rule.
 case_plant "29 a dropped cleanup procedure" "post-task cleanup procedure" \
   sh -c 'sed -i "s/Post-task cleanup, after every task/Post-task cleanup, someday/" TODO/RULES.md'
+
+# ⛔ CHECK 30, and the plant inflates one committed reading past its
+# budget. The anchor is the run.steady ok row in the lane results: the
+# value field is rewritten to 99999 seconds, and the holding check must
+# go red naming the metric with its own regression message.
+case_plant "30 a perf reading over its ceiling" "perf regression" \
+  sh -c 'sed -i "s/\(run\.repeat\tloopback\t\)[0-9.]*/\199999.0/" experiments/results/perf-lane.txt'
 
 echo
 # ⛔ SAY WHAT IS NOT COVERED. A harness that lists passing cases without naming

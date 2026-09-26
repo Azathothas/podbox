@@ -1,0 +1,136 @@
+== conditions
+date              2026-09-26T14:46:17Z
+shape             kvm
+commit            unknown
+host              Linux 7.2.0-WSL2-STABLE x86_64
+kernel            7.2.0-WSL2-STABLE
+arch              x86_64
+io backing        /dev/sdd/ext4
+podbox            podbox 0.1.0-beta.7
+qemu              QEMU emulator version 11.1.1
+debian            public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+alpine            public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel pin        https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
+link shape        loopback (registry via local mirror or direct; 190 covers latency-bound)
+guest poll        0.1 s console poll for READY/DONE markers
+== rows: commit host kernel arch shape metric cond value unit state
+
+== pulls (cold store)
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	pull.tag.cold	loopback	8.021	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	pull.tag.cold.rss	loopback	30804	kB peak	ok
+  ok: pull.tag.cold [loopback] 8.021s wall, 30804kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	pull.digest.cold	loopback	3.642	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	pull.digest.cold.rss	loopback	3580	kB peak	ok
+  ok: pull.digest.cold [loopback] 3.642s wall, 3580kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	probe.cold	loopback	0.052	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	probe.cold.rss	loopback	31032	kB peak	ok
+  ok: probe.cold [loopback] 0.052s wall, 31032kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	extract.cold	loopback	1.023	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	extract.cold.rss	loopback	3584	kB peak	ok
+  ok: extract.cold [loopback] 1.023s wall, 3584kB peak
+
+== payload runs: three runs across the drive, named by order
+  (early runs read ~2 s, the late one ~0.08 s; the decay is
+  recorded, not explained - consistent with cold file caches,
+  not isolated: TODO/gate.md T-1340)
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	run.first	loopback	1.069	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	run.first.rss	loopback	30592	kB peak	ok
+  ok: run.first [loopback] 1.069s wall, 30592kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	run.repeat	loopback	2.028	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	run.repeat.rss	loopback	30784	kB peak	ok
+  ok: run.repeat [loopback] 2.028s wall, 30784kB peak
+
+== lifecycle verbs (sleep payload, so stop meets it alive)
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	create	loopback	2.138	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	create.rss	loopback	31168	kB peak	ok
+  ok: create [loopback] 2.138s wall, 31168kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	start	loopback	0.118	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	start.rss	loopback	30856	kB peak	ok
+  ok: start [loopback] 0.118s wall, 30856kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	exec	loopback	0.060	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	exec.rss	loopback	30596	kB peak	ok
+  ok: exec [loopback] 0.060s wall, 30596kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	stop	loopback	0.003	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	stop.rss	loopback	2784	kB peak	ok
+  ok: stop [loopback] 0.003s wall, 2784kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	logs	loopback	0.002	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	logs.rss	loopback	3040	kB peak	ok
+  ok: logs [loopback] 0.002s wall, 3040kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	ps	loopback	0.003	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	ps.rss	loopback	3048	kB peak	ok
+  ok: ps [loopback] 0.003s wall, 3048kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	rm	loopback	0.003	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	rm.rss	loopback	2784	kB peak	ok
+  ok: rm [loopback] 0.003s wall, 2784kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	run.late	loopback	0.090	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	run.late.rss	loopback	30832	kB peak	ok
+  ok: run.late [loopback] 0.090s wall, 30832kB peak
+
+== data verbs
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	cp	loopback	0.950	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	cp.rss	loopback	3520	kB peak	ok
+  ok: cp [loopback] 0.950s wall, 3520kB peak
+  ok: cp landed 43856 bytes
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	save	loopback	0.037	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	save.rss	loopback	30208	kB peak	ok
+  ok: save [loopback] 0.037s wall, 30208kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	load	loopback	0.052	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	load.rss	loopback	2848	kB peak	ok
+  ok: load [loopback] 0.052s wall, 2848kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	prune	loopback	0.005	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	prune.rss	loopback	3112	kB peak	ok
+  ok: prune [loopback] 0.005s wall, 3112kB peak
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	man	loopback	0.003	s wall	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	man.rss	loopback	2784	kB peak	ok
+  ok: man [loopback] 0.003s wall, 2784kB peak
+
+== ladder rungs (forced; a 125 refusal is the rung's honest answer, not a time)
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	rung.rundir	loopback	-	s wall	refused
+  note: forced rundir rung refuses at 125 here (m.err head)
+bookworm-slim: Pulling from debian/debian
+a8ac7f6c67ab: Already exists
+Digest: sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+Status: Image is up to date for public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+podbox 0.1.0-beta.7: mode=namespace (namespaces: mount-only; mounts: private, tmpfs on /tmp; devices: real;
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	rung.cache	loopback	-	s wall	refused
+  note: forced cache rung refuses at 125 here (m.err head)
+a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
+podbox: 10 of 4224 entries carry an id this machine cannot apply; what the image intended is in /root/pb360kvm/experiments/.sweep360-work-kvm/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	rung.memfd	loopback	-	s wall	could-not-run
+  note: no static toolchain: the memfd rung could not run
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	rung.tmpfs	loopback	-	s wall	refused
+  note: forced tmpfs rung refuses at 125 here (m.err head)
+a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
+podbox: 10 of 4224 entries carry an id this machine cannot apply; what the image intended is in /root/pb360kvm/experiments/.sweep360-work-kvm/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	rung.fuse	loopback	-	s wall	refused
+  note: forced fuse rung refuses at 125 here (m.err head)
+a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
+podbox: 10 of 4224 entries carry an id this machine cannot apply; what the image intended is in /root/pb360kvm/experiments/.sweep360-work-kvm/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+
+== binary size (read off the artefact, not its self-report)
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	size.bytes	release-musl	3769272	B	ok
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	size.interp	release-musl	0	present	ok
+  ok: binary 3769272 bytes, PT_INTERP row recorded
+
+== guest boot and command (qemu-direct, the emulator path the machine tier will use)
+sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764: Pulling from docker/library/alpine
+53f8f5e03afd: Pull complete
+Digest: sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+Status: Downloaded newer image for public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+/root/pb360kvm/experiments/.sweep360-work-kvm/vmlinuz-virt: OK
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	guest.kvm.boot	kvm	0.936	s wall	ok
+  ok: guest kvm boot 0.936s to READY
+unknown	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	kvm	guest.kvm.cmd	kvm	0.000	s wall	ok
+  ok: guest kvm command under one 0.1 s poll tick
+
+verdict           PERF kvm SERVED
+== counts: fail=0 ( )

@@ -15,7 +15,7 @@ use crate::digest::Digest;
 use crate::error::{Error, Result};
 use crate::oci;
 use crate::reference::Reference;
-use crate::store::{Record, Store};
+use crate::store::{Record, StagedFile, Store};
 
 /// What `save` wrote, for the caller's report line.
 pub struct Saved {
@@ -27,10 +27,6 @@ pub struct Saved {
 const OCI_LAYOUT: &str = r#"{"imageLayoutVersion":"1.0.0"}"#;
 const REF_ANNOTATION: &str = "org.opencontainers.image.ref.name";
 const MEDIA_UNTAR: &str = "application/vnd.oci.image.layer.v1.tar";
-
-/// Per-call sequence for load's staging names. Blobs stream to files, so
-/// the tarball is never fully in memory.
-static LOAD_SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// The tarball entries `load` accepts, and nothing else. An allowlist
 /// rather than a traversal check: a foreign tarball with extra paths is
@@ -121,6 +117,10 @@ fn append(archive: &mut tar::Builder<&mut dyn Write>, path: &str, data: &[u8]) -
 struct StagedBlob {
     digest: Digest,
     path: PathBuf,
+    // ⭐ The in-store staging handle, held until commit or cleanup. Its
+    // exclusive lock is what tells `sweep_staging` this file is being
+    // written rather than abandoned (invariant I5).
+    _guard: StagedFile,
 }
 
 /// `podbox load`: an OCI-layout tarball into the store. Every blob is
@@ -178,7 +178,7 @@ fn load_inner(
             *index_bytes = Some(bytes);
             continue;
         }
-        staged.push(stage_entry(src, &mut entry)?);
+        staged.push(stage_entry(store, src, &mut entry)?);
     }
     let Some(index_bytes) = index_bytes else {
         return Err(Error::Oci(format!(
@@ -256,12 +256,16 @@ fn load_inner(
 }
 
 /// Stream one tarball entry to a staging file, hashing on the way.
-fn stage_entry(src: &Path, entry: &mut dyn Read) -> Result<StagedBlob> {
+///
+/// ⭐ The staging file lives inside the store (`Store::stage`), because
+/// the commit is a `rename(2)` and a rename across filesystems is
+/// `EXDEV`: staging into `temp_dir()` broke `load` wherever /tmp and
+/// the store sit on different filesystems (found by the T-1338 perf
+/// harness on the lane: tmpfs /tmp against an overlayfs store).
+/// Blobs stream to files, so the tarball is never fully in memory.
+fn stage_entry(store: &Store, src: &Path, entry: &mut dyn Read) -> Result<StagedBlob> {
     use sha2::Digest as _;
-    let seq = LOAD_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-    let path = std::env::temp_dir().join(format!("podbox-load-{}-{seq}", std::process::id()));
-    let mut out =
-        std::fs::File::create(&path).map_err(|e| Error::io(path.display().to_string(), e))?;
+    let (path, mut out) = store.stage("load")?;
     let mut hasher = sha2::Sha256::new();
     let mut buf = [0u8; 64 * 1024];
     loop {
@@ -276,10 +280,10 @@ fn stage_entry(src: &Path, entry: &mut dyn Read) -> Result<StagedBlob> {
             .map_err(|e| Error::io(path.display().to_string(), e))?;
     }
     let hex = crate::digest::hex_of(&hasher.finalize());
-    drop(out);
     Ok(StagedBlob {
         digest: Digest::parse(&format!("sha256:{hex}"))?,
         path,
+        _guard: out,
     })
 }
 
@@ -437,6 +441,22 @@ mod tests {
             .append_data(&mut header, "etc/hello", &bytes[..])
             .unwrap();
         archive.into_inner().unwrap()
+    }
+
+    /// T-1338: `load` stages inside the store, because the commit is a
+    /// rename and a rename across filesystems is EXDEV. A staging path
+    /// outside the store root is the defect, wherever /tmp lives.
+    #[test]
+    fn load_stages_inside_the_store() {
+        let s = scratch("staging");
+        let bytes = b"blob-bytes";
+        let blob = stage_entry(&s, std::path::Path::new("x"), &mut &bytes[..]).unwrap();
+        assert!(
+            blob.path.starts_with(s.root()),
+            "staging escaped the store: {}",
+            blob.path.display()
+        );
+        let _ = std::fs::remove_dir_all(s.root());
     }
 
     /// T-1320: `import` builds a runnable record from a rootfs tar, with

@@ -216,7 +216,7 @@ seen = {
     "exit_codes": 0, "prove_registry": 0, "closure_records": 0,
     "interpose_sizes": 0, "interpose_exports": 0, "devcheck_third_state": 0,
     "prove_flags": 0, "parity_notes": 0, "ascii_output": 0,
-    "post_task_cleanup": 0,
+    "post_task_cleanup": 0, "perf_budget": 0,
 }
 
 # ⛔ Check 17. The one file allowed to declare the release binary's ceiling, and
@@ -1359,6 +1359,82 @@ def check_ascii_output(files):
                     break
 
 
+# ⛔ Check 30. The perf harness writes rows; this check compares them.
+# The comparison lives here and nowhere else, so a budget and a reading
+# cannot drift into two answers (docs/conventions/code.md: one read
+# path). `experiments/perf-ceilings.tsv` carries metric, unit, ceiling
+# and tolerance; the results files carry the readings. A `failed` or
+# `could-not-run` row is its own state and never a number: only `ok`
+# rows compare. TODO/gate.md T-1338.
+PERF_CEILINGS = "experiments/perf-ceilings.tsv"
+PERF_RESULTS = ["experiments/results/perf-lane.txt",
+                "experiments/results/perf-seeds.tsv",
+                "experiments/results/perf-kvm.txt"]
+
+
+def check_perf_budget():
+    """Check 30: committed perf readings hold under their ceilings."""
+    try:
+        text = read(os.path.join(ROOT, PERF_CEILINGS))
+    except OSError:
+        err(PERF_CEILINGS, "does not exist, and check 30 holds the "
+                           "perf budgets against the committed readings. "
+                           "TODO/gate.md T-1338.")
+        return
+    ceilings = {}
+    for n, line in enumerate(text.splitlines(), 1):
+        if not line.strip() or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) < 4:
+            err(f"{PERF_CEILINGS}:{n}", f"row does not parse: {line.strip()}")
+            continue
+        metric, unit, ceiling, tol = (p.strip() for p in parts[:4])
+        try:
+            ceilings[metric] = (unit, float(ceiling), float(tol))
+        except ValueError:
+            err(f"{PERF_CEILINGS}:{n}", f"ceiling is not a number: {line.strip()}")
+    if not ceilings:
+        err(PERF_CEILINGS, "carries no budgets, and an empty budget file "
+                           "holds every reading trivially. TODO/gate.md T-1338.")
+        return
+    rows = []
+    for rel in PERF_RESULTS:
+        try:
+            body = read(os.path.join(ROOT, rel))
+        except OSError:
+            if rel.endswith("perf-lane.txt") or rel.endswith("perf-seeds.tsv"):
+                err(rel, "does not exist, and check 30 compares the "
+                         "committed perf readings. TODO/gate.md T-1338.")
+            continue
+        for n, line in enumerate(body.splitlines(), 1):
+            parts = line.split("\t")
+            if len(parts) != 10:
+                continue
+            _commit, _host, _kernel, _arch, shape, metric, _cond, value, unit, state = parts
+            rows.append((rel, n, shape, metric, value, unit, state))
+    for metric in sorted(ceilings):
+        if not any(m == metric for _, _, _, m, _, _, _ in rows):
+            err(PERF_CEILINGS, f"budget `{metric}` names no committed reading, "
+                               f"and a budget nothing measures holds vacuously. "
+                               f"TODO/gate.md T-1338.")
+    for rel, n, shape, metric, value, unit, state in rows:
+        if state != "ok":
+            continue
+        if metric not in ceilings:
+            continue
+        _cunit, ceiling, tol = ceilings[metric]
+        try:
+            number = float(value)
+        except ValueError:
+            continue
+        seen["perf_budget"] += 1
+        if number > ceiling * (1.0 + tol):
+            err(f"{rel}:{n}", f"perf regression: `{metric}` reads {value}{unit} "
+                              f"against a {ceiling:g} ceiling on shape {shape}. "
+                              f"TODO/gate.md T-1338.")
+
+
 def main():
     if not os.path.isdir(TODO):
         print("check-todo: TODO/ does not exist", file=sys.stderr)
@@ -1608,6 +1684,9 @@ def main():
 
     # -- 29. post-task cleanup stays mechanical -------------------------------
     check_post_task_cleanup()
+
+    # -- 30. committed perf readings hold under their ceilings -----------------
+    check_perf_budget()
 
     # -- 16. coverage --------------------------------------------------------
     # ⭐ A check that examined nothing reports success otherwise, which is the

@@ -1353,7 +1353,7 @@ Source:      issue 57, 2026-09-25 (claims scattered across
 Category:    gate
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     podbox's performance claims live in single-purpose
              experiments, each on one host and one shape: the pull
@@ -1398,3 +1398,86 @@ Prove:       `./experiments/360-perf-harness.sh` exits 0 on the
              every metric above; the gate fails on a planted
              regression past tolerance and reports could-not-run as
              its own state.
+
+**Done 2026-09-26.** One harness answers how fast podbox is here:
+`experiments/360-perf-harness.sh` (shape `lane` or `kvm`) emits
+ten-column TSV rows (commit, host, kernel, arch, shape, metric,
+cond, value, unit, state) for cold pull by tag and digest, probe
+and extract; three payload runs named by order; the lifecycle
+verbs; cp, save, load, prune and man; each forced ladder rung
+that enters (the rest record refused); guest boot and command
+under TCG or KVM via the pinned kernel and a marker initramfs
+assembled with `experiments/lib/podvm-guest.sh`; and binary
+size with PT_INTERP state. Every verb runs under `timeout`, so
+a hung verb is a failed metric, never a hung drive; every
+missing tool is could-not-run with its name. The budget lives
+in `experiments/perf-ceilings.tsv` (about twice the observed
+lane maximum, tolerance 0.10; the size ceiling repeats
+110's 8,000,000); the comparison lives only in check 30, which
+holds every ok row under its ceiling and treats failed and
+could-not-run as their own states. The Premise seed numbers are
+superseded by the re-drives: the pool share is 0.394 loopback
+and 0.469 latency-bound (2.53x and 2.13x speedups inverted so
+the ceiling holds one way), and the TCG workload ratios are
+7.5x int, 10.7x sys, 1.4x mem and 4.9x io; all folded as seed
+rows with their source reports, not re-measured.
+Prove: `360` exits 0 on the lane
+(`experiments/results/perf-lane.txt`: the full matrix green,
+rundir/cache/memfd enter, tmpfs/fuse refuse at 125) and on
+the KVM base (`experiments/results/perf-kvm.txt`: KVM guest
+boot 0.936 s against TCG 1.869 s, forced rungs refuse where
+the extracted tree carries device nodes the rung will not
+stage, memfd could-not-run with no toolchain). The harness
+surfaced one real defect on its first run: `load` staged
+blobs into `temp_dir()` and renamed them into the store,
+which is EXDEV wherever /tmp and the store differ
+(tmpfs /tmp against an overlayfs store on the lane). The fix
+stages inside the store through `Store::stage` beside
+`import`'s own call, holding the staging handle to commit;
+unit guard `load_stages_inside_the_store` fails where the
+staging path leaves the store root, and the re-driven `load`
+row is green on both shapes. The run curve (first ~1.6 s,
+repeat ~2 s, late ~0.08 s, on both shapes) is recorded under
+order-named metrics with its cause unisolated, and filed as
+T-1340. `scripts/plant.sh` case 30 inflates the `run.repeat`
+row past its ceiling and the gate goes red naming the
+regression.
+
+----
+
+### T-1340 Isolate why early payload runs cost seconds and late ones do not
+
+Source:      T-1338's first lane drive (`experiments/results/perf-lane.txt`):
+             `run.first` 1.648 s, `run.repeat` 2.050 s, `run.late`
+             0.084 s on the same store and image
+Category:    gate
+Priority:    P3
+Effort:      M
+Status:      open
+
+Problem:     Three `run` timings across one harness drive decay
+             twenty-fold (1.6 s, 2.1 s, 0.08 s) with no isolated
+             cause. The harness records the curve honestly under
+             order-named metrics, but a 2 s run nobody understands is
+             a budget set by superstition: the ceilings in
+             `experiments/perf-ceilings.tsv` cover it without
+             explaining it.
+Premise:     Read on 2026-09-26: the three rows with their conditions
+             in the lane report above. First-payload fixups (completion
+             staging, interpose writes) run once per image and cannot
+             explain the second slow run; page-cache warmup fits the
+             curve but is unisolated.
+Approach:    Reproduce the decay in isolation (repeated runs against
+             a hot and a cold store, caches dropped where the lane
+             permits it), instrument which phase pays (probe, fixups,
+             extract verification, payload start), then budget or fix
+             what the instrument names. Three candidates before
+             testing, test to refute.
+Decision:    A cause first, then a number: no ceiling moves on a
+             guess, and no optimization lands without the harness
+             showing the gain on a re-drive.
+Out of scope: changing any ceiling before the cause is isolated,
+             tuning anything else.
+Prove:       `./experiments/360-perf-harness.sh` re-driven with
+             phase timing names the paying phase, and the ceilings
+             move only on the isolated cause.

@@ -1,0 +1,19 @@
+# Seed rows T-1338 folds in: ratios 190 and 154 measured, transcribed
+# here with their source report beside each value rather than
+# re-measured. Same ten columns as the harness rows: commit, host,
+# kernel, arch, shape, metric, cond, value, unit, state.
+# The pool figure is the pooled share of sequential time (pooled /
+# sequential), so a slower pool reads HIGHER and the ceiling holds in
+# one direction: loopback 1.51/3.83, latency-bound 11.55/24.62
+# (TODO/image.md T-0207, experiments/results/parallel-layers.txt,
+# 2026-09-26, container loopback; the report prints one fused
+# kernel-arch string, carried as-is in the kernel column).
+-	-	3.6.9-b4195d69.x86_64	x86_64	lane	pull.pool.share	loopback	0.394	ratio	ok
+-	-	3.6.9-b4195d69.x86_64	x86_64	lane	pull.pool.share	latency-bound	0.469	ratio	ok
+# TCG workload guest/host ratios (experiments/results/tcg-workload-spread.txt,
+# 2026-09-26, lane kernel 7.2.0-WSL2-STABLE, qemu 7.2.22 TCG): a slower
+# guest reads higher, so the ceiling holds.
+-	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	guest.workload.int.ratio	tcg	7.5	ratio	ok
+-	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	guest.workload.sys.ratio	tcg	10.7	ratio	ok
+-	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	guest.workload.mem.ratio	tcg	1.4	ratio	ok
+-	Linux 7.2.0-WSL2-STABLE x86_64	7.2.0-WSL2-STABLE	x86_64	lane	guest.workload.io.ratio	tcg	4.9	ratio	ok
