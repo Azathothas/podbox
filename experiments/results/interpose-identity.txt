@@ -1,11 +1,11 @@
 == conditions
-date              2026-09-19T02:57:22Z
+date              2026-09-26T06:17:16Z
 host kernel       7.2.0-WSL2-STABLE
 host arch         x86_64
 zig               0.16.0
 cc                cc (Debian 12.2.0-14+deb12u1) 12.2.0
 docker            MISSING
-podbox            podbox 0.1.0
+podbox            podbox 0.1.0-beta.7
 glibc image       quay.io/fedora/fedora@sha256:e78cd1a688cd079c23864f289a89a49a3f4ad66d817864e325e1d058310ee95c
 musl image        public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 
@@ -18,6 +18,10 @@ ok   victim-musl is dynamic, so the object can reach it
   bare: SETUID_RC=0 ERR=0
   bare: SETGID_RC=-1 ERR=1
   bare: SETGROUPS_RC=-1 ERR=1
+  bare: SETEUID_RC=0 ERR=0
+  bare: SETEGID_RC=-1 ERR=1
+  bare: SETRESUID_RC=0 ERR=0
+  bare: SETRESGID_RC=-1 ERR=1
   bare: GETUID=1000 GETEUID=1000
   bare: GETGID=0 GETEGID=0
   bare: RESUID=1000:1000:1000
@@ -31,6 +35,10 @@ ok   victim-musl is dynamic, so the object can reach it
   loaded: SETUID_RC=0 ERR=0
   loaded: SETGID_RC=-1 ERR=1
   loaded: SETGROUPS_RC=-1 ERR=1
+  loaded: SETEUID_RC=0 ERR=0
+  loaded: SETEGID_RC=-1 ERR=1
+  loaded: SETRESUID_RC=0 ERR=0
+  loaded: SETRESGID_RC=-1 ERR=1
   loaded: GETUID=1000 GETEUID=1000
   loaded: GETGID=0 GETEGID=0
   loaded: RESUID=1000:1000:1000
@@ -40,13 +48,37 @@ ok   victim-musl is dynamic, so the object can reach it
   loaded: SETREGID_RC=-1 ERR=1
   loaded: RERESUID=1000:1000:1000
   loaded: RERESGID=0:0:0
-  loaded: DIAG=podbox: interpose: setgid failed with errno 1; podbox runs the payload as uid 0 and does not change 
+  loaded: DIAG=podbox: interpose: setgid failed with errno 1 (EPERM); podbox runs the payload as uid 0 and does not
 ok   A: the loaded victim reports exactly what the bare one does
+
+== G. the errno-by-call reading on this denying machine (recorded, not asserted)
+ok   G: the victim ran under the honest object
+  -- rc and errno per call, stdout:
+  SETUID_RC=0 ERR=0
+  SETGID_RC=-1 ERR=1
+  SETGROUPS_RC=-1 ERR=1
+  SETEUID_RC=0 ERR=0
+  SETEGID_RC=-1 ERR=1
+  SETRESUID_RC=0 ERR=0
+  SETRESGID_RC=-1 ERR=1
+  SETREUID_RC=-1 ERR=1
+  SETREGID_RC=-1 ERR=1
+  -- the refusal text, stderr:
+  podbox: interpose: setgid failed with errno 1 (EPERM); podbox runs the payload as uid 0 and does not change it (TODO/interpose.md T-0711)
+  podbox: interpose: setgroups failed with errno 1 (EPERM); podbox runs the payload as uid 0 and does not change it (TODO/interpose.md T-0711)
+  podbox: interpose: setegid failed with errno 1 (EPERM); podbox runs the payload as uid 0 and does not change it (TODO/interpose.md T-0711)
+  podbox: interpose: setresgid failed with errno 1 (EPERM); podbox runs the payload as uid 0 and does not change it (TODO/interpose.md T-0711)
+  podbox: interpose: setreuid failed with errno 1 (EPERM); podbox runs the payload as uid 0 and does not change it (TODO/interpose.md T-0711)
+  podbox: interpose: setregid failed with errno 1 (EPERM); podbox runs the payload as uid 0 and does not change it (TODO/interpose.md T-0711)
 
 == B. the fake, glibc: PODBOX_IDENTITY=1000:100
   SETUID_RC=0 ERR=0
   SETGID_RC=0 ERR=0
   SETGROUPS_RC=0 ERR=0
+  SETEUID_RC=0 ERR=0
+  SETEGID_RC=0 ERR=0
+  SETRESUID_RC=0 ERR=0
+  SETRESGID_RC=0 ERR=0
   GETUID=1000 GETEUID=1000
   GETGID=100 GETEGID=100
   RESUID=1000:1000:1000
@@ -63,6 +95,10 @@ ok   B: the setters answer 0 and the getters answer 1000:100
   honest-musl: SETUID_RC=0 ERR=0
   honest-musl: SETGID_RC=-1 ERR=1
   honest-musl: SETGROUPS_RC=-1 ERR=1
+  honest-musl: SETEUID_RC=0 ERR=0
+  honest-musl: SETEGID_RC=-1 ERR=1
+  honest-musl: SETRESUID_RC=0 ERR=0
+  honest-musl: SETRESGID_RC=-1 ERR=1
   honest-musl: GETUID=1000 GETEUID=1000
   honest-musl: GETGID=0 GETEGID=0
   honest-musl: RESUID=1000:1000:1000
@@ -76,6 +112,10 @@ ok   C0: the honest musl object reports what the kernel says
   SETUID_RC=0 ERR=0
   SETGID_RC=0 ERR=0
   SETGROUPS_RC=0 ERR=0
+  SETEUID_RC=0 ERR=0
+  SETEGID_RC=0 ERR=0
+  SETRESUID_RC=0 ERR=0
+  SETRESGID_RC=0 ERR=0
   GETUID=1000 GETEUID=1000
   GETGID=100 GETEGID=100
   RESUID=1000:1000:1000
@@ -89,15 +129,17 @@ ok   C: the musl object answers the same record
 
 == D. end to end: podbox run --user fakes id on both libcs
   musl id -u: 1000 (rc=0)
-  banner: podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  banner: podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
   banner: ownership: real; network: host-shared; pids: host-shared)
   banner: probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
   banner:         clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
-  banner: this mode does NOT provide: process, network, IPC or mount isolation
-  banner: ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  banner: podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+  banner: this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+  banner: no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
+  banner: note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  banner: podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
   banner: podbox: interpose: identity faked to 1000:100 (--user): `getuid` and friends answer the record, not the kernel, and the run is degraded (TODO/interpose.md T-0711)
-  banner: podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+  banner: podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  banner: podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
 ok   D: musl id -u answers the requested 1000
 ok   D2: the banner names the faked identity
   glibc id: 1000 100
@@ -108,42 +150,54 @@ ok   D4: without --user the payload is still uid 0
 == E. --strict refuses the faked run
   rc=125 out=[]
   err: 25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
-  err: podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  err: podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /tmp/tmp.QNTwYD252v/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  err: podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+  err:   the id has no mapping in this user namespace, which reads as a bad argument
+  err:   gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+  err:   extract without ownership and record the intended ids; intended metadata recorded in /tmp/tmp.QNTwYD252v/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  err: podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
   err: ownership: real; network: host-shared; pids: host-shared)
   err: probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
   err:         clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
-  err: this mode does NOT provide: process, network, IPC or mount isolation
-  err: ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  err: podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+  err: this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+  err: no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
+  err: note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  err: podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
   err: podbox: interpose: identity faked to 1000:100 (--user): `getuid` and friends answer the record, not the kernel, and the run is degraded (TODO/interpose.md T-0711)
+  err: podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   err: podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
-  err: podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  err: podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  err: podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  err: podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  err: podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  err: podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  err: podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  err: podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  err: podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  err: podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   err: podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   err: podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
-  err: podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. ⛔ podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  err: podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+  err: podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  err: podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
   err: podbox run: --strict, and this run is degraded in 7 way(s). podbox refuses rather than running and letting the payload discover them (TODO/cli.md T-0804):
   err:   - -u, --user is Degraded in the parity table: uid[:gid] or a name from the image's own passwd, answered through the interposer identity memo for a reachable payload, which the banner names and --strict refuses (T-0711)
   err:   - the selected rung is `chroot` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
   err:   - created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
-  err:   - created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  err:   - created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  err:   - created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  err:   - rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. ⛔ podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  err:   - created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  err:   - created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  err:   - created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  err:   - rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
 ok   E: --strict refuses, naming --user
 
 == F. a declined tier carries no memo: static --user still runs
-  run output: podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  run output: podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
   run output: ownership: real; network: host-shared; pids: host-shared)
   run output: probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
   run output:         clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
-  run output: this mode does NOT provide: process, network, IPC or mount isolation
-  run output: ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  run output: this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+  run output: no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
+  run output: note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
   run output: podbox run: interpose: declined for "/podbox": /podbox is statically linked (no PT_INTERP), so no loader reads LD_PRELOAD for it; --user 1000:100 has no interposed payload to act through
-  run output: podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
-  run output: podbox 0.1.0
+  run output: podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  run output: podbox 0.1.0-beta.7
 ok   F: the static payload is declined
 ok   F2: the decline says --user changes nothing here
 ok   F3: the declined payload still ran (exit 0)

@@ -1036,7 +1036,7 @@ Source:      `TOOL.md` section 6.7; `references/salsa-debian__fakeroot/tree/libf
 Category:    interpose
 Priority:    P1
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     A payload that is already uid 0 still calls `setuid`, `setgid` and
              `setgroups`, and on the runtimes podbox targets they fail. A
@@ -1133,6 +1133,37 @@ follow-up work, not as this entry: the default no longer depends on it.
 **Partial, 2026-09-25.** Issue 52 reopens this entry on that owed
 measurement: take the errno-by-call reading on a real target and
 record it, then let the refusal text name the call and the errno.
+
+**Done 2026-09-26.** The reading is taken and the refusal names
+both. `106` gains the four calls the matrix names but the victim
+did not (`seteuid`, `setegid`, `setresuid`, `setresgid`) and a
+clause G that prints the errno-by-call table on the denying
+machine at hand: recorded, never asserted absolutely, because
+errnos vary by wall. The refusal text now carries the errno name
+beside its number (`setgid failed with errno 1 (EPERM)`), from a
+table of the wall's usual numbers with a unit test; an unmapped
+number stays a bare number rather than a guess. `106` exits 0
+(`experiments/results/interpose-identity.txt`, lane job kernel
+`7.2.0-WSL2-STABLE`, uid 0 in a userns):
+
+| call | rc | errno |
+| --- | --- | --- |
+| setuid(1000) | 0 | 0 (granted: this wall maps the id) |
+| setgid(100) | -1 | 1 (EPERM) |
+| setgroups(2, ...) | -1 | 1 (EPERM) |
+| seteuid(1000) | 0 | 0 (granted, same mapping) |
+| setegid(100) | -1 | 1 (EPERM) |
+| setresuid(-1, 1000, -1) | 0 | 0 (granted, same mapping) |
+| setresgid(-1, 100, -1) | -1 | 1 (EPERM) |
+| setreuid(2000, -1) | -1 | 1 (EPERM) |
+| setregid(200, -1) | -1 | 1 (EPERM) |
+
+The calls run in order, so later rows inherit earlier ones'
+effects (a granted drop shapes what follows); the victim source
+in the script is the order. A granted call stays silent, as
+before: success needs no diagnostic. All older clauses held
+beside the new one, and the `wall_errnos_carry_their_names`
+unit test is green with the interpose suite.
 Keep the current default as the fallback. Fix area is
 `crates/podbox-interpose/src/identity.rs` with `interpose.map`.
 Risk is low: the gap is the honesty of the refusal wording, not a

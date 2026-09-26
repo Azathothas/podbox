@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 4 partial, 1 blocked, 160 done. The 2026-09-25
+168 entries: 3 open, 3 partial, 1 blocked, 161 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -288,7 +288,14 @@ stored reads as not logged in, exit 1; failed erase keeps
 everything, 125), exit codes by the measured 125/1
 discriminator with docker's own login codes recorded
 unmeasured; eight unit tests plus end-to-end legs green. Small
-batch continues with T-0711.
+batch continues with T-0711. T-0711 closed 2026-09-26 on the
+identity drive (`106` exits 0,
+`experiments/results/interpose-identity.txt`): the victim covers
+the full setter matrix and clause G records the errno-by-call
+table on the denying lane (grants where the wall maps the id,
+EPERM elsewhere); the honest refusal names call, number and name
+(`setgid failed with errno 1 (EPERM)`), unit-pinned. Small batch
+continues with T-1308.
 
 ## Operator questions
 

@@ -135,7 +135,7 @@ the blocker named and what would clear it.
 | [T-0708](interpose.md) | P2 | interpose | done | Intercept the operations the runtime cannot provide |
 | [T-0709](interpose.md) | P0 | interpose | done | Select the interposer by `DT_NEEDED`, and refuse on the version predicate |
 | [T-0710](interpose.md) | P1 | interpose | done | The ownership memo lives where the payload can edit it, and answers by linear scan |
-| [T-0711](interpose.md) | P1 | interpose | partial | The identity calls, and podbox's honesty rules point the other way from fakeroot's |
+| [T-0711](interpose.md) | P1 | interpose | done | The identity calls, and podbox's honesty rules point the other way from fakeroot's |
 | [T-0712](interpose.md) | P2 | interpose | done | A reach matrix holds its arguments constant, or it measures two things |
 | [T-0801](cli.md) | P0 | cli | done | The verb and flag parity table |
 | [T-0802](cli.md) | P0 | cli | done | docker's exit codes, unaltered |
@@ -232,7 +232,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-168 items: 3 open, 4 partial, 1 blocked, 160 done.
+168 items: 3 open, 3 partial, 1 blocked, 161 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -241,10 +241,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 51 | 52 |
-| P1 | 1 | 2 | 0 | 75 | 78 |
+| P1 | 1 | 1 | 0 | 76 | 78 |
 | P2 | 2 | 1 | 0 | 28 | 31 |
 | P3 | 0 | 0 | 1 | 6 | 7 |
-| **All** | **3** | **4** | **1** | **160** | **168** |
+| **All** | **3** | **3** | **1** | **161** | **168** |
 
 ## How the current ordering is derived
 

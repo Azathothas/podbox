@@ -2409,15 +2409,36 @@ unsafe fn honest(what: &[u8], rc: c_int) -> c_int {
         return 0;
     }
     let e = errno();
+    // T-0711: the refusal names the call and the errno, number and --
+    // where the number is one of the wall's usual -- name. A payload
+    // deciding whether a failed drop is fatal reads `EPERM` faster than
+    // `1`, and a bare number where the table has no name stays a number
+    // rather than a guess.
     say::line(&[
         what,
         b" failed with errno ",
         say::Num::new(e.unsigned_abs() as u64).as_bytes(),
+        errno_name(e),
         b"; podbox runs the payload as uid 0 and does not change it \
           (TODO/interpose.md T-0711)",
     ]);
     set_errno(e);
     rc
+}
+
+/// The wall's usual errno names, T-0711. Kernel UAPI numbers, identical
+/// on every Linux architecture this object loads on. Anything else
+/// answers empty, and the caller prints the number alone.
+fn errno_name(e: c_int) -> &'static [u8] {
+    match e {
+        1 => b" (EPERM)",
+        2 => b" (ENOENT)",
+        13 => b" (EACCES)",
+        22 => b" (EINVAL)",
+        30 => b" (EROFS)",
+        38 => b" (ENOSYS)",
+        _ => b"",
+    }
 }
 
 /// An invalid id stays invalid: it is the caller's mistake, not the wall,
@@ -2958,5 +2979,16 @@ mod tests {
         );
         assert_eq!(proc_stdio_target(b"/dev/stdin/\0"), None);
         assert_eq!(proc_stdio_target(b"/proc/self/fd/0\0"), None);
+    }
+
+    /// T-0711: the wall's usual errnos read back with their names, and
+    /// anything else stays a bare number rather than a guess.
+    #[test]
+    fn wall_errnos_carry_their_names() {
+        assert_eq!(errno_name(1), b" (EPERM)");
+        assert_eq!(errno_name(13), b" (EACCES)");
+        assert_eq!(errno_name(22), b" (EINVAL)");
+        assert_eq!(errno_name(38), b" (ENOSYS)");
+        assert_eq!(errno_name(99), b"");
     }
 }

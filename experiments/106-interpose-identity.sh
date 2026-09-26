@@ -7,7 +7,7 @@
 # behaviour for a payload that needs it. The flag marks the run degraded, so
 # `--strict` refuses it, and the banner names it wherever the tier loads.
 #
-# Six clauses:
+# Seven clauses:
 #   A. THE CONTROL FIRST. Without `PODBOX_IDENTITY` the object changes
 #      nothing: the victim's answers match the bare run exactly. An
 #      interposer that faked where the kernel would have granted is weaker
@@ -28,6 +28,9 @@
 #      table carries `-u, --user` as Degraded.
 #   F. A declined tier carries no memo: a static payload with `--user` still
 #      runs, and the decline names the flag as honoured by nothing.
+#   G. THE ERRNO-BY-CALL READING (T-0711): the honest object reports each
+#      refused setter with its call and errno on the denying machine at
+#      hand; recorded, never asserted absolutely (errnos vary by wall).
 #
 # ⛔ No `setuid` outcome is asserted against the kernel: on a machine that CAN
 # change ids the honest call succeeds, on podbox's target it fails, so the
@@ -98,6 +101,7 @@ cat >"$WORK/victim.c" <<'EOF'
 #include <sys/types.h>
 int main(void) {
 	int rc_u, rc_g, rc_s, e_u, e_g, e_s;
+	int rc_eu, rc_eg, rc_ru, rc_rg, e_eu, e_eg, e_ru, e_rg;
 	gid_t put[2] = {100, 101};
 	gid_t got[8];
 	int ng;
@@ -105,12 +109,20 @@ int main(void) {
 	errno = 0; rc_u = setuid(1000); e_u = errno;
 	errno = 0; rc_g = setgid(100); e_g = errno;
 	errno = 0; rc_s = setgroups(2, put); e_s = errno;
+	errno = 0; rc_eu = seteuid(1000); e_eu = errno;
+	errno = 0; rc_eg = setegid(100); e_eg = errno;
+	errno = 0; rc_ru = setresuid(-1, 1000, -1); e_ru = errno;
+	errno = 0; rc_rg = setresgid(-1, 100, -1); e_rg = errno;
 	ng = getgroups(8, got);
 	getresuid(&r, &e, &s);
 	getresgid(&gr, &ge, &gs);
 	printf("SETUID_RC=%d ERR=%d\n", rc_u, e_u);
 	printf("SETGID_RC=%d ERR=%d\n", rc_g, e_g);
 	printf("SETGROUPS_RC=%d ERR=%d\n", rc_s, e_s);
+	printf("SETEUID_RC=%d ERR=%d\n", rc_eu, e_eu);
+	printf("SETEGID_RC=%d ERR=%d\n", rc_eg, e_eg);
+	printf("SETRESUID_RC=%d ERR=%d\n", rc_ru, e_ru);
+	printf("SETRESGID_RC=%d ERR=%d\n", rc_rg, e_rg);
 	printf("GETUID=%u GETEUID=%u\n", getuid(), geteuid());
 	printf("GETGID=%u GETEGID=%u\n", getgid(), getegid());
 	printf("RESUID=%u:%u:%u\n", r, e, s);
@@ -206,6 +218,27 @@ if [ "$HAVE_GLIBC_VICTIM" -eq 1 ]; then
 		pass "A: the loaded victim reports exactly what the bare one does"
 	else
 		fail "A: the loaded victim's report differs from the bare one"
+	fi
+	echo
+fi
+
+# G. THE ERRNO-BY-CALL READING (TODO/interpose.md T-0711). The honest
+# object reports each refused setter with its call and errno; this
+# clause prints that table on the denying machine at hand and records
+# it, asserting only that the victim ran. Errnos vary by wall (EPERM
+# where the id is mapped but denied, EINVAL where it is unmapped), so
+# no absolute value is asserted here by design (see the header).
+if [ "$HAVE_GLIBC_VICTIM" -eq 1 ]; then
+	echo "== G. the errno-by-call reading on this denying machine (recorded, not asserted)"
+	timeout 120 env "LD_PRELOAD=$GNU_SO" "$WORK/victim-glibc" >"$WORK/g-table.txt" 2>"$WORK/g-diag.txt"
+	if grep -q "^SETUID_RC=" "$WORK/g-table.txt" 2>/dev/null; then
+		pass "G: the victim ran under the honest object"
+		echo "  -- rc and errno per call, stdout:"
+		grep -h "^SET.*_RC=" "$WORK/g-table.txt" | sed 's/^/  /'
+		echo "  -- the refusal text, stderr:"
+		grep -h "failed with errno" "$WORK/g-diag.txt" | sed 's/^/  /'
+	else
+		fail "G: the victim did not run under the honest object"
 	fi
 	echo
 fi
