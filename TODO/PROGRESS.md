@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 7 partial, 1 blocked, 157 done. The 2026-09-25
+168 entries: 3 open, 6 partial, 1 blocked, 158 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -271,9 +271,13 @@ and `cp` names a required listing with its errno (`cannot list
 <dir>: Permission denied`, exit 125); `155` exits 0
 (`experiments/results/proc-absence.txt`), ten exact-name unit
 tests green, workspace 564 passed 0 failed, interpose 37 passed
-0 failed, both clippys clean. Next is item 8 (the small batch:
-T-0207, T-0209, T-1332, T-0711, T-1308, T-0501 device, T-0605
-log-driver).
+0 failed, both clippys clean. T-0207 closed 2026-09-26 on the
+latency drive (`190` exits 0,
+`experiments/results/parallel-layers.txt`): loopback 3.83 s
+against 1.51 s (2.53x), latency-bound 24.62 s against 11.55 s
+(2.13x) through the new delay proxy at 2 s an exchange, the
+serial manifest diluting the parallel gain per Amdahl; the fixed
+bound of 4 stays. Item 8 continues with T-0209.
 
 ## Operator questions
 

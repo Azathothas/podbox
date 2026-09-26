@@ -80,7 +80,7 @@ the blocker named and what would clear it.
 | [T-0204](image.md) | P1 | image | done | `images`, `rmi`, `tag`, and a store GC that cannot delete a running container's rootfs |
 | [T-0205](image.md) | P3 | image | done | Re-test podman with `vfs` and `ignore_chown_errors` before repeating "no path exists" |
 | [T-0206](image.md) | P3 | image | done | A registry fixture, so the acceptance stops depending on somebody else's quota |
-| [T-0207](image.md) | P2 | image | partial | Fetch layers with bounded concurrency, and measure what it buys |
+| [T-0207](image.md) | P2 | image | done | Fetch layers with bounded concurrency, and measure what it buys |
 | [T-0208](image.md) | P2 | image | done | `--platform`, and a store that can hold two variants of one tag |
 | [T-0209](image.md) | P2 | image | partial | Registry authentication, without a credential ever entering this tree |
 | [T-0210](image.md) | P1 | image | done | The store's concurrency contract, written down and driven |
@@ -232,7 +232,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-168 items: 3 open, 7 partial, 1 blocked, 157 done.
+168 items: 3 open, 6 partial, 1 blocked, 158 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -242,9 +242,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 51 | 52 |
 | P1 | 1 | 3 | 0 | 74 | 78 |
-| P2 | 2 | 3 | 0 | 26 | 31 |
+| P2 | 2 | 2 | 0 | 27 | 31 |
 | P3 | 0 | 0 | 1 | 6 | 7 |
-| **All** | **3** | **7** | **1** | **157** | **168** |
+| **All** | **3** | **6** | **1** | **158** | **168** |
 
 ## How the current ordering is derived
 

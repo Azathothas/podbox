@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
 # Question: does the bounded pool fetch a multi-layer image sooner than the
 # sequential loop, and does a failure in one worker cancel the rest without
-# leaving a partial store?
+# leaving a partial store? Second question: what does the pool buy on a
+# latency-bound link, where every fetch pays a delay rather than bandwidth?
 #
 # TODO/image.md T-0207.
 #
 # The fixture is the T-0206 shape: one pinned zot binary serving a seeded
 # multi-layer repo on container loopback, with ALL outbound network blocked,
 # so the measurement spends nobody's quota. Two podbox binaries meet it
-# there: the worktree's (bounded pool) and one built with pull.rs at HEAD
-# (the sequential loop this entry replaces), so the wall times are two
-# shapes of the same code rather than a model of one of them.
+# there: the worktree's (bounded pool) and one built with pull.rs at the
+# pinned pre-pool commit (the sequential loop this entry replaced), so the
+# wall times are two shapes of the same code rather than a model of one of
+# them. The latency shape runs the same two pulls through the delay proxy
+# in experiments/delay-proxy.c (two seconds per fetch exchange,
+# connections forced closed so each fetch pays its own setup), which is
+# the injected delay the entry asks for: tc needs a privilege no driver
+# container holds. The delay must dominate the three-second base for the
+# ratio to say anything about latency rather than bandwidth. The shaped
+# traffic runs plain HTTP beside the TLS fixture, because a
+# byte-forwarding proxy cannot see inside TLS: the first attempt proxied
+# the TLS port and every exchange hung in the handshake (~13 s a fetch),
+# and the proxy now closes a handshake at once so the client's fallback
+# runs and the measured exchanges are the delayed ones.
 #
 #   ./190-parallel-layers.sh
 #   PODBOX_BIN=/path/to/podbox PODBOX_BIN_SEQ=/path/to/podbox-seq ./190-parallel-layers.sh
@@ -41,6 +53,17 @@ REPO_TAG="layers"
 LAYERS="8"
 LAYER_BYTES="6291456"
 POISON_INDEX="3"
+# The sequential shape is pull.rs at the pinned pre-pool commit: the pool
+# shipped, so HEAD no longer holds a sequential loop to build beside the
+# worktree's. The parent of the pool commit is the last tree whose pull.rs
+# fetches serially; the lane job asserts the staged file carries no pool.
+SEQ_PULL_COMMIT="a0953f12fc70b43cd74a94d01d3aa201428330d9"
+# The latency shape: every fetch exchange through the delay proxy pays
+# this, serialized or overlapped according to the shape under test. Two
+# seconds: the nine exchanges must dominate the three-second base for the
+# ratio to say anything about latency rather than bandwidth.
+PROXY_PORT="5001"
+PROXY_DELAY_MS="2000"
 
 # shellcheck source=lib/engine.sh
 . "$HERE/lib/engine.sh"
@@ -64,6 +87,9 @@ trap cleanup EXIT INT TERM
 	printf 'zot               %s %s bytes sha256:%s\n' "$ZOT_VERSION" "$ZOT_BIN_BYTES" "$ZOT_BIN_SHA256"
 	printf 'image             %s:%s, %s layers of %s bytes (random, incompressible)\n' "$REPO_NAME" "$REPO_TAG" "$LAYERS" "$LAYER_BYTES"
 	printf 'network           none (container loopback only; asserted in clause iso-1)\n'
+	printf 'latency           %s ms per fetch exchange through the delay proxy (experiments/delay-proxy.c), connections forced closed\n' "$PROXY_DELAY_MS"
+	printf 'latency-link      plain HTTP to 127.0.0.1:%s via PODBOX_INSECURE_REGISTRIES: the proxy forwards bytes and cannot see inside TLS\n' "$PROXY_PORT"
+	printf 'sequential        pull.rs at %s (last pre-pool tree)\n' "$SEQ_PULL_COMMIT"
 	echo
 } >"$WORK/report"
 
@@ -73,9 +99,15 @@ pass() { say "  ok $1"; }
 refuse() { say "  FAIL: $1"; fail=1; }
 
 # ------------------------------------------------------- the podbox binaries
-# Two shapes of the same code: the worktree's pool and HEAD's sequential
-# loop. Both are lane-built; the lane copy carries the worktree change, and
-# each job asserts which shape it holds before building.
+# Two shapes of the same code: the worktree's pool and the pinned pre-pool
+# pull.rs (the sequential loop). Both are lane-built; the lane copy carries
+# the worktree change, and each job asserts which shape it holds before
+# building. The sequential file needs one build-only shim: podbox-cli at
+# HEAD calls pull::pull_all (T-1331), which postdates the pinned commit, so
+# the staged file appends the worktree's own pull_all verbatim. The shim is
+# never called by this drive (single-ref pulls only); the measured loop
+# stays the historical sequential one, and the job refuses where the staged
+# file carries a pool or the shim did not land.
 lane_build() {
 	_name="$1"; _shape="$2"; _dest="$3"
 	cat >"$WORK/${_name}-job.sh" <<JOB_EOF
@@ -85,19 +117,26 @@ cd /work || exit 2
 ./scripts/common/bootstrap-env.sh rust cc zig tools || exit 2
 case "$_shape" in
 new)
-  if git diff --quiet -- crates/podbox-image/src/pull.rs; then
-    echo "190: lane copy carries no worktree change to pull.rs" >&2
+  if grep -q "FETCH_WORKERS" crates/podbox-image/src/pull.rs; then
+    echo "190: worktree pull.rs carries the pool"
+  else
+    echo "190: worktree pull.rs carries no pool; refusing to measure a reverted shape" >&2
     exit 2
   fi
   ;;
 seq)
-  git show HEAD:crates/podbox-image/src/pull.rs > crates/podbox-image/src/pull.rs || exit 2
-  if git diff --quiet -- crates/podbox-image/src/pull.rs; then
-    echo "190: HEAD shape staged"
-  else
-    echo "190: HEAD shape did not stage" >&2
+  sed -n '/^pub fn pull_all/,/^}/p' crates/podbox-image/src/pull.rs > /tmp/pull_all_shim.rs || exit 2
+  grep -q "offers no {platform} manifest under any of its" /tmp/pull_all_shim.rs || { echo "190: pull_all shim did not extract whole" >&2; exit 2; }
+  git show "$SEQ_PULL_COMMIT:crates/podbox-image/src/pull.rs" > crates/podbox-image/src/pull.rs || exit 2
+  if grep -q "FETCH_WORKERS" crates/podbox-image/src/pull.rs; then
+    echo "190: pinned pull.rs carries a pool; the pin is stale" >&2
     exit 2
   fi
+  {
+    printf '\n// 190 build-only shim, never called by this drive (single-ref pulls\n// only): podbox-cli at HEAD needs pull::pull_all, which postdates the\n// pinned commit. The worktree text verbatim; the measured loop above\n// stays the historical sequential one.\n'
+    cat /tmp/pull_all_shim.rs
+  } >> crates/podbox-image/src/pull.rs || exit 2
+  echo "190: sequential shape staged with its pull_all shim"
   ;;
 esac
 cargo build --release --target x86_64-unknown-linux-musl --manifest-path "\$PWD/Cargo.toml" || exit 2
@@ -124,10 +163,32 @@ if [ -z "$BIN_NEW" ]; then
 	BIN_NEW="$WORK/podbox-new"
 fi
 if [ -z "$BIN_SEQ" ]; then
-	say "== podbox (sequential): building pull.rs at HEAD in the lane"
+	say "== podbox (sequential): building the pinned pre-pool pull.rs in the lane"
 	lane_build pb-seq seq "$WORK/podbox-seq" || exit 2
 	BIN_SEQ="$WORK/podbox-seq"
 fi
+# The delay proxy for the latency shape: one lane cc build, no product
+# code. The job refuses where the source does not compile warning-free.
+say "== delay proxy (experiments/delay-proxy.c)"
+cat >"$WORK/px-job.sh" <<JOB_EOF
+#!/bin/sh
+set -u
+cd /work || exit 2
+./scripts/common/bootstrap-env.sh cc || exit 2
+cc -O2 -std=c11 -Wall -Wextra -Werror -pthread -o /out/delay-proxy experiments/delay-proxy.c || exit 2
+echo "== delay proxy staged"
+exit 0
+JOB_EOF
+mkdir -p "$WORK/stage-px" || exit 2
+if PODBOX_ARTIFACTS="$WORK/stage-px" sh "$REPO/scripts/windows/run-in-base.sh" "$WORK/px-job.sh" >"$WORK/px.log" 2>&1; then
+	cp "$WORK/stage-px/delay-proxy" "$WORK/delay-proxy" || exit 2
+else
+	echo "SKIP: lane build of the delay proxy failed" >&2
+	tail -n 10 "$WORK/px.log" >&2
+	exit 2
+fi
+[ -s "$WORK/delay-proxy" ] || { echo "SKIP: delay proxy came out empty" >&2; exit 2; }
+pass "delay proxy built warning-free in the lane"
 if [ "$NATIVE" -eq 1 ]; then
 	[ -x "$BIN_NEW" ] || { echo "SKIP: pool binary is not executable: $BIN_NEW" >&2; exit 2; }
 	[ -x "$BIN_SEQ" ] || { echo "SKIP: sequential binary is not executable: $BIN_SEQ" >&2; exit 2; }
@@ -235,6 +296,21 @@ cat >"$WORK/w/config-open.json" <<'EOF'
   "log": { "level": "error" }
 }
 EOF
+# The latency legs' twin: the same storage over plain HTTP. The delay
+# proxy forwards bytes and cannot see inside TLS, so the shaped traffic
+# runs here; the TLS fixture above stays the loopback shape's.
+cat >"$WORK/w/config-plain.json" <<'EOF'
+{
+  "distSpecVersion": "1.1.1",
+  "storage": { "rootDirectory": "/w/storage" },
+  "http": {
+    "address": "127.0.0.1",
+    "port": "5002",
+    "realm": "zot"
+  },
+  "log": { "level": "error" }
+}
+EOF
 : >"$WORK/w/empty.cnf"
 _WINWORK="$(winpath "$WORK/w")"
 _OLD_NO_PATHCONV="${MSYS_NO_PATHCONV:-}"
@@ -269,7 +345,7 @@ TAG="$REPO_TAG"
 fails=0
 ok() { printf '  ok %s\n' "\$1"; }
 bad() { printf '  FAIL: %s\n' "\$1"; fails=\$((fails + 1)); }
-chmod +x /zb /pb /pb-seq 2>/dev/null || true
+chmod +x /zb /pb /pb-seq /px 2>/dev/null || true
 echo "-- staged binaries"
 printf '  pool: %s\n' "\$(/pb version 2>/dev/null || echo MISSING)"
 printf '  sequential: %s\n' "\$(/pb-seq version 2>/dev/null || echo MISSING)"
@@ -302,6 +378,25 @@ serve_zot() {
 stop_zot() {
 	kill "\$ZOT_PID" 2>/dev/null || true
 	wait "\$ZOT_PID" 2>/dev/null || true
+	rm -f /w/storage/cache.db || true
+}
+# The plain-HTTP twin for the latency legs: the delay proxy forwards
+# bytes and cannot see inside TLS, so the shaped traffic runs
+# unencrypted beside the TLS fixture (never instead of it). One zot at
+# a time on the storage: the TLS server stops first, so no two writers
+# share its cache.
+serve_plain() {
+	/zb serve /w/config-plain.json >/w/zot-plain.log 2>&1 &
+	ZOT_PLAIN_PID=\$!
+	poll=0
+	while [ "\$poll" -lt 20 ]; do
+		if curl -sS --max-time 5 -o /dev/null "http://127.0.0.1:5002/v2/" 2>/dev/null; then break; fi
+		poll=\$((poll + 1)); sleep 1
+	done
+}
+stop_plain() {
+	kill "\$ZOT_PLAIN_PID" 2>/dev/null || true
+	wait "\$ZOT_PLAIN_PID" 2>/dev/null || true
 	rm -f /w/storage/cache.db || true
 }
 serve_zot
@@ -382,6 +477,67 @@ else
 	bad "order-1: a pooled transcript left manifest order"
 fi
 
+LAT_MS="$PROXY_DELAY_MS"
+LAT_PORT="$PROXY_PORT"
+PLAIN_PORT="5002"
+echo "-- latency shape: the same pulls through a $PROXY_DELAY_MS ms delay proxy (plain HTTP: the proxy forwards bytes and cannot see inside TLS)"
+stop_zot
+serve_plain
+/zb verify /w/config-plain.json >/dev/null 2>&1 || { bad "cfg-2: plain config rejected"; }
+ok "cfg-2: plain config verifies"
+/px "\$LAT_PORT" 127.0.0.1 "\$PLAIN_PORT" "\$LAT_MS" >/w/proxy.log 2>&1 &
+PX_PID=\$!
+poll=0
+while [ "\$poll" -lt 20 ]; do
+	if curl -sS --max-time 5 -o /dev/null "http://127.0.0.1:\$LAT_PORT/v2/" 2>/dev/null; then break; fi
+	poll=\$((poll + 1)); sleep 1
+done
+if curl -sS --max-time 15 -H "Accept: application/vnd.oci.image.manifest.v1+json" "http://127.0.0.1:\$LAT_PORT/v2/\$REPO/manifests/\$TAG" -o /w/got-tag-lat.json 2>/dev/null && [ "\$(sha256sum /w/got-tag-lat.json | cut -d' ' -f1)" = "\$SEED" ]; then
+	ok "lat-0: the manifest through the proxy is the seeded bytes (the proxy forwards)"
+else
+	bad "lat-0: the manifest through the proxy failed or differs (the proxy does not forward)"
+fi
+REF_LAT="127.0.0.1:\$LAT_PORT/\$REPO:\$TAG"
+for run in 1 2; do
+	rm -rf /w/store-lat-seq && mkdir -p /w/store-lat-seq
+	t0=\$(date +%s%N)
+	PODBOX_INSECURE_REGISTRIES="127.0.0.1:\$LAT_PORT" PODBOX_STORE=/w/store-lat-seq /pb-seq pull "\$REF_LAT" >/w/pull-lat-seq-\$run.log 2>&1
+	rc=\$?
+	t1=\$(date +%s%N)
+	printf '  time-lat-seq-%s %s\n' "\$run" "\$((t1 - t0))"
+	if [ "\$rc" -ne 0 ]; then
+		bad "time-lat-seq-\$run: sequential pull through the proxy exits \$rc, not 0"
+	else
+		GOT="\$(PODBOX_STORE=/w/store-lat-seq /pb-seq inspect --format '{{.Digest}}' "\$REF_LAT" 2>/dev/null)"
+		if [ "\$GOT" = "sha256:\$SEED" ]; then
+			ok "time-lat-seq-\$run: exits 0 and inspects to the seeded digest"
+		else
+			bad "time-lat-seq-\$run: digest \$GOT is not sha256:\$SEED"
+		fi
+	fi
+done
+for run in 1 2; do
+	rm -rf /w/store-lat-new && mkdir -p /w/store-lat-new
+	t0=\$(date +%s%N)
+	PODBOX_INSECURE_REGISTRIES="127.0.0.1:\$LAT_PORT" PODBOX_STORE=/w/store-lat-new /pb pull "\$REF_LAT" >/w/pull-lat-new-\$run.log 2>&1
+	rc=\$?
+	t1=\$(date +%s%N)
+	printf '  time-lat-new-%s %s\n' "\$run" "\$((t1 - t0))"
+	if [ "\$rc" -ne 0 ]; then
+		bad "time-lat-new-\$run: pooled pull through the proxy exits \$rc, not 0"
+	else
+		GOT="\$(PODBOX_STORE=/w/store-lat-new /pb inspect --format '{{.Digest}}' "\$REF_LAT" 2>/dev/null)"
+		if [ "\$GOT" = "sha256:\$SEED" ]; then
+			ok "time-lat-new-\$run: exits 0 and inspects to the seeded digest"
+		else
+			bad "time-lat-new-\$run: digest \$GOT is not sha256:\$SEED"
+		fi
+	fi
+done
+kill "\$PX_PID" 2>/dev/null || true
+wait "\$PX_PID" 2>/dev/null || true
+stop_plain
+
 echo "-- failure injection: one bad blob cancels the rest"
 stop_zot
 PRE="\$(sha256sum "/w/storage/\$REPO/blobs/sha256/\$POISON" | cut -d' ' -f1)"
@@ -430,6 +586,7 @@ DRIVER_EOF
 eng_mount "$WORK/zot/zot" /zb
 eng_mount "$BIN_NEW" /pb
 eng_mount "$BIN_SEQ" /pb-seq
+eng_mount "$WORK/delay-proxy" /px
 eng_mount "$WORK/w" /w rw
 # shellcheck disable=SC2034 # read by experiments/lib/engine.sh's eng_run
 ENG_NETWORK=none

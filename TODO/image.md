@@ -562,7 +562,7 @@ Source:      `TOOL.md` section 6.2; `docs/conventions/forbidden-patterns.md`, th
 Category:    image
 Priority:    P2
 Effort:      L
-Status:      partial 2026-09-22
+Status:      done 2026-09-22
 
 Problem:     `crates/podbox-image/src/pull.rs` fetches layers one after another.
              `docs/conventions/forbidden-patterns.md` names "a sequential
@@ -664,6 +664,43 @@ number changes the Decision. Fix area is
 claiming a measurement the entry itself says it did not take.
 Prove is `190` exiting 0 with both shapes and both ratios in
 `experiments/results/parallel-layers.txt`.
+
+**Done 2026-09-26.** The latency shape is an injected delay, not a
+shaped link: `experiments/delay-proxy.c` (new, lane-built
+warning-free) forwards each fetch exchange with a 2 s sleep,
+forcing `Connection: close` so every fetch pays its own setup the
+way it does across a high-RTT link. The shaped traffic runs plain
+HTTP beside the TLS fixture (`--insecure-registry` via
+`PODBOX_INSECURE_REGISTRIES`), because a byte-forwarding proxy
+cannot see inside TLS; the script header records the attempt that
+proved it. The sequential shape is pull.rs at the pinned pre-pool
+commit `a0953f1` (the pool shipped, so HEAD holds no sequential
+loop), staged with a build-only `pull_all` shim the drive never
+calls; both staging jobs refuse where the shape is not what was
+asked. `190` exits 0, `experiments/results/parallel-layers.txt`
+carries the run (podman 6.1.2, both binaries `0.1.0-beta.7`,
+seed `sha256:b9530074...`):
+
+| shape | run 1 | run 2 | mean | ratio |
+| --- | --- | --- | --- | --- |
+| loopback sequential | 3.75 s | 3.91 s | 3.83 s | 2.53x |
+| loopback pooled (4) | 1.63 s | 1.40 s | 1.51 s | |
+| latency sequential | 24.33 s | 24.90 s | 24.62 s | 2.13x |
+| latency pooled (4) | 11.70 s | 11.40 s | 11.55 s | |
+
+The totals ratio narrows under latency (2.53x to 2.13x), which is
+Amdahl, not a slower pool: the manifest fetch is serial in both
+shapes (`pull.rs` fetches it before the pool starts), so its two
+seconds a side dilute the parallel gain. On the overlappable work
+itself — nine exchanges over four workers — the pool pays three
+waves against nine serial fetches. The Decision stands: the fixed
+bound of 4 stays, the constraint is still the registry. Failure,
+order and digest clauses all held beside the timings. Two drive
+notes: the run before this one lost its `/w` mount mid-run (every
+write failed from the first serve; the re-drive held throughout,
+so an infra flake, recorded not hidden); the loopback ratio moves
+run to run (1.78x on 2026-09-22, 2.53x here) and each report
+carries its own conditions.
 
 ---
 

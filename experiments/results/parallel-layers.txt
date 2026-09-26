@@ -1,26 +1,31 @@
 == conditions
-date              2026-09-22T12:38:16Z
+date              2026-09-26T05:20:16Z
 host kernel       3.6.9-b4195d69.x86_64
 engine            podman version 6.1.2 (fixtures: podman)
 zot               v2.1.21 85459246 bytes sha256:d2422616a28dbae10a92c1df9daa23980e2f7f3deb0079968b928f23492196cb
 image             multi:layers, 8 layers of 6291456 bytes (random, incompressible)
 network           none (container loopback only; asserted in clause iso-1)
+latency           2000 ms per fetch exchange through the delay proxy (experiments/delay-proxy.c), connections forced closed
+latency-link      plain HTTP to 127.0.0.1:5001 via PODBOX_INSECURE_REGISTRIES: the proxy forwards bytes and cannot see inside TLS
+sequential        pull.rs at a0953f12fc70b43cd74a94d01d3aa201428330d9 (last pre-pool tree)
 
 == podbox (pool): not staged, building it in the lane
-== podbox (sequential): building pull.rs at HEAD in the lane
-== podbox: pool (2814904 bytes) and sequential (2786224 bytes) staged
+== podbox (sequential): building the pinned pre-pool pull.rs in the lane
+== delay proxy (experiments/delay-proxy.c)
+  ok delay proxy built warning-free in the lane
+== podbox: pool (3023800 bytes) and sequential (2986928 bytes) staged
 == zot pin
   ok zot v2.1.21, 85459246 bytes, sha256 matches the release line
 == seed
-  ok seeded multi:layers sha256:7d70123008878f90c66d7ac292666addacddc122a8c4fe0fb711b4c69c32bf62, 8 layers, 50341652 stored bytes
+  ok seeded multi:layers sha256:b9530074e42685afec5afbdbf4b642d4dd74f345c1670df92ced5a8c3c4ca3b5, 8 layers, 50341652 stored bytes
 == config and cert
   ok config written, cert carries SAN IP:127.0.0.1
 == driver image
   ok driver ead05f6f6f05012a40d39e6ab2f1ce8ce0d1a07a83547b5c6c902701c028df1a
 == driver run (network none)
 -- staged binaries
-  pool: podbox 0.1.0
-  sequential: podbox 0.1.0
+  pool: podbox 0.1.0-beta.7
+  sequential: podbox 0.1.0-beta.7
 -- isolation (asserted, not assumed)
   ok iso-1: no default route (header only or loopback destinations)
   ok iso-2: no name resolves from inside
@@ -28,17 +33,28 @@ network           none (container loopback only; asserted in clause iso-1)
   ok cfg-1: open config verifies
   ok seed-1: manifest by tag is the seeded bytes
 -- timing: sequential shape, cold store each leg
-  time-seq-1 5539108423
+  time-seq-1 3750574352
   ok time-seq-1: exits 0 and inspects to the seeded digest
-  time-seq-2 5079339904
+  time-seq-2 3914876748
   ok time-seq-2: exits 0 and inspects to the seeded digest
 -- timing: pooled shape, cold store each leg
-  time-new-1 2503633646
+  time-new-1 1627825607
   ok time-new-1: exits 0 and inspects to the seeded digest
-  time-new-2 3474055205
+  time-new-2 1401409941
   ok time-new-2: exits 0 and inspects to the seeded digest
 -- order: pooled transcript against manifest order
   ok order-1: both pooled transcripts list layers in manifest order
+-- latency shape: the same pulls through a 2000 ms delay proxy (plain HTTP: the proxy forwards bytes and cannot see inside TLS)
+  ok cfg-2: plain config verifies
+  ok lat-0: the manifest through the proxy is the seeded bytes (the proxy forwards)
+  time-lat-seq-1 24333836939
+  ok time-lat-seq-1: exits 0 and inspects to the seeded digest
+  time-lat-seq-2 24903168415
+  ok time-lat-seq-2: exits 0 and inspects to the seeded digest
+  time-lat-new-1 11697497096
+  ok time-lat-new-1: exits 0 and inspects to the seeded digest
+  time-lat-new-2 11402820183
+  ok time-lat-new-2: exits 0 and inspects to the seeded digest
 -- failure injection: one bad blob cancels the rest
   ok fail-0: the poisoned blob no longer matches its digest
   fail-rc 125
