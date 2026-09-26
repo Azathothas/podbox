@@ -29,6 +29,7 @@ mod run;
 mod system;
 mod tier;
 mod version;
+mod windows;
 
 use std::io::Write;
 
@@ -142,6 +143,7 @@ fn main() -> std::process::ExitCode {
         Some("start") => exit(lifecycle::start(rest)),
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
+        Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
         Some("pull") => exit(images::pull("pull", rest)),
         Some("save") => exit(images::save("save", rest)),

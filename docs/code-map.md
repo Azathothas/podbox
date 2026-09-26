@@ -11,6 +11,7 @@
 | `crates/podbox-complete` | Device shims, account files, package-manager repairs, DNS, hosts, and CA completion |
 | `crates/podbox-enter` | Root change, executable resolution, terminal setup, ABI handling, and foreign interpreters |
 | `crates/podbox-supervise` | Launcher records, logs, pidfds, signals, and lifecycle state |
+| `crates/podbox-windows` | The disposable Windows guest: FAT mailbox, guest agent scripts, and the emulator invocation |
 | `crates/podbox-interpose` | Separate dependency-free glibc/musl preload object for ownership compatibility |
 
 `podbox-interpose` is intentionally excluded from the workspace because it is

@@ -6,6 +6,27 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-26T07:40:00Z: the machine tier gains a disposable Windows guest (T-1112)
+
+**Record:** [`TODO/milestones.md`](TODO/milestones.md) T-1112. No version
+bump and no deployment.
+
+T-1112 was blocked because the reference implementation refuses TCG and
+the lane has no `/dev/kvm`. The new `podbox-windows` crate ports the
+shape without the refusal: one emulator child process, UEFI firmware, a
+per-run qcow2 overlay over a read-only base image, an MBR-partitioned
+FAT16 mailbox the host and guest both see, and a `cmd.exe` agent
+installed once as an `onstart` scheduled task. The accelerator is the
+machine tier's own profile, so `tcg` runs where `kvm` is missing.
+`podbox windows doctor|setup|run` is the surface; the OCI path's refusal
+for a non-Linux guest now names that verb instead of claiming no support
+exists. The mailbox is built and read in process, not through `mkfs.fat`
+or `mtools`. Verified end to end against a Validation OS guest under
+`tcg`: provisioning, autostart, stdout, stderr, exit code and power-off,
+in a fresh disposable overlay per run. The full workspace build was not
+run in the authoring sandbox; see the entry for what that leaves
+unverified.
+
 ### 2026-09-25T11:29:10Z: triage of twenty-two open issues, three entries opened, PR 9 merged
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version bump and no

@@ -26,3 +26,7 @@ podbox-extract = { path = "../podbox-extract" }
 podbox-complete = { path = "../podbox-complete" }
 podbox-enter = { path = "../podbox-enter" }
 podbox-supervise = { path = "../podbox-supervise" }
+# ⭐ TODO/milestones.md T-1112. The disposable Windows guest. Its own crate
+# because the whole guest side is `cmd.exe` and a FAT mailbox and none of it
+# shares a line with the OCI path.
+podbox-windows = { path = "../podbox-windows" }
