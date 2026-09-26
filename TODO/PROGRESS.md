@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 3 partial, 1 blocked, 161 done. The 2026-09-25
+168 entries: 3 open, 2 partial, 1 blocked, 162 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -294,8 +294,14 @@ identity drive (`106` exits 0,
 the full setter matrix and clause G records the errno-by-call
 table on the denying lane (grants where the wall maps the id,
 EPERM elsewhere); the honest refusal names call, number and name
-(`setgid failed with errno 1 (EPERM)`), unit-pinned. Small batch
-continues with T-1308.
+(`setgid failed with errno 1 (EPERM)`), unit-pinned. T-1308
+closed 2026-09-26 on the re-driven workload spread (`154`
+exits 0, `experiments/results/tcg-workload-spread.txt`): 14
+driven, 0 mismatches, section 1 counting `^workload=` lines
+requiring 3 like sections 2 and 4, the pinned `QEMU_FLAGS` and
+`BENCH_CFLAGS` printed in the conditions; int 7.5x, sys 10.7x,
+mem 1.4x, io 4.9x, every checksum agreeing on every platform.
+Small batch continues with T-0501.
 
 ## Operator questions
 

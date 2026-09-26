@@ -58,6 +58,11 @@ KERNEL_SHA256="6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51"
 CURL_TIMEOUT="${PODBOX_154_CURL_TIMEOUT:-60}"
 BOOT_TIMEOUT="${PODBOX_154_TIMEOUT:-600}"
 RUN_TIMEOUT=300
+# ⛔ Pinned beside the invocations, not inside them: the conditions block
+# prints these, so a re-drive that changes a flag cannot silently compare
+# against the old report (TODO/podvm.md T-1308).
+QEMU_FLAGS="-M pc,acpi=off -m 256 -nographic -no-reboot -accel tcg,thread=multi"
+BENCH_CFLAGS="-O2 -static"
 
 fail=0
 fails=0
@@ -81,7 +86,8 @@ done
 PAYLOADDIR="$WORK/payloads"
 mkdir -p "$PAYLOADDIR" || exit 2
 for w in int sys mem io; do
-	gcc -O2 -static -o "$PAYLOADDIR/bench-$w" "$HERE/154-bench-$w.c" || {
+	# shellcheck disable=SC2086 # the flags are a pinned constant, split on purpose.
+	gcc $BENCH_CFLAGS -o "$PAYLOADDIR/bench-$w" "$HERE/154-bench-$w.c" || {
 		echo "SKIP: bench-$w did not build static" >&2; exit 2;
 	}
 	file "$PAYLOADDIR/bench-$w" | grep -q "statically linked" || {
@@ -98,6 +104,8 @@ done
 	printf 'gcc               %s\n' "$(gcc --version | head -1)"
 	printf 'image             %s\n' "$ALPINE_REF"
 	printf 'kernel            %s (sha256 %s)\n' "$KURL" "$KERNEL_SHA256"
+	printf 'qemu flags        %s\n' "$QEMU_FLAGS"
+	printf 'payload cflags    gcc %s\n' "$BENCH_CFLAGS"
 	printf 'host io backing   %s\n' "$(df -T "$WORK" | tail -1)"
 	for w in int sys mem io; do
 		printf 'payload bench-%s  %s\n' "$w" "$(sha256sum <"$PAYLOADDIR/bench-$w" | cut -d' ' -f1)"
@@ -116,8 +124,17 @@ bench3() {
 say "== 1. host runs"
 mkdir -p "$WORK/host" || exit 2
 for w in int sys mem io; do
+	# ⛔ T-1308: every platform counts `^workload=` lines, never exits.
+	# An `io error=` line beside a zero exit would pass an
+	# exit-counted section and fail the line-counted row section, so
+	# all three count lines and the tallies agree by construction.
 	if bench3 "$PAYLOADDIR/bench-$w" "$WORK/host" "$WORK/host-$w.log"; then
-		pass "host bench-$w ran three times"
+		n=$(grep -c "^workload=$w " "$WORK/host-$w.log" 2>/dev/null); n=${n:-0}
+		if [ "$n" -eq 3 ]; then
+			pass "host bench-$w ran three times"
+		else
+			miss "host bench-$w ran $n of 3 times"
+		fi
 	else
 		miss "host bench-$w failed"
 	fi
@@ -188,9 +205,8 @@ if [ "$fail" -eq 0 ]; then
 	fi
 fi
 if [ "$fail" -eq 0 ] && [ -f "$WORK/full.cpio" ]; then
-	timeout "$BOOT_TIMEOUT" qemu-system-x86_64 \
-		-M pc,acpi=off -m 256 -nographic -no-reboot \
-		-accel tcg,thread=multi \
+	# shellcheck disable=SC2086 # the flags are a pinned constant, split on purpose.
+	timeout "$BOOT_TIMEOUT" qemu-system-x86_64 $QEMU_FLAGS \
 		-kernel "$WORK/vmlinuz-virt" \
 		-initrd "$WORK/full.cpio" \
 		-append "console=ttyS0 panic=-1" \

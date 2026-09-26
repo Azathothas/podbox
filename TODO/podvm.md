@@ -722,7 +722,7 @@ Source:      `references/talaria0101__vm-research/tree/experiments/logs/66-tcg-b
 Category:    podvm
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     [T-1301](podvm.md) selects the machine tier and the selection is a
              cost decision, so podbox will have to tell an operator what the
@@ -812,6 +812,29 @@ conditions block. Fix area is the measurement script with
 numbers that should agree and getting a total that does not.
 Prove is the re-driven `154` with both tallies agreeing and the
 flags in the conditions.
+
+**Done 2026-09-26.** `experiments/154-tcg-workload-spread.sh`
+exits 0 on the lane (`rust:1.98.1-bookworm` job container in
+`wsl-toolkit-podbox`, host kernel `7.2.0-WSL2-STABLE`, lane-built
+musl release binary): 14 driven, 0 mismatches
+(`experiments/results/tcg-workload-spread.txt`). Section 1 now
+counts `^workload=` lines requiring 3, exactly like sections 2
+and 4, so an `io error=` line beside a zero exit can no longer
+pass one tally and fail the other; the tallies agree by
+construction. The conditions block prints the pinned
+`QEMU_FLAGS` (`-M pc,acpi=off -m 256 -nographic -no-reboot
+-accel tcg,thread=multi`) and `BENCH_CFLAGS` (`-O2 -static`)
+beside the invocations that use them, so a re-drive that
+changes a flag cannot silently compare against this report.
+Rows: int host 0.155 s chroot 0.148 s (1.0x) guest 1.168 s
+(7.5x); sys host 0.288 s chroot 0.257 s (0.9x) guest 3.093 s
+(10.7x); mem host 1.131 s chroot 1.106 s (1.0x) guest 1.557 s
+(1.4x); io host 0.094 s chroot 0.095 s (1.0x) guest 0.457 s
+(4.9x). Every checksum agrees on every platform. The chroot
+tier still costs nothing measurable (1.0x or better on three
+classes, 1.0x on the fourth). The TCG spread on this run is
+1.4x (memory) to 10.7x (syscall), confirming the Decision
+again: no single multiplier describes the tier.
 
 ---
 
