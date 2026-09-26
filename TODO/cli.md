@@ -1256,7 +1256,7 @@ the gate before it ships and fails the binary drive beside it.
 
 Source:      issue 38, beta.7 drive 2026-09-25 (no `doctor`, no `df`,
              `logs` without `--tail`); `references/carlbomsdata__winquick`
-             `tree/src/bin/main.rs:50` with `tree/src/facts.rs` (the shape
+             `tree/src/main.rs:50` with `tree/src/facts.rs:125-180` (the shape
              to copy, not the content)
 Category:    cli
 Priority:    P2
@@ -1302,3 +1302,26 @@ Prove:       `podbox doctor` on a kvm-less host exits 1 naming the
              sums to the store's own accounting; `podbox logs --tail 5`
              prints the last five lines and `podbox logs` prints all
              lines byte-identical to before.
+
+**Tail, 2026-09-26.** The third verb landed first: `logs --tail N`
+(`--tail=N`, both in any position) prints the last N lines of the
+same captured file, byte-identical default untouched, and `-f
+--tail N` prints the tail then follows from the chained offset
+instead of replaying the file. `podbox-supervise::tail_offset`
+(pure, unit-pinned) with `follow_from` chaining the read length
+past the printed slice, so no line is lost or repeated. A
+non-count is a flag error at 125 naming the value. Prove through
+the shipped binary (`experiments/364-qol.sh` tail clauses, exit
+0, `experiments/results/qol.txt`): last five of ten exact,
+plain logs byte-identical to a wide tail, `--tail 0` empty at
+exit 0, non-count refused, `-f --tail 3` following to the end.
+Doctor and df stay open below.
+
+⚠ Citation correction, read at file and line 2026-09-26: the
+doctor shape lives at `tree/src/main.rs` (help text naming
+`winquick doctor`) and `tree/src/facts.rs:125-180` (`Status`,
+`Check`, `Doctor` with the ordered fix list, builder with
+ok/note/fail, health agreeing with the problem list) - there is
+no `tree/src/bin/` directory. The tree was read at one pass
+([history/2026-09-11-reference-sweep.md](../docs/history/2026-09-11-reference-sweep.md)),
+so only the shape travels, none of the content.

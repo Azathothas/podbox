@@ -1,0 +1,79 @@
+== conditions
+date              2026-09-26T08:15:34Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0-beta.7
+debian            public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+
+== pulls
+bookworm-slim: Pulling from debian/debian
+a8ac7f6c67ab: Pull complete
+Digest: sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+Status: Downloaded newer image for public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+podbox: probed this machine rather than using the cache: /work/experiments/.sweep364-work/store/probe.json does not exist yet
+
+== tail-1. --tail 5 prints the last five lines
+a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
+podbox: 10 of 4224 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep364-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+  extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep364-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+ownership: real; network: host-shared; pids: host-shared)
+probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+        clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
+note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+podbox: complete: rewrote etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+podbox: complete: created etc/hosts (hosts, T-0403): localhost, the container name t364a
+podbox: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+podbox: complete: created etc/apt/apt.conf.d/99podbox (apt-sandbox, T-0407): APT::Sandbox::User root. The _apt user is not mapped on this runtime
+podbox: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from /etc/ssl/certs/ca-certificates.crt
+podbox: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. refused: The scheme only: the mirror this image chose is the mirror podbox uses
+podbox: complete: 14 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. refused: These are edits podbox made inside somebody else's image and the payload can see them
+0907db31a5412eedfb9cb05ef7ace53e4603e5873d1f3f9f5e5a78a4d509fb7a
+t364a
+0
+  ok: --tail 5 prints lines 6 to 10 exactly
+
+== tail-2. no flag is byte-identical to a wide tail
+  ok: plain logs and --tail 99 agree on all ten lines
+
+== tail-3. --tail 0 prints nothing
+  ok: --tail 0 is empty at exit 0
+t364a
+
+== tail-4. a non-count tail is a flag error
+  ok: non-count --tail refused at 125 naming the value
+
+== tail-5. -f --tail follows from the tail
+podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+ownership: real; network: host-shared; pids: host-shared)
+probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+        clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
+no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
+note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost, the container name t364b
+podbox: complete: 1 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. refused: These are edits podbox made inside somebody else's image and the payload can see them
+0644c810b4242db34a9e95a0a7e3669b506f082b5aa4cc73800126f8ac8e89d3
+t364b
+0
+  ok: -f --tail 3 prints the last three and exits
+t364b
+
+verdict           QOL TAIL SERVED
+== counts: 5 tail clauses, fail=0

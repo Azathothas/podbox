@@ -455,6 +455,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "rm", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "logs", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "logs", flag: Some("-f, --follow"), status: Native, note: "follows the container's log file with a bounded poll and exits after the container ends" },
+    Row { verb: "logs", flag: Some("--tail"), status: Native, note: "prints the last N lines of the captured file (`--tail N` or `--tail=N`, 0 prints nothing), then follows where `-f` is given instead of replaying the whole file (TODO/cli.md T-1337)" },
     Row { verb: "wait", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "start", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "cp", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },

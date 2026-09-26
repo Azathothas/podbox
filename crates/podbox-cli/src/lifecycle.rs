@@ -403,26 +403,48 @@ fn ps_fields(c: &Container, no_trunc: bool) -> Vec<(&'static str, String)> {
     ]
 }
 
-/// `podbox logs [-f|--follow] <container>`
-const LOGS_USAGE: &str = "usage: podbox logs [-f|--follow] <container>";
+/// `podbox logs [-f|--follow] [--tail N] <container>`
+const LOGS_USAGE: &str = "usage: podbox logs [-f|--follow] [--tail N] <container>";
 
 /// What `logs` was asked for. One parser, so the flag cannot be accepted in
 /// one position and lost in another (TODO/supervise.md T-1318).
+#[derive(Debug)]
 struct LogsArgs {
     follow: bool,
+    tail: Option<u64>,
     want: String,
 }
 
 fn parse_logs(args: &[String]) -> std::result::Result<LogsArgs, i32> {
     let mut follow = false;
+    let mut tail: Option<u64> = None;
     let mut want: Option<String> = None;
+    let mut expecting: Option<&'static str> = None;
     for a in args {
+        if expecting.take().is_some() {
+            match parse_tail(a) {
+                Ok(n) => tail = Some(n),
+                Err(why) => {
+                    eprintln!("podbox logs: {why}");
+                    return Err(EXIT_FLAG_ERROR);
+                }
+            }
+            continue;
+        }
         match a.as_str() {
             "-f" | "--follow" => follow = true,
+            "--tail" => expecting = Some("--tail"),
             "-h" | "--help" => {
                 println!("{LOGS_USAGE}");
                 return Err(0);
             }
+            other if other.starts_with("--tail=") => match parse_tail(&other[7..]) {
+                Ok(n) => tail = Some(n),
+                Err(why) => {
+                    eprintln!("podbox logs: {why}");
+                    return Err(EXIT_FLAG_ERROR);
+                }
+            },
             other if other.starts_with('-') => {
                 crate::parity::admit("logs", other, LOGS_USAGE)?;
                 return Err(crate::parity::no_arm("logs", other));
@@ -433,11 +455,28 @@ fn parse_logs(args: &[String]) -> std::result::Result<LogsArgs, i32> {
             _ => {}
         }
     }
+    if let Some(flag) = expecting {
+        eprintln!("podbox logs: {flag} needs a value");
+        return Err(EXIT_FLAG_ERROR);
+    }
     let Some(want) = want else {
         println!("{LOGS_USAGE}");
         return Err(EXIT_CLI_ERROR);
     };
-    Ok(LogsArgs { follow, want })
+    Ok(LogsArgs { follow, tail, want })
+}
+
+/// Parse a `--tail` value: a non-negative integer, nothing else. Zero
+/// prints no lines and still exits 0; anything that is not a number is a
+/// flag error naming the value rather than a silent whole log.
+fn parse_tail(raw: &str) -> std::result::Result<u64, String> {
+    if raw.is_empty() || !raw.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(format!(
+            "--tail takes a non-negative line count, not {raw:?}"
+        ));
+    }
+    raw.parse::<u64>()
+        .map_err(|_| format!("--tail takes a non-negative line count, not {raw:?}"))
 }
 
 /// `podbox logs [-f|--follow] <container>`
@@ -463,7 +502,14 @@ pub fn logs(args: &[String]) -> i32 {
         // ⚠ The payload's own bytes, to stdout, unaltered. `logs` is the one
         // verb whose stdout is not podbox's, following or not.
         let mut out = std::io::stdout().lock();
-        return match podbox_supervise::follow(&s, &o.want, &mut out) {
+        // ⭐ TODO/cli.md T-1337: from the tail, not from the start.
+        // A reconnect that replays the whole file is the defect
+        // `--tail` exists to remove.
+        let r = match o.tail {
+            Some(n) => podbox_supervise::follow_tail(&s, &o.want, &mut out, n),
+            None => podbox_supervise::follow(&s, &o.want, &mut out),
+        };
+        return match r {
             Ok(()) => 0,
             Err(e) => fail("logs", e),
         };
@@ -472,8 +518,17 @@ pub fn logs(args: &[String]) -> i32 {
         Ok(bytes) => {
             // ⚠ The payload's own bytes, to stdout, unaltered. `logs` is the one
             // verb whose stdout is not podbox's.
+            // ⭐ TODO/cli.md T-1337: the tail is a slice of the same read,
+            // so no `--tail` changes the default by a byte.
+            let bytes = match o.tail {
+                Some(n) => {
+                    let start = podbox_supervise::tail_offset(&bytes, n) as usize;
+                    &bytes[start..]
+                }
+                None => &bytes[..],
+            };
             let mut out = std::io::stdout().lock();
-            let _ = out.write_all(&bytes);
+            let _ = out.write_all(bytes);
             0
         }
         Err(e) => fail("logs", e),
@@ -2219,6 +2274,29 @@ mod tests {
         assert!(!o.follow);
         assert_eq!(o.want, "c1");
         assert!(parse_logs(&v(&[])).is_err());
+    }
+
+    /// TODO/cli.md T-1337. `--tail` takes a count in both spellings and
+    /// in any position; anything else is a flag error naming the value.
+    #[test]
+    fn logs_tail_takes_a_count_in_both_spellings() {
+        let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let o = parse_logs(&v(&["--tail", "5", "c1"])).unwrap();
+        assert_eq!(o.tail, Some(5));
+        let o = parse_logs(&v(&["c1", "--tail=0"])).unwrap();
+        assert_eq!(o.tail, Some(0));
+        let o = parse_logs(&v(&["-f", "--tail", "3", "c1"])).unwrap();
+        assert!(o.follow);
+        assert_eq!(o.tail, Some(3));
+        let o = parse_logs(&v(&["c1"])).unwrap();
+        assert_eq!(o.tail, None);
+        for bad in ["--tail=x", "--tail=-1", "--tail=", "--tail", "--tail=5x"] {
+            assert_eq!(
+                parse_logs(&v(&[bad, "c1"])).unwrap_err(),
+                EXIT_FLAG_ERROR,
+                "{bad} was not refused"
+            );
+        }
     }
 
     /// TODO/cli.md T-1323. `cp` parses its flag and two positionals.

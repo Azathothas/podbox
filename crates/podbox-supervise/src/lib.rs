@@ -333,11 +333,26 @@ pub fn logs(store: &Store, want: &str) -> Result<Vec<u8>> {
 /// than erroring; rotation itself is out of scope. A container that never
 /// exits follows forever, which is docker's answer too.
 pub fn follow(store: &Store, want: &str, out: &mut dyn std::io::Write) -> Result<()> {
+    follow_from(store, want, out, 0)
+}
+
+/// Follow a container's log from a byte offset: print what is past it,
+/// then poll-append exactly as [`follow`] does. TODO/cli.md T-1337:
+/// `logs -f --tail N` prints the last N lines, then follows what
+/// arrives, instead of replaying the whole file on every reconnect.
+/// The offset chains: bytes past it print once here and the poll loop
+/// continues past them, so no line is lost or repeated between the two.
+pub fn follow_from(
+    store: &Store,
+    want: &str,
+    out: &mut dyn std::io::Write,
+    start: u64,
+) -> Result<()> {
     const POLL: std::time::Duration = std::time::Duration::from_millis(100);
     const FINAL_DRAIN: std::time::Duration = std::time::Duration::from_millis(200);
     let c = get(store, want)?;
     let path = table::log_path(store, &c.id);
-    let mut offset = append_from(&path, 0, out)?;
+    let mut offset = append_from(&path, start, out)?;
     loop {
         std::thread::sleep(POLL);
         let (next, done) = follow_once(store, want, &path, offset, out)?;
@@ -350,8 +365,51 @@ pub fn follow(store: &Store, want: &str, out: &mut dyn std::io::Write) -> Result
     }
 }
 
+/// The byte offset where the last `n` lines of `bytes` begin.
+///
+/// TODO/cli.md T-1337. Lines end at `\n`; one trailing newline
+/// terminates the last line rather than starting an empty one, so `a\n`
+/// and `a` are each one line. Zero lines is the end of the buffer, and
+/// more lines than the buffer holds is its start: `--tail` never fails
+/// for counting alone.
+pub fn tail_offset(bytes: &[u8], n: u64) -> u64 {
+    if n == 0 {
+        return bytes.len() as u64;
+    }
+    let body = if bytes.last() == Some(&b'\n') {
+        &bytes[..bytes.len() - 1]
+    } else {
+        bytes
+    };
+    let mut seen = 0u64;
+    let mut i = body.len();
+    while i > 0 {
+        i -= 1;
+        if body[i] == b'\n' {
+            seen += 1;
+            if seen == n {
+                return (i + 1) as u64;
+            }
+        }
+    }
+    0
+}
+
+/// Follow a container's log from its last `n` lines: print the tail,
+/// then follow what arrives. The tail is measured against one read and
+/// the poll loop chains past that read's length, so a line landing
+/// between the two is followed, never lost and never repeated.
+pub fn follow_tail(store: &Store, want: &str, out: &mut dyn std::io::Write, n: u64) -> Result<()> {
+    let bytes = logs(store, want)?;
+    let start = tail_offset(&bytes, n);
+    let end = bytes.len() as u64;
+    out.write_all(&bytes[start as usize..])
+        .map_err(|e| Error(format!("writing the log: {e}")))?;
+    let _ = out.flush();
+    follow_from(store, want, out, end)
+}
 /// One poll step: append what arrived, and whether the container has ended.
-/// The final drain stays in [`follow`]: a write racing the state flip lands
+/// The final drain stays in [`follow_from`]: a write racing the state flip lands
 /// between this step's read and the drain.
 ///
 /// A step rather than a loop so the test below drives arrivals
@@ -539,6 +597,26 @@ mod tests {
         assert!(done2, "an exited container ends the follow");
         assert_eq!(out, b"first\nsecond\n");
         let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-1337: the tail offset names the last lines exactly, with no
+    /// read past the buffer and no thread anywhere near it.
+    #[test]
+    fn tail_offset_names_the_last_lines() {
+        // One trailing newline terminates rather than starting a line.
+        assert_eq!(tail_offset(b"a\nb\nc\n", 2), 2);
+        assert_eq!(tail_offset(b"a\nb\nc\n", 1), 4);
+        assert_eq!(tail_offset(b"a\nb\nc\n", 3), 0);
+        assert_eq!(tail_offset(b"a\nb\nc\n", 9), 0);
+        // Without the trailing newline the same lines start the same way.
+        assert_eq!(tail_offset(b"a\nb\nc", 2), 2);
+        assert_eq!(tail_offset(b"a\nb\nc", 1), 4);
+        // One line, empty input and zero lines are the three edges.
+        assert_eq!(tail_offset(b"only\n", 1), 0);
+        assert_eq!(tail_offset(b"only", 1), 0);
+        assert_eq!(tail_offset(b"", 1), 0);
+        assert_eq!(tail_offset(b"a\nb\n", 0), 4);
+        assert_eq!(tail_offset(b"\n", 1), 0);
     }
 
     /// Append-only writer for the follow test: the launcher holds the log
