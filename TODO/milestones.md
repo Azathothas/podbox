@@ -969,3 +969,70 @@ and no licensed Windows image is installed anywhere (one is
 never fetched or committed here). What unblocks: a KVM host
 with the image installed under the accept-terms gate the entry
 names. The entry stays partial on that blocker.
+
+**Guest arm landed 2026-09-26, under TCG, in the authoring
+sandbox.** New crate `crates/podbox-windows`: `fat16.rs` (an
+MBR-partitioned 16 MiB FAT16 volume built and read in process,
+so the driver does not shell out to `mkfs.fat` or `mtools`),
+`agent.rs` (the two `cmd.exe` scripts and the mailbox protocol),
+`plan.rs` (the emulator argv, and the accelerator taken from the
+machine tier's own `Profile` so `tcg` is run rather than
+refused), and `lib.rs` (`mailbox`, `outcome`, `stage`, `run`,
+`provision`). New CLI surface `podbox windows
+doctor|setup|run` in `crates/podbox-cli/src/windows.rs`, wired
+from `main.rs`, with parity rows and a `docs/code-map.md` row.
+`lifecycle::ensure_linux_guest` still refuses a non-Linux guest
+on the OCI path, but now routes it by name through
+`lifecycle::guest_verb` to `podbox windows run` instead of
+claiming no support exists. `prove` is met in spirit by that
+verb rather than by `run --platform windows/amd64`, because a
+Windows guest is a disk image and not an OCI rootfs.
+
+What the reference's shape could not be ported as written, each
+measured against the real image and each the reason for a
+divergence: `cmd.exe` `AutoRun` does not fire for the shell
+Validation OS starts; a `Run`/`RunOnce` value does not either,
+because that logon never reaches `userinit.exe`'s `Run`
+processing; `sc create` with a `cmd.exe` image starts the script
+and is then terminated by the service control manager once the
+process fails to report `SERVICE_RUNNING`, and raising
+`ServicesPipeTimeout` to 900000 did not save it; an `onstart`
+scheduled task as `SYSTEM` does fire, so that is the autostart.
+`mountvol /P` strips the volume's drive letter from the mount
+manager's persistent database, so the reference's dismount made
+every later boot unable to find the mailbox; the agent no longer
+dismounts, and it probes D through Z rather than a fixed letter.
+
+Verified against the real guest under `tcg` on 2026-09-26, both
+halves from the crate's own code path: `provision` booted a
+fresh overlay, typed the installer through the emulator monitor
+(`SETUP.TXT` = `INSTALLED D:`), and the guest powered itself off
+so its FAT writes were flushed before the read; then `run` over
+the provisioned image, in a fresh disposable overlay, returned
+`Microsoft Windows [Version 10.0.26100.9278]`, the command's own
+output, an empty stderr, exit code 0 and the matching token in a
+28-second boot. `cargo test -p podbox-windows --lib` is 32
+passed, run in the sandbox. Four defects were found by review
+and fixed, each with a test: an argv-shaped command that quoted
+a whole line into one token (`cmd.exe` refused with exit 123,
+which the real guest reproduced); a base-image format taken from
+the extension, so `.img` would have been passed as `-F img`; a
+provisioning boot killed before the guest had flushed `SETUP.TXT`;
+and a provisioning install written into a scratch overlay that
+`run` then discarded.
+
+⚠ **What this sandbox could not verify, named rather than
+implied.** The workspace was not compiled: `cargo check -p
+podbox-cli` does not fit in the only directories this sandbox may
+execute from (the dependency graph exhausted a 245 MB tmpfs while
+still building proc macros), and the shipping target needs `zig`
+for `ring`. So the five edited `podbox-cli` files are reviewed
+and not compiled here, and `podbox windows doctor|setup|run` has
+not been run as a verb. Every claim above is about the
+`podbox-windows` crate, which does compile and whose tests do
+run. The `kvm` arm of `accel_for` is unit-tested and was not
+exercised: no reachable machine has `/dev/kvm`. No licensed image
+is fetched, committed or redistributed: the base image existed in
+the sandbox already and is not in the tree. Remaining: compile the
+CLI on a machine with the full toolchain, run the verb, and take
+the `kvm` arm on a KVM host.

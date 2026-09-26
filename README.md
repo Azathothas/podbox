@@ -65,6 +65,26 @@ Entry reports the rung it actually achieved, so a planned stronger mechanism
 never silently becomes a weaker one. None of the rungs below `namespace` is a
 security boundary against a hostile payload.
 
+## A disposable Windows guest
+
+The machine tier can also boot a Windows guest. It is not an OCI image and it
+does not go through `run`: it is a disk image the emulator boots, and the
+command is one `cmd.exe` line.
+
+```sh
+podbox windows doctor                                            # can this machine, and how
+podbox windows setup --image ValidationOS.vhdx                  # once: installs the agent
+podbox windows run   --image ValidationOS.podbox.qcow2 -- ver & echo hi
+```
+
+`setup` writes `<disk>.podbox.qcow2` beside the image and is the only step that
+needs the guest console; pass that file to `run`. Each run gets a fresh overlay
+over it, so nothing the guest writes survives the run. The guest has no
+network. The accelerator is the machine tier's own profile — `kvm` where it
+holds, `tcg` where only that does, and a refusal naming the missing leg where
+neither does — so the feature works on the restricted hosts podbox targets
+rather than only on a KVM host.
+
 ## Guarantees and limits
 
 - Every claimed execution rung is derived from probes, not from uid or a build
