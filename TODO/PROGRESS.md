@@ -97,7 +97,10 @@ runs user namespaces (`unshare -Urm` exits 0), mounts binfmt_misc and
 cgroup v2, and answers root inside `base exec`. The shipped binary
 reports `namespace` there. Kept in the base, documented here because it
 is persistent shared infra: docker 29.8.1, go 1.27.1, jq 1.8.2,
-qemu-user-static 11.1.1-4. Scratch (`/root/pb-wk`, `/root/pb-bin`,
+qemu-user-static 11.1.1-4. On 2026-09-26 this session added via
+pacman (kept, documented for the same reason): qemu-system-x86
+11.1.1-4 (KVM acceleration verified: `info kvm` reads enabled),
+cpio, time. Scratch (`/root/pb-wk`, `/root/pb-bin`,
 `/root/target-docker.tar`) is removed at session end.
 
 ⛔ **`main` takes a direct push now.** `enforce_admins` was turned off on
@@ -112,6 +115,22 @@ untranslated and the job fails naming a `C:\tmp` path). A staged job
 takes the checkout from its working directory (`/work`), never from
 `$0`, which names the staging path (the 353 and 354 headers name
 it).
+
+Four traps this session paid for the first time, same treatment.
+`base exec -c` carrying a guest path needs `MSYS_NO_PATHCONV=1` on
+the host call, or Git Bash rewrites `/root/...` into
+`C:\Program Files\Git\...` before the guest reads it (files travel
+as files and are immune; only `-c` strings mangle). A base session
+reaps its process group on exit: `nohup ... &` does not survive it
+(proven with a sleep probe), so a long base drive runs in a held
+foreground session, never detached. A host-side task timeout kills
+the client, not the lane job: the lane container keeps working and
+its `/out` is recoverable through the base, but a base session dies
+with the client. An exit code is read from the process that produced
+it, unpiped: `check-todo.py | tail` reports tail's 0 beside a red
+gate. New files must be staged before the full lane check: the
+citation checks read the git index, so an unstaged tree fails on
+files sitting open on disk.
 
 ## What this session did, 2026-09-25 (triage)
 
@@ -319,7 +338,32 @@ Reclaimable the exact string `image prune` frees (3.7 MiB
 agreement on a digest-pulled dangling alpine); `doctor` exits
 0 with profile tcg and no fix where everything holds, 1
 naming the emulator leg with its fix where QEMU is absent.
-Item 9 continues with T-1339 and T-1338.
+Item 9 continues with T-1339 and T-1338. T-1339 closed
+2026-09-26 on the namespace drive: the fd-anchored dot-chroot
+hid the private tmpfs on the base, so the namespace rung
+chroots by path with a (d,i) guard past it (`EXDEV` step 10)
+falling back to chroot with the step named; `365` exits 0 on
+the lane (3 clauses, `experiments/results/namespace.txt`) and
+`366` exits 0 on the base (5 clauses,
+`experiments/results/namespace-base.txt`, the payload's /tmp
+invisible from the host); issue 59 closed with proof. T-1338
+closed 2026-09-26 on the perf harness: `360` exits 0 on the
+lane (`experiments/results/perf-lane.txt`) and on the KVM base
+(`experiments/results/perf-kvm.txt`, KVM guest boot 0.936 s
+against TCG 1.869 s), seeds from 190 and 154 folded, ceilings
+in `experiments/perf-ceilings.tsv` held by check 30 (96 rows
+compared, zero regressions; plant case 30 green); the harness
+surfaced a real `load` EXDEV defect, fixed in-store beside
+`import` with its guard; the run decay curve is filed as
+T-1340; issue 57 closed with proof. T-1327 closed 2026-09-26:
+`build.rs` records each embed's `e_machine`,
+`version --verbose` renders it, smoke group 6 asserts it
+(lane: outer=gnu=musl=0x3e), and `367` exits 0 on the base
+(`experiments/results/qemu-user-aarch64.txt`): the AArch64
+payload runs with the 0xb7-against-0x3e decline named. The
+cleanup rule now covers drive artifacts and base scratch, held
+by check 29 with its plant. Item 9 is closed and item 10 with
+it; the triage work order is finished. Next is T-1340.
 
 ## Operator questions
 
