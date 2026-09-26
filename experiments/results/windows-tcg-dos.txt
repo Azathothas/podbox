@@ -1,0 +1,90 @@
+== conditions
+date              2026-09-26T10:22:58Z
+host kernel       Linux 6.18.39-gentoo-dist-bin
+cpu model         AMD Ryzen 7 7700 8-Core Processor
+kvm               absent
+qemu              QEMU emulator version 10.2.3
+accel             Accelerators supported in QEMU binary: tcg mshv kvm 
+qemu-img          present
+zig               0.16.0 at /workspace/zig
+bootstrap         ok
+interpose         ok
+build             ok
+podbox            podbox 0.1.0-beta.7
+probe json        ok
+profile           tcg
+refusal           null
+clause 1          machine profile tcg holds
+fetch             ok
+sha256            857dcd2ebf9d3d094320154db5fb5b830acba6fb98f981a95a0ca7ab3350338b
+unzip             ok
+image bytes       33554432
+image: /workspace/podbox/experiments/.sweep363-work/freedos-base.img
+file format: raw
+virtual size: 32 MiB (33554432 bytes)
+disk size: 512 B
+Child node '/file':
+    filename: /workspace/podbox/experiments/.sweep363-work/freedos-base.img
+    protocol type: file
+    file length: 32 MiB (33554432 bytes)
+    disk size: 512 B
+base sha          f539d456b792594bc3ca59d4e0f4c23d4f1fee73370c1390b2da245400718d36
+clause 2          base pinned and landed
+
+== dos-ver
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 freedos:1.4 ver
+exit              0
+stdout:
+  
+  FreeCom version 0.86 - WATCOMC - XMS_Swap [Dec 30 2024 22:10:51]
+stderr:
+  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /workspace/podbox/experiments/.sweep363-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
+
+== dos-cmdver
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 freedos:1.4 cmd /c ver
+exit              0
+stdout:
+  
+  FreeCom version 0.86 - WATCOMC - XMS_Swap [Dec 30 2024 22:10:51]
+stderr:
+  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /workspace/podbox/experiments/.sweep363-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
+
+== dos-nonzero
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 freedos:1.4 dir /zzz
+exit              1
+stdout:
+stderr:
+  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /workspace/podbox/experiments/.sweep363-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
+clause 5          non-zero returns 1, distinct from 0
+
+== dos-deadline
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 freedos:1.4 pause
+exit              125
+stdout:
+stderr:
+  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /workspace/podbox/experiments/.sweep363-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
+  podbox run: DEADLINE: no completion line with the run token within 180 s. The guest never wrote WQCODE.TXT, so there is no status to return (TODO/milestones.md T-1112)
+clause 7          base byte-identical (f539d456b792594bc3ca59d4e0f4c23d4f1fee73370c1390b2da245400718d36)
+per-run leftovers 2
+clause 7          store untouched
+
+== win-create
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox create --platform windows/amd64 freedos:1.4 ver
+exit              125
+output:
+  podbox create: windows/amd64 is not an OCI rootfs, so nothing on this path pulls or enters it. A disposable windows guest is its own verb: `podbox windows run --image <disk> -- <command>` (TODO/milestones.md T-1112)
+
+== win-notier
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox run --rm --platform windows/amd64 freedos:1.4 ver
+exit              125
+output:
+  podbox run: windows/amd64 is not an OCI rootfs, so nothing on this path pulls or enters it. A disposable windows guest is its own verb: `podbox windows run --image <disk> -- <command>` (TODO/milestones.md T-1112)
+
+== win-arm64
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/arm64 freedos:1.4 ver
+exit              125
+output:
+  podbox run: windows/arm64 is refused: this guest follows the host, so an x86_64 host runs windows/amd64 and nothing else, and an emulated Windows guest would be a different product at a different speed (TODO/milestones.md T-1112)
+clause 8          create, no-tier and arm64 refuse by name
+
+verdict           WINDOWS TCG DOS HOLDS

@@ -65,6 +65,53 @@ Entry reports the rung it actually achieved, so a planned stronger mechanism
 never silently becomes a weaker one. None of the rungs below `namespace` is a
 security boundary against a hostile payload.
 
+## A disposable Windows guest
+
+The machine tier can also boot a Windows guest. It is not an OCI image and it
+does not go through `run`'s pull and enter path: it is a disk image the
+emulator boots, and the command is one `cmd.exe` line.
+
+```sh
+podbox windows doctor                                            # can this machine, and how
+podbox windows fetch --url URL --sha256 HEX --image win.vhdx     # bounded, verified
+podbox windows setup --image win.vhdx                           # once: installs the agent
+podbox windows run   --image win.podbox.qcow2 -- ver & echo hi
+```
+
+`setup` writes `<disk>.podbox.qcow2` beside the image and is the only step that
+needs the guest console; pass that file to `run`. Each run gets a fresh overlay
+over it, so nothing the guest writes survives the run. `run` prints the guest
+command's own stdout and stderr and returns its own exit code. The guest has no
+network. The accelerator is the machine tier's own profile — `kvm` where it
+holds, `tcg` where only that does, and a refusal naming the missing leg where
+neither does — so the feature works on the restricted hosts podbox targets
+rather than only on a KVM host.
+
+⭐ The same driver answers `run`, which is what the entry's acceptance command
+asks for:
+
+```sh
+podbox run --rm --podbox-tier=machine --platform windows/amd64 win.podbox.qcow2 cmd /c ver
+```
+
+That is the one platform where `run` does not fetch or enter an OCI rootfs; it
+is refused on every other tier and for every other non-Linux platform, by name.
+`podbox windows fetch` bounds what it downloads by `--max-bytes` and
+`RLIMIT_FSIZE`, refuses a body that crosses either, verifies `--sha256` where
+one is pinned, and removes the partial file when it refuses. podbox never ships
+and never redistributes a Windows image: the base image is yours, under
+your own licence.
+
+A second flavor needs no disk image at all: `--guest dos` boots FreeDOS
+from a base cache the setup script writes, types one line into its console
+through the same monitor, and reads the same mailbox back. The plain
+`run --platform windows/amd64` door takes it, so the acceptance command
+works verbatim with an OCI-shaped token that is never fetched:
+
+```sh
+podbox run --rm --podbox-tier=machine --platform windows/amd64 freedos:1.4 cmd /c ver
+```
+
 ## Guarantees and limits
 
 - Every claimed execution rung is derived from probes, not from uid or a build

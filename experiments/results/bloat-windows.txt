@@ -1,0 +1,21 @@
+# Release size with the combined T-1112 guest code. One machine, one day.
+# TODO/milestones.md T-1112. The gate holds an absolute ceiling, not a
+# delta: the release binary stays under the ceiling declared in
+# experiments/110-bloat-delta.sh. The DOS flavor's FAT32 writer
+# (fatfs plus fscommon, 3830712 bytes measured 2026-09-26) is gone,
+# replaced by the zero-dependency FAT16 writer in crates/podbox-windows
+# that both flavors share; the new crate adds only podbox-probe and sha2,
+# both already in the resolve graph, and the CLI's `ureq` caller likewise.
+date              2026-09-26T10:00:00Z
+host kernel       Linux 6.18.39-gentoo-dist-bin x86_64
+rustc             rustc 1.98.1 (48a229cea 2026-09-01)
+cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
+zig               0.16.0
+target            x86_64-unknown-linux-musl
+profile           release: lto=true opt-level=z codegen-units=1 strip=symbols panic=abort
+file_bytes 3769304
+ceiling_bytes 8000000
+headroom_bytes 4230696
+pt_interp 0
+deps_added        none beyond the resolve graph (podbox-probe, sha2, ureq)
+witness           target/x86_64-unknown-linux-musl/release/podbox, `stat -c %s`

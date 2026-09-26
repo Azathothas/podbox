@@ -321,8 +321,10 @@ dependencies = [
  "podbox-image",
  "podbox-probe",
  "podbox-supervise",
+ "podbox-windows",
  "serde_json",
  "sha2",
+ "ureq",
 ]
 
 [[package]]
@@ -391,6 +393,14 @@ dependencies = [
  "podbox-probe",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "podbox-windows"
+version = "0.1.0-beta.7"
+dependencies = [
+ "podbox-probe",
+ "sha2",
 ]
 
 [[package]]

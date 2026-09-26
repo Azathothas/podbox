@@ -203,6 +203,22 @@ pub fn enter_machine(verb: &str, mem: Option<u64>) -> i32 {
     }
 }
 
+/// The path of one named binary, searched on `PATH`, or `None`.
+///
+/// ⚠ The machine legs already prove an emulator runs and lists `tcg`; this
+/// is the narrow lookup a driver needs for the two helpers it spawns before
+/// it spawns one. `TODO/podvm.md` T-1301 owns the legs, this owns the name.
+pub fn which_qemu(bin: &str) -> Option<std::path::PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path) {
+        let p = dir.join(bin);
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

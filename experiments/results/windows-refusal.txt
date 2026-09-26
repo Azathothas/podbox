@@ -1,8 +1,8 @@
 == conditions
-date              2026-09-26T02:50:22Z
-host kernel       Linux 7.2.0-WSL2-STABLE
+date              2026-09-26T09:58:02Z
+host kernel       Linux 6.18.39-gentoo-dist-bin
 kvm               absent
-qemu              absent
+qemu              QEMU emulator version 10.2.3
 bootstrap         ok
 interpose         ok
 build             ok
@@ -11,24 +11,31 @@ probe json        ok
 clause 1          kvm denied ENOENT on this lane
 
 == win-run
-command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox run --rm --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
 exit              125
 output:
-  podbox run: windows/amd64 is not a Linux guest. podbox runs Linux guests only: the chroot tier shares the host kernel and the machine tier boots Linux images. No windows guest support exists (TODO/milestones.md T-1112), so there is nothing to pull or enter for this platform
+  podbox run: windows/amd64 is not an OCI rootfs, so nothing on this path pulls or enters it. A disposable windows guest is its own verb: `podbox windows run --image <disk> -- <command>` (TODO/milestones.md T-1112)
 clause 2          store untouched
 
 == win-machine
-command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
 exit              125
 output:
-  podbox run: windows/amd64 is not a Linux guest. podbox runs Linux guests only: the chroot tier shares the host kernel and the machine tier boots Linux images. No windows guest support exists (TODO/milestones.md T-1112), so there is nothing to pull or enter for this platform
+  podbox run: no DOS base image at /workspace/podbox/experiments/.sweep362-work/dos-base.img and none was named. The DOS flavor boots FreeDOS, not a disk you hand it: `experiments/363-windows-tcg-dos.sh` fetches FreeDOS 1.4 LiteUSB (pinned sha256, fetch ceiling) and writes the base. No base is fetched or committed here (TODO/milestones.md T-1112)
 clause 3          store untouched
 
 == win-create
-command           /work/target/x86_64-unknown-linux-musl/debug/podbox create --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox create --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
 exit              125
 output:
-  podbox create: windows/amd64 is not a Linux guest. podbox runs Linux guests only: the chroot tier shares the host kernel and the machine tier boots Linux images. No windows guest support exists (TODO/milestones.md T-1112), so there is nothing to pull or enter for this platform
+  podbox create: windows/amd64 is not an OCI rootfs, so nothing on this path pulls or enters it. A disposable windows guest is its own verb: `podbox windows run --image <disk> -- <command>` (TODO/milestones.md T-1112)
 clause 4          store untouched
+
+== win-disk
+command           /workspace/podbox/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 /definitely/not/here.vhdx ver
+exit              125
+output:
+  podbox windows: /definitely/not/here.vhdx is not a file. A named image is never replaced by the cache; pass the provisioned image, or name none to use /state/home/.local/share/podbox/windows/base.vhdx (TODO/milestones.md T-1112)
+clause 5          store untouched
 
 verdict           WINDOWS REFUSAL HOLDS
