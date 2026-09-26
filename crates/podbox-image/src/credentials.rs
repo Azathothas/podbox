@@ -296,6 +296,107 @@ pub fn store_login_in(
     write_owner_only(target, &after)
 }
 
+/// `erase` with `{"ServerURL"}` on stdin (docker-credential protocol).
+///
+/// # Errors
+///
+/// Returns an error naming the helper where it would not start or where
+/// erasing fails. Like [`helper_store`], never falls back to the file: a
+/// failed erase keeps everything and says so, because a logout that
+/// silently kept the credential is the defect this entry exists to stop.
+pub fn helper_erase(helper: &str, server_url: &str) -> Result<(), String> {
+    use std::io::Write;
+    use std::process::Stdio;
+    let bin = format!("docker-credential-{helper}");
+    let mut child = std::process::Command::new(&bin)
+        .arg("erase")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| format!("credential helper {bin} would not start: {e}"))?;
+    let body = serde_json::json!({
+        "ServerURL": server_url,
+    });
+    let text = serde_json::to_string(&body)
+        .map_err(|e| format!("credential helper {bin} takes no JSON: {e}"))?;
+    child
+        .stdin
+        .as_mut()
+        .ok_or_else(|| format!("credential helper {bin} takes no stdin"))?
+        .write_all(text.as_bytes())
+        .map_err(|e| format!("credential helper {bin} would not take the erase: {e}"))?;
+    let status = child
+        .wait()
+        .map_err(|e| format!("credential helper {bin} has no exit to read: {e}"))?;
+    if !status.success() {
+        return Err(format!(
+            "credential helper {bin} refused to erase the login for {server_url}: exit {}",
+            status.code().map_or("signal".into(), |c| c.to_string())
+        ));
+    }
+    Ok(())
+}
+
+/// Remove the login for `server`: through the named helper where one is
+/// configured for the host, else from whichever file holds it. Missing
+/// files and unknown hosts are not errors. Returns true where an entry
+/// went away; a `false` is still logged out, and the caller says so.
+pub fn remove_login(server: &str) -> Result<bool, String> {
+    let (docker, containers) = default_paths();
+    remove_login_in(&docker, &containers, server)
+}
+
+/// [`remove_login`] against explicit files.
+pub fn remove_login_in(
+    docker_config: &Path,
+    containers_auth: &Path,
+    server: &str,
+) -> Result<bool, String> {
+    let host = server_host(server);
+    // ⛔ The helper first, like both other paths: a config that names a
+    // helper for this host delegates trust explicitly, and a file entry
+    // beside it (or its absence) must not decide the logout.
+    if let Some(name) = helper_for(docker_config, containers_auth, host) {
+        let server_url = format!("https://{host}/v2/");
+        helper_erase(&name, &server_url)?;
+        return Ok(true);
+    }
+    // One home, the read path's order: the containers file wins where
+    // both name the host, and only the file holding it is rewritten.
+    for path in [containers_auth, docker_config] {
+        let Ok(text) = std::fs::read_to_string(path) else {
+            continue;
+        };
+        let (after, removed) = delete_auth_json(&text, host);
+        if removed {
+            write_owner_only(path, &after)?;
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/// Delete the `auth` entry for `server`, keeping every other key and
+/// host. Returns the rewritten document and whether an entry went away.
+/// An empty or broken document holds nothing to remove.
+pub fn delete_auth_json(text: &str, server: &str) -> (String, bool) {
+    let Ok(mut doc) = serde_json::from_str::<serde_json::Value>(text) else {
+        return (text.into(), false);
+    };
+    let Some(auths) = doc.get_mut("auths").and_then(|a| a.as_object_mut()) else {
+        return (text.into(), false);
+    };
+    let removed = auths.remove(server).is_some();
+    if !removed {
+        return (text.into(), false);
+    }
+    (
+        serde_json::to_string(&doc).unwrap_or_else(|_| text.into()),
+        true,
+    )
+}
+
 /// Write `text` to `path` with owner-only permissions.
 ///
 /// Creates the file where missing; an existing file keeps its ownership and
@@ -608,6 +709,81 @@ mod tests {
             .mode()
             & 0o777;
         assert_eq!(mode, 0o600, "no group or other access");
+    }
+
+    /// T-0209: deletion removes only the named host and keeps the rest.
+    #[test]
+    fn delete_removes_only_the_named_host() {
+        // Pure over strings: no scratch file is touched.
+        let other = "other.example:5000";
+        let text = format!(
+            "{{\"auths\":{{\"{HOST}\":{{\"auth\":\"eA==\"}},\"{other}\":{{\"auth\":\"eQ==\"}}}}}}"
+        );
+        let (out, removed) = delete_auth_json(&text, HOST);
+        assert!(removed);
+        let doc: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
+        assert!(doc["auths"].get(HOST).is_none());
+        assert_eq!(doc["auths"][other]["auth"], "eQ==");
+        let (_, kept) = delete_auth_json(&out, HOST);
+        assert!(!kept, "a second logout finds nothing");
+    }
+
+    /// T-0209: a broken document holds nothing to remove, not an error.
+    #[test]
+    fn delete_on_a_broken_document_removes_nothing() {
+        let (_, removed) = delete_auth_json("not json", HOST);
+        assert!(!removed);
+        let (_, removed) = delete_auth_json("{\"auths\":{}}", HOST);
+        assert!(!removed);
+    }
+
+    /// T-0209: removal rewrites only the file holding the host, and the
+    /// unknown host is still logged out rather than an error.
+    #[test]
+    fn remove_deletes_from_the_file_holding_the_host() {
+        let (_cdir, containers) = scratch_auth("old-user", "old-pass", HOST);
+        let dir = scratch_dir();
+        let docker = dir.path().join("config.json");
+        assert!(remove_login_in(&docker, &containers, HOST).expect("remove runs"));
+        assert!(
+            !docker.exists(),
+            "one home: only the holding file is rewritten"
+        );
+        let back = parse_auth_json(&std::fs::read_to_string(&containers).expect("file kept"));
+        assert!(!back.contains_key(HOST));
+        assert!(!remove_login_in(&docker, &containers, "unknown.example").expect("runs"));
+    }
+
+    /// T-0209: where the config names a helper for the host, the file
+    /// beside it must not decide the logout: a missing helper is a named
+    /// refusal and the file entry stays. (`dTpw` is `u:p`: the read path
+    /// skips entries with no colon, so the canary carries one.)
+    #[test]
+    fn remove_through_a_missing_helper_is_a_named_refusal() {
+        let dir = scratch_dir();
+        let docker = dir.path().join("config.json");
+        std::fs::write(
+            &docker,
+            "{\"credHelpers\":{\"example.com\":\"podbox-no-such-helper-xyz\"},\"auths\":{\"example.com\":{\"auth\":\"dTpw\"}}}",
+        )
+        .expect("scratch write");
+        let containers = dir.path().join("auth.json");
+        let err = remove_login_in(&docker, &containers, "example.com")
+            .expect_err("a missing helper fails the logout");
+        assert!(err.contains("podbox-no-such-helper-xyz"), "names it: {err}");
+        let back = parse_auth_json(&std::fs::read_to_string(&docker).expect("file kept"));
+        assert!(
+            back.contains_key("example.com"),
+            "nothing erased beside a failed helper"
+        );
+    }
+
+    /// T-0209: erase through a missing helper names it, like the store.
+    #[test]
+    fn an_erase_through_a_missing_helper_is_a_named_refusal() {
+        let err = helper_erase("podbox-no-such-helper-xyz", "https://x/v2/")
+            .expect_err("a missing helper fails the erase");
+        assert!(err.contains("podbox-no-such-helper-xyz"), "names it: {err}");
     }
 
     #[test]

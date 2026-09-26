@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 6 partial, 1 blocked, 158 done. The 2026-09-25
+168 entries: 3 open, 4 partial, 1 blocked, 160 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -277,7 +277,18 @@ latency drive (`190` exits 0,
 against 1.51 s (2.53x), latency-bound 24.62 s against 11.55 s
 (2.13x) through the new delay proxy at 2 s an exchange, the
 serial manifest diluting the parallel gain per Amdahl; the fixed
-bound of 4 stays. Item 8 continues with T-0209.
+bound of 4 stays. Item 8 continues with T-0209. T-1332 closed
+2026-09-26 on the pager-isolation drive: a bogus PAGER with piped
+stdout exits 0 with empty stderr beside byte-identical output,
+and under a pty the fallback is loud; no product change. T-0209
+closed 2026-09-26 on its drive: `login` refuses a terminal stdin
+instead of hanging (exit 1, naming the pipe), new `logout`
+verb removes the stored entry from file or helper (nothing
+stored reads as not logged in, exit 1; failed erase keeps
+everything, 125), exit codes by the measured 125/1
+discriminator with docker's own login codes recorded
+unmeasured; eight unit tests plus end-to-end legs green. Small
+batch continues with T-0711.
 
 ## Operator questions
 

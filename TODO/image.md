@@ -772,7 +772,7 @@ Source:      `TOOL.md` section 6.2, section 11.1
 Category:    image
 Priority:    P2
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     Every request podbox makes is anonymous. A private registry answers
              401 and podbox has nothing to answer with, so the whole class of
@@ -889,6 +889,39 @@ Risk if wrong is an agent with a TTY stdin hanging where docker
 refuses or prompts. Prove is the TTY refusal through the shipped
 binary with its test, the `logout` arm either way, and the exit
 code note.
+
+**Done 2026-09-26.** All three arms, the `logout` one implemented:
+
+* TTY refusal: `login` refuses where stdin is a terminal (exit 1,
+  naming the pipe; podbox never prompts), through a pure
+  `read_password` helper so tests own both arms: the refusal
+  precedes any read (a panicking reader proves it), a pipe reads
+  to the trimmed password, an empty pipe refuses.
+* `logout [SERVER]` (default Docker Hub): `remove_login` deletes
+  the entry from the file holding it or erases it through the
+  configured helper (`helper_erase`, docker-credential protocol);
+  a failed erase keeps everything and is a named 125. Nothing
+  stored is still logged out and says so (`Not logged in to`,
+  exit 1, the typo-surfacing refusal beside `rmi`'s). New parity
+  rows (verb plus `-h, --help`), dispatch, usage, README line,
+  and the `man` verb picks it up from the table.
+* Exit codes: assigned by the measured 125/1 discriminator
+  (`exit.rs`, `330` against docker 29.3.1): flag-shape refusals
+  125, post-parse refusals (TTY, empty password, unknown second
+  server, nothing stored) 1, helper/store failures 125, success
+  0. Docker's own `login` codes are unmeasured on the reachable
+  machines (no docker binary answers here); `330` covers no login
+  case, so this note is the record.
+
+Prove is the lane drive (musl debug binary, isolated HOME/XDG):
+eight unit tests green; pty stdin exits 1 naming the terminal;
+piped login exits 0 and stores; logout exits 0 naming the
+removal with the entry gone; second logout exits 1 naming the
+absence; fake-helper erase exits 0; bogus helper exits 125
+naming it with the file entry kept. `login` still performs no
+network verification, decided and recorded above: an offline
+machine cannot verify, and a check that needs the network is a
+pull.
 
 ---
 

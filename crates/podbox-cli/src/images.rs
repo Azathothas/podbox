@@ -13,7 +13,7 @@
 //! field is documented as the compressed bytes in `blobs/`. It becomes the
 //! extracted size when M2 lands, in `TODO/extract.md`.
 
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 
 use podbox_image::error::{Error, EXIT_CLI_ERROR, EXIT_FLAG_ERROR, EXIT_RUNTIME_ERROR};
 use podbox_image::{clock, credentials, pull, space, Record, Store};
@@ -622,6 +622,18 @@ usage: podbox login [-u|--username USER] [--password-stdin] [SERVER]
   registry, and result files never carry it (TODO/image.md T-0209).
 ";
 
+pub const LOGOUT_USAGE: &str = "\
+usage: podbox logout [SERVER]
+
+  Log out of a registry: remove the login `podbox login` stored, from
+  the file holding it or through the configured credential helper
+  where one is named for the server. SERVER defaults to
+  https://index.docker.io/v1/, docker's canonical key.
+
+  Removing login credentials for a server with none stored is still
+  logged out, and says so (TODO/image.md T-0209).
+";
+
 /// `podbox login`.
 pub fn login(verb: &str, args: &[String]) -> i32 {
     // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
@@ -648,19 +660,11 @@ pub fn login(verb: &str, args: &[String]) -> i32 {
         .server
         .as_deref()
         .unwrap_or("https://index.docker.io/v1/");
-    let mut password = String::new();
-    use std::io::Read;
-    if std::io::stdin().read_to_string(&mut password).is_err() {
-        eprint!("{LOGIN_USAGE}");
-        return EXIT_CLI_ERROR;
-    }
-    while password.ends_with('\n') || password.ends_with('\r') {
-        password.pop();
-    }
-    if password.is_empty() {
-        eprint!("{LOGIN_USAGE}");
-        return EXIT_CLI_ERROR;
-    }
+    let password = match read_password(verb, std::io::stdin().is_terminal(), &mut std::io::stdin())
+    {
+        Ok(p) => p,
+        Err(c) => return c,
+    };
     match credentials::store_login(server, &parsed.username, &password) {
         Ok(()) => {
             println!("Login Succeeded");
@@ -671,6 +675,41 @@ pub fn login(verb: &str, args: &[String]) -> i32 {
             EXIT_RUNTIME_ERROR
         }
     }
+}
+
+/// The password off stdin, trimmed of trailing newlines.
+///
+/// ⭐ TODO/image.md T-0209: a terminal stdin would hang the read, so the
+/// refusal comes first and names the pipe. podbox never prompts: the help
+/// documents stdin-only passwords, and a caller with no pipe is told
+/// rather than hung. Pure over its inputs so tests own both arms: the
+/// refusal precedes any read (a reader that panics proves it), and a pipe
+/// reads to the trimmed password.
+fn read_password(
+    verb: &str,
+    stdin_is_terminal: bool,
+    stdin: &mut dyn std::io::Read,
+) -> Result<String, i32> {
+    if stdin_is_terminal {
+        eprintln!(
+            "podbox {verb}: stdin is a terminal; pipe the password with --password-stdin \
+             (podbox never prompts for one)"
+        );
+        return Err(EXIT_CLI_ERROR);
+    }
+    let mut password = String::new();
+    if stdin.read_to_string(&mut password).is_err() {
+        eprint!("{LOGIN_USAGE}");
+        return Err(EXIT_CLI_ERROR);
+    }
+    while password.ends_with('\n') || password.ends_with('\r') {
+        password.pop();
+    }
+    if password.is_empty() {
+        eprint!("{LOGIN_USAGE}");
+        return Err(EXIT_CLI_ERROR);
+    }
+    Ok(password)
 }
 
 #[derive(Debug)]
@@ -743,6 +782,92 @@ fn parse_login_args(verb: &str, args: &[String]) -> Result<LoginArgs, i32> {
         server,
         help,
     })
+}
+
+/// `podbox logout`.
+pub fn logout(verb: &str, args: &[String]) -> i32 {
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, LOGOUT_USAGE),
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all(verb, args, LOGOUT_USAGE) {
+        return c;
+    }
+    let parsed = match parse_logout_args(verb, args) {
+        Ok(p) => p,
+        Err(c) => {
+            eprint!("{LOGOUT_USAGE}");
+            return c;
+        }
+    };
+    if parsed.help {
+        print!("{LOGOUT_USAGE}");
+        return 0;
+    }
+    let server = parsed
+        .server
+        .as_deref()
+        .unwrap_or("https://index.docker.io/v1/");
+    match credentials::remove_login(server) {
+        Ok(true) => {
+            println!(
+                "Removing login credentials for {}",
+                credentials::server_host(server)
+            );
+            0
+        }
+        // Still logged out where nothing was stored, and says so: a
+        // typo'd server reads as a no-op rather than a success, so the
+        // refusal (not the runtime error: nothing failed to run).
+        Ok(false) => {
+            eprintln!(
+                "podbox {verb}: not logged in to {}",
+                credentials::server_host(server)
+            );
+            EXIT_CLI_ERROR
+        }
+        Err(e) => {
+            eprintln!("podbox {verb}: {e}");
+            EXIT_RUNTIME_ERROR
+        }
+    }
+}
+
+#[derive(Debug)]
+struct LogoutArgs {
+    server: Option<String>,
+    help: bool,
+}
+
+/// The argument shape, pure so tests own it: one optional server, help,
+/// and nothing else. Unknown dash flags are refused by the caller
+/// through the parity table, not here.
+fn parse_logout_args(verb: &str, args: &[String]) -> Result<LogoutArgs, i32> {
+    let mut server: Option<String> = None;
+    let mut help = false;
+    for a in args {
+        match a.as_str() {
+            "-h" | "--help" => help = true,
+            other if other.starts_with('-') => {
+                crate::parity::admit(verb, other, LOGOUT_USAGE)?;
+                return Err(crate::parity::no_arm(verb, other));
+            }
+            other => {
+                if server.is_some() {
+                    return Err(EXIT_CLI_ERROR);
+                }
+                server = Some(other.to_string());
+            }
+        }
+    }
+    if help {
+        return Ok(LogoutArgs {
+            server: None,
+            help: true,
+        });
+    }
+    Ok(LogoutArgs { server, help })
 }
 
 /// `podbox image prune`.
@@ -1770,7 +1895,7 @@ mod tests {
     fn every_image_usage_is_plain_ascii() {
         // TODO/cli.md T-1336: every image verb's `--help` prints bytes
         // 0x00-0x7F only; the usages are constants, so one test holds
-        // all twelve.
+        // all thirteen.
         let text = [
             PULL_USAGE,
             EXTRACT_USAGE,
@@ -1780,6 +1905,7 @@ mod tests {
             PRUNE_USAGE,
             INSPECT_USAGE,
             LOGIN_USAGE,
+            LOGOUT_USAGE,
             SAVE_USAGE,
             LOAD_USAGE,
             IMPORT_USAGE,
@@ -1974,6 +2100,36 @@ mod tests {
         );
     }
 
+    /// T-0209: a terminal stdin refuses before any read. The reader
+    /// panics where touched, so passing proves the refusal precedes it:
+    /// a hang would never return to assert against.
+    #[test]
+    fn a_terminal_stdin_refuses_before_any_read() {
+        struct PanicOnRead;
+        impl std::io::Read for PanicOnRead {
+            fn read(&mut self, _b: &mut [u8]) -> std::io::Result<usize> {
+                panic!("the refusal must precede the read");
+            }
+        }
+        assert_eq!(
+            read_password("login", true, &mut PanicOnRead).unwrap_err(),
+            EXIT_CLI_ERROR
+        );
+    }
+
+    /// T-0209: a pipe reads to the trimmed password, and an empty one
+    /// refuses like any post-parse verb refusal.
+    #[test]
+    fn a_pipe_stdin_reads_to_the_trimmed_password() {
+        let mut full: &[u8] = b"s3cret\r\n";
+        assert_eq!(read_password("login", false, &mut full).unwrap(), "s3cret");
+        let mut empty: &[u8] = b"\n";
+        assert_eq!(
+            read_password("login", false, &mut empty).unwrap_err(),
+            EXIT_CLI_ERROR
+        );
+    }
+
     #[test]
     fn login_with_a_dangling_user_flag_is_a_flag_refusal() {
         assert_eq!(
@@ -1995,6 +2151,22 @@ mod tests {
             parse_login_args("login", &login_args(&["--username=", "--password-stdin"]))
                 .expect_err("empty equals user"),
             EXIT_FLAG_ERROR
+        );
+    }
+
+    /// T-0209: logout takes one optional server and help, and a second
+    /// server is a post-parse refusal rather than a silent pick.
+    #[test]
+    fn logout_takes_one_server_or_help() {
+        let got = parse_logout_args("logout", &login_args(&[])).expect("bare");
+        assert!(got.server.is_none() && !got.help);
+        let got = parse_logout_args("logout", &login_args(&["example.com:5000"])).expect("server");
+        assert_eq!(got.server.as_deref(), Some("example.com:5000"));
+        let got = parse_logout_args("logout", &login_args(&["--help"])).expect("help");
+        assert!(got.help);
+        assert_eq!(
+            parse_logout_args("logout", &login_args(&["a.example", "b.example"])).expect_err("two"),
+            EXIT_CLI_ERROR
         );
     }
 

@@ -148,6 +148,7 @@ fn main() -> std::process::ExitCode {
         Some("load") => exit(images::load("load", rest)),
         Some("import") => exit(images::import("import", rest)),
         Some("login") => exit(images::login("login", rest)),
+        Some("logout") => exit(images::logout("logout", rest)),
         Some("extract") => exit(images::extract("extract", rest)),
         Some("images") => exit(images::images("images", rest)),
         Some("rmi") => exit(images::rmi("rmi", rest)),

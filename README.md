@@ -78,7 +78,8 @@ security boundary against a hostile payload.
 - The chroot and interpose rungs share the host kernel and are not security
   boundaries against a hostile payload.
 - Registry `login` writes `~/.docker/config.json` (or the named credential
-  helper) with the password on stdin; `logout` is not implemented. Foreign-architecture execution
+  helper) with the password on stdin; `logout` removes what `login`
+  stored. Foreign-architecture execution
   depends on host `binfmt_misc` and QEMU support. The interposer pair is x86_64-only:
   other architectures decline the tier by machine mismatch, so a chroot-denied host off
   x86_64 has no fallback rung.

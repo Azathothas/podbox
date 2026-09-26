@@ -82,7 +82,7 @@ the blocker named and what would clear it.
 | [T-0206](image.md) | P3 | image | done | A registry fixture, so the acceptance stops depending on somebody else's quota |
 | [T-0207](image.md) | P2 | image | done | Fetch layers with bounded concurrency, and measure what it buys |
 | [T-0208](image.md) | P2 | image | done | `--platform`, and a store that can hold two variants of one tag |
-| [T-0209](image.md) | P2 | image | partial | Registry authentication, without a credential ever entering this tree |
+| [T-0209](image.md) | P2 | image | done | Registry authentication, without a credential ever entering this tree |
 | [T-0210](image.md) | P1 | image | done | The store's concurrency contract, written down and driven |
 | [T-0211](image.md) | P1 | image | done | An image lock outlives its holder whenever anything forks |
 | [T-0212](image.md) | P0 | image | done | The platform is decided at run time, and the store holds more than one |
@@ -221,7 +221,7 @@ the blocker named and what would clear it.
 | [T-1329](packaging.md) | P2 | packaging | done | The per-arch smoke pulls and extracts, not just versions |
 | [T-1330](cli.md) | P2 | cli | done | Bundled short flags parse as docker reads them |
 | [T-1331](cli.md) | P2 | cli | done | `--filter`, `restart` and `pull -a/-q` answer the docker idiom |
-| [T-1332](cli.md) | P1 | cli | partial | `podbox man` generates the manual from the binary, pager-aware |
+| [T-1332](cli.md) | P1 | cli | done | `podbox man` generates the manual from the binary, pager-aware |
 | [T-1333](probe.md) | P1 | probe | done | The probe cache key carries the capability set |
 | [T-1334](packaging.md) | P1 | packaging | done | The release carries its build commit's gate state and its reproducibility boundary |
 | [T-1335](supervise.md) | P3 | supervise | done | The launcher forwards its own shutdown signals to the payload |
@@ -232,7 +232,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-168 items: 3 open, 6 partial, 1 blocked, 158 done.
+168 items: 3 open, 4 partial, 1 blocked, 160 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -241,10 +241,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 51 | 52 |
-| P1 | 1 | 3 | 0 | 74 | 78 |
-| P2 | 2 | 2 | 0 | 27 | 31 |
+| P1 | 1 | 2 | 0 | 75 | 78 |
+| P2 | 2 | 1 | 0 | 28 | 31 |
 | P3 | 0 | 0 | 1 | 6 | 7 |
-| **All** | **3** | **6** | **1** | **158** | **168** |
+| **All** | **3** | **4** | **1** | **160** | **168** |
 
 ## How the current ordering is derived
 

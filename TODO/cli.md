@@ -1090,7 +1090,7 @@ Source:      operator order 2026-09-23 (drift-free human/AI manual;
 Category:    cli
 Priority:    P1
 Effort:      M
-Status:      partial 2026-09-23
+Status:      done 2026-09-23
 
 Problem:     Help text lives in docs or not at all, so every new flag is
              a chance for drift: the manual says what the binary said on
@@ -1166,6 +1166,21 @@ prove script with `crates/podbox-cli/src/man.rs`. Risk if wrong
 is a regression that silently falls back to stdout and still
 passes. Prove is the extended bogus-PAGER run with stderr
 asserted empty.
+
+**Done 2026-09-26.** No product change: the behavior was already
+right, the isolation was what was missing. Lane drive
+(`rust:1.98.1-bookworm` job, musl debug binary) with
+`PAGER=/bogus-that-does-not-exist`: piped stdout exits 0 with
+empty stderr (`PIPED-STDERR-EMPTY`, so no spawn was attempted)
+beside byte-identical stdout to `--no-pager` (both 39,238 bytes,
+`BYTES-IDENTICAL`); under a pty (`script`) the same bogus pager
+is loud on the terminal (`podbox man:
+/bogus-that-does-not-exist could not start (No such file or
+directory (os error 2)), printing without a pager`,
+`TTY-FALLBACK-LOUD`), which is what makes the empty stderr above
+meaningful rather than vacuous. A regression that spawns where it
+should not now fails the stderr assertion; a regression that
+silences the fallback now fails the pty assertion.
 
 ---
 
