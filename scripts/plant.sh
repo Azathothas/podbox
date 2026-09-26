@@ -427,7 +427,7 @@ case_plant "27a a parity note leaning on a shipped milestone" "leans on M4" \
   sh -c 'sed -i "s/says which half failed (TODO\\/cli.md T-1331)/needs a supervisor, which is M4/" crates/podbox-cli/src/parity.rs'
 
 case_plant "27b a parity note missing a present verb" "claims \`prune\`" \
-  sh -c 'sed -i "s/df and events are not implemented/df, events and prune are not implemented/" crates/podbox-cli/src/parity.rs'
+  sh -c 'sed -i "s/events are not implemented/events, prune and df are not implemented/" crates/podbox-cli/src/parity.rs'
 
 # ⚠ Check 27's curated arm fails apart from the note arms: only a dropped
 # row for a curated name reaches it. The plant deletes the --read-only
