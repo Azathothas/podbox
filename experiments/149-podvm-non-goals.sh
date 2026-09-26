@@ -16,7 +16,10 @@
 #      T-1301's lane measurement re-read live: a future lane with /dev/kvm
 #      fails this clause out loud rather than drifting;
 #   5. the stderr evidence carries the non-goals block, so the code path
-#      ran rather than only the JSON.
+#      ran rather than only the JSON;
+#   6. the promoted goal runs: the 361 drive proves datagrams cross
+#      under TCG user-mode networking, which is the kvm remedy made
+#      executable rather than a sentence.
 #
 # A clause asserts the SHAPE, never which rows take it: whether this
 # machine's bind, UTS or ptrace rows are denied or open is the machine's
@@ -168,6 +171,25 @@ if grep -q "non-goals, one stance per blocked design" "$WORK/evidence.txt"; then
 	pass "the evidence carries the non-goals block"
 else
 	miss "the evidence carries no non-goals block"
+fi
+
+say ""
+say "== 6. the promoted goal runs: datagrams cross under TCG user-mode networking"
+# TODO/podvm.md T-1306. The kvm node stays refused above; what is
+# promoted is the remedy: guests reach the host without KVM. The 361
+# drive owns the guest, the pins and the verdict; this clause owns
+# only its exit code, so a red 361 reads here as a missed promotion
+# rather than as a stance regression.
+if [ -x "$REPO/experiments/361-guest-usernet.sh" ]; then
+	if PODBOX_BIN="$BIN" timeout 1500 sh "$REPO/experiments/361-guest-usernet.sh" >"$WORK/361.log" 2>&1; then
+		pass "361 guest networking green"
+	else
+		miss "361 guest networking red"
+		say "  361's own report, whole, because the clause is what failed:"
+		sed 's/^/  361: /'' "$WORK/361.log" >>"$WORK/report"
+	fi
+else
+	miss "361-guest-usernet.sh is not executable"
 fi
 
 say ""

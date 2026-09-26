@@ -1,7 +1,7 @@
 == conditions
-date              2026-09-21T18:24:34Z
+date              2026-09-26T02:32:32Z
 host kernel       7.2.0-WSL2-STABLE
-podbox            podbox 0.1.0
+podbox            podbox 0.1.0-beta.7
 jq                jq-1.6
 
 == 0. six rows with a stance each
@@ -30,4 +30,7 @@ jq                jq-1.6
 == 5. the stderr evidence carries the block
   ok: the evidence carries the non-goals block
 
-== counts: 14 driven, 0 mismatches
+== 6. the promoted goal runs: datagrams cross under TCG user-mode networking
+  ok: 360 guest networking green
+
+== counts: 15 driven, 0 mismatches

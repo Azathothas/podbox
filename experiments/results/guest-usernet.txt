@@ -1,0 +1,84 @@
+== conditions
+date              2026-09-26T02:33:11Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0-beta.7
+qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
+image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
+modloop           https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/modloop-virt (sha256 9a5252fa3e49f908fa7bc796a38b7ce57c9a930c91670324278a352effa5c30f)
+
+== 1. pull and extract the pinned image
+  ok: rootfs at /work/experiments/.sweep360-work/store/rootfs/sha256_3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764/rootfs
+
+== 2. the guest applets are in the image's busybox
+  ok: applet present: ip
+  ok: applet present: nc
+  ok: applet present: sleep
+  ok: applet present: poweroff
+  ok: applet present: mount
+  ok: applet present: head
+  ok: applet present: cat
+  ok: applet present: insmod
+  ok: applet present: dmesg
+  ok: applet present: zcat
+  ok: applet present: ls
+  ok: applet present: grep
+
+== 3. the kernel and the modloop fetch against their pins
+/work/experiments/.sweep360-work/vmlinuz-virt: OK
+/work/experiments/.sweep360-work/modloop-virt: OK
+
+== 4. the assembly with the networking /init
+  modloop carries: modules/6.12.110-0-virt/kernel/drivers/net/net_failover.ko modules/6.12.110-0-virt/kernel/drivers/net/virtio_net.ko modules/6.12.110-0-virt/kernel/net/core/failover.ko
+Parallel unsquashfs: Using 20 processors
+1 inodes (1 blocks) to write
+
+[===================================================================|] 2/2 100%
+
+created 1 file
+created 6 directories
+created 0 symlinks
+created 0 devices
+created 0 fifos
+created 0 sockets
+created 0 hardlinks
+  ok: extracted modules/6.12.110-0-virt/kernel/drivers/net/net_failover.ko
+Parallel unsquashfs: Using 20 processors
+1 inodes (2 blocks) to write
+
+[===================================================================|] 3/3 100%
+
+created 1 file
+created 6 directories
+created 0 symlinks
+created 0 devices
+created 0 fifos
+created 0 sockets
+created 0 hardlinks
+  ok: extracted modules/6.12.110-0-virt/kernel/drivers/net/virtio_net.ko
+Parallel unsquashfs: Using 20 processors
+1 inodes (1 blocks) to write
+
+[===================================================================|] 2/2 100%
+
+created 1 file
+created 6 directories
+created 0 symlinks
+created 0 devices
+created 0 fifos
+created 0 sockets
+created 0 hardlinks
+  ok: extracted modules/6.12.110-0-virt/kernel/net/core/failover.ko
+  ok: virtio_net.ko staged for the guest
+  host listener port 56715, forwarded host port 50145, guest port 4099
+  modules archive: 3 objects
+  full: 8681456 bytes
+
+== 5+6. boot with user-mode networking; datagrams both ways
+  qemu rc=124 (124 is the halt the spec records: poweroff halts on pc,acpi=off)
+  listener rc=0 (0 is the token received and the reply sent)
+  ok: the guest printed VMR-GUEST-READY
+  ok: clause 5: the guest token reached the host
+  ok: clause 6: the forwarded reply reached the guest console
+
+360 acceptance: datagrams crossed both ways under TCG user-mode networking

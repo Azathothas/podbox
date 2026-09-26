@@ -535,7 +535,7 @@ Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec docume
 Category:    podvm
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done 2026-09-26
 
 Problem:     The specification lists designs that were tried and do not work on
              its target: a TCP listener of any kind, anything KVM-accelerated, a
@@ -599,6 +599,37 @@ implementation that weakens the honesty rules: the banner states
 what is emulated. Prove is `149` extended with a positive arm
 where the promoted goal runs (a guest reaching the host through
 UDP hostfwd, for example) with the remaining refusals unchanged.
+
+**Done 2026-09-26.** The promoted goal is guest user-mode
+networking: the kvm node stays refused, and its remedy (TCG
+instead of KVM) is now executable. `experiments/361-guest-usernet.sh`
+builds a TCG guest from the podbox-extracted alpine rootfs with a
+pinned kernel and modloop, loads the `failover`, `net_failover`
+and `virtio_net` module chain the netboot kernel keeps out of the
+image, brings up the first non-loopback interface, and crosses
+datagrams both ways: the guest token reaches a host listener, and
+a host reply forwarded into the guest prints on the guest
+console. `149-podvm-non-goals.sh` gains the positive arm (clause
+6 runs 361 for its exit code); its stance clauses are unchanged,
+and the kvm node still refuses naming ENOENT beside them.
+
+Driven on the lane (`rust:1.98.1-bookworm` job container, kernel
+`7.2.0-WSL2-STABLE`, qemu 7.2.22 installed where absent):
+149 exits 0 with 15 driven 0 mismatches
+(`experiments/results/podvm-non-goals.txt`), 361 exits 0
+(`experiments/results/guest-usernet.txt`): both applets and both
+pins hold, three modules staged, `HOST-GOT: VMR-NET-PROBE` on the
+host and the reply on the guest console. The full `podbox-probe`
+suite is green on the same drive (107 passed, 0 failed). Three
+findings paid for on the way, each in the script: the netboot
+kernel carries no NIC driver (virtio_pci binds, no interface);
+unsquashfs `-l` prints a `squashfs-root/` prefix its extractor
+refuses (measured: 0 files); the module chain resolves link by
+link (failover, then net_failover, then virtio_net). No product
+code changed: the kvm remedy already names TCG, the TCG banner
+already states user-mode networking, and the assessment already
+turns a non-goal off where its mechanism works. What is new is
+the measured capability with a standing arm that re-proves it.
 
 ---
 
