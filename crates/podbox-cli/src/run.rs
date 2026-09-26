@@ -734,6 +734,28 @@ pub fn run(args: &[String]) -> i32 {
     code
 }
 
+/// Hand the payload's resolved guest path to the interposer, T-0413.
+///
+/// [`podbox_enter::ladder::GUEST_EXE_VAR`] carries the path the guest kernel
+/// would print for `/proc/self/exe`, resolved here because this side owns
+/// the rootfs host path and the child's resolution happens past allocation
+/// time. A caller-supplied value is scrubbed first: without that a nested
+/// `podbox run` would inherit the outer payload's path. Nothing is pushed
+/// where nothing resolves, and the interposer prefers a real answer where
+/// one exists, so the variable can ride every entry including the no-chroot
+/// ones without poisoning them.
+pub(crate) fn push_guest_exe(
+    env: &mut Vec<String>,
+    rootfs: &str,
+    argv0: &str,
+    path_dirs: &[String],
+) {
+    env.retain(|e| e.split('=').next().unwrap_or("") != podbox_enter::ladder::GUEST_EXE_VAR);
+    if let Some(g) = podbox_enter::ladder::guest_exe(rootfs, argv0, path_dirs) {
+        env.push(format!("{}={g}", podbox_enter::ladder::GUEST_EXE_VAR));
+    }
+}
+
 /// Everything `run` and `create` both need: the image in the store, extracted,
 /// its plan resolved and the rung selected, with nothing entered yet.
 ///
@@ -1003,6 +1025,16 @@ pub(crate) fn prepare(
         }
     }
     let path_dirs = Plan::path_from(&env);
+    // ⭐ TODO/complete.md T-0413. The payload's resolved guest path rides
+    // beside the exec for the interposer's `/proc/self/exe` emulation: a
+    // caller-supplied value is scrubbed first, so a stale or foreign one
+    // cannot survive into a nested run. Unset where nothing resolves.
+    push_guest_exe(
+        &mut env,
+        &rootfs,
+        argv.first().map(String::as_str).unwrap_or(""),
+        &path_dirs,
+    );
     let working_dir = o
         .workdir
         .clone()
@@ -1246,6 +1278,41 @@ mod tests {
 
     fn v(xs: &[&str]) -> Vec<String> {
         xs.iter().map(|s| (*s).to_string()).collect()
+    }
+
+    /// T-0413: the guest path rides beside the exec, a stale one is
+    /// scrubbed first, and nothing rides where nothing resolves.
+    #[test]
+    fn push_guest_exe_sets_scrubs_and_skips() {
+        let d = std::env::temp_dir().join(format!("podbox-run-exe-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("bin")).unwrap();
+        std::fs::write(d.join("bin/prog"), b"\x7fELF").unwrap();
+        let root = d.to_string_lossy().to_string();
+        let dirs = vec!["/bin".to_string()];
+        let mut env = vec![
+            "PODBOX_GUEST_EXE=/stale".to_string(),
+            "PATH=/bin".to_string(),
+        ];
+        push_guest_exe(&mut env, &root, "prog", &dirs);
+        assert_eq!(
+            env.iter()
+                .filter(|e| e.starts_with("PODBOX_GUEST_EXE="))
+                .count(),
+            1,
+            "{env:?}"
+        );
+        assert!(
+            env.iter().any(|e| e == "PODBOX_GUEST_EXE=/bin/prog"),
+            "{env:?}"
+        );
+        let mut env = vec!["A=1".to_string()];
+        push_guest_exe(&mut env, &root, "absent", &dirs);
+        assert!(
+            !env.iter().any(|e| e.starts_with("PODBOX_GUEST_EXE=")),
+            "{env:?}"
+        );
+        let _ = std::fs::remove_dir_all(&d);
     }
 
     #[test]

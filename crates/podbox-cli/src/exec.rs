@@ -299,6 +299,14 @@ fn enter(
         return podbox_image::error::EXIT_RUNTIME_ERROR;
     }
     let path_dirs = podbox_enter::Plan::path_from(&env);
+    // ⭐ TODO/complete.md T-0413: the re-entered payload's guest path, as in
+    // `run`'s `prepare`. A fresh chroot re-entry is a fresh payload.
+    crate::run::push_guest_exe(
+        &mut env,
+        rootfs,
+        o.command.first().map(String::as_str).unwrap_or(""),
+        &path_dirs,
+    );
     let working_dir = o.workdir.clone().unwrap_or_else(|| "/".to_string());
     let findings = podbox_probe::run();
     let selection = podbox_probe::select::Selection::choose(&findings);
@@ -545,6 +553,14 @@ pub fn exec(args: &[String]) -> i32 {
         return podbox_image::error::EXIT_RUNTIME_ERROR;
     }
     let path_dirs = Plan::path_from(&env);
+    // ⭐ TODO/complete.md T-0413: the re-entered payload's guest path, as in
+    // `run`'s `prepare` and the container path above.
+    crate::run::push_guest_exe(
+        &mut env,
+        &rootfs,
+        argv.first().map(String::as_str).unwrap_or(""),
+        &path_dirs,
+    );
     let working_dir = o
         .workdir
         .clone()

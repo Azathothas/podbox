@@ -1048,6 +1048,96 @@ fn cstr(b: &[u8], off: usize) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::unix::process::CommandExt;
+
+    /// T-0414: `resolve_in` never lists a directory it was handed.
+    ///
+    /// The orchestrator half stages a rootfs whose directories deny
+    /// listing but allow traversal (mode 111), then re-runs the worker
+    /// half below as `nobody` (uid and gid 65534). The worker first
+    /// proves the fixture bites (a listing fails `EACCES`), then
+    /// resolves a payload by name, which must succeed: a resolver that
+    /// listed anywhere would die where the worker succeeds.
+    ///
+    /// Three outcomes, each honest: `EPERM` on the spawn means this
+    /// host cannot shed privilege, so the test records that and passes
+    /// nothing; a green child proved the property on this machine; any
+    /// other child failure fails, including a worker that finds itself
+    /// still privileged (which would otherwise pass vacuously).
+    #[test]
+    fn resolve_past_a_denied_listing() {
+        let d = std::env::temp_dir().join(format!("podbox-enter-nolist-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("bin")).unwrap();
+        std::fs::write(d.join("bin/prog"), b"\x7fELF").unwrap();
+        // 111: traverse by name, never list. Both levels: the walk must
+        // cross two denied listings to reach the payload.
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&d, std::fs::Permissions::from_mode(0o111)).unwrap();
+        std::fs::set_permissions(d.join("bin"), std::fs::Permissions::from_mode(0o111)).unwrap();
+        let me = std::env::current_exe().unwrap();
+        let mut cmd = std::process::Command::new(me);
+        cmd.arg("--exact")
+            .arg("abi::tests::worker_resolves_past_a_denied_listing")
+            .env("PODBOX_TEST_NOBODY_ROOT", &d)
+            .env("PODBOX_TEST_NOBODY_GUEST", "bin/prog")
+            .current_dir(std::env::temp_dir())
+            .uid(65534)
+            .gid(65534);
+        let out = match cmd.output() {
+            Ok(o) => o,
+            Err(e) if e.raw_os_error() == Some(libc_eperm()) => {
+                eprintln!(
+                    "SKIP resolve_past_a_denied_listing: this host cannot run a \
+                     child as nobody ({e}), so the denied listing cannot be staged here"
+                );
+                let _ = std::fs::remove_dir_all(&d);
+                return;
+            }
+            Err(e) => panic!("spawning the worker failed: {e}"),
+        };
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        assert!(
+            out.status.success() && stdout.contains("1 passed"),
+            "the nobody worker did not prove by-name resolution:\n--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}"
+        );
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// `EPERM` without the `libc` crate: this crate holds no dependency
+    /// for one number, and the number is the kernel's, identical on
+    /// every Linux architecture this runtime stands on.
+    fn libc_eperm() -> i32 {
+        1
+    }
+
+    /// T-0414: the worker half of [`resolve_past_a_denied_listing`].
+    ///
+    /// Runs only where that test spawned it (the marker environment is
+    /// absent under a plain `cargo test`, where it returns at once). A
+    /// listing that succeeds here means the process is still
+    /// privileged, which would prove nothing: it panics rather than
+    /// passing vacuously.
+    #[test]
+    fn worker_resolves_past_a_denied_listing() {
+        let Ok(root) = std::env::var("PODBOX_TEST_NOBODY_ROOT") else {
+            return;
+        };
+        let guest =
+            std::env::var("PODBOX_TEST_NOBODY_GUEST").expect("the orchestrator sets both halves");
+        match std::fs::read_dir(&root) {
+            Ok(_) => panic!(
+                "the worker can still list {root}: it is privileged, so a \
+                 successful resolve would prove nothing"
+            ),
+            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {}
+            Err(e) => panic!("the fixture is broken: listing failed with {e} instead of EACCES"),
+        }
+        let got = resolve_in(std::path::Path::new(&root), &guest)
+            .unwrap_or_else(|k| panic!("by-name resolve past a denied listing failed: {k:?}"));
+        assert!(got.ends_with("prog"), "{got:?}");
+    }
 
     /// ⭐ Check A of `experiments/results/interposer-abi.txt`, as a predicate.
     #[test]

@@ -64,6 +64,7 @@ pub mod emulate;
 pub mod identity;
 pub mod map;
 pub mod memo;
+pub mod procfs;
 pub mod real;
 pub mod say;
 
@@ -288,6 +289,10 @@ crate::real!(pub fn next_open64 = "open64"(*const c_char, c_int, c_uint) -> c_in
 crate::real!(pub fn next_openat = "openat"(c_int, *const c_char, c_int, c_uint) -> c_int);
 crate::real!(pub fn next_openat64 = "openat64"(c_int, *const c_char, c_int, c_uint) -> c_int);
 crate::real!(pub fn next_openat2 = "openat2"(c_int, *const c_char, *const c_void, usize) -> c_int);
+// T-0413: resolved with `dlsym` rather than linked, so an old libc past the
+// wrapper (glibc 2.27) merely declines the emulation instead of refusing the
+// whole object at load (T-1312's ceiling).
+crate::real!(pub fn next_memfd_create = "memfd_create"(*const c_char, c_uint) -> c_int);
 crate::real!(pub fn next_creat = "creat"(*const c_char, c_uint) -> c_int);
 crate::real!(pub fn next_creat64 = "creat64"(*const c_char, c_uint) -> c_int);
 crate::real!(pub fn next_execve = "execve"(*const c_char, *const *const c_char, *const *const c_char) -> c_int);
@@ -1245,10 +1250,27 @@ pub unsafe extern "C" fn readlink(path: *const c_char, buf: *mut c_char, n: usiz
     }
     let t = unsafe { crate::map::table() };
     if t.n == 0 {
-        return unsafe { f(p, buf, n) };
+        let rc = unsafe { f(p, buf, n) };
+        // T-0413: where no procfs is mounted the real call fails `ENOENT`,
+        // and only there does the emulation answer.
+        if rc < 0 && errno() == crate::procfs::ENOENT {
+            if let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) } {
+                return e;
+            }
+        }
+        return rc;
     }
     let rc = unsafe { f(p, buf, n) };
     if rc < 0 {
+        // T-0413, as above. `path` is the caller's own spelling only where
+        // the table left it untouched (`p` is then that same pointer): a
+        // deliberate mapping of `/dev/fd` wins over this emulation, and
+        // the `/proc` leaves never rewrite (T-0707 excludes them).
+        if p == path && errno() == crate::procfs::ENOENT {
+            if let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) } {
+                return e;
+            }
+        }
         return rc;
     }
     // The answer is bytes, not a string: no NUL terminates it.
@@ -1292,10 +1314,23 @@ pub unsafe extern "C" fn readlinkat(
     }
     let t = unsafe { crate::map::table() };
     if t.n == 0 {
-        return unsafe { f(dirfd, p, buf, n) };
+        let rc = unsafe { f(dirfd, p, buf, n) };
+        // T-0413, as in `readlink`: only `ENOENT` answers.
+        if rc < 0 && errno() == crate::procfs::ENOENT {
+            if let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) } {
+                return e;
+            }
+        }
+        return rc;
     }
     let rc = unsafe { f(dirfd, p, buf, n) };
     if rc < 0 {
+        // T-0413, as in `readlink`: untouched spellings only.
+        if p == path && errno() == crate::procfs::ENOENT {
+            if let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) } {
+                return e;
+            }
+        }
         return rc;
     }
     let t = unsafe { crate::map::table() };
@@ -1316,6 +1351,427 @@ pub unsafe extern "C" fn readlinkat(
         core::ptr::copy_nonoverlapping(vbuf.as_ptr(), buf as *mut u8, v as usize);
     }
     v
+}
+
+// --------------------------------------- T-0413: `/proc/self` emulation
+//
+// Where no procfs is mounted the real call fails `ENOENT`, and only then do
+// these answer: the wrappers below try the real call first and call in here
+// on exactly that errno. Each answers `Some` where it served (a descriptor,
+// or -1 with the kernel's exact errno) and `None` where it declines, and a
+// decline preserves the real failure's errno. `readlink` truncates into a
+// short buffer the way the kernel does; nothing here invents a byte.
+
+/// Fill `st` with the descriptor's real metadata.
+///
+/// Through `next_fstat`, never the wrapper two lines down the file: the
+/// wrapper would report the memo over the bytes this emulation reasons
+/// about, and a memo hit is a statement about ownership, not about the
+/// descriptor's type.
+unsafe fn proc_fstat(fdno: u32, st: &mut [u8; crate::procfs::STAT_LEN]) -> bool {
+    let Some(fstat) = next_fstat() else {
+        return false;
+    };
+    unsafe { fstat(fdno as c_int, st.as_mut_ptr() as *mut c_void) == 0 }
+}
+
+/// Serve `open` of a descriptor leaf, T-0413.
+unsafe fn proc_open_fd(fdno: u32, flags: c_int) -> Option<c_int> {
+    use crate::procfs::*;
+    let mut st = [0u8; STAT_LEN];
+    if !unsafe { proc_fstat(fdno, &mut st) } {
+        // No such descriptor: the kernel's answer for the leaf is ENOENT,
+        // with procfs or without it.
+        set_errno(ENOENT);
+        return Some(-1);
+    }
+    let mode = mode_of(&st);
+    if mode & S_IFMT == S_IFSOCK {
+        // A socket has no reopen: the kernel answers ENXIO, exactly.
+        set_errno(ENXIO);
+        return Some(-1);
+    }
+    if mode & S_IFMT != S_IFIFO {
+        return None;
+    }
+    if unsafe { fs_magic(fdno as c_int) } != Some(PIPEFS_MAGIC) {
+        // A named fifo reopens with blocking semantics no duplicate
+        // reproduces: refused, never approximated. The `fstatfs` may have
+        // clobbered the real failure's errno, so it is restored.
+        set_errno(ENOENT);
+        return None;
+    }
+    let Some(orig) = (unsafe { open_flags(fdno as c_int) }) else {
+        set_errno(ENOENT);
+        return Some(-1);
+    };
+    match open_answer(orig, flags) {
+        OpenAnswer::Dup => {
+            let fd = unsafe { dup_of(fdno as c_int, flags & O_CLOEXEC != 0) };
+            if fd < 0 {
+                return Some(-1);
+            }
+            // No tally behind it, no emulation: the duplicate closes and
+            // the failure reads as the memo write's own errno.
+            if !crate::emulate::tally(crate::emulate::OP_PROC, 1, 0, 0) {
+                let e = errno();
+                if let Some(close) = next_close() {
+                    unsafe { close(fd) };
+                }
+                set_errno(e);
+                return Some(-1);
+            }
+            Some(fd)
+        }
+        OpenAnswer::Fail(e) => {
+            set_errno(e);
+            Some(-1)
+        }
+        OpenAnswer::Pass => None,
+    }
+}
+
+/// Serve `readlink` of a descriptor leaf, T-0413.
+unsafe fn proc_readlink_fd(fdno: u32, buf: *mut c_char, n: usize) -> Option<isize> {
+    use crate::procfs::*;
+    let mut st = [0u8; STAT_LEN];
+    if !unsafe { proc_fstat(fdno, &mut st) } {
+        set_errno(ENOENT);
+        return Some(-1);
+    }
+    let mode = mode_of(&st);
+    let prefix = if mode & S_IFMT == S_IFSOCK {
+        SOCKET_PREFIX
+    } else if mode & S_IFMT == S_IFIFO && unsafe { fs_magic(fdno as c_int) } == Some(PIPEFS_MAGIC) {
+        PIPE_PREFIX
+    } else {
+        // A path the emulation cannot name exactly (a regular file, a
+        // device, a named fifo): refused, with the real errno restored
+        // past the `fstatfs` above.
+        set_errno(crate::procfs::ENOENT);
+        return None;
+    };
+    let mut link = [0u8; 32];
+    let len = fd_link(prefix, ino_of(&st), &mut link);
+    let take = core::cmp::min(len, n);
+    unsafe {
+        core::ptr::copy_nonoverlapping(link.as_ptr(), buf as *mut u8, take);
+    }
+    if !crate::emulate::tally(crate::emulate::OP_PROC, 2, 0, 0) {
+        set_errno(ENOENT);
+        return Some(-1);
+    }
+    Some(take as isize)
+}
+
+/// The caller-resolved guest path, validated: a leading slash, no interior
+/// NUL, short enough to hand on. Anything else is no variable rather than a
+/// guess at one.
+unsafe fn proc_exe_value(out: &mut [u8; crate::map::OUT]) -> Option<usize> {
+    let (p, n) = unsafe { crate::map::lookup_env(crate::procfs::GUEST_EXE_VAR) }?;
+    if n == 0 || n + 1 >= crate::map::OUT {
+        return None;
+    }
+    let bytes = unsafe { core::slice::from_raw_parts(p, n) };
+    if bytes.contains(&0) || !bytes.starts_with(b"/") {
+        return None;
+    }
+    out[..n].copy_from_slice(bytes);
+    out[n] = 0;
+    Some(n)
+}
+
+/// Serve `readlink` of `/proc/self/exe`, T-0413.
+unsafe fn proc_readlink_exe(buf: *mut c_char, n: usize) -> Option<isize> {
+    let mut guest = [0u8; crate::map::OUT];
+    let len = unsafe { proc_exe_value(&mut guest) }?;
+    let take = core::cmp::min(len, n);
+    unsafe {
+        core::ptr::copy_nonoverlapping(guest.as_ptr(), buf as *mut u8, take);
+    }
+    if !crate::emulate::tally(crate::emulate::OP_PROC, 3, 0, 0) {
+        set_errno(crate::procfs::ENOENT);
+        return Some(-1);
+    }
+    Some(take as isize)
+}
+
+/// Serve `open` of `/proc/self/exe`, T-0413.
+///
+/// The guest path goes back through the table: it names the image as the
+/// payload sees it, so a deliberate mapping applies to it like any other
+/// guest path. The flags ride through to the same file, which is what the
+/// kernel applies them to. Counted only where the open succeeded: a failed
+/// open told the payload nothing but the kernel's errno.
+unsafe fn proc_open_exe(flags: c_int, mode: c_uint) -> Option<c_int> {
+    let mut guest = [0u8; crate::map::OUT];
+    let _ = unsafe { proc_exe_value(&mut guest) }?;
+    let mut rewritten = [0u8; crate::map::OUT];
+    let p = unsafe {
+        crate::map::prepare_literal(b"open", guest.as_ptr() as *const c_char, &mut rewritten)
+    };
+    if p.is_null() {
+        return Some(-1);
+    }
+    let Some(open) = next_open() else {
+        set_errno(EINVAL);
+        return Some(-1);
+    };
+    let fd = unsafe { open(p, flags, mode) };
+    // No tally behind it, no emulation: the open closes and the failure
+    // reads as the memo write's own errno.
+    if fd >= 0 && !crate::emulate::tally(crate::emulate::OP_PROC, 4, 0, 0) {
+        let e = errno();
+        if let Some(close) = next_close() {
+            unsafe { close(fd) };
+        }
+        set_errno(e);
+        return Some(-1);
+    }
+    Some(fd)
+}
+
+/// Serve `open` of a mount-table file, T-0413.
+///
+/// The fixture is generated into a `memfd_create` descriptor from live
+/// topology (the payload root's own device and filesystem) plus the
+/// recorded T-0708 emulated mounts, per `TOOL.md` section 10. Where the
+/// memo descriptor was not handed, or the old libc has no `memfd_create`,
+/// or any step fails, this declines and the real failure stands:
+/// an uncounted or half-written table is worse than an absent one.
+unsafe fn proc_open_mounts(kind: crate::procfs::MountFile, flags: c_int) -> Option<c_int> {
+    use crate::procfs::*;
+    let saved = errno();
+    let fail = |e: c_int| -> Option<c_int> {
+        set_errno(e);
+        None
+    };
+    let Some(memo) = crate::memo::memo_fd() else {
+        return fail(saved);
+    };
+    let Some(memfd_create) = next_memfd_create() else {
+        return fail(saved);
+    };
+    let name = b"podbox-mounts\0";
+    // The only flag this object ever sets; the request's own close-on-exec
+    // bit is reconciled after the serve so the answer stays exact.
+    const MFD_CLOEXEC: c_uint = 1;
+    let m = unsafe { memfd_create(name.as_ptr() as *const c_char, MFD_CLOEXEC) };
+    if m < 0 {
+        return fail(saved);
+    }
+    let close_quiet = |m: c_int| {
+        if let Some(close) = next_close() {
+            unsafe { close(m) };
+        }
+    };
+    let Some(stat) = next_stat() else {
+        close_quiet(m);
+        return fail(saved);
+    };
+    let Some(statfs) = next_statfs() else {
+        close_quiet(m);
+        return fail(saved);
+    };
+    let slash = b"/\0";
+    let mut st = [0u8; STAT_LEN];
+    let mut fs = [0u8; STATFS_LEN];
+    if unsafe {
+        stat(
+            slash.as_ptr() as *const c_char,
+            st.as_mut_ptr() as *mut c_void,
+        )
+    } != 0
+        || unsafe {
+            statfs(
+                slash.as_ptr() as *const c_char,
+                fs.as_mut_ptr() as *mut c_void,
+            )
+        } != 0
+    {
+        close_quiet(m);
+        return fail(saved);
+    }
+    let dev = u64::from_ne_bytes(st[0..8].try_into().unwrap_or([0u8; 8]));
+    let f_type = u64::from_ne_bytes(fs[0..8].try_into().unwrap_or([0u8; 8]));
+    let f_flags = u64::from_ne_bytes(
+        fs[STATFS_FLAGS..STATFS_FLAGS + 8]
+            .try_into()
+            .unwrap_or([0u8; 8]),
+    );
+    let rw = f_flags & ST_RDONLY == 0;
+    // ⚠ One reader beside the writers: the memo scan rewinds first like
+    // `memo::lookup` does, and shares its exposure to a concurrent
+    // writer's append (writes are whole records under `O_APPEND`; a scan
+    // interleaved with one sees whole records or a torn tail it drops).
+    let mut area = [0u8; 4096];
+    let mut recs: [RecMount; 64] = [RecMount {
+        src_start: 0,
+        src_len: 0,
+        tgt_start: 0,
+        tgt_len: 0,
+        ro: false,
+    }; 64];
+    let taken = unsafe { scan_mounts(memo, &mut area, &mut recs) };
+    let mut out = [0u8; FIXTURE_MAX];
+    let n = match kind {
+        MountFile::Mounts => render_mounts(
+            Fstype::of_magic(f_type),
+            rw,
+            &area,
+            &recs[..taken],
+            &mut out,
+        ),
+        MountFile::MountInfo => render_mountinfo(
+            major_of(dev),
+            minor_of(dev),
+            Fstype::of_magic(f_type),
+            rw,
+            &area,
+            &recs[..taken],
+            &mut out,
+        ),
+    };
+    if !unsafe { write_all(m, &out[..n]) } || !unsafe { rewind(m) } {
+        close_quiet(m);
+        return fail(saved);
+    }
+    if !crate::emulate::tally(crate::emulate::OP_PROC, 5, 0, 0) {
+        let e = errno();
+        close_quiet(m);
+        set_errno(e);
+        return None;
+    }
+    // The serve is close-on-exec; the request may not have asked for it.
+    // A descriptor flag, not a description one, so reconciling it touches
+    // nothing shared.
+    if flags & crate::procfs::O_CLOEXEC == 0 && !unsafe { set_cloexec(m, false) } {
+        let e = errno();
+        close_quiet(m);
+        set_errno(e);
+        return None;
+    }
+    Some(m)
+}
+
+/// The image-side link a `/dev` spelling resolves through.
+///
+/// `/proc/self` leaves are kernel-named and need no image path, so this
+/// answers true for them without a call. The `/dev` spellings resolve
+/// through an image link (`/dev/fd`, `/dev/stdin`, ...), and where the
+/// image holds no such link the kernel answers `ENOENT`: the emulation
+/// must not answer past a link the image does not have, so it checks
+/// first and declines where the check fails, with the real errno
+/// restored past the check itself.
+unsafe fn proc_image_link_ok(path: &[u8]) -> bool {
+    let link: &[u8] = if path.starts_with(b"/dev/fd/") {
+        b"/dev/fd\0"
+    } else if path == b"/dev/stdin\0" || path == b"/dev/stdout\0" || path == b"/dev/stderr\0" {
+        path
+    } else {
+        return true;
+    };
+    let Some(lstat) = next_lstat() else {
+        return false;
+    };
+    let mut st = [0u8; crate::procfs::STAT_LEN];
+    if unsafe {
+        lstat(
+            link.as_ptr() as *const c_char,
+            st.as_mut_ptr() as *mut c_void,
+        )
+    } != 0
+    {
+        set_errno(crate::procfs::ENOENT);
+        return false;
+    }
+    true
+}
+
+/// What a standard stream link reads back: its target, exactly as the
+/// kernel reports it on a live `/proc`. `None` for anything else.
+fn proc_stdio_target(path: &[u8]) -> Option<&'static [u8]> {
+    if path == b"/dev/stdin\0" {
+        Some(b"/proc/self/fd/0")
+    } else if path == b"/dev/stdout\0" {
+        Some(b"/proc/self/fd/1")
+    } else if path == b"/dev/stderr\0" {
+        Some(b"/proc/self/fd/2")
+    } else {
+        None
+    }
+}
+
+/// Serve `open` of a `/proc/self` leaf after the real call failed, T-0413.
+///
+/// Only absolute spellings the matchers name, and only where the table
+/// left the path untouched: a deliberate mapping wins over this
+/// emulation, and the wrappers establish the untouched part by comparing
+/// pointers before calling here.
+unsafe fn proc_emulate_open(path: *const c_char, flags: c_int, mode: c_uint) -> Option<c_int> {
+    if path.is_null() {
+        return None;
+    }
+    let n = crate::map::strnlen(path, crate::map::OUT);
+    if n == 0 || n >= crate::map::OUT {
+        return None;
+    }
+    let bytes = unsafe { core::slice::from_raw_parts(path as *const u8, n + 1) };
+    // The `/dev` spellings resolve through an image link; the `/proc`
+    // spellings are kernel-named. Nothing answers past a link the image
+    // does not hold.
+    if !unsafe { proc_image_link_ok(bytes) } {
+        return None;
+    }
+    if let Some(fdno) = crate::procfs::fd_number(bytes) {
+        return unsafe { proc_open_fd(fdno, flags) };
+    }
+    if crate::procfs::is_self_exe(bytes) {
+        return unsafe { proc_open_exe(flags, mode) };
+    }
+    if let Some(kind) = crate::procfs::mount_file(bytes) {
+        return unsafe { proc_open_mounts(kind, flags) };
+    }
+    None
+}
+
+/// Serve `readlink` of a `/proc/self` leaf after the real call failed,
+/// T-0413. Same spelling rules as [`proc_emulate_open`].
+unsafe fn proc_emulate_readlink(path: *const c_char, buf: *mut c_char, n: usize) -> Option<isize> {
+    if path.is_null() || buf.is_null() {
+        return None;
+    }
+    let len = crate::map::strnlen(path, crate::map::OUT);
+    if len == 0 || len >= crate::map::OUT {
+        return None;
+    }
+    let bytes = unsafe { core::slice::from_raw_parts(path as *const u8, len + 1) };
+    // The standard stream links read back their target, exactly as the
+    // kernel reports them: they are links, not leaves.
+    if let Some(target) = proc_stdio_target(bytes) {
+        if !unsafe { proc_image_link_ok(bytes) } {
+            return None;
+        }
+        let take = core::cmp::min(target.len(), n);
+        unsafe {
+            core::ptr::copy_nonoverlapping(target.as_ptr(), buf as *mut u8, take);
+        }
+        if !crate::emulate::tally(crate::emulate::OP_PROC, 2, 0, 0) {
+            set_errno(crate::procfs::ENOENT);
+            return Some(-1);
+        }
+        return Some(take as isize);
+    }
+    if !unsafe { proc_image_link_ok(bytes) } {
+        return None;
+    }
+    if let Some(fdno) = crate::procfs::fd_number(bytes) {
+        return unsafe { proc_readlink_fd(fdno, buf, n) };
+    }
+    if crate::procfs::is_self_exe(bytes) {
+        return unsafe { proc_readlink_exe(buf, n) };
+    }
+    None
 }
 
 // --------------------------------------- the emulated operations, T-0708
@@ -1612,7 +2068,17 @@ macro_rules! open_fixed {
             if p.is_null() {
                 return -1;
             }
-            unsafe { f(p, $flags, mode) }
+            let rc = unsafe { f(p, $flags, mode) };
+            // T-0413: where no procfs is mounted the real call fails
+            // `ENOENT`, and only there does the emulation answer. `p` is
+            // the caller's own pointer exactly where the table left the
+            // path untouched, so a deliberate mapping always wins.
+            if rc < 0 && errno() == crate::procfs::ENOENT && p == $path {
+                if let Some(e) = unsafe { proc_emulate_open($path, $flags, mode) } {
+                    return e;
+                }
+            }
+            rc
         }
     };
     ($name:ident, $real:ident, $dirfd:ident, $path:ident, $flags:ident) => {
@@ -1636,7 +2102,16 @@ macro_rules! open_fixed {
             if p.is_null() {
                 return -1;
             }
-            unsafe { f($dirfd, p, $flags, mode) }
+            // T-0413, as above. Relative paths never name the emulated
+            // leaves (the matchers anchor on absolute spellings), so the
+            // pointer comparison is the whole guard here too.
+            let rc = unsafe { f($dirfd, p, $flags, mode) };
+            if rc < 0 && p == $path && errno() == crate::procfs::ENOENT {
+                if let Some(e) = unsafe { proc_emulate_open($path, $flags, mode) } {
+                    return e;
+                }
+            }
+            rc
         }
     };
 }
@@ -2463,5 +2938,25 @@ mod tests {
             free(got_ptr);
         }
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// T-0413: the standard stream links read back their targets, exactly
+    /// as the kernel reports them. Anything else is not a stream link.
+    #[test]
+    fn stdio_links_read_back_their_fd_targets() {
+        assert_eq!(
+            proc_stdio_target(b"/dev/stdin\0"),
+            Some(&b"/proc/self/fd/0"[..])
+        );
+        assert_eq!(
+            proc_stdio_target(b"/dev/stdout\0"),
+            Some(&b"/proc/self/fd/1"[..])
+        );
+        assert_eq!(
+            proc_stdio_target(b"/dev/stderr\0"),
+            Some(&b"/proc/self/fd/2"[..])
+        );
+        assert_eq!(proc_stdio_target(b"/dev/stdin/\0"), None);
+        assert_eq!(proc_stdio_target(b"/proc/self/fd/0\0"), None);
     }
 }

@@ -62,6 +62,24 @@ fn already_right(k: &Kind, major: u64, minor: u64) -> bool {
     matches!(k, Kind::CharDev { major: a, minor: b } if *a == major && *b == minor)
 }
 
+/// Remove a symlink at a device path before the `mknod` attempt, which
+/// then cannot follow it to a target outside the rootfs.
+///
+/// `Ok` names what was displaced (`a symlink to ...`); `Err` names why
+/// the path is refused instead: asking `mknod` through an unremovable
+/// link could create the node outside this rootfs, so the refusal is
+/// loud rather than half-followed.
+fn displace_link(root: &Root, path: &str, target: &str) -> std::result::Result<String, String> {
+    if std::fs::remove_file(std::path::Path::new(root.path()).join(path)).is_err() {
+        return Err(format!(
+            "{path} is a symlink to {target} that podbox could not remove; \
+             asking mknod(2) through it could create the node outside \
+             this rootfs, and --strict refuses the run"
+        ));
+    }
+    Ok(format!("a symlink to {target}"))
+}
+
 pub(crate) fn apply(root: &Root, r: &mut Report) {
     crate::record(r, "T-0401", "dev-shim", run(root));
 }
@@ -125,21 +143,17 @@ fn run(root: &Root) -> Result<Vec<Fixup>> {
                 );
                 continue;
             }
-            Kind::Symlink(t) => {
-                if std::fs::remove_file(std::path::Path::new(root.path()).join(path)).is_err() {
+            Kind::Symlink(t) => match displace_link(root, path, t) {
+                Ok(displaced) => Some(displaced),
+                Err(why) => {
                     out.push(
                         Fixup::new("T-0401", "dev-shim", path, Action::Failed)
-                            .why(format!(
-                                "{path} is a symlink to {t} that podbox could not remove; \
-                                 asking mknod(2) through it could create the node outside \
-                                 this rootfs, and --strict refuses the run"
-                            ))
+                            .why(why)
                             .degraded(),
                     );
                     continue;
                 }
-                Some(format!("a symlink to {t}"))
-            }
+            },
             Kind::CharDev { major: a, minor: b } => Some(format!("a character device {a}:{b}")),
             Kind::Other(m) => Some(match m & 0o170000 {
                 // File-type bits, UAPI `linux/stat.h`.
@@ -197,7 +211,113 @@ fn run(root: &Root) -> Result<Vec<Fixup>> {
             }
         }
     }
+    // T-0413: the `/dev` spellings the emulation resolves through, staged
+    // where absent. The `dev/` directory stands from `mkdirs` above, and a
+    // link needs no privilege, so this holds on every machine the shims do.
+    fd_links(root, &mut out)?;
     Ok(out)
+}
+
+/// The `/dev` spellings the T-0413 emulation resolves through.
+///
+/// A minimal image ships no `/dev/fd` and no standard stream links (the
+/// pinned debian row holds the four shims and nothing else, measured
+/// 2026-09-26), and past a link the image does not hold the emulation
+/// refuses rather than invents. So the completion layer stages the
+/// conventional links where they are absent: they need no privilege, they
+/// are what a populated `/dev` holds, and an image's own link is never
+/// retargeted. Anything else at the path refuses the way a directory at a
+/// device path does.
+const FD_LINKS: &[(&str, &str)] = &[
+    ("dev/stdin", "/proc/self/fd/0"),
+    ("dev/stdout", "/proc/self/fd/1"),
+    ("dev/stderr", "/proc/self/fd/2"),
+    ("dev/fd", "/proc/self/fd"),
+];
+
+fn fd_links(root: &Root, out: &mut Vec<Fixup>) -> Result<()> {
+    for (path, target) in FD_LINKS {
+        match root.kind(path)? {
+            // The conventional link is already here: whoever put it here,
+            // it is the real thing. ⛔ Not degraded.
+            Kind::Symlink(t) if t == *target => {
+                out.push(
+                    Fixup::new("T-0413", "dev-fd-link", path, Action::Unchanged)
+                        .why(format!("a symlink to {target} is already here")),
+                );
+            }
+            // The image's own link points elsewhere: its business, never
+            // retargeted. The emulation resolves through what is there.
+            Kind::Symlink(t) => {
+                out.push(
+                    Fixup::new("T-0413", "dev-fd-link", path, Action::Unchanged).why(format!(
+                        "a symlink to {t} is already here; podbox keeps the image's own link"
+                    )),
+                );
+            }
+            Kind::Missing => {
+                let at = std::path::Path::new(root.path()).join(path);
+                match std::os::unix::fs::symlink(target, &at) {
+                    // The conventional content, needing no privilege: what
+                    // a populated `/dev` holds. ⛔ Not degraded.
+                    Ok(()) => out.push(
+                        Fixup::new("T-0413", "dev-fd-link", path, Action::Created).why(format!(
+                            "a symlink to {target}: the T-0413 emulation resolves this \
+                             spelling through it"
+                        )),
+                    ),
+                    Err(e) => out.push(
+                        Fixup::new("T-0413", "dev-fd-link", path, Action::Failed)
+                            .why(format!("{path} could not link to {target}: {e}"))
+                            .degraded(),
+                    ),
+                }
+            }
+            // Anything else at the path stays: podbox will not replace a
+            // directory or a file with a link, and --strict refuses the run.
+            Kind::Dir => {
+                out.push(
+                    Fixup::new("T-0413", "dev-fd-link", path, Action::Failed)
+                        .why(format!(
+                            "{path} is a directory in this image; podbox will not replace a \
+                             directory with a link, and --strict refuses the run"
+                        ))
+                        .degraded(),
+                );
+            }
+            Kind::Regular { .. } => {
+                out.push(
+                    Fixup::new("T-0413", "dev-fd-link", path, Action::Failed)
+                        .why(format!(
+                            "{path} is a regular file in this image; podbox will not replace \
+                             a file with a link, and --strict refuses the run"
+                        ))
+                        .degraded(),
+                );
+            }
+            Kind::CharDev { major: a, minor: b } => {
+                out.push(
+                    Fixup::new("T-0413", "dev-fd-link", path, Action::Failed)
+                        .why(format!(
+                            "{path} is a character device {a}:{b} in this image; podbox keeps \
+                             the image's own node, and --strict refuses the run"
+                        ))
+                        .degraded(),
+                );
+            }
+            Kind::Other(m) => {
+                out.push(
+                    Fixup::new("T-0413", "dev-fd-link", path, Action::Failed)
+                        .why(format!(
+                            "{path} is a file of type {m:o} in this image; podbox will not \
+                             replace it with a link, and --strict refuses the run"
+                        ))
+                        .degraded(),
+                );
+            }
+        }
+    }
+    Ok(())
 }
 
 /// The regular-file shim for one device, once `mknod` has refused.
@@ -399,9 +519,10 @@ mod tests {
         let d = scratch("claims");
         let root = Root::open(&d).unwrap();
         let fs = run(&root).unwrap();
-        assert_eq!(fs.len(), DEVICES.len(), "{fs:#?}");
+        // The four device rows plus the four T-0413 `/dev` link rows.
+        assert_eq!(fs.len(), DEVICES.len() + FD_LINKS.len(), "{fs:#?}");
         for f in &fs {
-            let md = std::fs::metadata(format!("{d}/{}", f.path)).unwrap();
+            let md = std::fs::symlink_metadata(format!("{d}/{}", f.path)).unwrap();
             let is_dev = md.file_type().is_char_device();
             match f.id {
                 "dev-node" => {
@@ -411,6 +532,25 @@ mod tests {
                 "dev-shim" => {
                     assert!(!is_dev, "{f:?} claims a shim and {} is a device", f.path);
                     assert!(f.degraded, "{f:?} is a shim and is not marked degraded");
+                }
+                // T-0413: a staged link reads back its conventional
+                // target, and a link is the real content, never a
+                // degradation.
+                "dev-fd-link" => {
+                    let want = FD_LINKS
+                        .iter()
+                        .find(|(p, _)| *p == f.path)
+                        .unwrap_or_else(|| panic!("unknown link path {:?}", f.path))
+                        .1;
+                    assert_eq!(
+                        std::fs::read_link(format!("{d}/{}", f.path)).unwrap(),
+                        std::path::PathBuf::from(want),
+                        "{f:?}"
+                    );
+                    assert!(
+                        !f.degraded,
+                        "{f:?} is a conventional link and is marked degraded"
+                    );
                 }
                 other => panic!("unknown fixup id {other:?}"),
             }
@@ -492,6 +632,103 @@ mod tests {
             std::fs::metadata(format!("{d}/dev/zero")).unwrap().len() as usize,
             FILLED_BYTES
         );
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-0415: the unlink-failure refusal arm of [`displace_link`].
+    /// `remove_file` refuses a directory on every user, and root
+    /// bypasses permission bits, so a read-only parent cannot stage
+    /// the failure: a directory is what this arm needs, any path
+    /// `remove_file` will not take. The refusal names the path, the
+    /// link target, the `mknod` risk and the `--strict` gate.
+    #[test]
+    fn an_unremovable_link_is_a_named_refusal() {
+        let d = scratch("unstated");
+        std::fs::create_dir_all(format!("{d}/dev/null")).unwrap();
+        let root = Root::open(&d).unwrap();
+        let err = displace_link(&root, "dev/null", "/outside").unwrap_err();
+        assert!(err.contains("dev/null"), "{err}");
+        assert!(err.contains("/outside"), "{err}");
+        assert!(err.contains("mknod"), "{err}");
+        assert!(err.contains("--strict"), "{err}");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-0415: the removable-link arm through the same helper: the
+    /// link alone goes, and a target outside the rootfs stays
+    /// untouched.
+    #[test]
+    fn a_removable_link_is_displaced_and_named() {
+        let d = scratch("displaced");
+        std::fs::create_dir_all(format!("{d}/dev")).unwrap();
+        std::fs::write(format!("{d}/outside"), b"stay").unwrap();
+        std::os::unix::fs::symlink(format!("{d}/outside"), format!("{d}/dev/null")).unwrap();
+        let root = Root::open(&d).unwrap();
+        let displaced = displace_link(&root, "dev/null", &format!("{d}/outside")).unwrap();
+        assert!(displaced.contains("symlink"), "{displaced}");
+        assert!(displaced.contains("outside"), "{displaced}");
+        assert!(std::fs::symlink_metadata(format!("{d}/dev/null")).is_err());
+        assert_eq!(std::fs::read(format!("{d}/outside")).unwrap(), b"stay");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-0413: absent `/dev` spellings are staged as the conventional
+    /// links, a created link is not a degradation, and a second pass
+    /// leaves every one of them alone.
+    #[test]
+    fn absent_fd_spellings_are_staged_as_conventional_links() {
+        let d = scratch("fdlinks");
+        std::fs::create_dir_all(format!("{d}/dev")).unwrap();
+        let root = Root::open(&d).unwrap();
+        let mut out = Vec::new();
+        fd_links(&root, &mut out).unwrap();
+        assert_eq!(out.len(), 4, "{out:?}");
+        for f in &out {
+            assert_eq!(f.entry, "T-0413", "{f:?}");
+            assert_eq!(f.action, Action::Created, "{f:?}");
+            assert!(!f.degraded, "{f:?}");
+        }
+        assert_eq!(
+            std::fs::read_link(format!("{d}/dev/stdin")).unwrap(),
+            std::path::PathBuf::from("/proc/self/fd/0")
+        );
+        assert_eq!(
+            std::fs::read_link(format!("{d}/dev/fd")).unwrap(),
+            std::path::PathBuf::from("/proc/self/fd")
+        );
+        let mut again = Vec::new();
+        fd_links(&root, &mut again).unwrap();
+        assert!(
+            again.iter().all(|f| f.action == Action::Unchanged),
+            "{again:?}"
+        );
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-0413: the image's own link is never retargeted, and anything
+    /// else at the path refuses naming the shape and the `--strict`
+    /// gate.
+    #[test]
+    fn foreign_shapes_at_fd_spellings_refuse_by_name() {
+        let d = scratch("fdforeign");
+        std::fs::create_dir_all(format!("{d}/dev")).unwrap();
+        std::os::unix::fs::symlink("/elsewhere", format!("{d}/dev/stdin")).unwrap();
+        std::fs::create_dir_all(format!("{d}/dev/fd")).unwrap();
+        let root = Root::open(&d).unwrap();
+        let mut out = Vec::new();
+        fd_links(&root, &mut out).unwrap();
+        assert_eq!(
+            std::fs::read_link(format!("{d}/dev/stdin")).unwrap(),
+            std::path::PathBuf::from("/elsewhere")
+        );
+        let kept = out.iter().find(|f| f.path == "dev/stdin").unwrap();
+        assert_eq!(kept.action, Action::Unchanged, "{kept:?}");
+        assert!(kept.detail.contains("/elsewhere"), "{}", kept.detail);
+        let refused = out.iter().find(|f| f.path == "dev/fd").unwrap();
+        assert_eq!(refused.action, Action::Failed, "{refused:?}");
+        assert!(refused.degraded, "{refused:?}");
+        assert!(refused.detail.contains("directory"), "{}", refused.detail);
+        assert!(refused.detail.contains("--strict"), "{}", refused.detail);
         let _ = std::fs::remove_dir_all(&d);
     }
 }

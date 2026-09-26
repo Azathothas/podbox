@@ -29,6 +29,7 @@ will add.
 | A delete or an update on remote data without a narrow filter | unrecoverable loss |
 | A value in two places with no check that they agree | drift. The copy a reader trusts is the wrong one. |
 | Fetching a variant of something into a cache keyed without the variant | the next unqualified fetch gets the variant. `podman run --platform linux/riscv64 alpine` retags the shared local `alpine:latest` to the riscv64 image, so the next plain `podman run alpine` fails with `Exec format error` and reads as an unrelated breakage. ⭐ Name the variant on every fetch, or key the cache by it. |
+| Matching a composite flag constant that embeds another flag's bits | the specific arm becomes unreachable: every request carrying the embedded bit matches the composite first and takes the wrong path. `O_TMPFILE` embeds `O_DIRECTORY`, so a refusal mask naming the whole constant answered `ENOTDIR` requests with a fall-through; the unit test caught it (TODO/complete.md T-0413). ⭐ Match the distinguishing bit, derived from the constant so the two cannot drift. |
 
 ## Authorization and gates
 

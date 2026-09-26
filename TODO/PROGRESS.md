@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 10 partial, 1 blocked, 154 done. The 2026-09-25
+168 entries: 3 open, 7 partial, 1 blocked, 157 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -260,12 +260,20 @@ Item 6 worked to blocked on the same lane:
 run, machine-tier run and create each exit 125 naming
 windows/amd64 with the store untouched, CLI units 26 passed;
 the guest arm is blocked on a KVM host with a licensed image.
-Next is item 7
-(T-0413 emulation, T-0414 remedy, T-0415 arms). The teardown
-owes the kept lane job containers (`wsl-toolkit --instance
-podbox gc --apply`: host `gc` without the instance says nothing
-is registered) and session scratch removal, then the final gate
-and the push.
+T-0413, T-0414 and T-0415 closed 2026-09-26 on the proc-absence
+drive (155): the interposer emulates `/proc/self/fd` pipes,
+`/proc/self/exe` and the mount-table files exactly or refuses
+(tallied `OP_PROC`, `inspect` carries
+`Interpose.Emulated.procfs`), completion stages the four
+conventional `/dev` links the pinned debian row lacks, the
+by-name resolver is pinned past a denied listing as `nobody`,
+and `cp` names a required listing with its errno (`cannot list
+<dir>: Permission denied`, exit 125); `155` exits 0
+(`experiments/results/proc-absence.txt`), ten exact-name unit
+tests green, workspace 564 passed 0 failed, interpose 37 passed
+0 failed, both clippys clean. Next is item 8 (the small batch:
+T-0207, T-0209, T-1332, T-0711, T-1308, T-0501 device, T-0605
+log-driver).
 
 ## Operator questions
 

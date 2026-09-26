@@ -95,10 +95,15 @@ pub fn entry_banner(f: &Findings, sel: &Selection, entered: Rung) -> String {
     // produces names /dev/fd rather than /proc (measured under T-0412:
     // `/dev/fd/62: No such file or directory`), so the banner names the
     // filesystem and the casualty before the payload meets either.
+    // T-0413 emulation: the interposer answers pipe descriptors, the
+    // resolved exe path and mount-table reads, so those are named as
+    // emulated and only the rest stays a casualty.
     if entered == Rung::Chroot {
         out.push_str(
-            "no /proc is mounted in the payload root: shell process substitution \
-             and /proc/self paths fail there, and the error names /dev/fd rather \
+            "no /proc is mounted in the payload root: the interposer emulates \
+             /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table \
+             files where exactly answerable (counted under Interpose.Emulated.procfs); \
+             anything else under /proc fails there, and the error names /dev/fd rather \
              than /proc\n",
         );
     }
@@ -1104,15 +1109,18 @@ mod tests {
 
     #[test]
     fn the_chroot_banner_names_the_missing_procfs() {
-        // TODO/complete.md T-0413 part 1. The entered rung mounts nothing,
-        // so the banner names the absent /proc and its casualty before the
+        // TODO/complete.md T-0413 part 1, as emulated. The entered rung
+        // mounts nothing, so the banner names the absent /proc, what the
+        // interposer answers anyway, and what still fails before the
         // payload meets either.
         let f = Findings::empty();
         let sel = Selection::choose(&f);
         let b = entry_banner(&f, &sel, Rung::Chroot);
         assert!(b.contains("this mode does NOT provide:"), "{b}");
         assert!(b.contains("/proc"), "{b}");
-        assert!(b.contains("process substitution"), "{b}");
+        assert!(b.contains("emulates"), "{b}");
+        assert!(b.contains("/proc/self/fd"), "{b}");
+        assert!(b.contains("Interpose.Emulated.procfs"), "{b}");
     }
 
     #[test]

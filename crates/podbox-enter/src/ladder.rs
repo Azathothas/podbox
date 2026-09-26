@@ -181,6 +181,54 @@ pub fn resolve_payload(rootfs: &str, argv0: &str, path_dirs: &[String]) -> Resul
     Err(refused.unwrap_or_else(|| Error::Runtime(format!("{argv0} names no file in the image"))))
 }
 
+/// The environment name carrying the payload's resolved guest path.
+///
+/// Set beside the exec by the caller that resolved it (the CLI, which owns
+/// the rootfs host path): the interposer answers `readlink` and `open` of
+/// `/proc/self/exe` with it where the real call fails, which is the chroot
+/// entry with no procfs. Where the real call succeeds (no chroot, host
+/// `/proc` mounted) the interposer prefers it, so a stale or foreign value
+/// here can never poison a truth the kernel still answers.
+pub const GUEST_EXE_VAR: &str = "PODBOX_GUEST_EXE";
+
+/// The payload's resolved path as the guest sees it, for [`GUEST_EXE_VAR`].
+///
+/// Mirrors [`resolve_payload`]'s trial order (the argument as a path, else
+/// each `PATH` directory in order) through the same guest-kernel symlink
+/// walk, then strips the rootfs prefix: the walk followed the image's own
+/// links, so the remainder is the canonical guest path (`/bin/bash` on a
+/// `/usr`-merged image resolves to `/usr/bin/bash`, which is what the
+/// kernel's own `readlink /proc/self/exe` would print).
+///
+/// `None` where nothing resolves: the caller sets no variable and the
+/// interposer falls through to the honest failure, which the entry refusal
+/// already names.
+pub fn guest_exe(rootfs: &str, argv0: &str, path_dirs: &[String]) -> Option<String> {
+    use crate::abi::resolve_in;
+    let root = std::path::Path::new(rootfs);
+    let base = rootfs.trim_end_matches('/');
+    let first = |guest: &str| -> Option<String> {
+        let host = resolve_in(root, guest).ok()?;
+        let rel = host.to_string_lossy();
+        let rel = rel.strip_prefix(base)?;
+        Some(if rel.is_empty() {
+            "/".to_string()
+        } else {
+            rel.to_string()
+        })
+    };
+    if argv0.contains('/') {
+        return first(argv0);
+    }
+    for d in path_dirs {
+        let guest = format!("{}/{argv0}", d.trim_end_matches('/'));
+        if let Some(g) = first(&guest) {
+            return Some(g);
+        }
+    }
+    None
+}
+
 /// The payload bytes the memfd leg is judged on.
 ///
 /// Bounded at 128 MiB, which is `crate::abi::Elf::read`'s own ceiling: this
@@ -420,6 +468,32 @@ mod tests {
         let root = d.to_string_lossy().to_string();
         let got = payload_bytes(&root, "prog", &["/bin".to_string()]).unwrap();
         assert_eq!(got, b"#!/bin/sh\necho hi\n");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// T-0413: the guest path is the resolved one, not the invoked one. A
+    /// `/usr`-merged `/bin` link resolves through, so the interposer's
+    /// `/proc/self/exe` answer is what the kernel would print.
+    #[test]
+    fn the_guest_exe_is_the_resolved_guest_path() {
+        let d = fixture_root("exe");
+        std::fs::create_dir_all(d.join("usr/bin")).unwrap();
+        std::fs::write(d.join("usr/bin/bash"), b"\x7fELF").unwrap();
+        // The merged-/usr link replaces the plain directory the fixture
+        // helper makes: a symlink call where a directory stands fails.
+        std::fs::remove_dir(d.join("bin")).unwrap();
+        std::os::unix::fs::symlink("usr/bin", d.join("bin")).unwrap();
+        let root = d.to_string_lossy().to_string();
+        let dirs = ["/bin".to_string()];
+        assert_eq!(
+            guest_exe(&root, "bash", &dirs).as_deref(),
+            Some("/usr/bin/bash")
+        );
+        assert_eq!(
+            guest_exe(&root, "/bin/bash", &dirs).as_deref(),
+            Some("/usr/bin/bash")
+        );
+        assert_eq!(guest_exe(&root, "absent", &dirs), None);
         let _ = std::fs::remove_dir_all(&d);
     }
 }

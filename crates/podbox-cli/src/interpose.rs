@@ -430,11 +430,18 @@ pub fn apply(
                     // and says so on every load rather than only where one
                     // fires. The live counts ride `inspect` under
                     // `Interpose.Emulated`; this line states the capability.
+                    // T-0413: `/proc/self` answers ride the same tally under
+                    // `Interpose.Emulated.procfs`, exact or refused, with the
+                    // mount-table fixture generated from live topology.
                     note.push_str(
                         "podbox: interpose: emulating mknod, mount, unshare \
                          and clone flag-strip for this payload: each is \
                          counted and `inspect` carries the tally under \
-                         Interpose.Emulated (TODO/interpose.md T-0708)\n",
+                         Interpose.Emulated (TODO/interpose.md T-0708). \
+                         /proc/self/fd, /proc/self/exe and the mount-table \
+                         files are emulated where exactly answerable and \
+                         refused elsewhere, counted under \
+                         Interpose.Emulated.procfs (TODO/complete.md T-0413)\n",
                     );
                 }
                 Err(e) => decline(

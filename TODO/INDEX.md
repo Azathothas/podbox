@@ -108,9 +108,9 @@ the blocker named and what would clear it.
 | [T-0410](complete.md) | P0 | complete | done | Supply `/etc/nsswitch.conf`, or the supplied `/etc/passwd` is a no-op |
 | [T-0411](complete.md) | P1 | complete | done | A payload whose package sources are `http://`, on a runtime where tcp/80 hangs |
 | [T-0412](complete.md) | P1 | complete | done | A fixup that has to run INSIDE the rootfs, and podbox runs it from outside |
-| [T-0413](complete.md) | P1 | complete | partial | No `/proc` inside a chroot, and the shell feature that quietly stops working |
-| [T-0414](complete.md) | P1 | complete | partial | Two walls only one instance of the class has shown, and podbox has probed neither |
-| [T-0415](complete.md) | P1 | complete | partial | A device stand-in is checked by type, because an absent one becomes a growing file |
+| [T-0413](complete.md) | P1 | complete | done | No `/proc` inside a chroot, and the shell feature that quietly stops working |
+| [T-0414](complete.md) | P1 | complete | done | Two walls only one instance of the class has shown, and podbox has probed neither |
+| [T-0415](complete.md) | P1 | complete | done | A device stand-in is checked by type, because an absent one becomes a growing file |
 | [T-0501](enter.md) | P0 | enter | partial | Open every descriptor before the root changes |
 | [T-0502](enter.md) | P0 | enter | done | Resolve the program inside the new root, in the process that changed it |
 | [T-0503](enter.md) | P1 | enter | done | Probe `/dev/ptmx`, and refuse `-t` by name where it is absent |
@@ -232,7 +232,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-168 items: 3 open, 10 partial, 1 blocked, 154 done.
+168 items: 3 open, 7 partial, 1 blocked, 157 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -241,10 +241,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 51 | 52 |
-| P1 | 1 | 6 | 0 | 71 | 78 |
+| P1 | 1 | 3 | 0 | 74 | 78 |
 | P2 | 2 | 3 | 0 | 26 | 31 |
 | P3 | 0 | 0 | 1 | 6 | 7 |
-| **All** | **3** | **10** | **1** | **154** | **168** |
+| **All** | **3** | **7** | **1** | **157** | **168** |
 
 ## How the current ordering is derived
 

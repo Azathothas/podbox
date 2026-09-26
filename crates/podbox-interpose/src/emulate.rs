@@ -24,6 +24,11 @@ pub const OP_MKNOD: u64 = 1;
 pub const OP_MOUNT: u64 = 2;
 pub const OP_UNSHARE: u64 = 3;
 pub const OP_CLONE: u64 = 4;
+/// T-0413: one served `/proc/self` answer (a descriptor duplicate, a
+/// `readlink` synthesis, an exe passthrough, a mount-table serve). The
+/// detail word names which: 1 fd open, 2 fd readlink, 3 exe readlink, 4
+/// exe open, 5 mount-table serve.
+pub const OP_PROC: u64 = 5;
 
 /// The device number tally records carry. No file carries it: `dev_t` values
 /// the kernel hands out are small, so the ownership scan skips these records

@@ -1,7 +1,8 @@
 == conditions
-date              2026-09-22T16:08:16Z
-host kernel       MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64
-podbox            lane-built artifact, runs in the driver below
+date              2026-09-26T04:11:50Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0-beta.7
+engine            none needed on the native lane
 
 == 1. the root-listing legs run and report
 stat(/dev/ptmx) ok errno=-
@@ -20,7 +21,33 @@ readdir(/) ok errno=-
 open(/bin, O_RDONLY) by name ok errno=-
 creat(/, O_CREAT|O_EXCL) denied errno=EACCES
 
-== 4. a chroot run names the missing procfs (T-0413)
+== 4. the chroot run through /proc emulation (T-0413)
+  payload exit: 0
+  process substitution succeeded through the emulation
+  payload printed hi
+  banner names the procfs emulation
+
+== 4b. what emulation cannot carry still fails naming /proc
   payload exit: 1
-  payload names /dev/fd: /dev/fd
-  banner names the missing procfs
+  live-interface read fails as it must
+  banner names the missing procfs beside the failure
+
+== 4c. /proc/self/exe answers the resolved guest path
+  payload exit: 0
+  exe answers /usr/bin/bash
+
+== 4d. /proc/mounts serves the generated fixture
+  payload exit: 0
+  fixture names the podbox root: podbox / ext4 rw 0 0
+
+== 4e. a pipe descriptor readlinks as pipe:[ino]
+  payload exit: 0
+  fd 0 readlinks as pipe:[610717]
+
+== 4f. /dev/stdin opens descriptor 0
+  payload exit: 0
+  cat /dev/stdin printed hi
+
+== 5. a denied listing refuses naming readdir (T-0414)
+  cp exit: 125
+  refusal names the listing and EACCES: podbox cp: cannot list /tmp/pb155-nolist: Permission denied (os error 13)

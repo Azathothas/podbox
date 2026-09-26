@@ -52,7 +52,19 @@ export ENGINE_REPO ENGINE_WORK
 ENGINE_REPO="$REPO"
 ENGINE_WORK="$WORK"
 if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
-[ "$HAVE_ENGINE" -eq 1 ] || { echo "engine            none answered" >>"$WORK/report"; echo "verdict           COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
+# The engine drives the driver lane only, and `LANE` below is native on
+# every Linux machine: a native lane runs each clause directly and needs
+# no daemon. Requiring one here exits 2 on machines that run podbox
+# natively without docker (a lane job container holds no NET_ADMIN and
+# cannot start dockerd, measured 2026-09-19 in `experiments/lib/engine.sh`).
+case "$(uname -s)" in
+Linux)
+	echo "engine            none needed on the native lane" >>"$WORK/report"
+	;;
+*)
+	[ "$HAVE_ENGINE" -eq 1 ] || { echo "engine            none answered" >>"$WORK/report"; echo "verdict           COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
+	;;
+esac
 
 # The driver hosts the staged binary on a non-native lane; natively the
 # binary executes where it stands.
@@ -145,12 +157,20 @@ fi
 
 # TODO/complete.md T-0413 (the proc-absence clause). One image with bash:
 # process substitution is a bash feature, and the M5 debian row is pinned in
-# scripts/common/distro-matrix.sh. The payload must FAIL (no /proc is
-# mounted), bash must name /dev/fd (its signature for this shape), and the
-# banner on the same stderr must name /proc (the attribution). A fresh
-# container-local store; readings land in /w on the shared scratch.
+# scripts/common/distro-matrix.sh.
+#
+# T-0413 emulation: the interposer answers pipe descriptors, the resolved
+# exe path and mount-table reads where exactly answerable, and refuses the
+# rest. So this clause drives both halves: a process-substitution payload
+# that now SUCCEEDS through the emulation (4a), the failure that remains
+# where emulation cannot apply (4b: a live-interface file), the exe
+# passthrough (4c), the generated mount table (4d), the pipe-descriptor
+# readlink shape (4e), and the standard stream spelling (4f). Each names
+# what answered: the banner for the emulation, `/dev/fd` beside the banner
+# for the failure.
+# A fresh container-local store; readings land in /w on the shared scratch.
 echo "" >>"$WORK/report"
-echo "== 4. a chroot run names the missing procfs (T-0413)" >>"$WORK/report"
+echo "== 4. the chroot run through /proc emulation (T-0413)" >>"$WORK/report"
 RUN_IMAGE='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
 if [ "$LANE" = "native" ]; then
 	STORE155="$WORK/store155"
@@ -158,6 +178,19 @@ if [ "$LANE" = "native" ]; then
 	if PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" pull "$RUN_IMAGE" >"$WORK/pull155.log" 2>&1; then
 		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'cat <(echo hi)' >"$WORK/run155.out" 2>"$WORK/run155.err"
 		echo "$?" >"$WORK/run155.rc"
+		# T-0413 emulation arms beside the success arm: the failure where
+		# emulation cannot apply, the exe passthrough, the generated mount
+		# table and the pipe-descriptor readlink shape.
+		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'cat /proc/cpuinfo' >"$WORK/run155-cpuinfo.out" 2>"$WORK/run155-cpuinfo.err"
+		echo "$?" >"$WORK/run155-cpuinfo.rc"
+		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'readlink /proc/self/exe' >"$WORK/run155-exe.out" 2>"$WORK/run155-exe.err"
+		echo "$?" >"$WORK/run155-exe.rc"
+		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'cat /proc/mounts' >"$WORK/run155-mounts.out" 2>"$WORK/run155-mounts.err"
+		echo "$?" >"$WORK/run155-mounts.rc"
+		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'echo hi | readlink /proc/self/fd/0' >"$WORK/run155-fdzero.out" 2>"$WORK/run155-fdzero.err"
+		echo "$?" >"$WORK/run155-fdzero.rc"
+		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'echo hi | cat /dev/stdin' >"$WORK/run155-stdin.out" 2>"$WORK/run155-stdin.err"
+		echo "$?" >"$WORK/run155-stdin.rc"
 	else
 		leg_not_run "podbox pull $RUN_IMAGE" "see $WORK/pull155.log"
 	fi
@@ -199,20 +232,162 @@ if [ -f "$WORK/run155.rc" ]; then
 	rc="$(cat "$WORK/run155.rc")"
 	echo "  payload exit: $rc" >>"$WORK/report"
 	case "$rc" in
-	0) echo "  FAIL: the process-substitution payload succeeded; /proc may be mounted where none was expected" >>"$WORK/report"; fail=1 ;;
+	0) echo "  process substitution succeeded through the emulation" >>"$WORK/report" ;;
+	*) echo "  FAIL: the process-substitution payload exited $rc; the pipe-descriptor emulation did not answer" >>"$WORK/report"; fail=1 ;;
 	esac
-	if grep -q '/dev/fd' "$WORK/run155.err" 2>/dev/null; then
-		echo "  payload names /dev/fd: $(grep -o '/dev/fd[^ :]*' "$WORK/run155.err" | head -1)" >>"$WORK/report"
+	if [ "$(cat "$WORK/run155.out" 2>/dev/null)" = "hi" ]; then
+		echo "  payload printed hi" >>"$WORK/report"
 	else
-		echo "  FAIL: the payload failed without naming /dev/fd; the failure is not the procfs shape" >>"$WORK/report"
+		echo "  FAIL: the payload printed no hi; the pipe carried nothing" >>"$WORK/report"
 		fail=1
 	fi
-	if grep -q 'no /proc is mounted' "$WORK/run155.err" 2>/dev/null; then
-		echo "  banner names the missing procfs" >>"$WORK/report"
+	if grep -q 'Interpose.Emulated.procfs' "$WORK/run155.err" 2>/dev/null; then
+		echo "  banner names the procfs emulation" >>"$WORK/report"
+	else
+		echo "  FAIL: the banner does not name Interpose.Emulated.procfs" >>"$WORK/report"
+		fail=1
+	fi
+fi
+
+# 4b. Where emulation cannot apply the failure stands and names /proc: a
+# live-interface file no fixture may carry.
+echo "" >>"$WORK/report"
+echo "== 4b. what emulation cannot carry still fails naming /proc" >>"$WORK/report"
+if [ -f "$WORK/run155-cpuinfo.rc" ]; then
+	rc="$(cat "$WORK/run155-cpuinfo.rc")"
+	echo "  payload exit: $rc" >>"$WORK/report"
+	case "$rc" in
+	0) echo "  FAIL: reading /proc/cpuinfo succeeded; /proc may be mounted where none was expected" >>"$WORK/report"; fail=1 ;;
+	*) echo "  live-interface read fails as it must" >>"$WORK/report" ;;
+	esac
+	if grep -q 'no /proc is mounted' "$WORK/run155-cpuinfo.err" 2>/dev/null; then
+		echo "  banner names the missing procfs beside the failure" >>"$WORK/report"
 	else
 		echo "  FAIL: the banner does not name the missing procfs" >>"$WORK/report"
 		fail=1
 	fi
+else
+	echo "  not staged on this lane (native-only arm)" >>"$WORK/report"
+fi
+
+# 4c. The exe passthrough: the resolved guest path, as the kernel would print it.
+echo "" >>"$WORK/report"
+echo "== 4c. /proc/self/exe answers the resolved guest path" >>"$WORK/report"
+if [ -f "$WORK/run155-exe.rc" ]; then
+	rc="$(cat "$WORK/run155-exe.rc")"
+	echo "  payload exit: $rc" >>"$WORK/report"
+	[ "$rc" = "0" ] || { echo "  FAIL: the exe readlink exited $rc" >>"$WORK/report"; fail=1; }
+	if [ "$(cat "$WORK/run155-exe.out" 2>/dev/null)" = "/usr/bin/bash" ]; then
+		echo "  exe answers /usr/bin/bash" >>"$WORK/report"
+	else
+		echo "  FAIL: the exe answer is not the resolved guest path: $(cat "$WORK/run155-exe.out" 2>/dev/null)" >>"$WORK/report"
+		fail=1
+	fi
+else
+	echo "  not staged on this lane (native-only arm)" >>"$WORK/report"
+fi
+
+# 4d. The generated mount table: the / line from live topology.
+echo "" >>"$WORK/report"
+echo "== 4d. /proc/mounts serves the generated fixture" >>"$WORK/report"
+if [ -f "$WORK/run155-mounts.rc" ]; then
+	rc="$(cat "$WORK/run155-mounts.rc")"
+	echo "  payload exit: $rc" >>"$WORK/report"
+	[ "$rc" = "0" ] || { echo "  FAIL: reading /proc/mounts exited $rc" >>"$WORK/report"; fail=1; }
+	if grep -q '^podbox / ' "$WORK/run155-mounts.out" 2>/dev/null; then
+		echo "  fixture names the podbox root: $(grep '^podbox / ' "$WORK/run155-mounts.out" | head -1)" >>"$WORK/report"
+	else
+		echo "  FAIL: no podbox root line in the served table" >>"$WORK/report"
+		fail=1
+	fi
+else
+	echo "  not staged on this lane (native-only arm)" >>"$WORK/report"
+fi
+
+# 4e. The pipe-descriptor readlink shape: pipe:[ino], exactly.
+echo "" >>"$WORK/report"
+echo "== 4e. a pipe descriptor readlinks as pipe:[ino]" >>"$WORK/report"
+if [ -f "$WORK/run155-fdzero.rc" ]; then
+	rc="$(cat "$WORK/run155-fdzero.rc")"
+	echo "  payload exit: $rc" >>"$WORK/report"
+	[ "$rc" = "0" ] || { echo "  FAIL: the fd readlink exited $rc" >>"$WORK/report"; fail=1; }
+	if grep -q -E '^pipe:\[[0-9]+\]$' "$WORK/run155-fdzero.out" 2>/dev/null; then
+		echo "  fd 0 readlinks as $(cat "$WORK/run155-fdzero.out")" >>"$WORK/report"
+	else
+		echo "  FAIL: no pipe:[ino] shape: $(cat "$WORK/run155-fdzero.out" 2>/dev/null)" >>"$WORK/report"
+		fail=1
+	fi
+else
+	echo "  not staged on this lane (native-only arm)" >>"$WORK/report"
+fi
+
+# 4f. The standard stream spelling opens the descriptor: cat reads stdin
+# through /dev/stdin exactly as through fd 0.
+echo "" >>"$WORK/report"
+echo "== 4f. /dev/stdin opens descriptor 0" >>"$WORK/report"
+if [ -f "$WORK/run155-stdin.rc" ]; then
+	rc="$(cat "$WORK/run155-stdin.rc")"
+	echo "  payload exit: $rc" >>"$WORK/report"
+	[ "$rc" = "0" ] || { echo "  FAIL: cat /dev/stdin exited $rc" >>"$WORK/report"; fail=1; }
+	if [ "$(cat "$WORK/run155-stdin.out" 2>/dev/null)" = "hi" ]; then
+		echo "  cat /dev/stdin printed hi" >>"$WORK/report"
+	else
+		echo "  FAIL: cat /dev/stdin printed no hi" >>"$WORK/report"
+		fail=1
+	fi
+else
+	echo "  not staged on this lane (native-only arm)" >>"$WORK/report"
+fi
+
+# 5. T-0414: a tree copy that must list an unreadable directory refuses
+# naming the listing, not a missing file. Staged as nobody (the lane runs
+# as root, for whom no listing fails): the walked directory allows
+# traversal (711) but denies listing, so metadata succeeds and the walk's
+# read_dir is what fails with EACCES.
+echo "" >>"$WORK/report"
+echo "== 5. a denied listing refuses naming readdir (T-0414)" >>"$WORK/report"
+if [ "$LANE" = "native" ] && command -v setpriv >/dev/null 2>&1; then
+	NOBODY_STORE="$WORK/nobody-store"
+	NOBODY_HOME="$WORK/nobody-home"
+	rm -rf "$NOBODY_STORE" "$NOBODY_HOME" /tmp/pb155-nolist
+	mkdir -p "$NOBODY_STORE" "$NOBODY_HOME" /tmp/pb155-nolist/inner || exit 2
+	echo data > /tmp/pb155-nolist/inner/f.txt
+	chmod 711 /tmp/pb155-nolist
+	chmod 755 "$NOBODY_STORE" "$NOBODY_HOME"
+	PRIV="setpriv --reuid=65534 --regid=65534 --clear-groups"
+	# ⚠ A real unprivileged user brings its own home: without HOME the
+	# binary reads root's config path and dies on it before any pull
+	# (measured 2026-09-26: 125 naming /root/.config), which stages a
+	# config failure rather than the denied listing.
+	# ⚠ The pull and create run with the privilege those operations
+	# need (create enters through chroot, which nobody is denied), and
+	# only the copy sheds privilege: everything before the tree walk
+	# is a metadata read, so the walk's listing is what fails first.
+	# ⚠ The store goes to nobody AFTER the privileged pair: root's
+	# pull and create leave a root-owned lock file behind, and a copy
+	# that cannot open the lock dies 125 naming EACCES before any
+	# listing (measured 2026-09-26).
+	if env HOME="$NOBODY_HOME" PODBOX_STORE="$NOBODY_STORE" "$BIN_RUN" pull "$RUN_IMAGE" >"$WORK/pull155-nobody.log" 2>&1 \
+	&& env HOME="$NOBODY_HOME" PODBOX_STORE="$NOBODY_STORE" "$BIN_RUN" create --name nolistc "$RUN_IMAGE" >/dev/null 2>&1 \
+	&& chown -R 65534:65534 "$NOBODY_STORE" "$NOBODY_HOME" 2>/dev/null; then
+		# shellcheck disable=SC2086
+		$PRIV env HOME="$NOBODY_HOME" PODBOX_STORE="$NOBODY_STORE" "$BIN_RUN" cp -r /tmp/pb155-nolist nolistc:/dst >"$WORK/cp155.out" 2>"$WORK/cp155.err"
+		echo "$?" >"$WORK/cp155.rc"
+		rc="$(cat "$WORK/cp155.rc")"
+		echo "  cp exit: $rc" >>"$WORK/report"
+		[ "$rc" = "125" ] || { echo "  FAIL: the denied listing exited $rc, not docker's 125" >>"$WORK/report"; fail=1; }
+		if grep -q 'cannot list /tmp/pb155-nolist' "$WORK/cp155.err" 2>/dev/null && grep -q -i 'permission denied' "$WORK/cp155.err" 2>/dev/null; then
+			echo "  refusal names the listing and EACCES: $(head -1 "$WORK/cp155.err")" >>"$WORK/report"
+		else
+			echo "  FAIL: the refusal names neither the listing nor EACCES" >>"$WORK/report"
+			fail=1
+		fi
+	else
+		leg_not_run "pull+create for the nobody copy" "see $WORK/pull155-nobody.log"
+	fi
+	rm -rf /tmp/pb155-nolist
+else
+	echo "  not staged on this lane (needs native setpriv)" >>"$WORK/report"
 fi
 
 cat "$WORK/report"

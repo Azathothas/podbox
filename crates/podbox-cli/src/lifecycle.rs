@@ -69,6 +69,7 @@ pub const CONTAINER_INSPECT_FIELDS: &[&str] = &[
     "Interpose.Emulated.mount",
     "Interpose.Emulated.unshare",
     "Interpose.Emulated.clone",
+    "Interpose.Emulated.procfs",
 ];
 
 fn store() -> Result<podbox_image::Store, i32> {
@@ -1236,7 +1237,10 @@ fn copy_tree(
         let entries = match std::fs::read_dir(&dir) {
             Ok(e) => e,
             Err(e) => {
-                eprintln!("podbox cp: {}: {e}", dir.display());
+                // ⭐ T-0414: the listing is required (a tree copy walks
+                // it), so the refusal names the operation and the path
+                // with the kernel's errno, never a missing file.
+                eprintln!("podbox cp: cannot list {}: {e}", dir.display());
                 return EXIT_RUNTIME_ERROR;
             }
         };
@@ -1416,6 +1420,8 @@ fn container_fields(s: &podbox_image::Store, c: &Container) -> Vec<(&'static str
     let mount = count(|e| e.mount);
     let unshare = count(|e| e.unshare);
     let clone = count(|e| e.clone);
+    // T-0413: the served /proc answers beside the four older stories.
+    let procfs = count(|e| e.procfs);
     vec![
         ("Id", c.id.clone()),
         ("Name", c.name.clone()),
@@ -1478,10 +1484,12 @@ fn container_fields(s: &podbox_image::Store, c: &Container) -> Vec<(&'static str
         // T-0708: how many times the preloaded tier emulated an operation
         // rather than running the kernel's answer. A dash where the tier
         // never ran; `inspect --format` reads these names, `ps` does not.
+        // T-0413 adds the served /proc answers behind the same memo.
         ("Interpose.Emulated.mknod", mknod),
         ("Interpose.Emulated.mount", mount),
         ("Interpose.Emulated.unshare", unshare),
         ("Interpose.Emulated.clone", clone),
+        ("Interpose.Emulated.procfs", procfs),
     ]
 }
 

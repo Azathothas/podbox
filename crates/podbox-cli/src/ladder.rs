@@ -367,7 +367,9 @@ mod tests {
     /// a denial is down, and a missing row is down rather than a promise.
     #[test]
     fn fuse_is_up_only_where_the_open_row_answered_ok() {
-        let base = std::env::temp_dir().join(format!("podbox-ladder-base-{}", std::process::id()));
+        // ⛔ Tagged, as above: never share a removable base path.
+        let base =
+            std::env::temp_dir().join(format!("podbox-ladder-base-fuse-{}", std::process::id()));
         let up = findings_with(vec![("open(/dev/fuse, O_RDWR)", Outcome::ok())]);
         assert!(availability(&up, false, false, &base).fuse);
         let down = findings_with(vec![(
@@ -383,7 +385,12 @@ mod tests {
     /// counts, and anything less refuses naming the mount.
     #[test]
     fn tmpfs_is_up_only_where_a_mount_attached() {
-        let base = std::env::temp_dir().join(format!("podbox-ladder-base-{}", std::process::id()));
+        // ⛔ Tagged, not pid-only: the directory-rung tests below share
+        // one base path shape and remove it mid-stage under parallel
+        // threads (T-0413 drive: the directory-rungs test failed
+        // in-suite at `assert!(avail.rundir)` and passed alone).
+        let base =
+            std::env::temp_dir().join(format!("podbox-ladder-base-tmpfs-{}", std::process::id()));
         let attached = findings_with(vec![("move_mount(-> /tmp/mm-probe)", Outcome::ok())]);
         assert!(availability(&attached, false, false, &base).tmpfs);
         assert!(!availability(&Findings::empty(), false, false, &base).tmpfs);
@@ -395,7 +402,10 @@ mod tests {
     /// rung that does not exist.
     #[test]
     fn the_directory_rungs_need_their_stage_base() {
-        let base = std::env::temp_dir().join(format!("podbox-ladder-base-{}", std::process::id()));
+        // ⛔ Tagged, as above: the tmpfs test beside this one removes
+        // the shared shape mid-stage.
+        let base =
+            std::env::temp_dir().join(format!("podbox-ladder-base-dirrung-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&base);
         let avail = availability(&Findings::empty(), true, true, &base);
         assert!(avail.memfd);
@@ -416,7 +426,11 @@ mod tests {
     #[test]
     fn a_forced_cache_is_admitted_only_where_asked() {
         use podbox_enter::ladder as ladder_mod;
-        let base = std::env::temp_dir().join(format!("podbox-ladder-base-{}", std::process::id()));
+        // ⛔ Tagged, as above.
+        let base = std::env::temp_dir().join(format!(
+            "podbox-ladder-base-forcecache-{}",
+            std::process::id()
+        ));
         let _ = std::fs::remove_dir_all(&base);
         let avail = availability(&Findings::empty(), false, true, &base);
         assert_eq!(
@@ -437,8 +451,11 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("podbox-ladder-cli-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
+        // ⛔ Tagged, not pid-only: two tests sharing one store path race
+        // each other's removal mid-stage (T-0413 drive, two green runs
+        // each failing a different rundir test).
         let store =
-            std::env::temp_dir().join(format!("podbox-ladder-store-{}", std::process::id()));
+            std::env::temp_dir().join(format!("podbox-ladder-store-mp-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&store);
         let root = RootDir::open(dir.to_str().unwrap()).expect("a temp dir opens");
         let plan = Plan {
@@ -481,8 +498,10 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("bin")).unwrap();
         std::fs::write(dir.join("bin/prog"), b"\x7fELF").unwrap();
+        // ⛔ Tagged, as above: this store path collided with the missing-
+        // payload test's under parallel threads.
         let store =
-            std::env::temp_dir().join(format!("podbox-ladder-store-{}", std::process::id()));
+            std::env::temp_dir().join(format!("podbox-ladder-store-st-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&store);
         let staged = stage_rundir(&store, dir.to_str().unwrap()).expect("staging copies");
         assert_eq!(std::fs::read(staged.join("bin/prog")).unwrap(), b"\x7fELF");

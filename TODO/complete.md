@@ -941,7 +941,7 @@ Source:      `https://github.com/talaria0101/nix-experiment`, its REPORT documen
 Category:    complete
 Priority:    P1
 Effort:      M
-Status:      partial 2026-09-22
+Status:      done 2026-09-26
 
 Problem:     A chroot has no `/proc` unless something mounts one, and `mount` is
              refused on every runtime podbox targets. podbox already knows this
@@ -1022,6 +1022,72 @@ process-substitution payload that succeeds through emulation,
 beside the current failure arm where emulation cannot apply, each
 naming what answered.
 
+**Done 2026-09-26.** One honest emulation, exact or refused, in
+`crates/podbox-interpose/src/procfs.rs` with the entry points in
+`lib.rs` (`open`, `open64`, `openat`, `openat64`, `readlink`,
+`readlinkat` try the real call first and answer only on `ENOENT`):
+
+* `/proc/self/fd/N`, `/dev/fd/N` and the standard stream spellings
+  (`/dev/stdin`, `/dev/stdout`, `/dev/stderr` name 0, 1, 2 by
+  definition): pipes duplicate from live `fstat`/`fstatfs` (pipefs
+  only; a named fifo refuses), with the access mode and the shared
+  status flags checked exactly and anything else falling through.
+  Sockets answer the kernel's `ENXIO`. Stream links read back their
+  `/proc/self/fd/N` target exactly. The `/dev` spellings first check
+  the image holds the link they resolve through and fall through where
+  it does not; the completion layer stages the conventional links
+  (`dev/stdin`, `dev/stdout`, `dev/stderr`, `dev/fd`) where absent, an
+  image's own link never retargeted, anything else at the path a named
+  `Failed` row (`devices.rs` `fd_links`, two unit tests). The pinned
+  debian row ships none of the four, measured 2026-09-26, which is why
+  the drive's process-substitution arm failed before this staging.
+  Every other type falls through to the honest failure.
+* `readlink` of those leaves synthesizes `pipe:[ino]`/`socket:[ino]`
+  from the live inode, truncated the way the kernel truncates.
+* `/proc/self/exe`: the caller-resolved guest path
+  (`PODBOX_GUEST_EXE`, set beside the exec by `run`/`create`/`exec`
+  from the rootfs host path through `enter::ladder::guest_exe`, stale
+  values scrubbed). The real answer always wins where one exists, so
+  the variable can ride no-chroot entries without poisoning them.
+* The mount-table files: a fixture generated into a memfd from live
+  `stat`/`statfs` of `/` (real device numbers, named filesystem or
+  `unknown`) plus the recorded T-0708 mounts (rendered `0:0`, because
+  an emulated mount has none), which is the half `TOOL.md` section 10
+  allows. No memo behind it, no serve.
+
+Every served answer tallies `OP_PROC` (detail 1 fd open, 2 fd
+readlink, 3 exe readlink, 4 exe open, 5 mount serve) beside the T-0708
+kinds; `inspect` carries `Interpose.Emulated.procfs`, and both the
+tier banner and the chroot procfs banner name it. Deliberate path
+mappings still win over the emulation. `stat`, `access` and `openat2`
+keep the honest failure: the entry points above are what the two live
+instances need (`fopen` reaches the same hooks through `open`). Prove
+is `155` clauses 4a through 4f (success, live-interface failure, exe,
+fixture, pipe shape, standard stream) green on the lane beside the
+interpose unit tests, recorded below.
+
+Recorded 2026-09-26, `experiments/results/proc-absence.txt`
+(`rust:1.98.1-bookworm` job in `wsl-toolkit-podbox`, kernel
+`7.2.0-WSL2-STABLE`, lane-built musl debug `0.1.0-beta.7`):
+
+* 4a: payload exit 0, `process substitution succeeded through the
+  emulation`, `payload printed hi`, `banner names the procfs
+  emulation`.
+* 4b: payload exit 1, `live-interface read fails as it must`,
+  `banner names the missing procfs beside the failure`.
+* 4c: payload exit 0, `exe answers /usr/bin/bash`.
+* 4d: payload exit 0, `fixture names the podbox root: podbox /
+  ext4 rw 0 0`.
+* 4e: payload exit 0, `fd 0 readlinks as pipe:[610717]`.
+* 4f: payload exit 0, `cat /dev/stdin printed hi`.
+* Units: interpose suite 37 passed 0 failed; the ten exact-name
+  tests green (`podbox-complete` link arms and fd-link arms,
+  `podbox-enter` guest-exe and nobody resolve, `podbox-cli`
+  guest-exe push and container fields, `podbox-probe` chroot
+  banner, `podbox-supervise` tally scan); workspace 564 passed 0
+  failed; clippy workspace and interpose clean with `-D warnings`;
+  `cargo fmt --check` clean both manifests.
+
 
 ---
 
@@ -1032,7 +1098,7 @@ Source:      `references/talaria0101__nix-experiment/tree/notes/seccomp-probe-ou
 Category:    complete
 Priority:    P1
 Effort:      M
-Status:      partial 2026-09-22
+Status:      done 2026-09-26
 
 Problem:     [probe.md](probe.md) asks what the runtime permits, and its question
              list came from two instances of the target class. **A third
@@ -1103,6 +1169,58 @@ with a payload that lists `/` on an `EACCES` host and still runs
 (or refuses naming `readdir` `EACCES` with the remedy), plus a unit
 test for the enumeration-free path.
 
+**Done 2026-09-26.** The audit, site by site, for listings of handed
+paths in `podbox-complete` and `podbox-enter`:
+
+* `enter/src/abi.rs` `resolve_in`: already enumeration-free. The walk
+  opens each component by name (`symlink_metadata` per element, no
+  listing anywhere), so a payload resolves past a denied listing. Pinned
+  by a unit test that re-runs its worker half as `nobody` against a
+  mode-111 rootfs: the worker first proves the fixture bites (a listing
+  fails `EACCES`), then resolves by name. `EPERM` on the spawn records a
+  skip, never a pass; a worker that finds itself still privileged fails
+  loudly rather than passing vacuously.
+* `enter/src/ladder.rs` `resolve_payload`: by-name over `resolve_in`
+  (the `PATH` search tries exact names in order), covered by the same
+  test's shape.
+* `enter/src/stage.rs` `copy_contents`, the tmpfs emptiness check, and
+  `cli/src/lifecycle.rs` `copy_tree`: listings the operation requires
+  (a tree copy walks; a fresh mount is verified empty), over owned
+  store paths, refusing by name with the path and the kernel's errno.
+  `cp`'s arm now names the operation (`cannot list <dir>`), driven by
+  `155` clause 5: a `cp -r` of a traversed-but-unlistable directory as
+  `nobody` exits 125 naming the listing and `EACCES`. The clause's
+  pull and create keep the privilege those operations need (create
+  enters through chroot, which nobody is denied) with the store handed
+  to nobody after them (a root-owned lock file, or root's config
+  through an inherited `HOME`, each dies 125 before any listing),
+  and only the copy sheds privilege.
+* `enter/src/abi.rs` `search_file`: lists owned rootfs library roots
+  with silent per-directory skips; a denied directory yields no
+  candidate and the loader refusal downstream names the missing
+  interpreter. The store is always writable (extraction precedes it),
+  so a listing the runtime needs is never handed-denied: recorded, no
+  change.
+* Rootfs placement: every rootfs lives under the writable store
+  (`extract` under the store digest path, `stage_rundir`/`stage_cache`/
+  `stage_tmpfs` under `runs/`, `cache/`, `tmpfs/`; `lifecycle.rs`
+  `podbox_extract::paths`). No rootfs is ever assembled at `/`:
+  recorded with the file and line, no change.
+
+Prove is the new unit test green beside the `podbox-enter` suite, and
+`155` clause 5 green on the lane, recorded below.
+
+Recorded 2026-09-26, `experiments/results/proc-absence.txt` (same
+lane and binary as T-0413 above):
+
+* 5: `cp exit: 125`, `refusal names the listing and EACCES:
+  podbox cp: cannot list /tmp/pb155-nolist: Permission denied (os
+  error 13)`.
+* Units: `podbox-enter` 77 passed 0 failed with
+  `resolve_past_a_denied_listing` green (worker proves the `EACCES`
+  fixture bites, then resolves `bin/prog` by name as uid/gid 65534);
+  workspace 564 passed 0 failed.
+
 ---
 
 ### T-0415 A device stand-in is checked by type, because an absent one becomes a growing file
@@ -1112,7 +1230,7 @@ Source:      `references/Azathothas__sandbox-insights/tree/docs/capability-model
 Category:    complete
 Priority:    P1
 Effort:      S
-Status:      partial 2026-09-22
+Status:      done 2026-09-26
 
 Problem:     `crates/podbox-complete/src/devices.rs` writes regular-file
              stand-ins where `mknod` is refused. **Nothing checks afterwards
@@ -1181,10 +1299,14 @@ the only transcript diffs are the date, installer progress noise, and
 five T-0411 mirror rows that a re-drive restored (the mirror probe
 answers per run).
 
-⛔ **The `Prove` above is amended: the committed one named a clause in
-`155`, which does not exist.** T-0413 owns that script's creation. The
-committed tests prove the rows, and the named cli test proves the
-refusal wiring; a planted live image stays future work.
+⛔ **The `Prove` above is amended: the committed tests prove the rows,
+and the named cli test proves the refusal wiring.** The unlink-failure
+arm is pinned by two unit tests on the extracted `displace_link` helper:
+an unremovable link (a directory, which `remove_file` refuses on every
+user; root bypasses permission bits, so a read-only parent cannot stage
+the failure) reads back the named refusal, and a removable link reads
+back displaced with its outside target untouched. The planted live image
+stays future work only as a drive, and no claim about it rides here.
 
 **Partial, 2026-09-25.** Issue 49 reopens this entry on its own
 two gaps: the unlink-failure refusal arm
@@ -1198,6 +1320,25 @@ the Prove at a clause that exists. Fix area is
 wiring that regresses with the suite still green. Prove is the new
 unit test green beside the devices suite, and the live-image arm or
 the dropped claim.
+
+**Done 2026-09-26.** The unlink arm is extracted as
+`displace_link` (`crates/podbox-complete/src/devices.rs`) with no
+behaviour change on the wired path, and two unit tests pin both its
+arms: the unremovable link reads back the named refusal (path, target,
+`mknod` risk, `--strict`), the removable link reads back displaced with
+its outside target untouched. The live-image claim is dropped from the
+Done above: no claim about a planted image rides here. Prove is
+`cargo test -p podbox-complete devices` green on the lane beside the
+full `podbox-complete` suite, recorded below.
+
+Recorded 2026-09-26 (same lane and binary as T-0413 above):
+`podbox-complete` 51 passed 0 failed, including
+`an_unremovable_link_is_a_named_refusal`,
+`a_removable_link_is_displaced_and_named`,
+`absent_fd_spellings_are_staged_as_conventional_links`,
+`foreign_shapes_at_fd_spellings_refuse_by_name` and the
+`what_each_row_claims_is_what_is_on_disk` row-exactness test extended
+to the four new `dev-fd-link` rows; workspace 564 passed 0 failed.
 
 ---
 

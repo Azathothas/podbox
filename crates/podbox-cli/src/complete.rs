@@ -264,7 +264,7 @@ pub fn run_steps_with_memo(
     };
     for (i, s) in steps.iter().enumerate() {
         let started = std::time::Instant::now();
-        let outcome = one_step(&root, s, env, memo_host);
+        let outcome = one_step(&root, rootfs, s, env, memo_host);
         let took = started.elapsed().as_secs_f64();
         let (line, failure) = match outcome {
             Ok(podbox_enter::Bounded::Exited(0)) => (
@@ -348,6 +348,7 @@ fn failed_step(entry: &'static str, id: &'static str, why: String) -> podbox_com
 /// guarantees the loud one has.
 fn one_step(
     root: &podbox_enter::RootDir,
+    rootfs: &str,
     s: &podbox_complete::Step,
     env: &[String],
     memo_host: Option<i64>,
@@ -364,9 +365,20 @@ fn one_step(
     if let Some(host) = memo_host {
         pass.push((podbox_supervise::table::MEMO_CHILD_FD, host));
     }
+    // ⭐ TODO/complete.md T-0413: a step is its own exec with its own
+    // `/proc/self/exe`, so it resolves its own guest path rather than
+    // inheriting the payload's. A step name that resolves nothing sets
+    // nothing: exact or refused, like every other answer.
+    let mut step_env = env.to_vec();
+    crate::run::push_guest_exe(
+        &mut step_env,
+        rootfs,
+        s.argv.first().map(String::as_str).unwrap_or(""),
+        &podbox_enter::Plan::path_from(env),
+    );
     let plan = podbox_enter::Plan {
         argv: s.argv.clone(),
-        env: env.to_vec(),
+        env: step_env,
         working_dir: "/".to_string(),
         fds: podbox_enter::Fds { pass },
         // ⚠ Empty: the banner named this step before podbox got here.

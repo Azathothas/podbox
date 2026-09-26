@@ -243,6 +243,10 @@ pub fn open_memo(path: &std::path::Path) -> Result<std::fs::File, String> {
 /// success, an unshare success, a stripped clone) rather than the kernel's
 /// answer.
 ///
+/// T-0413 adds the fifth story: a `/proc/self` answer where no procfs is
+/// mounted (a descriptor duplicate, a `readlink` synthesis, an exe
+/// passthrough, a mount-table serve).
+///
 /// Read from the ownership memo file beside the container record: the
 /// interposer appends 32-byte tally records (device `u64::MAX`, the
 /// operation in the inode word, mount path chains behind their header)
@@ -255,6 +259,7 @@ pub struct EmulatedCounts {
     pub mount: u64,
     pub unshare: u64,
     pub clone: u64,
+    pub procfs: u64,
 }
 
 /// Tally record kinds, in the inode word beside `u64::MAX`. One fact in two
@@ -264,6 +269,7 @@ const TALLY_MKNOD: u64 = 1;
 const TALLY_MOUNT: u64 = 2;
 const TALLY_UNSHARE: u64 = 3;
 const TALLY_CLONE: u64 = 4;
+const TALLY_PROC: u64 = 5;
 
 fn tally_u64(b: &[u8]) -> u64 {
     let mut a = [0u8; 8];
@@ -340,6 +346,10 @@ pub fn emulated_counts(memo: &std::path::Path) -> EmulatedCounts {
                 TALLY_CLONE => {
                     pending = 0;
                     out.clone += 1;
+                }
+                TALLY_PROC => {
+                    pending = 0;
+                    out.procfs += 1;
                 }
                 // A continuation where one is owed feeds the open chain;
                 // anywhere else (stray, or an unknown kind) it is skipped,
@@ -648,6 +658,9 @@ mod tests {
         b.extend(tally_rec(u64::MAX, TALLY_MOUNT, 0, 1, 0));
         // An unknown kind: skipped.
         b.extend(tally_rec(u64::MAX, 9, 0, 0, 0));
+        // T-0413: two served /proc answers with their detail words.
+        b.extend(tally_rec(u64::MAX, TALLY_PROC, 1, 0, 0));
+        b.extend(tally_rec(u64::MAX, TALLY_PROC, 5, 0, 0));
         std::fs::write(&p, &b).unwrap();
         assert_eq!(
             emulated_counts(&p),
@@ -656,6 +669,7 @@ mod tests {
                 mount: 1,
                 unshare: 1,
                 clone: 1,
+                procfs: 2,
             }
         );
         // A missing file counts nothing rather than failing.
