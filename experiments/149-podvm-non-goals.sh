@@ -186,7 +186,7 @@ if [ -x "$REPO/experiments/361-guest-usernet.sh" ]; then
 	else
 		miss "361 guest networking red"
 		say "  361's own report, whole, because the clause is what failed:"
-		sed 's/^/  361: /'' "$WORK/361.log" >>"$WORK/report"
+		sed 's/^/  361: /' "$WORK/361.log" >>"$WORK/report"
 	fi
 else
 	miss "361-guest-usernet.sh is not executable"

@@ -1,0 +1,34 @@
+== conditions
+date              2026-09-26T02:50:22Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+kvm               absent
+qemu              absent
+bootstrap         ok
+interpose         ok
+build             ok
+podbox            podbox 0.1.0-beta.7
+probe json        ok
+clause 1          kvm denied ENOENT on this lane
+
+== win-run
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
+exit              125
+output:
+  podbox run: windows/amd64 is not a Linux guest. podbox runs Linux guests only: the chroot tier shares the host kernel and the machine tier boots Linux images. No windows guest support exists (TODO/milestones.md T-1112), so there is nothing to pull or enter for this platform
+clause 2          store untouched
+
+== win-machine
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
+exit              125
+output:
+  podbox run: windows/amd64 is not a Linux guest. podbox runs Linux guests only: the chroot tier shares the host kernel and the machine tier boots Linux images. No windows guest support exists (TODO/milestones.md T-1112), so there is nothing to pull or enter for this platform
+clause 3          store untouched
+
+== win-create
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox create --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
+exit              125
+output:
+  podbox create: windows/amd64 is not a Linux guest. podbox runs Linux guests only: the chroot tier shares the host kernel and the machine tier boots Linux images. No windows guest support exists (TODO/milestones.md T-1112), so there is nothing to pull or enter for this platform
+clause 4          store untouched
+
+verdict           WINDOWS REFUSAL HOLDS

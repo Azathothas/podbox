@@ -772,6 +772,18 @@ pub(crate) fn prepare(
             return Err(e.exit_code());
         }
     };
+    let (platform, policy) = crate::lifecycle::platform_and_policy(
+        verb,
+        o.platform.as_deref(),
+        &o.insecure,
+        o.tls_verify,
+    )?;
+    // ⭐ TODO/milestones.md T-1112. The OS gate sits before the tier
+    // dispatch and the fetch: a platform no tier can enter refuses
+    // naming it, rather than reaching the machine tier's leg refusal
+    // (which would misreport a Windows request as a Linux guest the
+    // driver has not arrived for yet) or pulling bytes no tier runs.
+    crate::lifecycle::ensure_linux_guest(verb, &platform.os, &platform.arch)?;
     if tier.tier == crate::tier::Tier::Machine {
         return Err(crate::tier::enter_machine(verb, o.mem));
     }
@@ -791,15 +803,6 @@ pub(crate) fn prepare(
     }
     let image = o.image.clone().expect("checked in parse");
 
-    let (platform, policy) = crate::lifecycle::platform_and_policy(
-        verb,
-        o.platform.as_deref(),
-        &o.insecure,
-        o.tls_verify,
-    )?;
-    // ⭐ TODO/milestones.md T-1112. The OS gate sits before the fetch: there
-    // is nothing to pull for a platform no tier can enter.
-    crate::lifecycle::ensure_linux_guest(verb, &platform.os, &platform.arch)?;
     // ⭐ TODO/enter.md T-1317. The probe runs HERE, before the fetch, the
     // lock, the extraction and every fixup: the entered rung always
     // chroots, so a denied chroot refuses now, naming chroot(2), with the

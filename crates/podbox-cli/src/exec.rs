@@ -419,6 +419,20 @@ pub fn exec(args: &[String]) -> i32 {
     if let Some(note) = &tier.note {
         eprintln!("podbox exec: {note}");
     }
+    let platform = match Platform::wanted(o.platform.as_deref()) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("podbox exec: {e}");
+            return e.exit_code();
+        }
+    };
+    // ⭐ TODO/milestones.md T-1112, as in `run`'s `prepare`: the OS gate
+    // sits before the tier dispatch. `exec` never pulls, so a platform
+    // no tier can enter is refused before the store is even opened,
+    // rather than reaching the machine tier's leg refusal.
+    if let Err(c) = crate::lifecycle::ensure_linux_guest("exec", &platform.os, &platform.arch) {
+        return c;
+    };
     if tier.tier == crate::tier::Tier::Machine {
         return crate::tier::enter_machine("exec", o.mem);
     }
@@ -432,18 +446,6 @@ pub fn exec(args: &[String]) -> i32 {
     }
     let image = o.image.clone().expect("checked in parse");
 
-    let platform = match Platform::wanted(o.platform.as_deref()) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("podbox exec: {e}");
-            return e.exit_code();
-        }
-    };
-    // ⭐ TODO/milestones.md T-1112. `exec` never pulls, so a platform no tier
-    // can enter is refused before the store is even opened.
-    if let Err(c) = crate::lifecycle::ensure_linux_guest("exec", &platform.os, &platform.arch) {
-        return c;
-    };
     let store = match podbox_image::open_store() {
         Ok(s) => s,
         Err(e) => {

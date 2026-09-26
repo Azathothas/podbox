@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 11 partial, 0 blocked, 154 done. The 2026-09-25
+168 entries: 3 open, 10 partial, 1 blocked, 154 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -34,7 +34,12 @@ show it. T-1306 closed 2026-09-26 on the guest-networking drive
 runs executable, datagrams crossing both ways under TCG
 user-mode networking with 149 green at 15 driven 0 mismatches;
 the netboot driver chain (failover, net_failover, virtio_net) is
-measured link by link. No other open issue is closed:
+measured link by link. T-1112 worked 2026-09-26 to blocked:
+winquick studied in the entry's order, the platform gate moved
+ahead of tier dispatch (a Windows request over the machine tier
+read as a Linux guest), driven by 362 with the store untouched
+on every path; the guest arm needs a KVM host with a licensed
+image, which no reachable machine is. No other open issue is closed:
 each closes with its fix commit, drive output and guard, per the
 operator rule.
 
@@ -249,8 +254,14 @@ exits 0 with 15 driven 0 mismatches
 (`experiments/results/podvm-non-goals.txt`), its clause 6
 running `experiments/361-guest-usernet.sh` to green
 (`experiments/results/guest-usernet.txt`, datagrams both ways).
-Next is item 6
-(T-1112 Linux KVM Windows guest per the winquick shape). The teardown
+Item 6 worked to blocked on the same lane:
+`experiments/362-windows-refusal.sh` exits 0
+(`experiments/results/windows-refusal.txt`), KVM denied ENOENT,
+run, machine-tier run and create each exit 125 naming
+windows/amd64 with the store untouched, CLI units 26 passed;
+the guest arm is blocked on a KVM host with a licensed image.
+Next is item 7
+(T-0413 emulation, T-0414 remedy, T-0415 arms). The teardown
 owes the kept lane job containers (`wsl-toolkit --instance
 podbox gc --apply`: host `gc` without the instance says nothing
 is registered) and session scratch removal, then the final gate

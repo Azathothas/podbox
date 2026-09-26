@@ -848,7 +848,7 @@ Source:      `https://github.com/carlbomsdata/winquick`; [podvm.md](podvm.md)
 Category:    milestones
 Priority:    P3
 Effort:      L
-Status:      partial 2026-09-23
+Status:      blocked 2026-09-26
 
 Problem:     podbox turns an OCI reference into a process. Every rung it has
              assumes the payload is Linux, because every rung except the machine
@@ -934,3 +934,38 @@ redistributed. Prove is the entry's first arm on a KVM host with the
 image installed, plus the refusal arm naming the exact missing leg
 with nothing fetched or mutated, and a KVM-denying fixture beside the
 T-1317 one so the refusal stays driven where KVM is absent.
+
+**Studied 2026-09-26, in the entry's order.** `architecture.md`
+(437 lines): qemu as a child process (the GPLv2 boundary), NVMe
+root overlay discarded per run, FAT mailbox with the batch agent
+through AutoRun, UEFI code with per-run vars, `-nic none`, no
+network, no streaming. `platform.rs` (315 lines): Linux x86_64 is
+`qemu-system-x86_64`, `-M q35`, `-accel kvm`, `-cpu host`, OVMF
+code with distro alt names, vars template with alts, and never
+TCG. `qemu.rs` `boot_command`: pflash pair, NVMe root and
+mailbox (`cache=writethrough`), ramfb, `-display none`,
+`-rtc base=localtime`, `-no-reboot`, serial to file, QMP on a
+unix socket. `mailbox.rs` with `guest/agent.cmd`: protocol v1
+(`WQMARK`, `WQCMD`, `WQGO` with the run token, `WQOUT`,
+`WQERR`, `WQCODE` last), inbox components only.
+
+**Refusal arm hardened 2026-09-26.** The machine tier dispatched
+before the platform gate, so a Windows request over
+`--podbox-tier=machine` reached the leg refusal and read as a
+Linux guest the driver has not arrived for. `run.rs` `prepare`
+and `exec` now parse and gate the platform before the tier
+dispatch (ladder checks keep their precedence): a Windows
+request names `windows/amd64` with the missing support on every
+path. Driven by `experiments/362-windows-refusal.sh`, exit 0 on
+the lane: KVM denied ENOENT in probe JSON, `run`, machine-tier
+`run` and `create` each exit 125 naming `windows/amd64` with
+the store byte-identical after, CLI lifecycle+tier units 26
+passed. Report in `experiments/results/windows-refusal.txt`.
+
+**Blocked on the guest arm.** No reachable machine holds
+`/dev/kvm` (lane ENOENT, measured in the drive above), lane
+qemu is 7.2.22 against the prerequisite 11 with `qemu-img`,
+and no licensed Windows image is installed anywhere (one is
+never fetched or committed here). What unblocks: a KVM host
+with the image installed under the accept-terms gate the entry
+names. The entry stays partial on that blocker.
