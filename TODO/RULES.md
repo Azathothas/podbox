@@ -201,12 +201,16 @@ not remembered. After every lane job, before the next one starts:
 1. Collect the kept job id the job prints on exit, and remove it:
    `wsl-toolkit --instance podbox gc --job <id> --apply`.
 2. Once a drive's report is saved under `experiments/results/`,
-   delete that drive's `.tmp/` artifacts (`.tmp/art-*`,
-   `.tmp/job-*.log`).
-3. At session end, or when space presses:
+   delete that drive's `.tmp/` artifacts (that drive's `.tmp/pb*`
+   directory and logs, the staged binary beside it).
+3. A base drive leaves its scratch on the base (`/root/pb*` work
+   directories and any staged binary): remove it with
+   `wsl-toolkit --instance podbox base exec -root` before the next
+   base drive starts.
+4. At session end, or when space presses:
    `wsl-toolkit --instance podbox gc --apply` for the whole
    ledger, then clear remaining `.tmp/` scratch.
-4. ⛔ Nothing is deleted until its evidence is committed. A report
+5. ⛔ Nothing is deleted until its evidence is committed. A report
    lands in `experiments/results/` first, scratch is removed
    second.
 
