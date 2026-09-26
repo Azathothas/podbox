@@ -44,7 +44,7 @@ fn implemented() -> Vec<&'static Row> {
 fn help_argv(verb: &str) -> Vec<&str> {
     match verb {
         "prune" => vec!["image", "prune"],
-        "install-names" | "abi" => vec!["system", verb],
+        "install-names" | "abi" | "df" => vec!["system", verb],
         _ => vec![verb],
     }
 }
@@ -321,6 +321,7 @@ mod tests {
             ("prune", "image prune"),
             ("install-names", "system install-names"),
             ("abi", "system abi"),
+            ("df", "system df"),
         ] {
             assert_eq!(parity::rows_of(multi), single, "{multi}");
             assert_eq!(help_argv(single).join(" "), multi, "{single}");

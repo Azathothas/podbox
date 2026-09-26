@@ -15,14 +15,21 @@
 //! permits, measured, and what that rung does not provide.
 
 use crate::{format, parity};
-use podbox_image::error::{EXIT_CLI_ERROR, EXIT_FLAG_ERROR};
+use podbox_image::error::{EXIT_CLI_ERROR, EXIT_FLAG_ERROR, EXIT_RUNTIME_ERROR};
 use podbox_probe::select::Rung;
 
 pub const SYSTEM_USAGE: &str = "\
 usage: podbox system info [--format T]
+       podbox system df
        podbox system install-names [--dir D] [--force]
        podbox system abi <object> <libc>
        podbox info [--format T]
+
+  df           disk usage: images with one row each, containers, stored
+               blob bytes beside extracted rootfs bytes, and what
+               `image prune` would reclaim. Accounting never fails the
+               verb: an unreadable file counts nothing (TODO/cli.md
+               T-1337)
 
   abi          may <object> be preloaded into a payload served by <libc>?
                Answered by READING both, never by loading one:
@@ -111,6 +118,7 @@ pub fn system(args: &[String]) -> i32 {
     let rest = if args.len() > 1 { &args[1..] } else { &[] };
     match args.first().map(String::as_str) {
         Some("info") => info("system info", rest),
+        Some("df") => df("system df", rest),
         Some("install-names") => crate::names::install("system install-names", rest),
         Some("abi") => abi("system abi", rest),
         Some("-h") | Some("--help") | None => {
@@ -205,6 +213,203 @@ pub fn abi(verb: &str, args: &[String]) -> i32 {
             1
         }
     }
+}
+
+/// `podbox system df`.
+///
+/// ⭐ [`TODO/cli.md`](../../../TODO/cli.md) T-1337's answer to `docker
+/// system df`, as data rather than prose. One row per image with its
+/// stored blob bytes beside its extracted rootfs bytes, the container
+/// count, and what `image prune` would reclaim.
+///
+/// ⛔ Three properties the drive pins. First, the reclaimable number is
+/// the number `image prune` would free on a quiet store: the same gate
+/// chain (`prune_candidates(false)`, the `referencing` record-gate,
+/// the `in_use` hold check) with `reclaimable_bytes` standing in for
+/// `delete`. Second, accounting never fails the verb: an unreadable
+/// file counts nothing. Third, only a gate failure (an unopenable
+/// store, a lock that will not answer) exits non-zero; the bytes
+/// themselves never do.
+pub fn df(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, SYSTEM_USAGE),
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all(verb, args, SYSTEM_USAGE) {
+        return c;
+    }
+    // ⭐ The `logout` shape (TODO/cli.md T-0209): flags collect and the
+    // verb decides after the loop, so `--help` wins over positionals
+    // and every arm need not diverge.
+    let mut help = false;
+    for a in args {
+        match a.as_str() {
+            "-h" | "--help" => help = true,
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, SYSTEM_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
+            }
+            other => {
+                eprintln!("podbox system df: unknown option {other:?}");
+                eprint!("{SYSTEM_USAGE}");
+                return EXIT_FLAG_ERROR;
+            }
+        }
+    }
+    if help {
+        print!("{SYSTEM_USAGE}");
+        return 0;
+    }
+    let store = match podbox_image::open_store() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("podbox system df: {e}");
+            return e.exit_code();
+        }
+    };
+    let images = match store.list() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("podbox system df: {e}");
+            return e.exit_code();
+        }
+    };
+    let containers = match podbox_supervise::list(&store, true) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("podbox system df: {e}");
+            return EXIT_RUNTIME_ERROR;
+        }
+    };
+    // ⭐ TODO/image.md T-1322's chain, read-only: what `image prune`
+    // would consider, minus what a container references or holds, with
+    // the sizing standing in for the unlinking.
+    let mut rest: Vec<podbox_image::Record> = Vec::new();
+    let mut kept: Vec<String> = Vec::new();
+    let candidates = match store.prune_candidates(false) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("podbox system df: {e}");
+            return e.exit_code();
+        }
+    };
+    for record in candidates {
+        match podbox_supervise::referencing(&store, &record.manifest_digest) {
+            Ok(found) if !found.is_empty() => kept.push(record.name()),
+            Ok(_) => match store.in_use(&record) {
+                Ok(true) => kept.push(record.name()),
+                Ok(false) => rest.push(record),
+                Err(e) => {
+                    eprintln!("podbox system df: {e}");
+                    return e.exit_code();
+                }
+            },
+            Err(e) => {
+                eprintln!("podbox system df: {e}");
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+    }
+    let reclaimable = match store.reclaimable_bytes(&rest) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("podbox system df: {e}");
+            return e.exit_code();
+        }
+    };
+    // Per-image rows bill what the image needs: a blob two tags share
+    // is billed under both, the way docker bills shared layers under
+    // every image. The totals below count each blob once, which is the
+    // store's own accounting and what the drive asserts.
+    let mut rows: Vec<(String, String, String, u64, u64, bool)> = Vec::new();
+    for r in &images {
+        let mut stored = 0u64;
+        for b in r.blobs() {
+            stored = stored.saturating_add(store.blob_bytes(b));
+        }
+        let (rootfs, _) = podbox_extract::paths(&store, &r.manifest_digest);
+        let rootfs_bytes = podbox_image::space::dir_bytes(&rootfs);
+        let extracted = rootfs.is_dir();
+        rows.push((
+            r.display_repository(),
+            r.tag.clone().unwrap_or_else(|| "<none>".to_string()),
+            short_id(&r.digest).to_string(),
+            stored,
+            rootfs_bytes,
+            extracted,
+        ));
+    }
+    rows.sort();
+    let repo_w = rows
+        .iter()
+        .map(|r| r.0.len())
+        .max()
+        .unwrap_or(10)
+        .max("REPOSITORY".len());
+    println!(
+        "{:<repo_w$}  {:<16}  {:<12}  {:>12}  {:>12}",
+        "REPOSITORY", "TAG", "IMAGE ID", "STORED", "ROOTFS"
+    );
+    let mut rootfs_total = 0u64;
+    let mut extracted_count = 0usize;
+    for (repo, tag, id, stored, rootfs_bytes, extracted) in &rows {
+        println!(
+            "{repo:<repo_w$}  {tag:<16}  {id:<12}  {:>12}  {:>12}",
+            podbox_image::space::mib(*stored),
+            podbox_image::space::mib(*rootfs_bytes)
+        );
+        rootfs_total = rootfs_total.saturating_add(*rootfs_bytes);
+        if *extracted {
+            extracted_count += 1;
+        }
+    }
+    // The totals deduplicate: one blob on disk is billed once no matter
+    // how many tags need it. A totals line above the rows would disagree
+    // with them by exactly the shared bytes; below, it is the store's
+    // own accounting.
+    let mut unique_stored = 0u64;
+    let mut counted: Vec<String> = Vec::new();
+    for r in &images {
+        for b in r.blobs() {
+            if counted.iter().any(|c| c == b) {
+                continue;
+            }
+            counted.push(b.to_string());
+            unique_stored = unique_stored.saturating_add(store.blob_bytes(b));
+        }
+    }
+    let running = containers
+        .iter()
+        .filter(|c| c.state == podbox_supervise::table::State::Running)
+        .count();
+    println!();
+    println!("Images: {} ({} extracted)", images.len(), extracted_count);
+    println!("Containers: {} ({} running)", containers.len(), running);
+    println!("Stored blobs: {}", podbox_image::space::mib(unique_stored));
+    println!(
+        "Extracted rootfs: {}",
+        podbox_image::space::mib(rootfs_total)
+    );
+    println!(
+        "Reclaimable: {} (what `image prune` would free)",
+        podbox_image::space::mib(reclaimable)
+    );
+    if !kept.is_empty() {
+        kept.sort();
+        println!("Kept: {} (referenced or in use)", kept.join(", "));
+    }
+    0
+}
+
+/// The first twelve hex digits, docker's IMAGE ID width. A digest that
+/// does not parse is not a gate failure: the row still prints.
+fn short_id(digest: &str) -> &str {
+    let hex = digest.split(':').next_back().unwrap_or(digest);
+    &hex[..hex.len().min(12)]
 }
 
 pub fn info(verb: &str, args: &[String]) -> i32 {
@@ -465,5 +670,32 @@ mod tests {
                 Some("Native") | Some("Degraded") | Some("Stub") | Some("None")
             )
         }));
+    }
+
+    /// TODO/cli.md T-1337: `system df` decides its arguments before it
+    /// touches the store, so `--help` prints without one and a bad flag
+    /// is a flag error without one. Both arms run hermetic here.
+    #[test]
+    fn df_help_and_bad_flag_need_no_store() {
+        assert_eq!(df("system df", &["--help".to_string()]), 0);
+        assert_eq!(
+            df("system df", &["--bogus".to_string()]),
+            podbox_image::error::EXIT_FLAG_ERROR
+        );
+        assert_eq!(
+            df("system df", &["some-image".to_string()]),
+            podbox_image::error::EXIT_FLAG_ERROR
+        );
+    }
+
+    /// TODO/cli.md T-1337: IMAGE ID is docker's twelve hex digits, and
+    /// a digest that does not parse still prints its row.
+    #[test]
+    fn short_id_is_twelve_hex() {
+        assert_eq!(
+            short_id("sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a"),
+            "833d7afe7d42"
+        );
+        assert_eq!(short_id("bogus"), "bogus");
     }
 }

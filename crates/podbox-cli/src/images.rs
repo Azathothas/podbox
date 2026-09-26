@@ -1156,7 +1156,8 @@ usage: podbox import <rootfs.tar> [REPOSITORY[:TAG]]
   image's only layer, and the config and manifest are synthesized around
   its digest. A compressed file is refused by name, because the record's
   media type promises a plain tar. Unnamed imports are recorded as
-  `imported` with no tag (TODO/image.md T-1320).
+  `imported:latest` through `Reference::parse`'s own central default
+  (TODO/image.md T-1320).
 ";
 
 /// What `save` was asked for.

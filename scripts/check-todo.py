@@ -976,7 +976,7 @@ PARITY_ROWS_OF = {
     "image inspect": "inspect", "image pull": "pull",
     "image extract": "extract",
     "system info": "info", "system install-names": "install-names",
-    "system abi": "abi",
+    "system abi": "abi", "system df": "df",
 }
 PROVE_INV = re.compile(
     r"podbox\s+((?:image|system)\s+[a-zA-Z][\w-]*|[a-zA-Z][\w-]*)")

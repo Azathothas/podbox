@@ -68,6 +68,41 @@ pub fn read(path: &str) -> Result<Have> {
     })
 }
 
+/// The bytes under a directory, counted by walking it. Symlinks are
+/// never followed: a rootfs holds absolute links into itself (which
+/// would double-count) and relative links out of it (which would escape
+/// the store). An unreadable entry counts nothing rather than failing
+/// the report: TODO/cli.md T-1337's `system df` never exits non-zero
+/// for accounting alone.
+pub fn dir_bytes(path: &std::path::Path) -> u64 {
+    use std::collections::HashSet;
+    use std::os::unix::fs::MetadataExt;
+    let mut total = 0u64;
+    // Hardlinked files share one inode: counting each name would bill
+    // the same bytes twice, so an inode already seen adds nothing.
+    let mut seen: HashSet<(u64, u64)> = HashSet::new();
+    let mut stack = vec![path.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for e in entries.flatten() {
+            let Ok(meta) = std::fs::symlink_metadata(e.path()) else {
+                continue;
+            };
+            if meta.is_dir() && !meta.is_symlink() {
+                stack.push(e.path());
+            } else if meta.is_file() && seen.insert((meta.dev(), meta.ino())) {
+                total = total.saturating_add(meta.len());
+            }
+        }
+    }
+    // The top directory itself is not counted: only what it holds is
+    // content, and a df that billed the directory entry would disagree
+    // with the store's own accounting by exactly that entry.
+    total
+}
+
 /// Bytes rendered in the unit they are in. ⚠ `docs/conventions/code.md`: binary
 /// units where they are binary, and never a value printed in one unit and
 /// labelled the other.
@@ -233,5 +268,24 @@ mod tests {
         assert_eq!(mib(1024), "1.0 KiB");
         assert_eq!(mib(3 * 1024 * 1024), "3.0 MiB");
         assert_eq!(mib(2 * 1024 * 1024 * 1024), "2.00 GiB");
+    }
+
+    /// T-1337: the walk counts file bytes once each, never follows a
+    /// link, and never fails the report for one bad entry.
+    #[test]
+    fn dir_bytes_counts_once_and_never_follows() {
+        let d = std::env::temp_dir().join(format!("podbox-du-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("sub")).unwrap();
+        std::fs::write(d.join("a"), vec![7u8; 10]).unwrap();
+        std::fs::write(d.join("sub/b"), vec![7u8; 6]).unwrap();
+        // A symlink out and a symlink in: neither is followed.
+        std::os::unix::fs::symlink("/etc/hostname", d.join("out")).unwrap();
+        std::os::unix::fs::symlink("a", d.join("in")).unwrap();
+        // A hard link to `a`: the same inode billed once.
+        std::fs::hard_link(d.join("a"), d.join("hard")).unwrap();
+        assert_eq!(dir_bytes(&d), 16);
+        assert_eq!(dir_bytes(&d.join("absent")), 0);
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

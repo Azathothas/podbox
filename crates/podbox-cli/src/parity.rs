@@ -241,7 +241,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "image", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "inspect", flag: Option::None, status: Degraded, note: "images by reference and containers by name, one document either way; --format reads the same fields (TODO/cli.md T-1319)" },
     Row { verb: "verify", flag: Option::None, status: Native, note: "hashes indexed blobs against their digests, one line per mismatch plus a summary; prints provenance for one image (TODO/image.md T-1321)" },
-    Row { verb: "system", flag: Option::None, status: Degraded, note: "info, install-names and abi. `image prune` removes images; df and events are not implemented" },
+    Row { verb: "system", flag: Option::None, status: Degraded, note: "info, install-names, abi and df. `image prune` removes images; events are not implemented" },
     Row { verb: "info", flag: Option::None, status: Degraded, note: "podbox has no daemon, so the server half of docker's output is the rung this machine permits instead" },
     Row { verb: "version", flag: Option::None, status: Native, note: "one artefact, so there is one version and no client/server split" },
     Row { verb: "version", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
@@ -473,6 +473,8 @@ pub const TABLE: &[Row] = &[
     Row { verb: "install-names", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "abi", flag: Option::None, status: Native, note: "answers whether an object may be preloaded into a libc payload (T-0709). Invoke it as `system abi`" },
     Row { verb: "abi", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "df", flag: Option::None, status: Native, note: "disk usage: one row per image with stored and extracted bytes, container counts, and what `image prune` would reclaim; accounting never fails the verb (T-1337). Invoke it as `system df`" },
+    Row { verb: "df", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     // ⭐ TODO/cli.md T-0803. The names podbox answers to are rows here for the
     // same reason every flag is: a surface with no row is a surface nobody
     // documented, and `names.rs` asserts these exist.
@@ -516,6 +518,7 @@ pub fn rows_of(verb: &str) -> &str {
         "system info" => "info",
         "system install-names" => "install-names",
         "system abi" => "abi",
+        "system df" => "df",
         v => v,
     }
 }
@@ -882,6 +885,7 @@ mod tests {
             ("system info", "info"),
             ("system install-names", "install-names"),
             ("system abi", "abi"),
+            ("system df", "df"),
         ] {
             assert_eq!(rows_of(sub), home, "{sub} resolves under {home}");
         }

@@ -12,6 +12,15 @@
 #   tail-4. a non-count `--tail` is a flag error at 125 naming the value;
 #   tail-5. `logs -f --tail 3` prints the last three lines, then follows
 #      new lines to the container's end instead of replaying the file.
+#   df-1. `system df` exits 0 and rows the pulled image with nonzero
+#      stored and extracted bytes;
+#   df-2. the totals lines are present and the store is untouched by
+#      df (the image count is identical before and after);
+#   df-3. a digest pull is reclaimable: df's Reclaimable line equals
+#      `image prune -f`'s Total reclaimed space with a dangling image,
+#      and df after reads zero;
+#   df-4. `system df --bogus` is a flag error and `system df --help`
+#      prints usage at 0.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no binary, no pull).
@@ -126,7 +135,102 @@ else
 fi
 
 echo "" >>"$WORK/report"
-if [ "$fail" -eq 0 ]; then echo "verdict           QOL TAIL SERVED" >>"$WORK/report"; else echo "verdict           QOL TAIL OPEN" >>"$WORK/report"; fi
-echo "== counts: 5 tail clauses, fail=$fail" >>"$WORK/report"
+echo "== df-1. system df rows the pulled image with nonzero bytes" >>"$WORK/report"
+timeout 120 "$BIN" system df >"$WORK/df.out" 2>"$WORK/df.err"
+rc=$?
+if [ "$rc" -eq 0 ] && grep -q "^REPOSITORY" "$WORK/df.out" \
+	&& grep -q "debian" "$WORK/df.out"; then
+	pass "system df exits 0 with a header and the debian row"
+else
+	miss "system df rc=$rc"
+	cat "$WORK/df.out" >>"$WORK/report"
+fi
+debian_row="$(grep "debian" "$WORK/df.out" | head -1)"
+stored="$(echo "$debian_row" | awk '{print $(NF-3), $(NF-2)}')"
+rootfs="$(echo "$debian_row" | awk '{print $(NF-1), $NF}')"
+if [ "$stored" != "0 B" ] && [ "$rootfs" != "0 B" ]; then
+	pass "debian row bills stored $stored beside rootfs $rootfs"
+else
+	miss "debian row reads stored=$stored rootfs=$rootfs"
+fi
+
+echo "" >>"$WORK/report"
+echo "== df-2. totals are present and the store is untouched" >>"$WORK/report"
+before="$(timeout 120 "$BIN" images -q 2>/dev/null | wc -l)"
+for line in "Images:" "Containers:" "Stored blobs:" "Extracted rootfs:" "Reclaimable:"; do
+	grep -q "^$line" "$WORK/df.out" \
+		|| miss "df output has no $line line"
+done
+timeout 120 "$BIN" system df >/dev/null 2>&1
+after="$(timeout 120 "$BIN" images -q 2>/dev/null | wc -l)"
+if [ "$before" = "$after" ]; then
+	pass "totals present; $before image(s) before and after df"
+else
+	miss "df changed the store: $before before, $after after"
+fi
+
+echo "" >>"$WORK/report"
+echo "== df-3. a digest pull is reclaimable, to the byte" >>"$WORK/report"
+ALPINE="public.ecr.aws/docker/library/alpine:latest"
+timeout 600 "$BIN" pull "$ALPINE" >>"$WORK/report" 2>&1 \
+	|| { echo "alpine pull FAILED: COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
+DIGEST_REF="$(timeout 120 "$BIN" inspect --format '{{.RepoDigests}}' "$ALPINE" 2>/dev/null)"
+if [ -z "$DIGEST_REF" ]; then
+	miss "inspect printed no RepoDigests for alpine"
+else
+	timeout 120 "$BIN" rmi "$ALPINE" >>"$WORK/report" 2>&1 || miss "rmi alpine failed"
+	timeout 600 "$BIN" pull "$DIGEST_REF" >>"$WORK/report" 2>&1 \
+		|| miss "digest pull of $DIGEST_REF failed"
+	timeout 120 "$BIN" images >>"$WORK/report" 2>&1
+	if timeout 120 "$BIN" images 2>/dev/null | grep -q "<none>"; then
+		pass "digest pull records no tag (dangling)"
+	else
+		miss "digest pull is not dangling"
+	fi
+fi
+timeout 120 "$BIN" system df >"$WORK/df2.out" 2>/dev/null
+r1="$(grep "^Reclaimable:" "$WORK/df2.out" | sed 's/^Reclaimable: //; s/ (what.*//')"
+if [ -n "$r1" ] && [ "$r1" != "0 B" ]; then
+	pass "dangling alpine is reclaimable: $r1"
+else
+	miss "Reclaimable reads ${r1:-missing} with a dangling image"
+fi
+timeout 120 "$BIN" image prune -f >"$WORK/prune.out" 2>&1
+prune_rc=$?
+r2="$(grep "Total reclaimed space:" "$WORK/prune.out" | sed 's/.*Total reclaimed space: //')"
+if [ "$prune_rc" -eq 0 ] && [ -n "$r2" ] && [ "$r1" = "$r2" ]; then
+	pass "prune freed $r2, the exact string df reported"
+else
+	miss "prune rc=$prune_rc freed=${r2:-missing} vs df ${r1:-missing}"
+	cat "$WORK/prune.out" >>"$WORK/report"
+fi
+timeout 120 "$BIN" system df >"$WORK/df3.out" 2>/dev/null
+r3="$(grep "^Reclaimable:" "$WORK/df3.out" | sed 's/^Reclaimable: //; s/ (what.*//')"
+if [ "$r3" = "0 B" ]; then
+	pass "df after prune reads Reclaimable 0 B"
+else
+	miss "df after prune reads Reclaimable ${r3:-missing}"
+fi
+
+echo "" >>"$WORK/report"
+echo "== df-4. a bad df flag is a flag error, --help prints usage" >>"$WORK/report"
+timeout 120 "$BIN" system df --bogus >"$WORK/dfbogus.out" 2>"$WORK/dfbogus.err"
+rc=$?
+if [ "$rc" -eq "$FLAG" ]; then
+	pass "system df --bogus refused at $rc"
+else
+	miss "system df --bogus rc=$rc (want $FLAG)"
+fi
+timeout 120 "$BIN" system df --help >"$WORK/dfhelp.out" 2>"$WORK/dfhelp.err"
+rc=$?
+if [ "$rc" -eq 0 ] && grep -q "podbox system df" "$WORK/dfhelp.out"; then
+	pass "system df --help prints usage at 0"
+else
+	miss "system df --help rc=$rc"
+fi
+
+echo "" >>"$WORK/report"
+if [ "$fail" -eq 0 ]; then echo "verdict           QOL TAIL+DF SERVED" >>"$WORK/report"; else echo "verdict           QOL TAIL+DF OPEN" >>"$WORK/report"; fi
+echo "== counts: 5 tail clauses, 4 df clauses, fail=$fail" >>"$WORK/report"
 cp "$WORK/report" "$OUT"
 [ "$fail" -eq 0 ]

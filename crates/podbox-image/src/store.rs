@@ -289,6 +289,55 @@ impl Store {
         self.root.join(d.blob_path())
     }
 
+    /// The bytes one blob file occupies, or 0 where it is absent.
+    /// TODO/cli.md T-1337: `system df` never exits non-zero for
+    /// accounting alone, so a missing file counts nothing rather than
+    /// failing the whole report.
+    pub fn blob_bytes(&self, digest: &str) -> u64 {
+        let Ok(d) = Digest::parse(digest) else {
+            return 0;
+        };
+        std::fs::metadata(self.blob_path(&d))
+            .map(|m| m.len())
+            .unwrap_or(0)
+    }
+
+    /// What `delete(doomed)` would free, measured the same way but
+    /// without unlinking anything: reachable blobs over the surviving
+    /// index, under the same lock. TODO/cli.md T-1337: this is what
+    /// `system df` reports as reclaimable, so the number it prints is
+    /// the number `image prune` would free on a quiet store.
+    pub fn reclaimable_bytes(&self, doomed: &[Record]) -> Result<u64> {
+        let _guard = self.lock()?;
+        let index = self.read_index()?;
+        let doomed_keys: Vec<(String, Option<String>, String)> = doomed
+            .iter()
+            .map(|r| (r.repository.clone(), r.tag.clone(), r.digest.clone()))
+            .collect();
+        let mut keep: Vec<String> = Vec::new();
+        for r in &index.images {
+            if doomed_keys
+                .iter()
+                .any(|(repo, tag, dig)| r.repository == *repo && r.tag == *tag && r.digest == *dig)
+            {
+                continue;
+            }
+            keep.extend(r.blobs().into_iter().map(str::to_string));
+        }
+        let mut freed = 0u64;
+        let mut counted: Vec<String> = Vec::new();
+        for r in doomed {
+            for b in r.blobs() {
+                if keep.iter().any(|k| k == b) || counted.iter().any(|c| c == b) {
+                    continue;
+                }
+                counted.push(b.to_string());
+                freed += self.blob_bytes(b);
+            }
+        }
+        Ok(freed)
+    }
+
     pub fn has_blob(&self, d: &Digest) -> bool {
         self.blob_path(d).is_file()
     }
@@ -2527,5 +2576,48 @@ mod tests {
         assert!(sys::close_in_children(fd), "a freed slot was not reusable");
         sys::stop_closing_in_children(fd);
         let _ = sys::close(fd);
+    }
+
+    /// T-1337: reclaimable sizing matches `delete` without unlinking: a
+    /// shared blob counts once, and only where no survivor needs it.
+    #[test]
+    fn reclaimable_counts_unshared_blobs_once() {
+        let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        let s = scratch("reclaimable");
+        let shared = b"shared layer bytes";
+        let a_only = b"a private layer";
+        let b_only = b"b private layer!!";
+        let ds = Digest::of(shared);
+        let da = Digest::of(a_only);
+        let db = Digest::of(b_only);
+        s.put_bytes(shared, &ds, "blob").unwrap();
+        s.put_bytes(a_only, &da, "blob").unwrap();
+        s.put_bytes(b_only, &db, "blob").unwrap();
+        let mut ra = record("t/a", Some("1"), 7);
+        ra.layers = vec![ds.to_string(), da.to_string()];
+        let mut rb = record("t/b", None, 8);
+        rb.layers = vec![ds.to_string(), db.to_string()];
+        s.put_record(ra).unwrap();
+        s.put_record(rb).unwrap();
+        let all = s.list().unwrap();
+        let rb = all.iter().find(|r| r.tag.is_none()).unwrap().clone();
+        // The shared blob survives with A: only B's own layer counts.
+        assert_eq!(
+            s.reclaimable_bytes(std::slice::from_ref(&rb)).unwrap(),
+            b_only.len() as u64
+        );
+        // Both doomed: every blob once, the shared one included.
+        let ra = all.iter().find(|r| r.tag.is_some()).unwrap().clone();
+        assert_eq!(
+            s.reclaimable_bytes(&[ra, rb]).unwrap(),
+            (shared.len() + a_only.len() + b_only.len()) as u64
+        );
+        // A missing blob counts nothing rather than failing the report.
+        assert_eq!(
+            s.blob_bytes("sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+            0
+        );
+        assert_eq!(s.blob_bytes("bogus"), 0);
+        let _ = std::fs::remove_dir_all(s.root());
     }
 }

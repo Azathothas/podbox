@@ -1317,6 +1317,50 @@ plain logs byte-identical to a wide tail, `--tail 0` empty at
 exit 0, non-count refused, `-f --tail 3` following to the end.
 Doctor and df stay open below.
 
+**Df, 2026-09-26.** The second verb landed: `podbox system df`
+prints one row per image (repository, tag with `<none>` where
+none, twelve-digit IMAGE ID, stored blob bytes beside extracted
+rootfs bytes), the image and container counts, stored and
+extracted totals with each blob billed once, and Reclaimable:
+what `image prune` would free. The number is prune's own gate
+chain read-only (`prune_candidates(false)`, the `referencing`
+record gate, the `in_use` hold check) with
+`Store::reclaimable_bytes` standing in for `delete`, so on a
+quiet store it is the exact string prune prints. Accounting
+never fails the verb: `Store::blob_bytes` counts a missing blob
+as 0, `space::dir_bytes` walks without following symlinks,
+dedupes hardlinked inodes and counts an unreadable entry as 0.
+Only a gate failure (unopenable store, unanswerable lock, failed
+listing) exits non-zero. Parity: `df` Native row with its `-h`
+row, the `system` note no longer claims df missing (check 27
+would refuse the stale claim), `rows_of` maps `system df`, the
+`check-todo.py` mirror maps it too, `man` routes its help.
+Prove through the shipped binary (`experiments/364-qol.sh`
+df clauses, exit 0, `experiments/results/qol.txt`): debian rows
+26.9 MiB stored beside 74.6 MiB rootfs, totals present with the
+image count identical before and after, a digest-pulled alpine
+dangling (`<none>`) reclaimable at 3.7 MiB with prune freeing
+the exact same string and df reading 0 B after, `--bogus` at
+125, `--help` at 0. Unit-pinned: `reclaimable_bytes` counts an
+unshared blob once and only where no survivor needs it,
+`dir_bytes` counts once and never follows, df help and bad
+flags need no store, short IDs are twelve hex digits.
+Two findings ride with it. First, the drive refuted this
+entry's own assumption that an unnamed `import` dangles: it
+records `imported:latest` through `Reference::parse`'s central
+default (`layout.rs:378-384`, T-1320 Done), so the IMPORT_USAGE
+sentence claiming "no tag" was corrected in place; the honest
+dangling path is a digest pull (`reference.rs`: a digest with
+no tag keeps tag None). Second, lane notes: bootstrap's docker
+daemon does not come up in job containers (364 needs no
+docker, so the job proceeds past it with zig present), one
+release build failed after printing Finished with no error
+captured, and `build-interpose.sh` failed its musl half once
+with no error captured; each went green on the identical tree
+on retry, and all three are recorded here rather than
+explained away. Doctor stays open
+below.
+
 ⚠ Citation correction, read at file and line 2026-09-26: the
 doctor shape lives at `tree/src/main.rs` (help text naming
 `winquick doctor`) and `tree/src/facts.rs:125-180` (`Status`,
