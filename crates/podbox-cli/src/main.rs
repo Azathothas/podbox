@@ -29,6 +29,7 @@ mod run;
 mod system;
 mod tier;
 mod version;
+mod windows;
 
 use std::io::Write;
 
@@ -51,6 +52,7 @@ usage: podbox <command> [options]
   exec         run a command in an already extracted image. refused: A FRESH CHROOT,
                sharing only the filesystem, never a namespace entry
   probe        report what this machine permits, and the rung podbox selects
+  windows      a disposable Windows guest: doctor, fetch, setup and run
   man          render this manual from the binary's own usage strings
   pull         fetch an image into the content-addressed store
   save         write one image as an OCI-layout tarball
@@ -142,6 +144,7 @@ fn main() -> std::process::ExitCode {
         Some("start") => exit(lifecycle::start(rest)),
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
+        Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
         Some("pull") => exit(images::pull("pull", rest)),
         Some("save") => exit(images::save("save", rest)),

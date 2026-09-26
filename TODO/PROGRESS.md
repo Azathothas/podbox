@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 10 partial, 1 blocked, 154 done. The 2026-09-25
+168 entries: 3 open, 11 partial, 0 blocked, 154 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -34,12 +34,23 @@ show it. T-1306 closed 2026-09-26 on the guest-networking drive
 runs executable, datagrams crossing both ways under TCG
 user-mode networking with 149 green at 15 driven 0 mismatches;
 the netboot driver chain (failover, net_failover, virtio_net) is
-measured link by link. T-1112 worked 2026-09-26 to blocked:
-winquick studied in the entry's order, the platform gate moved
-ahead of tier dispatch (a Windows request over the machine tier
-read as a Linux guest), driven by 362 with the store untouched
-on every path; the guest arm needs a KVM host with a licensed
-image, which no reachable machine is. No other open issue is closed:
+measured link by link. T-1112 worked 2026-09-26 to partial, combined
+with the sibling Validation OS effort: one crate (`podbox-windows`)
+and one split CLI verb (`windows doctor|fetch|setup|run`) serve two
+flavors over one mailbox, one monitor and one overlay discipline. The
+Validation OS flavor (UEFI, NVMe, scheduled-task agent, power-off wait)
+reuses the sibling's harness measurements; the DOS flavor (SeaBIOS, IDE,
+typed line, token poll) reuses the DOS base and is re-driven here by 363
+on the shared FAT16 writer after the fatfs dependency went away, with
+`ver` 0 plus version, `cmd /c ver` 0, `dir /zzz` 1, `pause` 125 DEADLINE,
+base identical, store untouched. 362 re-driven for the doors no flavor
+serves (create, no-tier run, arm64, missing disk path, machine run
+without a DOS base); 364 asserts the verb surface, the fetch ceilings,
+the routing and the DOS guest with a verdict, and carries a live
+Validation OS run (setup 251 s, banner plus exit 0 in 26 s) from
+the 365-streamed VHDX. Release file 3769304
+bytes under the script ceiling with no PT_INTERP. No other open issue
+is closed:
 each closes with its fix commit, drive output and guard, per the
 operator rule.
 

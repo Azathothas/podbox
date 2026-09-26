@@ -1,10 +1,12 @@
 #!/bin/sh
-# Question: on a KVM-less lane, does a Windows guest refuse by name on
-# every entry path before anything is fetched or mutated, and does the
-# machine tier name the platform rather than its legs?
+# Question: on a KVM-less lane, does a Windows request refuse by name on
+# every door no guest driver serves, before anything is fetched or mutated,
+# and does each refusal name the door that would serve it?
 #
-# TODO/milestones.md T-1112 (the refusal arm; the guest arm needs a KVM
-# host with a licensed image, which no reachable machine is).
+# TODO/milestones.md T-1112 (the refusal arm; the DOS guest arm runs in 363
+# and the Validation OS guest arm runs in 364 where an image is configured,
+# both under TCG with no KVM. No licensed image is fetched or committed
+# here).
 #
 # The fixture is the lane itself beside T-1317's: /dev/kvm absent,
 # qemu below the 11 the entry prerequisites, tun absent. The drive
@@ -14,14 +16,17 @@
 # Clauses:
 #   0. conditions: binary, /dev/kvm presence, qemu version.
 #   1. the fixture: probe JSON reads open(/dev/kvm) denied ENOENT.
-#   2. run --platform windows/amd64 exits 125 naming windows/amd64
-#      and the missing support, with the store byte-identical after.
-#   3. run --podbox-tier=machine --platform windows/amd64 exits 125
-#      naming windows/amd64: the OS gate sits before the tier
-#      dispatch, so a Windows request never reads as a Linux guest
-#      the driver has not arrived for.
+#   2. run --platform windows/amd64 without the machine tier exits 125
+#      naming windows/amd64 and the `podbox windows run` verb, with the
+#      store byte-identical after.
+#   3. run --podbox-tier=machine --platform windows/amd64 with an OCI token
+#      and no DOS base exits 125 naming the DOS base image and the setup
+#      script that writes it, with the store untouched.
 #   4. create --platform windows/amd64 exits 125 naming windows/amd64
 #      with the store byte-identical after.
+#   5. run --podbox-tier=machine --platform windows/amd64 with a missing
+#      disk path exits 125 naming the missing file: a named image is never
+#      replaced by the cache.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no jq).
@@ -88,6 +93,11 @@ RUN_ERR=$PODBOX_EXIT_RUNTIME_ERROR
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
 export PODBOX_STORE="$STORE"
+export PODBOX_DOS_BASE="$WORK/dos-base.img"
+# The driver door needs no base here: this drive proves the refusal
+# without one, so a base leaking in from the caller would mask it.
+unset PODBOX_WINDOWS_BASE
+rm -f "$WORK/dos-base.img"
 fail=0
 
 step() {
@@ -124,10 +134,11 @@ fi
 snap() { find "$STORE" -type f | sort >"$WORK/snap-$1.txt"; }
 snap before
 
-# Clause 2: run refuses the Windows guest by name before any fetch.
+# Clause 2: run without the machine tier refuses the Windows guest by
+# name and routes it to its own verb, before any fetch.
 step win-run "$RUN_ERR" "$PB" run --rm --platform windows/amd64 "$ALPINE" cmd /c ver
 grep -q "windows/amd64" "$WORK/out-win-run.txt" || { echo "run refusal did not name windows/amd64" >>"$REPORT"; fail=1; }
-grep -q "No windows guest support exists" "$WORK/out-win-run.txt" || { echo "run refusal did not name the missing support" >>"$REPORT"; fail=1; }
+grep -q "podbox windows run" "$WORK/out-win-run.txt" || { echo "run refusal did not route to podbox windows run" >>"$REPORT"; fail=1; }
 snap after-run
 if cmp -s "$WORK/snap-before.txt" "$WORK/snap-after-run.txt"; then
 	echo "clause 2          store untouched" >>"$REPORT"
@@ -135,9 +146,12 @@ else
 	echo "clause 2          STORE MUTATED" >>"$REPORT"; fail=1
 fi
 
-# Clause 3: the machine tier names the platform, not its legs.
+# Clause 3: the machine tier sends an OCI token to the DOS flavor, and
+# the flavor without a base refuses naming the base image and the setup
+# script, not the machine legs.
 step win-machine "$RUN_ERR" "$PB" run --rm --podbox-tier=machine --platform windows/amd64 "$ALPINE" cmd /c ver
-grep -q "windows/amd64" "$WORK/out-win-machine.txt" || { echo "machine refusal did not name windows/amd64" >>"$REPORT"; fail=1; }
+grep -q "DOS base image" "$WORK/out-win-machine.txt" || { echo "machine refusal did not name the DOS base image" >>"$REPORT"; fail=1; }
+grep -q "363-windows-tcg-dos" "$WORK/out-win-machine.txt" || { echo "machine refusal did not name the setup script" >>"$REPORT"; fail=1; }
 snap after-machine
 if cmp -s "$WORK/snap-before.txt" "$WORK/snap-after-machine.txt"; then
 	echo "clause 3          store untouched" >>"$REPORT"
@@ -153,6 +167,18 @@ if cmp -s "$WORK/snap-before.txt" "$WORK/snap-after-create.txt"; then
 	echo "clause 4          store untouched" >>"$REPORT"
 else
 	echo "clause 4          STORE MUTATED" >>"$REPORT"; fail=1
+fi
+
+# Clause 5: a missing disk path is refused naming the file, never
+# replaced by the cache.
+step win-disk "$RUN_ERR" "$PB" run --rm --podbox-tier=machine --platform windows/amd64 /definitely/not/here.vhdx ver
+grep -q "not/here.vhdx is not a file" "$WORK/out-win-disk.txt" || { echo "disk refusal did not name the missing file" >>"$REPORT"; fail=1; }
+grep -q "never replaced" "$WORK/out-win-disk.txt" || { echo "disk refusal did not state the no-replacement rule" >>"$REPORT"; fail=1; }
+snap after-disk
+if cmp -s "$WORK/snap-before.txt" "$WORK/snap-after-disk.txt"; then
+	echo "clause 5          store untouched" >>"$REPORT"
+else
+	echo "clause 5          STORE MUTATED" >>"$REPORT"; fail=1
 fi
 
 {

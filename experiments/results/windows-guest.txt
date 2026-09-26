@@ -1,0 +1,103 @@
+⚠ NOT the output of `364-windows-guest.sh`. This file records the guest half
+of TODO/milestones.md T-1112 as it was actually measured, with the harness
+named for every line, because the lane that produced it cannot build the
+`podbox` binary at all (the dependency graph exhausts the lane's 245 MiB
+executable budget; the shipping target additionally needs `zig` for `ring`).
+Every clause of `364-` that needs the binary has therefore NOT been run
+anywhere, and no line below stands in for one.
+
+Harness: /tmp/mb, a cargo project whose only dependency is the path
+`crates/podbox-windows`. It calls the crate's own `provision`, `stage`, `run`,
+`outcome` and `Fat16` - not a reimplementation - so what follows is the
+shipped code path driving a real guest. Base image: Validation OS x64
+(10.0.26100.9278), TCG on q35, `-m 6144 -smp 4`, no KVM on this machine.
+
+== crate tests (the only numbered clause that did run)
+command  cargo test -p podbox-windows --lib --target x86_64-unknown-linux-gnu
+result   ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+note     and, through the stub harness (a 5-constant `podbox_image`, a ureq
+         stub with the pinned 2.12.1 signatures, and the real `tier.rs`), the
+         CLI module tree type-checks with no error and its own 14 tests pass:
+         rustc --test over crates/podbox-cli/src/windows/{mod,args,plan,
+         doctor,setup,run}.rs -> ok. 14 passed; 0 failed (7 more filtered out
+         are tier.rs's own).
+         ⚠ That harness proves the CLI compiles and its tests pass; it does
+         NOT prove `podbox windows` runs as a verb, because the binary it
+         would be part of is the one that does not build here.
+
+== provisioning, through QMP (HMP removed)
+command  mb prov /workspace/win/ValidationOS.vhdx /tmp/e2e/prov.qcow2
+output   PROVISIONED in 211s: "INSTALLED D:"
+note     the console is typed into with QMP `send-key` requests, one shifted
+         character per request as a modifier plus a key with hold-time 30,
+         and the guest's own `SETUP.TXT` read back is the evidence. This is
+         the step that was HMP and is now QMP; it is the step that proves the
+         replacement works against a real guest rather than in a unit test.
+
+== a run over the provisioned image
+command  mb run /tmp/e2e/prov.qcow2 /tmp/e2e/run.qcow2 "ver & echo payload-output"
+output   EXIT 0 token true in 29s
+         STDOUT="Microsoft Windows [Version 10.0.26100.9278]\r\npayload-output"
+         STDERR=""
+note     `token true` is the crate's token check: the answer in the mailbox
+         belongs to this request and no other.
+
+== the guest's own exit code
+command  mb run /tmp/e2e/prov.qcow2 /tmp/e2e/r4.qcow2 "ver >nul & cmd /c exit 42"
+output   REQUEST TOKEN c19bae3970cca0da351999c33dff3ab5
+         EXIT 42 token true in 29s
+         STDOUT=""
+         STDERR=""
+         MB WQCODE.TXT: 42 c19bae3970cca0da351999c33dff3ab5||
+note     42 is the guest's code, and the mailbox line is the pair the host
+         read it from. `podbox_windows::cap_status` passes 0..=124 through and
+         reports 125 for anything above, which is why 42 arrives intact.
+
+== a wrong token is refused, against the mailbox above
+command  mb stale /tmp/e2e/prov.qcow2 /tmp/e2e/r4.qcow2
+output   STALE REFUSED: the mailbox holds a result for token
+         "c19bae3970cca0da351999c33dff3ab5", not "0000...0000"
+note     the anti-replay rule, verified against a real guest-written result
+         rather than a fixture.
+
+== a command that prevents the agent from finishing
+command  mb run /tmp/e2e/prov.qcow2 /tmp/e2e/r2.qcow2 "ver >nul & exit 42"
+output   RUN FAILED in 300s: the guest did not power off within 300s, so it
+         was stopped
+note     `exit` (not `exit /b`) inside the command file terminates the
+         agent's own cmd.exe, so no WQCODE is ever written and the run is
+         refused. This is the intended behaviour - a timeout is never an
+         empty success - and is recorded because it is the one way a caller
+         can make a run unanswerable.
+
+== two runs that measured the lane, not the code
+⚠ Two earlier runs of the same `cmd /c exit 42` command also timed out at
+300s and then completed in 29s once `/tmp` was freed. The lane was at 100%
+of its 489 MiB tmpfs while they ran, and the mailbox is mounted
+`cache=writethrough`, so the host saw ENOSPC on the guest's writes. This is
+recorded as a property of running a guest in a small tmpfs, not as a defect
+in the driver; the driver refused in both cases rather than reporting a
+result it did not have.
+
+== re-measured after the review fixes (QMP event skip, stale monitor removal)
+command  mb prov /workspace/win/ValidationOS.vhdx /tmp/e2e/prov.qcow2
+output   PROVISIONED in 211s: "INSTALLED D:"
+note     provisioning is the path that depends on QMP console typing, so it
+         is the one that re-proves the two review fixes in qmp.rs and in
+         `stage`/`provision`: an event line arriving between requests no
+         longer desynchronises the connection, and a stale `qmp.sock` is
+         removed before the emulator is spawned because the emulator refuses
+         to bind a path that already exists.
+
+== an output larger than one FAT cluster
+command  mb run /tmp/e2e/prov.qcow2 /tmp/e2e/r5.qcow2 \
+           "for /l %%i in (1,1,400) do @echo line-%%i-0123456789"
+output   REQUEST TOKEN 075f11943f9cf853f575e2bad5e98f3f
+         EXIT 0 token true in 29s
+         STDOUT: 400 lines, "line-1-0123456789" through
+         "line-400-0123456789", 7.6 KB
+         STDERR=""
+note     the mailbox cluster is 4 KiB, so this crosses it: the guest wrote a
+         multi-cluster file and the host followed the FAT chain the guest
+         built, which is the direction the crate's own cluster test does not
+         cover. All 400 lines came back.

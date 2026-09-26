@@ -1,0 +1,22 @@
+== conditions
+date              2026-09-26T12:14:41Z
+fsize ceiling     1953125
+head bytes        2460880896
+clause 2          PVD plus terminator plus BEA01/NSR02 present
+clause 3          VDS carries PVD LVD PD USD IUVD TD in order
+clause 4          root File Entry is a directory
+fetch             910163968 bytes at LBA 1010
+sha256            063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f
+image: /tmp/vos-test.vhdx
+file format: vhdx
+virtual size: 32 GiB (34359738368 bytes)
+disk size: 251 MiB
+cluster_size: 33554432
+Child node '/file':
+    filename: /tmp/vos-test.vhdx
+    protocol type: file
+    file length: 868 MiB (910163968 bytes)
+    disk size: 251 MiB
+clause 5          extent is vhdxfile, sha256 matches, qemu-img reads it
+
+verdict           VOS STREAM HOLDS

@@ -1562,6 +1562,19 @@ pub fn ensure_linux_guest(verb: &str, os: &str, arch: &str) -> Result<(), i32> {
     if os == podbox_image::platform::OS {
         return Ok(());
     }
+    // ⭐ TODO/milestones.md T-1112. A guest that is not Linux is not an OCI
+    // rootfs: it is a disk image an emulator boots, so it has a verb of its
+    // own and this path cannot run it. The refusal names that verb rather
+    // than claiming no support exists, because since T-1112 one does.
+    if let Some(verb_name) = guest_verb(os) {
+        eprintln!(
+            "podbox {verb}: {os}/{arch} is not an OCI rootfs, so nothing on \
+             this path pulls or enters it. A disposable {os} guest is its own \
+             verb: `{verb_name} --image <disk> -- <command>` \
+             (TODO/milestones.md T-1112)"
+        );
+        return Err(podbox_image::error::EXIT_RUNTIME_ERROR);
+    }
     eprintln!(
         "podbox {verb}: {os}/{arch} is not a Linux guest. podbox runs Linux \
          guests only: the chroot tier shares the host kernel and the machine \
@@ -1570,6 +1583,18 @@ pub fn ensure_linux_guest(verb: &str, os: &str, arch: &str) -> Result<(), i32> {
          for this platform"
     );
     Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+}
+
+/// Where a non-Linux guest lives, if podbox has one: the command a caller
+/// who asked for it here should have used. `None` is a refusal.
+///
+/// ⛔ Separate from [`ensure_linux_guest`] so the routing is a value the
+/// tests pin, rather than a sentence buried in an `eprintln!`.
+pub fn guest_verb(os: &str) -> Option<&'static str> {
+    match os {
+        "windows" => Some("podbox windows run"),
+        _ => None,
+    }
 }
 
 /// TODO/enter.md T-1317. Refuse entry where the entered rung's chroot is
@@ -2068,6 +2093,22 @@ mod tests {
         );
         assert!(ensure_linux_guest("run", "linux", "amd64").is_ok());
         assert!(ensure_linux_guest("start", "linux", "arm64").is_ok());
+    }
+
+    /// ⭐ TODO/milestones.md T-1112. The guest arm exists now, and it does not
+    /// live on the OCI path: a Windows guest is routed to its own verb by
+    /// name, so a caller who asked here is told where it is rather than that
+    /// it does not exist. An OS with no driver is still refused outright.
+    #[test]
+    fn a_guest_that_is_not_linux_is_routed_to_its_own_verb_when_one_exists() {
+        assert_eq!(guest_verb("windows"), Some("podbox windows run"));
+        assert_eq!(guest_verb("darwin"), None);
+        assert_eq!(guest_verb("freebsd"), None);
+        // and the route is what the OCI path refuses with
+        assert_eq!(
+            ensure_linux_guest("run", "windows", "amd64"),
+            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+        );
     }
 
     /// TODO/enter.md T-1317. A denied or skipped chroot leg refuses entry by

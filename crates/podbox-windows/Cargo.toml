@@ -1,0 +1,21 @@
+[package]
+name = "podbox-windows"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+# ⚠ The machine tier's own profile, reused rather than re-derived: the
+# accelerator this driver runs is the one the tier already established, so a
+# machine podbox refuses a Linux guest on is not quietly a machine it boots a
+# Windows guest on. `podbox-probe` is the workspace's lightest crate.
+podbox-probe = { path = "../podbox-probe" }
+
+# ⚠ TODO/deps.md T-0911's rule, applied here: a pin is justified by the entry
+# that measured it, and this one adds no crate. `sha2` is already in the
+# resolve graph through `podbox-image`'s digest verification, at exactly this
+# version, so the acquisition path in `src/fetch.rs` hashes with the crate the
+# store already trusts rather than a second implementation of the same seam.
+sha2.workspace = true
