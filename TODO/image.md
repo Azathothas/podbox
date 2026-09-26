@@ -692,7 +692,7 @@ The totals ratio narrows under latency (2.53x to 2.13x), which is
 Amdahl, not a slower pool: the manifest fetch is serial in both
 shapes (`pull.rs` fetches it before the pool starts), so its two
 seconds a side dilute the parallel gain. On the overlappable work
-itself — nine exchanges over four workers — the pool pays three
+itself (nine exchanges over four workers) the pool pays three
 waves against nine serial fetches. The Decision stands: the fixed
 bound of 4 stays, the constraint is still the registry. Failure,
 order and digest clauses all held beside the timings. Two drive
