@@ -1,0 +1,74 @@
+== conditions
+date              2026-09-26T07:49:40Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0-beta.7
+debian            public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+alpine            public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+
+== pulls
+bookworm-slim: Pulling from debian/debian
+a8ac7f6c67ab: Pull complete
+Digest: sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+Status: Downloaded newer image for public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+podbox: probed this machine rather than using the cache: /work/experiments/.sweep363-work/store/probe.json does not exist yet
+3.20: Pulling from docker/library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+seed sha256       a2a59f44a844d6b65c513dff88c4bc80fbdca22fc68add859071b680b0a9de1f
+
+== opener build and stage
+opener staged     /work/experiments/.sweep363-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs/devtest (dynamic and static)
+
+== 1. a host file maps and reads back
+  ok: seed file read back byte-identical through /dev/hostseed
+  ok: the banner names the mapping on stderr
+
+== 2. /dev/zero maps and reads back zeros
+  ok: 64 zero bytes through /dev/hostzero
+
+== 3. the opener matrix: exact flags, exact answers
+  ok: read on an r row opens
+  ok: write on an r row is EACCES
+  ok: read-write on an r row is EACCES
+  ok: read on a w row is EACCES
+  ok: write on a w row opens
+  ok: read-write on an rw row opens
+
+== 3b. creation where the image cannot satisfy it
+  ok: creating open over a missing parent writes the device
+  ok: exclusive creation over a mapping is EEXIST
+
+== 3c. creating opens otherwise land in the image
+  ok: creating open lands in the image and reads back (rc=0)
+
+== 3d. stat names the image, reads name the row
+  ok: stat of a served-only path honestly ENOENTs (rc=2)
+  ok: read on a write-only row refused (rc=1, Permission denied)
+
+== 4. a missing host path refuses at 125
+  ok: missing host path refused at 125 naming it
+
+== 5. the machine tier refuses --device at 125
+  ok: machine tier refused --device at 125 naming the chroot tier
+
+== 6. the musl payload is served, the static one fails honestly
+  ok: musl payload served byte-identical through /dev/hostseed
+podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  ok: static payload fails honestly with ENOENT (rc=1, no interposer to serve)
+podbox run: interpose: declined for "/devtest/opener-static": /devtest/opener-static is statically linked (no PT_INTERP), so no loader reads LD_PRELOAD for it
+
+== 7. create then start serves through the launcher
+d363
+0
+  ok: launcher served the mapping: logs carry the seed bytes
+d363
+
+== 8. exec re-serves the container's mapping
+d363e
+  ok: exec re-served the mapping (opener rc=0)
+d363e
+d363e
+
+verdict           DEVICE MAP SERVED
+== counts: 11 clauses, fail=0

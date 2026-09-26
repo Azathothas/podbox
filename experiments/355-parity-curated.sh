@@ -8,7 +8,8 @@
 #
 # Clauses over the table read out of the binary itself:
 #   1. every curated flag the table refuses: `run --rm <flag>` exits
-#      with the flag-error code and names status None on stderr;
+#      with the flag-error code and names status None on stderr
+#      (`--device` is not among them: it maps since T-0501, clause 5);
 #   2. every curated verb: `podbox <verb>` exits with the runtime-error
 #      code and prints the verb row's note;
 #   3. the promoted flags end to end against the pinned image below:
@@ -16,7 +17,9 @@
 #      `--attach` and `--expose` are admitted stubs, `--log-driver`
 #      takes `json-file` and refuses any other driver naming it, and
 #      `--strict` refuses the stubs naming them;
-#   4. `create` inherits the same surface through run's parser.
+#   4. `create` inherits the same surface through run's parser;
+#   5. `--device` shapes: it maps since T-0501 (the serve is 363's),
+#      and a malformed shape is a flag error naming it.
 #
 # Runs on Linux, native or in a job container: the binary executes
 # directly, and only clause 3 needs a registry. On a Windows host run
@@ -77,11 +80,12 @@ fail=0
 refused=0
 admitted=0
 
-# Clause 1: the 41 refused flags. Each must exit with the flag-error
+# Clause 1: the 40 refused flags. Each must exit with the flag-error
 # code and name status None, before any image work happens.
-# (`--log-driver` is not among them: it takes `json-file`, clause 3.)
+# (`--log-driver` is not among them: it takes `json-file`, clause 3.
+# `--device` is not among them either: it maps since T-0501, clause 5.)
 for f in --blkio-weight --cgroup-parent --cidfile --cpu-period \
-    --cpu-quota --cpu-shares --cpuset-cpus --detach-keys --device \
+    --cpu-quota --cpu-shares --cpuset-cpus --detach-keys \
     --device-cgroup-rule --disable-content-trust --dns --dns-option \
     --dns-search --domainname --gpus --group-add --health-cmd --init \
     --ipc --isolation --link --log-opt --mac-address \
@@ -99,7 +103,7 @@ for f in --blkio-weight --cgroup-parent --cidfile --cpu-period \
 		fail=1
 	fi
 done
-echo "clause-1 refused-with-reason  $refused/41" >>"$REPORT"
+echo "clause-1 refused-with-reason  $refused/40" >>"$REPORT"
 
 # Clause 2: the 10 verbs. Each must exit with the runtime-error code
 # and print its row's note.
@@ -175,6 +179,14 @@ step create-label 0 "$PB" create --name c355b --label k=v "$ALPINE" true
 step create-refused "$FLAG" "$PB" create --name c355c --read-only "$ALPINE" true
 step rm-c355 0 "$PB" rm c355
 step rm-c355b 0 "$PB" rm c355b
+
+# Clause 5: `--device` maps since T-0501 (driven by 363), so it is not
+# refused; but a malformed shape is a flag error naming it, before any
+# image work happens.
+step device-shape "$FLAG" "$PB" run --rm --device=/dev/zero:/a:/b:c "$ALPINE" true
+grep -q "more than two colons" "$WORK/out-device-shape.txt" || { echo "--device shape refusal did not name the shape" >>"$REPORT"; fail=1; }
+step device-perms "$FLAG" "$PB" run --rm --device=/dev/zero:/g:rx "$ALPINE" true
+grep -q "perms take r, w and m only" "$WORK/out-device-perms.txt" || { echo "--device perms refusal did not name the perms" >>"$REPORT"; fail=1; }
 
 {
 echo ""

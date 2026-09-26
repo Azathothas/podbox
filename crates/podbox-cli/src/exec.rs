@@ -246,6 +246,27 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
     Ok(o)
 }
 
+/// Open the device spec where one rides the plan's environment, T-0501.
+///
+/// `exec` takes no `--device` flag (docker parity: it re-enters), but a
+/// container created with mappings carries the spec in its record, and a
+/// re-entry that dropped it would serve nothing where `run` served. A
+/// spec gone bad since `create` refuses the exec naming it.
+fn serve_devices(plan: &mut Plan, err: &mut dyn Write) -> std::result::Result<(), i32> {
+    match podbox_enter::device::specs_of(&plan.env).and_then(|s| podbox_enter::device::open_all(&s))
+    {
+        Ok(opened) => {
+            plan.fds.pass.extend(opened.pass.iter().copied());
+            podbox_enter::device::push_serve(&mut plan.env, &opened);
+            Ok(())
+        }
+        Err(e) => {
+            let _ = writeln!(err, "podbox exec: {e}");
+            Err(e.exit_code())
+        }
+    }
+}
+
 /// Enter an existing rootfs. ⭐ ONE PATH for a container and for an image: the
 /// only difference is where the rootfs came from, and duplicating the entry
 /// would be a second implementation of the thing this verb exists to be.
@@ -288,6 +309,26 @@ fn enter(
     }
     env.retain(|e| e.split('=').next().unwrap_or("") != podbox_supervise::table::MEMO_FD_VAR);
     env.push(podbox_supervise::table::memo_fd_env());
+    // ⭐ TODO/enter.md T-0501. The container's device spec is
+    // configuration, not environment: T-0505 refuses the original's
+    // environment on a re-entry, but the devices are the container's
+    // (docker's `exec` sees them), so the spec is read from the record
+    // and opened fresh here rather than inherited. A spec gone bad
+    // since `create` refuses the exec naming it.
+    let exec_devices = match podbox_supervise::get(store, target) {
+        Ok(c) => match podbox_enter::device::specs_of(&c.env) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("podbox exec: {e}");
+                return e.exit_code();
+            }
+        },
+        Err(e) => {
+            eprintln!("podbox exec: {e}");
+            return podbox_image::error::EXIT_RUNTIME_ERROR;
+        }
+    };
+    podbox_enter::device::push_spec(&mut env, &exec_devices);
     // ⭐ T-0702 and T-0706, as in `run`: a fresh chroot re-entry is a fresh
     // payload, so it is classified and placed again rather than inheriting
     // the first entry's answer.
@@ -317,6 +358,11 @@ fn enter(
     }
     banner.push_str(&degradation());
     banner.push_str(&interpose_note);
+    // ⭐ TODO/enter.md T-0501. The re-entry serves the container's
+    // mappings, so it names them like the entry did.
+    for m in &exec_devices {
+        banner.push_str(&podbox_enter::device::banner_line(m));
+    }
     // ⭐ M5. `exec` completes the rootfs exactly as `run` does, and for the same
     // reason: a fresh chroot re-entry is a fresh payload, and the `/dev/null` a
     // previous one turned into a file is still a file.
@@ -374,7 +420,7 @@ fn enter(
     };
     use std::os::fd::AsRawFd;
     let memo_host = memo.as_raw_fd() as i64;
-    let plan = Plan {
+    let mut plan = Plan {
         argv: o.command.clone(),
         env,
         working_dir,
@@ -385,6 +431,9 @@ fn enter(
         banner: String::new(),
         path_dirs,
     };
+    if let Err(c) = serve_devices(&mut plan, &mut err) {
+        return c;
+    }
     let root = match RootDir::open(rootfs) {
         Ok(r) => r,
         Err(e) => {
@@ -641,7 +690,7 @@ pub fn exec(args: &[String]) -> i32 {
     };
     use std::os::fd::AsRawFd;
     let memo_host = memo.as_raw_fd() as i64;
-    let plan = Plan {
+    let mut plan = Plan {
         argv,
         env,
         working_dir,
@@ -652,6 +701,11 @@ pub fn exec(args: &[String]) -> i32 {
         banner: String::new(),
         path_dirs,
     };
+    if let Err(c) = serve_devices(&mut plan, &mut err) {
+        drop(memo);
+        let _ = std::fs::remove_file(&memo_host_path);
+        return c;
+    }
 
     // -------------------------------------------------------------- the entry
     let root = match RootDir::open(&rootfs) {

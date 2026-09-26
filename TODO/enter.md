@@ -23,7 +23,7 @@ Source:      `TOOL.md` section 6.5, `paper_final.md` section 10.5
 Category:    enter
 Priority:    P0
 Effort:      M
-Status:      partial 2026-09-09
+Status:      done
 
 Problem:     A chroot cuts off every path outside the new root. A child with no
              explicit stdio opens `/dev/null`, which an extracted rootfs does
@@ -54,9 +54,10 @@ may allocate.
 makes `podbox run <image> cmd | consumer` give the consumer the payload's bytes.
 The `/dev/null` trap this entry names is real and is why podbox never *closes*
 stdio: a child with none opens `/dev/null`, which an extracted rootfs does not
-have. ⛔ `--device` and the PTY pair are **not implemented**; they are
+have. ⛔ The PTY pair is **not implemented**; it is
 [T-0503](#t-0503-probe-devptmx-and-refuse--t-by-name-where-it-is-absent)'s and
-M4's, and `-t` is refused by name rather than degraded.
+M4's, and `-t` is refused by name rather than degraded. `--device`
+maps since 2026-09-26, below.
 
 **Partial, 2026-09-25.** Issue 55 reopens the `--device` half: the
 Approach names `--device` among the descriptors opened before the
@@ -73,6 +74,47 @@ answered as an omission rather than a decision. Prove is one run
 mapping a host device and reading it inside, with the refusal arm
 (`experiments/355-parity-curated.sh` clause 1, `--device` at 125
 naming status None) beside it.
+
+**Done 2026-09-26.** `--device HOST[:GUEST[:PERMS]]` maps through
+the device plan both halves name: `crates/podbox-enter/src/device.rs`
+parses (both paths absolute, perms from r, w and m) and opens the
+host paths before the root changes (child descriptors from 41, host
+descriptors relocated clear of them), and
+`crates/podbox-interpose/src/device.rs` serves the exact guest
+spelling as a duplicate where the real open fails ENOENT. The
+access mode is checked against the row first (EACCES, before
+creation, as the kernel answers it); creation is then the node's
+own semantics on devices (a no-op duplicate, EEXIST for
+exclusive), and a fall-through everywhere else, including a
+creating open the image satisfies: that lands in the image, not
+the device, because the serve only ever answers failures, and
+the banner says so. `run` and `create` share the parser; the
+spec travels in the container record so `start` (the launcher)
+and `exec` re-open it on every entry; the machine tier refuses
+naming the chroot tier; `m` parses and grants nothing, said on
+the banner. `openat2` is an honest gap: it carries no serve hook,
+as the procfs emulation before it.
+Prove: `experiments/363-device-map.sh` exits 0
+(`experiments/results/device-map.txt`): 11 clauses green on the
+lane (`rust:1.98.1-bookworm` job containers, host kernel
+7.2.0-WSL2-STABLE, lane-built musl release binary with both
+interposer objects) - a host file and `/dev/zero` read back
+byte-identical, the opener matrix (six numeric flag shapes:
+EACCES on the three ungranted, descriptors on the three
+granted), served creation and EEXIST through a missing parent,
+the image-shadow boundary pinned by read-back, stat honestly
+ENOENT, a missing host path at 125, the machine tier at 125,
+the musl payload served with the static opener honestly ENOENT,
+the create/start/logs round trip through the launcher, and
+`exec` re-serving the record's mapping with no flag of its own
+(the spec is configuration, read from the record past T-0505's
+refusal of the original's environment).
+`experiments/355-parity-curated.sh` exits 0 beside it with
+`--device` off the refused list (40) and malformed shapes
+refused in its clause 5. Unit-pinned: enter parse and round
+trip (8 tests), interpose find and answer (6 tests), the CLI
+spellings (1 test); lane suites green (cli 151, enter 85,
+interpose 44, 0 failed).
 
 ---
 

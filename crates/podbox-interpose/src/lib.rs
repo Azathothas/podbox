@@ -60,6 +60,7 @@ compile_error!(
      architecture needs its own measurement (TODO/interpose.md T-0704)"
 );
 
+pub mod device;
 pub mod emulate;
 pub mod identity;
 pub mod map;
@@ -1368,7 +1369,7 @@ pub unsafe extern "C" fn readlinkat(
 /// wrapper would report the memo over the bytes this emulation reasons
 /// about, and a memo hit is a statement about ownership, not about the
 /// descriptor's type.
-unsafe fn proc_fstat(fdno: u32, st: &mut [u8; crate::procfs::STAT_LEN]) -> bool {
+pub(crate) unsafe fn proc_fstat(fdno: u32, st: &mut [u8; crate::procfs::STAT_LEN]) -> bool {
     let Some(fstat) = next_fstat() else {
         return false;
     };
@@ -2073,8 +2074,14 @@ macro_rules! open_fixed {
             // `ENOENT`, and only there does the emulation answer. `p` is
             // the caller's own pointer exactly where the table left the
             // path untouched, so a deliberate mapping always wins.
+            // T-0501 beside it: a `--device` guest path names no node in
+            // the image, so the same `ENOENT` gate serves the duplicate
+            // of the host descriptor the entry opened before the chroot.
             if rc < 0 && errno() == crate::procfs::ENOENT && p == $path {
                 if let Some(e) = unsafe { proc_emulate_open($path, $flags, mode) } {
+                    return e;
+                }
+                if let Some(e) = unsafe { crate::device::serve_open($path, $flags) } {
                     return e;
                 }
             }
@@ -2104,10 +2111,14 @@ macro_rules! open_fixed {
             }
             // T-0413, as above. Relative paths never name the emulated
             // leaves (the matchers anchor on absolute spellings), so the
-            // pointer comparison is the whole guard here too.
+            // pointer comparison is the whole guard here too. T-0501's
+            // device serve rides the same gate.
             let rc = unsafe { f($dirfd, p, $flags, mode) };
             if rc < 0 && p == $path && errno() == crate::procfs::ENOENT {
                 if let Some(e) = unsafe { proc_emulate_open($path, $flags, mode) } {
+                    return e;
+                }
+                if let Some(e) = unsafe { crate::device::serve_open($path, $flags) } {
                     return e;
                 }
             }

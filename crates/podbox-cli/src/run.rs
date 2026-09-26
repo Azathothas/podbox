@@ -33,6 +33,12 @@ pub const RUN_OPTIONS: &str = "\
                    Repeatable; entries load at the flag's position, so a
                    later -e wins over the file (TODO/cli.md T-0801)
   -w, --workdir D  working directory inside the container
+  --device H[:G[:P]]
+                   map a host device or file into the container: opened
+                   before the chroot and served as a duplicate of the host
+                   descriptor where the interposer holds. Repeatable.
+                   P takes r, w and m; m parses and grants nothing
+                   (TODO/enter.md T-0501)
   -u, --user U:G   run as this identity: numeric uid and gid, or names from
                    the image's own passwd and group files. The requested id
                    is answered through the interposer identity memo for a
@@ -149,6 +155,9 @@ struct Opts {
     /// machine tier's ceiling check in `prepare`; refused on every other
     /// tier rather than silently dropped. TODO/podvm.md T-1305.
     mem: Option<u64>,
+    /// `--device`. Carried raw here and parsed now: a malformed shape is a
+    /// flag error, before anything is fetched. TODO/enter.md T-0501.
+    devices: Vec<String>,
     /// M5 and T-0804. ⚠ Carried in one struct so `run`, `create` and the
     /// launcher cannot each grow their own copy of the same three answers.
     ask: crate::complete::Ask,
@@ -255,6 +264,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
         tier: None,
         qemu_args: Vec::new(),
         mem: None,
+        devices: Vec::new(),
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -314,6 +324,13 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                         return Err(EXIT_FLAG_ERROR);
                     }
                 },
+                "--device" => match podbox_enter::device::parse(a) {
+                    Ok(_) => o.devices.push(a.clone()),
+                    Err(why) => {
+                        eprintln!("podbox {verb}: --device {why}");
+                        return Err(EXIT_FLAG_ERROR);
+                    }
+                },
                 _ => o.insecure.push(a.clone()),
             }
             i += 1;
@@ -368,6 +385,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                 // ports and podbox publishes none, so the run is unchanged.
             }
             "-w" | "--workdir" => expecting = Some("-w"),
+            "--device" => expecting = Some("--device"),
             "-u" | "--user" => expecting = Some("--user"),
             "--entrypoint" => expecting = Some("--entrypoint"),
             "--platform" => expecting = Some("--platform"),
@@ -405,6 +423,15 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             }
             other if other.starts_with("--user=") => o.user = Some(other[7..].to_string()),
             other if other.starts_with("--workdir=") => o.workdir = Some(other[10..].to_string()),
+            other if other.starts_with("--device=") => {
+                match podbox_enter::device::parse(&other[9..]) {
+                    Ok(_) => o.devices.push(other[9..].to_string()),
+                    Err(why) => {
+                        eprintln!("podbox {verb}: --device {why}");
+                        return Err(EXIT_FLAG_ERROR);
+                    }
+                }
+            }
             other if other.starts_with("--entrypoint=") => {
                 o.entrypoint = Some(other[13..].to_string())
             }
@@ -575,13 +602,28 @@ pub fn run(args: &[String]) -> i32 {
     };
     use std::os::fd::AsRawFd;
     let memo_host = memo.as_raw_fd() as i64;
+    // ⭐ TODO/enter.md T-0501. The host paths open HERE, before the fork
+    // whose child chroots: a descriptor opened now keeps working after the
+    // root changes, and it is the only thing that crosses the boundary.
+    let mut pass = vec![(crate::interpose::MEMO_CHILD_FD, memo_host)];
+    let mut env = p.env.clone();
+    match podbox_enter::device::specs_of(&env).and_then(|s| podbox_enter::device::open_all(&s)) {
+        Ok(opened) => {
+            pass.extend(opened.pass.iter().copied());
+            podbox_enter::device::push_serve(&mut env, &opened);
+        }
+        Err(e) => {
+            let _ = writeln!(err, "podbox run: {e}");
+            drop(memo);
+            let _ = std::fs::remove_file(&p.memo_host_path);
+            return e.exit_code();
+        }
+    }
     let plan = Plan {
         argv: p.argv.clone(),
-        env: p.env.clone(),
+        env,
         working_dir: p.working_dir.clone(),
-        fds: Fds {
-            pass: vec![(crate::interpose::MEMO_CHILD_FD, memo_host)],
-        },
+        fds: Fds { pass },
         // ⚠ Empty, and that is the same reason the launcher's is: `prepare`
         // printed the banner, because T-0412's steps run inside the rootfs
         // after it and every one of them has to be named before it runs.
@@ -807,6 +849,17 @@ pub(crate) fn prepare(
     // driver has not arrived for yet) or pulling bytes no tier runs.
     crate::lifecycle::ensure_linux_guest(verb, &platform.os, &platform.arch)?;
     if tier.tier == crate::tier::Tier::Machine {
+        if !o.devices.is_empty() {
+            // ⛔ Refused rather than silently dropped: the guest boots
+            // behind an emulator the host cannot hand descriptors to, so
+            // a mapping the caller believes is set would serve nothing.
+            // TODO/enter.md T-0501.
+            eprintln!(
+                "podbox {verb}: --device needs the chroot tier: the machine \
+                 tier boots a guest no host descriptor reaches"
+            );
+            return Err(EXIT_FLAG_ERROR);
+        }
         return Err(crate::tier::enter_machine(verb, o.mem));
     }
     if !o.qemu_args.is_empty() {
@@ -1025,6 +1078,23 @@ pub(crate) fn prepare(
         }
     }
     let path_dirs = Plan::path_from(&env);
+    // ⭐ TODO/enter.md T-0501. The device spec travels in the environment,
+    // beside the descriptors it names: the entering process (foreground
+    // `run` here, the launcher for `start`) opens the host paths before
+    // the root changes and serves duplicates where the interposer holds.
+    // Parsed twice (here and in `parse`) so a malformed shape is a flag
+    // error up front and this one is unreachable rather than re-checked.
+    let mut devices = Vec::with_capacity(o.devices.len());
+    for d in &o.devices {
+        match podbox_enter::device::parse(d) {
+            Ok(m) => devices.push(m),
+            Err(why) => {
+                eprintln!("podbox {verb}: --device {why}");
+                return Err(EXIT_FLAG_ERROR);
+            }
+        }
+    }
+    podbox_enter::device::push_spec(&mut env, &devices);
     // ⭐ TODO/complete.md T-0413. The payload's resolved guest path rides
     // beside the exec for the interposer's `/proc/self/exe` emulation: a
     // caller-supplied value is scrubbed first, so a stale or foreign one
@@ -1064,6 +1134,13 @@ pub(crate) fn prepare(
         banner.push_str(&note);
     }
     banner.push_str(&interpose_note);
+    // ⭐ TODO/enter.md T-0501. Every mapping is named before anything of
+    // the payload's runs: what the guest spelling serves (a duplicate of a
+    // host descriptor opened before the chroot, never a node), where it
+    // serves (where the interposer holds), and what `m` does (nothing).
+    for m in &devices {
+        banner.push_str(&podbox_enter::device::banner_line(m));
+    }
     // ⭐ TODO/enter.md T-1317. The family account joins the banner beside
     // the mode: what runs the payload and what it does not isolate.
     if let Some(u) = &userland {
@@ -1568,6 +1645,41 @@ mod tests {
         );
         assert_eq!(
             parse("run", &v(&["--log-driver", "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+    }
+
+    /// ⭐ TODO/enter.md T-0501: `--device` repeats in both spellings, keeps
+    /// the raw spellings for `prepare`, and a malformed shape is a flag
+    /// error naming it, before anything is fetched.
+    #[test]
+    fn device_collects_in_both_spellings_and_refuses_shapes() {
+        let o = parse(
+            "run",
+            &v(&[
+                "--device",
+                "/dev/zero:/dev/hostzero:rm",
+                "--device=/dev/null",
+                "img",
+            ]),
+        )
+        .unwrap();
+        assert_eq!(o.devices, v(&["/dev/zero:/dev/hostzero:rm", "/dev/null"]));
+        for bad in [
+            "--device=/dev/zero:/a:/b:c",
+            "--device=relative:/g:r",
+            "--device=/dev/zero:/g:rx",
+            "--device=/dev/zero:/g:m",
+            "--device=/dev/zero:/:r",
+        ] {
+            assert_eq!(
+                parse("run", &v(&[bad, "img"])).unwrap_err(),
+                EXIT_FLAG_ERROR,
+                "{bad} was not refused"
+            );
+        }
+        assert_eq!(
+            parse("run", &v(&["--device", "img"])).unwrap_err(),
             EXIT_FLAG_ERROR
         );
     }

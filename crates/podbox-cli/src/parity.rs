@@ -368,7 +368,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("--tmpfs"), status: NoneStatus, note: "podbox cannot mount(2) on this runtime, so a tmpfs would be a directory pretending to be one" },
     Row { verb: "run", flag: Some("--volume-driver"), status: NoneStatus, note: "podbox cannot mount(2) on this runtime, so a named volume would be a copy pretending to be a mount" },
     Row { verb: "run", flag: Some("--volumes-from"), status: NoneStatus, note: "podbox cannot mount(2) on this runtime, so another container's volumes cannot be attached" },
-    Row { verb: "run", flag: Some("--device"), status: NoneStatus, note: "device nodes are shims, not devices (TODO/complete.md T-0401); no host device is mapped into the payload (TODO/enter.md T-0501)" },
+    Row { verb: "run", flag: Some("--device"), status: Native, note: "repeatable HOST[:GUEST[:PERMS]], both absolute; opened before the chroot and served as duplicates of host descriptors where the interposer holds, named on the banner; the serve answers failures, so a creating open the image satisfies lands in the image rather than the device; `m` parses and grants nothing; refused on the machine tier (TODO/enter.md T-0501)" },
     Row { verb: "run", flag: Some("--device-cgroup-rule"), status: NoneStatus, note: "a device rule needs a cgroup this runtime does not grant" },
     Row { verb: "run", flag: Some("--gpus"), status: NoneStatus, note: "no device passthrough: device nodes are shims, not devices (TODO/complete.md T-0401)" },
     Row { verb: "run", flag: Some("--shm-size"), status: NoneStatus, note: "sizing /dev/shm needs a tmpfs mount, and podbox cannot mount(2) on this runtime" },

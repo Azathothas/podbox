@@ -350,6 +350,24 @@ fn supervise(
     };
     pass.push((table::MEMO_CHILD_FD, memo.as_raw_fd() as i64));
 
+    // ⭐ TODO/enter.md T-0501. The container's device spec re-opens HERE,
+    // in the process that enters: a descriptor cannot cross the client
+    // that ran `create`, so the record carries the spec and each entry
+    // opens it before its own root changes. A host path gone since
+    // `create` refuses the start naming it, rather than starting a
+    // container whose mapping serves nothing.
+    let mut env = container.env.clone();
+    match podbox_enter::device::specs_of(&env).and_then(|s| podbox_enter::device::open_all(&s)) {
+        Ok(opened) => {
+            pass.extend(opened.pass.iter().copied());
+            podbox_enter::device::push_serve(&mut env, &opened);
+        }
+        Err(e) => {
+            say(&format!("err starting with --device: {e}"));
+            return 1;
+        }
+    }
+
     let root = match RootDir::open(&container.rootfs) {
         Ok(r) => r,
         Err(e) => {
@@ -360,7 +378,6 @@ fn supervise(
     // The stored environment already carries the constant descriptor number
     // from `create`; containers made before T-0710 do not, so ensure it here
     // rather than refusing a record that predates the rule.
-    let mut env = container.env.clone();
     if table::memo_fd_of(&env).is_none() {
         env.push(table::memo_fd_env());
     }

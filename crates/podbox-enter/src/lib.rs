@@ -30,6 +30,7 @@
 
 pub mod abi;
 pub mod binfmt;
+pub mod device;
 pub mod ladder;
 pub mod memfd;
 pub mod plan;

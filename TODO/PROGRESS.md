@@ -2,7 +2,7 @@
 
 ## State
 
-168 entries: 3 open, 2 partial, 1 blocked, 162 done. The 2026-09-25
+168 entries: 3 open, 1 partial, 1 blocked, 163 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -301,7 +301,15 @@ driven, 0 mismatches, section 1 counting `^workload=` lines
 requiring 3 like sections 2 and 4, the pinned `QEMU_FLAGS` and
 `BENCH_CFLAGS` printed in the conditions; int 7.5x, sys 10.7x,
 mem 1.4x, io 4.9x, every checksum agreeing on every platform.
-Small batch continues with T-0501.
+T-0501 closed 2026-09-26 on the device-map drive (`363` exits 0,
+`experiments/results/device-map.txt`): 11 clauses green, the
+host file and `/dev/zero` reading back byte-identical, the
+six-open flag matrix exact, served creation and EEXIST through
+a missing parent, the image-shadow boundary pinned, stat
+honest, refusals at 125, musl served with the static opener
+honestly ENOENT, the launcher round trip, and `exec`
+re-serving the record's mapping; `355` exits 0
+beside it. Small batch continues with T-0605.
 
 ## Operator questions
 

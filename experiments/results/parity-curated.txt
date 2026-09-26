@@ -1,11 +1,11 @@
 == conditions
-date              2026-09-25T12:15:17Z
+date              2026-09-26T07:49:51Z
 host kernel       Linux 7.2.0-WSL2-STABLE
 image input       public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 bootstrap         ok
 build             ok
 podbox            podbox 0.1.0-beta.7
-clause-1 refused-with-reason  41/41
+clause-1 refused-with-reason  40/40
 clause-2 verbs-refused        10/10
 3.20: Pulling from docker/library/alpine
 25f1d6b1951a: Pull complete
@@ -28,17 +28,22 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox run: interpose: declined for "sh": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
   from-file
 
 == env-file-override
@@ -56,17 +61,22 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox run: interpose: declined for "sh": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
   cli
 
 == env-file-equals
@@ -84,17 +94,22 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox run: interpose: declined for "sh": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
   spaced value
 
 == env-file-badline
@@ -124,17 +139,22 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox run: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
 
 == stub-attach
 command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --attach public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
@@ -151,17 +171,22 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox run: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
 
 == stub-expose
 command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --expose public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
@@ -178,17 +203,22 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox run: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
 
 == strict-label
 command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --strict --label k=v public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
@@ -205,17 +235,22 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox run: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
   podbox run: --strict, and this run is degraded in 7 way(s). podbox refuses rather than running and letting the payload discover them (TODO/cli.md T-0804):
     - --label is Stub in the parity table: accepted and does nothing: podbox records carry no labels, so `ps --filter label=` matches nothing, and --strict refuses
     - the selected rung is `chroot` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
@@ -234,9 +269,10 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox run: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
 
 == log-driver-json-eq
@@ -254,17 +290,22 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox run: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
 
 == log-driver-syslog
 command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --log-driver syslog public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
@@ -287,18 +328,23 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox create: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost, the container name c355
   podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
-  10bf59d46e3246cd7efd907b18330d31c2d0a44e81d41c4ce8c1965e69c6a469
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  afdb938aa474a50164f82648a0ce2f1af7f7a8409e65a7cdaa58eee602e09a37
 
 == create-label
 command           /work/target/x86_64-unknown-linux-musl/debug/podbox create --name c355b --label k=v public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
@@ -309,12 +355,13 @@ output:
   probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
           clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
   this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
+  no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
   note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox create: interpose: declined for "true": this podbox binary carries no musl interposer object, so the tier is declined; ./scripts/build-interpose.sh builds them
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost, the container name c355b
   podbox: complete: 1 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
-  fbe7b833e4b1778e87690224449121aaa4774894d385d65240be5d51068069a5
+  2c43bf460a48de38f7ce934ad8df638aaf9729083c07b91eaf9590fba2cfb61f
 
 == create-refused
 command           /work/target/x86_64-unknown-linux-musl/debug/podbox create --name c355c --read-only public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
@@ -333,5 +380,17 @@ command           /work/target/x86_64-unknown-linux-musl/debug/podbox rm c355b
 exit              0
 output:
   c355b
+
+== device-shape
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --device=/dev/zero:/a:/b:c public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              125
+output:
+  podbox run: --device "/dev/zero:/a:/b:c" has more than two colons: --device takes HOST[:GUEST[:PERMS]]
+
+== device-perms
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --device=/dev/zero:/g:rx public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              125
+output:
+  podbox run: --device "rx" is not device permissions: --device perms take r, w and m only
 
 verdict           CURATED SURFACE COVERED
