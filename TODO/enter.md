@@ -692,7 +692,7 @@ Source:      issue 59, beta.7 drive 2026-09-25 (`README.md:56-62`
 Category:    enter
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     No TODO entry mentions the `namespace` rung, and nothing
              enters it. Where the probe succeeds at
@@ -730,3 +730,52 @@ Prove:       on a namespace-capable host `podbox probe` reports
              '{{.EnteredRung}}'` reports `namespace` after a run
              that isolates a mount the host cannot see; on a denied
              host both report `chroot` as today.
+
+**Done 2026-09-26.** `run` enters the rung the probe selects.
+Where it selects `namespace`, the child unshares a mount
+namespace, remounts `/` recursively private, mounts a private
+tmpfs on the image's `/tmp`, and runs the chroot sequence
+inside; `.EnteredRung` reads `namespace`. The defect the drive
+found is fixed: the entry descriptor opens pre-fork in the base
+mount namespace, so `fchdir` plus `chroot(".")` anchors the new
+root in that mount and hides the private tmpfs. The namespace
+rung chroots by path, which resolves under the private mount,
+and a (d,i) guard past the chroot compares the opened
+descriptor against `/` (`chroot_landed`, `EXDEV` step 10): a
+mismatch falls back to chroot with the step named, never
+failing a run the chroot rung carries. No user, pid or network
+namespace exists at any rung, and the banner says so
+(`mount-only`, `private, tmpfs on /tmp`, `host-shared` network
+and pids, the never-claim naming user, pid, network and
+`/proc`). An image without a real `/tmp` directory falls back
+with the cause named. Detached `start` enters through the same
+gate (`spawn_selected`: a fresh probe at entry, the fallback
+line in the container log). The README rung row reads the new
+behavior.
+Prove: `experiments/365-namespace.sh` exits 0
+(`experiments/results/namespace.txt`): 3 lane clauses green
+(probe below namespace, run enters chroot with no fallback
+line, `EnteredRung` chroot).
+`experiments/366-namespace-base.sh` exits 0
+(`experiments/results/namespace-base.txt`): 5 base clauses
+green on the wsl-toolkit base (kernel 7.2.0-WSL2-STABLE,
+lane-built musl release binary, pinned alpine 3.20 digest) -
+probe selects namespace, a run enters it with the honest
+banner and `EnteredRung` namespace, the payload's `/tmp` file
+reads back inside and is absent from the host rootfs with no
+leaked mount, the no-`/tmp` image falls back naming the cause,
+and a detached container runs with its logs carrying the
+output. Unit guards: `the_entered_rung_follows_the_selection`,
+`the_tmp_mount_point_is_a_real_directory`,
+`the_fallback_line_names_the_cause_and_the_rung`,
+`the_setup_steps_name_themselves`,
+`the_chroot_guard_compares_device_and_file`,
+`the_namespace_rung_reports_mount_only`,
+`the_namespace_banner_names_no_procfs_mount`, and the
+`/dev/null` dev/ino asserts the (d,i) guard reads. The
+mid-sequence setup-failure arms (steps 7 through 9) have no
+driven trigger on any reachable host: the step mapping is
+unit-pinned and the sibling no-`/tmp` arm is driven green by
+ns-4, but a failing `unshare` or mount past a permitting probe
+is exercised nowhere. Full lane `dev.sh check` green beside
+the drives.

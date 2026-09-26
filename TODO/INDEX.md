@@ -228,11 +228,11 @@ the blocker named and what would clear it.
 | [T-1336](cli.md) | P1 | cli | done | CLI output is plain ASCII: no emoji, no markers, on every path |
 | [T-1337](cli.md) | P2 | cli | done | Doctor, disk usage, and log tail for operators |
 | [T-1338](gate.md) | P2 | gate | open | A performance harness with baselines and a regression gate |
-| [T-1339](enter.md) | P1 | enter | open | Enter the namespace rung where the probe permits it |
+| [T-1339](enter.md) | P1 | enter | done | Enter the namespace rung where the probe permits it |
 
 ## Counts
 
-168 items: 2 open, 1 partial, 1 blocked, 164 done.
+168 items: 1 open, 1 partial, 1 blocked, 165 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -241,10 +241,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 1 | 0 | 0 | 77 | 78 |
+| P1 | 0 | 0 | 0 | 78 | 78 |
 | P2 | 1 | 1 | 0 | 29 | 31 |
 | P3 | 0 | 0 | 1 | 6 | 7 |
-| **All** | **2** | **1** | **1** | **164** | **168** |
+| **All** | **1** | **1** | **1** | **165** | **168** |
 
 ## How the current ordering is derived
 

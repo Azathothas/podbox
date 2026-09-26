@@ -43,8 +43,8 @@ use podbox_probe::sys::{self, CBuf};
 
 pub use plan::{Plan, Program};
 
-/// ⭐ **THE RUNG THIS CRATE IMPLEMENTS**, which is not the rung the probe
-/// selects.
+/// ⭐ **THE RUNG THIS CRATE ENTERS WHERE NOTHING ELSE APPLIES**, which is
+/// not always the rung the probe selects.
 ///
 /// [`crate::run`] performs `TOOL.md` section 6.5's sequence and nothing else: it
 /// `chroot`s. It does not `unshare`, it mounts nothing, and it creates no
@@ -59,22 +59,36 @@ pub use plan::{Plan, Program};
 /// because "what podbox did" and "what this machine would permit" are two facts
 /// and a reader needs both.
 ///
-/// ⚠ When the `namespace` rung is implemented this constant moves with it, and
-/// it is one constant so it cannot move in one place and not another.
+/// ⚠ The namespace rung (T-1339) does not move this constant: it stays the
+/// rung entered where no other rung applies, and [`entered_rung`] maps a
+/// namespace selection onto `Rung::Namespace`. One mapping, so the banner,
+/// the record and `--strict` cannot disagree.
 pub const ENTERED_RUNG: podbox_probe::select::Rung = podbox_probe::select::Rung::Chroot;
+
+/// The rung `podbox run` enters with for a probe selection.
+///
+/// `userland` where the probe selects `interpose`: chroot is denied
+/// there, so a run enters without it where a family holds, and refuses
+/// where none does. `namespace` where the probe selects it (T-1339):
+/// the mount namespace is attempted and chroot is the fallback, named
+/// on the banner. Every other selection enters the chroot sequence.
+pub fn entered_rung(selection: podbox_probe::select::Rung) -> podbox_probe::select::Rung {
+    use podbox_probe::select::Rung as R;
+    match selection {
+        R::Interpose => R::Userland,
+        R::Namespace => R::Namespace,
+        _ => ENTERED_RUNG,
+    }
+}
 
 /// The entered word for a probe selection.
 ///
 /// `userland` where the probe selects `interpose`: chroot is denied
 /// there, so a run enters without it where a family holds, and refuses
-/// where none does. Every other selection enters the chroot sequence
-/// (`namespace` maps here until T-1339 enters it). TODO/enter.md T-1317.
+/// where none does. Every other selection enters its own rung's word.
+/// TODO/enter.md T-1317.
 pub fn entered_word(selection: podbox_probe::select::Rung) -> &'static str {
-    use podbox_probe::select::Rung as R;
-    match selection {
-        R::Interpose => R::Userland.word(),
-        _ => ENTERED_RUNG.word(),
-    }
+    entered_rung(selection).word()
 }
 
 // ⛔ **docker's codes, from the one file that holds them.**
@@ -91,12 +105,26 @@ pub enum Error {
     CannotInvoke(String),
     /// The payload's command was not found. Exits 127.
     NotFound(String),
+    /// The namespace setup failed before the chroot sequence. Never
+    /// escapes: [`spawn_namespace`] catches it, enters chroot instead,
+    /// and names the fallback on the banner. Exits 125 where it does.
+    NsSetup {
+        /// The readiness-pipe step that failed: unshare, privatise, mount.
+        step: &'static str,
+        errno: sys::Errno,
+    },
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Runtime(s) | Error::CannotInvoke(s) | Error::NotFound(s) => write!(f, "{s}"),
+            Error::NsSetup { step, errno } => write!(
+                f,
+                "namespace setup failed at {step}: {} ({})",
+                errno.name(),
+                errno.0
+            ),
         }
     }
 }
@@ -104,7 +132,7 @@ impl std::fmt::Display for Error {
 impl Error {
     pub fn exit_code(&self) -> i32 {
         match self {
-            Error::Runtime(_) => EXIT_RUNTIME_ERROR,
+            Error::Runtime(_) | Error::NsSetup { .. } => EXIT_RUNTIME_ERROR,
             Error::CannotInvoke(_) => EXIT_CANNOT_INVOKE,
             Error::NotFound(_) => EXIT_NOT_FOUND,
         }
@@ -458,7 +486,7 @@ impl Child {
 /// naming [`ENTERED_RUNG`], whatever the ladder chose: this is the rung the
 /// sequence implements, and [`spawn_ladder`] is the one that reports a rung.
 pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> {
-    spawn_with(root, plan, ENTERED_RUNG.word(), None, None, true, err)
+    spawn_with(root, plan, ENTERED_RUNG.word(), None, None, true, None, err)
 }
 
 /// Enter `root` on a ladder rung and exec the plan, returning on the exec.
@@ -492,7 +520,7 @@ pub fn spawn_ladder(
             )));
         }
     }
-    spawn_with(root, plan, mode.name(), None, fd, true, err)
+    spawn_with(root, plan, mode.name(), None, fd, true, None, err)
 }
 
 /// Enter `root` without `chroot(2)` and exec, returning on the exec.
@@ -524,7 +552,16 @@ pub fn spawn_userland(
                 .ok_or_else(|| Error::Runtime(format!("the argument {a:?} contains a NUL byte")))
         })
         .collect::<Result<_>>()?;
-    spawn_with(root, plan, active, Some(override_argv), fd_exec, false, err)
+    spawn_with(
+        root,
+        plan,
+        active,
+        Some(override_argv),
+        fd_exec,
+        false,
+        None,
+        err,
+    )
 }
 
 /// Run a payload inside `root` without `chroot(2)`, and return its exit status.
@@ -569,15 +606,184 @@ pub fn run_ladder(
     child.wait_forwarding(err)
 }
 
+/// What the namespace rung mounts, built before the fork.
+///
+/// One private tmpfs on the image's `/tmp`: the mount a run isolates
+/// from the host (TODO/enter.md T-1339's Prove). No user, pid or
+/// network namespace and no `/proc`: out of scope beside this rung,
+/// and the banner says so.
+pub struct NsMount {
+    tmp_target: CBuf,
+}
+
+/// The image's `/tmp` as a mount target, or `None` where it cannot be
+/// one: missing, a file, or a symlink. Mounting over a link would land
+/// on its target, which is outside the image, so a link refuses like a
+/// missing directory. `None` enters chroot with the fallback named,
+/// never a namespace rung without its mount: the banner's mount
+/// topology is fixed text, and a rung without the mount would print it
+/// falsely.
+pub fn ns_tmp_target(root: &str) -> Option<String> {
+    let target = format!("{}/tmp", root.trim_end_matches('/'));
+    let not_link = std::fs::symlink_metadata(&target)
+        .map(|m| !m.is_symlink())
+        .unwrap_or(false);
+    let is_dir = std::fs::metadata(&target)
+        .map(|m| m.is_dir())
+        .unwrap_or(false);
+    (not_link && is_dir).then_some(target)
+}
+
+/// The fallback line: the cause, then the rung actually entered.
+/// Pure, so the drive and the unit test read the same words.
+pub fn ns_fallback_line(cause: &str) -> String {
+    format!("podbox: {cause}; entered chroot instead (TODO/enter.md T-1339)")
+}
+
+/// Whether the chroot landed on the opened descriptor: same device and
+/// same file. Pure, so the child and the unit test read the same words.
+///
+/// TODO/enter.md T-1339: the (d,i) guard past the namespace rung's path
+/// chroot. A path checked and then passed can be swapped in between
+/// (T-0504's class); a mismatch here refuses before the exec rather
+/// than entering wrong.
+pub fn chroot_landed(anchored: &sys::Stat, landed: &sys::Stat) -> bool {
+    anchored.st_dev == landed.st_dev && anchored.st_ino == landed.st_ino
+}
+
+/// The namespace setup step a readiness-pipe byte names, or `None`
+/// where the byte is not a setup step. Pure, so the parent and the
+/// unit test read the same words: a step the parent cannot name is a
+/// fallback the banner cannot explain (TODO/enter.md T-1339).
+pub fn ns_setup_step(step: u8) -> Option<&'static str> {
+    match step {
+        7 => Some("unshare(CLONE_NEWNS)"),
+        8 => Some("remounting / recursively private"),
+        9 => Some("mounting tmpfs on /tmp"),
+        10 => Some("verifying the chroot landed on the opened rootfs"),
+        _ => None,
+    }
+}
+
+/// Enter `root` in a mount namespace and exec, falling back to chroot.
+///
+/// The child unshares a mount namespace, remounts `/` recursively
+/// private so its mounts cannot propagate to the host, mounts its
+/// private tmpfs on the image's `/tmp`, and then runs the chroot
+/// sequence inside. Any setup failure abandons the namespace and
+/// enters chroot instead with the fallback named: a host that loses
+/// a leg between probe and entry still runs what the chroot rung
+/// could carry (TODO/enter.md T-1339's Decision).
+pub fn spawn_namespace(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> {
+    let target = match ns_tmp_target(&root.path) {
+        Some(t) => t,
+        None => {
+            let _ = writeln!(
+                err,
+                "{}",
+                ns_fallback_line(&format!(
+                    "the image holds no /tmp mount point under {}",
+                    root.path
+                ))
+            );
+            return spawn_with(root, plan, ENTERED_RUNG.word(), None, None, true, None, err);
+        }
+    };
+    let target = match CBuf::new(&target) {
+        Some(t) => t,
+        None => {
+            let _ = writeln!(
+                err,
+                "{}",
+                ns_fallback_line("the /tmp mount point contains a NUL byte")
+            );
+            return spawn_with(root, plan, ENTERED_RUNG.word(), None, None, true, None, err);
+        }
+    };
+    let mount = NsMount { tmp_target: target };
+    match spawn_with(
+        root,
+        plan,
+        podbox_probe::select::Rung::Namespace.word(),
+        None,
+        None,
+        true,
+        Some(&mount),
+        err,
+    ) {
+        Err(Error::NsSetup { step, errno }) => {
+            let _ = writeln!(
+                err,
+                "{}",
+                ns_fallback_line(&format!(
+                    "the namespace rung refused at {step} ({} ({}))",
+                    errno.name(),
+                    errno.0
+                ))
+            );
+            spawn_with(root, plan, ENTERED_RUNG.word(), None, None, true, None, err)
+        }
+        other => other,
+    }
+}
+
+/// Run a payload inside `root` in a mount namespace, and return its exit status.
+///
+/// ⛔ Like [`run`]: the exit status is the payload's, not podbox's.
+pub fn run_namespace(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<i32> {
+    let child = spawn_namespace(root, plan, err)?;
+    child.wait_forwarding(err)
+}
+
+/// Enter `root` on the rung the probe selected: the namespace rung
+/// where selected, the chroot sequence everywhere else. One gate for
+/// every entry path (foreground `run`, detached `start`): a rung
+/// decided in one place and entered in another is the hole
+/// `docs/conventions/code.md` refuses.
+///
+/// ⚠ Userland has its own entries and never passes through here: it is
+/// the no-chroot family, not a rung of this sequence.
+pub fn spawn_selected(
+    root: &RootDir,
+    plan: &Plan,
+    rung: podbox_probe::select::Rung,
+    err: &mut dyn Write,
+) -> Result<Child> {
+    use podbox_probe::select::Rung as R;
+    match rung {
+        R::Namespace => spawn_namespace(root, plan, err),
+        _ => spawn(root, plan, err),
+    }
+}
+
+/// Run a payload inside `root` on the rung the probe selected.
+///
+/// ⛔ Like [`run`]: the exit status is the payload's, not podbox's.
+pub fn run_selected(
+    root: &RootDir,
+    plan: &Plan,
+    rung: podbox_probe::select::Rung,
+    err: &mut dyn Write,
+) -> Result<i32> {
+    let child = spawn_selected(root, plan, rung, err)?;
+    child.wait_forwarding(err)
+}
+
 /// The one entry sequence [`spawn`], [`spawn_ladder`] and [`spawn_userland`] share.
 ///
 /// `active` is the word the payload reads as `PODBOX_ACTIVE_MODE`, and
 /// `fd_exec` is the written memfd the child execs where one was handed in.
 /// `argv_exec` is the exact argv the child execs instead of resolving
 /// candidates (the userland loader invocation); `chroot` selects the
-/// chroot sequence or the fchdir-only one. One function, so the fork, the
+/// chroot sequence or the fchdir-only one; `ns` carries the namespace
+/// rung's mount or nothing. One function, so the fork, the
 /// root discipline and the readiness pipe cannot drift between the three
 /// entries (`docs/conventions/code.md`).
+///
+/// ⚠ Eight parameters, each one used. They are the fork shape's fixed
+/// set (everything the child touches is built before it), not a bundle
+/// looking for a struct.
+#[allow(clippy::too_many_arguments)]
 fn spawn_with(
     root: &RootDir,
     plan: &Plan,
@@ -585,6 +791,7 @@ fn spawn_with(
     argv_exec: Option<Vec<CBuf>>,
     fd_exec: Option<i64>,
     chroot: bool,
+    ns: Option<&NsMount>,
     err: &mut dyn Write,
 ) -> Result<Child> {
     // ---------------------------------------------------------- before the fork
@@ -644,10 +851,23 @@ fn spawn_with(
     };
     let slash = CBuf::new("/").expect("a literal");
     let dot = CBuf::new(".").expect("a literal");
+    // ⭐ T-1339. The fstype and source the namespace rung mounts, built
+    // before the fork like everything else the child touches.
+    let tmpfs = CBuf::new("tmpfs").expect("a literal");
     // ⭐ T-1003. The empty path `execveat` execs a descriptor through, built
     // before the fork like everything else the child touches: between `clone`
     // and `execve` only async-signal-safe work is permitted.
     let empty = sys::cempty();
+    // ⭐ T-1339. The rootfs path the namespace rung chroots by, built
+    // before the fork like everything else the child touches. The
+    // entry fd was opened before the fork in the base mount namespace,
+    // and fchdir+chroot(".") anchors the new root in that mount: the
+    // tmpfs this child mounts in its own namespace stays invisible
+    // under it (measured on the wsl-toolkit base, kernel
+    // 7.2.0-WSL2-STABLE). The path resolves in this namespace, under
+    // the private mount. `rootpath` is that path; the (d,i) guard
+    // past the chroot refuses a swapped one.
+    let rootpath = CBuf::new(&root.path).expect("root path has no NUL");
 
     let mut argv: Vec<*const u8> = argv_owned.iter().map(|c| c.ptr() as *const u8).collect();
     argv.push(std::ptr::null());
@@ -712,13 +932,49 @@ fn spawn_with(
                     let _ = sys::close(*host_fd);
                 }
             }
-            // ⛔ `fchdir` then `chroot(".")`, never `chroot(path)`: the
-            // descriptor was checked and cannot be swapped, and a path can.
+            // ⭐ T-1339. The namespace rung, inside the child: a mount
+            // namespace of its own, `/` recursively private so its
+            // mounts cannot propagate to the host, then its private
+            // tmpfs on the image's `/tmp`. Any failure reports its step
+            // and the parent enters chroot instead; nothing here may
+            // allocate, format, or take a lock.
+            if let Some(m) = ns {
+                if let Err(e) = sys::unshare(sys::CLONE_NEWNS) {
+                    report(7, e);
+                }
+                if let Err(e) = sys::mount(&empty, &slash, &empty, sys::MS_REC | sys::MS_PRIVATE) {
+                    report(8, e);
+                }
+                if let Err(e) = sys::mount(&tmpfs, &m.tmp_target, &tmpfs, 0) {
+                    report(9, e);
+                }
+            }
+            // ⛔ `fchdir` onto the checked descriptor: a path checked and
+            // then passed can be swapped in between, and a descriptor
+            // cannot (TODO/enter.md T-0504). The working directory is the
+            // rootfs from here until `chdir` moves it below.
             if let Err(e) = sys::fchdir(root.fd) {
                 report(1, e);
             }
             if chroot {
-                if let Err(e) = sys::chroot(&dot) {
+                if ns.is_some() {
+                    // ⭐ T-1339. The path chroot on the namespace rung. The
+                    // entry descriptor was opened before the fork, in the
+                    // base mount namespace, and `fchdir` plus `chroot(".")`
+                    // anchors the new root in that mount: the tmpfs this
+                    // child mounted in its own namespace stays invisible
+                    // under it. Measured on the wsl-toolkit base, kernel
+                    // 7.2.0-WSL2-STABLE: the child's own stat of the mount
+                    // target read tmpfs while `/tmp` past a dot chroot read
+                    // the host directory, with the (d,i) below agreeing on
+                    // the same directory throughout. The path resolves in
+                    // this namespace, under the private mount. The (d,i)
+                    // guard below refuses a swapped path rather than
+                    // entering it, so T-0504's discipline holds here too.
+                    if let Err(e) = sys::chroot(&rootpath) {
+                        report(2, e);
+                    }
+                } else if let Err(e) = sys::chroot(&dot) {
                     report(2, e);
                 }
                 // ⛔ `chdir("/")` after the chroot. Without it the working directory
@@ -731,6 +987,22 @@ fn spawn_with(
                 // fatal: docker creates it, and podbox running from `/` and saying
                 // so is better than refusing after the point of no return.
                 let _ = sys::chdir(&workdir);
+                // ⭐ T-1339. The (d,i) guard: the path chroot above must
+                // land on the opened descriptor. A mismatch is a swapped
+                // path (T-0504's class) or a mount the new root cannot
+                // see, and it refuses here, before the exec, rather than
+                // entering wrong: the parent falls back to chroot with
+                // the step named. `fstatat` on the descriptor needs no
+                // path, so it answers past the chroot; `EXDEV` names a
+                // landing off its file. `slash`, not `dot`: the working
+                // directory below may be the image's WorkingDir.
+                if ns.is_some() {
+                    let anchored = sys::fstatat(root.fd, &empty, sys::AT_EMPTY_PATH).ok();
+                    let landed = sys::fstatat(sys::AT_FDCWD as i64, &slash, 0).ok();
+                    if !matches!((anchored, landed), (Some(a), Some(b)) if chroot_landed(&a, &b)) {
+                        report(10, sys::EXDEV);
+                    }
+                }
             } else {
                 // ⭐ T-1317. No chroot: the working directory stays inside
                 // the image, addressed relatively from the descriptor above.
@@ -810,9 +1082,16 @@ fn spawn_with(
         let mut st = 0i32;
         let _ = sys::wait4(pid, &mut st);
         let errno = sys::Errno(i32::from(buf[1]) | (i32::from(buf[2]) << 8));
+        // ⭐ T-1339. The namespace setup never fails the run: the caller
+        // enters chroot instead, so these steps arrive as `NsSetup`
+        // rather than as a refusal. The step names live in
+        // [`ns_setup_step`], beside the unit test that pins them.
+        if let Some(step) = ns_setup_step(buf[0]) {
+            return Err(Error::NsSetup { step, errno });
+        }
         let step = match buf[0] {
             1 => "fchdir onto the rootfs descriptor",
-            2 => "chroot(\".\")",
+            2 => "chroot into the rootfs",
             3 => "chdir(\"/\") after the chroot",
             // ⭐ T-1003: the ladder's fd-exec, which never resolves a path.
             5 => "execveat of the memfd",
@@ -945,5 +1224,92 @@ mod tests {
         let e = RootDir::open(f.to_str().unwrap()).unwrap_err();
         assert!(format!("{e}").contains("not a directory"), "{e}");
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// TODO/enter.md T-1339: the entered rung follows the selection.
+    /// Namespace enters namespace now, not chroot; interpose still
+    /// enters userland and everything else the chroot sequence.
+    #[test]
+    fn the_entered_rung_follows_the_selection() {
+        use podbox_probe::select::Rung as R;
+        assert_eq!(entered_rung(R::Namespace), R::Namespace);
+        assert_eq!(entered_rung(R::Interpose), R::Userland);
+        assert_eq!(entered_rung(R::Chroot), R::Chroot);
+        assert_eq!(entered_word(R::Namespace), "namespace");
+        assert_eq!(entered_word(R::Chroot), "chroot");
+    }
+
+    /// TODO/enter.md T-1339: the /tmp mount point is a real directory.
+    /// Missing, a file, or a symlink (whose target is outside the
+    /// image) is no mount point, and the entry falls back.
+    #[test]
+    fn the_tmp_mount_point_is_a_real_directory() {
+        let dir = std::env::temp_dir().join(format!("podbox-ns-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let root = dir.to_str().unwrap();
+        assert!(ns_tmp_target(root).is_none(), "no /tmp yet");
+        std::fs::create_dir_all(dir.join("tmp")).unwrap();
+        assert_eq!(ns_tmp_target(root), Some(format!("{root}/tmp")));
+        std::fs::remove_dir(dir.join("tmp")).unwrap();
+        std::fs::write(dir.join("tmp"), b"x").unwrap();
+        assert!(ns_tmp_target(root).is_none(), "a file is no mount point");
+        std::fs::remove_file(dir.join("tmp")).unwrap();
+        std::os::unix::fs::symlink("/tmp", dir.join("tmp")).unwrap();
+        assert!(ns_tmp_target(root).is_none(), "a link is no mount point");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// TODO/enter.md T-1339: the fallback names the cause and the rung
+    /// actually entered, in the words the drive asserts.
+    #[test]
+    fn the_fallback_line_names_the_cause_and_the_rung() {
+        let line =
+            ns_fallback_line("the namespace rung refused at unshare(CLONE_NEWNS) (EPERM (1))");
+        assert!(line.contains("unshare(CLONE_NEWNS)"), "{line}");
+        assert!(line.contains("entered chroot instead"), "{line}");
+        assert!(line.contains("T-1339"), "{line}");
+    }
+
+    /// TODO/enter.md T-1339: every setup step has a name for the
+    /// fallback line, and no other byte reads as one. The parent maps
+    /// through this function, so a step it cannot name cannot arrive
+    /// unnamed on the banner.
+    #[test]
+    fn the_setup_steps_name_themselves() {
+        assert_eq!(ns_setup_step(7), Some("unshare(CLONE_NEWNS)"));
+        assert_eq!(ns_setup_step(8), Some("remounting / recursively private"));
+        assert_eq!(ns_setup_step(9), Some("mounting tmpfs on /tmp"));
+        assert_eq!(
+            ns_setup_step(10),
+            Some("verifying the chroot landed on the opened rootfs")
+        );
+        assert_eq!(ns_setup_step(0), None);
+        assert_eq!(ns_setup_step(1), None);
+        assert_eq!(ns_setup_step(2), None);
+        assert_eq!(ns_setup_step(11), None);
+    }
+
+    /// TODO/enter.md T-1339: the (d,i) guard compares device and file.
+    /// Same device and file lands; either differing refuses.
+    #[test]
+    fn the_chroot_guard_compares_device_and_file() {
+        let landed = sys::Stat {
+            st_dev: 2096,
+            st_ino: 39833,
+            ..Default::default()
+        };
+        assert!(chroot_landed(&landed, &landed));
+        let elsewhere = sys::Stat {
+            st_dev: 2096,
+            st_ino: 39834,
+            ..Default::default()
+        };
+        assert!(!chroot_landed(&landed, &elsewhere));
+        let other_fs = sys::Stat {
+            st_dev: 146,
+            st_ino: 39833,
+            ..Default::default()
+        };
+        assert!(!chroot_landed(&landed, &other_fs));
     }
 }

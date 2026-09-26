@@ -627,20 +627,17 @@ mod tests {
         }
     }
 
-    /// ⭐ T-0804 rule 4, as an assertion. `.EnteredRung` is the entered
-    /// sequence and NOT the rung the probe selected, so a script reading
-    /// it cannot print a rung podbox does not enter with. ⚠ The argument
-    /// here is deliberately a rung podbox does not implement, so the
-    /// test fails if the field is ever wired to the wrong one.
+    /// ⭐ T-0804 rule 4, as an assertion, for the namespace rung
+    /// (TODO/enter.md T-1339). Where the probe selects `namespace`,
+    /// podbox enters it: `.EnteredRung` reads `namespace`, equal to
+    /// `.Rung`, because "what podbox did" and "what this machine
+    /// would permit" agree here. The divergence the rule guards is
+    /// covered the other way by the userland test below.
     #[test]
-    fn the_entered_rung_is_the_sequence_and_not_the_selection() {
+    fn the_entered_rung_is_namespace_where_selected() {
         let fields = fields_from(Rung::Namespace, true, "/nowhere".into());
         assert_eq!(pick(&fields, "Rung"), "namespace");
-        assert_eq!(
-            pick(&fields, "EnteredRung"),
-            podbox_enter::ENTERED_RUNG.word()
-        );
-        assert_ne!(pick(&fields, "EnteredRung"), pick(&fields, "Rung"));
+        assert_eq!(pick(&fields, "EnteredRung"), "namespace");
     }
 
     /// ⭐ TODO/enter.md T-1317. Where the probe selects `interpose`

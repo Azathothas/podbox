@@ -96,6 +96,10 @@ pub const EINTR: Errno = Errno(4);
 pub const EBADF: Errno = Errno(9);
 pub const EACCES: Errno = Errno(13);
 pub const EEXIST: Errno = Errno(17);
+/// `EXDEV`, cross-device link: the number the (d,i) guard reports under,
+/// because a chroot that landed off its descriptor is on the wrong device
+/// or the wrong file. TODO/enter.md T-1339.
+pub const EXDEV: Errno = Errno(18);
 pub const EINVAL: Errno = Errno(22);
 pub const ENOSYS: Errno = Errno(38);
 pub const ENAMETOOLONG: Errno = Errno(36);
@@ -464,6 +468,11 @@ pub const SFD_CLOEXEC: u64 = 0x080000;
 
 pub const MS_REC: u64 = 0x4000;
 pub const MS_SLAVE: u64 = 0x0008_0000;
+/// `MS_PRIVATE`, read at the kernel's own headers on 2026-09-26
+/// (`/usr/include/sys/mount.h`: `MS_PRIVATE = 1 << 18`). The namespace
+/// rung remounts `/` recursively private before mounting anything, so
+/// its tmpfs cannot propagate to the host (TODO/enter.md T-1339).
+pub const MS_PRIVATE: u64 = 0x0004_0000;
 
 pub const S_IFMT: u32 = 0o170000;
 pub const S_IFCHR: u64 = 0o0020000;
@@ -911,6 +920,14 @@ pub fn mount(source: &CBuf, target: &CBuf, fstype: &CBuf, flags: u64) -> Sysres 
 
 pub fn umount(target: &CBuf) -> Sysres {
     unsafe { sys(SYS_UMOUNT2, [target.ptr(), 0, 0, 0, 0, 0]) }
+}
+
+/// `unshare(2)` with one flag word. The probes call the raw number
+/// beside their rows (`probes.rs`: the `unshare(CLONE_NEWNS)` row), and
+/// this is the entry's half of the same call, so the two cannot drift
+/// into different numbers (TODO/enter.md T-1339).
+pub fn unshare(flags: u64) -> Sysres {
+    unsafe { sys(SYS_UNSHARE, [flags, 0, 0, 0, 0, 0]) }
 }
 
 pub fn chdir(path: &CBuf) -> Sysres {
@@ -1653,6 +1670,8 @@ pub fn listen(fd: i64, backlog: u64) -> Sysres {
 /// hand-written layout ported to a second architecture does.
 #[derive(Default, Clone, Copy)]
 pub struct Stat {
+    pub st_dev: u64,
+    pub st_ino: u64,
     pub st_mode: u32,
     pub st_uid: u32,
     pub st_gid: u32,
@@ -1670,6 +1689,8 @@ impl Stat {
     #[allow(clippy::unnecessary_cast)]
     fn from_kernel(raw: &KernelStat) -> Stat {
         Stat {
+            st_dev: raw.st_dev as u64,
+            st_ino: raw.st_ino as u64,
             st_mode: raw.st_mode as u32,
             st_uid: raw.st_uid as u32,
             st_gid: raw.st_gid as u32,
@@ -1818,6 +1839,11 @@ mod tests {
         assert!(st.is_chardev(), "mode {:o}", st.st_mode);
         assert_eq!(st.kind(), "chardev");
         assert_eq!((st.rdev_major(), st.rdev_minor()), (1, 3));
+        // ⭐ TODO/enter.md T-1339: the (d,i) guard reads these two fields.
+        // A zero here is a field the kernel never filled, and the guard
+        // would compare nothing.
+        assert_ne!(st.st_dev, 0, "the device /dev/null is on");
+        assert_ne!(st.st_ino, 0, "the file /dev/null is");
     }
 
     #[test]

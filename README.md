@@ -57,7 +57,7 @@ libc:
 
 | `probe` says | `run` does |
 | --- | --- |
-| namespace creation, mounts and ID maps all succeed | the `chroot` rung: `probe` reports `namespace` as permitted, `run` still enters a plain chroot, and `system info` carries both `.Rung` and `.EnteredRung` |
+| namespace creation, mounts and ID maps all succeed | the `namespace` rung: a mount namespace with a private tmpfs on `/tmp`, then the chroot sequence inside; no user, pid or network namespace. A host that loses a leg between probe and entry falls back to chroot with the banner naming it. `system info` carries both `.Rung` and `.EnteredRung` |
 | namespaces denied, `chroot(/tmp)` succeeds | the `chroot` rung family: path resolution changes, the kernel is shared |
 | `chroot(/tmp)` denied | refusal naming `chroot(2)` before anything runs; the machine tier never chroots and runs where its own legs hold (emulator, accelerator, space), else it refuses naming the missing legs |
 

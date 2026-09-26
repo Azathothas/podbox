@@ -1,0 +1,25 @@
+== conditions
+date              2026-09-26T12:50:39Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0-beta.7
+debian            public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+
+== pulls
+bookworm-slim: Pulling from debian/debian
+a8ac7f6c67ab: Pull complete
+Digest: sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+Status: Downloaded newer image for public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+podbox: probed this machine rather than using the cache: /work/experiments/.sweep365-work/store/probe.json does not exist yet
+
+== ns-lane-1. the lane selects below namespace
+  ok: probe selects supervise where unshare is refused
+
+== ns-lane-2. a run enters chroot with no fallback line
+  ok: run enters chroot, banner mode=chroot, no fallback named
+podbox rm: no such container: ns365. `podbox ps -a` lists what there is
+
+== ns-lane-3. EnteredRung reads chroot
+  ok: EnteredRung reads chroot on the lane
+
+verdict           NAMESPACE LANE SERVED
+== counts: 3 lane clauses, fail=0

@@ -59,7 +59,10 @@ impl Rung {
     /// What the rung must never claim, per `TOOL.md` section 4.1's last column.
     pub fn must_never_claim(self) -> &'static str {
         match self {
-            Rung::Namespace => "",
+            // ⭐ TODO/enter.md T-1339. The rung is mount-only, so this
+            // guards what it must never imply: user, pid or network
+            // isolation, or a /proc it does not mount.
+            Rung::Namespace => "user, pid or network isolation, or a /proc filesystem",
             Rung::Supervise => {
                 "anything whose arguments it cannot read; on this runtime, exec remapping"
             }
@@ -322,8 +325,13 @@ pub struct Provides {
 
 impl Provides {
     pub fn of(rung: Rung, f: &Findings) -> Provides {
+        // ⭐ TODO/enter.md T-1339. The namespace rung is mount-only: one
+        // mount namespace with a private tmpfs on /tmp, and no user, pid
+        // or network namespace. The cells state the rung, not the
+        // machine: "as configured" here once passed a chroot off as
+        // namespaces, which is the incident T-0804 rule 4 exists for.
         let namespaces = if rung == Rung::Namespace {
-            "as configured".to_string()
+            "mount-only".to_string()
         } else if ok(f, "clone(CLONE_NEWUTS)") && ok(f, "sethostname(in NEWUTS)") {
             "uts-only".to_string()
         } else {
@@ -335,8 +343,12 @@ impl Provides {
         // out to be. `TOOL.md` section 4.1: report the mode you achieved. The
         // machine's own four verdicts are in the evidence block beneath, where
         // they are a measurement rather than a claim about the mode.
+        //
+        // ⭐ T-1339: the rung's topology is fixed (private, tmpfs on
+        // `/tmp`), so the cell names it rather than the machine's mount
+        // verdicts, which would read as the rung providing them.
         let mounts = if rung == Rung::Namespace {
-            crate::mounts::Mounts::of(f).summary()
+            "private, tmpfs on /tmp".to_string()
         } else {
             "none".to_string()
         };
@@ -351,22 +363,16 @@ impl Provides {
             "virtualized+sidecar".to_string()
         };
         // ⛔ Not measured, and stated as what the rung does rather than as a
-        // reading. Only the `namespace` rung creates a network or pid
-        // namespace, so at every other rung both are the caller's.
-        let shared = |r: Rung| {
-            if r == Rung::Namespace {
-                "as configured".to_string()
-            } else {
-                "host-shared".to_string()
-            }
-        };
+        // reading. The namespace rung is mount-only (T-1339): no network
+        // or pid namespace is created at any rung, so both are always the
+        // caller's.
         Provides {
             namespaces,
             mounts,
             devices,
             ownership,
-            network: shared(rung),
-            pids: shared(rung),
+            network: "host-shared".to_string(),
+            pids: "host-shared".to_string(),
         }
     }
 }
@@ -590,6 +596,21 @@ mod tests {
         assert!(Rung::Chroot.must_never_claim().contains("/proc"));
     }
 
+    /// TODO/enter.md T-1339: the namespace rung is mount-only. The
+    /// banner cells state the rung (mount-only, its tmpfs topology,
+    /// host-shared network and pids) and the never-claim guards the
+    /// rest, so a mount namespace never reads as isolation it is not.
+    #[test]
+    fn the_namespace_rung_reports_mount_only() {
+        let f = Findings::empty();
+        let p = Provides::of(Rung::Namespace, &f);
+        assert_eq!(p.namespaces, "mount-only");
+        assert_eq!(p.mounts, "private, tmpfs on /tmp");
+        assert_eq!(p.network, "host-shared");
+        assert_eq!(p.pids, "host-shared");
+        assert!(Rung::Namespace.must_never_claim().contains("network"));
+        assert!(Rung::Namespace.must_never_claim().contains("/proc"));
+    }
     #[test]
     fn the_banner_cell_names_the_errno_rather_than_the_word_denied() {
         let f = target_shape();

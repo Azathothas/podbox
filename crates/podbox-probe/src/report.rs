@@ -98,7 +98,9 @@ pub fn entry_banner(f: &Findings, sel: &Selection, entered: Rung) -> String {
     // T-0413 emulation: the interposer answers pipe descriptors, the
     // resolved exe path and mount-table reads, so those are named as
     // emulated and only the rest stays a casualty.
-    if entered == Rung::Chroot {
+    // ⭐ TODO/enter.md T-1339: the namespace rung mounts a tmpfs on
+    // `/tmp` and no /proc, so the sentence holds there too.
+    if entered == Rung::Chroot || entered == Rung::Namespace {
         out.push_str(
             "no /proc is mounted in the payload root: the interposer emulates \
              /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table \
@@ -1124,13 +1126,21 @@ mod tests {
     }
 
     #[test]
-    fn the_namespace_banner_names_no_procfs() {
-        // The line is printed where it is true (TODO/probe.md T-0108): a
-        // namespace entry mounts what it mounts, so no procfs sentence.
+    fn the_namespace_banner_names_no_procfs_mount() {
+        // TODO/enter.md T-1339: the rung mounts a tmpfs on `/tmp` and no
+        // /proc, so the emulated-procfs sentence holds and the never-claim
+        // names the unmounted /proc beside the unisolated user, pid and
+        // network. The mount topology itself reads mount-only.
         let f = Findings::empty();
         let sel = Selection::choose(&f);
         let b = entry_banner(&f, &sel, Rung::Namespace);
-        assert!(!b.contains("/proc"), "{b}");
+        assert!(b.contains("namespaces: mount-only"), "{b}");
+        assert!(b.contains("tmpfs on /tmp"), "{b}");
+        assert!(b.contains("network: host-shared"), "{b}");
+        assert!(b.contains("pids: host-shared"), "{b}");
+        assert!(b.contains("this mode does NOT provide:"), "{b}");
+        assert!(b.contains("/proc"), "{b}");
+        assert!(b.contains("emulates"), "{b}");
     }
 
     #[test]

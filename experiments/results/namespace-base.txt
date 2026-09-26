@@ -1,0 +1,69 @@
+== conditions
+date              2026-09-26T12:54:56Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+id                0:0
+podbox            podbox 0.1.0-beta.7
+alpine            public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+
+== pulls
+3.20: Pulling from docker/library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+podbox: probed this machine rather than using the cache: /root/pb366/work/store/probe.json does not exist yet
+
+== ns-1. the capable host selects namespace
+  ok: probe selects namespace where unshare and mounts hold
+
+== ns-2. a run enters the namespace rung
+  ok: run enters namespace with the honest banner and no fallback
+podbox rm: no such container: ns365. `podbox ps -a` lists what there is
+  ok: EnteredRung reads namespace after the run
+
+== ns-3. the payload's /tmp is invisible from the host
+  ok: payload wrote and read its own /tmp file
+  ok: the host rootfs holds no ns365mark after the run
+  ok: no payload mount in the host mount table
+podbox rm: no such container: ns365b. `podbox ps -a` lists what there is
+
+== ns-4. an image without /tmp falls back to chroot
+/root/pb366/work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs
+total 800
+drwxr-xr-x 2 root root   4096 Sep 26 18:40 .
+drwxr-xr-x 4 root root   4096 Sep 26 18:40 ..
+lrwxrwxrwx 1 root root     12 Sep 26 18:40 arch -> /bin/busybox
+lrwxrwxrwx 1 root root     12 Sep 26 18:40 ash -> /bin/busybox
+Loaded image: docker.io/library/notmp365:test
+  ok: no-tmp image falls back to chroot with the fallback named
+podbox rm: no such container: ns365c. `podbox ps -a` lists what there is
+Untagged: notmp365:test
+Deleted: sha256:20d47a7361ebedf3f3a42762f3baee9e8908d9f6913b041d02c14b717894855a
+Deleted: sha256:606516524253964f4c064b2e87b39ceb7e7834db3c439285961e9a0ed3d1b02c
+Deleted: sha256:fe5401a0920a76d32eb202f62f46cac09a17b730266cc8e19e822e8b81435086
+
+== ns-5. a detached container starts through the same gate
+podbox 0.1.0-beta.7: mode=namespace (namespaces: mount-only; mounts: private, tmpfs on /tmp; devices: real;
+ownership: real; network: host-shared; pids: host-shared)
+probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+        clone(NEWUTS)=ok sethostname=ok chroot=ok ptrace=ok
+this mode does NOT provide: user, pid or network isolation, or a /proc filesystem
+no /proc is mounted in the payload root: the interposer emulates /proc/self/fd pipe descriptors, /proc/self/exe and the mount-table files where exactly answerable (counted under Interpose.Emulated.procfs); anything else under /proc fails there, and the error names /dev/fd rather than /proc
+podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost, the container name ns365d
+podbox: complete: 1 fixup(s) applied to this image's rootfs, 0 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+7a057cea7ae17e51d10c24200ca1c00ecd3b2a54ef5ef2e865a30448a76634ba
+ns365d
+0
+  ok: detached container ran and its logs carry the output
+ns365d
+
+== cleanup
+Untagged: public.ecr.aws/docker/library/alpine:3.20
+Deleted: sha256:25f1d6b1951ac8eb3740558fe94cb83d377bdadf95fd9f98b50d2e1b96130471
+Deleted: sha256:bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731
+Deleted: sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+Deleted: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+
+verdict           NAMESPACE BASE SERVED
+== counts: 5 base clauses, fail=0

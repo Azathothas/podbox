@@ -726,7 +726,16 @@ pub fn run(args: &[String]) -> i32 {
                     }
                 }
             } else {
-                match podbox_enter::run(&root, &plan, &mut err) {
+                // ⭐ TODO/enter.md T-1339. The namespace rung where
+                // `prepare` selected it (`p.rung` is the entered word it
+                // set beside the banner), with the chroot fallback named
+                // on the banner; the chroot sequence everywhere else.
+                let code = if p.rung.as_str() == podbox_probe::select::Rung::Namespace.word() {
+                    podbox_enter::run_namespace(&root, &plan, &mut err)
+                } else {
+                    podbox_enter::run(&root, &plan, &mut err)
+                };
+                match code {
                     Ok(c) => c,
                     Err(e) => {
                         let _ = writeln!(err, "podbox run: {e}");
@@ -1117,14 +1126,14 @@ pub(crate) fn prepare(
     // its findings.
     let selection = podbox_probe::select::Selection::choose(&findings);
     // ⭐ T-0804 rule 4. The banner is built from the rung podbox ENTERS with,
-    // not the one the machine would permit: the chroot sequence or, where
-    // chroot is denied and a no-chroot family runs, the userland one. One
-    // value, so the banner, the container record and `--strict` cannot
-    // disagree.
+    // not the one the machine would permit: the namespace rung where
+    // selected (T-1339), the chroot sequence, or, where chroot is denied
+    // and a no-chroot family runs, the userland one. One value, so the
+    // banner, the container record and `--strict` cannot disagree.
     let entered = userland
         .as_ref()
         .map(|_| podbox_probe::select::Rung::Userland)
-        .unwrap_or(podbox_enter::ENTERED_RUNG);
+        .unwrap_or_else(|| podbox_enter::entered_rung(selection.rung));
     let mut banner = podbox_probe::report::entry_banner(&findings, &selection, entered);
     // ⭐ TODO/cli.md T-0803. Where podbox was reached under somebody else's
     // name, the banner says which name was used and that this is podbox.

@@ -410,8 +410,24 @@ fn supervise(
         return 1;
     }
 
-    let mut sink = std::io::sink();
-    let child = match podbox_enter::spawn(&root, &plan, &mut sink) {
+    let sink = std::io::sink();
+    // ⭐ TODO/enter.md T-1339. The rung the probe selects, decided where
+    // the payload is entered: a detached start on a namespace host
+    // enters the namespace rung like a foreground run does. The
+    // fallback line joins the container log beside the payload's own
+    // output: this process's stderr is /dev/null and the ready pipe
+    // carries only the start protocol, so the log is the one place the
+    // fallback stays readable.
+    let findings = podbox_probe::run();
+    let selection = podbox_probe::select::Selection::choose(&findings);
+    let mut entry_log: Box<dyn std::io::Write> = match &err_sink {
+        Ok(f) => match f.try_clone() {
+            Ok(c) => Box::new(c),
+            Err(_) => Box::new(sink),
+        },
+        Err(_) => Box::new(sink),
+    };
+    let child = match podbox_enter::spawn_selected(&root, &plan, selection.rung, &mut entry_log) {
         Ok(c) => c,
         Err(e) => {
             say(&format!("err {e}"));
