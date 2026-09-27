@@ -10,6 +10,7 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 | [`2026-09-11-reference-sweep.md`](2026-09-11-reference-sweep.md) | The sweep of eleven references: what it did not establish, the depth reached per tree, the verdicts, and the six findings |
 | [`2026-09-12-store-lock-race-dead-ends.md`](2026-09-12-store-lock-race-dead-ends.md) | [T-0215](../../TODO/image.md)'s superseded `Premise`: five closed mechanisms, the clause series behind them, and the three wrong readings of the fork control |
 | [`source-progress-ea5b671.md`](source-progress-ea5b671.md) | Complete live record at the final source revision before migration |
+| [`session-2026-09-25-to-27.md`](session-2026-09-25-to-27.md) | The continuous session's superseded record: triage narrative, triage table, finished work order, closed in-progress narrative, verbatim |
 | [`upstream-tool-shape.md`](upstream-tool-shape.md) | Retired two-product wording for `wsl-toolkit`, kept verbatim with what took it away |
 | [`sessions/`](sessions/) | Superseded source-project session summaries |
 | [`reviews/`](reviews/) | Focused review outcomes for migrated changes |

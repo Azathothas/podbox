@@ -2,60 +2,24 @@
 
 ## State
 
-171 entries: 0 open, 1 partial, 0 blocked, 170 done. The 2026-09-25
-triage of twenty-two open issues (29 through 38, 49 through 60) plus
-dependabot PR 9 is recorded below. Twenty entries reopened as
-partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
-0.23.44 to 0.23.45) merged on green CI. T-0801, T-0605 and T-1325
-closed 2026-09-25 on the issue-60 drive (355) with the curated
-check and its plant: the curated docker surface has a row
-everywhere, `--env-file` is real, `--log-driver` takes
-`json-file`. T-0503 and T-1317 closed 2026-09-25 on the no-chroot
-drive (356): `-t` refuses naming ptmx ahead of the chroot gate,
-and both no-chroot families run (loader for dynamic, memfd for
-static) with the banner naming the rung. T-1301 closed 2026-09-25
-on the TCG drive (357): the machine legs split into required,
-accelerated and networked, `tiers.machine.refusal` null with
-`profile` `tcg` on the kvm-less tcg-listing lane, 146 re-driven
-to VMR-GUEST-READY. T-1003 closed 2026-09-25 on the ladder drive
-(358): forced rundir and cache enter with the rung word (`runs/`
-cleaned, cache persistent), tmpfs and fuse refuse at 125 naming
-the mount and the node, memfd regresses green, the unknown word
-lists the rungs; tmpfs is wired (`sys::mount`/`umount`,
-`stage_tmpfs`/`release_tmpfs`) with its entry arm undriven where
-no mount holds, and FUSE stays ordered-and-refused with its
-blocker named in the entry. T-0606 closed 2026-09-25 on the
-supervision drive (359): mediation and supervision split into two
-assessments, `tiers.supervision` available with both new rows ok,
-the banner silent where mediation holds, the 230 loop 20 of 20;
-the denied-notify fallback is unit-pinned where the lane cannot
-show it. T-1306 closed 2026-09-26 on the guest-networking drive
-(361): the kvm node stays refused naming ENOENT while its remedy
-runs executable, datagrams crossing both ways under TCG
-user-mode networking with 149 green at 15 driven 0 mismatches;
-the netboot driver chain (failover, net_failover, virtio_net) is
-measured link by link. T-1112 worked 2026-09-26 to partial, combined
-with the sibling Validation OS effort: one crate (`podbox-windows`)
-and one split CLI verb (`windows doctor|fetch|setup|run`) serve two
-flavors over one mailbox, one monitor and one overlay discipline. The
-Validation OS flavor (UEFI, NVMe, scheduled-task agent, power-off wait)
-reuses the sibling's harness measurements; the DOS flavor (SeaBIOS, IDE,
-typed line, token poll) reuses the DOS base and is re-driven here by 369
-on the shared FAT16 writer after the fatfs dependency went away, with
-`ver` 0 plus version, `cmd /c ver` 0, `dir /zzz` 1, `pause` 125 DEADLINE,
-base identical, store untouched. 362 re-driven for the doors no flavor
-serves (create, no-tier run, arm64, missing disk path, machine run
-without a DOS base); 370 asserts the verb surface, the fetch ceilings,
-the routing and the DOS guest with a verdict, and carries a live
-Validation OS run (setup 251 s, banner plus exit 0 in 26 s) from
-the 371-streamed VHDX. Release file 3769304
-bytes under the script ceiling with no PT_INTERP. No other open issue
-is closed:
-each closes with its fix commit, drive output and guard, per the
-operator rule.
+171 entries: 0 open, 1 partial, 0 blocked, 170 done. Zero open
+GitHub issues. `v0.1.0-beta.8` released 2026-09-27: the nightly
+pre-release carries seven static binaries with their sha256 and
+sigstore files, built and smoked green from tag `v0.1.0-beta.8`
+(`7e43f23`). Main is at `7e43f23`, gate green, tree clean.
 
-M0 through M8 are implemented and the machine tier holds its probe.
-End-to-end acceptance is measured per entry.
+The one partial entry is T-1112, blocked: the Windows guest arms
+run under `tcg` (DOS and ValidationOS, lane-driven), the `kvm`
+arm is unit-tested only, and no licensed image exists anywhere
+here. What clears it is a KVM host with the image installed
+under the accept-terms gate the entry names. Nothing else is
+open, nothing is half-written, every lane job is collected.
+
+The superseded record (triage narrative, triage table, finished
+work order, closed in-progress narrative) moved verbatim to
+[`docs/history/session-2026-09-25-to-27.md`](../docs/history/session-2026-09-25-to-27.md).
+Each entry carries its own evidence; this file carries only what
+is true now.
 
 ## Baseline
 
@@ -143,274 +107,45 @@ gate. New files must be staged before the full lane check: the
 citation checks read the git index, so an unstaged tree fails on
 files sitting open on disk.
 
-## What this session did, 2026-09-25 (triage)
+## What this session did, 2026-09-25 to 2026-09-27
 
-Oriented per AGENTS.md (session-start, PROGRESS, RESUME,
-sessions.md, containers.md, agent-tooling.md, gate.md, RULES.md,
-authoring.md, experiments.md, reviews.md, the conventions), gate
-green at start (`check-todo.py` ok, 165 done). Three read-only
-subagents verified every issue citation and the Actions tree in
-parallel: issues 49 through 60 and 32, 33, 35, 36, 38 cite
-clean; four corrections ride in the entries (29: winquick is
-`0.5.0`, `ed6a6401` resolves to nothing, beta.7 is `4f087d0`;
-30: `exec` is deliberately ungated, the issue overstates the
-gate; 31: the onelf path needs the `tree/` infix; 34: the
-`Continue` dispatch lives where T-0606's Premise puts it, not at
-the quoted `notif.rs` range).
+Triaged twenty-two open issues plus dependabot PR 9 (twenty
+entries reopened as partial, three opened new), merged PR 9, #61
+and #62 on green CI, and worked the entries shut: the curated
+surface, no-chroot rungs, TCG legs, ladder, supervision,
+guest networking, emulation, latency, pager, login, identity,
+workload spread, device map, QOL verbs, namespace rung, perf
+harness, run decay (T-1340: `--rm` deletes the unreferenced
+rootfs, keeper rows budgeted by T-1341), the guest landing
+(T-1112: DOS and ValidationOS under `tcg`, refusal hardened,
+driver hardened with timeout-0, fetch bounds and Drop guard),
+the pull-path ceiling (T-1342: `drain` clamped, pre-flight at
+125, `372` green), and the stream under a verified 1 GB ceiling
+(`371` both lanes, SIGXFSZ proved live). Proof comments closed
+issues 29, 58 and 65; the beta.8 tag shipped the nightly
+pre-release. Detail lives in the history file named in State
+and in each entry's Done.
 
-Drove `experiments/353-open-issue-triage.sh` (37 clauses, exit
-0) and `experiments/354-lifecycle-same-store.sh` (11 steps, exit
-0) on the lane with isolated stores. The 353 lifecycle tail
-(`start`, `exec`, `logs`, `stop`, `rm` at 125) is a harness
-artefact, not a product finding: each clause ran in a fresh
-store holding no record. 354 holds one store and the loop is
-green end to end (`pull`, `run --rm`, `create`, `start`,
-`exec`, `ps`, `logs`, `stop`, `wait`, `rm`, `ps -a`).
-
-Reopened twenty entries as partial with the decision underneath
-each: T-1112, T-1317, T-0501, T-0503, T-1003, T-0413, T-0414,
-T-0415, T-0605, T-0606, T-1301, T-1306, T-1308, T-0207, T-0209,
-T-0711, T-1327, T-1332, T-0801, T-1325. Opened three new ones:
-T-1337 (doctor, df, tail), T-1338 (perf harness and gate),
-T-1339 (namespace rung). Counts move only through
-`scripts/todo-count.py` with `scripts/check-todo.py`.
-
-Fixed in place, each verified against the tree: the README rung
-table (run enters chroot with `.Rung` and `.EnteredRung`
-carried; the machine tier runs where its legs hold; the
-interposer is x86_64-only), and the `logs` parity base note
-(now names `-f` following through T-1318). The 353 report
-carries the old note bytes: the drive ran before the fix.
-
-Merged PR 9 after its branch went green on all four gate
-checks: rustls 0.23.44 to 0.23.45 (handshake alignment,
-second-ClientHello rejection, key zeroize). Actions audit:
-checkout v7, upload-artifact v5, cosign-installer v3.10.1, all
-SHA-pinned; no deprecated action, no removed command, no old
-runner; the single notice on every job is the ubuntu-latest to
-Ubuntu 26 migration of 2026-10-19.
-
-## Triage table
-
-Lane is the `rust:1.98.1-bookworm` job container on kernel
-`7.2.0-WSL2-STABLE` with the lane-built musl debug binary,
-unless a row says code or entry. `353` is
-`experiments/results/triage-353.txt` with its clause.
-
-| issue | reproduces | side | fix area with files | risk if wrong | Prove asserts |
-| --- | --- | --- | --- | --- | --- |
-| 29 T-1112 | yes, 125, nothing fetched (353 `29-platform`) | operator brief (guest arm missing) | new `podvm` windows driver beside T-1303/T-1304, `lifecycle.rs` gate last | TCG claimed as equivalent; licensed image redistributed | guest `ver` string on a KVM host, or 125 naming the exact missing leg with no fetch |
-| 30 T-1317 | on target shape per entry fixture; lane is chroot-capable so `run` exits 0 (353 `30-run`) | operator brief (no rung runs) | `crates/podbox-enter`, `lifecycle.rs` gate, T-1003 ladder | weaker isolation stated as equal | `run --rm alpine echo hi` exits 0 with the rung banner on the denying fixture, beside the refusal strict arm |
-| 31 T-1003 | yes, rung refusals at 125 where chroot holds (353 `31-rundir`, `31-bogus`) | operator brief (table is the work list) | `podbox-enter/src/ladder.rs`, `plan.rs`, probe feeds, `cli/src/ladder.rs` | a rung that fetches but never enters | forced run enters with the rung word in `PODBOX_ACTIVE_MODE` per rung |
-| 32 T-0413 | legs read (353 probe JSON); payload arm per recorded 155 drive | operator brief (fixture half out) | `podbox-complete`, interposer map, probe banner | fixture answering wrong where it looks right | 155 extended with an emulation success arm beside the failure arm |
-| 33 T-0414 | yes, legs read ok on lane (353 probe JSON) | operator brief (remedy open) | `probe/src/probes.rs` Census, every enumerating call site | failure reading as missing file | 155 extended with a list-`/` payload on an `EACCES` host, plus a unit test |
-| 34 T-0606 | legs 3 ok refusal null on lane; fallback absent in code | operator brief (no degraded supervision) | `probe/src/probes.rs`, `supervise.rs`, report selection | silent `Continue`-style false success | supervision available where `pidfd`/`waitid` hold with notify denied; loop 230 still 20/20 |
-| 35 T-1301 | yes, 125 naming legs both spellings (353 `35-tier-machine`, `35-podvm`) | operator brief (no TCG without KVM/tun) | `MACHINE_LEGS` in `probes.rs`, `machine.rs` | emulated run claimed hardware isolated | TCG profile refusal null on a kvm-less tcg-capable host; initramfs boots with ready marker |
-| 36 T-1306 | yes, six stances read (353 probe JSON) | operator brief (nothing promoted) | non-goal assessment, `149` script | new code weakening honesty rules | `149` with a positive arm for the promoted goal, refusals unchanged |
-| 37a logs note | yes, old bytes in 353 output; fixed post-drive in `parity.rs` | shipped text wrong | `cli/src/parity.rs:264` | table rotting the contract | corrected note in `system info`; T-1325 check 27 holds it |
-| 37b ordering | in code (`run.rs:629` before `:815`); lane ptmx ok so `-t` exits 0 | operator brief (arm unreachable) | `run.rs` prepare order, `lifecycle` gate vs `ptmx_usable` | a second mask beside the first | `run --rm -t` on a both-denied fixture naming ptmx, beside the chroot-only arm |
-| 38 QOL | yes, help shows no doctor/df, logs only `-f` (353 `38-*`) | new work (T-1337) | `cli` system/logs verbs, probe machine legs | scope creep across three verbs | doctor exits 1 with fix lines; df sums to store accounting; `--tail 5` last five lines |
-| 49 T-0415 | yes, in code (`devices.rs:129`, no test) | spec residual (Done admits it) | `complete/src/devices.rs` | refusal regressing green | new unit test on the unlink-failure arm; live-image arm or dropped claim |
-| 50 T-1332 | yes, in entry text (`cli.md:1088-1090`) | spec residual (Done admits it) | T-1332 prove script, `cli/src/man.rs` | silent fallback passing | bogus-PAGER run with stderr asserted empty |
-| 51 T-0207 | yes, results file loopback-only | spec residual (Done admits it) | `image/src/pull.rs`, `190` script | close claiming an untaken number | `190` with loopback and latency-bound ratios committed |
-| 52 T-0711 | yes, in entry text (`interpose.md:1129-1131`) | spec residual (follow-up owed) | `interpose/src/identity.rs`, `interpose.map` | refusal wording not settled by measure | recorded errno-by-call reading; refusal naming call and errno |
-| 53 T-1308 | yes, in entry text (`podvm.md:668-670`) | spec residual (Done admits it) | measurement script, results | two tallies disagreeing | re-driven `154` with agreeing tallies and flags in conditions |
-| 54 T-0209 | yes, `logout` 125 None row; no `IsTerminal` in `credentials.rs` | spec residual (residual list) | `image/src/credentials.rs`, `cli` | TTY hang where docker refuses | TTY refusal with test; `logout` arm either way; exit-code note |
-| 55 T-0501 | yes, 125 no-row both verbs (353 `55-*`) | spec residual plus table gap | `cli/src/parity.rs`, run/exec parsers, enter device plan | omission read as decision | device-map run plus refusal arm; T-1325 gate extended |
-| 56 T-0605 | yes, 125 no-row (353 `56-log-driver`) | spec residual plus table gap | `cli/src/parity.rs`, run parser, supervise sink | omission read as decision | accept and refusal arms through the binary beside the row |
-| 57 PERF | yes, by construction (one host one shape each) | new work (T-1338) | `experiments/`, scripts, new gate check | benchmark hiding its host | harness green on sandbox and KVM host; gate red on planted regression |
-| 58 T-1327 | yes: outer `e_machine` per arch with exactly two embedded `0x3e` `ET_DYN` objects in all seven sha-verified assets | coverage axis (decision stands) | `podbox-interpose`, `interpose.rs`, `build.rs`, `build-interpose.sh`, smoke, nightly workflow | all-arch claim over six payload-less archs | `readelf -h` per shipped binary reading its own `e_machine`, smoke-asserted |
-| 59 namespace | yes (`59-entered`: `supervise chroot`); README fixed | shipped text wrong; rung unimplemented (T-1339) | `README.md` (done), `podbox-enter` ladder | isolation read that never happened | mount-invisible run with `.EnteredRung` `namespace` on a capable host |
-| 60 parity | yes, 3 flags and 2 verbs driven; rest spot-checked absent | spec invariant violated (T-0801) | `cli/src/parity.rs`, parsers for promoted flags | enumerable table omitting scripted surface | curated flag list driven row by row with reasons; usage sentence corrected |
-
-## Current work order
-
-Next session implements earnestly, entry by entry, each with
-fallbacks built in. A refusal is the last resort after all rungs
-fail, never the whole answer: it names the tried rungs with the
-missing leg, banners every degradation on stderr, keeps payload
-stdout clean, and keeps docker exit codes. Every number ships
-with its script in `experiments/`, pinned inputs, printed
-conditions, exits 0 matched, 1 failed, 2 could not run. For a
-conclusion that ships: three candidate explanations before
-testing, test to refute, one more pass for what is missing.
-Close each GitHub issue only with a proof comment showing the
-fix commit, the drive output, and the guard that stops
-recurrence.
-
-1. T-0801 (46 flags, 10 verbs) with the T-1325 curated-list
-   check and plant. Unblocks the honest table.
-2. T-0503 ordering, then T-1317 no-chroot rung. The target
-   shape needs one family running.
-3. T-1301 TCG split. Unblocks the machine tier on the target
-   and the T-1112 prerequisites.
-4. T-1003 rundir and cache, then FUSE and tmpfs.
-5. T-0606 fallback supervision, T-1306 one promotion.
-6. T-1112 Linux KVM Windows guest per the winquick shape.
-7. T-0413 emulation, T-0414 remedy, T-0415 arms.
-8. Small batch: T-0207 latency shape, T-0209 logout and TTY
-   guard, T-1332 stderr arm, T-0711 errno reading, T-1308
-   tally, T-0501 device, T-0605 log-driver.
-9. New work: T-1337 QOL verbs, T-1339 namespace rung,
-   T-1338 perf harness with baselines and gate.
-10. T-1327 per-arch objects or the qemu-user leg, with the
-    smoke `e_machine` assertion first. Issue 58's asset table
-    already re-verified this session (seven sha-verified
-    downloads, header reads in the T-1327 amendment).
-
-⛔ **Read the CONDITIONS BLOCK of a reading before quoting its figures.**
-`experiments/results/store-lock-race.txt` prints whether the tree was modified
-and what differed from the commit, because every clause in that script measures
-a change and the commit alone names a state that was not run. The command line
-above each clause's figures is still the authority on what they measured, and a
-mutating clause prints the line it WROTE as well as the line it matched.
+Lane for everything Linux: disposable `rust:1.98.1-bookworm`
+job containers in `wsl-toolkit-podbox` via
+`sh scripts/windows/run-in-base.sh`, host kernel
+`7.2.0-WSL2-STABLE`. Full `dev.sh check` green 10 passed
+0 failed; `cargo test -p podbox-image` 136 passed; host fast
+gate 10 passed 0 failed (twins skipped). Every kept job
+collected with `gc --job <id> --apply`; ledger at 0 open
+records.
 
 ## In progress
 
-Item 4 done on the lane (`rust:1.98.1-bookworm` job containers in
-`wsl-toolkit-podbox`, host kernel `7.2.0-WSL2-STABLE`, kvm, tun
-and fuse absent): `experiments/358-ladder-rungs.sh` exits 0
-(`experiments/results/ladder-rungs.txt`), targeted units green
-(`podbox-enter` stage+ladder 23 passed, `podbox-cli` ladder 14
-passed), full suites green (`podbox-enter` 74 passed, the
-`podbox-cli` binary 146 passed, 0 failed). Item 5 first half
-done on the same lane: `experiments/359-supervision-split.sh`
-exits 0 (`experiments/results/supervision-split.txt`), mediation
-Prove holds, supervision available with both new rows ok, banner
-silent where mediation holds, 230 loop 20 of 20, full
-`podbox-probe` suite 107 passed 0 failed. Item 5 second half
-done on the same lane: `experiments/149-podvm-non-goals.sh`
-exits 0 with 15 driven 0 mismatches
-(`experiments/results/podvm-non-goals.txt`), its clause 6
-running `experiments/361-guest-usernet.sh` to green
-(`experiments/results/guest-usernet.txt`, datagrams both ways).
-Item 6 worked to partial on the same lane, combined with the
-sibling Validation OS effort: `experiments/362-windows-refusal.sh`
-exits 0 (`experiments/results/windows-refusal.txt`), the DOS flavor
-runs `ver` to exit 0 under TCG (`369`, `windows-tcg-dos.txt`), the
-verb surface with fetch ceilings and routing holds (`370`,
-`windows-364.txt`, live Validation OS clauses skipping with no
-image configured), and the VHDX extent streams sha256-clean
-(`371`, `windows-365.txt`); the kvm arm stays unit-tested only,
-owing a licensed image with its accept-terms gate.
-T-0413, T-0414 and T-0415 closed 2026-09-26 on the proc-absence
-drive (155): the interposer emulates `/proc/self/fd` pipes,
-`/proc/self/exe` and the mount-table files exactly or refuses
-(tallied `OP_PROC`, `inspect` carries
-`Interpose.Emulated.procfs`), completion stages the four
-conventional `/dev` links the pinned debian row lacks, the
-by-name resolver is pinned past a denied listing as `nobody`,
-and `cp` names a required listing with its errno (`cannot list
-<dir>: Permission denied`, exit 125); `155` exits 0
-(`experiments/results/proc-absence.txt`), ten exact-name unit
-tests green, workspace 564 passed 0 failed, interpose 37 passed
-0 failed, both clippys clean. T-0207 closed 2026-09-26 on the
-latency drive (`190` exits 0,
-`experiments/results/parallel-layers.txt`): loopback 3.83 s
-against 1.51 s (2.53x), latency-bound 24.62 s against 11.55 s
-(2.13x) through the new delay proxy at 2 s an exchange, the
-serial manifest diluting the parallel gain per Amdahl; the fixed
-bound of 4 stays. Item 8 continues with T-0209. T-1332 closed
-2026-09-26 on the pager-isolation drive: a bogus PAGER with piped
-stdout exits 0 with empty stderr beside byte-identical output,
-and under a pty the fallback is loud; no product change. T-0209
-closed 2026-09-26 on its drive: `login` refuses a terminal stdin
-instead of hanging (exit 1, naming the pipe), new `logout`
-verb removes the stored entry from file or helper (nothing
-stored reads as not logged in, exit 1; failed erase keeps
-everything, 125), exit codes by the measured 125/1
-discriminator with docker's own login codes recorded
-unmeasured; eight unit tests plus end-to-end legs green. Small
-batch continues with T-0711. T-0711 closed 2026-09-26 on the
-identity drive (`106` exits 0,
-`experiments/results/interpose-identity.txt`): the victim covers
-the full setter matrix and clause G records the errno-by-call
-table on the denying lane (grants where the wall maps the id,
-EPERM elsewhere); the honest refusal names call, number and name
-(`setgid failed with errno 1 (EPERM)`), unit-pinned. T-1308
-closed 2026-09-26 on the re-driven workload spread (`154`
-exits 0, `experiments/results/tcg-workload-spread.txt`): 14
-driven, 0 mismatches, section 1 counting `^workload=` lines
-requiring 3 like sections 2 and 4, the pinned `QEMU_FLAGS` and
-`BENCH_CFLAGS` printed in the conditions; int 7.5x, sys 10.7x,
-mem 1.4x, io 4.9x, every checksum agreeing on every platform.
-T-0501 closed 2026-09-26 on the device-map drive (`363` exits 0,
-`experiments/results/device-map.txt`): 11 clauses green, the
-host file and `/dev/zero` reading back byte-identical, the
-six-open flag matrix exact, served creation and EEXIST through
-a missing parent, the image-shadow boundary pinned, stat
-honest, refusals at 125, musl served with the static opener
-honestly ENOENT, the launcher round trip, and `exec`
-re-serving the record's mapping; `355` exits 0
-beside it. T-0605 needed no work (done 2026-09-25 with T-0801),
-so the small batch is closed. T-1337 closed 2026-09-26 on the
-QOL drive (`364` exits 0, `experiments/results/qol.txt`): 5
-tail clauses, 4 df clauses and 3 doctor clauses green on the
-lane. `logs --tail N` prints the last lines then follows from
-them; `system df` rows stored beside extracted bytes with
-Reclaimable the exact string `image prune` frees (3.7 MiB
-agreement on a digest-pulled dangling alpine); `doctor` exits
-0 with profile tcg and no fix where everything holds, 1
-naming the emulator leg with its fix where QEMU is absent.
-Item 9 continues with T-1339 and T-1338. T-1339 closed
-2026-09-26 on the namespace drive: the fd-anchored dot-chroot
-hid the private tmpfs on the base, so the namespace rung
-chroots by path with a (d,i) guard past it (`EXDEV` step 10)
-falling back to chroot with the step named; `365` exits 0 on
-the lane (3 clauses, `experiments/results/namespace.txt`) and
-`366` exits 0 on the base (5 clauses,
-`experiments/results/namespace-base.txt`, the payload's /tmp
-invisible from the host); issue 59 closed with proof. T-1338
-closed 2026-09-26 on the perf harness: `360` exits 0 on the
-lane (`experiments/results/perf-lane.txt`) and on the KVM base
-(`experiments/results/perf-kvm.txt`, KVM guest boot 0.936 s
-against TCG 1.869 s), seeds from 190 and 154 folded, ceilings
-in `experiments/perf-ceilings.tsv` held by check 30 (96 rows
-compared, zero regressions; plant case 30 green); the harness
-surfaced a real `load` EXDEV defect, fixed in-store beside
-`import` with its guard; the run decay curve is filed as
-T-1340; issue 57 closed with proof. T-1327 closed 2026-09-26:
-`build.rs` records each embed's `e_machine`,
-`version --verbose` renders it, smoke group 6 asserts it
-(lane: outer=gnu=musl=0x3e), and `367` exits 0 on the base
-(`experiments/results/qemu-user-aarch64.txt`): the AArch64
-payload runs with the 0xb7-against-0x3e decline named. The
-cleanup rule now covers drive artifacts and base scratch, held
-by check 29 with its plant. Item 9 is closed and item 10 with
-it; the triage work order is finished. T-1340 closed 2026-09-27
-on the run-decay drive (`368` exits 0,
-`experiments/results/run-decay-368.txt`, 11 of 11 predictions
-held): `--rm` deletes the unreferenced rootfs at exit, so each
-keeper-less run re-pays extraction (a1 1.746 s with the tree
-present, a2/a3 ~4.78 s re-extracting); `create` re-extracts once
-and pins the tree; kept runs cost ~0.075 s, the post-keeper-rm
-warm run 0.108 s, the next 5.129 s; warm probe alone 0.059 s.
-No ceiling moves; the 360 comment names the cause. The run-rows
-follow-up is filed as T-1341 (open). T-1112 hardened 2026-09-27 on
-the landed driver: `--podbox-timeout 0` refused as a flag error
-(`request_timeout` maps zero to the default, never to forever),
-`windows fetch` through an agent with explicit connect, read and
-write timeouts repeating the registry triple, and `RunGuard`
-removing the per-run directory on drop behind the explicit
-cleanups; each unit-pinned. T-1341 closed 2026-09-27 on the keeper rows:
-`run.kept` beside `start` in 360 with the lifecycle keeper alive,
-ceilings 0.25 s wall and the sibling rss; 360 exits 0 on the lane
-(`run.kept` 0.030 s) and on the kvm base (`run.kept` 0.060 s);
-check 30 green on both shapes and the plant suite 42 caught
-0 missed. T-1342 closed 2026-09-27 on the pull-path ceiling:
-`drain` clamped at the declared size bounded by the fsize
-ceiling, per-blob pre-flight against `min(fsize, free)` reusing
-`NoSpace` at 125; `372` green on the lane, `cargo test -p
-podbox-image` 136 passed, full lane check 10 passed 0 failed.
-`371` re-driven under a verified 1 GB soft ceiling (read back
-in force, SIGXFSZ proved live at exactly 1000000000 bytes):
-VOS STREAM HOLDS
-(`experiments/results/vos-stream-371-ceiling.txt`). The drive
-exposed a void guard in 371 clause 0 (`awk print` goes
-scientific past ~500 GB free, so `[` refused and the disk
-pre-flight never checked): fixed with `printf "%.0f"`,
-verified on the lane. Next is closing issues 29, 58 and 65,
-then the beta.8 release.
+T-1112 alone, partial, blocked on a KVM host with a licensed
+image under the accept-terms gate. No code is half-written and
+no drive is half-run.
+
+## Current work order
+
+1. T-1112 `kvm` arm on a host holding `/dev/kvm`, with the
+   licensed image installed and never committed. Until that
+   host exists there is no work to order.
 
 ## Operator questions
 
@@ -450,13 +185,24 @@ entry also carries the second denial only one instance of the class has shown:
 
 ## What the next session should decide, and neither needs the operator
 
-One is open and it needs no operator:
+Two are open and neither needs the operator:
 
 - ⚠ **Whether the gate should report a rate rather than a pass or a fail.**
   T-0215 is closed, so nothing is red today, but CI reported green for a suite
   that failed two runs in five and a single run is still not evidence for a racy
   one. That is [T-1204](gate.md)'s neighbourhood and it needs a ruling before
   the next intermittent check arrives.
+
+- ⚠ **Whether the blob retry comment is wrong, and what the contract is.**
+  `Client::blob` (`crates/podbox-image/src/registry.rs`) retries every
+  `Error::Http` up to `ATTEMPTS` (3), and transport failures map to
+  `Error::Http` beside size and digest mismatches, so a lying origin is
+  re-asked twice after the first refusal. The comment beside the loop
+  says only a transport failure is retried and calls re-asking a spiral.
+  Each attempt is byte-bounded by the T-1342 clamp, so the cost is two
+  extra capped transfers, not an unbounded one. Read 2026-09-27, not
+  driven: no behavior change was made, and the comment is untouched
+  until the contract it claims is decided.
 
 The two this section carried before are settled: the eight unregistered `Lock`
 sites were a test-shape question answered by measurement on [T-0211](image.md)'s

@@ -1,49 +1,46 @@
 ## The task
 
-Work the PROGRESS work order entry by entry, unattended, pushing
-straight to main. T-1340 (run-decay isolation) is done 2026-09-27:
-`experiments/368-run-decay.sh` exits 0 on the lane
-(`experiments/results/run-decay-368.txt`, 11 of 11 predictions
-held). Next: author the run-rows-with-keeper follow-up named in
-T-1340's Done text.
+Continuous unattended work is finished: every TODO entry is done
+except T-1112 (partial, blocked), zero GitHub issues are open, and
+`v0.1.0-beta.8` is released with its nightly pre-release green.
 
 ## The resume point
 
-T-1340 closed. The `--rm` arm deletes the unreferenced rootfs at
-exit, so keeper-less runs re-pay extraction; `create` pins the
-tree; kept runs ride it warm. No ceiling moves.
+T-1112 partial on one blocker: the DOS and ValidationOS guest arms
+run under `tcg` (lane-driven here), the `kvm` arm is unit-tested
+only, and no licensed image exists anywhere. What clears it is a
+KVM host holding `/dev/kvm` with the image installed under the
+accept-terms gate the entry names. (`/dev/kvm` is present on the
+wsl-toolkit base; the arm owes the image, not the host.)
 
 ## In flight
 
-Nothing half-written. New files staged: `experiments/368-run-decay.sh`
-(with exec bit), `experiments/results/run-decay-368.txt`.
+Nothing half-written, nothing half-run. Two open questions for the
+next session, neither needing the operator: the gate rate ruling
+(T-1204 neighbourhood) and the blob retry comment contract
+(`registry.rs`, PROGRESS names both).
 
 ## State
 
-Tree at `62ddba5` plus the T-1340 change. `check-todo.py` ok on
-the host (169 rows, 0 open, 0 partial, 1 blocked, 168 done) and
-the full lane check green (`dev.sh check` rc 0 in a disposable
-container). Lane jobs `c300ecf9d36c7583` (368 drive) and
-`bf643f1b31dcc77a` (full check) collected with `gc --job
---apply`; ledger at 0 open records. `.tmp/368-out/` holds the
-retrieved drive artifact until the results file is committed,
-then it goes per RULES section 8.
+Tree at `7e43f23` plus the closeout change (PROGRESS rewrite,
+history move, this file). Tag `v0.1.0-beta.8` on `7e43f23`,
+nightly workflow green, 21 assets published. Lane ledger at 0
+open records; verify with `gc` at session start per the rulings.
 
 ## The paste
 
 ```text
 Read AGENTS.md and follow it. Run ./scripts/session-start.sh first.
-Read TODO/PROGRESS.md first, then TODO/RESUME.md. Implement the
-work order in PROGRESS entry by entry with fallbacks built in:
-a refusal is the last resort after all rungs fail, never the whole
-answer, and it names tried rungs plus the missing leg. Close TODO
-entries in place with Prove actually run and output recorded
-underneath, per RULES section 5. Update counts only via
-scripts/todo-count.py plus scripts/check-todo.py. For conclusions
-that ship, enumerate at least three candidate explanations before
-testing, test to refute, then do one more pass for what is
-missing. Close each GitHub issue only with a proof comment
-showing fix commit, drive output, and guard that stops
+Read TODO/PROGRESS.md first, then TODO/RESUME.md. The work order in
+PROGRESS holds one blocked item (T-1112 kvm arm plus licensed
+image); until a KVM host with the image exists there is nothing to
+implement, so start new work by authoring entries per the
+methodology, never by implementing in the same pass. Update counts
+only via scripts/todo-count.py plus scripts/check-todo.py. For
+conclusions that ship, enumerate at least three candidate
+explanations before testing, test to refute, then do one more pass
+for what is missing. Close each GitHub issue only with a proof
+comment showing fix commit, drive output, and guard that stops
 recurrence. Work unattended; push straight to main with no
 branches.
 ```
