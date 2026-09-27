@@ -240,7 +240,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-172 items: 0 open, 1 partial, 0 blocked, 171 done.
+175 items: 3 open, 1 partial, 0 blocked, 171 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -249,10 +249,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 0 | 0 | 0 | 79 | 79 |
-| P2 | 0 | 0 | 0 | 32 | 32 |
+| P1 | 2 | 0 | 0 | 79 | 81 |
+| P2 | 1 | 0 | 0 | 32 | 33 |
 | P3 | 0 | 1 | 0 | 8 | 9 |
-| **All** | **0** | **1** | **0** | **171** | **172** |
+| **All** | **3** | **1** | **0** | **171** | **175** |
 
 ## How the current ordering is derived
 

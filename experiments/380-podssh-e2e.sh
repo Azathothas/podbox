@@ -15,7 +15,7 @@
 #
 # The committed reading is experiments/results/podssh-e2e.txt.
 #
-#   ./369-podssh-e2e.sh                 build podssh and run the matrix
+#   ./380-podssh-e2e.sh                 build podssh and run the matrix
 #   PODSSH=/path/to/podssh ./369-...    run a binary already built
 #
 # Exit: 0 every case passed, 1 a case failed, 2 could not run.
@@ -26,12 +26,12 @@ ROOT=$(cd "$HERE/.." && pwd)
 
 if [ -z "${PODSSH:-}" ]; then
     if ! command -v cargo >/dev/null 2>&1; then
-        echo "369-podssh-e2e: pass PODSSH=/path/to/podssh, or have cargo" >&2
+        echo "380-podssh-e2e: pass PODSSH=/path/to/podssh, or have cargo" >&2
         exit 2
     fi
     ( cd "$ROOT" && cargo build -p podbox-ssh ) || exit 2
     PODSSH="$ROOT/target/debug/podssh"
 fi
-[ -x "$PODSSH" ] || { echo "369-podssh-e2e: $PODSSH is not executable" >&2; exit 2; }
+[ -x "$PODSSH" ] || { echo "380-podssh-e2e: $PODSSH is not executable" >&2; exit 2; }
 
 exec sh "$ROOT/crates/podbox-ssh/tests/e2e.sh"

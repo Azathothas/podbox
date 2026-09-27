@@ -2,7 +2,7 @@
 
 ## State
 
-172 entries: 0 open, 1 partial, 0 blocked, 171 done. Zero open
+175 entries: 3 open, 1 partial, 0 blocked, 171 done. Zero open
 GitHub issues. `v0.1.0-beta.8` released 2026-09-27: the nightly
 pre-release carries seven static binaries with their sha256 and
 sigstore files, built and smoked green from tag `v0.1.0-beta.8`

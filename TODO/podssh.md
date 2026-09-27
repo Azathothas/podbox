@@ -165,7 +165,7 @@ Approach:    A `ServerSpec::Shell` beside `Auto`, `Command` and `Forward`, in
 Decision:    The shell is podssh's, and the shell is the session. `env` and cwd
              persist across commands the way a login session does, because the
              discipline owns one long-lived child rather than one per command.
-Prove:       `experiments/370-podssh-shell.sh` drives an **interactive** session
+Prove:       `experiments/381-podssh-shell.sh` drives an **interactive** session
              over a pipe with no pty and asserts echo, line editing and a real
              Ctrl-C reaching the job's process group -- not a one-shot command,
              which is the test T-1401 already has and which passes without this
@@ -201,7 +201,7 @@ Decision:    ⛔ The banner obligation is not optional: `TOOL.md` section 4.1
              over unchanged -- a shim must not overwrite a real client on PATH
              without an explicit flag, because a machine with a working client
              is a machine where podssh is the wrong tool.
-Prove:       `experiments/371-podssh-names.sh` asserts the symlinks are
+Prove:       `experiments/382-podssh-names.sh` asserts the symlinks are
              symlinks, that the banner names the real tool on every shimmed
              name, and that a real `ssh` on PATH is refused without the flag.
 
@@ -251,6 +251,6 @@ Decision:    ⚠ The static/interpose honesty rule applies to any identity shim
              `UsePrivilegeSeparation` has been a no-op since OpenSSH 8.4.
              `crates/podbox-ssh/src/sshserver.rs` therefore PROBES a candidate
              by starting it, rather than trusting that it is on PATH.
-Prove:       `experiments/372-podssh-verbs.sh` exits 0, and it drives
+Prove:       `experiments/383-podssh-verbs.sh` exits 0, and it drives
              `podbox remote ssh --help` and `podbox machine ssh --help` rather
              than reading the table, so a row with no arm fails it.

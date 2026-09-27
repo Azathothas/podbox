@@ -105,7 +105,9 @@ pub fn forward(cfg: &ForwardConfig) -> io::Result<()> {
         cfg.dialer.dial_addr(&host, port)?
     } else {
         let mut chain = crate::chain::Chain::new(&cfg.dialer, cfg.relays.clone());
-        chain.connect().map_err(|e| io::Error::other(e.to_string()))?
+        chain
+            .connect()
+            .map_err(|e| io::Error::other(e.to_string()))?
     };
     if let Some(prefix) = &cfg.expect_banner {
         let banner = read_banner(&mut *stream, Duration::from_secs(10))?;

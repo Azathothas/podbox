@@ -9,5 +9,5 @@
 # Exit: 0 the property holds, 1 it does not, 2 could not run.
 
 set -u
-echo "370-podssh-shell: not implemented yet; TODO/podssh.md T-1402 is open" >&2
+echo "381-podssh-shell: not implemented yet; TODO/podssh.md T-1402 is open" >&2
 exit 2
