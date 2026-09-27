@@ -232,10 +232,13 @@ the blocker named and what would clear it.
 | [T-1339](enter.md) | P1 | enter | done | Enter the namespace rung where the probe permits it |
 | [T-1340](gate.md) | P3 | gate | done | Isolate why early payload runs cost seconds and late ones do not |
 | [T-1401](podssh.md) | P1 | podssh | done | `podssh`: ssh over a rendezvous, with no listening socket on the agent |
+| [T-1402](podssh.md) | P1 | podssh | open | The session is a userspace line discipline, because the cage has no pty |
+| [T-1403](podssh.md) | P1 | podssh | open | podbox shims the ssh server name, so the line discipline needs no configuration |
+| [T-1404](podssh.md) | P2 | podssh | open | The remote and machine verbs, and the tier that decides where the server lives |
 
 ## Counts
 
-170 items: 0 open, 0 partial, 1 blocked, 169 done.
+173 items: 3 open, 0 partial, 1 blocked, 169 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -244,10 +247,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 0 | 0 | 0 | 79 | 79 |
-| P2 | 0 | 0 | 0 | 31 | 31 |
+| P1 | 2 | 0 | 0 | 79 | 81 |
+| P2 | 1 | 0 | 0 | 31 | 32 |
 | P3 | 0 | 0 | 1 | 7 | 8 |
-| **All** | **0** | **0** | **1** | **169** | **170** |
+| **All** | **3** | **0** | **1** | **169** | **173** |
 
 ## How the current ordering is derived
 

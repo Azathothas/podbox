@@ -2,7 +2,17 @@
 
 ## State
 
-170 entries: 0 open, 0 partial, 1 blocked, 169 done. T-1401 closed
+173 entries: 3 open, 0 partial, 1 blocked, 169 done. T-1402, T-1403
+and T-1404 opened 2026-09-27 from the PR 66 review: T-1401 ships the
+transport and proves one-shot commands, NOT the interactive session the
+brief asks for, because a cage with no /dev/ptmx has no kernel pty and
+ssh -t degrades to a dumb pipe. T-1402 is the userspace line discipline
+(errandsh's mechanism, read not assumed) as ServerSpec::Shell; T-1403
+shims the ssh/sshd/dropbear names by symlink per T-0803 so the shell
+needs no configuration; T-1404 adds the remote and machine verbs. Their
+Prove scripts (370, 371, 372) exist and exit 2 until built, so a fresh
+clone resolves and nothing reads as a pass that examined nothing.
+ T-1401 closed
 2026-09-27 on the podssh drive (369): `crates/podbox-ssh` lands
 `podssh`, a native ssh over a rendezvous relay with no listening
 socket on the agent, exposed as `podbox ssh`. Nine of nine e2e cases

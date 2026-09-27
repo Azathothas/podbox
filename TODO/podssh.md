@@ -116,3 +116,121 @@ sets neither and the same cases run unchanged, but that is a claim about a
 host this lane is not, and the harness is where it is checked. The TCP
 transport itself is exercised against the public relays above, which is a real
 TCP path.
+
+---
+
+### T-1402 The session is a userspace line discipline, because the cage has no pty
+
+Source:      `https://github.com/talaria0101/sandssh`, its `shell/errandsh`;
+             `https://github.com/hackerschoice/hackshell`, its `hackshell.sh`
+Category:    podssh
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     ⛔ **T-1401 delivers a transport and proves one-shot commands. It
+             does not deliver the interactive session the brief asks for, and
+             its 12-of-12 e2e would pass with no shell present at all.** A
+             sealed cage has no `/dev/ptmx`, no devpts and `mknod` denied, so
+             there is no kernel pty: `ssh -t` fails and the session degrades to
+             a dumb pipe with no echo, no line editing, no history and no real
+             signals. That is the state `errandsh` exists to fix, and it is the
+             state podssh currently ships in.
+Premise:     ⭐ **Read, not assumed.** `sandssh/shell/errandsh` is 432 lines of
+             Python and is a userspace line discipline: it replaces the login
+             shell and reimplements echo, prompt, persistent history, full
+             line editing, Ctrl-R, bracketed paste and Tab completion, and it
+             sends a **real SIGINT** with `os.killpg` to the job's process
+             group. `hackerschoice/hackshell` is 2040 lines of bash and is a
+             post-login configuration: stealth plus ergonomics, sourced into a
+             shell that must already be interactive. ⚠ Neither is what podssh
+             should be: errandsh needs the far side to run it and is not ssh,
+             and hackshell cannot help where no interactive shell exists.
+             ⭐ **The seam already exists.** `crates/podbox-ssh/src/sshserver.rs`
+             hands the child one socketpair for stdin and stdout, which is
+             exactly where a line discipline belongs -- above the transport and
+             below ssh's own protocol, so podssh never has to read ssh.
+Approach:    A `ServerSpec::Shell` beside `Auto`, `Command` and `Forward`, in
+             Rust, in `podbox-ssh`: echo, redraw, history, Ctrl-R, bracketed
+             paste, Tab completion, and a real SIGINT to the job's process
+             group. ⛔ No pty, no `/dev/ptmx`, no chroot. It works with a
+             vanilla `ssh` on the operator side and a vanilla `sshd` on the
+             agent side, which is the brief's "one side may use vanilla ssh"
+             requirement.
+             ⚠ **Do not implement ssh to get this.** The crypto, auth and
+             channel layer stays the host's `sshd`/`dropbear`; the line
+             discipline replaces only the session half. Reimplementing both
+             ends would also create new lock-in, which is worse than sandssh
+             rather than better.
+Decision:    The shell is podssh's, and the shell is the session. `env` and cwd
+             persist across commands the way a login session does, because the
+             discipline owns one long-lived child rather than one per command.
+Prove:       `experiments/370-podssh-shell.sh` drives an **interactive** session
+             over a pipe with no pty and asserts echo, line editing and a real
+             Ctrl-C reaching the job's process group -- not a one-shot command,
+             which is the test T-1401 already has and which passes without this
+             entry.
+
+### T-1403 podbox shims the ssh server name, so the line discipline needs no configuration
+
+Source:      [podvm.md](podvm.md) T-1302; [cli.md](cli.md) T-0803;
+             [packaging.md](packaging.md) T-1001
+Category:    podssh
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     T-1402's line discipline is reachable today as
+             `podbox ssh serve --shell`, which is one more thing for an
+             operator to type. The brief asks for "seamless, not noticeable",
+             and a shell that has to be asked for by name is neither.
+Premise:     ⭐ **The pattern exists in this tree, is ruled on, and is tested.**
+             `crates/podbox-cli/src/names.rs` carries
+             `ALIASES = ["docker", "podman", "podvm"]`: multicall on `argv[0]`,
+             **symlinks never wrapper scripts**, and a banner naming which name
+             was used. T-0803 rules the shape and T-1001 gives the reason -- a
+             wrapper script is a second artefact and it breaks the memfd rung.
+Approach:    `ssh`, `sshd` and `dropbear` as further aliases, installed by
+             `system install-names` as symlinks. The `sshd`/`dropbear` shim
+             injects `PermitTTY no` plus a forced command that is T-1402's
+             discipline, so the operator configures nothing and still gets the
+             interactive session.
+Decision:    ⛔ The banner obligation is not optional: `TOOL.md` section 4.1
+             says a caller has to be able to tell which tool ran, so a shimmed
+             server says so in one line. ⛔ T-0803's operator ruling carries
+             over unchanged -- a shim must not overwrite a real client on PATH
+             without an explicit flag, because a machine with a working client
+             is a machine where podssh is the wrong tool.
+Prove:       `experiments/371-podssh-names.sh` asserts the symlinks are
+             symlinks, that the banner names the real tool on every shimmed
+             name, and that a real `ssh` on PATH is refused without the flag.
+
+### T-1404 The remote and machine verbs, and the tier that decides where the server lives
+
+Source:      [podvm.md](podvm.md) T-1302, T-1304; this file's T-1401
+Category:    podssh
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     `podbox ssh` reaches a host that already has a server. The machine
+             tier has no server at all: `podbox exec` crosses a serial line
+             (T-1304). Two different far ends need one vocabulary, or an agent
+             has to learn which verb belongs to which tier.
+Premise:     T-1302 settles that a second binary is a second parity table, so
+             these are rows in the one table with the tier as a flag rather
+             than a separate product.
+Approach:    `podbox remote ssh` -- vanilla `ssh` on the far side, podssh's
+             transport underneath. `podbox machine ssh` -- the podman-parity
+             name, server inside the guest. Both ride one transport; the tier
+             decides only where the server lives.
+Decision:    ⚠ The static/interpose honesty rule applies to any identity shim
+             on this path: `LD_PRELOAD` cannot reach a static binary, so that
+             case is named rather than allowed to no-op, which is the shape
+             [interpose.md](interpose.md) already uses for a payload with no
+             `PT_INTERP`. ⭐ Where the server runs inside the guest the identity
+             question largely goes away, because the guest has its own
+             `/etc/passwd` in the image.
+Prove:       `experiments/372-podssh-verbs.sh` exits 0, and it drives
+             `podbox remote ssh --help` and `podbox machine ssh --help` rather
+             than reading the table, so a row with no arm fails it.
