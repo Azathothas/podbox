@@ -1,5 +1,5 @@
 == conditions
-date              2026-09-27T01:26:45Z
+date              2026-09-27T02:02:05Z
 fsize ceiling     unlimited
 bootstrap         qemu ok
 head bytes        2460880896
@@ -8,7 +8,7 @@ clause 3          VDS carries PVD LVD PD USD IUVD TD in order
 clause 4          root File Entry is a directory
 fetch             910163968 bytes at LBA 1010
 sha256            063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f
-image: /work/experiments/.sweep365-work/ValidationOS.vhdx
+image: /work/experiments/.sweep371-work/ValidationOS.vhdx
 file format: vhdx
 virtual size: 32 GiB (34359738368 bytes)
 disk size: 868 MiB
