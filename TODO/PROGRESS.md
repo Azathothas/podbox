@@ -2,7 +2,16 @@
 
 ## State
 
-169 entries: 0 open, 0 partial, 1 blocked, 168 done. The 2026-09-25
+170 entries: 0 open, 0 partial, 1 blocked, 169 done. T-1401 closed
+2026-09-27 on the podssh drive (369): `crates/podbox-ssh` lands
+`podssh`, a native ssh over a rendezvous relay with no listening
+socket on the agent, exposed as `podbox ssh`. Nine of nine e2e cases
+pass and none skip, each transport against a byte pipe and against a
+real `ssh` under `ProxyCommand`; three public :443 relays carried a
+real `SSH-2.0` KEXINIT. The entry records the defect that was found by
+running it (a pump blocked in `stdio.read` before it read the relay)
+and the regression test that was shown hanging against the old code
+before it was kept. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls

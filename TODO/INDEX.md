@@ -55,6 +55,7 @@ the blocker named and what would clear it.
 | [packaging](packaging.md) | the artefact | `TOOL.md` section 3.4, section 5 M7 |
 | [milestones](milestones.md) | the gates | `TOOL.md` section 5 |
 | [podvm](podvm.md) | the machine tier | `https://github.com/talaria0101/vm-research`, its podvm-spec document |
+| [podssh](podssh.md) | `crates/podbox-ssh` | `https://github.com/talaria0101/sandssh` and `https://github.com/Azathothas/podbox` |
 | [gate](gate.md) | `scripts/` | `docs/methodology/gate.md` |
 
 ## Entries
@@ -230,10 +231,11 @@ the blocker named and what would clear it.
 | [T-1338](gate.md) | P2 | gate | done | A performance harness with baselines and a regression gate |
 | [T-1339](enter.md) | P1 | enter | done | Enter the namespace rung where the probe permits it |
 | [T-1340](gate.md) | P3 | gate | done | Isolate why early payload runs cost seconds and late ones do not |
+| [T-1401](podssh.md) | P1 | podssh | done | `podssh`: ssh over a rendezvous, with no listening socket on the agent |
 
 ## Counts
 
-169 items: 0 open, 0 partial, 1 blocked, 168 done.
+170 items: 0 open, 0 partial, 1 blocked, 169 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -242,10 +244,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 0 | 0 | 0 | 78 | 78 |
+| P1 | 0 | 0 | 0 | 79 | 79 |
 | P2 | 0 | 0 | 0 | 31 | 31 |
 | P3 | 0 | 0 | 1 | 7 | 8 |
-| **All** | **0** | **0** | **1** | **168** | **169** |
+| **All** | **0** | **0** | **1** | **169** | **170** |
 
 ## How the current ordering is derived
 

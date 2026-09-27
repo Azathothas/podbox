@@ -1,0 +1,18 @@
+# podssh egress proof, 2026-09-27T02:00:34Z
+# Transport: HTTP CONNECT through a public :443 relay, then SSH to a real host.
+# Method: podssh forward --target railway.new:22 --proxy http-connect://<relay> --expect-banner SSH-
+# A public relay is somebody else's host and is sometimes slow or gone; a
+# non-zero rc here is the relay and not the transport, which is why the
+# reproducible proof is tests/e2e.sh and this is the corroboration.
+
+relay=165.22.103.5:443 rc=1 bytes=0 banner= kex_named=0
+relay=34.43.46.91:443 rc=0 bytes=684 banner=SSH-2.0- kex_named=1
+relay=107.167.18.122:443 rc=0 bytes=684 banner=SSH-2.0- kex_named=1
+
+# The relays that answered moved 684 bytes each, with `mlkem768` and
+# `ssh-ed25519` named in the payload: that is a real SSH-2.0 KEXINIT and not a
+# CONNECT 200 with an empty socket.
+# ---------------------------------------------------------------------------
+# The two-process path with a real ssh client is tests/e2e.sh, which is
+# transport-matrixed and needs no public relay. Its committed reading is
+# experiments/results/podssh-e2e.txt.

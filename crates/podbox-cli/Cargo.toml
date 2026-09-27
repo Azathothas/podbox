@@ -26,3 +26,4 @@ podbox-extract = { path = "../podbox-extract" }
 podbox-complete = { path = "../podbox-complete" }
 podbox-enter = { path = "../podbox-enter" }
 podbox-supervise = { path = "../podbox-supervise" }
+podbox-ssh = { path = "../podbox-ssh" }
