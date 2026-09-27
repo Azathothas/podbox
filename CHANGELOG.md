@@ -6,6 +6,28 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-27T03:09:00Z: the ceiling beta takes its own version number
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). Version bump to
+`0.1.0-beta.8`; deploys as nightly pre-release `v0.1.0-beta.8`.
+
+The workspace version moves from `0.1.0-beta.7` to `0.1.0-beta.8`.
+`Cargo.lock` carries the same eight lines and nothing else (seven
+workspace members plus the `podbox-windows` crate the guest landing
+added).
+
+What the number names: the pull path refuses past the file-size
+ceiling instead of dying past it (T-1342: `drain` clamped at the
+declared size bounded by `RLIMIT_FSIZE`, per-blob pre-flight
+against `min(fsize, free)` at exit 125, `372` green on the lane),
+and the ValidationOS stream holds under a verified 1 GB ceiling
+on both lanes (`371`, SIGXFSZ proved live). The warm run cost is
+budgeted beside the cold one (T-1341 `run.kept` rows), the guest
+driver refuses a zero timeout, bounds its fetches and cleans its
+run directory on drop, and issues 29, 58 and 65 are closed with
+their proofs. T-1112 stays partial on the KVM host plus licensed
+image blocker, named in the entry.
+
 ### 2026-09-26T10:30:00Z: the Windows guest grows a DOS flavor on the shared crate (T-1112)
 
 **Record:** [`TODO/milestones.md`](TODO/milestones.md) T-1112. No version
