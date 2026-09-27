@@ -45,10 +45,22 @@ impl Ws {
             spec.path.clone()
         };
         let key = b64_encode(&random_bytes(16)?);
+        // ⛔ SPEC HEADERS ARE EMITTED, AND THIS IS HOW AN AUTHENTICATED RELAY
+        // IS REACHED WITHOUT THE TOKEN IN A URL. The ajam relay takes
+        // `X-Relay-Token`; its own documentation prefers the header over
+        // `?token=` because a query string is written to every access log
+        // along the way and a header is not. The value was validated as a
+        // token character string in `url::parse`, so it cannot inject a
+        // newline and a second header here.
+        let mut extra = String::new();
+        for (name, value) in &spec.headers {
+            extra.push_str(&format!("{name}: {value}\r\n"));
+        }
         let req = format!(
             "GET {path} HTTP/1.1\r\nHost: {host_header}\r\nUpgrade: websocket\r\n\
              Connection: Upgrade\r\nSec-WebSocket-Key: {key}\r\n\
-             Sec-WebSocket-Version: 13\r\nUser-Agent: podssh/1\r\n\r\n"
+             Sec-WebSocket-Version: 13\r\nUser-Agent: podssh/{ver}\r\n{extra}\r\n",
+            ver = env!("CARGO_PKG_VERSION"),
         );
         base.write_all(req.as_bytes())?;
         base.flush()?;

@@ -148,9 +148,34 @@ fn main() -> std::process::ExitCode {
         Some("start") => exit(lifecycle::start(rest)),
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
-        // `podbox ssh` is `podssh` with one word in front: the same parser,
-        // the same subcommands, the same exit codes, under the podbox name.
-        Some("ssh") => exit(podbox_ssh::cli::main(podssh_argv(rest))),
+        // ⭐ `podbox remote ssh`, decided 2026-09-27 and recorded in
+        // docs/decisions/remote-verb.md. `remote` is a NAMESPACE and not a
+        // synonym for `ssh`: `remote fetch`, `remote download` and
+        // `remote wget` are all "reach a machine that is not this one" and each
+        // would otherwise want its own top-level verb. `local` is its
+        // counterpart so the axis is visible, and `machine ssh` is a DIFFERENT
+        // axis (a guest podbox itself runs) and stays separate.
+        Some("remote") => exit(remote_group(rest)),
+        // ⛔ THE OLD SPELLING IS A USEFUL ANSWER, NOT "UNKNOWN COMMAND". An
+        // agent that typed `podbox ssh` is asking a real question, and the
+        // house rule is that a tool must not need its user to learn its
+        // differences by guessing. So the message names the group and lists
+        // what is in it.
+        Some("ssh") => {
+            let mut err = std::io::stderr().lock();
+            let _ = writeln!(
+                err,
+                "podbox: ssh: the verb is `podbox remote ssh`. The remote group has:"
+            );
+            let _ = writeln!(err, "  podbox remote ssh        reach another machine over a relay");
+            let _ = writeln!(err, "  podbox remote relay      run the rendezvous relay");
+            let _ = writeln!(err, "  podbox remote probe      what this machine can reach");
+            let _ = writeln!(
+                err,
+                "  podbox local <verb>      act on THIS machine (see docs/decisions/remote-verb.md)"
+            );
+            exit(EXIT_RUNTIME_ERROR)
+        }
         Some("doctor") => exit(doctor::doctor("doctor", rest)),
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
@@ -454,6 +479,50 @@ fn podssh_argv(rest: &[String]) -> Vec<String> {
     argv.extend_from_slice(rest);
     argv
 }
+
+/// `podbox remote <member>`: verbs that act across a machine boundary.
+///
+/// ⛔ **A MEMBER THIS GROUP DOES NOT HAVE IS REFUSED WITH THE LIST, NOT WITH
+/// "UNKNOWN COMMAND".** The same rule the parity table follows for a docker
+/// verb podbox does not have, for the same reason: the caller is an agent
+/// deciding what to try next, and "no such command" costs it a guess.
+fn remote_group(args: &[String]) -> i32 {
+    let Some(member) = args.first().map(String::as_str) else {
+        print!("{REMOTE_USAGE}");
+        return 0;
+    };
+    let rest = if args.len() > 1 { &args[1..] } else { &[] };
+    match member {
+        "ssh" => podbox_ssh::cli::main(podssh_argv(rest)),
+        "-h" | "--help" | "help" => {
+            print!("{REMOTE_USAGE}");
+            0
+        }
+        other => {
+            let mut err = std::io::stderr().lock();
+            let _ = writeln!(err, "podbox remote: {other:?}: no such member");
+            let _ = write!(err, "{REMOTE_USAGE}");
+            EXIT_CLI_ERROR
+        }
+    }
+}
+
+const REMOTE_USAGE: &str = "\
+usage: podbox remote <command> [options]
+
+  ssh <command>   the ssh transport: serve, connect, relay, forward, probe,
+                  config, selftest. `podbox remote ssh serve` registers this
+                  machine with a relay and opens no listening socket;
+                  `podbox remote ssh connect` is the operator's ProxyCommand.
+  relay           run the rendezvous relay
+  probe           what this machine can reach, and which relay answers
+
+  This group is the verbs that act ACROSS a machine boundary. The verbs that
+  act on this machine are `podbox local <verb>`. A guest podbox itself runs
+  is a third axis and is `podbox machine ssh`.
+
+  See docs/decisions/remote-verb.md for why the group is named.
+";
 
 fn exit(code: i32) -> std::process::ExitCode {
     // ⚠ An exit status carries eight bits. Anything wider would be truncated

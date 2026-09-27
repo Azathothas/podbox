@@ -11,13 +11,25 @@
 #![forbid(unsafe_code)]
 
 pub mod catalog;
+pub mod chain;
 pub mod cli;
 pub mod connect;
+pub mod error;
 pub mod probe;
 pub mod protocol;
 pub mod relay;
+pub mod resolver;
 pub mod serve;
 pub mod sshserver;
+pub mod target;
 pub mod transport;
 pub mod url;
 pub mod util;
+
+// Re-exports, so a caller names one module.
+pub use error::{Error, Exit, Kind, Result};
+pub use target::Target;
+pub use transport::{Dialer, Stream};
+
+/// The version every user-agent and `--json` document carries.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");

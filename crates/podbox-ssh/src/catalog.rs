@@ -23,23 +23,43 @@ pub struct Egress {
 }
 
 pub const EGRESS: &[Egress] = &[
+    // ⛔ **ORDERED BY MEASURED FIRST-BYTE LATENCY, NOT BY THE ORDER THEY WERE
+    // FOUND IN, AND THE ORDER IS PART OF THE CONTRACT.** Measured 2026-09-27
+    // from the reference cage, banner time through each relay to
+    // `railway.new:22`, every relay answering the same `SSH-2.0-Go`:
+    //
+    //     107.167.18.122:443   0.67s
+    //      34.43.46.91:443    0.76s
+    //     165.22.103.5:443     4.34s
+    //
+    // ⛔ **A CORRECT BUT UNORDERED LIST IS A LATENCY BUG.** `probe` and every
+    // client that walks this list pay the FIRST entry's latency before they
+    // reach a good one. With the 4.34s relay first, a probe that would have
+    // answered in 0.67s spent 4.34s on a hop that also answers, and a
+    // `ConnectTimeout` was consumed before a fast relay was tried. The 165
+    // entry was first in the first version of this list, which is the defect
+    // this comment and this order exist to prevent.
     Egress {
-        url: "http-connect://165.22.103.5:443",
+        url: "http-connect://107.167.18.122:443",
         verified: "2026-09-27",
-        method: "TCP 443 open; CONNECT railway.new:22 -> 200; SSH banner read",
-        note: "fastest of the three in the reference bridge (1.52s median)",
+        method: "TCP 443 open; CONNECT railway.new:22 -> 200; SSH banner read in 0.67s",
+        note: "fastest measured of the three; stable in the reference bridge (3 of 3 full sessions)",
     },
     Egress {
         url: "http-connect://34.43.46.91:443",
         verified: "2026-09-27",
-        method: "TCP 443 open; CONNECT railway.new:22 -> 200; SSH banner read",
-        note: "was flaky in the reference bridge (2 of 3 full sessions)",
+        method: "TCP 443 open; CONNECT railway.new:22 -> 200; SSH banner read in 0.76s",
+        note: "second fastest; was flaky in the reference bridge (2 of 3 full sessions)",
     },
     Egress {
-        url: "http-connect://107.167.18.122:443",
+        url: "http-connect://165.22.103.5:443",
         verified: "2026-09-27",
-        method: "TCP 443 open; CONNECT railway.new:22 -> 200; SSH banner read",
-        note: "stable in the reference bridge (3 of 3 full sessions)",
+        method: "TCP 443 open; CONNECT railway.new:22 -> 200; SSH banner read in 4.34s",
+        // ⛔ THE SLOWEST BY A FACTOR OF SIX, AND KEPT BECAUSE IT ANSWERED. A
+        // relay list of one is a single point of failure that a burst of
+        // refusals turns into an outage, so the slow one stays and the chain
+        // reaches it last.
+        note: "SLOWEST measured (4.34s to first byte, 6x the first entry); kept last because it answered, and because a one-entry list is one refusal away from an outage",
     },
 ];
 
@@ -75,6 +95,38 @@ pub const TURN: &[Turn] = &[
 
 /// The relay URLs to try, in order. Explicit flags win, then the environment,
 /// then the config file, then nothing.
+/// The operator's own relay, and the default when a token is present.
+///
+/// ⛔ **THIS IS THE PREFERRED RELAY AND IT IS NOT THE DEFAULT, BECAUSE IT
+/// NEEDS A TOKEN.** `tcp.ssh.relay.ajam.dev` is a Cloudflare Worker that
+/// exposes raw TCP as a WebSocket, targets any public host, and answers from a
+/// four-host pool with a colo per region. Measured 2026-09-27 from the
+/// reference cage: `/health?detail=1` answers 200 with
+/// `"allow": "any public target"`, and `/relays.json` returns four ranked
+/// hosts. Every forward path returns `403 relay: missing or wrong token`
+/// without a credential, so a token is required and none is shipped here.
+///
+/// ⛔ **A TOKEN IS A SECRET AND THIS CONSTANT IS NOT ONE.** The endpoint is
+/// public and documented; the token is the operator's, it arrives in
+/// `PODSSH_RELAY_TOKEN` or a config line, and it is never written into this
+/// file, a log, or a commit. A relay that ships a token in its source is a
+/// relay whose credential is in every clone.
+///
+/// The token is read from `PODSSH_RELAY_TOKEN` and appended as the relay's
+/// documented `X-Relay-Token` header, which its own documentation prefers
+/// over `?token=` because a query string is written to every access log on the
+/// way. With no token in the environment this returns `None` and the caller
+/// falls back to whatever the operator configured, so the relay is an
+/// improvement when it is available and invisible when it is not.
+pub const AJAM_RELAY: &str = "wss://tcp.ssh.relay.ajam.dev";
+
+/// The operator's relay, with the token attached as a header, or `None` when
+/// no token is in the environment.
+pub fn ajam_relay() -> Option<String> {
+    let token = std::env::var("PODSSH_RELAY_TOKEN").ok().filter(|t| !t.is_empty())?;
+    Some(format!("{AJAM_RELAY}/?header=X-Relay-Token:{token}"))
+}
+
 pub fn relay_candidates(explicit: &[String]) -> Vec<String> {
     if !explicit.is_empty() {
         return explicit.to_vec();
@@ -101,6 +153,16 @@ pub fn relay_candidates(explicit: &[String]) -> Vec<String> {
         if !list.is_empty() {
             return list;
         }
+    }
+    // ⛔ THE OPERATOR'S OWN RELAY IS TRIED LAST, NOT FIRST. It is the most
+    // reliable of the candidates, so it would be the right default, but it is
+    // also the only one that needs a credential, and a default that silently
+    // depends on a token nobody set is a default that fails on a machine where
+    // the token is absent. It goes at the END of the list, so a session that
+    // can be served by an uncredentialed relay never waits for one, and a
+    // session that reaches it gets the reliable path.
+    if let Some(r) = ajam_relay() {
+        return vec![r];
     }
     Vec::new()
 }
