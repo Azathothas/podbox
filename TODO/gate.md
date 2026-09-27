@@ -1438,8 +1438,7 @@ unit guard `load_stages_inside_the_store` fails where the
 staging path leaves the store root, and the re-driven `load`
 row is green on both shapes. The run curve (first ~1.6 s,
 repeat ~2 s, late ~0.08 s, on both shapes) is recorded under
-order-named metrics with its cause unisolated, and filed as
-T-1340. `scripts/plant.sh` case 30 inflates the `run.repeat`
+order-named metrics with its cause isolated in T-1340. `scripts/plant.sh` case 30 inflates the `run.repeat`
 row past its ceiling and the gate goes red naming the
 regression.
 
@@ -1453,7 +1452,7 @@ Source:      T-1338's first lane drive (`experiments/results/perf-lane.txt`):
 Category:    gate
 Priority:    P3
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     Three `run` timings across one harness drive decay
              twenty-fold (1.6 s, 2.1 s, 0.08 s) with no isolated
@@ -1481,3 +1480,39 @@ Out of scope: changing any ceiling before the cause is isolated,
 Prove:       `./experiments/360-perf-harness.sh` re-driven with
              phase timing names the paying phase, and the ceilings
              move only on the isolated cause.
+
+**Done 2026-09-27.** Cause isolated on the lane (lane-built musl
+debug binary, kernel `7.2.0-WSL2-STABLE`):
+`experiments/368-run-decay.sh` exits 0
+(`experiments/results/run-decay-368.txt`), 11 of 11 predictions
+held with 16-to-69-fold separation. The `--rm` arm in
+`crates/podbox-cli/src/run.rs:754-784` deletes the extracted
+rootfs where `referencing()`
+(`crates/podbox-supervise/src/lib.rs:305-311`) answers empty, so
+each keeper-less ephemeral run re-pays full extraction (a1
+1.746 s with the tree present; a2 4.776 s and a3 4.778 s
+re-extracting; rootfs absent after each). `create` re-extracts
+once (4.764 s) and pins the tree through its container record
+(`keeps the rootfs` on stderr, payload stdout clean); kept runs
+cost 0.074 to 0.078 s (b1 through b3). `rm` leaves the tree
+(present after, 0.002 s); the post-rm warm run costs 0.108 s
+(c1, then deletes), the next re-pays extraction (c2 5.129 s).
+The warm probe storm alone costs 0.059 s, which bounds every
+flat per-run cost below 0.1 s and refutes a seconds-level
+per-run mechanism. Verdicts: deletion confirmed; page-cache
+warming and one-time steps (rehash `if !linked` at
+`crates/podbox-complete/src/pkg.rs:780`, CA marker at
+`crates/podbox-complete/src/pkg.rs:429`) plausible for the
+~1.6 s first-run premium, unsettled between them; the settler
+is a cache-drop run with keeper, which needs privilege the lane
+lacks. The 360 rows reread through this: `run.repeat` stays
+slow because the two warmups each delete the tree; `create`
+(1.826 s lane, 2.138 s kvm) re-extracts and pins; `run.late`
+(0.084 s lane, 0.090 s kvm) rides the pinned warm tree after
+`rm`; `cp` 0.949 s fits a re-extraction after `run.late` deletes; the
+kvm shape repeats the pattern with no exception. No ceiling
+moves: every committed perf row holds under its ceiling with
+the cause named, and the 5 s run budget covers
+extraction-cost variance on this lane; redefining the run rows
+with a keeper so they budget run cost is next work, not this
+entry.

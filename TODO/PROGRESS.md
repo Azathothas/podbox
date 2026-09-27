@@ -2,7 +2,7 @@
 
 ## State
 
-169 entries: 1 open, 0 partial, 1 blocked, 167 done. The 2026-09-25
+169 entries: 0 open, 0 partial, 1 blocked, 168 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -363,7 +363,16 @@ T-1340; issue 57 closed with proof. T-1327 closed 2026-09-26:
 payload runs with the 0xb7-against-0x3e decline named. The
 cleanup rule now covers drive artifacts and base scratch, held
 by check 29 with its plant. Item 9 is closed and item 10 with
-it; the triage work order is finished. Next is T-1340.
+it; the triage work order is finished. T-1340 closed 2026-09-27
+on the run-decay drive (`368` exits 0,
+`experiments/results/run-decay-368.txt`, 11 of 11 predictions
+held): `--rm` deletes the unreferenced rootfs at exit, so each
+keeper-less run re-pays extraction (a1 1.746 s with the tree
+present, a2/a3 ~4.78 s re-extracting); `create` re-extracts once
+and pins the tree; kept runs cost ~0.075 s, the post-keeper-rm
+warm run 0.108 s, the next 5.129 s; warm probe alone 0.059 s.
+No ceiling moves; the 360 comment names the cause. Next is the
+run-rows-with-keeper follow-up named in T-1340's Done text.
 
 ## Operator questions
 

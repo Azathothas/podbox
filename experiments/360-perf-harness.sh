@@ -154,9 +154,9 @@ measure extract.cold loopback "$BIN" extract "$DEBIAN"
 
 echo "" >>"$WORK/report"
 echo "== payload runs: three runs across the drive, named by order" >>"$WORK/report"
-echo "  (early runs read ~2 s, the late one ~0.08 s; the decay is" >>"$WORK/report"
-echo "  recorded, not explained - consistent with cold file caches," >>"$WORK/report"
-echo "  not isolated: TODO/gate.md T-1340)" >>"$WORK/report"
+echo "  (early keeper-less runs re-pay extraction: --rm deletes the" >>"$WORK/report"
+echo "  unreferenced rootfs at run.rs:754-784, so repeat re-extracts;" >>"$WORK/report"
+echo "  create pins the tree and late runs ride it warm: T-1340)" >>"$WORK/report"
 measure run.first loopback "$BIN" run --rm "$DEBIAN" /bin/echo perf-hi
 timeout 120 "$BIN" run --rm "$DEBIAN" /bin/echo warmup >/dev/null 2>&1
 timeout 120 "$BIN" run --rm "$DEBIAN" /bin/echo warmup >/dev/null 2>&1

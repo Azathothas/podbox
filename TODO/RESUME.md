@@ -1,23 +1,33 @@
 ## The task
 
 Work the PROGRESS work order entry by entry, unattended, pushing
-straight to main. Item 1 first: T-0801 parity rows plus the T-1325
-curated-list check and plant.
+straight to main. T-1340 (run-decay isolation) is done 2026-09-27:
+`experiments/368-run-decay.sh` exits 0 on the lane
+(`experiments/results/run-decay-368.txt`, 11 of 11 predictions
+held). Next: author the run-rows-with-keeper follow-up named in
+T-1340's Done text.
 
 ## The resume point
 
-Item 1 in progress: T-0801 (46 run flags, 10 verbs) with the T-1325
-check extension. Next: T-0503 ordering with T-1317.
+T-1340 closed. The `--rm` arm deletes the unreferenced rootfs at
+exit, so keeper-less runs re-pay extraction; `create` pins the
+tree; kept runs ride it warm. No ceiling moves.
 
 ## In flight
 
-Reading `crates/podbox-cli/src/parity.rs` (done, 856 lines) and the
-`run` parser. Nothing half-written.
+Nothing half-written. New files staged: `experiments/368-run-decay.sh`
+(with exec bit), `experiments/results/run-decay-368.txt`.
 
 ## State
 
-Tree clean at `0b89c3c`. `check-todo.py` green (168 rows: 3 open,
-20 partial, 0 blocked, 145 done).
+Tree at `62ddba5` plus the T-1340 change. `check-todo.py` ok on
+the host (169 rows, 0 open, 0 partial, 1 blocked, 168 done) and
+the full lane check green (`dev.sh check` rc 0 in a disposable
+container). Lane jobs `c300ecf9d36c7583` (368 drive) and
+`bf643f1b31dcc77a` (full check) collected with `gc --job
+--apply`; ledger at 0 open records. `.tmp/368-out/` holds the
+retrieved drive artifact until the results file is committed,
+then it goes per RULES section 8.
 
 ## The paste
 

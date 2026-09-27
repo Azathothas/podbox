@@ -1,0 +1,145 @@
+== conditions
+date              2026-09-27T00:25:13Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+rustc             info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+info: latest update on 2026-09-03 for version 1.98.1 (48a229cea 2026-09-01)
+info: downloading 6 components
+warn: the missing active toolchain `stable-x86_64-unknown-linux-gnu` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
+rustc 1.98.1 (48a229cea 2026-09-01)
+cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
+image input       public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+bootstrap         ok
+build             ok
+podbox            podbox 0.1.0-beta.7
+
+== cold pull and extract
+
+== pull
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox pull public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+exit              0
+wall              5.019s
+payload           bookworm-slim: Pulling from debian/debian
+rootfs-after      absent
+keeper-message    no-kept-msg
+
+== extract
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox extract public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+exit              0
+wall              4.294s
+payload           /work/experiments/.sweep368-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs
+rootfs-after      present
+keeper-message    no-kept-msg
+
+== phase A: three keeper-less runs (candidate A: all stay slow)
+
+== a1
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a /bin/echo decay-hi
+exit              0
+wall              1.746s
+payload           decay-hi
+rootfs-after      absent
+keeper-message    no-kept-msg
+
+== a2
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a /bin/echo decay-hi
+exit              0
+wall              4.776s
+payload           decay-hi
+rootfs-after      absent
+keeper-message    no-kept-msg
+
+== a3
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a /bin/echo decay-hi
+exit              0
+wall              4.778s
+payload           decay-hi
+rootfs-after      absent
+keeper-message    no-kept-msg
+
+== phase B: keeper pins the rootfs, then three kept runs
+
+== create
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox create --name keeper368 public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a /bin/sleep 30
+exit              0
+wall              4.764s
+payload           d7ecd6751571cf870c4c0abcc97793632836c2527f26908e30523116133925d5
+rootfs-after      present
+keeper-message    no-kept-msg
+
+== b1
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a /bin/echo decay-hi
+exit              0
+wall              0.078s
+payload           decay-hi
+rootfs-after      present
+keeper-message    kept-msg
+
+== b2
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a /bin/echo decay-hi
+exit              0
+wall              0.076s
+payload           decay-hi
+rootfs-after      present
+keeper-message    kept-msg
+
+== b3
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a /bin/echo decay-hi
+exit              0
+wall              0.074s
+payload           decay-hi
+rootfs-after      present
+keeper-message    kept-msg
+
+== phase C: rm the keeper, one warm run, one re-extract run
+
+== rmkeeper
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox rm keeper368
+exit              0
+wall              0.002s
+payload           keeper368
+rootfs-after      present
+keeper-message    no-kept-msg
+
+== c1
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a /bin/echo decay-hi
+exit              0
+wall              0.108s
+payload           decay-hi
+rootfs-after      absent
+keeper-message    no-kept-msg
+
+== c2
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a /bin/echo decay-hi
+exit              0
+wall              5.129s
+payload           decay-hi
+rootfs-after      absent
+keeper-message    no-kept-msg
+
+== control: probe cost with no rootfs work
+
+== probe
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox probe
+exit              0
+wall              0.059s
+payload           supervise
+rootfs-after      absent
+keeper-message    no-kept-msg
+
+== verdict against the three candidates
+walls: a1=1.746 a3=4.778 b1=0.078 b3=0.074 c1=0.108 c2=5.129
+  hold: keeper-less runs stay slow (a1 above 1.0 s)
+  hold: keeper-less runs stay slow (a3 above 1.0 s)
+  hold: kept runs decay (b3 below 0.5 s)
+  hold: kept runs decay (b3 below b1)
+  hold: post-rm warm run is fast (c1 below 0.5 s)
+  hold: post-rm second run re-pays extraction (c2 above 1.0 s)
+  hold: rootfs absent after keeper-less a3
+  hold: rootfs present after kept b3
+  hold: keeper message on kept b3
+  hold: rootfs present after rm keeper
+  hold: rootfs absent after post-rm c1
+
+verdict           DECAY ISOLATED
