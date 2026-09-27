@@ -78,11 +78,35 @@ pub struct ForwardConfig {
     pub target: String,
     pub expect_banner: Option<String>,
     pub dialer: Dialer,
+    /// Reach the target THROUGH these relay transports, rather than dialing
+    /// the target directly.
+    ///
+    /// ⛔ **A FORWARD RELAY IS NOT A RENDEZVOUS, AND CONFLATING THE TWO IS THE
+    /// GAP THIS FIELD CLOSES.** `connect` pairs two named peers through a relay
+    /// that both of them dial, which is what `sandssh-relay.py` and
+    /// `podssh relay` do. The operator's relay at `tcp.ssh.relay.ajam.dev` is
+    /// the OTHER shape: it dials the target itself and is addressed by
+    /// `wss://host/connect/<host>/<port>`, so there is nobody to pair with and
+    /// `--name` has no meaning. `forward` with no relay dials the target through
+    /// the egress proxy; `forward` WITH a relay dials the RELAY through the
+    /// egress and lets the relay reach the target. The two differ in exactly
+    /// which hop is the last one, and the verbs are the same verb.
+    pub relays: Vec<String>,
 }
 
 pub fn forward(cfg: &ForwardConfig) -> io::Result<()> {
     let (host, port) = split(&cfg.target)?;
-    let mut stream = cfg.dialer.dial_addr(&host, port)?;
+    // ⛔ WITH A RELAY, THE RELAY IS DIALED AND THE RELAY REACHES THE TARGET.
+    // Each relay is tried in order and each refusal is reported by name, so a
+    // relay that is down costs one hop rather than the session. The FIRST
+    // usable relay wins, and `Chain` owns the policy so `connect` and `probe`
+    // make the same decision about the same list.
+    let mut stream = if cfg.relays.is_empty() {
+        cfg.dialer.dial_addr(&host, port)?
+    } else {
+        let mut chain = crate::chain::Chain::new(&cfg.dialer, cfg.relays.clone());
+        chain.connect().map_err(|e| io::Error::other(e.to_string()))?
+    };
     if let Some(prefix) = &cfg.expect_banner {
         let banner = read_banner(&mut *stream, Duration::from_secs(10))?;
         if !banner.starts_with(prefix.as_bytes()) {

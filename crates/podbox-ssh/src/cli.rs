@@ -369,6 +369,7 @@ fn cmd_forward(args: &[String]) -> i32 {
         target,
         expect_banner: o.expect_banner.clone(),
         dialer,
+        relays: crate::catalog::relay_candidates(&o.relays),
     };
     match crate::connect::forward(&cfg) {
         Ok(()) => 0,
