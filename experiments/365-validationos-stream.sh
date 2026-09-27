@@ -80,7 +80,16 @@ range() {
 
 # Clause 1: the origin serves the ISO anonymously at the pinned length.
 # HEAD only: a GET to /dev/null would spend 2.46 GB proving a number the
-# header already states.
+# header already states. qemu-img reads the fetched extent in clause 5,
+# so the lane installs qemu here rather than assuming it.
+if ! command -v qemu-img >/dev/null 2>&1; then
+	if timeout 1200 ./scripts/common/bootstrap-env.sh qemu >>"$WORK/bootstrap.log" 2>&1; then
+		echo "bootstrap         qemu ok" >>"$REPORT"
+	else
+		echo "qemu-img missing and bootstrap FAILED: COULD NOT RUN" | tee -a "$REPORT"
+		exit 2
+	fi
+fi
 LEN="$(timeout 60 curl -sSI "$URL" 2>/dev/null | grep -i '^content-length:' | tr -d '\r' | awk '{print $2}')"
 echo "head bytes        $LEN" >>"$REPORT"
 [ "$LEN" = "$ISO_LEN" ] || { echo "clause 1          ISO length $LEN, wanted $ISO_LEN" >>"$REPORT"; fail=1; }
