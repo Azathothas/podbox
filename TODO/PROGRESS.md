@@ -2,7 +2,7 @@
 
 ## State
 
-170 entries: 1 open, 1 partial, 0 blocked, 168 done. The 2026-09-25
+171 entries: 0 open, 1 partial, 0 blocked, 170 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -392,7 +392,25 @@ the landed driver: `--podbox-timeout 0` refused as a flag error
 `windows fetch` through an agent with explicit connect, read and
 write timeouts repeating the registry triple, and `RunGuard`
 removing the per-run directory on drop behind the explicit
-cleanups; each unit-pinned. Next is T-1341.
+cleanups; each unit-pinned. T-1341 closed 2026-09-27 on the keeper rows:
+`run.kept` beside `start` in 360 with the lifecycle keeper alive,
+ceilings 0.25 s wall and the sibling rss; 360 exits 0 on the lane
+(`run.kept` 0.030 s) and on the kvm base (`run.kept` 0.060 s);
+check 30 green on both shapes and the plant suite 42 caught
+0 missed. T-1342 closed 2026-09-27 on the pull-path ceiling:
+`drain` clamped at the declared size bounded by the fsize
+ceiling, per-blob pre-flight against `min(fsize, free)` reusing
+`NoSpace` at 125; `372` green on the lane, `cargo test -p
+podbox-image` 136 passed, full lane check 10 passed 0 failed.
+`371` re-driven under a verified 1 GB soft ceiling (read back
+in force, SIGXFSZ proved live at exactly 1000000000 bytes):
+VOS STREAM HOLDS
+(`experiments/results/vos-stream-371-ceiling.txt`). The drive
+exposed a void guard in 371 clause 0 (`awk print` goes
+scientific past ~500 GB free, so `[` refused and the disk
+pre-flight never checked): fixed with `printf "%.0f"`,
+verified on the lane. Next is closing issues 29, 58 and 65,
+then the beta.8 release.
 
 ## Operator questions
 

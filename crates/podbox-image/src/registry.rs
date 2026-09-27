@@ -387,6 +387,13 @@ impl Client {
     }
 
     /// One whole body, hashed and counted as it is written.
+    ///
+    /// ⛔ Reads are clamped so the staged file never passes the cap, which
+    /// is the declared size bounded further by the file-size ceiling: a
+    /// lying origin that streams past its descriptor is refused mid-stream
+    /// instead of writing until the disk fills, and a body that would cross
+    /// `RLIMIT_FSIZE` is refused instead of dying with SIGXFSZ. The refusal
+    /// repeats the size shape `Verifier::finish` reports at the end.
     fn drain<W: Write>(
         resp: ureq::Response,
         sink: &mut W,
@@ -396,9 +403,25 @@ impl Client {
     ) -> Result<()> {
         let mut verifier = Verifier::new(sink);
         let mut reader = resp.into_reader();
+        let ceiling = crate::space::file_ceiling().unwrap_or(u64::MAX);
+        let cap = size.unwrap_or(u64::MAX).min(ceiling);
+        let bound = if size.is_some_and(|s| s <= ceiling) {
+            format!("the descriptor declares {} byte(s)", size.unwrap_or(0))
+        } else {
+            format!("the file-size ceiling is {ceiling} byte(s)")
+        };
         let mut buf = vec![0u8; 128 * 1024];
         loop {
-            let n = reader.read(&mut buf).map_err(|e| Error::Http {
+            let room = cap.saturating_sub(verifier.written());
+            // One byte past the room proves the origin is still sending:
+            // read it, refuse on it, and never write it. At exactly the
+            // cap a final read answers EOF and the loop exits below.
+            let take = if room == u64::MAX {
+                buf.len()
+            } else {
+                (room + 1).min(buf.len() as u64) as usize
+            };
+            let n = reader.read(&mut buf[..take]).map_err(|e| Error::Http {
                 what: format!("GET {}", redact(path)),
                 detail: format!(
                     "reading the blob body after {} byte(s): {e}",
@@ -407,6 +430,16 @@ impl Client {
             })?;
             if n == 0 {
                 break;
+            }
+            if n as u64 > room {
+                return Err(Error::Http {
+                    what: format!("blob {want}"),
+                    detail: format!(
+                        "{bound} and {} byte(s) arrived with more sending; \
+                         the partial was discarded",
+                        verifier.written()
+                    ),
+                });
             }
             verifier
                 .write_all(&buf[..n])
@@ -836,6 +869,74 @@ fn parse_challenge(challenge: &str) -> HashMap<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// One HTTP/1.0 reply on loopback, then the body: the origin under
+    /// test, without a registry anywhere near it.
+    fn serve_once(body: Vec<u8>) -> u16 {
+        use std::net::TcpListener;
+        let listener = TcpListener::bind("127.0.0.1:0").expect("loopback binds where tests run");
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            let (mut s, _) = listener.accept().unwrap();
+            let mut req = [0u8; 4096];
+            let _ = s.read(&mut req);
+            let head = format!(
+                "HTTP/1.0 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            );
+            s.write_all(head.as_bytes()).unwrap();
+            s.write_all(&body).unwrap();
+        });
+        port
+    }
+
+    fn get(port: u16) -> ureq::Response {
+        ureq::AgentBuilder::new()
+            .timeout_connect(Duration::from_secs(5))
+            .timeout_read(Duration::from_secs(5))
+            .timeout_write(Duration::from_secs(5))
+            .build()
+            .get(&format!("http://127.0.0.1:{port}/blob"))
+            .call()
+            .expect("the loopback origin answers")
+    }
+
+    /// A body past its declared size is refused mid-stream, and the
+    /// staged file never passes the cap: the defect was `drain` reading
+    /// to EOF and naming the lie only after the bytes landed.
+    #[test]
+    fn a_body_past_its_declared_size_is_refused_mid_stream() {
+        let port = serve_once(vec![7u8; 1 << 20]);
+        let resp = get(port);
+        let mut sink = Vec::new();
+        let want = Digest::parse(&format!("sha256:{}", "0".repeat(64))).unwrap();
+        let err = Client::drain(resp, &mut sink, &want, Some(100), "/test").unwrap_err();
+        let msg = format!("{err}");
+        assert!(
+            msg.contains("declares 100 byte(s)") && msg.contains("partial was discarded"),
+            "the refusal names the declared size: {msg}"
+        );
+        assert!(
+            sink.len() <= 101,
+            "staged {} byte(s): reads clamp at the cap",
+            sink.len()
+        );
+    }
+
+    /// An exact body still lands: the cap refuses the extra byte, not
+    /// the declared ones.
+    #[test]
+    fn an_exact_body_lands_whole() {
+        let body = vec![9u8; 100];
+        let mut v = Verifier::new(Vec::new());
+        v.write_all(&body).unwrap();
+        let want = v.digest();
+        let port = serve_once(body.clone());
+        let resp = get(port);
+        let mut sink = Vec::new();
+        Client::drain(resp, &mut sink, &want, Some(100), "/test").unwrap();
+        assert_eq!(sink, body);
+    }
 
     /// TODO/cli.md T-1331. Pagination follows `rel="next"` and nothing
     /// else, and an empty or absent target ends the walk.

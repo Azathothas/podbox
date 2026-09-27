@@ -2185,3 +2185,61 @@ rc=0
 The guard that stops recurrence is the reference query on all three
 removal paths: no record may reference a digest that is deleted, and
 the check names the containers that say so.
+
+----
+
+### T-1342 A pull refuses past the ceiling instead of dying past it
+
+Source:      Issue 65 (streaming and chunked acquisition): the
+             `windows fetch` half shipped with the T-1112 landing
+             (`fetch.rs` ceilings, `371` green); the image pull path
+             never took its three bounds
+Category:    image
+Priority:    P2
+Effort:      M
+Status:      done
+
+Problem:     A blob that declares under the free space but over
+             `RLIMIT_FSIZE` pulls until SIGXFSZ kills the process
+             mid-transfer, and a lying origin that streams past its
+             declared size writes until the disk fills: the digest
+             check at the end names the lie after the bytes landed.
+             `space::require` pre-flights the declared total against
+             free space only.
+Premise:     Read 2026-09-27, not measured: `Client::drain` in
+             `crates/podbox-image/src/registry.rs` reads to EOF with
+             no running cap; `pull` in
+             `crates/podbox-image/src/pull.rs` never reads the fsize
+             ceiling (`podbox_probe::sys::prlimit` precedent in
+             `crates/podbox-cli/src/windows/plan.rs:88`).
+Approach:    Cap `drain` at the declared size with reads clamped so
+             the staged file never passes the cap, refusing the
+             lying origin mid-stream; pre-flight each missing blob
+             against `min(fsize, free)` up front, refusing with the
+             object bytes, the ceiling and the room; unit-pin both
+             (an infinite reader for the cap, pure cases for the
+             pre-flight); drive it live as `372-pull-ceiling.sh`
+             (a sub-blob `ulimit -f` refuses a real pull naming the
+             three numbers with no partial left, an adequate ceiling
+             pulls clean).
+Decision:    The refusal reuses `NoSpace` (exit 125, three numbers)
+             and the mid-stream stop reuses the `Http` size shape
+             `Verifier::finish` already reports; no new error
+             variant, no new dependency.
+Out of scope: resuming an interrupted pull with `Range`, partial
+             OCI blobs, unifying the two clients into one.
+Prove:       `372` exits 0 on the lane; `cargo test -p
+             podbox-image` green; the full gate green.
+
+**Done 2026-09-27.** `372` exits 0 on the lane: a 10 MiB soft
+ceiling refuses the debian blob (28232655 bytes) up front at
+125 naming the object, the ceiling and the room, with no
+partial left; the same bytes pull clean with no ceiling
+(`experiments/results/pull-ceiling-372.txt`). `cargo test -p
+podbox-image` is 136 passed 0 failed on the lane, including
+the infinite-body refusal, the exact-body pass and the
+pre-flight cases. The full lane check is 10 passed 0 failed.
+The gate caught three defects in the work itself: stale
+counts, one fmt hunk, and clippy `never_loop` (the
+pre-flight is now `find`) plus `unnecessary_map_or` (now
+`is_some_and` / `is_none_or`, the tree idiom).

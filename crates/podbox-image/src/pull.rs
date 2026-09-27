@@ -81,6 +81,14 @@ struct FetchJob {
     size: u64,
 }
 
+/// True where one blob's declared size alone passes the file-size
+/// ceiling: the pre-flight half of the running cap `Client::drain`
+/// enforces mid-stream. A missing ceiling (infinity, or unreadable)
+/// binds nothing, because the pull worked without one before.
+fn blob_over_ceiling(size: u64, ceiling: Option<u64>) -> bool {
+    ceiling.is_some_and(|c| size > c)
+}
+
 /// What the fetch hands back per job: the worker wrote the bytes, this
 /// value says what to do with the staged file.
 ///
@@ -386,6 +394,41 @@ pub fn pull(
     // ⛔ Before a single layer is fetched. Streaming until ENOSPC leaves a
     // partial store to clean up on a filesystem that is already full, which is
     // the state in which cleanup is least likely to work (T-0203).
+    //
+    // ⛔ And before the free-space sum, the file-size ceiling, one blob at a
+    // time. Free space is shared by the whole pull, but `RLIMIT_FSIZE` binds
+    // every file on its own: a blob that declares under the room and over
+    // the ceiling would otherwise pull until SIGXFSZ kills the process
+    // mid-transfer (T-1342).
+    if let Some(ceiling) = space::file_ceiling() {
+        let room = space::read(&store.root().to_string_lossy())
+            .map(|h| h.free.bytes)
+            .unwrap_or(0);
+        if let Some(d) = manifest
+            .layers
+            .iter()
+            .chain(std::iter::once(&manifest.config))
+            .filter(|d| {
+                d.parsed_digest()
+                    .map(|x| !store.has_blob(&x))
+                    .unwrap_or(true)
+            })
+            .find(|d| blob_over_ceiling(d.size, Some(ceiling)))
+        {
+            let digest = d
+                .parsed_digest()
+                .map(|x| x.to_string())
+                .unwrap_or_else(|_| d.digest.clone());
+            return Err(Error::NoSpace(format!(
+                "blob {digest} declares {} byte(s), over this process's \
+                 file-size ceiling of {ceiling} byte(s) ({} free at {}): \
+                 nothing was downloaded",
+                d.size,
+                space::mib(room),
+                store.root().display(),
+            )));
+        }
+    }
     let need_bytes: u64 = manifest
         .layers
         .iter()
@@ -647,6 +690,17 @@ mod tests {
         let d = std::env::temp_dir().join(format!("podbox-pull-par-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         Store::open(d).unwrap()
+    }
+
+    #[test]
+    fn only_a_blob_over_the_ceiling_is_over_it() {
+        assert!(blob_over_ceiling(101, Some(100)));
+        assert!(!blob_over_ceiling(100, Some(100)));
+        assert!(!blob_over_ceiling(99, Some(100)));
+        assert!(
+            !blob_over_ceiling(u64::MAX, None),
+            "no ceiling binds nothing, not everything"
+        );
     }
 
     fn par_jobs(n: usize) -> (Vec<String>, Vec<FetchJob>) {

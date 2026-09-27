@@ -53,7 +53,11 @@ fail=0
 # cannot run it. curl dying with SIGXFSZ halfway is exit 1 territory;
 # refusing up front with the numbers is exit 2.
 FSIZE_HARD="$(prlimit --fsize 2>/dev/null | awk '/^FSIZE/ {print $6}' || echo unknown)"
-ROOM="$(df -k "$(dirname "$OUT")" 2>/dev/null | awk 'NR==2 {print $4 * 1024}')"
+ROOM="$(df -k "$(dirname "$OUT")" 2>/dev/null | awk 'NR==2 {printf "%.0f", $4 * 1024}')"
+# ⛔ `print` is forbidden here: past ~500 GB free the product passes
+# 1e12 and awk's default %.6g prints `1.01739e+12`, which `[` refuses
+# (measured 2026-09-27 on the lane) and the disk pre-flight below
+# goes void. `printf "%.0f"` always prints the integer.
 echo "fsize hard        $FSIZE_HARD" >>"$REPORT"
 echo "room bytes        $ROOM" >>"$REPORT"
 if [ "$FSIZE_HARD" != "unknown" ] && [ "$FSIZE_HARD" != "unlimited" ] && [ "$FSIZE_HARD" -lt "$VHDX_LEN" ]; then

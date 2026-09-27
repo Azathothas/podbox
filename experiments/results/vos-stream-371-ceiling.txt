@@ -1,0 +1,41 @@
+== conditions
+date              2026-09-27T02:58:38Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+image             docker.io/library/rust:1.98.1-bookworm
+fsize soft        1953125 blocks (1000000000 bytes, read back inside
+                  the subshell before the drive)
+fsize hard        unlimited (the lane rejects lowering it, so the
+                  drive sets the soft limit only)
+extent            910163968 bytes at ISO LBA 1010 (fits the ceiling)
+whole ISO         2460880896 bytes (does not fit: the case the
+                  streaming path exists for)
+
+== clause 0: the ceiling is in force and it bites
+371 rc=0 under the soft ceiling, verdict VOS STREAM HOLDS.
+A past-ceiling write in the same subshell died with rc=153
+(128+25, SIGXFSZ) and the file stopped at exactly 1000000000
+bytes: the kernel enforced the ceiling the drive ran under.
+
+== clauses 1-5: the stream lands the disk
+head bytes        2460880896
+clause 2          PVD plus terminator plus BEA01/NSR02 present
+clause 3          VDS carries PVD LVD PD USD IUVD TD in order
+clause 4          root File Entry is a directory
+fetch             910163968 bytes at LBA 1010
+sha256            063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f
+image             ValidationOS.vhdx, file format vhdx, virtual 32 GiB,
+                  disk 868 MiB, qemu-img reads it
+clause 5          extent is vhdxfile, sha256 matches, qemu-img reads it
+
+verdict           VOS STREAM HOLDS UNDER A 1 GB CEILING
+
+== drive note
+The first attempt recorded the ceiling as `unlimited` because 371
+reads the hard limit; the re-drive reads back the soft limit and
+proves enforcement with SIGXFSZ, above. The same drive exposed a
+void guard in 371 clause 0: past ~500 GB free, `df ... | awk
+'{print $4 * 1024}'` prints `1.01739e+12`, which `[` refuses, so
+the disk pre-flight never checked on this lane. Fixed in-script
+with `printf "%.0f"`, verified on the lane (`room bytes
+1017386131456`, the comparison parses, rc=0). The verdict is
+unaffected: room was ample either way.

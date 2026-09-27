@@ -1,0 +1,31 @@
+== conditions
+date              2026-09-27T02:38:03Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+rustc             info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+info: latest update on 2026-09-03 for version 1.98.1 (48a229cea 2026-09-01)
+info: downloading 6 components
+warn: the missing active toolchain `stable-x86_64-unknown-linux-gnu` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
+rustc 1.98.1 (48a229cea 2026-09-01)
+cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
+image input       public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+ceiling blocks    20480 (10 MiB)
+bootstrap         ok
+build             ok
+podbox            podbox 0.1.0-beta.7
+
+== clause 1: a 10 MiB ceiling refuses the debian blobs up front
+  fsize soft        20480
+  fsize hard        unlimited
+  PULL rc=125
+exit              125
+  podbox: blob sha256:a8ac7f6c67abc236e4c745052c404112b8fab6fe8ac3a329d1ef3b867ad67c71 declares 28232655 byte(s), over this process's file-size ceiling of 10485760 byte(s) (945.60 GiB free at /work/experiments/.sweep372-work/store): nothing was downloaded
+partials           none
+clause 1          HOLDS
+
+== clause 2: the same bytes pull clean with no ceiling
+exit              0
+clause 2          HOLDS
+
+verdict           PULL CEILING HOLDS

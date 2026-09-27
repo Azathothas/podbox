@@ -1527,7 +1527,7 @@ Source:      T-1340 Done (`experiments/results/run-decay-368.txt`):
 Category:    gate
 Priority:    P3
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `run.first`, `run.repeat` and `run.late` all budget
              extraction variance under run names (5 s ceilings), so a
@@ -1551,3 +1551,12 @@ Prove:       `360` exits 0 on the lane and on kvm with `run.kept`
              ok under its ceiling, `check-todo.py` check 30 green,
              and `plant.sh` case 30 still goes red naming
              `run.repeat`.
+
+**Done 2026-09-27.** `run.kept` measured beside `start` in 360
+with the lifecycle keeper alive, ceilings 0.25 s wall and the
+sibling rss. `360` exits 0 on the lane (`run.kept` 0.030 s,
+`experiments/results/perf-lane.txt`) and on the kvm base
+(`run.kept` 0.060 s, `experiments/results/perf-kvm.txt`);
+check 30 green on both shapes; the plant suite goes 42 caught
+0 missed with case 30 red-naming `run.repeat`. The old rows
+keep their definitions and their history.

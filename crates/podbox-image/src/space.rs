@@ -22,6 +22,21 @@ use podbox_probe::sys::{self, CBuf};
 
 use crate::error::{Error, Result};
 
+/// This process's file-size ceiling (`RLIMIT_FSIZE`), or `None` where
+/// there is none (infinity) or it could not be read.
+///
+/// ⚠ Unlike free space, which the whole pull shares, the ceiling binds
+/// every blob on its own: one file may never pass it, however much room
+/// the filesystem has. An unreadable ceiling means no bound rather than
+/// a refusal: the pull worked without one before this check existed,
+/// and a kernel that will not answer must not break it.
+pub fn file_ceiling() -> Option<u64> {
+    match sys::prlimit(sys::RLIMIT_FSIZE) {
+        Ok((cur, _)) if cur != u64::MAX => Some(cur),
+        _ => None,
+    }
+}
+
 /// What one filesystem has left. `statfs(2)` is the syscall behind `statvfs(3)`
 /// and is what `crates/podbox-probe/src/writable.rs` already calls, so there is
 /// one read path for free space in this tree and not two.
@@ -209,6 +224,14 @@ mod tests {
         // The shipping path against a real filesystem, not a double.
         let have = read("/tmp").unwrap();
         assert!(have.free.block_size > 0);
+    }
+
+    #[test]
+    fn a_file_ceiling_is_absent_or_positive_never_zero() {
+        // Environment-dependent (this lane reads infinity), so the test
+        // pins the invariant, not the value: a zero ceiling would refuse
+        // every file including the empty one.
+        assert!(file_ceiling().is_none_or(|c| c > 0));
     }
 
     #[test]
