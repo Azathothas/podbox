@@ -21,8 +21,8 @@
 #   4. `windows fetch` against a local file server refuses a body over
 #      --max-bytes, names the ceiling, and leaves neither the file nor a
 #      .part behind. ⛔ This is the bound that a declared length cannot see.
-#   5. `windows doctor` refuses at 125 on a lane with no accelerator profile,
-#      naming the leg, and reports the profile it did find.
+#   5. `windows doctor` exits 0 naming the accelerator where a profile
+#      holds, and refuses at 125 naming the leg where none does.
 #   6. `run --podbox-tier=machine --platform windows/amd64` reaches the guest
 #      driver - the refusal names `podbox windows setup`, not the OCI path's
 #      "not a Linux guest" - and the store is byte-identical after.
@@ -125,13 +125,20 @@ fi
 if [ -e "$WORK/kept.bin" ]; then bad "destination       LEFT BEHIND"; else say "destination       absent"; fi
 if ls "$WORK"/*.part >/dev/null 2>&1; then bad "partial           LEFT BEHIND"; else say "partial           none"; fi
 
-# --- 5. doctor refuses where no profile holds --------------------------------
+# --- 5. doctor names what holds, or refuses naming the leg --------------------
 say ""
 say "== doctor"
 "$BIN" windows doctor >"$WORK/doctor.txt" 2>&1
-[ "$?" -eq 0 ] || bad "doctor did not exit 0"
-grep -q "accelerator: tcg" "$WORK/doctor.txt" || grep -q "accelerator: kvm" "$WORK/doctor.txt" || bad "doctor did not name an accelerator"
+DOCTOR_RC=$?
 sed -n '1,8p' "$WORK/doctor.txt" | sed 's/^/  /' >>"$REPORT"
+if [ "$DOCTOR_RC" -eq 0 ]; then
+	grep -q "accelerator: tcg" "$WORK/doctor.txt" || grep -q "accelerator: kvm" "$WORK/doctor.txt" || bad "doctor did not name an accelerator"
+	say "doctor            exit 0, accelerator named"
+elif [ "$DOCTOR_RC" -eq 125 ] && grep -q "no .*accelerator\|missing leg\|refused" "$WORK/doctor.txt"; then
+	say "doctor            exit 125, no accelerator profile here: refusal named"
+else
+	bad "doctor did not exit 0 with an accelerator nor 125 naming the leg"
+fi
 
 # --- 6. the run verb reaches the driver --------------------------------------
 say ""
@@ -177,9 +184,8 @@ say ""
 say "== dos-guest"
 if [ -z "${PODBOX_DOS_BASE:-}" ] || [ ! -f "${PODBOX_DOS_BASE:-}" ]; then
 	say "skipped           PODBOX_DOS_BASE is unset or absent: clause 8 needs"
-	say "                  the FreeDOS base `363-windows-tcg-dos.sh` writes"
-	exit 0
-fi
+	say "                  the FreeDOS base 363-windows-tcg-dos.sh writes"
+else
 T0="$(date +%s)"
 "$BIN" windows run --guest dos -- ver >"$WORK/dos.txt" 2>&1
 say "run exit          $? in $(( $(date +%s) - T0 ))s"
@@ -188,6 +194,7 @@ if grep -q "FreeCom version" "$WORK/dos.txt"; then
 	say "clause 8          the DOS guest answered"
 else
 	bad "clause 8          DISAGREED: no FreeCom banner"
+fi
 fi
 
 {

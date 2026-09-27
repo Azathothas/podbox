@@ -56,8 +56,8 @@ fi
 
 command -v cargo >/dev/null 2>&1 || { echo "cargo missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
 command -v cc >/dev/null 2>&1 || { echo "cc missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-echo "== bootstrap the lane toolchain"
-if timeout 1200 ./scripts/common/bootstrap-env.sh rust cc zig tools >>"$WORK/bootstrap.log" 2>&1; then
+echo "== bootstrap the lane toolchain (qemu rides along for the doctor clause 364 drives next)"
+if timeout 1200 ./scripts/common/bootstrap-env.sh rust cc zig tools qemu >>"$WORK/bootstrap.log" 2>&1; then
 	echo "bootstrap         ok" >>"$REPORT"
 else
 	echo "bootstrap         FAILED" | tee -a "$REPORT"
