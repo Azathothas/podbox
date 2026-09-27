@@ -1117,20 +1117,20 @@ this record had filled the tmpfs. The guest half was re-measured after those
 fixes, including an output of 7.6 KB that crosses the 4 KiB cluster, written
 by the guest and read back whole.
 
-⚠ **What is still not verified, named rather than implied.** The
-`podbox` binary itself is still not built here (the dependency graph
-exhausts the sandbox's 245 MB executable budget and the shipping target
-needs `zig` for `ring`), so `podbox windows doctor|setup|run` and `run
---platform windows/amd64` have **not been run as verbs**, and no clause of
-`364-` that needs the binary has run anywhere. What closed part of that
+⚠ **What is still not verified, named rather than implied.** The lane
+builds the `podbox` binary (musl debug) and runs the verbs: 364 clauses
+1 through 6 hold as verbs, clause 7 skips with no image configured,
+clause 8 holds with the DOS base 363 writes. `/dev/kvm` is present on
+the wsl-toolkit base (2026-09-27), so the `kvm` arm owes a licensed
+image with its accept-terms gate, not a host. No licensed image is
+fetched, committed or redistributed. What closed part of that
 gap: the CLI module tree is now **compiled and its own tests executed**,
 through a stub harness (a five-constant `podbox_image`, a `ureq` stub
 carrying the pinned 2.12.1 signatures, the real `tier.rs`); the tree
 type-checks with no error and `ok. 14 passed; 0 failed` for the `windows::`
-tests. That proves the CLI compiles and its tests pass; it does not prove
-the binary linking it works. The `kvm` arm of `accel_for` is still
-unit-tested only: no reachable machine has `/dev/kvm`. No licensed image
-is fetched, committed or redistributed. `rustfmt` and `clippy` are not
+tests. The lane has since linked the real binary and run the verbs above,
+so the stub harness is superseded where the lane reaches. The `kvm` arm of `accel_for` is still
+unit-tested only. `rustfmt` and `clippy` are not
 installed in this toolchain, so the fmt gate was not run.
 
 **Third landing 2026-09-26: the DOS flavor joins the crate, and the
