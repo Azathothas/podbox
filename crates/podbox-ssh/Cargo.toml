@@ -1,0 +1,20 @@
+[package]
+name = "podbox-ssh"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "podssh"
+path = "src/main.rs"
+
+[dependencies]
+# T-0905's ruling: rustls is the only transport that works, ring is its C
+# provider. These are the workspace pins, not a second choice made here.
+rustls.workspace = true
+rustls-pki-types.workspace = true
+rustls-pemfile.workspace = true
+webpki-roots.workspace = true
+serde_json.workspace = true

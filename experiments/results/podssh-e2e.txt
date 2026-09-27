@@ -1,0 +1,31 @@
+# 380-podssh-e2e.sh, 2026-09-27T01:57:27Z
+# podssh podssh 0.1.0-beta.7
+# Conditions: every relay and server over a unix socket; sshd -i; publickey only;
+# SANDSSH_TREE=/workspace/sandssh supplies the interop half.
+
+podssh-e2e: binary /tmp/podssh-target/x86_64-unknown-linux-gnu/debug/podssh
+podssh-e2e: workdir /tmp/podssh-e2e.7jQI4x
+podssh 0.1.0-beta.7
+ok       raw
+ok       ssh/raw
+ok       ws
+ok       ssh/ws
+ok       tls
+ok       ssh/tls
+ok       wss
+ok       ssh/wss
+ok       podbox-ssh-alias
+ok       interop/sandssh-relay
+ok       interop/sandssh-client
+ok       interop/sandssh-serve
+
+podssh-e2e: 12 passed, 0 failed, 0 skipped
+
+# An sshd -i under an unprivileged uid needs a working getpwnam. This cage has
+# no /etc/passwd, so the lane supplies the sandssh fakepwd shim through
+# SANDSSH_PASSWD and LD_PRELOAD. A normal host sets neither and the same cases
+# pass unchanged. `podbox-ssh-alias` is `podbox ssh version`; the three
+# `interop/` rows are against the sandssh tree unchanged -- its relay under
+# podssh on both ends, its client against podssh's relay and server, and its
+# server under podssh's relay and client. A protocol that only talks to itself
+# is a fork of sandssh, not a replacement for it.

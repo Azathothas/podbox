@@ -9,6 +9,7 @@ members = [
     "crates/podbox-enter",
     "crates/podbox-supervise",
     "crates/podbox-windows",
+    "crates/podbox-ssh",
 ]
 
 # ⛔ podbox-interpose is NOT a workspace member. It is a cdylib that runs inside

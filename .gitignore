@@ -140,3 +140,10 @@ __pycache__/
 # ⚠ The staged payload that `scripts/windows/run-in-base.sh` writes beside the
 # checkout and removes on exit. A cancelled run leaves one behind.
 .podbox-job.sh
+
+# Scratch beside this checkout, and a MINTED RELAY TOKEN which is a
+# credential and is never committed. See .sandssh-work and PODSSH_RELAY_TOKEN.
+.sandssh-work/
+.work/
+.mint.json
+.relay_llms.txt

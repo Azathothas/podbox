@@ -2,7 +2,7 @@
 
 ## State
 
-171 entries: 0 open, 1 partial, 0 blocked, 170 done. Zero open
+172 entries: 0 open, 1 partial, 0 blocked, 171 done. Zero open
 GitHub issues. `v0.1.0-beta.8` released 2026-09-27: the nightly
 pre-release carries seven static binaries with their sha256 and
 sigstore files, built and smoked green from tag `v0.1.0-beta.8`
@@ -15,6 +15,54 @@ here. What clears it is a KVM host with the image installed
 under the accept-terms gate the entry names. Nothing else is
 open, nothing is half-written, every lane job is collected.
 
+T-1401 closed 2026-09-27 and carried further on the same day.
+`crates/podbox-ssh` is `podbox remote ssh` and the standalone `podssh`:
+a native `ssh` session to a machine that cannot be dialled, with no
+custom client at either end of the encrypted session, so scp, rsync and
+every editor that speaks ssh keep working. Two shapes: a rendezvous
+(`serve` on the agent, `connect` on the operator, neither side
+listening) and a forward (reach one `host:port` through a relay).
+Every transport is a URL scheme, tcp/tls/ws/wss/unix/exec, with an HTTP
+CONNECT proxy or SOCKS5 in front.
+
+Three measurements changed the shape of it and are recorded in
+`docs/decisions/`.
+
+  * A shared public relay refuses in BURSTS. On 2026-09-27, in one
+    window, all three built-in relays answered 502, 400 and 503 at
+    once and a later attempt in the same minute succeeded, so a client
+    that names one relay is down for the length of that window however
+    healthy the code is. Hence the failover chain, and hence the egress
+    list ordered by MEASURED first-byte latency (0.67s, 0.76s, 4.34s to
+    the same banner) rather than by discovery order, which is a latency
+    bug and not a style question.
+  * `sshd -i -t` exiting 0 is NOT evidence that `sshd -i` runs. In the
+    reference cage `sshd -i` cannot run at all: it wants a `nobody`
+    user, then `/var/chroot/ssh`, and `/var` does not exist, and
+    `UsePrivilegeSeparation` has been a no-op since OpenSSH 8.4. A
+    default that picks sshd there fails with an error from the FAR END.
+    What runs is dropbear, built DYNAMICALLY so the passwd shim reaches
+    it, tolerating a denied setgroups(2). A full pubkey session over a
+    rendezvous in that cage exits 0 with no pty, no bind, no chroot, no
+    /var, no /etc/passwd, no UDP and no working resolver.
+  * The verb is `podbox remote ssh`, decided by the operator, because
+    `remote` is a NAMESPACE: `remote fetch`, `remote download` and
+    `remote wget` are members that were named, and each would otherwise
+    want its own top-level verb. `local` is the counterpart and
+    `machine ssh` is a different axis.
+
+Proof: `crates/podbox-ssh/tests/e2e.sh` is 13 of 13 with none skipped in
+that cage, four transports each against a byte pipe and against a real
+ssh client through a real dropbear -i, both verb checks and the three
+sandssh interop directions; `cargo test -p podbox-ssh` is 53; and a
+self-service token from the operator's relay at
+`tcp.ssh.relay.ajam.dev` carries a real pubkey session to a live
+ephemeral VM, ssh exit 0, mint expiring 2026-09-30.
+
+T-1402 and T-1403 stay open and are the interactive half: there is no
+pty anywhere, so the transport carries a one-shot command today and the
+userspace line discipline is what makes an operator's session feel
+native.
 M0 through M8 are implemented and the machine tier holds its probe.
 End-to-end acceptance is measured per entry.
 

@@ -37,3 +37,5 @@ podbox-windows = { path = "../podbox-windows" }
 # pulls OCI blobs with it. Reusing the workspace's lock rather than adding a
 # second HTTP stack, and adding no crate that was not already being built.
 ureq.workspace = true
+
+podbox-ssh = { path = "../podbox-ssh" }

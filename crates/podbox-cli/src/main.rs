@@ -53,6 +53,8 @@ usage: podbox <command> [options]
   exec         run a command in an already extracted image. refused: A FRESH CHROOT,
                sharing only the filesystem, never a namespace entry
   probe        report what this machine permits, and the rung podbox selects
+  ssh          podssh: a native ssh over a relay or a CONNECT proxy. The agent
+               runs `podbox ssh serve`, the operator runs `podbox ssh connect`
   doctor       check what this machine can run, with one fix line per missing piece
   windows      a disposable Windows guest: doctor, fetch, setup and run
   man          render this manual from the binary's own usage strings
@@ -146,6 +148,9 @@ fn main() -> std::process::ExitCode {
         Some("start") => exit(lifecycle::start(rest)),
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
+        // `podbox ssh` is `podssh` with one word in front: the same parser,
+        // the same subcommands, the same exit codes, under the podbox name.
+        Some("ssh") => exit(podbox_ssh::cli::main(podssh_argv(rest))),
         Some("doctor") => exit(doctor::doctor("doctor", rest)),
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
@@ -439,6 +444,15 @@ fn cached_probe(json: bool, strictness: Strictness) -> i32 {
         }
     }
     0
+}
+
+/// `podbox ssh` is `podssh` with one word in front, so the alias hands the
+/// subcommand its own argv0 and changes nothing else.
+fn podssh_argv(rest: &[String]) -> Vec<String> {
+    let mut argv = Vec::with_capacity(rest.len() + 1);
+    argv.push("podssh".to_string());
+    argv.extend_from_slice(rest);
+    argv
 }
 
 fn exit(code: i32) -> std::process::ExitCode {

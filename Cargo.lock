@@ -320,6 +320,7 @@ dependencies = [
  "podbox-extract",
  "podbox-image",
  "podbox-probe",
+ "podbox-ssh",
  "podbox-supervise",
  "podbox-windows",
  "serde_json",
@@ -382,6 +383,17 @@ version = "0.1.0-beta.8"
 dependencies = [
  "linux-raw-sys",
  "syscalls",
+]
+
+[[package]]
+name = "podbox-ssh"
+version = "0.1.0-beta.7"
+dependencies = [
+ "rustls",
+ "rustls-pemfile",
+ "rustls-pki-types",
+ "serde_json",
+ "webpki-roots 1.0.9",
 ]
 
 [[package]]
