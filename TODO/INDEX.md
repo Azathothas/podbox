@@ -234,6 +234,9 @@ the blocker named and what would clear it.
 | [T-1341](gate.md) | P3 | gate | done | Budget the warm run cost beside the cold one |
 | [T-1342](image.md) | P2 | image | done | A pull refuses past the ceiling instead of dying past it |
 | [T-1401](podssh.md) | P1 | podssh | done | `podssh`: ssh over a rendezvous, with no listening socket on the agent |
+| [T-1402](podssh.md) | P1 | podssh | open | The session is a userspace line discipline, because the cage has no pty |
+| [T-1403](podssh.md) | P1 | podssh | open | podbox shims the ssh server name, so the line discipline needs no configuration |
+| [T-1404](podssh.md) | P2 | podssh | open | The remote and machine verbs, and the tier that decides where the server lives |
 
 ## Counts
 
