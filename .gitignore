@@ -141,9 +141,14 @@ __pycache__/
 # checkout and removes on exit. A cancelled run leaves one behind.
 .podbox-job.sh
 
-# Scratch beside this checkout, and a MINTED RELAY TOKEN which is a
-# credential and is never committed. See .sandssh-work and PODSSH_RELAY_TOKEN.
 .sandssh-work/
 .work/
 .mint.json
 .relay_llms.txt
+
+# The scratch below is a second checkout kept beside this one, and a MINTED
+# RELAY TOKEN which is a credential and is never committed.
+# A second checkout kept beside this one while podbox carries the ssh
+# Scratch beside this checkout, and a MINTED RELAY TOKEN which is a
+# credential and is never committed. See .sandssh-work and PODSSH_RELAY_TOKEN.
+
