@@ -166,6 +166,10 @@ echo "" >>"$WORK/report"
 echo "== lifecycle verbs (sleep payload, so stop meets it alive)" >>"$WORK/report"
 measure create loopback "$BIN" create --name perf360 "$DEBIAN" /bin/sleep 30
 measure start loopback "$BIN" start perf360
+# T-1341: the keeper holds the extracted tree, so this run measures the
+# warm steady-state run cost instead of re-paying extraction like the
+# keeper-less first and repeat rows do.
+measure run.kept loopback "$BIN" run --rm "$DEBIAN" /bin/echo kept-hi
 measure exec loopback "$BIN" exec perf360 /bin/echo exec-hi
 measure stop loopback "$BIN" stop perf360
 measure logs loopback "$BIN" logs perf360
