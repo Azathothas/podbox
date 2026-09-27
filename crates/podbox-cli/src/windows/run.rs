@@ -1,8 +1,6 @@
 //! One boot, one command, and the guest's own exit code.
 //! `TODO/milestones.md` T-1112.
 
-use std::time::Duration;
-
 use podbox_image::error::{EXIT_FLAG_ERROR, EXIT_RUNTIME_ERROR};
 use podbox_windows::{Plan, Request};
 
@@ -42,6 +40,9 @@ pub(crate) fn run(verb: &str, a: &Args) -> i32 {
         Ok(p) => p,
         Err(c) => return c,
     };
+    // Backstops every explicit cleanup below: a panic past staging still
+    // removes the per-run directory on unwind.
+    let _run_guard = podbox_windows::RunGuard::arm(&plan);
     let command = if a.command.trim().is_empty() {
         "ver".to_string()
     } else {
@@ -50,13 +51,9 @@ pub(crate) fn run(verb: &str, a: &Args) -> i32 {
     let request = Request {
         command,
         token: podbox_windows::agent::nonce(),
-        // 0 is docker's "no timeout": a caller who says it means the guest
-        // may take as long as it takes, and a finite default is still the
-        // caller's to override.
-        timeout: match a.timeout.unwrap_or(DEFAULT_TIMEOUT) {
-            0 => Duration::from_secs(u32::MAX as u64),
-            n => Duration::from_secs(n),
-        },
+        // 0 is refused at the flag surface; the default still applies where
+        // the flag is absent.
+        timeout: super::request_timeout(a.timeout, DEFAULT_TIMEOUT),
     };
     report(&plan, &request, &image);
     // ⭐ The per-run directory is about a hundred megabytes and is not the

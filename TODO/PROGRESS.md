@@ -2,7 +2,7 @@
 
 ## State
 
-169 entries: 0 open, 1 partial, 0 blocked, 168 done. The 2026-09-25
+170 entries: 1 open, 1 partial, 0 blocked, 168 done. The 2026-09-25
 triage of twenty-two open issues (29 through 38, 49 through 60) plus
 dependabot PR 9 is recorded below. Twenty entries reopened as
 partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
@@ -385,8 +385,14 @@ keeper-less run re-pays extraction (a1 1.746 s with the tree
 present, a2/a3 ~4.78 s re-extracting); `create` re-extracts once
 and pins the tree; kept runs cost ~0.075 s, the post-keeper-rm
 warm run 0.108 s, the next 5.129 s; warm probe alone 0.059 s.
-No ceiling moves; the 360 comment names the cause. Next is the
-run-rows-with-keeper follow-up named in T-1340's Done text.
+No ceiling moves; the 360 comment names the cause. The run-rows
+follow-up is filed as T-1341 (open). T-1112 hardened 2026-09-27 on
+the landed driver: `--podbox-timeout 0` refused as a flag error
+(`request_timeout` maps zero to the default, never to forever),
+`windows fetch` through an agent with explicit connect, read and
+write timeouts repeating the registry triple, and `RunGuard`
+removing the per-run directory on drop behind the explicit
+cleanups; each unit-pinned. Next is T-1341.
 
 ## Operator questions
 

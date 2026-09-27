@@ -18,6 +18,26 @@ pub(crate) const DEFAULT_MAX_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 /// `--max-bytes` decorative, and a zero one downloads nothing.
 const _: () = assert!(DEFAULT_MAX_BYTES > 0 && DEFAULT_MAX_BYTES < u64::MAX);
 
+/// Bounds a stalled transfer, not a large one. The body is streamed, so an
+/// overall deadline would fail a slow but healthy download; these fail a
+/// connection that has stopped producing bytes. The triple repeats the
+/// registry client's (`podbox-image/src/registry.rs`), one shape per caller
+/// rather than a shared constant in a third place.
+const FETCH_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+const FETCH_READ_TIMEOUT: Duration = Duration::from_secs(120);
+const FETCH_WRITE_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// The HTTP caller for `fetch`, with the timeouts above rather than the
+/// library default, so a black-holed origin fails loud instead of hanging
+/// a caller that cannot prompt.
+fn agent() -> ureq::Agent {
+    ureq::AgentBuilder::new()
+        .timeout_connect(FETCH_CONNECT_TIMEOUT)
+        .timeout_read(FETCH_READ_TIMEOUT)
+        .timeout_write(FETCH_WRITE_TIMEOUT)
+        .build()
+}
+
 /// Where `setup` leaves the provisioned image: beside the vendor's, under a
 /// name that says which one it came from.
 ///
@@ -80,7 +100,7 @@ pub(crate) fn fetch(a: &Args) -> i32 {
         max_bytes: a.max_bytes.unwrap_or(DEFAULT_MAX_BYTES),
         fsize,
     };
-    let response = match ureq::get(&url).call() {
+    let response = match agent().get(&url).call() {
         Ok(r) => r,
         Err(e) => {
             eprintln!("podbox windows fetch: {url}: {e}");
@@ -188,6 +208,40 @@ mod tests {
         assert_eq!(
             provisioned_path(Path::new("freedos.img")),
             PathBuf::from("freedos.podbox.qcow2")
+        );
+    }
+
+    /// A hung origin fails on the read timeout instead of hanging the
+    /// caller: the defect was `ureq::get` with the library default and no
+    /// bound at all. The server accepts and then never answers; the agent
+    /// carries a 200 ms read timeout for the test, so the error must arrive
+    /// long before the server's 10 s hold ends.
+    #[test]
+    fn a_hung_origin_fails_on_the_read_timeout() {
+        use std::net::TcpListener;
+        let listener = TcpListener::bind("127.0.0.1:0").expect("loopback binds where tests run");
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            let _ = listener.accept();
+            std::thread::sleep(Duration::from_secs(10));
+        });
+        let t0 = std::time::Instant::now();
+        let agent = ureq::AgentBuilder::new()
+            .timeout_connect(Duration::from_secs(5))
+            .timeout_read(Duration::from_millis(200))
+            .timeout_write(Duration::from_secs(5))
+            .build();
+        let err = agent
+            .get(&format!("http://127.0.0.1:{port}/hangs"))
+            .call()
+            .unwrap_err();
+        assert!(
+            matches!(err, ureq::Error::Transport(_)),
+            "a hung read is a transport error, not {err:?}"
+        );
+        assert!(
+            t0.elapsed() < Duration::from_secs(8),
+            "the timeout fired; the server never answered"
         );
     }
 }

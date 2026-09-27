@@ -9,8 +9,6 @@
 //! from the argv, and the run is the crate's `dos::run`. A second mailbox
 //! writer or a second monitor here is the copy that diverges.
 
-use std::time::Duration;
-
 use podbox_image::error::EXIT_RUNTIME_ERROR;
 
 use super::plan;
@@ -107,12 +105,12 @@ pub(crate) fn dos_run(
         cpus: cpus.unwrap_or(podbox_windows::dos::CPUS),
         emu_args: emu_args.to_vec(),
     };
+    // Backstops every explicit cleanup below: a panic past staging still
+    // removes the per-run directory on unwind.
+    let _run_guard = podbox_windows::RunGuard::arm(&plan);
     let batch = line_from_command(command);
     let token = podbox_windows::agent::nonce();
-    let timeout = match timeout.unwrap_or(DOS_TIMEOUT) {
-        0 => Duration::from_secs(u32::MAX as u64),
-        n => Duration::from_secs(n),
-    };
+    let timeout = super::request_timeout(timeout, DOS_TIMEOUT);
     eprintln!(
         "podbox {verb}: machine tier {} (the emulator process is the boundary, not hardware \
          isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for \

@@ -42,6 +42,7 @@ mod run;
 mod setup;
 
 use std::path::PathBuf;
+use std::time::Duration;
 
 pub(crate) use args::USAGE;
 
@@ -154,6 +155,14 @@ pub(crate) fn run_windows(
         max_bytes: None,
     };
     run::run(verb, &a)
+}
+
+/// A caller-supplied timeout in seconds, with the default where none was
+/// named. Zero is unreachable through the CLI (`args` refuses it); a zero
+/// here means the default rather than forever, because no run waits
+/// unbounded.
+pub(crate) fn request_timeout(want: Option<u64>, default_secs: u64) -> Duration {
+    Duration::from_secs(want.filter(|&n| n > 0).unwrap_or(default_secs))
 }
 
 /// True where the run door's positional names a disk image rather than an
@@ -315,6 +324,17 @@ pub fn windows(args: &[String]) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_timeout_names_seconds_or_falls_back_to_the_default() {
+        assert_eq!(request_timeout(None, 600), Duration::from_secs(600));
+        assert_eq!(request_timeout(Some(90), 600), Duration::from_secs(90));
+        assert_eq!(
+            request_timeout(Some(0), 600),
+            Duration::from_secs(600),
+            "zero is unreachable through the CLI and means the default, never forever"
+        );
+    }
 
     #[test]
     fn only_a_foreground_machine_tier_windows_run_reaches_the_driver() {

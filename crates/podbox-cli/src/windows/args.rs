@@ -144,10 +144,18 @@ pub(crate) fn parse(args: &[String]) -> Result<Option<Args>, i32> {
             }
             "--podbox-timeout" => {
                 let v = value(&mut it, "--podbox-timeout")?;
-                a.timeout = Some(v.parse().map_err(|_| {
+                let n: u64 = v.parse().map_err(|_| {
                     eprintln!("podbox windows: --podbox-timeout {v} is not a count of seconds");
                     EXIT_FLAG_ERROR
-                })?);
+                })?;
+                // 0 would mean forever, and no run waits unbounded: name a
+                // positive count of seconds. The default still applies where
+                // the flag is absent.
+                if n == 0 {
+                    eprintln!("podbox windows: --podbox-timeout 0 is refused: name a positive count of seconds");
+                    return Err(EXIT_FLAG_ERROR);
+                }
+                a.timeout = Some(n);
             }
             "--podbox-qemu-arg" => a
                 .emu_args
@@ -226,11 +234,19 @@ mod tests {
     }
 
     #[test]
-    fn a_zero_memory_or_cpu_or_ceiling_is_refused() {
+    fn a_zero_memory_or_cpu_or_ceiling_or_timeout_is_refused() {
         assert!(p(&["run", "--podbox-mem", "0"]).is_err());
         assert!(p(&["run", "--podbox-cpus", "0"]).is_err());
         assert!(p(&["fetch", "--url", "u", "--max-bytes", "0"]).is_err());
+        assert!(p(&["run", "--podbox-timeout", "0"]).is_err());
         assert!(p(&["run", "--podbox-mem", "1G"]).unwrap().unwrap().mem == Some(1 << 30));
+        assert_eq!(
+            p(&["run", "--podbox-timeout", "90"])
+                .unwrap()
+                .unwrap()
+                .timeout,
+            Some(90)
+        );
     }
 
     #[test]

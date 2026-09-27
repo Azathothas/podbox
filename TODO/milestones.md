@@ -1208,3 +1208,15 @@ Windows [Version 10.0.26100.9278]` with exit 0, then exit 42 for
 `ver >nul & cmd /c exit 42`, the guest's own code, passed
 through. `370` clause 7 carries that run; 371 is the acquisition
 instrument both halves share.
+
+**Hardening 2026-09-27: three review findings closed on the landed
+driver.** `--podbox-timeout 0` refused as a flag error naming the
+bound (`args.rs`; `request_timeout` in `windows/mod.rs` maps a zero
+to the default, never to forever, unit-pinned). `windows fetch`
+goes through an agent with explicit connect, read and write
+timeouts repeating the registry triple, so a black-holed origin
+fails loud (unit-pinned against a hanging loopback server).
+`RunGuard` in `podbox-windows` removes the per-run directory on
+drop, backstopping the explicit cleanups on panic unwind
+(unit-pinned; SIGKILL aside, which no guard survives). The entry
+stays partial on the kvm arm and the licensed image.

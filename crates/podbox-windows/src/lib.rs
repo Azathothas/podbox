@@ -388,6 +388,31 @@ pub fn cleanup(plan: &Plan) {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// A per-run directory that removes itself when it falls out of scope.
+///
+/// `cleanup` runs on every coded exit; this runs on the exits without one:
+/// a panic past the staging point, where the explicit calls never execute.
+/// SIGKILL aside, which no guard survives. Removing twice is safe
+/// (`cleanup` ignores a missing directory through `let _`), so the coded
+/// paths keep their explicit calls and this only backstops them.
+pub struct RunGuard<'a> {
+    plan: &'a Plan,
+}
+
+impl<'a> RunGuard<'a> {
+    /// Arm the guard for `plan`. Name the binding so it lives to the end
+    /// of the run: a guard dropped at once guards nothing.
+    pub fn arm(plan: &'a Plan) -> Self {
+        RunGuard { plan }
+    }
+}
+
+impl Drop for RunGuard<'_> {
+    fn drop(&mut self) {
+        cleanup(self.plan);
+    }
+}
+
 /// A per-run directory, mode 0700, holding the QMP socket, the mailbox, the
 /// overlay and the serial log.
 ///
@@ -525,6 +550,35 @@ mod tests {
         std::env::remove_var("PODBOX_WINDOWS_KEEP");
         let _ = std::fs::remove_dir_all(&kept);
         let _ = std::fs::remove_dir_all(&vendor);
+    }
+
+    /// The defect this pins: `cleanup` runs on the coded exits, and a panic
+    /// past staging skipped every one of them, leaking the per-run
+    /// directory. The guard removes it on drop, including the unwind path.
+    #[test]
+    fn a_dropped_guard_removes_the_run_directory() {
+        let scratch = scratch_dir("guard-drop").expect("a scratch directory");
+        std::fs::write(scratch.join("mailbox.img"), b"mailbox").unwrap();
+        let plan = Plan {
+            emulator: "qemu-system-x86_64".into(),
+            accel: Accel::Tcg,
+            share: "/usr/share/qemu".into(),
+            firmware_code: "/code.fd".into(),
+            firmware_vars: scratch.join("vars.fd"),
+            root: scratch.join("root.qcow2"),
+            mailbox: scratch.join("mailbox.img"),
+            serial: scratch.join("serial.log"),
+            monitor: scratch.join("qmp.sock"),
+            memory_mib: 512,
+            cpus: 1,
+            emu_args: Vec::new(),
+        };
+        std::env::remove_var("PODBOX_WINDOWS_KEEP");
+        {
+            let _guard = RunGuard::arm(&plan);
+            assert!(scratch.is_dir(), "the run is staged");
+        }
+        assert!(!scratch.exists(), "dropping the guard removes the run");
     }
 
     use super::*;

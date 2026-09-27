@@ -1516,3 +1516,38 @@ the cause named, and the 5 s run budget covers
 extraction-cost variance on this lane; redefining the run rows
 with a keeper so they budget run cost is next work, not this
 entry.
+
+----
+
+### T-1341 Budget the warm run cost beside the cold one
+
+Source:      T-1340 Done (`experiments/results/run-decay-368.txt`):
+             keeper-less runs re-pay extraction (1.746 to 5.129 s)
+             while kept runs cost 0.074 to 0.108 s
+Category:    gate
+Priority:    P3
+Effort:      S
+Status:      open
+
+Problem:     `run.first`, `run.repeat` and `run.late` all budget
+             extraction variance under run names (5 s ceilings), so a
+             run regression hides inside extraction noise and no row
+             measures the warm steady-state cost the budget claims
+             to hold.
+Premise:     Measured 2026-09-27 (368): with a keeper alive three
+             kept runs cost 0.074 to 0.078 s, and the warm probe
+             storm alone costs 0.059 s.
+Approach:    Additive rows only: one `run.kept` beside `start` in
+             `experiments/360-perf-harness.sh`, measured with the
+             lifecycle keeper alive, with a 0.25 s wall ceiling
+             (about twice the observed lane maximum) and the
+             sibling rss ceiling; re-drive the lane and the kvm
+             shape.
+Decision:    `first`, `repeat` and `late` keep their definitions
+             and their history, and the plant 30 anchor
+             (`run.repeat`) does not move.
+Out of scope: redefining the old rows, moving any old ceiling.
+Prove:       `360` exits 0 on the lane and on kvm with `run.kept`
+             ok under its ceiling, `check-todo.py` check 30 green,
+             and `plant.sh` case 30 still goes red naming
+             `run.repeat`.

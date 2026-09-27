@@ -230,10 +230,11 @@ the blocker named and what would clear it.
 | [T-1338](gate.md) | P2 | gate | done | A performance harness with baselines and a regression gate |
 | [T-1339](enter.md) | P1 | enter | done | Enter the namespace rung where the probe permits it |
 | [T-1340](gate.md) | P3 | gate | done | Isolate why early payload runs cost seconds and late ones do not |
+| [T-1341](gate.md) | P3 | gate | open | Budget the warm run cost beside the cold one |
 
 ## Counts
 
-169 items: 0 open, 1 partial, 0 blocked, 168 done.
+170 items: 1 open, 1 partial, 0 blocked, 168 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -244,8 +245,8 @@ that disagrees with the rows cannot reach a commit.
 | P0 | 0 | 0 | 0 | 52 | 52 |
 | P1 | 0 | 0 | 0 | 78 | 78 |
 | P2 | 0 | 0 | 0 | 31 | 31 |
-| P3 | 0 | 1 | 0 | 7 | 8 |
-| **All** | **0** | **1** | **0** | **168** | **169** |
+| P3 | 1 | 1 | 0 | 7 | 9 |
+| **All** | **1** | **1** | **0** | **168** | **170** |
 
 ## How the current ordering is derived
 
