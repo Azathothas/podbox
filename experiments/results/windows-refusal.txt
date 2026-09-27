@@ -1,8 +1,8 @@
 == conditions
-date              2026-09-27T01:11:58Z
+date              2026-09-27T01:24:45Z
 host kernel       Linux 7.2.0-WSL2-STABLE
 kvm               absent
-qemu              absent
+qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
 bootstrap         ok
 interpose         ok
 build             ok
