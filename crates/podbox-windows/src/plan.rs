@@ -2,7 +2,7 @@
 //!
 //! ⛔ **Acceleration is chosen from the probe's machine profile and named
 //! out loud.** `kvm` where the machine tier's `full` profile holds, `tcg`
-//! where only `tcg` does, and a refusal where neither does — the same
+//! where only `tcg` does, and a refusal where neither does, the same
 //! three-way decision the machine tier already makes, reused rather than
 //! re-derived, so a machine that podbox refuses to boot a Linux guest on is
 //! not quietly a machine it boots a Windows guest on.

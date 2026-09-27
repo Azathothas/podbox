@@ -26,7 +26,7 @@ const _: () = assert!(DEFAULT_MAX_BYTES > 0 && DEFAULT_MAX_BYTES < u64::MAX);
 /// over the base image, so an installer that wrote into a scratch overlay
 /// left the agent in a file `run` then threw away: the guest booted, the task
 /// was gone, and every run timed out. `setup` therefore produces a *new base*
-/// — the vendor's image plus the agent — and `run` makes its overlay over it.
+///, the vendor's image plus the agent, and `run` makes its overlay over it.
 pub(crate) fn provisioned_path(image: &Path) -> PathBuf {
     let stem = image
         .file_stem()

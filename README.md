@@ -82,9 +82,9 @@ podbox windows run   --image win.podbox.qcow2 -- ver & echo hi
 needs the guest console; pass that file to `run`. Each run gets a fresh overlay
 over it, so nothing the guest writes survives the run. `run` prints the guest
 command's own stdout and stderr and returns its own exit code. The guest has no
-network. The accelerator is the machine tier's own profile — `kvm` where it
+network. The accelerator is the machine tier's own profile (`kvm` where it
 holds, `tcg` where only that does, and a refusal naming the missing leg where
-neither does — so the feature works on the restricted hosts podbox targets
+neither does), so the feature works on the restricted hosts podbox targets
 rather than only on a KVM host.
 
 ⭐ The same driver answers `run`, which is what the entry's acceptance command

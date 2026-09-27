@@ -28,7 +28,7 @@ pub(crate) const DEFAULT_TIMEOUT: u64 = 600;
 /// (`TODO/podvm.md` T-1305); here QEMU's guest memory is anonymous and the
 /// overlay is sparse, so the only file that must fit is the base image the
 /// caller already has, and the ceiling binds where a file really is written
-/// — in [`super::setup::fetch`], whose download is one.
+///, in [`super::setup::fetch`], whose download is one.
 pub(crate) fn run(verb: &str, a: &Args) -> i32 {
     let image = match resolve_image(a.image.as_deref()) {
         Ok(p) => p,

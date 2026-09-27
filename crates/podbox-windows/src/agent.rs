@@ -5,7 +5,7 @@
 //! Windows agent to install, no driver to sign and no binary the host has to
 //! trust the guest to run: the whole guest side is the two scripts below,
 //! which `cmd.exe` already knows how to execute. That is what makes the
-//! driver portable — it needs a Windows image, not a toolchain.
+//! driver portable, it needs a Windows image, not a toolchain.
 //!
 //! ⛔ **Autostart is a scheduled task, and the two mechanisms that look more
 //! obvious do not work on the reference image.** `cmd.exe`'s `AutoRun`
@@ -16,8 +16,8 @@
 //!
 //! ⚠ **A Windows *service* was tried and refused.** `sc create` with a
 //! `cmd.exe` image starts the script and then the service control manager
-//! terminates it once the process fails to report `SERVICE_RUNNING` — which
-//! `cmd.exe` never does — and the termination lands mid-command. Raising
+//! terminates it once the process fails to report `SERVICE_RUNNING`, which
+//! `cmd.exe` never does, and the termination lands mid-command. Raising
 //! `ServicesPipeTimeout` did not save it. The task does not have that
 //! problem, so the driver does not have that code.
 //!
@@ -104,7 +104,7 @@ pub const SETUP_NAME: &str = "WA.CMD";
 /// running it.** Windows has no argv at this layer: `cmd.exe` parses a line
 /// where `&`, `|`, `>`, `%VAR%` and quoting are all its own operators. An
 /// earlier revision of this file took a `Vec<String>` and quoted each
-/// element, which turned `ver & echo hi` into one quoted *token* — `cmd.exe`
+/// element, which turned `ver & echo hi` into one quoted *token*, `cmd.exe`
 /// read that as a program named `ver & echo hi` and refused with
 /// `The filename, directory name, or volume label syntax is incorrect`
 /// (exit 123). The type was the bug, so the type is what changed.

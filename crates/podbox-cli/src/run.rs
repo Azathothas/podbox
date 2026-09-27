@@ -855,9 +855,9 @@ pub(crate) fn prepare(
     // the one platform where the OCI path below has nothing to do: the
     // positional is a disk image, the accelerator comes from the same probe
     // that chose the tier, and the result is the guest's own stdout, stderr
-    // and exit code. So it takes the driver's door — the very invocation the
-    // entry writes down, `run --podbox-tier=machine --platform windows/amd64`
-    // — ahead of the OS gate, which is the refusal for every *other*
+    // and exit code. So it takes the driver's door (the very invocation the
+    // entry writes down, `run --podbox-tier=machine --platform windows/amd64`)
+    // ahead of the OS gate, which is the refusal for every *other*
     // non-Linux platform.
     if crate::windows::should_drive(
         verb,

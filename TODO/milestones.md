@@ -1042,9 +1042,9 @@ the `kvm` arm on a KVM host.
 **Second landing, 2026-09-26, after review against the reference's own
 sibling effort (PR 63).** ⛔ The two efforts answered the same entry in
 different currencies and the entry is only satisfied by both: PR 63 ran
-FreeDOS under `tcg` — no licensed image, a lane-runnable experiment, QMP,
+FreeDOS under `tcg` (no licensed image, a lane-runnable experiment, QMP,
 a bounded and checksummed acquisition, an entropy nonce, exit-code
-capping, a per-run mode-0700 directory, and a `run`-shaped seam — while
+capping, a per-run mode-0700 directory, and a `run`-shaped seam) while
 this branch ran a real Windows guest but had none of that discipline and
 left `run --platform windows/amd64` unreachable. What was taken from each:
 
@@ -1062,7 +1062,7 @@ left `run --platform windows/amd64` unreachable. What was taken from each:
   reason.
 - ⭐ **QMP replaces HMP.** `crates/podbox-windows/src/qmp.rs` is a small
   request/response client, built by formatting because the three requests
-  this driver ever sends — `qmp_capabilities`, `send-key`, `quit` — have
+  this driver ever sends (`qmp_capabilities`, `send-key`, `quit`) have
   bodies drawn from a closed set, so no JSON dependency is bought to
   inspect three strings. HMP's `sendkey` was the first landing's choice
   and it is a debug console: a refusal is a printed sentence, and an
@@ -1071,11 +1071,11 @@ left `run --platform windows/amd64` unreachable. What was taken from each:
   carries `hold-time` (30 ms) so the release is a property of the request
   rather than of the host's typing pace.
 - ⭐ **Acquisition exists at all, and is bounded and verified.**
-  `crates/podbox-windows/src/fetch.rs` owns the policy — a `Ceiling` of
+  `crates/podbox-windows/src/fetch.rs` owns the policy: a `Ceiling` of
   `--max-bytes` and `RLIMIT_FSIZE`, a refusal before any byte for a
   declared length over it, a refusal as the bytes arrive for an undeclared
   or lying origin, a sha256 pin, and removal of the partial file on either
-  refusal — and takes a `Read`, so every one of those refusals is tested
+  refusal, and takes a `Read`, so every one of those refusals is tested
   with no network. `podbox windows fetch --url ... [--sha256 ...]
   [--max-bytes ...]` is the thin `ureq` caller, at the version the
   workspace already locks through `podbox-image`, so no new crate enters
@@ -1118,14 +1118,14 @@ fixes, including an output of 7.6 KB that crosses the 4 KiB cluster, written
 by the guest and read back whole.
 
 ⚠ **What is still not verified, named rather than implied.** The
-`podbox` binary itself is still not built here — the dependency graph
+`podbox` binary itself is still not built here (the dependency graph
 exhausts the sandbox's 245 MB executable budget and the shipping target
-needs `zig` for `ring` — so `podbox windows doctor|setup|run` and `run
+needs `zig` for `ring`), so `podbox windows doctor|setup|run` and `run
 --platform windows/amd64` have **not been run as verbs**, and no clause of
 `364-` that needs the binary has run anywhere. What closed part of that
 gap: the CLI module tree is now **compiled and its own tests executed**,
 through a stub harness (a five-constant `podbox_image`, a `ureq` stub
-carrying the pinned 2.12.1 signatures, the real `tier.rs`) — the tree
+carrying the pinned 2.12.1 signatures, the real `tier.rs`); the tree
 type-checks with no error and `ok. 14 passed; 0 failed` for the `windows::`
 tests. That proves the CLI compiles and its tests pass; it does not prove
 the binary linking it works. The `kvm` arm of `accel_for` is still
@@ -1182,21 +1182,20 @@ open: the `kvm` arm (unit-tested only, no reachable machine has
 (measured so far: an extra cold IDE drive wedges the LiveCD
 prompt and even long-held keys miss it, early keys from 5 s pass;
 the Live RAM disk is read-only so no file channel exists; the
-BootCD installs to FAT32 and the installed desktop is reachable —
+BootCD installs to FAT32 and the installed desktop is reachable, but
 the base is not sealed yet). The entry stays partial on those.
 
 **Fourth landing 2026-09-26: Validation OS runs from this tree,
 streamed under a 1 GB file ceiling.** The direct link is anonymous
 (HEAD 200, 2460880896 bytes), but this lane's hard RLIMIT_FSIZE of
 1000000000 bytes (unraiseable, EPERM even as uid 0) kills any
-whole-ISO download with SIGXFSZ at ~954 MB — so the ISO never
+whole-ISO download with SIGXFSZ at ~954 MB, so the ISO never
 lands. What lands instead is the one contiguous UDF extent holding
 `ValidationOS.vhdx`, walked on-origin with range requests and
 fetched alone: `experiments/365-validationos-stream.sh` asserts
 the PVD plus terminator plus BEA01/NSR02, the VDS order, the root
 File Entry, then fetches abs LBA 1010 for 910163968 bytes and
-checks the `vhdxfile` magic, sha256
-063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f
+checks the `vhdxfile` magic, sha256: 063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f,
 and `qemu-img info` (32 GiB virtual). No file over the ceiling is
 ever written; a re-mastered ISO moves the extent and the asserts
 fail loud instead of fetching the wrong bytes. The OVMF pair is
@@ -1206,6 +1205,6 @@ default mixes a 4M code image with no matching raw vars on this
 host. From there the committed verbs do the rest: `windows setup`
 provisioned `INSTALLED D:`, and `windows run` returned `Microsoft
 Windows [Version 10.0.26100.9278]` with exit 0, then exit 42 for
-`ver >nul & cmd /c exit 42` — the guest's own code, passed
+`ver >nul & cmd /c exit 42`, the guest's own code, passed
 through. `364` clause 7 carries that run; 365 is the acquisition
 instrument both halves share.

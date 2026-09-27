@@ -21,7 +21,7 @@
 //! allowed to become an unbounded write.
 //!
 //! ⭐ **The transport is not in this file.** [`store`] takes a `Read`, so
-//! what is tested here is the policy — ceilings, digest, cleanup — and the
+//! what is tested here is the policy, ceilings, digest, cleanup, and the
 //! HTTP call is a thin caller. That split is what lets the refusals be
 //! tested without a network, which is the only way they can be tested in a
 //! lane that has none.
@@ -122,7 +122,7 @@ pub fn store<R: Read>(
     let limit = ceiling.effective();
     // ⛔ **The partial name is per-process.** A fixed `dest.part` is shared
     // by two fetches of the same destination, and two writers interleaving
-    // into one file produce a file whose digest matches nothing — with the
+    // into one file produce a file whose digest matches nothing, with the
     // verification reporting a mismatch rather than the collision that
     // caused it. The pid is in the name so a collision is a different file.
     let tmp = dest.with_file_name(format!(
@@ -182,6 +182,11 @@ pub fn store<R: Read>(
 mod tests {
     use super::*;
     use std::io::Cursor;
+
+    /// Pinned sha256 of the empty stream, the matching test vector.
+    const EMPTY_SHA256: &str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    /// Pinned sha256 that matches nothing, the mismatch test vector.
+    const WRONG_SHA256: &str = "0000000000000000000000000000000000000000000000000000000000000000";
 
     fn ceiling(max: u64, fsize: u64) -> Ceiling {
         Ceiling {
@@ -262,7 +267,7 @@ mod tests {
             Cursor::new(Vec::new()),
             Some(0),
             &dest,
-            Some("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+            Some(EMPTY_SHA256),
             ceiling(1024, 1024),
         )
         .unwrap();
@@ -291,7 +296,7 @@ mod tests {
             Cursor::new(b"payload".to_vec()),
             None,
             &dest,
-            Some("0000000000000000000000000000000000000000000000000000000000000000"),
+            Some(WRONG_SHA256),
             ceiling(1 << 20, u64::MAX),
         )
         .unwrap_err();

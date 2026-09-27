@@ -9,7 +9,7 @@
 //! `"error"` member rather than a sentence on a console nobody reads.
 //!
 //! ⚠ **No JSON dependency is taken for this.** The driver sends three
-//! requests ever — `qmp_capabilities`, `send-key` and `quit` — with key
+//! requests ever, `qmp_capabilities`, `send-key` and `quit`, with key
 //! names drawn from a fixed table, so the request bodies are built by
 //! formatting and the responses are read for the presence of `"error"`.
 //! A JSON parser would be a dependency bought to inspect three strings,

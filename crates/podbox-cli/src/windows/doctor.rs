@@ -6,7 +6,7 @@ use podbox_windows::Accel;
 use super::args::Args;
 use super::plan;
 
-/// Report the profile, the accelerator and the paths a run would use — and
+/// Report the profile, the accelerator and the paths a run would use, and
 /// refuse, at the runtime-error code, where a run would refuse.
 ///
 /// ⛔ **`doctor` must not answer where `run` would refuse.** A diagnostic

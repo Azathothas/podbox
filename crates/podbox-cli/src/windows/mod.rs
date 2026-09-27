@@ -3,7 +3,7 @@
 //!
 //! ⛔ **Why a guest that is not Linux is a driver and not a platform on
 //! `run`.** Every other platform podbox accepts is an OCI image, and the
-//! whole `run` path — pull, extract, fixups, chroot — exists to turn one
+//! whole `run` path, pull, extract, fixups, chroot, exists to turn one
 //! into a rootfs. A Windows guest is not that: it is a disk image an
 //! emulator boots, and none of the OCI path applies to it. So the driver is
 //! reached two ways, and both end in the same code: the `podbox windows`

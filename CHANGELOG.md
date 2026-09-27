@@ -36,8 +36,8 @@ could not fail. Re-driven here: 362 HOLDS, 363 HOLDS (FAT16 mailbox),
 **Record:** [`TODO/milestones.md`](TODO/milestones.md) T-1112. No version
 bump and no deployment.
 
-Reviewing this branch against PR 63 — an independent answer to the same
-entry, running FreeDOS under `tcg` — showed the two had complementary
+Reviewing this branch against PR 63, an independent answer to the same
+entry running FreeDOS under `tcg`, showed the two had complementary
 halves. This one booted a real Windows guest but left the entry's own
 acceptance command unreachable; that one had the engineering discipline
 and no guest. Both halves are now in one place.

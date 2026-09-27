@@ -69,8 +69,8 @@ fi
 command -v cargo >/dev/null 2>&1 || { echo "cargo missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
 command -v cc >/dev/null 2>&1 || { echo "cc missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
 command -v unzip >/dev/null 2>&1 || { echo "unzip missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-echo "== bootstrap the lane toolchain (zig already on PATH, so rust cc tools)"
-if timeout 1200 ./scripts/common/bootstrap-env.sh rust cc tools >>"$WORK/bootstrap.log" 2>&1; then
+echo "== bootstrap the lane toolchain (rust, cc, zig for ring, tools)"
+if timeout 1200 ./scripts/common/bootstrap-env.sh rust cc zig tools >>"$WORK/bootstrap.log" 2>&1; then
 	echo "bootstrap         ok" >>"$REPORT"
 else
 	echo "bootstrap         FAILED" | tee -a "$REPORT"

@@ -17,9 +17,9 @@
 //! volume is small and FAT16's cluster count has to stay under 65525.
 //!
 //! ⚠ **8.3 names only, and that is a property rather than a limitation.**
-//! Every file the protocol uses — `WQMARK.TXT`, `WQGO.TXT`, `WQCMD.CMD`,
+//! Every file the protocol uses, `WQMARK.TXT`, `WQGO.TXT`, `WQCMD.CMD`,
 //! `WQOUT.TXT`, `WQERR.TXT`, `WQCODE.TXT`, `WQAGENT.CMD`, `WA.CMD`,
-//! `SETUP.TXT` — is 8.3. A name that is not is refused by [`Fat16::put`]
+//! `SETUP.TXT`, is 8.3. A name that is not is refused by [`Fat16::put`]
 //! naming it, rather than written under a mangled name the guest would then
 //! never find.
 

@@ -8,10 +8,10 @@
 //! hardware acceleration, so its feature could not be ported as written.
 //!
 //! ⭐ **This is that feature with the refusal removed and the portability
-//! taken seriously.** The design is the same shape as the reference — one
+//! taken seriously.** The design is the same shape as the reference, one
 //! emulator child process, UEFI firmware, a per-run overlay so the base image
 //! is never written, a FAT "mailbox" volume the host and guest both see, no
-//! daemon and no libvirt — but:
+//! daemon and no libvirt, but:
 //!
 //! * it runs under `tcg` where `kvm` is missing, chosen from the machine
 //!   tier's own profile rather than refused, so it works on the machines

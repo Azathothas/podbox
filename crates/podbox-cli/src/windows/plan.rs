@@ -9,7 +9,7 @@
 //! ⚠ **The accelerator is read from the probe and named out loud, never
 //! defaulted.** `kvm` where the machine tier's `full` profile holds, `tcg`
 //! where only `tcg` does, and a refusal naming the missing leg where neither
-//! does — the same three-way decision the machine tier already makes for a
+//! does, the same three-way decision the machine tier already makes for a
 //! Linux guest, so a machine podbox refuses that on is not quietly a machine
 //! it boots a Windows guest on.
 
@@ -46,7 +46,7 @@ pub(crate) fn share() -> PathBuf {
 ///
 /// ⚠ Distributions do not ship one path. QEMU names it
 /// `edk2-x86_64-code.fd` under its share directory, Fedora-style packaging
-/// uses `OVMF_CODE.fd` under `edk2-ovmf`, Debian-style uses `OVMF/` — so
+/// uses `OVMF_CODE.fd` under `edk2-ovmf`, Debian-style uses `OVMF/`, so
 /// the first candidate that exists wins, and the environment still wins
 /// over all of them. A host with none is refused naming every path that
 /// was looked at, not just the last one.
