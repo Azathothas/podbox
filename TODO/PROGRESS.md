@@ -15,6 +15,9 @@ here. What clears it is a KVM host with the image installed
 under the accept-terms gate the entry names. Nothing else is
 open, nothing is half-written, every lane job is collected.
 
+M0 through M8 are implemented and the machine tier holds its probe.
+End-to-end acceptance is measured per entry.
+
 The superseded record (triage narrative, triage table, finished
 work order, closed in-progress narrative) moved verbatim to
 [`docs/history/session-2026-09-25-to-27.md`](../docs/history/session-2026-09-25-to-27.md).
