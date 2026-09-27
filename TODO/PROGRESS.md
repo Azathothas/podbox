@@ -40,15 +40,15 @@ and one split CLI verb (`windows doctor|fetch|setup|run`) serve two
 flavors over one mailbox, one monitor and one overlay discipline. The
 Validation OS flavor (UEFI, NVMe, scheduled-task agent, power-off wait)
 reuses the sibling's harness measurements; the DOS flavor (SeaBIOS, IDE,
-typed line, token poll) reuses the DOS base and is re-driven here by 363
+typed line, token poll) reuses the DOS base and is re-driven here by 369
 on the shared FAT16 writer after the fatfs dependency went away, with
 `ver` 0 plus version, `cmd /c ver` 0, `dir /zzz` 1, `pause` 125 DEADLINE,
 base identical, store untouched. 362 re-driven for the doors no flavor
 serves (create, no-tier run, arm64, missing disk path, machine run
-without a DOS base); 364 asserts the verb surface, the fetch ceilings,
+without a DOS base); 370 asserts the verb surface, the fetch ceilings,
 the routing and the DOS guest with a verdict, and carries a live
 Validation OS run (setup 251 s, banner plus exit 0 in 26 s) from
-the 365-streamed VHDX. Release file 3769304
+the 371-streamed VHDX. Release file 3769304
 bytes under the script ceiling with no PT_INTERP. No other open issue
 is closed:
 each closes with its fix commit, drive output and guard, per the
@@ -287,11 +287,11 @@ running `experiments/361-guest-usernet.sh` to green
 Item 6 worked to partial on the same lane, combined with the
 sibling Validation OS effort: `experiments/362-windows-refusal.sh`
 exits 0 (`experiments/results/windows-refusal.txt`), the DOS flavor
-runs `ver` to exit 0 under TCG (`363`, `windows-tcg-dos.txt`), the
-verb surface with fetch ceilings and routing holds (`364`,
+runs `ver` to exit 0 under TCG (`369`, `windows-tcg-dos.txt`), the
+verb surface with fetch ceilings and routing holds (`370`,
 `windows-364.txt`, live Validation OS clauses skipping with no
 image configured), and the VHDX extent streams sha256-clean
-(`365`, `windows-365.txt`); the kvm arm stays unit-tested only,
+(`371`, `windows-365.txt`); the kvm arm stays unit-tested only,
 owing a licensed image with its accept-terms gate.
 T-0413, T-0414 and T-0415 closed 2026-09-26 on the proc-absence
 drive (155): the interposer emulates `/proc/self/fd` pipes,

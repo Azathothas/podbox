@@ -3,8 +3,8 @@
 # every door no guest driver serves, before anything is fetched or mutated,
 # and does each refusal name the door that would serve it?
 #
-# TODO/milestones.md T-1112 (the refusal arm; the DOS guest arm runs in 363
-# and the Validation OS guest arm runs in 364 where an image is configured,
+# TODO/milestones.md T-1112 (the refusal arm; the DOS guest arm runs in 369
+# and the Validation OS guest arm runs in 370 where an image is configured,
 # both under TCG with no KVM. No licensed image is fetched or committed
 # here).
 #
@@ -56,7 +56,7 @@ fi
 
 command -v cargo >/dev/null 2>&1 || { echo "cargo missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
 command -v cc >/dev/null 2>&1 || { echo "cc missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-echo "== bootstrap the lane toolchain (qemu rides along for the doctor clause 364 drives next)"
+echo "== bootstrap the lane toolchain (qemu rides along for the doctor clause 370 drives next)"
 if timeout 1200 ./scripts/common/bootstrap-env.sh rust cc zig tools qemu >>"$WORK/bootstrap.log" 2>&1; then
 	echo "bootstrap         ok" >>"$REPORT"
 else
@@ -151,7 +151,7 @@ fi
 # script, not the machine legs.
 step win-machine "$RUN_ERR" "$PB" run --rm --podbox-tier=machine --platform windows/amd64 "$ALPINE" cmd /c ver
 grep -q "DOS base image" "$WORK/out-win-machine.txt" || { echo "machine refusal did not name the DOS base image" >>"$REPORT"; fail=1; }
-grep -q "363-windows-tcg-dos" "$WORK/out-win-machine.txt" || { echo "machine refusal did not name the setup script" >>"$REPORT"; fail=1; }
+grep -q "369-windows-tcg-dos" "$WORK/out-win-machine.txt" || { echo "machine refusal did not name the setup script" >>"$REPORT"; fail=1; }
 snap after-machine
 if cmp -s "$WORK/snap-before.txt" "$WORK/snap-after-machine.txt"; then
 	echo "clause 3          store untouched" >>"$REPORT"

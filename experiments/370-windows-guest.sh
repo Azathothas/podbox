@@ -8,7 +8,7 @@
 # is skipped, out loud, where none is configured: podbox ships no Windows
 # image and no DOS base, fetches no licensed image itself, and redistributes
 # none, so a lane without `PODBOX_WINDOWS_IMAGE` (a Validation OS disk)
-# or `PODBOX_DOS_BASE` (FreeDOS base from 363) cannot boot that guest and
+# or `PODBOX_DOS_BASE` (FreeDOS base from 369) cannot boot that guest and
 # must say so rather than pass.
 #
 # Clauses:
@@ -34,9 +34,9 @@ set -u
 
 REPO="$(pwd)"
 cd "$REPO" || exit 2
-WORK="$REPO/experiments/.sweep364-work"
+WORK="$REPO/experiments/.sweep370-work"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
-REPORT="$WORK/out-364.txt"
+REPORT="$WORK/out-370.txt"
 BIN="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
 PORT=8731
 
@@ -64,7 +64,7 @@ mkdir -p "$STORE"
 
 say() { printf '%s\n' "$*" >>"$REPORT"; }
 fail=0
-bad() { say "$1"; echo "364: $1" >&2; fail=1; }
+bad() { say "$1"; echo "370: $1" >&2; fail=1; }
 
 # --- 1. the crate's own tests ------------------------------------------------
 say ""
@@ -184,7 +184,7 @@ say ""
 say "== dos-guest"
 if [ -z "${PODBOX_DOS_BASE:-}" ] || [ ! -f "${PODBOX_DOS_BASE:-}" ]; then
 	say "skipped           PODBOX_DOS_BASE is unset or absent: clause 8 needs"
-	say "                  the FreeDOS base 363-windows-tcg-dos.sh writes"
+	say "                  the FreeDOS base 369-windows-tcg-dos.sh writes"
 else
 T0="$(date +%s)"
 "$BIN" windows run --guest dos -- ver >"$WORK/dos.txt" 2>&1

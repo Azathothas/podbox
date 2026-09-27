@@ -35,9 +35,9 @@ set -u
 
 REPO="$(pwd)"
 cd "$REPO" || exit 2
-WORK="$REPO/experiments/.sweep363-work"
+WORK="$REPO/experiments/.sweep369-work"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
-REPORT="$WORK/out-363.txt"
+REPORT="$WORK/out-369.txt"
 
 FD_URL='https://download.freedos.org/1.4/FD14-LiteUSB.zip'
 FD_SHA256='857dcd2ebf9d3d094320154db5fb5b830acba6fb98f981a95a0ca7ab3350338b'

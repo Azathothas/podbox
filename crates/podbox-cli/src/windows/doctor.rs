@@ -60,7 +60,7 @@ pub(crate) fn doctor(a: &Args) -> i32 {
         if dos.is_file() {
             "present"
         } else {
-            "absent; `experiments/363-windows-tcg-dos.sh` fetches FreeDOS \
+            "absent; `experiments/369-windows-tcg-dos.sh` fetches FreeDOS \
              and writes the base"
         }
     );

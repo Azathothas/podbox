@@ -1,10 +1,11 @@
-⚠ NOT the output of `364-windows-guest.sh`. This file records the guest half
+⚠ NOT the output of `370-windows-guest.sh`. This file records the guest half
 of TODO/milestones.md T-1112 as it was actually measured, with the harness
 named for every line, because the lane that produced it cannot build the
 `podbox` binary at all (the dependency graph exhausts the lane's 245 MiB
 executable budget; the shipping target additionally needs `zig` for `ring`).
-Every clause of `364-` that needs the binary has therefore NOT been run
-anywhere, and no line below stands in for one.
+Every clause of `370-` that needs the binary has therefore NOT been run
+on that lane, and no line below stands in for one. A lane that builds the
+binary re-drove those clauses separately (`experiments/results/windows-364.txt`).
 
 Harness: /tmp/mb, a cargo project whose only dependency is the path
 `crates/podbox-windows`. It calls the crate's own `provision`, `stage`, `run`,

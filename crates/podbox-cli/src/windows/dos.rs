@@ -60,7 +60,7 @@ pub(crate) fn dos_run(
     if !base.is_file() {
         eprintln!(
             "podbox {verb}: no DOS base image at {} and none was named. The DOS flavor boots \
-             FreeDOS, not a disk you hand it: `experiments/363-windows-tcg-dos.sh` fetches \
+             FreeDOS, not a disk you hand it: `experiments/369-windows-tcg-dos.sh` fetches \
              FreeDOS 1.4 LiteUSB (pinned sha256, fetch ceiling) and writes the base. No base \
              is fetched or committed here (TODO/milestones.md T-1112)",
             base.display()

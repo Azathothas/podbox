@@ -27,9 +27,9 @@ bytes. Fixes found merging: a DOS argv slice that dropped `-M`, a dead
 canonicalization in `plan::build` (the backing path is now absolutized
 in `resolve_image`, and `build` lost its unused parameter), OVMF paths
 that exist almost nowhere (probed alts per distribution), two clippy
-lints and a const-duplicating test in `fat16.rs`, and a `364` drive that
-could not fail. Re-driven here: 362 HOLDS, 363 HOLDS (FAT16 mailbox),
-364 HOLDS with the DOS guest answering through the verb.
+lints and a const-duplicating test in `fat16.rs`, and a `370` drive that
+could not fail. Re-driven here: 362 HOLDS, 369 HOLDS (FAT16 mailbox),
+370 HOLDS with the DOS guest answering through the verb.
 
 ### 2026-09-26T08:30:00Z: the Windows guest is merged with the reference's own effort (T-1112)
 
@@ -66,7 +66,7 @@ own code path: provisioning through QMP console typing
 (`PROVISIONED in 211s: "INSTALLED D:"`), then `stage`+`run` in 29 s
 returning the version banner, the command's output and exit code 0 with
 the matching token, a failing command returning the guest's own 42, and a
-wrong token refused naming both. `experiments/364-windows-guest.sh` is
+wrong token refused naming both. `experiments/370-windows-guest.sh` is
 the lane drive; `experiments/results/windows-guest.txt` records what was
 measured and names the clauses that could not run because no `podbox`
 binary can be built in the authoring sandbox.

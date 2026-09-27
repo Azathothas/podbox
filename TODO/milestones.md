@@ -1100,7 +1100,7 @@ token true in 29s` with stdout `Microsoft Windows [Version
 returns the guest's own `EXIT 42`; and a wrong token read against that
 completed mailbox is refused naming both tokens, which is the
 anti-replay rule checked against a real guest-written result rather than
-a fixture. `experiments/364-windows-guest.sh` is the lane drive for the
+a fixture. `experiments/370-windows-guest.sh` is the lane drive for the
 parts a lane can run, and `experiments/results/windows-guest.txt` records
 the guest half with its harness named. Reviewing the merged code found five
 defects, each fixed with a test: a QMP event line arriving between requests
@@ -1118,9 +1118,9 @@ fixes, including an output of 7.6 KB that crosses the 4 KiB cluster, written
 by the guest and read back whole.
 
 ⚠ **What is still not verified, named rather than implied.** The lane
-builds the `podbox` binary (musl debug) and runs the verbs: 364 clauses
+builds the `podbox` binary (musl debug) and runs the verbs: 370 clauses
 1 through 6 hold as verbs, clause 7 skips with no image configured,
-clause 8 holds with the DOS base 363 writes. `/dev/kvm` is present on
+clause 8 holds with the DOS base 369 writes. `/dev/kvm` is present on
 the wsl-toolkit base (2026-09-27), so the `kvm` arm owes a licensed
 image with its accept-terms gate, not a host. No licensed image is
 fetched, committed or redistributed. What closed part of that
@@ -1158,7 +1158,7 @@ lost its unused parameter); the OVMF defaults named paths that exist
 almost nowhere (probed alts per distribution, first existing wins);
 two clippy lints and a const-duplicating test in `fat16.rs` (the test
 now reads the built volume's BPB rather than restating constants);
-`364` never failed (every clause now verdicts and the drive exits
+`370` never failed (every clause now verdicts and the drive exits
 nonzero with it); its header claimed an unknown subcommand exits 2
 (this tree's flag-error code is 125); and its guest clause exited
 before the DOS clause ran. A `windows` subcommand flag no arm reads
@@ -1168,10 +1168,10 @@ tuning on `fetch`, a command on `setup`, anything but bare on
 
 Driven on the lane (qemu 10.2.3 TCG, AMD Ryzen 7 7700, no KVM):
 `362-windows-refusal.sh` HOLDS (route to the verb, DOS base refusal,
-missing disk path, store untouched); `363-windows-tcg-dos.sh` HOLDS
+missing disk path, store untouched); `369-windows-tcg-dos.sh` HOLDS
 (`ver` 0 plus `FreeCom version 0.86`, `cmd /c ver` 0, `dir /zzz` 1,
 `pause` 125 DEADLINE, base identical, store untouched, FAT16 mailbox);
-`364-windows-guest.sh` HOLDS (52 crate tests, verb surface, fetch
+`370-windows-guest.sh` HOLDS (52 crate tests, verb surface, fetch
 ceilings with the loopback lane limit named, routing, Validation OS
 clause skipped loud without an image, DOS guest 0 plus version
 through the verb). Suite: 52 (podbox-windows) plus 165 (podbox-cli,
@@ -1192,7 +1192,7 @@ streamed under a 1 GB file ceiling.** The direct link is anonymous
 whole-ISO download with SIGXFSZ at ~954 MB, so the ISO never
 lands. What lands instead is the one contiguous UDF extent holding
 `ValidationOS.vhdx`, walked on-origin with range requests and
-fetched alone: `experiments/365-validationos-stream.sh` asserts
+fetched alone: `experiments/371-validationos-stream.sh` asserts
 the PVD plus terminator plus BEA01/NSR02, the VDS order, the root
 File Entry, then fetches abs LBA 1010 for 910163968 bytes and
 checks the `vhdxfile` magic, sha256: 063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f,
@@ -1206,5 +1206,5 @@ host. From there the committed verbs do the rest: `windows setup`
 provisioned `INSTALLED D:`, and `windows run` returned `Microsoft
 Windows [Version 10.0.26100.9278]` with exit 0, then exit 42 for
 `ver >nul & cmd /c exit 42`, the guest's own code, passed
-through. `364` clause 7 carries that run; 365 is the acquisition
+through. `370` clause 7 carries that run; 371 is the acquisition
 instrument both halves share.

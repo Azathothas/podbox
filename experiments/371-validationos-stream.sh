@@ -43,9 +43,9 @@ VHDX_SHA256='063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f'
 
 REPO="$(pwd)"
 cd "$REPO" || exit 2
-WORK="$REPO/experiments/.sweep365-work"
+WORK="$REPO/experiments/.sweep371-work"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
-REPORT="$WORK/out-365.txt"
+REPORT="$WORK/out-371.txt"
 OUT="${PODBOX_VOS_OUT:-$WORK/ValidationOS.vhdx}"
 fail=0
 
