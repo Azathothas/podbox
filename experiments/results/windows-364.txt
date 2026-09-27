@@ -1,5 +1,5 @@
 == conditions
-date              2026-09-27T01:24:45Z
+date              2026-09-27T02:00:39Z
 host kernel       Linux 7.2.0-WSL2-STABLE
 kvm               absent
 qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
@@ -41,7 +41,7 @@ doctor            exit 0, accelerator named
 
 == run-routing
 exit              125
-  podbox windows: /work/experiments/.sweep364-work/no-such-image.vhdx is not a file. A named image is never replaced by the cache; pass the provisioned image, or name none to use /root/.local/share/podbox/windows/base.vhdx (TODO/milestones.md T-1112)
+  podbox windows: /work/experiments/.sweep370-work/no-such-image.vhdx is not a file. A named image is never replaced by the cache; pass the provisioned image, or name none to use /root/.local/share/podbox/windows/base.vhdx (TODO/milestones.md T-1112)
 clause 6          the driver answered
 store             untouched
 
@@ -51,7 +51,7 @@ skipped           PODBOX_WINDOWS_IMAGE is unset: podbox ships no Windows
 
 == dos-guest
 run exit          0 in 60s
-  podbox windows: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /work/experiments/.sweep363-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
+  podbox windows: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /work/experiments/.sweep369-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
   
   FreeCom version 0.86 - WATCOMC - XMS_Swap [Dec 30 2024 22:10:51]
 clause 8          the DOS guest answered

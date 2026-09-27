@@ -1,5 +1,5 @@
 == conditions
-date              2026-09-27T01:24:45Z
+date              2026-09-27T02:00:38Z
 host kernel       Linux 7.2.0-WSL2-STABLE
 kvm               absent
 qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
@@ -21,7 +21,7 @@ clause 2          store untouched
 command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cmd /c ver
 exit              125
 output:
-  podbox run: no DOS base image at /work/experiments/.sweep362-work/dos-base.img and none was named. The DOS flavor boots FreeDOS, not a disk you hand it: `experiments/363-windows-tcg-dos.sh` fetches FreeDOS 1.4 LiteUSB (pinned sha256, fetch ceiling) and writes the base. No base is fetched or committed here (TODO/milestones.md T-1112)
+  podbox run: no DOS base image at /work/experiments/.sweep362-work/dos-base.img and none was named. The DOS flavor boots FreeDOS, not a disk you hand it: `experiments/369-windows-tcg-dos.sh` fetches FreeDOS 1.4 LiteUSB (pinned sha256, fetch ceiling) and writes the base. No base is fetched or committed here (TODO/milestones.md T-1112)
 clause 3          store untouched
 
 == win-create

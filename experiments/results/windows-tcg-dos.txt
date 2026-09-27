@@ -1,5 +1,5 @@
 == conditions
-date              2026-09-27T01:15:14Z
+date              2026-09-27T01:51:47Z
 host kernel       Linux 7.2.0-WSL2-STABLE
 cpu model         12th Gen Intel(R) Core(TM) i7-12700H
 kvm               absent
@@ -17,7 +17,7 @@ fetch             ok
 sha256            857dcd2ebf9d3d094320154db5fb5b830acba6fb98f981a95a0ca7ab3350338b
 unzip             ok
 image bytes       33554432
-image: /work/experiments/.sweep363-work/freedos-base.img
+image: /work/experiments/.sweep369-work/freedos-base.img
 file format: raw
 virtual size: 32 MiB (33554432 bytes)
 disk size: 32 MiB
@@ -31,7 +31,7 @@ stdout:
   
   FreeCom version 0.86 - WATCOMC - XMS_Swap [Dec 30 2024 22:10:51]
 stderr:
-  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /work/experiments/.sweep363-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
+  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /work/experiments/.sweep369-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
 
 == dos-cmdver
 command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 freedos:1.4 cmd /c ver
@@ -40,14 +40,14 @@ stdout:
   
   FreeCom version 0.86 - WATCOMC - XMS_Swap [Dec 30 2024 22:10:51]
 stderr:
-  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /work/experiments/.sweep363-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
+  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /work/experiments/.sweep369-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
 
 == dos-nonzero
 command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --podbox-tier=machine --platform windows/amd64 freedos:1.4 dir /zzz
 exit              1
 stdout:
 stderr:
-  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /work/experiments/.sweep363-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
+  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /work/experiments/.sweep369-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
 clause 5          non-zero returns 1, distinct from 0
 
 == dos-deadline
@@ -55,7 +55,7 @@ command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm -
 exit              125
 stdout:
 stderr:
-  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /work/experiments/.sweep363-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
+  podbox run: machine tier tcg (the emulator process is the boundary, not hardware isolation; -nic none, no networking). Guest FreeDOS 1.4 (FreeCom 0.86) for windows/amd64: DOS batch, portable, not Windows 11. Base /work/experiments/.sweep369-work/freedos-base.img mem 512 MiB (TODO/milestones.md T-1112)
   podbox run: DEADLINE: no completion line with the run token within 180 s. The guest never wrote WQCODE.TXT, so there is no status to return (TODO/milestones.md T-1112)
 clause 7          base byte-identical (f539d456b792594bc3ca59d4e0f4c23d4f1fee73370c1390b2da245400718d36)
 per-run leftovers 0
