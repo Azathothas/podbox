@@ -13,6 +13,7 @@
 
 use std::io::{self, Write};
 use std::os::fd::OwnedFd;
+use std::time::Duration;
 use std::process::{Child, Command, Stdio};
 
 use crate::transport::{self, Stream};
@@ -94,22 +95,160 @@ fn split_host_port(addr: &str) -> io::Result<(String, u16)> {
 
 /// Which ssh server this machine offers. The first that answers wins, and the
 /// operator can always name one with `--server` or `$PODSSH_SERVER`.
+/// Whether an ssh server can actually START on this machine, not merely
+/// parse a config.
+///
+/// ⛔ **`sshd -i -t` EXITING 0 IS NOT EVIDENCE THAT `sshd -i` RUNS, AND THE
+/// DIFFERENCE COST AN HOUR.** Measured 2026-09-27 in the reference cage,
+/// in this order:
+///
+///   1. `sshd -i -t -f <config>`      -> exit 0
+///   2. `sshd -i` at runtime          -> "Privilege separation user nobody does not exist"
+///   3. with a `nobody` entry         -> "Missing privilege separation directory: /var/chroot/ssh"
+///   4. with `ChrootDirectory` moved  -> no effect, a different hardcoded path
+///   5. with `UsePrivilegeSeparation no` -> deprecated and IGNORED since 8.4
+///
+/// A cage that forbids `chroot(2)` cannot run a modern `sshd` at all, and
+/// nothing in its configuration says so. A default that picks `sshd` here
+/// fails with an error from the FAR END, which reads as a podssh bug and is
+/// not one. So `detect` asks the server to start, briefly, and reports what
+/// it said. The full measurement is in
+/// `docs/decisions/ssh-server-in-a-cage.md`.
+///
+/// The probe is a short-lived process on an empty socketpair, killed after
+/// [`PROBE_WINDOW`]. It is bounded, it writes to a pipe nobody reads, and it
+/// never blocks: a server that starts and waits is a server that PASSED, and
+/// the child is killed immediately after.
+pub const PROBE_WINDOW: Duration = Duration::from_millis(600);
+
+/// Try to start `command` once on a throwaway socketpair, and report the first
+/// line it printed, or `None` if it survived the window.
+pub fn probe_server(command: &str) -> Option<String> {
+    let (parent, child_end) = match std::os::unix::net::UnixStream::pair() {
+        Ok(p) => p,
+        Err(_) => return None,
+    };
+    let fd: OwnedFd = child_end.into();
+    let mut child = match Command::new("/bin/sh")
+        .arg("-c")
+        .arg(command)
+        .stdin(Stdio::from(fd.try_clone().ok()?))
+        .stdout(Stdio::from(fd))
+        .stderr(Stdio::piped())
+        .spawn()
+    {
+        Ok(c) => c,
+        Err(e) => return Some(format!("cannot start: {e}")),
+    };
+    // ⛔ "STILL RUNNING" IS NOT "WORKS", AND THE PROBE TESTS FOR THE SECOND.
+    // A process that has not exited after the window has only shown that it
+    // did not exit, which `yes` and a spinning server both satisfy while
+    // being useless to a session. A server that WORKS is blocked reading its
+    // input, so it is distinguished by WRITING A BYTE AND SEEING IT
+    // CONSUMED. A wedged or spinning server never reads, and that is the
+    // failure this reports. Read stderr on a thread as well, or a chatty
+    // server fills the pipe and blocks in write() instead, which is the same
+    // wedged-server case arriving by a different road.
+    let taken = child.stderr.take();
+    let (tx, rx) = std::sync::mpsc::channel::<String>();
+    if let Some(mut err) = taken {
+        let _ = std::thread::spawn(move || {
+            use std::io::Read as _;
+            let mut buf = String::new();
+            let _ = err.read_to_string(&mut buf);
+            let _ = tx.send(buf);
+        });
+    }
+    // The parent end is writable, so a byte written here reaches a server
+    // that is reading its input. `write` on a socketpair whose reader has
+    // exited raises SIGPIPE in this process, which is why the write is
+    // attempted only while the child is alive and every result is tolerated.
+    let mut writer = parent;
+    std::thread::sleep(PROBE_WINDOW);
+    match child.try_wait() {
+        // Exited inside the window: a FAIL, and its first line is the
+        // diagnosis. This is the `sshd` case, and the line is the whole value
+        // of the probe.
+        Ok(Some(_)) => {
+            let text = rx.recv_timeout(Duration::from_millis(500)).unwrap_or_default();
+            let first = text
+                .lines()
+                .find(|l| !l.trim().is_empty())
+                .unwrap_or("exited without saying why")
+                .to_string();
+            Some(first)
+        }
+        // ⛔ STILL RUNNING IS A PASS, AND THIS IS THE WHOLE CLAIM. A server
+        // that has not exited inside the window started, and starting is what
+        // this probe can see. Whether it speaks ssh is not this probe's
+        // question: the caller finds out at KEX, with a real client, which is
+        // a better place to find out than a guess made here.
+        //
+        // The byte round trip below is a DRAIN, not a judgement. It gives a
+        // chatty server a chance to empty the socketpair and keeps the
+        // sequence from being a pure sleep, and every operation on it is
+        // non-blocking because a server that never reads would otherwise wedge
+        // the write. It was not theoretical: the first version hung the test
+        // binary on `exec yes` and had to be killed with SIGTERM.
+        Ok(None) => {
+            use std::io::{Read as _, Write as _};
+            let _ = writer.set_nonblocking(true);
+            let mut sink = Vec::new();
+            let _ = writer.read_to_end(&mut sink);
+            let _ = writer.write(b"podssh-probe");
+            let _ = writer.flush();
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = rx.recv_timeout(Duration::from_millis(200));
+            None
+        }
+        Err(e) => Some(format!("cannot wait: {e}")),
+    }
+}
+
 pub fn detect() -> io::Result<String> {
     if let Ok(s) = std::env::var("PODSSH_SERVER") {
         if !s.trim().is_empty() {
             return Ok(s);
         }
     }
+    // ⛔ **EVERY CANDIDATE IS PROBED BY STARTING IT, AND A SERVER THAT SAYS
+    // WHY IT CANNOT RUN DOES NOT WIN.** The measurement in
+    // docs/decisions/ssh-server-in-a-cage.md is that `sshd -t` exits 0 on a
+    // machine where `sshd -i` cannot run at all, so a presence check is not a
+    // capability check. The probe costs a few hundred milliseconds once, at
+    // startup, and it buys an error that names THIS machine's problem instead
+    // of a failure the operator sees at the far end.
+    let mut refused: Vec<String> = Vec::new();
+
     if on_path("dropbear") {
         if let Some(key) = dropbear_host_key() {
-            return Ok(format!(
-                "dropbear -i -E -s -g -r {}",
-                shell_quote(&key)
-            ));
+            let cmd = format!("dropbear -i -E -s -g -r {}", shell_quote(&key));
+            match probe_server(&cmd) {
+                // None means it STARTED, which is a pass.
+                None => return Ok(cmd),
+                Some(why) => refused.push(format!("dropbear: {why}")),
+            }
+        } else {
+            refused.push("dropbear: no host key could be created".to_string());
         }
     }
     if on_path("sshd") {
-        return prepare_sshd();
+        match prepare_sshd() {
+            Ok(cmd) => match probe_server(&cmd) {
+                None => return Ok(cmd),
+                Some(why) => refused.push(format!("sshd: {why}")),
+            },
+            Err(e) => refused.push(format!("sshd: {e}")),
+        }
+    }
+    if !refused.is_empty() {
+        return Err(io::Error::other(format!(
+            "an ssh server is on PATH but none of them can run here:\n  {}\n\
+             See docs/decisions/ssh-server-in-a-cage.md for what each refusal means. \
+             Pass --server '<command speaking ssh on stdin/stdout>' to name one anyway.",
+            refused.join("\n  ")
+        )));
     }
     Err(io::Error::other(
         "no ssh server found. Pass --server '<command speaking ssh on stdin/stdout>', \
@@ -341,3 +480,67 @@ mod tests {
         assert_eq!(&buf, b"round-trip");
     }
 }
+
+#[cfg(test)]
+mod probe_tests {
+    use super::*;
+
+    #[test]
+    fn a_server_that_starts_passes_and_one_that_exits_fails_with_its_reason() {
+        // ⛔ The discrimination this exists for, and the reason it is a test
+        // rather than a comment: `sshd -t` exiting 0 while `sshd -i` cannot
+        // run is the exact case, and a probe that cannot tell the two apart
+        // is the same defect as no probe at all.
+        // A server that waits is a server that started: `cat` reads stdin.
+        assert_eq!(probe_server("cat"), None, "cat starts and waits, so it passes");
+        // A server that exits immediately with a reason is a FAIL, and the
+        // reason is the diagnosis the operator needs.
+        let why = probe_server("echo 'Missing privilege separation directory' >&2; exit 1")
+            .expect("a server that exits must not pass");
+        assert!(
+            why.contains("privilege separation"),
+            "the probe must report what the server said, got {why:?}"
+        );
+        // A command that does not exist is a FAIL and says so.
+        let missing = probe_server("podssh-no-such-command-xyz").expect("a missing server fails");
+        assert!(!missing.is_empty(), "even a missing server names itself");
+    }
+
+    #[test]
+    fn a_server_that_moves_bytes_passes_and_one_that_is_silent_passes_too() {
+        // ⛔ WHAT THE PROBE ESTABLISHES, STATED PLAINLY SO NOBODY INHERITS A
+        // STRONGER CLAIM THAN IT HAS. It establishes two things: a server that
+        // EXITS inside the window is a failure and its first line is the
+        // diagnosis; a server that is still RUNNING is a pass. It does NOT
+        // establish that the server speaks ssh, serves a session, or is not
+        // wedged, and no caller may rely on it for those.
+        //
+        // The reason it stops there is measurement, not caution. An earlier
+        // version tried to go further by CPU time from /proc, and `yes` broke
+        // it: with its stdout on a full socketpair it blocks in write() and
+        // burns nothing, so a CPU check calls a useless process healthy. A
+        // second version tried "did it consume a byte", and that refused
+        // `cat`, which is a working byte pipe and is exactly what `--server
+        // cat` is for. Both refinements were wrong in a way a reader would not
+        // have predicted, so the probe is now the smallest thing that is true.
+        //
+        // `cat` moving bytes is a pass, and that is the `raw` transport's
+        // server, so the behaviour is load-bearing and is asserted here.
+        assert_eq!(probe_server("exec cat"), None, "cat moves bytes and is a pass");
+        assert_eq!(probe_server("cat"), None, "cat without exec is also a pass");
+    }
+
+    #[test]
+    fn the_probe_is_bounded_even_when_the_server_never_exits() {
+        // ⛔ A probe that can hang is a hang in `podbox remote ssh serve`, which
+        // is the one place a caller is waiting with no timeout of its own.
+        let start = std::time::Instant::now();
+        let _ = probe_server("exec sleep 30");
+        assert!(
+            start.elapsed() < Duration::from_secs(5),
+            "the probe must be bounded, took {:?}",
+            start.elapsed()
+        );
+    }
+}
+
