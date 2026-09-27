@@ -116,13 +116,13 @@ case_ssh() {
     local name=$1 extra=$2 url=$3 ca=${4:-}
     local ca_arg=
     [ -n "$ca" ] && ca_arg="--tls-ca $ca"
-    if ! need ssh || ! need sshd; then
-        skip "ssh/$name" "no ssh or sshd on PATH"
+    if ! need ssh || [ -z "$SSHD_CMD" ]; then
+        skip "ssh/$name" "no ssh, or no ssh server that runs on this machine"
         return
     fi
     if ! start_relay "$name" "$extra"; then return; fi
     "$BIN" serve --relay "$url" --name agent1 --auth SECRET $ca_arg \
-        --server "sshd -i -e -f $WORK/sshd_config" --once \
+        --server "$SSHD_CMD" --once \
         >"$WORK/$name.serve.log" 2>&1 &
     SERVE_PID=$!
     sleep 0.3
@@ -157,6 +157,43 @@ UsePAM no
 StrictModes no
 LogLevel ERROR
 EOF
+
+# ⛔ **THE SSH SERVER IS CHOSEN BY WHAT CAN RUN HERE, NOT BY WHAT IS ON PATH
+# FIRST.** Measured 2026-09-27 in the reference cage: `sshd -i -t` exits 0 and
+# `sshd -i` cannot run at all, because its privilege-separation sandbox wants
+# `/var/chroot/ssh`, `/var` does not exist, and `UsePrivilegeSeparation` has
+# been a deprecated no-op since OpenSSH 8.4. A suite that hardcoded `sshd -i`
+# reported seven failures on a machine where the transport is fine, which is
+# "could not run must never read as denied" wearing a different hat. dropbear
+# has no privsep chroot, so where sshd cannot run and dropbear can, the case is
+# GREEN and the reason is printed.
+#
+# `SSHD_CMD` is then the whole server invocation and every case below uses it
+# rather than spelling `sshd -i` four times.
+SSHD_CMD=""
+SSHD_WHY=""
+if [ -n "${PODSSH_E2E_SSHD:-}" ]; then
+    SSHD_CMD="$PODSSH_E2E_SSHD"
+    SSHD_WHY="named by PODSSH_E2E_SSHD"
+elif command -v dropbearkey >/dev/null 2>&1 \
+     && dropbearkey -t ed25519 -f "$WORK/db_hostkey" >/dev/null 2>&1; then
+    # dropbear reads authorized_keys from a DIRECTORY it is told about with -D,
+    # and its host key is made by dropbearkey rather than by ssh-keygen.
+    mkdir -p "$WORK/db_ak"
+    cp "$WORK/user_ed25519.pub" "$WORK/db_ak/authorized_keys"
+    chmod 600 "$WORK/db_ak/authorized_keys"
+    SSHD_CMD="dropbear -i -E -s -g -F -r $WORK/db_hostkey -D $WORK/db_ak"
+    SSHD_WHY="dropbear: no privsep chroot, so it runs where sshd cannot"
+elif command -v sshd >/dev/null 2>&1; then
+    SSHD_CMD="sshd -i -e -f $WORK/sshd_config"
+    SSHD_WHY="sshd: present on PATH"
+fi
+if [ -n "$SSHD_CMD" ]; then
+    printf 'podssh-e2e: ssh server: %s\n' "$SSHD_CMD"
+    printf 'podssh-e2e:   because: %s\n' "$SSHD_WHY"
+else
+    printf 'podssh-e2e: no ssh server that runs here; the ssh cases will skip\n'
+fi
 
 # A CA and a leaf, so the TLS cases exercise verification rather than
 # --insecure. A self-signed leaf is rejected by rustls as CaUsedAsEndEntity,
@@ -198,8 +235,8 @@ else
     skip "wss" "no openssl to make a CA and a leaf"
 fi
 
-# `podbox ssh` is the same code behind the podbox verb, so it must answer the
-# same way the standalone binary does. `podbox` is a second package in the same
+# `podbox remote ssh` is the same code behind the podbox verb, so it must
+# answer the same way the standalone binary does. `podbox` is a second package in the same
 # workspace, so it is found beside the binary under test when both are built;
 # a missing one is a skip and never a failure.
 PODBOX=""
@@ -209,13 +246,27 @@ for cand in "$(dirname "$BIN")/podbox" \
     [ -x "$cand" ] && PODBOX=$cand && break
 done
 if [ -n "$PODBOX" ]; then
-    if "$PODBOX" ssh version >/dev/null 2>&1; then
-        ok "podbox-ssh-alias"
+    if "$PODBOX" remote ssh version >/dev/null 2>&1; then
+        ok "podbox-remote-ssh"
     else
-        bad "podbox-ssh-alias" "$PODBOX ssh version exited non-zero"
+        bad "podbox-remote-ssh" "$PODBOX remote ssh version exited non-zero"
+    fi
+    # ⛔ The old spelling must be REFUSED, NAMED, and 125. `podbox ssh` was the
+    # verb before docs/decisions/remote-verb.md moved it under `remote`. 125 is
+    # podbox's code for a verb it has and refuses, which is a different thing
+    # from 1, the code for a name neither podbox nor docker has. An agent that
+    # types the old name is asking a real question, so a refusal that merely
+    # failed would look like a broken build rather than an answer.
+    old_out="$("$PODBOX" ssh 2>&1)"
+    old_rc=$?
+    if [ "$old_rc" -eq 125 ] && printf '%s' "$old_out" | grep -q "podbox remote ssh"; then
+        ok "podbox-ssh-old-spelling-refused"
+    else
+        bad "podbox-ssh-old-spelling-refused" "rc=$old_rc (want 125), said: $old_out"
     fi
 else
-    skip "podbox-ssh-alias" "podbox not built"
+    skip "podbox-remote-ssh" "podbox not built"
+    skip "podbox-ssh-old-spelling-refused" "podbox not built"
 fi
 
 # ⛔ The interop cases. `sandssh` is the tree podssh's transport comes from, and
@@ -241,7 +292,7 @@ if [ -f "$SANDSSH_TREE/bin/sandssh" ] && [ -f "$SANDSSH_TREE/relay/sandssh-relay
         sleep 0.05
     done
     "$BIN" serve --relay "unix://$WORK/ssrelay.sock" --name agent1 --auth SECRET \
-        --protocol sandssh1 --server "sshd -i -e -f $WORK/sshd_config" --once \
+        --protocol sandssh1 --server "$SSHD_CMD" --once \
         >"$WORK/interopA.serve.log" 2>&1 &
     SERVE_PID=$!
     sleep 0.8
@@ -260,7 +311,7 @@ if [ -f "$SANDSSH_TREE/bin/sandssh" ] && [ -f "$SANDSSH_TREE/relay/sandssh-relay
     # B: podssh's relay with sandssh's client. The client is the foreign half.
     if ! start_relay "interopB" ""; then :; else
         "$BIN" serve --relay "unix://$WORK/interopB.sock" --name agent1 --auth SECRET \
-            --protocol sandssh1 --server "sshd -i -e -f $WORK/sshd_config" --once \
+            --protocol sandssh1 --server "$SSHD_CMD" --once \
             >"$WORK/interopB.serve.log" 2>&1 &
         SERVE_PID=$!
         sleep 0.8
@@ -278,7 +329,7 @@ if [ -f "$SANDSSH_TREE/bin/sandssh" ] && [ -f "$SANDSSH_TREE/relay/sandssh-relay
     fi
 
     # C: sandssh's server under podssh's relay and client.
-    printf '#!/bin/sh\nexec sshd -i -e -f %s/sshd_config\n' "$WORK" >"$WORK/sshd-wrapper.sh"
+    printf '#!/bin/sh\nexec %s\n' "$SSHD_CMD" >"$WORK/sshd-wrapper.sh"
     chmod +x "$WORK/sshd-wrapper.sh"
     if ! start_relay "interopC" ""; then :; else
         timeout "$TIMEOUT" python3 "$SS" serve --relay "unix://$WORK/interopC.sock" \
