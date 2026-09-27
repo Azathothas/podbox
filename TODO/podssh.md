@@ -213,10 +213,10 @@ Priority:    P2
 Effort:      M
 Status:      open
 
-Problem:     `podbox ssh` reaches a host that already has a server. The machine
-             tier has no server at all: `podbox exec` crosses a serial line
-             (T-1304). Two different far ends need one vocabulary, or an agent
-             has to learn which verb belongs to which tier.
+Problem:     `podbox remote ssh` reaches a host that already has a server. The
+             machine tier has no server at all: `podbox exec` crosses a serial
+             line (T-1304). Two different far ends need one vocabulary, or an
+             agent has to learn which verb belongs to which tier.
 Premise:     T-1302 settles that a second binary is a second parity table, so
              these are rows in the one table with the tier as a flag rather
              than a separate product.
@@ -224,6 +224,15 @@ Approach:    `podbox remote ssh` -- vanilla `ssh` on the far side, podssh's
              transport underneath. `podbox machine ssh` -- the podman-parity
              name, server inside the guest. Both ride one transport; the tier
              decides only where the server lives.
+             ⭐ THE VERB GROUP IS SETTLED AND IS NOT REOPENED HERE.
+             `docs/decisions/remote-verb.md` records the operator's decision
+             of 2026-09-27: `remote` is a NAMESPACE and not a synonym for
+             `ssh`, because `remote fetch`, `remote download` and
+             `remote wget` are all "reach a machine that is not this one" and
+             each would otherwise want its own top-level verb. `local` is the
+             counterpart so the axis is visible, and `machine` is a different
+             axis entirely. `podbox ssh` is refused with the group named and
+             exit 125, and the e2e asserts both halves.
 Decision:    ⚠ The static/interpose honesty rule applies to any identity shim
              on this path: `LD_PRELOAD` cannot reach a static binary, so that
              case is named rather than allowed to no-op, which is the shape
@@ -231,6 +240,17 @@ Decision:    ⚠ The static/interpose honesty rule applies to any identity shim
              `PT_INTERP`. ⭐ Where the server runs inside the guest the identity
              question largely goes away, because the guest has its own
              `/etc/passwd` in the image.
+             ⛔ **AND THAT RULE IS NOT HYPOTHETICAL HERE, IT IS MEASURED.** A
+             statically linked dropbear carries its own libc, so the passwd
+             shim cannot reach it and it logs `Login attempt for nonexistent
+             user` for a user that is there. The server must be built
+             DYNAMICALLY on this path, and the whole measurement is in
+             `docs/decisions/ssh-server-in-a-cage.md`: `sshd -i -t` exits 0 on
+             a machine where `sshd -i` cannot run at all, because its
+             privilege-separation sandbox wants `/var/chroot/ssh` and
+             `UsePrivilegeSeparation` has been a no-op since OpenSSH 8.4.
+             `crates/podbox-ssh/src/sshserver.rs` therefore PROBES a candidate
+             by starting it, rather than trusting that it is on PATH.
 Prove:       `experiments/372-podssh-verbs.sh` exits 0, and it drives
              `podbox remote ssh --help` and `podbox machine ssh --help` rather
              than reading the table, so a row with no arm fails it.

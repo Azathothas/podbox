@@ -100,11 +100,7 @@ fn load_pem_roots(roots: &mut rustls::RootCertStore, path: &Path) -> io::Result<
 pub struct Tls(pub rustls::StreamOwned<ClientConnection, Box<dyn Stream>>);
 
 impl Tls {
-    pub fn connect(
-        base: Box<dyn Stream>,
-        host: &str,
-        cfg: Arc<ClientConfig>,
-    ) -> io::Result<Self> {
+    pub fn connect(base: Box<dyn Stream>, host: &str, cfg: Arc<ClientConfig>) -> io::Result<Self> {
         let name = ServerName::try_from(host.to_string())
             .map_err(|e| io::Error::other(format!("bad TLS server name {host:?}: {e}")))?;
         let conn = ClientConnection::new(cfg.config.clone(), name)
@@ -131,7 +127,7 @@ impl Stream for Tls {
         self.0.sock.set_read_timeout(d)
     }
     fn shutdown_write(&mut self) -> io::Result<()> {
-        let _ = self.0.conn.send_close_notify();
+        self.0.conn.send_close_notify();
         self.0.sock.shutdown_write()
     }
     fn describe(&self) -> &'static str {
@@ -144,8 +140,8 @@ pub struct ServerTls(pub rustls::StreamOwned<ServerConnection, Box<dyn Stream>>)
 
 impl ServerTls {
     pub fn accept(base: Box<dyn Stream>, cfg: Arc<rustls::ServerConfig>) -> io::Result<Self> {
-        let conn = ServerConnection::new(cfg)
-            .map_err(|e| io::Error::other(format!("TLS server: {e}")))?;
+        let conn =
+            ServerConnection::new(cfg).map_err(|e| io::Error::other(format!("TLS server: {e}")))?;
         Ok(ServerTls(rustls::StreamOwned::new(conn, base)))
     }
 }
@@ -168,7 +164,7 @@ impl Stream for ServerTls {
         self.0.sock.set_read_timeout(d)
     }
     fn shutdown_write(&mut self) -> io::Result<()> {
-        let _ = self.0.conn.send_close_notify();
+        self.0.conn.send_close_notify();
         self.0.sock.shutdown_write()
     }
     fn describe(&self) -> &'static str {
@@ -184,10 +180,7 @@ pub fn server_config(cert: &Path, key: &Path) -> io::Result<Arc<rustls::ServerCo
 }
 
 /// The PEM bytes form, so a test can carry its own certificate.
-pub fn server_config_pem(
-    cert_pem: &[u8],
-    key_pem: &[u8],
-) -> io::Result<Arc<rustls::ServerConfig>> {
+pub fn server_config_pem(cert_pem: &[u8], key_pem: &[u8]) -> io::Result<Arc<rustls::ServerConfig>> {
     let certs: Vec<CertificateDer<'static>> = {
         let mut c = std::io::Cursor::new(cert_pem);
         rustls_pemfile::certs(&mut c)
@@ -195,7 +188,9 @@ pub fn server_config_pem(
             .map_err(|e| io::Error::other(format!("certificate PEM: {e}")))?
     };
     if certs.is_empty() {
-        return Err(io::Error::other("certificate PEM carries no CERTIFICATE block"));
+        return Err(io::Error::other(
+            "certificate PEM carries no CERTIFICATE block",
+        ));
     }
     let key = {
         let mut c = std::io::Cursor::new(key_pem);

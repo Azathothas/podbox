@@ -123,7 +123,9 @@ pub const AJAM_RELAY: &str = "wss://tcp.ssh.relay.ajam.dev";
 /// The operator's relay, with the token attached as a header, or `None` when
 /// no token is in the environment.
 pub fn ajam_relay() -> Option<String> {
-    let token = std::env::var("PODSSH_RELAY_TOKEN").ok().filter(|t| !t.is_empty())?;
+    let token = std::env::var("PODSSH_RELAY_TOKEN")
+        .ok()
+        .filter(|t| !t.is_empty())?;
     Some(format!("{AJAM_RELAY}/?header=X-Relay-Token:{token}"))
 }
 
@@ -208,13 +210,22 @@ pub fn proxy(explicit: Option<&str>) -> Option<String> {
             return Some(p.to_string());
         }
     }
-    for k in ["PODSSH_PROXY", "HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"] {
+    for k in [
+        "PODSSH_PROXY",
+        "HTTPS_PROXY",
+        "https_proxy",
+        "HTTP_PROXY",
+        "http_proxy",
+    ] {
         if let Ok(v) = std::env::var(k) {
             if v.is_empty() {
                 continue;
             }
             let v = v.trim_end_matches('/');
-            if let Some(rest) = v.strip_prefix("https://").or_else(|| v.strip_prefix("http://")) {
+            if let Some(rest) = v
+                .strip_prefix("https://")
+                .or_else(|| v.strip_prefix("http://"))
+            {
                 return Some(format!("http-connect://{rest}"));
             }
             if v.contains("://") {

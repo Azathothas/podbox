@@ -74,7 +74,10 @@ impl Kind {
     /// length of the list. `Resolve` returns false too, because the name will
     /// not resolve on the next relay either.
     pub fn retryable(self) -> bool {
-        matches!(self, Kind::Unreachable | Kind::Refused | Kind::Protocol | Kind::Io)
+        matches!(
+            self,
+            Kind::Unreachable | Kind::Refused | Kind::Protocol | Kind::Io
+        )
     }
 
     /// A stable machine-readable token, for `--json` and for an agent that
@@ -105,7 +108,11 @@ pub struct Error {
 
 impl Error {
     pub fn new(kind: Kind, hop: impl Into<String>, because: impl Into<String>) -> Self {
-        Error { kind, hop: hop.into(), because: because.into() }
+        Error {
+            kind,
+            hop: hop.into(),
+            because: because.into(),
+        }
     }
 
     /// The exit code this failure maps to.
@@ -192,18 +199,33 @@ mod tests {
         // in a list turns one sentence into N and multiplies the wall clock by
         // the list length, for an outcome that cannot change.
         for kind in [Kind::Config, Kind::Auth, Kind::Resolve] {
-            assert!(!kind.retryable(), "{kind:?} must not be retried against the next hop");
+            assert!(
+                !kind.retryable(),
+                "{kind:?} must not be retried against the next hop"
+            );
         }
         for kind in [Kind::Unreachable, Kind::Refused, Kind::Protocol, Kind::Io] {
-            assert!(kind.retryable(), "{kind:?} must be retried against the next hop");
+            assert!(
+                kind.retryable(),
+                "{kind:?} must be retried against the next hop"
+            );
         }
     }
 
     #[test]
     fn a_config_failure_is_not_a_transport_failure() {
-        assert_eq!(Error::new(Kind::Config, "config", "no relay").exit(), Exit::NoRoute);
-        assert_eq!(Error::new(Kind::Auth, "turn", "401").exit(), Exit::Transport);
-        assert_eq!(Error::new(Kind::Unreachable, "relay", "timeout").exit(), Exit::Transport);
+        assert_eq!(
+            Error::new(Kind::Config, "config", "no relay").exit(),
+            Exit::NoRoute
+        );
+        assert_eq!(
+            Error::new(Kind::Auth, "turn", "401").exit(),
+            Exit::Transport
+        );
+        assert_eq!(
+            Error::new(Kind::Unreachable, "relay", "timeout").exit(),
+            Exit::Transport
+        );
         assert_eq!(Exit::Usage.code(), 2);
         assert_eq!(Exit::Transport.code(), 255);
     }

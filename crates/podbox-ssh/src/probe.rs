@@ -32,7 +32,12 @@ pub fn run(cfg: &Config) -> i32 {
             .map(|p| probe_proxy(p, &cfg.target))
             .collect(),
     );
-    out["relays"] = Value::Array(cfg.relays.iter().map(|r| probe_relay(&cfg.dialer, r)).collect());
+    out["relays"] = Value::Array(
+        cfg.relays
+            .iter()
+            .map(|r| probe_relay(&cfg.dialer, r))
+            .collect(),
+    );
     out["catalog"] = json!({
         "egress": catalog::EGRESS.iter().map(|e| json!({
             "url": e.url, "verified": e.verified, "method": e.method, "note": e.note,
@@ -124,9 +129,14 @@ fn probe_relay(dialer: &Dialer, url: &str) -> Value {
         Err(e) => return json!({"url": url, "status": "dial-failed", "error": e.to_string()}),
     };
     let auth = catalog::auth(None);
-    match protocol::greet(&mut *s, protocol::Protocol::Podssh1, Role::Probe, "probe", &auth,
-        Duration::from_secs(10))
-    {
+    match protocol::greet(
+        &mut *s,
+        protocol::Protocol::Podssh1,
+        Role::Probe,
+        "probe",
+        &auth,
+        Duration::from_secs(10),
+    ) {
         Ok(()) => json!({"url": url, "status": "ok", "ms": started.elapsed().as_millis()}),
         Err(e) => json!({"url": url, "status": "handshake-failed", "error": e.to_string(),
             "ms": started.elapsed().as_millis()}),

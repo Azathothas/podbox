@@ -147,7 +147,11 @@ impl Dialer {
             }
             "tls+unix" => {
                 let base: Box<dyn Stream> = Box::new(Unix(UnixStream::connect(&spec.path)?));
-                Ok(Box::new(tls::Tls::connect(base, "localhost", self.tls.clone())?))
+                Ok(Box::new(tls::Tls::connect(
+                    base,
+                    "localhost",
+                    self.tls.clone(),
+                )?))
             }
             "wss+unix" => {
                 let base: Box<dyn Stream> = Box::new(Unix(UnixStream::connect(&spec.path)?));
@@ -191,8 +195,8 @@ impl Dialer {
 }
 
 pub fn connect_tcp(host: &str, port: u16, timeout: Duration) -> io::Result<TcpStream> {
-    let addrs: Vec<std::net::SocketAddr> = std::net::ToSocketAddrs::to_socket_addrs(&(host, port))?
-        .collect();
+    let addrs: Vec<std::net::SocketAddr> =
+        std::net::ToSocketAddrs::to_socket_addrs(&(host, port))?.collect();
     let mut last = io::Error::other(format!("no address for {host}:{port}"));
     for addr in addrs {
         match TcpStream::connect_timeout(&addr, timeout) {
@@ -356,7 +360,10 @@ pub fn read_headers(s: &mut dyn Stream, limit: usize, timeout: Duration) -> io::
                 }
             }
             Err(e) if crate::util::is_would_block(&e) => {
-                return Err(io::Error::new(io::ErrorKind::TimedOut, "header read timed out"))
+                return Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "header read timed out",
+                ))
             }
             Err(e) => return Err(e),
         }

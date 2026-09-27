@@ -79,7 +79,10 @@ fn session(cfg: &Config, relay: &str) -> io::Result<()> {
         &cfg.auth,
         cfg.handshake_timeout,
     )?;
-    eprintln!("podssh serve: paired via {relay}; starting {}", cfg.server_name());
+    eprintln!(
+        "podssh serve: paired via {relay}; starting {}",
+        cfg.server_name()
+    );
     let mut handle = sshserver::start(&cfg.server)?;
     stream.set_read_timeout(Some(PUMP_TIMEOUT))?;
     handle.stream.set_read_timeout(Some(PUMP_TIMEOUT))?;

@@ -230,7 +230,9 @@ impl Listener {
             .or_else(|| addr.starts_with('/').then_some(addr));
         if let Some(path) = path {
             let _ = std::fs::remove_file(path);
-            return Ok(Listener::Unix(std::os::unix::net::UnixListener::bind(path)?));
+            return Ok(Listener::Unix(std::os::unix::net::UnixListener::bind(
+                path,
+            )?));
         }
         Ok(Listener::Tcp(std::net::TcpListener::bind(addr)?))
     }

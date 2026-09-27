@@ -91,7 +91,10 @@ impl<'a> Chain<'a> {
             match self.dialer.dial(relay) {
                 Ok(s) => {
                     let _ = s.set_read_timeout(Some(slice));
-                    self.attempts.push(Attempt { relay: relay.clone(), outcome: Ok(()) });
+                    self.attempts.push(Attempt {
+                        relay: relay.clone(),
+                        outcome: Ok(()),
+                    });
                     return Ok(s);
                 }
                 Err(e) => {
@@ -101,11 +104,7 @@ impl<'a> Chain<'a> {
                         outcome: Err((kind, e.to_string())),
                     });
                     if !kind.retryable() {
-                        return Err(Error::new(
-                            kind,
-                            format!("relay {relay}"),
-                            e.to_string(),
-                        ));
+                        return Err(Error::new(kind, format!("relay {relay}"), e.to_string()));
                     }
                     last = Some(Error::new(kind, format!("relay {relay}"), e.to_string()));
                 }
@@ -191,24 +190,48 @@ mod tests {
 
     #[test]
     fn every_hop_gets_a_full_slice_and_the_total_still_bounds_the_run() {
-        let d = Dialer::new(None, std::sync::Arc::new(
-            crate::transport::tls::ClientConfig::new(true, &[]).expect("test tls config")), Duration::from_secs(5));
+        let d = Dialer::new(
+            None,
+            std::sync::Arc::new(
+                crate::transport::tls::ClientConfig::new(true, &[]).expect("test tls config"),
+            ),
+            Duration::from_secs(5),
+        );
         let c = Chain::new(&d, vec!["a".into(), "b".into(), "c".into()]);
         // 90s over 3 hops is 30s, capped at the 15s hop bound. The point is
         // that it is NOT 90/3-then-still-going: a slow first hop cannot eat
         // the whole chain.
         assert_eq!(c.hop_slice(), Duration::from_secs(15));
-        let d2 = Dialer::new(None, std::sync::Arc::new(
-            crate::transport::tls::ClientConfig::new(true, &[]).expect("test tls config")), Duration::from_secs(5));
-        let c2 = Chain::new(&d2, vec!["a".into(), "b".into(), "c".into(), "d".into(),
-                                       "e".into(), "f".into()]);
+        let d2 = Dialer::new(
+            None,
+            std::sync::Arc::new(
+                crate::transport::tls::ClientConfig::new(true, &[]).expect("test tls config"),
+            ),
+            Duration::from_secs(5),
+        );
+        let c2 = Chain::new(
+            &d2,
+            vec![
+                "a".into(),
+                "b".into(),
+                "c".into(),
+                "d".into(),
+                "e".into(),
+                "f".into(),
+            ],
+        );
         assert_eq!(c2.hop_slice(), Duration::from_secs(15));
     }
 
     #[test]
     fn an_empty_chain_is_a_config_failure_and_not_a_hang() {
-        let d = Dialer::new(None, std::sync::Arc::new(
-            crate::transport::tls::ClientConfig::new(true, &[]).expect("test tls config")), Duration::from_secs(5));
+        let d = Dialer::new(
+            None,
+            std::sync::Arc::new(
+                crate::transport::tls::ClientConfig::new(true, &[]).expect("test tls config"),
+            ),
+            Duration::from_secs(5),
+        );
         let mut c = Chain::new(&d, Vec::new());
         let e = crate::error::err_of_boxed(c.connect());
         assert_eq!(e.kind, Kind::Config);

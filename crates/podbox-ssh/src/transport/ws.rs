@@ -107,8 +107,7 @@ impl Ws {
                 }
             }
         }
-        let key = key
-            .ok_or_else(|| io::Error::other("websocket upgrade: no Sec-WebSocket-Key"))?;
+        let key = key.ok_or_else(|| io::Error::other("websocket upgrade: no Sec-WebSocket-Key"))?;
         if !upgrade {
             return Err(io::Error::other("websocket upgrade: no Upgrade header"));
         }
@@ -331,7 +330,10 @@ mod tests {
 
     fn pair() -> (Box<dyn Stream>, Box<dyn Stream>) {
         let (a, b) = UnixStream::pair().unwrap();
-        (Box::new(super::super::Unix(a)), Box::new(super::super::Unix(b)))
+        (
+            Box::new(super::super::Unix(a)),
+            Box::new(super::super::Unix(b)),
+        )
     }
 
     #[test]
@@ -368,5 +370,4 @@ mod tests {
         }
         assert_eq!(out, expect);
     }
-
 }

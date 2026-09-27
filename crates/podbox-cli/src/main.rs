@@ -167,9 +167,15 @@ fn main() -> std::process::ExitCode {
                 err,
                 "podbox: ssh: the verb is `podbox remote ssh`. The remote group has:"
             );
-            let _ = writeln!(err, "  podbox remote ssh        reach another machine over a relay");
+            let _ = writeln!(
+                err,
+                "  podbox remote ssh        reach another machine over a relay"
+            );
             let _ = writeln!(err, "  podbox remote relay      run the rendezvous relay");
-            let _ = writeln!(err, "  podbox remote probe      what this machine can reach");
+            let _ = writeln!(
+                err,
+                "  podbox remote probe      what this machine can reach"
+            );
             let _ = writeln!(
                 err,
                 "  podbox local <verb>      act on THIS machine (see docs/decisions/remote-verb.md)"

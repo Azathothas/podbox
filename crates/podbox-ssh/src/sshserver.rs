@@ -13,8 +13,8 @@
 
 use std::io::{self, Write};
 use std::os::fd::OwnedFd;
-use std::time::Duration;
 use std::process::{Child, Command, Stdio};
+use std::time::Duration;
 
 use crate::transport::{self, Stream};
 
@@ -170,7 +170,9 @@ pub fn probe_server(command: &str) -> Option<String> {
         // diagnosis. This is the `sshd` case, and the line is the whole value
         // of the probe.
         Ok(Some(_)) => {
-            let text = rx.recv_timeout(Duration::from_millis(500)).unwrap_or_default();
+            let text = rx
+                .recv_timeout(Duration::from_millis(500))
+                .unwrap_or_default();
             let first = text
                 .lines()
                 .find(|l| !l.trim().is_empty())
@@ -383,7 +385,10 @@ fn home() -> std::path::PathBuf {
 
 /// Minimal shell quoting so a path with a space survives `/bin/sh -c`.
 pub fn shell_quote(s: &str) -> String {
-    if !s.is_empty() && s.bytes().all(|b| b.is_ascii_alphanumeric() || b"/._-:=@,%+".contains(&b)) {
+    if !s.is_empty()
+        && s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"/._-:=@,%+".contains(&b))
+    {
         return s.to_string();
     }
     format!("'{}'", s.replace('\'', "'\\''"))
@@ -402,7 +407,10 @@ mod tests {
 
     #[test]
     fn split_addr() {
-        assert_eq!(split_host_port("127.0.0.1:22").unwrap(), ("127.0.0.1".into(), 22));
+        assert_eq!(
+            split_host_port("127.0.0.1:22").unwrap(),
+            ("127.0.0.1".into(), 22)
+        );
         assert!(split_host_port("nope").is_err());
     }
 
@@ -492,7 +500,11 @@ mod probe_tests {
         // run is the exact case, and a probe that cannot tell the two apart
         // is the same defect as no probe at all.
         // A server that waits is a server that started: `cat` reads stdin.
-        assert_eq!(probe_server("cat"), None, "cat starts and waits, so it passes");
+        assert_eq!(
+            probe_server("cat"),
+            None,
+            "cat starts and waits, so it passes"
+        );
         // A server that exits immediately with a reason is a FAIL, and the
         // reason is the diagnosis the operator needs.
         let why = probe_server("echo 'Missing privilege separation directory' >&2; exit 1")
@@ -526,7 +538,11 @@ mod probe_tests {
         //
         // `cat` moving bytes is a pass, and that is the `raw` transport's
         // server, so the behaviour is load-bearing and is asserted here.
-        assert_eq!(probe_server("exec cat"), None, "cat moves bytes and is a pass");
+        assert_eq!(
+            probe_server("exec cat"),
+            None,
+            "cat moves bytes and is a pass"
+        );
         assert_eq!(probe_server("cat"), None, "cat without exec is also a pass");
     }
 
@@ -543,4 +559,3 @@ mod probe_tests {
         );
     }
 }
-

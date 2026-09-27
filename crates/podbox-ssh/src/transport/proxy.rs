@@ -38,12 +38,7 @@ impl Proxy {
         }
     }
 
-    pub fn connect(
-        &self,
-        host: &str,
-        port: u16,
-        timeout: Duration,
-    ) -> io::Result<Box<dyn Stream>> {
+    pub fn connect(&self, host: &str, port: u16, timeout: Duration) -> io::Result<Box<dyn Stream>> {
         let spec = match self {
             Proxy::HttpConnect(s) | Proxy::Socks5(s) => s,
         };
@@ -150,7 +145,9 @@ fn socks5(
             l[0] as usize
         }
         other => {
-            return Err(io::Error::other(format!("socks5: bad address type {other:#x}")))
+            return Err(io::Error::other(format!(
+                "socks5: bad address type {other:#x}"
+            )))
         }
     };
     let mut tail = vec![0u8; skip + 2];

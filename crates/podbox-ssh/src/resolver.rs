@@ -47,11 +47,19 @@ pub struct Resolver {
 
 impl Resolver {
     pub fn system() -> Resolver {
-        Resolver { mode: Mode::System, timeout: Duration::from_secs(5) }
+        Resolver {
+            mode: Mode::System,
+            timeout: Duration::from_secs(5),
+        }
     }
 
     pub fn doh(endpoint: impl Into<String>) -> Resolver {
-        Resolver { mode: Mode::Doh { endpoint: endpoint.into() }, timeout: Duration::from_secs(8) }
+        Resolver {
+            mode: Mode::Doh {
+                endpoint: endpoint.into(),
+            },
+            timeout: Duration::from_secs(8),
+        }
     }
 
     /// Choose a resolver from the environment, without a flag.
@@ -116,15 +124,14 @@ impl Resolver {
         let dialer = crate::transport::Dialer::new(
             None,
             std::sync::Arc::new(
-                crate::transport::tls::ClientConfig::new(false, &[]).map_err(|e| {
-                    Error::new(Kind::Config, "doh", e.to_string())
-                })?,
+                crate::transport::tls::ClientConfig::new(false, &[])
+                    .map_err(|e| Error::new(Kind::Config, "doh", e.to_string()))?,
             ),
             self.timeout,
         );
-        let mut s = dialer.dial(&spec).map_err(|e| {
-            Error::new(Kind::Unreachable, "doh", format!("dial {endpoint}: {e}"))
-        })?;
+        let mut s = dialer
+            .dial(&spec)
+            .map_err(|e| Error::new(Kind::Unreachable, "doh", format!("dial {endpoint}: {e}")))?;
         s.set_read_timeout(Some(self.timeout)).ok();
         let query = format!(
             "GET /dns-query?name={host}&type=A HTTP/1.1\r\nHost: {endpoint}\r\n\
@@ -149,9 +156,7 @@ impl Resolver {
                     }
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
-                Err(e) => {
-                    return Err(Error::new(Kind::Unreachable, "doh", format!("read: {e}")))
-                }
+                Err(e) => return Err(Error::new(Kind::Unreachable, "doh", format!("read: {e}"))),
             }
         }
         parse_doh_a(&body, host)
@@ -171,7 +176,11 @@ fn parse_doh_a(body: &[u8], host: &str) -> Result<Vec<IpAddr>> {
     let json = match text.find('{') {
         Some(i) => &text[i..],
         None => {
-            return Err(Error::new(Kind::Protocol, "doh", "the response carried no JSON body"))
+            return Err(Error::new(
+                Kind::Protocol,
+                "doh",
+                "the response carried no JSON body",
+            ))
         }
     };
     let v: serde_json::Value = serde_json::from_str(json)
@@ -193,7 +202,11 @@ fn parse_doh_a(body: &[u8], host: &str) -> Result<Vec<IpAddr>> {
         }
     }
     if out.is_empty() {
-        return Err(Error::new(Kind::Resolve, host.to_string(), "DoH returned no A record"));
+        return Err(Error::new(
+            Kind::Resolve,
+            host.to_string(),
+            "DoH returned no A record",
+        ));
     }
     Ok(out)
 }
@@ -219,7 +232,10 @@ mod tests {
         // `HTTP/1.1 200 OK\r\ncontent-type: ...\r\n\r\n{"Status":0,...}`.
         // Parsing from byte zero would fail; the code finds the first `{`.
         let body = b"HTTP/1.1 200 OK\r\ncontent-type: application/dns-json\r\n\r\n{\"Status\":0,\"Answer\":[{\"type\":1,\"data\":\"1.1.1.1\"}]}";
-        assert_eq!(parse_doh_a(body, "x").unwrap(), vec!["1.1.1.1".parse::<IpAddr>().unwrap()]);
+        assert_eq!(
+            parse_doh_a(body, "x").unwrap(),
+            vec!["1.1.1.1".parse::<IpAddr>().unwrap()]
+        );
     }
 
     #[test]
@@ -228,16 +244,28 @@ mod tests {
         // protocol error would tell an operator to look at the transport when
         // the name simply does not exist.
         let nx = br#"{"Status":3,"Answer":[]}"#;
-        assert_eq!(crate::error::err_of(parse_doh_a(nx, "nope.example")).kind, Kind::Resolve);
+        assert_eq!(
+            crate::error::err_of(parse_doh_a(nx, "nope.example")).kind,
+            Kind::Resolve
+        );
         let nojson = b"HTTP/1.1 502 Bad Gateway\r\n\r\n<html>oops</html>";
-        assert_eq!(crate::error::err_of(parse_doh_a(nojson, "x")).kind, Kind::Protocol);
+        assert_eq!(
+            crate::error::err_of(parse_doh_a(nojson, "x")).kind,
+            Kind::Protocol
+        );
     }
 
     #[test]
     fn a_literal_address_skips_the_resolver_entirely() {
         let r = Resolver::system();
-        assert_eq!(r.resolve("192.0.2.7").unwrap(), vec!["192.0.2.7".parse::<IpAddr>().unwrap()]);
-        assert_eq!(r.resolve("2001:db8::1").unwrap(), vec!["2001:db8::1".parse::<IpAddr>().unwrap()]);
+        assert_eq!(
+            r.resolve("192.0.2.7").unwrap(),
+            vec!["192.0.2.7".parse::<IpAddr>().unwrap()]
+        );
+        assert_eq!(
+            r.resolve("2001:db8::1").unwrap(),
+            vec!["2001:db8::1".parse::<IpAddr>().unwrap()]
+        );
     }
 
     #[test]

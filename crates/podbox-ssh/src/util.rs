@@ -13,7 +13,13 @@ use std::io::{self, Read};
 /// SHA-1 (RFC 3174). Not for signatures, not for passwords: the two uses here
 /// are the websocket `Sec-WebSocket-Accept` value and nothing else.
 pub fn sha1(data: &[u8]) -> [u8; 20] {
-    let mut h: [u32; 5] = [0x6745_2301, 0xEFCD_AB89, 0x98BA_DCFE, 0x1032_5476, 0xC3D2_E1F0];
+    let mut h: [u32; 5] = [
+        0x6745_2301,
+        0xEFCD_AB89,
+        0x98BA_DCFE,
+        0x1032_5476,
+        0xC3D2_E1F0,
+    ];
     let bit_len = (data.len() as u64).wrapping_mul(8);
     let mut msg = data.to_vec();
     msg.push(0x80);
@@ -248,8 +254,10 @@ mod tests {
         let (mut cb, rb) = UnixStream::pair().unwrap();
         let mut ra = crate::transport::Unix(ra);
         let mut rb = crate::transport::Unix(rb);
-        ra.0.set_read_timeout(Some(Duration::from_millis(50))).unwrap();
-        rb.0.set_read_timeout(Some(Duration::from_millis(50))).unwrap();
+        ra.0.set_read_timeout(Some(Duration::from_millis(50)))
+            .unwrap();
+        rb.0.set_read_timeout(Some(Duration::from_millis(50)))
+            .unwrap();
 
         let relay = std::thread::spawn(move || {
             let r = pump(&mut ra, &mut rb);
@@ -301,7 +309,8 @@ mod tests {
     #[test]
     fn a_source_the_pump_cannot_time_out_returns_would_block() {
         let (mut far, near) = UnixStream::pair().unwrap();
-        far.set_read_timeout(Some(Duration::from_millis(50))).unwrap();
+        far.set_read_timeout(Some(Duration::from_millis(50)))
+            .unwrap();
         let mut reader = crate::transport::ChannelReader::from_read(near);
 
         // Nothing has been sent, and the pair is open: this must not block.

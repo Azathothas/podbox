@@ -201,11 +201,16 @@ fn protocol_of(o: &Opts) -> Result<Protocol, i32> {
 fn dialer_of(o: &Opts) -> Result<Dialer, i32> {
     let tls_ca: Vec<PathBuf> = o.tls_ca.iter().map(PathBuf::from).collect();
     let proxy = crate::catalog::proxy(o.proxy.as_deref());
-    crate::relay::dialer_for(proxy.as_deref(), o.insecure, &tls_ca, Duration::from_secs(15))
-        .map_err(|e| {
-            eprintln!("podssh: {e}");
-            1
-        })
+    crate::relay::dialer_for(
+        proxy.as_deref(),
+        o.insecure,
+        &tls_ca,
+        Duration::from_secs(15),
+    )
+    .map_err(|e| {
+        eprintln!("podssh: {e}");
+        1
+    })
 }
 
 fn cmd_probe(args: &[String]) -> i32 {
@@ -293,7 +298,12 @@ fn cmd_serve(args: &[String]) -> i32 {
         (None, Some(a)) => ServerSpec::Forward(a.clone()),
         (None, None) => ServerSpec::Auto,
     };
-    let mut cfg = crate::serve::Config::new(crate::catalog::relay_candidates(&o.relays), name, dialer, server);
+    let mut cfg = crate::serve::Config::new(
+        crate::catalog::relay_candidates(&o.relays),
+        name,
+        dialer,
+        server,
+    );
     cfg.auth = crate::catalog::auth(o.auth.as_deref());
     cfg.protocol = protocol;
     cfg.once = o.once;
@@ -442,7 +452,11 @@ fn cmd_selftest(_args: &[String]) -> i32 {
         Duration::from_secs(2),
     )
     .is_ok();
-    check("protocol greet/accept framing", greeted && h.join().unwrap(), &mut ok);
+    check(
+        "protocol greet/accept framing",
+        greeted && h.join().unwrap(),
+        &mut ok,
+    );
     // exec transport: any command is a transport.
     let exec_ok = crate::transport::exec::Exec::spawn("cat")
         .map(|mut s| {

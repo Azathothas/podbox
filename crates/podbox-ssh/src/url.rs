@@ -86,8 +86,8 @@ pub fn parse(raw: &str) -> io::Result<Spec> {
             port: None,
             path: rest.to_string(),
             raw: raw.to_string(),
-        // An opaque spec makes no HTTP request, so it has no headers.
-        headers: Vec::new(),
+            // An opaque spec makes no HTTP request, so it has no headers.
+            headers: Vec::new(),
         });
     }
     if scheme == "exec" {
@@ -99,8 +99,8 @@ pub fn parse(raw: &str) -> io::Result<Spec> {
             port: None,
             path: rest.to_string(),
             raw: raw.to_string(),
-        // An opaque spec makes no HTTP request, so it has no headers.
-        headers: Vec::new(),
+            // An opaque spec makes no HTTP request, so it has no headers.
+            headers: Vec::new(),
         });
     }
 
@@ -289,8 +289,14 @@ mod tests {
         // read `wss://h:443` compare equal to different things.
         assert_eq!(s.port, None);
         assert_eq!(s.port_or_default(), Some(443));
-        assert_eq!(s.path, "/connect/railway.new/22?header=X-Relay-Token:abc123");
-        assert_eq!(s.headers, vec![("X-Relay-Token".to_string(), "abc123".to_string())]);
+        assert_eq!(
+            s.path,
+            "/connect/railway.new/22?header=X-Relay-Token:abc123"
+        );
+        assert_eq!(
+            s.headers,
+            vec![("X-Relay-Token".to_string(), "abc123".to_string())]
+        );
     }
 
     #[test]

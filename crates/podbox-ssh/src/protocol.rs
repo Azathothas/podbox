@@ -130,8 +130,10 @@ pub fn greet(
     auth: &str,
     timeout: Duration,
 ) -> io::Result<()> {
-    if name.contains(|c: char| c == '\n' || c == '\r' || c == ' ') {
-        return Err(io::Error::other("node name may not contain spaces or newlines"));
+    if name.contains(['\n', '\r', ' ']) {
+        return Err(io::Error::other(
+            "node name may not contain spaces or newlines",
+        ));
     }
     let line = format!("{} {} {}\n", proto.magic(), role.as_wire(), name);
     s.write_all(line.as_bytes())?;
