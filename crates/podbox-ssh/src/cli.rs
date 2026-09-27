@@ -399,13 +399,47 @@ fn cmd_config(args: &[String]) -> i32 {
     let auth = crate::catalog::auth(o.auth.as_deref());
     let proxy = crate::catalog::proxy(o.proxy.as_deref());
     let user = o.user.clone().unwrap_or_else(|| "root".to_string());
-    let mut proxy_cmd = format!("podssh connect --relay {} --name {}", relay, name);
+    // ⛔ THE PATH IS ABSOLUTE, AND THIS IS THE WHOLE POINT OF THE VERB. `ssh`
+    // runs a ProxyCommand through a login shell whose PATH is not the
+    // operator's, so a bare `podssh` works in the terminal that generated the
+    // stanza and fails for every `ssh`, `scp` and `rsync` that reads it. The
+    // first version of this function emitted `podssh`, which is the single
+    // most common reason a generated config does not work, and it was found by
+    // running the stanza this very guide tells a reader to paste.
+    let me = std::env::current_exe()
+        .map(|p| p.display().to_string())
+        // A binary reached through `podbox remote ssh` is podbox, and the
+        // subcommand words are part of the command line it generates.
+        .unwrap_or_else(|_| "podssh".to_string());
+    let mut proxy_cmd = format!("{me} connect --relay {} --name {}", relay, name);
     if !auth.is_empty() {
         proxy_cmd.push_str(&format!(" --auth {auth}"));
     }
     if let Some(p) = proxy {
         proxy_cmd.push_str(&format!(" --proxy {p}"));
     }
+    // ⛔ A RELAY WHOSE PATH ALREADY NAMES A TARGET GETS `forward`, NOT
+    // `connect`, AND THE REASON IS THE TWO-SHAPE SPLIT RATHER THAN A FLAG.
+    // A rendezvous relay is addressed by NAME and paired with a peer, so it
+    // needs `connect --name`. A forward relay is addressed BY THE TARGET it
+    // will dial, as `/connect/<host>/<port>` in its own path, and there is
+    // nobody to pair with, so `connect` is the wrong verb and `forward` is
+    // the right one. Generating `connect` for a forward relay produced a
+    // stanza that failed with "--target is required", which names a flag
+    // the reader never typed and gives no hint that the verb was wrong.
+    //
+    // The test is the path: `/connect/<host>/<port>` with two path segments
+    // after `/connect` is a forward relay, and anything else is a rendezvous.
+    if is_forward_relay(&relay) {
+        proxy_cmd = proxy_cmd.replacen(" connect ", " forward ", 1);
+        let (host, port) =
+            forward_target_of(&relay).unwrap_or_else(|| ("".to_string(), "22".to_string()));
+        proxy_cmd.push_str(&format!(" --target {host}:{port}"));
+    }
+    // ⛔ THE LAST LINE IS TERMINATED. A stanza with no trailing newline runs
+    // into whatever the reader appends, and `ssh` then reports a key
+    // verification failure on a line that is half a comment. Found by
+    // appending to the output and getting an error that named neither.
     println!(
         "# podssh -- add to ~/.ssh/config; then `ssh {name}` is a normal session\n\
          Host {name}\n\
@@ -413,9 +447,37 @@ fn cmd_config(args: &[String]) -> i32 {
          \x20   ProxyCommand {proxy_cmd}\n\
          \x20   ServerAliveInterval 15\n\
          \x20   ServerAliveCountMax 4\n\
-         # the ssh session is end to end; the relay only sees ciphertext"
+         # the ssh session is end to end; the relay only sees ciphertext\n"
     );
     0
+}
+
+/// Whether a relay spec is a FORWARD relay rather than a rendezvous.
+///
+/// ⛔ THIS IS A SHAPE TEST AND NOT A REGISTRY, because a relay is a URL and
+/// the shape is in the URL. A forward relay's path names the target it will
+/// dial (`/connect/<host>/<port>`); a rendezvous relay's path names nothing
+/// and the pair is named by `--name`. Reading the shape is what lets
+/// `podssh config` emit the right verb without being told which kind it is.
+fn is_forward_relay(relay: &str) -> bool {
+    forward_target_of(relay).is_some()
+}
+
+/// The `host:port` a forward relay's path names, or `None` for a rendezvous.
+fn forward_target_of(relay: &str) -> Option<(String, String)> {
+    // Strip scheme, then the query, then split the path.
+    let rest = relay.split("://").last().unwrap_or(relay);
+    let rest = rest.split(['?', '#']).next().unwrap_or(rest);
+    let path = &rest[rest.find('/')? + 1..];
+    let seg: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+    // /connect/<host>/<port> is three segments; /<name> is one.
+    if seg.len() >= 3 && seg[0] == "connect" && !seg[1].contains('.') == false {
+        let port = seg[2].split('?').next().unwrap_or(seg[2]);
+        if port.parse::<u16>().is_ok() {
+            return Some((seg[1].to_string(), port.to_string()));
+        }
+    }
+    None
 }
 
 fn cmd_selftest(_args: &[String]) -> i32 {

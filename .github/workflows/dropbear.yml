@@ -50,6 +50,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # ⛔ BEFORE ANY CARGO, BECAUSE THE CARGO RUNS LATER AND `ring` COMPILES C.
+      # `.cargo/config.toml` points a musl build at `scripts/zig-cc.sh`, which
+      # is installed by this component list, so a job that reaches cargo
+      # without it dies inside a dependency's build script rather than on its
+      # own step. Check 18 of scripts/check-todo.py holds every cargo-running
+      # job in this repository to naming the components it needs.
+      - name: bootstrap
+        run: ./scripts/common/bootstrap-env.sh rust cc zig tools
+
       - name: Build it
         id: build
         run: |
