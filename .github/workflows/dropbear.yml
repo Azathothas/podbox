@@ -1,0 +1,145 @@
+# Build the ssh server a CAGE can run, with the passwd shim already in, and
+# publish it as an artefact.
+#
+# ⛔ THIS EXISTS BECAUSE A STOCK SSHD CANNOT RUN WHERE CHROOT IS DENIED, AND
+# NOTHING ON A BUILD HOST LOOKS LIKE A CAGE UNTIL YOU MEASURE. Measured
+# 2026-09-27 in the reference cage, in order:
+#
+#   1. `sshd -i -t -f <config>`  exits 0
+#   2. `sshd -i` at runtime      wants a `nobody` user
+#   3. with one                  wants /var/chroot/ssh, and /var does not exist
+#   4. ChrootDirectory moved     no effect, a different hardcoded path
+#   5. UsePrivilegeSeparation no deprecated and IGNORED since OpenSSH 8.4
+#
+# So the build here is dropbear, DYNAMICALLY linked so the shim reaches it, with
+# a setgroups tolerance because a seccomp-filtered cage denies setgroups(2).
+# The whole measurement is docs/decisions/ssh-server-in-a-cage.md.
+#
+# ⛔ AND THE JOB PROVES THE ARTEFACT, NOT JUST THAT IT BUILT. A binary that
+# compiles and cannot log anyone in is the failure this exists to prevent, and
+# the only way to know is to run a session through it, which the `prove` step
+# does on every run.
+
+name: dropbear
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build-dropbear.sh'
+      - '.github/workflows/dropbear.yml'
+  pull_request:
+    paths:
+      - 'scripts/build-dropbear.sh'
+      - '.github/workflows/dropbear.yml'
+      - 'crates/podbox-ssh/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dropbear-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and prove an ssh server for a cage
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build it
+        id: build
+        run: |
+          # ⛔ THE EXIT CODE IS READ FROM THE SCRIPT, NEVER THROUGH A PIPE. A
+          # pipe reports the LAST command's status, so `build | tee log` would
+          # report tee's, and a failed build would look green.
+          ./scripts/build-dropbear.sh dist/dropbear 2>&1 | tee build.log
+          exit "${PIPESTATUS[0]}"
+
+      - name: The shim is in the artefact
+        run: |
+          # ⛔ THREE PROPERTIES, ASSERTED RATHER THAN EYEBALLED, because each one
+          # is a silent failure that a build step cannot see.
+          set -euo pipefail
+          test -x dist/dropbear/dropbear
+          test -x dist/dropbear/dropbearkey
+          test -f dist/dropbear/fakepwd.so
+          test -f dist/dropbear/BUILDINFO
+          # Dynamic, on purpose: a static dropbear carries its own libc, so
+          # LD_PRELOAD cannot reach it and it logs "nonexistent user" for a
+          # user that is there. This is the assertion that would catch a
+          # configure flag being dropped.
+          if file dist/dropbear/dropbear | grep -q 'statically linked'; then
+            echo "::error::dropbear is statically linked, so the passwd shim cannot reach it"
+            exit 1
+          fi
+          file dist/dropbear/dropbear
+          cat dist/dropbear/BUILDINFO
+
+      - name: It can make a host key and run on stdin
+        run: |
+          set -euo pipefail
+          ./dist/dropbear/dropbear -V
+          W=$(mktemp -d)
+          ./dist/dropbear/dropbearkey -t ed25519 -f "$W/hostkey"
+          test -s "$W/hostkey"
+          # -F no fork, so it is the foreground process and the test owns it.
+          # A dropbear that exits 0 here is one that started, which is the
+          # property a cage needs and the thing `sshd -t` cannot tell you.
+          timeout 3 ./dist/dropbear/dropbear -i -E -s -g -F -r "$W/hostkey" \
+            </dev/null >/dev/null 2>&1 || true
+          rm -rf "$W"
+
+      - name: Prove a real session through it
+        run: |
+          set -euo pipefail
+          # ⛔ A BINARY THAT COMPILES AND CANNOT LOG ANYONE IN IS THE FAILURE
+          # THIS WORKFLOW EXISTS TO PREVENT, so the artefact is exercised with
+          # a real client over a real relay. The two conditions of the target
+          # cage are reproduced here rather than assumed: no /etc/passwd (the
+          # shim supplies one) and no chroot (dropbear needs none).
+          cargo build -p podbox-ssh
+          BIN=target/x86_64-unknown-linux-musl/debug/podssh
+          test -x "$BIN"
+          W=$(mktemp -d)
+          trap 'rm -rf "$W"' EXIT
+          ssh-keygen -q -t ed25519 -N '' -f "$W/user_ed25519"
+          ./dist/dropbear/dropbearkey -t ed25519 -f "$W/hostkey"
+          mkdir -p "$W/ak"
+          cp "$W/user_ed25519.pub" "$W/ak/authorized_keys"
+          chmod 600 "$W/ak/authorized_keys"
+          export LD_PRELOAD="$PWD/dist/dropbear/fakepwd.so"
+          "$BIN" relay --listen "unix://$W/r.sock" >"$W/relay.log" 2>&1 &
+          RELAY=$!
+          sleep 1
+          "$BIN" serve --relay "unix://$W/r.sock" --name ci --auth S --once \
+            --server "$PWD/dist/dropbear/dropbear -i -E -s -g -F -r $W/hostkey -D $W/ak" \
+            >"$W/serve.log" 2>&1 &
+          SERVE=$!
+          sleep 2
+          out=$(timeout 40 ssh -o "ProxyCommand=$BIN connect --relay unix://$W/r.sock --name ci --auth S" \
+            -o ConnectTimeout=25 -o BatchMode=yes -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR \
+            -i "$W/user_ed25519" root@ci 'echo PROVEN; id -u' 2>&1) || true
+          rc=0
+          printf '%s' "$out" | grep -q PROVEN || rc=1
+          printf '%s' "$out" | grep -qx 0 || rc=1
+          kill "$RELAY" "$SERVE" 2>/dev/null || true
+          echo "--- serve log ---"; cat "$W/serve.log" || true
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::the built server did not carry a session"
+            printf '%s\n' "$out"
+            exit 1
+          fi
+          echo "the built server carried a real session"
+
+      - name: Publish
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dropbear-cage
+          path: dist/dropbear/
+          if-no-files-found: error
+          retention-days: 30
