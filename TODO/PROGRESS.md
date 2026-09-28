@@ -148,6 +148,15 @@ checks, change size, remote state, and machine state.
    installed disk are all measured; the accept-terms gate from the entry
    still applies.
 
+To completion: T-1403, T-1402, the T-1404 remote arm, and the T-1112
+guest run close in that order, each with parallel review passes and
+the full gate green before it commits. Release prep follows the
+packaging entries (version, changelog, signed artefacts). Three acts
+stay the operator's: closing pull requests 66 and 67 once their work
+is superseded on `main`, tagging and publishing the beta, and
+confirming a green hosted gate on the release head. No session merges,
+closes, or publishes; it prepares each act to one click.
+
 ## Open questions
 
 Podbox speaks both relay protocols, split by use: multiplexed reverse
