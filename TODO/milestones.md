@@ -926,8 +926,9 @@ Linux KVM Windows guest in that shape (NVMe root overlay, FAT mailbox,
 the reference refuses TCG as a different product, and its Linux guest
 path is itself unverified. Prerequisites in order are QEMU 11 or newer
 with `qemu-img` (T-1301), KVM opened not stated, UEFI code and vars,
-a mount-free setup writer, a licensed image fetch with an accept-terms
-gate (never redistributed, never committed), and the T-1301 space and
+a mount-free setup writer, a licensed image fetch (the operator
+accepts the image terms as standing policy since 2026-09-28; never
+redistributed, never committed), and the T-1301 space and
 fsize checks before a guest starts. Keep pull allowed per T-0212.
 Fix area is a new `podvm` windows driver beside T-1303 and T-1304,
 with the `lifecycle` gate kept as the last resort. Risk if wrong is a
@@ -972,8 +973,8 @@ installs QEMU 11.1.1 with `qemu-img` from Arch extra. The ValidationOS disk
 (910163968 bytes, matching the digest pinned in
 `experiments/371-validationos-stream.sh:42`) is installed outside the tree
 at `%USERPROFILE%\podbox-images\ValidationOS.vhdx`. No image is committed
-or redistributed. What remains is the KVM guest run under its accept-terms
-gate. The entry stays partial on that run. The earlier blocker text is in
+or redistributed. What remains is the KVM guest run (the operator
+accepts the image terms as standing policy since 2026-09-28). The entry stays partial on that run. The earlier blocker text is in
 [`../docs/history/t1112-kvm-blocker-before-2026-09-28.txt`](../docs/history/t1112-kvm-blocker-before-2026-09-28.txt).
 
 **Guest arm landed 2026-09-26, under TCG, in the authoring
@@ -1126,7 +1127,8 @@ builds the `podbox` binary (musl debug) and runs the verbs: 370 clauses
 1 through 6 hold as verbs, clause 7 skips with no image configured,
 clause 8 holds with the DOS base 369 writes. `/dev/kvm` opens on
 the wsl-toolkit base (API version 12, measured 2026-09-28), so the `kvm`
-arm owes the guest run with its accept-terms gate, not a host. The
+arm owes the guest run, not a host (the operator accepts the image
+terms as standing policy since 2026-09-28). The
 ValidationOS disk is installed outside the tree. No image is
 fetched, committed or redistributed. What closed part of that
 gap: the CLI module tree is now **compiled and its own tests executed**,
