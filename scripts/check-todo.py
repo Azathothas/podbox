@@ -1167,7 +1167,7 @@ def check_prove_flags(entries):
 # containers, `system` said prune is missing and docker has neither, `run
 # --restart` blamed M4 for a missing policy.
 PARITY_NOTE = re.compile(r'note: "((?:[^"\\]|\\.)*)"')
-MILESTONE_MAX = re.compile(r"M0 through M(\d+) are implemented")
+MILESTONE_TITLE = re.compile(r"M(\d+)\b")
 MILESTONE_BLAME = re.compile(r"until M(\d+)|which is M(\d+)")
 MISSING_CLAIM = re.compile(
     r"([A-Za-z][\w`, /-]*) (?:is|are) not implemented")
@@ -1198,7 +1198,7 @@ CURATED_VERBS = (
 )
 
 
-def check_parity_notes():
+def check_parity_notes(entries):
     """Check 27: no parity note leans on a shipped milestone or misses a verb."""
     try:
         text = read(os.path.join(ROOT, PARITY_RS))
@@ -1206,12 +1206,14 @@ def check_parity_notes():
         err(PARITY_RS, "is not readable, so its notes cannot be held. "
                        "TODO/gate.md T-1325.")
         return
-    try:
-        prog = read(os.path.join(TODO, "PROGRESS.md"))
-    except (OSError, UnicodeDecodeError):
-        prog = ""
-    mm = MILESTONE_MAX.search(prog)
-    shipped = int(mm.group(1)) if mm else -1
+    shipped = set()
+    for e in entries.values():
+        if e["file"] != "milestones.md":
+            continue
+        milestone = MILESTONE_TITLE.match(e["title"])
+        status = re.search(r"^Status: +done\b", e["body"], re.M)
+        if milestone and status:
+            shipped.add(int(milestone.group(1)))
     got = parity_admission()
     present = set()
     if got is not None:
@@ -1229,10 +1231,10 @@ def check_parity_notes():
         arm = spellings or verb
         for blamed in MILESTONE_BLAME.findall(note):
             n = int([x for x in blamed if x][0])
-            if 0 <= n <= shipped:
+            if n in shipped:
                 err(where,
-                    f"the `{arm}` note leans on M{n}, and milestones through "
-                    f"M{shipped} shipped (`TODO/PROGRESS.md`): say what is "
+                    f"the `{arm}` note leans on M{n}, which shipped "
+                    f"(`TODO/milestones.md`): say what is "
                     f"missing now instead of blaming a milestone that is "
                     f"done. TODO/gate.md T-1325.")
         for cm in MISSING_CLAIM.finditer(note):
@@ -1680,7 +1682,7 @@ def main():
     check_prove_flags(entries)
 
     # -- 27. parity notes blame no shipped milestone, miss no verb ----------
-    check_parity_notes()
+    check_parity_notes(entries)
 
     # -- 28. printed strings are plain ASCII --------------------------------
     check_ascii_output(files)

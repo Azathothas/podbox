@@ -2,7 +2,7 @@
 
 ## State
 
-179 entries: 4 open, 1 partial, 0 blocked, 174 done.
+180 entries: 4 open, 1 partial, 0 blocked, 175 done.
 
 The Windows lane now uses `wsl-toolkit 6.0.0`. Issue 68 is the
 corresponding repository issue. Pull requests 66 and 67 are open; neither
@@ -67,6 +67,9 @@ T-1346 changed the plant script's checkout path for a Windows job input.
 Its first Bash run looked for `//scripts/check-todo.py` because `$0` was
 `/in/job.sh`. The input form now takes the checkout from `/work`; a
 native run still uses the script file's parent.
+T-1347 moved check 27's shipped status source from a former sentence
+in this page to the done entries in `TODO/milestones.md`. The first full
+plant run caught 42 cases and missed 27a; its repeat is the acceptance.
 
 The Windows procedure and script comments now state the behaviour read
 from the 6.0.0 manual and measured on this host. The former text is in

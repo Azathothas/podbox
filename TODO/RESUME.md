@@ -7,17 +7,17 @@ Run the full gate, publish the result, and check the published behavior.
 ## The resume point
 
 The Windows lane, source records, and SSH entries are in local commits on
-`main`. A live plant call found that the wrapper used `sh` for a Bash
-caller. That correction is in commit `9afeb90`. The next plant call
-found that the script resolved the checkout from `/in/job.sh`. T-1346
-and its path correction are in the worktree. The host strict gate and
-Linux check passed on the corrected tree. Commit T-1346, run the plant
-suite in the clean base copy, and repair any finding. Then push `main`
-and check remote CI. Close issue 68 after the remote proof passes.
+`main`. T-1345 and T-1346 fixed the Bash caller and the plant script's
+input path. The full plant suite then caught 42 cases and missed 27a:
+check 27 took shipped milestone status from a former PROGRESS sentence.
+T-1347 and the check correction are in the worktree. The host fast gate
+passed; the Linux check is running. Commit the correction after it passes,
+then rerun the full plant suite and host strict gate. Repair any finding.
+Push `main`, check remote CI, and close issue 68 after remote proof.
 Update PROGRESS and the review record with the final results.
 
 ## In flight
 
-The local record check and document check pass at 179 entries. The
-full plant result is pending. The host cleanup report was empty after
-the live Windows drives. A final session summary table is not yet saved.
+The local record and document checks pass at 180 entries. The full plant
+repeat is pending. The host cleanup report was empty after the prior
+plant run. A final session summary table is not yet saved.

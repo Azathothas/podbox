@@ -1692,3 +1692,32 @@ Prove:       `sh scripts/windows/run-in-base.sh scripts/plant.sh` exits 0
 **Done 2026-09-28.** The first Bash run reached the path guard and
 returned 2 for `//scripts/check-todo.py`. The repeat result is in
 [PROGRESS.md](PROGRESS.md).
+
+----
+
+### T-1347 Check parity notes against the milestone entries
+
+Source:      the full plant run on 2026-09-28; `scripts/check-todo.py`;
+             [milestones.md](milestones.md)
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      done
+
+Problem:     Plant case 27a stayed green after a parity note blamed M4.
+             Check 27 looked for one former sentence in PROGRESS to learn
+             which milestones shipped. The current progress page has no
+             such sentence, so the check treated none as shipped.
+Premise:     Each milestone has its own entry and `Status:` field in
+             `milestones.md`. The gate already parses those entries.
+Approach:    Take shipped milestone numbers from done entries in that
+             file. Compare a parity note's named number against that set.
+             Run case 27a and the full plant suite.
+Decision:    The milestone entry is the status source. The progress page
+             carries the current work order and need not repeat that set.
+Prove:       `sh scripts/windows/run-in-base.sh scripts/plant.sh` exits 0
+             with case 27a caught and no missed plant.
+
+**Done 2026-09-28.** The first full run caught 42 plants and missed
+27a. The corrected check reads the milestone entries. The repeat
+result is in [PROGRESS.md](PROGRESS.md).
