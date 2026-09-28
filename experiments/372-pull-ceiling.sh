@@ -19,9 +19,8 @@
 # not run (no toolchain, no build, no pull).
 set -u
 
-# The job travels inside the workspace as /work/.podbox-job.sh, so $0
-# names the staging path, not experiments/. Take the checkout from the
-# working directory instead (experiments/353-open-issue-triage.sh).
+# The Windows wrapper runs the job at /in/job.sh with /work as the
+# working directory. Take the checkout from that directory, not $0.
 REPO="$(pwd)"
 cd "$REPO" || exit 2
 WORK="$REPO/experiments/.sweep372-work"

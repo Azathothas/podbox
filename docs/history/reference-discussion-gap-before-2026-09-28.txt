@@ -1,0 +1,4 @@
+- **Discussions were not fetched for any tree.** They are GraphQL only and
+  `scripts/common/mine-repo.sh` reached GitHub through the credential-free REST
+  proxy. Every `PROVENANCE.md` records this as its one gap. Where a project
+  keeps its design argument in Discussions, this corpus does not have it.

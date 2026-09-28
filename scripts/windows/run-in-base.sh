@@ -7,7 +7,7 @@
 # from this machine, so nothing the job does can reach this checkout.
 #
 #   sh scripts/windows/run-in-base.sh              the complete check
-#   sh scripts/windows/run-in-base.sh JOB.sh       that script, inside /work
+#   sh scripts/windows/run-in-base.sh JOB.sh       that script, at /in/job.sh
 #   PODBOX_IMAGE=... sh scripts/windows/run-in-base.sh
 #   PODBOX_ARTIFACTS=DIR sh scripts/windows/run-in-base.sh JOB.sh
 #
@@ -20,13 +20,13 @@
 # start naming a C:\tmp path that exists nowhere. The conversion the
 # engine helper carries for podman arguments does not apply here.
 #
-# ⚠ Two repairs happen before the job, and both are for the same cause. NTFS
-# carries no POSIX mode bit, so the copy arrives with no executable file and
-# any CRLF in the payload reaches a POSIX shell as part of a word.
+# ⚠ The caller's job is an input file. Input bytes are not changed, so this
+# wrapper removes CRLF before it sends the file to the container.
 #
 # ⭐ A JOB HANDS ITS EVIDENCE BACK THROUGH /out. The container is removed when
-# it exits, so a measurement that writes only into the workspace has written
-# into something nobody can read afterwards. `PODBOX_ARTIFACTS` names a
+# it exits. The host transcript remains until gc removes it. A measurement
+# that writes only into the workspace has written into a copy.
+# `PODBOX_ARTIFACTS` names a
 # directory on this machine that receives whatever the job leaves in /out.
 #
 # Exit: the job's own code, or 2 when the job could not be started.
@@ -66,20 +66,17 @@ work=$(mktemp -d) || {
 }
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 
-# ⭐ The wrapper is what makes a caller's job correct by default. It repairs the
-# mode bits from the git index, then runs the payload, then reports the code it
-# actually got.
+# The wrapper runs the payload and reports the code it got. wsl-toolkit
+# restores executable modes during the workspace copy.
 {
 	echo "#!/bin/sh"
 	echo "set -u"
 	echo "cd /work || exit 2"
 	echo 'echo "== the machine"'
 	echo "uname -sr; id -u; pwd"
-	echo 'echo "== restore the executable bit that NTFS could not carry"'
-	echo "sh scripts/common/restore-modes.sh || exit 2"
 	if [ -n "$USER_JOB" ]; then
 		echo 'echo "== the job"'
-		echo "sh /work/.podbox-job.sh"
+		echo "sh /in/job.sh"
 	else
 		echo 'echo "== bootstrap"'
 		echo "./scripts/common/bootstrap-env.sh rust cc zig tools || exit 1"
@@ -99,18 +96,13 @@ strip_cr() {
 }
 strip_cr "$work/wrapper.sh" "$work/wrapper.lf.sh"
 
-# ⚠ The caller's job travels INSIDE the workspace, not as the script, because
-# --script takes exactly one file and the wrapper is already using it.
-staged=""
+# The caller's job travels as an input. Each call owns its input file, so two
+# jobs from one checkout cannot replace one another's payload.
+JOB_INPUT=""
 if [ -n "$USER_JOB" ]; then
-	staged="$ROOT/.podbox-job.sh"
-	strip_cr "$USER_JOB" "$staged"
+	JOB_INPUT="$work/job.lf.sh"
+	strip_cr "$USER_JOB" "$JOB_INPUT"
 fi
-cleanup() {
-	rm -rf "$work"
-	[ -n "$staged" ] && rm -f "$staged"
-}
-trap cleanup EXIT HUP INT TERM
 
 # ⚠ The exclusions are a decision, and docs/containers.md carries the table.
 # .git and references/ are KEPT: the checks read the index and resolve every
@@ -120,20 +112,17 @@ trap cleanup EXIT HUP INT TERM
 # copy arrived one file short and the guest read the tree as dirty.
 # `plant.sh` refuses to start on a dirty tree.
 #
-# ⛔ THE INDEX SIDECARS ARE EXCLUDED BECAUSE A FILE THAT GROWS DURING THE COPY
-# BREAKS IT. Measured on 2026-09-12 while the CodeGraph daemon was indexing:
-# the copy stopped at `archive/tar: write too long` and the job exited 2 in
-# 475 ms, which names the archiver and not the file. A tar member's size is
-# written before its bytes are read, so a file that grows in between overruns
-# its own header. ⚠ The four names below are the only files in the copy that a
-# background daemon writes; `target` and `.dev` are already out. ⛔ BY NAME,
-# never `*.log`: 82 tracked corpus logs under `references/` carry that suffix
-# and every one of them is evidence.
+# The index sidecars and daemon state are live files, not source for a job.
+# The toolkit now names a file if its copy fails. Keep these exclusions by
+# name; a broad log exclusion would remove tracked reference evidence.
 EXCLUDES="codegraph.db codegraph.db-wal codegraph.db-shm daemon.log daemon.pid target .dev"
 set -- # nothing positional survives into the call below
 for x in $EXCLUDES; do
 	set -- "$@" --exclude "$x"
 done
+if [ -n "$JOB_INPUT" ]; then
+	set -- "$@" --input "job.sh=$JOB_INPUT"
+fi
 
 # ⚠ `--artifacts` is passed only when a caller asked for one, because the flag
 # creates the directory and an empty one beside a checkout is litter.
@@ -148,6 +137,7 @@ fi
 wsl-toolkit --instance "$INSTANCE" run \
 	--image "$IMAGE" \
 	--workspace . \
+	--container-lifecycle ephemeral \
 	"$@" \
 	--script "$work/wrapper.lf.sh" \
 	--timeout "$TIMEOUT" \

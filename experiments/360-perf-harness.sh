@@ -30,9 +30,8 @@
 # run (no binary, no pull, no qemu, no KVM where the shape needs it).
 set -u
 
-# The job travels inside the workspace as /work/.podbox-job.sh, so $0
-# names the staging path, not experiments/. Take the checkout from the
-# working directory instead (experiments/353-open-issue-triage.sh).
+# The Windows wrapper runs the job at /in/job.sh with /work as the
+# working directory. Take the checkout from that directory, not $0.
 REPO="$(pwd)"
 cd "$REPO" || exit 2
 SHAPE="${1:-lane}"

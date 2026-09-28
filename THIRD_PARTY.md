@@ -34,13 +34,14 @@ path. Each tree is a captured upstream revision with its own `PROVENANCE.md` and
 license material where upstream provided it.
 
 Some trees were trimmed by deleting uncited vendored dependencies, test
-corpora, or binary archives. No license, notice, or copyright file was removed.
+corpora, binary archives, or agent instruction files. No license,
+notice, or copyright file was removed.
 The exact trims and determinations are in
 [`TODO/reference-map.md`](TODO/reference-map.md).
 
 | License | Trees |
 | --- | --- |
-| MIT | `VHSgunzo__pathmap`, `fritzw__ld-preload-open`, `qaidvoid__onelf`, `io12__userland-execve-rust`, `VHSgunzo__ulexec`, `pkgforge-dev__cross-libc-dlopen`, `RuriOSS__ruri`, `RuriOSS__rurima`, `VHSgunzo__sharun`, `VHSgunzo__runimage`, `Azathothas__bit-cli` |
+| MIT | `VHSgunzo__pathmap`, `fritzw__ld-preload-open`, `qaidvoid__onelf`, `io12__userland-execve-rust`, `VHSgunzo__ulexec`, `pkgforge-dev__cross-libc-dlopen`, `RuriOSS__ruri`, `RuriOSS__rurima`, `VHSgunzo__sharun`, `VHSgunzo__runimage`, `Azathothas__bit-cli`, `talaria0101__sandssh`, `talaria0101__dropssh` |
 | Apache-2.0 | `indigo-dc__udocker`, `compforge__pathshim`, `multikernel__sandlock`, `containers__storage`, `containers__podman` |
 | 0BSD | `Azathothas__TEMPLATE`, `Azathothas__container-research` |
 | BSD-3-Clause and others listed by upstream | `apptainer__apptainer` |

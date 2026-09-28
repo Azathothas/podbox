@@ -19,10 +19,8 @@
 # could not be built, 2 the lane could not run (no network, no toolchain).
 set -u
 
-# The job travels inside the workspace as /work/.podbox-job.sh, so $0
-# names the staging path, not experiments/. The wrapper already sits in
-# /work: take the checkout from the working directory instead. A job
-# script that resolves paths from its own $0 builds at / and fails.
+# The Windows wrapper runs the input at /in/job.sh with /work as the
+# working directory. Take the checkout from that directory, not $0.
 REPO="$(pwd)"
 cd "$REPO" || exit 2
 WORK="$REPO/experiments/.sweep353-work"

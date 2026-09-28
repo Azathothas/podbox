@@ -2,225 +2,96 @@
 
 ## State
 
-171 entries: 0 open, 1 partial, 0 blocked, 170 done. Zero open
-GitHub issues. `v0.1.0-beta.8` released 2026-09-27: the nightly
-pre-release carries seven static binaries with their sha256 and
-sigstore files, built and smoked green from tag `v0.1.0-beta.8`
-(`7e43f23`). Main is at `7e43f23`, gate green, tree clean.
+177 entries: 4 open, 1 partial, 0 blocked, 172 done.
 
-The one partial entry is T-1112, blocked: the Windows guest arms
-run under `tcg` (DOS and ValidationOS, lane-driven), the `kvm`
-arm is unit-tested only, and no licensed image exists anywhere
-here. What clears it is a KVM host with the image installed
-under the accept-terms gate the entry names. Nothing else is
-open, nothing is half-written, every lane job is collected.
+The Windows lane now uses `wsl-toolkit 6.0.0`. Issue 68 is the
+corresponding repository issue. Pull requests 66 and 67 are open; neither
+is on `main`. Their work is in [podssh.md](podssh.md) as T-1401 to
+T-1404. Pull request 67 is the code candidate. Its current build, lint,
+and document jobs are red, so it is not ready to merge.
 
-M0 through M8 are implemented and the machine tier holds its probe.
-End-to-end acceptance is measured per entry.
+T-1112 remains partial. Its Windows guest arms ran under `tcg`; its
+`kvm` arm needs a licensed image on a KVM host, under the entry's
+accept-terms gate. The entry names the exact proof that will close it.
 
-The superseded record (triage narrative, triage table, finished
-work order, closed in-progress narrative) moved verbatim to
-[`docs/history/session-2026-09-25-to-27.md`](../docs/history/session-2026-09-25-to-27.md).
-Each entry carries its own evidence; this file carries only what
-is true now.
+## Baseline and current lane
 
-## Baseline
+This session started 2026-09-28T05:27:58Z from clean `main` at
+`5701a8b`. The host is Windows
+`MINGW64_NT-10.0-26200`. The selected lane is the
+`wsl-toolkit-podbox` base, with kernel `7.2.0-WSL2-STABLE` and
+`podman 6.1.2`. The base was absent at session start and the session
+entry point built it. Its status reports no cgroup delegation, so a
+memory or CPU limit accepted by the engine is not proof that the limit
+was enforced.
 
-The source tree was captured at `ea5b671b`.
-Its hosted gate was green. In an isolated WSL environment using the exact
-`rust:1.98.1-bookworm` image, bootstrap, formatting, workspace clippy, the
-x86_64-musl release build, TODO consistency, and marker checks passed.
+`py scripts/check-todo.py` was green at the start: 171 entries, 0
+open, 1 partial, 170 done. `sh scripts/common/check-gate.sh --fast`
+was green: 10 passed, 0 failed, 1 skipped. On this Windows host,
+`sh scripts/dev.sh status` answers `unknown`; use
+`wsl-toolkit --instance podbox base status --probe` for the lane.
+Run `sh scripts/windows/run-in-base.sh` for the Linux build and test
+gate. [`docs/containers.md`](../docs/containers.md) holds the
+current procedure and the installed manual owns the flag reference.
 
-The workspace test run found one real portability defect: when `mknod` was
-denied, device completion removed an existing shim before recreating it. The
-replacement now creates a sibling candidate and renames it atomically only
-after successful device creation. The focused regression test passes in the
-same rootless environment. The complete migrated-tree validation is recorded
-in [`docs/history/migration-2026-09-11.md`](../docs/history/migration-2026-09-11.md).
+## This session
 
-The raw source-era record, including all measurements and resolved questions,
-is preserved at
-[`docs/history/source-progress-ea5b671.md`](../docs/history/source-progress-ea5b671.md).
+T-1343 changed the Windows wrapper to send each job file through its own
+input, kept CRLF removal, and selected ephemeral container life. It
+removed the extra mode repair from that wrapper. Check 29 now reads the
+tool's JSON cleanup report, including ended base sessions. Case 29b in
+`scripts/plant.sh` supplies a kept session and requires the check to
+name it.
 
-This session measured on the lane: `rust:1.98.1-bookworm` job
-containers in `wsl-toolkit-podbox`, host kernel
-`7.2.0-WSL2-STABLE`, lane-built musl debug binary reporting
-`0.1.0-beta.7` at commit `3ac5a72` (dirty: the untracked 353 drive
-script), interposer objects absent (no `build-interpose.sh` in the
-lane). `experiments/353-open-issue-triage.sh` drove 37 clauses
-with isolated stores, exit 0, report in
-`experiments/results/triage-353.txt`.
-`experiments/354-lifecycle-same-store.sh` drove the full loop in
-one store, exit 0, report in
-`experiments/results/lifecycle-same-store.txt`. All seven
-`v0.1.0-beta.7` assets verified sha256-ok with outer `e_machine`
-per arch and exactly two embedded `0x3e` `ET_DYN` objects each
-(issue 58's table confirmed).
+`experiments/384-windows-lane-v6.sh` drove two jobs from one checkout
+at the same time. Both received their own input and found an executable
+script in the copied tree. Both exited 0. A third path probe ran an
+existing experiment input and named the correct `/work` binary path
+before it returned 2 for the absent binary. The cleanup report showed
+three host job records; job-specific cleanup left zero. The conditions
+and output are in
+[`experiments/results/windows-lane-v6.txt`](../experiments/results/windows-lane-v6.txt).
+A live ended base session made check 29 fail by id; the check passed after
+that session was collected.
 
-## Where the work runs
+T-1344 checked the older experiment callers after the input path moved.
+Twelve already use the working directory. Two now select that directory
+for a Windows input and retain file-relative discovery for a native run.
+All fifteen changed experiment scripts parse under `sh -n`.
 
-⭐ **Three host lanes, and `./scripts/session-start.sh` picks one.** A Linux
-host and a container run everything directly. A Windows host runs the record and
-document checks on the host, and every Linux step in a disposable container
-inside the distribution `wsl-toolkit-podbox`.
-[`docs/containers.md`](../docs/containers.md) holds the procedure, the
-exclusions and the traps each lane has.
+The Windows procedure and script comments now state the behaviour read
+from the 6.0.0 manual and measured on this host. The former text is in
+[`docs/history/containers-before-toolkit-6.txt`](../docs/history/containers-before-toolkit-6.txt).
+The old progress record and index order text are in `docs/history/`
+so this page can give the current answer without a past session's
+narrative.
 
-⛔ **`wsl.exe` is never called.** `sh scripts/windows/run-in-base.sh` is the
-Windows half of `./scripts/dev.sh check`.
+The two SSH source trees were captured with their trackers and licences
+under `references/`. The focused source comparison is in
+[`docs/history/references/ssh-relay-2026-09-28.md`](../docs/history/references/ssh-relay-2026-09-28.md).
+It found that the current dropssh source supports concurrent sessions
+on one connection while its README still describes the old one-session
+path. The current sandssh tree points to a separate shell project;
+PR 67's task text says the shell is in sandssh. These source facts are
+reflected in T-1402 and T-1403.
 
-⭐ **The base is a native lane, and this session proved it.** The
-wsl-toolkit base (`wsl-toolkit-podbox`, Arch, kernel 7.2.0-WSL2-STABLE)
-runs user namespaces (`unshare -Urm` exits 0), mounts binfmt_misc and
-cgroup v2, and answers root inside `base exec`. The shipped binary
-reports `namespace` there. Kept in the base, documented here because it
-is persistent shared infra: docker 29.8.1, go 1.27.1, jq 1.8.2,
-qemu-user-static 11.1.1-4. On 2026-09-26 this session added via
-pacman (kept, documented for the same reason): qemu-system-x86
-11.1.1-4 (KVM acceleration verified: `info kvm` reads enabled),
-cpio, time. Scratch (`/root/pb-wk`, `/root/pb-bin`,
-`/root/target-docker.tar`) is removed at session end.
+## Work order
 
-⛔ **`main` takes a direct push now.** `enforce_admins` was turned off on
-2026-09-11 and a direct push was verified. The four required checks still run
-and still have to be green. [RULES.md](RULES.md) section 2 carries it, and a
-force push stays refused.
+1. T-1401: reconcile PR 67's SSH transport and server on `main`;
+   fix its three red jobs and prove a real SSH command in a fresh tree.
+   PR 66 is earlier overlapping evidence and conflicts with `main`.
+2. T-1403: specify and prove two clients on one relay connection.
+   Test frame direction, isolation, close, and bounded cleanup.
+3. T-1402: provide and prove an interactive session where no pty exists.
+   A one-shot command is not this proof.
+4. T-1404: retain the remote SSH arm from PR 67 and add and drive the
+   machine SSH arm after the transport and relay hold.
+5. T-1112: finish the KVM image arm when the named host and licensed
+   image are available.
 
-Two lane traps paid for again this session, both recorded where the
-next session looks first. Do not disable path conversion for
-`run-in-base.sh` (the header names it: the wrapper path arrives
-untranslated and the job fails naming a `C:\tmp` path). A staged job
-takes the checkout from its working directory (`/work`), never from
-`$0`, which names the staging path (the 353 and 354 headers name
-it).
+## Open questions
 
-Four traps this session paid for the first time, same treatment.
-`base exec -c` carrying a guest path needs `MSYS_NO_PATHCONV=1` on
-the host call, or Git Bash rewrites `/root/...` into
-`C:\Program Files\Git\...` before the guest reads it (files travel
-as files and are immune; only `-c` strings mangle). A base session
-reaps its process group on exit: `nohup ... &` does not survive it
-(proven with a sleep probe), so a long base drive runs in a held
-foreground session, never detached. A host-side task timeout kills
-the client, not the lane job: the lane container keeps working and
-its `/out` is recoverable through the base, but a base session dies
-with the client. An exit code is read from the process that produced
-it, unpiped: `check-todo.py | tail` reports tail's 0 beside a red
-gate. New files must be staged before the full lane check: the
-citation checks read the git index, so an unstaged tree fails on
-files sitting open on disk.
-
-## What this session did, 2026-09-25 to 2026-09-27
-
-Triaged twenty-two open issues plus dependabot PR 9 (twenty
-entries reopened as partial, three opened new), merged PR 9, #61
-and #62 on green CI, and worked the entries shut: the curated
-surface, no-chroot rungs, TCG legs, ladder, supervision,
-guest networking, emulation, latency, pager, login, identity,
-workload spread, device map, QOL verbs, namespace rung, perf
-harness, run decay (T-1340: `--rm` deletes the unreferenced
-rootfs, keeper rows budgeted by T-1341), the guest landing
-(T-1112: DOS and ValidationOS under `tcg`, refusal hardened,
-driver hardened with timeout-0, fetch bounds and Drop guard),
-the pull-path ceiling (T-1342: `drain` clamped, pre-flight at
-125, `372` green), and the stream under a verified 1 GB ceiling
-(`371` both lanes, SIGXFSZ proved live). Proof comments closed
-issues 29, 58 and 65; the beta.8 tag shipped the nightly
-pre-release. Detail lives in the history file named in State
-and in each entry's Done.
-
-Lane for everything Linux: disposable `rust:1.98.1-bookworm`
-job containers in `wsl-toolkit-podbox` via
-`sh scripts/windows/run-in-base.sh`, host kernel
-`7.2.0-WSL2-STABLE`. Full `dev.sh check` green 10 passed
-0 failed; `cargo test -p podbox-image` 136 passed; host fast
-gate 10 passed 0 failed (twins skipped). Every kept job
-collected with `gc --job <id> --apply`; ledger at 0 open
-records.
-
-## In progress
-
-T-1112 alone, partial, blocked on a KVM host with a licensed
-image under the accept-terms gate. No code is half-written and
-no drive is half-run.
-
-## Current work order
-
-1. T-1112 `kvm` arm on a host holding `/dev/kvm`, with the
-   licensed image installed and never committed. Until that
-   host exists there is no work to order.
-
-## Operator questions
-
-⭐ **None is open.**
-
-| question | status | where it lives |
-| --- | --- | --- |
-| whether `experiments/lib/engine.sh` gains a bounded build entry, and whether the reconstruction's `--privileged` run gets an explicit escape or stays outside the helper | ruled 2026-09-21: build entry yes, narrow fixture-only escape yes | [T-1213](gate.md) |
-| whether kept podbox containers and unused base wsl machines may be pruned | ruled 2026-09-22: yes, prune what we do not use or need, safely, touching nothing else | PROGRESS.md (this file) |
-| whether a beta binary may be published | ruled 2026-09-22: yes, once the top-10 priority tasks finish and the session ends, under a pre-release tag; work first | PROGRESS.md (this file) |
-| where the three remaining interposer checks belong | ruled 2026-09-22: in `dev.sh check`, each with its plant; per-commit toolchain cost accepted | [T-1207](gate.md) |
-| whether the non-Linux guest starts | ruled 2026-09-23: unparked, work next; stays P3, displaces nothing | [T-1112](milestones.md) |
-| what the next session owes | ruled 2026-09-22: continuous until ten tasks finish, with T-1314 last, then the nightly matrix on the next `v*` tag | PROGRESS.md (this file) |
-| how nightly releases work | ruled 2026-09-22: named nightly, every `v*` tag triggers, all seven archs, smoke per arch, stable manual later | [T-1314](packaging.md) |
-| which identity signs the beta artefacts | ruled 2026-09-23: keyless via Sigstore, OIDC from the publish job | [T-1328](packaging.md) |
-
-Every settled ruling is written into the entry that owns it, which
-is where an implementer reads it.
-
-| question | ruled on 2026-09-11 | where it lives |
-| --- | --- | --- |
-| where the ownership memo lives | on the host, beside the container record | [T-0710](interpose.md) |
-| what `setuid` does on a uid 0 payload | honest failure by default, and a flag turns on the lie | [T-0711](interpose.md) |
-| whether host CA injection stays on | yes, unchanged: inject on an announcement, mark degraded, `--strict` refuses | [T-0407](complete.md) |
-| what to do with a corpus dependency bump | close it, and fence `references/` off from every updater | `.github/dependabot.yml` |
-| the two `memfd-exec` trees, which declare MIT in a manifest and ship no licence file | do not vendor either; the operator maintains a 0BSD crate that does the job | [reference-map.md](reference-map.md), [T-0909](deps.md) |
-| `dockless`, which states no licence at all | keep the tree, study it, copy nothing, re-implement where useful | [reference-map.md](reference-map.md) |
-| `VHSgunzo/userland-execve`, which does not exist | keep the row as a corrected citation, not a deletion | [reference-map.md](reference-map.md) |
-| whether an unlicensed research tree may be tracked here | yes, track the whole tree; the corpus rule wins and nothing may be copied from it | [reference-map.md](reference-map.md) |
-| where the docker half runs when the picked engine is not a daemon | nowhere: `have_docker` follows `ENGINE_NAME`, the comparison columns read `-`, the half is recorded as skipped | [T-1212](gate.md) |
-| how `280` reaches its wrapper through a helper that execs `/pb` | positional words through `eng_run`, never through `eng_pbrun` | [T-1212](gate.md) |
-
-⚠ **`/dev/ptmx` on the target is a measurement, not a ruling**, and it belongs
-to [T-0503](enter.md). [T-0414](complete.md) is the probe leg for it, and that
-entry also carries the second denial only one instance of the class has shown:
-`readdir("/")` answering `EACCES`.
-
-## What the next session should decide, and neither needs the operator
-
-Two are open and neither needs the operator:
-
-- ⚠ **Whether the gate should report a rate rather than a pass or a fail.**
-  T-0215 is closed, so nothing is red today, but CI reported green for a suite
-  that failed two runs in five and a single run is still not evidence for a racy
-  one. That is [T-1204](gate.md)'s neighbourhood and it needs a ruling before
-  the next intermittent check arrives.
-
-- ⚠ **Whether the blob retry comment is wrong, and what the contract is.**
-  `Client::blob` (`crates/podbox-image/src/registry.rs`) retries every
-  `Error::Http` up to `ATTEMPTS` (3), and transport failures map to
-  `Error::Http` beside size and digest mismatches, so a lying origin is
-  re-asked twice after the first refusal. The comment beside the loop
-  says only a transport failure is retried and calls re-asking a spiral.
-  Each attempt is byte-bounded by the T-1342 clamp, so the cost is two
-  extra capped transfers, not an unbounded one. Read 2026-09-27, not
-  driven: no behavior change was made, and the comment is untouched
-  until the contract it claims is decided.
-
-The two this section carried before are settled: the eight unregistered `Lock`
-sites were a test-shape question answered by measurement on [T-0211](image.md)'s
-invariant, and [T-0706](interpose.md)'s Go row is proved by unit test with no
-image invented.
-
-## Operator rulings for the continuous session, 2026-09-21
-
-- Work continuously unless manually stopped, finishing as many entries
-  as possible. The five-entry session end does not apply.
-- Work the full work order in listed order until stopped.
-- Spawn subagents wherever independent work allows it.
-- The store-suite contention fix is authorised: author the
-  [T-0211](image.md)/[T-0215](image.md)-family entry under the authoring
-  methodology, then implement it, in its own change.
-- The kept wsl-toolkit job containers go at session start
-  (`gc --apply`); past results already live in `TODO/`.
-- CI on main is verified first; a red CI becomes the top priority.
+The SSH relay protocol must name which peer speaks the simple rendezvous
+form and which speaks the multiplexed reverse form. T-1403 records the
+tests that settle it. No operator choice is needed before T-1401 starts.
+T-1112 still needs the image and KVM host named in its entry.

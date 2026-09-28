@@ -1,0 +1,10 @@
+# Build output and local secrets. Everything here is produced by a run or
+# written by a person with a key in it, never committed.
+*.private.json
+keys/
+*.so
+__pycache__/
+*.pyc
+.work/
+tmp/
+.DS_Store

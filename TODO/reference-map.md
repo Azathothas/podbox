@@ -115,6 +115,8 @@ copied into this repository.
 | `references/gevico__tcg-rs` | `88c020b` | MIT | `tree/LICENSE`, `api/repo.json` | read; filed for later. [podvm.md](podvm.md) T-1307 |
 | `references/qemu-rs__qemu-rs` | `4854135` | ⛔ **GPL-2.0-or-later** | `tree/Cargo.toml:7`, inherited by both member crates. ⚠ `api/repo.json` says `MIT` and is **wrong** | ⛔ **read only; copy nothing.** Copyleft, and podbox is 0BSD |
 | `references/carlbomsdata__winquick` | `095dd47` | Apache-2.0 | `tree/LICENSE`, `api/repo.json` | vendor with notice; shape only. [milestones.md](milestones.md) T-1112 |
+| `references/talaria0101__sandssh` | `4fc7f8c` | MIT | `tree/LICENSE`, `api/repo.json` | read; one-pair relay and SSH server evidence for [podssh.md](podssh.md) |
+| `references/talaria0101__dropssh` | `0aafa21` | MIT | `tree/LICENSE`, `api/repo.json` | read; concurrent relay and server evidence for [podssh.md](podssh.md) |
 | `references/Azathothas__TEMPLATE` | `6206166` | 0BSD | `tree/LICENSE`, `api/repo.json` | copied verbatim into `docs/` and `scripts/common/` |
 | `references/Azathothas__container-research` | `0f155e3` | 0BSD | `tree/LICENSE`, `api/repo.json` | copied: `experiments/` seeded from it |
 | `references/apptainer__apptainer` | `6099bb1` | BSD-3-Clause plus others | `tree/LICENSE.md`, which says "Apptainer is subject to the Licenses detailed below" and enumerates several. `api/repo.json` reports `NOASSERTION` | read only, and per-file if that ever changes |
@@ -261,6 +263,7 @@ invalidates every citation already written.
 | `references/apptainer__apptainer` | `tree/e2e` | 5.4 MB of end-to-end tests |
 | `references/Obirvalger__vml` | `tree/vendor` | **439 MB across 19,335 files** of vendored crates, which that project ships so it can build offline. The tree drops from 19,402 files to 67. Everything cited here is in `tree/src/` and `tree/README.md` |
 | `references/qemu-rs__qemu-rs` | `tree/.github/rsrc/id_rsa` | ⛔ **a private-key file in that project's CI resources.** It stays out by `.gitignore`, and deliberately: `AGENTS.md` absolute 9 says a secret never enters this tree, not expired, not redacted-looking and not in an example. Nothing here cites it |
+| `references/talaria0101__sandssh`, `references/talaria0101__dropssh` | each `tree/AGENTS.md` | Agent instruction files do not belong in a captured reference tree. Neither is needed for the cited source lines |
 
 ## ⭐ The ten mined on 2026-09-11, and what each one is
 
@@ -311,10 +314,12 @@ the number to differ.
 
 ⛔ **A silently skipped source is the failure the procedure exists to prevent.**
 
-- **Discussions were not fetched for any tree.** They are GraphQL only and
-  `scripts/common/mine-repo.sh` reached GitHub through the credential-free REST
-  proxy. Every `PROVENANCE.md` records this as its one gap. Where a project
-  keeps its design argument in Discussions, this corpus does not have it.
+- **Some earlier trees have no Discussions capture.** Their
+  `PROVENANCE.md` files name that gap. Trees fetched through an
+  authenticated `gh` route can fetch Discussions; the two SSH trees
+  have a response and each reports no fetch gap. Read the subject's own
+  provenance before using a tracker claim. The old blanket statement is kept in
+  [`docs/history/reference-discussion-gap-before-2026-09-28.txt`](../docs/history/reference-discussion-gap-before-2026-09-28.txt).
 - **`references/salsa-debian__fakeroot` has no `api/` at all.** fakeroot is not
   on GitHub; its source is a GitLab instance and its defect tracker is the
   Debian BTS, and `mine-repo.sh` speaks neither. The tracker pass of

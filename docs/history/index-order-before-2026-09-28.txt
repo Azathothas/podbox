@@ -1,0 +1,38 @@
+## How the current ordering is derived
+
+Four questions, asked in this order, because a later answer never outranks an
+earlier one. This is the argument, not the list: [PROGRESS.md](PROGRESS.md)
+carries the ordered work.
+
+### 1. Is anything wrong that reports success?
+
+⭐ A wrong answer that exits 0 outranks a visible failure, because nothing in
+the output says the wrong answer happened, and podbox's audience is automated
+and cannot notice.
+
+Nothing is in this shape yet, because nothing is implemented. Two entries exist
+to keep it that way, and they are why they are P0 rather than P1:
+[T-0109](probe.md) makes "could not run" a third state rather than a denial, and
+[T-0606](supervise.md) refuses a tier rather than falling back per call. The
+corpus supplies a worked example of the failure at file and line, in
+`references/multikernel__sandlock`, and its own audit missed it.
+
+### 2. Does anything downstream branch on it?
+
+The probe does, and everything branches on the probe. That is why M0 is first
+and why [probe.md](probe.md) carries ten entries against
+[image.md](image.md)'s five.
+
+### 3. Is the risk in the component or in the specification?
+
+Extraction is the highest-risk component: four separate tools in the corpus stop
+there, and three of its four requirements are now measured rather than read
+(`experiments/results/whiteout-contract.txt`). It outranks image acquisition,
+which is ordinary HTTPS and file I/O, even though acquisition comes first in
+dependency order.
+
+### 4. What is blocked, and on what?
+
+Nothing is blocked. T-0702 is open rather than blocked: the required
+musl tooling and per-libc objects now exist, and the remaining work is
+integration.

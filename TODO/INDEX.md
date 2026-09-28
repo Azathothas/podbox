@@ -56,6 +56,7 @@ the blocker named and what would clear it.
 | [milestones](milestones.md) | the gates | `TOOL.md` section 5 |
 | [podvm](podvm.md) | the machine tier | `https://github.com/talaria0101/vm-research`, its podvm-spec document |
 | [gate](gate.md) | `scripts/` | `docs/methodology/gate.md` |
+| [podssh](podssh.md) | proposed SSH crate | the SSH work in pull requests 66 and 67 |
 
 ## Entries
 
@@ -232,10 +233,16 @@ the blocker named and what would clear it.
 | [T-1340](gate.md) | P3 | gate | done | Isolate why early payload runs cost seconds and late ones do not |
 | [T-1341](gate.md) | P3 | gate | done | Budget the warm run cost beside the cold one |
 | [T-1342](image.md) | P2 | image | done | A pull refuses past the ceiling instead of dying past it |
+| [T-1343](gate.md) | P1 | gate | done | The Windows lane uses toolkit 6 job inputs and checks every retained job |
+| [T-1344](gate.md) | P1 | gate | done | Experiment jobs find the checkout after the Windows input change |
+| [T-1401](podssh.md) | P1 | podssh | open | Prove the SSH transport and server in the current tree |
+| [T-1402](podssh.md) | P1 | podssh | open | Provide an interactive session without a pty |
+| [T-1403](podssh.md) | P1 | podssh | open | Prove concurrent sessions on one relay connection |
+| [T-1404](podssh.md) | P2 | podssh | open | Add the remote and machine SSH verbs after the transport holds |
 
 ## Counts
 
-171 items: 0 open, 1 partial, 0 blocked, 170 done.
+177 items: 4 open, 1 partial, 0 blocked, 172 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -244,46 +251,14 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 0 | 0 | 0 | 78 | 78 |
-| P2 | 0 | 0 | 0 | 32 | 32 |
+| P1 | 3 | 0 | 0 | 80 | 83 |
+| P2 | 1 | 0 | 0 | 32 | 33 |
 | P3 | 0 | 1 | 0 | 8 | 9 |
-| **All** | **0** | **1** | **0** | **170** | **171** |
+| **All** | **4** | **1** | **0** | **172** | **177** |
 
-## How the current ordering is derived
+## Work order
 
-Four questions, asked in this order, because a later answer never outranks an
-earlier one. This is the argument, not the list: [PROGRESS.md](PROGRESS.md)
-carries the ordered work.
-
-### 1. Is anything wrong that reports success?
-
-⭐ A wrong answer that exits 0 outranks a visible failure, because nothing in
-the output says the wrong answer happened, and podbox's audience is automated
-and cannot notice.
-
-Nothing is in this shape yet, because nothing is implemented. Two entries exist
-to keep it that way, and they are why they are P0 rather than P1:
-[T-0109](probe.md) makes "could not run" a third state rather than a denial, and
-[T-0606](supervise.md) refuses a tier rather than falling back per call. The
-corpus supplies a worked example of the failure at file and line, in
-`references/multikernel__sandlock`, and its own audit missed it.
-
-### 2. Does anything downstream branch on it?
-
-The probe does, and everything branches on the probe. That is why M0 is first
-and why [probe.md](probe.md) carries ten entries against
-[image.md](image.md)'s five.
-
-### 3. Is the risk in the component or in the specification?
-
-Extraction is the highest-risk component: four separate tools in the corpus stop
-there, and three of its four requirements are now measured rather than read
-(`experiments/results/whiteout-contract.txt`). It outranks image acquisition,
-which is ordinary HTTPS and file I/O, even though acquisition comes first in
-dependency order.
-
-### 4. What is blocked, and on what?
-
-Nothing is blocked. T-0702 is open rather than blocked: the required
-musl tooling and per-libc objects now exist, and the remaining work is
-integration.
+[PROGRESS.md](PROGRESS.md) gives the current order. A result that reports
+success for a wrong answer takes priority over a visible failure. Each entry
+names its own proof. The old ordering text is kept in
+[`docs/history/index-order-before-2026-09-28.txt`](../docs/history/index-order-before-2026-09-28.txt).

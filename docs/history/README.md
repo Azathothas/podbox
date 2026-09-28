@@ -12,6 +12,12 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 | [`source-progress-ea5b671.md`](source-progress-ea5b671.md) | Complete live record at the final source revision before migration |
 | [`session-2026-09-25-to-27.md`](session-2026-09-25-to-27.md) | The continuous session's superseded record: triage narrative, triage table, finished work order, closed in-progress narrative, verbatim |
 | [`upstream-tool-shape.md`](upstream-tool-shape.md) | Retired two-product wording for `wsl-toolkit`, kept verbatim with what took it away |
+| [`containers-before-toolkit-6.txt`](containers-before-toolkit-6.txt) | Windows lane procedure before `wsl-toolkit` 6.0.0, kept verbatim |
+| [`progress-before-2026-09-28.txt`](progress-before-2026-09-28.txt) | Superseded session state and work order, kept verbatim |
+| [`index-order-before-2026-09-28.txt`](index-order-before-2026-09-28.txt) | Superseded priority argument, kept verbatim |
+| [`reference-discussion-gap-before-2026-09-28.txt`](reference-discussion-gap-before-2026-09-28.txt) | Superseded claim that no reference had Discussions data, kept verbatim |
+| [SSH relay source check](references/ssh-relay-2026-09-28.md) | SSH relay source comparison and pull request findings |
+| [`reviews/2026-09-28-windows-lane.md`](reviews/2026-09-28-windows-lane.md) | Three review passes over the Windows lane and work record |
 | [`sessions/`](sessions/) | Superseded source-project session summaries |
 | [`reviews/`](reviews/) | Focused review outcomes for migrated changes |
 

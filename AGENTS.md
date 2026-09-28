@@ -20,7 +20,7 @@ is not reading the rule.
 
 ## Start here, every session
 
-⭐ **One command first, and it returns in seconds:**
+⭐ **One command first:**
 
 ```sh
 ./scripts/session-start.sh
@@ -28,15 +28,13 @@ is not reading the rule.
 
 It says where this machine is, what time it is in UTC, what is installed and
 what answered nothing, which lane this host uses, and then it starts that
-lane's setup. ⛔ **Do not pick the lane by hand.**
+lane's setup. On Windows it waits for the base probe to finish.
+⛔ **Do not pick the lane by hand.**
 [`containers.md`](docs/containers.md) names the three and what each one costs.
 
-⛔ **Do not wait for the setup.** On a Linux host it brings the machine up and
-compiles the binary behind the reading below, which needs no toolchain.
-Measured on 2026-09-09 in `experiments/results/session-startup.txt`: a cold
-compile is **29 s and 87 crates**, and the reading is **2,497 words**. ⚠ That
-second number moves every session, because `PROGRESS.md` is rewritten every
-session; `experiments/310-session-startup.sh` clause 4 is what recomputes it.
+⛔ **Do not wait for the Linux build.** On Linux it runs behind the reading
+below. The Windows base setup completes in this command. See
+[`containers.md`](docs/containers.md) for the two procedures.
 
 ⭐ **Then read [`TODO/PROGRESS.md`](TODO/PROGRESS.md).** It is the only
 file that carries what changed since last time and what to do next, in the
@@ -48,14 +46,13 @@ Then run the gate, so that anything it finds later is yours:
 
 ```sh
 ./scripts/check-todo.py
-./scripts/dev.sh status   # ready, stale, or failed with the log
+./scripts/dev.sh status   # Linux lane: ready, stale, or failed with the log
 ```
 
-⚠ `./scripts/dev.sh build` after a source change, and `./scripts/dev.sh check`
-before a commit: fmt, clippy, build, tests, the gate and the marker check, each
-read from the process that produced it. ⭐ On Windows that same check is
-`sh scripts/windows/run-in-base.sh`, which runs it in a disposable container
-inside `wsl-toolkit-podbox`. Measured on 2026-09-11: **1 m 19 s**, warm.
+⚠ On Linux, run `./scripts/dev.sh build` after a source change, and
+`./scripts/dev.sh check` before a commit. Read each step's own exit code.
+On Windows, use `wsl-toolkit --instance podbox base status --probe` for base
+status and `sh scripts/windows/run-in-base.sh` for the Linux check.
 
 Then read what **this task** routes you to, below. Not everything, and not less.
 
@@ -231,7 +228,7 @@ trailing `|| echo absent` fires beside the real value.
 ## The gate, and why it is trusted
 
 ```sh
-./scripts/check-todo.py    # the reader. Twenty checks. Must exit 0 at every commit
+./scripts/check-todo.py    # the reader. Must exit 0 at every commit
 ./scripts/todo-count.py    # the writer. Re-derives the counts; --set moves row and entry together
 ./scripts/plant.sh         # breaks each check on purpose and asserts it goes red
 ./scripts/common/check-markers.sh

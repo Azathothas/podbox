@@ -1,0 +1,19 @@
+== conditions
+2026-09-28T06:13:29Z
+MINGW64_NT-10.0-26200 3.6.10-710e5275.x86_64
+6.0.0
+5701a8b
+image=public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+instance=podbox
+
+== concurrent jobs and caller path
+one_exit=0
+two_exit=0
+caller_path_exit=2
+caller_path=matched
+one_payload=1
+two_payload=1
+gc_exit=0
+retained_before_gc=3
+retained_after_gc=0
+verdict=matched

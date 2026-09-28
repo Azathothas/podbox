@@ -2,7 +2,7 @@
 # plant.sh - break each of the gate's checks on purpose and assert it goes red.
 #
 # ⛔ AN ASSERTION NOBODY HAS SEEN FAIL IS NOT AN ASSERTION. `check-todo.py`
-# carries twenty-nine checks and this script carries forty-one cases, because
+# carries twenty-nine checks and this script carries forty-three cases, because
 # check 17 has four assertions that fail apart, checks 18, 19, 21 and 23
 # two each, and checks 26 and 27 five and three. A check that
 # quietly matches nothing exits 0 exactly like one whose assertions all passed,
@@ -450,6 +450,25 @@ case_plant "28 a glyph in a printed string" "prints U+26D4" \
 case_plant "29 a dropped cleanup procedure" "post-task cleanup procedure" \
   sh -c 'sed -i "s/Post-task cleanup, after every task/Post-task cleanup, someday/" TODO/RULES.md'
 
+# The lane report is external state. Supply one kept session through a tool
+# fixture and assert that check 29 names it. The fixture changes no repo file.
+mkdir -p "$BACKUP/mockbin"
+cat >"$BACKUP/mockbin/wsl-toolkit" <<'EOF'
+#!/bin/sh
+[ "$*" = "--instance podbox gc --json" ] || exit 2
+printf '%s\n' '{"schema":"wsl-toolkit-cleanup/1","dry_run":true,"containers":null,"guest_dirs":null,"host_dirs":null,"sessions":["plant-session"]}'
+EOF
+chmod +x "$BACKUP/mockbin/wsl-toolkit"
+out="$(PATH="$BACKUP/mockbin:$PATH" "$GATE" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ] && [ "${out#*lane job still kept: plant-session}" != "$out" ] &&
+   [ "${base_out#*lane job still kept: plant-session}" = "$base_out" ]; then
+  printf '  ok   %-34s red, and it named it\n' '29b a kept lane session'
+  plants_caught=$((plants_caught + 1))
+else
+  printf '  MISS %-34s the gate did not name the kept session\n' '29b a kept lane session'
+  plants_missed=$((plants_missed + 1))
+fi
+
 # ⛔ CHECK 30, and the plant inflates one committed reading past its
 # budget. The anchor is the run.steady ok row in the lane results: the
 # value field is rewritten to 99999 seconds, and the holding check must
@@ -467,11 +486,6 @@ echo "                       nothing, which requires editing check-todo.py's own
 echo "                       matchers rather than the tree. Every other check's"
 echo "                       counter is asserted non-zero on every run instead,"
 echo "                       and a zero is reported as a failure."
-echo "  29 ledger arm        no case. The arm owns no repository state to plant"
-echo "                       a defect in: it refuses a kept lane job, and the"
-echo "                       only way to plant one is a real lane run. Its"
-echo "                       failure was demonstrated live against a kept job"
-echo "                       before it landed (case 29a plants the rule half)."
 echo
 echo "== controls"
 

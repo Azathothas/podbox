@@ -39,8 +39,8 @@
 # not run (no toolchain, no build, no pull, no namespaces).
 set -u
 
-# The job travels as /work/.podbox-job.sh: take the checkout from the
-# working directory, never from $0 (see 353 for the measurement).
+# The Windows wrapper runs the job at /in/job.sh with /work as the
+# working directory. Take the checkout from that directory, not $0.
 REPO="$(pwd)"
 cd "$REPO" || exit 2
 WORK="$REPO/experiments/.sweep356-work"

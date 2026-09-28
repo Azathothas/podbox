@@ -12,15 +12,9 @@
 # over the tree cannot see a glyph built at runtime, and a passing binary
 # is what the caller reads.
 #
-# ⛔ THE LANE SHAPE: a bare `run-in-base.sh` with this script as its
-# argument stages this file at the checkout root as `.podbox-job.sh` and
-# runs `sh` on it with cwd `/`, so `$0`'s directory is `/work` (never
-# `experiments/`). The committed script therefore does NOT build: the
-# lane job that drives it builds first and exports PODBOX_BIN at the
-# guest path. A NATIVE run (`./experiments/352-ascii-output.sh` on
-# Linux) builds the default first with
-# `cargo build --release --target x86_64-unknown-linux-musl`, or sets
-# PODBOX_BIN itself.
+# The Windows wrapper runs this input at /in/job.sh with cwd /work.
+# A native run resolves the checkout from this file's path. Supply a
+# built binary through PODBOX_BIN, or use the default release path.
 #
 # ⚠ `set -u` and no `pipefail`: this script also runs under `sh` in a
 # Linux job container, where `sh` is dash. Dash has no `pipefail`, and
@@ -32,12 +26,12 @@
 #       2 could not run.
 set -u
 
-# ⚠ In the lane `$0` is `/work/.podbox-job.sh`, so HERE is /work and REPO
-# is `/`: BIN must NOT derive from REPO there. PODBOX_BIN is the lane
-# job's export; the /work default covers a manual lane `sh` only.
-HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-/work/target/x86_64-unknown-linux-musl/release/podbox}"
+case "$0" in
+  /in/job.sh) REPO="$(pwd)" ;;
+  *) HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+     REPO="$(CDPATH= cd -- "$HERE/.." && pwd)" ;;
+esac
+BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
 # ⚠ OUT is /out-absolute where the lane mounts artifacts, else the
 # checkout's results dir natively. A results file that lands only in the
 # lane workspace dies with the container; /out is what `--artifacts`

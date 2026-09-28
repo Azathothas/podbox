@@ -486,30 +486,27 @@ answered nothing.
 
 ### `windows/run-in-base.sh`
 
-⭐ **The Windows half of [`dev.sh`](dev.sh).** The tree is copied into a
-disposable container inside the distribution `wsl-toolkit-podbox`, the job runs
-there, and the container is removed when it exits. No host directory is
-mounted, so nothing the job does can reach the checkout.
+⭐ **The Windows half of [`dev.sh`](dev.sh).** The tool copies the tree into a
+job container in `wsl-toolkit-podbox`. The wrapper requests an ephemeral
+container. The host transcript remains until `gc` collects that job.
+No host directory is mounted into the job.
 
 ```sh
 sh scripts/windows/run-in-base.sh              # the complete check
-sh scripts/windows/run-in-base.sh JOB.sh       # that script, inside /work
+sh scripts/windows/run-in-base.sh JOB.sh       # that script, at /in/job.sh
 ```
 
-Measured on 2026-09-11: the complete check is **1 m 19 s** with a warm base and
-a warm image, over a workspace of **8,406 entries and 164.6 MiB**.
-
-⛔ It repairs two things before the job, and both have the same cause.
-`common/restore-modes.sh` puts the executable bit back, and every payload has
-its carriage returns stripped. [`../docs/containers.md`](../docs/containers.md)
-carries the measurement behind each.
+The wrapper sends a caller's script with `--input`, so two jobs have separate
+payload files. It removes CRLF from that script. The tool restores executable
+modes from the git index and from shebangs during the workspace copy.
+[`../docs/containers.md`](../docs/containers.md) gives the procedure and the
+live drive that verified it.
 
 ### `common/restore-modes.sh`
 
-⛔ **NTFS carries no POSIX mode bit**, so a checkout on Windows holds every file
-at 0644 and `core.fileMode` is false there. A copy of that checkout into Linux
-arrives with every one of them unrunnable, and the first failure names the
-script rather than the transfer.
+⛔ **NTFS carries no POSIX mode bit.** This helper repairs a copied tree when
+its copy tool did not restore executable modes. The Windows lane wrapper does
+not need it with the installed `wsl-toolkit` version.
 
 ```sh
 sh scripts/common/restore-modes.sh          # repair, and report

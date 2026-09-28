@@ -176,8 +176,8 @@ Every patch to vendored code carries the command that reproduces the defect it
 fixes, so a future release can be checked against it rather than judged.
 
 ⛔ **The licence determination is made before the tree is used.**
-[reference-map.md](reference-map.md) carries all thirty, including the three
-that are not resolved and are therefore not vendored.
+[reference-map.md](reference-map.md) carries each determination, including
+trees that are read but cannot be copied into podbox.
 
 ## 8. Resource and liveness guards
 
@@ -198,14 +198,15 @@ that are not resolved and are therefore not vendored.
 Storage on this host is a fixed allowance, so cleanup is mechanical,
 not remembered. After every lane job, before the next one starts:
 
-1. Collect the kept job id the job prints on exit, and remove it:
+1. Save the job's output. The Windows wrapper removes its container, but
+   `wsl-toolkit` keeps the host transcript. Collect the id the job prints:
    `wsl-toolkit --instance podbox gc --job <id> --apply`.
 2. Once a drive's report is saved under `experiments/results/`,
    delete that drive's `.tmp/` artifacts (that drive's `.tmp/pb*`
    directory and logs, the staged binary beside it).
 3. A base drive leaves its scratch on the base (`/root/pb*` work
    directories and any staged binary): remove it with
-   `wsl-toolkit --instance podbox base exec -root` before the next
+   `wsl-toolkit --instance podbox base exec --root` before the next
    base drive starts.
 4. At session end, or when space presses:
    `wsl-toolkit --instance podbox gc --apply` for the whole
@@ -214,10 +215,10 @@ not remembered. After every lane job, before the next one starts:
    lands in `experiments/results/` first, scratch is removed
    second.
 
-Check 29 of `scripts/check-todo.py` holds this section: the
-procedure stays written, and the ledger stays empty where
-`wsl-toolkit` answers. Where the tool is absent there is no
-ledger to hold, and the procedure half still binds.
+Check 29 of `scripts/check-todo.py` holds this section and reads
+`gc --json`. It checks containers, guest and host directories, and
+ended base sessions. Where the tool is absent, the procedure half
+still binds.
 
 ## 9. Prose
 

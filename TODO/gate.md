@@ -1560,3 +1560,79 @@ sibling rss. `360` exits 0 on the lane (`run.kept` 0.030 s,
 check 30 green on both shapes; the plant suite goes 42 caught
 0 missed with case 30 red-naming `run.repeat`. The old rows
 keep their definitions and their history.
+
+----
+
+### T-1343 The Windows lane uses toolkit 6 job inputs and checks every retained job
+
+Source:      podbox issue 68; the installed `wsl-toolkit 6.0.0` manual;
+             `scripts/windows/run-in-base.sh`; `scripts/check-todo.py`
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      done
+
+Problem:     The Windows job wrapper put each caller's script at one shared
+             path in the checkout. Two callers could replace that path during
+             a copy. Check 29 read only three kinds of kept work and let an
+             ended base session pass.
+Premise:     The installed manual specifies `run --input NAME=FILE`,
+             `--container-lifecycle ephemeral`, and a JSON cleanup report.
+             The live run in
+             `experiments/results/windows-lane-v6.txt` found that an
+             ephemeral container still leaves its host job record.
+Approach:    Send each caller's LF script as its own input. Let the toolkit
+             restore executable modes during the tree copy. Use the ephemeral
+             container life cycle. Read all four cleanup lists in JSON, and
+             plant a kept session to prove the check fails.
+Decision:    Keep CRLF removal for input bytes. Keep job records until their
+             result is saved, then collect each by id. Do not remove a base
+             that the next session needs.
+Prove:       `sh experiments/384-windows-lane-v6.sh` and
+             `py scripts/check-todo.py` exit 0; `sh scripts/plant.sh`
+             reports case 29b red with a kept session.
+
+**Done 2026-09-28.** Two simultaneous wrapper jobs read their own input,
+found the executable mode, and returned zero. A third caller path probe
+returned the expected no-binary code and named `/work`. The measurement
+found three host job records after the containers ended. Job-specific
+cleanup removed them.
+Check 29 then failed against a planted live base session, named its id, and
+passed after that session was collected. The full plant and Linux gate are
+recorded in [PROGRESS.md](PROGRESS.md).
+
+----
+
+### T-1344 Experiment jobs find the checkout after the Windows input change
+
+Source:      T-1343; the caller scan in `experiments/`; the installed
+             `wsl-toolkit 6.0.0` input contract
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      done
+
+Problem:     Experiment comments still said the Windows wrapper copied
+             a script to the checkout root. That path no longer exists.
+             Two scripts also resolved their repository path from the
+             input file's location, which is outside the checkout.
+Premise:     A source scan found twelve scripts that already take the
+             checkout from the working directory. The other two
+             derived it from `$0` for native runs. The wrapper now
+             enters `/work` before it runs `/in/job.sh`.
+Approach:    Amend each caller comment in place. In the two scripts,
+             use the working directory for the Windows input and retain
+             file-relative discovery for native runs. Derive the default
+             binary path from the selected checkout.
+Decision:    Keep the two invocation shapes explicit. Do not infer a
+             checkout from the input file's parent directory.
+Prove:       `sh -n experiments/351-signal-forward.sh` and
+             `sh -n experiments/352-ascii-output.sh` exit 0;
+             `sh experiments/384-windows-lane-v6.sh` exits 0 with
+             two separate inputs and `/work` executable modes.
+
+**Done 2026-09-28.** The scan found no old input-path reference in an
+experiment caller except T-1343's negative check for the removed file.
+All fifteen changed experiment scripts parsed under `sh -n`. The
+352 caller path probe in 384 returned 2 as expected for an image with
+no binary and named the correct `/work` binary path.

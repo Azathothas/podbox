@@ -124,6 +124,7 @@ check 4 is the arithmetic this script exists to stop being done by hand.
 docs/methodology/work-todo.md names a pair of scripts and not a language.
 """
 
+import json
 import os
 import re
 import shutil
@@ -1284,14 +1285,9 @@ ASCII_SCOPES = ("crates/podbox-cli/src", "crates/podbox-probe/src",
 def check_post_task_cleanup():
     """Check 29: post-task cleanup stays mechanical.
 
-    Two halves that fail apart. The procedure half asserts TODO/RULES.md
-    still carries the cleanup steps, on every machine. The ledger half
-    asks the lane tool for its open job records and refuses each one by
-    name; where the tool is absent there is no ledger to hold, and the
-    procedure half still binds. The ledger half owns no repository state
-    to plant a defect in (see plant.sh's "not planted against"), so its
-    failure was demonstrated live against a kept job before it landed
-    rather than through the plant harness.
+    The procedure half holds the cleanup steps on every machine. The lane
+    half reads the tool's cleanup report and refuses each kept resource.
+    The plant harness supplies a report with a kept session.
     """
     rules = os.path.join(TODO, "RULES.md")
     if not os.path.isfile(rules):
@@ -1312,7 +1308,7 @@ def check_post_task_cleanup():
     if tool is None:
         return
     try:
-        r = subprocess.run([tool, "--instance", "podbox", "gc"],
+        r = subprocess.run([tool, "--instance", "podbox", "gc", "--json"],
                            capture_output=True, text=True, timeout=180)
     except (OSError, subprocess.SubprocessError) as e:
         err("wsl-toolkit", f"the lane-job ledger could not be read: {e}")
@@ -1321,18 +1317,25 @@ def check_post_task_cleanup():
         err("wsl-toolkit", "the lane-job ledger could not be read: "
                            f"exit {r.returncode}: {(r.stderr or '').strip()[:120]}")
         return
-    # ⚠ The ledger report travels on stderr ("progress goes to stderr;
-    # stdout carries the answer alone"), so stdout alone reads empty and
-    # an empty ledger reads as examined-nothing. Both channels are
-    # scanned; stdout stays first for the version that swaps them.
-    for line in (r.stdout + "\n" + r.stderr).splitlines():
-        if not line.strip():
-            continue
+    try:
+        report = json.loads(r.stdout)
+    except (ValueError, TypeError) as e:
+        err("wsl-toolkit", f"the lane-job ledger is not JSON: {e}")
+        return
+    if not isinstance(report, dict) or report.get("schema") != "wsl-toolkit-cleanup/1" or report.get("dry_run") is not True:
+        err("wsl-toolkit", "the lane-job ledger has an unknown schema or is not a dry run")
+        return
+    for field in ("containers", "guest_dirs", "host_dirs", "sessions"):
+        items = report.get(field)
         seen["post_task_cleanup"] += 1
-        m = re.match(r"\s+(container|guest dir|host dir)\s+(.*\S)\s*$", line)
-        if m:
-            err("wsl-toolkit", f"lane job still kept: {m.group(2)} -- remove "
-                               f"it with `wsl-toolkit --instance podbox gc "
+        if items is None:
+            continue
+        if not isinstance(items, list):
+            err("wsl-toolkit", f"the lane-job ledger field {field} is not a list")
+            continue
+        for item in items:
+            err("wsl-toolkit", f"lane job still kept: {item} -- remove it "
+                               f"with `wsl-toolkit --instance podbox gc "
                                f"--job <id> --apply` before the next job")
 
 
