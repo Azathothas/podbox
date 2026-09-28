@@ -15,7 +15,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use podbox_ssh::{parse_port, Dialer, Error, Kind, Stdio, Target, EXIT_RUNTIME_ERROR};
+use podbox_ssh::{parse_port, Dialer, Error, Kind, Stdio, Target};
 
 /// How long one dial waits per resolved address.
 const DIAL_TIMEOUT: Duration = Duration::from_secs(10);

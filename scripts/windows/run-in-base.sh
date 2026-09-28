@@ -84,7 +84,10 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 		echo 'esac'
 	else
 		echo 'echo "== bootstrap"'
-		echo "./scripts/common/bootstrap-env.sh rust cc zig tools || exit 1"
+		# rust cc zig tools build the tree; openssh is what the
+		# podbox-ssh end-to-end test drives. The full check runs the
+		# whole workspace suite, so it carries both.
+		echo "./scripts/common/bootstrap-env.sh rust cc zig tools openssh || exit 1"
 		echo 'echo "== dev.sh check"'
 		echo "./scripts/dev.sh check"
 	fi
