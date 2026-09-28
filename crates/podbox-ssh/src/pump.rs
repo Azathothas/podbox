@@ -104,7 +104,7 @@ mod tests {
         (a, b)
     }
 
-    fn relay(a: crate::transport::Unix, b: crate::transport::Unix) -> std::thread::JoinHandle<()> {
+    fn splice(a: crate::transport::Unix, b: crate::transport::Unix) -> std::thread::JoinHandle<()> {
         std::thread::spawn(move || {
             let mut a = a;
             let mut b = b;
@@ -127,7 +127,7 @@ mod tests {
     fn pump_carries_bytes_both_directions_until_close() {
         let (mut ca, ra) = pair();
         let (mut cb, rb) = pair();
-        let handle = relay(crate::transport::Unix(ra), crate::transport::Unix(rb));
+        let handle = splice(crate::transport::Unix(ra), crate::transport::Unix(rb));
         ca.write_all(b"from-a").unwrap();
         let mut buf = [0u8; 6];
         read_exact(&mut cb, &mut buf);
@@ -147,7 +147,7 @@ mod tests {
         // waiting for a close that never comes.
         let (ca, ra) = pair();
         let (mut cb, rb) = pair();
-        let handle = relay(crate::transport::Unix(ra), crate::transport::Unix(rb));
+        let handle = splice(crate::transport::Unix(ra), crate::transport::Unix(rb));
         ca.shutdown(std::net::Shutdown::Write).unwrap();
         let mut buf = [0u8; 1];
         cb.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
@@ -161,7 +161,7 @@ mod tests {
     fn half_close_b_to_a_delivers_eof() {
         let (mut ca, ra) = pair();
         let (cb, rb) = pair();
-        let handle = relay(crate::transport::Unix(ra), crate::transport::Unix(rb));
+        let handle = splice(crate::transport::Unix(ra), crate::transport::Unix(rb));
         cb.shutdown(std::net::Shutdown::Write).unwrap();
         let mut buf = [0u8; 1];
         ca.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
