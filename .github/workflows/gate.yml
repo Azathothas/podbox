@@ -193,7 +193,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: bootstrap
-        run: ./scripts/common/bootstrap-env.sh rust cc zig tools
+        run: ./scripts/common/bootstrap-env.sh rust cc zig tools openssh
 
       - name: workspace tests
         run: cargo test --workspace

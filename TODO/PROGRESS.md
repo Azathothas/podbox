@@ -129,7 +129,9 @@ closed after that result.
 The base cleanup report is empty after the last drive.
 
 The [session summary](SESSION-SUMMARY-2026-09-28.md) has the final
-checks, change size, remote state, and machine state.
+checks, change size, remote state, and machine state. The
+[SSH session summary](SESSION-SUMMARY-2026-09-28-SSH.md) has the
+reconcile, the partial, the machine arm, and the KVM unblock.
 
 ## Work order
 
@@ -151,11 +153,11 @@ checks, change size, remote state, and machine state.
 To completion: T-1403, T-1402, the T-1404 remote arm, and the T-1112
 guest run close in that order, each with parallel review passes and
 the full gate green before it commits. Release prep follows the
-packaging entries (version, changelog, signed artefacts). Three acts
-stay the operator's: closing pull requests 66 and 67 once their work
-is superseded on `main`, tagging and publishing the beta, and
-confirming a green hosted gate on the release head. No session merges,
-closes, or publishes; it prepares each act to one click.
+packaging entries (version, changelog, signed artefacts). The operator
+authorized the closing acts on this repository: pull requests 66 and 67
+close as superseded once their work is on `main`, and the beta tags
+and publishes. No session touches any other repository; that boundary
+stands.
 
 ## Open questions
 

@@ -6,6 +6,26 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-28T14:15:15Z: the SSH partial takes its own version number
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). Version bump to
+`0.1.0-beta.9`; deploys as nightly pre-release `v0.1.0-beta.9`.
+
+The workspace version moves from `0.1.0-beta.8` to `0.1.0-beta.9`.
+`Cargo.lock` carries the same nine lines and nothing else (nine
+workspace members including the new `podbox-ssh` crate).
+
+What the number names: the SSH transport and server partial lands on
+`main` beside the machine arm (T-1401: the relay and remote group stay
+deferred, the entry stays open on its named proofs), the KVM host
+opens at API version 12, the relay questions settle with both
+protocols split by use and redacted logs committable, the pair
+lifecycle verifies with zero residue, and pull requests 66 and 67
+close as superseded on the landed main commit. The gate test job
+bootstraps `openssh` so the SSH end-to-end test has a client and a
+server on hosted runners. The full Linux gate is green on the pushed
+tree, and the corpus gains two trees at studied pins with zero gaps.
+
 ### 2026-09-27T03:09:00Z: the ceiling beta takes its own version number
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). Version bump to
