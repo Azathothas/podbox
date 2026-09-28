@@ -5,3 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+
+[dependencies]
+# ⛔ One home for exit codes (TODO/cli.md T-0802): the runtime code is
+# re-exported from `podbox-probe`, never re-declared here.
+podbox-probe = { path = "../podbox-probe" }

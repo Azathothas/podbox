@@ -30,7 +30,7 @@ pub mod pump;
 pub mod server;
 pub mod transport;
 
-pub use error::{Error, Kind, EXIT_OK, EXIT_RUNTIME_ERROR};
+pub use error::{Error, Kind, EXIT_RUNTIME_ERROR};
 pub use pump::{is_would_block, pump, READ_TIMEOUT};
 pub use server::{probe_server, spawn_stdio, write_sshd_config, ServerChild, PROBE_WINDOW};
 pub use transport::{parse_port, Dialer, Stdio, Stream, Target};

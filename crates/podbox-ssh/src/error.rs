@@ -1,4 +1,4 @@
-//! The one error type, and the two exit codes.
+//! The one error type, and the re-exported runtime exit code.
 //!
 //! ⛔ Every failure leaves this crate as an [`Error`]. A transport that
 //! returns a bare string is a transport whose failure a caller cannot match
@@ -8,14 +8,10 @@
 use std::fmt;
 use std::io;
 
-/// The process exit code for a run that did what was asked.
-pub const EXIT_OK: i32 = 0;
-
-/// The process exit code for a run that failed at runtime. Dial failures,
-/// server failures, pump failures, and usage failures all land here: the
-/// proxy binary has one caller, the SSH client, and one failure code keeps
-/// that contract readable.
-pub const EXIT_RUNTIME_ERROR: i32 = 125;
+// ⛔ Exit codes live in one place: `podbox-probe` holds docker's codes, and a
+// second declaration is how two verbs came to disagree about one of them
+// (TODO/cli.md T-0802). This crate re-exports rather than re-declares.
+pub use podbox_probe::exit::EXIT_RUNTIME_ERROR;
 
 /// What sort of failure this is. A caller matching on this decides what to
 /// report, and getting that wrong turns one clear sentence into noise.
@@ -141,7 +137,6 @@ mod tests {
             assert_eq!(e.exit_code(), EXIT_RUNTIME_ERROR, "{kind:?}");
             assert_eq!(e.kind(), kind);
         }
-        assert_eq!(EXIT_OK, 0);
         assert_eq!(EXIT_RUNTIME_ERROR, 125);
     }
 
