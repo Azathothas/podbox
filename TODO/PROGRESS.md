@@ -150,8 +150,8 @@ checks, change size, remote state, and machine state.
 
 ## Open questions
 
-The SSH relay protocol must name which peer speaks the simple rendezvous
-form and which speaks the multiplexed reverse form. T-1403 records the
-tests that settle it. The T-1403 protocol choice and the relay token
-stay operator questions.
+Podbox speaks both relay protocols, split by use: multiplexed reverse
+for remote paths, one-pair rendezvous for local paths. Sessions may mint
+ephemeral self-service tokens and commit redacted logs. T-1403 records
+the tests that settle the remainder, including node redial pairing.
 T-1112 still needs the KVM guest run named in its entry.

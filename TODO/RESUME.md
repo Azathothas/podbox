@@ -1,33 +1,28 @@
 ## Task
 
-Review podbox PRs 66 and 67 for the SSH entries, study faketty and fakepty
-for the no-pty session entry, assess T-1112 KVM unlock under wsl-toolkit
-6.0.0, then amend docs and implement the partial plus machine SSH side.
-Remote and relay sides stay deferred.
+Settle the relay questions with fresh sources, then record the answers.
 
 ## Resume point
 
-Work is committed and the full gate is green. Remaining: refresh the
-record (done above in PROGRESS.md), commit the record, push `main`,
-write the session summary and the next prompt.
+Done after this commit. Next unit is T-1403: implement the relay
+protocol split (multiplexed reverse for remote paths, one-pair for
+local paths and tests) per TODO/podssh.md.
 
 ## In flight
 
-Nothing half-done. Three commits carry the session: the landing, the
-exit-code fix, and the openssh/full-check fix. No review ref remains.
-The ValidationOS disk sits outside the tree at
-`%USERPROFILE%\podbox-images\ValidationOS.vhdx`.
+Nothing half-done. Operator settled both questions: both protocols
+split by use, and redacted relay logs may be committed. Fresh sources:
+dropssh issue 9, the r12 relay documents, and a zero-residue pair
+lifecycle driven from this host (no token value printed or stored).
 
 ## Tree state
 
-Dirty only with the record refresh. Full Linux gate green (10 passed,
-0 failed); host fast gate green (9 passed, 0 failed, 2 environmental
-skips); `check-todo`, markers, one-home, docs, and both secrets checks
-green. Base job ledger empty.
+Three doc files amended, gated, ready to commit. Full gate state from
+the last change is green; only these doc lines are new.
 
 ## Paste
 
-Continue the podbox SSH session: commit the refreshed record in
-TODO/PROGRESS.md, push `main`, then print the summary table and the next
-prompt per docs/methodology/sessions.md. T-1403 is next in the work
-order, with the protocol choice as the operator question.
+Continue the podbox SSH session: commit the settled relay answers,
+push `main`, then start T-1403 with the multiplexed reverse protocol
+from the r12 documents and the redial-pairing measurement from
+TODO/podssh.md.

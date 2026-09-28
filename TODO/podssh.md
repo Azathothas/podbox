@@ -127,13 +127,18 @@ Approach:    Specify the relay protocol before changing the transport. Test
 Decision:    Interoperability must name the exact relay protocol and version.
              A passing test against the simple Python relay does not prove
              the multiplexed route.
-Named:       Both pull requests speak the one-pair rendezvous, read at
-             their heads on 2026-09-28. The relay pairs one node socket
-             with one client socket. No session identifiers exist. A second
-             client for a paired name is refused. The concurrent reference
-             is the dropssh session table with its identifier lookup and
-             its malformed-frame probe. An interoperability claim must name
-             which protocol it proves. The protocol choice stays open.
+Decided:     Both protocols stay, split by use (operator, 2026-09-28).
+             The multiplexed reverse path serves remote use against the
+             r12 relay: identifier-prefixed frames, exact close table,
+             64 sessions, 64 KiB frames, 64 MiB sessions. The one-pair
+             rendezvous serves local use and tests. Both pull requests
+             speak the one-pair form today. dropssh proved two concurrent
+             sessions live on 2026-09-28. Self-service pairing works from
+             this host, measured on 2026-09-28: pair 200, connect-token
+             status 200, node-token status 403, stop 200, status after
+             stop 403. Tokens stay redacted in committed logs. What
+             remains unmeasured: node redial pairing, which no document
+             states.
 Prove:       `cargo test -p podbox-ssh` exits 0, and a bounded two-client
              drive observes one node connection and two completed sessions.
 
