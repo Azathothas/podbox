@@ -1,0 +1,255 @@
+== conditions
+2026-09-28T13:16:45Z
+Linux 7.2.0-WSL2-STABLE
+a431cb7
+cargo 1.98.1 (797e8a9bc 2026-08-05)
+rustc 1.98.1 (48a229cea 2026-09-01)
+/usr/sbin/sshd
+/usr/bin/ssh
+/usr/bin/ssh-keygen
+clause 1          sshd, ssh, ssh-keygen on PATH
+    Updating crates.io index
+   Compiling podbox-ssh v0.1.0-beta.8 (/work/crates/podbox-ssh)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.63s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox_ssh-6d7dc47ee1d9236d)
+
+running 24 tests
+test error::tests::dial_keeps_the_io_sentence_beside_the_target ... ok
+test error::tests::every_kind_maps_to_the_runtime_exit_code ... ok
+test error::tests::kind_tokens_are_stable ... ok
+test error::tests::pump_and_server_conversions_keep_their_kind ... ok
+test error::tests::display_names_the_operation_and_the_kind ... ok
+test pump::tests::would_block_means_nothing_yet ... ok
+test pump::tests::write_failure_fails_loud ... ok
+test server::tests::quoting_plain_and_spaced ... ok
+test server::tests::explicit_server_command_wins_over_detection ... ok
+test transport::tests::bad_targets_are_usage_errors ... ok
+test transport::tests::dial_exec_missing_program_is_a_dial_error ... ok
+test transport::tests::dial_unix_reports_the_missing_path ... ok
+test server::tests::generated_config_is_owner_only_and_refuses_root_passwords ... ok
+test transport::tests::dotless_host_parses_as_a_name ... ok
+test transport::tests::dial_tcp_refused_is_a_dial_error_naming_the_target ... ok
+test transport::tests::dial_tcp_carries_bytes_through_a_loopback_listener ... ok
+test transport::tests::tcp_targets_parse_host_port_and_ipv6 ... ok
+test server::tests::spawn_stdio_carries_bytes_through_cat ... ok
+test pump::tests::pump_carries_bytes_both_directions_until_close ... ok
+test pump::tests::half_close_a_to_b_delivers_eof ... ok
+test transport::tests::exec_carries_bytes_through_cat ... ok
+test pump::tests::half_close_b_to_a_delivers_eof ... ok
+test server::tests::the_probe_is_bounded_even_when_the_server_never_exits ... ok
+test server::tests::a_server_that_starts_passes_and_one_that_exits_fails_with_its_reason ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
+
+     Running unittests src/bin/proxy.rs (target/x86_64-unknown-linux-musl/debug/deps/proxy-e89ace270f9949ca)
+
+running 5 tests
+test tests::exec_carries_program_and_args ... ok
+test tests::tcp_accepts_a_dotless_host ... ok
+test tests::unix_needs_exactly_a_path ... ok
+test tests::tcp_needs_exactly_a_host_and_a_port ... ok
+test tests::failure_exit_code_is_the_runtime_code ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ssh_over_unix_e2e.rs (target/x86_64-unknown-linux-musl/debug/deps/ssh_over_unix_e2e-336e3baf8971baaf)
+
+running 3 tests
+test missing_binary_fails_loud_by_name ... ok
+Accepted publickey for root from UNKNOWN port 65535 ssh2: ED25519 SHA256:j70tIHqUtEjQMCRobO9xqeLd3c4RdWpj02u1gBJcS+w
+Accepted publickey for root from UNKNOWN port 65535 ssh2: ED25519 SHA256:Fsnrr6wFAHciQaXIaVIvoxWz4LQk7GZ/Vsq4P70TSRk
+test remote_exit_code_passes_through ... ok
+test ssh_runs_a_command_through_proxy_and_socketpair ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+   Doc-tests podbox_ssh
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+clause 2          cargo test -p podbox-ssh exit 0
+ Downloading crates ...
+  Downloaded cfg-if v1.0.4
+  Downloaded block-buffer v0.12.1
+  Downloaded form_urlencoded v1.2.2
+  Downloaded percent-encoding v2.3.2
+  Downloaded idna_adapter v1.2.2
+  Downloaded itoa v1.0.18
+  Downloaded potential_utf v0.1.6
+  Downloaded filetime v0.2.29
+  Downloaded cpufeatures v0.3.1
+  Downloaded untrusted v0.9.0
+  Downloaded stable_deref_trait v1.2.1
+  Downloaded webpki-roots v0.26.11
+  Downloaded subtle v2.6.1
+  Downloaded zerofrom-derive v0.1.7
+  Downloaded zerofrom v0.1.8
+  Downloaded yoke-derive v0.8.2
+  Downloaded utf8_iter v1.0.4
+  Downloaded adler2 v2.0.1
+  Downloaded crypto-common v0.2.2
+  Downloaded displaydoc v0.2.7
+  Downloaded rustls-pemfile v2.2.0
+  Downloaded digest v0.11.3
+  Downloaded quote v1.0.47
+  Downloaded synstructure v0.13.2
+  Downloaded simd-adler32 v0.3.10
+  Downloaded zerovec-derive v0.11.6
+  Downloaded shlex v2.0.1
+  Downloaded smallvec v1.16.0
+  Downloaded zmij v1.0.23
+  Downloaded writeable v0.6.4
+  Downloaded tinystr v0.8.4
+  Downloaded zeroize v1.9.0
+  Downloaded hybrid-array v0.4.15
+  Downloaded rustls-pki-types v1.15.1
+  Downloaded once_cell v1.21.4
+  Downloaded crc32fast v1.5.1
+  Downloaded yoke v0.8.3
+  Downloaded sha2 v0.11.0
+  Downloaded twox-hash v2.1.4
+  Downloaded find-msvc-tools v0.1.12
+  Downloaded getrandom v0.2.17
+  Downloaded litemap v0.8.3
+  Downloaded icu_provider v2.3.1
+  Downloaded serde_derive v1.0.229
+  Downloaded serde_core v1.0.229
+  Downloaded base64 v0.22.1
+  Downloaded flate2 v1.1.10
+  Downloaded proc-macro2 v1.0.107
+  Downloaded log v0.4.34
+  Downloaded miniz_oxide v0.9.1
+  Downloaded unicode-ident v1.0.24
+  Downloaded tar v0.4.46
+  Downloaded icu_normalizer_data v2.3.0
+  Downloaded icu_collections v2.3.0
+  Downloaded serde v1.0.229
+  Downloaded rustls-webpki v0.103.15
+  Downloaded url v2.5.8
+  Downloaded cc v1.4.5
+  Downloaded icu_locale_core v2.3.0
+  Downloaded memchr v2.8.3
+  Downloaded base64 v0.23.1
+  Downloaded syscalls v0.8.1
+  Downloaded zerotrie v0.2.5
+  Downloaded ruzstd v0.9.0
+  Downloaded ureq v2.12.1
+  Downloaded icu_properties v2.3.0
+  Downloaded typenum v1.20.1
+  Downloaded zerovec v0.11.8
+  Downloaded idna v1.1.0
+  Downloaded icu_properties_data v2.3.0
+  Downloaded serde_json v1.0.151
+  Downloaded zlib-rs v0.6.7
+  Downloaded webpki-roots v1.0.9
+  Downloaded syn v2.0.119
+  Downloaded syn v3.0.5
+  Downloaded rustls v0.23.45
+  Downloaded icu_normalizer v2.3.0
+  Downloaded libc v0.2.189
+  Downloaded ring v0.17.14
+  Downloaded linux-raw-sys v0.12.1
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling stable_deref_trait v1.2.1
+   Compiling cfg-if v1.0.4
+   Compiling libc v0.2.189
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.12
+   Compiling writeable v0.6.4
+   Compiling litemap v0.8.3
+   Compiling utf8_iter v1.0.4
+   Compiling zeroize v1.9.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling icu_properties_data v2.3.0
+   Compiling typenum v1.20.1
+   Compiling smallvec v1.16.0
+   Compiling syscalls v0.8.1
+   Compiling untrusted v0.9.0
+   Compiling crc32fast v1.5.1
+   Compiling serde_core v1.0.229
+   Compiling adler2 v2.0.1
+   Compiling zmij v1.0.23
+   Compiling rustls v0.23.45
+   Compiling percent-encoding v2.3.2
+   Compiling linux-raw-sys v0.12.1
+   Compiling simd-adler32 v0.3.10
+   Compiling subtle v2.6.1
+   Compiling cc v1.4.5
+   Compiling rustls-pki-types v1.15.1
+   Compiling serde v1.0.229
+   Compiling cpufeatures v0.3.1
+   Compiling serde_json v1.0.151
+   Compiling form_urlencoded v1.2.2
+   Compiling once_cell v1.21.4
+   Compiling log v0.4.34
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling miniz_oxide v0.9.1
+   Compiling base64 v0.22.1
+   Compiling base64 v0.23.1
+   Compiling twox-hash v2.1.4
+   Compiling ruzstd v0.9.0
+   Compiling podbox-probe v0.1.0-beta.8 (/work/crates/podbox-probe)
+   Compiling webpki-roots v1.0.9
+   Compiling rustls-pemfile v2.2.0
+   Compiling webpki-roots v0.26.11
+   Compiling flate2 v1.1.10
+   Compiling hybrid-array v0.4.15
+   Compiling syn v2.0.119
+   Compiling syn v3.0.5
+   Compiling getrandom v0.2.17
+   Compiling filetime v0.2.29
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling tar v0.4.46
+   Compiling podbox-enter v0.1.0-beta.8 (/work/crates/podbox-enter)
+   Compiling ring v0.17.14
+   Compiling digest v0.11.3
+   Compiling sha2 v0.11.0
+   Compiling podbox-cli v0.1.0-beta.8 (/work/crates/podbox-cli)
+   Compiling podbox-windows v0.1.0-beta.8 (/work/crates/podbox-windows)
+   Compiling synstructure v0.13.2
+   Compiling zerovec-derive v0.11.6
+   Compiling displaydoc v0.2.7
+   Compiling serde_derive v1.0.229
+   Compiling zerofrom-derive v0.1.7
+   Compiling yoke-derive v0.8.2
+warning: podbox-cli@0.1.0-beta.8: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.8: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.3
+   Compiling zerovec v0.11.8
+   Compiling zerotrie v0.2.5
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.3.0
+   Compiling icu_locale_core v2.3.0
+   Compiling icu_provider v2.3.1
+   Compiling rustls-webpki v0.103.15
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling ureq v2.12.1
+   Compiling podbox-image v0.1.0-beta.8 (/work/crates/podbox-image)
+   Compiling podbox-extract v0.1.0-beta.8 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0-beta.8 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0-beta.8 (/work/crates/podbox-complete)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 14.23s
+clause 3          cargo build -p podbox-cli exit 0
+binary            target/x86_64-unknown-linux-musl/debug/podbox
+ok                machine usage
+ok                machine help
+ok                machine ssh refusal
+ok                machine ssh guest refusal
+ok                machine ssh help
+ok                machine unknown member
+ok                machine bogus flag
+ok                man machine
+
+verdict           PODSSH PARTIAL HOLDS

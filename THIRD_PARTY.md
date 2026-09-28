@@ -65,6 +65,7 @@ row retains its original licence and notices.
 | Path | Upstream commit | Licence | State |
 | --- | --- | --- | --- |
 | `vendor/userland-execve` | `io12/userland-execve-rust` at `02ef0e0` | MIT (`LICENSE` present) | whole and unpatched: six source files plus `LICENSE`, `Cargo.toml`, `README.md`, byte-identical to the corpus tree. Not compiled yet; [T-1003](TODO/packaging.md) patches its `goblin` and `nix` pins out when it wires the ladder. Retire check: `diff -r references/io12__userland-execve-rust/tree/src vendor/userland-execve/src` with `cmp` of the three root files. |
+| `crates/podbox-ssh/shims/fakepwd.c` | `talaria0101/sandssh` at `4fc7f8c` | MIT (`LICENSE` present beside it) | one file, unpatched, byte-identical to `references/talaria0101__sandssh/tree/shims/fakepwd.c`. Gives `getpwnam` answers to an SSH server where no passwd database exists. Retire check: `cmp crates/podbox-ssh/shims/fakepwd.c references/talaria0101__sandssh/tree/shims/fakepwd.c`. |
 
 ## Build dependencies
 

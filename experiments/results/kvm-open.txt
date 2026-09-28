@@ -1,0 +1,14 @@
+== conditions
+2026-09-28T13:15:27Z
+MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64
+6.0.0
+a431cb7
+instance=podbox
+
+== kvm functional probe
+crw-rw-rw- 1 root kvm 10, 232 Sep 28 18:15 /dev/kvm
+open O_RDWR ok
+KVM_GET_API_VERSION 12
+KVM_CREATE_VM fd 4
+
+verdict           KVM OPEN HOLDS

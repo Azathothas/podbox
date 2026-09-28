@@ -7,8 +7,15 @@
 The Windows lane now uses `wsl-toolkit 6.0.0`. Issue 68 closed after its
 hosted gate passed. Pull requests 66 and 67 are open; neither
 is on `main`. Their work is in [podssh.md](podssh.md) as T-1401 to
-T-1404. Pull request 67 is the code candidate. Its current build, lint,
-and document jobs are red, so it is not ready to merge.
+T-1404. Pull request 67 is the base: pull request 66 is an earlier subset
+with no check runs and contributes no unique file. Pull request 67 carries
+three red jobs (cage build with no tracked shim, one lint denial, one
+document denial), so it is not ready to merge.
+
+T-1112 is unblocked and still unproved. The host KVM node answers API
+version 12, QEMU 11.1.1 with `qemu-img` installs from Arch extra, and the
+ValidationOS disk is installed outside the tree with a matching digest.
+What remains is the KVM guest run.
 
 T-1112 remains partial. Its Windows guest arms ran under `tcg`; its
 `kvm` arm needs a licensed image on a KVM host, under the entry's
@@ -106,15 +113,17 @@ checks, change size, remote state, and machine state.
 
 ## Work order
 
-1. T-1401: reconcile PR 67's SSH transport and server on `main`;
-   fix its three red jobs and prove a real SSH command in a fresh tree.
-   PR 66 is earlier overlapping evidence and conflicts with `main`.
+1. T-1401 partial: land PR 67's SSH transport and server on `main`
+   without the relay and remote group; fix its three red jobs and prove
+   a real SSH command against a socketpair server in a fresh tree. The
+   relay and remote group stay deferred.
 2. T-1403: specify and prove two clients on one relay connection.
    Test frame direction, isolation, close, and bounded cleanup.
 3. T-1402: provide and prove an interactive session where no pty exists.
    A one-shot command is not this proof.
-4. T-1404: retain the remote SSH arm from PR 67 and add and drive the
-   machine SSH arm after the transport and relay hold.
+4. T-1404 machine arm now: dispatch `machine ssh` to a guest podbox
+   runs, with podman parity. The remote SSH arm stays deferred with the
+   relay.
 5. T-1112: finish the KVM image arm when the named host and licensed
    image are available.
 
@@ -123,4 +132,4 @@ checks, change size, remote state, and machine state.
 The SSH relay protocol must name which peer speaks the simple rendezvous
 form and which speaks the multiplexed reverse form. T-1403 records the
 tests that settle it. No operator choice is needed before T-1401 starts.
-T-1112 still needs the image and KVM host named in its entry.
+T-1112 still needs the KVM guest run named in its entry.

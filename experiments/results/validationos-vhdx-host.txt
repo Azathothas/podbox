@@ -1,0 +1,22 @@
+# ValidationOS disk, host fetch, 2026-09-28
+
+Method: one range GET of the VHDX extent from the pinned ISO, per the pins
+in `experiments/371-validationos-stream.sh` (URL, offset, length, digest).
+The lane file-size ceiling forbids the whole ISO. The host has no such
+ceiling but fetches only the extent all the same.
+
+Host: Windows 11, `MINGW64_NT-10.0-26200`, 476 GB free on C: at fetch time.
+Date: 2026-09-28, during the SSH review session.
+Script: `%USERPROFILE%\podbox-images\fetch-vhdx.sh`, outside the tree.
+Image-adjacent material is never committed, so the script lives beside the
+image. It re-fetches and re-verifies on every run.
+
+Range: bytes 2068480-912232447 of the pinned ISO URL.
+HEAD length at fetch: 2460880896, matching the 371 pin.
+
+Result:
+size=910163968 bytes
+magic=vhdxfile
+sha256=063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f (matches)
+Installed at: `%USERPROFILE%\podbox-images\ValidationOS.vhdx`
+verdict: VHDX OK

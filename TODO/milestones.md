@@ -964,13 +964,17 @@ the lane: KVM denied ENOENT in probe JSON, `run`, machine-tier
 the store byte-identical after, CLI lifecycle+tier units 26
 passed. Report in `experiments/results/windows-refusal.txt`.
 
-**Blocked on the guest arm.** No reachable machine holds
-`/dev/kvm` (lane ENOENT, measured in the drive above), lane
-qemu is 7.2.22 against the prerequisite 11 with `qemu-img`,
-and no licensed Windows image is installed anywhere (one is
-never fetched or committed here). What unblocks: a KVM host
-with the image installed under the accept-terms gate the entry
-names. The entry stays partial on that blocker.
+**Unblocked 2026-09-28, still unproved.** The host exposes a working KVM
+node. `experiments/385-kvm-open.sh` opens `/dev/kvm`, reads API version 12,
+and creates a virtual machine. The version call must pass a null argument:
+a buffer argument returns EINVAL on this kernel. The drive environment
+installs QEMU 11.1.1 with `qemu-img` from Arch extra. The ValidationOS disk
+(910163968 bytes, matching the digest pinned in
+`experiments/371-validationos-stream.sh:42`) is installed outside the tree
+at `%USERPROFILE%\podbox-images\ValidationOS.vhdx`. No image is committed
+or redistributed. What remains is the KVM guest run under its accept-terms
+gate. The entry stays partial on that run. The earlier blocker text is in
+[`../docs/history/t1112-kvm-blocker-before-2026-09-28.txt`](../docs/history/t1112-kvm-blocker-before-2026-09-28.txt).
 
 **Guest arm landed 2026-09-26, under TCG, in the authoring
 sandbox.** New crate `crates/podbox-windows`: `fat16.rs` (an
@@ -1120,9 +1124,10 @@ by the guest and read back whole.
 ⚠ **What is still not verified, named rather than implied.** The lane
 builds the `podbox` binary (musl debug) and runs the verbs: 370 clauses
 1 through 6 hold as verbs, clause 7 skips with no image configured,
-clause 8 holds with the DOS base 369 writes. `/dev/kvm` is present on
-the wsl-toolkit base (2026-09-27), so the `kvm` arm owes a licensed
-image with its accept-terms gate, not a host. No licensed image is
+clause 8 holds with the DOS base 369 writes. `/dev/kvm` opens on
+the wsl-toolkit base (API version 12, measured 2026-09-28), so the `kvm`
+arm owes the guest run with its accept-terms gate, not a host. The
+ValidationOS disk is installed outside the tree. No image is
 fetched, committed or redistributed. What closed part of that
 gap: the CLI module tree is now **compiled and its own tests executed**,
 through a stub harness (a five-constant `podbox_image`, a `ureq` stub
@@ -1177,8 +1182,9 @@ clause skipped loud without an image, DOS guest 0 plus version
 through the verb). Suite: 52 (podbox-windows) plus 165 (podbox-cli,
 isolated) passed, 0 failed; workspace clippy with `-D warnings`
 clean; markers, control bytes and secrets checks green. What stays
-open: the `kvm` arm (unit-tested only, no reachable machine has
-`/dev/kvm`); and ReactOS as the redistributable middle step
+open: the `kvm` arm (the host node answers API version 12 since
+2026-09-28; the guest run is still owed); and ReactOS as the
+redistributable middle step
 (measured so far: an extra cold IDE drive wedges the LiveCD
 prompt and even long-held keys miss it, early keys from 5 s pass;
 the Live RAM disk is read-only so no file channel exists; the

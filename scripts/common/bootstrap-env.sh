@@ -34,6 +34,9 @@
 #             ⚠ There is no /dev/kvm here, so the VM runs under TCG. Measured on
 #             2026-09-09: the whole boot-probe-poweroff cycle is about 6 s.
 #   vmtools   busybox-static and cpio, which build experiments/290-'s initramfs.
+#   openssh   the SSH client and server the podbox-ssh end-to-end test
+#             drives. A suite that cannot start a real server cannot prove
+#             the SSH path.
 #
 # ⛔ THREE RULES THIS SCRIPT HOLDS TO, each because the environment breaks a
 # session that does not:
@@ -82,7 +85,7 @@ for a in "$@"; do
 	*) WANT="$WANT $a" ;;
 	esac
 done
-[ -z "$WANT" ] && WANT="rust bloat go cc zig docker tools qemu vmtools"
+[ -z "$WANT" ] && WANT="rust bloat go cc zig docker tools qemu openssh vmtools"
 
 installed=0 already=0 failed=0
 declare -a REPORT=()
@@ -216,6 +219,31 @@ if want qemu; then
 		[ -z "$still" ] && did "qemu:$missing" || bad "qemu: still missing$still"
 	else
 		bad "qemu: apt-get install failed for$missing"
+	fi
+fi
+
+# ------------------------------------------------------------------ openssh
+# The SSH client and server the podbox-ssh end-to-end test drives
+# (`crates/podbox-ssh/tests/ssh_over_unix_e2e.rs`). A workspace suite that
+# cannot start a real server cannot prove the SSH path, so this is a lane
+# requirement rather than an experiment-local install.
+if want openssh; then
+	missing=""
+	have ssh || missing="$missing openssh-client"
+	have sshd || missing="$missing openssh-server"
+	have ssh-keygen || missing="$missing openssh-client"
+	if [ -z "$missing" ]; then
+		ok "openssh: client and server present"
+	elif [ "$CHECK_ONLY" -eq 1 ]; then
+		skipped "openssh: missing$missing (--check). the podbox-ssh e2e fails without them"
+	elif apt_install $missing; then
+		still=""
+		have ssh || still="$still ssh"
+		have sshd || still="$still sshd"
+		have ssh-keygen || still="$still ssh-keygen"
+		[ -z "$still" ] && did "openssh:$missing" || bad "openssh: still missing$still"
+	else
+		bad "openssh: apt-get install failed for$missing"
 	fi
 fi
 

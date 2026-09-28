@@ -17,6 +17,7 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 | [`index-order-before-2026-09-28.txt`](index-order-before-2026-09-28.txt) | Superseded priority argument, kept verbatim |
 | [`reference-discussion-gap-before-2026-09-28.txt`](reference-discussion-gap-before-2026-09-28.txt) | Superseded claim that no reference had Discussions data, kept verbatim |
 | [SSH relay source check](references/ssh-relay-2026-09-28.md) | SSH relay source comparison and pull request findings |
+| [`t1112-kvm-blocker-before-2026-09-28.txt`](t1112-kvm-blocker-before-2026-09-28.txt) | [T-1112](../../TODO/milestones.md)'s superseded KVM blocker text |
 | [`reviews/2026-09-28-windows-lane.md`](reviews/2026-09-28-windows-lane.md) | Three review passes over the Windows lane and work record |
 | [`sessions/`](sessions/) | Superseded source-project session summaries |
 | [`reviews/`](reviews/) | Focused review outcomes for migrated changes |
@@ -43,6 +44,7 @@ wording in the page that made it, per that methodology's append-never-edit rule.
 | The race was a forked child holding a lock descriptor, in any of five shapes | All five were closed and the rate never moved. The refusal had no holder at all | the same page, and [T-0215](../../TODO/image.md)'s `Done` record |
 | A lock handed to a payload is free the instant the payload's descriptor closes | The first draft of that guard asserted it and failed 9 and 13 of 30 | [T-0215](../../TODO/image.md)'s `Done` record |
 | `wsl-toolkit` ships as two products, a script and a compiled carrier with a launcher | Upstream deleted the PowerShell product and its launcher; the binary on this host answers as one product | [`upstream-tool-shape.md`](upstream-tool-shape.md) |
+| No reachable machine holds `/dev/kvm` | `experiments/385-kvm-open.sh` opens the node and reads API version 12 on this host 2026-09-28 | [T-1112](../../TODO/milestones.md) |
 
 ⭐ **The last two rows are one lesson twice**: a control that has never been
 seen to fail, and an assertion that claims more than the design provides, both

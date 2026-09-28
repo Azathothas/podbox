@@ -42,6 +42,22 @@ Decision:    Do not merge either head as it stands. A server started in a
              restricted host must be probed on the same socket shape it will
              receive in service. A dynamic server may use a libc shim; a
              static server cannot claim that the shim took effect.
+Reconciled:  Two review passes read both heads at their recorded commits on
+             2026-09-28. Pull request 67 is the base. It carries the
+             socketpair server probe, the forward chain, the target parser,
+             the cage resolver, the error table, the dropbear build, and the
+             remote dispatch. Pull request 66 is an earlier subset with no
+             check runs. It contributes no unique file. Three jobs are red on
+             pull request 67. The cage job finds no tracked passwd shim. The
+             lint job fails on a redundant boolean comparison. The same line
+             misclassifies hosts with no dot in the name. The document job
+             reports two shell-unsafe placeholders and four orphan pages. The
+             committed end-to-end reading shows 12 cases under the old alias
+             name. The head defines 13 cases. The rename cases have no
+             committed run. Every case runs against the one-pair relay. No
+             case proves the concurrent route. This session lands the
+             transport and server without the relay and remote group, beside
+             the machine arm. The relay and remote group stay deferred.
 Prove:       `cargo test -p podbox-ssh` and
              `sh scripts/common/check-gate.sh --strict` exit 0, and a
              bounded end-to-end drive makes an SSH client run a command
@@ -72,6 +88,15 @@ Approach:    Add a session layer above the byte transport. Drive a real SSH
 Decision:    The session layer must say which terminal operations it cannot
              support. Do not report a full pty when no pty exists. Reuse the
              server path proved by T-1401.
+Studied:     Two terminal-pair tools were read at pinned commits on
+             2026-09-28. faketty allocates two real pairs around the child.
+             fakepty allocates one real pair and prints at exit. Both fail
+             where no pair device exists. Both answer none of the five
+             asserts. Both are refused as mechanisms. faketty contributes
+             its test shape. fakepty contributes its trap catalogue. The
+             session layer stays a server-side line discipline above the
+             transport, with a refusal catalogue that names each unsupported
+             operation.
 Prove:       `cargo test -p podbox-ssh` exits 0, and a bounded interactive
              drive verifies editing and interruption through a real SSH
              client with no pty device.
@@ -102,6 +127,13 @@ Approach:    Specify the relay protocol before changing the transport. Test
 Decision:    Interoperability must name the exact relay protocol and version.
              A passing test against the simple Python relay does not prove
              the multiplexed route.
+Named:       Both pull requests speak the one-pair rendezvous, read at
+             their heads on 2026-09-28. The relay pairs one node socket
+             with one client socket. No session identifiers exist. A second
+             client for a paired name is refused. The concurrent reference
+             is the dropssh session table with its identifier lookup and
+             its malformed-frame probe. An interoperability claim must name
+             which protocol it proves. The protocol choice stays open.
 Prove:       `cargo test -p podbox-ssh` exits 0, and a bounded two-client
              drive observes one node connection and two completed sessions.
 
@@ -129,6 +161,12 @@ Approach:    Bring the remote dispatch and parity row into `main` with
 Decision:    The remote and machine verbs share transport code but keep
              distinct server placement. Do not make a help row stand in for
              a runnable arm.
+Scoped:      The remote half exists in pull request 67 as one dispatch
+             arm, read at its head on 2026-09-28. The help text advertises
+             relay, probe, local, and machine members with no arms. The
+             operator defers the remote group with the relay. The machine
+             arm lands now. Machine means podman parity: a shell in a guest
+             that podbox itself runs.
 Prove:       `cargo test --workspace` and
              `sh scripts/common/check-gate.sh --strict` exit 0, and both
              CLI paths drive a real command and report its exit code.

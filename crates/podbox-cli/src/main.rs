@@ -23,6 +23,7 @@ mod images;
 mod interpose;
 mod ladder;
 mod lifecycle;
+mod machine;
 mod man;
 mod names;
 mod parity;
@@ -55,6 +56,7 @@ usage: podbox <command> [options]
   probe        report what this machine permits, and the rung podbox selects
   doctor       check what this machine can run, with one fix line per missing piece
   windows      a disposable Windows guest: doctor, fetch, setup and run
+  machine      a guest podbox runs: ssh into it (podman parity)
   man          render this manual from the binary's own usage strings
   pull         fetch an image into the content-addressed store
   save         write one image as an OCI-layout tarball
@@ -147,6 +149,7 @@ fn main() -> std::process::ExitCode {
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
         Some("doctor") => exit(doctor::doctor("doctor", rest)),
+        Some("machine") => exit(machine::machine(rest)),
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
         Some("pull") => exit(images::pull("pull", rest)),

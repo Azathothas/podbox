@@ -117,6 +117,8 @@ copied into this repository.
 | `references/carlbomsdata__winquick` | `095dd47` | Apache-2.0 | `tree/LICENSE`, `api/repo.json` | vendor with notice; shape only. [milestones.md](milestones.md) T-1112 |
 | `references/talaria0101__sandssh` | `4fc7f8c` | MIT | `tree/LICENSE`, `api/repo.json` | read; one-pair relay and SSH server evidence for [podssh.md](podssh.md) |
 | `references/talaria0101__dropssh` | `0aafa21` | MIT | `tree/LICENSE`, `api/repo.json` | read; concurrent relay and server evidence for [podssh.md](podssh.md) |
+| `references/dtolnay__faketty` | `ce3e201` | MIT OR Apache-2.0 | `tree/Cargo.toml:9`, `tree/LICENSE-MIT`, `tree/LICENSE-APACHE` | read; test shape and declared limits for [podssh.md](podssh.md) T-1402 |
+| `references/sigoden__fakepty` | `a265016` | MIT OR Apache-2.0 | `tree/Cargo.toml:7`, `tree/LICENSE-MIT`, `tree/LICENSE-APACHE` | read; trap catalogue for [podssh.md](podssh.md) T-1402 |
 | `references/Azathothas__TEMPLATE` | `6206166` | 0BSD | `tree/LICENSE`, `api/repo.json` | copied verbatim into `docs/` and `scripts/common/` |
 | `references/Azathothas__container-research` | `0f155e3` | 0BSD | `tree/LICENSE`, `api/repo.json` | copied: `experiments/` seeded from it |
 | `references/apptainer__apptainer` | `6099bb1` | BSD-3-Clause plus others | `tree/LICENSE.md`, which says "Apptainer is subject to the Licenses detailed below" and enumerates several. `api/repo.json` reports `NOASSERTION` | read only, and per-file if that ever changes |
@@ -245,6 +247,8 @@ one depth cannot support a claim that needs another.
 | `references/gevico__tcg-rs` | **filed elsewhere** | [podvm.md](podvm.md) T-1307. A pure-Rust translator is interesting and it carries a RISC-V guest only |
 | `references/qemu-rs__qemu-rs` | ⛔ **refused** | GPL-2.0-or-later, a plugin binding rather than a manager, and its own tracker records the maintenance question |
 | `references/carlbomsdata__winquick` | **filed elsewhere** | [milestones.md](milestones.md) T-1112 reads its shape and takes no code |
+| `references/dtolnay__faketty` | **refused (mechanism)** | Allocates real pairs and needs the device T-1402 lacks. Test shape only. [podssh.md](podssh.md) T-1402 |
+| `references/sigoden__fakepty` | **refused (mechanism)** | Allocates a real pair and prints at exit. Trap catalogue only. [podssh.md](podssh.md) T-1402 |
 
 ## What was deleted, and why
 

@@ -455,6 +455,12 @@ pub const TABLE: &[Row] = &[
     Row { verb: "windows", flag: Some("--podbox-timeout"), status: Native, note: "how long a run may take before the guest is stopped; a timeout is a refusal, never an empty success" },
     Row { verb: "windows", flag: Some("--podbox-qemu-arg"), status: Native, note: "one extra emulator argument, appended last so a caller can override a default the driver set" },
     Row { verb: "windows", flag: Some("--guest"), status: Native, note: "dos or windows: FreeDOS from its base cache with one typed line, or the disk image with the autostarted agent. Default windows" },
+    // ⭐ TODO/podssh.md T-1404. The machine group: podman parity for a
+    // guest podbox itself runs. `ssh` is the only member and it refuses
+    // naming the missing endpoint until a guest driver carries an SSH
+    // server, so the rows below are the surface the refusal owns.
+    Row { verb: "machine", flag: Option::None, status: Native, note: "the machine group: ssh into a guest podbox runs (podman parity). ssh refuses naming the missing endpoint: no guest driver carries an SSH server (TODO/podssh.md T-1404)" },
+    Row { verb: "machine", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     // ------------------------------------------------ the lifecycle's flags
     Row { verb: "ps", flag: Some("-a, --all"), status: Native, note: "list containers that are not running too" },
     Row { verb: "ps", flag: Some("-q, --quiet"), status: Native, note: "ids only" },

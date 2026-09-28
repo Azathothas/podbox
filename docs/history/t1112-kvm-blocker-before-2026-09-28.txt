@@ -1,0 +1,14 @@
+# T-1112 KVM blocker, superseded 2026-09-28
+
+The passage below stood in TODO/milestones.md T-1112 until the 2026-09-28
+drive measured a working KVM node, QEMU 11.1.1 with qemu-img, and an
+installed ValidationOS disk. The correction lives in that entry. Kept
+verbatim.
+
+**Blocked on the guest arm.** No reachable machine holds
+`/dev/kvm` (lane ENOENT, measured in the drive above), lane
+qemu is 7.2.22 against the prerequisite 11 with `qemu-img`,
+and no licensed Windows image is installed anywhere (one is
+never fetched or committed here). What unblocks: a KVM host
+with the image installed under the accept-terms gate the entry
+names. The entry stays partial on that blocker.

@@ -385,6 +385,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "podbox-ssh"
+version = "0.1.0-beta.8"
+
+[[package]]
 name = "podbox-supervise"
 version = "0.1.0-beta.8"
 dependencies = [
