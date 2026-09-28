@@ -1665,3 +1665,30 @@ Prove:       `sh scripts/windows/run-in-base.sh scripts/plant.sh` exits 0
 **Done 2026-09-28.** The first wrapper run failed with exit 2 at
 `set -o pipefail`. The wrapper now selects Bash for a Bash first line.
 The repeat result is recorded in [PROGRESS.md](PROGRESS.md).
+
+----
+
+### T-1346 The plant script finds the checkout from a Windows job input
+
+Source:      the live plant run on 2026-09-28; `scripts/plant.sh`;
+             `scripts/windows/run-in-base.sh`
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      done
+
+Problem:     After the Bash caller started, the plant script took its
+             checkout from `/in/job.sh` and looked for `/scripts`.
+Premise:     The Windows wrapper enters `/work` before it starts an input.
+             A native plant run still starts from its file in `scripts/`.
+Approach:    For the exact input path, use the working directory as the
+             checkout. Keep file-relative discovery for native runs.
+             Drive the full plant suite through the Windows wrapper.
+Decision:    Do not infer a checkout from an arbitrary input directory.
+             Keep the native path for direct Linux use.
+Prove:       `sh scripts/windows/run-in-base.sh scripts/plant.sh` exits 0
+             with every plant caught and no missed case.
+
+**Done 2026-09-28.** The first Bash run reached the path guard and
+returned 2 for `//scripts/check-todo.py`. The repeat result is in
+[PROGRESS.md](PROGRESS.md).

@@ -2,7 +2,7 @@
 
 ## State
 
-178 entries: 4 open, 1 partial, 0 blocked, 173 done.
+179 entries: 4 open, 1 partial, 0 blocked, 174 done.
 
 The Windows lane now uses `wsl-toolkit 6.0.0`. Issue 68 is the
 corresponding repository issue. Pull requests 66 and 67 are open; neither
@@ -63,6 +63,10 @@ T-1345 fixed the wrapper's caller interpreter. The first plant run
 stopped at a Bash option because the wrapper used `sh` for every job.
 The wrapper now reads an explicit Bash first line and selects Bash for
 that job. POSIX jobs still use `sh`.
+T-1346 changed the plant script's checkout path for a Windows job input.
+Its first Bash run looked for `//scripts/check-todo.py` because `$0` was
+`/in/job.sh`. The input form now takes the checkout from `/work`; a
+native run still uses the script file's parent.
 
 The Windows procedure and script comments now state the behaviour read
 from the 6.0.0 manual and measured on this host. The former text is in

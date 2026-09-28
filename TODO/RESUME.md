@@ -6,27 +6,18 @@ Run the full gate, publish the result, and check the published behavior.
 
 ## The resume point
 
-The Windows lane, source records, and SSH entries are in commit `251b230`
-on `main`. A live plant call found that the wrapper used `sh` for a Bash
-caller. T-1345 and the wrapper correction are in the worktree. The host
-strict gate and Linux check are running against this correction. Save
-their results. Commit the correction, run the plant suite in the clean
-base copy, repair any finding, then push `main` and check remote CI.
-Close issue 68 after the remote proof passes. Update PROGRESS and the
-review record with the final results.
+The Windows lane, source records, and SSH entries are in local commits on
+`main`. A live plant call found that the wrapper used `sh` for a Bash
+caller. That correction is in commit `9afeb90`. The next plant call
+found that the script resolved the checkout from `/in/job.sh`. T-1346
+and its path correction are in the worktree. The host strict gate and
+Linux check passed on the corrected tree. Commit T-1346, run the plant
+suite in the clean base copy, and repair any finding. Then push `main`
+and check remote CI. Close issue 68 after the remote proof passes.
+Update PROGRESS and the review record with the final results.
 
 ## In flight
 
-The local record check and document check pass at 178 entries. The
+The local record check and document check pass at 179 entries. The
 full plant result is pending. The host cleanup report was empty after
-the earlier live Windows drive. A final session summary table is not
-yet saved.
-
-## The paste
-
-```text
-Read AGENTS.md, TODO/PROGRESS.md, and TODO/RESUME.md. Continue the
-2026-09-28 Windows lane correction on main. Finish the running gates,
-commit T-1345, run the full plant suite, then save the review and session
-record. Push main, check remote CI, and close issue 68 if it is green.
-```
+the live Windows drives. A final session summary table is not yet saved.

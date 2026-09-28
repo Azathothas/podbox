@@ -236,6 +236,7 @@ the blocker named and what would clear it.
 | [T-1343](gate.md) | P1 | gate | done | The Windows lane uses toolkit 6 job inputs and checks every retained job |
 | [T-1344](gate.md) | P1 | gate | done | Experiment jobs find the checkout after the Windows input change |
 | [T-1345](gate.md) | P1 | gate | done | The Windows job wrapper runs a Bash caller with Bash |
+| [T-1346](gate.md) | P1 | gate | done | The plant script finds the checkout from a Windows job input |
 | [T-1401](podssh.md) | P1 | podssh | open | Prove the SSH transport and server in the current tree |
 | [T-1402](podssh.md) | P1 | podssh | open | Provide an interactive session without a pty |
 | [T-1403](podssh.md) | P1 | podssh | open | Prove concurrent sessions on one relay connection |
@@ -243,7 +244,7 @@ the blocker named and what would clear it.
 
 ## Counts
 
-178 items: 4 open, 1 partial, 0 blocked, 173 done.
+179 items: 4 open, 1 partial, 0 blocked, 174 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -252,10 +253,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 3 | 0 | 0 | 81 | 84 |
+| P1 | 3 | 0 | 0 | 82 | 85 |
 | P2 | 1 | 0 | 0 | 32 | 33 |
 | P3 | 0 | 1 | 0 | 8 | 9 |
-| **All** | **4** | **1** | **0** | **173** | **178** |
+| **All** | **4** | **1** | **0** | **174** | **179** |
 
 ## Work order
 

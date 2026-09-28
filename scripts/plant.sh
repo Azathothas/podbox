@@ -35,8 +35,11 @@
 #       missed or a control fired, 2 could not run.
 set -uo pipefail
 
-HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-ROOT="$(CDPATH= cd -- "$HERE/.." && pwd)"
+case "$0" in
+  /in/job.sh) ROOT="$(pwd -P)" ;;
+  *) HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+     ROOT="$(CDPATH= cd -- "$HERE/.." && pwd)" ;;
+esac
 BACKUP="$(mktemp -d)"
 GATE="$ROOT/scripts/check-todo.py"
 

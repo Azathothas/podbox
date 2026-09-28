@@ -74,6 +74,8 @@ inside a copied checkout at `/work`. The wrapper sends the job as
 have separate input files.
 The wrapper runs a job with Bash when its first line names Bash at
 `/usr/bin/env` or `/bin/bash`. It runs other shell jobs with `sh`.
+A job that finds the checkout from `$0` must handle `/in/job.sh` and
+use the working directory, `/work`, for that form.
 
 The wrapper removes CRLF from the job file before it sends it. The tool
 copies other input files byte for byte. The workspace copy restores
