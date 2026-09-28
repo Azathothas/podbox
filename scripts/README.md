@@ -499,6 +499,7 @@ sh scripts/windows/run-in-base.sh JOB.sh       # that script, at /in/job.sh
 The wrapper sends a caller's script with `--input`, so two jobs have separate
 payload files. It removes CRLF from that script. The tool restores executable
 modes from the git index and from shebangs during the workspace copy.
+An explicit Bash first line selects Bash; other shell jobs use `sh`.
 [`../docs/containers.md`](../docs/containers.md) gives the procedure and the
 live drive that verified it.
 

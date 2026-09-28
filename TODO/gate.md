@@ -1636,3 +1636,32 @@ experiment caller except T-1343's negative check for the removed file.
 All fifteen changed experiment scripts parsed under `sh -n`. The
 352 caller path probe in 384 returned 2 as expected for an image with
 no binary and named the correct `/work` binary path.
+
+----
+
+### T-1345 The Windows job wrapper runs a Bash caller with Bash
+
+Source:      the live plant run on 2026-09-28;
+             `scripts/windows/run-in-base.sh`; `scripts/plant.sh`
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      done
+
+Problem:     The wrapper ran every caller file with `sh`. A Bash caller
+             failed at `set -o pipefail` before it could run its checks.
+Premise:     The job input keeps its first line. The plant script names
+             Bash in that line. The default image carries Bash; the small
+             test image runs POSIX callers with `sh`.
+Approach:    Read the first line in the job container. Use Bash for either
+             standard Bash path. Use `sh` for other shell input. Run the
+             plant script through the wrapper and check its result.
+Decision:    Select the interpreter from an explicit first line. Do not
+             infer it from a file name. Keep POSIX jobs usable in images
+             without Bash.
+Prove:       `sh scripts/windows/run-in-base.sh scripts/plant.sh` exits 0
+             and reports every plant caught, with no missed case.
+
+**Done 2026-09-28.** The first wrapper run failed with exit 2 at
+`set -o pipefail`. The wrapper now selects Bash for a Bash first line.
+The repeat result is recorded in [PROGRESS.md](PROGRESS.md).

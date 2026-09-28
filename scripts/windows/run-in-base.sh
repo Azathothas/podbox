@@ -76,7 +76,12 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 	echo "uname -sr; id -u; pwd"
 	if [ -n "$USER_JOB" ]; then
 		echo 'echo "== the job"'
-		echo "sh /in/job.sh"
+		echo "job_head=''"
+		echo 'IFS= read -r job_head </in/job.sh || :'
+		echo 'case "$job_head" in'
+		echo "  '#!/usr/bin/env bash'|'#!/bin/bash') bash /in/job.sh ;;"
+		echo '  *) sh /in/job.sh ;;'
+		echo 'esac'
 	else
 		echo 'echo "== bootstrap"'
 		echo "./scripts/common/bootstrap-env.sh rust cc zig tools || exit 1"

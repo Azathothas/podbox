@@ -2,7 +2,7 @@
 
 ## State
 
-177 entries: 4 open, 1 partial, 0 blocked, 172 done.
+178 entries: 4 open, 1 partial, 0 blocked, 173 done.
 
 The Windows lane now uses `wsl-toolkit 6.0.0`. Issue 68 is the
 corresponding repository issue. Pull requests 66 and 67 are open; neither
@@ -58,6 +58,11 @@ T-1344 checked the older experiment callers after the input path moved.
 Twelve already use the working directory. Two now select that directory
 for a Windows input and retain file-relative discovery for a native run.
 All fifteen changed experiment scripts parse under `sh -n`.
+
+T-1345 fixed the wrapper's caller interpreter. The first plant run
+stopped at a Bash option because the wrapper used `sh` for every job.
+The wrapper now reads an explicit Bash first line and selects Bash for
+that job. POSIX jobs still use `sh`.
 
 The Windows procedure and script comments now state the behaviour read
 from the 6.0.0 manual and measured on this host. The former text is in
