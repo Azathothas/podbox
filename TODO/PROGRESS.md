@@ -69,7 +69,8 @@ Its first Bash run looked for `//scripts/check-todo.py` because `$0` was
 native run still uses the script file's parent.
 T-1347 moved check 27's shipped status source from a former sentence
 in this page to the done entries in `TODO/milestones.md`. The first full
-plant run caught 42 cases and missed 27a; its repeat is the acceptance.
+plant run caught 42 cases and missed 27a. The repeat caught all 43
+plants; four controls stayed quiet.
 
 The Windows procedure and script comments now state the behaviour read
 from the 6.0.0 manual and measured on this host. The former text is in
@@ -86,6 +87,21 @@ on one connection while its README still describes the old one-session
 path. The current sandssh tree points to a separate shell project;
 PR 67's task text says the shell is in sandssh. These source facts are
 reflected in T-1402 and T-1403.
+
+## Verification
+
+The Windows drive last ran at 2026-09-28T11:01:21Z on this host. It
+reported `verdict=matched`, two jobs with exit 0, the caller path check
+with its expected exit 2, and zero kept records after collection.
+The full plant suite ran in the Windows base on commit `c838759`:
+43 caught, 0 missed, 4 controls quiet. The Linux `dev.sh check` on the
+same tree exited 0: 10 passed, 0 failed, 0 skipped. The Windows host
+strict gate passed its 11 checks with no skip before T-1347; its final
+repeat and the hosted `main` result belong in the session summary.
+The base cleanup report is empty after the last drive.
+
+The [session summary](SESSION-SUMMARY-2026-09-28.md) has the final
+checks, change size, remote state, and machine state.
 
 ## Work order
 

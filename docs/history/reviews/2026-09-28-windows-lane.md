@@ -21,12 +21,21 @@ text and code: PR 67 dispatches `remote ssh` and has its parity row,
 but names `machine ssh` in help without a dispatch arm. T-1404 now
 states that exact delta.
 
+The full plant call found two more doors into the Windows wrapper.
+It started a Bash script with `sh`, then made that script resolve its
+checkout from `/in/job.sh`. T-1345 made the interpreter follow an
+explicit Bash first line; T-1346 made the plant input use `/work`.
+
 ## Pass 2: can the guards fail?
 
 A live ended base session made check 29 exit 1 and name its id. Cleanup
 by that id left the report empty. The plant fixture for case 29b gives
-check 29 a kept session from the JSON report. The full plant result is
-recorded in [`TODO/PROGRESS.md`](../../../TODO/PROGRESS.md).
+check 29 a kept session from the JSON report. The first full plant run
+found case 27a green with a wrong parity note. The former PROGRESS
+sentence that check 27 read was gone. T-1347 now reads the done
+milestone entries. The repeat caught 43 plants, missed none, and kept
+four controls quiet. The full result is recorded in
+[`TODO/PROGRESS.md`](../../../TODO/PROGRESS.md).
 
 The Windows drive started two jobs from one checkout at the same time.
 Both read their own input, found executable modes, and exited 0. A
@@ -60,4 +69,5 @@ is left as upstream evidence.
 
 The owned source and document changes have no open review finding.
 The SSH implementation is still open in T-1401 to T-1404. The remote
-CI state for this session is recorded in [`TODO/PROGRESS.md`](../../../TODO/PROGRESS.md).
+CI state for this session is recorded in the
+[session summary](../../../TODO/SESSION-SUMMARY-2026-09-28.md).

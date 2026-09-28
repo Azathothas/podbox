@@ -7,17 +7,17 @@ Run the full gate, publish the result, and check the published behavior.
 ## The resume point
 
 The Windows lane, source records, and SSH entries are in local commits on
-`main`. T-1345 and T-1346 fixed the Bash caller and the plant script's
-input path. The full plant suite then caught 42 cases and missed 27a:
-check 27 took shipped milestone status from a former PROGRESS sentence.
-T-1347 and the check correction are in the worktree. The host fast gate
-passed; the Linux check is running. Commit the correction after it passes,
-then rerun the full plant suite and host strict gate. Repair any finding.
-Push `main`, check remote CI, and close issue 68 after remote proof.
-Update PROGRESS and the review record with the final results.
+`main` through `c838759`. T-1345 and T-1346 fixed the Bash caller and
+the plant script's input path. T-1347 made check 27 read the milestone
+entries. The Linux check passed, and the full plant repeat caught all 43
+cases with no miss. The Windows drive passed again and collected its jobs.
+The final session record is in the worktree. Run the host strict gate,
+commit the record, push `main`, and check remote CI. Close issue 68 after
+remote proof. Then record the final CI and machine state in PROGRESS and
+the session summary and publish that record.
 
 ## In flight
 
-The local record and document checks pass at 180 entries. The full plant
-repeat is pending. The host cleanup report was empty after the prior
-plant run. A final session summary table is not yet saved.
+The local record and document checks last passed at 180 entries before
+the final record edit. The host cleanup report is empty. The summary
+table is saved with pending fields that must be filled after publication.
