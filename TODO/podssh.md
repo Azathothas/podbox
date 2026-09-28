@@ -19,7 +19,7 @@ Source:      podbox pull requests 66 and 67; sandssh at
 Category:    podssh
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     podbox has no SSH transport on `main`. Pull request 67 adds one,
              but its current check set has three red jobs. Pull request 66
@@ -62,6 +62,22 @@ Prove:       `cargo test -p podbox-ssh` and
              `sh scripts/common/check-gate.sh --strict` exit 0, and a
              bounded end-to-end drive makes an SSH client run a command
              through a relay with the server on a socketpair.
+
+**Done, 2026-09-28.** The relay lands on the proved transport, which
+retires the sentence that held it out: no transport change was needed
+(`server.rs` spawns `sshd -i` per session on a socketpair, and the pump
+moves the bytes). `cargo test -p podbox-ssh` exits 0 on the lane (63
+unit and binary tests, 14 relay tests, 3 proxy end-to-end tests),
+`sh scripts/common/check-gate.sh --strict` exits 0 on this host (11
+passed, 0 failed, 0 skipped), and two bounded drives make real SSH
+clients run commands through a relay with socketpair servers: the
+fake-relay suite (three authenticated sessions sharing one node
+connection) and the live r12 drive
+(`experiments/387-mux-two-client.sh`, verdict two clients on one node
+connection hold). The three red jobs from pull request 67 stay
+answered on `main`: the passwd shim is a tracked build input with its
+licence, and the lint and document gates pass. No separate transport
+work remains; the remote group stays with T-1404.
 
 ### T-1402 Provide an interactive session without a pty
 
@@ -109,7 +125,7 @@ Source:      dropssh at `0aafa21d`;
 Category:    podssh
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     The relay path in pull request 67 pairs one node and one client.
              It does not prove two independent operator sessions on one node
@@ -129,7 +145,8 @@ Decision:    Interoperability must name the exact relay protocol and version.
              the multiplexed route.
 Decided:     Both protocols stay, split by use (operator, 2026-09-28).
              The multiplexed reverse path serves remote use against the
-             r12 relay: identifier-prefixed frames, exact close table,
+             r12 relay ([captured 2026-09-28](../docs/history/references/relay-index-2026-09-28-r12.md)):
+             identifier-prefixed frames, exact close table,
              64 sessions, 64 KiB frames, 64 MiB sessions. The one-pair
              rendezvous serves local use and tests. Both pull requests
              speak the one-pair form today. dropssh proved two concurrent
@@ -141,6 +158,40 @@ Decided:     Both protocols stay, split by use (operator, 2026-09-28).
              states.
 Prove:       `cargo test -p podbox-ssh` exits 0, and a bounded two-client
              drive observes one node connection and two completed sessions.
+
+**Done, 2026-09-28.** The relay protocol split lands in `crates/podbox-ssh`:
+`ws.rs` (RFC 6455 framing with the opcode kept beside its frame),
+`tls.rs` (verify-always rustls over host bundles with a `webpki-roots`
+fallback), `mux.rs` (the `reverse-v1` node and operator legs with the
+specification and its R12 line cites in the module docs), the `node` and
+`operator` binaries, and `tests/mux_two_client.rs` (a fake relay plus 14
+tests) beside `tests/common.rs`. The one-pair rendezvous stays out of
+this crate; it serves local paths and tests.
+
+`cargo test -p podbox-ssh` exits 0 on the lane: 63 unit and binary
+tests, 14 relay tests, 3 proxy end-to-end tests. Three mutation breaks
+each turn their own test red on the lane (the session-id validation,
+the relay-fed control id check, the token charset). The fake relay
+enforces the ready gate, the bare-frame and text-frame closes, the id
+check, and the hello caps; its 1009 arms mirror the relay's frame rules
+as spec, because both shipped legs size every read at the cap and no
+driver reaches them. `experiments/387-mux-two-client.sh` exits 0
+against the live r12 relay, and `experiments/results/mux-two-client.txt`
+records pair 200, connect-token status 200 with node-token 403, one
+node registered online, a 200000-byte exact round trip, exit 42
+passthrough, the first session surviving the others, silent client
+stderrs, stop 200 with status 403 after, 3 sessions closed, no token in
+the log, and the two-clients verdict.
+
+Three review passes read the tree (socket, error, and exit-code sweep;
+guard-to-test audit; cite-and-clause audit) and their findings landed:
+usage lines on usage failures, the `Lonely` once-exit-1 path,
+refused-apart-from-completed counting, honest 1009 comments, three R12
+cite corrections, and the gate alphabet fixes (arrows to `->`,
+runtime-built id fixtures, the ASCII-folded capture with two markdown
+links). Frame sizes rest on read sizing; the chunking loops are
+defense-in-depth. The pre-ready queue flush above 64 KiB has no driver.
+Node redial pairing stays unmeasured.
 
 ### T-1404 Add the remote and machine SSH verbs after the transport holds
 

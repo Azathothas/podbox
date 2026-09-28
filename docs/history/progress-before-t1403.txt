@@ -1,0 +1,79 @@
+# Progress before the T-1403 relay landing, 2026-09-28
+
+Superseded session record: the Windows lane work (T-1343 to T-1347), the SSH source capture, and the transport/server partial record, kept verbatim. The relay landing rewrote TODO/PROGRESS.md around them; the facts live on in the entries' Done paragraphs and the session summaries.
+
+---
+
+## This session
+
+T-1343 changed the Windows wrapper to send each job file through its own
+input, kept CRLF removal, and selected ephemeral container life. It
+removed the extra mode repair from that wrapper. Check 29 now reads the
+tool's JSON cleanup report, including ended base sessions. Case 29b in
+`scripts/plant.sh` supplies a kept session and requires the check to
+name it.
+
+`experiments/384-windows-lane-v6.sh` drove two jobs from one checkout
+at the same time. Both received their own input and found an executable
+script in the copied tree. Both exited 0. A third path probe ran an
+existing experiment input and named the correct `/work` binary path
+before it returned 2 for the absent binary. The cleanup report showed
+three host job records; job-specific cleanup left zero. The conditions
+and output are in
+[`experiments/results/windows-lane-v6.txt`](../experiments/results/windows-lane-v6.txt).
+A live ended base session made check 29 fail by id; the check passed after
+that session was collected.
+
+T-1344 checked the older experiment callers after the input path moved.
+Twelve already use the working directory. Two now select that directory
+for a Windows input and retain file-relative discovery for a native run.
+All fifteen changed experiment scripts parse under `sh -n`.
+
+T-1345 fixed the wrapper's caller interpreter. The first plant run
+stopped at a Bash option because the wrapper used `sh` for every job.
+The wrapper now reads an explicit Bash first line and selects Bash for
+that job. POSIX jobs still use `sh`.
+T-1346 changed the plant script's checkout path for a Windows job input.
+Its first Bash run looked for `//scripts/check-todo.py` because `$0` was
+`/in/job.sh`. The input form now takes the checkout from `/work`; a
+native run still uses the script file's parent.
+T-1347 moved check 27's shipped status source from a former sentence
+in this page to the done entries in `TODO/milestones.md`. The first full
+plant run caught 42 cases and missed 27a. The repeat caught all 43
+plants; four controls stayed quiet.
+
+The Windows procedure and script comments now state the behaviour read
+from the 6.0.0 manual and measured on this host. The former text is in
+[`docs/history/containers-before-toolkit-6.txt`](../docs/history/containers-before-toolkit-6.txt).
+The old progress record and index order text are in `docs/history/`
+so this page can give the current answer without a past session's
+narrative.
+
+The two SSH source trees were captured with their trackers and licences
+under `references/`. The focused source comparison is in
+[`docs/history/references/ssh-relay-2026-09-28.md`](../docs/history/references/ssh-relay-2026-09-28.md).
+It found that the current dropssh source supports concurrent sessions
+on one connection while its README still describes the old one-session
+path. The current sandssh tree points to a separate shell project;
+PR 67's task text says the shell is in sandssh. These source facts are
+reflected in T-1402 and T-1403.
+
+The 2026-09-28 review session reconciled pull requests 66 and 67 through
+two read-only passes, mined faketty and fakepty into the corpus with zero
+gaps, and refused both mechanisms for T-1402. KVM now opens on this host
+(API version 12), QEMU 11.1.1 is available in the drive environment, and
+the ValidationOS disk is installed outside the tree. The operator scoped
+this session to the transport and server partial with the machine arm;
+the relay and remote group stay deferred.
+
+Landed and green: `crates/podbox-ssh` (transport, probed server start,
+pump, proxy; 24 unit plus 5 proxy tests) with a real-client e2e over a
+Unix socket (exact bytes, empty stderr, exit 42 passthrough);
+`podbox machine` usage, refusal, and manual section driven through the
+built binary; the passwd shim vendored byte-identical with its licence;
+`openssh` carried by the lane bootstrap and the full Windows-lane check.
+`experiments/386-podssh-partial.sh` holds. The full Linux gate holds
+(10 passed, 0 failed) with the host fast gate (9 passed, 0 failed, the
+same 2 environmental skips as the baseline). Three commits carry the
+work. Entries T-1401 to T-1404 and T-1112 stay open on their named
+proofs.

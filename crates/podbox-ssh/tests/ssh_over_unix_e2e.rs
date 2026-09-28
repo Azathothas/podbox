@@ -9,35 +9,19 @@
 //! client carries `ConnectTimeout`, and the child runner kills what it
 //! cannot wait for.
 
-use std::io::Read;
+mod common;
+
 use std::os::fd::OwnedFd;
-use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::UnixListener;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-const ACCEPT_DEADLINE: Duration = Duration::from_secs(20);
-const CLIENT_DEADLINE: Duration = Duration::from_secs(40);
+use common::{
+    current_user, ensure_privsep, fresh_tmp, make_keys, require_binary, run_ssh, CLIENT_DEADLINE,
+};
 
-/// Find `name` on `PATH`, or panic naming it. A missing server binary is a
-/// failed test, never a skipped one.
-fn require_binary(name: &str) -> PathBuf {
-    let found = std::env::var_os("PATH").map(|paths| {
-        std::env::split_paths(&paths)
-            .map(|p| p.join(name))
-            .find(|c| {
-                c.is_file()
-                    && std::fs::metadata(c)
-                        .map(|m| m.permissions().mode() & 0o111 != 0)
-                        .unwrap_or(false)
-            })
-    });
-    match found {
-        Some(Some(p)) => p,
-        _ => panic!("e2e needs {name:?} on PATH and it is absent; cannot prove the SSH path"),
-    }
-}
+const ACCEPT_DEADLINE: Duration = Duration::from_secs(20);
 
 struct Fixture {
     tmp: PathBuf,
@@ -51,57 +35,17 @@ fn setup() -> Fixture {
     require_binary("sshd");
     require_binary("ssh");
     let keygen = require_binary("ssh-keygen");
-    // ⛔ Tests in one binary run in parallel threads. The directory carries
-    // a counter beside the pid so two tests never share keys or a socket.
-    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-    let tmp = std::env::temp_dir().join(format!("podbox-ssh-e2e-{}-{n}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&tmp);
-    std::fs::create_dir_all(&tmp).unwrap();
-    // ⛔ The directory holds host and user keys, so it is owner-only.
-    std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o700)).unwrap();
-
-    // Debian's sshd demands the privilege separation directory even in
-    // inetd mode. Creating the standard path is what the server package
-    // does; where it cannot be created the server fails loud below.
-    let _ = std::fs::create_dir_all("/run/sshd");
-    let host_key = tmp.join("host_key");
-    run_keygen(&keygen, &host_key);
-    let user_key = tmp.join("user_key");
-    run_keygen(&keygen, &user_key);
-    let pubkey = std::fs::read_to_string(tmp.join("user_key.pub")).unwrap();
-    let authorized = tmp.join("authorized_keys");
-    std::fs::write(&authorized, pubkey).unwrap();
-
-    let config = podbox_ssh::write_sshd_config(&tmp, &host_key, &authorized).unwrap();
-    let user = current_user();
+    let tmp = fresh_tmp("podbox-ssh-e2e");
+    ensure_privsep();
+    let keys = make_keys(&keygen, &tmp);
+    let config = podbox_ssh::write_sshd_config(&tmp, &keys.host, &keys.authorized).unwrap();
     Fixture {
         sock: tmp.join("ssh.sock"),
         tmp,
         config,
-        user,
-        user_key,
+        user: current_user(),
+        user_key: keys.user,
     }
-}
-
-fn run_keygen(keygen: &Path, out: &Path) {
-    let st = Command::new(keygen)
-        .args(["-t", "ed25519", "-N", "", "-q", "-f"])
-        .arg(out)
-        .status()
-        .unwrap();
-    assert!(st.success(), "ssh-keygen could not mint {}", out.display());
-}
-
-fn current_user() -> String {
-    if let Ok(u) = std::env::var("USER") {
-        if !u.trim().is_empty() {
-            return u;
-        }
-    }
-    let out = Command::new("id").arg("-un").output().unwrap();
-    assert!(out.status.success(), "cannot learn the current user");
-    String::from_utf8(out.stdout).unwrap().trim().to_string()
 }
 
 /// Start one `sshd -i` on the accepted end of `listener`. Returns the server
@@ -145,59 +89,14 @@ fn start_server(
     (handle, done_tx)
 }
 
-/// Run `ssh` with the proxy as `ProxyCommand` and the given remote command.
-/// Bounded: the client carries `ConnectTimeout`, and the runner kills what
-/// outlives the deadline.
-fn run_client(fx: &Fixture, remote: &[&str]) -> std::process::Output {
-    let proxy = env!("CARGO_BIN_EXE_proxy");
-    let proxy_cmd = format!("'{proxy}' unix '{}'", fx.sock.display());
-    let mut cmd = Command::new("ssh");
-    cmd.args(["-o", &format!("ProxyCommand={proxy_cmd}")])
-        .args(["-o", "BatchMode=yes"])
-        .args(["-o", "StrictHostKeyChecking=no"])
-        .args(["-o", "UserKnownHostsFile=/dev/null"])
-        .args(["-o", "ConnectTimeout=10"])
-        .args(["-o", "LogLevel=ERROR"])
-        .args(["-i"])
-        .arg(&fx.user_key)
-        .args(["-l", &fx.user, "localhost"])
-        .args(remote)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let mut child = cmd.spawn().unwrap();
-    let deadline = Instant::now() + CLIENT_DEADLINE;
-    loop {
-        match child.try_wait().unwrap() {
-            Some(status) => {
-                let mut out = Vec::new();
-                let mut err = Vec::new();
-                child.stdout.take().unwrap().read_to_end(&mut out).unwrap();
-                child.stderr.take().unwrap().read_to_end(&mut err).unwrap();
-                return std::process::Output {
-                    status,
-                    stdout: out,
-                    stderr: err,
-                };
-            }
-            None => {
-                if Instant::now() >= deadline {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    panic!("ssh client outlived the client deadline");
-                }
-                std::thread::sleep(Duration::from_millis(100));
-            }
-        }
-    }
-}
-
 fn drive(remote: &[&str]) -> std::process::Output {
     let fx = setup();
     let listener = UnixListener::bind(&fx.sock).unwrap();
     listener.set_nonblocking(true).unwrap();
     let (server, done) = start_server(listener, fx.config.clone());
-    let out = run_client(&fx, remote);
+    let proxy = env!("CARGO_BIN_EXE_proxy");
+    let proxy_cmd = format!("'{proxy}' unix '{}'", fx.sock.display());
+    let out = run_ssh(&proxy_cmd, &fx.user, &fx.user_key, remote, None);
     let _ = done.send(());
     server.join().unwrap();
     let _ = std::fs::remove_dir_all(&fx.tmp);

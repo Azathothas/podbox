@@ -6,6 +6,21 @@ under Unreleased.
 
 ## Unreleased
 
+### 2026-09-28T20:43:27Z: the relay lands, not deployed
+
+**Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). No version move;
+nothing here is deployed.
+
+T-1403 closes: the multiplexed `reverse-v1` relay legs (`ws.rs`,
+`tls.rs`, `mux.rs`, `node` and `operator`) with the fake-relay suite
+and the bounded two-client proof against the live relay
+(`experiments/387-mux-two-client.sh`,
+`experiments/results/mux-two-client.txt`). T-1401 closes on the
+landing: no transport change was needed. The lane suite, three
+mutation proofs, the live drive, and the host strict gate are all
+green. The one-pair rendezvous stays out of the crate for local paths
+and tests; node redial pairing stays unmeasured.
+
 ### 2026-09-28T14:15:15Z: the SSH partial takes its own version number
 
 **Record:** [`TODO/PROGRESS.md`](TODO/PROGRESS.md). Version bump to

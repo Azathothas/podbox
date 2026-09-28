@@ -14,13 +14,16 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 | [`upstream-tool-shape.md`](upstream-tool-shape.md) | Retired two-product wording for `wsl-toolkit`, kept verbatim with what took it away |
 | [`containers-before-toolkit-6.txt`](containers-before-toolkit-6.txt) | Windows lane procedure before `wsl-toolkit` 6.0.0, kept verbatim |
 | [`progress-before-2026-09-28.txt`](progress-before-2026-09-28.txt) | Superseded session state and work order, kept verbatim |
+| [`progress-before-t1403.txt`](progress-before-t1403.txt) | Superseded lane, source-capture, and partial record displaced by the T-1403 relay landing, kept verbatim |
 | [`index-order-before-2026-09-28.txt`](index-order-before-2026-09-28.txt) | Superseded priority argument, kept verbatim |
 | [`reference-discussion-gap-before-2026-09-28.txt`](reference-discussion-gap-before-2026-09-28.txt) | Superseded claim that no reference had Discussions data, kept verbatim |
 | [SSH relay source check](references/ssh-relay-2026-09-28.md) | SSH relay source comparison and pull request findings |
+| [Reverse relay protocol (r12)](references/relay-index-2026-09-28-r12.md) | Live relay protocol document captured 2026-09-28, the authority for the `reverse-v1` spec |
 | [`t1112-kvm-blocker-before-2026-09-28.txt`](t1112-kvm-blocker-before-2026-09-28.txt) | [T-1112](../../TODO/milestones.md)'s superseded KVM blocker text |
 | [`reviews/2026-09-28-windows-lane.md`](reviews/2026-09-28-windows-lane.md) | Three review passes over the Windows lane and work record |
 | [`sessions/`](sessions/) | Superseded source-project session summaries |
 | [`reviews/`](reviews/) | Focused review outcomes for migrated changes |
+| [Session summary 2026-09-28](../../TODO/SESSION-SUMMARY-2026-09-28.md) and [SSH session summary](../../TODO/SESSION-SUMMARY-2026-09-28-SSH.md) | Final checks, change size, remote and machine state; the SSH reconcile, partial, machine arm, and KVM unblock |
 
 ---
 

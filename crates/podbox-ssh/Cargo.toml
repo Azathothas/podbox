@@ -10,3 +10,12 @@ repository.workspace = true
 # ⛔ One home for exit codes (TODO/cli.md T-0802): the runtime code is
 # re-exported from `podbox-probe`, never re-declared here.
 podbox-probe = { path = "../podbox-probe" }
+# The relay legs: TLS for `wss://` (T-0905's rustls ruling), trust anchors
+# with a host-bundle-first fallback, and JSON for the relay's TEXT control
+# frames. The websocket framing itself is hand-rolled in `ws.rs`: the opcode
+# travels with the frame, which no byte-pipe websocket API preserves.
+rustls.workspace = true
+rustls-pemfile.workspace = true
+webpki-roots.workspace = true
+serde_json.workspace = true
+base64.workspace = true

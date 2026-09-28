@@ -1,28 +1,29 @@
 ## Task
 
-Settle the relay questions with fresh sources, then record the answers.
+Start T-1402: provide and prove an interactive session without a pty,
+per TODO/podssh.md. A one-shot command is not the proof.
 
 ## Resume point
 
-Done after this commit. Next unit is T-1403: implement the relay
-protocol split (multiplexed reverse for remote paths, one-pair for
-local paths and tests) per TODO/podssh.md.
+T-1403 and T-1401 are done and committed on `main` with the record in
+the same change. Next unit is T-1402, then the T-1404 remote arm, then
+the T-1112 guest run, in that order.
 
 ## In flight
 
-Nothing half-done. Operator settled both questions: both protocols
-split by use, and redacted relay logs may be committed. Fresh sources:
-dropssh issue 9, the r12 relay documents, and a zero-residue pair
-lifecycle driven from this host (no token value printed or stored).
+Nothing half-done. The relay holds: multiplexed `reverse-v1` in
+`crates/podbox-ssh` with the fake-relay suite, three live mutation
+proofs, and the bounded two-client drive against the live r12 relay.
+Node redial pairing stays unmeasured; writes and DNS stay without a
+timeout on the relay legs, stated as a limit in the entries.
 
 ## Tree state
 
-Three doc files amended, gated, ready to commit. Full gate state from
-the last change is green; only these doc lines are new.
+Committed, clean, gates green: host strict 11 passed with no skip, the
+lane suite green on the committed tree, `py scripts/check-todo.py`
+green at 180 entries with 2 open. The base cleanup report is empty.
 
 ## Paste
 
-Continue the podbox SSH session: commit the settled relay answers,
-push `main`, then start T-1403 with the multiplexed reverse protocol
-from the r12 documents and the redial-pairing measurement from
-TODO/podssh.md.
+Continue the podbox SSH session: start T-1402 with the session layer
+above the byte transport and the refusal catalogue from TODO/podssh.md.

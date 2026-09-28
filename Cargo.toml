@@ -104,12 +104,12 @@ sha2 = { version = "0.11", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-# T-0209, measured as zero marginal crates: `base64` 0.22.1 is already in the
-# resolve graph as `ureq`'s dependency at exactly this version, so pinning it
-# adds no crate. The T-0209 lane job asserts the `cargo tree` third-party
-# count is unchanged. A hand-rolled encoding here would be a second
-# implementation of a seam with exactly one, which is what the
-# vendor-and-registry table refuses.
+# T-0209 prefers the registry crate over a hand-rolled encoding (a second
+# implementation of a seam with exactly one, which the vendor-and-registry
+# table refuses). The pin has moved since that measurement: the workspace
+# resolves `base64` 0.23.1 while 0.22.1 stays in the graph as `ureq`'s
+# dependency, so this pin carries one marginal version. The `Engine` API
+# in use exists in both.
 base64 = "0.23"
 
 [profile.release]

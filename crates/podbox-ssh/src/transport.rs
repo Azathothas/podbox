@@ -590,15 +590,15 @@ mod tests {
 
     #[test]
     fn dial_tcp_refused_is_a_dial_error_naming_the_target() {
-        // Bind a listener, read its port, then drop it: the port is closed
-        // on this machine whatever else runs here.
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        let port = listener.local_addr().unwrap().port();
-        drop(listener);
+        // ⛔ Port 1, not a just-freed ephemeral port: the old shape bound
+        // :0, dropped it, and dialed the freed port, which a parallel test
+        // binary's listener could reclaim first, and did once this suite
+        // grew a relay. Nothing binds port 1 by accident, so refusal here
+        // is structural rather than a scheduling outcome.
         let dialer = Dialer::new(Duration::from_secs(5));
         let target = Target::Tcp {
             host: "127.0.0.1".to_string(),
-            port,
+            port: 1,
         };
         let e = dialer.dial(&target).unwrap_err();
         assert_eq!(e.kind(), Kind::Dial);

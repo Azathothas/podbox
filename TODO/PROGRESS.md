@@ -2,15 +2,18 @@
 
 ## State
 
-180 entries: 4 open, 1 partial, 0 blocked, 175 done.
+180 entries: 2 open, 1 partial, 0 blocked, 177 done.
 
-The Windows lane now uses `wsl-toolkit 6.0.0`. Issue 68 closed after its
-hosted gate passed. Pull requests 66 and 67 are open; neither
-is on `main`. Their work is in [podssh.md](podssh.md) as T-1401 to
-T-1404. Pull request 67 is the base: pull request 66 is an earlier subset
-with no check runs and contributes no unique file. Pull request 67 carries
-three red jobs (cage build with no tracked shim, one lint denial, one
-document denial), so it is not ready to merge.
+T-1403 and T-1401 closed on the relay landing. The multiplexed
+`reverse-v1` legs live in `crates/podbox-ssh` with the fake-relay
+suite and the bounded two-client proof against the live relay, over
+the transport T-1401 proved. Pull requests 66 and 67 are open;
+neither is on `main`. What is left of them is in [podssh.md](podssh.md)
+as T-1402 and T-1404. Pull request 67 is the base: pull request 66 is
+an earlier subset with no check runs and contributes no unique file.
+Pull request 67 carries three red jobs (cage build with no tracked
+shim, one lint denial, one document denial), so it is not ready to
+merge.
 
 T-1112 is unblocked and still unproved. The host KVM node answers API
 version 12, QEMU 11.1.1 with `qemu-img` installs from Arch extra, and the
@@ -23,12 +26,13 @@ accept-terms gate. The entry names the exact proof that will close it.
 
 ## Baseline and current lane
 
-This session started 2026-09-28T05:27:58Z from clean `main` at
-`5701a8b`. The host is Windows
+This session started 2026-09-28T19:37:38Z from `main` at `9d4bb55`,
+with the T-1403 relay work implemented on disk and uncommitted. The
+host is Windows
 `MINGW64_NT-10.0-26200`. The selected lane is the
 `wsl-toolkit-podbox` base, with kernel `7.2.0-WSL2-STABLE` and
-`podman 6.1.2`. The base was absent at session start and the session
-entry point built it. Its status reports no cgroup delegation, so a
+`podman 6.1.2`. The base holds the image cache and the job records
+across sessions. Its status reports no cgroup delegation, so a
 memory or CPU limit accepted by the engine is not proof that the limit
 was enforced.
 
@@ -43,120 +47,71 @@ current procedure and the installed manual owns the flag reference.
 
 ## This session
 
-T-1343 changed the Windows wrapper to send each job file through its own
-input, kept CRLF removal, and selected ephemeral container life. It
-removed the extra mode repair from that wrapper. Check 29 now reads the
-tool's JSON cleanup report, including ended base sessions. Case 29b in
-`scripts/plant.sh` supplies a kept session and requires the check to
-name it.
+T-1403 landed the relay protocol split and the two-client proof. The
+multiplexed `reverse-v1` legs live in `crates/podbox-ssh` (`ws.rs`
+framing, `tls.rs` verify-always client, `mux.rs` node and operator with
+the specification and its R12 line cites, `node` and `operator`
+binaries). The one-pair rendezvous stays out of the crate for local
+paths and tests.
 
-`experiments/384-windows-lane-v6.sh` drove two jobs from one checkout
-at the same time. Both received their own input and found an executable
-script in the copied tree. Both exited 0. A third path probe ran an
-existing experiment input and named the correct `/work` binary path
-before it returned 2 for the absent binary. The cleanup report showed
-three host job records; job-specific cleanup left zero. The conditions
-and output are in
-[`experiments/results/windows-lane-v6.txt`](../experiments/results/windows-lane-v6.txt).
-A live ended base session made check 29 fail by id; the check passed after
-that session was collected.
+The lane proved it three ways: `cargo test -p podbox-ssh` exits 0 (63
+unit and binary tests, 14 relay tests with a fake relay, 3 proxy
+end-to-end tests); three mutation breaks each turn their own test red
+(session-id validation, relay-fed control id check, token charset);
+`experiments/387-mux-two-client.sh` exits 0 against the live r12 relay
+with pair 200, connect-token status 200 against node-token 403, one
+node online, a 200000-byte exact round trip, exit 42 passthrough, the
+first session surviving the others, silent client stderrs, stop 200
+with status 403 after, 3 sessions closed, no token in the log, and the
+two-clients verdict in
+[`experiments/results/mux-two-client.txt`](../experiments/results/mux-two-client.txt).
 
-T-1344 checked the older experiment callers after the input path moved.
-Twelve already use the working directory. Two now select that directory
-for a Windows input and retain file-relative discovery for a native run.
-All fifteen changed experiment scripts parse under `sh -n`.
+Three review passes read the tree against itself (socket, error, and
+exit-code sweep; guard-to-test audit; cite-and-clause audit). What
+they found landed before the commit: usage lines on usage failures,
+the `Lonely` once-exit-1 path, refused-apart-from-completed counting,
+honest 1009-arm comments, three R12 cite corrections, and the gate
+alphabet fixes (arrows to `->`, runtime-built id fixtures, the
+ASCII-folded relay capture with two markdown links). What they found
+that stays as a stated limit: writes and DNS resolve without a
+timeout, so a relay that stops reading wedges the loop; frame sizes
+rest on read sizing with the chunking loops as defense-in-depth; node
+redial pairing stays unmeasured.
 
-T-1345 fixed the wrapper's caller interpreter. The first plant run
-stopped at a Bash option because the wrapper used `sh` for every job.
-The wrapper now reads an explicit Bash first line and selects Bash for
-that job. POSIX jobs still use `sh`.
-T-1346 changed the plant script's checkout path for a Windows job input.
-Its first Bash run looked for `//scripts/check-todo.py` because `$0` was
-`/in/job.sh`. The input form now takes the checkout from `/work`; a
-native run still uses the script file's parent.
-T-1347 moved check 27's shipped status source from a former sentence
-in this page to the done entries in `TODO/milestones.md`. The first full
-plant run caught 42 cases and missed 27a. The repeat caught all 43
-plants; four controls stayed quiet.
-
-The Windows procedure and script comments now state the behaviour read
-from the 6.0.0 manual and measured on this host. The former text is in
-[`docs/history/containers-before-toolkit-6.txt`](../docs/history/containers-before-toolkit-6.txt).
-The old progress record and index order text are in `docs/history/`
-so this page can give the current answer without a past session's
-narrative.
-
-The two SSH source trees were captured with their trackers and licences
-under `references/`. The focused source comparison is in
-[`docs/history/references/ssh-relay-2026-09-28.md`](../docs/history/references/ssh-relay-2026-09-28.md).
-It found that the current dropssh source supports concurrent sessions
-on one connection while its README still describes the old one-session
-path. The current sandssh tree points to a separate shell project;
-PR 67's task text says the shell is in sandssh. These source facts are
-reflected in T-1402 and T-1403.
-
-The 2026-09-28 review session reconciled pull requests 66 and 67 through
-two read-only passes, mined faketty and fakepty into the corpus with zero
-gaps, and refused both mechanisms for T-1402. KVM now opens on this host
-(API version 12), QEMU 11.1.1 is available in the drive environment, and
-the ValidationOS disk is installed outside the tree. The operator scoped
-this session to the transport and server partial with the machine arm;
-the relay and remote group stay deferred.
-
-Landed and green: `crates/podbox-ssh` (transport, probed server start,
-pump, proxy; 24 unit plus 5 proxy tests) with a real-client e2e over a
-Unix socket (exact bytes, empty stderr, exit 42 passthrough);
-`podbox machine` usage, refusal, and manual section driven through the
-built binary; the passwd shim vendored byte-identical with its licence;
-`openssh` carried by the lane bootstrap and the full Windows-lane check.
-`experiments/386-podssh-partial.sh` holds. The full Linux gate holds
-(10 passed, 0 failed) with the host fast gate (9 passed, 0 failed, the
-same 2 environmental skips as the baseline). Three commits carry the
-work. Entries T-1401 to T-1404 and T-1112 stay open on their named
-proofs.
+T-1401 closed on the landing: no transport change was needed, and its
+named trio (lane suite, host strict gate, socketpair relay drives)
+holds. One commit carries T-1403, T-1401, and the record.
 
 ## Verification
 
-The Windows drive last ran at 2026-09-28T11:01:21Z on this host. It
-reported `verdict=matched`, two jobs with exit 0, the caller path check
-with its expected exit 2, and zero kept records after collection.
-The full plant suite ran in the Windows base on commit `c838759`:
-43 caught, 0 missed, 4 controls quiet. The final Linux `dev.sh check`
-exited 0: 10 passed, 0 failed, 0 skipped. The Windows host strict gate
-passed 11 checks with no skip. The hosted gate for `81fec0c` passed all
-four jobs. [Issue 68](https://github.com/Azathothas/podbox/issues/68)
-closed after that result.
-The beta.9 release head `05d153a` passes all four hosted gate jobs,
-and `v0.1.0-beta.9` builds and smokes all seven archs and publishes
-the nightly pre-release with binaries, hashes, and signatures.
-The base cleanup report is empty after the last drive.
-
-The [session summary](SESSION-SUMMARY-2026-09-28.md) has the final
-checks, change size, remote state, and machine state. The
-[SSH session summary](SESSION-SUMMARY-2026-09-28-SSH.md) has the
-reconcile, the partial, the machine arm, and the KVM unblock.
+The lane suite is green on the committed tree: `cargo fmt --check`,
+`cargo clippy --all-targets -- -D warnings`, and
+`cargo test -p podbox-ssh` (63 unit and binary tests, 14 relay tests,
+3 proxy end-to-end tests) all exit 0. Three mutation breaks each turn
+their own test red with the tree restored byte-identical after. The
+live drive `experiments/387-mux-two-client.sh` exits 0 at
+2026-09-28T20:04:16Z with the two-clients verdict and no token in the
+log. The host strict gate passes 11 checks with no skip. The base
+cleanup report is empty after the last drive. The beta.9 release head
+`05d153a` passes all four hosted gate jobs, and issue 68 is closed.
 
 ## Work order
 
-1. T-1403: specify the relay protocol (multiplexed or N registrations;
-   the operator question in T-1403 stands), then prove two clients on one
-   relay connection. Test frame direction, isolation, close, and bounded
-   cleanup.
-2. T-1402: provide and prove an interactive session where no pty exists.
+1. T-1402: provide and prove an interactive session where no pty exists.
    A one-shot command is not this proof. The session-layer shape is
-   studied and recorded.
-3. T-1404: add the remote SSH arm after the relay holds. The machine
+   studied and recorded, with the refusal catalogue naming each
+   unsupported operation.
+2. T-1404: add the remote SSH arm after the relay holds. The machine
    dispatch and refusal are landed; the positive path needs a guest SSH
-   endpoint. T-1401 closes on the relay landing over the proved
-   transport; no separate transport work remains.
-4. T-1112: run the KVM guest. The host node, QEMU 11.1.1, and the
+   endpoint.
+3. T-1112: run the KVM guest. The host node, QEMU 11.1.1, and the
    installed disk are all measured; the accept-terms gate from the entry
    still applies.
 
-To completion: T-1403, T-1402, the T-1404 remote arm, and the T-1112
-guest run close in that order, each with parallel review passes and
-the full gate green before it commits. Release prep follows the
-packaging entries (version, changelog, signed artefacts). The operator
+To completion: T-1402, the T-1404 remote arm, and the T-1112 guest run
+close in that order, each with parallel review passes and the full
+gate green before it commits. Release prep follows the packaging
+entries (version, changelog, signed artefacts). The operator
 authorized the closing acts on this repository: pull requests 66 and 67
 close as superseded once their work is on `main`, and the beta tags
 and publishes. No session touches any other repository; that boundary
@@ -168,4 +123,6 @@ Podbox speaks both relay protocols, split by use: multiplexed reverse
 for remote paths, one-pair rendezvous for local paths. Sessions may mint
 ephemeral self-service tokens and commit redacted logs. T-1403 records
 the tests that settle the remainder, including node redial pairing.
-T-1112 still needs the KVM guest run named in its entry.
+T-1112 still needs the KVM guest run named in its entry. Writes and DNS
+have no timeout on the relay legs; a relay that stops reading wedges
+the loop, which the entry states as a limit.
