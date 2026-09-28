@@ -4,8 +4,8 @@
 
 180 entries: 4 open, 1 partial, 0 blocked, 175 done.
 
-The Windows lane now uses `wsl-toolkit 6.0.0`. Issue 68 is the
-corresponding repository issue. Pull requests 66 and 67 are open; neither
+The Windows lane now uses `wsl-toolkit 6.0.0`. Issue 68 closed after its
+hosted gate passed. Pull requests 66 and 67 are open; neither
 is on `main`. Their work is in [podssh.md](podssh.md) as T-1401 to
 T-1404. Pull request 67 is the code candidate. Its current build, lint,
 and document jobs are red, so it is not ready to merge.
@@ -94,10 +94,11 @@ The Windows drive last ran at 2026-09-28T11:01:21Z on this host. It
 reported `verdict=matched`, two jobs with exit 0, the caller path check
 with its expected exit 2, and zero kept records after collection.
 The full plant suite ran in the Windows base on commit `c838759`:
-43 caught, 0 missed, 4 controls quiet. The Linux `dev.sh check` on the
-same tree exited 0: 10 passed, 0 failed, 0 skipped. The Windows host
-strict gate passed its 11 checks with no skip before T-1347; its final
-repeat and the hosted `main` result belong in the session summary.
+43 caught, 0 missed, 4 controls quiet. The final Linux `dev.sh check`
+exited 0: 10 passed, 0 failed, 0 skipped. The Windows host strict gate
+passed 11 checks with no skip. The hosted gate for `81fec0c` passed all
+four jobs. [Issue 68](https://github.com/Azathothas/podbox/issues/68)
+closed after that result.
 The base cleanup report is empty after the last drive.
 
 The [session summary](SESSION-SUMMARY-2026-09-28.md) has the final
