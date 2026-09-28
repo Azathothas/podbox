@@ -7,28 +7,27 @@ Remote and relay sides stay deferred.
 
 ## Resume point
 
-Docs amended and gated next. Then implement: T-1401 partial
-(`podbox-ssh` transport plus server, no relay, no remote group) with the
-three red-job fixes, plus the T-1404 machine arm. Machine-arm design needs
-the Linux machine driver facts first.
+Work is committed and the full gate is green. Remaining: refresh the
+record (done above in PROGRESS.md), commit the record, push `main`,
+write the session summary and the next prompt.
 
 ## In flight
 
-Doc amendments done in the tree, gate not yet run. Corpus gained
-`references/dtolnay__faketty` and `references/sigoden__fakepty`, both at
-the studied pins with zero fetch gaps. `experiments/385-kvm-open.sh`
-holds. ValidationOS disk verified at
-`%USERPROFILE%\podbox-images\ValidationOS.vhdx`. Review ref
-`refs/review/pr67` still present for the implementation; delete it before
-any commit.
+Nothing half-done. Three commits carry the session: the landing, the
+exit-code fix, and the openssh/full-check fix. No review ref remains.
+The ValidationOS disk sits outside the tree at
+`%USERPROFILE%\podbox-images\ValidationOS.vhdx`.
 
 ## Tree state
 
-Dirty with the amendment set, uncommitted. Gate run is the next command.
+Dirty only with the record refresh. Full Linux gate green (10 passed,
+0 failed); host fast gate green (9 passed, 0 failed, 2 environmental
+skips); `check-todo`, markers, one-home, docs, and both secrets checks
+green. Base job ledger empty.
 
 ## Paste
 
-Continue the podbox SSH session: run `py scripts/check-todo.py` and the
-host gate, then implement the T-1401 partial and T-1404 machine arm per
-TODO/PROGRESS.md and TODO/podssh.md. Remote and relay sides stay
-deferred. Delete `refs/review/pr67` before any commit.
+Continue the podbox SSH session: commit the refreshed record in
+TODO/PROGRESS.md, push `main`, then print the summary table and the next
+prompt per docs/methodology/sessions.md. T-1403 is next in the work
+order, with the protocol choice as the operator question.

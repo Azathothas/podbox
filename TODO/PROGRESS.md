@@ -95,6 +95,26 @@ path. The current sandssh tree points to a separate shell project;
 PR 67's task text says the shell is in sandssh. These source facts are
 reflected in T-1402 and T-1403.
 
+The 2026-09-28 review session reconciled pull requests 66 and 67 through
+two read-only passes, mined faketty and fakepty into the corpus with zero
+gaps, and refused both mechanisms for T-1402. KVM now opens on this host
+(API version 12), QEMU 11.1.1 is available in the drive environment, and
+the ValidationOS disk is installed outside the tree. The operator scoped
+this session to the transport and server partial with the machine arm;
+the relay and remote group stay deferred.
+
+Landed and green: `crates/podbox-ssh` (transport, probed server start,
+pump, proxy; 24 unit plus 5 proxy tests) with a real-client e2e over a
+Unix socket (exact bytes, empty stderr, exit 42 passthrough);
+`podbox machine` usage, refusal, and manual section driven through the
+built binary; the passwd shim vendored byte-identical with its licence;
+`openssh` carried by the lane bootstrap and the full Windows-lane check.
+`experiments/386-podssh-partial.sh` holds. The full Linux gate holds
+(10 passed, 0 failed) with the host fast gate (9 passed, 0 failed, the
+same 2 environmental skips as the baseline). Three commits carry the
+work. Entries T-1401 to T-1404 and T-1112 stay open on their named
+proofs.
+
 ## Verification
 
 The Windows drive last ran at 2026-09-28T11:01:21Z on this host. It
@@ -113,23 +133,25 @@ checks, change size, remote state, and machine state.
 
 ## Work order
 
-1. T-1401 partial: land PR 67's SSH transport and server on `main`
-   without the relay and remote group; fix its three red jobs and prove
-   a real SSH command against a socketpair server in a fresh tree. The
-   relay and remote group stay deferred.
-2. T-1403: specify and prove two clients on one relay connection.
-   Test frame direction, isolation, close, and bounded cleanup.
-3. T-1402: provide and prove an interactive session where no pty exists.
-   A one-shot command is not this proof.
-4. T-1404 machine arm now: dispatch `machine ssh` to a guest podbox
-   runs, with podman parity. The remote SSH arm stays deferred with the
-   relay.
-5. T-1112: finish the KVM image arm when the named host and licensed
-   image are available.
+1. T-1403: specify the relay protocol (multiplexed or N registrations;
+   the operator question in T-1403 stands), then prove two clients on one
+   relay connection. Test frame direction, isolation, close, and bounded
+   cleanup.
+2. T-1402: provide and prove an interactive session where no pty exists.
+   A one-shot command is not this proof. The session-layer shape is
+   studied and recorded.
+3. T-1404: add the remote SSH arm after the relay holds. The machine
+   dispatch and refusal are landed; the positive path needs a guest SSH
+   endpoint. T-1401 closes on the relay landing over the proved
+   transport; no separate transport work remains.
+4. T-1112: run the KVM guest. The host node, QEMU 11.1.1, and the
+   installed disk are all measured; the accept-terms gate from the entry
+   still applies.
 
 ## Open questions
 
 The SSH relay protocol must name which peer speaks the simple rendezvous
 form and which speaks the multiplexed reverse form. T-1403 records the
-tests that settle it. No operator choice is needed before T-1401 starts.
+tests that settle it. The T-1403 protocol choice and the relay token
+stay operator questions.
 T-1112 still needs the KVM guest run named in its entry.
