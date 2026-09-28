@@ -239,13 +239,13 @@ the blocker named and what would clear it.
 | [T-1346](gate.md) | P1 | gate | done | The plant script finds the checkout from a Windows job input |
 | [T-1347](gate.md) | P1 | gate | done | Check parity notes against the milestone entries |
 | [T-1401](podssh.md) | P1 | podssh | done | Prove the SSH transport and server in the current tree |
-| [T-1402](podssh.md) | P1 | podssh | open | Provide an interactive session without a pty |
+| [T-1402](podssh.md) | P1 | podssh | done | Provide an interactive session without a pty |
 | [T-1403](podssh.md) | P1 | podssh | done | Prove concurrent sessions on one relay connection |
 | [T-1404](podssh.md) | P2 | podssh | open | Add the remote and machine SSH verbs after the transport holds |
 
 ## Counts
 
-180 items: 2 open, 1 partial, 0 blocked, 177 done.
+180 items: 1 open, 1 partial, 0 blocked, 178 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -254,10 +254,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 1 | 0 | 0 | 85 | 86 |
+| P1 | 0 | 0 | 0 | 86 | 86 |
 | P2 | 1 | 0 | 0 | 32 | 33 |
 | P3 | 0 | 1 | 0 | 8 | 9 |
-| **All** | **2** | **1** | **0** | **177** | **180** |
+| **All** | **1** | **1** | **0** | **178** | **180** |
 
 ## Work order
 

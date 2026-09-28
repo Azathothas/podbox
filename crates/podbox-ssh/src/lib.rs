@@ -7,6 +7,10 @@
 //! is not in this crate; TODO/podssh.md T-1403 records the split and the
 //! remainder.
 //!
+//! The interactive shell without a pty lives in [`session`]: a
+//! server-side line discipline above the byte transport, with the refusal
+//! catalogue naming every terminal operation it cannot support.
+//!
 //! ⭐ **This crate takes the mechanism of podbox pull request 67 and drops
 //! what T-1401 defers.** The stream trait with its read timeout, the one
 //! dispatch that turns a target into a stream, the single-threaded pump, the
@@ -30,6 +34,7 @@ pub mod error;
 pub mod mux;
 pub mod pump;
 pub mod server;
+pub mod session;
 pub mod tls;
 pub mod transport;
 pub mod ws;

@@ -86,7 +86,7 @@ Source:      podbox pull request 67, proposed T-1402; sandssh at
 Category:    podssh
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     A successful one-shot command does not make an interactive SSH
              session useful on a host with no pty. Echo, line editing, job
@@ -109,13 +109,53 @@ Studied:     Two terminal-pair tools were read at pinned commits on
              fakepty allocates one real pair and prints at exit. Both fail
              where no pair device exists. Both answer none of the five
              asserts. Both are refused as mechanisms. faketty contributes
-             its test shape. fakepty contributes its trap catalogue. The
+             its test shape. fakepty contributes its exit-time printing. The
              session layer stays a server-side line discipline above the
              transport, with a refusal catalogue that names each unsupported
              operation.
 Prove:       `cargo test -p podbox-ssh` exits 0, and a bounded interactive
              drive verifies editing and interruption through a real SSH
              client with no pty device.
+
+**Done, 2026-09-28.** The session layer lands in `crates/podbox-ssh`:
+`session.rs` (a server-side line discipline above the byte transport:
+echo, editing, history capped at 100 lines, state in the supervised
+shell, signals to the shell's process group, a static `$ ` prompt) and
+the `shell` binary (the `ForceCommand` server, which refuses exec
+requests naming `SSH_ORIGINAL_COMMAND` with exit 125).
+
+`cargo test -p podbox-ssh` exits 0 on the lane: 82 lib tests, 12 binary
+tests, 14 relay tests, 12 interactive tests, 3 proxy end-to-end tests.
+Three mutation breaks each turn their own test red on the lane (the line
+cap, the CR-LF pair swallow, the group-kill minus sign), with the tree
+restored byte-identical after. `experiments/388-interactive-shell.sh`
+exits 0 against a real daemon with the session server forced, and
+`experiments/results/interactive-shell.txt` records prompt, echo, and
+pipes-not-terminal on both descriptors, editing repairing a typo,
+history re-running, variable and directory persisting, SIGINT killing
+the command in 6 s with the shell surviving, exit 7 passthrough, exec
+refused naming the variable with empty stdout, the sftp subsystem
+refused by the daemon (exit 255, record only), and untrapped SIGINT
+ending the session with 130.
+
+Three review passes read the tree and their findings landed before the
+close. The teardown took the live stdin after a reviewer showed the old
+take dropped an already-taken handle and wedged on an idle shell; the
+idle loop sleeps one poll after a reviewer showed the no-op timeout
+spun on `WouldBlock`; the refusal umbrella now marks its two
+pass-throughs after a reviewer showed window-size and job-control lines
+reach the shell, not a bell. Two findings changed what the proof means.
+First, the early signal and history needles matched the input echo, so
+they proved the discipline echoed rather than the shell running; every
+output needle is now a computed marker whose expanded form never occurs
+in the typed bytes. Second, a trap-ignore is inherited across fork and
+exec with no inner reset undoing it, so the selective kill traps a
+handler: trapped signals reset to default in children while the shell
+runs the handler. The subsystem row is narrowed to the measured split:
+exec-form requests are refused by the shell, subsystem requests never
+reach it. What stays open is stated in the module docs: pipe bytes past
+the teardown drain window drop silently, and writes block like the
+relay legs.
 
 ### T-1403 Prove concurrent sessions on one relay connection
 

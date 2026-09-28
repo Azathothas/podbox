@@ -1,0 +1,78 @@
+== conditions
+2026-09-28T22:40:12Z
+Linux 7.2.0-WSL2-STABLE
+65818a4
+cargo 1.98.1 (797e8a9bc 2026-08-05)
+rustc 1.98.1 (48a229cea 2026-09-01)
+/usr/bin/ssh
+/usr/sbin/sshd
+/usr/bin/ssh-keygen
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded untrusted v0.9.0
+  Downloaded find-msvc-tools v0.1.12
+  Downloaded base64 v0.23.1
+  Downloaded cfg-if v1.0.4
+  Downloaded subtle v2.6.1
+  Downloaded itoa v1.0.18
+  Downloaded shlex v2.0.1
+  Downloaded zeroize v1.9.0
+  Downloaded zmij v1.0.23
+  Downloaded getrandom v0.2.17
+  Downloaded once_cell v1.21.4
+  Downloaded rustls-pki-types v1.15.1
+  Downloaded rustls-pemfile v2.2.0
+  Downloaded serde_core v1.0.229
+  Downloaded rustls-webpki v0.103.15
+  Downloaded cc v1.4.5
+  Downloaded memchr v2.8.3
+  Downloaded syscalls v0.8.1
+  Downloaded serde_json v1.0.151
+  Downloaded webpki-roots v1.0.9
+  Downloaded rustls v0.23.45
+  Downloaded libc v0.2.189
+  Downloaded ring v0.17.14
+  Downloaded linux-raw-sys v0.12.1
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.12
+   Compiling libc v0.2.189
+   Compiling zeroize v1.9.0
+   Compiling cfg-if v1.0.4
+   Compiling syscalls v0.8.1
+   Compiling untrusted v0.9.0
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.151
+   Compiling rustls v0.23.45
+   Compiling once_cell v1.21.4
+   Compiling linux-raw-sys v0.12.1
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling subtle v2.6.1
+   Compiling base64 v0.23.1
+   Compiling rustls-pki-types v1.15.1
+   Compiling cc v1.4.5
+   Compiling podbox-probe v0.1.0-beta.9 (/work/crates/podbox-probe)
+   Compiling webpki-roots v1.0.9
+   Compiling rustls-pemfile v2.2.0
+   Compiling getrandom v0.2.17
+   Compiling ring v0.17.14
+   Compiling rustls-webpki v0.103.15
+   Compiling podbox-ssh v0.1.0-beta.9 (/work/crates/podbox-ssh)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 22.28s
+clause 1          cargo build -p podbox-ssh --bin shell exit 0
+clause 2          sshd daemon answers on 2222 with ForceCommand shell
+clause 3          prompt, echo, and no terminal on either descriptor
+clause 4          editing repaired the typo (shell ran QZY7)
+clause 5          history recalled and re-ran the command
+clause 6          variable and directory persisted across commands
+clause 7          SIGINT killed sleep in 6s, shell survived
+clause 8          exit 7 passed through
+clause 9          exec refused with SSH_ORIGINAL_COMMAND named, stdout empty
+clause 10         subsystem sftp exit 255, stdout bytes 0 (record only)
+--- out10
+--- err10
+subsystem request failed on channel 0
+clause 11         untrapped SIGINT ended the session with 130
+
+verdict           INTERACTIVE SESSION WITHOUT PTY HOLDS

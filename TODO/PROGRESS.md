@@ -2,18 +2,24 @@
 
 ## State
 
-180 entries: 2 open, 1 partial, 0 blocked, 177 done.
+180 entries: 1 open, 1 partial, 0 blocked, 178 done.
 
 T-1403 and T-1401 closed on the relay landing. The multiplexed
 `reverse-v1` legs live in `crates/podbox-ssh` with the fake-relay
 suite and the bounded two-client proof against the live relay, over
 the transport T-1401 proved. Pull requests 66 and 67 are open;
 neither is on `main`. What is left of them is in [podssh.md](podssh.md)
-as T-1402 and T-1404. Pull request 67 is the base: pull request 66 is
+as T-1404. Pull request 67 is the base: pull request 66 is
 an earlier subset with no check runs and contributes no unique file.
 Pull request 67 carries three red jobs (cage build with no tracked
 shim, one lint denial, one document denial), so it is not ready to
 merge.
+
+T-1402 closed on the session landing. The server-side line discipline
+lives in `crates/podbox-ssh` (`session.rs`, the `shell` ForceCommand
+server) with the fake-pty-free interactive suite and the bounded drive
+against a real daemon. What is left of the two pull requests is the
+T-1404 remote arm.
 
 T-1112 is unblocked and still unproved. The host KVM node answers API
 version 12, QEMU 11.1.1 with `qemu-img` installs from Arch extra, and the
@@ -82,25 +88,45 @@ T-1401 closed on the landing: no transport change was needed, and its
 named trio (lane suite, host strict gate, socketpair relay drives)
 holds. One commit carries T-1403, T-1401, and the record.
 
+T-1402 landed the interactive session without a pty. The discipline
+(`crates/podbox-ssh/src/session.rs`) echoes, edits, recalls capped
+history, keeps state in the supervised shell, signals the shell's
+process group, and prints a static prompt; the `shell` binary serves
+the session under `ForceCommand` and refuses exec requests naming
+`SSH_ORIGINAL_COMMAND` with exit 125. The lane proves it four ways:
+`cargo test -p podbox-ssh` exits 0 (82 lib, 12 binary, 14 relay, 12
+interactive, 3 proxy end-to-end tests); three mutation breaks each turn
+their own test red (line cap, CR-LF swallow, group-kill sign);
+`experiments/388-interactive-shell.sh` exits 0 against a real daemon
+with ten asserting clauses and the interactive verdict in
+[`experiments/results/interactive-shell.txt`](../experiments/results/interactive-shell.txt);
+the host strict gate passes 11 checks with no skip. Three review
+passes read the tree (guard-to-test, needle-soundness, honesty audit)
+and their findings landed: the live-stdin teardown, the idle-loop
+sleep, the narrowed refusal catalogue, computed output markers, the
+trap-handler selective kill, teardown and drain gap tests, and the
+untrapped-130 drive clause. What the reviews refused stays stated as a
+limit in the module docs, not as a gap in the proof.
+
 ## Verification
 
 The lane suite is green on the committed tree: `cargo fmt --check`,
 `cargo clippy --all-targets -- -D warnings`, and
-`cargo test -p podbox-ssh` (63 unit and binary tests, 14 relay tests,
-3 proxy end-to-end tests) all exit 0. Three mutation breaks each turn
-their own test red with the tree restored byte-identical after. The
-live drive `experiments/387-mux-two-client.sh` exits 0 at
-2026-09-28T20:04:16Z with the two-clients verdict and no token in the
+`cargo test -p podbox-ssh` (82 lib, 12 binary, 14 relay, 12
+interactive, 3 proxy end-to-end tests) all exit 0. Three session
+mutations each turn their own test red with the tree restored
+byte-identical after. The live relay drive
+`experiments/387-mux-two-client.sh` exits 0 at 2026-09-28T20:04:16Z
+with the two-clients verdict and no token in the log. The live session
+drive `experiments/388-interactive-shell.sh` exits 0 at
+2026-09-28T22:25:02Z with the interactive verdict and no secret in the
 log. The host strict gate passes 11 checks with no skip. The base
 cleanup report is empty after the last drive. The beta.9 release head
 `05d153a` passes all four hosted gate jobs, and issue 68 is closed.
 
 ## Work order
 
-1. T-1402: provide and prove an interactive session where no pty exists.
-   A one-shot command is not this proof. The session-layer shape is
-   studied and recorded, with the refusal catalogue naming each
-   unsupported operation.
+1. T-1402: done on the session landing, proof above.
 2. T-1404: add the remote SSH arm after the relay holds. The machine
    dispatch and refusal are landed; the positive path needs a guest SSH
    endpoint.
@@ -108,8 +134,8 @@ cleanup report is empty after the last drive. The beta.9 release head
    installed disk are all measured; the accept-terms gate from the entry
    still applies.
 
-To completion: T-1402, the T-1404 remote arm, and the T-1112 guest run
-close in that order, each with parallel review passes and the full
+To completion: the T-1404 remote arm and the T-1112 guest run close in
+that order, each with parallel review passes and the full
 gate green before it commits. Release prep follows the packaging
 entries (version, changelog, signed artefacts). The operator
 authorized the closing acts on this repository: pull requests 66 and 67
