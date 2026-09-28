@@ -126,6 +126,9 @@ exited 0: 10 passed, 0 failed, 0 skipped. The Windows host strict gate
 passed 11 checks with no skip. The hosted gate for `81fec0c` passed all
 four jobs. [Issue 68](https://github.com/Azathothas/podbox/issues/68)
 closed after that result.
+The beta.9 release head `05d153a` passes all four hosted gate jobs,
+and `v0.1.0-beta.9` builds and smokes all seven archs and publishes
+the nightly pre-release with binaries, hashes, and signatures.
 The base cleanup report is empty after the last drive.
 
 The [session summary](SESSION-SUMMARY-2026-09-28.md) has the final
