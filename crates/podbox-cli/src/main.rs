@@ -27,6 +27,7 @@ mod machine;
 mod man;
 mod names;
 mod parity;
+mod remote;
 mod run;
 mod system;
 mod tier;
@@ -54,6 +55,7 @@ usage: podbox <command> [options]
   exec         run a command in an already extracted image. refused: A FRESH CHROOT,
                sharing only the filesystem, never a namespace entry
   probe        report what this machine permits, and the rung podbox selects
+  remote       verbs that act across a machine boundary: ssh into another one
   doctor       check what this machine can run, with one fix line per missing piece
   windows      a disposable Windows guest: doctor, fetch, setup and run
   machine      a guest podbox runs: ssh into it (podman parity)
@@ -148,6 +150,15 @@ fn main() -> std::process::ExitCode {
         Some("start") => exit(lifecycle::start(rest)),
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
+        // ⭐ `podbox remote ssh`, decided 2026-09-27 and recorded in
+        // docs/decisions/remote-verb.md. `remote` is a NAMESPACE and not a
+        // synonym for `ssh`: `remote fetch`, `remote download` and
+        // `remote wget` are all "reach a machine that is not this one" and
+        // each would otherwise want its own top-level verb. `local` is its
+        // counterpart so the axis is visible, and `machine ssh` is a
+        // DIFFERENT axis (a guest podbox itself runs) and stays separate.
+        Some("remote") => exit(remote::remote(rest)),
+        Some("ssh") => ssh_refusal(),
         Some("doctor") => exit(doctor::doctor("doctor", rest)),
         Some("machine") => exit(machine::machine(rest)),
         Some("windows") => exit(windows::windows(rest)),
@@ -254,6 +265,37 @@ fn main() -> std::process::ExitCode {
             })
         }
     }
+}
+
+/// ⛔ THE OLD SPELLING IS A USEFUL ANSWER, NOT "UNKNOWN COMMAND". An
+/// agent that typed `podbox ssh` is asking a real question, and the
+/// house rule is that a tool must not need its user to learn its
+/// differences by guessing. So the message names the group and lists
+/// what is in it, and the exit is 125: a verb podbox has and refuses
+/// is podbox failing to run the caller's command.
+///
+/// `local` is the decided counterpart, not a command yet: the line says
+/// so, pointing at the decision rather than at an arm that does not
+/// exist.
+fn ssh_refusal() -> std::process::ExitCode {
+    let mut err = std::io::stderr().lock();
+    let _ = writeln!(
+        err,
+        "podbox: ssh: the verb is `podbox remote ssh`. The remote group has:"
+    );
+    let _ = writeln!(
+        err,
+        "  podbox remote ssh        reach another machine over a relay"
+    );
+    let _ = writeln!(
+        err,
+        "  podbox machine ssh       a shell in a guest podbox itself runs"
+    );
+    let _ = writeln!(
+        err,
+        "  podbox local <verb>      act on THIS machine: planned, not a command yet (see docs/decisions/remote-verb.md)"
+    );
+    exit(EXIT_RUNTIME_ERROR)
 }
 
 /// docker's `image` sub-command group.
@@ -449,4 +491,14 @@ fn exit(code: i32) -> std::process::ExitCode {
     // into a different code, so it is clamped to one that cannot be confused
     // with a verdict.
     std::process::ExitCode::from(u8::try_from(code).unwrap_or(EXIT_RUNTIME_ERROR as u8))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_old_ssh_spelling_is_a_runtime_refusal() {
+        assert_eq!(ssh_refusal(), exit(EXIT_RUNTIME_ERROR));
+    }
 }

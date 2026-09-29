@@ -1,0 +1,210 @@
+== conditions
+2026-09-29T08:39:40Z
+Linux 7.2.0-WSL2-STABLE
+799b983
+cargo 1.98.1 (797e8a9bc 2026-08-05)
+rustc 1.98.1 (48a229cea 2026-09-01)
+/usr/bin/ssh
+/usr/sbin/sshd
+/usr/bin/ssh-keygen
+/usr/bin/curl
+/usr/bin/jq
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded idna_adapter v1.2.2
+  Downloaded cfg-if v1.0.4
+  Downloaded itoa v1.0.18
+  Downloaded cpufeatures v0.3.1
+  Downloaded stable_deref_trait v1.2.1
+  Downloaded utf8_iter v1.0.4
+  Downloaded yoke-derive v0.8.2
+  Downloaded zerofrom v0.1.8
+  Downloaded subtle v2.6.1
+  Downloaded zerofrom-derive v0.1.7
+  Downloaded untrusted v0.9.0
+  Downloaded form_urlencoded v1.2.2
+  Downloaded potential_utf v0.1.6
+  Downloaded webpki-roots v0.26.11
+  Downloaded adler2 v2.0.1
+  Downloaded block-buffer v0.12.1
+  Downloaded crypto-common v0.2.2
+  Downloaded digest v0.11.3
+  Downloaded find-msvc-tools v0.1.12
+  Downloaded displaydoc v0.2.7
+  Downloaded shlex v2.0.1
+  Downloaded synstructure v0.13.2
+  Downloaded smallvec v1.16.0
+  Downloaded quote v1.0.47
+  Downloaded rustls-pemfile v2.2.0
+  Downloaded simd-adler32 v0.3.10
+  Downloaded tinystr v0.8.4
+  Downloaded zerovec-derive v0.11.6
+  Downloaded zeroize v1.9.0
+  Downloaded percent-encoding v2.3.2
+  Downloaded filetime v0.2.29
+  Downloaded crc32fast v1.5.1
+  Downloaded hybrid-array v0.4.15
+  Downloaded getrandom v0.2.17
+  Downloaded sha2 v0.11.0
+  Downloaded writeable v0.6.4
+  Downloaded rustls-pki-types v1.15.1
+  Downloaded litemap v0.8.3
+  Downloaded zmij v1.0.23
+  Downloaded icu_provider v2.3.1
+  Downloaded log v0.4.34
+  Downloaded proc-macro2 v1.0.107
+  Downloaded unicode-ident v1.0.24
+  Downloaded twox-hash v2.1.4
+  Downloaded yoke v0.8.3
+  Downloaded once_cell v1.21.4
+  Downloaded serde_core v1.0.229
+  Downloaded serde_derive v1.0.229
+  Downloaded icu_normalizer_data v2.3.0
+  Downloaded tar v0.4.46
+  Downloaded miniz_oxide v0.9.1
+  Downloaded base64 v0.23.1
+  Downloaded flate2 v1.1.10
+  Downloaded base64 v0.22.1
+  Downloaded zerotrie v0.2.5
+  Downloaded icu_locale_core v2.3.0
+  Downloaded icu_collections v2.3.0
+  Downloaded url v2.5.8
+  Downloaded serde v1.0.229
+  Downloaded icu_properties v2.3.0
+  Downloaded rustls-webpki v0.103.15
+  Downloaded memchr v2.8.3
+  Downloaded cc v1.4.5
+  Downloaded ruzstd v0.9.0
+  Downloaded syscalls v0.8.1
+  Downloaded typenum v1.20.1
+  Downloaded zerovec v0.11.8
+  Downloaded ureq v2.12.1
+  Downloaded idna v1.1.0
+  Downloaded icu_properties_data v2.3.0
+  Downloaded serde_json v1.0.151
+  Downloaded zlib-rs v0.6.7
+  Downloaded webpki-roots v1.0.9
+  Downloaded syn v2.0.119
+  Downloaded syn v3.0.5
+  Downloaded rustls v0.23.45
+  Downloaded icu_normalizer v2.3.0
+  Downloaded libc v0.2.189
+  Downloaded ring v0.17.14
+  Downloaded linux-raw-sys v0.12.1
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling cfg-if v1.0.4
+   Compiling stable_deref_trait v1.2.1
+   Compiling libc v0.2.189
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.12
+   Compiling zeroize v1.9.0
+   Compiling syscalls v0.8.1
+   Compiling serde_core v1.0.229
+   Compiling untrusted v0.9.0
+   Compiling linux-raw-sys v0.12.1
+   Compiling zmij v1.0.23
+   Compiling rustls v0.23.45
+   Compiling litemap v0.8.3
+   Compiling writeable v0.6.4
+   Compiling serde_json v1.0.151
+   Compiling log v0.4.34
+   Compiling once_cell v1.21.4
+   Compiling subtle v2.6.1
+   Compiling utf8_iter v1.0.4
+   Compiling icu_properties_data v2.3.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling cc v1.4.5
+   Compiling rustls-pki-types v1.15.1
+   Compiling typenum v1.20.1
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling base64 v0.23.1
+   Compiling smallvec v1.16.0
+   Compiling crc32fast v1.5.1
+   Compiling simd-adler32 v0.3.10
+   Compiling percent-encoding v2.3.2
+   Compiling adler2 v2.0.1
+   Compiling cpufeatures v0.3.1
+   Compiling serde v1.0.229
+   Compiling miniz_oxide v0.9.1
+   Compiling base64 v0.22.1
+   Compiling twox-hash v2.1.4
+   Compiling form_urlencoded v1.2.2
+   Compiling ruzstd v0.9.0
+   Compiling podbox-probe v0.1.0-beta.9 (/work/crates/podbox-probe)
+   Compiling webpki-roots v1.0.9
+   Compiling rustls-pemfile v2.2.0
+   Compiling webpki-roots v0.26.11
+   Compiling flate2 v1.1.10
+   Compiling syn v2.0.119
+   Compiling syn v3.0.5
+   Compiling hybrid-array v0.4.15
+   Compiling getrandom v0.2.17
+   Compiling filetime v0.2.29
+   Compiling tar v0.4.46
+   Compiling podbox-enter v0.1.0-beta.9 (/work/crates/podbox-enter)
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling ring v0.17.14
+   Compiling digest v0.11.3
+   Compiling sha2 v0.11.0
+   Compiling podbox-windows v0.1.0-beta.9 (/work/crates/podbox-windows)
+   Compiling synstructure v0.13.2
+   Compiling podbox-cli v0.1.0-beta.9 (/work/crates/podbox-cli)
+   Compiling zerovec-derive v0.11.6
+   Compiling displaydoc v0.2.7
+   Compiling serde_derive v1.0.229
+   Compiling zerofrom-derive v0.1.7
+   Compiling yoke-derive v0.8.2
+warning: podbox-cli@0.1.0-beta.9: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.9: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.3
+   Compiling zerovec v0.11.8
+   Compiling zerotrie v0.2.5
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.3.0
+   Compiling icu_locale_core v2.3.0
+   Compiling icu_provider v2.3.1
+   Compiling rustls-webpki v0.103.15
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling ureq v2.12.1
+   Compiling podbox-ssh v0.1.0-beta.9 (/work/crates/podbox-ssh)
+   Compiling podbox-image v0.1.0-beta.9 (/work/crates/podbox-image)
+   Compiling podbox-extract v0.1.0-beta.9 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0-beta.9 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0-beta.9 (/work/crates/podbox-complete)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 16.48s
+clause 1          cargo build -p podbox-cli -p podbox-ssh --bins exit 0
+clause 2          podbox remote: usage with 0
+clause 2          podbox remote -h: usage with 0
+clause 2          podbox remote ssh: usage with 0
+clause 2          podbox remote ssh -h: usage with 0
+clause 2          podbox remote ssh serve -h: usage with 0
+clause 2          podbox remote ssh connect -h: usage with 0
+clause 2          podbox remote ssh forward -h: usage with 0
+clause 2          podbox machine: usage with 0
+clause 2          podbox machine ssh -h: usage with 0
+clause 2          podbox ssh refused with 125 naming remote ssh
+clause 2          podbox remote relay refused with 125 naming the member
+clause 2          podbox remote --bogus refused with 125 by the table
+clause 2          podbox remote ssh --bogus refused with 125 as a flag, not a command
+clause 3          forward runs the far command with exit 0
+clause 3          forward passes exit 42 through
+clause 3          forward with no target refused with 125 naming the target
+clause 3          forward to a refused port fails loud (ssh exit 255)
+relay version     2026-09-28-r12
+clause 4          pair minted (name withheld: see counts below)
+clause 4          serve registered (status online)
+clause 4          connect runs the far command and passes exit 42 through
+clause 4          stop 200 with status 403 after
+clause 5          parity carries the remote ssh rows
+clause 5          no token and no pair name in the log
+verdict           REMOTE-OK: serve and connect drive real commands with exit codes

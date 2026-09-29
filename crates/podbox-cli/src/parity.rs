@@ -456,11 +456,36 @@ pub const TABLE: &[Row] = &[
     Row { verb: "windows", flag: Some("--podbox-qemu-arg"), status: Native, note: "one extra emulator argument, appended last so a caller can override a default the driver set" },
     Row { verb: "windows", flag: Some("--guest"), status: Native, note: "dos or windows: FreeDOS from its base cache with one typed line, or the disk image with the autostarted agent. Default windows" },
     // ⭐ TODO/podssh.md T-1404. The machine group: podman parity for a
-    // guest podbox itself runs. `ssh` is the only member and it refuses
-    // naming the missing endpoint until a guest driver carries an SSH
-    // server, so the rows below are the surface the refusal owns.
-    Row { verb: "machine", flag: Option::None, status: Native, note: "the machine group: ssh into a guest podbox runs (podman parity). ssh refuses naming the missing endpoint: no guest driver carries an SSH server (TODO/podssh.md T-1404)" },
+    // guest podbox itself runs. `ssh` is the only member: it boots a
+    // disposable Linux guest from the named kernel and initramfs and runs
+    // one SSH command in it, reporting the guest command's exit code.
+    Row { verb: "machine", flag: Option::None, status: Native, note: "the machine group: ssh into a guest podbox runs (podman parity). ssh boots a Linux guest with an SSH server on its serial line and reports the guest command's exit code (TODO/podssh.md T-1404)" },
     Row { verb: "machine", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "machine ssh", flag: Option::None, status: Native, note: "podbox's own verb, with no docker equivalent: one SSH command in a Linux guest podbox boots, over the guest's serial line with a real ssh client; the exit code is the guest command's (TODO/podssh.md T-1404)" },
+    Row { verb: "machine ssh", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "machine ssh", flag: Some("--kernel"), status: Native, note: "the guest kernel; a path that is not a file is refused, never replaced by another guest" },
+    Row { verb: "machine ssh", flag: Some("--initramfs"), status: Native, note: "the guest initramfs, carrying the SSH server on its serial console and the account to log in as" },
+    Row { verb: "machine ssh", flag: Some("--user-key"), status: Native, note: "the private key the guest authorises for --user" },
+    Row { verb: "machine ssh", flag: Some("--user"), status: Native, note: "the guest account (default root)" },
+    Row { verb: "machine ssh", flag: Some("--podbox-mem"), status: Native, note: "guest memory, judged against RLIMIT_FSIZE as the machine tier judges its own (T-1305)" },
+    Row { verb: "machine ssh", flag: Some("--podbox-timeout"), status: Native, note: "how long the run may take before the guest is stopped; a timeout is a refusal, never an empty success" },
+    Row { verb: "machine ssh", flag: Some("--podbox-qemu-arg"), status: Native, note: "one extra emulator argument, appended last so a caller can override a default the driver set" },
+    // ⭐ TODO/podssh.md T-1404. The remote group: the verbs that act across
+    // a machine boundary. `ssh` is the only member, brought from podbox
+    // pull request 67 onto the transport main proves: serve registers with
+    // the relay, connect is the operator's ProxyCommand, forward reaches
+    // one fixed target with no relay.
+    Row { verb: "remote", flag: Option::None, status: Native, note: "the remote group: ssh into a machine somebody else started, across a machine boundary. `ssh` is the only member (TODO/podssh.md T-1404)" },
+    Row { verb: "remote", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "remote ssh", flag: Option::None, status: Native, note: "podbox's own verb, with no docker equivalent: ssh across a machine boundary, with a real ssh client on the operator side. The agent registers with `podbox remote ssh serve` and opens no listening socket; the operator reaches it with `podbox remote ssh connect` as an ssh ProxyCommand, or reaches one fixed target with `forward`. `remote` is a namespace, and `podbox ssh` is refused with this row in the message rather than as an unknown command (docs/decisions/remote-verb.md)" },
+    Row { verb: "remote ssh", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "remote ssh", flag: Some("--relay"), status: Native, note: "serve and connect: the relay origin both sides dial out to; nothing here listens" },
+    Row { verb: "remote ssh", flag: Some("--name"), status: Native, note: "serve and connect: the pair name registered on the relay" },
+    Row { verb: "remote ssh", flag: Some("--node-token"), status: Native, note: "serve: the token that registers the pair name" },
+    Row { verb: "remote ssh", flag: Some("--connect-token"), status: Native, note: "connect: the token that opens a session on the pair name" },
+    Row { verb: "remote ssh", flag: Some("--server"), status: Native, note: "serve: the SSH server command per session; the default is probed before it serves" },
+    Row { verb: "remote ssh", flag: Some("--once"), status: Native, note: "serve: exit after the first relay socket ends" },
+    Row { verb: "remote ssh", flag: Some("--ready-wait"), status: Native, note: "connect: how long to wait for the far end's ready before failing loud" },
     // ------------------------------------------------ the lifecycle's flags
     Row { verb: "ps", flag: Some("-a, --all"), status: Native, note: "list containers that are not running too" },
     Row { verb: "ps", flag: Some("-q, --quiet"), status: Native, note: "ids only" },
@@ -915,6 +940,51 @@ mod tests {
         assert!(flag("image prune", "--no-such-flag").is_none());
         assert!(flag("system install-names", "--dir").is_some());
         assert!(flag("info", "--format").is_some());
+    }
+
+    /// T-1404: the SSH verbs parse their flags literally (the windows
+    /// precedent), so the table cannot bind them through `admit`. What
+    /// binds them instead is this test: every flag row for the verb names
+    /// a flag one of its parsers takes, and every flag the parsers take
+    /// has a row. A flag landing in one and missing the other goes red
+    /// here rather than drifting silently.
+    #[test]
+    fn ssh_flag_rows_match_their_parsers_in_both_directions() {
+        use std::collections::HashSet;
+        let serve: HashSet<&str> = crate::remote::serve::FLAGS.iter().copied().collect();
+        let connect: HashSet<&str> = crate::remote::connect::FLAGS.iter().copied().collect();
+        let both: HashSet<&str> = serve.union(&connect).copied().collect();
+        let machine: HashSet<&str> = crate::machine::ssh::FLAGS.iter().copied().collect();
+        // Help is structural (every parser prints usage on -h/--help)
+        // rather than a member of the flag lists.
+        let mut remote = both.clone();
+        remote.insert("-h");
+        remote.insert("--help");
+        let mut mssh = machine.clone();
+        mssh.insert("-h");
+        mssh.insert("--help");
+        for (verb, accepted) in [("remote ssh", remote), ("machine ssh", mssh)] {
+            let mut rowed: HashSet<&str> = HashSet::new();
+            for r in TABLE.iter().filter(|r| r.verb == verb) {
+                if let Some(spellings) = r.flag {
+                    for s in spellings.split(',') {
+                        rowed.insert(s.trim());
+                    }
+                }
+            }
+            for spelled in &rowed {
+                assert!(
+                    accepted.contains(spelled),
+                    "{verb} rows {spelled} but no parser takes it"
+                );
+            }
+            for taken in &accepted {
+                assert!(
+                    rowed.contains(taken),
+                    "{verb} parsers take {taken} with no table row"
+                );
+            }
+        }
     }
 
     /// T-0808: the pre-pass refuses before any arm runs, and passes

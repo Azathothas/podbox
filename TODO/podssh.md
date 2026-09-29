@@ -240,7 +240,7 @@ Source:      podbox pull request 67, proposed T-1404; [podvm.md](podvm.md)
 Category:    podssh
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     The remote and machine sites have different server placement.
              The current `main` has neither SSH verb. Pull request 67
@@ -249,20 +249,100 @@ Premise:     Pull request 67's `remote_group` calls the SSH crate and its
              parity table has a remote SSH row. Its help also names
              machine SSH, while its main dispatch has no matching arm.
              The document gate reports its decision page as orphaned.
-Approach:    Bring the remote dispatch and parity row into `main` with
-             T-1401, then add the machine arm after T-1403 passes.
+Approach:    The remote dispatch and parity row land here, deferred by
+             T-1401 to this entry.
              Probe the server at the selected far end. Prove each help path,
              one command, exit code, and error path by driving the built
              binary. Keep a real SSH client on the operator side.
+             The remote arms stay thin dispatchers over the lane-built
+             `node`, `operator` and `proxy` binaries (resolved beside the
+             binary, then on PATH): the binaries own their validation and
+             the group owns only its flag spellings. The machine arm boots
+             a Linux guest from the named kernel and initramfs with its
+             first serial port on a per-run socket and speaks real SSH over
+             it; the handshake is the probe.
 Decision:    The remote and machine verbs share transport code but keep
              distinct server placement. Do not make a help row stand in for
-             a runnable arm.
+             a runnable arm. The measurement behind the server choice on a
+             chroot-denying far end is
+             [ssh-server-in-a-cage](../docs/decisions/ssh-server-in-a-cage.md).
 Scoped:      The remote half exists in pull request 67 as one dispatch
-             arm, read at its head on 2026-09-28. The help text advertises
-             relay, probe, local, and machine members with no arms. The
-             operator defers the remote group with the relay. The machine
-             arm lands now. Machine means podman parity: a shell in a guest
-             that podbox itself runs.
+             arm, read at its head on 2026-09-28 and re-read file by file
+             on 2026-09-29 (`66b6fa10`): `remote_group` in
+             `crates/podbox-cli/src/main.rs` with an `ssh` member
+             delegating to the podssh CLI, a bare-`ssh` refusal, parity
+             rows for `remote ssh`, and the
+             [remote-verb decision](../docs/decisions/remote-verb.md).
+             Its usage advertises `relay` and `probe` members with no arms;
+             `local` is usage prose only, and `machine ssh` is named in
+             that prose with no dispatch arm. On `main` only runnable arms
+             land (`serve`, `connect`, `forward` under `remote ssh`): there
+             is no relay server to run and no local group to dispatch, so
+             neither is advertised. The remote group waited on the relay,
+             which T-1403 landed. The machine arm lands now. Machine means
+             podman parity: a shell in a guest that podbox itself runs.
 Prove:       `cargo test --workspace` and
              `sh scripts/common/check-gate.sh --strict` exit 0, and both
              CLI paths drive a real command and report its exit code.
+
+**Done, 2026-09-29.** Both verbs dispatch, and both drive real
+commands with exit codes on the lane. The remote half is serve,
+connect and forward over the lane node with the lane proxy as a pure
+shuttle (`experiments/389-remote-ssh.sh`, REMOTE-OK: forward runs
+the far command with exit 0 and passes 42 through, connect runs the
+far command through one relay session with 42, refusals 125 with a
+dash word refused as a flag rather than a command, no token or pair
+name in the log). The machine arm boots the
+147-pinned guest with the owned static bridge beside the pristine
+pinned server and speaks real SSH over the serial socket
+(`experiments/390-machine-ssh.sh`, MACHINE-OK: guest command with
+exit 0 plus placement as root, exit 42 passthrough, the 1 s run
+refused with 125 and no residue or stray process; `experiments/391-
+machine-bridge.sh`, BRIDGE-OK: static build, bytes both ways with
+42, banner through a pty, 125/127/137 edges, raw mode with
+VMIN/VTIME pinned, a dead tty releasing its server with status 0,
+and a tens-of-kilobytes stream past the server's death still
+reporting 42 with the fed count asserted past zero).
+Three candidates for the machine death were enumerated and tested:
+the emulator line (refuted: default cpu, `-cpu max` and
+single-thread TCG die identically, lane scratch diag16), a
+server-on-serial incompatibility past the inetd socket need
+(refuted: a late hello is accepted with survival on both boots,
+diag20, and silence alone never dies, diag19), and client bytes
+arriving before the guest opens its line (confirmed: the tapped
+first line arrives short at the open, diag18 with first-line byte
+counts 19083 against 19084; the wire tap orders the rest: dropbear
+exits 0 on the damaged line, the bridge inherits 0 as PID 1 and the
+kernel panics with Attempted to kill init at exitcode 0, diag17;
+where a later client flight lands first the bridge's write fails
+EPIPE and its die text reads as the next packet length, diag27
+quoting `Bad packet length 1835098984` = 0x6d616368 with errno
+Broken pipe; the scratch diags live in `.tmp/diag390/` on the lane
+host). The fix
+holds client bytes in the proxy until the server banner proves the
+line open (`unix PATH --hold-for-banner SECS`, the arm passes 60
+under its 600 s run; bounded buffers, deadline, loud exits), and
+the bridge reports EPIPE as server EOF instead of dying, half-
+closes a dead tty instead of wedging, and pins VMIN/VTIME
+(mutation leg in lane scratch
+`.tmp/artifacts-mutate/mutation-epipe.txt`: the fixed bridge
+reports 42, the EPIPE-neutered twin 125). Lane gate green on the
+final tree (full lane check 2026-09-29, lane job 8a04c34c35f9bef1:
+build, `cargo test --workspace` with podbox-cli 229 passed and
+podbox-ssh all targets green, fmt, clippy). Tree-checked review
+passes read the change three ways (doors, guard-to-test, claims).
+What they found landed before the commit: the typed
+unschedulable-deadline refusal with its test and the race-honest
+client-EOF test on the hold delta; then the dash word refused as a
+flag in the 389 drive, the client-cap and replay-loudness hold
+tests, the FLAGS-subset-arms tests, the PATH non-exec test, the
+VMIN/VTIME and fed-count asserts with the half-close clause in the
+391 drive, and the refusal-sentence constants with the distinctness
+test on the machine arm. The tty-to-server direction the
+bridge-level drive never asserts rides on the 390 guest run (a
+corrupted command could not print guest-42 and exit 42). Two
+stated limits: the machine environment fault arms (rlimit, mkdir,
+spawn, poll) never fire on a healthy lane and own no test; the 1 s
+drive proves a bounded 125 while the session-versus-serial
+attribution rests on the distinct sentences the unit test pins,
+not on an isolating run.

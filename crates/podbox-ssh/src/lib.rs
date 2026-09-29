@@ -31,6 +31,7 @@
 #![forbid(unsafe_code)]
 
 pub mod error;
+pub mod hold;
 pub mod mux;
 pub mod pump;
 pub mod server;
@@ -40,6 +41,7 @@ pub mod transport;
 pub mod ws;
 
 pub use error::{Error, Kind, EXIT_RUNTIME_ERROR};
+pub use hold::hold_until_banner;
 pub use pump::{is_would_block, pump, READ_TIMEOUT};
 pub use server::{probe_server, spawn_stdio, write_sshd_config, ServerChild, PROBE_WINDOW};
 pub use transport::{parse_port, Dialer, Stdio, Stream, Target};

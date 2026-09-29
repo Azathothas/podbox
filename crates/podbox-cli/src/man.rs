@@ -45,6 +45,8 @@ fn help_argv(verb: &str) -> Vec<&str> {
     match verb {
         "prune" => vec!["image", "prune"],
         "install-names" | "abi" | "df" => vec!["system", verb],
+        "remote ssh" => vec!["remote", "ssh"],
+        "machine ssh" => vec!["machine", "ssh"],
         _ => vec![verb],
     }
 }
@@ -325,6 +327,11 @@ mod tests {
         ] {
             assert_eq!(parity::rows_of(multi), single, "{multi}");
             assert_eq!(help_argv(single).join(" "), multi, "{single}");
+        }
+        // Space-verbs with their own rows: the manual reaches them through
+        // the group, so a section renders instead of "not a command".
+        for (multi, argv) in [("remote ssh", "remote ssh"), ("machine ssh", "machine ssh")] {
+            assert_eq!(help_argv(multi).join(" "), argv, "{multi}");
         }
     }
 

@@ -2,7 +2,7 @@
 
 ## State
 
-180 entries: 1 open, 1 partial, 0 blocked, 178 done.
+180 entries: 0 open, 1 partial, 0 blocked, 179 done.
 
 T-1403 and T-1401 closed on the relay landing. The multiplexed
 `reverse-v1` legs live in `crates/podbox-ssh` with the fake-relay

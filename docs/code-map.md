@@ -27,7 +27,8 @@ objects.
 | `scripts/dev.sh` | Fast local build and complete contributor check |
 | `scripts/windows/run-in-base.sh` | The Windows half of `dev.sh`: one Linux job in a disposable container inside `wsl-toolkit-podbox` |
 | `crates/podbox-cli/src/windows/` | The `podbox windows` verb, one module per question: `args` the flag surface, `plan` the paths and the accelerator, `doctor` the report, `setup` acquisition and the one provisioning boot, `run` the boot whose exit status is the guest's, `mod` the dispatch and the `run` seam |
-| `crates/podbox-cli/src/machine.rs` | The `podbox machine` group: usage, the `ssh` member, and the refusal naming the missing guest SSH endpoint |
+| `crates/podbox-cli/src/machine.rs` | The `podbox machine` group: usage, the `ssh` member booting a Linux guest with an SSH server on its serial line, and the refusals around it |
+| `crates/podbox-cli/src/remote/` | The `podbox remote` group: `ssh` with `serve`, `connect` and `forward` as thin dispatchers over the lane-built `node`, `operator` and `proxy` binaries |
 | `crates/podbox-ssh/` | The SSH transport and server: `transport` the dialects, `server` the probed server start, `pump` the byte path, `proxy` the stdio shuttle, `shims/fakepwd.c` the passwd shim with its licence |
 | `scripts/common/restore-modes.sh` | Executable-bit repair, read from the git index, for a tree copied off a filesystem with no mode bit |
 | `scripts/check-todo.py` | Independent TODO, citation, corpus, and gate consistency reader |

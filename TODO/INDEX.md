@@ -241,11 +241,11 @@ the blocker named and what would clear it.
 | [T-1401](podssh.md) | P1 | podssh | done | Prove the SSH transport and server in the current tree |
 | [T-1402](podssh.md) | P1 | podssh | done | Provide an interactive session without a pty |
 | [T-1403](podssh.md) | P1 | podssh | done | Prove concurrent sessions on one relay connection |
-| [T-1404](podssh.md) | P2 | podssh | open | Add the remote and machine SSH verbs after the transport holds |
+| [T-1404](podssh.md) | P2 | podssh | done | Add the remote and machine SSH verbs after the transport holds |
 
 ## Counts
 
-180 items: 1 open, 1 partial, 0 blocked, 178 done.
+180 items: 0 open, 1 partial, 0 blocked, 179 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -255,9 +255,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
 | P1 | 0 | 0 | 0 | 86 | 86 |
-| P2 | 1 | 0 | 0 | 32 | 33 |
+| P2 | 0 | 0 | 0 | 33 | 33 |
 | P3 | 0 | 1 | 0 | 8 | 9 |
-| **All** | **1** | **1** | **0** | **178** | **180** |
+| **All** | **0** | **1** | **0** | **179** | **180** |
 
 ## Work order
 

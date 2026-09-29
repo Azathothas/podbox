@@ -1,0 +1,42 @@
+== conditions
+date              2026-09-29T08:44:38Z
+host kernel       7.2.0-WSL2-STABLE
+dropbear          https://github.com/mkj/dropbear 59870ad43153fe8d4f1c96f5d5752116c94f31ff
+
+== 1. the bridge builds static and refuses without args
+zig: 0.16.0
+  ok: bridge built with zig 0.16.0
+  ok: bridge is statically linked: /tmp/tmp.dYodJhdjZ0/machine-bridge: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, with debug_i
+  ok: bridge with no args refuses with 125 and usage
+  ok: bridge with one arg refuses with 125 and usage
+
+== 2. bytes both ways and the server's exit code, through a pty
+fake-server case: bridge-exit=42 out=[bridge-42]
+  ok: the bridge moved the server's bytes and exited with its status 42
+pipelined case: bridge-exit=42 bytes-fed=64512
+  ok: bytes past the server's death still report the server's status 42
+
+== 3. the pinned server behind the bridge, banner through a pty tty
+  ok: dropbear source at 59870ad43153fe8d4f1c96f5d5752116c94f31ff
+  ok: static dropbear built (gcc-configure=0 gcc-make=0)
+Generating 256 bit ed25519 key, this may take a while...
+Public key portion is:
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJHeDFVOPm+gJg06bB6M/WKN2/IKJ3xGWyoVse7s2zXF root@8532c2f6331e
+Fingerprint: SHA256:CbjXPslREp9mTecdvSi1f6Ki55takaNtursqiwOocRk
+banner case: out-head=[SSH-2.0-dropbear_2026.941S^>;Xajsntrup761x25519-sha512,sntrup761x25519-sha512@op] bridge-state=running
+  ok: the pinned server's banner crossed the bridge on a pty line
+
+== 4. the failure edges: bad tty, bad server, signalled server
+  ok: an unopenable tty refuses with 125
+  ok: an unexecable server exits 127
+  ok: a signalled server exits 137
+
+== 5. the tty reaches raw mode under the bridge
+raw-mode case: pre-cooked=True raw=True cc=True
+  ok: the device starts cooked and the bridge leaves it raw with VMIN/VTIME pinned
+
+== 6. a dead tty half-closes the server instead of wedging it
+half-close case: echo-alive=True bridge-exit=0
+  ok: a dead tty releases the server with its status 0, no wedge
+
+verdict           BRIDGE-OK: the bridge builds static, splices both ways, and reports every status

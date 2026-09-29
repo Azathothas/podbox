@@ -1,0 +1,228 @@
+== conditions
+date              2026-09-29T07:30:56Z
+host kernel       7.2.0-WSL2-STABLE
+image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt
+dropbear          https://github.com/mkj/dropbear 59870ad43153fe8d4f1c96f5d5752116c94f31ff
+
+== 1. the lane-built binaries and the help paths
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded cpufeatures v0.3.1
+  Downloaded itoa v1.0.18
+  Downloaded crypto-common v0.2.2
+  Downloaded digest v0.11.3
+  Downloaded adler2 v2.0.1
+  Downloaded cfg-if v1.0.4
+  Downloaded percent-encoding v2.3.2
+  Downloaded form_urlencoded v1.2.2
+  Downloaded utf8_iter v1.0.4
+  Downloaded stable_deref_trait v1.2.1
+  Downloaded yoke-derive v0.8.2
+  Downloaded zerofrom v0.1.8
+  Downloaded potential_utf v0.1.6
+  Downloaded webpki-roots v0.26.11
+  Downloaded subtle v2.6.1
+  Downloaded untrusted v0.9.0
+  Downloaded filetime v0.2.29
+  Downloaded find-msvc-tools v0.1.12
+  Downloaded displaydoc v0.2.7
+  Downloaded idna_adapter v1.2.2
+  Downloaded tinystr v0.8.4
+  Downloaded zeroize v1.9.0
+  Downloaded zerofrom-derive v0.1.7
+  Downloaded synstructure v0.13.2
+  Downloaded smallvec v1.16.0
+  Downloaded writeable v0.6.4
+  Downloaded zerovec-derive v0.11.6
+  Downloaded rustls-pemfile v2.2.0
+  Downloaded quote v1.0.47
+  Downloaded shlex v2.0.1
+  Downloaded zmij v1.0.23
+  Downloaded block-buffer v0.12.1
+  Downloaded litemap v0.8.3
+  Downloaded getrandom v0.2.17
+  Downloaded hybrid-array v0.4.15
+  Downloaded crc32fast v1.5.1
+  Downloaded yoke v0.8.3
+  Downloaded rustls-pki-types v1.15.1
+  Downloaded twox-hash v2.1.4
+  Downloaded sha2 v0.11.0
+  Downloaded once_cell v1.21.4
+  Downloaded log v0.4.34
+  Downloaded icu_provider v2.3.1
+  Downloaded simd-adler32 v0.3.10
+  Downloaded proc-macro2 v1.0.107
+  Downloaded unicode-ident v1.0.24
+  Downloaded serde_derive v1.0.229
+  Downloaded flate2 v1.1.10
+  Downloaded icu_normalizer_data v2.3.0
+  Downloaded miniz_oxide v0.9.1
+  Downloaded base64 v0.22.1
+  Downloaded serde_core v1.0.229
+  Downloaded tar v0.4.46
+  Downloaded url v2.5.8
+  Downloaded zerotrie v0.2.5
+  Downloaded icu_collections v2.3.0
+  Downloaded icu_locale_core v2.3.0
+  Downloaded serde v1.0.229
+  Downloaded base64 v0.23.1
+  Downloaded cc v1.4.5
+  Downloaded icu_properties v2.3.0
+  Downloaded memchr v2.8.3
+  Downloaded rustls-webpki v0.103.15
+  Downloaded ruzstd v0.9.0
+  Downloaded syscalls v0.8.1
+  Downloaded typenum v1.20.1
+  Downloaded ureq v2.12.1
+  Downloaded zerovec v0.11.8
+  Downloaded idna v1.1.0
+  Downloaded serde_json v1.0.151
+  Downloaded icu_properties_data v2.3.0
+  Downloaded webpki-roots v1.0.9
+  Downloaded zlib-rs v0.6.7
+  Downloaded syn v2.0.119
+  Downloaded syn v3.0.5
+  Downloaded rustls v0.23.45
+  Downloaded icu_normalizer v2.3.0
+  Downloaded libc v0.2.189
+  Downloaded ring v0.17.14
+  Downloaded linux-raw-sys v0.12.1
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling cfg-if v1.0.4
+   Compiling stable_deref_trait v1.2.1
+   Compiling libc v0.2.189
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.12
+   Compiling zeroize v1.9.0
+   Compiling syscalls v0.8.1
+   Compiling untrusted v0.9.0
+   Compiling serde_core v1.0.229
+   Compiling linux-raw-sys v0.12.1
+   Compiling litemap v0.8.3
+   Compiling rustls v0.23.45
+   Compiling zmij v1.0.23
+   Compiling writeable v0.6.4
+   Compiling subtle v2.6.1
+   Compiling serde_json v1.0.151
+   Compiling log v0.4.34
+   Compiling once_cell v1.21.4
+   Compiling icu_properties_data v2.3.0
+   Compiling utf8_iter v1.0.4
+   Compiling icu_normalizer_data v2.3.0
+   Compiling cc v1.4.5
+   Compiling rustls-pki-types v1.15.1
+   Compiling typenum v1.20.1
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling smallvec v1.16.0
+   Compiling base64 v0.23.1
+   Compiling crc32fast v1.5.1
+   Compiling simd-adler32 v0.3.10
+   Compiling percent-encoding v2.3.2
+   Compiling adler2 v2.0.1
+   Compiling serde v1.0.229
+   Compiling cpufeatures v0.3.1
+   Compiling base64 v0.22.1
+   Compiling twox-hash v2.1.4
+   Compiling miniz_oxide v0.9.1
+   Compiling form_urlencoded v1.2.2
+   Compiling podbox-probe v0.1.0-beta.9 (/work/crates/podbox-probe)
+   Compiling ruzstd v0.9.0
+   Compiling webpki-roots v1.0.9
+   Compiling rustls-pemfile v2.2.0
+   Compiling webpki-roots v0.26.11
+   Compiling flate2 v1.1.10
+   Compiling syn v2.0.119
+   Compiling syn v3.0.5
+   Compiling hybrid-array v0.4.15
+   Compiling getrandom v0.2.17
+   Compiling filetime v0.2.29
+   Compiling podbox-enter v0.1.0-beta.9 (/work/crates/podbox-enter)
+   Compiling tar v0.4.46
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling ring v0.17.14
+   Compiling digest v0.11.3
+   Compiling sha2 v0.11.0
+   Compiling podbox-windows v0.1.0-beta.9 (/work/crates/podbox-windows)
+   Compiling synstructure v0.13.2
+   Compiling podbox-cli v0.1.0-beta.9 (/work/crates/podbox-cli)
+   Compiling zerovec-derive v0.11.6
+   Compiling displaydoc v0.2.7
+   Compiling serde_derive v1.0.229
+   Compiling zerofrom-derive v0.1.7
+   Compiling yoke-derive v0.8.2
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.3
+warning: podbox-cli@0.1.0-beta.9: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.9: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling zerovec v0.11.8
+   Compiling zerotrie v0.2.5
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.3.0
+   Compiling icu_locale_core v2.3.0
+   Compiling icu_provider v2.3.1
+   Compiling rustls-webpki v0.103.15
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling ureq v2.12.1
+   Compiling podbox-ssh v0.1.0-beta.9 (/work/crates/podbox-ssh)
+   Compiling podbox-image v0.1.0-beta.9 (/work/crates/podbox-image)
+   Compiling podbox-extract v0.1.0-beta.9 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0-beta.9 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0-beta.9 (/work/crates/podbox-complete)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 17.98s
+  ok: cargo build -p podbox-cli -p podbox-ssh --bins exit 0
+  ok: podbox learns its version: podbox 0.1.0-beta.9
+  ok: podbox machine: usage with 0
+  ok: podbox machine -h: usage with 0
+  ok: podbox machine ssh -h: usage with 0
+  ok: machine ssh with no flags refused with 125 naming --kernel
+  ok: machine ssh with missing files refused with 125 naming the path
+  ok: machine ssh --podbox-timeout 0 refused with 125
+  ok: machine ssh --bogus refused with 125
+
+== 2. a static dropbear from the pinned commit
+  ok: dropbear source at 59870ad43153fe8d4f1c96f5d5752116c94f31ff
+  ok: static dropbear built with cc (Debian 12.2.0-14+deb12u1) 12.2.0
+  ok: dropbear is statically linked: /tmp/tmp.uJZOhWPYsx/dropbear-src/dropbear: ELF 64-bit LSB executable, x86-64, version 1 (GNU/Linux), statically linked, 
+
+== 3. the socket bridge (owned, static, beside the pristine server)
+zig: 0.16.0
+  ok: static bridge built with zig 0.16.0
+  ok: bridge is statically linked: /tmp/tmp.uJZOhWPYsx/machine-bridge: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, with debug_i
+
+== 4. the guest assembly
+Generating 256 bit ed25519 key, this may take a while...
+Public key portion is:
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINawjPeKYXmN0viqcGV/0i2PBrHTAe5k/bOT8Von88u6 root@dedb25a87855
+Fingerprint: SHA256:X+noCE6Atc3L3UjSHGjoa5mtErdGauqtkONUWJ+38Y4
+  the base carries no dev/ttyS0: appending the node archive
+  ok: assembly: 11425476 bytes
+  ok: the base archive carries sbin/dropbear
+  ok: the base archive carries sbin/machine-bridge
+  ok: the base archive carries etc/dropbear/hostkey
+  ok: the base archive carries root/.ssh/authorized_keys
+  ok: the extras archive carries init
+  ok: the extras archive carries dev/console
+  ok: the node archive carries dev/ttyS0
+/tmp/tmp.uJZOhWPYsx/vmlinuz-virt: OK
+  ok: kernel matches the pin
+
+== 5. one SSH command in the guest podbox boots
+  ok: the guest ran the commands with exit 0, placed itself, and is root
+  ok: exit 42 passed through
+
+== 6. the wait is bounded and nothing remains
+  ok: the 1 s run stopped with 125, not a hang
+  ok: no per-run directory remains
+  ok: no run process remains
+  ok: parity carries the machine ssh rows
+verdict           MACHINE-OK: serial SSH drives a real guest command with its exit code

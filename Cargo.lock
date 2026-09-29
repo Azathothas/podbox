@@ -387,6 +387,14 @@ dependencies = [
 [[package]]
 name = "podbox-ssh"
 version = "0.1.0-beta.9"
+dependencies = [
+ "base64 0.23.1",
+ "podbox-probe",
+ "rustls",
+ "rustls-pemfile",
+ "serde_json",
+ "webpki-roots 1.0.9",
+]
 
 [[package]]
 name = "podbox-supervise"
