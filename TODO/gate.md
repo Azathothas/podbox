@@ -1832,3 +1832,35 @@ Prove:       `py experiments/398-gate-diagnostics.py --powershell` exits 0
 restores truncation and loses that message. Clean controls and JSON verdicts
 pass. Both runners report an unavailable twin as skipped.
 [The proof](../experiments/results/gate-diagnostics.txt) records both platforms.
+
+----
+
+### T-1422 Plant the kept-session check where the OS execs batch files
+
+Source:      this session's plant run; `scripts/plant.sh:455`
+Category:    gate
+Priority:    P2
+Effort:      S
+Status:      done
+
+Problem:     Plant case 29b misses on Windows. Its mockbin vehicle is an
+             extensionless script, and Windows `CreateProcess` rejects it
+             with WinError 193, so `check-todo.py` records "the lane-job
+             ledger could not be read" and never names `plant-session`.
+             The gate check itself works: it named every real kept job
+             this session.
+Premise:     `check-todo.py` invokes `wsl-toolkit` through `subprocess`
+             with no shell, so the mock must resolve to a vehicle the OS
+             can exec. `shutil.which` prefers the runnable form per OS.
+Approach:    Ship a `.bat` twin of the mock beside the extensionless one
+             and leave the assertion (red, names `plant-session`, base
+             quiet) unchanged.
+Decision:    Both vehicles stay. The plant asserts the gate, not the OS.
+Prove:       `sh scripts/plant.sh` exits 0 with 44 caught, 0 missed,
+             and 4 quiet controls.
+
+**Done 2026-09-30.** Both mocks ship; `which` takes the `.bat` on
+Windows and the extensionless script elsewhere. The plant run is green
+end to end ([the log](../experiments/results/plant-2026-09-30.txt)).
+The minimal repro is an extensionless mock through `subprocess.run`
+raising where the `.bat` twin returns the ledger JSON.

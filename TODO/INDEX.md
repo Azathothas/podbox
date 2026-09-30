@@ -262,10 +262,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1419](image.md) | P1 | image | done | Pull-missing verifies the blobs it trusts |
 | [T-1420](image.md) | P2 | image | done | Transport errors name the host once |
 | [T-1421](supervise.md) | P1 | supervise | done | A foreground run leaves a container record |
+| [T-1422](gate.md) | P2 | gate | done | Plant the kept-session check where the OS execs batch files |
 
 ## Counts
 
-201 items: 0 open, 2 partial, 0 blocked, 199 done.
+202 items: 0 open, 2 partial, 0 blocked, 200 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -275,9 +276,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 53 | 53 |
 | P1 | 0 | 2 | 0 | 101 | 103 |
-| P2 | 0 | 0 | 0 | 37 | 37 |
+| P2 | 0 | 0 | 0 | 38 | 38 |
 | P3 | 0 | 0 | 0 | 8 | 8 |
-| **All** | **0** | **2** | **0** | **199** | **201** |
+| **All** | **0** | **2** | **0** | **200** | **202** |
 
 ## Work order
 

@@ -454,6 +454,10 @@ case_plant "29 a dropped cleanup procedure" "post-task cleanup procedure" \
 
 # The lane report is external state. Supply one kept session through a tool
 # fixture and assert that check 29 names it. The fixture changes no repo file.
+# Two vehicles: the extensionless script runs where the OS execs shebangs,
+# and the .bat runs where it does not (Windows CreateProcess rejects an
+# extensionless script with WinError 193, so the mock never intercepts and
+# the case reads as a miss). `which` prefers the form it can run on each.
 mkdir -p "$BACKUP/mockbin"
 cat >"$BACKUP/mockbin/wsl-toolkit" <<'EOF'
 #!/bin/sh
@@ -461,6 +465,14 @@ cat >"$BACKUP/mockbin/wsl-toolkit" <<'EOF'
 printf '%s\n' '{"schema":"wsl-toolkit-cleanup/1","dry_run":true,"containers":null,"guest_dirs":null,"host_dirs":null,"sessions":["plant-session"]}'
 EOF
 chmod +x "$BACKUP/mockbin/wsl-toolkit"
+cat >"$BACKUP/mockbin/wsl-toolkit.bat" <<'EOF'
+@echo off
+if "%*"=="--instance podbox gc --json" (
+  echo {"schema":"wsl-toolkit-cleanup/1","dry_run":true,"containers":null,"guest_dirs":null,"host_dirs":null,"sessions":["plant-session"]}
+  exit /b 0
+)
+exit /b 2
+EOF
 out="$(PATH="$BACKUP/mockbin:$PATH" "$GATE" 2>&1)"; rc=$?
 if [ "$rc" -ne 0 ] && [ "${out#*lane job still kept: plant-session}" != "$out" ] &&
    [ "${base_out#*lane job still kept: plant-session}" = "$base_out" ]; then

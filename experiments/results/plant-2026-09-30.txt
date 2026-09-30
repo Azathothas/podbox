@@ -1,0 +1,66 @@
+== baseline: the gate on the clean tree
+  exit 0
+
+== plants
+  ok   1 row without an entry             red, and it named it
+  ok   2 entry without a row              red, and it named it
+  ok   3 status disagreement              red, and it named it
+  ok   4 count block is stale             red, and it named it
+  ok   5 a missing field                  red, and it named it
+  ok   6 a corpus tree the map lost       red, and it named it
+  ok   7 a citation past end of file      red, and it named it
+  ok   8 a TODO link to nothing           red, and it named it
+  ok   9 a T-NNNN naming nothing          red, and it named it
+  ok   10 PROGRESS count is stale         red, and it named it
+  ok   11 a tree citation past EOF        red, and it named it
+  ok   12 a link out of README            red, and it named it
+  ok   13 a tenth dangling link           red, and it named it
+  ok   14 a bare path naming nothing      red, and it named it
+  ok   15 tracked experiment scratch      red, and it named it
+  ok   17a the ceiling in a second file   red, and it named it
+  ok   17b a baseline over the ceiling    red, and it named it
+  ok   17c a baseline with no total       red, and it named it
+  ok   17d a shipped reading over the ceiling red, and it named it
+  ok   18a a Prove at a taken number      red, and it named it
+  ok   18b a second script on disk        red, and it named it
+  ok   19a a build job without its toolchain red, and it named it
+  ok   19b the same, reached by a script  red, and it named it
+  ok   20 a second exit-code declaration  red, and it named it
+  ok   21a an unqualified image in a Prove line red, and it named it
+  ok   21b a docker.io image in a Prove line red, and it named it
+  ok   22 a closed entry with no recorded run red, and it named it
+  ok   23a an interpose object over the ceiling red, and it named it
+  ok   23b an interpose reading with no sizes red, and it named it
+  ok   24 the export comparison removed   red, and it named it
+  ok   25 the SKIP arm retargeted         red, and it named it
+  ok   26a a done Prove naming a refused flag red, and it named it
+  ok   26b a done Prove naming an unlisted flag red, and it named it
+  ok   26c a done Prove running a refused verb red, and it named it
+  ok   26d a done Prove running an unknown verb red, and it named it
+  ok   26e a done Prove with a bad cluster member red, and it named it
+  ok   27a a parity note leaning on a shipped milestone red, and it named it
+  ok   27b a parity note missing a present verb red, and it named it
+  ok   27c a curated flag with no parity row red, and it named it
+  ok   28 a glyph in a printed string     red, and it named it
+  ok   29 a dropped cleanup procedure     red, and it named it
+  ok   29b a kept lane session            red, and it named it
+  ok   30 a perf reading over its ceiling red, and it named it
+
+  ok   31 source state differs            red, and it named it
+== not planted against
+  16 coverage floor    no case. Planting it means making a check examine
+                       nothing, which requires editing check-todo.py's own
+                       matchers rather than the tree. Every other check's
+                       counter is asserted non-zero on every run instead,
+                       and a zero is reported as a failure.
+
+== controls
+  ok   an ordinary prose edit             quiet, as a control must be
+  ok   a citation that does resolve       quiet, as a control must be
+  ok   a forward reference to a result    quiet, as a control must be
+  ok   a payload-side flag after the image quiet, as a control must be
+
+== verdict
+  plants   44 caught, 0 missed
+  controls 4 quiet, 0 fired
+  every check that was planted against went red with its own message.
