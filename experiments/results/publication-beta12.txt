@@ -1,0 +1,10 @@
+== conditions
+2026-09-30T14:57:51.248705+00:00
+Scope: remote refs, workflow conclusions, and complete asset names.
+Signature content verification uses scripts/verify-release.sh separately.
+local commit: 067c0ce547aca156d132aaaa398677d5cd835009
+gate.yml: success https://github.com/Azathothas/podbox/actions/runs/36730490273
+release commit: 067c0ce547aca156d132aaaa398677d5cd835009
+nightly.yml: success https://github.com/Azathothas/podbox/actions/runs/36731088912
+release: https://github.com/Azathothas/podbox/releases/tag/v0.1.0-beta.12; 7 architectures; 42 required non-empty assets
+verdict PUBLICATION-OK

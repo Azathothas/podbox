@@ -1,0 +1,158 @@
+== conditions
+date              2026-09-30T15:04:36Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+binary            7ef3cf35f632e083bbec2f34fadad69431be2d4c9acc620422672736e379328e
+step version exit 0
+
+== pull
+exit              0
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Pull complete
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  podbox: probed this machine rather than using the cache: /work/exercise12/store/probe.json does not exist yet
+
+== run
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/exercise12/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/exercise12/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  exercise-hi
+
+== missing
+exit              127
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/exercise12/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/exercise12/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox run: "/nonexistent-12": the payload could not be started: execve of every candidate path failed with ENOENT (2)
+
+== workdir
+exit              125
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/exercise12/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/exercise12/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox run: the working directory "/no/such/dir-12" for image "public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc" is not a directory in the image: docker creates it, and podbox refuses it instead, naming it (TODO/enter.md T-1412)
+
+== pull-debian
+exit              0
+output:
+  bookworm-slim: Pulling from debian/debian
+  a8ac7f6c67ab: Pull complete
+  Digest: sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+  Status: Downloaded newer image for public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+
+== readlink
+exit              0
+output:
+  a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
+  podbox: 10 of 4224 entries carry an id this machine cannot apply; what the image intended is in /work/exercise12/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+  podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/exercise12/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+  /usr/bin/readlink
+
+== inspect
+exit              0
+output:
+  /bin/sh
+
+== images
+exit              0
+output:
+  REPOSITORY                             TAG             IMAGE ID       CREATED        SIZE (STORED)
+  public.ecr.aws/debian/debian           bookworm-slim   160466e67bb8   1 month ago    26.9 MiB
+  public.ecr.aws/docker/library/alpine   3.20            bf8527eb54c3   5 months ago   3.5 MiB
+
+== verify
+exit              0
+output:
+  registry: public.ecr.aws
+  repository: public.ecr.aws/docker/library/alpine
+  tag: 3.20
+  manifest: sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+  pulled-at: 2026-09-30T15:04:40Z
+  podbox-version: 0.1.0-beta.12
+  OK public.ecr.aws/docker/library/alpine:3.20 (4 blobs)
+  verify: 4 blobs checked, 0 mismatched
+
+== strict
+exit              125
+output:
+  podbox run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox run: --strict, and this run is degraded in 1 safety-relevant way(s). podbox refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415):
+    - [safety] the selected rung is `chroot` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+
+== save
+exit              0
+output:
+  podbox save: saved public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc as 3 blobs (3.5 MiB bytes), digest sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+  /work/exercise12/work/pack.tar
+
+== load
+exit              0
+output:
+  Loaded image: public.ecr.aws/docker/library/alpine:3.20
+
+== packrun
+exit              0
+output:
+  pack-hi
+
+== detached
+exit              0
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Already exists
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Image is up to date for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/exercise12/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/exercise12/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  1a26dbef19599255002b26b5676063af7d7c5cb2aad26426f9ce9bf73bdbfd38
+
+== ps
+exit              0
+output:
+  CONTAINER ID   IMAGE                                                                                                               COMMAND    CREATED                STATUS   NAMES
+  1a26dbef1959   public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sleep 60   2026-09-30T15:04:52Z   Up       ex12
+
+== logs
+exit              0
+output:
+
+== stop
+exit              0
+output:
+  ex12
+
+== rm
+exit              0
+output:
+  ex12
+helper node present
+helper operator present
+helper proxy present
+helper shell present
+
+verdict           RELEASE BINARY EXERCISED

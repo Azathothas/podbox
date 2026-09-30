@@ -2,7 +2,7 @@
 
 ## State
 
-203 entries: 1 open, 2 partial, 0 blocked, 200 done.
+203 entries: 0 open, 2 partial, 0 blocked, 201 done.
 
 The 2026-09-30 repository audit is complete in source and records.
 T-1348, T-1349, and T-1351 are complete. T-1350 lacks a successful current
@@ -83,8 +83,7 @@ Read each entry's exact proof and referenced source before implementation.
 ## Publication
 
 Beta.10 is published at build commit `d6cb926`. Beta.11 is published
-with a version-string defect: its binary reports beta.10. Beta.12
-carries twenty closures plus the string fix: T-1003, T-1401, T-1405,
-T-1406 through T-1421, T-1422, and T-1423.
-Tag `v0.1.0-beta.12` only after green CI for the exact source commit.
+with a version-string defect: its binary reports beta.10. Beta.12 is
+published at build commit `067c0ce` with twenty-one closures: T-1003,
+T-1401, T-1405, T-1406 through T-1421, T-1422, and T-1423.
 No operator decision is pending.

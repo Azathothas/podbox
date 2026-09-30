@@ -616,7 +616,7 @@ Source:      beta.11 publication; `.github/workflows/nightly.yml`;
 Category:    packaging
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Tag `v0.1.0-beta.11` built with the manifest still reading
              `0.1.0-beta.10`, so the published binary reports the wrong
@@ -634,3 +634,18 @@ Prove:       The nightly workflow is green on tag `v0.1.0-beta.12`; the
              fresh binary reports `0.1.0-beta.12`; the bundles verify;
              the lane exercise runs version, pull, run, and the closure
              acceptances on it.
+
+**Done 2026-09-30.** The manifest reads `0.1.0-beta.12` with the lock,
+the nightly build refuses a mismatched tag before one arch builds
+(proven both ways: beta.12 matches, beta.11 refuses), and the source
+snapshot is regenerated. The nightly workflow is green on the tag
+([the matrix proof](../experiments/results/publication-beta12.txt)):
+7 architectures, 42 assets at build commit `067c0ce`. Both bundles
+verify ([binary](../experiments/results/binary-release-beta12.txt),
+[SSH](../experiments/results/ssh-release-beta12.txt)). The fresh
+binary reports `0.1.0-beta.12`, and the lane exercise runs version,
+pull, run, 127/125 refusals, the exact exe answer, inspect, verify,
+strict-safety refusal, the pack round-trip, the detached cycle, and
+the four helpers green
+([the drive](../experiments/results/exercise-beta12.txt)). Beta.11
+stays published with its defect recorded; no history was rewritten.

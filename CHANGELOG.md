@@ -6,9 +6,9 @@ Earlier repository change records are retained in
 [the captured changelog](docs/history/CHANGELOG.md-before-2026-09-30.txt).
 They describe their recorded revision, not the current build.
 
-## Unreleased: 0.1.0-beta.12
+## 0.1.0-beta.12
 
-- The release tag names the workspace version again. Beta.11's binary
+- The release tag names the workspace version. Beta.11's binary
   reports beta.10; the nightly build now refuses a mismatched tag
   before one arch builds. See T-1423.
 
