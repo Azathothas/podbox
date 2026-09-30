@@ -2,9 +2,8 @@
 # plant.sh - break each of the gate's checks on purpose and assert it goes red.
 #
 # ⛔ AN ASSERTION NOBODY HAS SEEN FAIL IS NOT AN ASSERTION. `check-todo.py`
-# carries twenty-nine checks and this script carries forty-three cases, because
-# check 17 has four assertions that fail apart, checks 18, 19, 21 and 23
-# two each, and checks 26 and 27 five and three. A check that
+# compares task records, source declarations, and repository invariants.
+# Several checks need more than one plant. A check that
 # quietly matches nothing exits 0 exactly like one whose assertions all passed,
 # and the second is what everybody assumes they are looking at. This script is
 # what tells them apart.
@@ -49,7 +48,7 @@ command -v git >/dev/null 2>&1 || { echo "SKIP: no git" >&2; exit 2; }
 
 # ⛔ GUARD 3: ONE LIST. Everything any case may touch is named here once, and
 # both the backup and the restore iterate this and nothing else.
-FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/enter.md TODO/RULES.md TODO/reference-map.md README.md docs/conventions/prose.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt experiments/360-perf-harness.sh experiments/perf-ceilings.tsv experiments/results/perf-lane.txt experiments/results/perf-seeds.tsv .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs crates/podbox-cli/src/parity.rs crates/podbox-cli/src/run.rs scripts/build-interpose.sh scripts/dev.sh"
+FILES="TODO/INDEX.md TODO/PROGRESS.md TODO/probe.md TODO/enter.md TODO/RULES.md TODO/reference-map.md README.md docs/conventions/prose.md docs/runtime-state.md experiments/110-bloat-delta.sh experiments/results/bloat-baseline.txt experiments/results/bloat-image.txt experiments/results/bloat-interpose.txt experiments/360-perf-harness.sh experiments/perf-ceilings.tsv experiments/results/perf-lane.txt experiments/results/perf-seeds.tsv .github/workflows/gate.yml crates/podbox-supervise/src/lib.rs crates/podbox-cli/src/parity.rs crates/podbox-cli/src/run.rs scripts/build-interpose.sh scripts/dev.sh"
 
 # ⛔ CHECK 18'S SUBJECT IS A NUMBER THAT IS ALREADY TAKEN, so writing one here
 # literally would put a second name on it in this very file and make the clean
@@ -483,6 +482,9 @@ echo
 # ⛔ SAY WHAT IS NOT COVERED. A harness that lists passing cases without naming
 # the check that has none implies a coverage it does not have, which is the same
 # vacuity it exists to catch.
+case_plant "31 source state differs" "source state differs" \
+  sh -c 'printf "\nStale generated state.\n" >> docs/runtime-state.md'
+
 echo "== not planted against"
 echo "  16 coverage floor    no case. Planting it means making a check examine"
 echo "                       nothing, which requires editing check-todo.py's own"

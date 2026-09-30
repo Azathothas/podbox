@@ -1,0 +1,25 @@
+== conditions
+2026-09-30T05:08:39Z
+host: Windows 11 Pro 10.0.26200, Git Bash; tree: 005638d plus the staged audit
+command: sh scripts/common/check-gate.sh --strict
+Status glyphs are replaced with ASCII labels: [ok], [warn].
+
+
+  [ok] ok    check-docs
+  [ok] ok    check-markers
+  [ok] ok    check-one-home
+  [ok] ok    check-placeholders
+  [ok] ok    check-control-bytes
+  [ok] ok    check-changelog
+  [ok] ok    check-attribution
+  [ok] ok    check-no-secrets
+  [ok] ok    check-no-secrets --public
+  [ok] ok    check-remote-items
+  [ok] ok    check-twins
+
+11 checks: 11 passed, 0 failed, 0 skipped
+[ok] nothing failed.
+[warn] That is part (a) of the gate only. Driving the real thing and the
+deep reviews are the other two, and each is blind to what this catches.
+docs/methodology/gate.md.
+exit: 0

@@ -1,76 +1,49 @@
 # Third-party material
 
-podbox itself is [0BSD](LICENSE). That license does not relicense anyone else's
-work. Copied files and the redistributed research corpus retain their original
-terms and notices.
+Project-owned work is [0BSD](LICENSE).
+Copied material retains its own licence and notices.
+[reference-map](TODO/reference-map.md) records each captured source decision.
 
-[`TODO/reference-map.md`](TODO/reference-map.md) records the per-tree license
-determination, captured revision, and permitted use for every reference.
+## Imported documents and scripts
 
-## Template material copied into the project
-
-| Material | Source revision | License | Adaptation |
+| Material | Source revision | Licence | Adaptation |
 | --- | --- | --- | --- |
-| `docs/conventions/`, `docs/methodology/`, `docs/security/` | `Azathothas/TEMPLATE` at `6206166`, through `Azathothas/container-research` at `0f155e3` | 0BSD | Two unused competing work-model pages retired; router moved to the project root |
-| `docs/agent-tooling.md`, `docs/containers.md`, `docs/hosted-sessions.md`, `docs/methodology/lean-adoption.md`, `docs/public/README.md`, `docs/history/twins-and-scripts.md` | `Azathothas/TEMPLATE` commit `ea26c7d91a087a7132f56034fb77f8d40d7766cb` | 0BSD | Paths integrated into the podbox document set |
-| `scripts/README.md`, `scripts/doctor/`, and maintained files in `scripts/common/` | same current template revision | 0BSD | Corpus-aware scope added where immutable references must not be rewritten |
-| `.editorconfig`, `.gitattributes`, `.githooks/commit-msg`, `.github/dependabot.yml`, `.github/workflows/remote-items.yml` | same current template revision | 0BSD | Package ecosystems and workflow paths adapted to this Rust project |
-| Seeded experiment scripts 10 through 50, `experiments/Dockerfile.target`, `experiments/targetfs.sh`, and `experiments/src/` | `Azathothas/container-research` at `0f155e3` | 0BSD | Extended by project-owned experiments and results |
+| Initial conventions, methodology, and security pages | TEMPLATE `6206166`, through container-research `0f155e3` | 0BSD | Project router and work model |
+| Tooling, container, public-document pages, common checks, doctor scripts, hook, and repository settings | TEMPLATE commit `ea26c7d91a087a7132f56034fb77f8d40d7766cb` | 0BSD | Rust paths, corpus exclusions, Windows lane |
+| Initial experiments 10 through 50 and target reconstruction | container-research `0f155e3` | 0BSD | Project measurements and proof |
 
-The template license is retained at
-[`references/Azathothas__TEMPLATE/tree/LICENSE`](references/Azathothas__TEMPLATE/tree/LICENSE).
-`AGENTS.md`, the root public documents, architecture, code map, progress record,
-and migration history are podbox's own work following the template's roles.
+The template notice is retained in
+[its captured LICENSE](references/Azathothas__TEMPLATE/tree/LICENSE).
+The live runbooks were revised on 2026-09-30 for the actual project workflow.
+They are adapted documents, not unchanged template copies.
 
-The common marker, documentation, one-home, and public-safety checks ignore
-`references/` where applying project prose or fingerprint rules would require
-editing a pinned third-party tree. Experiment results remain tracked evidence
-and are not silently normalized.
+## Reference corpus
 
-## Redistributed reference corpus
+Reference source is not compiled into the runtime.
+Each capture has provenance, retained notices, and an explicit scope.
+The complete licence table has one home in
+[reference-map](TODO/reference-map.md).
+Selected captures state their omissions. They are not complete source trees.
 
-Nothing under `references/` is compiled into podbox or placed on a runtime code
-path. Each tree is a captured upstream revision with its own `PROVENANCE.md` and
-license material where upstream provided it.
-
-Some trees were trimmed by deleting uncited vendored dependencies, test
-corpora, binary archives, or agent instruction files. No license,
-notice, or copyright file was removed.
-The exact trims and determinations are in
-[`TODO/reference-map.md`](TODO/reference-map.md).
-
-| License | Trees |
-| --- | --- |
-| MIT | `VHSgunzo__pathmap`, `fritzw__ld-preload-open`, `qaidvoid__onelf`, `io12__userland-execve-rust`, `VHSgunzo__ulexec`, `pkgforge-dev__cross-libc-dlopen`, `RuriOSS__ruri`, `RuriOSS__rurima`, `VHSgunzo__sharun`, `VHSgunzo__runimage`, `Azathothas__bit-cli`, `talaria0101__sandssh`, `talaria0101__dropssh` |
-| Apache-2.0 | `indigo-dc__udocker`, `compforge__pathshim`, `multikernel__sandlock`, `containers__storage`, `containers__podman` |
-| 0BSD | `Azathothas__TEMPLATE`, `Azathothas__container-research` |
-| BSD-3-Clause and others listed by upstream | `apptainer__apptainer` |
-| Split MIT and GPL-3.0 | `mhx__dwarfs` |
-| LGPL-2.1 | `containers__bubblewrap`, `dex4er__fakechroot` |
-| GPL-2.0 | `proot-me__proot` |
-| GPL-3.0 | `89luca89__lilipod`, `garywill__treesandbox`, `salsa-debian__fakeroot` |
-| Declared in `Cargo.toml` only, no license file captured | `VHSgunzo__memfd-exec`, `novafacing__memfd-exec` |
-| No license found | `ylang-ylang__dockless` |
-| Not applicable; repository absent | `VHSgunzo__userland-execve` |
-
-Copyleft and unlicensed reference trees are studied, not copied into podbox.
-[T-0909](TODO/deps.md) closed 2026-09-22: neither `memfd-exec` tree is
-vendored, and `io12/userland-execve-rust` is vendored whole below.
+Project prose checks exclude immutable reference text.
+Saved project results remain in scope.
+Private path substitutions in a published result must be stated explicitly.
 
 ## Vendored source
 
-Third-party source compiled or carried for compilation in this tree. Each
-row retains its original licence and notices.
-
-| Path | Upstream commit | Licence | State |
+| Path | Captured source | Licence | Current state |
 | --- | --- | --- | --- |
-| `vendor/userland-execve` | `io12/userland-execve-rust` at `02ef0e0` | MIT (`LICENSE` present) | whole and unpatched: six source files plus `LICENSE`, `Cargo.toml`, `README.md`, byte-identical to the corpus tree. Not compiled yet; [T-1003](TODO/packaging.md) patches its `goblin` and `nix` pins out when it wires the ladder. Retire check: `diff -r references/io12__userland-execve-rust/tree/src vendor/userland-execve/src` with `cmp` of the three root files. |
-| `crates/podbox-ssh/shims/fakepwd.c` | `talaria0101/sandssh` at `4fc7f8c` | MIT (`LICENSE` present beside it) | one file, unpatched, byte-identical to `references/talaria0101__sandssh/tree/shims/fakepwd.c`. Gives `getpwnam` answers to an SSH server where no passwd database exists. Retire check: `cmp crates/podbox-ssh/shims/fakepwd.c references/talaria0101__sandssh/tree/shims/fakepwd.c`. |
+| `vendor/userland-execve` | io12/userland-execve-rust `02ef0e0` | MIT; LICENSE retained | Source retained. Its manifest has removed dependencies. It is not a workspace member or an enter dependency and is not linked. |
+| `crates/podbox-ssh/shims/fakepwd.c` | sandssh `4fc7f8c` | MIT; adjacent LICENSE retained | Source retained. No current workspace build compiles or links it. Restricted-server use remains proof work in T-1401. |
+
+Do not describe retained source as the active userland loader.
+The native loader is in `crates/podbox-enter/src/userland.rs`.
 
 ## Build dependencies
 
-Rust dependencies are resolved through `Cargo.lock` and fetched by Cargo; their
-source is not vendored into this repository. The workspace manifest records
-why each dependency family was selected, and [`TODO/deps.md`](TODO/deps.md)
-links the measured size and licensing decisions. Release packaging must produce
-the final dependency-license inventory before M7 can close.
+Cargo resolves registry source through `Cargo.lock`.
+[Source state](docs/runtime-state.md) lists enabled direct dependencies.
+[deps](TODO/deps.md) retains the selection measurements.
+[release-licenses.py](scripts/release-licenses.py) retains the locked package
+licence texts in each SSH helper archive.
+Rebuild that inventory for a release whose dependency set changed.

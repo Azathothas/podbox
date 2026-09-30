@@ -1,5 +1,8 @@
 # complete
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `crates/podbox-complete`. `TOOL.md` section 6.4, milestone M5.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
@@ -1392,7 +1395,7 @@ host, chroot-capable host, chroot-denied host); the Status paragraph
 regenerated from `TODO/PROGRESS.md` (M0 through M8 implemented); the
 auth line replaced with the actual unsupported scope (`login`
 Native, `logout` not implemented). Prove, lane job
-`.tmp/pb-w24-prove.sh`, verdict `fail=0`: on a fresh container the
+[`pb-w24-prove`](../docs/history/lane-proofs-2026-09-23/pb-w24-prove.txt), verdict `fail=0`: on a fresh container the
 verbatim quick start runs green, a Debian dynamic payload runs with
 rc 0 and no `declined` anywhere, and `system info` reports `glibc
 and musl objects embedded`. Host greps: `M7 packaging has not

@@ -1,5 +1,8 @@
 # cli
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `crates/podbox-cli`. `TOOL.md` section 6.8 and section 6.9.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
@@ -915,7 +918,7 @@ Problem:     `cp` only addresses `container:path`, and `run` leaves no
              option with the same checks has no entry.
 Premise:     Measured by the reporter: `cp alpine:latest:/etc/os-release`
              refuses ("no such container"), `create`+`cp` works only
-             where `start` works, and raw store writes bypass every
+             where `start` works, and raw store writes omit every
              check. The containment machinery (`podbox-extract` safety
              module) and the extract walker already exist to make both
              halves safe.
@@ -947,7 +950,7 @@ every real rootfs carries such absolute links (TODO/extract.md
 T-0305 settled this for extraction: absolute targets replicate, never
 resolve). What refuses instead is a destination through a
 pre-existing symlink, which would land where the link points.
-Lane prove `.tmp/pb-w23c-prove.sh`, verdict `fail=0`:
+Lane prove [`pb-w23c-prove`](../docs/history/lane-proofs-2026-09-23/pb-w23c-prove.txt), verdict `fail=0`:
 `cp IMAGE:/etc/os-release` retrieves Alpine bytes with pull only (no
 extract, no container); `cp -r IMAGE:/etc` lands 45 files plus 4
 symlinks with `mtab` a link to `/proc/mounts` verbatim against the
@@ -1011,7 +1014,7 @@ pinned by unit test. Prune's local `a`/`f` splitter is gone, replaced
 by the shared rule, and check 26 expands the same way from the same
 lists, with its own plant case. The work also found one dead arm:
 `system info` accepted `-f` with no table row; the row carries both
-spellings now. Lane prove `.tmp/pb-w30-prove.sh`, verdict `fail=0`:
+spellings now. Lane prove [`pb-w30-prove`](../docs/history/lane-proofs-2026-09-23/pb-w30-prove.txt), verdict `fail=0`:
 cluster units by exact name, the pre-existing flag tests unchanged,
 clippy clean, `ps -aq`, `run -it`, `inspect -f` and `ls -la` through
 a payload green, `-aZ` refusing 125 naming `-Z`. The guard is the
@@ -1072,7 +1075,7 @@ with no manifest for this platform is now named and skipped on a typed
 `NoPlatform` variant (not a string match), any other failing tag still
 stops the run, and an offer with nothing for this platform is an error
 rather than an empty success. A single-tag pull of such a tag still
-fails with the same text and code. Lane prove `.tmp/pb-w31-prove.sh`,
+fails with the same text and code. Lane prove [`pb-w31-prove`](../docs/history/lane-proofs-2026-09-23/pb-w31-prove.txt),
 verdict `fail=0`: filter units by exact name, suites, clippy clean,
 `ps --filter` selects/empty/refused-key, `images --filter` selects,
 `restart` composites with the stop half named, `pull -a` rc 0 with four
@@ -1140,7 +1143,7 @@ implemented rows minus the argv0 aliases; group subverbs (`prune`,
 against `rows_of` by unit test. `man [verb]` renders one section;
 `--no-pager` and a non-terminal stdout print the same bytes with no
 pager spawned, and an unstartable pager falls back to stdout. Lane
-prove `.tmp/pb-w32-prove.sh`, verdict `fail=0`: seven man units by
+prove [`pb-w32-prove`](../docs/history/lane-proofs-2026-09-23/pb-w32-prove.txt), verdict `fail=0`: seven man units by
 exact name, suites, clippy, every implemented verb's `--help` exiting
 0 with non-empty bytes contained in the manual, one-verb rendering,
 byte-identity between `--no-pager` and piped runs, the refusal codes,
@@ -1278,7 +1281,7 @@ Premise:     Read on the lane-built binary 2026-09-25
              `38-system-help` and `38-logs-help`): `system --help`
              lists no doctor and no df, `logs --help` lists only
              `-f|--follow`, and `probe --json` already carries every
-             leg a doctor would consume. `TODO/supervise.md:272`
+             leg a doctor would consume. `TODO/supervise.md`
              already documents that `logs` has no `--tail`.
 Approach:    Three small parity additions, each with its row and its
              Prove through the shipped binary, and no spec change

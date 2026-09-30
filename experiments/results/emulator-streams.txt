@@ -1,0 +1,16 @@
+Job: sh scripts/windows/run-in-base.sh experiments/401-emulator-streams.sh in wsl-toolkit-podbox, image docker.io/library/rust:1.98.1-bookworm.
+== conditions
+2026-09-30T05:10:19Z
+Linux 7.2.0-WSL2-STABLE
+warn: the missing active toolchain `stable-x86_64-unknown-linux-gnu` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+== current source
+ok: a_noisy_emulator_is_not_blocked_on_its_own_output passes
+== mutation: unread pipes restored
+thread 'tests::a_noisy_emulator_is_not_blocked_on_its_own_output' (684) panicked at crates/podbox-windows/src/lib.rs:680:9:
+the run blocked for 30.011004565s
+ok: the mutation fails the test
+verdict EMULATOR-STREAMS-OK
+== rc=0
+
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 1m15.395s

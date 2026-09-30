@@ -1,0 +1,117 @@
+== conditions
+2026-09-30T01:43:13Z
+commit main: 005638db2a2dfbd3e1b822225be89046cb683760
+commit origin/main: 9d4bb5580216f93abc2baf3dfc665a292bb784bc
+scope: Git history and patch comparison; runtime acceptance is separate
+== remote branch refs
+origin 9d4bb5580216f93abc2baf3dfc665a292bb784bc
+origin/main 9d4bb5580216f93abc2baf3dfc665a292bb784bc
+origin/publish/20260926T052210Z 82c12ba1a1d170fff15c9c33f35019877a2647a5
+== patch identity comparison
++ ce17a733c55fcdad1cc6b9c816e5246ebabfe2bc
+- b9d227670cb821be8ece54ea975481f95ae9a6ab
+- 56e7d96b8ef345356e03926dc99e1e24e3096e78
+- 9cbefbddffe748eaa581183a5899e8ab72b88a1c
+- 149cb666a462017c5fd81391ac1260ca21d903e5
+- ae6d02977b6a2e883e89f305a8121a12bc0bd2db
+- d9913d8269ce520f3eb7931dde1242cf0456d9bf
+- 82c12ba1a1d170fff15c9c33f35019877a2647a5
+== equivalent series, with remaining context difference
+1:  ce17a73 ! 1:  82d4bff T-1112: two Windows flavors on one crate, split CLI, re-driven green
+    @@ TODO/INDEX.md: the blocker named and what would clear it.
+      
+      ## Counts
+      
+    --168 items: 3 open, 10 partial, 1 blocked, 154 done.
+    -+168 items: 3 open, 11 partial, 0 blocked, 154 done.
+    +-169 items: 0 open, 0 partial, 1 blocked, 168 done.
+    ++169 items: 0 open, 1 partial, 0 blocked, 168 done.
+      
+      Counted from the rows above by `scripts/todo-count.py` and asserted
+      independently by `scripts/check-todo.py`, which is the gate. A number here
+     @@ TODO/INDEX.md: that disagrees with the rows cannot reach a commit.
+    - | P0 | 0 | 1 | 0 | 51 | 52 |
+    - | P1 | 1 | 6 | 0 | 71 | 78 |
+    - | P2 | 2 | 3 | 0 | 26 | 31 |
+    --| P3 | 0 | 0 | 1 | 6 | 7 |
+    --| **All** | **3** | **10** | **1** | **154** | **168** |
+    -+| P3 | 0 | 1 | 0 | 6 | 7 |
+    -+| **All** | **3** | **11** | **0** | **154** | **168** |
+    + | P0 | 0 | 0 | 0 | 52 | 52 |
+    + | P1 | 0 | 0 | 0 | 78 | 78 |
+    + | P2 | 0 | 0 | 0 | 31 | 31 |
+    +-| P3 | 0 | 0 | 1 | 7 | 8 |
+    +-| **All** | **0** | **0** | **1** | **168** | **169** |
+    ++| P3 | 0 | 1 | 0 | 7 | 8 |
+    ++| **All** | **0** | **1** | **0** | **168** | **169** |
+      
+      ## How the current ordering is derived
+      
+    @@ TODO/PROGRESS.md
+      
+      ## State
+      
+    --168 entries: 3 open, 10 partial, 1 blocked, 154 done. The 2026-09-25
+    -+168 entries: 3 open, 11 partial, 0 blocked, 154 done. The 2026-09-25
+    +-169 entries: 0 open, 0 partial, 1 blocked, 168 done. The 2026-09-25
+    ++169 entries: 0 open, 1 partial, 0 blocked, 168 done. The 2026-09-25
+      triage of twenty-two open issues (29 through 38, 49 through 60) plus
+      dependabot PR 9 is recorded below. Twenty entries reopened as
+      partial, three opened new (T-1337, T-1338, T-1339). PR 9 (rustls
+    @@ TODO/PROGRESS.md: show it. T-1306 closed 2026-09-26 on the guest-networking driv
+      each closes with its fix commit, drive output and guard, per the
+      operator rule.
+      
+    +@@ TODO/PROGRESS.md: exits 0 with 15 driven 0 mismatches
+    + (`experiments/results/podvm-non-goals.txt`), its clause 6
+    + running `experiments/361-guest-usernet.sh` to green
+    + (`experiments/results/guest-usernet.txt`, datagrams both ways).
+    +-Item 6 worked to blocked on the same lane:
+    +-`experiments/362-windows-refusal.sh` exits 0
+    +-(`experiments/results/windows-refusal.txt`), KVM denied ENOENT,
+    +-run, machine-tier run and create each exit 125 naming
+    +-windows/amd64 with the store untouched, CLI units 26 passed;
+    +-the guest arm is blocked on a KVM host with a licensed image.
+    ++Item 6 worked to partial on the same lane, combined with the
+    ++sibling Validation OS effort: `experiments/362-windows-refusal.sh`
+    ++exits 0 (`experiments/results/windows-refusal.txt`), the DOS flavor
+    ++runs `ver` to exit 0 under TCG (`363`, `windows-tcg-dos.txt`), the
+    ++verb surface with fetch ceilings and routing holds (`364`,
+    ++`windows-364.txt`, live Validation OS clauses skipping with no
+    ++image configured), and the VHDX extent streams sha256-clean
+    ++(`365`, `windows-365.txt`); the kvm arm stays unit-tested only,
+    ++owing a licensed image with its accept-terms gate.
+    + T-0413, T-0414 and T-0415 closed 2026-09-26 on the proc-absence
+    + drive (155): the interposer emulates `/proc/self/fd` pipes,
+    + `/proc/self/exe` and the mount-table files exactly or refuses
+     
+      ## TODO/milestones.md ##
+     @@ TODO/milestones.md: Source:      `https://github.com/carlbomsdata/winquick`; [podvm.md](podvm.md)
+    @@ crates/podbox-cli/src/main.rs: mod run;
+      use std::io::Write;
+      
+     @@ crates/podbox-cli/src/main.rs: usage: podbox <command> [options]
+    -   exec         run a command in an already extracted image. refused: A FRESH CHROOT,
+                     sharing only the filesystem, never a namespace entry
+        probe        report what this machine permits, and the rung podbox selects
+    +   doctor       check what this machine can run, with one fix line per missing piece
+     +  windows      a disposable Windows guest: doctor, fetch, setup and run
+        man          render this manual from the binary's own usage strings
+        pull         fetch an image into the content-addressed store
+        save         write one image as an OCI-layout tarball
+     @@ crates/podbox-cli/src/main.rs: fn main() -> std::process::ExitCode {
+    -         Some("start") => exit(lifecycle::start(rest)),
+              Some("create") => exit(lifecycle::create(rest)),
+              Some("probe") => exit(probe(rest)),
+    +         Some("doctor") => exit(doctor::doctor("doctor", rest)),
+     +        Some("windows") => exit(windows::windows(rest)),
+              Some("man") => exit(man::man(rest)),
+              Some("pull") => exit(images::pull("pull", rest)),
+2:  b9d2276 = 2:  ee2b677 windows: lane-portable bootstrap, ASCII prose, named digest pins
+3:  56e7d96 = 3:  1080ad4 windows: bootstrap qemu where the drives need it
+4:  9cbefbd = 4:  4ec5f05 windows: 364 verdict always writes, qemu rides with 362
+5:  149cb66 = 5:  0dc80fb windows: drop the temp 362+364 chain script
+6:  ae6d029 = 6:  1735fb9 windows: re-drive 362, 363 and 364 green on this lane
+7:  d9913d8 = 7:  f0176f0 windows: re-drive 365 green on this lane
+8:  82c12ba = 8:  1c19cea windows: entry records the lane verification
+verdict REPOSITORY-READ: compare the first patch source; do not infer identity from ancestry

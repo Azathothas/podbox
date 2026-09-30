@@ -1,35 +1,21 @@
-## Task
+# Resume
 
-Start T-1404: add the remote SSH arm after the relay holds, per
-TODO/podssh.md. Its entry holds the dispatch state and the proof.
+Current assignment: publish the reconciled audit and the beta.10 release.
+Read AGENTS.md and run the session entry point before work.
 
-## Resume point
+The audit and the recovery fixes are committed to main in this session.
+If `origin/main` does not contain them, push main without force after the
+full host and Linux checks pass. Wait for the exact-commit `gate` run.
 
-T-1402 is done and committed locally on `main` with the record in the
-same change: the server-side line discipline (`crates/podbox-ssh`),
-the `shell` ForceCommand server, 12 interactive tests beside the unit
-suite, three lane mutation reds, and the bounded 388 drive against a
-real daemon with the interactive verdict. Next unit is the T-1404
-remote arm, then the T-1112 guest run, in that order. Do not push:
-the release sequence pushes once every entry is done.
+After a green gate, push tag `v0.1.0-beta.10` on that commit. The
+`nightly` workflow publishes seven binaries and seven SSH archives with
+checksums and signatures. Verify with
+`py experiments/399-publication.py --release v0.1.0-beta.10` and
+`sh scripts/verify-release.sh v0.1.0-beta.10 x86_64 ssh`.
+Close T-1405 only when both pass.
 
-## In flight
+Then delete `publish/20260926T052210Z` on origin and run
+`py experiments/395-reconcile-repository.py --expect-deleted`.
 
-Nothing half-done. The session holds: echo, editing, capped history,
-state, group signals with the trap-handler selective kill, exit codes,
-exec refusal naming `SSH_ORIGINAL_COMMAND`, and the narrowed subsystem
-split (exec refused by the shell, sftp refused by the daemon).
-Node redial pairing stays unmeasured; writes and DNS stay without a
-timeout on the relay legs, stated as a limit in the entries.
-
-## Tree state
-
-Committed locally, gates green: host strict 11 passed with no skip,
-the lane suite green on the committed tree, `py scripts/check-todo.py`
-green at 180 entries with 1 open. Collect kept lane jobs by ID after
-their evidence is saved. The base cleanup report is empty.
-
-## Paste
-
-Continue the podbox SSH session: start T-1404 with the remote dispatch
-from TODO/podssh.md.
+Do not start a KVM guest. T-1350 and T-1112 need the operator present.
+The permanent work order is in PROGRESS.

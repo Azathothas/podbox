@@ -1,5 +1,8 @@
 # deps
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `TOOL.md` section 3.5. The dependency policy, applied.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
@@ -601,7 +604,7 @@ Premise:     Measured, for the empty skeleton, on this host: the release binary
              is 389,656 bytes with no dependencies at all. That is the baseline
              every delta below is measured against, and it is quoted here as one
              machine on one day, as
-             `docs/conventions/prose.md:156-159` requires.
+             `docs/conventions/prose.md:1-20` requires.
 Approach:    `experiments/110-bloat-delta.sh <area>` takes the current binary
              size and the `cargo bloat` breakdown, with and without the
              dependency under test, and writes both to

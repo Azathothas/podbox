@@ -1,0 +1,141 @@
+#!/bin/sh
+# T-1323 prove, pass C (link-replication reversal).
+# (1) RED: hide `copy_tree` and `parse_cp` in-lane and show the new tests
+#     fail for the missing functions; restore and continue.
+# (2) GREEN: all six cli cp tests pass by exact name; clippy -D warnings
+#     clean; `cargo test --workspace` exits 0.
+# (3) Binary on the release binary:
+#     - pull only, then `cp IMAGE:/etc/os-release` retrieves bytes
+#       (image:path with extract on demand, no container anywhere);
+#     - `cp -r IMAGE:/etc` retrieves a directory AND replicates /etc/mtab
+#       as a symlink (the w23b failure this reversal fixes);
+#     - a crafted import replicates its absolute symlink verbatim
+#       (readlink names /etc/shadow, the entry is a link, no file);
+#     - a planted destination symlink refuses `cp -r` by name with
+#       nothing landed through the link;
+#     - a directory round-trips back into a created container byte-identical;
+#     - a directory without -r is refused naming -r; --help documents both.
+set -u
+cd /work || exit 2
+mkdir -p /out
+FAIL=0
+
+echo "== bootstrap"
+./scripts/common/bootstrap-env.sh rust cc zig tools > /out/w23-bootstrap.txt 2>&1 || { echo "BOOTSTRAP-FAILED"; exit 2; }
+
+echo "== RED: hide the new fns"
+cp crates/podbox-cli/src/lifecycle.rs /tmp/lifecycle.rs.bak
+sed -i 's/^fn copy_tree(/fn copy_tree_hidden(/; s/^fn parse_cp(/fn parse_cp_hidden(/' crates/podbox-cli/src/lifecycle.rs
+cargo test -p podbox-cli cp_ > /out/w23-red.txt 2>&1
+if grep -q 'cannot find function `copy_tree`\|cannot find function `parse_cp`' /out/w23-red.txt; then
+  echo "RED-OK: tests fail without the new functions"
+else
+  echo "RED-WRONG"; tail -6 /out/w23-red.txt; FAIL=1
+fi
+cp /tmp/lifecycle.rs.bak crates/podbox-cli/src/lifecycle.rs
+echo "functions restored"
+
+echo "== GREEN by exact name"
+for t in cp_parses_recursive_and_two_paths copy_tree_round_trips_a_clean_tree copy_tree_replicates_a_symlink_without_resolving_it copy_tree_refuses_a_destination_through_a_planted_symlink copy_one_replicates_a_symlink_with_an_absolute_target copy_one_refuses_an_escape; do
+  cargo test -p podbox-cli "$t" > /out/w23-t.txt 2>&1
+  if grep -q "$t ... ok" /out/w23-t.txt; then echo "OK $t"; else echo "MISSING $t"; tail -4 /out/w23-t.txt; FAIL=1; fi
+done
+
+echo "== clippy + suites by exit code"
+cargo clippy --workspace --all-targets -- -D warnings > /out/w23-clippy.txt 2>&1 && echo "CLIPPY-OK" || { echo "CLIPPY-FAIL"; grep -B2 -A8 '^error' /out/w23-clippy.txt | head -25; FAIL=1; }
+cargo test --workspace > /out/w23-suites.txt 2>&1
+TRC=$?
+echo "cargo-test-rc=$TRC"
+[ "$TRC" -eq 0 ] && echo "SUITES-RC-OK" || { echo "SUITES-RC-BAD"; FAIL=1; }
+
+echo "== release binary"
+cargo build --release --target x86_64-unknown-linux-musl > /out/w23-build.txt 2>&1 || { echo "BUILD-FAILED"; tail -5 /out/w23-build.txt; exit 1; }
+PB=/work/target/x86_64-unknown-linux-musl/release/podbox
+export PODBOX_STORE=/tmp/pb-w23
+rm -rf "$PODBOX_STORE" /tmp/w23-out
+mkdir -p /tmp/w23-out
+IMG=public.ecr.aws/docker/library/alpine:3.20
+timeout 120 "$PB" pull "$IMG" > /dev/null 2>&1 || { echo "PULL-FAILED"; exit 2; }
+
+echo "== image:path with pull only (no extract, no container)"
+timeout 60 "$PB" cp "$IMG:/etc/os-release" /tmp/w23-out/os-release > /out/w23-cp1.txt 2>&1
+echo "cp1-rc=$?"
+cat /tmp/w23-out/os-release
+grep -q 'Alpine' /tmp/w23-out/os-release && echo "BYTES-OK" || { echo "BYTES-BAD"; FAIL=1; }
+
+echo "== recursive out, with the mtab link replicated"
+timeout 60 "$PB" cp -r "$IMG:/etc" /tmp/w23-out/etc-tree > /out/w23-cp2.txt 2>&1
+echo "cp2-rc=$?"
+cat /out/w23-cp2.txt
+[ -f /tmp/w23-out/etc-tree/hostname ] && echo "TREE-OK" || { echo "TREE-BAD"; FAIL=1; }
+if [ -L /tmp/w23-out/etc-tree/mtab ]; then
+  echo "MTAB-LINK-OK: $(readlink /tmp/w23-out/etc-tree/mtab)"
+  EXPECT=$(readlink "$PODBOX_STORE"/rootfs/*/rootfs/etc/mtab)
+  [ "$(readlink /tmp/w23-out/etc-tree/mtab)" = "$EXPECT" ] && echo "MTAB-TARGET-VERBATIM ($EXPECT)" || { echo "MTAB-TARGET-CHANGED (bad)"; FAIL=1; }
+else
+  echo "MTAB-NOT-A-LINK (bad)"; FAIL=1
+fi
+
+echo "== directory without -r names -r"
+timeout 60 "$PB" cp "$IMG:/etc" /tmp/w23-out/nope > /out/w23-cp3.txt 2>&1
+echo "cp3-rc=$?"
+cat /out/w23-cp3.txt
+grep -q '\-r' /out/w23-cp3.txt && echo "NAMES-R-OK" || { echo "NAMES-R-BAD"; FAIL=1; }
+
+echo "== absolute symlink import replicates verbatim, unresolved"
+python3 - <<'EOF'
+import tarfile, io
+t = tarfile.open('/tmp/evil.tar', 'w')
+a = tarfile.TarInfo('etc/hello'); a.size = 2
+t.addfile(a, io.BytesIO(b'hi'))
+l = tarfile.TarInfo('link'); l.type = tarfile.SYMTYPE; l.linkname = '/etc/shadow'
+t.addfile(l)
+t.close()
+print("evil tar written")
+EOF
+timeout 60 "$PB" import /tmp/evil.tar evil:v1 > /dev/null 2>&1 || { echo "EVIL-IMPORT-FAILED"; exit 1; }
+timeout 60 "$PB" cp -r evil:v1:/ /tmp/w23-out/evil-out > /out/w23-cp4.txt 2>&1
+ERC=$?
+echo "evil-cp-rc=$ERC"
+cat /out/w23-cp4.txt
+[ "$ERC" -eq 0 ] && echo "EVIL-REPLICATED" || { echo "EVIL-REFUSED (bad, reversal)"; FAIL=1; }
+[ "$(readlink /tmp/w23-out/evil-out/link)" = "/etc/shadow" ] && echo "EVIL-TARGET-VERBATIM" || { echo "EVIL-TARGET-WRONG (bad)"; FAIL=1; }
+[ "$(stat -c %F /tmp/w23-out/evil-out/link)" = "symbolic link" ] && echo "EVIL-STAYS-A-LINK" || { echo "EVIL-RESOLVED (bad)"; FAIL=1; }
+cmp -s /tmp/w23-out/evil-out/etc/hello /dev/null 2>/dev/null && { echo "EVIL-HELLO-EMPTY (bad)"; FAIL=1; } || echo "EVIL-HELLO-INTACT"
+
+echo "== planted destination symlink refuses with nothing through it"
+python3 - <<'EOF'
+import tarfile, io
+t = tarfile.open('/tmp/collide.tar', 'w')
+d = tarfile.TarInfo('sub/link'); d.type = tarfile.DIRTYPE
+t.addfile(d)
+f = tarfile.TarInfo('sub/link/inner'); f.size = 5
+t.addfile(f, io.BytesIO(b'inner'))
+t.close()
+print("collide tar written")
+EOF
+timeout 60 "$PB" import /tmp/collide.tar collide:v1 > /dev/null 2>&1 || { echo "COLLIDE-IMPORT-FAILED"; exit 1; }
+mkdir -p /tmp/w23-out/dest/sub /tmp/secret
+ln -sfn /tmp/secret /tmp/w23-out/dest/sub/link
+timeout 60 "$PB" cp -r collide:v1:/ /tmp/w23-out/dest > /out/w23-cp6.txt 2>&1
+CRC=$?
+echo "collide-cp-rc=$CRC"
+cat /out/w23-cp6.txt
+[ "$CRC" -ne 0 ] && echo "PLANTED-REFUSED" || { echo "PLANTED-COPIED (bad)"; FAIL=1; }
+grep -qi 'symlink' /out/w23-cp6.txt && echo "PLANTED-NAMED" || { echo "PLANTED-NOT-NAMED (bad)"; FAIL=1; }
+[ -e /tmp/secret/inner ] && { echo "PLANTED-LANDED (bad)"; FAIL=1; } || echo "NOTHING-THROUGH-LINK"
+
+echo "== round trip back into a created container"
+timeout 30 "$PB" create --name cpc "$IMG" true > /dev/null 2>&1 || { echo "CREATE-FAILED"; exit 1; }
+timeout 60 "$PB" cp -r /tmp/w23-out/etc-tree cpc:/tmp/back > /out/w23-cp5.txt 2>&1
+echo "cp5-rc=$?"
+cat /out/w23-cp5.txt
+timeout 60 "$PB" cp cpc:/tmp/back/os-release /tmp/w23-out/back-os > /dev/null 2>&1 || { echo "CPBACK-FAILED"; FAIL=1; }
+cmp /tmp/w23-out/os-release /tmp/w23-out/back-os && echo "ROUNDTRIP-IDENTICAL" || { echo "ROUNDTRIP-DIFFERS (bad)"; FAIL=1; }
+
+echo "== help documents both"
+timeout 30 "$PB" cp --help > /out/w23-help.txt 2>&1
+grep -q 'image' /out/w23-help.txt && grep -q 'recursive' /out/w23-help.txt && echo "HELP-OK" || { echo "HELP-BAD"; FAIL=1; }
+
+echo "== W23-VERDICT fail=$FAIL"
+exit "$FAIL"

@@ -1,5 +1,8 @@
 # interpose
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `crates/podbox-interpose`. `TOOL.md` section 6.7, milestone M6.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.

@@ -1,5 +1,8 @@
 # packaging
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `TOOL.md` section 3.4, section 6.7 and milestone M7.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
@@ -112,241 +115,39 @@ the rootfs, and the payload runs under it.
 
 ### T-1003 The launch ladder, and a single file with an embedded rootfs
 
-Source:      `TOOL.md` section 5 M7, section 6.7; `references/qaidvoid__onelf`
+Source:      captured TOOL.md section 6.7; onelf at 158b4af; current ladder
 Category:    packaging
 Priority:    P2
 Effort:      L
-Status:      done 2026-09-25
+Status:      partial
 
-Problem:     A runtime that can only start from a filesystem cannot start on a
-             machine whose writable paths are full, and the machines this is for
-             have a 64 MiB `/tmp`.
-Premise:     ⭐ Read at file and line, and the shape is worth copying whole.
-             `references/qaidvoid__onelf/tree/crates/onelf-rt/src/main.rs:128`
-             names the order: memfd, then FUSE, then an ephemeral tmpfs, then a
-             private run directory, then a persistent cache. Each **forced** mode
-             refuses with a named reason rather than falling through:
-             `references/qaidvoid__onelf/tree/crates/onelf-rt/src/main.rs:216-218`,
-             `:235-237` and `:255-257`. The on-disk mode runs only when asked
-             for, and otherwise the tool refuses:
-             `references/qaidvoid__onelf/tree/crates/onelf-rt/src/main.rs:261-273`.
-             ⭐ **And one mechanism that is easy to miss and costs a session to
-             rediscover.**
-             `references/qaidvoid__onelf/tree/crates/onelf-rt/src/main.rs:125-131`:
-             `ONELF_MODE` **requests** a mode and the mode actually chosen is
-             reported under a **different** name, `ONELF_ACTIVE_MODE`, "so a
-             packed app that launches another one does not hand it a directive".
-             podbox has exactly that hazard: `podbox run` inside `podbox run`.
-             The request variable and the result variable must not share a name.
-             ⚠ On this runtime the ladder is shorter than onelf's: FUSE needs
-             `/dev/fuse`, which `mknod` cannot create, and an ephemeral tmpfs
-             needs a mount. Both rungs are refused here by probe, not omitted.
-Approach:    Implement memfd, then the private run directory, then the
-             persistent cache, each with a named refusal. Probe for the two
-             rungs this runtime lacks rather than assuming their absence, so the
-             same binary uses them where they exist.
-             ⚠ The userland-exec rung arrives vendored with `goblin` and `nix`
-             pins ([T-0909](deps.md)); patch both out before wiring it, with
-             the [T-0908](deps.md) program-header walk and the `sys` module in
-             their place.
-             Where the payload's own relocation is the problem rather than the
-             filesystem, `references/VHSgunzo__sharun` is the lineage that solves
-             it and `references/VHSgunzo__ulexec` drives both rungs from one
-             tool. Neither substitutes for section 6.7: they solve getting a binary to
-             run from nowhere, not filesystem virtualization.
-Decision:    Two environment variables, request and result, from the start. The
-             single-variable form works until podbox runs inside itself, and
-             then it is a bug that reproduces only under nesting.
-Prove:       `podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq busybox-static' && PODBOX_MODE=memfd podbox run --rm public.ecr.aws/debian/debian:bookworm-slim /bin/busybox sh -c 'echo $PODBOX_ACTIVE_MODE' | grep -qx memfd && podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -z "$PODBOX_MODE" && test -n "$PODBOX_ACTIVE_MODE"'`
+Problem:     The forced launch ladder and embedded-rootfs format were
+             recorded as done while part of their implementation is absent.
+Premise:     The intended order is memfd, FUSE, tmpfs, run directory, and
+             cache. Current code stages four modes. FUSE is selected but
+             refused even when its probe succeeds. There is no embedded
+             rootfs byte-store format in the released binary.
+Approach:    Retain the implemented modes. Add bounded FUSE staging where
+             the device and mount operations work. Define and prove the
+             embedded rootfs input format. Drive tmpfs on a permitted host.
+Decision:    Keep request and active-mode variables separate. Keep refusal
+             on a denied prerequisite. A refusal is not an implemented rung.
+Prove:       `sh experiments/358-ladder-rungs.sh` exits 0 for existing modes.
+             Add tracked forced-FUSE, permitted-tmpfs, and embedded-rootfs
+             drives. Each must verify payload bytes, selected mode, child
+             status, bounded failure, and owned cleanup.
 
-**Done 2026-09-22.** The CLI wiring in
-`crates/podbox-cli/src/ladder.rs`, driven by foreground `run` and
-refused everywhere else. `prepare` reads `PODBOX_MODE` (an unknown word
-refuses with the rung list), refuses the force on `create`, `run -d`
-and the machine tier before anything is fetched, and admits the rung
-into `Prepared` beside the probe rows; the foreground path drives it
-through `enter_forced` with a banner line naming the entered rung, and
-`exec` refuses the force at entry. `Availability` feeds from the probe
-rows: FUSE from the open row, tmpfs from the attach verdict, rundir and
-cache down until wired, `PODBOX_CACHE` of `1` or `true` opting the
-cache rung in. The memfd leg stages bytes through `memfd::stage`
-(create, write, seal where accepted) and execs the fd through
-`run_ladder`, which closes the parent's copy past the fork on every
-path. Nine unit tests pin the request parse, the scope refusals, the
-three feeds and the three pre-entry refusals (sketch, script, missing),
-all fork-free; `staging_hands_back_a_live_cloexec_descriptor` pins the
-stage path with close-on-exec set. Driven by
-`experiments/163-ladder-drive.sh`, exit 0 twice on host podman 6.1.2
-with a lane-built musl binary: the forced memfd over a static payload
-enters on the rung (`ACTIVE_MODE=memfd`, rc 0), the default and
-scrubbed entries report chroot, and the fuse, unknown-word,
-exec-scope and dynamic-payload refusals each name their reason at 125,
-with raw transcripts in `experiments/results/sweep163/`. Two findings
-from the drive: alpine's busybox is dynamically linked (`PT_INTERP
-/lib/ld-musl-x86_64.so.1`, measured from the pinned image), so the
-rung correctly refuses it and the static payload is debian's
-busybox-static at `/bin/busybox` (the package ships that name;
-verified static with no `PT_INTERP` against the `.deb` ground truth,
-which also confirms apt under podbox installs byte-correct); and the
-setup run carries no `--rm`, which would delete the rootfs holding its
-install. Full `dev.sh check` green in the lane. The embedded-rootfs
-byte store stays the entry's named follow-up; rundir and cache stay
-sketched.
+**Partial 2026-09-30.** The audit reopened the entry from its source.
+Memfd, run directory, and cache have recorded live proof. Tmpfs staging
+is wired, but its current saved live result proves only the refusal.
+FUSE remains a named refusal in the CLI's final ladder arm.
+The embedded-rootfs work is absent and remains acceptance work here.
 
-**Build notes, 2026-09-22: the skeleton change.** What this change holds, and what it does
-not:
+[Earlier evidence](../docs/history/audit-before-2026-09-30/TODO/packaging.txt)
+retains the implementation stages and the earlier scoped Done record.
+Do not repeat the four completed staging implementations.
 
-| rung | state | where |
-| --- | --- | --- |
-| env-var pair | rung-complete, unit-tested | `crates/podbox-enter/src/plan.rs`, `lib.rs` |
-| memfd driver | rung-complete, unit-tested | `crates/podbox-enter/src/memfd.rs`, `abi.rs` |
-| fd-exec number | rung-complete, unrun | `crates/podbox-probe/src/sys.rs` |
-| payload resolve | rung-complete, unit-tested | `crates/podbox-enter/src/ladder.rs` |
-| ladder entry | rung-complete, unrun | `crates/podbox-enter/src/lib.rs` |
-| FUSE probe | rung-complete, unit-tested | `crates/podbox-probe/src/probes.rs` |
-| FUSE, tmpfs | sketched: ordered, probe-fed, named refusals | `crates/podbox-enter/src/ladder.rs` |
-| run-dir, cache | sketched: refused as not implemented | `crates/podbox-enter/src/ladder.rs` |
-| vendor patch | `goblin` and `nix` out, one at a time | `vendor/userland-execve/Cargo.toml` |
-| CLI wiring | rung-complete, unit-tested, driven (163) | `crates/podbox-cli/src/ladder.rs`, `run.rs`, `exec.rs`, `lifecycle.rs` |
-
-Decision: two environment variables, request and result, from the start. The
-single-variable form works until podbox runs inside itself, and then it is a
-bug that reproduces only under nesting. The scrub sits at both choke points:
-`Plan::env_for` strips `PODBOX_MODE` and any stale `PODBOX_ACTIVE_MODE` from
-what the image or the caller declared, and `spawn` filters them again on the
-way to `execve` while pushing `PODBOX_ACTIVE_MODE=<entered rung>`, so a
-hand-built plan cannot leak one either. Cost if wrong: a nested `podbox run`
-inherits a directive it was never given, and the outer run's forced mode
-decides the inner run's rung silently.
-
-⚠ Two substitutions the tree forced, recorded so the lane does not re-derive
-them. Neither number crate names `fexecve` (`syscalls` 0.8.1 and
-`linux-raw-sys` 0.12.1 were read on 2026-09-22 and neither spells it), so the
-fd-exec goes through `execveat` with the empty path and `AT_EMPTY_PATH`,
-which is the same kernel operation and the one libc implements `fexecve`
-with. The 10 MB synthetic-stack figure rides in the vendored file unchanged;
-the ladder review that decides whether it stays is this entry's follow-up,
-not this change.
-
-⚠ The "single file with embedded rootfs" byte store is OUT of scope: the
-Approach specifies only launch order. It is a follow-up line here, not a rung
-built beside it.
-
-Lane run 2026-09-22 over this change plus T-0207's: full `dev.sh
-check` green (fmt, workspace clippy with `-D warnings`, musl release
-build, workspace tests 469 passed 0 failed in 14 suites including the
-new scrub, eligibility, write/seal and ladder tests, interpose tests,
-`check-gate.sh --fast` 9 passed with the 2 familiar skips). The run
-found two defects, both fixed here: an unused test-only import in
-`ladder.rs` and an `Errno` without `Display` in the sealing test.
-`check-todo.py`'s only complaint is this file citing the then-untracked
-`ladder.rs`, which the commit clears. The Prove drive and the CLI
-wiring (read `PODBOX_MODE`, feed `Availability`) landed in the close
-above.
-
-**Build notes, 2026-09-22: the memfd leg.** The memfd leg's three missing pieces:
-
-- the payload, read from outside the rootfs: `ladder::resolve_payload`
-  searches `path_dirs` in order for a bare name and resolves a `/`-carrying
-  argument under the root through `abi::resolve_in`, so a `..` that escapes
-  is refused rather than followed; `ladder::payload_bytes` bounds the read
-  at 128 MiB, which is `abi::Elf::read`'s own ceiling. Four unit tests pin
-  the order, the missing name, the escape and the bytes. The errors ride
-  the crate's one-parameter `Result` as `Error::Runtime`, which is the
-  file's own shape (`Mode::parse`); the first cut wrote
-  `Result<_, String>` and the lane's clippy refused it in eight places.
-- the entry the rung drives through: `spawn` is now `spawn_with` with the
-  entered rung word and no fd, and `spawn_ladder`/`run_ladder` drive beside
-  it with the ladder rung word and the written memfd. The child execs the
-  fd through `memfd::exec_fd` without resolving a path where one was handed
-  in, else falls to the path candidates (a `#!` script routes past
-  fd-exec). A non-memfd mode through this entry refuses: the other rungs
-  are ordered, not rung-complete. The parent names the new failure row
-  (`execveat of the memfd`) and keeps the 126/127 split for it. One entry
-  sequence, so the fork, the chroot order and the readiness pipe cannot
-  drift between the two (`docs/conventions/code.md`).
-- the FUSE rung's probe input: `open(/dev/fuse, O_RDWR)` as a Census leg in
-  the outer environment beside the ptmx pair it copies the rule from, and
-  `fuse_usable` beside `ptmx_usable`, true only on an `Ok` open. Two unit
-  tests pin the rule and the row's place.
-
-Lane run 2026-09-22 over this change: full `dev.sh check` green (fmt,
-workspace clippy with `-D warnings`, musl release build, workspace tests
-with the 4 ladder and 2 probe tests new, gate 9 passed with the 2 familiar
-skips). The run found the `Result` arity above and three fmt spots, all
-fixed here. The CLI wiring (read `PODBOX_MODE`, feed `Availability`,
-drive the Prove) landed in the close above.
-
-**Partial, 2026-09-25.** Issue 31 reopens this entry on its own
-table: rundir and cache are sketched and refused as not implemented,
-FUSE and tmpfs are sketched and probe-fed only, and the embedded
-rootfs byte store is out of scope. Only the env-var pair and memfd
-are rung-complete. Wire rundir (a private run directory under the
-writable store) and cache (persistent, opt-in through
-`PODBOX_CACHE=1`), then FUSE where `open(/dev/fuse)` holds and
-tmpfs where attach holds, each with probe-fed `Availability` and
-unit tests as memfd has. The table above stays the work list.
-Measured on the lane 2026-09-25
-(`experiments/results/triage-353.txt` clauses `31-rundir` and
-`31-bogus`): the rundir refusal and the unknown-word refusal both
-name their reason at 125 where chroot holds, so the rung messages
-are reachable and only the rungs are missing. Fix area is
-`crates/podbox-enter/src/ladder.rs` and `plan.rs`, the probe feeds
-in `crates/podbox-probe`, and `crates/podbox-cli/src/ladder.rs`.
-Risk if wrong is a rung that fetches bytes but never enters. Prove
-is the entry's Prove extended per rung: a forced run over the
-matching fixture enters with the rung word in `PODBOX_ACTIVE_MODE`,
-and the remaining refusals keep naming their reason.
-
-**Done 2026-09-25.** Rundir, cache and tmpfs are rung-complete.
-FUSE stays ordered and refused, with its blocker named below.
-
-| rung | state | where |
-| --- | --- | --- |
-| rundir | rung-complete, driven | `podbox-enter/src/stage.rs` `copy_tree`, `podbox-cli/src/ladder.rs` `stage_rundir` + arm, `spawn_ladder` admits |
-| cache | rung-complete, driven | `stage.rs` `stage_cache` (copy once, marker-gated reuse), CLI arm keeps on exit, `PODBOX_CACHE=1` opts in |
-| tmpfs | rung-complete, refusal driven, entry wired but undriven on the lane | `podbox-probe/src/sys.rs` `mount`/`umount`, `stage.rs` `stage_tmpfs`/`release_tmpfs`, CLI arm unmounts and removes on exit |
-| FUSE | ordered, probe-fed, refused; blocker named | `ladder.rs` choice, `fuse_usable`, `spawn_ladder` refuses |
-
-Driven by `experiments/358-ladder-rungs.sh`, exit 0 on the lane
-(`rust:1.98.1-bookworm` job container, kernel
-`7.2.0-WSL2-STABLE`), report in
-`experiments/results/ladder-rungs.txt` over the pinned alpine
-`3.20@sha256:d9e853e8`: forced rundir exits 0 with
-`PODBOX_ACTIVE_MODE=rundir` and `runs/` cleaned; forced cache
-without the opt-in exits 125 naming `PODBOX_CACHE=1`, with it
-exits 0 with `cache` and the cache persistent; forced tmpfs
-exits 125 with "a mount is refused on this runtime, so tmpfs
-mode is unavailable"; forced fuse exits 125 with "/dev/fuse did
-not open on this machine, so FUSE mode is unavailable"; forced
-memfd over the static hello exits 0 with `static-hi`; an
-unknown word exits 125 listing the rungs. Targeted suites on
-the same drive: `podbox-enter` stage+ladder 23 passed,
-`podbox-cli` ladder 14 passed; full suites `podbox-enter` 74
-passed and the `podbox-cli` binary 146 passed, 0 failed
-everywhere. The tmpfs entry arm runs where a mount holds; the
-lane denies the mount (`mount(tmpfs,/mnt)` EPERM, attach
-`skip`), so the lane drives the refusal arm and the unit test
-`tmpfs_stages_onto_a_mount_or_refuses_naming_it` pins both
-arms.
-
-FUSE took the three-candidate procedure before this verdict.
-(1) Port onelf's `fuse/` server shape (`references/qaidvoid__onelf/tree/crates/onelf-rt/src/fuse/`,
-2,045 lines) cut to read-only lookup/getattr/open/read/readdir
-with mount plumbing: refuted on cost against reach (no
-reachable machine holds `/dev/fuse` (lane `open` ENOENT), so
-the entry path would ship undriven, and on the true target
-shape the FUSE mount needs the same denied mount). (2) Hand the
-node to the kernel another way: refuted by probe
-(`mknod` is EPERM, so the node cannot be created where it is
-absent. (3) Keep FUSE ordered, probe-fed and refused, with the
-blocker named: holds. The missing pass would need a machine
-with `/dev/fuse` and a granted mount; what would reopen it is
-that machine. Blocker: `/dev/fuse` absent on every reachable
-machine. Guard: the 358 fuse clause (125 naming the node)
-beside `fuse_usable`'s rule tests.
-
----
+----
 
 ### T-1004 A reproducible build, and the artefact's own inputs recorded
 
@@ -675,9 +476,8 @@ tag corrected the expected identity from `@refs/heads/main` to
 `@refs/tags/<tag>`: the workflow answers version tags alone, so a
 tag-built bundle carries the tag's ref and the earlier identity
 would have failed closed on honest artefacts. The guard is the
-sign step plus the verifier script. Issue 26 (signing third) stays
-open for the operator's close-out comment: agent API writes stay
-read-only under `docs/security/remote-ops.md`.
+sign step plus the verifier script. Issue 26 is closed, as checked through
+the repository API on 2026-09-30. No close-out action remains.
 
 ---
 
@@ -743,7 +543,7 @@ broken for pull or extract fails its own publish.
 
 Source:      issue 13, client beta testing 2026-09-22 (beta.1 build
              commit failed the repo gate; cross-host bytes differ);
-             `TODO/packaging.md:282` (T-1004)
+             `TODO/packaging.md` (T-1004)
 Category:    packaging
 Priority:    P1
 Effort:      S
@@ -783,7 +583,6 @@ Prove:       `grep -c` over the next beta's notes finds the build
 through the release API: build commit `6d86129`, gate `success` with
 its run URL, and the reproducibility boundary line, all present.
 (The full forty-hex commit is in the notes themselves.)
-The guard is the notes step itself: a future release whose build
-commit is red says so in its own notes. Issue 13 stays open for
-the operator's close-out comment: agent API writes stay read-only
-under `docs/security/remote-ops.md`.
+The current notes step refuses publication without a successful main gate
+on the exact build commit. Issue 13 is closed, as checked through the
+repository API on 2026-09-30. No close-out action remains.

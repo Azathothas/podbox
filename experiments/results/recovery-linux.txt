@@ -1,0 +1,82 @@
+Recovery Linux check
+Command: sh scripts/windows/run-in-base.sh (the default full check) in the rebuilt wsl-toolkit-podbox.
+Source: main 005638d with the staged audit and recovery tree copied.
+This record keeps conditions, step headers, test summaries, and verdicts. Status glyphs use [ok] and [warn].
+
+== the machine
+== bootstrap
+== disk, before anything is written
+== components
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+== 2 already present, 3 installed, 0 failed
+== dev.sh check
+== cargo fmt --all -- --check
+== cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check
+== cargo clippy --workspace --all-targets -- -D warnings
+== RUSTFLAGS='-C target-feature=-crt-static' cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
+== ./scripts/build-interpose.sh
+== x86_64-unknown-linux-musl
+== x86_64-unknown-linux-gnu
+== cargo build --release --target x86_64-unknown-linux-musl
+== sh experiments/394-ssh-package.sh
+== conditions
+verdict SSH-PACKAGE-OK
+== cargo test --workspace
+test result: ok. 229 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+test result: ok. 51 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+test result: ok. 90 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 136 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.78s
+test machine::tests::a_row_that_is_absent_is_missing_rather_than_any_verdict ... ok
+test report::tests::the_document_carries_six_machine_legs_with_no_null_verdict ... ok
+test report::tests::the_document_carries_three_supervise_legs_with_no_null_verdict ... ok
+test supervise::tests::a_row_that_is_absent_is_missing_rather_than_any_verdict ... ok
+test verdict::tests::a_denial_round_trips_with_its_errno ... ok
+test verdict::tests::a_denial_without_an_errno_is_refused_rather_than_believed ... ok
+test verdict::tests::a_reason_carrying_a_newline_stays_one_line ... ok
+test verdict::tests::a_skip_keeps_its_reason_and_its_spaces ... error: Unrecognized option: 'probe-child'
+test verdict::tests::an_unknown_protocol_version_is_refused ... ok
+test verdict::tests::the_row_format_matches_the_reference_harness ... ok
+test result: ok. 108 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+test result: ok. 94 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.01s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.97s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.92s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test tests::a_noisy_emulator_is_not_blocked_on_its_own_output ... ok
+test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== python3 experiments/393-build-freshness.py
+== conditions
+verdict BUILD-FRESHNESS-OK
+== python3 experiments/398-gate-diagnostics.py
+== conditions
+verdict GATE-DIAGNOSTICS-OK
+== python3 experiments/400-kvm-cleanup.py
+== conditions
+verdict KVM-CLEANUP-OK
+== ./scripts/check-todo.py
+check-todo: ok
+== ./scripts/common/check-gate.sh --fast
+  SKIP  check-remote-items  (check-remote-items: gh not found)
+  SKIP  check-twins  (--fast)
+11 checks: 9 passed, 0 failed, 2 skipped
+[warn] A SKIP IS NOT A PASS. Those checks did not run and nothing about
+== 14 passed, 0 failed, 0 skipped
+== rc=0
+exit: 0

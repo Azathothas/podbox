@@ -1,0 +1,69 @@
+Audit Linux repetition
+Source: main 005638d with the copied staged audit tree.
+Job: befdece4c1f7af24
+The complete step output was checked; this record retains conditions and suite verdicts.
+The later gate diagnostic change adds two fixtures to the next full run.
+== the machine
+== the job
+== audit conditions
+input commit: 005638db2a2dfbd3e1b822225be89046cb683760
+input tree identity: aeeb13de933f94b85c66150afcc04af4af73c1d5
+== disk, before anything is written
+== components
+== 2 already present, 3 installed, 0 failed
+copied snapshot commit: e27fd186457f2cca4101629cec14d30809ea9831
+== cargo fmt --all -- --check
+== cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check
+== cargo clippy --workspace --all-targets -- -D warnings
+== RUSTFLAGS='-C target-feature=-crt-static' cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
+== ./scripts/build-interpose.sh
+== x86_64-unknown-linux-musl
+== x86_64-unknown-linux-gnu
+== cargo build --release --target x86_64-unknown-linux-musl
+== sh experiments/394-ssh-package.sh
+== conditions
+verdict SSH-PACKAGE-OK
+== cargo test --workspace
+test result: ok. 229 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+test result: ok. 51 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+test result: ok. 90 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 136 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.68s
+test result: ok. 108 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+test result: ok. 94 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.15s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.24s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.98s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== python3 experiments/393-build-freshness.py
+== conditions
+verdict BUILD-FRESHNESS-OK
+== ./scripts/check-todo.py
+== ./scripts/common/check-gate.sh --fast
+11 checks: 9 passed, 0 failed, 2 skipped
+== 12 passed, 0 failed, 0 skipped
+== baseline: the gate on the clean tree
+== plants
+== not planted against
+== controls
+== verdict
+verdict AUDIT-LINUX-OK
+== rc=0
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 3m42.532s
+Payload and wrapper exit: 0

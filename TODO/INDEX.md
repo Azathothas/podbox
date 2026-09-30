@@ -5,8 +5,7 @@ Every entry, one line each, sorted by id. The entry itself lives in the
 acceptance command, actually run, with the output recorded underneath.
 
 **What to work on next is not here.** [PROGRESS.md](PROGRESS.md) carries the
-work order and is the only place that has one. This file carries the list, the
-definitions, the counts, and the argument behind the current ordering.
+work order and is the only place that has one. This file carries the list, definitions, and derived counts.
 
 [RULES.md](RULES.md) is how this repository is worked on.
 [reference-map.md](reference-map.md) is the corpus and its licence
@@ -30,14 +29,13 @@ resolve, a dead link, and a cited path or line that does not exist.
 
 ## Effort
 
-S is under a day, M is a few days, L is a week, XL is longer and is almost
-always two entries pretending to be one.
+Effort is an estimate of scope: S is small, M is medium, L is large,
+and XL requires a scope review. It is not a measured duration.
 
 ## Status
 
-**open**, **partial**, **blocked** or **done**. ⛔ Nothing closes as "won't
-fix", "upstream's problem" or "out of scope". A blocked entry stays open with
-the blocker named and what would clear it.
+Status values are **open**, **partial**, **blocked**, and **done**.
+See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Categories
 
@@ -162,7 +160,7 @@ the blocker named and what would clear it.
 | [T-0912](deps.md) | P2 | deps | done | The powerpc gate is the crate's and it is stale, so podbox can clear it |
 | [T-1001](packaging.md) | P0 | packaging | **done** | A single static binary with no `PT_INTERP` |
 | [T-1002](packaging.md) | P1 | packaging | done | Embed the interposer as bytes and place it inside the rootfs |
-| [T-1003](packaging.md) | P2 | packaging | done | The launch ladder, and a single file with an embedded rootfs |
+| [T-1003](packaging.md) | P2 | packaging | partial | The launch ladder, and a single file with an embedded rootfs |
 | [T-1004](packaging.md) | P3 | packaging | done | A reproducible build, and the artefact's own inputs recorded |
 | [T-1005](packaging.md) | P1 | packaging | done | A session reaches the code in one command, and the build runs behind the reading |
 | [T-1100](milestones.md) | P0 | milestones | **done** | M-1 the corpus, the work index and the skeleton |
@@ -177,7 +175,7 @@ the blocker named and what would clear it.
 | [T-1109](milestones.md) | P1 | milestones | done | The negative tests, which are tests |
 | [T-1110](milestones.md) | P0 | milestones | done | M6's acceptance: a payload the interposer is the only reason works |
 | [T-1111](milestones.md) | P1 | milestones | done | M8 the nix acceptance: a real payload the chroot tier is exactly the answer for |
-| [T-1112](milestones.md) | P3 | milestones | partial | A disposable guest that is not Linux |
+| [T-1112](milestones.md) | P1 | milestones | partial | A disposable guest that is not Linux |
 | [T-1201](gate.md) | P0 | gate | done | The gate reaches every file this project wrote |
 | [T-1202](gate.md) | P0 | gate | done | Every check is planted against, and a plant that stops reaching its subject says so |
 | [T-1203](gate.md) | P1 | gate | done | A measurement taken on one host is a property of that host |
@@ -238,14 +236,21 @@ the blocker named and what would clear it.
 | [T-1345](gate.md) | P1 | gate | done | The Windows job wrapper runs a Bash caller with Bash |
 | [T-1346](gate.md) | P1 | gate | done | The plant script finds the checkout from a Windows job input |
 | [T-1347](gate.md) | P1 | gate | done | Check parity notes against the milestone entries |
-| [T-1401](podssh.md) | P1 | podssh | done | Prove the SSH transport and server in the current tree |
+| [T-1348](gate.md) | P1 | gate | done | Check current documents against source declarations |
+| [T-1349](gate.md) | P1 | gate | done | Verify build freshness from input and output bytes |
+| [T-1350](gate.md) | P1 | gate | partial | Make Windows proofs use explicit inputs and return build artifacts |
+| [T-1351](gate.md) | P1 | gate | done | Keep the failed check's complete diagnostic |
+| [T-1401](podssh.md) | P1 | podssh | partial | Prove the SSH transport and server in the current tree |
+
 | [T-1402](podssh.md) | P1 | podssh | done | Provide an interactive session without a pty |
 | [T-1403](podssh.md) | P1 | podssh | done | Prove concurrent sessions on one relay connection |
 | [T-1404](podssh.md) | P2 | podssh | done | Add the remote and machine SSH verbs after the transport holds |
+| [T-1405](podssh.md) | P1 | podssh | partial | Ship and smoke the SSH helper archive |
+| [T-1406](podssh.md) | P1 | podssh | open | Bound SSH DNS and writes and prove node reconnect |
 
 ## Counts
 
-180 items: 0 open, 1 partial, 0 blocked, 179 done.
+186 items: 1 open, 5 partial, 0 blocked, 180 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -254,10 +259,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 0 | 0 | 0 | 86 | 86 |
-| P2 | 0 | 0 | 0 | 33 | 33 |
-| P3 | 0 | 1 | 0 | 8 | 9 |
-| **All** | **0** | **1** | **0** | **179** | **180** |
+| P1 | 1 | 4 | 0 | 88 | 93 |
+| P2 | 0 | 1 | 0 | 32 | 33 |
+| P3 | 0 | 0 | 0 | 8 | 8 |
+| **All** | **1** | **5** | **0** | **180** | **186** |
 
 ## Work order
 

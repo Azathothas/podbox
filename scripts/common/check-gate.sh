@@ -100,7 +100,7 @@ run() {   # name  command...
     0) row "✅ ok    $_name"; PASS=$((PASS + 1)) ;;
     2) row "SKIP  $_name  ($(head -1 "$OUT/log" 2>/dev/null | cut -c1-60))"; SKIP=$((SKIP + 1)) ;;
     *) row "❌ FAIL  $_name  (exit $_rc)"; FAIL=$((FAIL + 1))
-       [ "$JSON" = "1" ] || sed 's/^/          /' "$OUT/log" | head -12 ;;
+       [ "$JSON" = "1" ] || sed 's/^/          /' "$OUT/log" ;;
   esac
 }
 

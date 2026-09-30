@@ -208,11 +208,23 @@ pub(crate) fn run_steps(argv: &[String]) -> Result<(), Error> {
 /// timeout means the command is still running or the guest never reached the
 /// mailbox, and both are failures.
 pub fn run(plan: &Plan, request: &Request) -> Result<Outcome, Error> {
+    // ⛔ **Never a pipe that nobody reads.** The emulator's streams were
+    // piped and not drained until exit: a guest that makes the emulator
+    // write more than one pipe buffer blocks it, and the run then reads as
+    // a guest that did not power off. The error stream goes to a file in
+    // the per-run directory, which `cleanup` removes with the run.
+    let log = emulator_log(plan);
+    let stderr = match &log {
+        Some(path) => std::fs::File::create(path)
+            .map(Stdio::from)
+            .map_err(|e| Error::Io(format!("{}: {e}", path.display())))?,
+        None => Stdio::null(),
+    };
     let mut cmd = Command::new(&plan.emulator);
     cmd.args(argv(plan))
         .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .stdout(Stdio::null())
+        .stderr(stderr);
     let mut child = cmd
         .spawn()
         .map_err(|e| Error::NoEmulator(format!("{}: {e}", plan.emulator.display())))?;
@@ -235,8 +247,40 @@ pub fn run(plan: &Plan, request: &Request) -> Result<Outcome, Error> {
     let bytes = std::fs::read(&plan.mailbox).map_err(|e| Error::Io(e.to_string()))?;
     let back = Fat16::from_image(bytes)
         .ok_or_else(|| Error::Io(format!("{}: not a mailbox", plan.mailbox.display())))?;
-    outcome(&back, &request.token)?
-        .ok_or_else(|| Error::BadResult("the guest powered off with no result".into()))
+    outcome(&back, &request.token)?.ok_or_else(|| {
+        let tail = log.as_deref().map(log_tail).unwrap_or_default();
+        Error::BadResult(format!("the guest powered off with no result{tail}"))
+    })
+}
+
+/// The emulator's error stream: a file in the per-run directory, or `None`
+/// where the plan has no directory that [`cleanup`] would remove.
+fn emulator_log(plan: &Plan) -> Option<PathBuf> {
+    let dir = scratch_of(plan)?;
+    let named = dir
+        .file_name()
+        .map(|n| n.to_string_lossy().starts_with(SCRATCH_PREFIX))
+        .unwrap_or(false);
+    named.then(|| dir.join("emulator.log"))
+}
+
+/// The last lines of the emulator's error stream, for a failure message.
+/// Empty when the file is absent or empty.
+fn log_tail(path: &Path) -> String {
+    let bytes = std::fs::read(path).unwrap_or_default();
+    // Only the end of the file, and each line cut short: the stream is the
+    // emulator's, and its size is not ours to choose.
+    let text = String::from_utf8_lossy(&bytes[bytes.len().saturating_sub(4096)..]);
+    let lines: Vec<String> = text
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| l.chars().take(200).collect())
+        .collect();
+    if lines.is_empty() {
+        return String::new();
+    }
+    let start = lines.len().saturating_sub(5);
+    format!("; the emulator said: {}", lines[start..].join(" | "))
 }
 
 /// Provision a fresh image: boot it once and type the installer into its
@@ -582,6 +626,64 @@ mod tests {
     }
 
     use super::*;
+
+    /// ⛔ The defect this pins: the emulator's streams were piped and not
+    /// read, so an emulator that wrote more than one pipe buffer blocked and
+    /// the run was reported as a guest that did not power off. The fake
+    /// emulator writes 256 KiB to each stream and exits; the run must end
+    /// at once and carry the end of the error stream in its message.
+    #[test]
+    fn a_noisy_emulator_is_not_blocked_on_its_own_output() {
+        use std::os::unix::fs::PermissionsExt;
+        let scratch = scratch_dir("noisy-emulator").expect("a scratch directory");
+        let fake = scratch.join("fake-emulator");
+        std::fs::write(
+            &fake,
+            "#!/bin/sh\nhead -c 262144 /dev/zero | tr '\\0' o\n\
+             head -c 262144 /dev/zero | tr '\\0' e >&2\necho '' >&2\necho last-line >&2\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let plan = Plan {
+            emulator: fake,
+            accel: Accel::Tcg,
+            share: "/usr/share/qemu".into(),
+            firmware_code: "/code.fd".into(),
+            firmware_vars: scratch.join("vars.fd"),
+            root: scratch.join("root.qcow2"),
+            mailbox: scratch.join("mailbox.img"),
+            serial: scratch.join("serial.log"),
+            monitor: scratch.join("qmp.sock"),
+            memory_mib: 512,
+            cpus: 1,
+            emu_args: Vec::new(),
+        };
+        std::fs::write(&plan.mailbox, mailbox(agent::AGENT_CMD, &request()).image()).unwrap();
+        let mut req = request();
+        req.timeout = Duration::from_secs(30);
+        // A file written and then executed while another test thread forks
+        // can be refused as busy for a moment; that refusal is not the
+        // subject here, so it is retried.
+        let mut attempt = 0;
+        let (e, elapsed) = loop {
+            let start = Instant::now();
+            let e = run(&plan, &req).unwrap_err();
+            let busy = matches!(&e, Error::NoEmulator(m) if m.contains("busy"));
+            if !busy || attempt == 20 {
+                break (e, start.elapsed());
+            }
+            attempt += 1;
+            std::thread::sleep(Duration::from_millis(50));
+        };
+        std::env::remove_var("PODBOX_WINDOWS_KEEP");
+        cleanup(&plan);
+        assert!(
+            elapsed < Duration::from_secs(20),
+            "the run blocked for {elapsed:?}"
+        );
+        assert!(matches!(e, Error::BadResult(_)), "{e}");
+        assert!(format!("{e}").contains("last-line"), "{e}");
+    }
 
     fn request() -> Request {
         Request {

@@ -1,0 +1,92 @@
+#!/bin/sh
+# T-1332 prove: podbox man renders from the binary's own data, pager-aware.
+set -u
+cd /work || exit 2
+mkdir -p /out
+FAIL=0
+
+echo "== bootstrap + build"
+./scripts/common/bootstrap-env.sh rust cc zig tools > /out/w32-bootstrap.txt 2>&1 || { echo "BOOTSTRAP-FAILED"; exit 2; }
+./scripts/build-interpose.sh > /dev/null 2>&1 || { echo "INTERPOSE-FAILED"; exit 1; }
+cargo build --release --target x86_64-unknown-linux-musl > /out/w32-build.txt 2>&1 || { echo "BUILD-FAILED"; tail -5 /out/w32-build.txt; exit 1; }
+PB=/work/target/x86_64-unknown-linux-musl/release/podbox
+
+echo "== units by exact name + suites + clippy"
+for t in every_implemented_verb_renders_a_section aliases_render_no_reference_section no_unimplemented_verb_gets_a_reference_section one_verb_renders_only_its_section group_help_paths_match_rows_of summary_is_the_first_sentence the_manual_names_its_sources; do
+  cargo test -p podbox-cli "$t" > /out/w32-t.txt 2>&1
+  if grep -q "$t ... ok" /out/w32-t.txt; then echo "OK $t"; else echo "MISSING $t"; tail -4 /out/w32-t.txt; FAIL=1; fi
+done
+cargo test --workspace > /out/w32-suites.txt 2>&1
+TRC=$?
+echo "suites-rc=$TRC"
+[ "$TRC" -eq 0 ] && echo "SUITES-OK" || { echo "SUITES-BAD"; FAIL=1; }
+cargo clippy --workspace --all-targets -- -D warnings > /out/w32-clippy.txt 2>&1 && echo "CLIPPY-OK" || { echo "CLIPPY-FAIL"; FAIL=1; }
+
+echo "== completeness: every implemented verb, every help byte"
+timeout 30 "$PB" man --no-pager > /out/w32-man.txt 2>/out/w32-man-err.txt
+MRC=$?
+echo "man-rc=$MRC"
+[ "$MRC" -eq 0 ] && [ ! -s /out/w32-man-err.txt ] && echo "MAN-QUIET-OK" || { echo "MAN-NOISY (bad)"; FAIL=1; }
+timeout 30 "$PB" system info --format '{{json .Parity}}' > /out/w32-parity.json 2>&1
+python3 <<'EOF'
+import json
+rows = json.load(open('/out/w32-parity.json'))
+verbs = sorted({r['verb'] for r in rows if r['flag'] is None and r['status'] in ('Native', 'Degraded', 'Stub')})
+aliases = {'docker', 'podman', 'podvm'}
+verbs = [v for v in verbs if v not in aliases]
+open('/out/w32-verbs.txt', 'w').write('\n'.join(verbs) + '\n')
+EOF
+cat /out/w32-verbs.txt
+python3 <<'EOF'
+import subprocess
+PB = '/work/target/x86_64-unknown-linux-musl/release/podbox'
+man = open('/out/w32-man.txt').read()
+GROUPS = {'prune': ['image', 'prune'], 'install-names': ['system', 'install-names'], 'abi': ['system', 'abi']}
+bad = []
+for verb in open('/out/w32-verbs.txt').read().split():
+    argv = GROUPS.get(verb, [verb]) + ['--help']
+    p = subprocess.run([PB] + argv, capture_output=True, text=True, timeout=30)
+    if p.returncode != 0:
+        bad.append(f'{verb}: --help exits {p.returncode}')
+        continue
+    if not p.stdout.strip():
+        bad.append(f'{verb}: --help prints nothing')
+        continue
+    if f'=== podbox {verb} ' not in man:
+        bad.append(f'{verb}: no reference section')
+        continue
+    if p.stdout not in man:
+        bad.append(f'{verb}: help bytes absent from the manual')
+if bad:
+    open('/out/w32-complete.txt', 'w').write('\n'.join(bad) + '\n')
+    print('\n'.join(bad))
+else:
+    open('/out/w32-complete.txt', 'w').write('COMPLETE-OK\n')
+    print('COMPLETE-OK')
+EOF
+grep -q 'COMPLETE-OK' /out/w32-complete.txt || { echo "COMPLETE-BAD"; FAIL=1; }
+
+echo "== one verb renders one section"
+timeout 30 "$PB" man ps --no-pager > /out/w32-man-ps.txt 2>&1
+grep -q '=== podbox ps ' /out/w32-man-ps.txt && ! grep -q '=== podbox run ' /out/w32-man-ps.txt && echo "MAN-ONE-OK" || { echo "MAN-ONE-BAD"; FAIL=1; }
+
+echo "== pager: same bytes, no pager spawned off-terminal"
+timeout 30 "$PB" man > /out/w32-man-piped.txt 2>&1
+cmp /out/w32-man.txt /out/w32-man-piped.txt && echo "PAGER-SAME-OK" || { echo "PAGER-DIFFERS (bad)"; FAIL=1; }
+PAGER=/nonexistent-pager-xyz timeout 30 "$PB" man > /out/w32-man-boguspager.txt 2>&1
+BRC=$?
+[ "$BRC" -eq 0 ] && cmp -s /out/w32-man.txt /out/w32-man-boguspager.txt && echo "PAGER-UNSPAWNED-OK" || { echo "PAGER-SPAWNED (bad)"; FAIL=1; }
+
+echo "== refusals"
+timeout 30 "$PB" man frobnicate > /out/w32-man-bad.txt 2>&1
+[ "$?" -eq 1 ] && echo "MAN-UNKNOWN-ONE-OK" || { echo "MAN-UNKNOWN-BAD"; FAIL=1; }
+timeout 30 "$PB" man ps run > /dev/null 2>&1
+[ "$?" -eq 125 ] && echo "MAN-TWO-POSITIONALS-OK" || { echo "MAN-TWO-BAD"; FAIL=1; }
+timeout 30 "$PB" man --help > /dev/null 2>&1
+[ "$?" -eq 0 ] && echo "MAN-HELP-OK" || { echo "MAN-HELP-BAD"; FAIL=1; }
+
+echo "== rows moved"
+grep -q 'usage strings and the parity table' /out/w32-parity.json && echo "ROWS-MAN-OK" || { echo "ROWS-MAN-BAD"; FAIL=1; }
+
+echo "== W32-VERDICT fail=$FAIL"
+exit "$FAIL"

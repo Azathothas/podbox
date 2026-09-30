@@ -1,0 +1,6 @@
+== conditions
+2026-09-30T03:20:58.545392+00:00
+Inputs: Linux processes with controlled argv; no guest or licensed image.
+ok: observer excluded; owned process stopped; unrelated process retained
+verdict KVM-CLEANUP-OK
+proof exit: 0

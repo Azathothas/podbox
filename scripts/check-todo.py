@@ -110,6 +110,8 @@
      procedure, and the lane-job ledger holds no open record where
      `wsl-toolkit` answers. Storage on the lane host is a fixed
      allowance, and a kept job directory is how a session fills it.
+30. Saved performance rows stay within their declared ceilings.
+31. The generated document snapshot agrees with source declarations.
 
 ⛔ Read the exit code from this process, unpiped.
 Exit: 0 everything agrees, 1 something disagrees, 2 could not run.
@@ -1692,6 +1694,19 @@ def main():
 
     # -- 30. committed perf readings hold under their ceilings -----------------
     check_perf_budget()
+
+    # Check 31: source-defined document fields must match the tree.
+    seen["document_state"] = 1
+    try:
+        state_result = subprocess.run(
+            [sys.executable, os.path.join(ROOT, "scripts/document-state.py")],
+            cwd=ROOT, capture_output=True, text=True, timeout=30,
+        )
+        if state_result.returncode != 0:
+            err("docs/runtime-state.md", "source state differs: " +
+                (state_result.stderr or state_result.stdout).strip())
+    except (OSError, subprocess.TimeoutExpired) as exception:
+        err("docs/runtime-state.md", f"source state could not run: {exception}")
 
     # -- 16. coverage --------------------------------------------------------
     # ⭐ A check that examined nothing reports success otherwise, which is the

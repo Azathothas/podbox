@@ -1,5 +1,8 @@
 # probe
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `crates/podbox-probe`. `TOOL.md` section 6.1, milestone M0.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.

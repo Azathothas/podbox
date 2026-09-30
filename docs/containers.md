@@ -31,7 +31,8 @@ take longer than a warm one.
 | Linux container | The checkout. Setup runs again because the container can be new. |
 | Windows | Record checks run on the host. Linux builds and tests run in a job container in `wsl-toolkit-podbox`. |
 
-Use `sh scripts/common/check-gate.sh --fast` for the Windows host checks.
+Use `sh scripts/common/check-gate.sh --fast` for an early host check.
+Use `--strict` for the final host gate, including the platform twins.
 Use `sh scripts/windows/run-in-base.sh` for the full Linux check.
 `scripts/dev.sh status` reports the native Linux background build. It does
 not report Windows base status.
@@ -83,7 +84,7 @@ executable modes from the git index and from shebangs. A new shell script
 must still have its intended mode in git before commit.
 
 The wrapper excludes `codegraph.db`, its sidecars, `daemon.log`,
-`daemon.pid`, `target`, and `.dev`. It keeps `.git` and
+`daemon.pid`, `target`, `.dev`, and `.tmp`. It keeps `.git` and
 `references/`: checks read the index and cited source lines. Do not
 exclude every log file; tracked reference logs are evidence.
 
@@ -96,6 +97,8 @@ after job-specific collection.
 A job writes artifacts into `/out`. Set `PODBOX_ARTIFACTS` to copy them
 back to a host directory. A file written only in `/work` stays in the
 copied workspace and is not an output for the host.
+The default check exports its transcript, podbox, the four SSH helpers,
+and the build record when artifacts are requested.
 
 ```powershell
 $env:PODBOX_ARTIFACTS = 'artifacts'

@@ -124,6 +124,7 @@ __pycache__/
 
 # scripts/dev.sh state: the background build log and its stamp.
 .dev/
+dist/
 
 # ⭐ The CodeGraph index. It is one machine's SQLite database, 230 MiB on the
 # tree it was built over, and `./scripts/session-start.sh` rebuilds it. The

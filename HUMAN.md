@@ -1,30 +1,52 @@
-# Human notes
+# Operator procedure
 
-podbox is built for automated callers, but several decisions still require an
-operator rather than a heuristic.
+[PROGRESS](TODO/PROGRESS.md) gives the current work order.
+[RESUME](TODO/RESUME.md) gives unfinished work.
+[INDEX](TODO/INDEX.md) gives each acceptance command and status.
 
-## Start here
+## Windows session
 
-The current state and ordered work are in
-[`TODO/PROGRESS.md`](TODO/PROGRESS.md). The complete backlog and its checked
-counts are in [`TODO/INDEX.md`](TODO/INDEX.md). Each entry carries its own
-premise, decision, and acceptance command.
+Run the session entry point from the checkout.
+It selects the `podbox` base and waits for its probe.
 
-## Decisions automation must not invent
+```powershell
+sh scripts/session-start.sh
+py scripts/check-todo.py
+wsl-toolkit --instance podbox base status --probe
+sh scripts/windows/run-in-base.sh
+```
 
-- Whether the ownership memo may live inside a payload-visible rootfs.
-- Whether identity-changing calls should fail honestly or succeed as a
-  compatibility lie in the interposer rung.
-- Whether a target without a usable `/dev/ptmx` should refuse terminal mode.
-- Whether host CA injection is acceptable for a particular execution.
+[Container procedures](docs/containers.md) describe artifact return and job collection.
+Read each exit code. A skipped check does not prove its subject.
 
-These questions remain visible in the live progress record until an operator
-settles them. A missing answer is reported as unknown or unsupported, never
-filled with a convenient default.
+## Linux session
 
-## What automation does cover
+Run `sh scripts/session-start.sh`.
+The environment and build start while you read the task.
+Run `./scripts/dev.sh status` before using the build.
+Run `./scripts/dev.sh check` before commit.
 
-The local and hosted gates check formatting, lint, tests, TODO consistency,
-documentation links, action pins, sensitive material, binary constraints, and
-the separate interposer crate. Experiment scripts print their inputs and use
-exit 2 for a measurement the environment cannot perform.
+## Decisions and input
+
+The operator controls image terms, credentials, remote publication, and
+changes to shared host resources. Existing session authorization remains valid.
+Task entries carry accepted choices. Do not ask for a choice that an entry settles.
+
+For the KVM proof, supply a current Linux binary and a local licensed image:
+
+```powershell
+py scripts/windows/kvm-guest.py --accept-host-risk --binary .dev/artifacts/podbox --image IMAGE.vhdx
+```
+
+The image stays outside the repository. The proof validates its pinned digest.
+The script reports a missing input as exit 2.
+On 2026-09-30 a KVM proof run left a guest emulator that SIGKILL did not
+remove, and the Windows host then failed. Run the proof only while you are
+present. Without `--accept-host-risk`, the driver refuses with exit 2.
+
+## Check a result
+
+Read the script, its conditions, and its result together.
+A historical result proves that revision under those conditions.
+A status of done applies to the entry's acceptance clauses.
+[Current limits](docs/limits.md) name unproved or restricted behavior.

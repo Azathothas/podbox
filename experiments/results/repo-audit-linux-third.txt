@@ -1,0 +1,65 @@
+Audit Linux repetition
+UTC: 2026-09-30T02:50:24Z
+Job: 5cbbff305e7e135c
+Input: main 005638d with staged audit files copied; no source mutation in the copy.
+The full runtime and packaging steps passed. The document guard rejected one repeated rule sentence in INDEX and RULES.
+The duplicate was removed from INDEX. The next complete check is required.
+This record retains step and suite verdicts from the checked output.
+== the machine
+== the job
+== audit conditions
+== disk, before anything is written
+== components
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+== 2 already present, 3 installed, 0 failed
+== cargo fmt --all -- --check
+== cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check
+== cargo clippy --workspace --all-targets -- -D warnings
+== RUSTFLAGS='-C target-feature=-crt-static' cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
+== ./scripts/build-interpose.sh
+== x86_64-unknown-linux-musl
+== x86_64-unknown-linux-gnu
+== cargo build --release --target x86_64-unknown-linux-musl
+== sh experiments/394-ssh-package.sh
+== conditions
+== cargo test --workspace
+test result: ok. 229 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+test result: ok. 51 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+test result: ok. 90 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 136 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.72s
+test result: ok. 108 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+test result: ok. 94 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.42s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.84s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.92s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== python3 experiments/393-build-freshness.py
+== conditions
+== ./scripts/check-todo.py
+== ./scripts/common/check-gate.sh --fast
+  SKIP  check-remote-items  (check-remote-items: gh not found)
+  SKIP  check-twins  (--fast)
+11 checks: 8 passed, 1 failed, 2 skipped
+   FAILED: ./scripts/common/check-gate.sh --fast
+== 11 passed, 1 failed, 0 skipped
+== rc=1
+  docker.io/library/rust:1.98.1-bookworm exited 1 in 2m41.098s
+Payload and wrapper exit: 1

@@ -1,0 +1,88 @@
+#!/bin/sh
+# T-1331 prove: --filter selects, restart composites with named halves,
+# pull -a fetches every offered tag, -q stays quiet.
+set -u
+cd /work || exit 2
+mkdir -p /out
+FAIL=0
+
+echo "== bootstrap + build"
+./scripts/common/bootstrap-env.sh rust cc zig tools > /out/w31-bootstrap.txt 2>&1 || { echo "BOOTSTRAP-FAILED"; exit 2; }
+./scripts/build-interpose.sh > /dev/null 2>&1 || { echo "INTERPOSE-FAILED"; exit 1; }
+cargo build --release --target x86_64-unknown-linux-musl > /out/w31-build.txt 2>&1 || { echo "BUILD-FAILED"; tail -5 /out/w31-build.txt; exit 1; }
+PB=/work/target/x86_64-unknown-linux-musl/release/podbox
+export PODBOX_STORE=/tmp/pb-w31
+rm -rf "$PODBOX_STORE"
+
+echo "== units by exact name + suites + clippy"
+for t in filter_parses_name_and_label_and_nothing_else cluster_expands_docker_clusters every_cluster_value_has_a_table_row a_flag_is_found_under_every_spelling_the_parser_accepts; do
+  cargo test -p podbox-cli "$t" > /out/w31-t.txt 2>&1
+  if grep -q "$t ... ok" /out/w31-t.txt; then echo "OK $t"; else echo "MISSING $t"; tail -4 /out/w31-t.txt; FAIL=1; fi
+done
+cargo test --workspace > /out/w31-suites.txt 2>&1
+TRC=$?
+echo "suites-rc=$TRC"
+[ "$TRC" -eq 0 ] && echo "SUITES-OK" || { echo "SUITES-BAD"; FAIL=1; }
+cargo clippy --workspace --all-targets -- -D warnings > /out/w31-clippy.txt 2>&1 && echo "CLIPPY-OK" || { echo "CLIPPY-FAIL"; FAIL=1; }
+
+IMG=public.ecr.aws/docker/library/alpine:3.20
+timeout 120 "$PB" pull "$IMG" > /dev/null 2>&1 || { echo "PULL-FAILED"; exit 2; }
+
+echo "== ps --filter selects"
+timeout 30 "$PB" create --name alpha "$IMG" true > /dev/null 2>&1 || { echo "CREATE-ALPHA-FAILED"; exit 1; }
+timeout 30 "$PB" create --name beta "$IMG" true > /dev/null 2>&1 || { echo "CREATE-BETA-FAILED"; exit 1; }
+timeout 30 "$PB" ps -a --filter name=alph --format '{{.Names}}' > /out/w31-f1.txt 2>&1
+echo "filter-rc=$?"
+cat /out/w31-f1.txt
+grep -qx 'alpha' /out/w31-f1.txt && ! grep -q 'beta' /out/w31-f1.txt && echo "FILTER-SELECTS" || { echo "FILTER-WRONG (bad)"; FAIL=1; }
+timeout 30 "$PB" ps -a --filter name=zzz --format '{{.Names}}' > /out/w31-f2.txt 2>&1
+[ -s /out/w31-f2.txt ] && { echo "FILTER-NONEMPTY (bad)"; FAIL=1; } || echo "FILTER-EMPTY-OK"
+timeout 30 "$PB" ps -a --filter bogus=x > /out/w31-f3.txt 2>&1
+FRC=$?
+[ "$FRC" -ne 0 ] && grep -q 'name= and label=' /out/w31-f3.txt && echo "FILTER-KEY-NAMED" || { echo "FILTER-KEY-BAD"; FAIL=1; }
+
+echo "== images --filter selects"
+timeout 30 "$PB" images --filter name=alpine --format '{{.Repository}}:{{.Tag}}' > /out/w31-f4.txt 2>&1
+cat /out/w31-f4.txt
+grep -q 'alpine' /out/w31-f4.txt && echo "IMAGES-FILTER-OK" || { echo "IMAGES-FILTER-BAD"; FAIL=1; }
+
+echo "== restart composites with named halves"
+timeout 30 "$PB" create --name rs1 "$IMG" sleep 30 > /dev/null 2>&1 || { echo "CREATE-RS1-FAILED"; exit 1; }
+timeout 60 "$PB" start rs1 > /dev/null 2>&1 || { echo "START-RS1-FAILED"; exit 1; }
+timeout 60 "$PB" restart rs1 > /out/w31-rs.txt 2>&1
+RRC=$?
+echo "restart-rc=$RRC"
+cat /out/w31-rs.txt
+[ "$RRC" -eq 0 ] && grep -qx 'rs1' /out/w31-rs.txt && echo "RESTART-OK" || { echo "RESTART-BAD"; FAIL=1; }
+timeout 60 "$PB" restart no-such > /out/w31-rsbad.txt 2>&1
+BRC=$?
+[ "$BRC" -ne 0 ] && grep -q 'stop half failed' /out/w31-rsbad.txt && echo "STOP-HALF-NAMED" || { echo "STOP-HALF-BAD"; FAIL=1; }
+timeout 60 "$PB" stop rs1 > /dev/null 2>&1
+timeout 30 "$PB" rm alpha beta rs1 > /dev/null 2>&1
+
+echo "== pull -a fetches every offered tag"
+timeout 600 "$PB" pull -a public.ecr.aws/docker/library/hello-world > /out/w31-alla.txt 2>&1
+ARC=$?
+echo "pull-a-rc=$ARC"
+cat /out/w31-alla.txt
+[ "$ARC" -eq 0 ] && grep -q 'tag(s)' /out/w31-alla.txt && grep -q 'tag nanoserver.*skipped' /out/w31-alla.txt && echo "PULL-A-OK" || { echo "PULL-A-BAD"; FAIL=1; }
+timeout 60 "$PB" images --format '{{.Repository}}:{{.Tag}}' > /out/w31-allimgs.txt 2>&1
+grep -q 'hello-world:latest' /out/w31-allimgs.txt && grep -q 'hello-world:linux' /out/w31-allimgs.txt && echo "PULL-A-TAGS-OK" || { echo "PULL-A-TAGS-BAD"; FAIL=1; }
+timeout 60 "$PB" pull -a public.ecr.aws/docker/library/hello-world:latest > /out/w31-allatag.txt 2>&1
+GRC=$?
+[ "$GRC" -ne 0 ] && grep -q 'takes a repository' /out/w31-allatag.txt && echo "TAG-REFUSED" || { echo "TAG-NOT-REFUSED (bad)"; FAIL=1; }
+
+echo "== pull -q stays quiet"
+timeout 120 "$PB" pull -q public.ecr.aws/docker/library/hello-world:latest > /out/w31-q.txt 2>&1
+QRC=$?
+echo "pull-q-rc=$QRC"
+[ "$QRC" -eq 0 ] && [ ! -s /out/w31-q.txt ] && echo "QUIET-OK" || { echo "QUIET-BAD"; FAIL=1; }
+
+echo "== rows moved"
+timeout 30 "$PB" system info --format '{{json .Parity}}' > /out/w31-parity.txt 2>&1
+grep -q 'caller-side predicate' /out/w31-parity.txt && echo "ROWS-FILTER-OK" || { echo "ROWS-FILTER-BAD"; FAIL=1; }
+grep -q 'naming which half failed' /out/w31-parity.txt && echo "ROWS-RESTART-OK" || { echo "ROWS-RESTART-BAD"; FAIL=1; }
+grep -q 'every offered tag' /out/w31-parity.txt && echo "ROWS-PULLA-OK" || { echo "ROWS-PULLA-BAD"; FAIL=1; }
+
+echo "== W31-VERDICT fail=$FAIL"
+exit "$FAIL"

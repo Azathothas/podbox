@@ -51,10 +51,7 @@ need_state() { mkdir -p "$STATE"; }
 # What a build depends on. ⚠ Deliberately not `find .`: `target/` and
 # `references/` are enormous and neither is an input to the build.
 inputs_digest() {
-	{
-		find crates -name '*.rs' -newermt '1970-01-01' -printf '%p %T@ %s\n' 2>/dev/null
-		cat Cargo.toml Cargo.lock rust-toolchain.toml .cargo/config.toml 2>/dev/null
-	} | sha256sum | cut -d' ' -f1
+	python3 "$REPO/scripts/build-state.py" inputs --target "$TARGET"
 }
 
 running() {
@@ -84,7 +81,14 @@ do_work() {
 			echo failed >"$STATUSFILE"
 			return 1
 		fi
+		echo "== build the interposer inputs"
+		"$REPO/scripts/build-interpose.sh" || {
+			echo failed >"$STATUSFILE"
+			return 1
+		}
 		echo "== cargo build --release --target $TARGET"
+		PODBOX_BUILD_COMMIT=$(python3 "$REPO/scripts/build-state.py" commit) || return 1
+		export PODBOX_BUILD_COMMIT
 		cargo build --release --target "$TARGET" 2>&1
 		local build_rc=$?
 		t2=$(date +%s)
@@ -95,7 +99,11 @@ do_work() {
 			echo failed >"$STATUSFILE"
 			return 1
 		fi
-		inputs_digest >"$STAMP"
+		python3 "$REPO/scripts/build-state.py" record --target "$TARGET" || {
+			echo failed >"$STATUSFILE"
+			return 1
+		}
+		inputs_digest >"$STAMP" || return 1
 		echo ready >"$STATUSFILE"
 		echo "== ok. $BIN"
 	} >>"$LOG" 2>&1
@@ -114,9 +122,9 @@ start_bg() {
 	echo running >"$STATUSFILE"
 	# ⛔ `setsid` and a full detach, so the build survives the shell that
 	# started it. A session's turns are separate processes.
-	setsid bash -c "$(declare -f do_work inputs_digest); \
-		REPO='$REPO' STATE='$STATE' LOG='$LOG' STATUSFILE='$STATUSFILE' \
-		STAMP='$STAMP' TARGET='$TARGET' BIN='$BIN' do_work" \
+	setsid env REPO="$REPO" STATE="$STATE" LOG="$LOG" STATUSFILE="$STATUSFILE" \
+		STAMP="$STAMP" TARGET="$TARGET" BIN="$BIN" \
+		bash -c "$(declare -f do_work inputs_digest); do_work" \
 		</dev/null >/dev/null 2>&1 &
 	echo $! >"$PIDFILE"
 	cat <<EOF
@@ -152,15 +160,8 @@ status)
 	echo "$st"
 	case "$st" in
 	ready)
-		[ -x "$BIN" ] && echo "  $BIN"
-		# ⚠ Says whether the build is STALE, rather than only whether it ran.
-		# A `ready` that predates the last edit is the answer that misleads.
-		if [ -f "$STAMP" ] && [ "$(cat "$STAMP")" != "$(inputs_digest)" ]; then
-			echo "  ⚠ stale: a source file has changed since this build."
-			echo "    ./scripts/dev.sh build"
-			exit 1
-		fi
-		exit 0
+		python3 "$REPO/scripts/build-state.py" status --target "$TARGET"
+		exit "$?"
 		;;
 	failed)
 		echo "  the last lines of ${LOG#"$REPO"/}:"
@@ -191,12 +192,18 @@ build)
 	# ⛔ Foreground, for after a source change. It does NOT bootstrap: by the
 	# time a session is editing code the environment is already up, and paying
 	# for an apt check on every edit is the cost this script exists to remove.
+	./scripts/build-interpose.sh || exit 1
+	PODBOX_BUILD_COMMIT=$(python3 "$REPO/scripts/build-state.py" commit) || exit 1
+	export PODBOX_BUILD_COMMIT
 	cargo build --release --target "$TARGET" || exit 1
-	inputs_digest >"$STAMP"
+	python3 "$REPO/scripts/build-state.py" record --target "$TARGET" || exit 1
+	inputs_digest >"$STAMP" || exit 1
 	echo ready >"$STATUSFILE"
 	echo "dev.sh: $BIN"
 	;;
 check)
+	PODBOX_BUILD_COMMIT=$(python3 "$REPO/scripts/build-state.py" commit) || exit 1
+	export PODBOX_BUILD_COMMIT
 	# What a change has to pass before it is committed, in the order that fails
 	# cheapest first.
 	#
@@ -212,15 +219,19 @@ check)
 		"RUSTFLAGS='-C target-feature=-crt-static' cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings" \
 		"./scripts/build-interpose.sh" \
 		"cargo build --release --target $TARGET" \
+		"sh experiments/394-ssh-package.sh" \
 		"cargo test --workspace" \
 		"RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu" \
+		"python3 experiments/393-build-freshness.py" \
+		"python3 experiments/398-gate-diagnostics.py" \
+		"python3 experiments/400-kvm-cleanup.py" \
 		"./scripts/check-todo.py" \
 		"./scripts/common/check-gate.sh --fast"; do
 		printf '== %s\n' "$step"
 		# ⛔ The status is read from the step itself, unpiped. AGENTS.md
 		# absolute 8: piping a check into anything reports the pipeline's
 		# status, so a guard that failed reads as green.
-		sh -c "$step"
+		timeout "${PODBOX_CHECK_STEP_TIMEOUT:-1800}" sh -c "$step"
 		step_rc=$?
 		# ⚠ TODO/gate.md T-1207 item 4: a step that cannot run reports the
 		# third state and does not read as a failure. Exit 2 is "could not
@@ -243,10 +254,17 @@ check)
 	fi
 	if [ "$fail" -gt 0 ] || [ "$pass" -eq 0 ]; then
 		rc=1
+	elif [ "$skip" -gt 0 ]; then
+		rc=2
 	else
 		rc=0
 	fi
-	[ "$rc" -eq 0 ] && { need_state; inputs_digest >"$STAMP"; }
+	if [ "$rc" -eq 0 ] && [ "$skip" -eq 0 ]; then
+		need_state
+		python3 "$REPO/scripts/build-state.py" record --target "$TARGET" || exit 1
+		inputs_digest >"$STAMP" || exit 1
+		echo ready >"$STATUSFILE"
+	fi
 	exit "$rc"
 	;;
 -h | --help | help)

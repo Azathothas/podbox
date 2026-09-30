@@ -1,0 +1,64 @@
+#!/bin/sh
+# T-1326 prove: the marker check is shell-portable.
+# RED: the old $(printf '\ooo') shape under dash mis-encodes and drowns in
+#   false positives. GREEN: dash and bash both exit 0 with the same count.
+# PLANT: an illegal byte fails under both.
+set -u
+cd /work || exit 2
+mkdir -p /out
+FAIL=0
+
+./scripts/common/bootstrap-env.sh rust cc zig tools > /out/w26-bootstrap.txt 2>&1 || { echo "BOOTSTRAP-FAILED"; exit 2; }
+command -v dash >/dev/null 2>&1 || { echo "NO-DASH (bad: need dash to prove this)"; exit 2; }
+echo "sh-is: $(readlink /bin/sh)"
+
+echo "== RED: old shape under dash"
+cp scripts/common/check-markers.sh /tmp/fixed-markers.sh
+python3 - <<'EOF'
+import io
+p = 'scripts/common/check-markers.sh'
+s = io.open(p, encoding='utf-8').read()
+old = {'M1': '342\233\224', 'M2': '342\255\220', 'M3': '342\232\240',
+       'M4': '342\234\205', 'M5': '342\235\214', 'BOM': '357\273\277'}
+new = {'M1': '226 155 148', 'M2': '226 173 144', 'M3': '226 154 160',
+       'M4': '226 156 133', 'M5': '226 157 140', 'BOM': '239 187 191'}
+n = 0
+for k in old:
+    a = '%s="%s"' % (k, new[k])
+    b = '%s=$(printf \'\\%s\')' % (k, old[k])
+    assert s.count(a) == 1, k
+    s = s.replace(a, b)
+    n += 1
+io.open(p, 'w', encoding='utf-8', newline='').write(s)
+print('old shape staged: %d markers' % n)
+EOF
+sh scripts/common/check-markers.sh > /out/w26-red.txt 2>&1
+RRC=$?
+echo "old-under-dash-rc=$RRC"
+NFP=$(grep -c "is outside the five" /out/w26-red.txt || true)
+echo "old-under-dash-false-positives=$NFP"
+if [ "$RRC" -ne 0 ] && [ "$NFP" -gt 100 ]; then echo "RED-OK: old shape drowns under dash"; else echo "RED-WRONG"; FAIL=1; fi
+cp /tmp/fixed-markers.sh scripts/common/check-markers.sh
+echo "fixed shape restored"
+
+echo "== GREEN: dash and bash agree"
+sh scripts/common/check-markers.sh > /out/w26-dash.txt 2>&1
+DRC=$?
+bash scripts/common/check-markers.sh > /out/w26-bash.txt 2>&1
+BRC=$?
+echo "dash-rc=$DRC bash-rc=$BRC"
+[ "$DRC" -eq 0 ] && [ "$BRC" -eq 0 ] && echo "BOTH-ZERO" || { echo "NONZERO (bad)"; FAIL=1; }
+if cmp -s /out/w26-dash.txt /out/w26-bash.txt; then echo "IDENTICAL-OUTPUT"; else echo "OUTPUTS-DIFFER (bad)"; FAIL=1; fi
+
+echo "== PLANT: illegal byte fails under both"
+printf 'caf\303\251\n' >> TODO/probe.md
+sh scripts/common/check-markers.sh > /out/w26-plant-dash.txt 2>&1
+PRC1=$?
+bash scripts/common/check-markers.sh > /out/w26-plant-bash.txt 2>&1
+PRC2=$?
+echo "plant-dash-rc=$PRC1 plant-bash-rc=$PRC2"
+[ "$PRC1" -ne 0 ] && [ "$PRC2" -ne 0 ] && echo "BOTH-REFUSE" || { echo "PLANT-MISSED (bad)"; FAIL=1; }
+grep -q "U+00E9" /out/w26-plant-dash.txt && grep -q "U+00E9" /out/w26-plant-bash.txt && echo "BOTH-NAME-E9" || { echo "UNNAMED (bad)"; FAIL=1; }
+
+echo "== W26-VERDICT fail=$FAIL"
+exit "$FAIL"

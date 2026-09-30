@@ -6,6 +6,16 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 
 | Record | Contents |
 | --- | --- |
+| [Repository audit review](reviews/2026-09-30-repository-audit.md) | Source paths, failure tests, and cold-start evidence |
+| [Earlier changelog](CHANGELOG.md-before-2026-09-30.txt) | Version and task change records before reconciliation |
+| [Earlier experiment guide](experiments-README.md-before-2026-09-30.txt) | Superseded script catalogue and host claims |
+| [Repository audit source comparison](../../experiments/results/publish-branch-comparison.txt) | Publish-branch patch identity and context differences |
+| Documents before the audit | Commit `005638d` on main; read a page with `git show 005638d:PATH` |
+| [Lane proofs of 2026-09-23](lane-proofs-2026-09-23/README.md) | Seven closure scripts that ran from the ignored `.tmp/` directory, copied unchanged |
+| [Earlier T-1003 record](audit-before-2026-09-30/TODO/packaging.txt) | Earlier scoped closure and the omitted ladder work |
+| [Earlier T-1112 record](audit-before-2026-09-30/TODO/milestones.txt) | Guest implementation stages before the current acceptance record |
+| [pg-toolkit audit](references/pg-toolkit-2026-09-30.md) | Selected source, read depth, adopted mechanism, and remaining candidates |
+| [Retired template option](lean-adoption-before-2026-09-30.txt) | An alternative work model that does not apply to this project |
 | [`migration-2026-09-11.md`](migration-2026-09-11.md) | Source, template, corpus, review, and validation evidence for the repository migration |
 | [`2026-09-11-reference-sweep.md`](2026-09-11-reference-sweep.md) | The sweep of eleven references: what it did not establish, the depth reached per tree, the verdicts, and the six findings |
 | [`2026-09-12-store-lock-race-dead-ends.md`](2026-09-12-store-lock-race-dead-ends.md) | [T-0215](../../TODO/image.md)'s superseded `Premise`: five closed mechanisms, the clause series behind them, and the three wrong readings of the fork control |
@@ -34,8 +44,8 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 the front page, and the reason is blunt: a reader who trusts a page without
 checking it trusts sentences that are wrong.
 
-⚠ Every row names where the correction lives. The claim keeps its original
-wording in the page that made it, per that methodology's append-never-edit rule.
+Each row names the current correction. Required earlier wording is retained
+in history or its captured task record. Live text is corrected in place.
 
 | the claim | what took it away | where it lives now |
 | --- | --- | --- |

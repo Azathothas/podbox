@@ -1,5 +1,8 @@
 # supervise
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `crates/podbox-supervise`. `TOOL.md` section 6.6, milestone M4.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
@@ -70,7 +73,7 @@ Problem:     A fixed sleep is a scheduling assumption. The prior art's own
              capture of this lifecycle contains a failed run for exactly that
              reason, and it passed on other days.
 Premise:     Read, in the account of that capture. The general rule is in the
-             binding methodology: `docs/methodology/authoring.md:143-148` states
+             binding methodology: `docs/methodology/authoring.md:1-20` states
              that an acceptance "waits on the condition, never on a guessed
              duration", and that "both of these will happen" is the same
              assumption as "this will happen in N seconds".
@@ -506,7 +509,7 @@ Approach:    `create`, detached `start`, `ps` shows it running, `exec` prints a
              a race into a published pass elsewhere.
 Decision:    Twenty rather than a timed soak. A count is reproducible on a
              different machine and a duration is not, and
-             `docs/methodology/authoring.md:143-148` rules out the duration form.
+             `docs/methodology/authoring.md:1-20` rules out the duration form.
 Prove:       `./experiments/230-lifecycle-loop.sh 20` exits 0
 
 **Done, 2026-09-09.** `./experiments/230-lifecycle-loop.sh 20` reports **20 of

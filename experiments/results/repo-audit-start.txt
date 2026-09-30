@@ -1,0 +1,46 @@
+== conditions
+session start: 2026-09-30T00:38:05Z
+host: Windows, MINGW64_NT-10.0-26200
+local main: 005638d
+remote main after fetch: 9d4bb55
+base instance: podbox
+base tool: 6.0.0
+
+== record gate
+command: py scripts/check-todo.py
+exit: 1
+180 rows, 180 entries, 0 open, 1 partial, 0 blocked, 179 done
+failures:
+- the KVM experiment is untracked
+- experiment number 386 is reused
+- ended lane job 94ef6cdfbaf3cd2e retains its host directory
+
+== host gate
+command: sh scripts/common/check-gate.sh --fast
+exit: 1
+11 checks: 9 passed, 1 failed, 1 skipped
+failure: public-path and digest rules reject the untracked KVM proof
+skip: check-twins, selected by --fast
+
+== retained job
+job: 94ef6cdfbaf3cd2e
+transcript tail: 8 passed, 2 failed, 0 skipped; rc=1
+failures: the record gate and the public-material check
+The job is an earlier result. It does not prove the current working tree.
+
+== base probe
+command: wsl-toolkit --instance podbox base status --probe
+exit: 0
+usable: true
+containers: 0
+guest job directories: none
+limits enforced: no
+stats usable: no
+
+== publish branch
+branch head: 82c12ba
+seven of eight patches match commits on main
+range comparison: ce17a733^..82c12ba against 82d4bff^..1c19cea
+the first patch differs in index counts, progress text, and CLI context
+its implementation exists on main
+the branch uses old experiment numbers; main carries the corrected numbers

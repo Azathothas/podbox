@@ -1,0 +1,84 @@
+#!/bin/sh
+# T-1325 prove: the rewritten Prove lines run green verbatim, the three
+# corrected notes ship in `system info`, and the new gate checks hold.
+set -u
+cd /work || exit 2
+mkdir -p /out
+FAIL=0
+
+echo "== bootstrap + build"
+./scripts/common/bootstrap-env.sh rust bloat cc zig tools > /out/w25-bootstrap.txt 2>&1 || { echo "BOOTSTRAP-FAILED"; exit 2; }
+./scripts/build-interpose.sh > /out/w25-interpose.txt 2>&1 || { echo "INTERPOSE-FAILED"; tail -5 /out/w25-interpose.txt; exit 1; }
+cargo build --release --target x86_64-unknown-linux-musl > /out/w25-build.txt 2>&1 || { echo "BUILD-FAILED"; tail -5 /out/w25-build.txt; exit 1; }
+PB=/work/target/x86_64-unknown-linux-musl/release/podbox
+export PODBOX_STORE=/tmp/pb-w25
+rm -rf "$PODBOX_STORE"
+
+echo "== unit + clippy on the touched crate"
+cargo test -p podbox-cli > /out/w25-units.txt 2>&1
+URC=$?
+echo "units-rc=$URC"
+[ "$URC" -eq 0 ] && echo "UNITS-OK" || { echo "UNITS-BAD"; FAIL=1; }
+cargo clippy -p podbox-cli --all-targets -- -D warnings > /out/w25-clippy.txt 2>&1 && echo "CLIPPY-OK" || { echo "CLIPPY-FAIL"; FAIL=1; }
+
+IMG=public.ecr.aws/docker/library/alpine:3.20
+timeout 120 "$PB" pull "$IMG" > /dev/null 2>&1 || { echo "PULL-FAILED"; exit 2; }
+
+echo "== T-0604 rewritten line, verbatim"
+timeout 60 "$PB" run -d --name stateprobe "$IMG" sleep 30 > /dev/null 2>&1 || { echo "RUN-FAILED"; exit 1; }
+kill -9 "$(timeout 60 "$PB" inspect --format '{{.Pid}}' stateprobe)" 2>/dev/null
+sleep 2
+timeout 60 "$PB" ps -a --format '{{.Names}} {{.Status}}' | grep '^stateprobe ' | grep -qi exited && echo "T0604-GREEN" || { echo "T0604-RED (bad)"; FAIL=1; }
+timeout 60 "$PB" rm stateprobe > /dev/null 2>&1
+
+echo "== T-0501 rewritten line, verbatim"
+timeout 60 "$PB" run --rm "$IMG" sh -c 'echo hi' | grep -qx hi && echo "T0501-GREEN" || { echo "T0501-RED (bad)"; FAIL=1; }
+
+echo "== T-0804 rewritten line, verbatim"
+if ! timeout 60 "$PB" run --rm --network=none "$IMG" true 2>/dev/null \
+  && ! timeout 60 "$PB" run --rm --memory=1g "$IMG" true 2>/dev/null \
+  && ! timeout 60 "$PB" run --strict --rm --memory=1g "$IMG" true 2>/dev/null; then
+  echo "T0804-GREEN"
+else
+  echo "T0804-RED (bad)"; FAIL=1
+fi
+
+echo "== T-0107 rewritten line, verbatim"
+if ! timeout 60 "$PB" run --network=none --rm "$IMG" true 2>/dev/null; then
+  echo "T0107-NETWORK-REFUSED"
+else
+  echo "T0107-NETWORK-RAN (bad)"; FAIL=1
+fi
+timeout 60 "$PB" probe --strict > /out/w25-strict.txt 2>&1
+SRC=$?
+echo "probe-strict-rc=$SRC"
+cat /out/w25-strict.txt | head -5
+
+echo "== T-0204 fixed Prove, verbatim"
+timeout 60 "$PB" run -d --name gc-probe "$IMG" sleep 30 > /dev/null 2>&1 || { echo "GC-RUN-FAILED"; exit 1; }
+timeout 60 "$PB" image prune -a -f > /out/w25-prune.txt 2>&1
+echo "prune-rc=$?"
+cat /out/w25-prune.txt
+if grep -q "is referenced by container gc-probe" /out/w25-prune.txt \
+  && timeout 60 "$PB" inspect "$IMG" > /dev/null 2>&1; then
+  echo "T0204-GREEN"
+else
+  echo "T0204-RED (bad)"; FAIL=1
+fi
+timeout 60 "$PB" rm -f gc-probe > /dev/null 2>&1
+
+echo "== 159 clause B (T-0706 row 2)"
+PODBOX_BIN="$PB" ./experiments/159-interpose-placement.sh > /out/w25-159.txt 2>&1
+IRC=$?
+echo "159-rc=$IRC"
+[ "$IRC" -eq 0 ] && echo "159-GREEN" || { echo "159-RED (bad)"; tail -5 /out/w25-159.txt; FAIL=1; }
+
+echo "== corrected notes in system info"
+timeout 30 "$PB" system info --format '{{json .Parity}}' > /out/w25-parity.txt 2>&1
+grep -q 'containers by name' /out/w25-parity.txt && echo "NOTE-INSPECT-OK" || { echo "NOTE-INSPECT-BAD"; FAIL=1; }
+grep -q 'image prune.*removes images' /out/w25-parity.txt && echo "NOTE-SYSTEM-OK" || { echo "NOTE-SYSTEM-BAD"; FAIL=1; }
+grep -q 'says which half failed' /out/w25-parity.txt && echo "NOTE-RESTART-OK" || { echo "NOTE-RESTART-BAD"; FAIL=1; }
+grep -q 'no containers until M4' /out/w25-parity.txt && { echo "STALE-NOTE-SURVIVED (bad)"; FAIL=1; } || echo "STALE-NOTES-GONE"
+
+echo "== W25-VERDICT fail=$FAIL"
+exit "$FAIL"

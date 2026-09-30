@@ -1,5 +1,8 @@
 # image
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `crates/podbox-image`. `TOOL.md` section 6.2, milestone M1.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
@@ -1834,7 +1837,7 @@ Approach:    Three candidates, each with what refutes it. A fourth pass follows
              3. A larger fixed number. **Refuted.** The libtest thread count
                 scales with machine cores, so demand scales with the machine, and
                 any fixed number is the same wall moved. The ceiling row
-                (`docs/conventions/forbidden-patterns.md:65`) names it.
+                (`docs/conventions/forbidden-patterns.md`) names it.
              4. Second pass. Transient sweep and `in_use` locks also consume
                 slots, so the mutex covers every test that reaches the store, not
                 only the holders. The probe crate's test binary owns a separate

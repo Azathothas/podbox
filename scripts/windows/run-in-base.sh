@@ -89,9 +89,26 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 		# whole workspace suite, so it carries both.
 		echo "./scripts/common/bootstrap-env.sh rust cc zig tools openssh || exit 1"
 		echo 'echo "== dev.sh check"'
-		echo "./scripts/dev.sh check"
+		echo 'mkdir -p /out || exit 2'
+		echo './scripts/dev.sh check >/out/linux-check.txt 2>&1'
+		echo 'rc=$?'
+		echo 'cat /out/linux-check.txt'
+		echo 'exit_step=$rc'
 	fi
-	echo "rc=\$?"
+	if [ -n "$USER_JOB" ]; then
+		echo 'rc=$?'
+	else
+		echo 'rc=$exit_step'
+	fi
+	if [ -z "$USER_JOB" ] && [ -n "$ARTIFACTS" ]; then
+		echo 'if [ "$rc" -eq 0 ]; then'
+		echo '  mkdir -p /out || exit 2'
+		echo '  for binary in podbox node operator proxy shell; do'
+		echo '    cp "target/x86_64-unknown-linux-musl/release/$binary" "/out/$binary" || exit 1'
+		echo '  done'
+		echo '  cp .dev/build-state.json /out/build-state.json || exit 1'
+		echo 'fi'
+	fi
 	echo 'echo "== rc=$rc"'
 	echo "exit \"\$rc\""
 } >"$work/wrapper.sh"
@@ -123,7 +140,7 @@ fi
 # The index sidecars and daemon state are live files, not source for a job.
 # The toolkit now names a file if its copy fails. Keep these exclusions by
 # name; a broad log exclusion would remove tracked reference evidence.
-EXCLUDES="codegraph.db codegraph.db-wal codegraph.db-shm daemon.log daemon.pid target .dev"
+EXCLUDES="codegraph.db codegraph.db-wal codegraph.db-shm daemon.log daemon.pid target .dev .tmp"
 set -- # nothing positional survives into the call below
 for x in $EXCLUDES; do
 	set -- "$@" --exclude "$x"

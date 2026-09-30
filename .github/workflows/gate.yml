@@ -183,7 +183,7 @@ jobs:
       # The two count scripts are Python. Named as such so the step above does
       # not try to parse them as shell, which it did while they were `.sh`.
       - name: count scripts compile
-        run: python3 -m py_compile scripts/check-todo.py scripts/todo-count.py
+        run: python3 -m py_compile scripts/*.py scripts/windows/*.py experiments/39*.py experiments/400-kvm-cleanup.py
 
   test:
     name: workspace and interposer tests
@@ -197,6 +197,15 @@ jobs:
 
       - name: workspace tests
         run: cargo test --workspace
+
+      - name: build freshness guards
+        run: python3 experiments/393-build-freshness.py
+
+      - name: failed gate diagnostics and skip states
+        run: python3 experiments/398-gate-diagnostics.py
+
+      - name: owned KVM emulator selection and cleanup
+        run: python3 experiments/400-kvm-cleanup.py
 
       - name: interposer tests
         env:

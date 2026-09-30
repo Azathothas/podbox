@@ -1,5 +1,8 @@
 # extract
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `crates/podbox-extract`. `TOOL.md` section 6.3, milestone M2.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
@@ -448,7 +451,7 @@ Premise:     Measured by the reporter on the beta.1 asset and on a
              mechanism on this tree. SECURITY.md states the invariant
              ("a blob is accepted only when its computed digest matches
              the manifest"); the store is the operator's authority, so
-             this is a stated-invariant gap, not a threat-model bypass.
+             this is a gap in the stated invariant and its enforcement.
 Approach:    Hash each blob while streaming it into the decompressor in
              `extract_layers` and compare against the manifest digest
              before applying entries: one pass, no extra I/O. Out of

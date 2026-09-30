@@ -1,0 +1,46 @@
+BSD Zero Clause License
+
+Copyright (c) 2026 Azathothas
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+
+
+---
+
+Third-party code retained under its own licence:
+
+  scripts/common/mine-repo.sh
+      Vendored from Azathothas/TEMPLATE, at the commit its header records.
+
+  references/
+      Upstream trees captured for study, each under its own project's licence.
+      See the LICENSE file inside each references/<owner>__<repo>/tree/.
+
+  docs/history/oracle/
+      This project's own superseded shell and Python implementations, kept
+      unedited as the oracle later comparisons were measured against. 0BSD,
+      like the rest of this repository.
+
+GNU libiconv, and what it obliges
+---------------------------------
+
+GNU libiconv is LGPL. This repository does not redistribute it: it is fetched
+and built inside the build environment by internal/envx/libiconv.go, and no
+copy is committed here.
+
+pgb links it STATICALLY into any binary it builds that calls iconv. The LGPL's
+relinking obligation therefore attaches to those binaries, not to this
+repository. Anyone shipping pgb output should check that against their own
+requirements.
+
+`pg-toolkit binary build --no-iconv` produces a binary with no libiconv in it and no such
+obligation, at the cost of the gconv failures docs/design/iconv.md describes.

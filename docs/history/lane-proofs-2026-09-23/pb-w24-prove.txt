@@ -1,0 +1,42 @@
+#!/bin/sh
+# T-1324 prove: the quick start verbatim on a fresh machine, ending in a
+# dynamic payload green. The container IS the fresh machine: nothing is
+# mounted from the host, so every step below runs exactly as a reader's
+# first checkout would.
+set -u
+cd /work || exit 2
+mkdir -p /out
+FAIL=0
+
+echo "== quick start, verbatim"
+./scripts/common/bootstrap-env.sh rust bloat cc zig tools > /out/w24-bootstrap.txt 2>&1 || { echo "BOOTSTRAP-FAILED"; exit 2; }
+./scripts/build-interpose.sh > /out/w24-interpose.txt 2>&1 || { echo "INTERPOSE-FAILED"; tail -5 /out/w24-interpose.txt; exit 1; }
+cargo build --release --target x86_64-unknown-linux-musl > /out/w24-build.txt 2>&1 || { echo "BUILD-FAILED"; tail -5 /out/w24-build.txt; exit 1; }
+PB=/work/target/x86_64-unknown-linux-musl/release/podbox
+export PODBOX_STORE=/tmp/pb-w24
+rm -rf "$PODBOX_STORE"
+timeout 60 "$PB" probe > /out/w24-probe.txt 2>&1
+echo "probe-rc=$?"
+grep -E "namespace|chroot" /out/w24-probe.txt | head -5
+timeout 120 "$PB" pull alpine:latest > /dev/null 2>&1 || { echo "PULL-ALPINE-FAILED"; exit 2; }
+timeout 60 "$PB" run alpine:latest /bin/echo hello > /out/w24-run.txt 2>&1
+RRC=$?
+echo "run-rc=$RRC"
+cat /out/w24-run.txt
+[ "$RRC" -eq 0 ] && grep -q hello /out/w24-run.txt && echo "QUICKSTART-GREEN" || { echo "QUICKSTART-RED (bad)"; FAIL=1; }
+
+echo "== dynamic payload, declined nowhere"
+timeout 120 "$PB" pull public.ecr.aws/docker/library/debian:bookworm-slim > /dev/null 2>&1 || { echo "PULL-DEBIAN-FAILED"; exit 2; }
+timeout 60 "$PB" run public.ecr.aws/docker/library/debian:bookworm-slim /bin/echo dynamic-ok > /out/w24-dyn.txt 2>&1
+DRC=$?
+echo "dynamic-rc=$DRC"
+cat /out/w24-dyn.txt
+[ "$DRC" -eq 0 ] && grep -q 'dynamic-ok' /out/w24-dyn.txt && echo "DYNAMIC-GREEN" || { echo "DYNAMIC-RED (bad)"; FAIL=1; }
+grep -q 'declined' /out/w24-dyn.txt && { echo "DYNAMIC-DECLINED (bad)"; FAIL=1; } || echo "NOTHING-DECLINED"
+
+echo "== the binary reports what it carries"
+timeout 30 "$PB" system info > /out/w24-info.txt 2>&1
+grep -q 'glibc and musl objects embedded' /out/w24-info.txt && echo "OBJECTS-EMBEDDED" || { echo "OBJECTS-MISSING (bad)"; FAIL=1; }
+
+echo "== W24-VERDICT fail=$FAIL"
+exit "$FAIL"

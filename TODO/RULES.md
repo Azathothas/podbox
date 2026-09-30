@@ -1,265 +1,121 @@
-# RULES
+# Project rules
 
-How this repository is worked on. `docs/` is the methodology and it binds;
-this file is what is specific to podbox.
+[INDEX](INDEX.md) lists the entries. [PROGRESS](PROGRESS.md) gives the work
+order. [RESUME](RESUME.md) gives the cold-start handoff.
+[reference-map](reference-map.md) records source and licence decisions.
 
-[INDEX.md](INDEX.md) is the list. [PROGRESS.md](PROGRESS.md) is the work order
-and the only place that carries one. [reference-map.md](reference-map.md) is
-the corpus and its licence determinations.
+## 1. Start
 
-## 1. Starting a session
+Run the session start command. Read the required orientation pages in full.
+Run the record gate before changes. Read each applicable router row.
+Use CodeGraph first for source discovery. Confirm its answer in the file.
 
-1. Run `./scripts/session-start.sh`. It reports the machine, the UTC instant,
-   the tools and the lane, syncs the CodeGraph index, and starts the setup.
-2. Read [PROGRESS.md](PROGRESS.md). Its state line, its counts and its "start
-   here next" are the whole handover. Then read [RESUME.md](RESUME.md), which
-   says what the last session had open when it stopped.
-3. Run the gate before touching anything, so a failure found later is yours:
+## 2. Branch and remote
 
-   ```sh
-   ./scripts/check-todo.py
-   ```
+Work on `main`. The operator permits a normal push to `origin/main`.
+Do not force-push, rewrite published history, or skip required checks.
+Other repositories are read-only.
 
-4. Read the entry you are about to work, and the reference lines it cites.
-   ⭐ **Do not re-read the corpus.** The entries carry what to do and which
-   reference to open at which line. That is what M-1 was paid for.
-5. ⛔ **Ask CodeGraph before `grep`.** It answers what exists and where, with
-   the source and the call paths, in one call. A text search then confirms one
-   line. `docs/agent-tooling.md` carries the two commands.
+A branch can have equivalent changes without being an ancestor of `main`.
+Compare commits, patch identities, source, and proof before integration.
+Do not apply an equivalent patch twice.
+Delete an obsolete branch only after the retained work is verified.
 
-## 2. The branch
+If protection refuses a direct push, use the documented publish-branch
+fallback in [git.md](../docs/conventions/git.md).
+Keep its scope narrow. Remove it after integration.
 
-⛔ **`main`, always.** Never a `claude/*` or other agent-named branch unless a
-human says otherwise in that session. Commit and push to `main`.
+## 3. Session end
 
-⭐ **SETTLED BY THE OPERATOR ON 2026-09-09, AND IT IS NOT OPEN AGAIN.** The
-harness a session runs under may name a `claude/*` branch and say never to push
-elsewhere. `AGENTS.md`'s closing section orders the operator's word first,
-this rule second, and the harness has no place in that order at all: the
-operator's instruction is standing, so a harness branch is never taken, whether
-or not the current prompt repeats the word `main`.
+Finish the operator's scope, or stop when the operator says to stop.
+An entry count does not override either instruction.
+Use [sessions.md](../docs/methodology/sessions.md) for closure.
+Save a precise handoff when work remains.
 
-⛔ **The cost of getting this wrong was measured rather than argued.** Three
-sessions each applied the ordering and landed differently because their prompts
-differed, and the result was that `origin/main` sat at M0's tip carrying
-**neither M1 nor M2**: a clone of it could not run the acceptance in
-[PROGRESS.md](PROGRESS.md), and each session inherited one more branch and the
-same decision. Consolidating them took a session's opening. ⚠ Nothing was lost
-only because each branch happened to be a strict fast-forward of the last; a
-single conflicting change would have made it a merge nobody had reviewed.
+Update task records in the same change as the work.
+Save the review, proof, summary, and machine state.
+The next prompt belongs in chat only.
 
-⚠ **If a session ever does find work on another branch**, it belongs on `main`
-before anything else: fast-forward where the history allows it, merge where it
-does not, verify the union is reachable from `main`, and only then delete.
+## 4. Counts
 
-### ⭐ `main` accepts a direct push, and a branch is the fallback
+Use `scripts/todo-count.py` to set a status and derive the counts.
+Do not edit count tables by hand.
+Run `scripts/check-todo.py` to check the result independently.
 
-⭐ **Settled by the operator on 2026-09-11: push straight to `main`, and
-create no branches.** `enforce_admins` was turned off on that date and a direct
-push was verified against the live repository. The operator's reason is stated
-and it is not a preference about mechanism: extra branches pollute the
-repository.
+## 5. Entry closure
 
-```sh
-git push origin main
-```
+Keep the ten entry fields defined by
+[authoring.md](../docs/methodology/authoring.md).
+Run the entry's proof. Save the result and its limits.
+For a done entry, the first paragraph after Prove starts with bold Done.
 
-⚠ **The gate still runs, and it still has to be green.** Protection keeps
-the four required checks and keeps `allow_force_pushes` off. What changed is
-who may push through them, not whether they run. ⛔ A force push is still
-refused; do not try one.
+Keep the title when a premise is disproved. Put the correction below it.
+A blocked entry names the blocker and the condition that clears it.
+A partial entry names the implemented part and the remaining acceptance.
+An earlier Done record proves only its stated conditions.
 
-⛔ **The pull-request route is the fallback, not the route.** If a later
-session finds a direct push refused, protection has been restored, and the
-repair is one throwaway branch that lives for one pull request:
+## 6. Measurements
 
-```sh
-git switch -c "publish/$(date -u +%Y%m%dT%H%M%SZ)"
-git push -u origin HEAD
-gh pr create --fill
-gh pr merge --rebase --delete-branch
-```
+Use a tracked script with pinned inputs and printed conditions.
+Save results under `experiments/results/`.
+Exit 0 means matched, 1 means tested and failed, and 2 means could not run.
+Commit negative results. Do not call a missing test a denial.
+Label an estimate each time it appears. Use a dash for an unknown value.
 
-⛔ **Rebase, never squash.** Squash is offered and it collapses several
-commits, each with its own reasoned message, into one. Merge commits are
-disabled on this repository, so rebase is the only method that keeps them.
+## 7. Third-party material
 
-⚠ **A session never leaves a branch behind.** The branch is deleted by the
-merge, and the local `main` is fast-forwarded onto the result before anything
-else is done.
+Read [vendoring.md](../docs/methodology/vendoring.md) before a copy or patch.
+Check the licence before use. Keep notices and captured revision.
+Fix a vendored defect here. Do not write to another repository.
 
-⛔ **A branch is never where work continues.** A session that finds a
-`publish/*` branch still open has found a session that did not finish, and the
-repair is to merge or delete it, not to add to it.
+## 8. Resources and liveness
 
-On a network failure, retry with backoff: 2 s, 4 s, 8 s, 16 s, then stop and
-say so.
-
-## 3. Ending a session
-
-⛔ **A session ends on one of two triggers and on nothing else:** five entries
-of effort `L` are finished in earnest, or the operator says to end it.
-`docs/methodology/sessions.md` holds both and what "in earnest" means. ⚠ A
-budget worry is not a trigger, and an entry is never deferred for one.
-
-Then, per `docs/methodology/sessions.md`:
-
-1. ⭐ **Three deep review passes at least**, over every file this session
-   touched. Section 10 holds the three questions.
-2. [PROGRESS.md](PROGRESS.md) **rewritten**, carrying the state line, the
-   measured baseline, the counts, what this session did, what is in progress,
-   the work order, and the open questions. It carries no history.
-3. [RESUME.md](RESUME.md) refreshed, and the tree clean with the gate green.
-4. The machine put back as it was found. `docs/containers.md` holds what a
-   Windows host owes here.
-5. The summary table, in chat and saved.
-6. The next session's prompt, in chat only, inside a fenced block.
-
-⛔ **The record is part of the change.** The entry, the index and
-`PROGRESS.md` are edited in the same commit as the work, never after it.
-
-## 4. The counts are never touched by hand
-
-⛔ Closing one entry moves the totals line, one priority row, that row's total
-and the All row.
-
-```sh
-./scripts/todo-count.py --set T-0101 done   # moves the row AND the entry
-./scripts/todo-count.py                     # re-derives every count
-./scripts/check-todo.py                     # asserts it independently
-```
-
-`scripts/check-todo.py` is the gate. It also asserts that every cited
-`path:line` in `TODO/` resolves, so a citation into a reference that moved
-fails the build rather than misleading the next session.
-
-## 5. How an entry closes
-
-An entry closes **in place**, in its own file, with its `Prove` command
-actually run and the output recorded underneath. The record opens with a bold
-`Done` paragraph on the first unindented line after `Prove`;
-`scripts/check-todo.py` check 22 holds it.
-
-⛔ **Nothing closes as "won't fix", "upstream's problem" or "out of scope".**
-A blocked entry stays `blocked`, keeps its title, and names the blocker and
-what would clear it.
-
-⛔ **A disproved premise keeps its title.** The correction goes underneath.
-Never a silent edit of the `Premise` line: the title is how the entry has
-always been referred to.
-
-## 6. Measurement
-
-Per `docs/methodology/experiments.md`, and podbox has one addition of its own.
-
-- Every number ships with the script that took it, in `experiments/`, numbered,
-  with pinned inputs and the conditions printed on the way out.
-- Exit codes are uniform: **0** the measurement ran and matched, **1** it ran
-  and something under test failed, **2** it could not run.
-- ⛔ **A negative result is a result and gets committed.**
-  `experiments/results/interposer-libc.txt` exits 2 on this host and is
-  committed for exactly that reason.
-- ⛔ **"Could not run" must never read as "denied".** Both mistakes were live
-  in the research harness this project inherits, and podbox's own probe has the
-  same failure available to it.
-
-## 7. Vendoring
-
-`docs/methodology/vendoring.md` binds, and its rule is not open.
-
-⛔ **Fix it here, now, in this tree.** Never open an issue, pull request,
-discussion, comment, review or fork on anybody else's repository, under any
-framing. Never write a characterisation of an upstream project or its
-maintainers: write the technical fact and stop.
-
-Every patch to vendored code carries the command that reproduces the defect it
-fixes, so a future release can be checked against it rather than judged.
-
-⛔ **The licence determination is made before the tree is used.**
-[reference-map.md](reference-map.md) carries each determination, including
-trees that are read but cannot be copied into podbox.
-
-## 8. Resource and liveness guards
-
-⚠ Long autonomous sessions die in three ways, and podbox inherits all three as
-**product requirements**, not just session hygiene.
-
-| | the session | podbox |
-| --- | --- | --- |
-| **disk** | check blocks **and** inodes before a clone, a pull or a build. On failure delete build artefacts and caches: deletes still succeed while writes fail | `statvfs` before download and before extraction, and the error names the destination. T-0203 |
-| **hangs** | every command touching the network, a registry, a container or another process gets a `timeout` | bounded waits on a pidfd or a readiness fd, never a sleep. T-0602 |
-| **prompts** | never run an interactive command: `-y`, `--noconfirm`, `--yes`, `--non-interactive`, `DEBIAN_FRONTEND=noninteractive`, `GIT_TERMINAL_PROMPT=0`, `</dev/null` | the CLI never prompts. A container runtime that blocks on stdin is unusable by the audience it is for. T-0806 |
-
-⚠ Writable space is a fixed allowance, so `df` misleads: "Avail 0" beside a low
-"Used" means the allowance is spent, not that the machine is broken.
+Check free blocks and inodes before large writes.
+Bound external commands, child waits, and network operations.
+Use non-interactive commands. Read each process exit code without a pipe.
+A resource option accepted by an engine does not prove enforcement.
 
 ### Post-task cleanup, after every task
 
-Storage on this host is a fixed allowance, so cleanup is mechanical,
-not remembered. After every lane job, before the next one starts:
+Save each job's output under `experiments/results/` before collection.
+Then collect that job: `wsl-toolkit --instance podbox gc --job <id> --apply`.
+The report and cleanup record are committed together.
+This order lets the record gate reject retained job resources at commit.
 
-1. Save the job's output. The Windows wrapper removes its container, but
-   `wsl-toolkit` keeps the host transcript. Collect the id the job prints:
-   `wsl-toolkit --instance podbox gc --job <id> --apply`.
-2. Once a drive's report is saved under `experiments/results/`,
-   delete that drive's `.tmp/` artifacts (that drive's `.tmp/pb*`
-   directory and logs, the staged binary beside it).
-3. A base drive leaves its scratch on the base (`/root/pb*` work
-   directories and any staged binary): remove it with
-   `wsl-toolkit --instance podbox base exec --root` before the next
-   base drive starts.
-4. At session end, or when space presses:
-   `wsl-toolkit --instance podbox gc --apply` for the whole
-   ledger, then clear remaining `.tmp/` scratch.
-5. ⛔ Nothing is deleted until its evidence is committed. A report
-   lands in `experiments/results/` first, scratch is removed
-   second.
+Remove only scratch that this session owns. Verify its resolved path first.
+Keep any input needed for a pending proof outside temporary scratch.
+Do not remove the base, shared image cache, or another session's files.
 
-Check 29 of `scripts/check-todo.py` holds this section and reads
-`gc --json`. It checks containers, guest and host directories, and
-ended base sessions. Where the tool is absent, the procedure half
-still binds.
+At session end, inspect `wsl-toolkit --instance podbox gc --json`.
+Use `gc --apply` only when every listed resource belongs to this session.
+Otherwise collect each owned job by id.
+Check 29 holds the procedure and rejects retained lane resources.
 
 ## 9. Prose
 
-`docs/conventions/prose.md` binds. The three that are broken most often here:
+Use [prose.md](../docs/conventions/prose.md).
+Write short technical sentences. Correct current text in place.
+Keep earlier evidence in history. Avoid session narrative in live pages.
 
-- ⛔ **No narrative.** Not in a document, not in a commit message, not in an
-  entry. No "as we discovered", no session diary, no defensive framing.
-- ⛔ **No fabricated number.** A dash where the value is unknown. An estimate is
-  labelled as one, in the same sentence, every time it appears.
-- ⭐ **Write in place.** Amend the document. Never append a corrections section
-  or a dated box under the old text.
+## 10. Reviews
 
-## 10. Three deep review passes, at least
+Review each touched file with three questions:
 
-⭐ Before anything is called done, three passes or more, **each asking a
-different question**. One pass repeated three times is one pass.
+1. Does source or a saved run support each claim?
+2. Do the interfaces, records, links, and counts agree?
+3. Can a new agent follow the work without prior context or temporary files?
 
-1. Is each claim **true**, checked against the source at the captured commit or
-   against a run?
-2. Is it **internally consistent**: do the cross-references resolve, do two
-   sections disagree?
-3. Is it **usable cold** by somebody with no memory of this work?
+Record the scope, result, and limits of each pass.
+Do not invent a finding to satisfy a review quota.
 
-⭐ **Verify, do not accept.** A claim from a previous session, from an issue, or
-from the operator describes a tree that may have moved. Open the file at the
-captured commit. ⭐ **A disagreement between the claim and the code is the
-finding**, and it is worth more than either source. Four of them are already
-recorded here: T-0702's premise, [reference-map.md](reference-map.md)'s
-`userland-execve` row, T-0302's `ignore_chown_errors` note, and T-0703's
-entry-point count.
+## 11. Standing decisions
 
-## 11. Settled decisions, not to be relitigated
-
-| decision | where it was made |
+| Decision | Authority |
 | --- | --- |
-| Rust, `x86_64-unknown-linux-musl`, `crt-static` | `TOOL.md` section 3, measured by `experiments/40-language-selection.sh` |
-| The lilipod patch is not a seed | `TOOL.md` section 3.3, and its GPL-3.0 settles it independently |
-| Nothing is opened on anybody else's repository | `docs/methodology/vendoring.md`, and the incident behind it |
-| 0BSD for this repository | `TOOL.md` section 0.5 |
-| The corpus is tracked in the tree, not on a side branch | [reference-map.md](reference-map.md), because the gate resolves citations |
-| The default answer to a dependency is no | `TOOL.md` section 3.5, and every candidate is an entry in [deps.md](deps.md) |
-| ⭐ A sweep in [deps.md](deps.md) may **land** the crate where the measurement and the entry's own recommendation agree | the operator, 2026-09-08. Measuring and then leaving the decision open costs a second session for a question already answered by a number |
-| ⭐ No commit trailer names a model, a vendor or a tool | `docs/conventions/git.md` section 1, reaffirmed by the operator on 2026-09-08 against the harness default. ⚠ Commits before `bcffb7a` carry one; history is not rewritten for it |
-| ⭐ podbox refuses the `docker` name where a working daemon is reachable, unless an explicit flag says otherwise | the operator, 2026-09-08. [T-0803](cli.md) carries the ruling and the rejected alternative |
+| Rust; static musl release by default | captured TOOL.md section 3; T-1002 |
+| 0BSD for project-owned work | LICENSE |
+| Tracked source corpus | reference-map.md |
+| No tool attribution in commits or releases | git.md section 1 |
+| No upstream writes | vendoring.md |
+| Refuse the docker name beside a reachable daemon unless explicitly selected | T-0803 |
+| Windows route is wsl-toolkit, instance podbox | containers.md |

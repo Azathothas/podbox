@@ -1,173 +1,132 @@
 # podbox
 
-podbox is a Linux container runtime for restricted environments where uid 0 is
-present but namespaces, mounts, device creation, and ownership changes may be
-denied.
+podbox runs Linux payloads on hosts that can deny namespaces, mounts,
+device creation, and ownership changes. It accepts Docker and Podman commands
+and reports the behavior it can provide.
 
-It exposes familiar Docker and Podman-shaped commands, probes the host before
-choosing an execution rung, and names every degradation it cannot avoid.
+## Current behavior
 
-## Status
+The runtime has image acquisition, layer extraction, rootfs completion,
+payload entry, lifecycle control, interposition, and a machine tier.
+The CLI also provides remote and machine SSH commands.
 
-Milestones M0 through M8 are implemented and the machine tier holds its
-probe: probing, image acquisition, ownership-neutral extraction,
-constrained entry, lifecycle supervision, environment completion,
-ownership virtualization through a per-libc interposer, and packaging.
-The current tree is useful for development and controlled experiments. It is
-not a general container isolation boundary and it is not release-complete. See
-[`TODO/PROGRESS.md`](TODO/PROGRESS.md) for the live work order and open limits.
+Read [the architecture](docs/architecture.md) for the execution paths.
+Read [the limits](docs/limits.md) before you select a path.
+[The generated source state](docs/runtime-state.md) names the current build inputs.
+[The work record](TODO/PROGRESS.md) gives current verification and remaining work.
 
-## Quick start
-
-On Linux:
+## Build on Linux
 
 ```sh
-./scripts/common/bootstrap-env.sh rust bloat cc zig tools
-./scripts/build-interpose.sh
-cargo build --release --target x86_64-unknown-linux-musl
+./scripts/common/bootstrap-env.sh rust cc zig tools openssh
+./scripts/dev.sh build
 ./target/x86_64-unknown-linux-musl/release/podbox probe
-./target/x86_64-unknown-linux-musl/release/podbox pull alpine:latest
 ./target/x86_64-unknown-linux-musl/release/podbox run alpine:latest /bin/echo hello
 ```
 
-The interposer build comes before the Cargo build because the objects are
-embedded in the binary: without them it still runs, but the interpose rung
-declines every dynamic payload by name. `podbox system info` reports what a
-binary carries.
+The build script builds both interposer objects before the CLI embeds them.
+The build status verifies input and output bytes.
 
-For repository work, the fast path starts the environment and build in the
-background:
+For repository work, start with `sh scripts/session-start.sh`.
+Use `./scripts/dev.sh check` for the complete Linux check.
 
-```sh
-./scripts/dev.sh
-./scripts/dev.sh status
-./scripts/dev.sh check
+## Build from Windows
+
+```powershell
+sh scripts/session-start.sh
+py scripts/check-todo.py
+$env:PODBOX_ARTIFACTS = '.dev/artifacts'
+sh scripts/windows/run-in-base.sh
 ```
 
-The interposer is deliberately outside the Cargo workspace and builds once per
-libc:
+The Linux job copies this checkout into the `podbox` base.
+It returns requested artifacts through `/out`.
+The [Windows procedure](docs/containers.md) gives setup and cleanup steps.
+The produced executable runs on Linux.
+
+## Run a payload
 
 ```sh
-./scripts/build-interpose.sh
+podbox probe
+podbox doctor
+podbox run alpine:latest /bin/echo hello
+podbox man
 ```
 
-## Which rung a host gets
+The probe measures this host. The banner reports the selected mechanism.
+`inspect` and `system info` report runtime state.
 
-`podbox probe` decides, and `run` follows it. Three cases cover most hosts:
+A chroot changes path resolution. The namespace path creates a mount namespace
+and private temporary filesystem. It does not create user, PID, or network isolation.
+Where chroot is denied, the userland path can use the image loader or memfd.
+Read the named refusal when a required mechanism is absent.
 
-| `probe` says | `run` does |
-| --- | --- |
-| namespace creation, mounts and ID maps all succeed | the `namespace` rung: a mount namespace with a private tmpfs on `/tmp`, then the chroot sequence inside; no user, pid or network namespace. A host that loses a leg between probe and entry falls back to chroot with the banner naming it. `system info` carries both `.Rung` and `.EnteredRung` |
-| namespaces denied, `chroot(/tmp)` succeeds | the `chroot` rung family: path resolution changes, the kernel is shared |
-| `chroot(/tmp)` denied | refusal naming `chroot(2)` before anything runs; the machine tier never chroots and runs where its own legs hold (emulator, accelerator, space), else it refuses naming the missing legs |
+## Windows and DOS guests
 
-Entry reports the rung it actually achieved, so a planned stronger mechanism
-never silently becomes a weaker one. None of the rungs below `namespace` is a
-security boundary against a hostile payload.
-
-## A disposable Windows guest
-
-The machine tier can also boot a Windows guest. It is not an OCI image and it
-does not go through `run`'s pull and enter path: it is a disk image the
-emulator boots, and the command is one `cmd.exe` line.
+The machine tier runs a disposable disk guest through an emulator.
+It also has a FreeDOS path. It does not redistribute a Windows image.
 
 ```sh
-podbox windows doctor                                            # can this machine, and how
-podbox windows fetch --url URL --sha256 HEX --image win.vhdx     # bounded, verified
-podbox windows setup --image win.vhdx                           # once: installs the agent
-podbox windows run   --image win.podbox.qcow2 -- ver & echo hi
-```
-
-`setup` writes `<disk>.podbox.qcow2` beside the image and is the only step that
-needs the guest console; pass that file to `run`. Each run gets a fresh overlay
-over it, so nothing the guest writes survives the run. `run` prints the guest
-command's own stdout and stderr and returns its own exit code. The guest has no
-network. The accelerator is the machine tier's own profile (`kvm` where it
-holds, `tcg` where only that does, and a refusal naming the missing leg where
-neither does), so the feature works on the restricted hosts podbox targets
-rather than only on a KVM host.
-
-⭐ The same driver answers `run`, which is what the entry's acceptance command
-asks for:
-
-```sh
+podbox windows doctor
+podbox windows setup --image win.vhdx
+podbox windows run --image win.podbox.qcow2 -- ver
 podbox run --rm --podbox-tier=machine --platform windows/amd64 win.podbox.qcow2 cmd /c ver
 ```
 
-That is the one platform where `run` does not fetch or enter an OCI rootfs; it
-is refused on every other tier and for every other non-Linux platform, by name.
-`podbox windows fetch` bounds what it downloads by `--max-bytes` and
-`RLIMIT_FSIZE`, refuses a body that crosses either, verifies `--sha256` where
-one is pinned, and removes the partial file when it refuses. podbox never ships
-and never redistributes a Windows image: the base image is yours, under
-your own licence.
+The operator supplies the image under its applicable terms.
+A run uses a fresh overlay and a mailbox for command output and exit status.
+The [guest task](TODO/milestones.md) records proof per accelerator and guest flavor.
 
-A second flavor needs no disk image at all: `--guest dos` boots FreeDOS
-from a base cache the setup script writes, types one line into its console
-through the same monitor, and reads the same mailbox back. The plain
-`run --platform windows/amd64` door takes it, so the acceptance command
-works verbatim with an OCI-shaped token that is never fetched:
+## SSH
 
 ```sh
-podbox run --rm --podbox-tier=machine --platform windows/amd64 freedos:1.4 cmd /c ver
+podbox remote ssh --help
+podbox machine ssh --help
 ```
 
-## Guarantees and limits
+The remote commands use the `node`, `operator`, and `proxy` helper executables.
+Place compatible helpers beside podbox or on PATH.
+A source workspace build produces them. Read the release limits before you
+use a downloaded standalone binary for remote SSH.
 
-- Every claimed execution rung is derived from probes, not from uid or a build
-  constant.
-- Image blobs are content-addressed and verified before they are committed to
-  the store.
-- Layer extraction refuses path and symlink escapes. It records intended image
-  ownership without pretending kernel ownership was restored.
-- A weaker rung never silently satisfies a stronger request. Unsupported work
-  exits with a named refusal.
-- The chroot and interpose rungs share the host kernel and are not security
-  boundaries against a hostile payload.
-- Registry `login` writes `~/.docker/config.json` (or the named credential
-  helper) with the password on stdin; `logout` removes what `login`
-  stored. Foreign-architecture execution
-  depends on host `binfmt_misc` and QEMU support. The interposer pair is x86_64-only:
-  other architectures decline the tier by machine mismatch, so a chroot-denied host off
-  x86_64 has no fallback rung.
+The release workflow also packages all four helpers in an archive for each
+architecture. Keep the CLI and helpers from the same release in one directory.
+Use the archive's licence directory with the distributed executables.
+The archive does not include an external SSH server.
 
-The complete product contract is the pinned
-[`TOOL.md`](references/Azathothas__container-research/tree/TOOL.md) in the
-research corpus.
+Select a verified tag and architecture from
+[the release assets](https://github.com/Azathothas/podbox/releases).
+From this checkout, verify the selected binary and helper archive:
 
-## Project map
+```sh
+sh scripts/verify-release.sh TAG ARCH binary
+sh scripts/verify-release.sh TAG ARCH ssh
+```
 
-| Path | Purpose |
+The verifier requires `gh` and `cosign`. It checks the tag's workflow identity.
+The server endpoint also needs the SSH server named by its configuration.
+
+## Documents and evidence
+
+| Page | Purpose |
 | --- | --- |
-| [`AGENTS.md`](AGENTS.md) | Binding router for contributors and automated sessions |
-| [`docs/architecture.md`](docs/architecture.md) | Runtime boundaries, data flow, and invariants |
-| [`docs/code-map.md`](docs/code-map.md) | Crate and script ownership map |
-| [`TODO/`](TODO/) | Checked backlog, decisions, acceptance commands, and live state |
-| [`experiments/`](experiments/) | Reproducible measurements and committed result captures |
-| [`references/`](references/) | Read-only source corpus at pinned revisions |
-| [`SECURITY.md`](SECURITY.md) | Threat model, trust boundaries, and reporting route |
-| [`THIRD_PARTY.md`](THIRD_PARTY.md) | Copied and redistributed material with license determinations |
+| [AGENTS.md](AGENTS.md) | Session entry point and task routing |
+| [HUMAN.md](HUMAN.md) | Operator procedure |
+| [Architecture](docs/architecture.md) | Execution paths and data boundaries |
+| [Code map](docs/code-map.md) | Source ownership |
+| [Limits](docs/limits.md) | Current constraints and proof gaps |
+| [TODO index](TODO/INDEX.md) | Tasks and derived counts |
+| [Experiments](experiments/README.md) | Scripts and result captures |
+| [Security](SECURITY.md) | Trust boundaries |
+| [Third-party notice](THIRD_PARTY.md) | Licenses and carried material |
 
-## Results and history
+## Contributions
 
-- [`TODO/PROGRESS.md`](TODO/PROGRESS.md) is the current verified result set and
-  the only live work order.
-- [`experiments/README.md`](experiments/README.md) maps each experiment to its
-  committed output under `experiments/results/`.
-- [`docs/history/source-progress-ea5b671.md`](docs/history/source-progress-ea5b671.md)
-  preserves the complete source-project record before migration.
-- [`docs/history/migration-2026-09-11.md`](docs/history/migration-2026-09-11.md)
-  records the migration inputs, review, and validation.
-
-## Contributing
-
-Read [`AGENTS.md`](AGENTS.md), then [`TODO/PROGRESS.md`](TODO/PROGRESS.md),
-before changing the tree. Work from a focused branch, update the relevant TODO
-entry in the same change, and run `./scripts/dev.sh check` before opening a
-pull request. The [pull-request checklist](.github/PULL_REQUEST_TEMPLATE.md)
-defines the review evidence expected before merge.
+Read the router and live work record. Work on `main`.
+Update the affected task in the same change.
+Run the full gate before commit and authorized publication.
+The [review checklist](.github/PULL_REQUEST_TEMPLATE.md) defines review evidence.
 
 ## License
 
-podbox is released under the [0BSD license](LICENSE). Third-party material
-retains its original terms as recorded in [`THIRD_PARTY.md`](THIRD_PARTY.md).
+podbox uses [0BSD](LICENSE). Carried material retains its own terms.

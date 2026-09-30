@@ -1,0 +1,70 @@
+== conditions
+2026-09-30T03:00:30Z
+instance=podbox
+Host input paths use $BINARY and $IMAGE. Base scratch uses $SCRATCH. Control bytes use \xNN labels.
+
+== conditions
+2026-09-30T02:40:58Z
+Linux 7.2.0-WSL2-STABLE
+QEMU emulator version 11.1.1
+Accelerators supported in QEMU binary: tcg mshv nitro kvm
+podbox 0.1.0-beta.10
+binary SHA256: 2d4517649a7b03575fb3ef93c26c714a73b30a1909e1f5d77ed12b5932b98d35
+               total        used        free      shared  buff/cache   available
+Mem:           31892        1288       29896           5        1165       30604
+crw-rw-rw- 1 root kvm  10, 232 Sep 30 08:21 /dev/kvm
+crw-rw-rw- 1 root root 10, 200 Sep 27 22:45 /dev/net/tun
+
+== image
+host image bytes: 910163968
+ok: installed disk copied with the pinned digest
+== doctor
+machine profile: full
+accelerator: kvm (cpu host)
+emulator: qemu-system-x86_64
+qemu-img: qemu-img
+firmware share: /usr/share/qemu
+ovmf code: /usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd
+ovmf vars: /usr/share/edk2-ovmf/x64/OVMF_VARS.4m.fd
+base image: $BASE_HOME/.local/share/podbox/windows/base.vhdx (absent; `podbox windows fetch` downloads one, `podbox windows setup` installs the agent into it)
+dos base image: $BASE_HOME/.local/share/podbox/windows/freedos-base.img (absent; `experiments/369-windows-tcg-dos.sh` fetches FreeDOS and writes the base)
+ok: doctor names the kvm accelerator
+== setup
+INSTALLED D:
+
+provisioned $SCRATCH/base.podbox.qcow2
+ok: provisioned image beside the base
+== run ver with the emulator command line watched
+run exit: 0
+
+Microsoft Windows [Version 10.0.26100.9278]
+emulator: toolkit  1249185 1249105 99 08:36 pts/1    00:00:01 qemu-system-x86_64 -M q35 -accel kvm -cpu host -smp 2 -m 4096 -L /usr/share/qemu -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=$SCRATCH/runtime/podbox-windows-1249105-run/vars.fd -drive if=none,id=root,file=$SCRATCH/runtime/podbox-windows-1249105-run/run.qcow2,format=qcow2 -device nvme,drive=root,serial=wqroot -drive if=none,id=mbox,file=$SCRATCH/runtime/podbox-windows-1249105-run/mailbox.img,format=raw,cache=writethrough -device nvme,drive=mbox,serial=wqmbox -vga std -display none -rtc base=localtime -no-reboot -nic none -serial file:$SCRATCH/runtime/podbox-windows-1249105-run/serial.log -qmp unix:$SCRATCH/runtime/podbox-windows-1249105-run/qmp.sock,server=on,wait=off
+ok: guest version string with exit 0
+ok: outside observer: the guest ran under -accel kvm -cpu host
+== run exit 42
+run exit: 125
+FAIL: exit 42 failed with 125
+podbox windows: kvm host "ver >nul & cmd /c exit 42" over $SCRATCH/base.podbox.qcow2, 4096 MiB x2 cpu, token 5428d13ad58f417260177964e656baf0
+podbox windows: the guest did not power off within 540s, so it was stopped
+\x1b[2J\x1b[001;001H\x1b[=3h\x1b[2J\x1b[001;001H\x1b[2J\x1b[001;001H\x1b[8;042;160t\x1b[2J\x1b[001;001H\x1b[2J\x1b[001;001H\x1b[8;056;240t\x1b[2J\x1b[001;001H== the podbox run seam
+== residue
+ok: no per-run scratch directory remains
+FAIL: owned emulator remains after the command
+FAIL: owned emulator still exists
+base.podbox.qcow2
+base.vhdx
+doctor.txt
+e42.err
+e42.txt
+podbox
+runtime
+serial-watch.log
+setup.txt
+store
+ver.err
+ver-serial.log
+ver.txt
+ok: owned scratch directory removed
+
+verdict KVM-GUEST-FAIL
+proof exit: 1

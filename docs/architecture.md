@@ -1,73 +1,113 @@
 # Architecture
 
-podbox turns an OCI image reference into a process on a restricted Linux host.
-It measures the mechanisms the host permits, chooses the strongest honest rung,
-and keeps acquisition, extraction, completion, entry, and supervision as
-separate stages.
+podbox has a rootfs execution path and a machine execution path.
+The CLI selects the path from arguments and runtime probes.
+[The generated state](runtime-state.md) lists the source-defined mechanisms.
 
-## Execution flow
+## Rootfs execution
 
-1. `podbox-probe` runs disposable syscall probes and records the evidence.
-2. `podbox-image` resolves the platform, fetches and verifies OCI content, and
-   commits it to a content-addressed store.
-3. `podbox-extract` applies layers beneath an opened root, handles whiteouts,
-   and writes intended ownership to a sidecar instead of forcing `chown`.
-4. `podbox-complete` makes a rootfs usable where device nodes, package-manager
-   ownership changes, or host trust configuration are unavailable.
-5. `podbox-enter` resolves and executes the payload after changing root. It can
-   arrange a registered foreign-architecture interpreter when the host exposes
-   one.
-6. `podbox-supervise` owns launcher state, logs, pidfds, signals, and payload
-   exit status.
-7. `podbox-interpose` is the partial M6 compatibility layer for ownership
-   behavior. It is built separately for glibc and musl and selected from the
-   payload interpreter.
+1. The probe runs operations in disposable children.
+2. The image client selects a platform and verifies registry content.
+3. The extractor applies ordered layers and whiteouts.
+4. The completion layer prepares devices, account files, resolver data, and package configuration.
+5. The entry layer resolves the payload in the selected execution context.
+6. The supervisor manages process state, logs, signals, and exit status.
 
-The CLI composes these stages and translates failures into Docker-shaped exit
-codes. The pinned product specification is
-[`references/Azathothas__container-research/tree/TOOL.md`](../references/Azathothas__container-research/tree/TOOL.md).
+Extraction stores intended ownership in a sidecar.
+It restores mapped ownership only where the selected path permits it.
+The sidecar does not change the kernel's ownership checks.
 
-## Execution rungs
+## Selection and entry
 
-From strongest to weakest, selection can report `namespace`, `supervise`,
-`chroot`, `interpose`, or `unsupported`. Selection is data derived from the
-probe findings in `crates/podbox-probe/src/select.rs`. Entry reports the rung it
-actually achieved, so a planned stronger mechanism cannot silently become a
-weaker one.
+`crates/podbox-probe/src/select.rs` defines runtime rungs.
+Selection reports available mechanisms. Entry reports the mechanism it actually enters.
 
-Only the namespace rung can provide namespace isolation. Chroot changes path
-resolution. Supervision changes lifecycle ownership. Interposition changes a
-bounded set of dynamically linked library calls. The latter three must not be
-described as equivalent security boundaries.
+| Path | Behavior |
+| --- | --- |
+| namespace | A mount namespace and private temporary filesystem, followed by rootfs entry |
+| supervise | Notification mediation where the required argument-reading and descriptor mechanisms hold |
+| chroot | Root change with host kernel and shared process and network resources |
+| userland | Image loader plus interposition for dynamic payloads; staged memfd for eligible static payloads |
+| interpose | Library-call compatibility for payloads that the object reaches |
+| unsupported | Refusal with the missing operation |
 
-## Store layout and ownership
+The namespace path does not create user, PID, or network namespaces.
+A stronger request cannot silently receive a weaker result.
+[Limits](limits.md) gives host and payload restrictions.
 
-`podbox-image` owns the store root and its concurrency rules. The store contains
-verified blobs, image records keyed by platform, extracted root filesystems,
-hold records, lifecycle state, configuration, and a keyed probe cache. Paths
-are opened and contained relative to trusted directory descriptors wherever a
-hostile name could otherwise escape.
+## Launch modes
 
-Extraction never claims to restore unmapped ownership. The intended uid and
-gid are recorded in `.meta.jsonl` beside an extracted rootfs. That record is
-metadata for completion and interposition; it does not change a kernel
-permission check.
+`PODBOX_MODE` requests a foreground rootfs launch mode.
+The launch code validates the request before staging or acquisition.
+Detached run, create, exec, and machine entry reject modes they do not drive.
+`crates/podbox-cli/src/ladder.rs` owns this validation.
 
-## Invariants
+The modes can stage an executable in memfd, use a temporary rootfs,
+reuse a cache, or enter by path. These modes describe storage and launch.
+They do not add an isolation claim.
 
-- One image digest identifies one verified byte sequence.
-- Layer application is confined beneath the destination root.
-- A store mutation is atomic or leaves the prior usable state intact.
-- The payload owns its standard streams and its exit status reaches the caller.
-- Platform choice is runtime data, not a compile-time architecture constant.
-- A denied or unmeasured mechanism is a named state, never inferred success.
-- An advisory lock is given up by an explicit unlock, and never by letting its
-  descriptor close. Closing gives the lock up only once the last reference to
-  the open file description goes, and a `fork` makes a second one, so a holder
-  that only closes has not finished when it returns.
-  [`TODO/image.md`](../TODO/image.md) T-0215 is what that cost. ⚠ The one
-  exception is a lock deliberately handed to a payload, which this process must
-  not take back.
+The vendored userland loader is not linked into the runtime.
+The current userland entry lives in `crates/podbox-enter/src/userland.rs`.
+[THIRD_PARTY](../THIRD_PARTY.md) records the carried loader's actual patch state.
 
-The security consequences are detailed in [`SECURITY.md`](../SECURITY.md).
-The ordered implementation backlog is [`TODO/PROGRESS.md`](../TODO/PROGRESS.md).
+## Interposer
+
+The interposer is a separate crate outside the Cargo workspace.
+The build produces one object for glibc and one for musl.
+The CLI build script embeds the produced objects and reports absent inputs.
+
+It supplies path, ownership, identity, device, and proc compatibility.
+It cannot cover every syscall or static payload.
+The embedded pair targets x86_64.
+The runtime checks payload and object architecture before use.
+
+## Machine execution
+
+`--podbox-tier=machine` selects a guest rather than rootfs entry.
+The `podvm` executable name selects that tier by default.
+An explicit tier flag takes precedence over the executable name.
+
+The Linux guest path uses kernel and initramfs inputs, serial execution,
+bounded waits, and a per-run guest.
+The Windows path uses a disk overlay, FAT mailbox, guest agent, and QMP.
+The DOS path supplies its own guest preparation and command protocol.
+The machine probe selects KVM, TCG, or a named refusal from measured host operations.
+
+## SSH
+
+The `podbox-ssh` crate owns transport, TLS, WebSocket frames, multiplexing,
+server supervision, and the interactive session without a pty.
+Remote dispatch calls the helper executables beside podbox or on PATH.
+The remote relay path uses the multiplexed protocol.
+Local forwarding uses the transport appropriate to its fixed endpoint.
+
+Machine SSH boots the named guest with a serial socket and runs a real SSH client.
+The SSH handshake checks the far-end endpoint.
+[The SSH decision](decisions/ssh-server-in-a-cage.md) records server restrictions.
+[The remote decision](decisions/remote-verb.md) records command placement.
+
+## Store and lifecycle
+
+The image store contains verified blobs, platform-specific image records,
+extracted rootfs trees, lifecycle records, configuration, and probe data.
+The store opens paths relative to trusted roots where name containment is required.
+A mutation commits complete data or preserves the prior usable state.
+
+The launcher holds a pidfd for each direct child.
+It does not claim that one pidfd contains descendants.
+`exec` enters a fresh context over the stored rootfs.
+It does not join all namespaces of the original payload.
+
+An advisory lock needs an explicit unlock when a child can inherit its descriptor.
+A descriptor close alone can leave the inherited lock held.
+T-0215 in [the image tasks](../TODO/image.md) owns that rule.
+
+## Verification authority
+
+Source and repeatable runs settle behavior.
+An architecture statement that conflicts with either is a document defect.
+The captured research specification defines product requirements.
+It does not establish the current host's capabilities.
+
+[SECURITY](../SECURITY.md) names trust boundaries.
+[PROGRESS](../TODO/PROGRESS.md) gives the work order.

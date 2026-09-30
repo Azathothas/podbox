@@ -66,6 +66,13 @@ function Add-Row([string]$T) { [void]$rows.Add('  ' + $T) }
 
 $logFile = Join-Path ([System.IO.Path]::GetTempPath()) ("checkgate." + $PID + ".log")
 
+function Write-FailureLog {
+    if (-not $Json -and (Test-Path -LiteralPath $logFile)) {
+        Get-Content -LiteralPath $logFile -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Output ('          ' + $_) }
+    }
+}
+
 function Invoke-Check([string]$Name, [string]$Script, [string[]]$ExtraArgs = @()) {
     $path = Join-Path $here $Script
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -94,10 +101,7 @@ function Invoke-Check([string]$Name, [string]$Script, [string[]]$ExtraArgs = @()
         default {
             Add-Row ("❌ FAIL  " + $Name + "  (exit " + $rc + ")")
             $script:fail++
-            if (-not $Json -and (Test-Path -LiteralPath $logFile)) {
-                Get-Content -LiteralPath $logFile -TotalCount 12 -ErrorAction SilentlyContinue |
-                    ForEach-Object { Write-Output ('          ' + $_) }
-            }
+            Write-FailureLog
         }
     }
 }
@@ -134,7 +138,11 @@ else {
         & sh $twins *> $logFile
         $rc = $LASTEXITCODE
         if ($rc -eq 0) { Add-Row '✅ ok    check-twins'; $pass++ }
-        else { Add-Row ("❌ FAIL  check-twins  (exit " + $rc + ")"); $fail++ }
+        elseif ($rc -eq 2) { Add-Row 'SKIP  check-twins  (could not run)'; $skip++ }
+        else {
+            Add-Row ("❌ FAIL  check-twins  (exit " + $rc + ")"); $fail++
+            Write-FailureLog
+        }
     }
     else { Add-Row 'SKIP  check-twins  (not present)'; $skip++ }
 }

@@ -1,0 +1,12 @@
+== conditions
+2026-09-30T02:31:35.219668+00:00
+host=Windows python=3.13.15
+Inputs: five exports and podbox-build/1 record from the default Windows job.
+Scope: output integrity; this does not compare source or toolchain conditions.
+recorded input digest=da4b5dd63300f358e4146c4a4b0400576f2f2b972ca3813c95b31e33a7fe9d3a
+node: bytes=1614552 sha256=0459ed6d1d442d6989c0f1f8a76fd11ed4ba8dd847ac30706bdae151adb6ce96 matched=True
+operator: bytes=1581848 sha256=003c1b56645997f28323999e396751a55e77c7d04b4f27db6846a660c028ebce matched=True
+podbox: bytes=3888056 sha256=2d4517649a7b03575fb3ef93c26c714a73b30a1909e1f5d77ed12b5932b98d35 matched=True
+proxy: bytes=537280 sha256=c806847bd0ab163bba6a16d6f647583ffebe4b708fa64ca76a87ecf5ebd948c0 matched=True
+shell: bytes=484032 sha256=32edff6524f3e214c3641823b47f6d08a5bd78df51f55fabc61312e97a55d3a5 matched=True
+proof exit: 0

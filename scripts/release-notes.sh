@@ -14,7 +14,7 @@
 # "could not run" is the third state everywhere in this tree, never a
 # pass and never a failure.
 #
-# Exit: 0 the notes printed, 2 `gh` or the network could not answer.
+# Exit: 0 the notes printed, 2 the exact-commit gate or required read is absent.
 set -u
 
 TAG="${1:-}"
@@ -27,16 +27,38 @@ COMMIT="$(git rev-parse "$TAG^{commit}" 2>/dev/null)" || { echo "release-notes: 
 # The gate conclusion on the tagged commit: the newest completed `gate`
 # run on main whose head SHA is the commit. A tag never moves, so the
 # newest completed run for the commit is the state of the commit.
-GATE="$(gh run list --repo "$REPO" --workflow gate.yml --branch main \
+GATE="$(timeout 120 gh run list --repo "$REPO" --workflow gate.yml --branch main \
   --status completed --limit 20 --json headSha,conclusion,url \
   --jq "[.[] | select(.headSha == \"$COMMIT\")][0] | \"\\(.conclusion // \"none\") \\(.url // \"\")\"" 2>/dev/null)" \
   || { echo "release-notes: the gate runs could not be read" >&2; exit 2; }
+case "$GATE" in
+success\ *) ;;
+*) echo "release-notes: no successful main gate for the exact build commit" >&2; exit 2 ;;
+esac
 
 cat <<EOF
-Nightly pre-release: all seven claimed archs built as static binaries, each smoke-tested on its own arch (version, both interposer digests, crt-static). The full acceptance stays host-arch. Each binary carries the x86_64 interposer pair, so interposition declines by name off x86_64 until per-arch objects exist (TODO/interpose.md T-1327).
+Nightly pre-release: seven static CLI binaries passed their architecture smoke checks.
+The smoke checks version, target, interposer digests, static linkage, image pull, and extraction.
+The full runtime acceptance uses the host architecture.
+Each binary embeds the x86_64 interposer pair. Other architectures refuse that interposition path until compatible objects exist.
 
 Build commit: $COMMIT
 Gate on that commit: $GATE
 
-Reproducibility boundary: byte-identical within one host and toolchain; cross-host builds differ in the embedded glibc interposer object (its digest is in \`podbox version --verbose\`, T-1004). A downloader re-deriving these bytes needs the same host glibc the release builder linked against, not only the same rustc and zig.
+Reproducibility boundary: byte-identical within one host and toolchain.
+Cross-host builds differ in the embedded glibc interposer object.
+Its digest is in \`podbox version --verbose\`.
+Reproduction requires the builder's host glibc as well as its Rust and Zig toolchains.
 EOF
+if git cat-file -e "$COMMIT:scripts/package-ssh.sh" 2>/dev/null; then
+  cat <<EOF
+
+Each architecture also has a signed podbox-ssh archive and checksum.
+It contains node, operator, proxy, shell, and the locked registry package licence texts.
+Place compatible helpers beside podbox or on PATH. Supply the required external SSH server where the selected path needs it.
+Helper smoke checks static ELF linkage and usage status. It does not prove every architecture's live SSH session.
+
+Current runtime limits and incomplete guest and server acceptance:
+https://github.com/$REPO/blob/$COMMIT/docs/limits.md
+EOF
+fi

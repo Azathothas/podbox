@@ -1,5 +1,8 @@
 # gate
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `docs/methodology/gate.md` and `docs/methodology/experiments.md`. What makes a
 check an assertion rather than a decoration, and what makes a number a
 measurement rather than a property of one host.
@@ -13,7 +16,7 @@ measurement rather than a property of one host.
 
 ### T-1201 The gate reaches every file this project wrote
 
-Source:      `docs/methodology/gate.md`; `docs/conventions/docs.md:80-92`
+Source:      `docs/methodology/gate.md`; `docs/conventions/docs.md:1-20`
 Category:    gate
 Priority:    P0
 Effort:      S
@@ -1207,7 +1210,7 @@ EXIT:0
 
 Source:      issues 25 and 23, client beta testing 2026-09-22 (T-0604's
              Prove names refused `--filter`; three parity notes stale);
-             `TODO/supervise.md:210`,
+             `TODO/supervise.md`,
              `crates/podbox-cli/src/parity.rs`
 Category:    gate
 Priority:    P1
@@ -1219,7 +1222,7 @@ Problem:     Two claim classes with no check. Closed entries' `Prove:`
              proves itself with `ps --filter`, a `None` row, rc 125: the
              command never ran as written; only `230`'s grep-over-`--format`
              drive is real), and the class was fixed once by hand, not
-             swept (`TODO/interpose.md:645` records its own `-v` the same
+             swept (`TODO/interpose.md` records its own `-v` the same
              way). And parity notes go stale in the machine-readable
              contract with no equivalent of the citation check: `inspect`
              claims no containers post-M4, `system` claims prune missing
@@ -1262,7 +1265,7 @@ now asserts the skip (`is referenced by container gc-probe`) and the
 image's survival. T-0706's dead `run -v` one-liner became the 159
 script invocation; T-0504's `! ... --rootfs` stands, exempt by the
 documented `!` rule (it asserts refusal, and the spelling is the
-trigger). Lane prove `.tmp/pb-w25-prove.sh`, verdict `fail=0`:
+trigger). Lane prove [`pb-w25-prove`](../docs/history/lane-proofs-2026-09-23/pb-w25-prove.txt), verdict `fail=0`:
 every rewritten line green verbatim, 159 exits 0, the three notes in
 `system info`, crate units and clippy clean. `plant.sh` green after
 the commit. The guards are the two checks themselves.
@@ -1329,7 +1332,7 @@ Prove:       `sh scripts/common/check-markers.sh` (dash) and
 **Done, 2026-09-23.** The awk-`BEGIN` shape, as decided: the six
 constants travel as decimal bytes and assemble via `split` plus
 `sprintf("%c%c%c")` in `BEGIN` under `LC_ALL=C`; the shell never
-builds non-ASCII. Lane prove `.tmp/pb-w26-prove.sh`, verdict
+builds non-ASCII. Lane prove [`pb-w26-prove`](../docs/history/lane-proofs-2026-09-23/pb-w26-prove.txt), verdict
 `fail=0`: the old shape under dash exits 1 with 5628 false
 positives; dash and bash both exit 0 with byte-identical output
 (378 files, 5683 markers); a planted `U+00E9` fails under both,
@@ -1721,3 +1724,111 @@ Prove:       `sh scripts/windows/run-in-base.sh scripts/plant.sh` exits 0
 **Done 2026-09-28.** The first full run caught 42 plants and missed
 27a. The corrected check reads the milestone entries. The repeat
 result is in [PROGRESS.md](PROGRESS.md).
+
+----
+
+### T-1348 Check current documents against source declarations
+
+Source:      repository audit 2026-09-30; current source and saved results
+Category:    gate
+Priority:    P1
+Effort:      L
+Status:      done
+
+Problem:     Current pages disagree with manifests, mechanisms, and command dispatch.
+Premise:     The earlier record gate checked links and counts but not these source facts.
+Approach:    Generate the build surface. Correct the live pages. Add a mismatch check and plant.
+Decision:    Source and measured proof take precedence over an earlier page.
+Prove:       `python3 scripts/document-state.py` and `sh scripts/plant.sh` exit 0; a changed snapshot fails with its own message.
+
+**Done 2026-09-30.** The source-state generator and check 31 are implemented.
+The full Linux gate passed. Plant 31 produced its own mismatch message.
+All 44 plants failed as required and four clean controls stayed quiet.
+See [the Linux proof](../experiments/results/repo-audit-linux.txt) and
+[the plant proof](../experiments/results/repo-audit-plants.txt).
+
+----
+
+### T-1349 Verify build freshness from input and output bytes
+
+Source:      repository audit 2026-09-30; current source and saved results
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      done
+
+Problem:     The old build stamp can accept changed files with equal size and time.
+Premise:     pg-toolkit buildplan hashes input names, content, conditions, and output.
+Approach:    Hash actual build inputs, including C shims and embedded objects. Reject changed output. Build objects before CLI.
+Decision:    Keep a versioned local record. Do not use timestamps as proof.
+Prove:       `python3 experiments/393-build-freshness.py` exits 0 with changed source and output refused; full dev check returns 0.
+
+**Done 2026-09-30.** The record hashes input names, bytes, build conditions,
+and all five executable outputs. The fixture rejects equal-size and
+equal-time source changes and changed helper bytes. Interposer generation
+precedes CLI builds. The full Linux gate passed.
+See [the fixture proof](../experiments/results/build-freshness.txt) and
+[the full check](../experiments/results/repo-audit-linux.txt).
+
+----
+
+### T-1350 Make Windows proofs use explicit inputs and return build artifacts
+
+Source:      repository audit 2026-09-30; current source and saved results
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      partial
+
+Problem:     The unpublished KVM driver reuses an experiment number and private paths. The default job does not export the built binary.
+Premise:     The KVM host is the toolkit base. The Windows checkout is read-only there.
+Approach:    Use explicit binary and image inputs, pinned image bytes, and owned scratch. Export the complete build on request.
+Decision:    Preserve the base and supplied image. Save proof before collecting its session.
+Prove:       `sh experiments/392-kvm-guest.sh --accept-host-risk --binary BINARY --image IMAGE` exits 0 with the operator present; the default wrapper exports podbox and four helpers; no owned job or scratch remains.
+
+**Partial 2026-09-30.** Explicit inputs, unique experiment numbering,
+owned runtime scratch, emulator cleanup, and artifact export are implemented.
+The default wrapper passed all 12 steps and exported five executables.
+[The wrapper result](../experiments/results/repo-audit-default.txt) and
+[the byte check](../experiments/results/exported-build.txt) prove that path.
+The fresh KVM repetitions failed. They are saved in
+[the first result](../experiments/results/kvm-guest-2026-09-30-first.txt) and
+[the second result](../experiments/results/kvm-guest-2026-09-30-second.txt).
+The final driver uses a bound that includes both setup waits. Its shared
+selector checks the executable field before it stops an owned emulator.
+Experiment 400 proves that the observer and another process are excluded. Its current result is linked from
+PROGRESS. A successful guest run remains acceptance; T-1112 owns the
+current setup and guest startup faults.
+
+**Host failure 2026-09-30.** The third run left a KVM emulator that SIGKILL
+did not remove. A later session of the same agent stopped the Windows host,
+and the operator removed the WSL distributions. The base enforces no memory
+limit. The driver now refuses without `--accept-host-risk`, beside another
+emulator, or with less than 6144 MiB available. The next run needs the
+operator present. An unattended agent must not run it.
+
+----
+
+### T-1351 Keep the failed check's complete diagnostic
+
+Source:      repository audit; scripts/common/check-gate.sh and check-gate.ps1
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      done
+
+Problem:     The runner prints the first twelve lines and removes the log.
+             A later failure message is lost. The PowerShell twin path
+             also classifies an unavailable check as a failed check.
+Premise:     The audit's twin failure starts with successful doctor fields.
+Approach:    Print the complete failed output before cleanup. Test a message
+             after line twelve. Keep exit 2 as skipped on both runners.
+Decision:    Preserve machine JSON. Do not make a missing diagnostic a pass.
+Prove:       `py experiments/398-gate-diagnostics.py --powershell` exits 0
+             with both runners, lost-output mutations, clean controls,
+             JSON verdicts, and skipped twin checks.
+
+**Done 2026-09-30.** Both runners retain the late diagnostic. The mutation
+restores truncation and loses that message. Clean controls and JSON verdicts
+pass. Both runners report an unavailable twin as skipped.
+[The proof](../experiments/results/gate-diagnostics.txt) records both platforms.

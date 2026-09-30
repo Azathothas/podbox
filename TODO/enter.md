@@ -1,5 +1,8 @@
 # enter
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `crates/podbox-enter`. `TOOL.md` section 6.5, milestone M3.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.

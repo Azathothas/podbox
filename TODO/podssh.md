@@ -1,10 +1,11 @@
 # podssh
 
-This page holds the SSH work from podbox pull requests 66 and 67. Neither
-pull request is in `main`. Use their captured heads
-`fd461ee7` and `66b6fa10` when checking a claim. The full
-identifiers are in the pull request records.
-The second changes the first and is the candidate for the next pass.
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
+This page holds the current SSH tasks. Main contains the transport,
+interactive session, multiplexed relay, and remote and machine dispatch.
+Pull requests 66 and 67 are closed. Their captured heads are historical inputs.
 
 The source comparison and the two captured reference trees are in
 [`docs/history/references/ssh-relay-2026-09-28.md`](../docs/history/references/ssh-relay-2026-09-28.md).
@@ -14,335 +15,156 @@ The current work order is [PROGRESS.md](PROGRESS.md).
 
 ### T-1401 Prove the SSH transport and server in the current tree
 
-Source:      podbox pull requests 66 and 67; sandssh at
-             `4fc7f8cc`; dropssh at `0aafa21d`
+Source:      pull requests 66 and 67 at their captured heads; current SSH source
 Category:    podssh
 Priority:    P1
 Effort:      L
-Status:      done
+Status:      partial
 
-Problem:     podbox has no SSH transport on `main`. Pull request 67 adds one,
-             but its current check set has three red jobs. Pull request 66
-             conflicts with `main` and carries an earlier form of the same
-             work. No SSH claim from either is a release claim yet.
-Premise:     The pull request 67 source uses a byte stream under an SSH
-             server and uses a real SSH client in its end-to-end test. Its
-             proposed build needs a passwd shim file that the CI job did not
-             find. The crate lint and document checks also fail. The current
-             dropssh source has a separate, concurrent relay path; a simple
-             pair test does not prove that path.
-Approach:    Take pull request 67 as a source candidate. Reconcile its
-             transport, server probe, test fixtures, and build script on
-             `main`. Keep the SSH encryption and user check in a real SSH
-             implementation. Make the passwd shim an explicit, tracked build
-             input with its licence and link model checked. Fix the three red
-             jobs and add a fresh-clone build. Use pull request 66 only for
-             evidence of decisions that are absent from 67.
-Decision:    Do not merge either head as it stands. A server started in a
-             restricted host must be probed on the same socket shape it will
-             receive in service. A dynamic server may use a libc shim; a
-             static server cannot claim that the shim took effect.
-Reconciled:  Two review passes read both heads at their recorded commits on
-             2026-09-28. Pull request 67 is the base. It carries the
-             socketpair server probe, the forward chain, the target parser,
-             the cage resolver, the error table, the dropbear build, and the
-             remote dispatch. Pull request 66 is an earlier subset with no
-             check runs. It contributes no unique file. Three jobs are red on
-             pull request 67. The cage job finds no tracked passwd shim. The
-             lint job fails on a redundant boolean comparison. The same line
-             misclassifies hosts with no dot in the name. The document job
-             reports two shell-unsafe placeholders and four orphan pages. The
-             committed end-to-end reading shows 12 cases under the old alias
-             name. The head defines 13 cases. The rename cases have no
-             committed run. Every case runs against the one-pair relay. No
-             case proves the concurrent route. This session lands the
-             transport and server without the relay and remote group, beside
-             the machine arm. The relay and remote group stay deferred.
+Problem:     Transport is implemented, but the restricted-server build input
+             and fresh restricted-host session proof are incomplete.
+Premise:     Main has the socketpair server, target parser, byte transport,
+             and authenticated test sessions. The passwd shim is retained
+             source. No workspace or release build compiles or links it.
+             A normal loopback server does not prove the restricted host.
+Approach:    Retain the landed transport and tests. Prove the selected server
+             where chroot is denied and no passwd database exists. Make any
+             required shim an actual compiled input with its notice. Add a
+             fresh-clone drive for command output, exit 42, bounded failure,
+             unchanged host identity, and cleanup.
+Decision:    Keep SSH encryption and user checks in a real server. Keep an
+             explicit server command. Do not repeat the completed relay or
+             command dispatch. T-1406 owns relay liveness and reconnect.
 Prove:       `cargo test -p podbox-ssh` and
-             `sh scripts/common/check-gate.sh --strict` exit 0, and a
-             bounded end-to-end drive makes an SSH client run a command
-             through a relay with the server on a socketpair.
+             `sh scripts/common/check-gate.sh --strict` exit 0. A tracked
+             fresh-clone drive must run a real SSH command and return 42 in
+             the restricted host with the compiled server prerequisites and
+             no owned residue.
 
-**Done, 2026-09-28.** The relay lands on the proved transport, which
-retires the sentence that held it out: no transport change was needed
-(`server.rs` spawns `sshd -i` per session on a socketpair, and the pump
-moves the bytes). `cargo test -p podbox-ssh` exits 0 on the lane (63
-unit and binary tests, 14 relay tests, 3 proxy end-to-end tests),
-`sh scripts/common/check-gate.sh --strict` exits 0 on this host (11
-passed, 0 failed, 0 skipped), and two bounded drives make real SSH
-clients run commands through a relay with socketpair servers: the
-fake-relay suite (three authenticated sessions sharing one node
-connection) and the live r12 drive
-(`experiments/387-mux-two-client.sh`, verdict two clients on one node
-connection hold). The three red jobs from pull request 67 stay
-answered on `main`: the passwd shim is a tracked build input with its
-licence, and the lint and document gates pass. No separate transport
-work remains; the remote group stays with T-1404.
+**Partial 2026-09-30.** The audit reopened the entry from its actual build
+paths. The earlier authenticated transport and relay results remain evidence
+for their stated host and revision. The retained C file alone does not prove
+that its server prerequisite is built or supplied.
+
+[Earlier source and proof](../docs/history/audit-before-2026-09-30/TODO/podssh.txt)
+retain the original scope and closure. The missing restricted-server clause
+is the remaining work in this entry.
 
 ### T-1402 Provide an interactive session without a pty
 
-Source:      podbox pull request 67, proposed T-1402; sandssh at
-             `4fc7f8cc`
+Source:      captured sandssh and sandhome trees; crates/podbox-ssh/src/session.rs
 Category:    podssh
 Priority:    P1
 Effort:      L
 Status:      done
 
-Problem:     A successful one-shot command does not make an interactive SSH
-             session useful on a host with no pty. Echo, line editing, job
-             signals, and command state need separate proof.
-Premise:     The sandssh README now points to a separate sandhome tree for
-             the line discipline; the captured sandssh tree does not carry
-             that shell. The pull request 67 source has no server shell
-             variant. Its end-to-end cases can pass while an interactive
-             login is absent.
-Approach:    Add a session layer above the byte transport. Drive a real SSH
-             client through an interactive login without `/dev/ptmx`; assert
-             echo, editing, history, state across commands, and a signal sent
-             to the command process group. Keep the SSH protocol in the SSH
-             server.
-Decision:    The session layer must say which terminal operations it cannot
-             support. Do not report a full pty when no pty exists. Reuse the
-             server path proved by T-1401.
-Studied:     Two terminal-pair tools were read at pinned commits on
-             2026-09-28. faketty allocates two real pairs around the child.
-             fakepty allocates one real pair and prints at exit. Both fail
-             where no pair device exists. Both answer none of the five
-             asserts. Both are refused as mechanisms. faketty contributes
-             its test shape. fakepty contributes its exit-time printing. The
-             session layer stays a server-side line discipline above the
-             transport, with a refusal catalogue that names each unsupported
-             operation.
-Prove:       `cargo test -p podbox-ssh` exits 0, and a bounded interactive
-             drive verifies editing and interruption through a real SSH
-             client with no pty device.
+Problem:     A one-shot command does not prove an interactive session without a pty.
+Premise:     A real terminal pair is unavailable on the target host.
+Approach:    Use a server-side line discipline with echo, editing, history, shell state, and process-group signals. Test a real SSH client.
+Decision:    Refuse unsupported terminal operations. Do not claim a real pty. T-1401 owns restricted-server prerequisites.
+Prove:       `cargo test -p podbox-ssh` exits 0; `sh experiments/388-interactive-shell.sh` verifies editing and interruption without a pty device.
 
-**Done, 2026-09-28.** The session layer lands in `crates/podbox-ssh`:
-`session.rs` (a server-side line discipline above the byte transport:
-echo, editing, history capped at 100 lines, state in the supervised
-shell, signals to the shell's process group, a static `$ ` prompt) and
-the `shell` binary (the `ForceCommand` server, which refuses exec
-requests naming `SSH_ORIGINAL_COMMAND` with exit 125).
+**Done 2026-09-28.** The session layer and shell executable are implemented.
+The current workspace test run passes the interactive, relay, and real proxy
+tests. The earlier live session and three mutation results are retained in
+[the original record](../docs/history/audit-before-2026-09-30/TODO/podssh.txt).
+The current full test result is [saved](../experiments/results/repo-audit-linux.txt).
+This closure does not prove the remaining restricted-host clause in T-1401.
 
-`cargo test -p podbox-ssh` exits 0 on the lane: 82 lib tests, 12 binary
-tests, 14 relay tests, 12 interactive tests, 3 proxy end-to-end tests.
-Three mutation breaks each turn their own test red on the lane (the line
-cap, the CR-LF pair swallow, the group-kill minus sign), with the tree
-restored byte-identical after. `experiments/388-interactive-shell.sh`
-exits 0 against a real daemon with the session server forced, and
-`experiments/results/interactive-shell.txt` records prompt, echo, and
-pipes-not-terminal on both descriptors, editing repairing a typo,
-history re-running, variable and directory persisting, SIGINT killing
-the command in 6 s with the shell surviving, exit 7 passthrough, exec
-refused naming the variable with empty stdout, the sftp subsystem
-refused by the daemon (exit 255, record only), and untrapped SIGINT
-ending the session with 130.
-
-Three review passes read the tree and their findings landed before the
-close. The teardown took the live stdin after a reviewer showed the old
-take dropped an already-taken handle and wedged on an idle shell; the
-idle loop sleeps one poll after a reviewer showed the no-op timeout
-spun on `WouldBlock`; the refusal umbrella now marks its two
-pass-throughs after a reviewer showed window-size and job-control lines
-reach the shell, not a bell. Two findings changed what the proof means.
-First, the early signal and history needles matched the input echo, so
-they proved the discipline echoed rather than the shell running; every
-output needle is now a computed marker whose expanded form never occurs
-in the typed bytes. Second, a trap-ignore is inherited across fork and
-exec with no inner reset undoing it, so the selective kill traps a
-handler: trapped signals reset to default in children while the shell
-runs the handler. The subsystem row is narrowed to the measured split:
-exec-form requests are refused by the shell, subsystem requests never
-reach it. What stays open is stated in the module docs: pipe bytes past
-the teardown drain window drop silently, and writes block like the
-relay legs.
+----
 
 ### T-1403 Prove concurrent sessions on one relay connection
 
-Source:      dropssh at `0aafa21d`;
-             sandssh at `4fc7f8cc`;
-             podbox pull request 67
+Source:      captured reverse-v1 relay specification; crates/podbox-ssh/src/mux.rs
 Category:    podssh
 Priority:    P1
-Effort:      M
+Effort:      L
 Status:      done
 
-Problem:     The relay path in pull request 67 pairs one node and one client.
-             It does not prove two independent operator sessions on one node
-             connection. A second login can wait while the first is active.
-Premise:     The captured dropssh `src/serve.c` has a session table and one
-             relay reader; its `tests/mux-probe.py` exercises the frame
-             direction and a malformed node frame. The captured sandssh
-             Python relay pairs one node socket with one client and then
-             splices it. These are two different protocols.
-Approach:    Specify the relay protocol before changing the transport. Test
-             the operator and node frame directions separately. Drive two
-             concurrent authenticated SSH clients through one registered node
-             connection, transfer data in both, then close one while the
-             other continues. Bound all waits and prove cleanup.
-Decision:    Interoperability must name the exact relay protocol and version.
-             A passing test against the simple Python relay does not prove
-             the multiplexed route.
-Decided:     Both protocols stay, split by use (operator, 2026-09-28).
-             The multiplexed reverse path serves remote use against the
-             r12 relay ([captured 2026-09-28](../docs/history/references/relay-index-2026-09-28-r12.md)):
-             identifier-prefixed frames, exact close table,
-             64 sessions, 64 KiB frames, 64 MiB sessions. The one-pair
-             rendezvous serves local use and tests. Both pull requests
-             speak the one-pair form today. dropssh proved two concurrent
-             sessions live on 2026-09-28. Self-service pairing works from
-             this host, measured on 2026-09-28: pair 200, connect-token
-             status 200, node-token status 403, stop 200, status after
-             stop 403. Tokens stay redacted in committed logs. What
-             remains unmeasured: node redial pairing, which no document
-             states.
-Prove:       `cargo test -p podbox-ssh` exits 0, and a bounded two-client
-             drive observes one node connection and two completed sessions.
+Problem:     Relay frames must keep concurrent sessions paired and preserve byte order.
+Premise:     The relay is a byte shuttle. A real SSH server owns authentication.
+Approach:    Implement node and operator legs, frame parsing, session pairing, and refusal paths. Test two clients against the live relay.
+Decision:    Keep the pair protocol separate from local paths. T-1406 owns DNS and write deadlines and live reconnect.
+Prove:       `cargo test -p podbox-ssh` and `sh experiments/387-mux-two-client.sh` exit 0 with independent sessions and exit codes.
 
-**Done, 2026-09-28.** The relay protocol split lands in `crates/podbox-ssh`:
-`ws.rs` (RFC 6455 framing with the opcode kept beside its frame),
-`tls.rs` (verify-always rustls over host bundles with a `webpki-roots`
-fallback), `mux.rs` (the `reverse-v1` node and operator legs with the
-specification and its R12 line cites in the module docs), the `node` and
-`operator` binaries, and `tests/mux_two_client.rs` (a fake relay plus 14
-tests) beside `tests/common.rs`. The one-pair rendezvous stays out of
-this crate; it serves local paths and tests.
+**Done 2026-09-28.** The relay implementation is on main. The original live
+two-client result is [saved](../experiments/results/mux-two-client.txt).
+The current workspace run passes the frame, relay, and transport tests in
+[the Linux report](../experiments/results/repo-audit-linux.txt).
+The earlier implementation and mutation record is retained in
+[history](../docs/history/audit-before-2026-09-30/TODO/podssh.txt).
+Unbounded DNS and writes and unproved reconnect remain in T-1406.
 
-`cargo test -p podbox-ssh` exits 0 on the lane: 63 unit and binary
-tests, 14 relay tests, 3 proxy end-to-end tests. Three mutation breaks
-each turn their own test red on the lane (the session-id validation,
-the relay-fed control id check, the token charset). The fake relay
-enforces the ready gate, the bare-frame and text-frame closes, the id
-check, and the hello caps; its 1009 arms mirror the relay's frame rules
-as spec, because both shipped legs size every read at the cap and no
-driver reaches them. `experiments/387-mux-two-client.sh` exits 0
-against the live r12 relay, and `experiments/results/mux-two-client.txt`
-records pair 200, connect-token status 200 with node-token 403, one
-node registered online, a 200000-byte exact round trip, exit 42
-passthrough, the first session surviving the others, silent client
-stderrs, stop 200 with status 403 after, 3 sessions closed, no token in
-the log, and the two-clients verdict.
-
-Three review passes read the tree (socket, error, and exit-code sweep;
-guard-to-test audit; cite-and-clause audit) and their findings landed:
-usage lines on usage failures, the `Lonely` once-exit-1 path,
-refused-apart-from-completed counting, honest 1009 comments, three R12
-cite corrections, and the gate alphabet fixes (arrows to `->`,
-runtime-built id fixtures, the ASCII-folded capture with two markdown
-links). Frame sizes rest on read sizing; the chunking loops are
-defense-in-depth. The pre-ready queue flush above 64 KiB has no driver.
-Node redial pairing stays unmeasured.
+----
 
 ### T-1404 Add the remote and machine SSH verbs after the transport holds
 
-Source:      podbox pull request 67, proposed T-1404; [podvm.md](podvm.md)
-             T-1302 and T-1304
+Source:      captured pull requests 66 and 67; crates/podbox-cli/src/remote/mod.rs and machine.rs
 Category:    podssh
 Priority:    P2
-Effort:      M
+Effort:      L
 Status:      done
 
-Problem:     The remote and machine sites have different server placement.
-             The current `main` has neither SSH verb. Pull request 67
-             dispatches remote SSH, but does not dispatch machine SSH.
-Premise:     Pull request 67's `remote_group` calls the SSH crate and its
-             parity table has a remote SSH row. Its help also names
-             machine SSH, while its main dispatch has no matching arm.
-             The document gate reports its decision page as orphaned.
-Approach:    The remote dispatch and parity row land here, deferred by
-             T-1401 to this entry.
-             Probe the server at the selected far end. Prove each help path,
-             one command, exit code, and error path by driving the built
-             binary. Keep a real SSH client on the operator side.
-             The remote arms stay thin dispatchers over the lane-built
-             `node`, `operator` and `proxy` binaries (resolved beside the
-             binary, then on PATH): the binaries own their validation and
-             the group owns only its flag spellings. The machine arm boots
-             a Linux guest from the named kernel and initramfs with its
-             first serial port on a per-run socket and speaks real SSH over
-             it; the handshake is the probe.
-Decision:    The remote and machine verbs share transport code but keep
-             distinct server placement. Do not make a help row stand in for
-             a runnable arm. The measurement behind the server choice on a
-             chroot-denying far end is
-             [ssh-server-in-a-cage](../docs/decisions/ssh-server-in-a-cage.md).
-Scoped:      The remote half exists in pull request 67 as one dispatch
-             arm, read at its head on 2026-09-28 and re-read file by file
-             on 2026-09-29 (`66b6fa10`): `remote_group` in
-             `crates/podbox-cli/src/main.rs` with an `ssh` member
-             delegating to the podssh CLI, a bare-`ssh` refusal, parity
-             rows for `remote ssh`, and the
-             [remote-verb decision](../docs/decisions/remote-verb.md).
-             Its usage advertises `relay` and `probe` members with no arms;
-             `local` is usage prose only, and `machine ssh` is named in
-             that prose with no dispatch arm. On `main` only runnable arms
-             land (`serve`, `connect`, `forward` under `remote ssh`): there
-             is no relay server to run and no local group to dispatch, so
-             neither is advertised. The remote group waited on the relay,
-             which T-1403 landed. The machine arm lands now. Machine means
-             podman parity: a shell in a guest that podbox itself runs.
-Prove:       `cargo test --workspace` and
-             `sh scripts/common/check-gate.sh --strict` exit 0, and both
-             CLI paths drive a real command and report its exit code.
+Problem:     Before this entry, main had neither SSH command dispatch path.
+Premise:     Remote uses a supplied far server. Machine uses a guest that podbox starts.
+Approach:    Add runnable remote serve, connect, and forward arms and the machine SSH arm. Keep helper discovery and bounded refusals explicit.
+Decision:    Share transport, but keep server placement distinct. Advertise only implemented arms.
+Prove:       `cargo test --workspace` exits 0; `sh experiments/389-remote-ssh.sh`, `sh experiments/390-machine-ssh.sh`, and `sh experiments/391-machine-bridge.sh` return their own success verdicts.
 
-**Done, 2026-09-29.** Both verbs dispatch, and both drive real
-commands with exit codes on the lane. The remote half is serve,
-connect and forward over the lane node with the lane proxy as a pure
-shuttle (`experiments/389-remote-ssh.sh`, REMOTE-OK: forward runs
-the far command with exit 0 and passes 42 through, connect runs the
-far command through one relay session with 42, refusals 125 with a
-dash word refused as a flag rather than a command, no token or pair
-name in the log). The machine arm boots the
-147-pinned guest with the owned static bridge beside the pristine
-pinned server and speaks real SSH over the serial socket
-(`experiments/390-machine-ssh.sh`, MACHINE-OK: guest command with
-exit 0 plus placement as root, exit 42 passthrough, the 1 s run
-refused with 125 and no residue or stray process; `experiments/391-
-machine-bridge.sh`, BRIDGE-OK: static build, bytes both ways with
-42, banner through a pty, 125/127/137 edges, raw mode with
-VMIN/VTIME pinned, a dead tty releasing its server with status 0,
-and a tens-of-kilobytes stream past the server's death still
-reporting 42 with the fed count asserted past zero).
-Three candidates for the machine death were enumerated and tested:
-the emulator line (refuted: default cpu, `-cpu max` and
-single-thread TCG die identically, lane scratch diag16), a
-server-on-serial incompatibility past the inetd socket need
-(refuted: a late hello is accepted with survival on both boots,
-diag20, and silence alone never dies, diag19), and client bytes
-arriving before the guest opens its line (confirmed: the tapped
-first line arrives short at the open, diag18 with first-line byte
-counts 19083 against 19084; the wire tap orders the rest: dropbear
-exits 0 on the damaged line, the bridge inherits 0 as PID 1 and the
-kernel panics with Attempted to kill init at exitcode 0, diag17;
-where a later client flight lands first the bridge's write fails
-EPIPE and its die text reads as the next packet length, diag27
-quoting `Bad packet length 1835098984` = 0x6d616368 with errno
-Broken pipe; the scratch diags live in `.tmp/diag390/` on the lane
-host). The fix
-holds client bytes in the proxy until the server banner proves the
-line open (`unix PATH --hold-for-banner SECS`, the arm passes 60
-under its 600 s run; bounded buffers, deadline, loud exits), and
-the bridge reports EPIPE as server EOF instead of dying, half-
-closes a dead tty instead of wedging, and pins VMIN/VTIME
-(mutation leg in lane scratch
-`.tmp/artifacts-mutate/mutation-epipe.txt`: the fixed bridge
-reports 42, the EPIPE-neutered twin 125). Lane gate green on the
-final tree (full lane check 2026-09-29, lane job 8a04c34c35f9bef1:
-build, `cargo test --workspace` with podbox-cli 229 passed and
-podbox-ssh all targets green, fmt, clippy). Tree-checked review
-passes read the change three ways (doors, guard-to-test, claims).
-What they found landed before the commit: the typed
-unschedulable-deadline refusal with its test and the race-honest
-client-EOF test on the hold delta; then the dash word refused as a
-flag in the 389 drive, the client-cap and replay-loudness hold
-tests, the FLAGS-subset-arms tests, the PATH non-exec test, the
-VMIN/VTIME and fed-count asserts with the half-close clause in the
-391 drive, and the refusal-sentence constants with the distinctness
-test on the machine arm. The tty-to-server direction the
-bridge-level drive never asserts rides on the 390 guest run (a
-corrupted command could not print guest-42 and exit 42). Two
-stated limits: the machine environment fault arms (rlimit, mkdir,
-spawn, poll) never fire on a healthy lane and own no test; the 1 s
-drive proves a bounded 125 while the session-versus-serial
-attribution rests on the distinct sentences the unit test pins,
-not on an isolating run.
+**Done 2026-09-29.** Both verbs and the static machine bridge are on main.
+The earlier live drives checked command output, exit 42, bounded refusal,
+and cleanup. The captured record preserves the serial startup finding and
+the banner-hold and tty fixes in
+[history](../docs/history/audit-before-2026-09-30/TODO/podssh.txt).
+The current workspace test suite passes in
+[the Linux report](../experiments/results/repo-audit-linux.txt).
+The machine environment fault arms were not reached in the earlier live run.
+Its one-second timeout proved a bounded refusal, without attributing the
+deadline to one of the two concurrent waits. The tracked drivers provide
+the next reproduction; ignored diagnostic files are not required inputs.
+
+----
+
+### T-1405 Ship and smoke the SSH helper archive
+
+Source:      repository audit 2026-09-30; current source and saved results
+Category:    podssh
+Priority:    P1
+Effort:      M
+Status:      partial
+
+Problem:     The beta.9 release ships podbox without its required node, operator, and proxy helpers.
+Premise:     The source build emits four SSH binaries. CLI discovery needs exact helper names.
+Approach:    Stage all four in one archive for each release target.
+             Smoke usage failures and ELF linkage. Sign the archive and
+             publish its checksum.
+Decision:    Keep the existing standalone podbox asset. Install helpers beside it or on PATH.
+Prove:       `sh scripts/package-ssh.sh RELEASE_DIR ARCH QEMU` exits 0; the release matrix publishes every helper archive with its digest and signature.
+
+**Partial 2026-09-30.** Native packaging passes the static ELF and usage
+checks. The missing-helper and invalid-ELF controls fail with their own
+messages. The archive includes actual licence texts for the locked package
+set. [The Linux result](../experiments/results/repo-audit-linux.txt) records
+the proof. The release matrix and published signatures remain acceptance.
+
+----
+
+### T-1406 Bound SSH DNS and writes and prove node reconnect
+
+Source:      repository audit 2026-09-30; current source and saved results
+Category:    podssh
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     DNS resolution and stream writes can wait without a bound. Node redial pairing has no live reconnect proof.
+Premise:     node, operator, and session comments state the unbounded paths. Earlier relay proof covers simultaneous sessions only.
+Approach:    Add explicit operation deadlines without unbounded worker accumulation. Test a stalled resolver and non-reading peer. Drive reconnect with two sessions.
+Decision:    Keep the completed transport work scoped. This entry owns the remaining liveness and reconnect acceptance.
+Prove:       `cargo test -p podbox-ssh` exits 0 with the new fault tests.
+             A tracked drive must also end each stalled operation within
+             its bound, prove reconnect pairing, and check worker cleanup.
+
+**Open 2026-09-30.** This is remaining capability work. Read the current
+source before implementation. The simultaneous-session result does not
+prove these clauses.

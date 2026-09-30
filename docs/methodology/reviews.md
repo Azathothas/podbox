@@ -1,120 +1,50 @@
-# reviews.md
+# Reviews
 
-The deep review pass, which is part (c) of [`gate.md`](gate.md).
+Review every file the session changes.
+Use three distinct questions.
 
-At least three passes, and ⛔ **they are three different questions, not one
-sweep written up three times.** A single pass finds what you were already
-looking for. Every recurring defect class in this methodology was found by a
-*different* lens than the one that was looking.
+## 1. Path review
 
----
+Which entry points reach the changed behavior?
+Use the code index to list callers.
+Check sibling commands, defaults, and refusal paths.
+Check composed behavior, resource ownership, and cleanup.
 
-## The three lenses
+For documents, check every linked procedure and its actual entry point.
+A document that describes an unreachable path is a defect.
 
-### 1. The door sweep
+## 2. Failure review
 
-**"What other door reaches this code?"**
+Can the changed guard fail for its intended reason?
+Plant the defect.
+Check the plant's own message and exit code.
+Restore the tree and verify a clean control.
 
-Enumerate every affordance the change adds, then list every caller and every
-surface that can reach it. Then ⭐ **grep for the ones you did not enumerate.**
-The list you wrote from memory has never been complete.
+Check that a test name matches its assertion.
+Check that another failure cannot satisfy the expected refusal.
+A new repository check needs its plant in the same change.
 
-- Check the **guard**, not just the guarded code. An operation that reads one
-  resource and writes another needs **two** authorizations.
-- Grep an abstraction's **callers** before believing it is load-bearing.
-- A gate on one of several paths into the same action is the single most
-  recurring hole there is.
+## 3. Evidence and resume review
 
-⚠ The task list is never the enumeration. It has never once contained them all.
+Does each claim match source or a repeatable result?
+Check versions, counts, conditions, publication state, and current refs.
+Separate current state from historical results.
 
-### 2. The guard mutation
+Can a fresh session proceed from tracked files?
+Verify its input paths, command, acceptance clauses, and cleanup.
+Remove requirements for session-local files.
+Ensure that the work order has one home.
 
-**"Can my new guard actually fail?"**
+## Record
 
-⛔ **Plant the defect the guard exists to catch, and read the exit code
-unpiped.** A guard that has never been seen to refuse is a guard nobody knows
-works.
+Name the files and paths each pass reviewed.
+Name the findings and their fixes.
+For an empty result, name the condition that would have produced a finding.
+Record remaining limitations in their task or current limits page.
+Do not label an unperformed review as complete.
 
-The worked example: a scan reported "no orphans" over the exact orphan it
-existed to find, twice, because its model of a reader was too narrow. It was
-green, it was trusted, and it was theatre.
+## Mechanical checks
 
-Two shapes to test for specifically:
-
-- A test whose **name** claims more than it **checks**.
-- A check that passes because a different code path happens to satisfy it.
-
-⚠ This lens caught a defect in this template's own probe. A patch script
-asserted only that *something* in the file had changed, so it reported success
-while the replacement it was written to make had silently not matched.
-
-### 3. The claim audit
-
-**"Which sentence in what I am about to publish is not backed by an artefact I
-can point at?"**
-
-Re-read the handoff, the summary and the documentation against the data, the
-tree and the live state. This is the pass that catches:
-
-- a number with the wrong denominator;
-- a conclusion drawn from a single sample;
-- a novelty claim this project already made somewhere else;
-- a measurement quoted without its conditions;
-- a file a summary claims was written that is not on disk.
-
-⛔ **A summary is a claim like any other.** Yours, or the harness's. "I wrote X,
-I deployed Y, the tests pass" is real only once git, the suite or the live
-system confirms it.
-
----
-
-## More than three, when the change earns it
-
-A fourth and fifth are welcome. Two that pay often:
-
-- **"What did I measure but never verify?"** A number taken and never checked
-  against a second source.
-- **"What did the driven pass show that the suite could not?"** Naturally
-  distinct from the door sweep, because it starts from the user rather than
-  from the code.
-
-⛔ **What is not acceptable is three headings over one sweep.** Each pass must
-be able to name what it looked at that the others did not, and the handoff says
-so per pass.
-
----
-
-## A pass with no findings
-
-⭐ **A pass that reports nothing means that pass was too shallow.**
-
-Three passes reporting nothing is a weaker result than one pass reporting a
-real defect. If a pass genuinely found nothing, the handoff says **what would
-have had to be true for it to fire.** That sentence is the evidence the pass
-happened at all.
-
----
-
-## The mechanical half is a script's job
-
-Anything a check can assert should be asserted by a check, not by a reading.
-Statuses that disagree between two files, counts that no longer add up, a
-reference naming nothing, a dead link, a cited path or line that does not
-resolve.
-
-⭐ Doing the mechanical half in one second is what leaves time for the half that
-needs reading. A record check of this kind has caught things that had been
-wrong for a whole session, in under a second, that two humans had read past.
-
-⛔ **What no check can answer is whether a claim is true.** That is lens 3, and
-it stays with the reviewer.
-
----
-
-## What the review owes the record
-
-- The findings, per pass, with which lens found each.
-- The change summary: files touched, lines added and removed.
-- What was **fixed** as a result. A listed finding that was not fixed says
-  where it is now tracked.
-- For any pass with no findings, what would have made it fire.
+Let the gate check links, counts, references, generated fields, and characters.
+Spend the reading on behavior and evidence.
+Read [the gate procedure](gate.md) before completion.

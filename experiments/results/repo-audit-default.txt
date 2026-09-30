@@ -1,0 +1,40 @@
+Default Windows wrapper proof
+UTC: 2026-09-30T02:31:35Z
+Input: main 005638d with the audit working tree copied.
+Job: e3251dacd079fb29
+Wrapper: scripts/windows/run-in-base.sh, default job, export requested.
+Full step output was checked; this record retains step and suite verdicts.
+The host strict gate covers remote checks and PowerShell twins separately.
+== the machine
+== bootstrap
+== disk, before anything is written
+== components
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+== 2 already present, 3 installed, 0 failed
+== dev.sh check
+== cargo fmt --all -- --check
+== cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check
+== cargo clippy --workspace --all-targets -- -D warnings
+== RUSTFLAGS='-C target-feature=-crt-static' cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
+== ./scripts/build-interpose.sh
+== x86_64-unknown-linux-musl
+== x86_64-unknown-linux-gnu
+== cargo build --release --target x86_64-unknown-linux-musl
+== sh experiments/394-ssh-package.sh
+== conditions
+== cargo test --workspace
+== RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu
+== python3 experiments/393-build-freshness.py
+== conditions
+== ./scripts/check-todo.py
+== ./scripts/common/check-gate.sh --fast
+  SKIP  check-remote-items  (check-remote-items: gh not found)
+  SKIP  check-twins  (--fast)
+11 checks: 9 passed, 0 failed, 2 skipped
+== 12 passed, 0 failed, 0 skipped
+== rc=0
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 2m54.819s
+Wrapper exit: 0
+Exports: podbox, node, operator, proxy, shell, build-state.json, linux-check.txt.
+The 397 report checks output bytes against the build record.

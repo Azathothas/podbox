@@ -1,0 +1,71 @@
+Private input and base paths use stable labels; measured values are unchanged.
+== conditions
+2026-09-29T09:38:52Z
+6.0.0
+005638d
+instance=podbox
+
+== kvm guest run
+== conditions
+2026-09-29T09:38:53Z
+Linux 7.2.0-WSL2-STABLE
+QEMU emulator version 11.1.1
+Accelerators supported in QEMU binary: tcg mshv nitro kvm 
+podbox 0.1.0-beta.9
+               total        used        free      shared  buff/cache   available
+Mem:           31892        1265       28765           5        2320       30627
+crw-rw-rw- 1 root kvm  10, 232 Sep 29 15:21 /dev/kvm
+crw-rw-rw- 1 root root 10, 200 Sep 27 22:45 /dev/net/tun
+
+== image
+host image bytes: 910163968
+ok: installed disk copied with the pinned digest
+== doctor
+machine profile: full
+accelerator: kvm (cpu host)
+emulator: qemu-system-x86_64
+qemu-img: qemu-img
+firmware share: /usr/share/qemu
+ovmf code: /usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd
+ovmf vars: /usr/share/edk2-ovmf/x64/OVMF_VARS.4m.fd
+base image: $BASE_HOME/.local/share/podbox/windows/base.vhdx (absent; `podbox windows fetch` downloads one, `podbox windows setup` installs the agent into it)
+dos base image: $BASE_HOME/.local/share/podbox/windows/freedos-base.img (absent; `experiments/369-windows-tcg-dos.sh` fetches FreeDOS and writes the base)
+ok: doctor names the kvm accelerator
+== setup
+INSTALLED D: 
+
+provisioned $BASE_HOME/podbox-kvm/base.podbox.qcow2
+ok: provisioned image beside the base
+== run ver with the emulator command line watched
+run exit: 0
+
+Microsoft Windows [Version 10.0.26100.9278]
+emulator: toolkit  1145684 1145609 99 15:34 pts/1    00:00:01 qemu-system-x86_64 -M q35 -accel kvm -cpu host -smp 2 -m 4096 -L /usr/share/qemu -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/mnt/wslg/runtime-dir/podbox-windows-1145609-run/vars.fd -drive if=none,id=root,file=/mnt/wslg/runtime-dir/podbox-windows-1145609-run/run.qcow2,format=qcow2 -device nvme,drive=root,serial=wqroot -drive if=none,id=mbox,file=/mnt/wslg/runtime-dir/podbox-windows-1145609-run/mailbox.img,format=raw,cache=writethrough -device nvme,drive=mbox,serial=wqmbox -vga std -display none -rtc base=localtime -no-reboot -nic none -serial file:/mnt/wslg/runtime-dir/podbox-windows-1145609-run/serial.log -qmp unix:/mnt/wslg/runtime-dir/podbox-windows-1145609-run/qmp.sock,server=on,wait=off
+ok: guest version string with exit 0
+ok: outside observer: the guest ran under -accel kvm -cpu host
+== run exit 42
+run exit: 42
+ok: the guest's own exit 42 passed through
+== the podbox run seam
+
+Microsoft Windows [Version 10.0.26100.9278]
+ok: podbox run reached the disk guest with exit 0
+== residue
+ok: no per-run scratch directory remains
+base.podbox.qcow2
+base.vhdx
+doctor.txt
+e42.err
+e42.txt
+forensic
+podbox
+seam.err
+seam.txt
+setup.txt
+store
+ver.err
+ver.txt
+
+verdict KVM-GUEST-OK: ValidationOS under kvm returns its version and its exit codes
+
+verdict           KVM-GUEST-OK recorded

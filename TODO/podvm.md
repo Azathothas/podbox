@@ -1,5 +1,8 @@
 # podvm
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 The machine tier. podbox runs a payload on the host kernel; `podvm` runs one on
 a kernel of its own, and it answers to the same verbs, flags and exit codes.
 

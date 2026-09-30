@@ -1,0 +1,20 @@
+== conditions
+2026-09-30T01:55:32Z
+host: Windows AMD64; Python 3.13.15
+inputs: fixed fixture-v1/fixture-v2 bytes; saved timestamps restored
+scope: source and output classification; no runtime execution
+ok: unchanged fixture is ready
+ok: changed bytes with the same timestamp: crates/podbox-cli/src/main.rs
+ok: changed bytes with the same timestamp: crates/podbox-cli/Cargo.toml
+ok: changed bytes with the same timestamp: crates/podbox-ssh/shims/fakepwd.c
+ok: changed bytes with the same timestamp: scripts/build-interpose.sh
+ok: changed bytes with the same timestamp: vendor/userland-execve/Cargo.toml
+ok: changed bytes with the same timestamp: Cargo.lock
+ok: changed bytes with the same timestamp: crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+ok: changed output bytes are stale
+ok: changed helper bytes are stale: node
+ok: changed helper bytes are stale: operator
+ok: changed helper bytes are stale: proxy
+ok: changed helper bytes are stale: shell
+ok: missing output is absent
+verdict BUILD-FRESHNESS-OK

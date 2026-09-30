@@ -1,0 +1,88 @@
+#!/bin/sh
+# T-1330 prove: bundled short flags parse as docker reads them.
+# RED: the new unit tests fail on the unexpanded parser (staged by hiding
+#   `expand`); restored after. GREEN: cluster units by exact name, the
+#   pre-existing flag tests unchanged, clippy clean. BINARY: ps -aq,
+#   run -it, inspect -f'T' and an unknown member refusing by name.
+set -u
+cd /work || exit 2
+mkdir -p /out
+FAIL=0
+
+echo "== bootstrap + build"
+./scripts/common/bootstrap-env.sh rust cc zig tools > /out/w30-bootstrap.txt 2>&1 || { echo "BOOTSTRAP-FAILED"; exit 2; }
+cargo build --release --target x86_64-unknown-linux-musl > /out/w30-build.txt 2>&1 || { echo "BUILD-FAILED"; tail -5 /out/w30-build.txt; exit 1; }
+PB=/work/target/x86_64-unknown-linux-musl/release/podbox
+export PODBOX_STORE=/tmp/pb-w30
+rm -rf "$PODBOX_STORE"
+
+echo "== RED: hide expand"
+cp crates/podbox-cli/src/parity.rs /tmp/parity.rs.bak
+python3 - <<'EOF'
+import io
+p = 'crates/podbox-cli/src/parity.rs'
+s = io.open(p, encoding='utf-8').read()
+a = 'pub fn expand(verb: &str, args: &[String]) -> Result<Vec<String>, String> {'
+assert s.count(a) == 1
+s = s.replace(a, 'pub fn expand_hidden(verb: &str, args: &[String]) -> Result<Vec<String>, String> {')
+io.open(p, 'w', encoding='utf-8', newline='').write(s)
+print('expand hidden')
+EOF
+cargo test -p podbox-cli cluster_expands > /out/w30-red.txt 2>&1
+if grep -q 'cannot find function `expand`' /out/w30-red.txt; then
+  echo "RED-OK"
+else
+  echo "RED-WRONG"; tail -4 /out/w30-red.txt; FAIL=1
+fi
+cp /tmp/parity.rs.bak crates/podbox-cli/src/parity.rs
+echo "expand restored"
+
+echo "== GREEN by exact name"
+for t in cluster_expands_docker_clusters every_cluster_value_has_a_table_row the_table_is_at_least_sixty_rows_and_uses_only_the_four_statuses a_flag_is_found_under_every_spelling_the_parser_accepts no_verb_carries_the_same_flag_twice every_flag_row_names_a_verb_the_table_also_has_a_row_for; do
+  cargo test -p podbox-cli "$t" > /out/w30-t.txt 2>&1
+  if grep -q "$t ... ok" /out/w30-t.txt; then echo "OK $t"; else echo "MISSING $t"; tail -4 /out/w30-t.txt; FAIL=1; fi
+done
+
+echo "== crate suite + clippy by exit code"
+cargo test -p podbox-cli > /out/w30-units.txt 2>&1
+URC=$?
+echo "units-rc=$URC"
+[ "$URC" -eq 0 ] && echo "UNITS-OK" || { echo "UNITS-BAD"; FAIL=1; }
+cargo clippy -p podbox-cli --all-targets -- -D warnings > /out/w30-clippy.txt 2>&1 && echo "CLIPPY-OK" || { echo "CLIPPY-FAIL"; FAIL=1; }
+
+IMG=public.ecr.aws/docker/library/alpine:3.20
+timeout 120 "$PB" pull "$IMG" > /dev/null 2>&1 || { echo "PULL-FAILED"; exit 2; }
+
+echo "== ps -aq"
+timeout 60 "$PB" ps -aq > /out/w30-ps.txt 2>&1
+PRC=$?
+echo "ps-rc=$PRC"
+[ "$PRC" -eq 0 ] && echo "PS-AQ-OK" || { echo "PS-AQ-BAD"; FAIL=1; }
+
+echo "== run -it"
+timeout 60 "$PB" run -it "$IMG" /bin/echo cluster-ok > /out/w30-run.txt 2>&1
+RRC=$?
+echo "run-rc=$RRC"
+cat /out/w30-run.txt | grep -a 'cluster-ok' >/dev/null && echo "RUN-IT-OK" || { echo "RUN-IT-BAD"; FAIL=1; }
+
+echo "== inspect -f cluster with value"
+timeout 60 "$PB" inspect -f'{{.Id}}' "$IMG" > /out/w30-inspect.txt 2>&1
+IRC=$?
+echo "inspect-rc=$IRC"
+cat /out/w30-inspect.txt | head -2
+
+echo "== payload cluster passes through"
+timeout 60 "$PB" run "$IMG" ls -la / > /out/w30-payload.txt 2>&1
+YRC=$?
+echo "payload-rc=$YRC"
+grep -a -q 'etc' /out/w30-payload.txt && echo "PAYLOAD-INTACT" || { echo "PAYLOAD-BROKEN (bad)"; FAIL=1; }
+
+echo "== unknown member refuses by name"
+timeout 60 "$PB" ps -aZ > /out/w30-bad.txt 2>&1
+BRC=$?
+echo "bad-rc=$BRC"
+cat /out/w30-bad.txt
+[ "$BRC" -eq 125 ] && grep -q '\-Z' /out/w30-bad.txt && echo "MEMBER-NAMED" || { echo "MEMBER-NOT-NAMED (bad)"; FAIL=1; }
+
+echo "== W30-VERDICT fail=$FAIL"
+exit "$FAIL"

@@ -1,5 +1,8 @@
 # milestones
 
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
 `TOOL.md` section 5. One entry per milestone, carrying its acceptance test and nothing
 else: the work is in the component files, and the milestone is the gate that
 says the work is done.
@@ -844,387 +847,48 @@ procfs row pins the six fixup hooks that use process substitution.
 
 ### T-1112 A disposable guest that is not Linux
 
-Source:      `https://github.com/carlbomsdata/winquick`; [podvm.md](podvm.md)
+Source:      winquick at 095dd47; experiments 369, 370, 371 and 392
 Category:    milestones
-Priority:    P3
+Priority:    P1
 Effort:      L
-Status:      partial 2026-09-26 (both guest arms run under `tcg`: the
-             Validation OS arm where an image is configured, the DOS arm
-             portably; the `kvm` arm is unit-tested only)
+Status:      partial
 
-Problem:     podbox turns an OCI reference into a process. Every rung it has
-             assumes the payload is Linux, because every rung except the machine
-             tier shares the host kernel. ⭐ **The machine tier does not**, and
-             that is the one place where a guest of another operating system is a
-             possibility rather than a category error.
-Premise:     ⚠ **Recorded as a direction, and nothing here is measured.** An
-             existing tool runs disposable Windows guests under an emulator on
-             one host architecture, keeps a base image and its caches between
-             runs, discards the guest's own writes, and returns the guest
-             command's output streams and exit code unchanged. That contract is
-             the one [podvm.md](podvm.md) T-1304 specifies for a Linux guest.
-             ⚠ Its own page says the host support is one platform and that the
-             rest is a plan. ⛔ So what is read here is the SHAPE and not any
-             number.
-Approach:    Do not start this before [podvm.md](podvm.md) T-1301 through T-1304
-             are closed. The exec protocol, the image model and the probe are the
-             same work, and doing them twice is how a second parity table
-             appears.
-             ⚠ What is genuinely new is the platform field. podbox already treats
-             the platform as runtime data rather than a compile-time constant,
-             which is the invariant in
-             [`../docs/architecture.md`](../docs/architecture.md) that makes this
-             expressible at all.
-Decision:    Not taken, and deliberately so. ⛔ It is recorded here so that it is
-             not rediscovered as a new idea, and it is P3 so that it cannot
-             displace M6 or M7. [RULES.md](RULES.md) section 5 is why it is open
-             rather than absent: nothing closes as out of scope.
-             Ruled 2026-09-22: keep parked as P3. The prerequisites T-1301
-             through T-1304 are closed, so the entry is schedulable, but it
-             displaces nothing and stays open.
-             Ruled 2026-09-23: unparked, work it next. It stays P3.
-Prove:       `podbox run --platform windows/amd64 IMAGE cmd /c ver` returns the guest's own version string and its exit code, or podbox refuses by name with the leg that is missing
+Problem:     The machine tier needs a disposable non-Linux guest with
+             measured command output, exit status, and cleanup.
+Premise:     The first design considered an unpublished Windows image.
+             Current code has both DOS and disk guest routes. The licensed
+             ValidationOS input is supplied explicitly and is not shipped.
+Approach:    Keep the shared mailbox and QMP driver. Prove each guest route
+             with a pinned image. Diagnose the current KVM startup and
+             setup failures. Finish the ReactOS route and its driver.
+Decision:    Keep this entry partial until the ReactOS acceptance passes.
+             Historical ValidationOS and DOS results keep their stated
+             scope. They do not prove the current failed KVM repetition.
+Prove:       `sh experiments/369-windows-tcg-dos.sh`,
+             `sh experiments/370-windows-guest.sh`, and
+             `sh experiments/392-kvm-guest.sh --accept-host-risk --binary BINARY --image IMAGE`
+             return 0 on their stated hosts. A tracked ReactOS driver must
+             also prove command output, guest exit 42, unchanged base, and
+             no owned residue on two consecutive runs.
 
-**Done 2026-09-23.** The second arm: a non-Linux guest is refused by name
-with the missing leg, on every entry path, before anything is fetched or
-entered. `lifecycle::ensure_linux_guest` (`crates/podbox-cli/src/lifecycle.rs`)
-admits `linux` and refuses anything else at exit 125, naming the requested
-`os/arch`, that every tier runs Linux guests, and the missing leg (no
-Windows guest support). One helper, four call sites: `run`/`create`/`run -d`
-(`run.rs` `prepare`, requested platform before the fetch and the stored
-record after it), `exec` (requested platform before the store opens and the
-stored record after it), and `start` (the image record). No Windows guest
-runs anywhere: the machine tier boots Linux images and the chroot tier
-shares the host kernel, so there is no leg to implement, only the refusal
-to name. Pull is untouched per [T-0212](image.md): fetching bytes for
-another machine stays allowed; entering them is what refuses.
+**Partial 2026-09-30.** Earlier tracked results prove FreeDOS under TCG
+and ValidationOS under TCG. The saved KVM result from 2026-09-29 proves
+the guest version, exit 42, machine dispatch, and the observed emulator
+arguments. The audit found its unpublished driver reused number 386 and
+named private input paths. Experiment 392 replaces that driver with
+explicit inputs and owned scratch. Its current proof is in PROGRESS.
 
-The gate was watched fail first: `lifecycle::tests::a_non_linux_guest_is_refused_by_name`
-against an always-admit stub exits FAILED (`left: Ok(()), right: Err(125)`),
-then green after the implementation
-(`experiments` lane, `rust:1.98.1-bookworm` through host podman 6.1.2).
+Source defect found 2026-09-30: `podbox_windows::run` piped the emulator's
+stdout and stderr and did not read them before exit. An emulator that
+writes more than one pipe buffer blocks, and the run reports a guest that
+did not power off. The streams now go to null and to `emulator.log` in the
+run directory. The unit test `a_noisy_emulator_is_not_blocked_on_its_own_output`
+proves it. That defect can explain the exit-42 timeout; no guest run has
+confirmed it. See T-1350 for the host failure and the driver guards.
 
-```
-$ podbox run --platform windows/amd64 any/image:tag cmd /c ver; echo $?
-podbox run: windows/amd64 is not a Linux guest. podbox runs Linux guests only: the chroot tier shares the host kernel and the machine tier boots Linux images. No windows guest support exists (TODO/milestones.md T-1112), so there is nothing to pull or enter for this platform
-125
-```
-
-No registry was contacted: the refusal sits before the fetch, so the
-reference above never resolves and no store state changes. `podbox probe`
-is unchanged: there is no Windows leg to probe, and the entry's first arm
-(a guest version string) arrives with a guest podbox cannot enter.
-
-**Partial, 2026-09-25.** Issue 29 reopens this entry: the refusal arm
-holds, the guest arm does not exist. Study order is
-`references/carlbomsdata__winquick/tree/docs/architecture.md`, then
-`tree/src/platform.rs`, `tree/src/qemu.rs` `boot_command`,
-`tree/src/mailbox.rs` with `guest/agent.cmd`, then a release build and
-its `doctor` (tree version `0.5.0`, not `0.5.1`). First target is a
-Linux KVM Windows guest in that shape (NVMe root overlay, FAT mailbox,
-`cmd.exe` agent, `-nic none`, per-run overlay discarded), never TCG:
-the reference refuses TCG as a different product, and its Linux guest
-path is itself unverified. Prerequisites in order are QEMU 11 or newer
-with `qemu-img` (T-1301), KVM opened not stated, UEFI code and vars,
-a mount-free setup writer, a licensed image fetch (the operator
-accepts the image terms as standing policy since 2026-09-28; never
-redistributed, never committed), and the T-1301 space and
-fsize checks before a guest starts. Keep pull allowed per T-0212.
-Fix area is a new `podvm` windows driver beside T-1303 and T-1304,
-with the `lifecycle` gate kept as the last resort. Risk if wrong is a
-slow TCG guest claimed as equivalent, or a licensed image
-redistributed. Prove is the entry's first arm on a KVM host with the
-image installed, plus the refusal arm naming the exact missing leg
-with nothing fetched or mutated, and a KVM-denying fixture beside the
-T-1317 one so the refusal stays driven where KVM is absent.
-
-**Studied 2026-09-26, in the entry's order.** `architecture.md`
-(437 lines): qemu as a child process (the GPLv2 boundary), NVMe
-root overlay discarded per run, FAT mailbox with the batch agent
-through AutoRun, UEFI code with per-run vars, `-nic none`, no
-network, no streaming. `platform.rs` (315 lines): Linux x86_64 is
-`qemu-system-x86_64`, `-M q35`, `-accel kvm`, `-cpu host`, OVMF
-code with distro alt names, vars template with alts, and never
-TCG. `qemu.rs` `boot_command`: pflash pair, NVMe root and
-mailbox (`cache=writethrough`), ramfb, `-display none`,
-`-rtc base=localtime`, `-no-reboot`, serial to file, QMP on a
-unix socket. `mailbox.rs` with `guest/agent.cmd`: protocol v1
-(`WQMARK`, `WQCMD`, `WQGO` with the run token, `WQOUT`,
-`WQERR`, `WQCODE` last), inbox components only.
-
-**Refusal arm hardened 2026-09-26.** The machine tier dispatched
-before the platform gate, so a Windows request over
-`--podbox-tier=machine` reached the leg refusal and read as a
-Linux guest the driver has not arrived for. `run.rs` `prepare`
-and `exec` now parse and gate the platform before the tier
-dispatch (ladder checks keep their precedence): a Windows
-request names `windows/amd64` with the missing support on every
-path. Driven by `experiments/362-windows-refusal.sh`, exit 0 on
-the lane: KVM denied ENOENT in probe JSON, `run`, machine-tier
-`run` and `create` each exit 125 naming `windows/amd64` with
-the store byte-identical after, CLI lifecycle+tier units 26
-passed. Report in `experiments/results/windows-refusal.txt`.
-
-**Unblocked 2026-09-28, still unproved.** The host exposes a working KVM
-node. `experiments/385-kvm-open.sh` opens `/dev/kvm`, reads API version 12,
-and creates a virtual machine. The version call must pass a null argument:
-a buffer argument returns EINVAL on this kernel. The drive environment
-installs QEMU 11.1.1 with `qemu-img` from Arch extra. The ValidationOS disk
-(910163968 bytes, matching the digest pinned in
-`experiments/371-validationos-stream.sh:42`) is installed outside the tree
-at `%USERPROFILE%\podbox-images\ValidationOS.vhdx`. No image is committed
-or redistributed. What remains is the KVM guest run (the operator
-accepts the image terms as standing policy since 2026-09-28). The entry stays partial on that run. The earlier blocker text is in
-[`../docs/history/t1112-kvm-blocker-before-2026-09-28.txt`](../docs/history/t1112-kvm-blocker-before-2026-09-28.txt).
-
-**Guest arm landed 2026-09-26, under TCG, in the authoring
-sandbox.** New crate `crates/podbox-windows`: `fat16.rs` (an
-MBR-partitioned 16 MiB FAT16 volume built and read in process,
-so the driver does not shell out to `mkfs.fat` or `mtools`),
-`agent.rs` (the two `cmd.exe` scripts and the mailbox protocol),
-`plan.rs` (the emulator argv, and the accelerator taken from the
-machine tier's own `Profile` so `tcg` is run rather than
-refused), and `lib.rs` (`mailbox`, `outcome`, `stage`, `run`,
-`provision`). New CLI surface `podbox windows
-doctor|setup|run` in `crates/podbox-cli/src/windows/mod.rs`,
-wired from `main.rs`, with parity rows and a `docs/code-map.md` row.
-`lifecycle::ensure_linux_guest` still refuses a non-Linux guest
-on the OCI path, but now routes it by name through
-`lifecycle::guest_verb` to `podbox windows run` instead of
-claiming no support exists. `prove` is met in spirit by that
-verb rather than by `run --platform windows/amd64`, because a
-Windows guest is a disk image and not an OCI rootfs.
-
-What the reference's shape could not be ported as written, each
-measured against the real image and each the reason for a
-divergence: `cmd.exe` `AutoRun` does not fire for the shell
-Validation OS starts; a `Run`/`RunOnce` value does not either,
-because that logon never reaches `userinit.exe`'s `Run`
-processing; `sc create` with a `cmd.exe` image starts the script
-and is then terminated by the service control manager once the
-process fails to report `SERVICE_RUNNING`, and raising
-`ServicesPipeTimeout` to 900000 did not save it; an `onstart`
-scheduled task as `SYSTEM` does fire, so that is the autostart.
-`mountvol /P` strips the volume's drive letter from the mount
-manager's persistent database, so the reference's dismount made
-every later boot unable to find the mailbox; the agent no longer
-dismounts, and it probes D through Z rather than a fixed letter.
-
-Verified against the real guest under `tcg` on 2026-09-26, both
-halves from the crate's own code path: `provision` booted a
-fresh overlay, typed the installer through the emulator monitor
-(`SETUP.TXT` = `INSTALLED D:`), and the guest powered itself off
-so its FAT writes were flushed before the read; then `run` over
-the provisioned image, in a fresh disposable overlay, returned
-`Microsoft Windows [Version 10.0.26100.9278]`, the command's own
-output, an empty stderr, exit code 0 and the matching token in a
-28-second boot. `cargo test -p podbox-windows --lib` is 32
-passed, run in the sandbox. Four defects were found by review
-and fixed, each with a test: an argv-shaped command that quoted
-a whole line into one token (`cmd.exe` refused with exit 123,
-which the real guest reproduced); a base-image format taken from
-the extension, so `.img` would have been passed as `-F img`; a
-provisioning boot killed before the guest had flushed `SETUP.TXT`;
-and a provisioning install written into a scratch overlay that
-`run` then discarded.
-
-⚠ **What this sandbox could not verify, named rather than
-implied.** The workspace was not compiled: `cargo check -p
-podbox-cli` does not fit in the only directories this sandbox may
-execute from (the dependency graph exhausted a 245 MB tmpfs while
-still building proc macros), and the shipping target needs `zig`
-for `ring`. So the five edited `podbox-cli` files are reviewed
-and not compiled here, and `podbox windows doctor|setup|run` has
-not been run as a verb. Every claim above is about the
-`podbox-windows` crate, which does compile and whose tests do
-run. The `kvm` arm of `accel_for` is unit-tested and was not
-exercised: no reachable machine has `/dev/kvm`. No licensed image
-is fetched, committed or redistributed: the base image existed in
-the sandbox already and is not in the tree. Remaining: compile the
-CLI on a machine with the full toolchain, run the verb, and take
-the `kvm` arm on a KVM host.
-
-**Second landing, 2026-09-26, after review against the reference's own
-sibling effort (PR 63).** ⛔ The two efforts answered the same entry in
-different currencies and the entry is only satisfied by both: PR 63 ran
-FreeDOS under `tcg` (no licensed image, a lane-runnable experiment, QMP,
-a bounded and checksummed acquisition, an entropy nonce, exit-code
-capping, a per-run mode-0700 directory, and a `run`-shaped seam) while
-this branch ran a real Windows guest but had none of that discipline and
-left `run --platform windows/amd64` unreachable. What was taken from each:
-
-- ⭐ **The command now reaches the driver from `run` itself.**
-  `crates/podbox-cli/src/windows/mod.rs` exposes `should_drive(verb,
-  detach, machine, os)` and `run_windows(...)`, and `run.rs` `prepare`
-  calls them after `platform_and_policy` and **before**
-  `ensure_linux_guest`. So `podbox run --podbox-tier=machine --platform
-  windows/amd64 IMAGE cmd /c ver` boots the guest and returns its own
-  status, which is `Prove` above in its own words, and every other
-  non-Linux platform keeps the by-name refusal the first landing put
-  there. `should_drive` is a value with a test, not a sentence buried in
-  an `eprintln!`: detached `run`, `create`, `exec`, `pull`, the chroot
-  tier and every non-Windows `os` all answer `false`, each for its own
-  reason.
-- ⭐ **QMP replaces HMP.** `crates/podbox-windows/src/qmp.rs` is a small
-  request/response client, built by formatting because the three requests
-  this driver ever sends (`qmp_capabilities`, `send-key`, `quit`) have
-  bodies drawn from a closed set, so no JSON dependency is bought to
-  inspect three strings. HMP's `sendkey` was the first landing's choice
-  and it is a debug console: a refusal is a printed sentence, and an
-  unreadable one is indistinguishable from success. `-qmp
-  unix:...,server=on,wait=off` replaces `-monitor`. ⚠ `send-key` now
-  carries `hold-time` (30 ms) so the release is a property of the request
-  rather than of the host's typing pace.
-- ⭐ **Acquisition exists at all, and is bounded and verified.**
-  `crates/podbox-windows/src/fetch.rs` owns the policy: a `Ceiling` of
-  `--max-bytes` and `RLIMIT_FSIZE`, a refusal before any byte for a
-  declared length over it, a refusal as the bytes arrive for an undeclared
-  or lying origin, a sha256 pin, and removal of the partial file on either
-  refusal, and takes a `Read`, so every one of those refusals is tested
-  with no network. `podbox windows fetch --url ... [--sha256 ...]
-  [--max-bytes ...]` is the thin `ureq` caller, at the version the
-  workspace already locks through `podbox-image`, so no new crate enters
-  the tree. `podbox windows setup` still takes `--image`; a base image is
-  never committed or redistributed.
-- ⭐ **The verb is now a module directory,
-  `crates/podbox-cli/src/windows/`, split into
-  `{mod,args,plan,doctor,setup,run}.rs`.**
-  The file had passed 400 lines and its four questions had started
-  sharing locals: the paths, the flags, the acquisition and the run had
-  grown into each other, and a reader could no longer tell which of them
-  created the per-run directory. Each module now owns one question, and
-  `plan::accelerator` is shared with `doctor` so the diagnostic cannot
-  answer green where the driver refuses.
-
-Verified after the merge, from the crate's own code path and against the
-same real guest: `cargo test -p podbox-windows --lib` is **43 passed**;
-`provision` through the new QMP console typing is `PROVISIONED in 211s:
-"INSTALLED D:"`; `stage`+`run` over the provisioned image is `EXIT 0
-token true in 29s` with stdout `Microsoft Windows [Version
-10.0.26100.9278]` plus the payload and an empty stderr; a failing command
-returns the guest's own `EXIT 42`; and a wrong token read against that
-completed mailbox is refused naming both tokens, which is the
-anti-replay rule checked against a real guest-written result rather than
-a fixture. `experiments/370-windows-guest.sh` is the lane drive for the
-parts a lane can run, and `experiments/results/windows-guest.txt` records
-the guest half with its harness named. Reviewing the merged code found five
-defects, each fixed with a test: a QMP event line arriving between requests
-was read as the response to the request just sent, desynchronising the
-connection and pressing keys against the wrong reply; a stale `qmp.sock` made
-the emulator refuse to bind, stopping the boot with an error about the
-monitor rather than the guest; two concurrent `fetch` calls shared one
-`dest.part`, so their writes interleaved into a file whose digest matched
-nothing; `--image` naming a path that did not exist fell back to the cached
-base image, so a typo booted a *different* guest and reported *its* output as
-the named image's; and a run's per-run directory was never removed, about a
-hundred megabytes each, which is how the two runs that timed out earlier in
-this record had filled the tmpfs. The guest half was re-measured after those
-fixes, including an output of 7.6 KB that crosses the 4 KiB cluster, written
-by the guest and read back whole.
-
-⚠ **What is still not verified, named rather than implied.** The lane
-builds the `podbox` binary (musl debug) and runs the verbs: 370 clauses
-1 through 6 hold as verbs, clause 7 skips with no image configured,
-clause 8 holds with the DOS base 369 writes. `/dev/kvm` opens on
-the wsl-toolkit base (API version 12, measured 2026-09-28), so the `kvm`
-arm owes the guest run, not a host (the operator accepts the image
-terms as standing policy since 2026-09-28). The
-ValidationOS disk is installed outside the tree. No image is
-fetched, committed or redistributed. What closed part of that
-gap: the CLI module tree is now **compiled and its own tests executed**,
-through a stub harness (a five-constant `podbox_image`, a `ureq` stub
-carrying the pinned 2.12.1 signatures, the real `tier.rs`); the tree
-type-checks with no error and `ok. 14 passed; 0 failed` for the `windows::`
-tests. The lane has since linked the real binary and run the verbs above,
-so the stub harness is superseded where the lane reaches. The `kvm` arm of `accel_for` is still
-unit-tested only. `rustfmt` and `clippy` are not
-installed in this toolchain, so the fmt gate was not run.
-
-**Third landing 2026-09-26: the DOS flavor joins the crate, and the
-binary builds here.** The sibling FreeDOS effort (PR 63) landed as a
-second flavor over the same `podbox-windows` crate instead of a second
-driver: `dos.rs` owns only the SeaBIOS/IDE machine line, the LiteUSB
-installer boot keys and the typed wrapper line, and reuses the FAT16
-mailbox, the token, the persistent QMP monitor, the overlay discipline,
-the per-run directory and the exit-code capping. `podbox windows run
---guest dos` boots FreeDOS from its own base cache with no disk image,
-and `podbox run --podbox-tier=machine --platform windows/amd64` with an
-OCI-shaped token takes the DOS flavor through a path-shape rule (an
-existing file, a path anchor or a disk suffix means the disk flavor; a
-missing path-looking token is refused, never replaced). The fatfs plus
-fscommon dependencies went away with the FAT32 writer: both flavors
-share the zero-dependency FAT16 writer and the release file measures
-3769304 bytes against the script ceiling with no PT_INTERP
-(`experiments/results/bloat-windows.txt`).
-
-What the merge changed beyond adding the flavor, each with its reason:
-the DOS argv slice dropped `-M` (the crate's argv carries flags only,
-pinned by a test); a dead canonicalization left `plan::build` (the
-backing path is absolutized in `resolve_image` instead, and `build`
-lost its unused parameter); the OVMF defaults named paths that exist
-almost nowhere (probed alts per distribution, first existing wins);
-two clippy lints and a const-duplicating test in `fat16.rs` (the test
-now reads the built volume's BPB rather than restating constants);
-`370` never failed (every clause now verdicts and the drive exits
-nonzero with it); its header claimed an unknown subcommand exits 2
-(this tree's flag-error code is 125); and its guest clause exited
-before the DOS clause ran. A `windows` subcommand flag no arm reads
-is refused naming the flag (`--image` with `--guest dos`, fetch
-tuning on `fetch`, a command on `setup`, anything but bare on
-`doctor`), and `podbox --help` lists the verb.
-
-Driven on the lane (qemu 10.2.3 TCG, AMD Ryzen 7 7700, no KVM):
-`362-windows-refusal.sh` HOLDS (route to the verb, DOS base refusal,
-missing disk path, store untouched); `369-windows-tcg-dos.sh` HOLDS
-(`ver` 0 plus `FreeCom version 0.86`, `cmd /c ver` 0, `dir /zzz` 1,
-`pause` 125 DEADLINE, base identical, store untouched, FAT16 mailbox);
-`370-windows-guest.sh` HOLDS (52 crate tests, verb surface, fetch
-ceilings with the loopback lane limit named, routing, Validation OS
-clause skipped loud without an image, DOS guest 0 plus version
-through the verb). Suite: 52 (podbox-windows) plus 165 (podbox-cli,
-isolated) passed, 0 failed; workspace clippy with `-D warnings`
-clean; markers, control bytes and secrets checks green. What stays
-open: the `kvm` arm (the host node answers API version 12 since
-2026-09-28; the guest run is still owed); and ReactOS as the
-redistributable middle step
-(measured so far: an extra cold IDE drive wedges the LiveCD
-prompt and even long-held keys miss it, early keys from 5 s pass;
-the Live RAM disk is read-only so no file channel exists; the
-BootCD installs to FAT32 and the installed desktop is reachable, but
-the base is not sealed yet). The entry stays partial on those.
-
-**Fourth landing 2026-09-26: Validation OS runs from this tree,
-streamed under a 1 GB file ceiling.** The direct link is anonymous
-(HEAD 200, 2460880896 bytes), but this lane's hard RLIMIT_FSIZE of
-1000000000 bytes (unraiseable, EPERM even as uid 0) kills any
-whole-ISO download with SIGXFSZ at ~954 MB, so the ISO never
-lands. What lands instead is the one contiguous UDF extent holding
-`ValidationOS.vhdx`, walked on-origin with range requests and
-fetched alone: `experiments/371-validationos-stream.sh` asserts
-the PVD plus terminator plus BEA01/NSR02, the VDS order, the root
-File Entry, then fetches abs LBA 1010 for 910163968 bytes and
-checks the `vhdxfile` magic, sha256: 063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f,
-and `qemu-img info` (32 GiB virtual). No file over the ceiling is
-ever written; a re-mastered ISO moves the extent and the asserts
-fail loud instead of fetching the wrong bytes. The OVMF pair is
-the matched edk2-ovmf 2M build (`OVMF_CODE.fd` plus `OVMF_VARS.fd`
-via `PODBOX_OVMF_CODE`/`PODBOX_OVMF_VARS`), because the probed
-default mixes a 4M code image with no matching raw vars on this
-host. From there the committed verbs do the rest: `windows setup`
-provisioned `INSTALLED D:`, and `windows run` returned `Microsoft
-Windows [Version 10.0.26100.9278]` with exit 0, then exit 42 for
-`ver >nul & cmd /c exit 42`, the guest's own code, passed
-through. `370` clause 7 carries that run; 371 is the acquisition
-instrument both halves share.
-
-**Hardening 2026-09-27: three review findings closed on the landed
-driver.** `--podbox-timeout 0` refused as a flag error naming the
-bound (`args.rs`; `request_timeout` in `windows/mod.rs` maps a zero
-to the default, never to forever, unit-pinned). `windows fetch`
-goes through an agent with explicit connect, read and write
-timeouts repeating the registry triple, so a black-holed origin
-fails loud (unit-pinned against a hanging loopback server).
-`RunGuard` in `podbox-windows` removes the per-run directory on
-drop, backstopping the explicit cleanups on panic unwind
-(unit-pinned; SIGKILL aside, which no guard survives). The entry
-stays partial on the kvm arm and the licensed image.
+Remaining acceptance: reproduce and correct the current KVM failures,
+then prepare a redistributable ReactOS base and seal it. Run the output,
+status, base-integrity, and cleanup assertions for each route.
+Do not treat a reachable desktop as a command channel.
+Earlier landing details are retained in
+[the captured entry](../docs/history/audit-before-2026-09-30/TODO/milestones.txt).

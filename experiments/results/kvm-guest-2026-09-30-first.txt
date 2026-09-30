@@ -1,0 +1,58 @@
+== conditions
+2026-09-30T02:23:31Z
+instance=podbox
+Host input paths use $BINARY and $IMAGE. Base scratch uses $SCRATCH.
+
+== conditions
+2026-09-30T02:04:13Z
+Linux 7.2.0-WSL2-STABLE
+QEMU emulator version 11.1.1
+Accelerators supported in QEMU binary: tcg mshv nitro kvm 
+podbox 0.1.0-beta.10
+               total        used        free      shared  buff/cache   available
+Mem:           31892        1297       30053           5         999       30595
+crw-rw-rw- 1 root kvm  10, 232 Sep 29 15:34 /dev/kvm
+crw-rw-rw- 1 root root 10, 200 Sep 27 22:45 /dev/net/tun
+
+== image
+host image bytes: 910163968
+ok: installed disk copied with the pinned digest
+== doctor
+machine profile: full
+accelerator: kvm (cpu host)
+emulator: qemu-system-x86_64
+qemu-img: qemu-img
+firmware share: /usr/share/qemu
+ovmf code: /usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd
+ovmf vars: /usr/share/edk2-ovmf/x64/OVMF_VARS.4m.fd
+base image: $BASE_HOME/.local/share/podbox/windows/base.vhdx (absent; `podbox windows fetch` downloads one, `podbox windows setup` installs the agent into it)
+dos base image: $BASE_HOME/.local/share/podbox/windows/freedos-base.img (absent; `experiments/369-windows-tcg-dos.sh` fetches FreeDOS and writes the base)
+ok: doctor names the kvm accelerator
+== setup
+INSTALLED D: 
+
+provisioned $SCRATCH/base.podbox.qcow2
+ok: provisioned image beside the base
+== run ver with the emulator command line watched
+run exit: 125
+emulator: 
+FAIL: ver run failed
+podbox windows: kvm host "ver" over $SCRATCH/base.podbox.qcow2, 4096 MiB x2 cpu, token 01eca9f0538cb18593e326d1b650ba21
+podbox windows: the guest did not power off within 540s, so it was stopped
+FAIL: emulator command line does not show kvm
+== run exit 42
+== the podbox run seam
+== residue
+ok: no per-run scratch directory remains
+base.podbox.qcow2
+base.vhdx
+doctor.txt
+podbox
+setup.txt
+store
+ver.err
+ver.txt
+ok: owned scratch directory removed
+
+verdict KVM-GUEST-FAIL
+proof exit: 1

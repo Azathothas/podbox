@@ -1,0 +1,23 @@
+[package]
+name = "prun"
+version = "0.1.0"
+edition = "2021"
+description = "portable run: starts a bundled payload against the bundle's own loader"
+license = "0BSD"
+
+# ⛔ No dependencies, and that is a requirement rather than an accident. T-100
+# says a crate with nothing this project does not also own, so everything the
+# launcher needs - ELF reading, directory walking, the two libc calls, the
+# search-path arithmetic - is in src/ and is checkable here.
+[dependencies]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[[bin]]
+name = "prun"
+path = "src/main.rs"

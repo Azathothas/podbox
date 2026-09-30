@@ -1,0 +1,69 @@
+Audit Linux repetition
+UTC: 2026-09-30T03:16:53Z
+Job: fb0e67bd4d1fa75d
+Input: main 005638d with the audit working tree copied.
+Runtime and all new fixtures passed. The public-material check rejected an unused SSH remote form in experiment 399.
+That form was removed; the current origin uses HTTPS. No credential was present.
+The complete output was checked; this record retains suite verdicts.
+== the machine
+== the job
+== audit conditions
+== disk, before anything is written
+== components
+== 2 already present, 3 installed, 0 failed
+== cargo fmt --all -- --check
+== cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check
+== cargo clippy --workspace --all-targets -- -D warnings
+== RUSTFLAGS='-C target-feature=-crt-static' cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
+== ./scripts/build-interpose.sh
+== x86_64-unknown-linux-musl
+== x86_64-unknown-linux-gnu
+== cargo build --release --target x86_64-unknown-linux-musl
+== sh experiments/394-ssh-package.sh
+== conditions
+verdict SSH-PACKAGE-OK
+== cargo test --workspace
+test result: ok. 229 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+test result: ok. 51 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+test result: ok. 90 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 136 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.71s
+test result: ok. 108 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+test result: ok. 94 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.41s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.84s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.97s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== python3 experiments/393-build-freshness.py
+== conditions
+verdict BUILD-FRESHNESS-OK
+== python3 experiments/398-gate-diagnostics.py
+== conditions
+verdict GATE-DIAGNOSTICS-OK
+== python3 experiments/400-kvm-cleanup.py
+== conditions
+verdict KVM-CLEANUP-OK
+== ./scripts/check-todo.py
+== ./scripts/common/check-gate.sh --fast
+11 checks: 8 passed, 1 failed, 2 skipped
+   FAILED: ./scripts/common/check-gate.sh --fast
+== 13 passed, 1 failed, 0 skipped
+== rc=1
+  docker.io/library/rust:1.98.1-bookworm exited 1 in 2m57.609s
+Payload and wrapper exit: 1
