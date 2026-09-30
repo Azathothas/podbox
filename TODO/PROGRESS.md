@@ -82,7 +82,7 @@ Read each entry's exact proof and referenced source before implementation.
 
 ## Publication
 
-Beta.10 is published at build commit `d6cb926`. The next release carries
-this session's nineteen closures. Publish only after green CI for the
-exact source commit.
+Beta.10 is published at build commit `d6cb926`. Beta.11 carries twenty
+closures: T-1003, T-1401, T-1405, T-1406 through T-1421, and T-1422.
+Tag `v0.1.0-beta.11` only after green CI for the exact source commit.
 No operator decision is pending.
