@@ -606,3 +606,31 @@ its run URL, and the reproducibility boundary line, all present.
 The current notes step refuses publication without a successful main gate
 on the exact build commit. Issue 13 is closed, as checked through the
 repository API on 2026-09-30. No close-out action remains.
+
+----
+
+### T-1423 The release tag names the workspace version
+
+Source:      beta.11 publication; `.github/workflows/nightly.yml`;
+             `Cargo.toml:23`
+Category:    packaging
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Tag `v0.1.0-beta.11` built with the manifest still reading
+             `0.1.0-beta.10`, so the published binary reports the wrong
+             release. The nightly smoke only asserts the `podbox *`
+             shape, never tag equality.
+Premise:     One workspace version feeds every crate, and the nightly
+             matrix builds from the tag. Nothing between the tag push
+             and the publish refuses a mismatch.
+Approach:    Bump-then-tag in that order, and hold the order with a
+             guard: the nightly build's first step refuses where the
+             tag and the manifest disagree.
+Decision:    A mismatched tag publishes nothing. The guard names both
+             values.
+Prove:       The nightly workflow is green on tag `v0.1.0-beta.12`; the
+             fresh binary reports `0.1.0-beta.12`; the bundles verify;
+             the lane exercise runs version, pull, run, and the closure
+             acceptances on it.

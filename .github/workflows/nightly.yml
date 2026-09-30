@@ -54,6 +54,16 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # The tag names the workspace version, or the binary reports the
+      # wrong release. v0.1.0-beta.11 published beta.10 bytes because the
+      # manifest still read beta.10 (T-1423). No toolchain here: grep
+      # and test refuse before one arch builds anything.
+      - name: the tag names the workspace version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          manifest="$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)"
+          [ "$manifest" = "$tag" ] || { echo "nightly: tag v$tag does not match Cargo.toml version $manifest" >&2; exit 1; }
+
       # One path: the same script a session runs in a fresh container, with
       # only the components this job needs. The component list is what
       # scripts/check-todo.py check 19 holds this job to.
