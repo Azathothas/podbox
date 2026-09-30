@@ -2,7 +2,7 @@
 
 ## State
 
-186 entries: 1 open, 5 partial, 0 blocked, 180 done.
+201 entries: 16 open, 5 partial, 0 blocked, 180 done.
 
 The 2026-09-30 repository audit is complete in source and records.
 T-1348, T-1349, and T-1351 are complete. T-1350 lacks a successful current
@@ -10,6 +10,8 @@ KVM guest run. T-1405 needs the beta.10 release matrix and signatures.
 T-1003 and T-1401 are reopened from omitted acceptance clauses.
 T-1112 remains partial on current KVM failures and ReactOS.
 T-1406 owns SSH operation deadlines and live reconnect.
+Issues 69 through 85 are triaged. T-1407 through T-1421 own the
+fifteen findings. The publish order above does not move.
 
 ## Host failure and recovery
 

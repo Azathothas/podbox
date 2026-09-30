@@ -2246,3 +2246,102 @@ The gate caught three defects in the work itself: stale
 counts, one fmt hunk, and clippy `never_loop` (the
 pre-flight is now `find`) plus `unnecessary_map_or` (now
 `is_some_and` / `is_none_or`, the tree idiom).
+
+---
+
+### T-1418 A noexec store refuses before the pull
+
+Source:      issue 71; `crates/podbox-image/src/store.rs:218`;
+             `crates/podbox-image/src/space.rs:155`;
+             `crates/podbox-cli/src/lifecycle.rs:1700`;
+             [T-0203](image.md)
+Category:    image
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     A default store on a noexec filesystem pulls and extracts
+             fully, then dies at `execve` with raw `EACCES` and rc 126.
+             Nothing names the fix before the wasted work.
+Premise:     Store selection checks writability and space
+             (`store.rs:218`, `space.rs:155`) and names `$PODBOX_STORE`
+             as the remedy (`store.rs:243`). The pre-fetch entry gate
+             admits on chroot, memfd, or embedded objects
+             (`lifecycle.rs:1700`), never on store exec. `is_executable`
+             exists (`memfd.rs:49`) but no caller applies it to the
+             store directory.
+Approach:    Probe exec on the store before the fetch: write a tiny
+             file, `chmod +x`, execute, refuse before pulling with the
+             path and the remedy named. Add a `doctor store_exec` row
+             that exits non-zero on `no`.
+Decision:    The refusal happens before any byte is fetched. A failed
+             probe never reads as a broken image.
+Prove:       `cargo test -p podbox-image` exits 0. A tracked drive on a
+             noexec fixture refuses the first run before pulling with
+             the one-line fix, and `doctor` reports `store_exec=no`.
+
+**Open 2026-09-30.** Filed from issue 71. Read the current source
+before implementation.
+
+---
+
+### T-1419 Pull-missing verifies the blobs it trusts
+
+Source:      issue 83; `crates/podbox-cli/src/run.rs:1313`;
+             `crates/podbox-image/src/health.rs:91`; [T-1321](image.md);
+             [T-0805](cli.md)
+Category:    image
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     With `--pull missing` a record whose blobs are gone counts
+             as present. `run` dies on an internal blob path with bare
+             `os error 2` while `images` still advertises the image.
+             `--pull always` recovers, so only the presence decision is
+             wrong.
+Premise:     The trust arm returns the record unchecked (`run.rs:1313`).
+             `verify_blobs` reports missing blobs as absent
+             (`health.rs:91`) but only the `verify` verb calls it
+             (`images.rs:1537`). The raw path and errno violate the
+             T-0805 diagnostics rule.
+Approach:    `acquire` verifies `record.blobs` presence, or catches
+             `ENOENT`, and refuses by image name with the remedy.
+             `images` marks blob-less records. Keep `--pull always` as
+             the recovery path.
+Decision:    Presence means blobs on disk, not a row in the store. A
+             missing blob is a named refusal, never a raw path.
+Prove:       `cargo test -p podbox-image` exits 0. A tracked drive
+             deletes a layer blob, shows `run` refusing with the image
+             and store named, `images` and `verify` flagging it, and
+             `--pull always` re-fetching clean.
+
+**Open 2026-09-30.** Filed from issue 83. Extends [T-1321](image.md).
+
+---
+
+### T-1420 Transport errors name the host once
+
+Source:      issue 85; `crates/podbox-image/src/registry.rs:808`;
+             `crates/podbox-image/src/error.rs:104`; [T-0805](cli.md)
+Category:    image
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     A DNS failure renders `GET url: transport: url: Dns
+             Failed`: the URL twice, non-standard capitalisation, an
+             unparseable shape.
+Premise:     The detail embeds the transport error that already contains
+             the URL (`registry.rs:808`, same shape at `registry.rs:549`),
+             and the `Http` renderer prefixes `GET url` (`error.rs:104`).
+             The `Dns Failed` capitalisation arrives inside ureq's text.
+Approach:    Print host and cause once at default level. Keep the full
+             chain behind `-v` once T-1416 lands; until then keep it on
+             the same line after the cause.
+Decision:    One host, one cause, plain words at default level. Detail
+             is opt-in, never dropped.
+Prove:       `cargo test -p podbox-image` exits 0. A tracked drive
+             against a bad registry prints one host with a plain cause.
+
+**Open 2026-09-30.** Filed from issue 85. Refines [T-0805](cli.md).

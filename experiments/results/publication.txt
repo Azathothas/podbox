@@ -1,1 +1,10 @@
-Verification pending; no successful result is claimed.
+== conditions
+2026-09-30T06:20:30.654291+00:00
+Scope: remote refs, workflow conclusions, and complete asset names.
+Signature content verification uses scripts/verify-release.sh separately.
+local commit: d6cb9265034fa8b22ed76cede35a25f65289c177
+gate.yml: success https://github.com/Azathothas/podbox/actions/runs/36675294600
+release commit: d6cb9265034fa8b22ed76cede35a25f65289c177
+nightly.yml: success https://github.com/Azathothas/podbox/actions/runs/36676226942
+release: https://github.com/Azathothas/podbox/releases/tag/v0.1.0-beta.10; 7 architectures; 42 required non-empty assets
+verdict PUBLICATION-OK

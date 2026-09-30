@@ -798,3 +798,38 @@ Units by exact name (`a_wait_status_becomes_dockers_exit_code`,
 suites and clippy `-D warnings` green in the same lane run. The
 guard that stops recurrence is the forward itself plus the 351
 experiment: a waiter that stops forwarding fails its clauses.
+
+---
+
+### T-1421 A foreground run leaves a container record
+
+Source:      issue 84; `crates/podbox-cli/src/run.rs:522`;
+             `crates/podbox-cli/src/run.rs:762`;
+             [T-0607](supervise.md)
+Category:    supervise
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     `run --name fg1` succeeds but `ps -a` is empty and `logs
+             fg1` finds no container. `--name` is accepted then
+             discarded. docker always records foreground runs as
+             `Exited`.
+Premise:     Only `-d` creates a record (`run.rs:522`). The foreground
+             path holds the store and enters directly. The comment
+             confirms the design: a run of its own writes no record
+             (`run.rs:762`). `p.name` is consumed only on the detached
+             path.
+Approach:    Record every foreground run with id, name, image, argv,
+             times, exit, and log. Where records cannot persist, refuse
+             `--name` by name instead of dropping it. Keep the ephemeral
+             `--rm` path deleting its record on exit.
+Decision:    `--name` always names something `ps -a` can list. An
+             accepted flag is never silently dropped.
+Prove:       `cargo test --workspace` exits 0. A tracked drive shows
+             `ps -a` listing `fg1` as `Exited 0` with `logs` printing
+             the output after a foreground `run --name fg1`.
+
+**Open 2026-09-30.** Filed from issue 84. Related to T-1411 but
+distinct: that entry owns detached lifecycle where chroot is denied;
+this one owns foreground records on all hosts.

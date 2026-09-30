@@ -782,3 +782,247 @@ unit-pinned and the sibling no-`/tmp` arm is driven green by
 ns-4, but a failing `unshare` or mount past a permitting probe
 is exercised nowhere. Full lane `dev.sh check` green beside
 the drives.
+
+---
+
+### T-1407 Anchor userland paths inside the rootfs or refuse
+
+Source:      issues 69 and 70; `crates/podbox-enter/src/userland.rs`;
+             `crates/podbox-interpose/src/map.rs`
+Category:    enter
+Priority:    P0
+Effort:      L
+Status:      open
+
+Problem:     On the userland rung an absolute guest path resolves on the
+             host. A write lands on the host tree. A shell grandchild
+             execs host binaries and mixes libc. The package-install
+             warning in issue 69 is host mutation through the runtime.
+Premise:     The rung states the pass-through in `userland.rs:15`. An
+             empty map table rewrites nothing (`map.rs:68`). Nothing in
+             `crates/podbox-cli/src` sets `PODBOX_MAPS` for a userland
+             run (measured by grep: zero hits). `host_env` rewrites
+             `LD_LIBRARY_PATH` (`userland.rs:257`) and leaves `PATH` to
+             the caller. First-level lookup is image-side through
+             `resolve_payload` (`ladder.rs:148`).
+Approach:    Set a root-anchoring `PODBOX_MAPS` for every userland run,
+             minus the never-rewrite paths that T-0706 and T-0707 name.
+             Refuse with a named errno where a call cannot be
+             virtualized. Add an explicit `--unsafe-host-paths` opt-in
+             for callers that want the current pass-through.
+Decision:    Refusal beats a silent host write. The table is owned by
+             `run` and set before the payload starts. No caller edits
+             the table by hand.
+Prove:       `cargo test -p podbox-enter` exits 0 with the new unit
+             guards. A tracked drive on a chroot-denying fixture reads
+             back a rootfs marker through an absolute path, writes no
+             host `/tmp` file, and runs `sh -c` compound commands with
+             image binaries only.
+
+**Open 2026-09-30.** Filed from issues 69 and 70. Read the current
+source before implementation. The two issues close together; keep
+one acceptance clause per issue.
+
+---
+
+### T-1408 Resolve the loader symlink inside the rootfs
+
+Source:      issue 73; `crates/podbox-enter/src/userland.rs:191`;
+             `crates/podbox-enter/src/memfd.rs:49`;
+             `crates/podbox-enter/src/abi.rs:713`
+Category:    enter
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Debian's `/lib64/ld-linux-x86-64.so.2` is a symlink to an
+             absolute target. The loader check follows it on the host,
+             where it dangles. Debian and gcc images refuse at 125 on
+             the userland rung.
+Premise:     `is_executable` uses metadata, which follows symlinks
+             (`memfd.rs:49`). `resolve_in` already walks
+             rootfs-contained links with a bound (`abi.rs:713`).
+             `loader_plan` does not use it.
+Approach:    Resolve `interp_guest` through `resolve_in`, bounded and
+             staying inside the rootfs, then run `is_executable` on the
+             result. Keep the refusal naming the guest path where it
+             still fails.
+Decision:    The rootfs is the resolution root for every guest path on
+             this rung. The host root is never a fallback.
+Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive runs
+             `public.ecr.aws/debian/debian:bookworm-slim echo hi` and
+             `public.ecr.aws/docker/library/gcc:13-bookworm gcc --version`
+             on a chroot-denying fixture. Both images join
+             `experiments/356-no-chroot-rung.sh`.
+
+**Open 2026-09-30.** Filed from issue 73. Read the current source
+before implementation.
+
+---
+
+### T-1409 Answer the payload-visible exe on the loader family
+
+Source:      issue 74; `crates/podbox-interpose/src/lib.rs:1256`;
+             `crates/podbox-enter/src/ladder.rs:187`;
+             `crates/podbox-cli/src/run.rs:798`
+Category:    enter
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     Entering through the loader leaves `/proc/self/exe`
+             pointing at the loader. Go reads `GOROOT` from
+             `os.Executable` and fails. The same hazard hits any
+             self-locating runtime.
+Premise:     The exe emulation answers only where the real call fails
+             with `ENOENT` (`lib.rs:1256`). On the userland rung the
+             host `/proc` is mounted, so the real `readlink` succeeds
+             with the loader path and `PODBOX_GUEST_EXE` (`run.rs:798`)
+             is never consulted. `ladder.rs:187` documents the
+             chroot-only assumption.
+Approach:    On loader-family entries answer `/proc/self/exe` and the
+             `readlinkat`, `open`, and `stat` shapes from
+             `PODBOX_GUEST_EXE` even where the real call succeeds.
+             State the substitution in the banner.
+Decision:    The payload sees its own path, not the loader's. The
+             emulation is named, never silent.
+Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive runs
+             `go version`, `go env GOROOT`, and a hello build on
+             `public.ecr.aws/docker/library/golang:1.24.7-bookworm`
+             over a chroot-denying fixture with no extra `-e`.
+
+**Open 2026-09-30.** Filed from issue 74. Read the current source
+before implementation.
+
+---
+
+### T-1410 Exec through the no-chroot family
+
+Source:      issue 80; `crates/podbox-cli/src/exec.rs:444`;
+             `crates/podbox-cli/src/run.rs:1078`; [T-0505](enter.md)
+Category:    enter
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     `run` works on a chroot-denied host but `exec` on the same
+             extracted rootfs fails with `EPERM`. `exec` only knows the
+             chroot path.
+Premise:     `exec` calls `podbox_enter::run` directly (`exec.rs:444`).
+             It never calls `decide_entry`, which is the `run` path
+             (`run.rs:1078`). T-1317 scoped `exec` out deliberately and
+             left the helper one call away.
+Approach:    Route `exec` through `decide_entry` and the loader and
+             memfd drive. Keep the fresh-entry-shares-filesystem
+             contract from T-0505. Refusals name the blocking call.
+Decision:    `exec` and `run` share the entry decision. They keep
+             separate banners and separate records.
+Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive
+             extracts `public.ecr.aws/docker/library/alpine:3.20` and
+             runs `exec echo hi` with rc 0 on a chroot-denying fixture.
+
+**Open 2026-09-30.** Filed from issue 80. Read the current source
+before implementation.
+
+---
+
+### T-1411 A detached launcher for the no-chroot family
+
+Source:      issue 72; `crates/podbox-cli/src/run.rs:1079`;
+             `crates/podbox-cli/src/lifecycle.rs:213`; [T-1317](enter.md)
+Category:    enter
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     `run -d` and `create` refuse where chroot is denied, so
+             `start`, `ps`, `logs`, `stop`, `rm`, `wait`, `kill`,
+             `restart`, and `cp` have nothing to act on. `ps` prints an
+             empty table, which reads as no containers rather than an
+             unavailable mode.
+Premise:     The refusal is deliberate (`run.rs:1079`). `start_one`
+             refuses at the chroot gate (`lifecycle.rs:213`). T-1317
+             records `run -d` staying chroot-gated as the decided last
+             resort. The pidfd and waitid supervision primitives are
+             present.
+Approach:    Drive the userland loader family detached: fork, hold the
+             pidfd, record the container, keep the foreground path
+             unchanged. Where a call genuinely blocks detached
+             operation, the refusal names the call and the affected
+             verbs.
+Decision:    This entry reverses T-1317's last-resort decision in
+             writing once the drive passes. Until then the refusal
+             stays.
+Prove:       `cargo test --workspace` exits 0. A tracked drive runs
+             `run -d`, `ps`, `logs`, `stop`, and `rm`, plus `create`
+             and `start`, on one container over a chroot-denying
+             fixture.
+
+**Open 2026-09-30.** Filed from issue 72. Read the current source
+before implementation.
+
+---
+
+### T-1412 A missing workdir refuses naming the path
+
+Source:      issue 81; `crates/podbox-enter/src/lib.rs:1009`;
+             `crates/podbox-cli/src/run.rs:301`
+Category:    enter
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     `run -w` to a missing directory is accepted with exit 0.
+             The payload starts in the rootfs root. A script that
+             depends on the working directory runs in the wrong place
+             and reads success.
+Premise:     Both rungs discard the `chdir` error: the chroot arm runs
+             from `/` saying so, and the no-chroot arm runs from the
+             rootfs with the banner naming the start (`lib.rs:1009`).
+             The flag parses with no validation (`run.rs:301`).
+Approach:    Check the workdir before the fork on both rungs. Refuse
+             naming the path and the image. Keep `-w /tmp` printing
+             `/tmp` as the passing control.
+Decision:    Refusal beats a silent wrong directory. docker creates the
+             directory; podbox refuses and names it, and the refusal
+             says so.
+Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive
+             refuses `-w /no/such/dir` with the path named and prints
+             `/tmp` for `-w /tmp`.
+
+**Open 2026-09-30.** Filed from issue 81. Read the current source
+before implementation.
+
+---
+
+### T-1413 A script refusal names the file and its shebang
+
+Source:      issue 78; `crates/podbox-cli/src/lifecycle.rs:1779`;
+             `crates/podbox-enter/src/memfd.rs:147`;
+             `crates/podbox-enter/src/ladder.rs:148`
+Category:    enter
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     `node:*-alpine` refuses as a `#!` script without naming the
+             file or its shebang. The caller cannot tell whether podbox
+             picked the entrypoint, a wrapper, or the wrong binary.
+Premise:     `eligible` returns the unit variant `RoutePastScript`
+             (`memfd.rs:147`), so path and first line are already
+             dropped. `payload_bytes` resolves through `resolve_payload`
+             (`ladder.rs:148`) but returns bytes only. The refusal
+             (`lifecycle.rs:1779`) cannot name what it never received.
+Approach:    Thread the resolved path and first line into the
+             `no_chroot` message. Longer term, route the interpreter
+             inside the rootfs where the map table covers it; that half
+             belongs to T-1407.
+Decision:    The refusal names the exact payload path and its `#!`
+             line. An anonymous refusal is a defect in the message, not
+             a separate capability.
+Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive shows
+             the node refusal naming the resolved file and its `#!`
+             line, or the payload runs.
+
+**Open 2026-09-30.** Filed from issue 78. Read the current source
+before implementation.

@@ -1406,3 +1406,149 @@ agrees with the problem list (fail carries exactly one fix,
 unmeasured outranks failed), help and bad flags need no probe.
 With all three verbs driven and 364 fully green, issue 38
 closes below.
+
+---
+
+### T-1414 The no-chroot path returns 127 and 126
+
+Source:      issue 75; `crates/podbox-cli/src/lifecycle.rs:1746`;
+             `crates/podbox-probe/src/exit.rs:86`;
+             `experiments/330-exit-codes.sh`
+Category:    cli
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     A missing command returns 125 on the userland rung. The
+             contract reserves 125 for podbox failing and 127 for not
+             found. Scripts branching on 127 misread the result.
+Premise:     `decide_entry` (`lifecycle.rs:1746`) returns 125
+             unconditionally, including the unresolvable-payload arms
+             (`lifecycle.rs:1774`, `lifecycle.rs:1831`). `EXIT_NOT_FOUND`
+             exists with its case row (`exit.rs:86`) and the chroot path
+             emits it from the child. Nothing in
+             `crates/podbox-cli/src` references `EXIT_NOT_FOUND` or
+             `EXIT_CANNOT_INVOKE` (measured by grep: zero hits), so the
+             userland path cannot produce 127 or 126 by construction.
+             `330` covers not-found only through the absolute-path
+             chroot case.
+Approach:    Map `ResolveKind::Absent` to 127 and found-but-not-invocable
+             to 126 in the `no_chroot` arms. Add the bare-name trio to
+             `330` per rung.
+Decision:    The exit code follows the payload status on every rung. The
+             rung never changes the code's meaning.
+Prove:       `cargo test -p podbox-cli` exits 0.
+             `sh experiments/330-exit-codes.sh` exits 0 with the userland
+             missing, not-invocable, and podbox-failure clauses.
+
+**Open 2026-09-30.** Filed from issue 75. Extends [T-0802](cli.md),
+whose proof ran on the chroot rung only.
+
+---
+
+### T-1415 Strict classifies degradations on the userland rung
+
+Source:      issue 76; `crates/podbox-cli/src/complete.rs:122`;
+             [T-0804](cli.md)
+Category:    cli
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     `--strict` refuses every run where chroot is denied. The
+             five unavoidable dev-shim substitutions each count as a
+             degradation. The callers who want the gate most get
+             nothing.
+Premise:     `strict_refusal` (`complete.rs:122`) pushes every
+             completion degradation and every step as a refusal reason
+             and refuses on the count. That is exactly what T-0804
+             specified before the userland rung existed. Its proof never
+             exercised `--strict` there.
+Approach:    Classify degradations. Safety-relevant ones (no path
+             virtualization, host and libc mixing, escape) still refuse.
+             Substitution ones (dev shims) warn. Add `--strict=all`
+             preserving the current behavior. The refusal line names the
+             class.
+Decision:    Kind decides, count no longer does. The current behavior
+             stays available under `--strict=all`.
+Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive runs
+             `--strict public.ecr.aws/docker/library/alpine:3.20 echo hi`
+             clean on a chroot-denying fixture, still refuses a
+             path-virtualization defect, and `--strict=all` still refuses
+             the dev-shim run.
+
+**Open 2026-09-30.** Filed from issue 76. Extends [T-0804](cli.md).
+
+---
+
+### T-1416 Quiet runs and a verbose banner
+
+Source:      issues 77 and 79;
+             `crates/podbox-cli/src/complete.rs:57`;
+             `crates/podbox-cli/src/run.rs:1212`; [T-0804](cli.md)
+Category:    cli
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     Every successful run prints the rung narration to stderr
+             with no per-run opt-out. Harnesses running hundreds of
+             commands cannot silence it. Issue 79 asks for the stronger
+             shape: quiet by default, full narration under `-v`, `-q` as
+             force-off.
+Premise:     `banner_quiet` reads only the store config, never argv or
+             env (`complete.rs:57`). `run` and `exec` parse no `-q`,
+             `--quiet`, `-v`, or `--verbose` flag (measured by grep:
+             zero hits). The never-quiet-by-default test pins the
+             current shape (`complete.rs:515`). T-0804 decided the banner
+             cannot be set from a single run's command line.
+Approach:    Implement the issue 79 shape: empty stderr on success at
+             default level, banner under `-v`, `-q` forces off, refusals
+             and payload stderr untouched. Record the reversed T-0804
+             decision in writing.
+Decision:    Ruled 2026-09-30 by the operator: the issue 79 shape.
+             Quiet by default, banner under `-v`, `-q` forces off. The
+             default output change touches every user; refusals and
+             payload stderr stay untouched, so no safety information is
+             lost. Issues 77 and 79 both close here. This reverses the
+             T-0804 command-line rule in writing.
+Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive shows
+             empty stderr on success, the banner under `-v`, silence
+             under `-q`, and a refused run printing at default level.
+
+**Open 2026-09-30.** Filed from issues 77 and 79. Read the current
+source before implementation.
+
+---
+
+### T-1417 Inspect carries the OCI config
+
+Source:      issue 82; `crates/podbox-cli/src/images.rs:1728`;
+             `crates/podbox-image/src/oci.rs:141`;
+             `crates/podbox-image/src/store.rs:127`; [T-1319](cli.md)
+Category:    cli
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     `inspect` returns only podbox's record. Image defaults
+             already applied at runtime, such as `Env`, are unreadable.
+             The docker `inspect` contract breaks for `Config.Env`,
+             `Cmd`, `Entrypoint`, `WorkingDir`, and `User`.
+Premise:     `INSPECT_FIELDS` is a closed enum with no `Config` branch
+             (`images.rs:1728`). `inspect_fields` and `inspect_json`
+             have no `Config` arm (`images.rs:1789`, `images.rs:1824`).
+             The config is parsed as `RunConfig` (`oci.rs:141`), its
+             digest is stored on the record (`store.rs:127`), and the
+             blob is re-readable (`store.rs:479`).
+Approach:    Read the config blob through the stored digest. Emit
+             `Config` with docker key names, null-safe where the image
+             omits a field. Keep the one-document contract from T-1319.
+Decision:    `inspect` reports what the image declares and what podbox
+             applied, side by side. It never merges the two silently.
+Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive matches
+             `.Config.Env` against the manifest and shows `Cmd`,
+             `Entrypoint`, `WorkingDir`, and `User` present.
+
+**Open 2026-09-30.** Filed from issue 82. Read the current source
+before implementation.

@@ -247,10 +247,25 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1404](podssh.md) | P2 | podssh | done | Add the remote and machine SSH verbs after the transport holds |
 | [T-1405](podssh.md) | P1 | podssh | partial | Ship and smoke the SSH helper archive |
 | [T-1406](podssh.md) | P1 | podssh | open | Bound SSH DNS and writes and prove node reconnect |
+| [T-1407](enter.md) | P0 | enter | open | Anchor userland paths inside the rootfs or refuse |
+| [T-1408](enter.md) | P1 | enter | open | Resolve the loader symlink inside the rootfs |
+| [T-1409](enter.md) | P1 | enter | open | Answer the payload-visible exe on the loader family |
+| [T-1410](enter.md) | P1 | enter | open | Exec through the no-chroot family |
+| [T-1411](enter.md) | P1 | enter | open | A detached launcher for the no-chroot family |
+| [T-1412](enter.md) | P1 | enter | open | A missing workdir refuses naming the path |
+| [T-1413](enter.md) | P2 | enter | open | A script refusal names the file and its shebang |
+| [T-1414](cli.md) | P1 | cli | open | The no-chroot path returns 127 and 126 |
+| [T-1415](cli.md) | P1 | cli | open | Strict classifies degradations on the userland rung |
+| [T-1416](cli.md) | P2 | cli | open | Quiet runs and a verbose banner |
+| [T-1417](cli.md) | P2 | cli | open | Inspect carries the OCI config |
+| [T-1418](image.md) | P1 | image | open | A noexec store refuses before the pull |
+| [T-1419](image.md) | P1 | image | open | Pull-missing verifies the blobs it trusts |
+| [T-1420](image.md) | P2 | image | open | Transport errors name the host once |
+| [T-1421](supervise.md) | P1 | supervise | open | A foreground run leaves a container record |
 
 ## Counts
 
-186 items: 1 open, 5 partial, 0 blocked, 180 done.
+201 items: 16 open, 5 partial, 0 blocked, 180 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -258,11 +273,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 0 | 0 | 52 | 52 |
-| P1 | 1 | 4 | 0 | 88 | 93 |
-| P2 | 0 | 1 | 0 | 32 | 33 |
+| P0 | 1 | 0 | 0 | 52 | 53 |
+| P1 | 11 | 4 | 0 | 88 | 103 |
+| P2 | 4 | 1 | 0 | 32 | 37 |
 | P3 | 0 | 0 | 0 | 8 | 8 |
-| **All** | **1** | **5** | **0** | **180** | **186** |
+| **All** | **16** | **5** | **0** | **180** | **201** |
 
 ## Work order
 
