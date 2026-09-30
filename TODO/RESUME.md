@@ -1,21 +1,19 @@
 # Resume
 
-Current assignment: publish the reconciled audit and the beta.10 release.
-Read AGENTS.md and run the session entry point before work.
+Assignment complete 2026-09-30: every open issue is closed with evidence,
+main is pushed, CI is green, and beta.12 is published and exercised.
 
-The audit and the recovery fixes are committed to main in this session.
-If `origin/main` does not contain them, push main without force after the
-full host and Linux checks pass. Wait for the exact-commit `gate` run.
+Tree state: `main` at `1589480`, clean. Tags `v0.1.0-beta.11` (superseded:
+binary reports beta.10) and `v0.1.0-beta.12` (current) both point at
+CI-green commits. Records: 203 entries, 0 open, 2 partial (T-1350 and
+T-1112, KVM-bound), 201 done. No kept lane jobs; the ledger is empty.
 
-After a green gate, push tag `v0.1.0-beta.10` on that commit. The
-`nightly` workflow publishes seven binaries and seven SSH archives with
-checksums and signatures. Verify with
-`py experiments/399-publication.py --release v0.1.0-beta.10` and
-`sh scripts/verify-release.sh v0.1.0-beta.10 x86_64 ssh`.
-Close T-1405 only when both pass.
+Recovery: `git log --oneline -3` shows the closure batch, the plant fix,
+the version bump, and the release records. `py scripts/check-todo.py`
+exits 0. Fresh proof re-runs from the tracked scripts in
+`experiments/`, never from `.tmp/`.
 
-Then delete `publish/20260926T052210Z` on origin and run
-`py experiments/395-reconcile-repository.py --expect-deleted`.
-
-Do not start a KVM guest. T-1350 and T-1112 need the operator present.
-The permanent work order is in PROGRESS.
+Next: an operator-present session runs the KVM guest (`sh
+experiments/392-kvm-guest.sh --accept-host-risk --binary BINARY --image
+IMAGE`), then the ReactOS route. Do not start a KVM guest unattended.
+The work order is in TODO/PROGRESS.md alone.
