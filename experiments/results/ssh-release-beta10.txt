@@ -1,0 +1,19 @@
+== conditions
+2026-09-30T08:39:41Z
+release: v0.1.0-beta.10
+build commit: d6cb9265034fa8b22ed76cede35a25f65289c177
+note: the release matrix proves the build commit d6cb926. The release
+matrix proof (experiments/399-publication.py) passed at d6cb926 with
+verdict PUBLICATION-OK and is saved in experiments/results/publication.txt.
+A later TODO-only triage commit moved HEAD past d6cb926, so a re-run of
+399 at the new HEAD reports FAIL on the local-vs-remote pin by design.
+That pin failure is not a release defect. Signature content verification
+below checks the published release and is independent of HEAD.
+
+== sh scripts/verify-release.sh v0.1.0-beta.10 x86_64 ssh
+Verified OK
+EXIT:0
+
+== native packaging (from experiments/results/repo-audit-linux.txt)
+SSH-PACKAGE-OK with static ELF and usage checks; missing-helper and
+invalid-ELF controls fail with their own messages.

@@ -245,7 +245,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1402](podssh.md) | P1 | podssh | done | Provide an interactive session without a pty |
 | [T-1403](podssh.md) | P1 | podssh | done | Prove concurrent sessions on one relay connection |
 | [T-1404](podssh.md) | P2 | podssh | done | Add the remote and machine SSH verbs after the transport holds |
-| [T-1405](podssh.md) | P1 | podssh | partial | Ship and smoke the SSH helper archive |
+| [T-1405](podssh.md) | P1 | podssh | done | Ship and smoke the SSH helper archive |
 | [T-1406](podssh.md) | P1 | podssh | open | Bound SSH DNS and writes and prove node reconnect |
 | [T-1407](enter.md) | P0 | enter | open | Anchor userland paths inside the rootfs or refuse |
 | [T-1408](enter.md) | P1 | enter | open | Resolve the loader symlink inside the rootfs |
@@ -265,7 +265,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-201 items: 16 open, 5 partial, 0 blocked, 180 done.
+201 items: 16 open, 4 partial, 0 blocked, 181 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -274,10 +274,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 0 | 0 | 52 | 53 |
-| P1 | 11 | 4 | 0 | 88 | 103 |
+| P1 | 11 | 3 | 0 | 89 | 103 |
 | P2 | 4 | 1 | 0 | 32 | 37 |
 | P3 | 0 | 0 | 0 | 8 | 8 |
-| **All** | **16** | **5** | **0** | **180** | **201** |
+| **All** | **16** | **4** | **0** | **181** | **201** |
 
 ## Work order
 

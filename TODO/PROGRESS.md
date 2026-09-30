@@ -2,11 +2,12 @@
 
 ## State
 
-201 entries: 16 open, 5 partial, 0 blocked, 180 done.
+201 entries: 16 open, 4 partial, 0 blocked, 181 done.
 
 The 2026-09-30 repository audit is complete in source and records.
 T-1348, T-1349, and T-1351 are complete. T-1350 lacks a successful current
-KVM guest run. T-1405 needs the beta.10 release matrix and signatures.
+KVM guest run. T-1405 is complete: beta.10 publishes all seven helper
+archives with digests and signatures.
 T-1003 and T-1401 are reopened from omitted acceptance clauses.
 T-1112 remains partial on current KVM failures and ReactOS.
 T-1406 owns SSH operation deadlines and live reconnect.
@@ -68,7 +69,7 @@ keeps its historical scope. It does not establish current reliability.
 
 ## Work order
 
-1. Publish beta.10 and close T-1405 when all helper archives and signatures verify.
+1. T-1405 is done: beta.10 publishes all helper archives and signatures.
 2. T-1406: DNS and write deadlines, and the reconnect proof.
 3. T-1401: the restricted-server build input and live acceptance.
 4. T-1003: FUSE, the permitted tmpfs proof, and the embedded rootfs.

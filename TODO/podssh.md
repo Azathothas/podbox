@@ -131,7 +131,7 @@ Source:      repository audit 2026-09-30; current source and saved results
 Category:    podssh
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     The beta.9 release ships podbox without its required node, operator, and proxy helpers.
 Premise:     The source build emits four SSH binaries. CLI discovery needs exact helper names.
@@ -141,7 +141,17 @@ Approach:    Stage all four in one archive for each release target.
 Decision:    Keep the existing standalone podbox asset. Install helpers beside it or on PATH.
 Prove:       `sh scripts/package-ssh.sh RELEASE_DIR ARCH QEMU` exits 0; the release matrix publishes every helper archive with its digest and signature.
 
-**Partial 2026-09-30.** Native packaging passes the static ELF and usage
+**Done 2026-09-30.** The release matrix publishes all seven helper archives
+with digests and signatures. `py experiments/399-publication.py --release
+v0.1.0-beta.10` reports PUBLICATION-OK at build commit `d6cb926` with 7
+architectures and 42 required non-empty assets
+([the matrix proof](../experiments/results/publication.txt)).
+`sh scripts/verify-release.sh v0.1.0-beta.10 x86_64 ssh` reports Verified OK
+([the signature proof](../experiments/results/ssh-release-beta10.txt)).
+Native packaging proof stays in
+[the Linux result](../experiments/results/repo-audit-linux.txt).
+
+**Partial 2026-09-30 (history).** Native packaging passes the static ELF and usage
 checks. The missing-helper and invalid-ELF controls fail with their own
 messages. The archive includes actual licence texts for the locked package
 set. [The Linux result](../experiments/results/repo-audit-linux.txt) records
