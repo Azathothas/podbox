@@ -250,6 +250,13 @@ enum Mode {
     /// Accept the node and then end a sessionless socket after its grace:
     /// the `--once` exit-1 path needs a clean end with zero sessions.
     Lonely,
+    /// Abort the first node socket after its first completed session, with
+    /// no goodbye: the mid-service drop a live reconnect must survive. The
+    /// node redials the same name; later sockets serve to the test's end.
+    /// The first socket's sessions already completed, so the drop strands
+    /// no bytes: a mid-frame kill would strand the first session and could
+    /// never show two completions.
+    Reconnect,
 }
 
 struct FakeRelay {
@@ -337,6 +344,8 @@ fn serve(
     let mut node_since: Option<Instant> = None;
     let mut ops: Vec<OpSide> = Vec::new();
     let mut sessions: HashMap<String, usize> = HashMap::new();
+    // Reconnect mode drops the first socket once; later sockets persist.
+    let mut aborted = false;
     while running.load(std::sync::atomic::Ordering::SeqCst) {
         // Accept new sockets without blocking the poll.
         match listener.accept() {
@@ -438,7 +447,11 @@ fn serve(
                             });
                             continue;
                         }
-                        Mode::Normal | Mode::CustomHello(_) | Mode::BinaryFirst | Mode::Lonely => {}
+                        Mode::Normal
+                        | Mode::CustomHello(_)
+                        | Mode::BinaryFirst
+                        | Mode::Lonely
+                        | Mode::Reconnect => {}
                     }
                     let id = mint_id();
                     ws.set_read_timeout(Some(Duration::from_millis(50)))
@@ -689,9 +702,24 @@ fn serve(
             sessions.remove(&id);
             mark_completed(&records, &id);
         }
+        // Reconnect mode drops the first socket after its first completed
+        // session, without a goodbye: the node sees the socket end and
+        // redials the same name. Only the first socket drops; the
+        // replacement serves to the test's end.
+        if mode == Mode::Reconnect && !aborted {
+            let any_completed = records.lock().unwrap().sessions.iter().any(|s| s.completed);
+            if any_completed {
+                node = None;
+                node_since = None;
+                aborted = true;
+            }
+        }
         let live = ops.iter().filter(|o| !o.id.is_empty() && !o.done).count();
         let any_completed = records.lock().unwrap().sessions.iter().any(|s| s.completed);
-        if live == 0 && any_completed && node.is_some() {
+        // Reconnect mode never idles a socket out with a goodbye: the
+        // replacement socket stays until the test kills the node, so the
+        // connection count proves exactly one redial.
+        if mode != Mode::Reconnect && live == 0 && any_completed && node.is_some() {
             sessions.clear();
             ops.retain(|o| o.id.is_empty());
             if let Some(n) = node.as_mut() {
@@ -936,6 +964,86 @@ fn two_sessions_share_one_node_connection_through_cat() {
         assert_eq!(r.wrong_tokens, 0);
     }
     relay.stop();
+}
+
+// ------------------------------------------------------------ test A2: reconnect
+
+#[test]
+fn node_redial_pairs_a_second_session_after_the_first_socket_drops() {
+    // ⛔ The assertion this pins: one dropped node socket, one redial of the
+    // same name, and a second operator session pairing on the new socket.
+    // Both sessions complete with exact bytes; the connection count proves
+    // exactly one redial, and the port rebind proves no listener is left.
+    // The drop lands after the first session completed: a mid-frame kill
+    // would strand that session, and two completions could never follow.
+    let relay = FakeRelay::start("node-tok-z", "conn-tok-z", Mode::Reconnect);
+    let port = relay.port;
+    let name = "mux-z";
+    // ⛔ No `--once`: the node under test must redial on loss, which exits
+    // only when killed. `cat` stands in for the server, as in test A.
+    let (mut node, node_err) = spawn_node(
+        &relay.origin(),
+        name,
+        "node-tok-z",
+        &["--server", "cat"],
+        &[],
+    );
+    node_err.wait_contains("node", "registered as mux-z", DEADLINE);
+
+    // Session 1 completes fully on the first socket.
+    let mut op1 = spawn_operator(&relay.origin(), name, "conn-tok-z", &[]);
+    node_err.wait_contains("node", "session opened (1 active)", DEADLINE);
+    let mut s1 = op1.stdin.take().unwrap();
+    s1.write_all(b"before-drop").unwrap();
+    s1.flush().unwrap();
+    op1.stdout
+        .read_exact("op1 echo", b"before-drop", IO_DEADLINE);
+    drop(s1);
+    let st1 = op1.proc_.wait_deadline("op1", DEADLINE);
+    assert_eq!(st1.code(), Some(0));
+
+    // The relay aborted the first socket after that completion. The node
+    // redials the same name: the second registration line is the proof, and
+    // the count below pins it to exactly one redial.
+    wait_for("node redial", DEADLINE, || {
+        (relay.records.lock().unwrap().node_conns == 2).then_some(())
+    });
+    node_err.wait_contains("node redial", "registered as mux-z", DEADLINE);
+
+    // Session 2 pairs on the new socket and completes with exact bytes.
+    let mut op2 = spawn_operator(&relay.origin(), name, "conn-tok-z", &[]);
+    node_err.wait_contains("node", "session opened (1 active)", DEADLINE);
+    let mut s2 = op2.stdin.take().unwrap();
+    s2.write_all(b"after-redial").unwrap();
+    s2.flush().unwrap();
+    op2.stdout
+        .read_exact("op2 echo", b"after-redial", IO_DEADLINE);
+    drop(s2);
+    let st2 = op2.proc_.wait_deadline("op2", DEADLINE);
+    assert_eq!(st2.code(), Some(0));
+
+    // A non-`--once` node runs until killed: end it, then judge the records.
+    node.kill();
+    {
+        let r = relay.records.lock().unwrap();
+        assert_eq!(r.node_conns, 2, "one drop and one redial, got {:?}", r);
+        assert_eq!(r.sessions.len(), 2, "two sessions, got {:?}", r);
+        assert!(r.sessions.iter().all(|s| s.completed), "{r:?}");
+        assert!(
+            r.sessions
+                .iter()
+                .all(|s| s.node_bytes > 0 && s.op_bytes > 0),
+            "{r:?}"
+        );
+        assert_ne!(r.sessions[0].id, r.sessions[1].id);
+        assert_eq!(r.wrong_tokens, 0);
+    }
+    relay.stop();
+    // No listener left behind: the relay's port rebinds at once.
+    assert!(
+        TcpListener::bind(("127.0.0.1", port)).is_ok(),
+        "relay port {port} still held after stop"
+    );
 }
 
 // ------------------------------------------------------------ test B: real SSH

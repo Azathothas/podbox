@@ -19,7 +19,7 @@ Source:      pull requests 66 and 67 at their captured heads; current SSH source
 Category:    podssh
 Priority:    P1
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     Transport is implemented, but the restricted-server build input
              and fresh restricted-host session proof are incomplete.
@@ -41,7 +41,21 @@ Prove:       `cargo test -p podbox-ssh` and
              the restricted host with the compiled server prerequisites and
              no owned residue.
 
-**Partial 2026-09-30.** The audit reopened the entry from its actual build
+**Done 2026-09-30.** The shim is an actual compiled input: the tracked
+drive builds `fakepwd.so` from the retained source with the lane gcc
+(`experiments/382-restricted-sshd.sh` clause 1), gated on a
+glibc-dynamic lane with a `NEEDED libc` check, then preloads it into a
+dynamic server on a chroot-denied host with no passwd database and
+runs a real SSH command to exit 42 with exact bytes and silent stderr,
+a wrong-key 255 inside its bound, unchanged host identity, and no
+residue (`sh experiments/382-restricted-sshd.sh` exits 0, verdict
+`RESTRICTED SSHD SERVES EXIT 42 ON THE COMPILED SHIM`,
+[the drive](../experiments/results/restricted-sshd.txt)).
+`cargo test -p podbox-ssh` and `sh scripts/common/check-gate.sh --strict`
+both exit 0 beside it. The notice stays in THIRD_PARTY.md; no workspace
+or release build links the shim.
+
+**Partial 2026-09-30 (history).** The audit reopened the entry from its actual build
 paths. The earlier authenticated transport and relay results remain evidence
 for their stated host and revision. The retained C file alone does not prove
 that its server prerequisite is built or supplied.
@@ -165,7 +179,7 @@ Source:      repository audit 2026-09-30; current source and saved results
 Category:    podssh
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     DNS resolution and stream writes can wait without a bound. Node redial pairing has no live reconnect proof.
 Premise:     node, operator, and session comments state the unbounded paths. Earlier relay proof covers simultaneous sessions only.
@@ -175,6 +189,20 @@ Prove:       `cargo test -p podbox-ssh` exits 0 with the new fault tests.
              A tracked drive must also end each stalled operation within
              its bound, prove reconnect pairing, and check worker cleanup.
 
-**Open 2026-09-30.** This is remaining capability work. Read the current
+**Done 2026-09-30.** DNS resolves on a worker with `recv_timeout`
+(`DNS_DEADLINE` 10 s); every relay-leg send carries a write deadline
+(`WRITE_DEADLINE` 10 s, kernel `SO_SNDTIMEO` with stall normalization),
+and a stalled server stdin ends its session loud instead of requeueing.
+`cargo test -p podbox-ssh` exits 0: lib 101 passed with 7 new fault
+tests (stalled resolver, non-reading peer, worker cleanup), relay
+15 passed with the new reconnect mode. `sh experiments/383-ssh-liveness.sh`
+exits 0 with verdict `STALLED OPS END BOUNDED, NODE REDIALS AND PAIRS`
+([the drive](../experiments/results/ssh-liveness.txt)): kill the node
+socket mid-session and the node redials the same name, the second
+operator session pairs, both sessions complete, no residue. Reconnect
+is proven on the loopback fake relay; pairing against the live relay
+stays open.
+
+**Open 2026-09-30 (history).** This is remaining capability work. Read the current
 source before implementation. The simultaneous-session result does not
 prove these clauses.

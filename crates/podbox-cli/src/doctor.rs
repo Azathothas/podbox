@@ -25,13 +25,18 @@ use podbox_probe::machine::{self, Assessment};
 use podbox_probe::verdict::Verdict;
 
 pub const DOCTOR_USAGE: &str = "\
-usage: podbox doctor
+usage: podbox doctor [store_exec]
 
   Check what this machine can run and say how to fix what it cannot:
   the machine legs with one fix line per missing piece, and the disk
   free against the file-size ceiling. kvm or tun missing alone is a
   note, not a failure: that is the TCG profile, not a refusal
   (TODO/podvm.md T-1301, T-1306).
+
+  store_exec   print one row: whether files created under the store
+               execute (`yes` or `no` with the detail). A `noexec`
+               store refuses the first run before pulling (TODO/image.md
+               T-1418), and this row is how a caller checks that first.
 
   exits 0 every check holds, 1 a check fails with its fix, 2 a
   required leg was never measured.
@@ -152,11 +157,15 @@ pub fn doctor(verb: &str, args: &[String]) -> i32 {
         return c;
     }
     // ⭐ The `logout` shape (TODO/cli.md T-0209): flags collect and the
-    // verb decides after the loop.
+    // verb decides after the loop. One positional, `store_exec`, prints
+    // the store-exec row alone (TODO/image.md T-1418); anything else is
+    // refused as before.
     let mut help = false;
+    let mut store_exec = false;
     for a in args {
         match a.as_str() {
             "-h" | "--help" => help = true,
+            "store_exec" if !store_exec => store_exec = true,
             other if other.starts_with('-') => {
                 if let Err(c) = crate::parity::admit(verb, other, DOCTOR_USAGE) {
                     return c;
@@ -174,6 +183,9 @@ pub fn doctor(verb: &str, args: &[String]) -> i32 {
         print!("{DOCTOR_USAGE}");
         return 0;
     }
+    if store_exec {
+        return store_exec_row();
+    }
     let findings = podbox_probe::run();
     let assessed = machine::assess(&findings);
     let profile = match assessed.profile {
@@ -188,6 +200,47 @@ pub fn doctor(verb: &str, args: &[String]) -> i32 {
     report.exit_code()
 }
 
+/// TODO/image.md T-1418. The `store_exec` row alone: whether files
+/// created under the store execute.
+///
+/// `yes` (0) runs the entry on; `no` (1) carries the probe's detail,
+/// which names the directory and the `$PODBOX_STORE` remedy; a probe
+/// that cannot run (2) names its path and never reads as "no".
+fn store_exec_row() -> i32 {
+    let store = match podbox_image::open_store() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("podbox doctor: {e}");
+            return 2;
+        }
+    };
+    store_exec_row_at(store.root())
+}
+
+/// The pure-addressable half of [`store_exec_row`], over a directory
+/// rather than the process store, so tests drive it without touching
+/// process-global state.
+fn store_exec_row_at(dir: &std::path::Path) -> i32 {
+    match podbox_image::exec_probe::probe_store_exec(dir) {
+        Ok(probe) => {
+            println!(
+                "store_exec: {}: {}",
+                if probe.ok { "yes" } else { "no" },
+                probe.detail
+            );
+            if probe.ok {
+                0
+            } else {
+                1
+            }
+        }
+        Err(e) => {
+            eprintln!("podbox doctor: the store exec probe could not run: {e}");
+            2
+        }
+    }
+}
+///
 /// Every machine leg as a check line: required legs fail with one fix
 /// each, kvm and tun note their absence under TCG, the rest report.
 ///
@@ -355,5 +408,21 @@ mod tests {
             doctor("doctor", &["some-thing".to_string()]),
             podbox_image::error::EXIT_FLAG_ERROR
         );
+    }
+
+    /// TODO/image.md T-1418. The `store_exec` row answers from the
+    /// directory, not the process store: `yes` with a 0 on a writable
+    /// directory, and a refusal naming the path where nothing can probe.
+    #[test]
+    #[cfg(unix)]
+    fn store_exec_row_reports_yes_on_a_writable_directory() {
+        let d = std::env::temp_dir().join(format!("podbox-doctor-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        assert_eq!(store_exec_row_at(&d), 0);
+        let _ = std::fs::remove_dir_all(&d);
+        // Not a directory podbox can write a probe into: an error naming
+        // the path, never a "no".
+        assert_eq!(store_exec_row_at(&d.join("absent")), 2);
     }
 }

@@ -465,7 +465,11 @@ impl Client {
             }
             match self.get_once(&target, endpoint, scope, accept) {
                 Ok(Attempt::Done(r)) => return Ok(*r),
-                Ok(Attempt::Retry { after, why }) => {
+                Ok(Attempt::Retry {
+                    after,
+                    why,
+                    transport_host,
+                }) => {
                     // ⭐ TODO/image.md T-0213. A transport failure against an
                     // endpoint the CALLER named insecure is the one case where
                     // podbox retries over plain HTTP, and it says so.
@@ -473,7 +477,7 @@ impl Client {
                     // `None` for every endpoint nobody named, which keeps
                     // T-0201's finding intact. An automatic downgrade on a
                     // network where tcp/80 is black-holed is a hang.
-                    if why.starts_with("transport:") && !self.http_endpoints.contains(endpoint) {
+                    if transport_host.is_some() && !self.http_endpoints.contains(endpoint) {
                         if let Some(d) = self.policy.after_connect_failure(endpoint) {
                             self.http_endpoints.insert(endpoint.to_string());
                             let _ = writeln!(
@@ -491,8 +495,18 @@ impl Client {
                         std::thread::sleep(backoff(attempt + 1, after));
                     }
                     last = Some(Error::Http {
-                        what: format!("GET {}", redact(&target)),
-                        detail: why,
+                        // ⭐ TODO/image.md T-1420. A transport failure names its
+                        // host once, in `detail`. Repeating the URL here is the
+                        // `GET url: transport: url: ...` shape this entry
+                        // removes; the path says which call failed.
+                        what: match &transport_host {
+                            Some(_) => format!("GET {}", redact(path)),
+                            None => format!("GET {}", redact(&target)),
+                        },
+                        detail: match transport_host {
+                            Some(host) => format!("{host}: {why}"),
+                            None => why,
+                        },
                     });
                 }
                 Err(e) => return Err(e),
@@ -543,10 +557,12 @@ impl Client {
             Err(ureq::Error::Status(code, resp)) if retryable(code) => Ok(Attempt::Retry {
                 after: resp.header("Retry-After").and_then(parse_retry_after),
                 why: format!("HTTP {code}"),
+                transport_host: None,
             }),
             Err(ureq::Error::Transport(t)) => Ok(Attempt::Retry {
                 after: None,
-                why: format!("transport: {t}"),
+                transport_host: Some(transport_host(url, &t)),
+                why: transport_why(&t),
             }),
             Err(e) => Err(status_error(url, e)),
         }
@@ -746,6 +762,11 @@ enum Attempt {
     Retry {
         after: Option<Duration>,
         why: String,
+        /// The host the transport failed against, when `why` is a transport
+        /// failure rather than a status. `get` renders those without the URL:
+        /// the host names it once, and the full chain stays in `why` on the
+        /// same line (TODO/image.md T-1420).
+        transport_host: Option<String>,
     },
 }
 
@@ -756,6 +777,68 @@ fn key(endpoint: &str, scope: &str) -> String {
 fn host_of(url: &str) -> Option<String> {
     let rest = url.strip_prefix("https://")?;
     Some(rest.split('/').next()?.to_string())
+}
+
+/// Split `scheme://host/path` into its host and its path. Any scheme, and a
+/// bare `host/path` without one: the transport policy downgrades some
+/// endpoints to plain HTTP, and the error still has to name the same host.
+/// Error rendering only; the auth path keeps [`host_of`]'s `https://` shape.
+fn split_host_path(url: &str) -> (String, String) {
+    let after = url.split_once("://").map(|(_, rest)| rest).unwrap_or(url);
+    match after.split_once('/') {
+        Some((host, path)) => (host.to_string(), format!("/{path}")),
+        None => (after.to_string(), "/".to_string()),
+    }
+}
+
+/// TODO/image.md T-1420. The host that failed the transport: the transport's
+/// own URL first, because a redirect can fail on a host the request did not
+/// name, and the request URL where the transport carries none.
+fn transport_host(url: &str, t: &ureq::Transport) -> String {
+    if let Some(u) = t.url() {
+        if let Some(h) = u.host_str() {
+            // ⚠ The port stays where the URL wrote it: two registries on one
+            // host are two hosts for this message's purpose.
+            return match u.port() {
+                Some(p) => format!("{h}:{p}"),
+                None => h.to_string(),
+            };
+        }
+    }
+    split_host_path(url).0
+}
+
+/// TODO/image.md T-1420. The cause in plain lowercase words with the full
+/// chain after it on the same line: `ureq`'s kind text reads `Dns Failed`,
+/// and lowercasing the whole kind keeps every future kind plain without a
+/// table to drift. The message and the source chain stay, so nothing is
+/// dropped until `-v` exists to hold them (T-1416).
+fn transport_why(t: &ureq::Transport) -> String {
+    let mut s = format!("{}", t.kind()).to_lowercase();
+    if let Some(m) = t.message() {
+        if !m.is_empty() {
+            s.push_str(": ");
+            s.push_str(m);
+        }
+    }
+    let mut source = std::error::Error::source(t);
+    while let Some(e) = source {
+        s.push_str(": ");
+        s.push_str(&e.to_string());
+        source = e.source();
+    }
+    s
+}
+
+/// TODO/image.md T-1420. One host, one cause: the rendered line reads
+/// `GET /v2/...: <host>: dns failed: ...`, with the URL's host exactly once
+/// and the chain kept after the cause on the same line.
+fn transport_error(url: &str, t: &ureq::Transport) -> Error {
+    let host = transport_host(url, t);
+    Error::Http {
+        what: format!("GET {}", redact(&split_host_path(url).1)),
+        detail: format!("{host}: {}", transport_why(t)),
+    }
 }
 
 /// ⛔ A URL in a message loses its query first. `docs/security/secrets.md`: a
@@ -803,10 +886,7 @@ fn status_error(url: &str, e: ureq::Error) -> Error {
                 detail,
             }
         }
-        ureq::Error::Transport(t) => Error::Http {
-            what: format!("GET {}", redact(url)),
-            detail: format!("transport: {t}"),
-        },
+        ureq::Error::Transport(t) => transport_error(url, &t),
     }
 }
 
@@ -1027,5 +1107,109 @@ mod tests {
             "MANIFEST_UNKNOWN: manifest unknown"
         );
         assert!(registry_message("not json").is_none());
+    }
+
+    /// Split a request URL the way the error renderer needs it: any scheme,
+    /// and the path kept apart from the host.
+    #[test]
+    fn a_request_url_splits_into_host_and_path() {
+        assert_eq!(
+            split_host_path("https://registry.example/v2/a/manifests/3.20"),
+            (
+                "registry.example".to_string(),
+                "/v2/a/manifests/3.20".to_string()
+            )
+        );
+        assert_eq!(
+            split_host_path("http://localhost:5000/v2/"),
+            ("localhost:5000".to_string(), "/v2/".to_string())
+        );
+        assert_eq!(
+            split_host_path("registry.example/v2/"),
+            ("registry.example".to_string(), "/v2/".to_string())
+        );
+    }
+
+    /// TODO/image.md T-1420. The reported shape was `Dns Failed`: every kind
+    /// ureq names renders in plain lowercase, with no table to drift.
+    #[test]
+    fn every_transport_kind_renders_in_plain_lowercase() {
+        let kinds = [
+            (ureq::ErrorKind::Dns, "dns failed"),
+            (ureq::ErrorKind::ConnectionFailed, "connection failed"),
+            (ureq::ErrorKind::InvalidUrl, "bad url"),
+            (ureq::ErrorKind::Io, "network error"),
+        ];
+        for (kind, want) in kinds {
+            assert_eq!(format!("{kind}").to_lowercase(), want);
+        }
+    }
+
+    /// One refused loopback port, no network leaving the machine: the
+    /// synthesis for every transport test below.
+    fn refused_transport() -> ureq::Transport {
+        let err = ureq::AgentBuilder::new()
+            .timeout_connect(Duration::from_secs(5))
+            .timeout_read(Duration::from_secs(5))
+            .timeout_write(Duration::from_secs(5))
+            .build()
+            .get("https://127.0.0.1:1/v2/")
+            .call()
+            .unwrap_err();
+        match err {
+            ureq::Error::Transport(t) => t,
+            ureq::Error::Status(code, _) => {
+                panic!("a refused port is a transport error, not a status {code}")
+            }
+        }
+    }
+
+    /// TODO/image.md T-1420. The old shape was
+    /// `GET url: transport: url: Dns Failed`: the URL twice and a capitalised
+    /// kind. The new one names the host once, in plain lowercase, with the
+    /// chain kept after the cause on the same line.
+    #[test]
+    fn a_transport_error_names_the_host_once_in_plain_words() {
+        let t = refused_transport();
+        let rendered = format!("{}", transport_error("https://127.0.0.1:1/v2/", &t));
+        assert!(
+            rendered.contains("127.0.0.1:1: connection failed"),
+            "host once with a plain lowercase cause: {rendered}"
+        );
+        assert!(
+            !rendered.contains("Connection Failed") && !rendered.contains("https://"),
+            "no capitalised kind and no repeated URL: {rendered}"
+        );
+        assert_eq!(
+            rendered.matches("127.0.0.1").count(),
+            1,
+            "the host appears exactly once: {rendered}"
+        );
+        assert!(
+            !rendered.contains('\n'),
+            "the chain stays on the same line: {rendered}"
+        );
+    }
+
+    /// TODO/image.md T-1420, the retry-exhausted half: `get` retries the
+    /// transport and then refuses with the same one-host shape, not with the
+    /// `GET url` prefix doubled against the transport's own URL.
+    #[test]
+    fn an_exhausted_transport_retry_names_the_host_once() {
+        let mut client = Client::new();
+        let err = match client.manifest("127.0.0.1:1", "library/alpine", "3.20") {
+            Ok(_) => panic!("a refused port pulls nothing"),
+            Err(e) => e,
+        };
+        let rendered = format!("{err}");
+        assert!(
+            rendered.contains("127.0.0.1:1: connection failed"),
+            "host once with a plain lowercase cause: {rendered}"
+        );
+        assert_eq!(
+            rendered.matches("127.0.0.1").count(),
+            1,
+            "the host appears exactly once: {rendered}"
+        );
     }
 }

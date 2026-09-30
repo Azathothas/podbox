@@ -13,6 +13,7 @@
 use std::io::Write;
 
 use podbox_enter::{binfmt, Fds, Plan, RootDir};
+use podbox_image::clock;
 use podbox_image::error::{EXIT_CLI_ERROR, EXIT_FLAG_ERROR};
 use podbox_image::platform::Platform;
 use podbox_image::transport::Policy;
@@ -23,7 +24,10 @@ use podbox_image::transport::Policy;
 /// cannot be missing from the other verb's help. TODO/cli.md T-0801.
 pub const RUN_OPTIONS: &str = "\
   -d, --detach     start the container and print its id, and do not wait
-  --name NAME      a name for the container. note: Refused if one already has it
+  --name NAME      a name for the container. note: Refused if one already has it.
+                   A foreground run leaves a record under it: `ps -a` lists
+                   it as Exited and `logs` reads its output
+                   (TODO/supervise.md T-1421)
   --rm             remove the extracted rootfs when the payload exits,
                    unless a container record references it: the rootfs is
                    shared, and a failed run must not delete what `keeper`
@@ -39,6 +43,12 @@ pub const RUN_OPTIONS: &str = "\
                    descriptor where the interposer holds. Repeatable.
                    P takes r, w and m; m parses and grants nothing
                    (TODO/enter.md T-0501)
+  --unsafe-host-paths
+                   podbox's own, userland rung only: opt into the
+                   pass-through with no PODBOX_MAPS anchoring, so absolute
+                   guest paths resolve on the host and a write lands on
+                   the host tree. Banner-named, and --strict refuses
+                   (TODO/enter.md T-1407)
   -u, --user U:G   run as this identity: numeric uid and gid, or names from
                    the image's own passwd and group files. The requested id
                    is answered through the interposer identity memo for a
@@ -69,7 +79,17 @@ pub const RUN_OPTIONS: &str = "\
                    all, and the fixup log then says what the caller gave up
   --strict         refused: refuse to run at all where anything about this
                    invocation is Degraded or Stub: a flag, the selected rung,
-                   or a fixup the completion layer had to make
+                   or a fixup the completion layer had to make.
+                   Kind decides (TODO/cli.md T-1415): safety-relevant
+                   differences (no path virtualization, host and libc
+                   mixing, escape) still refuse, dev-shim substitutions
+                   warn, and --strict=all keeps refusing every one
+  -q, --quiet      force the banner off. note: Runs are already quiet by
+                   default; this forces silence under --verbose too
+                   (TODO/cli.md T-1416)
+  --verbose        print the banner. note: -v is NOT this flag: -v is
+                   docker's --volume, refused with status None, so the
+                   verbose switch is long-only (TODO/cli.md T-1416)
   --platform P     which platform of a multi-platform image to run
   --pull WHEN      never | missing (default) | always
   --insecure-registry HOST, --tls-verify=B
@@ -158,6 +178,9 @@ struct Opts {
     /// `--device`. Carried raw here and parsed now: a malformed shape is a
     /// flag error, before anything is fetched. TODO/enter.md T-0501.
     devices: Vec<String>,
+    /// `--unsafe-host-paths`. Opts into the userland pass-through with no
+    /// `PODBOX_MAPS` anchoring. TODO/enter.md T-1407.
+    unsafe_host_paths: bool,
     /// M5 and T-0804. ⚠ Carried in one struct so `run`, `create` and the
     /// launcher cannot each grow their own copy of the same three answers.
     ask: crate::complete::Ask,
@@ -265,6 +288,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
         qemu_args: Vec::new(),
         mem: None,
         devices: Vec::new(),
+        unsafe_host_paths: false,
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -367,6 +391,8 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             "--name" => expecting = Some("--name"),
             other if other.starts_with("--name=") => o.name = Some(other[7..].to_string()),
             "-t" | "--tty" => o.tty = true,
+            "-q" | "--quiet" => o.ask.quiet = true,
+            "--verbose" => o.ask.verbose = true,
             "-i" | "--interactive" => {
                 // ⚠ Accepted and a no-op, deliberately: podbox does not detach
                 // stdin, so it is already interactive when the caller's is.
@@ -403,6 +429,19 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             "--no-host-cas" => o.ask.no_host_cas = true,
             "--no-steps" => o.ask.no_steps = true,
             "--strict" => o.ask.strict = true,
+            "--unsafe-host-paths" => o.unsafe_host_paths = true,
+            other if other.starts_with("--strict=") => match &other[9..] {
+                // ⭐ T-1415: `--strict=all` keeps the T-0804 behavior,
+                // refusing every Degraded and Stub difference.
+                "all" => {
+                    o.ask.strict = true;
+                    o.ask.strict_all = true;
+                }
+                v => {
+                    eprintln!("podbox {verb}: --strict takes all or nothing, not {v:?}");
+                    return Err(EXIT_FLAG_ERROR);
+                }
+            },
             other if other.starts_with("--env=") => o.env.push(other[6..].to_string()),
             other if other.starts_with("--log-driver=") => match &other[13..] {
                 "json-file" => {}
@@ -502,6 +541,189 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
     Ok(o)
 }
 
+/// One foreground run's record-in-progress.
+///
+/// TODO/supervise.md T-1421. docker always records a foreground run as
+/// `Exited`, so `ps -a` lists it and `logs` reads it. podbox does the
+/// same: the record is created before the entry (so a duplicate `--name`
+/// refuses before anything runs), the payload's stdout is teed to the
+/// container log while it runs, and the record lands `Exited` with the
+/// code and the times when it ends. `--rm` deletes the record on exit
+/// instead of finalizing it.
+struct Foreground {
+    id: String,
+    rm: bool,
+    started: String,
+    tee: Option<Tee>,
+}
+
+/// The payload's stdout, teed to the container log.
+///
+/// fd 1 is redirected into a pipe whose reader is a pump thread writing
+/// every byte to the saved stdout and to the log file, so the payload
+/// still owns stdout while `logs` reads the same bytes afterwards.
+/// Restored by [`untee`] before the record is finalized, so no byte is
+/// still in flight when `logs` runs.
+///
+/// ⚠ The payload's stdout becomes a pipe, which `isatty` answers
+/// differently from a terminal. That is the cost of foreground records,
+/// stated here rather than hidden: docker pays it too, for the same
+/// reason.
+struct Tee {
+    saved: i64,
+    handle: std::thread::JoinHandle<()>,
+}
+
+fn tee_stdout_to(log_path: &std::path::Path) -> Result<Tee, String> {
+    use std::os::unix::io::FromRawFd;
+    let mut pipe = [0i32; 2];
+    podbox_probe::sys::pipe2(&mut pipe, podbox_probe::sys::O_CLOEXEC)
+        .map_err(|e| format!("pipe: {} ({})", e.name(), e.0))?;
+    // ⛔ CLOEXEC on both ends: the payload must not inherit the reader
+    // (it would hold the pipe open past its own stdout and the pump
+    // would never see EOF), and the saved stdout must not leak into it
+    // either. `dup2` below clears the flag on fd 1 itself, which is the
+    // one descriptor the payload is meant to keep.
+    let saved = podbox_probe::sys::dup_cloexec(1)
+        .map_err(|e| format!("dup of stdout: {} ({})", e.name(), e.0))?;
+    let log = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+        .map_err(|e| format!("{}: {e}", log_path.display()))?;
+    // SAFETY: both descriptors were just created and are owned here; the
+    // reader moves into the pump thread, the writer is closed below once
+    // fd 1 carries the pipe.
+    let reader = unsafe { std::fs::File::from_raw_fd(pipe[0]) };
+    let writer = pipe[1] as i64;
+    if let Err(e) = podbox_probe::sys::dup2(writer, 1) {
+        let _ = podbox_probe::sys::close(writer);
+        let _ = podbox_probe::sys::close(saved);
+        return Err(format!("dup2 of stdout: {} ({})", e.name(), e.0));
+    }
+    let _ = podbox_probe::sys::close(writer);
+    // SAFETY: as above; wrapped so the pump never closes it (the restore
+    // below owns that close, and a double close would take an unrelated
+    // reused descriptor with it).
+    let out = unsafe { std::mem::ManuallyDrop::new(std::fs::File::from_raw_fd(saved as i32)) };
+    let handle = std::thread::spawn(move || pump(reader, out, log));
+    Ok(Tee { saved, handle })
+}
+
+/// The pump behind [`tee_stdout_to`]: every byte to the saved stdout and
+/// to the log, until EOF or a read error. Best-effort by design: the
+/// payload's exit code is the verdict, and a logging failure must never
+/// move it.
+fn pump(
+    mut reader: std::fs::File,
+    mut out: std::mem::ManuallyDrop<std::fs::File>,
+    mut log: std::fs::File,
+) {
+    use std::io::Read;
+    let mut buf = [0u8; 65536];
+    loop {
+        match reader.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => {
+                let _ = std::io::Write::write_all(&mut *out, &buf[..n]);
+                let _ = std::io::Write::write_all(&mut log, &buf[..n]);
+            }
+            Err(_) => break,
+        }
+    }
+    let _ = std::io::Write::flush(&mut *out);
+    let _ = std::io::Write::flush(&mut log);
+}
+
+/// Restore stdout and join the pump. Runs before the record is
+/// finalized, so `logs` never races bytes still in flight.
+fn untee(tee: Tee) {
+    let _ = podbox_probe::sys::dup2(tee.saved, 1);
+    let _ = podbox_probe::sys::close(tee.saved);
+    let _ = tee.handle.join();
+}
+
+/// Create the foreground record and start the stdout tee, before the
+/// entry. A `--name` that cannot be recorded refuses here naming it,
+/// instead of running and dropping the name: an accepted flag is never
+/// silently dropped (T-1421's decision).
+fn fg_begin(
+    store: &podbox_image::Store,
+    p: &crate::lifecycle::Prepared,
+) -> std::result::Result<Foreground, i32> {
+    let c = match podbox_supervise::create(
+        store,
+        p.name.as_deref(),
+        &p.image,
+        &p.record.manifest_digest,
+        &p.rootfs,
+        p.argv.clone(),
+        p.env.clone(),
+        p.working_dir.clone(),
+        &p.rung,
+        p.completion.clone(),
+        p.completion_degraded,
+        crate::lifecycle::detached_drive(p.userland.as_ref()),
+    ) {
+        Ok(c) => c,
+        Err(e) => {
+            match &p.name {
+                Some(n) => {
+                    eprintln!("podbox run: --name {n:?}: the run could not be recorded: {e}")
+                }
+                None => eprintln!("podbox run: the run could not be recorded: {e}"),
+            }
+            return Err(podbox_image::error::EXIT_RUNTIME_ERROR);
+        }
+    };
+    let log_path = podbox_supervise::table::log_path(store, &c.id);
+    match tee_stdout_to(&log_path) {
+        Ok(tee) => Ok(Foreground {
+            id: c.id,
+            rm: p.rm,
+            started: clock::now(),
+            tee: Some(tee),
+        }),
+        Err(why) => {
+            eprintln!("podbox run: the run's output could not be captured for its record: {why}");
+            let _ = podbox_supervise::remove(store, &c.id, true);
+            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+        }
+    }
+}
+
+/// Finalize the foreground record: stdout restored first (no byte still
+/// in flight), then `Exited` with the code and the times, or the
+/// record's removal under `--rm`.
+fn fg_end(store: &podbox_image::Store, fg: Foreground, code: i32) {
+    if let Some(tee) = fg.tee {
+        untee(tee);
+    }
+    if fg.rm {
+        let _ = podbox_supervise::remove(store, &fg.id, true);
+        return;
+    }
+    let finished = clock::now();
+    let started = fg.started.clone();
+    let id = fg.id.clone();
+    let _ = podbox_supervise::table::update(store, |t| {
+        match t.containers.iter_mut().find(|c| c.id == id) {
+            Some(c) => {
+                c.state = podbox_supervise::table::State::Exited;
+                c.exit_code = Some(code);
+                if c.started_at.is_none() {
+                    c.started_at = Some(started.clone());
+                }
+                c.finished_at = Some(finished.clone());
+                Ok(())
+            }
+            None => Err(podbox_supervise::Error(format!(
+                "the foreground record {id} is gone"
+            ))),
+        }
+    });
+}
+
 pub fn run(args: &[String]) -> i32 {
     let store = match podbox_image::open_store() {
         Ok(s) => s,
@@ -535,6 +757,7 @@ pub fn run(args: &[String]) -> i32 {
             &p.rung,
             p.completion.clone(),
             p.completion_degraded,
+            crate::lifecycle::detached_drive(p.userland.as_ref()),
         ) {
             Ok(c) => c,
             Err(e) => {
@@ -632,8 +855,20 @@ pub fn run(args: &[String]) -> i32 {
     };
     // ⭐ T-0204 and T-0211. The lock is handed to the payload immediately
     // before the fork that leads to its exec, and to nothing else.
+    // ⭐ TODO/supervise.md T-1421. The foreground record is created
+    // before the entry, and the payload's stdout is teed to its log:
+    // every foreground run leaves a record `ps -a` lists as `Exited`.
+    let fg = match fg_begin(&store, &p) {
+        Ok(f) => f,
+        Err(code) => {
+            drop(memo);
+            let _ = std::fs::remove_file(&p.memo_host_path);
+            return code;
+        }
+    };
     if let Err(e) = held.hand_to_payload() {
         let _ = writeln!(err, "podbox run: {e}");
+        fg_end(&store, fg, podbox_image::error::EXIT_RUNTIME_ERROR);
         drop(memo);
         let _ = std::fs::remove_file(&p.memo_host_path);
         return podbox_image::error::EXIT_RUNTIME_ERROR;
@@ -670,61 +905,19 @@ pub fn run(args: &[String]) -> i32 {
             }
         }
         None => {
-            // ⭐ TODO/enter.md T-1317. The no-chroot families enter here: the
-            // loader argv was decided pre-fixup, and the static family's
-            // memfd stages now, against post-fixup bytes, mirroring the
-            // ladder's forced drive.
+            // ⭐ TODO/enter.md T-1317 and T-1410. The no-chroot families
+            // enter through the one shared drive beside the chroot
+            // sequence below, so `run` and `exec` cannot diverge on it.
             if let Some(u) = &p.userland {
-                let active = podbox_probe::select::Rung::Userland.word();
-                let (exec_argv, fd) = match u.family {
-                    podbox_enter::userland::Family::Loader => (u.loader_argv.clone(), None),
-                    podbox_enter::userland::Family::Memfd => {
-                        let argv0 = plan.argv.first().cloned().unwrap_or_default();
-                        let bytes = match podbox_enter::ladder::payload_bytes(
-                            &p.rootfs,
-                            &argv0,
-                            &plan.path_dirs,
-                        ) {
-                            Ok(b) => b,
-                            Err(e) => {
-                                let _ = writeln!(err, "podbox run: {e}");
-                                drop(memo);
-                                let _ = std::fs::remove_file(&p.memo_host_path);
-                                return e.exit_code();
-                            }
-                        };
-                        if podbox_enter::memfd::eligible(&bytes).is_err() {
-                            // Fixups changed what the decision read: loud,
-                            // never silent, and the fixups stay (they are the
-                            // image's now, not this run's).
-                            let _ = writeln!(
-                                err,
-                                "podbox run: the payload the memfd family was decided \
-                                 on no longer stages: refusing rather than entering \
-                                 something unjudged (TODO/enter.md T-1317)"
-                            );
-                            drop(memo);
-                            let _ = std::fs::remove_file(&p.memo_host_path);
-                            return podbox_image::error::EXIT_RUNTIME_ERROR;
-                        }
-                        match podbox_enter::memfd::stage(&bytes) {
-                            Ok(f) => (plan.argv.clone(), Some(f)),
-                            Err(e) => {
-                                let _ = writeln!(err, "podbox run: {e}");
-                                drop(memo);
-                                let _ = std::fs::remove_file(&p.memo_host_path);
-                                return e.exit_code();
-                            }
-                        }
-                    }
-                };
-                match podbox_enter::run_userland(&root, &plan, exec_argv, active, fd, &mut err) {
-                    Ok(c) => c,
-                    Err(e) => {
-                        let _ = writeln!(err, "podbox run: {e}");
-                        e.exit_code()
-                    }
+                let outcome =
+                    crate::lifecycle::enter_userland("run", &root, &plan, u, &p.rootfs, &mut err);
+                if !outcome.entered {
+                    fg_end(&store, fg, outcome.code);
+                    drop(memo);
+                    let _ = std::fs::remove_file(&p.memo_host_path);
+                    return outcome.code;
                 }
+                outcome.code
             } else {
                 // ⭐ TODO/enter.md T-1339. The namespace rung where
                 // `prepare` selected it (`p.rung` is the entered word it
@@ -746,6 +939,10 @@ pub fn run(args: &[String]) -> i32 {
         }
     };
     drop(err);
+    // ⭐ TODO/supervise.md T-1421. The record lands `Exited` with the code
+    // and the times (or is removed under `--rm`), after stdout is
+    // restored so no logged byte is still in flight.
+    fg_end(&store, fg, code);
     // ⭐ T-0710: the ephemeral memo goes with the run. The child holds its own
     // dup past the `execve`; this handle and the staging file are the parent's.
     drop(memo);
@@ -758,10 +955,11 @@ pub fn run(args: &[String]) -> i32 {
         drop(held);
         // ⭐ TODO/image.md T-1322. The rootfs is shared, so `--rm` removes it
         // only where no container record references it: a failed run must
-        // not delete the rootfs `keeper` needs. A run of its own writes no
-        // record, so an ephemeral run never counts itself. Where the query
-        // itself errors, the rootfs stays: deleting on an unanswered
-        // question is how the defect above happens.
+        // not delete the rootfs `keeper` needs. The run's own record is
+        // already finalized above (removed under `--rm`), so it never
+        // counts itself. Where the query itself errors, the rootfs stays:
+        // deleting on an unanswered question is how the defect above
+        // happens.
         match podbox_supervise::referencing(&store, &p.record.manifest_digest) {
             Ok(referrers) if !referrers.is_empty() => {
                 let mut names: Vec<&str> = referrers.iter().map(|c| c.name.as_str()).collect();
@@ -910,10 +1108,10 @@ pub(crate) fn prepare(
     }
     let image = o.image.clone().expect("checked in parse");
 
-    // ⭐ TODO/enter.md T-1317. The probe runs HERE, before the fetch, the
-    // lock, the extraction and every fixup: the entered rung always
-    // chroots, so a denied chroot refuses now, naming chroot(2), with the
-    // rootfs untouched. The machine tier returned above and never chroots.
+    // ⭐ TODO/enter.md T-1411. The probe runs HERE, before the fetch, the
+    // lock, the extraction and every fixup: the two-tier gate below
+    // refuses now, naming what is missing, with the rootfs untouched.
+    // The machine tier returned above and never chroots.
     // `findings` is reused for the banner below, so the probe runs once.
     let findings = podbox_probe::run();
     // ⭐ TODO/enter.md T-0503. The flag-specific refusal fires where the
@@ -937,15 +1135,13 @@ pub(crate) fn prepare(
         }
         return Err(podbox_enter::EXIT_RUNTIME_ERROR);
     }
-    // ⭐ TODO/enter.md T-1317. Records promise a launcher entry, which
-    // chroots, so `create` keeps the strict gate. Foreground `run` takes
-    // the two-tier gate: the exact rung needs the payload, which is
-    // post-extract, so this refuses only where nothing could run.
-    if verb == "create" {
-        crate::lifecycle::ensure_chroot_usable(verb, &findings)?;
-    } else {
-        crate::lifecycle::ensure_entry_possible(verb, &findings)?;
-    }
+    // ⭐ TODO/enter.md T-1411. This reverses T-1317's last-resort decision
+    // for records: `create` no longer keeps the strict chroot gate,
+    // because the launcher now drives the userland loader family
+    // detached. Both verbs take the two-tier gate here (it refuses only
+    // where nothing could run); the exact rung is decided post-extract
+    // below, and only a detached entry without a driver refuses there.
+    crate::lifecycle::ensure_entry_possible(verb, &findings, store.root())?;
 
     // ------------------------------------------------------------- the image
     let record = acquire(verb, store, &image, &platform, &policy, &o.pull)?;
@@ -1068,21 +1264,23 @@ pub(crate) fn prepare(
     }
     env.retain(|e| e.split('=').next().unwrap_or("") != crate::interpose::MEMO_FD_VAR);
     env.push(crate::interpose::memo_fd_env());
-    // ⭐ TODO/enter.md T-1317. The exact rung, decided here: the rootfs
+    // ⭐ TODO/enter.md T-1411. The exact rung, decided here: the rootfs
     // exists and nothing has been written into it yet (`place` and the
-    // fixups run below). `create` never decides past its strict gate
-    // above, so only foreground `run` takes a no-chroot entry here.
-    // A detached run has no userland launcher yet and refuses naming
-    // the foreground fallback rather than starting unstartable.
+    // fixups run below). This reverses T-1317's last-resort decision for
+    // detached entries too: `run -d` and `create` drive the loader
+    // family (the record carries its argv) and refuse only where the
+    // decided family has no detached driver, naming the blocking call
+    // and the affected verbs.
     let userland =
         crate::lifecycle::decide_entry(verb, &rootfs, &argv, &env, support_native, &findings)?;
-    if userland.is_some() && o.detach {
-        eprintln!(
-            "podbox {verb}: chroot(2) is denied and only the no-chroot families \
-             run here, which `run -d` does not drive: run foreground \
-             (TODO/enter.md T-1317)"
-        );
-        return Err(podbox_image::error::EXIT_RUNTIME_ERROR);
+    if let Some(u) = &userland {
+        if (o.detach || verb == "create") && u.family != podbox_enter::userland::Family::Loader {
+            eprintln!(
+                "{}",
+                crate::lifecycle::detached_userland_refusal(verb, u.family.name())
+            );
+            return Err(podbox_image::error::EXIT_RUNTIME_ERROR);
+        }
     }
     // ⭐ T-0702 and T-0706: classify the payload and place the object BEFORE
     // the banner is built, so the banner names the write before anything of
@@ -1137,10 +1335,36 @@ pub(crate) fn prepare(
         argv.first().map(String::as_str).unwrap_or(""),
         &path_dirs,
     );
+    // ⭐ TODO/enter.md T-1407 and T-1409. On a userland entry the
+    // root-anchoring table (or the explicit opt-out) and the loader
+    // exe-force join the environment here, before the banner names them
+    // and before any fixup mutates the rootfs. `PODBOX_MAPS` and
+    // `PODBOX_GUEST_EXE_FORCE` are scrubbed first, so a nested run
+    // inherits neither the outer payload's table nor its flag.
+    let mut userland_note = String::new();
+    // ⭐ T-1415: the gate below reads what `userland_env` decided, not the
+    // flag beside it, so the two cannot disagree.
+    let mut strict_unsafe = false;
+    if let Some(u) = &userland {
+        let ue = crate::lifecycle::userland_env(verb, &rootfs, env, u.family, o.unsafe_host_paths)?;
+        env = ue.env;
+        userland_note = ue.banner;
+        strict_unsafe = ue.unsafe_paths;
+    }
     let working_dir = o
         .workdir
         .clone()
         .unwrap_or_else(|| cfg.config.working_dir.clone());
+    // ⭐ TODO/enter.md T-1412. The workdir is checked here, before the fork
+    // and before any fixup mutates the rootfs, on both rungs: a missing
+    // directory refuses naming the path and the image at 125, rather than
+    // starting the payload in the wrong directory with exit 0. docker
+    // creates the directory; podbox refuses and says so, and `-w /tmp`
+    // prints `/tmp` as the passing control.
+    if let Err(e) = podbox_enter::check_workdir(&rootfs, &working_dir, &image) {
+        eprintln!("podbox {verb}: {e}");
+        return Err(e.exit_code());
+    }
 
     // ------------------------------------------------------------- the banner
     // ⭐ TODO/probe.md T-0107 and T-0108's remaining halves: the rung is
@@ -1184,6 +1408,9 @@ pub(crate) fn prepare(
                  paths, which resolve on the host without a chroot\n"
             ));
         }
+        // ⭐ T-1407 and T-1409: the anchoring (or the opt-out) and the
+        // exe substitution, named once beside the rung account above.
+        banner.push_str(&userland_note);
     }
     // ⭐ M5. The completion layer runs HERE: after the rootfs exists and the
     // image lock is held, and before anything is entered. Its report is part of
@@ -1207,8 +1434,13 @@ pub(crate) fn prepare(
     // caller used to get the reasons with no banner under `--strict`, and
     // `create` printed neither, while T-0412's steps mean podbox may now run a
     // command inside the image, which rule 3 says is named before it runs.
-    let quiet = crate::complete::banner_quiet(store);
-    if !quiet {
+    let loud = crate::complete::banner_loud(store, &ask);
+    // ⭐ TODO/cli.md T-1416: quiet by default, the banner under
+    // `--verbose`. `quiet` still gates the step lines below, so a default
+    // run is silent on success; a refusal still prints, because it never
+    // passes through here.
+    let quiet = !loud;
+    if loud {
         let _ = write!(err, "{banner}");
     }
     // ⛔ T-0503, decided up front beside the entry gate above: `-t` with
@@ -1219,7 +1451,20 @@ pub(crate) fn prepare(
     // refused caller still gets the whole account of why on stderr. ⛔ The
     // refusal prints even where the banner is suppressed: the config switch
     // silences a notice, never a refusal.
-    crate::complete::strict_refusal(verb, &ask, entered.word(), &completion, &mut err)?;
+    // ⭐ T-1415: the userland facts ride beside the three T-0804 inputs, so
+    // kind decides rather than count.
+    crate::complete::strict_refusal(
+        verb,
+        &ask,
+        entered.word(),
+        &completion,
+        &mut err,
+        &crate::complete::StrictCtx {
+            chroot_usable: podbox_probe::probes::chroot_usable(&findings),
+            unsafe_host_paths: strict_unsafe,
+            preload_dropped: dropped_preload.is_some(),
+        },
+    )?;
     // ⭐ T-0412 and T-0710. The steps share this entry's host memo: a fixup's
     // `chown` must land in the same record the payload reads, or the two
     // disagree about who owns the file. Opened here for the steps alone; the
@@ -1277,6 +1522,42 @@ pub(crate) fn prepare(
 }
 
 /// Make sure the store holds the image, honouring `--pull`.
+///
+/// ⛔ A trust arm still verifies: presence means blobs on disk, not a row
+/// in the store (TODO/image.md T-1419). A record whose blobs are gone
+/// refuses by image name with the remedy, never a raw blob path, and
+/// `--pull always` stays the recovery path.
+fn trust_record(
+    verb: &str,
+    store: &podbox_image::Store,
+    image: &str,
+    r: podbox_image::Record,
+) -> std::result::Result<podbox_image::Record, i32> {
+    match store.verify_record_blobs(&r) {
+        Ok(mismatches) if mismatches.is_empty() => Ok(r),
+        Ok(mismatches) => {
+            let digest_list = mismatches
+                .iter()
+                .map(|m| format!("{} (got {})", m.want, m.got))
+                .collect::<Vec<_>>()
+                .join(", ");
+            eprintln!(
+                "podbox {verb}: {image} is in the store but {} of its blob(s) \
+                 are missing or corrupt: {digest_list}. The store is at {}. \
+                 Re-fetch it with --pull always (TODO/image.md T-1419)",
+                mismatches.len(),
+                store.root().display()
+            );
+            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+        }
+        Err(e) => {
+            eprintln!("podbox {verb}: {image}: the store's blobs could not be verified: {e}");
+            Err(e.exit_code())
+        }
+    }
+}
+
+/// Make sure the store holds the image, honouring `--pull`.
 fn acquire(
     verb: &str,
     store: &podbox_image::Store,
@@ -1289,7 +1570,7 @@ fn acquire(
     let others = found.other_platforms.clone();
     let have = found.one();
     match (pull, have) {
-        ("never", Some(r)) => Ok(r),
+        ("never", Some(r)) => trust_record(verb, store, image, r),
         ("never", None) => {
             // ⛔ Two different sentences for two different situations. "held,
             // for another platform" sends the caller to --platform; "not held"
@@ -1310,7 +1591,7 @@ fn acquire(
             }
             Err(podbox_image::error::EXIT_RUNTIME_ERROR)
         }
-        ("missing", Some(r)) => Ok(r),
+        ("missing", Some(r)) => trust_record(verb, store, image, r),
         _ => {
             // ⛔ The transcript goes to STDERR here, unlike `podbox pull` where
             // it is the output. The payload owns stdout.
@@ -1422,6 +1703,107 @@ mod tests {
             "{env:?}"
         );
         let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// ⭐ TODO/enter.md T-1407: `--unsafe-host-paths` parses, and is off
+    /// unless asked for.
+    #[test]
+    fn unsafe_host_paths_parses_and_defaults_off() {
+        assert!(
+            parse("run", &v(&["--unsafe-host-paths", "img"]))
+                .unwrap()
+                .unsafe_host_paths
+        );
+        assert!(!parse("run", &v(&["img"])).unwrap().unsafe_host_paths);
+    }
+
+    /// ⭐ TODO/cli.md T-1415: `--strict=all` keeps the T-0804 refusal of
+    /// every difference, and anything else after `=` is a flag error.
+    #[test]
+    fn strict_all_parses_and_anything_else_is_a_flag_error() {
+        let o = parse("run", &v(&["--strict=all", "img"])).unwrap();
+        assert!(o.ask.strict);
+        assert!(o.ask.strict_all);
+        let o = parse("run", &v(&["--strict", "img"])).unwrap();
+        assert!(o.ask.strict);
+        assert!(!o.ask.strict_all);
+        assert_eq!(
+            parse("run", &v(&["--strict=sometimes", "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+    }
+
+    /// ⭐ TODO/cli.md T-1416: `-q`/`--quiet` forces the banner off and
+    /// `--verbose` prints it, including bundled with `-i`. `-v` is NOT
+    /// among them: it stays docker's `--volume`, refused by the table.
+    #[test]
+    fn quiet_and_verbose_parse() {
+        let o = parse("run", &v(&["-q", "img"])).unwrap();
+        assert!(o.ask.quiet);
+        assert!(!o.ask.verbose);
+        let o = parse("run", &v(&["--verbose", "img"])).unwrap();
+        assert!(o.ask.verbose);
+        let o = parse("run", &v(&["-qi", "img"])).unwrap();
+        assert!(o.ask.quiet);
+        assert_eq!(
+            parse("run", &v(&["-v", "img"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
+    }
+
+    /// ⭐ TODO/supervise.md T-1421. The foreground record shape this verb
+    /// relies on: `create` writes it, a table update lands it `Exited`
+    /// with the code and the times, `ps -a` lists it, and `logs` reads
+    /// the file at its log path. Pinned here so a record drift fails
+    /// here instead of on the drive.
+    #[test]
+    #[cfg(unix)]
+    fn a_foreground_record_lands_exited_with_logs() {
+        let dir = std::env::temp_dir().join(format!("podbox-fg-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let store = podbox_image::Store::open(&dir).unwrap();
+        let c = podbox_supervise::create(
+            &store,
+            Some("fg1"),
+            "img",
+            "sha256:0",
+            "/tmp",
+            vec!["echo".into(), "hi".into()],
+            Vec::new(),
+            "/".into(),
+            "userland",
+            Vec::new(),
+            0,
+            Vec::new(),
+        )
+        .unwrap();
+        std::fs::write(podbox_supervise::table::log_path(&store, &c.id), b"hi\n").unwrap();
+        let id = c.id.clone();
+        podbox_supervise::table::update(&store, |t| {
+            match t.containers.iter_mut().find(|x| x.id == id) {
+                Some(x) => {
+                    x.state = podbox_supervise::table::State::Exited;
+                    x.exit_code = Some(0);
+                    x.started_at = Some("s".into());
+                    x.finished_at = Some("f".into());
+                    Ok(())
+                }
+                None => Err(podbox_supervise::Error("gone".into())),
+            }
+        })
+        .unwrap();
+        let list = podbox_supervise::list(&store, true).unwrap();
+        let got = list
+            .iter()
+            .find(|x| x.name == "fg1")
+            .expect("fg1 is listed");
+        assert_eq!(got.status(), "Exited (0)");
+        assert_eq!(
+            podbox_supervise::logs(&store, "fg1").unwrap(),
+            b"hi\n",
+            "logs reads the recorded output"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

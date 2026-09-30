@@ -9,12 +9,21 @@
 #   1. forced rundir over alpine enters with ACTIVE_MODE=rundir.
 #   2. forced cache without PODBOX_CACHE refuses naming the opt-in;
 #      with PODBOX_CACHE=1 over alpine enters with ACTIVE_MODE=cache.
-#   3. forced tmpfs over alpine enters with ACTIVE_MODE=tmpfs where a
-#      mount attaches, else refuses naming the mount.
-#   4. forced fuse over alpine enters with ACTIVE_MODE=fuse where
-#      /dev/fuse opens, else refuses naming the node.
+#   3. forced tmpfs attempts entry: where a mount attaches it enters
+#      with ACTIVE_MODE=tmpfs, payload bytes and exit 0; where the
+#      attach verdict is down it refuses naming the mount. Either arm
+#      leaves no staging behind.
+#   4. forced fuse attempts entry: where /dev/fuse opens and a mount
+#      attaches it enters with ACTIVE_MODE=fuse, payload bytes and
+#      exit 0; elsewhere it refuses naming the node or the mount.
+#      Either arm leaves no staging behind.
 #   5. forced memfd regression: static hello enters on memfd.
 #   6. unknown word still refuses with the rung list.
+#   7. the packed rootfs without a registry: save writes one
+#      OCI-layout tarball, load stages it into a fresh store hashing
+#      every blob, a forced run over the loaded record enters with the
+#      rung word and the payload bytes, and a flipped layer byte
+#      refuses as a digest mismatch.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull).
@@ -119,17 +128,74 @@ else
 	echo "cache staging    MISSING after entry" >>"$REPORT"; fail=1
 fi
 
-# Clause 3: tmpfs enters where a mount attaches; where the attach
-# verdict is down, the refusal names the mount. The lane denies the
-# mount (EPERM), so this clause drives the refusal arm; the entry arm
-# is wired beside it and runs where a mount holds.
-step forced-tmpfs "$RUN_ERR" env PODBOX_MODE=tmpfs "$PB" run --rm "$ALPINE" sh -c 'echo $PODBOX_ACTIVE_MODE'
-grep -qi "mount" "$WORK/out-forced-tmpfs.txt" || { echo "tmpfs refusal did not name the mount" >>"$REPORT"; fail=1; }
+# Clause 3: forced tmpfs attempts entry. Where a mount attaches, the
+# run enters with ACTIVE_MODE=tmpfs, the payload bytes on stdout, exit
+# 0 and no staging left behind; where the attach verdict is down, the
+# refusal names the mount and likewise leaves nothing. This lane
+# denies the mount (mount(2) EPERM, even in a user namespace, measured
+# 2026-09-30), so the refusal arm is the live one here and entry stays
+# unproved until a mount-granting host runs this script.
+out="$WORK/out-forced-tmpfs.txt"
+timeout 120 env PODBOX_MODE=tmpfs "$PB" run --rm "$ALPINE" sh -c 'echo $PODBOX_ACTIVE_MODE; cat /etc/alpine-release' >"$out" 2>&1
+rc=$?
+echo "step forced-tmpfs exit $rc"
+{
+echo ""
+echo "== forced-tmpfs"
+echo "command           env PODBOX_MODE=tmpfs $PB run --rm $ALPINE sh -c 'echo \$PODBOX_ACTIVE_MODE; cat /etc/alpine-release'"
+echo "exit              $rc"
+echo "output:"
+sed 's/^/  /' "$out"
+} >>"$REPORT"
+if [ "$rc" -eq 0 ]; then
+	echo "tmpfs arm         ENTRY (a mount attaches on this machine)" >>"$REPORT"
+	grep -q "^tmpfs$" "$out" || { echo "tmpfs entry did not report tmpfs" >>"$REPORT"; fail=1; }
+	grep -q "3\.20" "$out" || { echo "tmpfs entry payload bytes missing" >>"$REPORT"; fail=1; }
+else
+	[ "$rc" -eq "$RUN_ERR" ] || { echo "tmpfs refusal exit $rc, wanted $RUN_ERR" >>"$REPORT"; fail=1; }
+	echo "tmpfs arm         REFUSAL (no mount attaches on this machine)" >>"$REPORT"
+	grep -qi "mount" "$out" || { echo "tmpfs refusal did not name the mount" >>"$REPORT"; fail=1; }
+fi
+if [ -d "$STORE/tmpfs" ] && [ -n "$(ls -A "$STORE/tmpfs" 2>/dev/null)" ]; then
+	echo "tmpfs staging     LEAKED files" >>"$REPORT"; fail=1
+else
+	echo "tmpfs staging     cleaned" >>"$REPORT"
+fi
 
-# Clause 4: fuse enters where /dev/fuse opens (until wired, the node
-# refusal names it).
-step forced-fuse "$RUN_ERR" env PODBOX_MODE=fuse "$PB" run --rm "$ALPINE" sh -c 'echo $PODBOX_ACTIVE_MODE'
-grep -q "dev/fuse" "$WORK/out-forced-fuse.txt" || { echo "fuse refusal did not name the node" >>"$REPORT"; fail=1; }
+# Clause 4: forced fuse attempts entry. Where /dev/fuse opens and a
+# mount attaches, the run enters with ACTIVE_MODE=fuse, the payload
+# bytes on stdout, exit 0 and no staging left behind; elsewhere the
+# refusal names the node or the mount and likewise leaves nothing. No
+# reachable machine holds the node (absent on the lane, uncreatable:
+# mknod is EPERM even in a user namespace, measured 2026-09-30), so
+# the refusal arm is the live one here and entry stays unproved until
+# a host with the node and a granted mount runs this script.
+out="$WORK/out-forced-fuse.txt"
+timeout 120 env PODBOX_MODE=fuse "$PB" run --rm "$ALPINE" sh -c 'echo $PODBOX_ACTIVE_MODE; cat /etc/alpine-release' >"$out" 2>&1
+rc=$?
+echo "step forced-fuse exit $rc"
+{
+echo ""
+echo "== forced-fuse"
+echo "command           env PODBOX_MODE=fuse $PB run --rm $ALPINE sh -c 'echo \$PODBOX_ACTIVE_MODE; cat /etc/alpine-release'"
+echo "exit              $rc"
+echo "output:"
+sed 's/^/  /' "$out"
+} >>"$REPORT"
+if [ "$rc" -eq 0 ]; then
+	echo "fuse arm          ENTRY (the node opens and a mount attaches here)" >>"$REPORT"
+	grep -q "^fuse$" "$out" || { echo "fuse entry did not report fuse" >>"$REPORT"; fail=1; }
+	grep -q "3\.20" "$out" || { echo "fuse entry payload bytes missing" >>"$REPORT"; fail=1; }
+else
+	[ "$rc" -eq "$RUN_ERR" ] || { echo "fuse refusal exit $rc, wanted $RUN_ERR" >>"$REPORT"; fail=1; }
+	echo "fuse arm          REFUSAL (the node or the mount is denied here)" >>"$REPORT"
+	grep -q "dev/fuse" "$out" || { echo "fuse refusal did not name the node" >>"$REPORT"; fail=1; }
+fi
+if [ -d "$STORE/fuse" ] && [ -n "$(ls -A "$STORE/fuse" 2>/dev/null)" ]; then
+	echo "fuse staging      LEAKED files" >>"$REPORT"; fail=1
+else
+	echo "fuse staging      cleaned" >>"$REPORT"
+fi
 
 # Clause 5: memfd regression on the static hello.
 cat >"$WORK/hello.c" <<'EOF'
@@ -157,6 +223,65 @@ grep -q "static-hi" "$WORK/out-forced-memfd.txt" || { echo "forced memfd payload
 # Clause 6: an unknown word refuses with the rung list.
 step bogus-word "$RUN_ERR" env PODBOX_MODE=memfd2 "$PB" run --rm "$ALPINE" true
 grep -q "memfd, fuse, tmpfs, rundir, cache" "$WORK/out-bogus-word.txt" || { echo "unknown word did not list the rungs" >>"$REPORT"; fail=1; }
+
+# Clause 7: the packed rootfs without a registry. `save` writes the
+# image as one OCI-layout tarball (the embedded input format:
+# oci-layout, index.json and content-addressed blobs, each verified on
+# the way out); `load` stages it into a fresh store with every blob
+# hashed on the way in; a forced run over the loaded record enters
+# with the rung word and the payload bytes; a flipped layer byte
+# refuses as a digest mismatch with the bytes discarded.
+STORE2="$WORK/store2"
+mkdir -p "$STORE2" || exit 2
+step pack-save 0 "$PB" save -o "$WORK/pack.tar" "$ALPINE"
+[ -s "$WORK/pack.tar" ] || { echo "pack.tar empty or missing" >>"$REPORT"; fail=1; }
+step pack-load 0 env PODBOX_STORE="$STORE2" "$PB" load -i "$WORK/pack.tar"
+name=$(sed -n 's/^Loaded image: //p' "$WORK/out-pack-load.txt" | head -1)
+[ -n "$name" ] || { echo "load printed no image name" >>"$REPORT"; fail=1; }
+echo "loaded as         $name" >>"$REPORT"
+out="$WORK/out-pack-run.txt"
+timeout 120 env PODBOX_STORE="$STORE2" PODBOX_MODE=rundir "$PB" run --rm "$name" sh -c 'echo $PODBOX_ACTIVE_MODE; cat /etc/alpine-release' >"$out" 2>&1
+rc=$?
+echo "step pack-run exit $rc"
+{
+echo ""
+echo "== pack-run"
+echo "command           env PODBOX_STORE=<fresh> PODBOX_MODE=rundir $PB run --rm $name sh -c 'echo \$PODBOX_ACTIVE_MODE; cat /etc/alpine-release'"
+echo "exit              $rc"
+echo "output:"
+sed 's/^/  /' "$out"
+} >>"$REPORT"
+[ "$rc" -eq 0 ] || { echo "pack run exit $rc, wanted 0" >>"$REPORT"; fail=1; }
+grep -q "^rundir$" "$out" || { echo "pack run did not report rundir" >>"$REPORT"; fail=1; }
+grep -q "3\.20" "$out" || { echo "pack run payload bytes missing" >>"$REPORT"; fail=1; }
+if [ -d "$STORE2/runs" ] && [ -n "$(ls -A "$STORE2/runs" 2>/dev/null)" ]; then
+	echo "pack staging      LEAKED files" >>"$REPORT"; fail=1
+else
+	echo "pack staging      cleaned" >>"$REPORT"
+fi
+# The bounded failure: one flipped byte in the largest blob (the
+# layer) repacked beside the untouched index. The loader must refuse
+# naming the digest mismatch, and the bytes stay out of the store.
+rm -rf "$WORK/corrupt"; mkdir -p "$WORK/corrupt" || exit 2
+tar -xf "$WORK/pack.tar" -C "$WORK/corrupt" || { echo "pack unpack FAILED" >>"$REPORT"; fail=1; }
+layer=$(ls -S "$WORK/corrupt"/blobs/sha256/* | head -1)
+[ -n "$layer" ] || { echo "no blobs in the pack" >>"$REPORT"; fail=1; }
+printf '\377' | dd of="$layer" bs=1 count=1 conv=notrunc 2>/dev/null || { echo "byte flip FAILED" >>"$REPORT"; fail=1; }
+(cd "$WORK/corrupt" && tar -cf "$WORK/pack-corrupt.tar" oci-layout index.json blobs/sha256/*) || { echo "corrupt repack FAILED" >>"$REPORT"; fail=1; }
+out="$WORK/out-pack-corrupt.txt"
+timeout 120 env PODBOX_STORE="$STORE2" "$PB" load -i "$WORK/pack-corrupt.tar" >"$out" 2>&1
+rc=$?
+echo "step pack-corrupt exit $rc"
+{
+echo ""
+echo "== pack-corrupt"
+echo "command           env PODBOX_STORE=<fresh> $PB load -i <flipped pack>"
+echo "exit              $rc"
+echo "output:"
+sed 's/^/  /' "$out"
+} >>"$REPORT"
+[ "$rc" -ne 0 ] || { echo "corrupt pack LOADED: must refuse" >>"$REPORT"; fail=1; }
+grep -qi "digest mismatch" "$out" || { echo "corrupt refusal did not name the digest mismatch" >>"$REPORT"; fail=1; }
 
 {
 echo ""

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::digest::Digest;
 use crate::error::{Error, Result};
-use crate::store::Store;
+use crate::store::{Record, Store};
 
 /// One line of the provenance sidecar: how one manifest's bytes got here.
 /// Written by `pull`, read by `verify`. Six fields, every one recorded at
@@ -107,6 +107,23 @@ impl Store {
         }
         Ok(mismatches)
     }
+
+    /// Every blob one record needs, on disk and hashing to its name.
+    ///
+    /// ⭐ TODO/image.md T-1419. Presence means blobs on disk, not a row in
+    /// the store: the CLI `acquire` path (`--pull missing`) calls this
+    /// before trusting a record, and a missing blob is a named refusal,
+    /// never a raw path. A blob with no file reports `got: "absent"`;
+    /// `--pull always` stays the recovery path.
+    ///
+    /// SEAM for the CLI agent: `Store::verify_record_blobs(&self, record:
+    /// &Record) -> Result<Vec<BlobMismatch>>`. An empty vector means the
+    /// record is runnable; a non-empty one names each missing or corrupt
+    /// blob by digest, and the caller refuses by image name with the remedy.
+    pub fn verify_record_blobs(&self, record: &Record) -> Result<Vec<BlobMismatch>> {
+        let digests: Vec<String> = record.blobs().iter().map(|s| s.to_string()).collect();
+        self.verify_blobs(&digests)
+    }
 }
 
 fn append_bytes(path: &PathBuf, bytes: &[u8]) -> Result<()> {
@@ -137,4 +154,103 @@ fn stream_digest(path: &PathBuf) -> std::io::Result<String> {
         "sha256:{}",
         crate::digest::hex_of(&hasher.finalize())
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A store only this test names: the suite runs threads in one process,
+    /// and two tests sharing a directory share a store.
+    fn scratch(name: &str) -> Store {
+        let d = std::env::temp_dir().join(format!("podbox-health-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        Store::open(d).unwrap()
+    }
+
+    fn plant(store: &Store, bytes: &[u8]) -> String {
+        let want = Digest::of(bytes);
+        store
+            .put_bytes(bytes, &want, "health test plants a blob")
+            .unwrap();
+        want.to_string()
+    }
+
+    fn record_with(layer: &str, config: &str) -> Record {
+        Record {
+            repository: "example.test/library/alpine".to_string(),
+            tag: Some("3.20".to_string()),
+            digest: config.to_string(),
+            digest_media_type: "application/vnd.oci.image.index.v1+json".to_string(),
+            manifest_digest: config.to_string(),
+            config_digest: config.to_string(),
+            platform: "linux/amd64".to_string(),
+            layers: vec![layer.to_string()],
+            stored_bytes: 0,
+            architecture: "amd64".to_string(),
+            os: "linux".to_string(),
+            created: None,
+            pulled_at: "2026-09-30T00:00:00Z".to_string(),
+        }
+    }
+
+    /// The happy path the CLI trusts: every blob present and whole verifies
+    /// silent.
+    #[test]
+    fn verify_blobs_is_silent_where_every_blob_holds() {
+        let s = scratch("all-hold");
+        let a = plant(&s, b"layer-a");
+        let b = plant(&s, b"config-b");
+        assert!(s.verify_blobs(&[a, b]).unwrap().is_empty());
+    }
+
+    /// TODO/image.md T-1419. A record whose blob is gone counts as present
+    /// nowhere here: the deleted blob reports as absent by digest.
+    #[test]
+    fn verify_blobs_names_a_deleted_blob_as_absent() {
+        let s = scratch("deleted-absent");
+        let a = plant(&s, b"layer-a");
+        let b = plant(&s, b"config-b");
+        let digest = Digest::parse(&b).unwrap();
+        std::fs::remove_file(s.blob_path(&digest)).unwrap();
+        let mismatches = s.verify_blobs(&[a, b.clone()]).unwrap();
+        assert_eq!(mismatches.len(), 1, "only the deleted blob reports");
+        assert_eq!(mismatches[0].want, b);
+        assert_eq!(mismatches[0].got, "absent");
+    }
+
+    /// Corruption is the same shape with the actual digest: the report names
+    /// what the file hashes to, not just that it differs.
+    #[test]
+    fn verify_blobs_names_a_corrupted_blob_by_its_actual_digest() {
+        let s = scratch("corrupted-actual");
+        let a = plant(&s, b"layer-a");
+        let digest = Digest::parse(&a).unwrap();
+        std::fs::write(s.blob_path(&digest), b"something else entirely").unwrap();
+        let mismatches = s.verify_blobs(std::slice::from_ref(&a)).unwrap();
+        assert_eq!(mismatches.len(), 1);
+        assert_eq!(mismatches[0].want, a);
+        assert_eq!(
+            mismatches[0].got,
+            Digest::of(b"something else entirely").to_string()
+        );
+    }
+
+    /// TODO/image.md T-1419, the seam the CLI `acquire` path calls: one call
+    /// over the record checks every blob the record names, and an empty
+    /// vector means the record is runnable.
+    #[test]
+    fn verify_record_blobs_checks_every_blob_the_record_names() {
+        let s = scratch("record-seam");
+        let layer = plant(&s, b"layer-a");
+        let config = plant(&s, b"config-b");
+        let record = record_with(&layer, &config);
+        assert!(s.verify_record_blobs(&record).unwrap().is_empty());
+        let digest = Digest::parse(&layer).unwrap();
+        std::fs::remove_file(s.blob_path(&digest)).unwrap();
+        let mismatches = s.verify_record_blobs(&record).unwrap();
+        assert_eq!(mismatches.len(), 1, "the deleted layer reports");
+        assert_eq!(mismatches[0].want, layer);
+        assert_eq!(mismatches[0].got, "absent");
+    }
 }

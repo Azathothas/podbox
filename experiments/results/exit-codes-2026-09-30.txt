@@ -1,0 +1,17 @@
+== 330 SKIP run ==
+date              2026-09-30T13:18Z (lane job 4485ddf9b63128c4)
+host kernel       Linux 7.2.0-WSL2-STABLE
+script            experiments/330-exit-codes.sh via sh from the workspace root,
+                  so experiments/lib/engine.sh resolves
+job stdout:
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== the job
+== rc=2
+job stderr:
+SKIP: no engine (a docker daemon or host podman)
+job exit          2 (SKIP by design: this lane grants no engine, so the drive
+                  gates on one at its head; the userland trio is proven
+                  through 356 clauses 7, 10, and 13 plus unit tests)

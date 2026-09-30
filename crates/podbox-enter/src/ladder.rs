@@ -9,14 +9,14 @@
 //! through, copying that file's `:216-218`, `:235-237` and `:255-257`.
 //!
 //! ⭐ **Rung-complete is the memfd rung, the run-directory rung, the
-//! ephemeral-tmpfs rung and the persistent-cache rung.** The memfd
-//! driver ([`crate::memfd`]) writes bytes, seals where accepted, and
-//! execs the fd. The directory rungs replicate the extracted tree into
+//! ephemeral-tmpfs rung, the FUSE rung and the persistent-cache rung.**
+//! The memfd driver ([`crate::memfd`]) writes bytes, seals where accepted,
+//! and execs the fd. The directory rungs replicate the extracted tree into
 //! a private per-run directory, onto a per-run tmpfs mount, or into a
-//! persistent per-image directory ([`crate::stage`]). FUSE is a probe
-//! input: this module orders it and refuses it by name, and
-//! `podbox-probe` measures it. The single file with an embedded rootfs
-//! is a follow-up the entry names, not a rung built here.
+//! persistent per-image directory ([`crate::stage`]). The FUSE rung serves
+//! the extracted tree over `/dev/fuse` without copying it ([`crate::fuse`]).
+//! The single file with an embedded rootfs is a follow-up the entry
+//! names, not a rung built here.
 //!
 //! ⚠ This module orders and refuses; it never measures. What the machine
 //! permits arrives as [`Availability`], read by the caller from the probe, so

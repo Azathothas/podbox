@@ -27,6 +27,8 @@ pub mod contain;
 pub mod credentials;
 pub mod digest;
 pub mod error;
+#[cfg(unix)]
+pub mod exec_probe;
 pub mod health;
 pub mod layout;
 pub mod oci;

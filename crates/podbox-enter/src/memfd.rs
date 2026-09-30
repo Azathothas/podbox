@@ -171,6 +171,88 @@ impl std::fmt::Display for MemfdRefusal {
     }
 }
 
+/// A `#!` script refusal with the file and its first line attached.
+///
+/// TODO/enter.md T-1413. [`MemfdRefusal::RoutePastScript`] is a unit variant:
+/// it says a script was met and drops which one, so the refusal downstream
+/// cannot name whether podbox picked the entrypoint, a wrapper, or the wrong
+/// binary. This carries both: the resolved host path and the first `#!`
+/// line. [`eligible`] keeps its shape (bytes only); the caller that owns the
+/// rootfs resolves the path and reads the bytes, then attaches them here.
+///
+/// SEAM for the CLI agent (lifecycle `no_chroot` message): where
+/// [`eligible`] answers `RoutePastScript`, resolve the payload path (the
+/// same [`crate::ladder::resolve_payload`] [`crate::ladder::payload_bytes`]
+/// uses), read its bytes, and render
+/// `script_refusal(&path, &bytes).message()`. Longer term the interpreter
+/// routes inside the rootfs where the T-1407 map table covers it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScriptRefusal {
+    /// The resolved payload path, as handed in (host path).
+    pub path: String,
+    /// The first `#!` line, without the trailing newline.
+    pub shebang: String,
+}
+
+impl ScriptRefusal {
+    /// The refusal sentence: the exact payload path and its `#!` line.
+    pub fn message(&self) -> String {
+        format!(
+            "the payload {} is a #! script ({}), whose interpreter path resolves \
+             on the host root without a chroot: the image's script would run \
+             under the host's interpreter (TODO/enter.md T-1413)",
+            self.path, self.shebang
+        )
+    }
+}
+
+/// How many bytes of a first line the refusal carries.
+///
+/// Bounded: a hostile first line can run to the payload ceiling, and the
+/// refusal is a sentence, not a copy. Longer lines truncate at a character
+/// boundary with an ellipsis marker.
+pub const MAX_SHEBANG_LINE: usize = 512;
+
+/// Attach the resolved path and the first `#!` line to a script refusal.
+///
+/// Pure over bytes already in hand, so the unit test and the lifecycle
+/// message read the same words. `path` is carried verbatim; `bytes` need
+/// not start with `#!` (a caller that already knows it routes past scripts
+/// still gets the line it would have named).
+pub fn script_refusal(path: &str, bytes: &[u8]) -> ScriptRefusal {
+    ScriptRefusal {
+        path: path.to_string(),
+        shebang: first_shebang_line(bytes),
+    }
+}
+
+/// The first line of `bytes`: up to the first `\n`, without trailing `\r`,
+/// lossy where the bytes are not UTF-8, bounded by [`MAX_SHEBANG_LINE`].
+///
+/// A first line past the bound truncates at a character boundary with
+/// `...` marking it, so the refusal stays a sentence whatever the payload
+/// holds.
+pub fn first_shebang_line(bytes: &[u8]) -> String {
+    let end = bytes
+        .iter()
+        .position(|c| *c == b'\n')
+        .unwrap_or(bytes.len());
+    let mut line = &bytes[..end];
+    if line.ends_with(b"\r") {
+        line = &line[..line.len() - 1];
+    }
+    let mut text = String::from_utf8_lossy(line).to_string();
+    if text.len() > MAX_SHEBANG_LINE {
+        let mut cut = MAX_SHEBANG_LINE;
+        while cut > 0 && !text.is_char_boundary(cut) {
+            cut -= 1;
+        }
+        text.truncate(cut);
+        text.push_str("...");
+    }
+    text
+}
+
 /// Whether `bytes` may be exec'd from a memfd: a static-PIE with no
 /// `PT_INTERP`, reached through the program-header walk in [`crate::abi`].
 ///
@@ -315,6 +397,46 @@ mod tests {
             eligible(b"not elf at all"),
             Err(MemfdRefusal::NotElf(_))
         ));
+    }
+
+    /// TODO/enter.md T-1413: the first line is what the refusal names, with
+    /// the newline and carriage return off, lossy past UTF-8, and bounded
+    /// where a hostile line runs on.
+    #[test]
+    fn the_first_line_is_what_a_refusal_names() {
+        assert_eq!(first_shebang_line(b"#!/bin/sh\necho hi\n"), "#!/bin/sh");
+        assert_eq!(first_shebang_line(b"#!/bin/sh"), "#!/bin/sh");
+        assert_eq!(first_shebang_line(b"#!/bin/sh\r\necho hi\n"), "#!/bin/sh");
+        assert_eq!(first_shebang_line(b""), "");
+        assert_eq!(first_shebang_line(b"\nrest"), "");
+        // Lossy rather than failing: the refusal is a sentence about bytes
+        // the payload owns, not a parse of them.
+        assert!(first_shebang_line(b"#!\xff\xfe\n").starts_with("#!"));
+        // Bounded with its marker, on a character boundary.
+        let long = format!("#!{}", "x".repeat(MAX_SHEBANG_LINE + 100));
+        let got = first_shebang_line(long.as_bytes());
+        assert!(got.ends_with("..."), "{got}");
+        assert!(got.len() <= MAX_SHEBANG_LINE + 3, "{got}");
+    }
+
+    /// TODO/enter.md T-1413: the refusal carries the resolved path verbatim
+    /// and the first line beside it, and the message names both with the
+    /// entry that owns the longer-term interpreter half.
+    #[test]
+    fn a_script_refusal_names_the_file_and_its_shebang() {
+        let r = script_refusal("/store/rootfs/usr/bin/node", b"#!/usr/bin/env node\ncode\n");
+        assert_eq!(r.path, "/store/rootfs/usr/bin/node");
+        assert_eq!(r.shebang, "#!/usr/bin/env node");
+        let text = r.message();
+        assert!(text.contains("/store/rootfs/usr/bin/node"), "{text}");
+        assert!(text.contains("#!/usr/bin/env node"), "{text}");
+        assert!(text.contains("T-1413"), "{text}");
+        // `eligible` keeps its shape beside the helper: bytes route past,
+        // and the path rides in from the caller that resolved it.
+        assert_eq!(
+            eligible(b"#!/usr/bin/env node\n"),
+            Err(MemfdRefusal::RoutePastScript)
+        );
     }
 
     /// Written bytes seal where accepted and run unsealed where not.

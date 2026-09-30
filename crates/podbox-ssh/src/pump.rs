@@ -203,6 +203,9 @@ mod tests {
         fn set_read_timeout(&self, _d: Option<Duration>) -> io::Result<()> {
             Ok(())
         }
+        fn set_write_timeout(&self, _d: Option<Duration>) -> io::Result<()> {
+            Ok(())
+        }
         fn shutdown_write(&mut self) -> io::Result<()> {
             Ok(())
         }

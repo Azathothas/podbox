@@ -1,12 +1,12 @@
 == conditions
-date              2026-09-25T13:27:01Z
+date              2026-09-30T13:26:46Z
 host kernel       Linux 7.2.0-WSL2-STABLE
 static input      public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 dynamic input     public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
 bootstrap         ok
 interpose         ok
 build             ok
-podbox            podbox 0.1.0-beta.7
+podbox            podbox 0.1.0-beta.10
 3.20: Pulling from docker/library/alpine
 25f1d6b1951a: Pull complete
 Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
@@ -16,10 +16,35 @@ bookworm-slim: Pulling from debian/debian
 a8ac7f6c67ab: Pull complete
 Digest: sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
 Status: Downloaded newer image for public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+1.24.7-bookworm: Pulling from docker/library/golang
+c6b11972fd12: Pull complete
+db3dba6026a3: Pull complete
+5fb1b35a6fc1: Pull complete
+ced1197f5fb6: Pull complete
+72e8fc27da55: Pull complete
+50d0fe3dca54: Pull complete
+4f4fb700ef54: Pull complete
+Digest: sha256:b8bae5bd9ba9b1f89b635c91c24cc75cea335a16fb5076310f38566fc674b1ec
+Status: Downloaded newer image for public.ecr.aws/docker/library/golang:1.24.7-bookworm
+13-bookworm: Pulling from docker/library/gcc
+eaac70c68abd: Pull complete
+7b2de2423ebd: Pull complete
+81578410df16: Pull complete
+de9e8d0a0071: Pull complete
+15e1270c4a87: Pull complete
+4814505dc024: Pull complete
+81ea94d6199e: Pull complete
+44d01f3443e4: Pull complete
+Digest: sha256:16ae525998c94df36a116c191524256b1d46e72d7a0e9aaf6c153455e40eb5b8
+Status: Downloaded newer image for public.ecr.aws/docker/library/gcc:13-bookworm
+golang digest     sha256:b8bae5bd9ba9b1f89b635c91c24cc75cea335a16fb5076310f38566fc674b1ec
+gcc digest        sha256:16ae525998c94df36a116c191524256b1d46e72d7a0e9aaf6c153455e40eb5b8
 static hello      static-pie
 static tar        ok
 Loaded image: docker.io/library/static-hello:1
 static import     ok
+Loaded image: docker.io/library/script-img:1
+script import     ok
 
 == sane-run
 command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo capable-hi
@@ -31,23 +56,6 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
     extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
-  ownership: real; network: host-shared; pids: host-shared)
-  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
-          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
-  this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
-  note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
-  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
-  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
-  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
-  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
-  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
   capable-hi
 
 == sane-tty
@@ -60,23 +68,6 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
     extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podbox 0.1.0-beta.7: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
-  ownership: real; network: host-shared; pids: host-shared)
-  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
-          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
-  this mode does NOT provide: process, network, IPC or mount isolation, or a /proc filesystem
-  no /proc is mounted in the payload root: shell process substitution and /proc/self paths fail there, and the error names /dev/fd rather than /proc
-  note: this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
-  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
-  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
-  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
-  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
-  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
-  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
 fixture           static
 fixture           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work $PB ...
 
@@ -153,6 +144,8 @@ output:
   seccomp(NEW_LISTENER) [supervise]  OK
   process_vm_readv(own pid) [supervise] OK
   ptrace(PTRACE_TRACEME) [supervise] OK
+  pidfd_open(own pid) [supervise]    OK
+  waitid(P_PIDFD, child) [supervise] OK
 
 == fx-tty
 command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm -t public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
@@ -162,7 +155,7 @@ output:
   podbox run: chroot(2) is denied on this machine as well (see `podbox probe`) (TODO/enter.md T-1317)
 
 == fx-debian
-command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a sh -c echo $PODBOX_ACTIVE_MODE
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --verbose public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a sh -c echo $PODBOX_ACTIVE_MODE
 exit              0
 output:
   a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
@@ -171,30 +164,36 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
-  podbox 0.1.0-beta.7: mode=userland (namespaces: none; mounts: none; devices: shimmed;
+  podbox 0.1.0-beta.10: mode=userland (namespaces: none; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=EPERM chroot=EPERM ptrace=ok
   this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
   note: this machine would permit `namespace`; podbox's entry sequence is `userland` and creates no namespace and mounts nothing
   podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
-  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
-  entering without chroot on the loader family: /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs/lib64/ld-linux-x86-64.so.2 runs /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs/usr/bin/sh with the image's libraries; absolute paths resolve on the host except where the interposer rewrites them, and argv[0] keeps the invoked name (TODO/enter.md T-1317)
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 runs /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs/usr/bin/sh with the image's libraries; absolute guest paths anchor inside the rootfs through PODBOX_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podbox: userland: absolute guest paths anchor inside /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs through PODBOX_MAPS=/:/work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs (TODO/enter.md T-1407)
+  podbox: userland: /proc/self/exe answers the payload's own path from PODBOX_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: rewrote etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: created etc/hosts (hosts, T-0403): localhost
   podbox: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
   podbox: complete: created etc/apt/apt.conf.d/99podbox (apt-sandbox, T-0407): APT::Sandbox::User root. The _apt user is not mapped on this runtime
   podbox: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from /etc/ssl/certs/ca-certificates.crt
   podbox: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. refused: The scheme only: the mirror this image chose is the mirror podbox uses
-  podbox: complete: 10 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 14 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. refused: These are edits podbox made inside somebody else's image and the payload can see them
   userland
 
 == fx-alpine
-command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c echo $PODBOX_ACTIVE_MODE
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --verbose public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c echo $PODBOX_ACTIVE_MODE
 exit              0
 output:
   25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
@@ -203,53 +202,81 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podbox 0.1.0-beta.7: mode=userland (namespaces: none; mounts: none; devices: shimmed;
+  podbox 0.1.0-beta.10: mode=userland (namespaces: none; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=EPERM chroot=EPERM ptrace=ok
   this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
   note: this machine would permit `namespace`; podbox's entry sequence is `userland` and creates no namespace and mounts nothing
   podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
-  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
-  entering without chroot on the loader family: /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute paths resolve on the host except where the interposer rewrites them, and argv[0] keeps the invoked name; the invoked name "sh" rides as the applet the resolved busybox file selects (TODO/enter.md T-1317)
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODBOX_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "sh" rides as the applet the resolved busybox file selects; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podbox: userland: absolute guest paths anchor inside /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs through PODBOX_MAPS=/:/work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs (TODO/enter.md T-1407)
+  podbox: userland: /proc/self/exe answers the payload's own path from PODBOX_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
   userland
 
 == fx-hello
-command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm static-hello:1 /hello
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --verbose static-hello:1 /hello
 exit              0
 output:
-  edd7a4298c1b: Extracted (1 entries, 0 whiteouts)
-  podbox 0.1.0-beta.7: mode=userland (namespaces: none; mounts: none; devices: shimmed;
+  e3293a41a407: Extracted (1 entries, 0 whiteouts)
+  podbox 0.1.0-beta.10: mode=userland (namespaces: none; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=EPERM chroot=EPERM ptrace=ok
   this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
   note: this machine would permit `namespace`; podbox's entry sequence is `userland` and creates no namespace and mounts nothing
   podbox run: interpose: declined for "/hello": /hello is statically linked (no PT_INTERP), so no loader reads LD_PRELOAD for it
-  entering without chroot on the memfd family: the payload runs from a staged memfd with the host's root and its working directory inside the image; absolute paths resolve on the host (TODO/enter.md T-1317)
+  entering without chroot on the memfd family: the payload runs from a staged memfd with the host's root and its working directory inside the image; absolute paths resolve on the host because the static payload makes raw syscalls past the interposer, so no path is rewritten, and it reads /proc/self/exe as the staged memfd path, so a self-locating runtime cannot resolve itself here (TODO/enter.md T-1317, T-1409)
+  podbox: userland: absolute guest paths anchor inside /work/experiments/.sweep356-work/store/rootfs/sha256_b5585ae849c8026a91f02ce8b5c5a68ac591dccd9de1b093a7adc45f94b18651/rootfs through PODBOX_MAPS=/:/work/experiments/.sweep356-work/store/rootfs/sha256_b5585ae849c8026a91f02ce8b5c5a68ac591dccd9de1b093a7adc45f94b18651/rootfs (TODO/enter.md T-1407)
   podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
   podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
   podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
   podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
   podbox: complete: created etc/hosts (hosts, T-0403): localhost
   podbox: complete: created etc/passwd (identity, T-0404): the image has no etc/passwd (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podbox synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
   podbox: complete: created etc/group (identity, T-0404): the image has no etc/group (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podbox synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
   podbox: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
   podbox: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from /etc/ssl/certs/ca-certificates.crt
-  podbox: complete: 10 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=unknown. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  podbox: complete: 14 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=unknown. refused: These are edits podbox made inside somebody else's image and the payload can see them
   static-hi
 
 == fx-strict
 command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --strict public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+  podbox run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+
+== fx-strict-all
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --strict=all public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
 exit              125
 output:
   25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
@@ -258,35 +285,18 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podbox 0.1.0-beta.7: mode=userland (namespaces: none; mounts: none; devices: shimmed;
-  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
-  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
-          clone(NEWUTS)=ok sethostname=EPERM chroot=EPERM ptrace=ok
-  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
-  note: this machine would permit `namespace`; podbox's entry sequence is `userland` and creates no namespace and mounts nothing
-  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
-  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
-  entering without chroot on the loader family: /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute paths resolve on the host except where the interposer rewrites them, and argv[0] keeps the invoked name; the invoked name "true" rides as the applet the resolved busybox file selects (TODO/enter.md T-1317)
-  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
-  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
-  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
-  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
-  podbox run: --strict, and this run is degraded in 6 way(s). podbox refuses rather than running and letting the payload discover them (TODO/cli.md T-0804):
-    - the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
-    - created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
-    - created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-    - created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-    - created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-    - rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox run: --strict=all, and this run is degraded in 6 way(s). podbox refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415):
+    - [substitution] the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+    - [substitution] created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+    - [substitution] created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+    - [substitution] created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+    - [substitution] created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+    - [substitution] rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
 rootfs files      94
 
 == fx-refuse
 command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc /nonexistent-probe-target
-exit              125
+exit              127
 output:
   podbox run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: /nonexistent-probe-target resolves to nothing runnable: /nonexistent-probe-target names no file in the image. The probe's chroot leg reports the denial (see `podbox probe`) (TODO/enter.md T-1317)
 refusal mutation   none
@@ -295,26 +305,7 @@ refusal mutation   none
 command           env PODBOX_MODE=memfd unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm static-hello:1 /hello
 exit              0
 output:
-  edd7a4298c1b: Extracted (1 entries, 0 whiteouts)
-  podbox 0.1.0-beta.7: mode=userland (namespaces: none; mounts: none; devices: shimmed;
-  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
-  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
-          clone(NEWUTS)=ok sethostname=EPERM chroot=EPERM ptrace=ok
-  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
-  note: this machine would permit `namespace`; podbox's entry sequence is `userland` and creates no namespace and mounts nothing
-  podbox run: interpose: declined for "/hello": /hello is statically linked (no PT_INTERP), so no loader reads LD_PRELOAD for it
-  entering without chroot on the memfd family: the payload runs from a staged memfd with the host's root and its working directory inside the image; absolute paths resolve on the host (TODO/enter.md T-1317)
-  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
-  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
-  podbox: complete: created etc/hosts (hosts, T-0403): localhost
-  podbox: complete: created etc/passwd (identity, T-0404): the image has no etc/passwd (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podbox synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
-  podbox: complete: created etc/group (identity, T-0404): the image has no etc/group (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podbox synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
-  podbox: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from /etc/ssl/certs/ca-certificates.crt
-  podbox: complete: 10 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=unknown. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  e3293a41a407: Extracted (1 entries, 0 whiteouts)
   podbox run: entering on the memfd rung at PODBOX_MODE's request (TODO/packaging.md T-1003)
   static-hi
 
@@ -322,16 +313,6 @@ output:
 command           env PODBOX_MODE=memfd unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo forced-hi
 exit              125
 output:
-  podbox 0.1.0-beta.7: mode=userland (namespaces: none; mounts: none; devices: shimmed;
-  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
-  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
-          clone(NEWUTS)=ok sethostname=EPERM chroot=EPERM ptrace=ok
-  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
-  note: this machine would permit `namespace`; podbox's entry sequence is `userland` and creates no namespace and mounts nothing
-  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
-  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
-  entering without chroot on the loader family: /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute paths resolve on the host except where the interposer rewrites them, and argv[0] keeps the invoked name; the invoked name "echo" rides as the applet the resolved busybox file selects (TODO/enter.md T-1317)
-  podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
   podbox run: entering on the memfd rung at PODBOX_MODE's request (TODO/packaging.md T-1003)
   podbox run: PODBOX_MODE=memfd was forced but dynamically linked against /lib/ld-musl-x86_64.so.1: a memfd exec never puts its libraries on disk, so the loader would fail on the first one it cannot find: without chroot(2) only a static payload enters, through the unforced loader family where the tier reaches it: run without PODBOX_MODE (TODO/enter.md T-1317)
 
@@ -345,29 +326,12 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podbox 0.1.0-beta.7: mode=userland (namespaces: none; mounts: none; devices: shimmed;
-  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
-  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
-          clone(NEWUTS)=ok sethostname=EPERM chroot=EPERM ptrace=ok
-  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
-  note: this machine would permit `namespace`; podbox's entry sequence is `userland` and creates no namespace and mounts nothing
-  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
-  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708)
-  entering without chroot on the loader family: /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute paths resolve on the host except where the interposer rewrites them, and argv[0] keeps the invoked name; the invoked name "true" rides as the applet the resolved busybox file selects (TODO/enter.md T-1317)
-  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
-  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
-  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
-  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
-  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
-  podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
   podbox run: entering on the fuse rung at PODBOX_MODE's request (TODO/packaging.md T-1003)
   podbox run: PODBOX_MODE=fuse was forced but chroot(2) is denied on this machine, and only the memfd rung enters without it (TODO/enter.md T-1317)
 
 == fx-detached
-command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run -d --name ul356 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sleep 60
-exit              125
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run -d --name ul356d public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c echo detached-hi; while :; do :; done
+exit              0
 output:
   25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
   podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
@@ -375,12 +339,405 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podbox run: chroot(2) is denied and only the no-chroot families run here, which `run -d` does not drive: run foreground (TODO/enter.md T-1317)
+  167a541a89106890864150bc6cb53077f236395aa86c16ab3db7d856bff1510b
+
+== fx-ps
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox ps
+exit              0
+output:
+  CONTAINER ID   IMAGE                                                                                                               COMMAND                CREATED                STATUS   NAMES
+  167a541a8910   public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo detach...   2026-09-30T13:28:48Z   Up       ul356d
+
+== fx-logs
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox logs ul356d
+exit              0
+output:
+  detached-hi
+
+== fx-stop
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox stop ul356d
+exit              0
+output:
+  ul356d
+
+== fx-rm
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox rm ul356d
+exit              0
+output:
+  ul356d
 
 == fx-create
-command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox create --name ul356c public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox create --name ul356c public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c echo created-hi; while :; do :; done
+exit              0
+output:
+  9534d8fc3b6b9c4a2144355947e64fecb341572438e0c7dc39b94f8cb817b56e
+
+== fx-start
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox start ul356c
+exit              0
+output:
+  ul356c
+
+== fx-ps2
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox ps
+exit              0
+output:
+  CONTAINER ID   IMAGE                                                                                                               COMMAND                CREATED                STATUS   NAMES
+  9534d8fc3b6b   public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo create...   2026-09-30T13:28:48Z   Up       ul356c
+
+== fx-logs2
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox logs ul356c
+exit              0
+output:
+  created-hi
+
+== fx-stop2
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox stop ul356c
+exit              0
+output:
+  ul356c
+
+== fx-rm2
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox rm ul356c
+exit              0
+output:
+  ul356c
+
+== fx-workdir
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm -w /no/such/dir public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
 exit              125
 output:
-  podbox create: chroot(2) is denied on this machine, so the chroot tier cannot be entered. The probe's chroot leg reports the denial (see `podbox probe`), and every rung guarded here enters through chroot(2): refusing before any fixup mutates the image (TODO/enter.md T-1317)
+  podbox run: the working directory "/no/such/dir" for image "public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc" is not a directory in the image: docker creates it, and podbox refuses it instead, naming it (TODO/enter.md T-1412)
+
+== fx-workdir-tmp
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm -w /tmp public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc pwd
+exit              0
+output:
+  /tmp
+
+== sane-workdir
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm -w /no/such/dir public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              125
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox run: the working directory "/no/such/dir" for image "public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc" is not a directory in the image: docker creates it, and podbox refuses it instead, naming it (TODO/enter.md T-1412)
+
+== fx-maps
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --verbose public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c read rel < /etc/alpine-release && echo "release=$rel"
+exit              0
+output:
+  podbox 0.1.0-beta.10: mode=userland (namespaces: none; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=EPERM chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podbox's entry sequence is `userland` and creates no namespace and mounts nothing
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODBOX_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "sh" rides as the applet the resolved busybox file selects; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podbox: userland: absolute guest paths anchor inside /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs through PODBOX_MAPS=/:/work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs (TODO/enter.md T-1407)
+  podbox: userland: /proc/self/exe answers the payload's own path from PODBOX_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  release=3.20.10
+
+== fx-maps-scrub
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm -e PODBOX_MAPS=/:evil public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c echo "maps=$PODBOX_MAPS"
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  maps=/:/work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs
+
+== fx-tmpwrite
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c echo probe > /tmp/ul356-probe && echo wrote-tmp
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  wrote-tmp
+host tmp stayed clean ok
+
+== fx-unsafe
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --verbose --unsafe-host-paths public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox 0.1.0-beta.10: mode=userland (namespaces: none; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=EPERM chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podbox's entry sequence is `userland` and creates no namespace and mounts nothing
+  podbox: interpose: /.podbox/interpose.so (musl object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODBOX_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "true" rides as the applet the resolved busybox file selects; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podbox: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODBOX_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407)
+  podbox: userland: /proc/self/exe answers the payload's own path from PODBOX_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox: complete: 11 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podbox made inside somebody else's image and the payload can see them
+
+== fx-grandchild
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c /bin/busybox echo grandchild-ok
+exit              127
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  sh: /bin/busybox: not found
+
+== sane-grandchild
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c /bin/busybox echo grandchild-ok
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  grandchild-ok
+
+== fx-exeforce
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --verbose -e PODBOX_GUEST_EXE=/bin/echo public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a echo exeforce-hi
+exit              0
+output:
+  a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
+  podbox: 10 of 4224 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+  podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+  podbox 0.1.0-beta.10: mode=userland (namespaces: none; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=EPERM chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podbox's entry sequence is `userland` and creates no namespace and mounts nothing
+  podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. refused: podbox WROTE that file into the image's own rootfs and the payload can see it
+  podbox: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 runs /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs/usr/bin/echo with the image's libraries; absolute guest paths anchor inside the rootfs through PODBOX_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podbox: userland: absolute guest paths anchor inside /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs through PODBOX_MAPS=/:/work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/rootfs (TODO/enter.md T-1407)
+  podbox: userland: /proc/self/exe answers the payload's own path from PODBOX_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podbox: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podbox: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podbox: complete: rewrote etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  podbox: complete: created etc/hosts (hosts, T-0403): localhost
+  podbox: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podbox: complete: created etc/apt/apt.conf.d/99podbox (apt-sandbox, T-0407): APT::Sandbox::User root. The _apt user is not mapped on this runtime
+  podbox: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from /etc/ssl/certs/ca-certificates.crt
+  podbox: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. refused: The scheme only: the mirror this image chose is the mirror podbox uses
+  podbox: complete: 14 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. refused: These are edits podbox made inside somebody else's image and the payload can see them
+  exeforce-hi
+
+== fx-script
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm script-img:1 /hello.sh
+exit              126
+output:
+  16411d258d10: Extracted (1 entries, 0 whiteouts)
+  podbox run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload /work/experiments/.sweep356-work/store/rootfs/sha256_12639aec97bd1fe3179785fed3aeadf942cd999207c3a4f5c87d13d94191860b/rootfs/hello.sh is a #! script (#!/bin/sh), whose interpreter path resolves on the host root without a chroot: the image's script would run under the host's interpreter (TODO/enter.md T-1413). The probe's chroot leg reports the denial (see `podbox probe`) (TODO/enter.md T-1317)
+
+== fx-quiet
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+
+== fx-quiet-off
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --verbose -q public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+
+== fx-extract
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox extract public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 layers, 517 entries, 0 removed by whiteouts, 7.7 MiB uncompressed
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  /work/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs
+
+== fx-exec-img
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox exec public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo exec-img-hi
+exit              0
+output:
+  exec-img-hi
+
+== sane-exec-create
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox create --name ul356e public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sleep 60
+exit              0
+output:
+  2fe43060977ce81590c9cc7f0e27f5af58c98e652e320588ded70f3a91b31677
+
+== sane-exec
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox exec ul356e echo exec-ctr-hi
+exit              0
+output:
+  podbox exec: ul356e has been created and never started, so its rootfs              is there and nothing is running in it. note: podbox will enter it anyway,              because a fresh chroot shares only the filesystem and needs nothing to              be running (TODO/enter.md T-0505)
+  exec-ctr-hi
+
+== sane-exec-rm
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox rm -f ul356e
+exit              0
+output:
+  ul356e
+
+== sane-named
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --name ul356fg public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo fg-hi
+exit              0
+output:
+  fg-hi
+
+== sane-dup
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --name ul356fg public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo dup-hi
+exit              125
+output:
+  podbox run: --name "ul356fg": the run could not be recorded: the name "ul356fg" is already used by a container. Remove it, or give this one another name
+
+== sane-ps
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox ps -a
+exit              0
+output:
+  CONTAINER ID   IMAGE                                                                                                               COMMAND      CREATED                STATUS       NAMES
+  bddee94490bd   public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   echo fg-hi   2026-09-30T13:29:02Z   Exited (0)   ul356fg
+
+== sane-logs
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox logs ul356fg
+exit              0
+output:
+  fg-hi
+
+== sane-rmnamed
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox rm -f ul356fg
+exit              0
+output:
+  ul356fg
+
+== sane-gone
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --name ul356rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              0
+output:
+
+== sane-ps2
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox ps -a
+exit              0
+output:
+  CONTAINER ID   IMAGE   COMMAND   CREATED   STATUS   NAMES
+
+== fx-exe-readlink
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a readlink /proc/self/exe
+exit              0
+output:
+  a8ac7f6c67ab: Extracted (4225 entries, 0 whiteouts)
+  podbox: 10 of 4224 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+  podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867/.meta.jsonl
+  /usr/bin/readlink
+
+== fx-go-limit
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/golang:1.24.7-bookworm go version
+exit              2
+output:
+  c6b11972fd12: Extracted (6660 entries, 0 whiteouts)
+  db3dba6026a3: Extracted (1680 entries, 0 whiteouts)
+  5fb1b35a6fc1: Extracted (6481 entries, 0 whiteouts)
+  ced1197f5fb6: Extracted (3632 entries, 0 whiteouts)
+  72e8fc27da55: Extracted (15737 entries, 0 whiteouts)
+  50d0fe3dca54: Extracted (3 entries, 0 whiteouts)
+  4f4fb700ef54: Extracted (0 entries, 0 whiteouts)
+  podbox: 17 of 34192 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_40b223522c211e882863245ddbc812cbac8460b63b9112f4feee85c4514b6e41/.meta.jsonl
+  podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_40b223522c211e882863245ddbc812cbac8460b63b9112f4feee85c4514b6e41/.meta.jsonl
+  can't start telemetry child process: fork/exec /memfd:podbox-payload: no such file or directory
+  go: cannot find GOROOT directory: 'go' binary is trimmed and GOROOT is not set
+
+== fx-gcc-version
+command           unshare -Urm sh /work/experiments/.sweep356-work/wrap.sh /work/experiments/.sweep356-work /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/gcc:13-bookworm gcc --version
+exit              0
+output:
+  eaac70c68abd: Extracted (6662 entries, 0 whiteouts)
+  7b2de2423ebd: Extracted (1703 entries, 0 whiteouts)
+  81578410df16: Extracted (6481 entries, 0 whiteouts)
+  de9e8d0a0071: Extracted (13351 entries, 0 whiteouts)
+  15e1270c4a87: Extracted (77 entries, 0 whiteouts)
+  4814505dc024: Extracted (2007 entries, 0 whiteouts)
+  81ea94d6199e: Extracted (8 entries, 0 whiteouts)
+  44d01f3443e4: Extracted (18 entries, 2 whiteouts)
+  podbox: 21 of 30304 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep356-work/store/rootfs/sha256_9688a18d7d97716236717ded6814f0556c0144832c50152c617c45f01ac70837/.meta.jsonl
+  podbox: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep356-work/store/rootfs/sha256_9688a18d7d97716236717ded6814f0556c0144832c50152c617c45f01ac70837/.meta.jsonl
+  gcc (GCC) 13.5.0
+  Copyright (C) 2023 Free Software Foundation, Inc.
+  This is free software; see the source for copying conditions.  There is NO
+  warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  
 
 verdict           NO-CHROOT FAMILY RUNS

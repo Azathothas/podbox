@@ -1,0 +1,127 @@
+== conditions
+date              2026-09-30T13:18:28Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+input             public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+bootstrap         ok
+interpose         ok
+build             ok
+podbox            podbox 0.1.0-beta.10
+
+== empty-images
+command           env PODBOX_STORE=/work/experiments/.sweep373-work/empty-store /work/target/x86_64-unknown-linux-musl/debug/podbox images
+exit              0
+output:
+  REPOSITORY   TAG   IMAGE ID   CREATED   SIZE (STORED)
+
+== empty-doctor
+command           env PODBOX_STORE=/work/experiments/.sweep373-work/empty-store /work/target/x86_64-unknown-linux-musl/debug/podbox doctor store_exec
+exit              0
+output:
+  store_exec: yes: /work/experiments/.sweep373-work/empty-store: a created file executes
+3.20: Pulling from docker/library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+podbox: probed this machine rather than using the cache: /work/experiments/.sweep373-work/store/probe.json does not exist yet
+
+== cfg-env
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox inspect --format {{.Config.Env}} public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+exit              0
+output:
+  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+== cfg-cmd
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox inspect --format {{.Config.Cmd}} public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+exit              0
+output:
+  /bin/sh
+
+== cfg-json
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox inspect public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+exit              0
+output:
+  [{"Architecture":"amd64","Config":{"Cmd":["/bin/sh"],"Entrypoint":null,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"User":null,"WorkingDir":"/"},"Created":"2026-04-16T23:53:26.803599608Z","Digest":"sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc","Exec":{"Mode":"fresh-chroot","Shares":"filesystem"},"Id":"sha256:bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731","Layers":["sha256:25f1d6b1951ac8eb3740558fe94cb83d377bdadf95fd9f98b50d2e1b96130471"],"ManifestDigest":"sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e","Os":"linux","Platform":"linux/amd64","PulledAt":"2026-09-30T13:20:42Z","RepoDigests":["public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc"],"RepoTags":["public.ecr.aws/docker/library/alpine:3.20"],"Size":3630933,"Store":"/work/experiments/.sweep373-work/store"}]
+
+== nx-doctor
+command           unshare -Urm sh -c mount -t tmpfs -o noexec tmpfs '/work/experiments/.sweep373-work/noexec-store' && PODBOX_STORE='/work/experiments/.sweep373-work/noexec-store' '/work/target/x86_64-unknown-linux-musl/debug/podbox' doctor store_exec
+exit              1
+output:
+  store_exec: no: /work/experiments/.sweep373-work/noexec-store: a created file does not execute (/work/experiments/.sweep373-work/noexec-store/.podbox-exec-probe.4687.0: execve refused with EACCES (Permission denied (os error 13))); move the store off this filesystem, for example with $PODBOX_STORE
+
+== nx-run
+command           unshare -Urm sh -c mount -t tmpfs -o noexec tmpfs '/work/experiments/.sweep373-work/noexec-store' && PODBOX_STORE='/work/experiments/.sweep373-work/noexec-store' '/work/target/x86_64-unknown-linux-musl/debug/podbox' run --rm --pull never 'public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc' true
+exit              125
+output:
+  podbox run: /work/experiments/.sweep373-work/noexec-store: a created file does not execute (/work/experiments/.sweep373-work/noexec-store/.podbox-exec-probe.4694.0: execve refused with EACCES (Permission denied (os error 13))); move the store off this filesystem, for example with $PODBOX_STORE
+deleted blob      /work/experiments/.sweep373-work/store/blobs/sha256/d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+
+== blob-run
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --pull never public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              125
+output:
+  podbox run: public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc is in the store but 1 of its blob(s) are missing or corrupt: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc (got absent). The store is at /work/experiments/.sweep373-work/store. Re-fetch it with --pull always (TODO/image.md T-1419)
+
+== blob-images
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox images
+exit              0
+output:
+  podbox images: public.ecr.aws/docker/library/alpine:3.20: 1 of its blob(s) are missing from the store at /work/experiments/.sweep373-work/store: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc. `podbox verify public.ecr.aws/docker/library/alpine:3.20` reports it; re-fetch with --pull always (TODO/image.md T-1419)
+  REPOSITORY                             TAG    IMAGE ID       CREATED        SIZE (STORED)
+  public.ecr.aws/docker/library/alpine   3.20   bf8527eb54c3   5 months ago   3.5 MiB
+
+== blob-verify
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox verify public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+exit              125
+output:
+  registry: public.ecr.aws
+  repository: public.ecr.aws/docker/library/alpine
+  tag: 3.20
+  manifest: sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+  pulled-at: 2026-09-30T13:20:42Z
+  podbox-version: 0.1.0-beta.10
+  MISMATCH public.ecr.aws/docker/library/alpine:3.20 sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc: computed absent
+  verify: 4 blobs checked, 1 mismatched
+
+== blob-heal
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm --pull always public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo healed-hi
+exit              0
+output:
+  3.20: Pulling from docker/library/alpine
+  25f1d6b1951a: Already exists
+  Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  Status: Image is up to date for public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /work/experiments/.sweep373-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+    extract without ownership and record the intended ids; intended metadata recorded in /work/experiments/.sweep373-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  healed-hi
+
+== blob-verify2
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox verify public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+exit              0
+output:
+  registry: public.ecr.aws
+  repository: public.ecr.aws/docker/library/alpine
+  tag: 3.20
+  manifest: sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+  pulled-at: 2026-09-30T13:20:42Z
+  podbox-version: 0.1.0-beta.10
+  registry: public.ecr.aws
+  repository: public.ecr.aws/docker/library/alpine
+  tag: 3.20
+  manifest: sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+  pulled-at: 2026-09-30T13:20:44Z
+  podbox-version: 0.1.0-beta.10
+  OK public.ecr.aws/docker/library/alpine:3.20 (4 blobs)
+  verify: 4 blobs checked, 0 mismatched
+
+== bad-reg
+command           /work/target/x86_64-unknown-linux-musl/debug/podbox pull registry.invalid.example/no-such-image:latest
+exit              125
+output:
+  latest: Pulling from no-such-image
+  podbox: GET /v2/no-such-image/manifests/latest: registry.invalid.example: dns failed: resolve dns name 'registry.invalid.example:443': failed to lookup address information: Name does not resolve
+
+verdict           STORE GATES HOLD

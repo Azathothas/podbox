@@ -33,7 +33,14 @@
 #   ./330-exit-codes.sh
 #
 # Exit: 0 every case agreed, 1 one of them did not, 2 could not run.
-set -uo pipefail
+set -u
+# pipefail where the shell has it (bash/ksh/zsh, including the shebang
+# above); plain sh keeps set -u only, so `sh 330-exit-codes.sh` reaches the
+# engine check instead of dying on this line. The option is gated on the
+# shell name because probing it with `set -o` kills dash outright.
+if [ -n "${BASH_VERSION:-}${KSH_VERSION:-}${ZSH_VERSION:-}" ]; then
+  set -o pipefail
+fi
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
@@ -295,9 +302,64 @@ if [ "$have_docker" -eq 0 ]; then
 	skipped=1
 fi
 
+say ""
+say "== 7. the userland rung follows the payload status (T-1414, podbox-vs-table only)"
+# Missing is 127, found-but-not-invocable is 126, a missing workdir is
+# 125: the code follows the payload status on every rung, and docker
+# has no userland rung to compare against, so there is no docker half.
+# The unit guard `resolve_codes_follow_the_payload_status` carries the
+# contract; this clause is its lane witness. Where no fixture can be
+# built the clause is SKIPPED, never failed.
+rung7="$(pb 60 system info --format '{{.EnteredRung}}' 2>/dev/null || echo unknown)"
+ux7_kind=""
+if [ "$rung7" != "chroot" ] && [ "$rung7" != "unknown" ]; then
+	say "  this machine already enters $rung7: the trio runs directly"
+	ux7_kind="direct"
+elif [ "$NATIVE" -eq 1 ] && command -v cc >/dev/null 2>&1 \
+	&& unshare -Urm true >/dev/null 2>&1 \
+	&& [ -f "$REPO/experiments/deny-chroot.c" ]; then
+	if cc -O2 -Wall -Werror -static -o "$WORK/deny-chroot" "$REPO/experiments/deny-chroot.c" 2>/dev/null \
+	|| cc -O2 -Wall -Werror -o "$WORK/deny-chroot" "$REPO/experiments/deny-chroot.c" 2>/dev/null; then
+		say "  fixture: chroot denied through experiments/deny-chroot.c"
+		ux7_kind="fixture"
+	else
+		say "  SKIPPED: deny-chroot.c did not compile here"
+	fi
+else
+	say "  SKIPPED: no chroot-denying fixture here (needs a native lane with cc, unshare and deny-chroot.c)"
+fi
+ux7() {
+	if [ "$ux7_kind" = "fixture" ]; then
+		unshare -Urm "$WORK/deny-chroot" "$BIN" "$@"
+	else
+		pb 300 "$@"
+	fi
+}
+if [ -n "$ux7_kind" ]; then
+	ux7_case() {
+		local name="$1" want="$2"
+		shift 2
+		ux7 "$@" >/dev/null 2>&1
+		local rc=$?
+		local verdict="ok"
+		[ "$rc" = "$want" ] || { verdict="PODBOX DISAGREES WITH ITS OWN TABLE"; fail=1; }
+		printf '  %-26s want %-4s podbox %-4s docker %-4s %s\n' \
+			"$name" "$want" "$rc" "-" "$verdict" >>"$WORK/report"
+	}
+	ux7_case "userland missing payload" "$NOT_FOUND" \
+		run --rm --pull never "$IMAGE" /nonexistent-330-trio
+	ux7_case "userland not-invocable" "$CANNOT_INVOKE" \
+		run --rm --pull never "$IMAGE" /etc/passwd
+	ux7_case "userland missing workdir" "$RUNTIME_ERROR" \
+		run --rm --pull never -w /no/such/dir-330 "$IMAGE" true
+else
+	skipped=1
+fi
+
 cat "$WORK/report"
 mkdir -p "$(dirname "$OUT")"
 cp "$WORK/report" "$OUT"
+if [ -d /out ]; then cp "$WORK/report" /out/exit-codes-report.txt 2>/dev/null || true; fi
 echo
 echo "written to ${OUT#"$REPO"/}"
 [ -x "$REPO/scripts/common/result-diff.sh" ] && "$REPO/scripts/common/result-diff.sh" "$OUT"

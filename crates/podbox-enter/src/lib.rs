@@ -31,6 +31,7 @@
 pub mod abi;
 pub mod binfmt;
 pub mod device;
+pub mod fuse;
 pub mod ladder;
 pub mod memfd;
 pub mod plan;
@@ -498,10 +499,10 @@ pub fn spawn(root: &RootDir, plan: &Plan, err: &mut dyn Write) -> Result<Child> 
 /// through it).
 ///
 /// ⛔ Only rung-complete rungs drive through here: memfd, the run
-/// directory and the tmpfs mount the CLI stages before calling, and the
-/// persistent cache (FUSE is ordered and refused by `ladder::choose`).
-/// Reaching this call with an unwired rung is the caller skipping the
-/// choice, so it refuses rather than exec'ing down a rung nobody drove.
+/// directory, the tmpfs mount and the FUSE mount the CLI stages before
+/// calling, and the persistent cache. Reaching this call with anything
+/// else is the caller skipping the choice, so it refuses rather than
+/// exec'ing down a rung nobody drove.
 pub fn spawn_ladder(
     root: &RootDir,
     plan: &Plan,
@@ -511,14 +512,7 @@ pub fn spawn_ladder(
 ) -> Result<Child> {
     use ladder::Mode as M;
     match mode {
-        M::Memfd | M::RunDir | M::Cache | M::Tmpfs => {}
-        M::Fuse => {
-            return Err(Error::Runtime(format!(
-                "the {} rung is ordered by the ladder but not rung-complete: only \
-                 rung-complete rungs drive through this entry (TODO/packaging.md T-1003)",
-                mode.name()
-            )));
-        }
+        M::Memfd | M::RunDir | M::Cache | M::Tmpfs | M::Fuse => {}
     }
     spawn_with(root, plan, mode.name(), None, fd, true, None, err)
 }
@@ -649,6 +643,74 @@ pub fn ns_fallback_line(cause: &str) -> String {
 /// than entering wrong.
 pub fn chroot_landed(anchored: &sys::Stat, landed: &sys::Stat) -> bool {
     anchored.st_dev == landed.st_dev && anchored.st_ino == landed.st_ino
+}
+
+/// Whether the working directory resolves to a directory inside the rootfs.
+///
+/// TODO/enter.md T-1412. Empty and `/` are the root itself and always
+/// exist. Anything else must resolve through [`crate::abi::resolve_dir_in`]:
+/// absolute links stay inside the root, `..` past the root escapes, and a
+/// loop refuses. A file where a directory belongs answers `Absent` like a
+/// missing one: entering it would fail the chdir past the point of no
+/// return, so both refuse before the fork.
+fn workdir_kind(rootfs: &str, workdir: &str) -> std::result::Result<(), crate::abi::ResolveKind> {
+    if workdir.contains('\0') {
+        // A NUL byte never reaches the kernel: `CBuf::new` refuses it below
+        // with its own sentence, so this answers absence and lets that fire.
+        return Err(crate::abi::ResolveKind::Absent);
+    }
+    let guest = if workdir.is_empty() { "/" } else { workdir };
+    crate::abi::resolve_dir_in(std::path::Path::new(rootfs), guest).map(|_| ())
+}
+
+/// The refusal for a working directory that does not resolve.
+///
+/// `context` names what was asked for beside the path: the image where the
+/// caller knows it (`for image "alpine"`), the rootfs where only it is
+/// known. One sentence builder, so the pre-fork check in [`spawn_with`]
+/// and the CLI-side [`check_workdir`] cannot disagree about what docker
+/// does and what podbox does instead.
+fn refuse_workdir(workdir: &str, context: &str, kind: crate::abi::ResolveKind) -> Error {
+    use crate::abi::ResolveKind as K;
+    let why = match kind {
+        K::Absent => "is not a directory in the image",
+        K::Escapes => "escapes the image",
+        K::Loop => "has too many levels of symlinks",
+    };
+    Error::Runtime(format!(
+        "the working directory {workdir:?} {context} {why}: docker creates it, \
+         and podbox refuses it instead, naming it (TODO/enter.md T-1412)"
+    ))
+}
+
+/// Check the working directory before the fork, on both rungs.
+///
+/// TODO/enter.md T-1412. Resolves `workdir` under `rootfs` and refuses
+/// naming the path and the image where it is missing, escapes, loops, or
+/// is a file: docker creates the directory, podbox refuses and says so.
+/// Empty and `/` always pass; `-w /tmp` passes where the image holds it.
+///
+/// SEAM for the CLI agent (run/exec/lifecycle wiring, `--workdir`/`-w`
+/// flag-parse validation): call
+/// `podbox_enter::check_workdir(&rootfs, &workdir, &image)` during prepare,
+/// before any fixup mutates the rootfs, and refuse at 125 with the returned
+/// sentence. The entry itself re-checks without the image (naming the
+/// rootfs) and the child reports a raced chdir as step 11 rather than
+/// running from the wrong directory.
+pub fn check_workdir(rootfs: &str, workdir: &str, image: &str) -> Result<()> {
+    if workdir.contains('\0') {
+        return Err(Error::Runtime(
+            "the working directory contains a NUL byte".into(),
+        ));
+    }
+    match workdir_kind(rootfs, workdir) {
+        Ok(()) => Ok(()),
+        Err(kind) => Err(refuse_workdir(
+            workdir,
+            &format!("for image {image:?}"),
+            kind,
+        )),
+    }
 }
 
 /// The namespace setup step a readiness-pipe byte names, or `None`
@@ -896,6 +958,21 @@ fn spawn_with(
         )));
     }
 
+    // ⭐ T-1412. The working directory is checked before the fork, on both
+    // rungs: a missing one refuses here naming it, rather than running from
+    // the wrong directory with exit 0. The CLI names the image where it
+    // checks ([`check_workdir`]); here only the rootfs is known. A NUL byte
+    // skips this check and fails at the `CBuf` above with its own sentence.
+    if !plan.working_dir.contains('\0') {
+        if let Err(kind) = workdir_kind(&root.path, &plan.working_dir) {
+            return Err(refuse_workdir(
+                &plan.working_dir,
+                &format!("in the image's rootfs {:?}", root.path),
+                kind,
+            ));
+        }
+    }
+
     // ⛔ The banner before the fork, so it cannot interleave with the payload's
     // own first output. T-1104: stderr, never stdout.
     let _ = write!(err, "{}", plan.banner);
@@ -983,10 +1060,14 @@ fn spawn_with(
                 if let Err(e) = sys::chdir(&slash) {
                     report(3, e);
                 }
-                // The image's WorkingDir, if it exists. ⚠ A missing one is not
-                // fatal: docker creates it, and podbox running from `/` and saying
-                // so is better than refusing after the point of no return.
-                let _ = sys::chdir(&workdir);
+                // The image's WorkingDir, if it exists. ⛔ T-1412: a missing
+                // one refuses rather than running from `/` with exit 0. The
+                // pre-fork check above is the ordinary refusal; this reports
+                // the race where the directory went missing between the check
+                // and here, instead of discarding the error and running wrong.
+                if let Err(e) = sys::chdir(&workdir) {
+                    report(11, e);
+                }
                 // ⭐ T-1339. The (d,i) guard: the path chroot above must
                 // land on the opened descriptor. A mismatch is a swapped
                 // path (T-0504's class) or a mount the new root cannot
@@ -1006,10 +1087,12 @@ fn spawn_with(
             } else {
                 // ⭐ T-1317. No chroot: the working directory stays inside
                 // the image, addressed relatively from the descriptor above.
-                // A missing one is not fatal either: podbox runs from the
-                // rootfs and the banner says where the payload started.
+                // ⛔ T-1412, as in the chroot arm: a missing one refuses as
+                // step 11 rather than running from the rootfs with exit 0.
                 if let Some(w) = &workdir_rel {
-                    let _ = sys::chdir(w);
+                    if let Err(e) = sys::chdir(w) {
+                        report(11, e);
+                    }
                 }
             }
 
@@ -1097,13 +1180,29 @@ fn spawn_with(
             5 => "execveat of the memfd",
             // ⭐ T-1317: the userland entry argv, exec'd once.
             6 => "execve of the userland entry argv",
+            // ⭐ T-1412: the working directory, raced missing past the
+            // pre-fork check that ordinarily refuses it.
+            11 => "chdir to the working directory",
             _ => "execve of every candidate path",
         };
-        let text = format!(
-            "the payload could not be started: {step} failed with {} ({})",
-            errno.name(),
-            errno.0
-        );
+        // ⭐ T-1412: the raced workdir names the directory it could not
+        // enter, so the refusal answers which `-w` failed even past the
+        // pre-fork check.
+        let text = if buf[0] == 11 {
+            format!(
+                "the working directory {:?} could not be entered: {step} failed \
+                 with {} ({}) (TODO/enter.md T-1412)",
+                plan.working_dir,
+                errno.name(),
+                errno.0
+            )
+        } else {
+            format!(
+                "the payload could not be started: {step} failed with {} ({})",
+                errno.name(),
+                errno.0
+            )
+        };
         let named = format!(
             "{:?}: {text}",
             plan.argv.first().map(String::as_str).unwrap_or("")
@@ -1311,5 +1410,86 @@ mod tests {
             ..Default::default()
         };
         assert!(!chroot_landed(&landed, &other_fs));
+    }
+
+    /// TODO/enter.md T-1412: a missing workdir refuses naming the path and
+    /// the image, saying docker creates it and podbox refuses it instead.
+    #[test]
+    fn a_missing_workdir_is_a_sentence_naming_path_and_image() {
+        let dir = std::env::temp_dir().join(format!("podbox-workdir-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("tmp")).unwrap();
+        let root = dir.to_str().unwrap();
+        let e = check_workdir(root, "/no/such/dir", "img").unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("/no/such/dir"), "{text}");
+        assert!(text.contains("img"), "{text}");
+        assert!(text.contains("docker creates"), "{text}");
+        assert!(text.contains("podbox refuses"), "{text}");
+        assert!(text.contains("T-1412"), "{text}");
+        assert_eq!(e.exit_code(), EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// TODO/enter.md T-1412: the passing control. `/`, the empty default
+    /// and an image-held `/tmp` all pass, so the refusal above is about the
+    /// missing directory rather than about the flag.
+    #[test]
+    fn root_empty_and_tmp_workdirs_pass() {
+        let dir = std::env::temp_dir().join(format!("podbox-workdir-ok-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("tmp")).unwrap();
+        let root = dir.to_str().unwrap();
+        assert!(check_workdir(root, "/", "img").is_ok());
+        assert!(check_workdir(root, "", "img").is_ok());
+        assert!(check_workdir(root, "/tmp", "img").is_ok());
+        assert!(check_workdir(root, "/tmp/", "img").is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// TODO/enter.md T-1412: a file where a directory belongs refuses like
+    /// a missing one, and a `..` escaping the image refuses as an escape
+    /// rather than resolving onto the host.
+    #[test]
+    fn a_file_and_an_escape_are_no_workdir() {
+        let dir = std::env::temp_dir().join(format!("podbox-workdir-file-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("tmp")).unwrap();
+        std::fs::write(dir.join("file"), b"x").unwrap();
+        let root = dir.to_str().unwrap();
+        let e = check_workdir(root, "/file", "img").unwrap_err();
+        assert!(format!("{e}").contains("/file"), "{e}");
+        let e = check_workdir(root, "/../outside", "img").unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("escapes"), "{text}");
+        assert!(text.contains("T-1412"), "{text}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// TODO/enter.md T-1412: a link to a directory inside the image resolves
+    /// the way the guest kernel resolves it, so it passes.
+    #[test]
+    #[cfg(unix)]
+    fn a_link_to_a_directory_passes() {
+        let dir = std::env::temp_dir().join(format!("podbox-workdir-link-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("real")).unwrap();
+        std::os::unix::fs::symlink("real", dir.join("link")).unwrap();
+        let root = dir.to_str().unwrap();
+        assert!(check_workdir(root, "/link", "img").is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// TODO/enter.md T-1412: a NUL byte is its own refusal rather than a
+    /// workdir sentence, because it never reaches the kernel.
+    #[test]
+    fn a_nul_workdir_is_its_own_refusal() {
+        let dir = std::env::temp_dir().join(format!("podbox-workdir-nul-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("tmp")).unwrap();
+        let root = dir.to_str().unwrap();
+        let e = check_workdir(root, "/tmp\0x", "img").unwrap_err();
+        assert!(format!("{e}").contains("NUL"), "{e}");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

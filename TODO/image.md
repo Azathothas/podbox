@@ -2258,7 +2258,7 @@ Source:      issue 71; `crates/podbox-image/src/store.rs:218`;
 Category:    image
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     A default store on a noexec filesystem pulls and extracts
              fully, then dies at `execve` with raw `EACCES` and rc 126.
@@ -2280,7 +2280,18 @@ Prove:       `cargo test -p podbox-image` exits 0. A tracked drive on a
              noexec fixture refuses the first run before pulling with
              the one-line fix, and `doctor` reports `store_exec=no`.
 
-**Open 2026-09-30.** Filed from issue 71. Read the current source
+**Done 2026-09-30.** The store is probed for exec before the fetch
+(`probe_store_exec`: write a tiny file, `chmod +x`, attempt the exec,
+so mount-level noexec is caught, not just missing bits); a failing
+store refuses before any byte is fetched, naming the path and the
+`$PODBOX_STORE` remedy, and `doctor store_exec` reports `no` with a
+non-zero exit. `cargo test -p podbox-image` exits 0 with the probe
+tests. `sh experiments/373-store-gates.sh` exits 0 with verdict
+`STORE GATES HOLD` ([the drive](../experiments/results/store-gates.txt)):
+clause 3 refuses the first run on a noexec tmpfs before pulling and
+the doctor row reports `no`.
+
+**Open 2026-09-30 (history).** Filed from issue 71. Read the current source
 before implementation.
 
 ---
@@ -2293,7 +2304,7 @@ Source:      issue 83; `crates/podbox-cli/src/run.rs:1313`;
 Category:    image
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     With `--pull missing` a record whose blobs are gone counts
              as present. `run` dies on an internal blob path with bare
@@ -2316,7 +2327,19 @@ Prove:       `cargo test -p podbox-image` exits 0. A tracked drive
              and store named, `images` and `verify` flagging it, and
              `--pull always` re-fetching clean.
 
-**Open 2026-09-30.** Filed from issue 83. Extends [T-1321](image.md).
+**Done 2026-09-30.** Presence means blobs on disk, not a row in the
+store: `acquire` verifies every blob the record names
+(`verify_record_blobs`) and refuses by image name with the remedy
+instead of dying on an internal path, and `images` marks blob-less
+records; `--pull always` stays the recovery path.
+`cargo test -p podbox-image` exits 0.
+`sh experiments/373-store-gates.sh` exits 0 with verdict
+`STORE GATES HOLD` ([the drive](../experiments/results/store-gates.txt)):
+clause 4 deletes a layer blob and shows the `run` refusal naming the
+recovery, the `images` mark, the `verify` failure, and the clean
+re-fetch. This extends T-1321.
+
+**Open 2026-09-30 (history).** Filed from issue 83. Extends [T-1321](image.md).
 
 ---
 
@@ -2327,7 +2350,7 @@ Source:      issue 85; `crates/podbox-image/src/registry.rs:808`;
 Category:    image
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     A DNS failure renders `GET url: transport: url: Dns
              Failed`: the URL twice, non-standard capitalisation, an
@@ -2344,4 +2367,16 @@ Decision:    One host, one cause, plain words at default level. Detail
 Prove:       `cargo test -p podbox-image` exits 0. A tracked drive
              against a bad registry prints one host with a plain cause.
 
-**Open 2026-09-30.** Filed from issue 85. Refines [T-0805](cli.md).
+**Done 2026-09-30.** Transport failures render host and cause once
+at default level (`GET /v2/...: host: dns failed: ...`): the detail
+no longer embeds the URL the renderer already prefixes, and ureq's
+capitalisation is lowered; the full chain stays on the same line
+after the cause until `-v` exists. `cargo test -p podbox-image`
+exits 0 with the transport-render tests (every kind pinned
+lowercase, the host named once, the exhausted-retry arm).
+`sh experiments/373-store-gates.sh` exits 0 with verdict
+`STORE GATES HOLD` ([the drive](../experiments/results/store-gates.txt)):
+clause 5 pulls a bad registry and shows one host with a plain cause,
+no doubled URL, no ureq capitalisation. This refines T-0805.
+
+**Open 2026-09-30 (history).** Filed from issue 85. Refines [T-0805](cli.md).

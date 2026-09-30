@@ -15,7 +15,9 @@
 
 use std::io::Write;
 
-use podbox_image::error::{EXIT_CLI_ERROR, EXIT_FLAG_ERROR, EXIT_RUNTIME_ERROR};
+use podbox_image::error::{
+    EXIT_CANNOT_INVOKE, EXIT_CLI_ERROR, EXIT_FLAG_ERROR, EXIT_NOT_FOUND, EXIT_RUNTIME_ERROR,
+};
 use podbox_image::platform::Platform;
 use podbox_image::transport::Policy;
 use podbox_supervise::table::{Container, State};
@@ -93,6 +95,12 @@ pub fn create(args: &[String]) -> i32 {
     };
     match crate::run::prepare(args, &s, "create") {
         Ok(p) => {
+            // ⭐ TODO/enter.md T-1411. The detached drive rides beside the
+            // record: the loader argv where `prepare` decided the loader
+            // family, empty everywhere else (chroot records, and the
+            // driverless memfd family, which `prepare` refused already).
+            // The libraries, the `PODBOX_MAPS` table and
+            // `PODBOX_GUEST_EXE` ride in `p.env`, decided beside it.
             match podbox_supervise::create(
                 &s,
                 p.name.as_deref(),
@@ -105,6 +113,7 @@ pub fn create(args: &[String]) -> i32 {
                 &p.rung,
                 p.completion.clone(),
                 p.completion_degraded,
+                detached_drive(p.userland.as_ref()),
             ) {
                 Ok(c) => {
                     // ⭐ T-0710: the ephemeral memo becomes the container's,
@@ -206,11 +215,26 @@ fn start_one(s: &podbox_image::Store, verb: &str, want: &str) -> Result<String, 
     // (or by hand in the store) still names its image's OS here rather
     // than inside the guest.
     ensure_linux_guest(verb, &record.os, &record.architecture)?;
-    // ⭐ TODO/enter.md T-1317. The launcher chroots, so a denied chroot
-    // refuses here, naming chroot(2), before the container starts rather
-    // than dying at chroot(".") after the work.
+    // ⭐ TODO/enter.md T-1411. This reverses T-1317's last-resort decision
+    // at this gate: the launcher now drives the userland loader family
+    // detached (`spawn_userland` in podbox-supervise, with pidfd
+    // supervision as today), so a record carrying that drive starts
+    // instead of refusing here. A record without one genuinely blocks
+    // detached operation, and the refusal names the call with the
+    // affected verbs.
     let findings = podbox_probe::run();
-    ensure_chroot_usable(verb, &findings)?;
+    if !podbox_probe::probes::chroot_usable(&findings) && c.userland_exec.is_empty() {
+        eprintln!(
+            "podbox {verb}: chroot(2) is denied on this machine and container {} carries \
+             no userland loader drive in its record (rung {:?}): `run -d`, `create` and \
+             `start` drive the loader family detached through \
+             podbox_enter::spawn_userland and refuse anything else at this gate; recreate \
+             it where the foreground enters userland, or run foreground \
+             (TODO/enter.md T-1411)",
+            c.name, c.rung
+        );
+        return Err(EXIT_RUNTIME_ERROR);
+    }
     match podbox_supervise::start(s, want, &record) {
         Ok(c) => {
             println!("{}", c.name);
@@ -1660,26 +1684,12 @@ pub fn guest_verb(os: &str) -> Option<&'static str> {
     }
 }
 
-/// TODO/enter.md T-1317. Refuse entry where the entered rung's chroot is
-/// denied, before any fixup mutates the rootfs.
-///
-/// Every rung this gate guards enters through `chroot(2)`, so the probe's
-/// own chroot leg is the gate: a `Denied` row is the refusal itself, and a
-/// `Skip` never ran (T-0109 rule 1). The machine tier returns before this
-/// gate is reached and never chroots, so it is unaffected.
-pub fn ensure_chroot_usable(verb: &str, findings: &podbox_probe::Findings) -> Result<(), i32> {
-    if podbox_probe::probes::chroot_usable(findings) {
-        return Ok(());
-    }
-    eprintln!(
-        "podbox {verb}: chroot(2) is denied on this machine, so the chroot \
-         tier cannot be entered. The probe's chroot leg reports the denial \
-         (see `podbox probe`), and every rung guarded here enters through \
-         chroot(2): refusing before any fixup mutates the image \
-         (TODO/enter.md T-1317)"
-    );
-    Err(podbox_image::error::EXIT_RUNTIME_ERROR)
-}
+// TODO/enter.md T-1411. T-1317's strict chroot gate stood here: `create`
+// kept it because a record promised a launcher entry and the launcher
+// chrooted. The launcher now drives the userland loader family
+// detached, so no gate keeps it: `create` and `run -d` take the
+// two-tier `ensure_entry_possible` gate and the record carries the
+// loader drive, and `start` checks the record instead of the probe.
 
 /// The pure half of [`ensure_entry_possible`]: anything could run where
 /// chroot holds, the static family needs the kernel's memfd, and the
@@ -1697,14 +1707,25 @@ fn entry_possible(chroot_ok: bool, memfd_ok: bool, objects: bool) -> bool {
 /// no-chroot family may run), or where this binary embeds an interposer
 /// object (the loader no-chroot family may run). Refusal names all three
 /// misses at 125, fetching nothing.
-pub fn ensure_entry_possible(verb: &str, findings: &podbox_probe::Findings) -> Result<(), i32> {
+///
+/// ⭐ TODO/image.md T-1418. Past that tier, the store itself must execute
+/// what it creates: a default store on a `noexec` filesystem pulls and
+/// extracts fully, then dies at `execve` with raw `EACCES`. The probe runs
+/// here, before any byte is fetched, and refuses with the path and the
+/// `$PODBOX_STORE` remedy. A probe that cannot run names its path and
+/// never reads as "no".
+pub fn ensure_entry_possible(
+    verb: &str,
+    findings: &podbox_probe::Findings,
+    store_root: &std::path::Path,
+) -> Result<(), i32> {
     if entry_possible(
         podbox_probe::probes::chroot_usable(findings),
         podbox_enter::memfd::kernel_takes_memfd(),
         crate::interpose::object(crate::interpose::Libc::Gnu).is_some()
             || crate::interpose::object(crate::interpose::Libc::Musl).is_some(),
     ) {
-        return Ok(());
+        return ensure_store_exec(verb, store_root);
     }
     eprintln!(
         "podbox {verb}: chroot(2) is denied on this machine, and no no-chroot \
@@ -1714,6 +1735,60 @@ pub fn ensure_entry_possible(verb: &str, findings: &podbox_probe::Findings) -> R
          (TODO/enter.md T-1317)"
     );
     Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+}
+
+/// TODO/image.md T-1418. Probe whether files created under the store
+/// execute, before any byte is fetched.
+///
+/// `ok` runs the entry on; `ok == false` refuses at 125 with the probe's
+/// own detail, which names the directory and the `$PODBOX_STORE` remedy;
+/// a probe error refuses naming the path, never as "no".
+///
+/// ⚠ Unix only: the probe executes a script, and the chroot entry it
+/// guards does not exist off unix either, so the gate below refuses there
+/// instead with its own sentence.
+pub fn ensure_store_exec(verb: &str, store_root: &std::path::Path) -> Result<(), i32> {
+    #[cfg(not(unix))]
+    {
+        let _ = (verb, store_root);
+        return Ok(());
+    }
+    #[cfg(unix)]
+    {
+        match podbox_image::exec_probe::probe_store_exec(store_root) {
+            Ok(probe) if probe.ok => Ok(()),
+            Ok(probe) => {
+                eprintln!("podbox {verb}: {}", probe.detail);
+                Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+            }
+            Err(e) => {
+                eprintln!("podbox {verb}: the store exec probe could not run: {e}");
+                Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+            }
+        }
+    }
+}
+
+/// TODO/cli.md T-1414. The no-chroot refusal code follows the payload
+/// status on every rung, exactly as the chroot path emits from the child:
+/// `Absent` is 127, found-but-not-invocable is 126 (the errno split
+/// T-0802 pins: ENOENT against EPERM, ENOEXEC, EACCES, EISDIR and
+/// ETXTBSY), and a genuine podbox failure stays 125.
+///
+/// ⚠ Matched on `ladder::resolve_payload`'s own sentences rather than
+/// re-derived: the resolution kinds are rendered there into strings, so
+/// re-walking the symlinks here would be the second copy
+/// `docs/conventions/code.md` refuses. The three shapes are pinned by
+/// `resolve_codes_follow_the_payload_status` below, so a rewording there
+/// fails here instead of silently returning 125.
+fn resolve_code(msg: &str) -> i32 {
+    if msg.contains("names no file in the image") {
+        EXIT_NOT_FOUND
+    } else if msg.contains("escapes the image") || msg.contains("too many levels of symlinks") {
+        EXIT_CANNOT_INVOKE
+    } else {
+        EXIT_RUNTIME_ERROR
+    }
 }
 
 /// A no-chroot entry this run takes, decided post-extract and pre-fixup.
@@ -1736,8 +1811,11 @@ pub struct Userland {
 /// `None` is the chroot sequence, as before. Where chroot is denied the
 /// loader family runs a dynamic payload the tier reaches (loader present,
 /// libraries present, native image) and the memfd family runs a static
-/// one; where neither runs the refusal at 125 names every tried rung
-/// with its missing leg: the last resort, never the whole answer.
+/// one; where neither runs the refusal names every tried rung with its
+/// missing leg: the last resort, never the whole answer. The refusal code
+/// follows the payload status on every rung (T-1414): 127 where the
+/// payload resolved to nothing, 126 where it was found but not invocable,
+/// 125 for a genuine podbox-side failure.
 ///
 /// Read-only: classification, resolution and ELF reads only. Placement
 /// (`place`) and fixups run after this decides, so a refusal writes
@@ -1756,36 +1834,61 @@ pub fn decide_entry(
     }
     let argv0 = argv.first().map(String::as_str).unwrap_or("");
     let path_dirs = podbox_enter::Plan::path_from(env);
-    let no_chroot = |family_note: String| {
+    let no_chroot = |code: i32, family_note: String| {
         eprintln!(
             "podbox {verb}: chroot(2) is denied on this machine, and no \
              no-chroot family runs this payload: {family_note}. The probe's \
              chroot leg reports the denial (see `podbox probe`) \
              (TODO/enter.md T-1317)"
         );
-        Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+        Err(code)
     };
-    // The payload bytes decide the family. A payload nothing resolved is
-    // a refusal naming it, not a rung decision: no rung runs what nothing
-    // resolved, chrooted or not.
+    // ⭐ T-1413 and T-1414. Resolved once, up front: the path rides the
+    // script refusal below, the resolution sentences decide the refusal
+    // code (127 absent, 126 found-but-not-invocable), and the loader arm
+    // reuses the same path rather than resolving twice.
+    let resolved = match podbox_enter::ladder::resolve_payload(rootfs, argv0, &path_dirs) {
+        Ok(p) => p,
+        Err(e) => {
+            let code = resolve_code(&e.to_string());
+            return no_chroot(code, format!("{argv0} resolves to nothing runnable: {e}"));
+        }
+    };
+    // The payload bytes decide the family. Read-only: classification and
+    // ELF reads only, so a refusal writes nothing into the image.
     let bytes = match podbox_enter::ladder::payload_bytes(rootfs, argv0, &path_dirs) {
         Ok(b) => b,
         Err(e) => {
-            return no_chroot(format!("{argv0} resolves to nothing runnable: {e}"));
+            let msg = e.to_string();
+            // ⚠ T-0802's errno split: a directory is found-but-not-
+            // invocable (EISDIR is a 126), while an unreadable file or an
+            // over-ceiling one is a genuine podbox-side failure (125).
+            let code = if msg.contains("Is a directory") {
+                EXIT_CANNOT_INVOKE
+            } else {
+                EXIT_RUNTIME_ERROR
+            };
+            return no_chroot(
+                code,
+                format!("{argv0} resolved but its bytes could not be read: {e}"),
+            );
         }
     };
     let interp = match podbox_enter::memfd::eligible(&bytes) {
         Ok(()) => None,
         Err(podbox_enter::memfd::MemfdRefusal::RoutePastScript) => {
-            return no_chroot(
-                "the payload is a #! script, whose interpreter path resolves on \
-                 the host root without a chroot: the image's script would run \
-                 under the host's interpreter"
-                    .to_string(),
-            );
+            // ⭐ T-1413. The refusal names the exact payload path and its
+            // `#!` line, resolved and read above: an anonymous refusal is
+            // a defect in the message. Longer term the interpreter routes
+            // inside the rootfs where the T-1407 map table covers it.
+            let refusal = podbox_enter::memfd::script_refusal(&resolved, &bytes);
+            return no_chroot(EXIT_CANNOT_INVOKE, refusal.message());
         }
         Err(podbox_enter::memfd::MemfdRefusal::NotElf(why)) => {
-            return no_chroot(format!("the payload is not an ELF file: {why}"));
+            return no_chroot(
+                EXIT_CANNOT_INVOKE,
+                format!("the payload is not an ELF file: {why}"),
+            );
         }
         Err(podbox_enter::memfd::MemfdRefusal::HasInterp(interp)) => Some(interp),
     };
@@ -1793,6 +1896,7 @@ pub fn decide_entry(
         // Static: the memfd family, where the kernel takes one.
         if !support_native {
             return no_chroot(
+                EXIT_RUNTIME_ERROR,
                 "the payload is statically linked but the image is foreign: \
                  binfmt resolution without a chroot is refused (T-0506)"
                     .to_string(),
@@ -1800,6 +1904,7 @@ pub fn decide_entry(
         }
         if !podbox_enter::memfd::kernel_takes_memfd() {
             return no_chroot(
+                EXIT_RUNTIME_ERROR,
                 "the payload is statically linked but the kernel takes no \
                  memfd on this machine"
                     .to_string(),
@@ -1812,7 +1917,10 @@ pub fn decide_entry(
             banner: "entering without chroot on the memfd family: the payload \
              runs from a staged memfd with the host's root and its working \
              directory inside the image; absolute paths resolve on the host \
-             (TODO/enter.md T-1317)"
+             because the static payload makes raw syscalls past the interposer, \
+             so no path is rewritten, and it reads /proc/self/exe as the staged \
+             memfd path, so a self-locating runtime cannot resolve itself here \
+             (TODO/enter.md T-1317, T-1409)"
                 .to_string(),
         }));
     }
@@ -1820,35 +1928,36 @@ pub fn decide_entry(
     let interp = interp.unwrap_or_default();
     if !support_native {
         return no_chroot(
+            EXIT_RUNTIME_ERROR,
             "the payload is dynamically linked but the image is foreign: binfmt \
              resolution without a chroot is refused (T-0506)"
                 .to_string(),
         );
     }
-    let resolved = match podbox_enter::ladder::resolve_payload(rootfs, argv0, &path_dirs) {
-        Ok(p) => p,
-        Err(e) => {
-            return no_chroot(format!("{argv0} resolves to nothing runnable: {e}"));
-        }
-    };
-    // The loader opens by path and the payload dispatches on argv[0]'s
-    // basename, so the invocation keeps the invoked name where it names
-    // something openable. Measured on the lane (probe-3): alpine's
-    // `/bin/sh` points at the absolute `/bin/busybox`, which dangles on
-    // the host side, so the resolved file is what opens and
-    // `loader_argv_for` below carries the invoked name as the applet.
+    // ⭐ Resolved once above and reused here: the invocation keeps the
+    // invoked name where it names something openable. Measured on the lane
+    // (probe-3): alpine's `/bin/sh` points at the absolute `/bin/busybox`,
+    // which dangles on the host side, so the resolved file is what opens
+    // and `loader_argv_for` below carries the invoked name as the applet.
     // A relative link (debian's `/bin/sh`) opens as invoked.
     let payload_host =
         podbox_enter::userland::invocation_path(rootfs, argv0, &path_dirs, &resolved);
     let plan = match podbox_enter::userland::loader_plan(rootfs, &interp, &payload_host) {
         Ok(p) => p,
         Err(why) => {
-            return no_chroot(why);
+            // ⚠ Found, but the loader cannot run it: 126, never 125.
+            return no_chroot(EXIT_CANNOT_INVOKE, why);
         }
     };
     match crate::interpose::classify(rootfs, argv0, &path_dirs) {
         crate::interpose::Reach::Declined(why) => {
-            return no_chroot(format!("the loader family declines the payload: {why}"));
+            // ⚠ Found, but the tier cannot virtualize it (Go markers, an
+            // unknown libc, an unreadable ELF): without the interposer no
+            // path is rewritten, so 126, never a silent host run.
+            return no_chroot(
+                EXIT_CANNOT_INVOKE,
+                format!("the loader family declines the payload: {why}"),
+            );
         }
         crate::interpose::Reach::Preload { .. } => {}
     }
@@ -1869,9 +1978,12 @@ pub fn decide_entry(
         lib_dirs: plan.lib_dirs,
         banner: format!(
             "entering without chroot on the loader family: {} runs {} with the \
-             image's libraries; absolute paths resolve on the host except where \
-             the interposer rewrites them, and argv[0] keeps the invoked name{} \
-             (TODO/enter.md T-1317)",
+             image's libraries; absolute guest paths anchor inside the rootfs \
+             through PODBOX_MAPS, and host pass-through happens only under \
+             --unsafe-host-paths, and argv[0] keeps the invoked name{}; \
+             a grandchild that execs an absolute path runs it on the host past \
+             the loader mapping and fails 127 where the host holds no such file \
+             (TODO/enter.md T-1317, T-1407, T-1411)",
             plan.loader_host,
             plan.payload_host,
             if applet {
@@ -1884,6 +1996,212 @@ pub fn decide_entry(
             },
         ),
     }))
+}
+
+/// The interposer's opt-in beside [`podbox_enter::ladder::GUEST_EXE_VAR`].
+///
+/// TODO/enter.md T-1409. Duplicate by value of the interposer's
+/// `procfs::GUEST_EXE_FORCE_VAR`: this crate takes no dependency on that
+/// object, and the spelling plus the exact value `"1"` is the contract
+/// between the two. Set only on loader-family userland entries alongside
+/// `PODBOX_GUEST_EXE`, so the payload reads its own path from
+/// `/proc/self/exe` rather than the loader's.
+pub const GUEST_EXE_FORCE_VAR: &str = "PODBOX_GUEST_EXE_FORCE";
+/// The exact value the interposer answers to. Anything else leaves the
+/// host answer in place.
+pub const GUEST_EXE_FORCE_ON: &str = "1";
+
+/// What [`userland_env`] decided: the environment the payload starts with,
+/// one banner account, and the decided opt-out `--strict` classifies on.
+/// The anchoring and the exe-force are banner facts only: the banner names
+/// them, and no second value carries them beside it.
+#[derive(Debug)]
+pub struct UserlandEnv {
+    pub env: Vec<String>,
+    pub banner: String,
+    /// The decided `--unsafe-host-paths` opt-out, which `--strict` refuses
+    /// as safety-relevant (TODO/cli.md T-1415). The call sites feed this
+    /// decided value to the gate rather than re-reading their own flag.
+    pub unsafe_paths: bool,
+}
+
+/// The environment a userland entry starts with, in one place.
+///
+/// TODO/enter.md T-1407 (the root-anchoring `PODBOX_MAPS` table) and T-1409
+/// (the `PODBOX_GUEST_EXE_FORCE` opt-in). One path for `run` and both `exec`
+/// entries, so the table, the scrub, and the banner cannot drift between
+/// them (`docs/conventions/code.md`).
+///
+/// A caller-supplied `PODBOX_MAPS` is scrubbed first, the way
+/// `PODBOX_GUEST_EXE` is: without that a nested `podbox run` inherits the
+/// outer payload's table. Unless `--unsafe-host-paths` opts into the
+/// pass-through, the built table anchors guest `/` inside `rootfs`, and a
+/// rootfs the table cannot spell refuses at 125 rather than rewriting
+/// nothing (an empty table on this rung is a silent host write).
+/// `PODBOX_GUEST_EXE_FORCE=1` rides only the loader family beside an
+/// already-set `PODBOX_GUEST_EXE`; the memfd family never sees it.
+pub fn userland_env(
+    verb: &str,
+    rootfs: &str,
+    env: Vec<String>,
+    family: podbox_enter::userland::Family,
+    unsafe_paths: bool,
+) -> Result<UserlandEnv, i32> {
+    use podbox_enter::userland::MAPS_VAR;
+    let mut out: Vec<String> = env
+        .into_iter()
+        .filter(|e| e.split('=').next().unwrap_or("") != MAPS_VAR)
+        .collect();
+    let mut banner = String::new();
+    if unsafe_paths {
+        banner.push_str(
+            "podbox: userland: running with --unsafe-host-paths: absolute guest \
+             paths resolve on the host with no PODBOX_MAPS anchoring, and a \
+             write lands on the host tree (TODO/enter.md T-1407)\n",
+        );
+    } else {
+        match podbox_enter::userland::userland_maps_table(rootfs) {
+            Ok(table) => {
+                out.push(format!("{MAPS_VAR}={table}"));
+                banner.push_str(&format!(
+                    "podbox: userland: absolute guest paths anchor inside {rootfs} \
+                     through {MAPS_VAR}={table} (TODO/enter.md T-1407)\n"
+                ));
+            }
+            Err(why) => {
+                eprintln!("podbox {verb}: userland: {why}");
+                return Err(podbox_image::error::EXIT_RUNTIME_ERROR);
+            }
+        }
+    }
+    if family == podbox_enter::userland::Family::Loader
+        && out
+            .iter()
+            .any(|e| e.split('=').next().unwrap_or("") == podbox_enter::ladder::GUEST_EXE_VAR)
+    {
+        out.retain(|e| e.split('=').next().unwrap_or("") != GUEST_EXE_FORCE_VAR);
+        out.push(format!("{GUEST_EXE_FORCE_VAR}={GUEST_EXE_FORCE_ON}"));
+        banner.push_str(
+            "podbox: userland: /proc/self/exe answers the payload's own path \
+             from PODBOX_GUEST_EXE rather than the loader's \
+             (TODO/enter.md T-1409)\n",
+        );
+    }
+    Ok(UserlandEnv {
+        env: out,
+        banner,
+        unsafe_paths,
+    })
+}
+/// What a userland drive did: the exit code, and whether the payload
+/// ran. A decision-time refusal (unreadable bytes, unstaged memfd)
+/// never entered, so the caller skips the post-run cleanup its own
+/// `--rm` would do; a payload that ran, however it ended, takes the
+/// normal path out.
+pub struct UserlandOutcome {
+    pub code: i32,
+    pub entered: bool,
+}
+
+/// Drive a decided userland entry, on either verb.
+///
+/// TODO/enter.md T-1410. One path for `run` and both `exec` entries, so
+/// the two verbs cannot diverge on the rung they share: the loader argv
+/// execs directly, the memfd family stages post-fixup bytes first (and
+/// refuses where the fixups changed what the decision read, rather than
+/// entering something unjudged). Messages name the calling verb.
+pub fn enter_userland(
+    verb: &str,
+    root: &podbox_enter::RootDir,
+    plan: &podbox_enter::Plan,
+    userland: &Userland,
+    rootfs: &str,
+    err: &mut dyn Write,
+) -> UserlandOutcome {
+    let failed = |code: i32| UserlandOutcome {
+        code,
+        entered: false,
+    };
+    let active = podbox_probe::select::Rung::Userland.word();
+    let (exec_argv, fd) = match userland.family {
+        podbox_enter::userland::Family::Loader => (userland.loader_argv.clone(), None),
+        podbox_enter::userland::Family::Memfd => {
+            let argv0 = plan.argv.first().cloned().unwrap_or_default();
+            let bytes = match podbox_enter::ladder::payload_bytes(rootfs, &argv0, &plan.path_dirs) {
+                Ok(b) => b,
+                Err(e) => {
+                    let _ = writeln!(err, "podbox {verb}: {e}");
+                    return failed(e.exit_code());
+                }
+            };
+            if podbox_enter::memfd::eligible(&bytes).is_err() {
+                // Fixups changed what the decision read: loud, never
+                // silent, and the fixups stay (they are the image's now,
+                // not this run's).
+                let _ = writeln!(
+                    err,
+                    "podbox {verb}: the payload the memfd family was decided \
+                     on no longer stages: refusing rather than entering \
+                     something unjudged (TODO/enter.md T-1317)"
+                );
+                return failed(podbox_image::error::EXIT_RUNTIME_ERROR);
+            }
+            match podbox_enter::memfd::stage(&bytes) {
+                Ok(f) => (plan.argv.clone(), Some(f)),
+                Err(e) => {
+                    let _ = writeln!(err, "podbox {verb}: {e}");
+                    return failed(e.exit_code());
+                }
+            }
+        }
+    };
+    match podbox_enter::run_userland(root, plan, exec_argv, active, fd, err) {
+        Ok(c) => UserlandOutcome {
+            code: c,
+            entered: true,
+        },
+        Err(e) => {
+            let _ = writeln!(err, "podbox {verb}: {e}");
+            UserlandOutcome {
+                code: e.exit_code(),
+                entered: true,
+            }
+        }
+    }
+}
+
+/// TODO/enter.md T-1411. The detached drive a record carries: the loader
+/// argv where the loader family was decided, nothing everywhere else.
+///
+/// One function for `create` and `run -d`, so the two verbs cannot
+/// disagree about which family has a detached driver
+/// (`docs/conventions/code.md`).
+pub fn detached_drive(userland: Option<&Userland>) -> Vec<String> {
+    userland
+        .filter(|u| u.family == podbox_enter::userland::Family::Loader)
+        .map(|u| u.loader_argv.clone())
+        .unwrap_or_default()
+}
+
+/// TODO/enter.md T-1411. The detached refusal, naming the blocking call.
+///
+/// T-1317's last resort survives only for entries with no detached
+/// driver: the memfd family and anything the foreground cannot run. The
+/// loader family drives detached through `spawn_userland` since T-1411
+/// reversed that decision in writing, so this names the loader only in
+/// the sentence that says it runs. `create` records the loader drive
+/// beside the refusal for the rest, because a record promises a launcher
+/// entry and only the loader family has one without a chroot.
+pub fn detached_userland_refusal(verb: &str, family: &str) -> String {
+    format!(
+        "podbox {verb}: chroot(2) is denied and the {family} family has no detached \
+         driver: the launcher enters detached payloads through \
+         podbox_enter::spawn_selected (the chroot sequence and its namespace variant) \
+         and, where the record carries the loader drive, \
+         podbox_enter::spawn_userland. `run -d` and `start` refuse this {family} entry \
+         here and `create` records no drive for it; run foreground \
+         (TODO/enter.md T-1317, T-1411)"
+    )
 }
 
 /// Shared by `run` and `create`: everything a container needs before it exists.
@@ -2012,6 +2330,138 @@ pub fn resolve_user(verb: &str, rootfs: &str, spec: &str) -> Result<(u32, u32), 
 mod tests {
     use super::*;
 
+    /// TODO/enter.md T-1407. The maps table is set on a userland run, a
+    /// caller-supplied value is scrubbed first, and the banner names the
+    /// anchoring; `--unsafe-host-paths` opts out and the banner names the
+    /// opt-in instead.
+    #[test]
+    fn userland_env_anchors_paths_or_names_the_opt_out() {
+        use podbox_enter::userland::{Family, MAPS_VAR};
+        let env = vec![format!("{MAPS_VAR}=/:evil"), "PATH=/bin".to_string()];
+        let ue = userland_env("run", "/store/rootfs", env, Family::Loader, false).unwrap();
+        assert_eq!(
+            ue.env
+                .iter()
+                .filter(|e| e.starts_with("PODBOX_MAPS="))
+                .count(),
+            1,
+            "{:?}",
+            ue.env
+        );
+        assert!(
+            ue.env.iter().any(|e| e == "PODBOX_MAPS=/:/store/rootfs"),
+            "{:?}",
+            ue.env
+        );
+        assert!(!ue.unsafe_paths);
+        assert!(ue.banner.contains("PODBOX_MAPS"), "{}", ue.banner);
+        let ue = userland_env(
+            "run",
+            "/store/rootfs",
+            vec!["PATH=/bin".to_string()],
+            Family::Memfd,
+            true,
+        )
+        .unwrap();
+        assert!(
+            !ue.env.iter().any(|e| e.starts_with("PODBOX_MAPS=")),
+            "{:?}",
+            ue.env
+        );
+        assert!(ue.unsafe_paths);
+        assert!(ue.banner.contains("--unsafe-host-paths"), "{}", ue.banner);
+        // A rootfs the table cannot spell refuses rather than rewriting
+        // nothing: an empty table on this rung is a silent host write.
+        assert_eq!(
+            userland_env("run", "relative", vec![], Family::Loader, false).unwrap_err(),
+            podbox_image::error::EXIT_RUNTIME_ERROR
+        );
+    }
+
+    /// TODO/enter.md T-1409. `PODBOX_GUEST_EXE_FORCE=1` rides only the
+    /// loader family beside an already-set `PODBOX_GUEST_EXE`, exact `"1"`,
+    /// named once on the banner; a stale value is scrubbed first and the
+    /// memfd family never sees it.
+    #[test]
+    fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
+        use podbox_enter::userland::Family;
+        let exe = format!("{}=/bin/prog", podbox_enter::ladder::GUEST_EXE_VAR);
+        let ue = userland_env(
+            "run",
+            "/store/rootfs",
+            vec![exe.clone(), "PODBOX_GUEST_EXE_FORCE=0".to_string()],
+            Family::Loader,
+            false,
+        )
+        .unwrap();
+        assert_eq!(
+            ue.env
+                .iter()
+                .filter(|e| e.starts_with("PODBOX_GUEST_EXE_FORCE="))
+                .count(),
+            1,
+            "{:?}",
+            ue.env
+        );
+        assert!(
+            ue.env.iter().any(|e| e == "PODBOX_GUEST_EXE_FORCE=1"),
+            "{:?}",
+            ue.env
+        );
+        assert!(ue.banner.contains("PODBOX_GUEST_EXE"), "{}", ue.banner);
+        // No guest exe set: no force, even on the loader family.
+        let ue = userland_env("run", "/store/rootfs", vec![], Family::Loader, false).unwrap();
+        assert!(
+            !ue.env
+                .iter()
+                .any(|e| e.starts_with("PODBOX_GUEST_EXE_FORCE=")),
+            "{:?}",
+            ue.env
+        );
+        // The memfd family never carries it, guest exe or not.
+        let ue = userland_env("run", "/store/rootfs", vec![exe], Family::Memfd, false).unwrap();
+        assert!(
+            !ue.env
+                .iter()
+                .any(|e| e.starts_with("PODBOX_GUEST_EXE_FORCE=")),
+            "{:?}",
+            ue.env
+        );
+    }
+
+    /// TODO/image.md T-1418. The store-exec gate passes where a created
+    /// file executes and refuses naming the path where the probe cannot
+    /// run. The `no` verdict itself is the image crate's to prove; what
+    /// this pins is that the gate calls it and maps its answers.
+    #[test]
+    #[cfg(unix)]
+    fn store_exec_passes_where_a_created_file_executes() {
+        let d = std::env::temp_dir().join(format!("podbox-storexec-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        assert!(ensure_store_exec("run", &d).is_ok());
+        assert_eq!(
+            ensure_store_exec("run", &d.join("absent")),
+            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+        );
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// TODO/enter.md T-1411. The detached refusal names the blocking
+    /// call and every affected verb, so a caller learns what would lift
+    /// it rather than just what failed. The loader drive is named beside
+    /// it, because that family runs instead of refusing.
+    #[test]
+    fn the_detached_refusal_names_the_blocking_call_and_the_verbs() {
+        let s = detached_userland_refusal("start", "memfd");
+        assert!(s.contains("spawn_selected"), "{s}");
+        assert!(s.contains("spawn_userland"), "{s}");
+        assert!(s.contains("memfd"), "{s}");
+        for v in ["run -d", "create", "start"] {
+            assert!(s.contains(v), "{s}");
+        }
+    }
+
     #[test]
     fn lifecycle_usage_strings_are_plain_ascii() {
         // TODO/cli.md T-1336: `ps`, `logs`, `restart` and `cp` usages
@@ -2070,6 +2520,7 @@ mod tests {
             exit_code: None,
             noticed: None,
             rung: "chroot".into(),
+            userland_exec: Vec::new(),
             completion: vec!["created dev/null (dev-shim, T-0401)".into()],
             completion_degraded: 1,
         };
@@ -2132,6 +2583,7 @@ mod tests {
             exit_code: None,
             noticed: None,
             rung: "chroot".into(),
+            userland_exec: Vec::new(),
             completion: vec!["created dev/null (dev-shim, T-0401)".into()],
             completion_degraded: 1,
         };
@@ -2174,50 +2626,28 @@ mod tests {
         );
     }
 
-    /// TODO/enter.md T-1317. A denied or skipped chroot leg refuses entry by
-    /// name at 125; only an `Ok` chroot row promises it.
+    /// TODO/enter.md T-1411. The detached drive a record carries: the
+    /// loader argv where the loader family was decided, nothing everywhere
+    /// else, so `create` and `run -d` cannot disagree about which family
+    /// has a detached driver.
     #[test]
-    fn a_denied_chroot_is_refused_before_entry() {
-        fn findings(
-            rows: Vec<(&'static str, podbox_probe::verdict::Outcome)>,
-        ) -> podbox_probe::Findings {
-            podbox_probe::Findings {
-                rows,
-                identity: podbox_probe::identity::Identity::default(),
-                writable: Vec::new(),
-                self_exe: String::new(),
-            }
-        }
-        let chroot = "chroot(/tmp)";
-        assert!(ensure_chroot_usable(
-            "run",
-            &findings(vec![(chroot, podbox_probe::verdict::Outcome::ok())])
-        )
-        .is_ok());
+    fn the_record_carries_the_loader_drive_and_nothing_else() {
+        let loader = Userland {
+            family: podbox_enter::userland::Family::Loader,
+            loader_argv: vec!["/r/lib/ld.so".to_string(), "/r/bin/sh".to_string()],
+            lib_dirs: vec!["/r/lib".to_string()],
+            banner: String::new(),
+        };
         assert_eq!(
-            ensure_chroot_usable(
-                "run",
-                &findings(vec![(
-                    chroot,
-                    podbox_probe::verdict::Outcome::denied(podbox_probe::sys::Errno(1))
-                )])
-            ),
-            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
+            detached_drive(Some(&loader)),
+            vec!["/r/lib/ld.so".to_string(), "/r/bin/sh".to_string()]
         );
-        assert_eq!(
-            ensure_chroot_usable(
-                "start",
-                &findings(vec![(
-                    chroot,
-                    podbox_probe::verdict::Outcome::skip(None, "nope")
-                )])
-            ),
-            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
-        );
-        assert_eq!(
-            ensure_chroot_usable("create", &findings(vec![])),
-            Err(podbox_image::error::EXIT_RUNTIME_ERROR)
-        );
+        let memfd = Userland {
+            family: podbox_enter::userland::Family::Memfd,
+            ..loader.clone()
+        };
+        assert!(detached_drive(Some(&memfd)).is_empty());
+        assert!(detached_drive(None).is_empty());
     }
 
     /// TODO/enter.md T-1317. The pre-fetch tier's truth table: chroot, the
@@ -2273,16 +2703,46 @@ mod tests {
                 .expect("a static payload decides a family");
             assert_eq!(u.family, podbox_enter::userland::Family::Memfd);
         }
-        // A script refuses naming the interpreter problem.
+        // A script refuses naming the interpreter problem, at 126: found,
+        // but not invocable on this rung. The message names the resolved
+        // file and its `#!` line (T-1413).
         std::fs::write(d.join("bin/tool.sh"), b"#!/bin/sh\necho hi\n").unwrap();
         let argv = ["tool.sh".to_string()];
         let e = decide_entry("run", &root, &argv, &env, true, &denied).unwrap_err();
-        assert_eq!(e, podbox_image::error::EXIT_RUNTIME_ERROR);
-        // A foreign image refuses naming binfmt.
+        assert_eq!(e, podbox_image::error::EXIT_CANNOT_INVOKE);
+        // A name nothing resolves is 127, wherever the rung would run it.
+        let argv = ["no-such-prog".to_string()];
+        let e = decide_entry("run", &root, &argv, &env, true, &denied).unwrap_err();
+        assert_eq!(e, podbox_image::error::EXIT_NOT_FOUND);
+        // A foreign image refuses naming binfmt, at 125: podbox-side.
         let argv = ["prog".to_string()];
         let e = decide_entry("run", &root, &argv, &env, false, &denied).unwrap_err();
         assert_eq!(e, podbox_image::error::EXIT_RUNTIME_ERROR);
         let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// TODO/cli.md T-1414. The refusal code follows the payload status:
+    /// `ladder::resolve_payload`'s absent sentence is 127, its escape and
+    /// loop sentences are 126, and anything else stays 125. Pinned here so
+    /// a rewording there fails here instead of silently returning 125.
+    #[test]
+    fn resolve_codes_follow_the_payload_status() {
+        assert_eq!(
+            resolve_code("prog names no file in the image"),
+            podbox_image::error::EXIT_NOT_FOUND
+        );
+        assert_eq!(
+            resolve_code("/x escapes the image"),
+            podbox_image::error::EXIT_CANNOT_INVOKE
+        );
+        assert_eq!(
+            resolve_code("/x has too many levels of symlinks"),
+            podbox_image::error::EXIT_CANNOT_INVOKE
+        );
+        assert_eq!(
+            resolve_code("something else went wrong"),
+            podbox_image::error::EXIT_RUNTIME_ERROR
+        );
     }
 
     /// A 64-bit little-endian static PIE: the smallest bytes the memfd

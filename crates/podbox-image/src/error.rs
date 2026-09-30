@@ -25,6 +25,10 @@ pub enum Error {
     /// a fallback that exists to improve reliability makes the failure untimed.
     PlainHttpRefused(String),
     /// Transport, DNS, TLS, or a status this client will not act on.
+    /// ⭐ TODO/image.md T-1420. A transport failure names its host once, in
+    /// `detail` as `<host>: <lowercase cause>: <chain>`, with `what` carrying
+    /// only the path. The renderer below keeps both on one line until `-v`
+    /// exists to hold the chain (T-1416); nothing is dropped to get there.
     Http { what: String, detail: String },
     /// ⛔ `TODO/image.md` T-0202: computed and declared digests differ. Both are
     /// named, because "digest mismatch" alone cannot be acted on.

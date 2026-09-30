@@ -115,7 +115,7 @@ use std::io::{self, Read, Write};
 use std::time::{Duration, Instant};
 
 use crate::error::{Error, Kind};
-use crate::transport::{Dialer, Stream};
+use crate::transport::{write_stall, Dialer, Stream, WRITE_DEADLINE};
 use crate::ws::{Frame, Ws};
 
 /// The relay protocol version this module speaks. Reported in the node's
@@ -452,6 +452,12 @@ fn dial_ws(origin: &str, path: &str, token: &str) -> Result<Ws, Error> {
     }
     let host_header = format!("{host}:{port}");
     let headers = vec![("X-Relay-Token".to_string(), token.to_string())];
+    // ⛔ The write bound is set here, once, so every frame on this leg
+    // carries it: a relay that stops reading ends the op inside
+    // `WRITE_DEADLINE` instead of wedging the loop, and the socket ends so
+    // the node redials.
+    base.set_write_timeout(Some(WRITE_DEADLINE))
+        .map_err(|e| Error::dial(format!("relay write bound {host}:{port}{path}"), e))?;
     let ws = Ws::client(base, &host_header, path, &headers)
         .map_err(|e| Error::dial(format!("relay websocket {host}:{port}{path}"), e))?;
     // ⛔ The version is reported to the caller, never gated on here. The
@@ -466,6 +472,13 @@ fn dial_ws(origin: &str, path: &str, token: &str) -> Result<Ws, Error> {
 }
 
 // ------------------------------------------------------------ the node
+
+/// A relay-leg send failure naming the leg that stalled. Every frame below
+/// leaves through here: a timeout names `leg`, so the node and operator
+/// legs are told apart in the same log.
+fn leg_err(leg: &'static str, e: io::Error) -> Error {
+    Error::new(Kind::Pump, leg, e.to_string())
+}
 
 /// What the node process needs. Tokens ride environment or flags into here;
 /// they never come back out in an error.
@@ -738,7 +751,8 @@ fn open_session(
             reason: "node is full".to_string(),
         };
         let raw = emit_control(&c).map_err(|m| Error::pump(io::Error::other(m)))?;
-        ws.send_text(&raw).map_err(Error::pump)?;
+        ws.send_text(&raw)
+            .map_err(|e| leg_err("mux node-leg send", e))?;
         return Ok(());
     }
     match crate::server::spawn_stdio(server_command) {
@@ -746,6 +760,13 @@ fn open_session(
             server
                 .stream
                 .set_read_timeout(Some(SESSION_POLL))
+                .map_err(Error::pump)?;
+            // ⛔ The server leg carries the write bound too: the socketpair
+            // to the server is a kernel deadline, so a server that stops
+            // reading ends its session instead of wedging every other one.
+            server
+                .stream
+                .set_write_timeout(Some(WRITE_DEADLINE))
                 .map_err(Error::pump)?;
             sessions.insert(
                 id.to_string(),
@@ -757,7 +778,8 @@ fn open_session(
             eprintln!("podbox-ssh: session opened ({} active)", sessions.len());
             let c = Control::Ready { id: id.to_string() };
             let raw = emit_control(&c).map_err(|m| Error::pump(io::Error::other(m)))?;
-            ws.send_text(&raw).map_err(Error::pump)?;
+            ws.send_text(&raw)
+                .map_err(|e| leg_err("mux node-leg send", e))?;
             Ok(())
         }
         Err(e) => {
@@ -771,7 +793,8 @@ fn open_session(
                 reason,
             };
             let raw = emit_control(&c).map_err(|m| Error::pump(io::Error::other(m)))?;
-            ws.send_text(&raw).map_err(Error::pump)?;
+            ws.send_text(&raw)
+                .map_err(|e| leg_err("mux node-leg send", e))?;
             Ok(())
         }
     }
@@ -804,11 +827,17 @@ fn poll_sessions(
         while let Some(chunk) = s.inbox.pop_front() {
             match s.server.stream.write_all(&chunk) {
                 Ok(()) => {}
-                Err(e) if crate::pump::is_would_block(&e) => {
-                    s.inbox.push_front(chunk);
-                    break;
-                }
-                Err(_) => {
+                Err(e) => {
+                    // ⛔ A server that will not take its stdin ends its own
+                    // session, loudly: the stream carries `WRITE_DEADLINE`,
+                    // so any error here (including the kernel's
+                    // `WouldBlock` for an expired deadline) means the whole
+                    // bound passed with no progress. The stall names the
+                    // leg, the session closes, and the rest survive on the
+                    // same socket. Requeueing it instead would retry a
+                    // stalled pipe forever.
+                    let e = write_stall(e, "server-stdin leg");
+                    eprintln!("podbox-ssh: session ending: {e}");
                     ended.push(id.clone());
                     break;
                 }
@@ -837,14 +866,16 @@ fn poll_sessions(
         }
     }
     for (_id, framed) in outbox {
-        ws.send_binary(&framed).map_err(Error::pump)?;
+        ws.send_binary(&framed)
+            .map_err(|e| leg_err("mux node-leg send", e))?;
     }
     for id in ended {
         if close_session(sessions, &id) {
             stats.sessions_completed += 1;
             let c = Control::Close { id };
             let raw = emit_control(&c).map_err(|m| Error::pump(io::Error::other(m)))?;
-            ws.send_text(&raw).map_err(Error::pump)?;
+            ws.send_text(&raw)
+                .map_err(|e| leg_err("mux node-leg send", e))?;
         }
     }
     Ok(())
@@ -887,6 +918,12 @@ pub fn run_operator(cfg: &OperatorConfig, io: &mut dyn Stream) -> Result<(), Err
     // caller that forgot it would hand the loop a stream that blocks
     // forever; standard input ignores it safely through its drain thread.
     io.set_read_timeout(Some(SOCKET_POLL))
+        .map_err(Error::pump)?;
+    // ⛔ The client-stdout leg carries the write bound where the kernel
+    // allows one: a client that stops reading ends the op inside the bound.
+    // A pipe-backed client ignores it safely; its stall is outside this
+    // loop's contract the way its read already is.
+    io.set_write_timeout(Some(WRITE_DEADLINE))
         .map_err(Error::pump)?;
     let start = Instant::now();
     let mut ready = false;
@@ -952,8 +989,18 @@ pub fn run_operator(cfg: &OperatorConfig, io: &mut dyn Stream) -> Result<(), Err
                         "relay sent data before ready",
                     )));
                 }
-                io.write_all(&b).map_err(Error::pump)?;
-                io.flush().map_err(Error::pump)?;
+                io.write_all(&b).map_err(|e| {
+                    leg_err(
+                        "mux operator client-stdout",
+                        write_stall(e, "client-stdout write"),
+                    )
+                })?;
+                io.flush().map_err(|e| {
+                    leg_err(
+                        "mux operator client-stdout",
+                        write_stall(e, "client-stdout write"),
+                    )
+                })?;
             }
             Some(Frame::Close(code, reason)) => {
                 let reason = String::from_utf8_lossy(&reason).to_string();
@@ -1023,7 +1070,8 @@ pub fn run_operator(cfg: &OperatorConfig, io: &mut dyn Stream) -> Result<(), Err
 /// prepends the id on this leg; prefixing one here would have it doubled.
 fn send_bare(ws: &mut Ws, bytes: &[u8]) -> Result<(), Error> {
     for piece in bytes.chunks(MAX_PAYLOAD) {
-        ws.send_binary(piece).map_err(Error::pump)?;
+        ws.send_binary(piece)
+            .map_err(|e| leg_err("mux operator-leg send", e))?;
     }
     Ok(())
 }

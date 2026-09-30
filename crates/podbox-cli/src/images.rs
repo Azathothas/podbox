@@ -147,6 +147,13 @@ usage: podbox inspect [--format T] <image> [image...]
   Fields: .Id .Digest .RepoTags .RepoDigests .Architecture .Os .Created
           .Platform .Size .Store .Layers .RootfsPath .Extracted
           .Exec.Mode .Exec.Shares
+          .Config.Env .Config.Cmd .Config.Entrypoint .Config.WorkingDir
+          .Config.User
+
+  note: .Config.* is what the image DECLARES, read through the stored
+    config digest with docker's key names and null where the image omits
+    a field. It sits beside what podbox applied; the two are never
+    merged silently (TODO/cli.md T-1417).
 
   note: .RootfsPath is where the rootfs WOULD be. .Extracted says whether it is
     there; `podbox extract` is what puts it there.
@@ -436,6 +443,26 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
         .collect();
 
     let mut out = std::io::stdout().lock();
+    // ⭐ TODO/image.md T-1419. A record whose blobs are gone is marked
+    // here, on stderr so the table and template contracts are untouched:
+    // presence is a stat per blob, not a hash, because `images` lists and
+    // `verify` proves. `run` refuses such a record (see `trust_record`);
+    // `--pull always` re-fetches it.
+    for r in &records {
+        let missing = missing_blobs(&store, r);
+        if !missing.is_empty() {
+            eprintln!(
+                "podbox images: {}: {} of its blob(s) are missing from the \
+                 store at {}: {}. `podbox verify {}` reports it; re-fetch \
+                 with --pull always (TODO/image.md T-1419)",
+                r.name(),
+                missing.len(),
+                store.root().display(),
+                missing.join(", "),
+                r.name(),
+            );
+        }
+    }
     if let Some(template) = &o.format {
         for r in &records {
             match format::render(template, &image_fields(r, &store, o.no_trunc)) {
@@ -1748,6 +1775,14 @@ pub const INSPECT_FIELDS: &[&str] = &[
     // names sit on that record and answer from the container that was entered.
     "Exec.Mode",
     "Exec.Shares",
+    // ⭐ TODO/cli.md T-1417. What the image declares, beside what podbox
+    // applied: dotted names are single registered names (T-0505), so an
+    // unregistered one is still refused rather than rendering half.
+    "Config.Env",
+    "Config.Cmd",
+    "Config.Entrypoint",
+    "Config.WorkingDir",
+    "Config.User",
 ];
 
 /// `podbox exec`'s mode, in one word each, for `inspect` and for the banner.
@@ -1787,6 +1822,8 @@ fn image_fields(r: &Record, store: &Store, no_trunc: bool) -> Vec<(&'static str,
 }
 
 fn inspect_fields(r: &Record, store: &Store) -> Vec<(&'static str, String)> {
+    let cfg = run_config_of(store, r);
+    let flat = config_flat(&cfg);
     vec![
         ("Id", r.config_digest.clone()),
         ("Digest", r.digest.clone()),
@@ -1818,7 +1855,78 @@ fn inspect_fields(r: &Record, store: &Store) -> Vec<(&'static str, String)> {
         ),
         ("Exec.Mode", EXEC_MODE.to_string()),
         ("Exec.Shares", EXEC_SHARES.to_string()),
+        ("Config.Env", flat.0),
+        ("Config.Cmd", flat.1),
+        ("Config.Entrypoint", flat.2),
+        ("Config.WorkingDir", flat.3),
+        ("Config.User", flat.4),
     ]
+}
+
+/// TODO/cli.md T-1417. The image's declared `Config`, read through the
+/// stored config digest.
+///
+/// `None` where the blob is missing or does not parse: `inspect` is a
+/// reader, and a broken store is `verify`'s to report (T-1321), so the
+/// Config half renders null rather than failing the whole document.
+fn run_config_of(store: &Store, r: &Record) -> Option<podbox_image::oci::RunConfig> {
+    let d = podbox_image::digest::Digest::parse(&r.config_digest).ok()?;
+    let bytes = store.read_blob(&d).ok()?;
+    let cfg: podbox_image::oci::Config = serde_json::from_slice(&bytes).ok()?;
+    Some(cfg.config)
+}
+
+/// The Config half as flat `--format` strings: lists space-joined like
+/// `.Layers` above, `-` where the image omits the field.
+fn config_flat(
+    c: &Option<podbox_image::oci::RunConfig>,
+) -> (String, String, String, String, String) {
+    let none = || "-".to_string();
+    match c {
+        None => (none(), none(), none(), none(), none()),
+        Some(c) => (
+            if c.env.is_empty() {
+                none()
+            } else {
+                c.env.join(" ")
+            },
+            c.cmd.as_ref().map(|v| v.join(" ")).unwrap_or_else(none),
+            c.entrypoint
+                .as_ref()
+                .map(|v| v.join(" "))
+                .unwrap_or_else(none),
+            if c.working_dir.is_empty() {
+                none()
+            } else {
+                c.working_dir.clone()
+            },
+            if c.user.is_empty() {
+                none()
+            } else {
+                c.user.clone()
+            },
+        ),
+    }
+}
+
+/// The Config half as a JSON document with docker's key names, null where
+/// the image omits the field. Reported beside what podbox applied, never
+/// merged with it.
+fn config_json(c: &Option<podbox_image::oci::RunConfig>) -> serde_json::Value {
+    let null = serde_json::Value::Null;
+    match c {
+        None => serde_json::json!({
+            "Env": null, "Cmd": null, "Entrypoint": null,
+            "WorkingDir": null, "User": null,
+        }),
+        Some(c) => serde_json::json!({
+            "Env": if c.env.is_empty() { null.clone() } else { serde_json::Value::from(c.env.clone()) },
+            "Cmd": c.cmd.clone().map(serde_json::Value::from).unwrap_or(null.clone()),
+            "Entrypoint": c.entrypoint.clone().map(serde_json::Value::from).unwrap_or(null.clone()),
+            "WorkingDir": if c.working_dir.is_empty() { null.clone() } else { serde_json::Value::from(c.working_dir.clone()) },
+            "User": if c.user.is_empty() { null } else { serde_json::Value::from(c.user.clone()) },
+        }),
+    }
 }
 
 fn inspect_json(r: &Record, store: &Store) -> String {
@@ -1838,6 +1946,9 @@ fn inspect_json(r: &Record, store: &Store) -> String {
         "Layers": r.layers,
         "ManifestDigest": r.manifest_digest,
         "PulledAt": r.pulled_at,
+        // ⭐ TODO/cli.md T-1417. What the image declares, with docker's key
+        // names and null where it omits a field, beside what podbox applied.
+        "Config": config_json(&run_config_of(store, r)),
         // ⛔ T-0505, and nested here because it is nested in --format too. A
         // caller that reads one and not the other must not find two shapes.
         "Exec": { "Mode": EXEC_MODE, "Shares": EXEC_SHARES },
@@ -1873,6 +1984,24 @@ pub(crate) fn table(rows: &[Vec<String>]) -> String {
             }
         }
         out.push('\n');
+    }
+    out
+}
+
+/// TODO/image.md T-1419. The record's blobs that have no file in the
+/// store, by digest.
+///
+/// Presence only, never a hash: `images` marks blob-less records while
+/// listing, and hashing every blob of every listed image on every listing
+/// is `verify`'s job. An unparseable digest counts as missing, because no
+/// file under that name can be the blob the record names.
+fn missing_blobs(store: &Store, r: &Record) -> Vec<String> {
+    let mut out = Vec::new();
+    for b in r.blobs() {
+        match podbox_image::digest::Digest::parse(b) {
+            Ok(d) if store.blob_path(&d).exists() => {}
+            _ => out.push(b.to_string()),
+        }
     }
     out
 }
@@ -1952,6 +2081,76 @@ mod tests {
         let o = parse_verify(&v(&[])).unwrap();
         assert_eq!(o.want, None);
         assert!(parse_verify(&v(&["a", "b"])).is_err());
+    }
+
+    /// TODO/cli.md T-1417. The Config half renders docker's key names
+    /// with null where the image omits a field, flat strings space-joined
+    /// with a dash where absent, and a missing blob renders null rather
+    /// than failing the document.
+    #[test]
+    fn config_renders_docker_names_null_safe() {
+        let full = Some(podbox_image::oci::RunConfig {
+            entrypoint: Some(vec!["/entry".into()]),
+            cmd: Some(vec!["a".into(), "b".into()]),
+            env: vec!["A=1".into()],
+            working_dir: "/w".into(),
+            user: "u".into(),
+        });
+        let doc = config_json(&full);
+        assert_eq!(doc["Env"], serde_json::json!(["A=1"]));
+        assert_eq!(doc["Cmd"], serde_json::json!(["a", "b"]));
+        assert_eq!(doc["Entrypoint"], serde_json::json!(["/entry"]));
+        assert_eq!(doc["WorkingDir"], serde_json::json!("/w"));
+        assert_eq!(doc["User"], serde_json::json!("u"));
+        let flat = config_flat(&full);
+        assert_eq!(flat.0, "A=1");
+        assert_eq!(flat.1, "a b");
+        // Omitted fields are null in JSON and a dash flat. An explicitly
+        // cleared entrypoint (`Some(vec![])`) is an empty array, not null:
+        // None and Some([]) stay apart, as the parser keeps them.
+        let thin = Some(podbox_image::oci::RunConfig {
+            entrypoint: Some(vec![]),
+            ..Default::default()
+        });
+        let doc = config_json(&thin);
+        assert!(doc["Env"].is_null(), "{doc}");
+        assert!(doc["Cmd"].is_null(), "{doc}");
+        assert_eq!(doc["Entrypoint"], serde_json::json!([]));
+        assert!(doc["WorkingDir"].is_null(), "{doc}");
+        assert!(doc["User"].is_null(), "{doc}");
+        let flat = config_flat(&thin);
+        assert_eq!(
+            flat,
+            ("-".into(), "-".into(), "".into(), "-".into(), "-".into())
+        );
+        let doc = config_json(&None);
+        assert!(doc["Env"].is_null() && doc["User"].is_null(), "{doc}");
+        // A record whose config blob is absent renders the same nulls.
+        let store =
+            Store::open(std::env::temp_dir().join(format!("podbox-cfg-{}", std::process::id())))
+                .unwrap();
+        assert!(run_config_of(&store, &a_record()).is_none());
+        let fields = inspect_fields(&a_record(), &store);
+        assert_eq!(pick(&fields, "Config.Env"), "-");
+        assert_eq!(pick(&fields, "Config.User"), "-");
+        let _ = std::fs::remove_dir_all(store.root());
+    }
+
+    /// TODO/image.md T-1419. A record naming blobs the store does not
+    /// hold lists every one of them as missing: presence is what `images`
+    /// marks and what `run` refuses.
+    #[test]
+    fn missing_blobs_lists_blobs_with_no_file() {
+        let store =
+            Store::open(std::env::temp_dir().join(format!("podbox-miss-{}", std::process::id())))
+                .unwrap();
+        let missing = missing_blobs(&store, &a_record());
+        assert_eq!(missing.len(), 3, "{missing:?}");
+        assert!(
+            missing.iter().all(|b| b.starts_with("sha256:")),
+            "{missing:?}"
+        );
+        let _ = std::fs::remove_dir_all(store.root());
     }
 
     #[test]

@@ -12,10 +12,11 @@
 //! `PODSSH_CONNECT_TOKEN` environment; the token never appears in a log line
 //! or an error.
 //!
-//! ⛔ Every read waits bounded. The dial carries a connect timeout, the
-//! wait for `ready` defaults to 20 s, and the goodbye after stdin ends to
-//! 10 s. Writes block until the kernel takes them and DNS resolves
-//! without a timeout, so a relay that stops reading wedges the loop.
+//! ⛔ Every read waits bounded. The dial carries a connect timeout, the DNS
+//! lookup carries the tighter of that and `DNS_DEADLINE`, the wait for
+//! `ready` defaults to 20 s, relay-leg writes carry `WRITE_DEADLINE`, and
+//! the goodbye after stdin ends to 10 s. A relay that stops reading ends
+//! the op inside the write bound.
 //! Stdin before `ready` is queued up to 1 MiB, then fails loud.
 
 #![forbid(unsafe_code)]

@@ -112,6 +112,9 @@ impl Stream for Tls {
     fn set_read_timeout(&self, d: Option<Duration>) -> io::Result<()> {
         self.inner.sock.set_read_timeout(d)
     }
+    fn set_write_timeout(&self, d: Option<Duration>) -> io::Result<()> {
+        self.inner.sock.set_write_timeout(d)
+    }
     fn shutdown_write(&mut self) -> io::Result<()> {
         // ⛔ Best-effort goodbye. The websocket close frame above is the
         // real goodbye; a failure here carries no bytes to report.

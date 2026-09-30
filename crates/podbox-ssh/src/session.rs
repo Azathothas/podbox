@@ -91,11 +91,11 @@
 //! partial line first, then ends input the same way Ctrl-D on an empty
 //! line does.
 
-use std::io::{Read, Write};
+use std::io::Read;
 use std::time::{Duration, Instant};
 
 use crate::error::Error;
-use crate::transport::Stream;
+use crate::transport::{write_pipe_bounded, write_stall, Stream, WRITE_DEADLINE};
 
 /// The prompt, printed before every line. Static on purpose: the shell
 /// runs non-interactive and prints none of its own. See the catalogue.
@@ -509,6 +509,11 @@ pub fn run_session(cfg: &SessionConfig, io: &mut dyn Stream) -> Result<i32, Erro
     drain_to(child.stderr.take().expect("piped shell stderr"), tx.clone());
     drop(tx);
     io.set_read_timeout(Some(POLL)).map_err(Error::pump)?;
+    // ⛔ The client leg carries the write bound where the kernel allows
+    // one: a client that stops reading ends the session inside the bound.
+    // A pipe-backed client ignores it safely, the way its read already is.
+    io.set_write_timeout(Some(WRITE_DEADLINE))
+        .map_err(Error::pump)?;
     io.write_all(PROMPT).map_err(Error::pump)?;
     io.flush().map_err(Error::pump)?;
     let mut disc = Discipline::new();
@@ -577,12 +582,13 @@ pub fn run_session(cfg: &SessionConfig, io: &mut dyn Stream) -> Result<i32, Erro
 
 fn apply_to_shell(e: &Event, stdin: &mut std::process::ChildStdin) -> Result<(), Error> {
     if let Event::ToShell(b) = e {
-        // ⛔ A blocking write, like the relay legs: lines are capped at
-        // 64 KiB and the shell reads stdin continuously, so the only
-        // wedge is a shell that stopped reading while alive, which is
-        // outside this loop's contract. See the module docs.
-        stdin.write_all(b).map_err(Error::pump)?;
-        stdin.flush().map_err(Error::pump)?;
+        // ⛔ A bounded write, not a blocking one: the shell's stdin is a
+        // pipe with no kernel write deadline, so the line waits on a worker
+        // instead. Lines are capped at 64 KiB and the shell reads stdin
+        // continuously; a shell that stopped reading while alive ends the
+        // session loud inside the bound naming this leg.
+        write_pipe_bounded(stdin, b, WRITE_DEADLINE, "session shell-stdin leg")
+            .map_err(Error::pump)?;
     }
     Ok(())
 }
@@ -719,7 +725,9 @@ fn drain(rx: &std::sync::mpsc::Receiver<ShellOut>, io: &mut dyn Stream) -> Resul
             break;
         }
         match rx.recv_timeout(Duration::from_millis(100)) {
-            Ok(ShellOut::Bytes(b)) => io.write_all(&onlcr(&b)).map_err(Error::pump)?,
+            Ok(ShellOut::Bytes(b)) => io
+                .write_all(&onlcr(&b))
+                .map_err(|e| Error::pump(write_stall(e, "session client write")))?,
             Err(_) => break,
         }
     }

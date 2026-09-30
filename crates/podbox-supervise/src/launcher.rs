@@ -411,15 +411,6 @@ fn supervise(
     }
 
     let sink = std::io::sink();
-    // ⭐ TODO/enter.md T-1339. The rung the probe selects, decided where
-    // the payload is entered: a detached start on a namespace host
-    // enters the namespace rung like a foreground run does. The
-    // fallback line joins the container log beside the payload's own
-    // output: this process's stderr is /dev/null and the ready pipe
-    // carries only the start protocol, so the log is the one place the
-    // fallback stays readable.
-    let findings = podbox_probe::run();
-    let selection = podbox_probe::select::Selection::choose(&findings);
     let mut entry_log: Box<dyn std::io::Write> = match &err_sink {
         Ok(f) => match f.try_clone() {
             Ok(c) => Box::new(c),
@@ -427,11 +418,46 @@ fn supervise(
         },
         Err(_) => Box::new(sink),
     };
-    let child = match podbox_enter::spawn_selected(&root, &plan, selection.rung, &mut entry_log) {
-        Ok(c) => c,
-        Err(e) => {
-            say(&format!("err {e}"));
-            return 1;
+    // ⭐ TODO/enter.md T-1411. This reverses T-1317's last-resort decision
+    // at the launcher: where the record carries the loader drive `create`
+    // decided (the exact argv, with the libraries, the `PODBOX_MAPS`
+    // table and `PODBOX_GUEST_EXE` in the stored environment), the
+    // launcher execs it with no chroot through `spawn_userland` and
+    // supervises the pidfd exactly as the chroot path below does. The
+    // readiness answer and the `running` write are the same ones, so
+    // `ps`, `logs`, `stop` and `rm` cannot tell the rung apart.
+    let child = if container.userland_exec.is_empty() {
+        // ⭐ TODO/enter.md T-1339. The rung the probe selects, decided where
+        // the payload is entered: a detached start on a namespace host
+        // enters the namespace rung like a foreground run does. The
+        // fallback line joins the container log beside the payload's own
+        // output: this process's stderr is /dev/null and the ready pipe
+        // carries only the start protocol, so the log is the one place the
+        // fallback stays readable.
+        let findings = podbox_probe::run();
+        let selection = podbox_probe::select::Selection::choose(&findings);
+        match podbox_enter::spawn_selected(&root, &plan, selection.rung, &mut entry_log) {
+            Ok(c) => c,
+            Err(e) => {
+                say(&format!("err {e}"));
+                return 1;
+            }
+        }
+    } else {
+        let exec_argv = container.userland_exec.clone();
+        match podbox_enter::spawn_userland(
+            &root,
+            &plan,
+            exec_argv,
+            podbox_probe::select::Rung::Userland.word(),
+            None,
+            &mut entry_log,
+        ) {
+            Ok(c) => c,
+            Err(e) => {
+                say(&format!("err {e}"));
+                return 1;
+            }
         }
     };
     drop(out);

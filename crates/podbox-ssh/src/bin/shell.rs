@@ -14,7 +14,8 @@
 //! session server serves sessions. Subsystem requests never reach this
 //! server: the generated daemon configuration defines no subsystems, so
 //! `sshd` refuses them itself. Every wait on the read side is bounded;
-//! writes block until the kernel takes them, like the relay legs.
+//! client writes carry `WRITE_DEADLINE` where the kernel allows one, and
+//! shell-stdin writes wait on a bounded worker naming that leg.
 
 #![forbid(unsafe_code)]
 

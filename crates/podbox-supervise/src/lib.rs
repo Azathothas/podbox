@@ -83,6 +83,11 @@ pub fn generated_name(id: &str) -> String {
 /// Write a `created` record. ⛔ Nothing is started here: `create` and `start`
 /// are two verbs because docker's are, and a `create` that started something
 /// would make `start` a no-op that reports success.
+///
+/// `userland_exec` is the detached userland drive TODO/enter.md T-1411
+/// records: the exact loader argv, empty everywhere else. The launcher
+/// execs it with no chroot where it is non-empty and enters through
+/// `spawn_selected` where it is empty.
 #[allow(clippy::too_many_arguments)]
 pub fn create(
     store: &Store,
@@ -96,6 +101,7 @@ pub fn create(
     rung: &str,
     completion: Vec<String>,
     completion_degraded: usize,
+    userland_exec: Vec<String>,
 ) -> Result<Container> {
     let id = new_id();
     let name = name
@@ -119,6 +125,7 @@ pub fn create(
         exit_code: None,
         noticed: None,
         rung: rung.to_string(),
+        userland_exec,
         completion,
         completion_degraded,
     };
@@ -504,6 +511,7 @@ mod tests {
             "chroot",
             Vec::new(),
             0,
+            Vec::new(),
         )
         .unwrap();
         assert!(table::dir(&s, &c.id).is_dir());
@@ -513,6 +521,51 @@ mod tests {
         let dest = table::memo_path(&s, &c.id);
         std::fs::rename(&src, &dest).unwrap();
         assert_eq!(std::fs::read(&dest).unwrap(), b"memo");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// TODO/enter.md T-1411. `create` stores the detached userland drive
+    /// beside the record, and a record without one keeps an empty drive:
+    /// the launcher branches on exactly this.
+    #[test]
+    fn creating_a_container_stores_the_userland_drive() {
+        let d = std::env::temp_dir().join(format!("podbox-drive-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let s = Store::open(&d).unwrap();
+        let drive = vec!["/r/lib/ld.so".to_string(), "/r/bin/sh".to_string()];
+        let c = create(
+            &s,
+            Some("u1"),
+            "img",
+            "sha256:0",
+            "/r",
+            vec!["sh".into()],
+            vec!["PODBOX_MAPS=/:/r".into()],
+            "/".into(),
+            "userland",
+            Vec::new(),
+            0,
+            drive.clone(),
+        )
+        .unwrap();
+        assert_eq!(c.userland_exec, drive);
+        assert_eq!(get(&s, "u1").unwrap().userland_exec, drive);
+        let c = create(
+            &s,
+            Some("u2"),
+            "img",
+            "sha256:0",
+            "/r",
+            vec!["true".into()],
+            Vec::new(),
+            "/".into(),
+            "chroot",
+            Vec::new(),
+            0,
+            Vec::new(),
+        )
+        .unwrap();
+        assert!(c.userland_exec.is_empty());
         let _ = std::fs::remove_dir_all(&d);
     }
 
@@ -536,6 +589,7 @@ mod tests {
                 "chroot",
                 Vec::new(),
                 0,
+                Vec::new(),
             )
             .unwrap()
         };
@@ -574,6 +628,7 @@ mod tests {
             "chroot",
             Vec::new(),
             0,
+            Vec::new(),
         )
         .unwrap();
         let log = table::log_path(&s, &c.id);

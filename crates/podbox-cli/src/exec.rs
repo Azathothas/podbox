@@ -39,8 +39,17 @@ usage: podbox exec [options] <image> <command> [arg...]
   --no-host-cas    as in run: leave the image's trust store alone
   --no-steps       as in run: run no COMMAND inside the rootfs before the
                    command asked for (TODO/complete.md T-0412)
+  --unsafe-host-paths
+                   as in run: userland rung only, opt into the pass-through
+                   with no PODBOX_MAPS anchoring (TODO/enter.md T-1407)
   --strict         refused: refuse to re-enter at all where anything about this
-                   invocation is Degraded or Stub (TODO/cli.md T-0804)
+                   invocation is Degraded or Stub (TODO/cli.md T-0804).
+                   Kind decides (TODO/cli.md T-1415): safety-relevant
+                   differences still refuse, dev-shim substitutions warn,
+                   and --strict=all keeps refusing every one
+  -q, --quiet      as in run: force the banner off (TODO/cli.md T-1416)
+  --verbose        as in run: print the banner; long-only, because -v is
+                   docker's --volume (TODO/cli.md T-1416)
   -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
                    than silently degraded (TODO/enter.md T-0503)
   --podbox-tier T  as in run: machine selects the machine tier, chroot the
@@ -95,6 +104,8 @@ struct Opts {
     /// `--podbox-mem`, the validated guest memory in bytes, refused outside
     /// the machine tier rather than silently dropped. TODO/podvm.md T-1305.
     mem: Option<u64>,
+    /// `--unsafe-host-paths`, as in `run`: the userland opt-out.
+    unsafe_host_paths: bool,
     ask: crate::complete::Ask,
 }
 
@@ -122,6 +133,7 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
         tier: None,
         qemu_args: Vec::new(),
         mem: None,
+        unsafe_host_paths: false,
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -170,6 +182,8 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
                 return Err(0);
             }
             "-t" | "--tty" => o.tty = true,
+            "-q" | "--quiet" => o.ask.quiet = true,
+            "--verbose" => o.ask.verbose = true,
             "-i" | "--interactive" => {
                 // ⚠ Accepted and a no-op, as in `run`: podbox does not detach
                 // stdin, so it is already interactive when the caller's is.
@@ -189,6 +203,19 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
             "--no-host-cas" => o.ask.no_host_cas = true,
             "--no-steps" => o.ask.no_steps = true,
             "--strict" => o.ask.strict = true,
+            "--unsafe-host-paths" => o.unsafe_host_paths = true,
+            other if other.starts_with("--strict=") => match &other[9..] {
+                // ⭐ T-1415, as in `run`: `--strict=all` keeps refusing
+                // every Degraded and Stub difference.
+                "all" => {
+                    o.ask.strict = true;
+                    o.ask.strict_all = true;
+                }
+                v => {
+                    eprintln!("podbox exec: --strict takes all or nothing, not {v:?}");
+                    return Err(EXIT_FLAG_ERROR);
+                }
+            },
             other if other.starts_with("--env=") => o.env.push(other[6..].to_string()),
             other if other.starts_with("--user=") => o.user = Some(other[7..].to_string()),
             other if other.starts_with("--workdir=") => o.workdir = Some(other[10..].to_string()),
@@ -292,17 +319,21 @@ fn enter(
     if let Err(code) = crate::lifecycle::apply_user("exec", rootfs, o.user.as_ref(), &mut env) {
         return code;
     }
-    // ⭐ T-0710: the container's host memo, re-handed on this fresh re-entry.
-    // A fresh chroot shares only the filesystem; without the same descriptor
-    // a second process answers `stat` with the real uid and contradicts the
-    // first, so an entry that cannot be handed one refuses.
-    let memo_path = match podbox_supervise::get(store, target) {
-        Ok(c) => podbox_supervise::table::memo_path(store, &c.id),
+    // ⭐ T-0505's record, read once: the memo below, the device spec, the
+    // container's own image name for the workdir refusal, and the image
+    // record the entry decision reads the architecture from.
+    let container = match podbox_supervise::get(store, target) {
+        Ok(c) => c,
         Err(e) => {
             eprintln!("podbox exec: {e}");
             return podbox_image::error::EXIT_RUNTIME_ERROR;
         }
     };
+    // ⭐ T-0710: the container's host memo, re-handed on this fresh re-entry.
+    // A fresh chroot shares only the filesystem; without the same descriptor
+    // a second process answers `stat` with the real uid and contradicts the
+    // first, so an entry that cannot be handed one refuses.
+    let memo_path = podbox_supervise::table::memo_path(store, &container.id);
     if let Err(e) = podbox_supervise::table::ensure_memo_file(&memo_path) {
         eprintln!("podbox exec: the ownership memo could not be created: {e}");
         return podbox_image::error::EXIT_RUNTIME_ERROR;
@@ -315,17 +346,11 @@ fn enter(
     // (docker's `exec` sees them), so the spec is read from the record
     // and opened fresh here rather than inherited. A spec gone bad
     // since `create` refuses the exec naming it.
-    let exec_devices = match podbox_supervise::get(store, target) {
-        Ok(c) => match podbox_enter::device::specs_of(&c.env) {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("podbox exec: {e}");
-                return e.exit_code();
-            }
-        },
+    let exec_devices = match podbox_enter::device::specs_of(&container.env) {
+        Ok(s) => s,
         Err(e) => {
             eprintln!("podbox exec: {e}");
-            return podbox_image::error::EXIT_RUNTIME_ERROR;
+            return e.exit_code();
         }
     };
     podbox_enter::device::push_spec(&mut env, &exec_devices);
@@ -339,6 +364,61 @@ fn enter(
         eprintln!("{e}");
         return podbox_image::error::EXIT_RUNTIME_ERROR;
     }
+    let findings = podbox_probe::run();
+    // ⭐ TODO/enter.md T-1410. The image record behind the container, read
+    // for the architecture the entry decision needs: a refusal here names
+    // the lookup, because without it no rung can be decided safely.
+    let record = match store.find_one(&container.image) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("podbox exec: {target}: the image record cannot be read: {e}");
+            return podbox_image::error::EXIT_RUNTIME_ERROR;
+        }
+    };
+    // ⭐ TODO/milestones.md T-1112, as on the image path below and in
+    // `run`'s `prepare`: the OS gate sits on every entry path.
+    if let Err(code) =
+        crate::lifecycle::ensure_linux_guest("exec", &record.os, &record.architecture)
+    {
+        return code;
+    }
+    let host = Platform::host();
+    let support_native = matches!(
+        podbox_enter::binfmt::support_for(&record.architecture, &host.arch),
+        podbox_enter::binfmt::Support::Native
+    );
+    // ⭐ TODO/enter.md T-1410. `exec` and `run` share the entry decision:
+    // where chroot is denied the loader and memfd families drive, with
+    // T-0505's fresh-entry contract unchanged (separate banners, separate
+    // records). A refusal names the blocking call.
+    let userland = match crate::lifecycle::decide_entry(
+        "exec",
+        rootfs,
+        &o.command,
+        &env,
+        support_native,
+        &findings,
+    ) {
+        Ok(u) => u,
+        Err(code) => return code,
+    };
+    // ⭐ The loader transform, mirroring `run`'s `prepare`: without a
+    // chroot the loader resolves guest paths on the host root, so the
+    // preload becomes the host path and the libraries come from the
+    // image. A caller preload naming guest paths is dropped and named.
+    let mut dropped_preload: Option<String> = None;
+    if let Some(u) = &userland {
+        if u.family == podbox_enter::userland::Family::Loader {
+            let (hosted, dropped) = podbox_enter::userland::host_env(
+                rootfs,
+                crate::interpose::GUEST_PATH,
+                &env,
+                &u.lib_dirs,
+            );
+            env = hosted;
+            dropped_preload = dropped;
+        }
+    }
     let path_dirs = podbox_enter::Plan::path_from(&env);
     // ⭐ TODO/complete.md T-0413: the re-entered payload's guest path, as in
     // `run`'s `prepare`. A fresh chroot re-entry is a fresh payload.
@@ -348,10 +428,38 @@ fn enter(
         o.command.first().map(String::as_str).unwrap_or(""),
         &path_dirs,
     );
+    // ⭐ TODO/enter.md T-1407 and T-1409, as in `run`'s `prepare`: the
+    // root-anchoring table (or the explicit opt-out) and the loader
+    // exe-force join here, banner-named below.
+    let mut userland_note = String::new();
+    // ⭐ T-1415, as in `run`'s `prepare`: the gate below reads what
+    // `userland_env` decided, not the flag beside it.
+    let mut strict_unsafe = false;
+    if let Some(u) = &userland {
+        match crate::lifecycle::userland_env("exec", rootfs, env, u.family, o.unsafe_host_paths) {
+            Ok(ue) => {
+                env = ue.env;
+                userland_note = ue.banner;
+                strict_unsafe = ue.unsafe_paths;
+            }
+            Err(code) => return code,
+        }
+    }
     let working_dir = o.workdir.clone().unwrap_or_else(|| "/".to_string());
-    let findings = podbox_probe::run();
+    // ⭐ TODO/enter.md T-1412, as in `run`'s `prepare`: the workdir is
+    // checked before the fork and before any fixup mutates the rootfs. The
+    // image named is the container's own, read from its record above.
+    if let Err(e) = podbox_enter::check_workdir(rootfs, &working_dir, &container.image) {
+        eprintln!("podbox exec: {e}");
+        return e.exit_code();
+    }
     let selection = podbox_probe::select::Selection::choose(&findings);
-    let entered = podbox_enter::ENTERED_RUNG;
+    // ⭐ T-0804 rule 4, as in `run`'s `prepare`: the banner is built from
+    // the rung `exec` ENTERS with, chrooted or userland.
+    let entered = userland
+        .as_ref()
+        .map(|_| podbox_probe::select::Rung::Userland)
+        .unwrap_or(podbox_enter::ENTERED_RUNG);
     let mut banner = podbox_probe::report::entry_banner(&findings, &selection, entered);
     if let Some(note) = crate::names::alias_note() {
         banner.push_str(&note);
@@ -362,6 +470,19 @@ fn enter(
     // mappings, so it names them like the entry did.
     for m in &exec_devices {
         banner.push_str(&podbox_enter::device::banner_line(m));
+    }
+    // ⭐ TODO/enter.md T-1317, T-1407 and T-1409: the family account and
+    // the anchoring beside it, as in `run`'s `prepare`.
+    if let Some(u) = &userland {
+        banner.push_str(&u.banner);
+        banner.push('\n');
+        if let Some(d) = &dropped_preload {
+            banner.push_str(&format!(
+                "podbox: userland: caller LD_PRELOAD {d:?} dropped: it names guest \
+                 paths, which resolve on the host without a chroot\n"
+            ));
+        }
+        banner.push_str(&userland_note);
     }
     // ⭐ M5. `exec` completes the rootfs exactly as `run` does, and for the same
     // reason: a fresh chroot re-entry is a fresh payload, and the `/dev/null` a
@@ -376,13 +497,26 @@ fn enter(
     // ⭐ T-0804 rule 1, and ahead of every refusal below for `run`'s own
     // reasons: a refused caller gets the banner too, and T-0412's steps have to
     // be named before they run.
-    let quiet = crate::complete::banner_quiet(store);
-    if !quiet {
+    // ⭐ TODO/cli.md T-1416: quiet by default, the banner under
+    // `--verbose`; a refusal still prints, because it never passes
+    // through here.
+    let loud = crate::complete::banner_loud(store, &ask);
+    let quiet = !loud;
+    if loud {
         let _ = write!(err, "{banner}");
     }
-    if let Err(code) =
-        crate::complete::strict_refusal("exec", &ask, entered.word(), &completion, &mut err)
-    {
+    if let Err(code) = crate::complete::strict_refusal(
+        "exec",
+        &ask,
+        entered.word(),
+        &completion,
+        &mut err,
+        &crate::complete::StrictCtx {
+            chroot_usable: podbox_probe::probes::chroot_usable(&findings),
+            unsafe_host_paths: strict_unsafe,
+            preload_dropped: dropped_preload.is_some(),
+        },
+    ) {
         return code;
     }
     if o.tty && !podbox_probe::probes::ptmx_usable(&findings) {
@@ -441,12 +575,24 @@ fn enter(
             return e.exit_code();
         }
     };
-    match podbox_enter::run(&root, &plan, &mut err) {
-        Ok(c) => c,
-        Err(e) => {
-            let _ = writeln!(err, "podbox exec: {e}");
-            e.exit_code()
+    // ⭐ TODO/enter.md T-1410. The shared entry decision drives here: the
+    // userland families through the one shared drive, the chroot sequence
+    // as before. The container's memo is the container's own, so nothing
+    // ephemeral is removed on any path out.
+    match &userland {
+        Some(u) => {
+            let outcome =
+                crate::lifecycle::enter_userland("exec", &root, &plan, u, rootfs, &mut err);
+            drop(memo);
+            outcome.code
         }
+        None => match podbox_enter::run(&root, &plan, &mut err) {
+            Ok(c) => c,
+            Err(e) => {
+                let _ = writeln!(err, "podbox exec: {e}");
+                e.exit_code()
+            }
+        },
     }
 }
 
@@ -601,6 +747,42 @@ pub fn exec(args: &[String]) -> i32 {
         let _ = std::fs::remove_file(&memo_host_path);
         return podbox_image::error::EXIT_RUNTIME_ERROR;
     }
+    let findings = podbox_probe::run();
+    // ⭐ TODO/enter.md T-1410. The image path shares the entry decision
+    // with `run` and with the container path above: where chroot is
+    // denied the loader and memfd families drive. A refusal names the
+    // blocking call.
+    let host = Platform::host();
+    let support_native = matches!(
+        podbox_enter::binfmt::support_for(&record.architecture, &host.arch),
+        podbox_enter::binfmt::Support::Native
+    );
+    let userland = match crate::lifecycle::decide_entry(
+        "exec",
+        &rootfs,
+        &argv,
+        &env,
+        support_native,
+        &findings,
+    ) {
+        Ok(u) => u,
+        Err(code) => return code,
+    };
+    // ⭐ The loader transform and the maps/exe-force, as on the container
+    // path above and in `run`'s `prepare`.
+    let mut dropped_preload: Option<String> = None;
+    if let Some(u) = &userland {
+        if u.family == podbox_enter::userland::Family::Loader {
+            let (hosted, dropped) = podbox_enter::userland::host_env(
+                &rootfs,
+                crate::interpose::GUEST_PATH,
+                &env,
+                &u.lib_dirs,
+            );
+            env = hosted;
+            dropped_preload = dropped;
+        }
+    }
     let path_dirs = Plan::path_from(&env);
     // ⭐ TODO/complete.md T-0413: the re-entered payload's guest path, as in
     // `run`'s `prepare` and the container path above.
@@ -610,15 +792,42 @@ pub fn exec(args: &[String]) -> i32 {
         argv.first().map(String::as_str).unwrap_or(""),
         &path_dirs,
     );
+    // ⭐ TODO/enter.md T-1407 and T-1409, as above: the table and the
+    // loader exe-force join here, banner-named below.
+    let mut userland_note = String::new();
+    // ⭐ T-1415, as above: the gate below reads what `userland_env`
+    // decided, not the flag beside it.
+    let mut strict_unsafe = false;
+    if let Some(u) = &userland {
+        match crate::lifecycle::userland_env("exec", &rootfs, env, u.family, o.unsafe_host_paths) {
+            Ok(ue) => {
+                env = ue.env;
+                userland_note = ue.banner;
+                strict_unsafe = ue.unsafe_paths;
+            }
+            Err(code) => return code,
+        }
+    }
     let working_dir = o
         .workdir
         .clone()
         .unwrap_or_else(|| cfg.config.working_dir.clone());
+    // ⭐ TODO/enter.md T-1412, as in `run`'s `prepare` and the container
+    // path above: refused naming the path and the image before any fixup
+    // mutates the rootfs.
+    if let Err(e) = podbox_enter::check_workdir(&rootfs, &working_dir, &image) {
+        eprintln!("podbox exec: {e}");
+        return e.exit_code();
+    }
 
     // ------------------------------------------------------------- the banner
-    let findings = podbox_probe::run();
     let selection = podbox_probe::select::Selection::choose(&findings);
-    let entered = podbox_enter::ENTERED_RUNG;
+    // ⭐ T-0804 rule 4, as on the container path above: the banner names
+    // the rung this re-entry takes, chrooted or userland.
+    let entered = userland
+        .as_ref()
+        .map(|_| podbox_probe::select::Rung::Userland)
+        .unwrap_or(podbox_enter::ENTERED_RUNG);
     let mut banner = podbox_probe::report::entry_banner(&findings, &selection, entered);
     // ⭐ TODO/cli.md T-0803. Where podbox was reached under somebody else's
     // name, the banner says which name was used and that this is podbox.
@@ -629,6 +838,19 @@ pub fn exec(args: &[String]) -> i32 {
     }
     banner.push_str(&degradation());
     banner.push_str(&interpose_note);
+    // ⭐ TODO/enter.md T-1317, T-1407 and T-1409: the family account and
+    // the anchoring beside it, as on the container path above.
+    if let Some(u) = &userland {
+        banner.push_str(&u.banner);
+        banner.push('\n');
+        if let Some(d) = &dropped_preload {
+            banner.push_str(&format!(
+                "podbox: userland: caller LD_PRELOAD {d:?} dropped: it names guest \
+                 paths, which resolve on the host without a chroot\n"
+            ));
+        }
+        banner.push_str(&userland_note);
+    }
     // ⭐ M5. The same completion the container path takes, from the same
     // function: two entry paths that complete a rootfs differently would be two
     // answers to one question, and the one nobody exercises is the one that
@@ -642,13 +864,24 @@ pub fn exec(args: &[String]) -> i32 {
 
     let mut err = std::io::stderr().lock();
     // ⭐ T-0804 rule 1, ahead of the refusals: see the container path above.
-    let quiet = crate::complete::banner_quiet(&store);
-    if !quiet {
+    // ⭐ TODO/cli.md T-1416: quiet by default, the banner under `--verbose`.
+    let loud = crate::complete::banner_loud(&store, &ask);
+    let quiet = !loud;
+    if loud {
         let _ = write!(err, "{banner}");
     }
-    if let Err(code) =
-        crate::complete::strict_refusal("exec", &ask, entered.word(), &completion, &mut err)
-    {
+    if let Err(code) = crate::complete::strict_refusal(
+        "exec",
+        &ask,
+        entered.word(),
+        &completion,
+        &mut err,
+        &crate::complete::StrictCtx {
+            chroot_usable: podbox_probe::probes::chroot_usable(&findings),
+            unsafe_host_paths: strict_unsafe,
+            preload_dropped: dropped_preload.is_some(),
+        },
+    ) {
         return code;
     }
     if o.tty {
@@ -723,12 +956,22 @@ pub fn exec(args: &[String]) -> i32 {
         let _ = std::fs::remove_file(&memo_host_path);
         return podbox_image::error::EXIT_RUNTIME_ERROR;
     }
-    let code = match podbox_enter::run(&root, &plan, &mut err) {
-        Ok(c) => c,
-        Err(e) => {
-            let _ = writeln!(err, "podbox exec: {e}");
-            e.exit_code()
+    // -------------------------------------------------------------- the entry
+    // ⭐ TODO/enter.md T-1410. The shared entry decision drives here too:
+    // the userland families through the one shared drive, the chroot
+    // sequence as before. The ephemeral memo is removed on every path
+    // out, as before.
+    let code = match &userland {
+        Some(u) => {
+            crate::lifecycle::enter_userland("exec", &root, &plan, u, &rootfs, &mut err).code
         }
+        None => match podbox_enter::run(&root, &plan, &mut err) {
+            Ok(c) => c,
+            Err(e) => {
+                let _ = writeln!(err, "podbox exec: {e}");
+                e.exit_code()
+            }
+        },
     };
     drop(memo);
     let _ = std::fs::remove_file(&memo_host_path);
@@ -741,6 +984,20 @@ mod tests {
 
     fn v(xs: &[&str]) -> Vec<String> {
         xs.iter().map(|s| (*s).to_string()).collect()
+    }
+
+    /// ⭐ TODO/cli.md T-1416, as in `run`: `-q` forces the banner off,
+    /// `--verbose` prints it, and `-v` stays the refused volume flag.
+    #[test]
+    fn quiet_and_verbose_parse() {
+        let o = parse(&v(&["-q", "img", "true"])).unwrap();
+        assert!(o.ask.quiet);
+        let o = parse(&v(&["--verbose", "img", "true"])).unwrap();
+        assert!(o.ask.verbose);
+        assert_eq!(
+            parse(&v(&["-v", "img", "true"])).unwrap_err(),
+            EXIT_FLAG_ERROR
+        );
     }
 
     #[test]

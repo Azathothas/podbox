@@ -33,7 +33,7 @@
 //! ⛔ **No allocation and no locks on this path**, T-0701's constraint 2.
 //! Every buffer here is on the caller's stack, including the fixture.
 
-use core::ffi::{c_int, c_uint, c_void};
+use core::ffi::{c_char, c_int, c_uint, c_void};
 
 /// The variable carrying the payload's resolved guest path into the payload.
 ///
@@ -43,6 +43,82 @@ use core::ffi::{c_int, c_uint, c_void};
 /// `memo::MEMO_FD_VAR` duplicates the host's spelling: this object takes no
 /// dependency on the rest of the tree.
 pub const GUEST_EXE_VAR: &[u8] = b"PODBOX_GUEST_EXE";
+
+/// The flag gating the loader-family exe override, T-1409.
+///
+/// Set to `1` by `podbox-cli` on loader-family userland entries (and only
+/// there): entering through the loader leaves `/proc/self/exe` pointing at
+/// the loader, so the payload would see the loader's path instead of its
+/// own. Where set, the `/proc/self/exe` shapes answer from [`GUEST_EXE_VAR`]
+/// even where the real call succeeds (host `/proc` mounted). Where absent
+/// everything behaves as before: the emulation answers only where the real
+/// call fails, so a stale or foreign value can never poison a truth the
+/// kernel still answers.
+///
+/// ⛔ The substitution itself says nothing here: it fires on every matching
+/// call, and a line per call would flood the payload's stderr. The CLI names
+/// it once on the banner, which is the banner-visible half T-1409 requires.
+pub const GUEST_EXE_FORCE_VAR: &[u8] = b"PODBOX_GUEST_EXE_FORCE";
+
+/// Whether the flag value asks for the override: exactly `1`.
+///
+/// Pure over the value, so the wrappers and the unit test read the same
+/// words. Anything else (absent, empty, another spelling) is off: an
+/// accidental value must never reroute what the payload sees itself as.
+pub fn parse_exe_override(value: &[u8]) -> bool {
+    value == b"1"
+}
+
+/// Is the loader-family override on for this process?
+///
+/// Read straight out of the process's own environ, the way `map` reads its
+/// table: no libc call, no lock, no allocation.
+///
+/// # Safety
+/// Reads the process's environ, which the kernel keeps valid for the
+/// process's life.
+pub(crate) unsafe fn exe_override_enabled() -> bool {
+    let Some((p, n)) = (unsafe { crate::map::lookup_env(GUEST_EXE_FORCE_VAR) }) else {
+        return false;
+    };
+    parse_exe_override(unsafe { core::slice::from_raw_parts(p, n) })
+}
+
+/// Should `path` (NUL-terminated, as the kernel took it) be answered from
+/// the guest exe even where the real call succeeds?
+///
+/// Pure over the flag and the spelling, so the wrappers and the unit test
+/// read the same words: exactly `/proc/self/exe` with the flag on, and
+/// nothing else. No mapping can win over this spelling: the `/proc` leaves
+/// never rewrite (the builtin exclusion), so the wrappers ask before
+/// consulting the table.
+pub fn should_override_exe(override_on: bool, path_with_nul: &[u8]) -> bool {
+    override_on && is_self_exe(path_with_nul)
+}
+
+/// Should the raw C `path` be answered from the guest exe?
+///
+/// The flag plus the exact spelling, length-capped like every other path
+/// here. False on a null pointer, an uncapped path, or an empty one: none
+/// of those is a spelling the kernel took.
+///
+/// # Safety
+/// `path` must be readable up to its NUL within `OUT` bytes, which is what
+/// every entry point passes.
+pub(crate) unsafe fn exe_override_hit(path: *const c_char) -> bool {
+    if path.is_null() {
+        return false;
+    }
+    if !unsafe { exe_override_enabled() } {
+        return false;
+    }
+    let n = crate::map::strnlen(path, crate::map::OUT);
+    if n == 0 || n >= crate::map::OUT {
+        return false;
+    }
+    let bytes = unsafe { core::slice::from_raw_parts(path as *const u8, n + 1) };
+    should_override_exe(true, bytes)
+}
 
 extern "C" {
     fn fstatfs(fd: c_int, buf: *mut c_void) -> c_int;
@@ -915,6 +991,25 @@ mod tests {
         assert!(!is_self_exe(&z(b"/proc/self/exe/")));
         assert!(!is_self_exe(&z(b"/proc/self/cwd")));
         assert!(!is_self_exe(b"/proc/self/exe"));
+    }
+
+    /// T-1409: exactly `1` arms the loader-family override, and only the
+    /// exe spelling answers from the guest even where the real call
+    /// succeeds. Anything else stays on the old rule (emulation only where
+    /// the real call fails), so an accidental value never reroutes what the
+    /// payload sees itself as.
+    #[test]
+    fn the_exe_override_needs_its_flag_and_its_spelling() {
+        assert!(parse_exe_override(b"1"));
+        assert!(!parse_exe_override(b""));
+        assert!(!parse_exe_override(b"0"));
+        assert!(!parse_exe_override(b"true"));
+        assert!(!parse_exe_override(b"11"));
+        assert!(should_override_exe(true, &z(b"/proc/self/exe")));
+        assert!(!should_override_exe(false, &z(b"/proc/self/exe")));
+        assert!(!should_override_exe(true, &z(b"/proc/self/cwd")));
+        assert!(!should_override_exe(true, &z(b"/proc/self/exe/")));
+        assert!(!should_override_exe(true, b"/proc/self/exe"));
     }
 
     #[test]

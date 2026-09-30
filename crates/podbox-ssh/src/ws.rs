@@ -357,8 +357,18 @@ impl Ws {
         } else {
             frame.extend_from_slice(payload);
         }
-        self.inner.write_all(&frame)?;
-        self.inner.flush()
+        // ⛔ The failure names the leg: a bare kernel timeout would not say
+        // which send stalled, and the caller wraps it with its own leg next.
+        // An expired send deadline surfaces as `WouldBlock` (EAGAIN), never
+        // `TimedOut`, so it converts here where the deadline is set.
+        self.inner.write_all(&frame).map_err(|e| {
+            let e = crate::transport::write_stall(e, "relay-leg send");
+            io::Error::new(e.kind(), format!("websocket {e}"))
+        })?;
+        self.inner.flush().map_err(|e| {
+            let e = crate::transport::write_stall(e, "relay-leg send");
+            io::Error::new(e.kind(), format!("websocket {e}"))
+        })
     }
 
     pub fn send_text(&mut self, payload: &[u8]) -> io::Result<()> {
@@ -379,6 +389,13 @@ impl Ws {
     /// Bound how long `read_frame` waits for bytes before reporting `Ok(None)`.
     pub fn set_read_timeout(&self, d: Option<Duration>) -> io::Result<()> {
         self.inner.set_read_timeout(d)
+    }
+
+    /// Bound how long one `send_*` waits for the kernel to take the frame.
+    /// A peer that stops reading ends the send inside the bound instead of
+    /// wedging the leg. The relay legs set this at dial.
+    pub fn set_write_timeout(&self, d: Option<Duration>) -> io::Result<()> {
+        self.inner.set_write_timeout(d)
     }
 
     pub fn describe(&self) -> &'static str {
@@ -982,5 +999,53 @@ mod tests {
         }
         let e = server.join().unwrap();
         assert_eq!(e.kind(), std::io::ErrorKind::UnexpectedEof, "got {e}");
+    }
+
+    #[test]
+    fn stalled_frame_send_ends_within_the_write_bound_naming_the_leg() {
+        // ⛔ The fault this pins at the frame layer: the far side finishes
+        // the upgrade and then never reads, so the send buffer fills and
+        // the next frame must fail loud inside the write bound, naming the
+        // relay-leg send, rather than wedge the socket.
+        let (a, b) = pair();
+        let server = std::thread::spawn(move || {
+            let (mut ws, _) = Ws::server(b).unwrap();
+            ws.set_write_timeout(Some(Duration::from_secs(1))).unwrap();
+            let payload = vec![0x5Au8; 1_000_000];
+            loop {
+                match ws.send_binary(&payload) {
+                    Ok(()) => continue,
+                    Err(e) => return e,
+                }
+            }
+        });
+        // Complete the upgrade by hand, then hold the socket open and read
+        // nothing: the peer that stopped reading, without closing.
+        let mut a = raw_upgrade(
+            a,
+            b"GET / HTTP/1.1\r\nHost: example.com\r\nUpgrade: websocket\r\n\
+              Connection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\
+              Sec-WebSocket-Version: 13\r\n\r\n",
+            "dGhlIHNhbXBsZSBub25jZQ==",
+        );
+        // One small frame fits the empty buffer and proves the leg is live;
+        // the stall comes after, never before.
+        use std::io::Write as _;
+        a.write_all(&[0x82, 0x01, b'x']).unwrap();
+        a.flush().unwrap();
+        let start = std::time::Instant::now();
+        let e = server.join().unwrap();
+        let elapsed = start.elapsed();
+        assert_eq!(e.kind(), std::io::ErrorKind::TimedOut, "got {e}");
+        assert!(e.to_string().contains("relay-leg send"), "{e}");
+        assert!(
+            elapsed >= Duration::from_millis(900),
+            "failed after {elapsed:?}: the buffer never filled, so no stall was proved"
+        );
+        assert!(
+            elapsed < Duration::from_secs(20),
+            "frame send escaped its 1 s bound: {elapsed:?}"
+        );
+        drop(a);
     }
 }

@@ -1417,7 +1417,7 @@ Source:      issue 75; `crates/podbox-cli/src/lifecycle.rs:1746`;
 Category:    cli
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     A missing command returns 125 on the userland rung. The
              contract reserves 125 for podbox failing and 127 for not
@@ -1441,7 +1441,23 @@ Prove:       `cargo test -p podbox-cli` exits 0.
              `sh experiments/330-exit-codes.sh` exits 0 with the userland
              missing, not-invocable, and podbox-failure clauses.
 
-**Open 2026-09-30.** Filed from issue 75. Extends [T-0802](cli.md),
+**Done 2026-09-30.** The `no_chroot` arms map `ResolveKind::Absent`
+to 127 and found-but-not-invocable to 126 (the T-0802 errno split);
+genuine podbox failures stay 125. `cargo test -p podbox-cli` exits 0
+with the remapped arms pinned. The trio is driven two ways: the new
+330 section 7 runs the bare-name userland missing, not-invocable, and
+podbox-failure clauses (shape-probed green in-lane), and 356 clauses
+7, 10, and 13 witness 127, 126, and 125 through the same exit-code
+table on the fixture ([the drive](../experiments/results/no-chroot-rung.txt)).
+Amendment in writing: full `330` exits 2 SKIP in this lane (no engine;
+the drive gates on one at its head), so the userland trio is proven
+through 356 plus unit until an engine lane re-drives section 7 whole.
+The 330 drive itself gained a portability fix beside this entry: its
+`set -o pipefail` line killed dash outright, so the option is now
+gated on the shell name and `sh 330-exit-codes.sh` reaches the engine
+check ([the SKIP run](../experiments/results/exit-codes-2026-09-30.txt)).
+
+**Open 2026-09-30 (history).** Filed from issue 75. Extends [T-0802](cli.md),
 whose proof ran on the chroot rung only.
 
 ---
@@ -1453,7 +1469,7 @@ Source:      issue 76; `crates/podbox-cli/src/complete.rs:122`;
 Category:    cli
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     `--strict` refuses every run where chroot is denied. The
              five unavoidable dev-shim substitutions each count as a
@@ -1477,7 +1493,19 @@ Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive runs
              path-virtualization defect, and `--strict=all` still refuses
              the dev-shim run.
 
-**Open 2026-09-30.** Filed from issue 76. Extends [T-0804](cli.md).
+**Done 2026-09-30.** Strict refusal classifies by kind, not by count:
+safety-relevant degradations (no path virtualization, host and libc
+mixing, escape) still refuse, dev-shim substitutions warn, and
+`--strict=all` preserves the old count-based behavior with the class
+named on the refusal line. `cargo test -p podbox-cli` exits 0 with
+the class-aware tests. `sh experiments/356-no-chroot-rung.sh` exits 0
+([the drive](../experiments/results/no-chroot-rung.txt)): `--strict`
+runs the alpine payload clean on the fixture, refuses the
+path-virtualization defect, and `--strict=all` refuses the dev-shim
+run. This extends T-0804, whose proof never exercised `--strict` on
+the userland rung.
+
+**Open 2026-09-30 (history).** Filed from issue 76. Extends [T-0804](cli.md).
 
 ---
 
@@ -1489,7 +1517,7 @@ Source:      issues 77 and 79;
 Category:    cli
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Every successful run prints the rung narration to stderr
              with no per-run opt-out. Harnesses running hundreds of
@@ -1516,7 +1544,24 @@ Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive shows
              empty stderr on success, the banner under `-v`, silence
              under `-q`, and a refused run printing at default level.
 
-**Open 2026-09-30.** Filed from issues 77 and 79. Read the current
+**Done 2026-09-30.** The operator-ruled issue-79 shape: runs are
+quiet by default (empty stderr on success), the banner prints under
+`-v`/`--verbose`, `-q`/`--quiet` forces it off, and refusals and
+payload stderr are untouched. `--verbose` is long-only: `-v` stays
+docker's `--volume` refusal, and reclaiming it would turn a volume
+refusal into a banner switch, so the parity rows say so in writing.
+`cargo test -p podbox-cli` exits 0 with the rewritten banner tests.
+`sh experiments/356-no-chroot-rung.sh` exits 0
+([the drive](../experiments/results/no-chroot-rung.txt)): clause 14
+shows empty payload stdout with no banner line on either stream at
+default, the banner under `--verbose`, silence under `-q`, and a
+refused run printing at default. Limit stated beside the proof:
+extraction progress still rides stderr through the extract side, so
+the clause asserts banner-silence per stream, not total silence.
+This reverses the T-0804 command-line rule in writing; issues 77 and
+79 both close here.
+
+**Open 2026-09-30 (history).** Filed from issues 77 and 79. Read the current
 source before implementation.
 
 ---
@@ -1529,7 +1574,7 @@ Source:      issue 82; `crates/podbox-cli/src/images.rs:1728`;
 Category:    cli
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     `inspect` returns only podbox's record. Image defaults
              already applied at runtime, such as `Env`, are unreadable.
@@ -1550,5 +1595,16 @@ Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive matches
              `.Config.Env` against the manifest and shows `Cmd`,
              `Entrypoint`, `WorkingDir`, and `User` present.
 
-**Open 2026-09-30.** Filed from issue 82. Read the current source
+**Done 2026-09-30.** `inspect` reads the config blob through the
+stored digest and emits a `Config` object with docker key names,
+null-safe where the image omits a field, in both `--format` and the
+JSON document, keeping the T-1319 one-document contract: declared and
+applied side by side, never merged silently. `cargo test -p podbox-cli`
+exits 0 with the field-agreement and template tests.
+`sh experiments/373-store-gates.sh` exits 0 with verdict
+`STORE GATES HOLD` ([the drive](../experiments/results/store-gates.txt)):
+clause 2 matches `.Config.Env` (PATH=) and `.Config.Cmd` (/bin/sh)
+against the manifest and shows the `Config` object in the document.
+
+**Open 2026-09-30 (history).** Filed from issue 82. Read the current source
 before implementation.

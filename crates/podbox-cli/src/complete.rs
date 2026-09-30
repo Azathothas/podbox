@@ -37,6 +37,13 @@ pub struct Ask {
     pub no_steps: bool,
     /// `--strict`. T-0804.
     pub strict: bool,
+    /// `-q`, `--quiet`. T-1416: force the banner off.
+    pub quiet: bool,
+    /// `--verbose`. T-1416: print the banner.
+    pub verbose: bool,
+    /// `--strict=all`. T-1415: the T-0804 behavior, refusing every
+    /// Degraded and Stub difference including dev-shim substitutions.
+    pub strict_all: bool,
     /// Every flag this invocation actually passed, in the caller's spelling, so
     /// `--strict` can look each one up. ⚠ Collected by the parser rather than
     /// re-derived: a flag that took a value is one argument here and two on the
@@ -52,6 +59,27 @@ pub struct Ask {
 /// file a machine's operator sets once, so a single run cannot hide what it is.
 pub const CONFIG_FILE: &str = "config";
 pub const BANNER_KEY: &str = "banner";
+
+/// Whether the banner prints on this run.
+///
+/// TODO/cli.md T-1416. Operator ruling 2026-09-30 (issues 77 and 79),
+/// REVERSING the T-0804 command-line rule in writing: quiet by default
+/// (empty stderr on success), the banner under `--verbose`, and
+/// `-q`/`--quiet` forcing it off. Refusals and payload stderr are
+/// untouched by this switch: it silences a notice, never a refusal. The
+/// store config's `banner = quiet` still forces off, as before.
+///
+/// ⛔ `-v` is NOT the verbose switch: `run -v` is docker's `--volume`,
+/// refused by the parity table with status None, and bundled clusters
+/// expand before admission, so reclaiming `-v` would turn a volume
+/// refusal into a banner switch. The verbose switch is long-only
+/// `--verbose`, and `-q`/`--quiet` is the force-off.
+pub fn banner_loud(store: &podbox_image::Store, ask: &Ask) -> bool {
+    if ask.quiet || banner_quiet(store) {
+        return false;
+    }
+    ask.verbose
+}
 
 /// Is the banner suppressed on this machine? ⛔ Default no, always.
 pub fn banner_quiet(store: &podbox_image::Store) -> bool {
@@ -119,17 +147,116 @@ pub fn prepare(
 ///
 /// ⚠ Called after the banner is built and before the payload starts, so a
 /// caller that is refused still gets the whole account of why.
+///
+/// ⭐ TODO/cli.md T-1415. Kind decides, count no longer does: each reason
+/// carries its class (see [`classify_strict`]). `--strict` refuses the
+/// safety class and warns on the substitution class; `--strict=all` keeps
+/// the T-0804 behavior and refuses every reason.
 pub fn strict_refusal(
     verb: &str,
     ask: &Ask,
     rung: &str,
     report: &podbox_complete::Report,
     err: &mut dyn Write,
+    ctx: &StrictCtx,
 ) -> Result<(), i32> {
     if !ask.strict {
         return Ok(());
     }
-    let mut reasons: Vec<String> = Vec::new();
+    let reasons = classify_strict(verb, ask, rung, report, ctx);
+    if reasons.is_empty() {
+        return Ok(());
+    }
+    if ask.strict_all {
+        let _ = writeln!(
+            err,
+            "podbox {verb}: --strict=all, and this run is degraded in {} way(s). \
+             podbox refuses rather than running and letting the payload discover \
+             them (TODO/cli.md T-0804, T-1415):",
+            reasons.len()
+        );
+        for (kind, r) in &reasons {
+            let _ = writeln!(err, "  - [{}] {r}", kind.word());
+        }
+        return Err(EXIT_RUNTIME_ERROR);
+    }
+    let (safety, substitution): (Vec<_>, Vec<_>) = reasons
+        .into_iter()
+        .partition(|(kind, _)| *kind == StrictKind::Safety);
+    for (_, r) in &substitution {
+        let _ = writeln!(err, "podbox {verb}: --strict warning [substitution]: {r}");
+    }
+    if safety.is_empty() {
+        return Ok(());
+    }
+    let _ = writeln!(
+        err,
+        "podbox {verb}: --strict, and this run is degraded in {} safety-relevant \
+         way(s). podbox refuses rather than running and letting the payload \
+         discover them (TODO/cli.md T-0804, T-1415):",
+        safety.len()
+    );
+    for (_, r) in &safety {
+        let _ = writeln!(err, "  - [safety] {r}");
+    }
+    Err(EXIT_RUNTIME_ERROR)
+}
+
+/// What `--strict` classifies on besides the three T-0804 inputs.
+#[derive(Debug, Clone, Default)]
+pub struct StrictCtx {
+    /// False where chroot is denied: the userland rung is then the best
+    /// available rung, not a rung declined, and the rung difference warns
+    /// rather than refuses.
+    pub chroot_usable: bool,
+    /// True where `--unsafe-host-paths` opted out of path virtualization
+    /// (TODO/enter.md T-1407): a chosen host write, and safety-relevant.
+    pub unsafe_host_paths: bool,
+    /// True where a caller preload was dropped on the userland rung: guest
+    /// paths in it would resolve on the host, which is host and libc
+    /// mixing, and safety-relevant.
+    pub preload_dropped: bool,
+}
+
+/// One `--strict` reason's class. The refusal line names it, so a caller
+/// can tell a danger from a stand-in without parsing the banner.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StrictKind {
+    /// No path virtualization, host and libc mixing, escape: still
+    /// refuses under `--strict`.
+    Safety,
+    /// A dev-shim substitution and its kin: warns under `--strict`,
+    /// refuses under `--strict=all`.
+    Substitution,
+}
+
+impl StrictKind {
+    pub fn word(self) -> &'static str {
+        match self {
+            StrictKind::Safety => "safety",
+            StrictKind::Substitution => "substitution",
+        }
+    }
+}
+
+/// Classify every `--strict` reason by kind.
+///
+/// Safety (refuses): a Degraded or Stub flag the caller passed; a rung
+/// below the floor where a better rung existed; a fixup podbox tried and
+/// could not (`Failed`: escape-shaped or otherwise unprepared); a step
+/// podbox would run inside the image; the `--unsafe-host-paths` opt-in;
+/// a dropped caller preload. Substitution (warns): a stand-in podbox put
+/// where the real thing cannot be made (dev-shim files and their kin);
+/// the userland rung where chroot is denied and nothing better exists.
+pub fn classify_strict(
+    verb: &str,
+    ask: &Ask,
+    rung: &str,
+    report: &podbox_complete::Report,
+    ctx: &StrictCtx,
+) -> Vec<(StrictKind, String)> {
+    use StrictKind::{Safety, Substitution};
+    let mut reasons: Vec<(StrictKind, String)> = Vec::new();
 
     // 1. the flags this invocation passed.
     for f in &ask.seen_flags {
@@ -140,11 +267,14 @@ pub fn strict_refusal(
             row.status,
             crate::parity::Status::Degraded | crate::parity::Status::Stub
         ) {
-            reasons.push(format!(
-                "{} is {} in the parity table: {}",
-                row.flag.unwrap_or(f),
-                row.status.word(),
-                row.note
+            reasons.push((
+                Safety,
+                format!(
+                    "{} is {} in the parity table: {}",
+                    row.flag.unwrap_or(f),
+                    row.status.word(),
+                    row.note
+                ),
             ));
         }
     }
@@ -154,21 +284,34 @@ pub fn strict_refusal(
     // one floor is the drift T-1206 is about.
     let floor = podbox_probe::select::Selection::STRICT_FLOOR.word();
     if rung != floor {
-        reasons.push(format!(
+        // ⭐ T-1415. Where chroot is denied the userland rung is the best
+        // the machine does: warn, so the callers who want the gate most
+        // still get a run. Where a better rung existed, refuse.
+        let best_available =
+            rung == podbox_probe::select::Rung::Userland.word() && !ctx.chroot_usable;
+        let text = format!(
             "the selected rung is `{rung}` and not `{floor}`, so the payload shares \
              this machine's process table, network, IPC and mount namespaces"
-        ));
+        );
+        reasons.push((if best_available { Substitution } else { Safety }, text));
     }
 
-    // 3. the completion layer.
+    // 3. the completion layer: what podbox could not do refuses; a
+    // stand-in it put warns.
     for f in report.degradations() {
-        reasons.push(format!(
+        let text = format!(
             "{} {} ({}): {}",
             f.action.word(),
             if f.path.is_empty() { "-" } else { &f.path },
             f.entry,
             f.detail
-        ));
+        );
+        let kind = if f.action == podbox_complete::Action::Failed {
+            Safety
+        } else {
+            Substitution
+        };
+        reasons.push((kind, text));
     }
 
     // 4. ⭐ T-0412's steps, and they are counted BEFORE any of them runs. podbox
@@ -177,28 +320,38 @@ pub fn strict_refusal(
     // refuse, and refusing after running one would be podbox acting and then
     // declining to have acted.
     for s in &report.steps {
-        reasons.push(format!(
-            "podbox would run `{}` ({}) inside this image before the payload: {}",
-            s.argv.join(" "),
-            s.entry,
-            s.why
+        reasons.push((
+            Safety,
+            format!(
+                "podbox would run `{}` ({}) inside this image before the payload: {}",
+                s.argv.join(" "),
+                s.entry,
+                s.why
+            ),
         ));
     }
 
-    if reasons.is_empty() {
-        return Ok(());
+    // 5. ⭐ T-1415. The userland opt-outs: no path virtualization by
+    // choice, and a dropped preload that would mix host and guest libc.
+    if ctx.unsafe_host_paths {
+        reasons.push((
+            Safety,
+            "--unsafe-host-paths opts out of path virtualization: absolute guest \
+             paths resolve on the host, and a write lands on the host tree \
+             (TODO/enter.md T-1407)"
+                .to_string(),
+        ));
     }
-    let _ = writeln!(
-        err,
-        "podbox {verb}: --strict, and this run is degraded in {} way(s). podbox \
-         refuses rather than running and letting the payload discover them \
-         (TODO/cli.md T-0804):",
-        reasons.len()
-    );
-    for r in &reasons {
-        let _ = writeln!(err, "  - {r}");
+    if ctx.preload_dropped {
+        reasons.push((
+            Safety,
+            "a caller LD_PRELOAD names guest paths, which resolve on the host \
+             without a chroot: host and guest libc mix (TODO/enter.md T-1317)"
+                .to_string(),
+        ));
     }
-    Err(EXIT_RUNTIME_ERROR)
+
+    reasons
 }
 
 /// The bound one step gets.
@@ -429,24 +582,42 @@ mod tests {
     fn without_strict_nothing_is_refused() {
         let ask = Ask::default();
         let mut out = Vec::new();
-        assert!(
-            strict_refusal("run", &ask, "chroot", &report_with_degradation(), &mut out).is_ok()
-        );
+        assert!(strict_refusal(
+            "run",
+            &ask,
+            "chroot",
+            &report_with_degradation(),
+            &mut out,
+            &StrictCtx::default()
+        )
+        .is_ok());
         assert!(out.is_empty());
     }
 
-    /// ⭐ With `--strict`, all three inputs are named in one refusal rather
-    /// than the first one found.
+    /// ⭐ With `--strict=all`, all three inputs are named in one refusal
+    /// rather than the first one found, exactly the T-0804 behavior, and
+    /// every line names its class.
     #[test]
-    fn strict_names_every_reason_at_once() {
+    fn strict_all_names_every_reason_at_once() {
         let ask = Ask {
             strict: true,
+            strict_all: true,
             seen_flags: vec!["-i".into(), "--rm".into()],
             ..Ask::default()
         };
         let mut out = Vec::new();
-        let e = strict_refusal("run", &ask, "chroot", &report_with_degradation(), &mut out)
-            .unwrap_err();
+        let e = strict_refusal(
+            "run",
+            &ask,
+            "chroot",
+            &report_with_degradation(),
+            &mut out,
+            &StrictCtx {
+                chroot_usable: true,
+                ..StrictCtx::default()
+            },
+        )
+        .unwrap_err();
         assert_eq!(e, EXIT_RUNTIME_ERROR);
         let s = String::from_utf8(out).unwrap();
         // the Stub flag
@@ -458,6 +629,93 @@ mod tests {
         // ⚠ and NOT the Native one.
         assert!(!s.contains("--rm is"), "{s}");
         assert!(s.contains("3 way(s)"), "{s}");
+        assert!(s.contains("[safety]"), "{s}");
+        assert!(s.contains("[substitution]"), "{s}");
+    }
+
+    /// ⭐ TODO/cli.md T-1415. Kind decides: on a chroot-denied host the
+    /// userland rung and the dev-shim substitutions warn and the run
+    /// proceeds, while a path-virtualization opt-out and a failed fixup
+    /// still refuse, each line naming its class.
+    #[test]
+    fn strict_classifies_safety_against_substitution() {
+        let userland = podbox_probe::select::Rung::Userland.word();
+        let denied = StrictCtx {
+            chroot_usable: false,
+            ..StrictCtx::default()
+        };
+        // The best available rung plus a dev-shim: warnings, exit 0.
+        let ask = Ask {
+            strict: true,
+            ..Ask::default()
+        };
+        let mut out = Vec::new();
+        assert!(strict_refusal(
+            "run",
+            &ask,
+            userland,
+            &report_with_degradation(),
+            &mut out,
+            &denied
+        )
+        .is_ok());
+        let s = String::from_utf8(out).unwrap();
+        assert!(s.contains("--strict warning [substitution]"), "{s}");
+        // The same run with the pass-through opted in: refused, safety.
+        let unsafe_ctx = StrictCtx {
+            chroot_usable: false,
+            unsafe_host_paths: true,
+            ..StrictCtx::default()
+        };
+        let mut out = Vec::new();
+        let e = strict_refusal(
+            "run",
+            &ask,
+            userland,
+            &report_with_degradation(),
+            &mut out,
+            &unsafe_ctx,
+        )
+        .unwrap_err();
+        assert_eq!(e, EXIT_RUNTIME_ERROR);
+        let s = String::from_utf8(out).unwrap();
+        assert!(s.contains("[safety]"), "{s}");
+        assert!(s.contains("--unsafe-host-paths"), "{s}");
+        // A fixup podbox tried and could not: refused even where the rung
+        // is the best available.
+        let mut failed = podbox_complete::Report::default();
+        failed.fixups.push(podbox_complete::Fixup {
+            entry: "T-0401",
+            id: "dev-shim",
+            path: "dev/null".into(),
+            action: podbox_complete::Action::Failed,
+            detail: "a directory".into(),
+            degraded: true,
+        });
+        let mut out = Vec::new();
+        let e = strict_refusal("run", &ask, userland, &failed, &mut out, &denied).unwrap_err();
+        assert_eq!(e, EXIT_RUNTIME_ERROR);
+        let s = String::from_utf8(out).unwrap();
+        assert!(s.contains("[safety]"), "{s}");
+        // And `--strict=all` refuses the warned run too.
+        let ask = Ask {
+            strict: true,
+            strict_all: true,
+            ..Ask::default()
+        };
+        let mut out = Vec::new();
+        let e = strict_refusal(
+            "run",
+            &ask,
+            userland,
+            &report_with_degradation(),
+            &mut out,
+            &denied,
+        )
+        .unwrap_err();
+        assert_eq!(e, EXIT_RUNTIME_ERROR);
+        let s = String::from_utf8(out).unwrap();
+        assert!(s.contains("--strict=all"), "{s}");
     }
 
     /// ⭐ T-0412. A step is a reason on its own, and it is counted BEFORE any of
@@ -483,11 +741,12 @@ mod tests {
         };
         let floor = podbox_probe::select::Selection::STRICT_FLOOR.word();
         let mut out = Vec::new();
-        let e = strict_refusal("run", &ask, floor, &report, &mut out).unwrap_err();
+        let e = strict_refusal("run", &ask, floor, &report, &mut out, &StrictCtx::default())
+            .unwrap_err();
         assert_eq!(e, EXIT_RUNTIME_ERROR);
         let s = String::from_utf8(out).unwrap();
         assert!(s.contains("/usr/bin/openssl rehash /etc/ssl/certs"), "{s}");
-        assert!(s.contains("1 way(s)"), "{s}");
+        assert!(s.contains("1 safety-relevant way(s)"), "{s}");
     }
 
     /// ⚠ A run with nothing degraded passes `--strict`, or the flag would be a
@@ -506,21 +765,44 @@ mod tests {
             &ask,
             floor,
             &podbox_complete::Report::default(),
-            &mut out
+            &mut out,
+            &StrictCtx::default(),
         )
         .is_ok());
     }
 
+    /// ⭐ TODO/cli.md T-1416. Quiet by default, the banner under
+    /// `--verbose`, `-q` forcing it off, the store config still forcing
+    /// it off: the operator ruling reversing T-0804's command-line rule
+    /// in writing. Refusals never pass through here, so nothing about
+    /// them is asserted here.
     #[test]
-    fn the_banner_is_never_quiet_by_default() {
+    fn the_banner_is_quiet_by_default_and_loud_under_verbose() {
         let d = std::env::temp_dir().join(format!("podbox-cfg-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
         std::env::set_var("PODBOX_STORE", &d);
         let s = podbox_image::open_store().unwrap();
+        // Default: quiet. The banner config key still reads as before.
         assert!(!banner_quiet(&s));
+        assert!(!banner_loud(&s, &Ask::default()));
+        // `--verbose` prints it.
+        let verbose = Ask {
+            verbose: true,
+            ..Ask::default()
+        };
+        assert!(banner_loud(&s, &verbose));
+        // `-q` forces it off, even beside `--verbose`.
+        let off = Ask {
+            verbose: true,
+            quiet: true,
+            ..Ask::default()
+        };
+        assert!(!banner_loud(&s, &off));
+        // The store config forces it off under `--verbose` too.
         std::fs::write(s.root().join(CONFIG_FILE), "# a comment\nbanner = quiet\n").unwrap();
         assert!(banner_quiet(&s));
+        assert!(!banner_loud(&s, &verbose));
         std::env::remove_var("PODBOX_STORE");
         let _ = std::fs::remove_dir_all(&d);
     }

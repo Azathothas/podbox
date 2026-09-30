@@ -119,7 +119,7 @@ Source:      captured TOOL.md section 6.7; onelf at 158b4af; current ladder
 Category:    packaging
 Priority:    P2
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     The forced launch ladder and embedded-rootfs format were
              recorded as done while part of their implementation is absent.
@@ -137,7 +137,27 @@ Prove:       `sh experiments/358-ladder-rungs.sh` exits 0 for existing modes.
              drives. Each must verify payload bytes, selected mode, child
              status, bounded failure, and owned cleanup.
 
-**Partial 2026-09-30.** The audit reopened the entry from its source.
+**Done 2026-09-30.** FUSE is a rung-complete read-only server, not a
+refusal: a forked server speaks the kernel ABI read in-lane, serves
+the extracted tree without copying it, answers `EROFS` to the
+mutating opcodes and `ENOSYS` to unknowns, with every wait bounded
+and cleanup on every path; the CLI's final ladder arm enters it the
+way it enters tmpfs. The embedded-rootfs format is the `save`
+OCI-layout tarball: per-blob hash verification already in `load`
+makes it the smallest shape consistent with content addressing, with
+no new loader code. `sh experiments/358-ladder-rungs.sh` exits 0
+twice ([the drive](../experiments/results/ladder-rungs.txt)): the
+forced-FUSE and permitted-tmpfs clauses take their refusal arms
+naming node and mount with zero leftovers where this lane denies
+them, and their entry arms assert word, bytes, and cleanup
+automatically where a host grants them; the pack clause loads, runs,
+and refuses the corrupt tarball at 125 naming the digest mismatch.
+Limit stated beside the proof: live FUSE and tmpfs entry are
+unproved here (`/dev/fuse` absent, `mount(2)` denied even in a
+userns, all measured) and the binary-appended footer stays future
+work; the four completed staging implementations are not repeated.
+
+**Partial 2026-09-30 (history).** The audit reopened the entry from its source.
 Memfd, run directory, and cache have recorded live proof. Tmpfs staging
 is wired, but its current saved live result proves only the refusal.
 FUSE remains a named refusal in the CLI's final ladder arm.

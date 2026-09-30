@@ -9,10 +9,11 @@
 //! environment; the token never appears in a log line or an error, so
 //! passing it on the command line stays out of every committed artefact.
 //!
-//! ⛔ Every read waits bounded. The dial carries a connect timeout, the
-//! hello carries its own window, and the redial backs off 1 s to 30 s with
-//! jitter. Writes block until the kernel takes them and DNS resolves
-//! without a timeout, so a relay that stops reading wedges the loop.
+//! ⛔ Every read waits bounded. The dial carries a connect timeout, the DNS
+//! lookup carries the tighter of that and `DNS_DEADLINE`, the hello carries
+//! its own window, relay-leg writes carry `WRITE_DEADLINE`, and the redial
+//! backs off 1 s to 30 s with jitter. A relay that stops reading ends the
+//! socket inside the write bound, and the node redials.
 //! `--once` exits after the first socket ends: 0 when at least one
 //! session completed, 1 when none did.
 

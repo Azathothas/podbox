@@ -371,6 +371,13 @@ pub unsafe fn rewrite(t: &Table, path: *const u8, path_n: usize, out: &mut [u8; 
     let slash = rest_n > 0
         && unsafe { *path.add(from_n) } != b'/'
         && unsafe { *p.to_p.add(p.to_n - 1) } != b'/';
+    // ⭐ The mirror of the root join in `unrewrite`: the target ends in the
+    // separator the remainder starts with, so one of the two goes or the
+    // mapped path doubles its slash. A trailing-slash target beside a
+    // rooted remainder is the shape that fires it.
+    let double = rest_n > 0
+        && unsafe { *path.add(from_n) } == b'/'
+        && unsafe { *p.to_p.add(p.to_n - 1) } == b'/';
     if p.to_n + rest_n + (slash as usize) >= OUT {
         return -2;
     }
@@ -381,8 +388,13 @@ pub unsafe fn rewrite(t: &Table, path: *const u8, path_n: usize, out: &mut [u8; 
             *out.as_mut_ptr().add(at) = b'/';
             at += 1;
         }
-        core::ptr::copy_nonoverlapping(path.add(from_n), out.as_mut_ptr().add(at), rest_n);
-        (at + rest_n) as isize
+        let skip = double as usize;
+        core::ptr::copy_nonoverlapping(
+            path.add(from_n + skip),
+            out.as_mut_ptr().add(at),
+            rest_n - skip,
+        );
+        (at + rest_n - skip) as isize
     }
 }
 
@@ -454,6 +466,13 @@ pub unsafe fn unrewrite(t: &Table, path: *const u8, path_n: usize, out: &mut [u8
     let slash = rest_n > 0
         && unsafe { *path.add(to_n) } != b'/'
         && unsafe { *p.from_p.add(p.from_n - 1) } != b'/';
+    // ⭐ The root join: FROM `/` ends in the separator the remainder starts
+    // with, so one of the two goes or every virtual path doubles its slash
+    // (`/tmp` reads back `//tmp`, TODO/enter.md T-1411). The mirror guard
+    // lives in `rewrite`.
+    let double = rest_n > 0
+        && unsafe { *path.add(to_n) } == b'/'
+        && unsafe { *p.from_p.add(p.from_n - 1) } == b'/';
     if p.from_n + rest_n + (slash as usize) >= OUT {
         return -2;
     }
@@ -464,8 +483,13 @@ pub unsafe fn unrewrite(t: &Table, path: *const u8, path_n: usize, out: &mut [u8
             *out.as_mut_ptr().add(at) = b'/';
             at += 1;
         }
-        core::ptr::copy_nonoverlapping(path.add(to_n), out.as_mut_ptr().add(at), rest_n);
-        (at + rest_n) as isize
+        let skip = double as usize;
+        core::ptr::copy_nonoverlapping(
+            path.add(to_n + skip),
+            out.as_mut_ptr().add(at),
+            rest_n - skip,
+        );
+        (at + rest_n - skip) as isize
     }
 }
 
@@ -858,6 +882,36 @@ mod tests {
         let t = unsafe { parse(env.as_ptr()) };
         let n = unw(&t, b"/real/sub/a", &mut out);
         assert_eq!(&out[..n as usize], b"/long/a");
+    }
+
+    /// TODO/enter.md T-1411. The root join reads back with one separator:
+    /// a real `/store/rootfs/tmp` under FROM `/` answers `/tmp`, never
+    /// `//tmp`. The `getcwd` wrapper reads through here, so the doubled
+    /// slash was what `-w /tmp` printed on the userland rung.
+    #[test]
+    fn unrewrite_keeps_one_separator_on_a_root_prefix() {
+        let env = env_of([b"PODBOX_MAPS=/:/store/rootfs\0"]);
+        let t = unsafe { parse(env.as_ptr()) };
+        let mut out = [0u8; OUT];
+        let n = unw(&t, b"/store/rootfs/tmp", &mut out);
+        assert_eq!(&out[..n as usize], b"/tmp");
+        let n = unw(&t, b"/store/rootfs/a/b", &mut out);
+        assert_eq!(&out[..n as usize], b"/a/b");
+        // An exact root match answers the bare slash, with no remainder
+        // for the join to double.
+        let n = unw(&t, b"/store/rootfs", &mut out);
+        assert_eq!(&out[..n as usize], b"/");
+    }
+
+    /// The forward mirror: a target ending in the separator the remainder
+    /// starts with joins with one, not two.
+    #[test]
+    fn rewrite_keeps_one_separator_where_the_target_ends_in_one() {
+        let env = env_of([b"PODBOX_MAPS=/m:/real/\0"]);
+        let t = unsafe { parse(env.as_ptr()) };
+        let mut out = [0u8; OUT];
+        let n = rw(&t, b"/m/x", &mut out);
+        assert_eq!(&out[..n as usize], b"/real/x");
     }
 
     #[test]

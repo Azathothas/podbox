@@ -79,6 +79,17 @@ pub struct Container {
     pub noticed: Option<String>,
     /// The rung the launcher selected when it started this container.
     pub rung: String,
+    /// ⭐ TODO/enter.md T-1411. The exact argv the launcher execs on a
+    /// detached userland entry: the image's loader, the payload by host
+    /// path, then the payload's own arguments (the applet name riding
+    /// beside a resolved busybox file where one was inserted). Empty
+    /// everywhere else, including chroot records and the memfd family,
+    /// which has no detached driver: the launcher enters through
+    /// `spawn_selected` there. The libraries, the `PODBOX_MAPS` table
+    /// and `PODBOX_GUEST_EXE` ride in `env`, decided beside this argv at
+    /// `create`. `serde(default)` so a table written before this parses.
+    #[serde(default)]
+    pub userland_exec: Vec<String>,
     /// ⭐ What the completion layer did to this container's rootfs, one line
     /// per fixup that changed a byte or failed.
     /// [`TODO/cli.md`](../../../TODO/cli.md) T-0804 rule 3: `inspect` reports
@@ -547,6 +558,7 @@ mod tests {
             exit_code: None,
             noticed: None,
             rung: "chroot".into(),
+            userland_exec: Vec::new(),
             completion: Vec::new(),
             completion_degraded: 0,
         }
@@ -611,6 +623,37 @@ mod tests {
         ensure_memo_file(&p).unwrap();
         assert_eq!(std::fs::read(&p).unwrap(), b"first");
         let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// TODO/enter.md T-1411. A table written before the userland drive
+    /// still parses, with an empty drive: old records enter through
+    /// `spawn_selected` exactly as before.
+    #[test]
+    fn a_table_without_the_userland_drive_still_parses() {
+        let t: Table = serde_json::from_value(serde_json::json!({
+            "podbox_containers": TABLE_VERSION,
+            "containers": [{
+                "id": "abc",
+                "name": "one",
+                "image": "img",
+                "manifest_digest": "sha256:0",
+                "rootfs": "/tmp",
+                "argv": ["true"],
+                "env": [],
+                "working_dir": "/",
+                "created_at": "now",
+                "started_at": null,
+                "finished_at": null,
+                "state": "created",
+                "pid": null,
+                "launcher_pid": null,
+                "exit_code": null,
+                "noticed": null,
+                "rung": "chroot"
+            }]
+        }))
+        .unwrap();
+        assert!(t.containers[0].userland_exec.is_empty());
     }
 
     fn tally_rec(dev: u64, ino: u64, uid: u32, gid: u32, set: u32) -> Vec<u8> {

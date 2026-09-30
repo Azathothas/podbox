@@ -711,6 +711,36 @@ pub enum ResolveKind {
 /// `root` must be a readable directory. Nothing is written and nothing is
 /// executed; the walk is bounded by `MAX_LINKS` replacements.
 pub fn resolve_in(root: &std::path::Path, guest: &str) -> Result<std::path::PathBuf, ResolveKind> {
+    let full = walk_in(root, guest)?;
+    match std::fs::symlink_metadata(&full) {
+        Ok(m) if m.file_type().is_file() => Ok(full),
+        _ => Err(ResolveKind::Absent),
+    }
+}
+
+/// Resolve `guest` to a host path for a working directory, following
+/// symlinks the way the guest kernel would.
+///
+/// TODO/enter.md T-1412: the workdir check's walk. One walk with
+/// [`resolve_in`], differing only in the final type check (a directory
+/// here, a file there), so a fix to the walk reaches both.
+pub fn resolve_dir_in(
+    root: &std::path::Path,
+    guest: &str,
+) -> Result<std::path::PathBuf, ResolveKind> {
+    let full = walk_in(root, guest)?;
+    match std::fs::symlink_metadata(&full) {
+        Ok(m) if m.file_type().is_dir() => Ok(full),
+        _ => Err(ResolveKind::Absent),
+    }
+}
+
+/// The symlink walk [`resolve_in`] and [`resolve_dir_in`] share.
+///
+/// Empty parts are skipped, so `"/tmp/"` and `"tmp"` resolve like
+/// `"/tmp"`, and `"/"` resolves to the root itself. `..` past the root
+/// escapes rather than resolving onto the host.
+fn walk_in(root: &std::path::Path, guest: &str) -> Result<std::path::PathBuf, ResolveKind> {
     const MAX_LINKS: usize = 40;
     let mut parts: Vec<String> = guest
         .split('/')
@@ -767,11 +797,7 @@ pub fn resolve_in(root: &std::path::Path, guest: &str) -> Result<std::path::Path
         out.push(p);
         i += 1;
     }
-    let full = out.iter().fold(root.to_path_buf(), |a, c| a.join(c));
-    match std::fs::symlink_metadata(&full) {
-        Ok(m) if m.file_type().is_file() => Ok(full),
-        _ => Err(ResolveKind::Absent),
-    }
+    Ok(out.iter().fold(root.to_path_buf(), |a, c| a.join(c)))
 }
 
 // ------------------------------------------------------------------ the bytes

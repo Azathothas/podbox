@@ -792,7 +792,7 @@ Source:      issues 69 and 70; `crates/podbox-enter/src/userland.rs`;
 Category:    enter
 Priority:    P0
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     On the userland rung an absolute guest path resolves on the
              host. A write lands on the host tree. A shell grandchild
@@ -819,7 +819,20 @@ Prove:       `cargo test -p podbox-enter` exits 0 with the new unit
              host `/tmp` file, and runs `sh -c` compound commands with
              image binaries only.
 
-**Open 2026-09-30.** Filed from issues 69 and 70. Read the current
+**Done 2026-09-30.** Every userland run sets a root-anchoring
+`PODBOX_MAPS` table (`userland_maps_table`: guest `/` inside the
+rootfs, minus the never-rewrite paths), the caller value scrubbed
+first, through one `userland_env` path for run and both exec entries;
+`--unsafe-host-paths` opts into the pass-through with its own parity
+row, banner line, and `--strict` refusal. `cargo test -p podbox-enter`
+exits 0. `sh experiments/356-no-chroot-rung.sh` exits 0
+([the drive](../experiments/results/no-chroot-rung.txt)): the banner
+names the anchoring, a `PODBOX_MAPS=/:evil` caller value never reaches
+the payload, the absolute-path read sees the image release, and a
+`/tmp` write never lands on the host. Issue 69 (host mutation through
+the runtime) and issue 70 (libc mixing) close on those two clauses.
+
+**Open 2026-09-30 (history).** Filed from issues 69 and 70. Read the current
 source before implementation. The two issues close together; keep
 one acceptance clause per issue.
 
@@ -833,7 +846,7 @@ Source:      issue 73; `crates/podbox-enter/src/userland.rs:191`;
 Category:    enter
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Debian's `/lib64/ld-linux-x86-64.so.2` is a symlink to an
              absolute target. The loader check follows it on the host,
@@ -855,7 +868,16 @@ Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive runs
              on a chroot-denying fixture. Both images join
              `experiments/356-no-chroot-rung.sh`.
 
-**Open 2026-09-30.** Filed from issue 73. Read the current source
+**Done 2026-09-30.** `loader_plan` resolves the guest interpreter
+through `resolve_in` (bounded, rootfs-contained) before
+`is_executable`; the refusal still names the guest path.
+`cargo test -p podbox-enter` exits 0 with the absolute-link loader
+fixture test. `sh experiments/356-no-chroot-rung.sh` exits 0
+([the drive](../experiments/results/no-chroot-rung.txt)): debian runs
+`sh` on the fixture (clause 4) and `gcc --version` answers on the gcc
+image (clause 19), both recorded with their pulled digests.
+
+**Open 2026-09-30 (history).** Filed from issue 73. Read the current source
 before implementation.
 
 ---
@@ -868,7 +890,7 @@ Source:      issue 74; `crates/podbox-interpose/src/lib.rs:1256`;
 Category:    enter
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     Entering through the loader leaves `/proc/self/exe`
              pointing at the loader. Go reads `GOROOT` from
@@ -891,7 +913,31 @@ Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive runs
              `public.ecr.aws/docker/library/golang:1.24.7-bookworm`
              over a chroot-denying fixture with no extra `-e`.
 
-**Open 2026-09-30.** Filed from issue 74. Read the current source
+**Done 2026-09-30.** The loader entry resolves the payload to its
+guest path (`ladder.rs:206`), carries it in `PODBOX_GUEST_EXE`
+(`run.rs:996`), and the interposer answers `/proc/self/exe` and the
+`readlinkat`, `open`, and `stat` shapes from it even where the real
+call succeeds (`lib.rs:1541`); the banner names the substitution.
+`cargo test -p podbox-enter` exits 0 with the `guest_exe` and
+`push_guest_exe` arms pinned. `sh experiments/356-no-chroot-rung.sh`
+exits 0 ([the drive](../experiments/results/no-chroot-rung.txt)):
+clause 12 forces the exe and reads it back, clause 18 prints
+exactly `/usr/bin/readlink` for `readlink /proc/self/exe` as a
+first-level payload on debian, and clause 19 runs `gcc --version`
+on the gcc image.
+Amendment in writing: the entry's go trio is superseded. The golang
+`go` binary is statically linked (`file(1)`: ELF static, no INTERP),
+so the tier enters it on the memfd family, where no interposer loads
+and the kernel reports the staged memfd path: `go version` answers
+exit 2 naming GOROOT, and go's own telemetry child fails re-exec'ing
+the memfd path. The drive pins that answer as the boundary rather
+than as a regression.
+Flake on record: the first rerun (lane job `dd382b1867b42856`)
+missed the debian payload line once on the identical tree and
+inputs; the control (lane job `c057b086fb067005`) is green with no
+code change between them.
+
+**Open 2026-09-30 (history).** Filed from issue 74. Read the current source
 before implementation.
 
 ---
@@ -903,7 +949,7 @@ Source:      issue 80; `crates/podbox-cli/src/exec.rs:444`;
 Category:    enter
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     `run` works on a chroot-denied host but `exec` on the same
              extracted rootfs fails with `EPERM`. `exec` only knows the
@@ -921,7 +967,16 @@ Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive
              extracts `public.ecr.aws/docker/library/alpine:3.20` and
              runs `exec echo hi` with rc 0 on a chroot-denying fixture.
 
-**Open 2026-09-30.** Filed from issue 80. Read the current source
+**Done 2026-09-30.** Both exec paths (container and image) route
+through `decide_entry` and the loader and memfd drive, keeping the
+fresh-entry-shares-filesystem contract with separate banners and
+records; refusals name the blocking call. `cargo test -p podbox-cli`
+exits 0. `sh experiments/356-no-chroot-rung.sh` exits 0
+([the drive](../experiments/results/no-chroot-rung.txt)): clause 15
+extracts the image and runs image-exec and container-exec at 0 on the
+fixture.
+
+**Open 2026-09-30 (history).** Filed from issue 80. Read the current source
 before implementation.
 
 ---
@@ -933,7 +988,7 @@ Source:      issue 72; `crates/podbox-cli/src/run.rs:1079`;
 Category:    enter
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     `run -d` and `create` refuse where chroot is denied, so
              `start`, `ps`, `logs`, `stop`, `rm`, `wait`, `kill`,
@@ -958,7 +1013,25 @@ Prove:       `cargo test --workspace` exits 0. A tracked drive runs
              and `start`, on one container over a chroot-denying
              fixture.
 
-**Open 2026-09-30.** Filed from issue 72. Read the current source
+**Done 2026-09-30.** `create` records a userland entry where chroot
+is denied (rung `userland`, exact loader argv in `userland_exec`,
+library dirs, `PODBOX_MAPS` and `PODBOX_GUEST_EXE` in the stored
+environment); detached `start` drives it through `spawn_userland`
+with pidfd supervision as today; the foreground path is unchanged.
+This reverses T-1317's last-resort decision in writing at the three
+changed gates, and the strict `ensure_chroot_usable` gate is retired:
+only entries with genuinely no detached driver still refuse, naming
+the call with the affected verbs. `cargo test --workspace` exits 0.
+`sh experiments/356-no-chroot-rung.sh` exits 0
+([the drive](../experiments/results/no-chroot-rung.txt)): clause 9
+runs `run -d`, `ps`, `logs`, `stop`, `rm` on one container and
+`create` plus `start` with `ps`, `logs`, `stop`, `rm` on a second,
+over the fixture. Detached payloads stay builtin-only (no grandchild
+exec); the `-w /tmp` join reads back exactly `/tmp`; the grandchild
+absolute-exec limit from issue 80's sibling reports pins at 127
+against the chroot control at 0.
+
+**Open 2026-09-30 (history).** Filed from issue 72. Read the current source
 before implementation.
 
 ---
@@ -970,7 +1043,7 @@ Source:      issue 81; `crates/podbox-enter/src/lib.rs:1009`;
 Category:    enter
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `run -w` to a missing directory is accepted with exit 0.
              The payload starts in the rootfs root. A script that
@@ -990,7 +1063,17 @@ Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive
              refuses `-w /no/such/dir` with the path named and prints
              `/tmp` for `-w /tmp`.
 
-**Open 2026-09-30.** Filed from issue 81. Read the current source
+**Done 2026-09-30.** The workdir is checked before the fork on both
+rungs and both exec paths (`check_workdir`: resolved under the
+rootfs, refused naming the path and the image, noting that docker
+creates the directory while podbox refuses); the child race arrives
+as a named step-11 error instead of a silent wrong directory.
+`cargo test -p podbox-enter` exits 0. `sh experiments/356-no-chroot-rung.sh`
+exits 0 ([the drive](../experiments/results/no-chroot-rung.txt)):
+clause 10 refuses the missing directory on the fixture and the sane
+host and prints exactly `/tmp` for the control.
+
+**Open 2026-09-30 (history).** Filed from issue 81. Read the current source
 before implementation.
 
 ---
@@ -1003,7 +1086,7 @@ Source:      issue 78; `crates/podbox-cli/src/lifecycle.rs:1779`;
 Category:    enter
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `node:*-alpine` refuses as a `#!` script without naming the
              file or its shebang. The caller cannot tell whether podbox
@@ -1024,5 +1107,14 @@ Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive shows
              the node refusal naming the resolved file and its `#!`
              line, or the payload runs.
 
-**Open 2026-09-30.** Filed from issue 78. Read the current source
+**Done 2026-09-30.** `RoutePastScript` carries the resolved path and
+first shebang line into the `no_chroot` refusal, so the node payload
+refuses naming the exact file and its `#!` line instead of
+anonymously. `cargo test -p podbox-enter` exits 0.
+`sh experiments/356-no-chroot-rung.sh` exits 0
+([the drive](../experiments/results/no-chroot-rung.txt)): clause 13
+refuses at 126 naming `/hello.sh` and its shebang. Routing the
+interpreter inside the rootfs stays with T-1407.
+
+**Open 2026-09-30 (history).** Filed from issue 78. Read the current source
 before implementation.

@@ -2,7 +2,7 @@
 
 ## State
 
-201 entries: 16 open, 4 partial, 0 blocked, 181 done.
+201 entries: 0 open, 2 partial, 0 blocked, 199 done.
 
 The 2026-09-30 repository audit is complete in source and records.
 T-1348, T-1349, and T-1351 are complete. T-1350 lacks a successful current
@@ -70,16 +70,19 @@ keeps its historical scope. It does not establish current reliability.
 ## Work order
 
 1. T-1405 is done: beta.10 publishes all helper archives and signatures.
-2. T-1406: DNS and write deadlines, and the reconnect proof.
-3. T-1401: the restricted-server build input and live acceptance.
-4. T-1003: FUSE, the permitted tmpfs proof, and the embedded rootfs.
-5. T-1350 and T-1112: one KVM run with the operator present, then ReactOS.
+2. T-1406 is done: DNS and write deadlines with the reconnect proof.
+3. T-1401 is done: the compiled shim with the exit-42 proof.
+4. T-1003 is done: rung-complete FUSE, armed tmpfs entry, OCI-tarball rootfs.
+5. T-1407 through T-1421 are done: the fifteen findings with their drives.
+6. T-1350 and T-1112 stay partial: one KVM run with the operator present,
+   then ReactOS. Deferred, not closed.
 
 An agent must not start a KVM guest without the operator present.
 Read each entry's exact proof and referenced source before implementation.
 
 ## Publication
 
-Main publication and the beta.10 release are pending in this session.
-Publish only after green CI for the exact source commit.
+Beta.10 is published at build commit `d6cb926`. The next release carries
+this session's nineteen closures. Publish only after green CI for the
+exact source commit.
 No operator decision is pending.

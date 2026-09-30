@@ -644,6 +644,23 @@ macro_rules! stat_path_entry {
                 unsafe { *__errno_location() = EINVAL };
                 return -1;
             };
+            // ⭐ T-1409. Loader-family entries answer the payload-visible exe
+            // from the guest path even where the real call succeeds (host
+            // `/proc` mounted, the real stat naming the loader). Gated on
+            // the CLI-set flag; declined where no guest path rides, falling
+            // through to the real exe. The substitution says nothing here:
+            // the CLI names it once on the banner.
+            if unsafe { crate::procfs::exe_override_hit($path) } {
+                let mut gout = [0u8; crate::map::OUT];
+                if let Some(gp) = unsafe { stat_exe_path(&mut gout) } {
+                    let $path = gp;
+                    let rc = unsafe { f($($arg),*) };
+                    if rc == 0 {
+                        unsafe { report($st) };
+                    }
+                    return rc;
+                }
+            }
             let mut buf = [0u8; crate::map::OUT];
             let p = unsafe {
                 crate::map::prepare(
@@ -679,6 +696,20 @@ macro_rules! stat_at_entry {
                 unsafe { *__errno_location() = EINVAL };
                 return -1;
             };
+            // ⭐ T-1409, as in the path shapes: the guest path is absolute,
+            // so the call goes with `AT_FDCWD` where the override serves it.
+            if unsafe { crate::procfs::exe_override_hit($path) } {
+                let mut gout = [0u8; crate::map::OUT];
+                if let Some(gp) = unsafe { stat_exe_path(&mut gout) } {
+                    let $dirfd = crate::map::AT_FDCWD;
+                    let $path = gp;
+                    let rc = unsafe { f($($arg),*) };
+                    if rc == 0 {
+                        unsafe { report($st) };
+                    }
+                    return rc;
+                }
+            }
             let mut buf = [0u8; crate::map::OUT];
             let p = unsafe {
                 crate::map::prepare(stringify!($name).as_bytes(), $dirfd, $path, &mut buf)
@@ -793,6 +824,26 @@ pub unsafe extern "C" fn statx(
         unsafe { *__errno_location() = EINVAL };
         return -1;
     };
+    // ⭐ T-1409, as in the `stat` shapes: the guest path is absolute, so the
+    // call goes with `AT_FDCWD` where the override serves it.
+    if unsafe { crate::procfs::exe_override_hit(path) } {
+        let mut gout = [0u8; crate::map::OUT];
+        if let Some(gp) = unsafe { stat_exe_path(&mut gout) } {
+            let rc = unsafe {
+                f(
+                    crate::map::AT_FDCWD,
+                    gp,
+                    flags,
+                    mask | STATX_UID | STATX_GID | 0x0000_0100,
+                    st,
+                )
+            };
+            if rc == 0 {
+                unsafe { report_statx(st) };
+            }
+            return rc;
+        }
+    }
     let mut buf = [0u8; crate::map::OUT];
     let p = unsafe { crate::map::prepare(b"statx", dirfd, path, &mut buf) };
     if p.is_null() {
@@ -1244,6 +1295,17 @@ pub unsafe extern "C" fn readlink(path: *const c_char, buf: *mut c_char, n: usiz
         set_errno(EINVAL);
         return fail;
     };
+    // ⭐ T-1409. Loader-family entries answer the payload-visible exe from
+    // the guest path even where the real call succeeds (host `/proc`
+    // mounted, the real readlink naming the loader). Gated on the CLI-set
+    // flag; declined where no guest path rides, falling through to the real
+    // call. The substitution says nothing here: the CLI names it once on
+    // the banner.
+    if unsafe { crate::procfs::exe_override_hit(path) } {
+        if let Some(e) = unsafe { proc_readlink_exe(buf, n) } {
+            return e;
+        }
+    }
     let mut ibuf = [0u8; crate::map::OUT];
     let p = unsafe { crate::map::prepare(b"readlink", crate::map::AT_FDCWD, path, &mut ibuf) };
     if p.is_null() {
@@ -1308,6 +1370,13 @@ pub unsafe extern "C" fn readlinkat(
         set_errno(EINVAL);
         return fail;
     };
+    // ⭐ T-1409, as in `readlink`: the guest exe answers even where the real
+    // call succeeds, gated on the CLI-set flag.
+    if unsafe { crate::procfs::exe_override_hit(path) } {
+        if let Some(e) = unsafe { proc_readlink_exe(buf, n) } {
+            return e;
+        }
+    }
     let mut ibuf = [0u8; crate::map::OUT];
     let p = unsafe { crate::map::prepare(b"readlinkat", dirfd, path, &mut ibuf) };
     if p.is_null() {
@@ -1530,6 +1599,26 @@ unsafe fn proc_open_exe(flags: c_int, mode: c_uint) -> Option<c_int> {
         return Some(-1);
     }
     Some(fd)
+}
+
+/// The guest exe path rewritten for a `stat` call, T-1409.
+///
+/// Resolves the guest value and rewrites it through the table into `out`,
+/// returning the pointer to stat. `None` where the override declines (no
+/// guest value, or the table moved it): the caller falls through to the
+/// real exe. No allocation; `out` is the caller's stack buffer.
+///
+/// # Safety
+/// `out` must hold `OUT` writable bytes, which is what every entry point
+/// passes.
+unsafe fn stat_exe_path(out: &mut [u8; crate::map::OUT]) -> Option<*const c_char> {
+    let mut guest = [0u8; crate::map::OUT];
+    let _ = unsafe { proc_exe_value(&mut guest) }?;
+    let p = unsafe { crate::map::prepare_literal(b"stat", guest.as_ptr() as *const c_char, out) };
+    if p.is_null() {
+        return None;
+    }
+    Some(p)
 }
 
 /// Serve `open` of a mount-table file, T-0413.
@@ -2057,6 +2146,13 @@ macro_rules! open_fixed {
                 set_errno(EINVAL);
                 return -1;
             };
+            // ⭐ T-1409, as in `readlink`: the guest exe opens even where the
+            // real call succeeds, gated on the CLI-set flag.
+            if unsafe { crate::procfs::exe_override_hit($path) } {
+                if let Some(e) = unsafe { proc_open_exe($flags, mode) } {
+                    return e;
+                }
+            }
             let mut buf = [0u8; crate::map::OUT];
             let p = unsafe {
                 crate::map::prepare(
@@ -2102,6 +2198,13 @@ macro_rules! open_fixed {
                 set_errno(EINVAL);
                 return -1;
             };
+            // ⭐ T-1409, as in `readlink`: the guest exe opens even where the
+            // real call succeeds, gated on the CLI-set flag.
+            if unsafe { crate::procfs::exe_override_hit($path) } {
+                if let Some(e) = unsafe { proc_open_exe($flags, mode) } {
+                    return e;
+                }
+            }
             let mut buf = [0u8; crate::map::OUT];
             let p = unsafe {
                 crate::map::prepare(stringify!($name).as_bytes(), $dirfd, $path, &mut buf)
@@ -2970,6 +3073,19 @@ mod tests {
             free(got_ptr);
         }
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// T-1409: without the CLI-set flag nothing reroutes, even the exe
+    /// spelling. (With the flag the wrappers serve the guest path first;
+    /// that half needs a real `/proc` and a guest value, so the lane drive
+    /// owns it and this pins the default that must not change.)
+    #[test]
+    fn exe_override_is_off_without_the_flag() {
+        std::env::remove_var("PODBOX_GUEST_EXE_FORCE");
+        std::env::remove_var("PODBOX_GUEST_EXE");
+        assert!(!unsafe { crate::procfs::exe_override_hit(c"/proc/self/exe".as_ptr()) });
+        let mut out = [0u8; crate::map::OUT];
+        assert!(unsafe { stat_exe_path(&mut out) }.is_none());
     }
 
     /// T-0413: the standard stream links read back their targets, exactly

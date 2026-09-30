@@ -303,11 +303,34 @@ pub(crate) fn enter_forced(
         })();
         podbox_enter::stage::release_tmpfs(&staged);
         code
+    } else if chosen == Mode::Fuse {
+        // ⭐ TODO/packaging.md T-1003. The served root: resolved first
+        // (no rung runs what nothing resolved), served over a FUSE mount
+        // straight from the extracted tree, entered by path on the
+        // mount, killed, unmounted and removed on exit. Where the node
+        // does not open or the mount is refused the staging names it,
+        // after the ladder's own open row already refused it above.
+        ladder::resolve_payload(rootfs, argv0, path_dirs).map_err(|e| {
+            podbox_enter::Error::Runtime(format!("PODBOX_MODE=fuse was forced but {e}"))
+        })?;
+        let mounted = podbox_enter::fuse::serve_tree(store_root, std::path::Path::new(rootfs))
+            .map_err(|r| {
+                podbox_enter::Error::Runtime(format!("PODBOX_MODE=fuse was forced but {r}"))
+            })?;
+        let mounted_str = mounted.dir.to_string_lossy().into_owned();
+        let code = (|| {
+            let mounted_root = RootDir::open(&mounted_str)?;
+            podbox_enter::run_ladder(&mounted_root, plan, Mode::Fuse, None, err)
+        })();
+        podbox_enter::fuse::release_mount(&mounted);
+        code
     } else {
-        // Ordered but not rung-complete (FUSE): `spawn_ladder` refuses
-        // naming the rung, which is the caller skipping the choice made
-        // audible.
-        podbox_enter::run_ladder(root, plan, chosen, None, err)
+        // Admission staged what it chose on. Reaching here means the
+        // choice and the staging disagreed, which is a defect rather
+        // than a rung, and it refuses as one.
+        Err(podbox_enter::Error::Runtime(
+            "the ladder chose a rung no arm drives: this is a podbox defect, not a payload one (TODO/packaging.md T-1003)".to_string(),
+        ))
     }
 }
 
@@ -548,6 +571,50 @@ mod tests {
         .unwrap_err();
         let text = format!("{e}");
         assert!(text.contains("PODBOX_MODE=tmpfs was forced"), "{text}");
+        assert!(text.contains("names no file"), "{text}");
+        assert_eq!(e.exit_code(), podbox_enter::EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&store);
+    }
+
+    /// A forced fuse over a missing payload refuses naming the force
+    /// and the missing file, not a rung decision: no rung can run what
+    /// nothing resolved. No fork happens: the resolve precedes the serve.
+    #[test]
+    fn a_forced_fuse_over_a_missing_payload_names_it() {
+        let dir = std::env::temp_dir().join(format!("podbox-ladder-cli-f{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let root = RootDir::open(dir.to_str().unwrap()).expect("a temp dir opens");
+        let plan = Plan {
+            argv: vec!["true".to_string()],
+            env: Vec::new(),
+            working_dir: "/".to_string(),
+            fds: podbox_enter::Fds::default(),
+            banner: String::new(),
+            path_dirs: vec!["/bin".to_string()],
+        };
+        let mut sink = Vec::new();
+        let usable = findings_with(vec![
+            ("chroot(/tmp)", Outcome::ok()),
+            ("open(/dev/fuse, O_RDWR)", Outcome::ok()),
+        ]);
+        let store = store_dir("f");
+        let e = enter_forced(
+            &root,
+            &plan,
+            Mode::Fuse,
+            dir.to_str().unwrap(),
+            "true",
+            &plan.path_dirs,
+            &usable,
+            &store,
+            "sha256:test",
+            &mut sink,
+        )
+        .unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("PODBOX_MODE=fuse was forced"), "{text}");
         assert!(text.contains("names no file"), "{text}");
         assert_eq!(e.exit_code(), podbox_enter::EXIT_RUNTIME_ERROR);
         let _ = std::fs::remove_dir_all(&dir);

@@ -176,16 +176,27 @@ pub fn loader_argv_for(
 /// Resolve the loader invocation for a dynamic payload.
 ///
 /// `interp_guest` is the `PT_INTERP` path as the image sees it,
-/// `payload_host` the payload by host path. The loader must exist and
-/// be executable by host path, and at least one library directory must
-/// exist, or the refusal names what is missing rather than failing
-/// inside the loader later.
+/// `payload_host` the payload by host path. The loader resolves inside the
+/// rootfs first (TODO/enter.md T-1408): Debian's `/lib64/ld-linux-*.so.2`
+/// is an absolute symlink whose target exists only in the image, so the
+/// naive host join dangles and `is_executable` on it refuses a payload the
+/// guest kernel runs. The resolved file is what must exist and be
+/// executable by host path, and at least one library directory must exist,
+/// or the refusal names the guest path rather than failing inside the
+/// loader later.
 pub fn loader_plan(
     rootfs: &str,
     interp_guest: &str,
     payload_host: &str,
 ) -> Result<LoaderPlan, String> {
-    let loader_host = format!("{}{interp_guest}", rootfs.trim_end_matches('/'));
+    // ⭐ T-1408. The rootfs is the resolution root for every guest path on
+    // this rung; the host root is never a fallback. Where the walk fails
+    // the naive join is what the refusal names beside the guest path, so a
+    // missing loader still reads as missing rather than as unresolvable.
+    let loader_host = match crate::abi::resolve_in(std::path::Path::new(rootfs), interp_guest) {
+        Ok(p) => p.display().to_string(),
+        Err(_) => format!("{}{interp_guest}", rootfs.trim_end_matches('/')),
+    };
     if !memfd::is_executable(std::path::Path::new(&loader_host)) {
         return Err(format!(
             "{interp_guest} names the image's loader, but {loader_host} is not \
@@ -264,6 +275,69 @@ pub fn host_env(
     (out, dropped)
 }
 
+/// The variable carrying the root-anchoring table, TODO/enter.md T-1407.
+///
+/// Duplicate by value of the interposer's `map::MAPS_VAR`: this crate takes
+/// no dependency on that object, and the spelling is the contract between
+/// the two.
+pub const MAPS_VAR: &str = "PODBOX_MAPS";
+
+/// How long one side of a table pair may be, mirroring the interposer's
+/// `map::MAX_SIDE`: a longer side is malformed and its pair is skipped
+/// there, which on this rung would silently stop rewriting and leave host
+/// paths bare. The builder below refuses instead.
+const MAX_MAP_SIDE: usize = 4096;
+
+/// Build the root-anchoring `PODBOX_MAPS` table for a userland run.
+///
+/// TODO/enter.md T-1407. Guest `/` maps to the rootfs host path, so an
+/// absolute guest path resolves inside the image instead of landing on the
+/// host tree. The never-rewrite paths are NOT in the table: `/.podbox`
+/// (the guard), `/proc` (the builtin) and `PODBOX_EXCLUDE_PATH` (the user
+/// list) are enforced interposer-side (`map.rs` longest/longest_to), and a
+/// caller table that tried to move them would be skipped there anyway. No
+/// caller edits the built table by hand.
+///
+/// A rootfs the table cannot spell refuses rather than rewriting nothing:
+/// relative, NUL-carrying, `:`/`,`-carrying, empty-after-trim, or overlong.
+/// An empty table rewrites nothing, which on this rung is a silent host
+/// write, so a malformed root is a refusal, never a table.
+///
+/// SEAM for the CLI agent (run prepare, `--unsafe-host-paths` flag, parity
+/// row): on a userland run set `PODBOX_MAPS` to the returned string before
+/// the payload starts (scrubbing any caller-supplied value first, the way
+/// `PODBOX_GUEST_EXE` is scrubbed), unless `--unsafe-host-paths` opts into
+/// the pass-through; name the table or the opt-in on the banner, because
+/// the substitution must be banner-visible and never silent. Returns the
+/// table string; `MAPS_VAR` is the variable that carries it.
+pub fn userland_maps_table(rootfs: &str) -> Result<String, String> {
+    if rootfs.contains('\0') {
+        return Err("the rootfs path contains a NUL byte".to_string());
+    }
+    let base = rootfs.trim_end_matches('/');
+    if base.is_empty() {
+        return Err("the rootfs path is empty".to_string());
+    }
+    if !base.starts_with('/') {
+        return Err(format!("{rootfs:?} is not an absolute rootfs path"));
+    }
+    if base.contains(':') || base.contains(',') {
+        return Err(format!(
+            "{rootfs:?} cannot be spelled in a {MAPS_VAR} table: `:` and `,` \
+             separate pairs, so a table carrying it would parse as the wrong \
+             mapping (TODO/enter.md T-1407)"
+        ));
+    }
+    if base.len() > MAX_MAP_SIDE {
+        return Err(format!(
+            "the rootfs path is {} bytes, over the {MAX_MAP_SIDE}-byte table \
+             side the interposer reads (TODO/enter.md T-1407)",
+            base.len()
+        ));
+    }
+    Ok(format!("/:{base}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -321,6 +395,47 @@ mod tests {
         let plan = loader_plan(&root, "/lib/ld.so", &format!("{root}/bin/sh")).unwrap();
         assert_eq!(plan.loader_host, format!("{root}/lib/ld.so"));
         assert!(plan.lib_dirs.contains(&format!("{root}/lib")), "{plan:?}");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// TODO/enter.md T-1408: Debian's `/lib64/ld-linux-*.so.2` is an
+    /// absolute symlink whose target exists only in the image. The naive
+    /// host join dangles there, so the loader must resolve inside the
+    /// rootfs first: the resolved file is what opens, and the refusal where
+    /// it still fails names the guest path.
+    #[test]
+    #[cfg(unix)]
+    fn an_absolute_link_loader_resolves_inside_the_rootfs() {
+        let d = tree("absloader");
+        std::fs::write(d.join("lib/real-ld.so"), b"\x7fELF").unwrap();
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = std::fs::metadata(d.join("lib/real-ld.so"))
+                .unwrap()
+                .permissions();
+            perms.set_mode(0o755);
+            std::fs::set_permissions(d.join("lib/real-ld.so"), perms).unwrap();
+        }
+        std::fs::create_dir_all(d.join("lib64")).unwrap();
+        // Absolute as the guest kernel reads it: under the root it names the
+        // real loader, on the host it dangles.
+        std::os::unix::fs::symlink("/lib/real-ld.so", d.join("lib64/ld-linux-x86-64.so.2"))
+            .unwrap();
+        let root = d.to_string_lossy().to_string();
+        let plan = loader_plan(
+            &root,
+            "/lib64/ld-linux-x86-64.so.2",
+            &format!("{root}/bin/sh"),
+        )
+        .unwrap();
+        assert_eq!(
+            plan.loader_host,
+            format!("{root}/lib/real-ld.so"),
+            "{plan:?}"
+        );
+        // And the refusal where nothing resolves still names the guest path.
+        let e = loader_plan(&root, "/lib64/absent-ld.so.2", &format!("{root}/bin/sh")).unwrap_err();
+        assert!(e.contains("/lib64/absent-ld.so.2"), "{e}");
         let _ = std::fs::remove_dir_all(&d);
     }
 
@@ -490,5 +605,40 @@ mod tests {
             vec!["/root/lib/ld.so", "/root/bin/sh", "-c"],
             "{argv:?}"
         );
+    }
+
+    /// TODO/enter.md T-1407: guest `/` anchors on the rootfs host path, and
+    /// the variable that carries it is `PODBOX_MAPS`.
+    #[test]
+    fn the_userland_table_anchors_root_on_the_rootfs() {
+        assert_eq!(MAPS_VAR, "PODBOX_MAPS");
+        assert_eq!(
+            userland_maps_table("/store/rootfs").as_deref(),
+            Ok("/:/store/rootfs")
+        );
+        // A trailing slash trims rather than doubling the separator.
+        assert_eq!(
+            userland_maps_table("/store/rootfs/").as_deref(),
+            Ok("/:/store/rootfs")
+        );
+    }
+
+    /// TODO/enter.md T-1407: a rootfs the table cannot spell refuses rather
+    /// than rewriting nothing, which on this rung would be a silent host
+    /// write. The exclusions themselves live interposer-side and never in
+    /// the built value: no `/.podbox`, `/proc` or exclude list rides here.
+    #[test]
+    fn an_unspellable_rootfs_is_a_refusal_not_an_empty_table() {
+        for bad in ["", "/", "relative/root", "/tmp/a:b", "/tmp/a,b", "/tmp/\0x"] {
+            assert!(userland_maps_table(bad).is_err(), "{bad:?} was accepted");
+        }
+        let long = format!("/{}", "a".repeat(MAX_MAP_SIDE));
+        assert!(
+            userland_maps_table(&long).is_err(),
+            "an overlong root was accepted"
+        );
+        let table = userland_maps_table("/store/rootfs").unwrap();
+        assert!(!table.contains(".podbox"), "{table}");
+        assert!(!table.contains("/proc"), "{table}");
     }
 }

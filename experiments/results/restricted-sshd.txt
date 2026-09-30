@@ -1,0 +1,30 @@
+== conditions
+2026-09-30T13:18:28Z
+Linux 7.2.0-WSL2-STABLE
+ebba7cb
+gcc (Debian 12.2.0-14+deb12u1) 12.2.0
+OpenSSH_9.2p1 Debian-2+deb12u10, OpenSSL 3.0.20 7 Apr 2026
+/usr/bin/gcc
+/usr/sbin/sshd
+/usr/bin/ssh
+/usr/bin/ssh-keygen
+/usr/bin/readelf
+/usr/bin/timeout
+setup             privilege separation user sshd present
+host before       67ec05d25687 passwd-sha ded923eebd77c8c97d39024c067eb564
+clause 1          gcc built fakepwd.so from the retained shim
+clause 1          gcc target x86_64-linux-gnu: glibc dynamic lane
+clause 1          fakepwd.so is dynamically linked (NEEDED libc present)
+clause 2          cage carries no passwd database
+clause 2          chroot denied (exit 125 as nobody via setpriv)
+clause 3          /usr/sbin/sshd is dynamically linked (libc in ldd)
+clause 4          sshd listening on 127.0.0.1:22184 with the preloaded shim
+clause 4          cageuser absent from the host database (shim-only user)
+clause 4          real SSH command returned 42 with exact bytes and silent stderr
+clause 5          wrong key refused with 255 in 0s, daemon still standing
+clause 6          host identity unchanged (hostname and /etc/passwd checksum match)
+clause 7          sshd reaped within 1s
+clause 7          port 22184 refuses after the daemon died
+clause 7          work dir removed, no owned residue
+
+verdict           RESTRICTED SSHD SERVES EXIT 42 ON THE COMPILED SHIM

@@ -160,7 +160,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-0912](deps.md) | P2 | deps | done | The powerpc gate is the crate's and it is stale, so podbox can clear it |
 | [T-1001](packaging.md) | P0 | packaging | **done** | A single static binary with no `PT_INTERP` |
 | [T-1002](packaging.md) | P1 | packaging | done | Embed the interposer as bytes and place it inside the rootfs |
-| [T-1003](packaging.md) | P2 | packaging | partial | The launch ladder, and a single file with an embedded rootfs |
+| [T-1003](packaging.md) | P2 | packaging | done | The launch ladder, and a single file with an embedded rootfs |
 | [T-1004](packaging.md) | P3 | packaging | done | A reproducible build, and the artefact's own inputs recorded |
 | [T-1005](packaging.md) | P1 | packaging | done | A session reaches the code in one command, and the build runs behind the reading |
 | [T-1100](milestones.md) | P0 | milestones | **done** | M-1 the corpus, the work index and the skeleton |
@@ -240,32 +240,32 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1349](gate.md) | P1 | gate | done | Verify build freshness from input and output bytes |
 | [T-1350](gate.md) | P1 | gate | partial | Make Windows proofs use explicit inputs and return build artifacts |
 | [T-1351](gate.md) | P1 | gate | done | Keep the failed check's complete diagnostic |
-| [T-1401](podssh.md) | P1 | podssh | partial | Prove the SSH transport and server in the current tree |
+| [T-1401](podssh.md) | P1 | podssh | done | Prove the SSH transport and server in the current tree |
 
 | [T-1402](podssh.md) | P1 | podssh | done | Provide an interactive session without a pty |
 | [T-1403](podssh.md) | P1 | podssh | done | Prove concurrent sessions on one relay connection |
 | [T-1404](podssh.md) | P2 | podssh | done | Add the remote and machine SSH verbs after the transport holds |
 | [T-1405](podssh.md) | P1 | podssh | done | Ship and smoke the SSH helper archive |
-| [T-1406](podssh.md) | P1 | podssh | open | Bound SSH DNS and writes and prove node reconnect |
-| [T-1407](enter.md) | P0 | enter | open | Anchor userland paths inside the rootfs or refuse |
-| [T-1408](enter.md) | P1 | enter | open | Resolve the loader symlink inside the rootfs |
-| [T-1409](enter.md) | P1 | enter | open | Answer the payload-visible exe on the loader family |
-| [T-1410](enter.md) | P1 | enter | open | Exec through the no-chroot family |
-| [T-1411](enter.md) | P1 | enter | open | A detached launcher for the no-chroot family |
-| [T-1412](enter.md) | P1 | enter | open | A missing workdir refuses naming the path |
-| [T-1413](enter.md) | P2 | enter | open | A script refusal names the file and its shebang |
-| [T-1414](cli.md) | P1 | cli | open | The no-chroot path returns 127 and 126 |
-| [T-1415](cli.md) | P1 | cli | open | Strict classifies degradations on the userland rung |
-| [T-1416](cli.md) | P2 | cli | open | Quiet runs and a verbose banner |
-| [T-1417](cli.md) | P2 | cli | open | Inspect carries the OCI config |
-| [T-1418](image.md) | P1 | image | open | A noexec store refuses before the pull |
-| [T-1419](image.md) | P1 | image | open | Pull-missing verifies the blobs it trusts |
-| [T-1420](image.md) | P2 | image | open | Transport errors name the host once |
-| [T-1421](supervise.md) | P1 | supervise | open | A foreground run leaves a container record |
+| [T-1406](podssh.md) | P1 | podssh | done | Bound SSH DNS and writes and prove node reconnect |
+| [T-1407](enter.md) | P0 | enter | done | Anchor userland paths inside the rootfs or refuse |
+| [T-1408](enter.md) | P1 | enter | done | Resolve the loader symlink inside the rootfs |
+| [T-1409](enter.md) | P1 | enter | done | Answer the payload-visible exe on the loader family |
+| [T-1410](enter.md) | P1 | enter | done | Exec through the no-chroot family |
+| [T-1411](enter.md) | P1 | enter | done | A detached launcher for the no-chroot family |
+| [T-1412](enter.md) | P1 | enter | done | A missing workdir refuses naming the path |
+| [T-1413](enter.md) | P2 | enter | done | A script refusal names the file and its shebang |
+| [T-1414](cli.md) | P1 | cli | done | The no-chroot path returns 127 and 126 |
+| [T-1415](cli.md) | P1 | cli | done | Strict classifies degradations on the userland rung |
+| [T-1416](cli.md) | P2 | cli | done | Quiet runs and a verbose banner |
+| [T-1417](cli.md) | P2 | cli | done | Inspect carries the OCI config |
+| [T-1418](image.md) | P1 | image | done | A noexec store refuses before the pull |
+| [T-1419](image.md) | P1 | image | done | Pull-missing verifies the blobs it trusts |
+| [T-1420](image.md) | P2 | image | done | Transport errors name the host once |
+| [T-1421](supervise.md) | P1 | supervise | done | A foreground run leaves a container record |
 
 ## Counts
 
-201 items: 16 open, 4 partial, 0 blocked, 181 done.
+201 items: 0 open, 2 partial, 0 blocked, 199 done.
 
 Counted from the rows above by `scripts/todo-count.py` and asserted
 independently by `scripts/check-todo.py`, which is the gate. A number here
@@ -273,11 +273,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 1 | 0 | 0 | 52 | 53 |
-| P1 | 11 | 3 | 0 | 89 | 103 |
-| P2 | 4 | 1 | 0 | 32 | 37 |
+| P0 | 0 | 0 | 0 | 53 | 53 |
+| P1 | 0 | 2 | 0 | 101 | 103 |
+| P2 | 0 | 0 | 0 | 37 | 37 |
 | P3 | 0 | 0 | 0 | 8 | 8 |
-| **All** | **16** | **4** | **0** | **181** | **201** |
+| **All** | **0** | **2** | **0** | **199** | **201** |
 
 ## Work order
 

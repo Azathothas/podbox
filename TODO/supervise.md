@@ -809,7 +809,7 @@ Source:      issue 84; `crates/podbox-cli/src/run.rs:522`;
 Category:    supervise
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     `run --name fg1` succeeds but `ps -a` is empty and `logs
              fg1` finds no container. `--name` is accepted then
@@ -830,6 +830,19 @@ Prove:       `cargo test --workspace` exits 0. A tracked drive shows
              `ps -a` listing `fg1` as `Exited 0` with `logs` printing
              the output after a foreground `run --name fg1`.
 
-**Open 2026-09-30.** Filed from issue 84. Related to T-1411 but
+**Done 2026-09-30.** Every foreground run leaves a record with id,
+name, image, argv, times, exit, and log; `--name` always names
+something `ps -a` can list, and where records cannot persist the
+flag is refused by name instead of dropped. The ephemeral `--rm`
+path deletes its record on exit. `cargo test --workspace` exits 0.
+`sh experiments/356-no-chroot-rung.sh` exits 0
+([the drive](../experiments/results/no-chroot-rung.txt)): clause 16
+lists the foreground run as Exited with its output in `logs`,
+refuses the duplicate name, and shows `--rm` removing its record.
+Related to T-1411 but distinct: that entry owns detached lifecycle
+where chroot is denied; this one owns foreground records on all
+hosts.
+
+**Open 2026-09-30 (history).** Filed from issue 84. Related to T-1411 but
 distinct: that entry owns detached lifecycle where chroot is denied;
 this one owns foreground records on all hosts.
