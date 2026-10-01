@@ -1440,4 +1440,5 @@ an exec shim. Lane proof
 section 3): retired script and binary render identical pages, and the
 shim reaches its binary. Plant: render against a tree with a member
 removed exits 2. `docs/runtime-state.md` is regenerated through the
-binary. The record gate exits 0 on the landed tree.
+binary, and the gate `todo` job builds the binary before the gate
+runs. The record gate exits 0 on the landed tree.

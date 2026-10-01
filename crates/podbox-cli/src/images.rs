@@ -2399,8 +2399,7 @@ mod tests {
     /// crate has no `tempfile` dependency and the store tests' `scratch`
     /// helper is `#[cfg(test)]`-private to `podbox-image`.
     fn scratch_store(name: &str) -> std::path::PathBuf {
-        static SEQUENCE: std::sync::atomic::AtomicU64 =
-            std::sync::atomic::AtomicU64::new(0);
+        static SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let n = SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let root = std::env::temp_dir().join(format!(
             "podbox-cli-test-{}-{}-{}",

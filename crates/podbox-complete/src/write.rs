@@ -782,7 +782,8 @@ mod tests {
         std::os::unix::fs::symlink("/var/aptreal", format!("{root}/etc/apt")).unwrap();
 
         let r = Root::open(&root).unwrap();
-        r.write("etc/apt/apt.conf.d/99podbox", b"APT{}\n", 0o644).unwrap();
+        r.write("etc/apt/apt.conf.d/99podbox", b"APT{}\n", 0o644)
+            .unwrap();
         assert_eq!(
             std::fs::read(format!("{root}/var/aptreal/apt.conf.d/99podbox")).unwrap(),
             b"APT{}\n"
