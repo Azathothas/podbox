@@ -1,0 +1,27 @@
+T-1552 plant: the ported gate fails on a planted defect
+=======================================================
+
+The record gate is behaviour-preserving only if the new binary still goes
+red where the Python gate went red. This file saves one such red run.
+
+Mutation (count-agnostic, plant case 4 shape): the totals line in
+TODO/INDEX.md was rewritten from its derived counts to claim 999 open:
+
+    sed -i -E "s/^([0-9]+) items: [0-9]+ open/\1 items: 999 open/" TODO/INDEX.md
+
+Red run (release-profile equivalent debug binary, commit-faithful file
+membership, exit 1):
+
+    check-todo: 2 problem(s)
+      TODO/INDEX.md: the totals line is not the rows. Expected exactly:
+        203 items: 0 open, 3 partial, 0 blocked, 200 done.
+      docs/agent-tooling.md:26: link target ../scripts/check-todo.py does not resolve
+
+The first item is the planted defect's own message. It names the check
+(the totals line is not the rows) and the expected counts, and it does not
+appear on the clean tree. The second item is the known T-1552 worktree
+remainder (the tool-table link to the deleted script), not the plant.
+
+Restore: TODO/INDEX.md was copied back from a pre-plant backup and its
+hash verified identical; the gate then reported exactly the two known
+worktree-remainder items again, and the planted message was gone.

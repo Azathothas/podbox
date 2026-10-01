@@ -81,7 +81,7 @@ use Status::{Degraded, Native, None as NoneStatus, Stub};
 /// its value, exactly as docker reads it. A short flag that takes a value
 /// and is missing here splits wrong (`stop -t5` would read `-t` plus an
 /// unknown `-5`), so adding a value-taking short means adding it here.
-/// `cluster_expands_docker_clusters` pins the rule; `check-todo.py` check
+/// `cluster_expands_docker_clusters` pins the rule; the `podbox-gate` check
 /// 26 reads this same list, so the gate expands what the binary expands.
 pub const CLUSTER_VALUES: &[(&str, char)] = &[
     ("run", 'e'),
@@ -1013,7 +1013,7 @@ mod tests {
     /// ⭐ TODO/cli.md T-0801, issue 60: the curated docker surface stays
     /// covered. Every flag in the issue's list resolves under `run` (any
     /// status: honored or refused with its reason), and every verb in its
-    /// list has a verb row. `scripts/check-todo.py` check 27 holds the
+    /// list has a verb row. `crates/podbox-gate/src/main.rs` check 27 holds the
     /// same list from outside the binary; this holds it from inside.
     #[test]
     fn issue_60_curated_surface_stays_covered() {
@@ -1088,5 +1088,48 @@ mod tests {
         for v in VERBS {
             assert!(verb(v).is_some(), "curated verb {v} has no verb row");
         }
+    }
+
+    /// T-1527 (`325` clause 2). Every verb refuses a flag no row names, at
+    /// the flag-error code, before any arm runs. The live drive probes each
+    /// verb path with an unlisted flag; what is pinned here is the gate
+    /// that drive leans on, over every distinct verb in the table.
+    #[test]
+    fn every_verb_refuses_an_unlisted_flag() {
+        let mut verbs: Vec<&str> = TABLE.iter().map(|r| r.verb).collect();
+        verbs.sort_unstable();
+        verbs.dedup();
+        assert!(!verbs.is_empty());
+        for v in verbs {
+            assert_eq!(
+                admit(v, "--no-such-flag", ""),
+                Err(podbox_image::error::EXIT_FLAG_ERROR),
+                "{v} admitted an unlisted flag"
+            );
+        }
+    }
+
+    /// T-1527 (`325` clause 1). Every refused flag row refuses with its own
+    /// note: each `None` row's first spelling is refused up front rather
+    /// than accepted and silently lost. The note text itself is covered by
+    /// `every_unimplemented_row_says_why`; the drive compares it against
+    /// the binary's stderr.
+    #[test]
+    fn every_refused_flag_row_refuses_its_first_spelling() {
+        let mut count = 0;
+        for r in TABLE.iter().filter(|r| r.status == Status::None) {
+            let Some(spellings) = r.flag else {
+                continue;
+            };
+            let first = spellings.split(',').next().unwrap().trim();
+            assert_eq!(
+                admit(r.verb, first, ""),
+                Err(podbox_image::error::EXIT_FLAG_ERROR),
+                "{} {first} was not refused up front",
+                r.verb
+            );
+            count += 1;
+        }
+        assert!(count > 0, "no refused flag rows to pin");
     }
 }

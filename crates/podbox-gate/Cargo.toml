@@ -1,0 +1,62 @@
+[package]
+name = "podbox-gate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# The record gate as a binary. A behaviour-preserving port of the Python
+# reader half of the work-todo pair. Arguments are parsed by hand: the
+# reader takes none, and extras are ignored exactly as the script ignored
+# them. No dependencies; the standard library is the whole toolchain.
+
+[[bin]]
+name = "podbox-count"
+path = "src/count.rs"
+
+# The plant harness as a binary. A behaviour-preserving port of the retired
+# plant.sh (T-1554): it breaks each gate check on purpose and asserts red
+# with that check's own message, plus one red pin per wave-2 source and
+# batch-4 test file (T-1579). Arguments are parsed by hand; no dependencies.
+
+[[bin]]
+name = "podbox-plant"
+path = "src/plant.rs"
+
+# The session environment and build driver as a binary. A
+# behaviour-preserving port of the retired dev.sh, session-start.sh and
+# 310-session-startup.sh (T-1555). Arguments are parsed by hand; no
+# dependencies.
+
+[[bin]]
+name = "podbox-dev"
+path = "src/dev.rs"
+
+# The release smoke and gate diagnostics as a binary. A
+# behaviour-preserving port of the retired nightly-smoke.sh and
+# 398-gate-diagnostics.py (T-1556). Arguments are parsed by hand; no
+# dependencies.
+
+[[bin]]
+name = "podbox-smoke"
+path = "src/smoke.rs"
+
+# Both interposer objects, exports, and size checks, as a binary. A
+# behaviour-preserving port of the retired build-interpose.sh plus the
+# stat/statx offset check (T-1557). Arguments are parsed by hand; no
+# dependencies. The byte ceiling stays declared in the shell stub and is
+# read at runtime, never embedded: the gate scans for its digits.
+
+[[bin]]
+name = "podbox-interpose-build"
+path = "src/interpose_build.rs"
+
+# The one-binary one-object-per-libc check, as a binary. A
+# behaviour-preserving port of the retired 60-interposer-libc.sh (T-1577)
+# as a check in the gate crate, staying out of the workspace members: no
+# new crate, no member row. Arguments are parsed by hand; no dependencies.
+
+[[bin]]
+name = "podbox-libc-interpose"
+path = "src/libc_interpose.rs"

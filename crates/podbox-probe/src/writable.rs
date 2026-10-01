@@ -136,7 +136,7 @@ fn probe_one(path: &str, source: &str, tag: &str) -> WriteProbe {
 }
 
 /// ⛔ Distinguishes concurrent probes **within one process**, which the pid
-/// cannot. Found on 2026-09-09 by `scripts/dev.sh check`.
+/// cannot. Found on 2026-09-09 by `podbox-dev check` (then `scripts/dev.sh check`).
 static CALL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 pub fn probe() -> Vec<WriteProbe> {

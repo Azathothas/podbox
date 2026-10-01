@@ -7,6 +7,7 @@ members = [
     "crates/podbox-extract",
     "crates/podbox-complete",
     "crates/podbox-enter",
+    "crates/podbox-gate",
     "crates/podbox-supervise",
     "crates/podbox-windows",
     "crates/podbox-ssh",

@@ -20,12 +20,12 @@ Verify source against the captured commit.
 
 | Tool | Purpose |
 | --- | --- |
-| [session-start](../scripts/session-start.sh) | Discover the host and select its setup |
-| [dev](../scripts/dev.sh) | Build and check on Linux |
+| podbox-dev session and check | Discover the host, build and check on Linux |
 | [Windows job wrapper](../scripts/windows/run-in-base.sh) | Copy the checkout and run a Linux job |
-| [record gate](../scripts/check-todo.py) | Check task and document consistency |
-| [count writer](../scripts/todo-count.py) | Derive task counts |
-| [plant](../scripts/plant.sh) | Demonstrate gate refusals |
+| [lane proof runner](../scripts/dev-lane.sh) | Run one proof on the lane: lint, toolset, gc, evidence |
+| [record gate](../crates/podbox-gate/src/main.rs) | Check task and document consistency |
+| [count writer](../crates/podbox-gate/src/count.rs) | Derive task counts |
+| [plant](../crates/podbox-gate/src/plant.rs) | Demonstrate gate refusals |
 | [common checks](../scripts/common/) | Documents, secrets, markers, attribution, and paired checks |
 | [doctor](../scripts/doctor/) | Environment report |
 | [build state](../scripts/build-state.py) | Verify build freshness |

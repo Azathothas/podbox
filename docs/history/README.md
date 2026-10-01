@@ -49,9 +49,9 @@ in history or its captured task record. Live text is corrected in place.
 
 | the claim | what took it away | where it lives now |
 | --- | --- | --- |
-| A musl-linked object would fail to load into a glibc payload for symbol or struct reasons | `experiments/60-interposer-libc.sh` measured the SONAME as the discriminator instead | [T-0702](../../TODO/interpose.md) `Premise` |
+| A musl-linked object would fail to load into a glibc payload for symbol or struct reasons | experiments/60-interposer-libc.sh measured the SONAME as the discriminator instead | [T-0702](../../TODO/interpose.md) `Premise` |
 | `150-image-acquisition.sh` could not leave Docker Hub, because it compares podbox's digest with docker's | docker pulls from `ghcr.io` perfectly well, checked on this host 2026-09-09 | [T-0206](../../TODO/image.md) |
-| A `build.rs` that runs `scripts/build-interpose.sh` would deadlock as a cargo inside a cargo | `experiments/158-interpose-embedding.sh` ran it in two shapes and both completed. ⚠ Refused anyway, because it would fire elsewhere | [T-0702](../../TODO/interpose.md) |
+| A `build.rs` that runs `scripts/build-interpose.sh` would deadlock as a cargo inside a cargo | `experiments/158-interpose-embedding.sh` <!-- known-absent --> ran it in two shapes and both completed. ⚠ Refused anyway, because it would fire elsewhere | [T-0702](../../TODO/interpose.md) |
 | The store lock race was a misdirected `close` leaving a description open | Observation, not a rate: at every capture the process held no description on the inode | [`2026-09-12-store-lock-race-dead-ends.md`](2026-09-12-store-lock-race-dead-ends.md) |
 | A concurrent fork was NOT a necessary condition for that race | The fork control's skip list was short of the code three times; completing it reversed the verdict to 0 of 20 | the same page |
 | The race was a forked child holding a lock descriptor, in any of five shapes | All five were closed and the rate never moved. The refusal had no holder at all | the same page, and [T-0215](../../TODO/image.md)'s `Done` record |

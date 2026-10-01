@@ -360,6 +360,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "podbox-gate"
+version = "0.1.0-beta.12"
+
+[[package]]
 name = "podbox-image"
 version = "0.1.0-beta.12"
 dependencies = [

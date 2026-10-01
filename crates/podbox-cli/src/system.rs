@@ -695,4 +695,46 @@ mod tests {
         );
         assert_eq!(short_id("bogus"), "bogus");
     }
+
+    /// T-1519 (`80-interposer-abi.sh` check E). `system abi` reports three
+    /// exit codes: 0 admitted, 1 refused with the reason on stderr, 2 a file
+    /// podbox could not read. The unreadable and refused arms are pinned
+    /// here with hermetic inputs: two bogus paths for 2, and the test
+    /// binary against itself for 1 (same machine, but no libc SONAME or
+    /// libc name, so gate 2 of `admits` refuses on every host). The
+    /// admitted arm needs a real admitted pair and stays with the live
+    /// `80` pairings; only the return codes are asserted, never the
+    /// streams.
+    #[test]
+    fn abi_reports_unreadable_refused_and_arity() {
+        let bogus = |n: &str| {
+            std::env::temp_dir()
+                .join(format!("podbox-abi-{n}-{}", std::process::id()))
+                .to_string_lossy()
+                .into_owned()
+        };
+        assert_eq!(
+            abi(
+                "system abi",
+                &[bogus("object"), bogus("libc")]
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>()
+            ),
+            2
+        );
+        let me = std::env::current_exe()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        assert_eq!(
+            abi("system abi", &[me.clone(), me]),
+            1,
+            "the binary against itself must refuse, not admit"
+        );
+        assert_eq!(
+            abi("system abi", &["only-one-path".to_string()]),
+            EXIT_CLI_ERROR
+        );
+    }
 }

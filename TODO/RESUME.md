@@ -9,8 +9,8 @@ CI-green commits. Records: 203 entries, 0 open, 2 partial (T-1350 and
 T-1112, KVM-bound), 201 done. No kept lane jobs; the ledger is empty.
 
 Recovery: `git log --oneline -3` shows the closure batch, the plant fix,
-the version bump, and the release records. `py scripts/check-todo.py`
-exits 0. Fresh proof re-runs from the tracked scripts in
+the version bump, and the release records. The record-gate binary
+(`podbox-gate`) exits 0. Fresh proof re-runs from the tracked scripts in
 `experiments/`, never from `.tmp/`.
 
 Next: an operator-present session runs the KVM guest (`sh

@@ -2394,4 +2394,96 @@ mod tests {
             EXIT_FLAG_ERROR
         );
     }
+
+    /// A scratch store for the hold/refusal tests below. `std` only: this
+    /// crate has no `tempfile` dependency and the store tests' `scratch`
+    /// helper is `#[cfg(test)]`-private to `podbox-image`.
+    fn scratch_store(name: &str) -> std::path::PathBuf {
+        static SEQUENCE: std::sync::atomic::AtomicU64 =
+            std::sync::atomic::AtomicU64::new(0);
+        let n = SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let root = std::env::temp_dir().join(format!(
+            "podbox-cli-test-{}-{}-{}",
+            std::process::id(),
+            n,
+            name
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    /// A minimal held-image record. Same shape as the store suite's own
+    /// `record` helper: canonical repository, tag, three digests, one
+    /// platform, two layers.
+    fn held_record() -> podbox_image::Record {
+        let d = |b: u8| podbox_image::digest::Digest::of(&[b, 9]).to_string();
+        podbox_image::Record {
+            repository: "docker.io/library/alpine".into(),
+            tag: Some("latest".into()),
+            digest: d(1),
+            digest_media_type: "application/vnd.oci.image.index.v1+json".into(),
+            manifest_digest: d(2),
+            config_digest: d(3),
+            platform: "linux/amd64".into(),
+            layers: vec![d(4), d(5)],
+            stored_bytes: 100,
+            architecture: "amd64".into(),
+            os: "linux".into(),
+            created: Some("2024-01-01T00:00:00Z".into()),
+            pulled_at: "2024-01-01T00:00:00Z".into(),
+        }
+    }
+
+    /// T-1517 (`160-store-gc.sh` clause 1). `rmi` on a held image exits
+    /// non-zero naming `in use`: `store.remove` takes `Held::Refuse` and
+    /// `rmi` reports the resulting error's own exit code.
+    #[test]
+    fn rmi_refuses_a_held_image() {
+        let root = scratch_store("rmi-held");
+        let store = podbox_image::store::Store::open(&root).unwrap();
+        let record = held_record();
+        store.put_record(record.clone()).unwrap();
+        let held = store.hold(&record).unwrap();
+        let error = store.remove("alpine:latest").unwrap_err();
+        assert!(
+            format!("{error}").contains("in use"),
+            "held removal did not say in use: {error}"
+        );
+        assert_eq!(
+            error.exit_code(),
+            podbox_image::error::EXIT_RUNTIME_ERROR,
+            "held removal must exit non-zero the way rmi reports it"
+        );
+        drop(held);
+        assert!(
+            store.remove("alpine:latest").is_ok(),
+            "rmi refused an image nothing is using"
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// T-1518 (`160-store-gc.sh` clause 2, defect decided in TODO/cli.md
+    /// T-0802). No source defect: `prune` on a held image exits 0, prints
+    /// `skipped:`, and leaves the image listed. `Store::prune` is the
+    /// CLI's data path minus the supervise record gate: candidates, then
+    /// `delete` with `Held::Skip`, whose `skipped` list is exactly what
+    /// `prune` prints after `skipped: `.
+    #[test]
+    fn prune_skips_a_held_image() {
+        let root = scratch_store("prune-held");
+        let store = podbox_image::store::Store::open(&root).unwrap();
+        let record = held_record();
+        store.put_record(record.clone()).unwrap();
+        let held = store.hold(&record).unwrap();
+        let pruned = store.prune(true).unwrap();
+        assert_eq!(pruned.skipped, vec!["alpine:latest".to_string()]);
+        assert!(pruned.deleted.is_empty());
+        assert!(
+            store.find("alpine:latest").unwrap().len() == 1,
+            "prune removed an image it only skipped"
+        );
+        drop(held);
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }

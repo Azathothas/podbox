@@ -60,7 +60,7 @@ against the shipped binary.
 
 | | |
 | --- | --- |
-| rows | **220**. ⚠ 131 when this closed; the table grows with the flags, and this row is the CURRENT count so the two cannot drift apart |
+| rows | **265**. ⚠ 131 when this closed; the table grows with the flags, and this row is the CURRENT count so the two cannot drift apart |
 | of which verbs | **69** |
 | statuses used | Native, Degraded, Stub, None, and no fifth |
 | rows with no reason | **0** |
@@ -179,7 +179,7 @@ the rows added it is true again, and check 27 holds it.
 Prove: `experiments/355-parity-curated.sh` exit 0 on the lane
 (kernel 7.2.0-WSL2-STABLE, lane-built musl debug binary
 0.1.0-beta.7, pinned alpine:3.20 digest `d9e853e8`):
-clause-1 41/41 refused with status None at 125, clause-2 10/10
+clause-1 40/40 refused with status None at 125, clause-2 10/10
 verbs refused at 125 with their notes, `--env-file` end to end
 (`from-file` on payload stdout, a later `-e` winning, the `=`
 form equal, a bad line and a missing file at 125), the stub
@@ -249,6 +249,16 @@ caller most: every `execve` failure was folded into "not found", so
 branching on 127 retries with another path. The split is on the **errno**:
 `EPERM`, `ENOEXEC`, `EACCES`, `EISDIR` and `ETXTBSY` are 126; `ENOENT` and
 anything about resolving the path are 127.
+
+**Prune and rmi on a held image, decided 2026-10-01.** No source defect:
+`store.delete` with `Held::Skip` returns `Ok` with the image in `skipped`,
+which `prune` reports as exit 0 naming `skipped:`; `store.remove`
+(`Held::Refuse`) errors `in use`, which `rmi` reports as 125. The script
+(`experiments/160-store-gc.sh:138-139`), the source
+(`crates/podbox-cli/src/images.rs:961-986`), and
+`experiments/results/store-gc.txt` (one `skipped:` line) agree. Pinned by
+`rmi_refuses_a_held_image` and `prune_skips_a_held_image` in
+`crates/podbox-cli/src/images.rs`.
 
 ⭐ **The codes now live in ONE file**, `crates/podbox-probe/src/exit.rs`, and
 are served as data by `podbox system info --format '{{json .ExitCodes}}'`.
@@ -684,6 +694,8 @@ Prove:       `./experiments/325-parity-drive.sh`, which exits 0 only when every
 **Done, 2026-09-21.** The driver is green against the shipped binary: 160
 rows, 199 driven, 0 mismatches, 0 unreachable here
 (`experiments/results/parity-drive.txt`, with the conditions at its head).
+Both figures are historical readings; the table holds 265 rows
+(`crates/podbox-cli/src/parity.rs:232`).
 The 153-row figure this record carried went stale at T-1302, which added
 5 rows (the two tier rows, the two qemu-arg rows and `podvm`) without
 re-driving, and T-1305 added 2 more (the two `--podbox-mem` rows) with the
@@ -1243,12 +1255,12 @@ both pagings with stdout and stderr separated, and a catalog of
 five error paths. `experiments/results/ascii-output.txt` carries
 the run: 69 `ASCII-OK` lines, zero failures, verdict `fail=0`.
 
-Nine unit tests hold the constants the script drives (usage per
+Ten unit tests hold the constants the script drives (usage per
 module, every parity note, the whole manual through the stub):
-`cargo test -p podbox-cli ascii`, 9 passed. Clippy `-D warnings`
+`cargo test -p podbox-cli ascii`, 10 passed. Clippy `-D warnings`
 clean in the same lane run. The gate guard is check 28 in
-`scripts/check-todo.py` (any non-ASCII byte in a printed string
-fails, comments exempt) with its plant case in `scripts/plant.sh`:
+`crates/podbox-gate/src/main.rs` (any non-ASCII byte in a printed string
+fails, comments exempt) with its plant case in `podbox-plant`:
 a glyph planted in `run.rs` goes red naming `U+26D4` and T-1336.
 The guard is the check plus the 352 experiment: a new glyph fails
 the gate before it ships and fails the binary drive beside it.
@@ -1338,7 +1350,7 @@ Only a gate failure (unopenable store, unanswerable lock, failed
 listing) exits non-zero. Parity: `df` Native row with its `-h`
 row, the `system` note no longer claims df missing (check 27
 would refuse the stale claim), `rows_of` maps `system df`, the
-`check-todo.py` mirror maps it too, `man` routes its help.
+`podbox-gate` mirror maps it too, `man` routes its help.
 Prove through the shipped binary (`experiments/364-qol.sh`
 df clauses, exit 0, `experiments/results/qol.txt`): debian rows
 26.9 MiB stored beside 74.6 MiB rootfs, totals present with the

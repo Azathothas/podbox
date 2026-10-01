@@ -744,4 +744,49 @@ mod tests {
         );
         let _ = std::fs::remove_dir_all(&root);
     }
+
+    /// T-1523, first half (`85` clauses A through E). The out-link is not
+    /// merely written through: it is REPLACED by a regular file inside the
+    /// rootfs, so a later reader never follows it out again.
+    #[test]
+    fn a_write_replaces_an_out_link_with_a_regular_file() {
+        let root = scratch("replace");
+        let outside = std::env::temp_dir().join(format!("podbox-canary-r{}", std::process::id()));
+        std::fs::write(&outside, b"canary\n").unwrap();
+        std::os::unix::fs::symlink(&outside, format!("{root}/etc/mtab")).unwrap();
+
+        let r = Root::open(&root).unwrap();
+        r.write("etc/mtab", b"inside\n", 0o644).unwrap();
+        assert!(
+            !std::fs::symlink_metadata(format!("{root}/etc/mtab"))
+                .unwrap()
+                .is_symlink(),
+            "etc/mtab is still a symlink after the write"
+        );
+        assert_eq!(
+            std::fs::read(format!("{root}/etc/mtab")).unwrap(),
+            b"inside\n"
+        );
+        assert_eq!(std::fs::read(&outside).unwrap(), b"canary\n");
+        let _ = std::fs::remove_file(&outside);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// T-1523, second half (`85` clause F, openSUSE's own shape). A directory
+    /// link that stays inside the rootfs is FOLLOWED: the fixup lands at its
+    /// target rather than refused or dropped.
+    #[test]
+    fn a_write_follows_a_directory_link_that_stays_inside() {
+        let root = scratch("inside");
+        std::fs::create_dir_all(format!("{root}/var/aptreal/apt.conf.d")).unwrap();
+        std::os::unix::fs::symlink("/var/aptreal", format!("{root}/etc/apt")).unwrap();
+
+        let r = Root::open(&root).unwrap();
+        r.write("etc/apt/apt.conf.d/99podbox", b"APT{}\n", 0o644).unwrap();
+        assert_eq!(
+            std::fs::read(format!("{root}/var/aptreal/apt.conf.d/99podbox")).unwrap(),
+            b"APT{}\n"
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }

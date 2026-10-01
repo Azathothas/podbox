@@ -156,7 +156,7 @@ deployment.
 
 Twenty-two open issues (29 through 38, 49 through 60) triaged with
 lane drives: `experiments/353-open-issue-triage.sh` (37 clauses,
-exit 0) and `experiments/354-lifecycle-same-store.sh` (full loop
+exit 0) and `experiments/354-lifecycle-same-store.sh` <!-- known-absent --> (full loop
 in one store, exit 0), reports committed under
 `experiments/results/`. Twenty entries reopened as partial with
 the decision underneath each; three opened new (T-1337 doctor, df
@@ -335,7 +335,7 @@ a lock its own parent holds.
 `crates/podbox-cli/build.rs` copies what the script left behind and writes an
 empty file where an object is absent, so `include_bytes!` always compiles and a
 fresh clone with no zig still builds. ⚠ The hazard was measured rather than
-assumed: `experiments/158-interpose-embedding.sh` ran a nested build in two
+assumed: `experiments/158-interpose-embedding.sh` <!-- known-absent --> ran a nested build in two
 shapes and both completed, so it does not fire here. The shape is refused
 anyway, because it would fire on somebody else's machine and copying cannot.
 

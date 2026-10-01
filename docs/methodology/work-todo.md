@@ -21,7 +21,7 @@ Keep the title when a premise changes.
 Correct current text in place and retain required earlier evidence in history.
 Do not treat a task's captured Problem as a claim of current source absence.
 
-Set status through todo-count.py and run the independent record gate.
+Set status through podbox-count and run the independent record gate.
 The task, index, progress, and implementation belong in the same change.
 Do not create a second work order in another page or kickoff prompt.
 

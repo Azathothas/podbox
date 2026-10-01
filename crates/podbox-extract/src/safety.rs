@@ -202,7 +202,7 @@ impl Drop for Dir {
 /// kernel 6.18.44 and `openat2(2)` is present, so an `Auto` run never enters
 /// the `O_NOFOLLOW` walk, and the walk is what protects every kernel before
 /// 5.6. A safety mechanism nobody has seen work is not a safety mechanism,
-/// which is `scripts/plant.sh`'s whole argument applied to this crate.
+/// which is `podbox-plant`'s whole argument applied to this crate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Resolve {
     /// `openat2` where the kernel has it, the walk otherwise. Production, for

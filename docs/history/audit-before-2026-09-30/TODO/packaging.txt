@@ -176,7 +176,7 @@ path. Nine unit tests pin the request parse, the scope refusals, the
 three feeds and the three pre-entry refusals (sketch, script, missing),
 all fork-free; `staging_hands_back_a_live_cloexec_descriptor` pins the
 stage path with close-on-exec set. Driven by
-`experiments/163-ladder-drive.sh`, exit 0 twice on host podman 6.1.2
+`experiments/163-ladder-drive.sh` <!-- known-absent -->, exit 0 twice on host podman 6.1.2
 with a lane-built musl binary: the forced memfd over a static payload
 enters on the rung (`ACTIVE_MODE=memfd`, rc 0), the default and
 scrubbed entries report chroot, and the fuse, unknown-word,

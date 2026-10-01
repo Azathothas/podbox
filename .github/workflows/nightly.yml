@@ -66,7 +66,7 @@ jobs:
 
       # One path: the same script a session runs in a fresh container, with
       # only the components this job needs. The component list is what
-      # scripts/check-todo.py check 19 holds this job to.
+      # podbox-gate check 19 holds this job to.
       - name: bootstrap
         run: ./scripts/common/bootstrap-env.sh rust bloat cc zig tools
 
@@ -79,9 +79,15 @@ jobs:
       # interposes nothing. The pair is the x86_64 one on every arch: the
       # interposer is x86_64-only by design (TODO/interpose.md T-1327),
       # and on other archs the tier declines by name on the machine
-      # mismatch.
+      # mismatch. The builder is the podbox-interpose-build binary, built
+      # for the runner.
       - name: interposer, one object per libc
-        run: ./scripts/build-interpose.sh
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+          cargo build --release -p podbox-gate --bin podbox-interpose-build
+          mkdir -p target/release
+          cp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/
+          ./target/release/podbox-interpose-build
 
       - name: build
         run: cargo build --release --target ${{ matrix.triple }}
@@ -98,9 +104,16 @@ jobs:
       # triple, both interposer digests are present, crt-static reads yes,
       # and no PT_INTERP. TODO/packaging.md T-1329 extends it with a
       # loopback pull plus extract asserting payload bytes, so a binary
-      # broken for its actual job cannot publish green.
+      # broken for its actual job cannot publish green. The smoke is the
+      # podbox-smoke binary, built for the runner (it drives the per-arch
+      # binary, it is not one).
       - name: smoke
-        run: sh scripts/nightly-smoke.sh target/${{ matrix.triple }}/release/podbox ${{ matrix.triple }} ${{ matrix.qemu }}
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+          cargo build --release -p podbox-gate --bin podbox-smoke
+          mkdir -p target/release
+          cp target/x86_64-unknown-linux-musl/release/podbox-smoke target/release/
+          ./target/release/podbox-smoke target/${{ matrix.triple }}/release/podbox ${{ matrix.triple }} ${{ matrix.qemu }}
 
       - name: stage the asset
         run: |

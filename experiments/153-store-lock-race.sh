@@ -369,7 +369,7 @@ mutate_and_measure() {
 #
 # ⛔ Clause 9's null result is worth exactly as much as the proof that
 # `sys::shed_after_fork` fires, and that proof is one test. A control nobody has
-# seen fail is not a control, which is `scripts/plant.sh`'s whole argument
+# seen fail is not a control, which is scripts/plant.sh's whole argument
 # applied to a test rather than to a gate check.
 #
 # ⚠ It mutates the hook's body to nothing and asserts the control goes RED. A

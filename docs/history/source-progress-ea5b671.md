@@ -69,7 +69,7 @@ is a control of the bogus-argument discriminator, and the consequence is
 | ⭐ `landlock_create_ruleset` in a QEMU guest | **`ok`, ABI 6**, where this host answers `ENOSYS` | `experiments/290-microvm.sh`, T-0112 |
 | ⭐ the `kcmp(2)` control in that guest | **`ESRCH`**, which is the target's own answer | the same |
 | that whole boot, probe and poweroff, under TCG | about **6 s** | the same |
-| a cold compile against an empty target directory | **29 s**, 87 crates, 150 MB | `experiments/310-session-startup.sh`, T-1005 |
+| a cold compile against an empty target directory | **29 s**, 87 crates, 150 MB | experiments/310-session-startup.sh, T-1005 |
 | release binary, M5 complete | 2,601,840 bytes | `experiments/110-bloat-delta.sh enter`, run before M6's reader |
 | release binary, M2 complete | 2,282,224 bytes | `experiments/results/bloat-extract.txt` |
 | release binary, M1 complete | 2,130,672 bytes | `experiments/results/bloat-image.txt` |
@@ -99,7 +99,7 @@ is a control of the bogus-argument discriminator, and the consequence is
 | the same under musl, with the musl-linked object | rc 0 and `0:42`, where the bare `chown` is rc 1 | the same, check E |
 | the ownership memo's record | **32 bytes**, `O_APPEND`, one write, no lock; last match wins | `crates/podbox-interpose/src/memo.rs` |
 | ⭐ the pair podbox must refuse BEFORE loading anything | `podbox system abi` rc 1 on the ELF alone, and the loader agrees | the same, check F, and T-0709 |
-| interposer cdylib under `+crt-static` | refused by cargo | `experiments/60-interposer-libc.sh` |
+| interposer cdylib under `+crt-static` | refused by cargo | experiments/60-interposer-libc.sh |
 | interposer cdylib, `-crt-static`, musl target, linked by `zig cc` | `DT_NEEDED libc.so` | the same |
 | podbox's own musl cdylib into a glibc payload | **refused**, `libc.so: invalid ELF header`, rc 127 | the same, check B |
 | glibc object into a musl payload | **refused**, `__snprintf_chk: symbol not found` | `experiments/80-interposer-abi.sh` |
@@ -120,8 +120,8 @@ is a control of the bogus-argument discriminator, and the consequence is
 | ⭐ `openat2(2)` on this kernel | **present** (6.18.44), so the `O_NOFOLLOW` walk needs forcing to run at all | measured by calling it |
 | `execve` of `tar` during a full extraction | **0**. The only `execve` is podbox itself | `strace -f -e trace=execve` |
 | ⭐ `docker image inspect --format '{{.Size}}'`, alpine | 3,857,242 = podbox's blob total **to the byte**. ⛔ COMPRESSED: see [T-0202](../../TODO/image.md) | docker 29.3.1, containerd store |
-| gate coverage | ⛔ not recorded here. It is **self-referential**: writing the number down changes it | `scripts/check-todo.py`, on every run |
-| the gate's checks, planted against | 24 caught, 0 missed; see the acceptance block | `scripts/plant.sh` |
+| gate coverage | ⛔ not recorded here. It is **self-referential**: writing the number down changes it | `scripts/check-todo.py` <!-- known-absent -->, on every run |
+| the gate's checks, planted against | 24 caught, 0 missed; see the acceptance block | scripts/plant.sh |
 | corpus | 30 trees, 154 MB in a fresh clone | `scripts/common/mine-repo.sh` |
 
 Acceptance, run on 2026-09-09/10. ⚠ A list of commands and **not an `&&`
@@ -207,7 +207,7 @@ ten-row acceptance; and [T-1207](../../TODO/gate.md) is the crate the gate does 
 [T-0214](../../TODO/image.md) was authored and implemented in the same change, which is
 the rule; the five above are work, not deferred halves of finished work.
 
-Derived by `scripts/todo-count.py` and asserted by `scripts/check-todo.py`.
+Derived by `scripts/todo-count.py` <!-- known-absent --> and asserted by `scripts/check-todo.py`.
 [INDEX.md](../../TODO/INDEX.md)'s Counts block carries the per-priority breakdown, and the
 gate refuses a commit where the two disagree.
 

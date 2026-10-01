@@ -33,27 +33,46 @@ jobs:
       # the index and its entry, that every reference resolves, and that every
       # cited path and line exists. The last of those is why the corpus is
       # tracked in the tree rather than on a side branch.
+      #
+      # The binaries below are built here, not borrowed from another job:
+      # jobs share no target/ directory, and check 19 holds every
+      # cargo-running job to the same bootstrap list the build job carries.
+      - name: bootstrap
+        run: ./scripts/common/bootstrap-env.sh rust bloat cc zig tools
+
+      - name: build the gate binaries
+        run: |
+          cargo build --release -p podbox-gate
+          mkdir -p target/release
+          cp target/x86_64-unknown-linux-musl/release/podbox-gate target/release/
+          cp target/x86_64-unknown-linux-musl/release/podbox-count target/release/
+          cp target/x86_64-unknown-linux-musl/release/podbox-plant target/release/
+          cp target/x86_64-unknown-linux-musl/release/podbox-dev target/release/
+          cp target/x86_64-unknown-linux-musl/release/podbox-smoke target/release/
+          cp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/
+          cp target/x86_64-unknown-linux-musl/release/podbox-libc-interpose target/release/
+
       - name: check-todo
-        run: ./scripts/check-todo.py
+        run: ./target/release/podbox-gate
 
       # The writer must be a no-op on a tree the reader already passed. If it
       # changes anything, the committed counts were not derived from the rows.
-      - name: todo-count is idempotent
+      - name: podbox-count is idempotent
         run: |
-          ./scripts/todo-count.py
+          ./target/release/podbox-count
           git diff --exit-code -- TODO/
 
-      # ⭐ The step that makes the one above mean something. check-todo.py
+      # ⭐ The step that makes the one above mean something. podbox-gate
       # reports success identically whether its assertions passed or whether it
       # examined nothing, and the second is the state this repository shipped
-      # its first commit in. plant.sh breaks each check on purpose and asserts
+      # its first commit in. podbox-plant breaks each check on purpose and asserts
       # it goes red with that check's own message.
       #
       # ⛔ It plants into tracked files and restores them from a copy, so it
       # refuses to start on a dirty tree. Run it after checkout and before
       # anything that writes.
       - name: every check can fail
-        run: ./scripts/plant.sh
+        run: ./target/release/podbox-plant
 
       - name: maintained repository checks
         run: |
@@ -86,7 +105,7 @@ jobs:
       # names `scripts/zig-cc.sh` as `CC_<target>` for every target podbox
       # builds for, and `rustls`'s `ring` compiles C behind a build script, so
       # `cargo build` without zig dies in `ring`'s build script with
-      # "zig is not on PATH" and exit 101. Check 18 of `scripts/check-todo.py`
+      # "zig is not on PATH" and exit 101. Check 18 of `crates/podbox-gate/src/main.rs`
       # holds every cargo-running job here to that component list.
       - name: bootstrap
         run: ./scripts/common/bootstrap-env.sh rust bloat cc zig tools
@@ -96,7 +115,11 @@ jobs:
       # embeds two empty placeholders and this job passes with a podbox that
       # interposes nothing. TODO/interpose.md T-0702.
       - name: interposer, one object per libc
-        run: ./scripts/build-interpose.sh
+        run: |
+          cargo build --release -p podbox-gate --bin podbox-interpose-build
+          mkdir -p target/release
+          cp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/
+          ./target/release/podbox-interpose-build
 
       - name: build
         run: cargo build --release --target x86_64-unknown-linux-musl
@@ -113,11 +136,10 @@ jobs:
       #
       # ⛔ The script owns the number. This step used to carry its own copy of
       # it, which is a value in two places: raising one and not the other lets
-      # a build through that the other would have refused. check-todo.py's
+      # a build through that the other would have refused. podbox-gate's
       # check 17 holds that there is exactly one declaration.
       #
-      # ⚠ cargo-bloat comes from the bootstrap step above on purpose: the
-      # measurement script exits 2 without it, and a skip is not a pass.
+      # ⚠ cargo-bloat comes from the bootstrap step above on purpose: the      # measurement script exits 2 without it, and a skip is not a pass.
 
       # ⚠ Area `ci`, not `baseline`. The baseline is a committed reading from
       # one machine on one day; a runner re-taking it would overwrite that
@@ -183,7 +205,7 @@ jobs:
       # The two count scripts are Python. Named as such so the step above does
       # not try to parse them as shell, which it did while they were `.sh`.
       - name: count scripts compile
-        run: python3 -m py_compile scripts/*.py scripts/windows/*.py experiments/39*.py experiments/400-kvm-cleanup.py
+        run: python3 -m py_compile scripts/*.py scripts/windows/*.py experiments/393-build-freshness.py experiments/395-reconcile-repository.py experiments/397-exported-build.py experiments/399-publication.py experiments/400-kvm-cleanup.py
 
   test:
     name: workspace and interposer tests
@@ -202,7 +224,11 @@ jobs:
         run: python3 experiments/393-build-freshness.py
 
       - name: failed gate diagnostics and skip states
-        run: python3 experiments/398-gate-diagnostics.py
+        run: |
+          cargo build --release -p podbox-gate --bin podbox-smoke
+          mkdir -p target/release
+          cp target/x86_64-unknown-linux-musl/release/podbox-smoke target/release/
+          ./target/release/podbox-smoke --diagnostics
 
       - name: owned KVM emulator selection and cleanup
         run: python3 experiments/400-kvm-cleanup.py

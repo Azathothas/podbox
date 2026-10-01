@@ -20,7 +20,7 @@ no work order.
 
 ## What was done
 
-Three host lanes, and `scripts/session-start.sh` picks one. The Windows lane
+Three host lanes, and session-start.sh picks one. The Windows lane
 runs every Linux step in a disposable container inside `wsl-toolkit-podbox`,
 and `wsl.exe` is never called.
 
@@ -34,11 +34,11 @@ session.
 ⭐ **Each one reported success over a subject it had not examined**, which is the
 class the gate exists for.
 
-1. `scripts/check-todo.py` compared a host-separated relative path against
+1. `scripts/check-todo.py` <!-- known-absent --> compared a host-separated relative path against
    `git ls-files` output. Measured on 2026-09-11: **203 of the 248 links the
    check then resolved** read as untracked on Windows, so the gate could not run
    there at all.
-2. `scripts/todo-count.py` wrote tracked documents in the host's line ending.
+2. `scripts/todo-count.py` <!-- known-absent --> wrote tracked documents in the host's line ending.
    `.gitattributes` declares `eol=lf`, so git normalised on read and
    `git status` stayed clean while the bytes on disk were wrong.
    `check-one-home` then joined two short sentences across a carriage return

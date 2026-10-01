@@ -16,11 +16,20 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
     git -c commit.gpgsign=false commit -m 'Record audit snapshot for verification' || exit 2
 fi
 echo "copied snapshot commit: $(git rev-parse HEAD)"
-./scripts/dev.sh check >/out/linux-check.txt 2>&1
+cargo build --release -p podbox-gate || exit 2
+mkdir -p target/release
+cp target/x86_64-unknown-linux-musl/release/podbox-gate target/release/
+cp target/x86_64-unknown-linux-musl/release/podbox-count target/release/
+cp target/x86_64-unknown-linux-musl/release/podbox-plant target/release/
+cp target/x86_64-unknown-linux-musl/release/podbox-dev target/release/
+cp target/x86_64-unknown-linux-musl/release/podbox-smoke target/release/
+cp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/
+cp target/x86_64-unknown-linux-musl/release/podbox-libc-interpose target/release/
+./target/release/podbox-dev check >/out/linux-check.txt 2>&1
 rc=$?
 cat /out/linux-check.txt
 [ "$rc" -eq 0 ] || exit "$rc"
-./scripts/plant.sh >/out/plant.txt 2>&1
+./target/release/podbox-plant >/out/plant.txt 2>&1
 rc=$?
 cat /out/plant.txt
 [ "$rc" -eq 0 ] || exit "$rc"

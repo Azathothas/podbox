@@ -20,7 +20,7 @@
 #
 #   1. `musl-tools` ships no musl-linked `libgcc_s.so.1`, and `rustc` passes
 #      `-lgcc_s` on the musl target even under `panic = "abort"`. That is the
-#      shortage `experiments/60-interposer-libc.sh` exits 2 on, and it is an
+#      shortage experiments/60-interposer-libc.sh exits 2 on, and it is an
 #      open question in TODO/PROGRESS.md. `zig cc` carries its own
 #      `compiler-rt`, which provides those symbols.
 #   2. `musl-tools` is a host package pinned to the host's musl. `zig cc`

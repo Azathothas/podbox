@@ -19,7 +19,7 @@ Read [the limits](docs/limits.md) before you select a path.
 
 ```sh
 ./scripts/common/bootstrap-env.sh rust cc zig tools openssh
-./scripts/dev.sh build
+./target/release/podbox-dev build
 ./target/x86_64-unknown-linux-musl/release/podbox probe
 ./target/x86_64-unknown-linux-musl/release/podbox run alpine:latest /bin/echo hello
 ```
@@ -27,14 +27,15 @@ Read [the limits](docs/limits.md) before you select a path.
 The build script builds both interposer objects before the CLI embeds them.
 The build status verifies input and output bytes.
 
-For repository work, start with `sh scripts/session-start.sh`.
-Use `./scripts/dev.sh check` for the complete Linux check.
+For repository work, start with `./target/release/podbox-dev session`.
+Use `./target/release/podbox-dev check` for the complete Linux check.
 
 ## Build from Windows
 
 ```powershell
-sh scripts/session-start.sh
-py scripts/check-todo.py
+cargo build --release -p podbox-gate
+./target/release/podbox-dev session
+./target/release/podbox-gate
 $env:PODBOX_ARTIFACTS = '.dev/artifacts'
 sh scripts/windows/run-in-base.sh
 ```

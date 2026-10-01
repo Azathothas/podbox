@@ -12,7 +12,7 @@ The four hosted checks were green at `8502702`.
 | ⭐ [T-0215](../../../TODO/image.md), P0, open since 2026-09-11 | open | **done** | `experiments/153-store-lock-race.sh` |
 | ⭐ the subject | 5 to 12 of 20 across twenty passes | **0 of 30, twice** | clause 1 |
 | the same suite with the fix deleted | - | **30 of 30** | clause 12 |
-| entries open / partial / blocked / done | 41 / 4 / 0 / 86 | **41 / 4 / 0 / 87** | `scripts/check-todo.py` |
+| entries open / partial / blocked / done | 41 / 4 / 0 / 86 | **41 / 4 / 0 / 87** | `scripts/check-todo.py` <!-- known-absent --> |
 | candidate mechanisms closed with no effect | 1 | **5** | the entry |
 | ⭐ what the refusal is | a holder, assumed | **the tail of an unfinished release** | the capture at the refusal |
 | the guards on the defect | none | **two, both deterministic** | clauses 12 and 14 |

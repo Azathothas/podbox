@@ -38,7 +38,9 @@ for helper in node operator proxy shell; do
 done
 cp "$ROOT/LICENSE" "$WORK/package/LICENSE" || exit 1
 cp "$ROOT/crates/podbox-ssh/shims/LICENSE" "$WORK/package/SSH-SHIM-LICENSE" || exit 1
-python3 "$ROOT/scripts/release-licenses.py" --output "$WORK/package/dependency-licenses" || exit "$?"
+# Host python is `python` or `py`, never bare `python3` (a Store stub, exit 49, on Windows).
+PYBIN="$(command -v python || command -v py || command -v python3)" || exit 2
+"$PYBIN" "$ROOT/scripts/release-licenses.py" --output "$WORK/package/dependency-licenses" || exit "$?"
 epoch=${SOURCE_DATE_EPOCH:-$(git -C "$ROOT" log -1 --format=%ct)}
 tar --sort=name --mtime="@$epoch" --owner=0 --group=0 --numeric-owner \
     -cf "$WORK/package.tar" -C "$WORK/package" . || exit 1

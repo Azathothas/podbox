@@ -19,15 +19,14 @@
 
 | File | Purpose |
 | --- | --- |
-| `scripts/session-start.sh` | Host discovery and procedure selection |
-| `scripts/dev.sh` | Linux build and complete check |
+| podbox-dev session, status, check | Host discovery, Linux build and complete check |
 | `scripts/build-state.py` | Input and output byte verification |
 | `scripts/document-state.py` | Generated source-state page |
 | `scripts/windows/run-in-base.sh` | Windows job and artifact transport |
 | `scripts/windows/kvm-guest.py` | Windows driver for the KVM proof |
-| `scripts/check-todo.py` | Independent task, citation, and document-state gate |
-| `scripts/todo-count.py` | Task status and count writer |
-| `scripts/plant.sh` | Gate failure tests |
+| `crates/podbox-gate/src/main.rs` | Independent task, citation, and document-state gate |
+| `crates/podbox-gate/src/count.rs` | Task status and count writer |
+| `crates/podbox-gate/src/plant.rs` | Gate failure tests |
 | `scripts/common/` | Maintained shell and PowerShell checks |
 | `.github/workflows/` | Hosted checks and release workflow |
 

@@ -38,9 +38,9 @@ The next prompt belongs in chat only.
 
 ## 4. Counts
 
-Use `scripts/todo-count.py` to set a status and derive the counts.
+Use `./target/release/podbox-count` to set a status and derive the counts.
 Do not edit count tables by hand.
-Run `scripts/check-todo.py` to check the result independently.
+Run `./target/release/podbox-gate` to check the result independently.
 
 ## 5. Entry closure
 

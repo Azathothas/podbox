@@ -11,13 +11,13 @@ work order and is the only place that has one. This file carries the list, defin
 [reference-map.md](reference-map.md) is the corpus and its licence
 determinations.
 
-`scripts/check-todo.py` checks this file against the entries: a status that
+`crates/podbox-gate/src/main.rs` checks this file against the entries: a status that
 disagrees, a row with no entry, an entry with no row, a count that does not add
 up, a missing field, a `Prove` that is not a command, a reference that does not
 resolve, a dead link, and a cited path or line that does not exist.
 
 ```sh
-./scripts/check-todo.py
+./target/release/podbox-gate
 ```
 
 ## Priority
@@ -83,7 +83,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-0208](image.md) | P2 | image | done | `--platform`, and a store that can hold two variants of one tag |
 | [T-0209](image.md) | P2 | image | done | Registry authentication, without a credential ever entering this tree |
 | [T-0210](image.md) | P1 | image | done | The store's concurrency contract, written down and driven |
-| [T-0211](image.md) | P1 | image | done | An image lock outlives its holder whenever anything forks |
+| [T-0211](image.md) | P1 | image | partial | An image lock outlives its holder whenever anything forks |
 | [T-0212](image.md) | P0 | image | done | The platform is decided at run time, and the store holds more than one |
 | [T-0213](image.md) | P0 | image | done | A registry with no certificate, or one nothing trusts, and the refusal kept |
 | [T-0214](image.md) | P2 | image | done | A blob body cut off mid-stream is not retried, and the bounded retry is around the wrong thing |
@@ -267,19 +267,19 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-203 items: 0 open, 2 partial, 0 blocked, 201 done.
+203 items: 0 open, 3 partial, 0 blocked, 200 done.
 
-Counted from the rows above by `scripts/todo-count.py` and asserted
-independently by `scripts/check-todo.py`, which is the gate. A number here
+Counted from the rows above by `./target/release/podbox-count` and asserted
+independently by `./target/release/podbox-gate`, which is the gate. A number here
 that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 53 | 53 |
-| P1 | 0 | 2 | 0 | 102 | 104 |
+| P1 | 0 | 3 | 0 | 101 | 104 |
 | P2 | 0 | 0 | 0 | 38 | 38 |
 | P3 | 0 | 0 | 0 | 8 | 8 |
-| **All** | **0** | **2** | **0** | **201** | **203** |
+| **All** | **0** | **3** | **0** | **200** | **203** |
 
 ## Work order
 

@@ -166,7 +166,13 @@ gap() { GAPS="$GAPS  - $1
 join_pages() {   # outfile label page...
   _j_out="$1"; _j_label="$2"; shift 2
 
-  if python3 -c '' >/dev/null 2>&1; then
+  # Host python is `python` or `py` first: bare `python3` is a Microsoft Store
+  # stub (exit 49) on Windows, and probing by running is the rule here.
+  if python -c '' >/dev/null 2>&1; then
+    _j_tool=python
+  elif py -c '' >/dev/null 2>&1; then
+    _j_tool=py
+  elif python3 -c '' >/dev/null 2>&1; then
     _j_tool=python3
   elif node -e '' >/dev/null 2>&1; then
     _j_tool=node
@@ -174,12 +180,13 @@ join_pages() {   # outfile label page...
     # ⛔ NO PARSER IS A FAILURE, NOT A CONCATENATION. The previous version fell
     # back to copying the pages end to end, which produces a file that is not
     # JSON at all and a run that says "ok".
-    gap "$_j_label: no python3 and no node, so the pages could not be joined. They are left as $_j_out.page.N"
+    gap "$_j_label: no python and no node, so the pages could not be joined. They are left as $_j_out.page.N"
     return 1
   fi
 
-  if [ "$_j_tool" = python3 ]; then
-    python3 -c 'import json,sys
+  case "$_j_tool" in
+  python|py|python3)
+    "$_j_tool" -c 'import json,sys
 out=[]
 for f in sys.argv[2:]:
     with open(f, encoding="utf-8") as fh: d=json.load(fh)
@@ -188,7 +195,8 @@ with open(sys.argv[1],"w",encoding="utf-8") as fh: json.dump(out,fh,indent=1)' "
       gap "$_j_label: the page join failed. Pages are left as $_j_out.page.N"
       return 1
     }
-  else
+    ;;
+  *)
     # ⚠ WITH `node -e` THERE IS NO SCRIPT FILENAME IN argv, so the first
     # caller argument is argv[1] and not argv[2]. Getting that wrong reads
     # one argument off the end, writes nothing, and exits 0. --selftest
@@ -205,7 +213,7 @@ with open(sys.argv[1],"w",encoding="utf-8") as fh: json.dump(out,fh,indent=1)' "
       gap "$_j_label: the page join failed. Pages are left as $_j_out.page.N"
       return 1
     }
-  fi
+  esac
 
   # ⛔ THE JOIN READS ITS OWN EFFECT BACK. A parser that exits 0 having written
   # nothing is the forbidden-patterns row about a step that succeeds without
@@ -266,9 +274,9 @@ run_selftest() {
     printf 'mine-repo: --selftest needs a writable temporary directory\n' >&2
     return 2
   }
-  if ! python3 -c '' >/dev/null 2>&1 && ! node -e '' >/dev/null 2>&1; then
+  if ! python -c '' >/dev/null 2>&1 && ! py -c '' >/dev/null 2>&1 && ! python3 -c '' >/dev/null 2>&1 && ! node -e '' >/dev/null 2>&1; then
     rm -rf "$_st_dir"
-    printf 'mine-repo: --selftest needs python3 or node to join pages\n' >&2
+    printf 'mine-repo: --selftest needs python or node to join pages\n' >&2
     return 2
   fi
 

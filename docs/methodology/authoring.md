@@ -62,5 +62,5 @@ A partial task names the clauses that remain.
 ## Numbering
 
 Use a free task ID.
-Use `scripts/todo-count.py` to update status and counts.
+Use `./target/release/podbox-count` to update status and counts.
 Do not reuse an experiment number.

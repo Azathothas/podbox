@@ -9,7 +9,8 @@ It measures operations and reports the mechanism it enters.
 Run this first from the repository root:
 
 ```sh
-sh scripts/session-start.sh
+cargo build --release -p podbox-gate
+./target/release/podbox-dev session
 ```
 
 The script selects the host procedure. On Windows, the instance is `podbox`.
@@ -23,10 +24,10 @@ Read these files in order:
 Run the record gate before edits. Read each process exit code.
 
 ```sh
-py scripts/check-todo.py                 # Windows
-sh scripts/windows/run-in-base.sh       # Windows: full Linux check
-./scripts/check-todo.py                  # Linux
-./scripts/dev.sh status                  # Linux: build state
+./target/release/podbox-gate                 # Windows
+sh scripts/dev-lane.sh run JOB.sh --artifacts DIR  # Windows: full Linux proof
+./target/release/podbox-gate                  # Linux
+./target/release/podbox-dev status      # Linux: build state
 ```
 
 The record gate reports status consistency. It does not prove that a feature
@@ -45,7 +46,7 @@ Read each named page in full. Read the union when two rows apply.
 | Implement a task | Its `TODO/` entry; [Gate](docs/methodology/gate.md); [Code](docs/conventions/code.md); [Patterns](docs/conventions/forbidden-patterns.md) |
 | Author work or fix a defect | [Authoring](docs/methodology/authoring.md); [TODO rules](TODO/RULES.md); affected source |
 | Take a measurement | [Experiments](docs/methodology/experiments.md); a related experiment |
-| Add a check | [Gate](docs/methodology/gate.md); `scripts/plant.sh` |
+| Add a check | [Gate](docs/methodology/gate.md); `./target/release/podbox-plant` |
 | Study another repository | [References](docs/methodology/references.md); [Reference map](TODO/reference-map.md) |
 | Change carried source | [Vendoring](docs/methodology/vendoring.md); [Third-party notice](THIRD_PARTY.md) |
 | Edit a document | [Prose](docs/conventions/prose.md); [Document roles](docs/conventions/docs.md) |
@@ -66,7 +67,7 @@ Read each named page in full. Read the union when two rows apply.
 - Read the linked rule and current source. A previous record is a claim to verify.
 - Run a task's proof before completion. Record partial work with its remaining clauses.
 - Change the task, index, and progress record with the implementation.
-- Use `scripts/todo-count.py` to derive counts. Do not edit counts by hand.
+- Use `./target/release/podbox-count` to derive counts. Do not edit counts by hand.
 - Give each experiment a unique number. Keep its script and result.
 - Record an unknown value as a dash. Label an estimate each time it appears.
 - Read exit codes without a pipe. Bound network and process waits.

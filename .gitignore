@@ -40,7 +40,7 @@ logs/
 # every `logs/` directory in the corpus and excluded 83 committed experiment
 # logs across four reference trees. A citation into one of them resolved on
 # this disk and would not have resolved in a fresh clone, which is the defect
-# scripts/check-todo.py exists to catch. It caught this one.
+# podbox-gate exists to catch. It caught this one.
 !references/**/logs/
 !references/**/logs/**
 !references/**/*.log
@@ -121,13 +121,15 @@ $RECYCLE.BIN/
 *.lnk
 
 __pycache__/
+*.pyc
+*.pyo
 
-# scripts/dev.sh state: the background build log and its stamp.
+# podbox-dev state: the background build log and its stamp.
 .dev/
 dist/
 
 # ⭐ The CodeGraph index. It is one machine's SQLite database, 230 MiB on the
-# tree it was built over, and `./scripts/session-start.sh` rebuilds it. The
+# tree it was built over, and `podbox-dev session` rebuilds it. The
 # directory carries its own ignore file; this line keeps the directory itself
 # out of `git status`, which is what an agent reads to decide the tree is clean.
 #

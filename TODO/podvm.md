@@ -698,7 +698,7 @@ Decision:    `Vex` **confirms** and `vml` **confirms**: independent evidence
              could in principle run where QEMU runs and would remove the QEMU
              dependency entirely. It is a RISC-V guest today, so it is years
              from useful here. Revisit only when it carries an x86-64 guest.
-Prove:       `./scripts/check-todo.py` resolves every row, and each of the five names its verdict and the tree line that settles its licence
+Prove:       `./target/release/podbox-gate` resolves every row, and each of the five names its verdict and the tree line that settles its licence
 
 **Done 2026-09-22.** Every row of [reference-map.md](reference-map.md)
 names its verdict and the tree line that settles it, and

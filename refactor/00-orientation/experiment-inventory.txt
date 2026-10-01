@@ -1,0 +1,122 @@
+TOTAL 121
+   67  experiments\10-build-target-image.sh          Question: can a container image supply the target runtime's userspace - the
+  338  experiments\100-interpose-symbols.sh          Question: which libc entry points must `podbox-interpose` define, and can
+  459  experiments\105-interpose-ownership.sh        Question: does podbox's own interposer clear the ownership wall, and does it
+  436  experiments\106-interpose-identity.sh         Question: does the identity tier refuse honestly by default, lie only under
+  275  experiments\110-bloat-delta.sh                Question: how large is the release artefact, what is in it, and how much did
+  115  experiments\120-reproducible-build.sh         Question: do two builds of one commit on one toolchain produce the same
+  253  experiments\125-across-distributions.sh       The runner. One command, one row per pinned distribution, so that a reading
+  225  experiments\130-probe-parity.sh               Question: does `podbox probe` select the rung the milestone says it must, in
+  217  experiments\140-space-precheck.sh             Question: does podbox refuse a pull it cannot fit BEFORE fetching anything,
+  192  experiments\145-podvm-parity.sh               Question: do `podbox --help` and `podvm --help` list one set of verbs, with
+  233  experiments\146-podvm-initramfs.sh            Question: does a podbox-extracted rootfs boot under TCG when wrapped as an
+  314  experiments\147-podvm-exec.sh                 Question: does one command cross the serial line and come back with its
+  206  experiments\148-podvm-fleet.sh                Question: is a guest whose configured memory crosses the per-file ceiling
+  204  experiments\149-podvm-non-goals.sh            Question: is every non-goal a refusal the code makes, naming its leg and
+  266  experiments\150-image-acquisition.sh          Question: does the digest `podbox images` reports for a tag equal the digest
+  172  experiments\151-spawn-ambiguity.sh            Question: behind one identical Go spawn failure, does podbox name the
+  303  experiments\152-nix-acceptance.sh             Question: does the whole nix 2.2.2 + nixpkgs 22.05 pipeline run through the
+  755  experiments\153-store-lock-race.sh            Question: is the store lock race reachable by a podbox process, or only by a
+  271  experiments\154-tcg-workload-spread.sh        Question: what does the machine tier cost per workload class, with the
+  400  experiments\155-proc-absence.sh               Question: do the root-listing legs and the ptmx legs run and report
+  127  experiments\156-closure-records.sh            156-closure-records.sh - does every closed entry carry its recorded run?
+  185  experiments\157-lock-inheritance-prove.sh     Question: do T-0211's two tests pass repeatably, and does each mutation turn
+  185  experiments\158-interpose-embedding.sh        Question: can a `build.rs` invoke cargo, which is what embedding the two
+  128  experiments\159-interpose-placement.sh        Question: does the interpose tier reach a dynamic payload and decline a
+  244  experiments\160-store-gc.sh                   Question: can a store GC delete an image while something is using it, and
+  385  experiments\161-path-rewrite.sh               Question: does podbox's own interposer rewrite mapped paths across the
+  165  experiments\162-tar-symlink-modes.sh          Question: does a tarball carrying symlinks unpack under podbox with the
+  248  experiments\163-ladder-drive.sh               Question: does the CLI read PODBOX_MODE, feed the ladder, and drive the
+  274  experiments\170-probe-cache.sh                Question: does `$store/probe.json` serve the same answer twice on one
+  415  experiments\180-registry-fixture.sh           Question: can podbox pull the four registry endpoints from a loopback
+  624  experiments\190-parallel-layers.sh            Question: does the bounded pool fetch a multi-layer image sooner than the
+  199  experiments\20-enter-target.sh                Question: can a container supply the target runtime's kernel-visible shape  -
+  423  experiments\200-registry-auth.sh              Question: can podbox log in to a private registry and pull from it, with
+  305  experiments\210-store-concurrency.sh          Question: does the store's written contract hold against real concurrent
+  304  experiments\220-extract-path-safety.sh        Question: does podbox's extractor refuse an entry that resolves OUTSIDE the
+  232  experiments\230-lifecycle-loop.sh             Question: does the container lifecycle hold twenty times in a row, or only on
+  494  experiments\240-distro-sweep.sh               Question: on ten distributions, does `podbox run` install a C TOOLCHAIN
+  583  experiments\245-interpose-sweep.sh            Question: across the distribution matrix, does a payload that needs
+  360  experiments\250-negative-tests.sh             Question: does every refusal this project SHIPPED actually happen?
+  282  experiments\251-tty-refusal-no-ptmx.sh        Question: does `run -t` refuse by name where /dev/ptmx is unusable?
+  422  experiments\260-multiarch.sh                  Question: is podbox a multi-architecture runtime, and what does "runs on
+  292  experiments\270-multiarch-image.sh            Question: does podbox acquire the platform it was ASKED for, and can one
+  453  experiments\280-insecure-registry.sh          Question: can podbox reach a local registry that speaks plain HTTP, or HTTPS
+  233  experiments\290-microvm.sh                    Question: this host's kernel has neither CONFIG_SECURITY_LANDLOCK nor
+  127  experiments\30-attribution-census.sh          Question: in the reconstruction, which mechanism produces which denial - and
+  404  experiments\300-run.sh                        Question: does `podbox run` behave the way an agent that knows docker expects,
+  123  experiments\310-session-startup.sh            Question: how long does a fresh session wait before it can run podbox, and how
+  330  experiments\320-cli-contract.sh               Question: can a caller find out what this podbox will and will not do WITHOUT
+  288  experiments\325-parity-drive.sh               Question: does the shipped binary agree with every row of the parity
+  108  experiments\326-store-contention-prove.sh     326-store-contention-prove.sh: is the podbox-image suite deterministic under
+  369  experiments\330-exit-codes.sh                 Question: does podbox return DOCKER's exit code, case by case, on this host?
+  212  experiments\340-detached-stdio.sh             Question: does `podbox run -d` RETURN before its payload ends, when the caller
+  167  experiments\350-tool-live.sh                  350-tool-live.sh - prove text-tool and wsl-toolkit answer live on this host.
+  189  experiments\351-signal-forward.sh             Question: does a SIGINT/SIGTERM to a foreground `run` reach the payload,
+  114  experiments\352-ascii-output.sh               Question: is every byte the binary prints plain ASCII?
+  184  experiments\353-open-issue-triage.sh          Question: which of the 22 open issues reproduce on this lane, with what
+   95  experiments\354-lifecycle-same-store.sh       Question: does the full lifecycle run green in one store on a
+  199  experiments\355-parity-curated.sh             Question: does the shipped binary answer issue 60's curated docker
+  501  experiments\356-no-chroot-rung.sh             Question: on a host denying chroot(2) with ptmx, kvm and tun absent,
+  203  experiments\357-tcg-profile.sh                Question: on a kvm-less host whose emulator lists tcg, does the machine
+  294  experiments\358-ladder-rungs.sh               Question: does each forced launch rung enter with its word in
+  155  experiments\359-supervision-split.sh          Question: where syscall mediation is refused but pidfd and waitid hold,
+  397  experiments\360-perf-harness.sh               Question: how fast is podbox here, against what budget, and did it regress?
+  334  experiments\361-guest-usernet.sh              Question: under TCG with user-mode networking, does a guest built from
+  192  experiments\362-windows-refusal.sh            Question: on a KVM-less lane, does a Windows request refuse by name on
+  296  experiments\363-device-map.sh                 Question: does `--device HOST[:GUEST[:PERMS]]` map a host path into the
+  296  experiments\364-qol.sh                        Question: do the T-1337 operator verbs behave through the shipped binary?
+   92  experiments\365-namespace.sh                  Question: does the namespace rung change nothing where its legs fail?
+  176  experiments\366-namespace-base.sh             Question: does the namespace rung isolate a mount the host cannot see?
+  126  experiments\367-qemu-user-aarch64.sh          Question: does an off-arch payload run end to end where qemu-user holds it?
+  178  experiments\368-run-decay.sh                  Question: why do early payload runs cost ~2 s and late ones ~0.08 s?
+  259  experiments\369-windows-tcg-dos.sh            Question: on a KVM-less lane, does a DOS guest run one command under TCG
+  208  experiments\370-windows-guest.sh              Question: on a lane that has an emulator but no KVM, does `podbox windows`
+  196  experiments\371-validationos-stream.sh        Question: can a lane with a sub-3GB file-size ceiling land the
+  116  experiments\372-pull-ceiling.sh               Question: does a pull refuse past the ceiling instead of dying past it?
+  172  experiments\373-store-gates.sh                Question: does the store gate fetching and entry, mark missing blobs, and
+  320  experiments\382-restricted-sshd.sh            Question: does a real SSH server run a real command in a host where
+  142  experiments\383-ssh-liveness.sh               Question: does every stalled SSH operation end inside its bound, does a
+  111  experiments\384-windows-lane-v6.sh            Question: does the Windows wrapper run two distinct jobs, restore tracked
+   64  experiments\385-kvm-open.sh                   Question: does the wsl-toolkit base expose a functional /dev/kvm, opened
+   89  experiments\386-podssh-partial.sh             Question: does the SSH partial hold in the lane: the podbox-ssh suite
+  217  experiments\387-mux-two-client.sh             Question: do concurrent authenticated SSH sessions share one podbox-ssh
+  282  experiments\388-interactive-shell.sh          Question: does an interactive SSH session work with no pty anywhere?
+  308  experiments\389-remote-ssh.sh                 Question: do the `podbox remote ssh` verbs drive real commands with real
+  409  experiments\390-machine-ssh.sh                Question: does `podbox machine ssh` open a real SSH session in a Linux
+  432  experiments\391-machine-bridge.sh             Question: does the owned machine bridge build static, move bytes both
+   13  experiments\392-kvm-guest.sh                  Does the ValidationOS guest use KVM and return its output and exit status?
+   76  experiments\393-build-freshness.py            """Does the freshness check reject changed inputs and outputs? T-1349."""
+   34  experiments\394-ssh-package.sh                Does helper packaging reject a missing helper and invalid ELF bytes?
+   57  experiments\395-reconcile-repository.py       """Which changes does the retained publish branch add to main?"""
+   33  experiments\396-audit-linux.sh                Does the audit tree pass the full Linux gate and every record-check plant?
+   51  experiments\397-exported-build.py             """Check the five exported executables against their build record. T-1350."""
+   90  experiments\398-gate-diagnostics.py           """Drive gate failure output, lost-output mutations, and skip states. T-1351."""
+   98  experiments\399-publication.py                """Read exact-commit CI and optional release and branch acceptance. No remote writes."""
+  223  experiments\40-language-selection.sh          Question: which implementation language can supply the four things podbox
+   62  experiments\400-kvm-cleanup.py                """Prove that the KVM cleanup selects only its owned emulator argv. T-1350."""
+   45  experiments\401-emulator-streams.sh           Does the Windows guest driver drain or redirect the emulator's streams?
+  115  experiments\50-interpose-tier.sh              Question: does an off-the-shelf LD_PRELOAD path interposer give podbox's
+  213  experiments\60-interposer-libc.sh             Question: podbox is one static musl binary (TOOL.md section 3.4, section 7 M7), and its
+  154  experiments\70-whiteout-contract.sh           Question: what does the OCI layer contract actually require of podbox's
+  454  experiments\80-interposer-abi.sh              Question: which interposer object may be loaded into a given payload, and can
+  225  experiments\85-completion-symlink-escape.sh   Question: can a symlink inside an image make podbox's own completion layer
+  196  experiments\90-nsswitch-contract.sh           Question: `podbox-complete` supplies `/etc/passwd`, `/etc/group` and
+  201  experiments\95-podman-vfs-ignorechown.sh      Question: does podman's vfs driver with ignore_chown_errors open a path
+   95  experiments\targetfs.sh                       Reconstruct the target's mount topology, then hand off to confine.
+  237  scripts\build-interpose.sh                    Question: none. This is a build step, not a measurement.
+  138  scripts\build-state.py                        """Record build inputs and verify the output bytes. See TODO/gate.md T-1349."""
+ 1738  scripts\check-todo.py                         """check-todo.py - the reader half of docs/methodology/work-todo.md's two scripts.
+  278  scripts\dev.sh                                dev.sh - get a fresh session to the point of writing code as fast as possible.
+   90  scripts\document-state.py                     """Generate the source state page. T-1348. This does not prove runtime behavior."""
+   29  scripts\gnu-link-stub.sh                      `cc` with one shared object first on every link line, for the glibc
+  160  scripts\nightly-smoke.sh                      nightly-smoke.sh - the per-arch smoke TODO/packaging.md T-1314 promises,
+   50  scripts\package-ssh.sh                        Can the release ship the exact SSH helper names with runnable static bytes?
+  532  scripts\plant.sh                              plant.sh - break each of the gate's checks on purpose and assert it goes red.
+   72  scripts\release-licenses.py                   """Retain licence text for the locked Cargo package set. T-1405."""
+   64  scripts\release-notes.sh                      release-notes.sh - the nightly release notes TODO/packaging.md T-1334 needs.
+  231  scripts\session-start.sh                      session-start.sh - the one command a session runs first.
+  176  scripts\todo-count.py                         """todo-count.py - the writer half of docs/methodology/work-todo.md's two scripts.
+   49  scripts\verify-release.sh                     verify-release.sh - the downloader's half of TODO/packaging.md T-1328.
+    6  scripts\zig-ar.sh                             `zig ar`, for the same reason scripts/zig-cc.sh exists: cc-rs takes a
+  131  scripts\zig-cc.sh                             `zig cc` as a single-word C cross-compiler, for the target podbox ships.

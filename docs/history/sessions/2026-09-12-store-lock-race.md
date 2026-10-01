@@ -9,7 +9,7 @@ protocol. The hosted gate was green on all four checks at `adce0da`.
 
 | what | before | after | taken by |
 | --- | --- | --- | --- |
-| entries done | 85 | **86** | `scripts/check-todo.py` |
+| entries done | 85 | **86** | `scripts/check-todo.py` <!-- known-absent --> |
 | entries open / partial / blocked | 42 / 4 / 0 | **41 / 4 / 0** | the same |
 | ⭐ store lock tests known to fail | 4 | **6** | `experiments/153-store-lock-race.sh` |
 | candidate mechanisms for the race | 2, neither measured | **1 refuted, 1 open** | the same, and the instrument |
@@ -20,7 +20,7 @@ protocol. The hosted gate was green on all four checks at `adce0da`.
 | the filesystem under the locks | unconsidered | **ruled out** | the same, clause 7 |
 | T-0211's closing record | none at all | **30 of 30 per test, both mutations caught** | `experiments/157-lock-inheritance-prove.sh` |
 | interposer objects in the shipped binary | 0 | **2, or 2 named placeholders** | `crates/podbox-cli/build.rs` |
-| a nested cargo from a `build.rs` | assumed to deadlock | **completes here, and refused anyway** | `experiments/158-interpose-embedding.sh` |
+| a nested cargo from a `build.rs` | assumed to deadlock | **completes here, and refused anyway** | `experiments/158-interpose-embedding.sh` <!-- known-absent --> |
 | experiments in the tree | 34 | **37** | `experiments/README.md` |
 | decisions the next session had to take | 2 | **0** | T-1208 and T-1302 |
 | Windows-lane traps recorded | 5 | **7** | [`containers.md`](../../containers.md) |

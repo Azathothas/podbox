@@ -49,7 +49,7 @@ command -v cargo >/dev/null 2>&1 || {
 
 # ⛔ REFUSE TO START ON A DIRTY SUBJECT. The mutations below edit this one file
 # and put it back from a copy. An uncommitted change in it would be restored
-# into a state nobody asked for, and `scripts/plant.sh` refuses for the same
+# into a state nobody asked for, and scripts/plant.sh refuses for the same
 # reason.
 if ! git -C "$REPO" diff --quiet -- "$SUBJECT" ||
 	! git -C "$REPO" diff --cached --quiet -- "$SUBJECT"; then
@@ -61,7 +61,7 @@ fi
 mkdir -p "$BACKUP/$(dirname "$SUBJECT")"
 cp "$REPO/$SUBJECT" "$BACKUP/$SUBJECT"
 # ⛔ Restore from the COPY and never `git checkout --`: with a mutation staged,
-# checkout restores the index, which is the mutation. `scripts/plant.sh` rule 2
+# checkout restores the index, which is the mutation. scripts/plant.sh rule 2
 # is the same lesson.
 restore() { cp "$BACKUP/$SUBJECT" "$REPO/$SUBJECT"; }
 trap 'restore; rm -rf "$WORK"' EXIT INT TERM
@@ -113,7 +113,7 @@ say ""
 
 # ⭐ ONE MUTATION AT A TIME, and each is asserted to LAND before it is read.
 # A mutation whose pattern matched nothing exits 0 exactly like a defence that
-# held, which is the defect `scripts/plant.sh` exists to prevent.
+# held, which is the defect scripts/plant.sh exists to prevent.
 #   $1 label   $2 sed script   $3 the test that must go red   $4 the one that must stay green
 mutate() {
 	label="$1"
@@ -150,11 +150,11 @@ mutate() {
 	say ""
 }
 
-# ⚠ The fork defence is the registration line in `Store::hold`. Deleting the
+# ⚠ The fork defence is the guard in `Lock::try_acquire`. Deleting the
 # `if !sys::close_in_children(...)` guard would leave an unbalanced block, so
 # the call is turned into one that registers nothing and still returns true.
-mutate "clause 2  the fork defence removed from Store::hold" \
-	's/if !sys::close_in_children\(lock\.fd\) \{/if !true \{/' \
+mutate "clause 2  the fork defence removed from Lock::try_acquire" \
+	's/if !sys::close_in_children\(fd\) \{/if !true \{/' \
 	"$FORK_TEST" "$EXEC_TEST"
 
 # ⚠ The exec defence is the one flag in `Lock::open`.

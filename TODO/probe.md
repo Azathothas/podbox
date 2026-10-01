@@ -168,7 +168,7 @@ other, which is the point:
 | where | `kcmp(-1,-1,...)` | source |
 | --- | --- | --- |
 | the target | `errno=3 ESRCH`, executed | `references/Azathothas__container-research/tree/verification/real/extkernel-newapi.txt:26` |
-| the host this repository is worked on | `errno=38 ENOSYS` | `experiments/results/attribute.txt`, and the corpus' own capture agrees |
+| the host this repository is worked on | `errno=3 ESRCH` | `experiments/results/attribute.txt:6`, re-captured in commit `6eb941f`, and the corpus' own capture agrees |
 
 So the entry's own premise holds on the target and the `Prove` did not. ⭐ The
 rule underneath it is unchanged and is what podbox implements: **a control that

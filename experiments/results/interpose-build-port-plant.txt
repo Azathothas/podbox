@@ -1,0 +1,28 @@
+T-1557 plant: podbox-interpose-build refuses a drifted export map and
+refuses without its ceiling declaration. Lane job refactor/job-t1557.sh
+on wsl-toolkit-podbox, kernel 7.2.0-WSL2-STABLE, musl release binary
+staged like the todo job.
+
+Plant one (reverted after): one bogus global inserted into the
+`global:` block of crates/podbox-interpose/interpose.map, so the map
+declares 113 names against the objects' 112.
+
+podbox-interpose-build exit 1:
+  FAIL x86_64-unknown-linux-musl: exports differ from interpose.map (declared 113, exported 112)
+  FAIL x86_64-unknown-linux-gnu: exports differ from interpose.map (declared 113, exported 112)
+
+Plant two (reverted after): the INTERPOSE_CEILING_BYTES line removed
+from the shell stub, so the ceiling has no home.
+
+podbox-interpose-build exit 2:
+  SKIP: scripts/build-interpose.sh declares no INTERPOSE_CEILING_BYTES=<n> line
+
+The clean-tree differential beside the retired script agrees line for
+line on the ok set (old exit 0, new exit 0, OK_LINES_MATCH): both
+objects musl- and glibc-linked per DT_NEEDED, newest need GLIBC_2.14
+within GLIBC_2.27, gettid local, libdl.so.2 needed, 112 exports
+exactly what interpose.map declares, sizes under the ceiling, and
+check B agreeing on both structs with the offsets src/lib.rs carries.
+The stub delegates with exit 0.
+
+Restored: the map and the stub back in place; the binary is untouched.

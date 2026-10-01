@@ -195,9 +195,9 @@ Prove:       `cargo test -p podbox-ssh` exits 0 with the new fault tests.
 and a stalled server stdin ends its session loud instead of requeueing.
 `cargo test -p podbox-ssh` exits 0: lib 101 passed with 7 new fault
 tests (stalled resolver, non-reading peer, worker cleanup), relay
-15 passed with the new reconnect mode. `sh experiments/383-ssh-liveness.sh`
-exits 0 with verdict `STALLED OPS END BOUNDED, NODE REDIALS AND PAIRS`
-([the drive](../experiments/results/ssh-liveness.txt)): kill the node
+15 passed with the new reconnect mode. The liveness the deleted drive
+script covered now lives in those tests; its saved drive
+([the drive](../experiments/results/ssh-liveness.txt)) stays historical: kill the node
 socket mid-session and the node redials the same name, the second
 operator session pairs, both sessions complete, no residue. Reconnect
 is proven on the loopback fake relay; pairing against the live relay

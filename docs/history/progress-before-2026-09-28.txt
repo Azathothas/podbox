@@ -50,7 +50,7 @@ script), interposer objects absent (no `build-interpose.sh` in the
 lane). `experiments/353-open-issue-triage.sh` drove 37 clauses
 with isolated stores, exit 0, report in
 `experiments/results/triage-353.txt`.
-`experiments/354-lifecycle-same-store.sh` drove the full loop in
+`experiments/354-lifecycle-same-store.sh` <!-- known-absent --> drove the full loop in
 one store, exit 0, report in
 `experiments/results/lifecycle-same-store.txt`. All seven
 `v0.1.0-beta.7` assets verified sha256-ok with outer `e_machine`

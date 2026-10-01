@@ -7,11 +7,11 @@
 //!
 //! ⛔ **IT DOES NOT INVOKE CARGO, AND THAT IS A RULING RATHER THAN AN
 //! OVERSIGHT.** T-0702's `Status note` recommended a `build.rs` that runs the
-//! script, which means a cargo inside a cargo. `experiments/158-interpose-embedding.sh`
-//! measured that on 2026-09-12 and it completed in both shapes it tried, so the
-//! hazard did not fire here. ⚠ It is still refused: the deadlock is a property
+//! script, which means a cargo inside a cargo. The embedding probe script
+//! (deleted 2026-10-01) measured that on 2026-09-12 and it completed in both
+//! shapes it tried, so the hazard did not fire here. ⚠ It is still refused: the deadlock is a property
 //! of whoever's machine runs it, the objects are ALREADY built outside cargo by
-//! `scripts/dev.sh` and by the gate workflow, and a build step that only copies
+//! `podbox-dev` and by the gate workflow, and a build step that only copies
 //! cannot deadlock anywhere.
 //!
 //! ⛔ **A MISSING OBJECT IS NOT AN ERROR HERE.** A plain `cargo build` on a

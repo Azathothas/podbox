@@ -54,14 +54,17 @@ to settle it.**
 ⭐ **83 committed corpus logs were not in the tree.** Two unanchored
 `.gitignore` rules matched every experiment log directory in the corpus, so
 every citation into one resolved on this disk and would not have resolved in a
-fresh clone. `scripts/check-todo.py` refused the citations and that is how it
+fresh clone. `scripts/check-todo.py` <!-- known-absent --> refused the citations and that is how it
 surfaced.
 
 ## What was measured and moved
 
 ⛔ **Every closed entry was reconciled against
 [`RULES.md`](../../../TODO/RULES.md) section 5.**
-`experiments/156-closure-records.sh` is the instrument and it exits 0 now.
+The closure-records instrument is the instrument and it exits 0 now.
+(The instrument, `experiments/156-closure-records.sh`, was deleted 2026-10-01, <!-- known-absent -->
+superseded by `TODO/`-generated closure records; this note records what ran
+on 2026-09-11.)
 
 - **T-0408** was closed with a `Prove` line and nothing after it: no run, no
   output, no date. It is open again.

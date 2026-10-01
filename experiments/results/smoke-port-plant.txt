@@ -1,0 +1,21 @@
+T-1556 plant: podbox-smoke refuses a binary that cannot version and a
+binary with no version line. Lane job refactor/job-t1556.sh on
+wsl-toolkit-podbox, kernel 7.2.0-WSL2-STABLE, musl release binary
+staged like the todo job.
+
+Plant one (no mutation; the dishonest subject is the argument): the
+`false` binary as the release artefact.
+
+podbox-smoke /bin/false x86_64-unknown-linux-musl exit 1:
+  SMOKE-FAIL x86_64-unknown-linux-musl: version exits 1, not 0:
+
+Plant two: the `true` binary, which exits 0 but prints no version line.
+
+podbox-smoke /bin/true x86_64-unknown-linux-musl exit 1:
+  SMOKE-FAIL x86_64-unknown-linux-musl: version prints [], not the version line
+
+The clean-tree differential beside the retired script is green on both
+sides (old exit 0, new exit 0, SMOKE_IDENTICAL_MODULO_BYTES) against
+the lane-built binary with real interpose digests, and the diagnostics
+drive agrees with the retired script (old exit 0, new exit 0,
+DIAG_IDENTICAL_MODULO_HOST, verdict GATE-DIAGNOSTICS-OK).

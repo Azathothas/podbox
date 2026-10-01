@@ -32,7 +32,7 @@ Problem:     This object runs inside other people's processes. A default Rust
              cdylib exports `rust_eh_personality` and friends into every process
              it is loaded into, allocates on paths it has intercepted, and can
              deadlock its host.
-Premise:     ⭐ **Measured here.** `experiments/60-interposer-libc.sh` check A
+Premise:     ⭐ **Measured here.** experiments/60-interposer-libc.sh check A
              records that the crate cannot be built as a cdylib at all under the
              workspace's own `+crt-static`:
 
@@ -138,7 +138,7 @@ Problem:     Two separate failures share this entry because the fix is the same
              from outside a chroot does not resolve inside it.
 Premise:     ⚠ **The premise as first written was wrong, and the correction is
              below rather than in place of it.** The entry was written expecting
-             `experiments/60-interposer-libc.sh` to show a musl-linked object
+             experiments/60-interposer-libc.sh to show a musl-linked object
              failing to load into a glibc payload. It shows no such thing: on
              this host the musl-target object records `libc.so.6` in
              `DT_NEEDED`, because `--target x86_64-unknown-linux-musl` hands the
@@ -173,7 +173,7 @@ Premise:     ⚠ **The premise as first written was wrong, and the correction is
              ⭐ **And on 2026-09-08 it was measured a second time, with podbox's
              OWN Rust cdylib rather than the C reference interposer, which is
              what the correction above said could not be done here.**
-             `experiments/60-interposer-libc.sh` exits **0** for the first time,
+             experiments/60-interposer-libc.sh exits **0** for the first time,
              and `experiments/results/interposer-libc.txt` carries:
 
              ```
@@ -246,14 +246,15 @@ Status note: **no longer blocked, and the musl gap is closed.** The measurement
              ⛔ **The rejected three, and why.** A `build.rs` that RUNS the
              script is a cargo inside a cargo, which waits on a lock its own
              parent holds. ⚠ That hazard was MEASURED rather than assumed:
-             `experiments/158-interpose-embedding.sh` ran a nested build in two
-             shapes on 2026-09-12 and **both completed**, so it does not fire
+             the embedding probe script (deleted 2026-10-01) ran a nested
+             build in two shapes on 2026-09-12 and **both completed**, so it
+             does not fire
              here. It is still refused, because it would fire on somebody
              else's machine and copying cannot. A `build.rs` that refuses is
              loud and still breaks the plain build. The objects committed as
              artefacts are build output in the tree, which
              `docs/conventions/git.md` section 4 forbids.
-             ⛔ **AND THE ORDER HAD TO MOVE WITH IT.** `scripts/dev.sh` check
+             ⛔ **AND THE ORDER HAD TO MOVE WITH IT.** dev.sh check
              and the gate workflow both built the binary BEFORE the objects, so
              with this shape they would have embedded two placeholders and
              passed. The interposer step now runs first in both.
@@ -277,6 +278,13 @@ shell is an absolute link. `resolve_in` walks the guest path component by
 component and splices an absolute target back under the root, the way the
 guest kernel would; `..` past the root and a link loop are refused rather
 than followed.
+
+**Done 2026-10-01 (the libc-interpose port).** The `60-interposer-libc.sh`
+measurement is the `podbox-libc-interpose` binary in the gate crate
+(`crates/podbox-gate/src/libc_interpose.rs`), staying out of the workspace
+members: no new crate, no member row. No `Prove` line names the retired
+script and no workflow step runs it, so nothing repoints; the red-run
+plant is `experiments/results/libc-interpose-port-plant.txt`.
 
 ---
 
@@ -652,7 +660,7 @@ Prove:       `./experiments/159-interpose-placement.sh` exits 0. Clause B is
              plus a host copy plus `run`, and asserts the
              `interpose: declined` line and exit 0. The old `run -v`
              one-liner never ran and is gone: `run -v` is a refused `None`
-             row, and check 26 of `scripts/check-todo.py` now refuses any
+             row, and check 26 of `crates/podbox-gate/src/main.rs` now refuses any
              done Prove that names one (TODO/gate.md T-1325). ⚠ **That drives row 2 of the table and not row 3**, and the substitution is stated rather than quiet: podbox's own release binary is `x86_64-unknown-linux-musl` under the workspace's `+crt-static`, which [T-0701](#t-0701-the-cdylib-build-constraints) records, so it carries no `PT_INTERP` and is a static payload this tree already builds. ⭐ The command IS the check on that: a payload with a `PT_INTERP` would not be declined and the line would fail. ⛔ **The line named an unqualified Go image until 2026-09-12**, which resolves through the engine's shortname aliases to a quota-bearing registry. ⚠ **Row 3, the Go payload, has no acceptance now**, because every row of `DISTRO_ROWS_M5` is a base distribution and none is a Go image, and inventing a reference is what [T-1209](gate.md) refuses. That entry's `Approach` step 2 is where the row is asked for. ⛔ **The `-v` in that line never ran: `run -v` is a refused `None` row.** `experiments/159-interpose-placement.sh` clause B stages the same static binary with `extract` plus a host copy plus `run` instead, and asserts the decline line and exit 0.
 
 
@@ -1397,7 +1405,7 @@ Decision:    Fix in the interposer, not around it. Shipping a second older
              be a special case with a second thing to maintain; one object
              that loads anywhere back to 2.27 is the product T-0702
              describes.
-Prove:       `./scripts/build-interpose.sh` exits 0 with the ceiling
+Prove:       `./target/release/podbox-interpose-build` exits 0 with the ceiling
              assertion recorded in its output, and the 152 REGISTER row
              reads ok (recorded under the T-1111 run).
 
@@ -1424,8 +1432,8 @@ defines no version node; and the SONAME is `libdl.so.2`, not `.6`.
 
 Source:      the T-1111 nix unpack (the symptom is in
              `experiments/results/tar-symlink-modes-prefix.txt`);
-             `crates/podbox-interpose/src/lib.rs:334`,
-             `crates/podbox-interpose/src/lib.rs:989`
+             `crates/podbox-interpose/src/lib.rs:356`,
+             `crates/podbox-interpose/src/lib.rs:1038`
 Category:    interpose
 Priority:    P1
 Effort:      S
@@ -1442,8 +1450,8 @@ Premise:     Measured 2026-09-21 on host podman, same image, back to back:
              under `podbox run` the minimal tar-symlink repro exits 2 with
              one such error per link; in the plain driver container the same
              commands exit 0. The interposed `fchmodat` is declared with
-             three arguments (`crates/podbox-interpose/src/lib.rs:334`) and
-             forwards three (`crates/podbox-interpose/src/lib.rs:989`),
+             three arguments (`crates/podbox-interpose/src/lib.rs:356`) and
+             forwards three (`crates/podbox-interpose/src/lib.rs:1038`),
              while libc takes four `(dirfd, path, mode, flags)`: the real
              call receives a fourth register the wrapper never set, so any
              caller passing flags gets the wrong answer. Tar's symlink
@@ -1472,8 +1480,8 @@ Prove:       `./experiments/162-tar-symlink-modes.sh` exits 0 on host
              podman, with the conditions block naming the driver.
 
 **Done 2026-09-21.** The declaration and the wrapper carry `flags`
-(`crates/podbox-interpose/src/lib.rs:334`,
-`crates/podbox-interpose/src/lib.rs:989`); every other flags-taking
+(`crates/podbox-interpose/src/lib.rs:356`,
+`crates/podbox-interpose/src/lib.rs:1038`); every other flags-taking
 `*at` wrapper already did, so the audit closes with this one. Guard:
 `tests::fchmodat_forwards_flags` compares the interposed entry point
 against libc's own on a symlink with flags 0 and `AT_SYMLINK_NOFOLLOW`.
@@ -1536,7 +1544,7 @@ citation half is closed in the same change.
 What the lane measured, one arch at a time, is why the objects do
 not follow the binaries. `podbox-interpose` carries x86_64's
 `struct stat` field offsets as constants
-(`crates/podbox-interpose/src/lib.rs:86-89`: `ST_UID 28`,
+(`crates/podbox-interpose/src/lib.rs:88-91`: `ST_UID 28`,
 `ST_GID 32`, measured under both libcs by
 `experiments/105-interpose-ownership.sh`), and an object that wrote
 a uid at the wrong offset would corrupt whatever field is there:
@@ -1573,7 +1581,7 @@ on chroot-denied non-x86_64 hosts there is no fallback rung.
 Fix area is `crates/podbox-interpose`,
 `crates/podbox-cli/src/interpose.rs` with `build.rs`,
 `scripts/build-interpose.sh` `TARGETS`,
-`scripts/nightly-smoke.sh`, and `.github/workflows/nightly.yml`.
+nightly-smoke.sh, and `.github/workflows/nightly.yml`.
 Risk if wrong is a release reading all-arch supported while six
 archs run no payload with no fallback rung. Prove is the entry's
 Prove: `readelf -h` on each shipped binary's embedded objects

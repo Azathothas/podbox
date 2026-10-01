@@ -306,4 +306,24 @@ mod tests {
         assert_eq!(parse(b"-1"), None);
         assert_eq!(parse(b"0x10"), None);
     }
+
+    /// T-1525 (`106` clauses A, B, C0). The fakeroot gate all three hinge
+    /// on: no variable means the honest path (A's control and C0), a
+    /// parseable `UID[:GID]` means the fake path (B), and garbage means
+    /// the honest path too. Per-libc report equality stays with the `106`
+    /// drive; what is pinned here is that the gate cannot mistake one for
+    /// the other.
+    #[test]
+    fn the_gate_follows_the_variable_and_nothing_else() {
+        std::env::remove_var("PODBOX_IDENTITY");
+        assert!(!enabled(), "clause A/C0: no variable must mean honest");
+        std::env::set_var("PODBOX_IDENTITY", "1000:100");
+        assert!(enabled(), "clause B: a fake identity must switch the gate");
+        std::env::set_var("PODBOX_IDENTITY", "1000");
+        assert!(enabled(), "clause B: a bare uid is a fake identity too");
+        std::env::set_var("PODBOX_IDENTITY", "bogus");
+        assert!(!enabled(), "garbage must not switch the gate");
+        std::env::remove_var("PODBOX_IDENTITY");
+        assert!(!enabled());
+    }
 }

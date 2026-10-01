@@ -18,7 +18,8 @@ It records earlier tool behavior and is not a current instruction.
 Run the session entry point from the repository root:
 
 ```sh
-sh scripts/session-start.sh
+cargo build --release -p podbox-gate
+./target/release/podbox-dev session
 ```
 
 It detects the host and selects one lane. Do not select a lane from memory.
@@ -27,14 +28,14 @@ take longer than a warm one.
 
 | Host | Work location |
 | --- | --- |
-| Linux host | The checkout. `scripts/dev.sh` starts the environment and build. |
+| Linux host | The checkout. `podbox-dev` starts the environment and build. |
 | Linux container | The checkout. Setup runs again because the container can be new. |
 | Windows | Record checks run on the host. Linux builds and tests run in a job container in `wsl-toolkit-podbox`. |
 
 Use `sh scripts/common/check-gate.sh --fast` for an early host check.
 Use `--strict` for the final host gate, including the platform twins.
 Use `sh scripts/windows/run-in-base.sh` for the full Linux check.
-`scripts/dev.sh status` reports the native Linux background build. It does
+`podbox-dev status` reports the native Linux background build. It does
 not report Windows base status.
 
 ## Windows base
@@ -121,7 +122,7 @@ wsl-toolkit --instance podbox gc --job JOB_ID --apply
 `gc` reports what it would remove until `--apply` is present. Collect a
 job only after its evidence is saved. Use its ID to leave other jobs alone.
 The report includes containers, guest directories, host directories, and
-ended base sessions. `scripts/check-todo.py` check 29 reads the JSON
+ended base sessions. `crates/podbox-gate/src/main.rs` check 29 reads the JSON
 report and refuses a kept item. A running job stays live unless a caller
 stops it. `wait ID --timeout D` stops the wait after D; it does not stop
 the job.

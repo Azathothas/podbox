@@ -72,7 +72,7 @@ Unix socket (exact bytes, empty stderr, exit 42 passthrough);
 `podbox machine` usage, refusal, and manual section driven through the
 built binary; the passwd shim vendored byte-identical with its licence;
 `openssh` carried by the lane bootstrap and the full Windows-lane check.
-`experiments/386-podssh-partial.sh` holds. The full Linux gate holds
+`experiments/386-podssh-partial.sh` <!-- known-absent --> holds. The full Linux gate holds
 (10 passed, 0 failed) with the host fast gate (9 passed, 0 failed, the
 same 2 environmental skips as the baseline). Three commits carry the
 work. Entries T-1401 to T-1404 and T-1112 stay open on their named

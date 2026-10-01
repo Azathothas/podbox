@@ -102,7 +102,7 @@ pb() {
 
 if [ "$NATIVE" -eq 1 ]; then
 	[ -x "$BIN" ] || {
-		echo "SKIP: $BIN is not an executable. ./scripts/dev.sh build" >&2
+		echo "SKIP: $BIN is not an executable. podbox-dev build" >&2
 		exit 2
 	}
 fi

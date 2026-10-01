@@ -19,7 +19,8 @@ Start instant: 2026-09-28T12:11:43Z. End: 2026-09-28T13:37:34Z.
 
 ## What the numbers rest on
 
-- `experiments/386-podssh-partial.sh` HOLDS: 24 unit plus 5 proxy
+- `experiments/386-podssh-partial.sh` <!-- known-absent --> HOLDS (deleted
+  2026-10-01 as stale per VC-1; historical): 24 unit plus 5 proxy
   tests, 3 live-SSH e2e (exact bytes, empty stderr, exit 42
   passthrough), 8 machine-surface rows through the built binary.
 - `experiments/385-kvm-open.sh` HOLDS: `/dev/kvm` opens, API version

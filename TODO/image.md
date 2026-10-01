@@ -1057,7 +1057,7 @@ Source:      Found by `cargo test --workspace` failing intermittently at the clo
 Category:    image
 Priority:    P1
 Effort:      S
-Status:      done 2026-09-12
+Status:      partial 2026-10-01
 
 Problem:     `Store::hold` opens the image lock **without** `O_CLOEXEC`, which
              is [T-0204](image.md)'s mechanism and is right: the guard has to
@@ -1157,7 +1157,7 @@ Decision:    Fix the inheritance, not the test. Marking the test `#[serial]` or
              That is the same shape of failure this entry exists for, so each
              test waits on a **fact**, a byte through a pipe from the forked
              child, a line of stdout from the spawned one, and not on a delay.
-Prove:       `cargo test -p podbox-image a_fork_while_the_lock_is_held_does_not_extend_it` and `cargo test -p podbox-image a_spawned_process_does_not_inherit_the_lock` both pass; the first fails with the `sys::close_in_children` registration removed from `Store::hold` and the second with `O_CLOEXEC` removed from `Lock::open`, and neither mutation fails both
+Prove:       `cargo test -p podbox-image a_fork_while_the_lock_is_held_does_not_extend_it` and `cargo test -p podbox-image a_spawned_process_does_not_inherit_the_lock` both pass; the mutation half is re-proven by the retargeted `./experiments/157-lock-inheritance-prove.sh` (see the 2026-10-01 note below), and neither mutation may fail both
 
 **Done, 2026-09-12.** `./experiments/157-lock-inheritance-prove.sh` with
 `PODBOX_PROVE_RUNS=30`, recorded in
@@ -1183,6 +1183,16 @@ necessary condition for the suite's intermittency, so running these two tests
 one per process removes that condition by construction. ⛔ **This entry is
 therefore closed and the suite is still red.** T-0215 owns that, and a green
 `cargo test --workspace` is not evidence either entry rests on.
+
+**Reopened 2026-10-01 under wave-0 record work.** T-R000 correction 8 re-anchored the clause-2
+sed to `close_in_children(fd)` in `Lock::try_acquire`, and the lane proves the
+mutation lands (diff present, rebuild, 1 test run). The corrected script still
+exits 1: both mutations exit 0. The `LOCK_UN`-on-drop refactor immunized both
+oracles, which assert `in_use` after `drop(held)`. Remainder: retarget clause
+2 `must_red` to `the_seventeenth_concurrent_registration_is_refused_by_name`,
+which the quota arm still reddens; give clause 3 a pre-drop or fd-presence
+oracle; correct the independence claim at
+`crates/podbox-image/src/store.rs:2110-2112`.
 
 ### T-0212 The platform is decided at run time, and the store holds more than one
 
@@ -1881,7 +1891,9 @@ Decision:    Implement candidate 1. One `STORE_TESTS` mutex in the `store.rs`
 Prove:       `./experiments/326-store-contention-prove.sh` exits 0
 
 **Done 2026-09-21.** One `STORE_TESTS` mutex in the `store.rs` test module,
-taken once by every test in it (24 of 24 by audit). `FORKING_TESTS` is gone,
+taken once by every test in it (29 of 29 by recount 2026-10-01; a `grep -c`
+over the file reads 30 because the doc comment at `store.rs:2096` names
+`#[test]` without being one). `FORKING_TESTS` is gone,
 subsumed. The ceiling test fills all sixteen slots under the mutex and asserts
 the seventeenth is refused. One contract line into T-0207 bounds its future
 pool under sixteen.
@@ -1891,7 +1903,7 @@ pool under sixteen.
 | parallel suite, default threads, 10 runs, nproc 20 | 8 refused with the 16-slot signature, victims across eight tests | 10 green, 0 with the signature |
 | serial control | 2 green | green |
 | ceiling test alone | - (new) | 3 green |
-| mutex audit (test functions vs acquisitions) | - (new) | 24 vs 24, equal |
+| mutex audit (test functions vs acquisitions) | - (new) | 29 vs 29, equal |
 | `dev.sh check` (fmt, clippy, build, workspace tests, gate) | green on main (CI success at `a18cdda`) | green |
 
 Task 1 ran on the unmodified tree at `f9aa0bb`

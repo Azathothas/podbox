@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # run-in-base.sh - run one Linux job against this checkout, from Windows.
 #
-# ⭐ IT IS THE WINDOWS HALF OF `scripts/dev.sh`. The tree is copied into a
+# ⭐ IT IS THE WINDOWS HALF OF `podbox-dev`. The tree is copied into a
 # disposable container inside the distribution `wsl-toolkit-podbox`, the job
 # runs there, and the container is removed when it exits. Nothing is mounted
 # from this machine, so nothing the job does can reach this checkout.
@@ -88,9 +88,12 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 		# podbox-ssh end-to-end test drives. The full check runs the
 		# whole workspace suite, so it carries both.
 		echo "./scripts/common/bootstrap-env.sh rust cc zig tools openssh || exit 1"
-		echo 'echo "== dev.sh check"'
+		echo 'echo "== podbox-dev check"'
 		echo 'mkdir -p /out || exit 2'
-		echo './scripts/dev.sh check >/out/linux-check.txt 2>&1'
+		echo 'cargo build --release -p podbox-gate || exit 1'
+		echo 'mkdir -p target/release || exit 1'
+		echo 'cp target/x86_64-unknown-linux-musl/release/podbox-dev target/release/ || exit 1'
+		echo './target/release/podbox-dev check >/out/linux-check.txt 2>&1'
 		echo 'rc=$?'
 		echo 'cat /out/linux-check.txt'
 		echo 'exit_step=$rc'
@@ -135,7 +138,7 @@ fi
 # ⛔ `codegraph.db` BY NAME, never the `.codegraph` directory. An exclusion of
 # the directory also matched a TRACKED corpus file under `references/`, so the
 # copy arrived one file short and the guest read the tree as dirty.
-# `plant.sh` refuses to start on a dirty tree.
+# `podbox-plant` refuses to start on a dirty tree.
 #
 # The index sidecars and daemon state are live files, not source for a job.
 # The toolkit now names a file if its copy fails. Keep these exclusions by

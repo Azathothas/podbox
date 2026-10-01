@@ -44,7 +44,7 @@ updates:
   # ⛔ THE CORPUS IS EVIDENCE AND IT IS NEVER UPDATED.
   #
   # `references/` holds thirty third-party trees, pinned at the commit each was
-  # read at. `scripts/check-todo.py` asserts that every `path:line` cited in
+  # read at. `crates/podbox-gate/src/main.rs` asserts that every `path:line` cited in
   # `TODO/` still resolves inside them, so a bump moves a line under a citation
   # and turns a measured claim into a wrong one. `docs/methodology/references.md`
   # is the rule; `TODO/reference-map.md` carries the provenance.

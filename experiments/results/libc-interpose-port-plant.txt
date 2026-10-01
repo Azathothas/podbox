@@ -1,0 +1,36 @@
+T-1577 plant: podbox-libc-interpose reports the third state where the
+question cannot run, and refuses a bogus argument. Lane job
+refactor/job-t1577.sh on wsl-toolkit-podbox, kernel
+7.2.0-WSL2-STABLE, musl release binary staged like the todo job.
+
+Mutation (reverted after): /usr/bin/env moved aside, so there is no
+glibc payload to preload into.
+
+podbox-libc-interpose exit 2:
+  == conditions
+  date              2026-10-01T10:42:50Z
+  host kernel       7.2.0-WSL2-STABLE
+  rustc             rustc 1.98.1 (48a229cea 2026-09-01)
+  cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
+  targets installed x86_64-unknown-linux-gnu x86_64-unknown-linux-musl
+
+  == A. cdylib under the workspace's +crt-static
+  REFUSED, as expected:
+    error: cannot produce cdylib for `podbox-interpose v0.1.0` as the target `x86_64-unknown-linux-musl` does not support these crate types
+
+  == A2. the same crate with -crt-static, one object per libc
+    linker for musl: scripts/zig-cc.sh (zig 0.16.0)
+    x86_64-unknown-linux-musl      OK   N bytes  1 NEEDED entries
+    x86_64-unknown-linux-gnu       OK   N bytes  3 NEEDED entries
+
+  == B. cross-libc preload reach
+  SKIP: /usr/bin/env is absent, so there is no glibc payload to preload into
+
+podbox-libc-interpose --bogus exit 2.
+
+The clean-tree differential beside the retired script is identical
+modulo numbers (old exit 0, new exit 0, VERDICT_IDENTICAL_MODULO_NUMBERS):
+both answer REQUIRED with the control at rc 0 and the musl object
+refused at rc 127 with `invalid ELF header`.
+
+Restored: /usr/bin/env back in place; the binary is untouched.

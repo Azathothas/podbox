@@ -294,4 +294,67 @@ mod tests {
         assert_eq!(SET_UID, 1);
         assert_eq!(SET_GID, 2);
     }
+
+    /// T-1524 (`105` check G). Past the scan ceiling a stale prefix record
+    /// must refuse, never answer: the file below holds an old owner for
+    /// (7, 9) before the ceiling, and the lookup must return
+    /// `BeyondCeiling` rather than that stale hit. The control runs in the
+    /// SAME test, because the descriptor travels in the process environ and
+    /// two tests sharing it race: inside the ceiling the last match in the
+    /// prefix wins, so a re-chown is what a stat reports.
+    #[test]
+    fn a_stale_record_before_the_ceiling_is_a_refusal_not_an_answer() {
+        use std::io::Write;
+        use std::os::unix::io::AsRawFd;
+        fn record(dev: u64, ino: u64, uid: u32, gid: u32) -> [u8; RECORD] {
+            let mut r = [0u8; RECORD];
+            r[0..8].copy_from_slice(&dev.to_le_bytes());
+            r[8..16].copy_from_slice(&ino.to_le_bytes());
+            r[16..20].copy_from_slice(&uid.to_le_bytes());
+            r[20..24].copy_from_slice(&gid.to_le_bytes());
+            r[24..28].copy_from_slice(&SET_UID.to_le_bytes());
+            r
+        }
+        let path = std::env::temp_dir().join(format!("podbox-memo-g-{}", std::process::id()));
+        // ⛔ Read-write, like the handed descriptor production reads: a
+        // `File::create` handle is write-only and every lookup read fails
+        // `EBADF`, which reads as an empty memo rather than as an error.
+        let mut f = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&path)
+            .unwrap();
+        f.write_all(&record(7, 9, 0, 42)).unwrap();
+        f.set_len((131208 * RECORD) as u64).unwrap();
+        let fd = f.as_raw_fd();
+        std::env::set_var("PODBOX_MEMO_FD", fd.to_string());
+        let got = lookup(7, 9);
+        std::env::remove_var("PODBOX_MEMO_FD");
+        drop(f);
+        assert_eq!(got, Lookup::BeyondCeiling);
+        let _ = std::fs::remove_file(&path);
+
+        let small = std::env::temp_dir().join(format!("podbox-memo-hit-{}", std::process::id()));
+        let mut g = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&small)
+            .unwrap();
+        g.write_all(&record(7, 9, 0, 42)).unwrap();
+        g.write_all(&record(7, 9, 0, 43)).unwrap();
+        let fd = g.as_raw_fd();
+        std::env::set_var("PODBOX_MEMO_FD", fd.to_string());
+        let got = lookup(7, 9);
+        std::env::remove_var("PODBOX_MEMO_FD");
+        drop(g);
+        assert_eq!(
+            got,
+            Lookup::Hit(Owner { uid: 0, gid: 43, set: SET_UID })
+        );
+        let _ = std::fs::remove_file(&small);
+    }
 }

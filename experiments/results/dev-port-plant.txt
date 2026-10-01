@@ -1,0 +1,20 @@
+T-1555 plant: podbox-dev refuses where there is no tree, and refuses an
+unknown verb. Lane job refactor/job-t1555a.sh on wsl-toolkit-podbox,
+kernel 7.2.0-WSL2-STABLE, musl release binary staged like the todo job.
+
+Mutation (reverted after): AGENTS.md moved aside, so the checkout holds
+no session entry point.
+
+podbox-dev session --check exit 2:
+  podbox-dev: this is not the podbox tree. AGENTS.md or TODO/ is missing.
+
+The full session report up to the refusal (utc 2026-10-01T10:13:15Z,
+kind linux, cwd /work, user root) is unchanged from the retired
+session-start.sh beside the tree: STATUS_IDENTICAL,
+SESSION_IDENTICAL_MODULO_DATE, both exits 0 on the clean tree.
+
+podbox-dev bogus-cmd exit 2:
+  podbox-dev: unknown command bogus-cmd
+
+Restored: AGENTS.md back in place; the binary is untouched (it refuses
+from the tree state, not from a flag).

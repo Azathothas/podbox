@@ -1,0 +1,18 @@
+T-1553 plant: podbox-count refuses a row status the vocabulary does not hold.
+
+Mutation (reverted after): TODO/INDEX.md T-0208 row status `done` -> `bogus`.
+INDEX sha1 before and after restore: 1e9228e0b64137049204f5cc94d18cf8ef5187f1.
+
+podbox-count --check exit 1:
+todo-count: row T-0208 has status 'bogus' priority 'P2'
+
+podbox-count (rewrite) exit 1, wrote nothing:
+todo-count: row T-0208 has status 'bogus' priority 'P2'
+
+podbox-gate on the planted tree exit 1, four errors:
+  TODO/INDEX.md:83: T-0208 status 'bogus' is not one of ['open', 'partial', 'blocked', 'done']
+  TODO/image.md:710: T-0208 entry status 'done' disagrees with the index row's 'bogus'
+  TODO/INDEX.md: the totals line is not the rows. Expected exactly:
+  TODO/INDEX.md: the P2 count row is not the rows. Expected exactly:
+
+Restored: podbox-count --check exit 0, `203 items: 0 open, 3 partial, 0 blocked, 200 done.`

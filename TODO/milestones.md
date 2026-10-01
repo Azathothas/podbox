@@ -43,11 +43,11 @@ Approach:    Produced: `docs/` copied verbatim; `LICENSE` (0BSD), `README.md`,
              reference map and per-category entries; the two count scripts, the
              reader wired as a gate; and CI that runs it.
 Decision:    The corpus is **tracked in the tree** rather than on a side branch,
-             because `scripts/check-todo.py` resolves every cited path and line
+             because `crates/podbox-gate/src/main.rs` resolves every cited path and line
              and cannot do so into a branch it is not on.
              [reference-map.md](reference-map.md) records the choice and what a
              clone pays for it.
-Prove:       `./scripts/check-todo.py && cargo build --release --target x86_64-unknown-linux-musl && readelf -l target/x86_64-unknown-linux-musl/release/podbox | grep -c INTERP | grep -qx 0`
+Prove:       `./target/release/podbox-gate && cargo build --release --target x86_64-unknown-linux-musl && readelf -l target/x86_64-unknown-linux-musl/release/podbox | grep -c INTERP | grep -qx 0`
 
 **Done. The `Prove` command was run on 2026-09-08 and exits 0.** The output is
 in [PROGRESS.md](PROGRESS.md)'s baseline block.

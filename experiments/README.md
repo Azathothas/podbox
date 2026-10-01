@@ -32,16 +32,15 @@ Later scripts test podbox behavior. Their owning task gives the acceptance.
 
 | Script | Required conditions and result |
 | --- | --- |
-| `392-kvm-guest.sh` | Windows toolkit base, explicit Linux binary, pinned operator disk; guest version, exit 42, run path, and cleanup |
+| `392-kvm-guest.sh` | Windows toolkit base, explicit Linux binary, pinned operator disk; guest version, exit 42, run path, and cleanup. NOT PASSING: the 2026-09-30 KVM runs failed (`TODO/PROGRESS.md`); this row is historical until an operator-present run re-takes it |
 | `393-build-freshness.py` | Python; fixed fixture changes with equal size and time, changed output, and missing output |
 | `394-ssh-package.sh` | A native static release build; complete archive and named missing-helper and ELF refusals |
 | `395-reconcile-repository.py` | Git refs; patch identity, range comparison, and optional deleted-branch check |
 | `396-audit-linux.sh` | Copied toolkit job; full Linux check, clean snapshot, full plants, and exported artifacts |
 | `397-exported-build.py` | Export directory; all five executable byte digests agree with the saved build record |
-| `398-gate-diagnostics.py` | Both gate runners; complete failed output, lost-output mutations, JSON, and skip states |
+| podbox-smoke --diagnostics | Both gate runners; complete failed output, lost-output mutations, JSON, and skip states |
 | `399-publication.py` | Current main commit, deleted branch, release workflow, and complete asset set |
 | `400-kvm-cleanup.py` | Linux controlled processes; select the owned emulator, exclude the observer, and preserve another process |
-| `401-emulator-streams.sh` | Linux Rust toolchain, no guest; a fake emulator's 256 KiB streams do not block the run, and restored unread pipes fail the test |
 
 For Windows builds, set `PODBOX_ARTIFACTS` and run
 `sh scripts/windows/run-in-base.sh`. This runs the full check in a copy and

@@ -1,0 +1,830 @@
+--- 32a images crates/podbox-cli/src/images.rs ---
+test: every_image_usage_is_plain_ascii
+mutation: insert `assert!(false, "plant crates/podbox-cli/src/images.rs");` into the test
+command: cargo test -p podbox-cli --bin podbox every_image_usage_is_plain_ascii
+exit: 101
+output:
+
+running 1 test
+test images::tests::every_image_usage_is_plain_ascii ... FAILED
+
+failures:
+
+---- images::tests::every_image_usage_is_plain_ascii stdout ----
+
+thread 'images::tests::every_image_usage_is_plain_ascii' (16084) panicked at crates/podbox-cli/src/images.rs:2026:9:
+plant crates/podbox-cli/src/images.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    images::tests::every_image_usage_is_plain_ascii
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 248 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-cli v0.1.0-beta.12 (/work/crates/podbox-cli)
+warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.12: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+   Compiling podbox-enter v0.1.0-beta.12 (/work/crates/podbox-enter)
+   Compiling podbox-windows v0.1.0-beta.12 (/work/crates/podbox-windows)
+   Compiling podbox-extract v0.1.0-beta.12 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0-beta.12 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0-beta.12 (/work/crates/podbox-complete)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.45s
+     Running unittests src/main.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox-d4a541b9f851ef90)
+error: test failed, to rerun pass `-p podbox-cli --bin podbox`
+restored from the backup copy
+
+--- 32b system crates/podbox-cli/src/system.rs ---
+test: system_usage_is_plain_ascii
+mutation: insert `assert!(false, "plant crates/podbox-cli/src/system.rs");` into the test
+command: cargo test -p podbox-cli --bin podbox system_usage_is_plain_ascii
+exit: 101
+output:
+
+running 1 test
+test system::tests::system_usage_is_plain_ascii ... FAILED
+
+failures:
+
+---- system::tests::system_usage_is_plain_ascii stdout ----
+
+thread 'system::tests::system_usage_is_plain_ascii' (17501) panicked at crates/podbox-cli/src/system.rs:609:9:
+plant crates/podbox-cli/src/system.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    system::tests::system_usage_is_plain_ascii
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 248 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-cli v0.1.0-beta.12 (/work/crates/podbox-cli)
+warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.12: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+   Compiling podbox-enter v0.1.0-beta.12 (/work/crates/podbox-enter)
+   Compiling podbox-windows v0.1.0-beta.12 (/work/crates/podbox-windows)
+   Compiling podbox-extract v0.1.0-beta.12 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0-beta.12 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0-beta.12 (/work/crates/podbox-complete)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.71s
+     Running unittests src/main.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox-d4a541b9f851ef90)
+error: test failed, to rerun pass `-p podbox-cli --bin podbox`
+restored from the backup copy
+
+--- 32c parity crates/podbox-cli/src/parity.rs ---
+test: every_parity_note_is_plain_ascii
+mutation: insert `assert!(false, "plant crates/podbox-cli/src/parity.rs");` into the test
+command: cargo test -p podbox-cli --bin podbox every_parity_note_is_plain_ascii
+exit: 101
+output:
+
+running 1 test
+test parity::tests::every_parity_note_is_plain_ascii ... FAILED
+
+failures:
+
+---- parity::tests::every_parity_note_is_plain_ascii stdout ----
+
+thread 'parity::tests::every_parity_note_is_plain_ascii' (18918) panicked at crates/podbox-cli/src/parity.rs:712:9:
+plant crates/podbox-cli/src/parity.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    parity::tests::every_parity_note_is_plain_ascii
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 248 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-cli v0.1.0-beta.12 (/work/crates/podbox-cli)
+warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.12: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+   Compiling podbox-enter v0.1.0-beta.12 (/work/crates/podbox-enter)
+   Compiling podbox-windows v0.1.0-beta.12 (/work/crates/podbox-windows)
+   Compiling podbox-extract v0.1.0-beta.12 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0-beta.12 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0-beta.12 (/work/crates/podbox-complete)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.47s
+     Running unittests src/main.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox-d4a541b9f851ef90)
+error: test failed, to rerun pass `-p podbox-cli --bin podbox`
+restored from the backup copy
+
+--- 32d write crates/podbox-complete/src/write.rs ---
+test: a_write_through_an_absolute_symlink_does_not_escape
+mutation: insert `assert!(false, "plant crates/podbox-complete/src/write.rs");` into the test
+command: cargo test -p podbox-complete --lib a_write_through_an_absolute_symlink_does_not_escape
+exit: 101
+output:
+
+running 1 test
+test write::tests::a_write_through_an_absolute_symlink_does_not_escape ... FAILED
+
+failures:
+
+---- write::tests::a_write_through_an_absolute_symlink_does_not_escape stdout ----
+
+thread 'write::tests::a_write_through_an_absolute_symlink_does_not_escape' (19731) panicked at crates/podbox-complete/src/write.rs:654:9:
+plant crates/podbox-complete/src/write.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    write::tests::a_write_through_an_absolute_symlink_does_not_escape
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+   Compiling podbox-extract v0.1.0-beta.12 (/work/crates/podbox-extract)
+   Compiling podbox-complete v0.1.0-beta.12 (/work/crates/podbox-complete)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.46s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox_complete-789653efd419a9f1)
+error: test failed, to rerun pass `-p podbox-complete --lib`
+restored from the backup copy
+
+--- 32e memo crates/podbox-interpose/src/memo.rs ---
+test: a_decimal_fd_parses_and_anything_else_does_not
+mutation: insert `assert!(false, "plant crates/podbox-interpose/src/memo.rs");` into the test
+command: cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu a_decimal_fd_parses_and_anything_else_does_not
+exit: 101
+output:
+
+running 1 test
+test memo::tests::a_decimal_fd_parses_and_anything_else_does_not ... FAILED
+
+failures:
+
+---- memo::tests::a_decimal_fd_parses_and_anything_else_does_not stdout ----
+
+thread 'memo::tests::a_decimal_fd_parses_and_anything_else_does_not' (20040) panicked at src/memo.rs:282:9:
+plant crates/podbox-interpose/src/memo.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    memo::tests::a_decimal_fd_parses_and_anything_else_does_not
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.00s
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.44s
+     Running unittests src/lib.rs (crates/podbox-interpose/target/x86_64-unknown-linux-gnu/debug/deps/podbox_interpose-0829c78b6c1db3c6)
+error: test failed, to rerun pass `--lib`
+restored from the backup copy
+
+--- 32f identity crates/podbox-interpose/src/identity.rs ---
+test: uid_alone_means_its_own_group
+mutation: insert `assert!(false, "plant crates/podbox-interpose/src/identity.rs");` into the test
+command: cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu uid_alone_means_its_own_group
+exit: 101
+output:
+
+running 1 test
+test identity::tests::uid_alone_means_its_own_group ... FAILED
+
+failures:
+
+---- identity::tests::uid_alone_means_its_own_group stdout ----
+
+thread 'identity::tests::uid_alone_means_its_own_group' (20349) panicked at src/identity.rs:288:9:
+plant crates/podbox-interpose/src/identity.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    identity::tests::uid_alone_means_its_own_group
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.00s
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.49s
+     Running unittests src/lib.rs (crates/podbox-interpose/target/x86_64-unknown-linux-gnu/debug/deps/podbox_interpose-0829c78b6c1db3c6)
+error: test failed, to rerun pass `--lib`
+restored from the backup copy
+
+--- 32g exit crates/podbox-probe/src/exit.rs ---
+test: a_sigkilled_payload_is_137
+mutation: insert `assert!(false, "plant crates/podbox-probe/src/exit.rs");` into the test
+command: cargo test -p podbox-probe --lib a_sigkilled_payload_is_137
+exit: 101
+output:
+
+running 1 test
+test exit::tests::a_sigkilled_payload_is_137 ... FAILED
+
+failures:
+
+---- exit::tests::a_sigkilled_payload_is_137 stdout ----
+
+thread 'exit::tests::a_sigkilled_payload_is_137' (20717) panicked at crates/podbox-probe/src/exit.rs:132:9:
+plant crates/podbox-probe/src/exit.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    exit::tests::a_sigkilled_payload_is_137
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.57s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox_probe-d9f4075f88b1e24d)
+error: test failed, to rerun pass `-p podbox-probe --lib`
+restored from the backup copy
+
+--- 33a curated_refusals crates/podbox-cli/tests/curated_refusals.rs ---
+test: refused_run_flags_exit_125_naming_status_none
+mutation: insert `assert!(false, "plant crates/podbox-cli/tests/curated_refusals.rs");` into the test
+command: cargo test -p podbox-cli --test curated_refusals refused_run_flags_exit_125_naming_status_none
+exit: 101
+output:
+
+running 1 test
+test refused_run_flags_exit_125_naming_status_none ... FAILED
+
+failures:
+
+---- refused_run_flags_exit_125_naming_status_none stdout ----
+
+thread 'refused_run_flags_exit_125_naming_status_none' (22170) panicked at crates/podbox-cli/tests/curated_refusals.rs:94:5:
+plant crates/podbox-cli/tests/curated_refusals.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    refused_run_flags_exit_125_naming_status_none
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-cli v0.1.0-beta.12 (/work/crates/podbox-cli)
+warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.12: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+   Compiling podbox-enter v0.1.0-beta.12 (/work/crates/podbox-enter)
+   Compiling podbox-windows v0.1.0-beta.12 (/work/crates/podbox-windows)
+   Compiling podbox-extract v0.1.0-beta.12 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0-beta.12 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0-beta.12 (/work/crates/podbox-complete)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.82s
+     Running tests/curated_refusals.rs (target/x86_64-unknown-linux-musl/debug/deps/curated_refusals-51ac55004fce327f)
+error: test failed, to rerun pass `-p podbox-cli --test curated_refusals`
+restored from the backup copy
+
+--- 33b detached_stdio crates/podbox-cli/tests/detached_stdio.rs ---
+test: run_help_names_the_detach_flag
+mutation: insert `assert!(false, "plant crates/podbox-cli/tests/detached_stdio.rs");` into the test
+command: cargo test -p podbox-cli --test detached_stdio run_help_names_the_detach_flag
+exit: 101
+output:
+
+running 1 test
+test run_help_names_the_detach_flag ... FAILED
+
+failures:
+
+---- run_help_names_the_detach_flag stdout ----
+
+thread 'run_help_names_the_detach_flag' (23622) panicked at crates/podbox-cli/tests/detached_stdio.rs:136:5:
+plant crates/podbox-cli/tests/detached_stdio.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    run_help_names_the_detach_flag
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-cli v0.1.0-beta.12 (/work/crates/podbox-cli)
+warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.12: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+   Compiling podbox-enter v0.1.0-beta.12 (/work/crates/podbox-enter)
+   Compiling podbox-windows v0.1.0-beta.12 (/work/crates/podbox-windows)
+   Compiling podbox-extract v0.1.0-beta.12 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0-beta.12 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0-beta.12 (/work/crates/podbox-complete)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.57s
+     Running tests/detached_stdio.rs (target/x86_64-unknown-linux-musl/debug/deps/detached_stdio-6e4541c625bb790c)
+error: test failed, to rerun pass `-p podbox-cli --test detached_stdio`
+restored from the backup copy
+
+--- 33c qol crates/podbox-cli/tests/qol.rs ---
+test: logs_tail_with_a_non_count_is_a_flag_error
+mutation: insert `assert!(false, "plant crates/podbox-cli/tests/qol.rs");` into the test
+command: cargo test -p podbox-cli --test qol logs_tail_with_a_non_count_is_a_flag_error
+exit: 101
+output:
+
+running 1 test
+test logs_tail_with_a_non_count_is_a_flag_error ... FAILED
+
+failures:
+
+---- logs_tail_with_a_non_count_is_a_flag_error stdout ----
+
+thread 'logs_tail_with_a_non_count_is_a_flag_error' (25082) panicked at crates/podbox-cli/tests/qol.rs:176:5:
+plant crates/podbox-cli/tests/qol.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    logs_tail_with_a_non_count_is_a_flag_error
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-cli v0.1.0-beta.12 (/work/crates/podbox-cli)
+warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.12: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+   Compiling podbox-enter v0.1.0-beta.12 (/work/crates/podbox-enter)
+   Compiling podbox-windows v0.1.0-beta.12 (/work/crates/podbox-windows)
+   Compiling podbox-extract v0.1.0-beta.12 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0-beta.12 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0-beta.12 (/work/crates/podbox-complete)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.83s
+     Running tests/qol.rs (target/x86_64-unknown-linux-musl/debug/deps/qol-c4c83329b05c0da2)
+error: test failed, to rerun pass `-p podbox-cli --test qol`
+restored from the backup copy
+
+--- 33d store_gates crates/podbox-cli/tests/store_gates.rs ---
+test: empty_store_lists_nothing_and_marks_nothing
+mutation: insert `assert!(false, "plant crates/podbox-cli/tests/store_gates.rs");` into the test
+command: cargo test -p podbox-cli --test store_gates empty_store_lists_nothing_and_marks_nothing
+exit: 101
+output:
+
+running 1 test
+test empty_store_lists_nothing_and_marks_nothing ... FAILED
+
+failures:
+
+---- empty_store_lists_nothing_and_marks_nothing stdout ----
+
+thread 'empty_store_lists_nothing_and_marks_nothing' (26535) panicked at crates/podbox-cli/tests/store_gates.rs:119:5:
+plant crates/podbox-cli/tests/store_gates.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    empty_store_lists_nothing_and_marks_nothing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-cli v0.1.0-beta.12 (/work/crates/podbox-cli)
+warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.12: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+   Compiling podbox-enter v0.1.0-beta.12 (/work/crates/podbox-enter)
+   Compiling podbox-windows v0.1.0-beta.12 (/work/crates/podbox-windows)
+   Compiling podbox-extract v0.1.0-beta.12 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0-beta.12 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0-beta.12 (/work/crates/podbox-complete)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.83s
+     Running tests/store_gates.rs (target/x86_64-unknown-linux-musl/debug/deps/store_gates-469accc81ad0a5c8)
+error: test failed, to rerun pass `-p podbox-cli --test store_gates`
+restored from the backup copy
+
+--- 33e tty_refusal crates/podbox-enter/tests/tty_refusal.rs ---
+test: refusal_triggers_only_where_the_open_row_is_denied
+mutation: insert `assert!(false, "plant crates/podbox-enter/tests/tty_refusal.rs");` into the test
+command: cargo test -p podbox-enter --test tty_refusal refusal_triggers_only_where_the_open_row_is_denied
+exit: 101
+output:
+
+running 1 test
+test refusal_triggers_only_where_the_open_row_is_denied ... FAILED
+
+failures:
+
+---- refusal_triggers_only_where_the_open_row_is_denied stdout ----
+
+thread 'refusal_triggers_only_where_the_open_row_is_denied' (27033) panicked at crates/podbox-enter/tests/tty_refusal.rs:39:5:
+plant crates/podbox-enter/tests/tty_refusal.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    refusal_triggers_only_where_the_open_row_is_denied
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-enter v0.1.0-beta.12 (/work/crates/podbox-enter)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.80s
+     Running tests/tty_refusal.rs (target/x86_64-unknown-linux-musl/debug/deps/tty_refusal-25c37820ce0187d8)
+error: test failed, to rerun pass `-p podbox-enter --test tty_refusal`
+restored from the backup copy
+
+--- 33f acquisition crates/podbox-image/tests/acquisition.rs ---
+test: pull_the_fixture_then_pull_it_again_for_up_to_date
+mutation: insert `assert!(false, "plant crates/podbox-image/tests/acquisition.rs");` into the test
+command: cargo test -p podbox-image --test acquisition pull_the_fixture_then_pull_it_again_for_up_to_date
+exit: 101
+output:
+
+running 1 test
+test pull_the_fixture_then_pull_it_again_for_up_to_date ... FAILED
+
+failures:
+
+---- pull_the_fixture_then_pull_it_again_for_up_to_date stdout ----
+
+thread 'pull_the_fixture_then_pull_it_again_for_up_to_date' (27611) panicked at crates/podbox-image/tests/acquisition.rs:31:5:
+plant crates/podbox-image/tests/acquisition.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    pull_the_fixture_then_pull_it_again_for_up_to_date
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+warning: fields `manifest`, `manifest_digest`, `config`, and `layer` are never read
+  --> crates/podbox-image/tests/common/registry.rs:30:9
+   |
+25 | pub struct Fixture {
+   |            ------- fields in this struct
+...
+30 |     pub manifest: Vec<u8>,
+   |         ^^^^^^^^
+31 |     /// `sha256:<hex>` of the manifest bytes, as served and as computed.
+32 |     pub manifest_digest: String,
+   |         ^^^^^^^^^^^^^^^
+33 |     pub config: Vec<u8>,
+   |         ^^^^^^
+34 |     pub config_digest: String,
+35 |     pub layer: Vec<u8>,
+   |         ^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `podbox-image` (test "acquisition") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.03s
+     Running tests/acquisition.rs (target/x86_64-unknown-linux-musl/debug/deps/acquisition-f7796b76d4ecaf73)
+error: test failed, to rerun pass `-p podbox-image --test acquisition`
+restored from the backup copy
+
+--- 33g across_distributions crates/podbox-image/tests/across_distributions.rs ---
+test: the_reference_is_qualified_before_it_is_pulled
+mutation: insert `assert!(false, "plant crates/podbox-image/tests/across_distributions.rs");` into the test
+command: cargo test -p podbox-image --test across_distributions the_reference_is_qualified_before_it_is_pulled
+exit: 101
+output:
+
+running 1 test
+test the_reference_is_qualified_before_it_is_pulled ... FAILED
+
+failures:
+
+---- the_reference_is_qualified_before_it_is_pulled stdout ----
+
+thread 'the_reference_is_qualified_before_it_is_pulled' (28254) panicked at crates/podbox-image/tests/across_distributions.rs:66:5:
+plant crates/podbox-image/tests/across_distributions.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    the_reference_is_qualified_before_it_is_pulled
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+warning: fields `manifest`, `config`, `config_digest`, `layer`, and `layer_digest` are never read
+  --> crates/podbox-image/tests/common/registry.rs:30:9
+   |
+25 | pub struct Fixture {
+   |            ------- fields in this struct
+...
+30 |     pub manifest: Vec<u8>,
+   |         ^^^^^^^^
+...
+33 |     pub config: Vec<u8>,
+   |         ^^^^^^
+34 |     pub config_digest: String,
+   |         ^^^^^^^^^^^^^
+35 |     pub layer: Vec<u8>,
+   |         ^^^^^
+36 |     pub layer_digest: String,
+   |         ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `podbox-image` (test "across_distributions") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.85s
+     Running tests/across_distributions.rs (target/x86_64-unknown-linux-musl/debug/deps/across_distributions-803a803d99ebd0be)
+error: test failed, to rerun pass `-p podbox-image --test across_distributions`
+restored from the backup copy
+
+--- 33h common mod crates/podbox-image/tests/common/mod.rs ---
+test: plant_common_mod_pin
+mutation: insert `assert!(false, "plant crates/podbox-image/tests/common/mod.rs");` into the test
+command: cargo test -p podbox-image --test acquisition plant_common_mod_pin
+exit: 101
+output:
+
+running 1 test
+test common::plant_common_mod_pin ... FAILED
+
+failures:
+
+---- common::plant_common_mod_pin stdout ----
+
+thread 'common::plant_common_mod_pin' (28894) panicked at crates/podbox-image/tests/common/mod.rs:6:5:
+plant crates/podbox-image/tests/common/mod.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    common::plant_common_mod_pin
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+warning: fields `manifest`, `manifest_digest`, `config`, and `layer` are never read
+  --> crates/podbox-image/tests/common/registry.rs:30:9
+   |
+25 | pub struct Fixture {
+   |            ------- fields in this struct
+...
+30 |     pub manifest: Vec<u8>,
+   |         ^^^^^^^^
+31 |     /// `sha256:<hex>` of the manifest bytes, as served and as computed.
+32 |     pub manifest_digest: String,
+   |         ^^^^^^^^^^^^^^^
+33 |     pub config: Vec<u8>,
+   |         ^^^^^^
+34 |     pub config_digest: String,
+35 |     pub layer: Vec<u8>,
+   |         ^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `podbox-image` (test "acquisition") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.63s
+     Running tests/acquisition.rs (target/x86_64-unknown-linux-musl/debug/deps/acquisition-f7796b76d4ecaf73)
+error: test failed, to rerun pass `-p podbox-image --test acquisition`
+restored from the backup copy
+
+--- 33i common registry crates/podbox-image/tests/common/registry.rs ---
+test: the_fixture_serves_manifest_blobs_and_shutdown
+mutation: insert `assert!(false, "plant crates/podbox-image/tests/common/registry.rs");` into the test
+command: cargo test -p podbox-image --test registry_fixture the_fixture_serves_manifest_blobs_and_shutdown
+exit: 101
+output:
+
+running 1 test
+test the_fixture_serves_manifest_blobs_and_shutdown ... FAILED
+
+failures:
+
+---- the_fixture_serves_manifest_blobs_and_shutdown stdout ----
+
+thread 'the_fixture_serves_manifest_blobs_and_shutdown' (29501) panicked at crates/podbox-image/tests/common/registry.rs:60:9:
+plant crates/podbox-image/tests/common/registry.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    the_fixture_serves_manifest_blobs_and_shutdown
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.56s
+     Running tests/registry_fixture.rs (target/x86_64-unknown-linux-musl/debug/deps/registry_fixture-6dbe963f22c6c9d3)
+error: test failed, to rerun pass `-p podbox-image --test registry_fixture`
+restored from the backup copy
+
+--- 33j parallel_layers crates/podbox-image/tests/parallel_layers.rs ---
+test: concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest
+mutation: insert `assert!(false, "plant crates/podbox-image/tests/parallel_layers.rs");` into the test
+command: cargo test -p podbox-image --test parallel_layers concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest
+exit: 101
+output:
+
+running 1 test
+test concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest ... FAILED
+
+failures:
+
+---- concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest stdout ----
+
+thread 'concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest' (30146) panicked at crates/podbox-image/tests/parallel_layers.rs:86:5:
+plant crates/podbox-image/tests/parallel_layers.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+warning: fields `manifest`, `config`, `config_digest`, and `layer` are never read
+  --> crates/podbox-image/tests/common/registry.rs:30:9
+   |
+25 | pub struct Fixture {
+   |            ------- fields in this struct
+...
+30 |     pub manifest: Vec<u8>,
+   |         ^^^^^^^^
+...
+33 |     pub config: Vec<u8>,
+   |         ^^^^^^
+34 |     pub config_digest: String,
+   |         ^^^^^^^^^^^^^
+35 |     pub layer: Vec<u8>,
+   |         ^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `podbox-image` (test "parallel_layers") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.90s
+     Running tests/parallel_layers.rs (target/x86_64-unknown-linux-musl/debug/deps/parallel_layers-73e9added9dd7060)
+error: test failed, to rerun pass `-p podbox-image --test parallel_layers`
+restored from the backup copy
+
+--- 33k registry_fixture crates/podbox-image/tests/registry_fixture.rs ---
+test: the_fixture_serves_manifest_blobs_and_shutdown
+mutation: insert `assert!(false, "plant crates/podbox-image/tests/registry_fixture.rs");` into the test
+command: cargo test -p podbox-image --test registry_fixture the_fixture_serves_manifest_blobs_and_shutdown
+exit: 101
+output:
+
+running 1 test
+test the_fixture_serves_manifest_blobs_and_shutdown ... FAILED
+
+failures:
+
+---- the_fixture_serves_manifest_blobs_and_shutdown stdout ----
+
+thread 'the_fixture_serves_manifest_blobs_and_shutdown' (30724) panicked at crates/podbox-image/tests/registry_fixture.rs:61:5:
+plant crates/podbox-image/tests/registry_fixture.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    the_fixture_serves_manifest_blobs_and_shutdown
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.15s
+     Running tests/registry_fixture.rs (target/x86_64-unknown-linux-musl/debug/deps/registry_fixture-6dbe963f22c6c9d3)
+error: test failed, to rerun pass `-p podbox-image --test registry_fixture`
+restored from the backup copy
+
+--- 33l space_precheck crates/podbox-image/tests/space_precheck.rs ---
+test: require_refuses_short_bytes_and_short_inodes_naming_the_destination
+mutation: insert `assert!(false, "plant crates/podbox-image/tests/space_precheck.rs");` into the test
+command: cargo test -p podbox-image --test space_precheck require_refuses_short_bytes_and_short_inodes_naming_the_destination
+exit: 101
+output:
+
+running 1 test
+test require_refuses_short_bytes_and_short_inodes_naming_the_destination ... FAILED
+
+failures:
+
+---- require_refuses_short_bytes_and_short_inodes_naming_the_destination stdout ----
+
+thread 'require_refuses_short_bytes_and_short_inodes_naming_the_destination' (31312) panicked at crates/podbox-image/tests/space_precheck.rs:45:5:
+plant crates/podbox-image/tests/space_precheck.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    require_refuses_short_bytes_and_short_inodes_naming_the_destination
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.50s
+     Running tests/space_precheck.rs (target/x86_64-unknown-linux-musl/debug/deps/space_precheck-caf6f5f1668e62b5)
+error: test failed, to rerun pass `-p podbox-image --test space_precheck`
+restored from the backup copy
+
+--- 33m store_digest crates/podbox-image/tests/store_digest.rs ---
+test: the_record_and_the_blobs_name_the_served_bytes
+mutation: insert `assert!(false, "plant crates/podbox-image/tests/store_digest.rs");` into the test
+command: cargo test -p podbox-image --test store_digest the_record_and_the_blobs_name_the_served_bytes
+exit: 101
+output:
+
+running 1 test
+test the_record_and_the_blobs_name_the_served_bytes ... FAILED
+
+failures:
+
+---- the_record_and_the_blobs_name_the_served_bytes stdout ----
+
+thread 'the_record_and_the_blobs_name_the_served_bytes' (31890) panicked at crates/podbox-image/tests/store_digest.rs:33:5:
+plant crates/podbox-image/tests/store_digest.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    the_record_and_the_blobs_name_the_served_bytes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+   Compiling podbox-image v0.1.0-beta.12 (/work/crates/podbox-image)
+warning: fields `config` and `layer` are never read
+  --> crates/podbox-image/tests/common/registry.rs:33:9
+   |
+25 | pub struct Fixture {
+   |            ------- fields in this struct
+...
+33 |     pub config: Vec<u8>,
+   |         ^^^^^^
+34 |     pub config_digest: String,
+35 |     pub layer: Vec<u8>,
+   |         ^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `podbox-image` (test "store_digest") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.91s
+     Running tests/store_digest.rs (target/x86_64-unknown-linux-musl/debug/deps/store_digest-283aa443022a328c)
+error: test failed, to rerun pass `-p podbox-image --test store_digest`
+restored from the backup copy
+
+--- 33n namespace crates/podbox-probe/tests/namespace.rs ---
+test: lane_shape_selects_below_namespace
+mutation: insert `assert!(false, "plant crates/podbox-probe/tests/namespace.rs");` into the test
+command: cargo test -p podbox-probe --test namespace lane_shape_selects_below_namespace
+exit: 101
+output:
+
+running 1 test
+test lane_shape_selects_below_namespace ... FAILED
+
+failures:
+
+---- lane_shape_selects_below_namespace stdout ----
+
+thread 'lane_shape_selects_below_namespace' (32238) panicked at crates/podbox-probe/tests/namespace.rs:40:5:
+plant crates/podbox-probe/tests/namespace.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    lane_shape_selects_below_namespace
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.42s
+     Running tests/namespace.rs (target/x86_64-unknown-linux-musl/debug/deps/namespace-470aae428ea214a1)
+error: test failed, to rerun pass `-p podbox-probe --test namespace`
+restored from the backup copy
+
+--- 33o namespace_base crates/podbox-probe/tests/namespace_base.rs ---
+test: capable_shape_selects_namespace
+mutation: insert `assert!(false, "plant crates/podbox-probe/tests/namespace_base.rs");` into the test
+command: cargo test -p podbox-probe --test namespace_base capable_shape_selects_namespace
+exit: 101
+output:
+
+running 1 test
+test capable_shape_selects_namespace ... FAILED
+
+failures:
+
+---- capable_shape_selects_namespace stdout ----
+
+thread 'capable_shape_selects_namespace' (32610) panicked at crates/podbox-probe/tests/namespace_base.rs:48:5:
+plant crates/podbox-probe/tests/namespace_base.rs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    capable_shape_selects_namespace
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+   Compiling podbox-probe v0.1.0-beta.12 (/work/crates/podbox-probe)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.53s
+     Running tests/namespace_base.rs (target/x86_64-unknown-linux-musl/debug/deps/namespace_base-44517281149d025d)
+error: test failed, to rerun pass `-p podbox-probe --test namespace_base`
+restored from the backup copy
+

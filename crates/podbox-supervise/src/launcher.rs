@@ -666,7 +666,7 @@ mod tests {
         // ⛔ THE NEEDLES ARE ASSEMBLED AT RUN TIME AND NEVER WRITTEN OUT HERE.
         // This test reads its own file, so a literal `thread` + `::spawn` in
         // the assertion below is a match against itself: it failed exactly that
-        // way on 2026-09-09, and it is the same trap `scripts/plant.sh` carries
+        // way on 2026-09-09, and it is the same trap podbox-plant carries
         // three times over.
         let needles = [
             format!("thread{}spawn", "::"),

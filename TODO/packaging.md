@@ -237,14 +237,14 @@ Premise:     ⭐ **Measured on 2026-09-09**, `experiments/results/session-startu
              | the same build warm | 0 s |
              | `bootstrap-env.sh --check` with everything present | 0 s |
              | `TODO/PROGRESS.md` plus `AGENTS.md` | **5,944 words** |
-             | `scripts/dev.sh` before it returns | **1 s** |
+             | dev.sh before it returns | **1 s** |
 
              ⚠ **The install path is not measured and is not estimated.** This
              container already has every component, and measuring what apt and
              the pinned zig download cost a genuinely fresh machine would mean
              removing them. The result file says `not measured here` rather than
              carrying a number nobody took.
-Approach:    `scripts/dev.sh`, and `AGENTS.md`'s opening line is now it.
+Approach:    dev.sh, and `AGENTS.md`'s opening line is now it.
              1. **`dev.sh`** detaches with `setsid`, runs the bootstrap and then
                 the build, and returns in about a second **printing what to read
                 while it works**. ⛔ Bootstrap first: the build needs `zig` for
@@ -272,11 +272,19 @@ Decision:    A shell script over a `Makefile`. ⚠ `make` would have to model th
              ⚠ The state lives in `.dev/` under the repository rather than in
              `/tmp`, so a session that loses `/tmp` between turns does not lose
              the log that says why the build failed.
-Prove:       `./scripts/dev.sh` returns in under 5 s; `./scripts/dev.sh wait` then reports `ready`; touching a source file makes `./scripts/dev.sh status` report `stale` and exit 1
+Prove:       `./target/release/podbox-dev` returns in under 5 s; `./target/release/podbox-dev wait` then reports `ready`; changing a source file makes `./target/release/podbox-dev status` report `stale` and exit 1
 
 **Done 2026-09-09.** Every clause of the `Prove` was driven.
-`experiments/310-session-startup.sh` takes the numbers and clause 5 is `dev.sh`
+experiments/310-session-startup.sh takes the numbers and clause 5 is dev.sh
 returning in 1 s.
+
+**Done 2026-10-01 (the dev-driver port).** The driver is the `podbox-dev` binary in
+the gate crate (`crates/podbox-gate/src/dev.rs`): `start`, `status`, `wait`,
+`build` and `check` mirror `dev.sh`, `session` mirrors `session-start.sh`,
+and `startup` mirrors `310-session-startup.sh`. The `check` step that ran
+`./scripts/check-todo.py` runs `./target/release/podbox-gate`. Lane proof
+with the scripts still beside the tree, then the three scripts deleted in
+the same change; the red-run plant is `experiments/results/dev-port-plant.txt`.
 
 ⚠ **The staleness check hashes an explicit input set** rather than walking the
 tree: `crates/**/*.rs` with their sizes and mtimes, plus `Cargo.toml`,
@@ -348,7 +356,7 @@ Prove:       `git push origin v0.1.0-beta.3` publishes a nightly pre-release
 
 **Done 2026-09-23.** One `v*` tag builds and smoke-tests all seven claimed
 archs through `.github/workflows/nightly.yml`, with the per-arch smoke in
-`scripts/nightly-smoke.sh` and the cross link that makes the builds possible
+nightly-smoke.sh and the cross link that makes the builds possible
 in `.cargo/config.toml`.
 
 The workflow answers version tags alone; nothing in `gate.yml` moves. A
@@ -359,7 +367,7 @@ seven assets with the run's own token, and creates the pre-release named
 nightly (re-uploading where the tag already has one, never deleting and
 remaking it). The checkout pin repeats `gate.yml`'s; the one new pin is
 `actions/upload-artifact` v5.0.0. The bootstrap line repeats the build
-job's, which is what `scripts/check-todo.py` check 19 holds it to.
+job's, which is what `crates/podbox-gate/src/main.rs` check 19 holds it to.
 
 The smoke asserts four things, each read from the process that produced
 it: `version` exits 0 with the version line, `version --verbose` exits 0
@@ -451,7 +459,7 @@ build input.
 Source:      issue 26, client beta testing 2026-09-22 (hash-only
              sidecars from the same release prove truncation, not
              origin); `.github/workflows/nightly.yml`,
-             `scripts/nightly-smoke.sh`
+             nightly-smoke.sh
 Category:    packaging
 Priority:    P2
 Effort:      M
@@ -505,7 +513,7 @@ the repository API on 2026-09-30. No close-out action remains.
 
 Source:      issue 26, client beta testing 2026-09-22 (a broken
              non-x86_64 binary publishes green);
-             `scripts/nightly-smoke.sh`
+             nightly-smoke.sh
 Category:    packaging
 Priority:    P2
 Effort:      M
@@ -529,14 +537,14 @@ Approach:    `pull` plus `extract` per arch against a loopback fixture
 Decision:    Loopback pull+extract per arch. The fixture shape already
              exists in the registry-fixture work (T-0206 family); reuse
              it rather than inventing a second fixture.
-Prove:       `scripts/nightly-smoke.sh` (or its per-arch leg) fails on a
+Prove:       `./target/release/podbox-smoke` (or its per-arch leg) fails on a
              fixture whose layer bytes are flipped and passes on the
              honest one, on the native leg; groups 1-4 run on all seven
              legs. Close issue 26 (smoke third) with a comment showing
              the failing-then-passing legs and the pull+extract
              assertions as the guard that stops recurrence.
 
-**Done 2026-09-23.** Group 5 in `scripts/nightly-smoke.sh`: a
+**Done 2026-09-23.** Group 5 in nightly-smoke.sh: a
 synthetic one-file image travels by save/load through the binary
 under test (import, save, load, extract, payload bytes read back),
 then the tarball's layer blob is flipped and the same load must
@@ -546,6 +554,14 @@ check, and neither needs a registry, a quota, or the network; the
 store is scratch. Group 5 runs on native legs only (the matrix's
 x86_64 leg); groups 1-4 run on all seven. `run` stays out per the
 Approach: qemu-user execution waits on T-1327's pairs.
+
+**Done 2026-10-01 (the smoke port).** The smoke is the `podbox-smoke`
+binary in the gate crate (`crates/podbox-gate/src/smoke.rs`): the six
+assertion groups run against the binary it is given, and `--diagnostics`
+drives the gate-diagnostics fixture. Lane proof runs the binary green
+against the retired script on the same binary, then deletes
+scripts/nightly-smoke.sh in the same change; the red-run plant is
+`experiments/results/smoke-port-plant.txt`.
 
 Lane-proved on the host arch with a lane-built binary (`.tmp`
 job, since removed): honest leg passes reading `smoke-payload`,

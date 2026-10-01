@@ -10,8 +10,9 @@ Run the session entry point from the checkout.
 It selects the `podbox` base and waits for its probe.
 
 ```powershell
-sh scripts/session-start.sh
-py scripts/check-todo.py
+cargo build --release -p podbox-gate
+./target/release/podbox-dev session
+./target/release/podbox-gate
 wsl-toolkit --instance podbox base status --probe
 sh scripts/windows/run-in-base.sh
 ```
@@ -21,10 +22,10 @@ Read each exit code. A skipped check does not prove its subject.
 
 ## Linux session
 
-Run `sh scripts/session-start.sh`.
+Run `./target/release/podbox-dev session`.
 The environment and build start while you read the task.
-Run `./scripts/dev.sh status` before using the build.
-Run `./scripts/dev.sh check` before commit.
+Run `./target/release/podbox-dev status` before using the build.
+Run `./target/release/podbox-dev check` before commit.
 
 ## Decisions and input
 

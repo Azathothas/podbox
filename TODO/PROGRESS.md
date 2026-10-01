@@ -2,7 +2,7 @@
 
 ## State
 
-203 entries: 0 open, 2 partial, 0 blocked, 201 done.
+203 entries: 0 open, 3 partial, 0 blocked, 200 done.
 
 The 2026-09-30 repository audit is complete in source and records.
 T-1348, T-1349, and T-1351 are complete. T-1350 lacks a successful current

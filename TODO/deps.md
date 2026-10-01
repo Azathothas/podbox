@@ -615,7 +615,7 @@ Approach:    `experiments/110-bloat-delta.sh <area>` takes the current binary
 Decision:    A ceiling on the total, not on the delta. A delta ceiling permits
              an unbounded number of small dependencies, which is how a binary
              gets large without any single decision being wrong.
-Prove:       `./experiments/110-bloat-delta.sh baseline` exits 0, `./scripts/check-todo.py` exits 0, and `./scripts/plant.sh` reports cases 17a, 17b and 17c caught
+Prove:       `./experiments/110-bloat-delta.sh baseline` exits 0, `./target/release/podbox-gate` exits 0, and `./target/release/podbox-plant` reports cases 17a, 17b and 17c caught
 
 **Done 2026-09-08.** The `Prove` commands were run and exit 0. The reading is
 `experiments/results/bloat-baseline.txt`: **496,184 bytes and zero third-party
@@ -627,7 +627,7 @@ whole of the difference and it took no dependency, which is the measurement
 it lives is not. It was a bare literal in the gate workflow with nothing behind
 it, and the same number was quoted in this entry's own `Prove`. It now lives in
 `CEILING_BYTES` in `experiments/110-bloat-delta.sh`, the workflow calls that
-script, and check 17 of `scripts/check-todo.py` refuses a tree where any other
+script, and check 17 of `crates/podbox-gate/src/main.rs` refuses a tree where any other
 file this project wrote names the number. ⭐ That check fired on the first run,
 against the sentence you are reading, which is why neither it nor the `Prove`
 above spells the number out: under the check they were the second and third

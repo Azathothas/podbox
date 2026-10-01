@@ -2,7 +2,7 @@
 # run-via-host-podman.sh - host-podman substitute for run-in-base.sh.
 #
 # ⭐ USE ONLY WHILE the wsl-toolkit base is unusable. run-in-base.sh is the
-# Windows half of `scripts/dev.sh`; this script does the same job through the
+# Windows half of podbox-dev; this script does the same job through the
 # host's own podman machine instead: the tree is copied into a disposable
 # container (nothing is mounted, so nothing the job does reaches this
 # checkout), the job runs there, the container is removed when it exits.
@@ -120,8 +120,8 @@ eng exec -w /work "$CID" tar -xf /work.tar || exit 2
 	else
 		echo 'echo "== bootstrap"'
 		echo "./scripts/common/bootstrap-env.sh rust cc zig tools || exit 1"
-		echo 'echo "== dev.sh check"'
-		echo "./scripts/dev.sh check"
+		echo 'echo "== podbox-dev check"'
+		echo "podbox-dev check"
 	fi
 	echo "rc=\$?"
 	echo 'echo "== rc=$rc"'

@@ -10,7 +10,7 @@
 //! `podbox-enter` -- and the copies had already diverged: the usage code was
 //! corrected against a measurement in one of them and stayed at the old value
 //! in another, so two verbs of one binary disagreed about what a flag error is.
-//! Check 20 of `scripts/check-todo.py` holds this file as the only declaration.
+//! Check 20 of `crates/podbox-gate/src/main.rs` holds this file as the only declaration.
 //!
 //! ⭐ **The discriminator between 125 and 1 is not obvious and it is the whole
 //! finding.** Measured against docker 29.3.1 by
@@ -163,5 +163,28 @@ mod tests {
     fn the_two_names_for_125_are_one_number() {
         assert_eq!(EXIT_RUNTIME_ERROR, EXIT_FLAG_ERROR);
         assert_ne!(EXIT_CLI_ERROR, EXIT_FLAG_ERROR);
+    }
+
+    /// T-1528 (`330-exit-codes.sh`). The drive compares fourteen case names
+    /// against the codes this table serves; what is pinned here is the
+    /// table's own name inventory, so a dropped or renamed case breaks here
+    /// rather than as a disagreement on a host with an engine.
+    #[test]
+    fn the_case_name_set_is_exactly_the_six_the_drive_reads() {
+        let names: Vec<&str> = CASES.iter().map(|(k, ..)| *k).collect();
+        assert_eq!(
+            names,
+            [
+                "flag-error",
+                "cli-error",
+                "runtime-error",
+                "cannot-invoke",
+                "not-found",
+                "no-arguments"
+            ]
+        );
+        for (name, want, _) in CASES.iter() {
+            assert_eq!(code(name), Some(*want), "{name} does not resolve");
+        }
     }
 }
