@@ -100,6 +100,26 @@ keeps its historical scope. It does not establish current reliability.
 An agent must not start a KVM guest without the operator present.
 Read each entry's exact proof and referenced source before implementation.
 
+## CI remainder
+
+Main CI is red on all four jobs at `de4e08c`, and every cause is
+measured and outside Batch 3. Stable Rust moved from 1.98.1 to 1.99.0
+between the 12:17 and 16:10 UTC runs on 2026-10-01
+(`rust-toolchain.toml` floats on `stable`). The new toolchain refuses
+the `open` interposition at `crates/podbox-interpose/src/lib.rs:2144`
+(deny-by-default `invalid_runtime_symbol_definitions`; the plant
+harness reports it as MISS on 32e and 32f). That one failure stops the
+static build, the interpose tests, and the plant step. Three more
+failures are pre-existing on both toolchains: the clippy dead-code
+shape at `crates/podbox-image/tests/common/registry.rs:30` (fixture
+work, owned by Batch 4), the detached stdio rows at
+`crates/podbox-cli/tests/detached_stdio.rs:138` and `:292`
+(engine-dependent), and the secrets-check flag on
+`scripts/dev-lane.sh:205` (false positive on `/home/toolkit`). The
+rustfmt drift spots are fixed in this session. Clearing the rest
+needs the operator: toolchain pin-or-port policy, the security-check
+pattern, and the fixture and interposer sources.
+
 ## Publication
 
 Beta.10 is published at build commit `d6cb926`. Beta.11 is published
