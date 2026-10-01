@@ -143,3 +143,10 @@ dist/
 # ⚠ The staged payload that `scripts/windows/run-in-base.sh` writes beside the
 # checkout and removes on exit. A cancelled run leaves one behind.
 .podbox-job.sh
+
+# ⛔ `refactor/` is untracked working material, not the record. Its audit
+# files cite scripts and experiments that no longer exist, and the record
+# gate resolves citations in every tracked markdown file, so tracking this
+# directory turns a green gate red (measured 2026-10-01: 1047 problems from
+# this directory alone). Read it from disk. Do not force-add it.
+/refactor/
