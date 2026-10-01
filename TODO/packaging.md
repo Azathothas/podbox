@@ -237,35 +237,35 @@ Premise:     ⭐ **Measured on 2026-09-09**, `experiments/results/session-startu
              | the same build warm | 0 s |
              | `bootstrap-env.sh --check` with everything present | 0 s |
              | `TODO/PROGRESS.md` plus `AGENTS.md` | **5,944 words** |
-             | dev.sh before it returns | **1 s** |
+             | dev.sh (now `podbox-dev`) before it returns | **1 s** |
 
              ⚠ **The install path is not measured and is not estimated.** This
              container already has every component, and measuring what apt and
              the pinned zig download cost a genuinely fresh machine would mean
              removing them. The result file says `not measured here` rather than
              carrying a number nobody took.
-Approach:    dev.sh, and `AGENTS.md`'s opening line is now it.
-             1. **`dev.sh`** detaches with `setsid`, runs the bootstrap and then
+Approach:    dev.sh (now `podbox-dev`), and `AGENTS.md`'s opening line is now it.
+             1. **`dev.sh`** (now `podbox-dev`) detaches with `setsid`, runs the bootstrap and then
                 the build, and returns in about a second **printing what to read
                 while it works**. ⛔ Bootstrap first: the build needs `zig` for
                 `ring`'s C and would otherwise fail in a way that reads as a code
                 error.
-             2. **`dev.sh status`** answers `running`, `ready`, `failed` with the
+             2. **`dev.sh status`** (now `podbox-dev status`) answers `running`, `ready`, `failed` with the
                 log's tail, or ⭐ **`stale`**, which is the answer that would
                 otherwise mislead: a `ready` predating the last edit is worse
                 than no answer.
-             3. **`dev.sh build`** for a source change, and it deliberately does
+             3. **`dev.sh build`** (now `podbox-dev build`) for a source change, and it deliberately does
                 **not** bootstrap. By the time a session is editing, the
                 environment is up, and an apt check per edit is the cost this
                 removes.
-             4. **`dev.sh check`** before a commit: fmt, clippy, build, tests,
+             4. **`dev.sh check`** (now `podbox-dev check`) before a commit: fmt, clippy, build, tests,
                 the gate and the marker check, cheapest first, each read from the
                 process that produced it.
 Decision:    A shell script over a `Makefile`. ⚠ `make` would have to model the
              dependency graph cargo already models, and the two would drift; the
              one thing `make` buys that cargo does not is running the bootstrap
              and the build behind a session's reading, and that is what this is.
-             ⛔ **A second `dev.sh` attaches to the first rather than starting a
+             ⛔ **A second `dev.sh` (now `podbox-dev`) attaches to the first rather than starting a
              competing cargo.** Two builds on one target directory block on the
              same lock, and the second looks like a hang, which is exactly the
              failure `AGENTS.md` says costs a session.
@@ -275,7 +275,7 @@ Decision:    A shell script over a `Makefile`. ⚠ `make` would have to model th
 Prove:       `./target/release/podbox-dev` returns in under 5 s; `./target/release/podbox-dev wait` then reports `ready`; changing a source file makes `./target/release/podbox-dev status` report `stale` and exit 1
 
 **Done 2026-09-09.** Every clause of the `Prove` was driven.
-experiments/310-session-startup.sh takes the numbers and clause 5 is dev.sh
+experiments/310-session-startup.sh (now `podbox-dev startup`) takes the numbers and clause 5 is dev.sh (now `podbox-dev`)
 returning in 1 s.
 
 **Done 2026-10-01 (the dev-driver port).** The driver is the `podbox-dev` binary in
@@ -356,7 +356,7 @@ Prove:       `git push origin v0.1.0-beta.3` publishes a nightly pre-release
 
 **Done 2026-09-23.** One `v*` tag builds and smoke-tests all seven claimed
 archs through `.github/workflows/nightly.yml`, with the per-arch smoke in
-nightly-smoke.sh and the cross link that makes the builds possible
+nightly-smoke.sh (now `podbox-smoke`) and the cross link that makes the builds possible
 in `.cargo/config.toml`.
 
 The workflow answers version tags alone; nothing in `gate.yml` moves. A
@@ -459,7 +459,7 @@ build input.
 Source:      issue 26, client beta testing 2026-09-22 (hash-only
              sidecars from the same release prove truncation, not
              origin); `.github/workflows/nightly.yml`,
-             nightly-smoke.sh
+             nightly-smoke.sh (now `podbox-smoke`)
 Category:    packaging
 Priority:    P2
 Effort:      M
@@ -513,7 +513,7 @@ the repository API on 2026-09-30. No close-out action remains.
 
 Source:      issue 26, client beta testing 2026-09-22 (a broken
              non-x86_64 binary publishes green);
-             nightly-smoke.sh
+             nightly-smoke.sh (now `podbox-smoke`)
 Category:    packaging
 Priority:    P2
 Effort:      M
@@ -544,7 +544,7 @@ Prove:       `./target/release/podbox-smoke` (or its per-arch leg) fails on a
              the failing-then-passing legs and the pull+extract
              assertions as the guard that stops recurrence.
 
-**Done 2026-09-23.** Group 5 in nightly-smoke.sh: a
+**Done 2026-09-23.** Group 5 in nightly-smoke.sh (now `podbox-smoke`): a
 synthetic one-file image travels by save/load through the binary
 under test (import, save, load, extract, payload bytes read back),
 then the tarball's layer blob is flipped and the same load must
@@ -665,3 +665,297 @@ strict-safety refusal, the pack round-trip, the detached cycle, and
 the four helpers green
 ([the drive](../experiments/results/exercise-beta12.txt)). Beta.11
 stays published with its defect recorded; no history was rewritten.
+
+### T-1559 Port `scripts/build-state.py` to `podbox-buildstate`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
+             `scripts/build-state.py`; `experiments/393-build-freshness.py`
+Category:    packaging
+Priority:    P2
+Effort:      M
+Status:      done
+
+Problem:     Build freshness is decided by a Python script. The shell
+             retirement moves durable workflows into native Rust, and this
+             script is `packaging` category work with no reason to stay
+             Python. Two consumers pin its interface: `podbox-dev` calls it
+             at four sites in `crates/podbox-gate/src/dev.rs`, and
+             `experiments/393-build-freshness.py` imports it as a module.
+Premise:     The record format is the contract: schema `podbox-build/1`,
+             sorted keys, CPython separators, one trailing newline, atomic
+             replace through a `.new` sibling. The four CLI verbs keep
+             their names, flags, messages, and exit codes.
+Approach:    Port the logic to `crates/podbox-buildstate`, binary
+             `podbox-buildstate`, with no dependencies. SHA-256 and the
+             JSON writer are hand-rolled to match CPython byte for byte.
+             Keep `scripts/build-state.py` as a compat shim that execs the
+             binary, so the `dev.rs` call sites and the `py_compile` gate
+             step move nothing. Re-drive `393` through the shipped CLI with
+             the same fixture and the same verdict lines, so the run proves
+             the binary.
+Decision:    The binary owns the logic; the script is a shim. The port
+             must not reintroduce the unread `.dev/last-build-inputs`
+             stamp: only `.dev/build-state.json` is read and written.
+Prove:       `cargo test -p podbox-buildstate` green in the lane; the
+             retired script and the binary agree on `inputs` and `commit`
+             over the same tree; `python3
+             experiments/393-build-freshness.py` exits 0 against the
+             binary; the plant transcript shows each stale state going red;
+             `./target/release/podbox-gate` exits 0.
+
+**Done 2026-10-01.** The `podbox-buildstate` crate carries
+`podbox-buildstate` and `podbox-release-licenses` with no
+dependencies, and both scripts stay as exec shims. Lane proof
+([buildstate-crate-proof](../experiments/results/buildstate-crate-proof.txt)):
+unit tests 7 and 6 passed; retired script and binary agree on the
+inputs digest and the commit over the same tree; each writer's record
+reads `ready` under the other; both shims reach their binaries; the
+licence inventories are identical; `393` exits 0 with all fourteen
+fixture rows green; clippy and fmt clean. Plant
+([transcript](../experiments/results/buildstate-crate-plant.txt)):
+every stale shape goes red and every refusal exits 2. The record gate
+exits 0 on the landed tree.
+
+### T-1560 Port `scripts/release-licenses.py` to `podbox-release-licenses`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
+             `scripts/release-licenses.py`; `scripts/package-ssh.sh:43`
+Category:    packaging
+Priority:    P2
+Effort:      S
+Status:      done
+
+Problem:     The licence inventory for the locked package set is produced
+             by a Python script. It is `packaging` category work and moves
+             into the `podbox-buildstate` crate beside `podbox-buildstate`.
+             Its one live caller is `scripts/package-ssh.sh`, which runs it
+             with `--output` under whichever Python it finds.
+Premise:     `inventory.json` is the contract: `json.dumps` with `indent=2`
+             and insertion-ordered keys. The package set, the licence stem
+             match, the traversal guard, and the exit codes stay as written.
+Approach:    Port the logic to binary `podbox-release-licenses` with no
+             dependencies, including a minimal JSON reader for the `cargo
+             metadata` output. Keep `scripts/release-licenses.py` as a
+             compat shim that execs the binary, so `package-ssh.sh` and the
+             `py_compile` gate step move nothing.
+Decision:    The script keeps its path and its `--output` flag; the binary
+             adds an optional `--root` that defaults to the checkout found
+             by walking up from the working directory.
+Prove:       `cargo test -p podbox-buildstate` green in the lane; the
+             retired script and the binary produce identical inventories
+             over the same lock; `./target/release/podbox-gate` exits 0.
+
+**Done 2026-10-01.** Binary `podbox-release-licenses` ships in the
+`podbox-buildstate` crate with no dependencies, and the script stays
+as an exec shim with its `--output` flag. Lane proof
+([buildstate-crate-proof](../experiments/results/buildstate-crate-proof.txt),
+section 5): retired script and binary produce identical inventories
+over the same lock, and the shim reaches its binary. Plant: a
+missing `--output` and an unwritable output each exit 2. The record
+gate exits 0 on the landed tree.
+
+### T-1561 Port `scripts/verify-release.sh` to `podbox-verify`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
+             `scripts/verify-release.sh`; `TODO/packaging.md` T-1328
+Category:    packaging
+Priority:    P2
+Effort:      M
+Status:      done
+
+Problem:     The downloader's half of the signed nightly is a shell
+             script. It is `packaging` category work and moves into the
+             `podbox-release` crate. Its callers name the path, the two
+             asset kinds, and the three exit states.
+Premise:     The workflow identity is the contract: the nightly workflow
+             at the tag being verified, keyless through OIDC. `gh` and
+             `cosign` are driven directly with the same 120-second bound
+             the script's `timeout` gave them. A wait past the bound is
+             "could not run", never a verification failure.
+Approach:    Port the logic to binary `podbox-verify` with no
+             dependencies. Keep `scripts/verify-release.sh` as a compat
+             shim that execs the binary, so the prose callers and the
+             publication proof keep working.
+Decision:    The script keeps its path and its `TAG ARCH [binary|ssh]`
+             shape; the binary owns the fetch, the identity, and the
+             scratch cleanup on every exit path.
+Prove:       `cargo test -p podbox-release` green in the lane; a missing
+             tool and a bad kind each exit 2 through the shim;
+             `./target/release/podbox-gate` exits 0.
+
+**Done 2026-10-01.** Binary `podbox-verify` ships in the
+`podbox-release` crate with no dependencies, and the script stays as
+an exec shim. Lane proof
+([release-crate-proof](../experiments/results/release-crate-proof.txt),
+section 4): no arguments exits 2 and a bad arch exits 2, both through
+the shim, and the shim reaches its binary. Plant: a bad kind exits 2
+with the refusal naming the missing tool. The record gate exits 0 on
+the landed tree.
+
+### T-1563 Port `experiments/120-reproducible-build.sh` and `157` to `podbox-prove-t0211`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
+             `experiments/120-reproducible-build.sh`;
+             `experiments/157-lock-inheritance-prove.sh`; `TODO/image.md` T-0211
+Category:    packaging
+Priority:    P1
+Effort:      M
+Status:      done
+
+Problem:     The reproducible-build measurement and the lock-inheritance
+             proof are shell. Both are mutation-planted store-lock proofs,
+             which is why they share one binary rather than one name. The
+             `157` anchors are the current source text: the guard in
+             `Lock::try_acquire` and the one flag in `Lock::open`. A stale
+             anchor passes vacuously.
+Premise:     The lane job and the mutation table are the contract: two
+             release builds of one tree and one mutation at a time, each
+             asserted to land before it is read. The dirty-subject refusal
+             and the restore-from-copy rule move with the logic.
+Approach:    Port both proofs to binary `podbox-prove-t0211` with
+             `reproducible` and `lock-inheritance` subcommands and no
+             dependencies. Keep both experiment paths as compat shims that
+             exec the binary with the matching subcommand, so T-1004 and
+             T-0211 keep their paths.
+Decision:    One binary because both are store-lock proofs. The scripts
+             keep their paths, their flags, and their exit codes; the
+             binary owns the job text, the anchors, and the reports.
+Prove:       `cargo test -p podbox-release` green in the lane; the
+             lock-inheritance proof runs its two mutations against the
+             current tree; `./target/release/podbox-gate` exits 0.
+
+**Done 2026-10-01.** Binary `podbox-prove-t0211` ships in the
+`podbox-release` crate with no dependencies, and both experiment
+paths stay as exec shims. Lane proof
+([release-crate-proof](../experiments/results/release-crate-proof.txt),
+sections 6 and 6b): the lock-inheritance proof runs both mutations
+against the current tree with two attempts per test; retired and
+binary both exit 1 with agreeing verdicts; clause 1 passes 2 of 2.
+Qualification: neither mutation reddens its own test (both exit 0
+where a nonzero is wanted on one arm), which is the tree's behaviour,
+not the port's: retired and binary agree exactly, so the port is
+faithful and T-0211 stays partial on the live lock. Plant: an unknown
+subcommand exits 2, and a run without the lane refuses honestly. The
+record gate exits 0 on the landed tree.
+
+### T-1565 Port `scripts/release-notes.sh` to `release-notes`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
+             `scripts/release-notes.sh`; `.github/workflows/nightly.yml`;
+             `TODO/packaging.md` T-1334
+Category:    packaging
+Priority:    P2
+Effort:      S
+Status:      done
+
+Problem:     The nightly release notes are written by a shell script. The
+             notes carry the gate state of the build commit and the
+             reproducibility boundary, both computed, never copied. The
+             publish job has no Rust toolchain, so the binary reaches it as
+             a build-leg artefact, not a fresh build.
+Premise:     The refusal contract is the point: no successful main gate
+             for the exact build commit means no notes, exit 2. The SSH
+             paragraph stays conditional on the tagged tree carrying the
+             packaging script.
+Approach:    Port the logic to binary `release-notes` with no
+             dependencies. Keep `scripts/release-notes.sh` as a compat
+             shim. Ship the musl-static binary from the x86_64 build leg
+             as its own artefact and run it from the publish job, so the
+             notes step needs no toolchain where it runs.
+Decision:    The notes step runs the binary, not the shim. The shim stays
+             for operators. The nightly diff is one new artefact and one
+             repointed step, recorded here.
+Prove:       `cargo test -p podbox-release` green in the lane; a tag with
+             no gate refuses through the shim; `./target/release/podbox-gate`
+             exits 0.
+
+**Done 2026-10-01.** Binary `release-notes` ships in the
+`podbox-release` crate with no dependencies, and the script stays as
+an exec shim for operators. Lane proof
+([release-crate-proof](../experiments/results/release-crate-proof.txt),
+section 4): a tag with no gate refuses through the shim, and the
+shim reaches its binary. Plant: notes for a tag that names no commit
+exits 2 naming the missing tool. The nightly diff lands here too, as
+the Decision requires: the x86_64 leg couriers the musl-static binary
+through its own artefact under a name outside the `dist/podbox-*`
+release glob, and the publish job runs it instead of the shim. The
+workflow parses under the gate's own reader and the gate stays green;
+a live tag run owns the end-to-end proof. The record
+gate exits 0 on the landed tree.
+
+### T-1566 Port `experiments/395-reconcile-repository.py` to `podbox-reconcile`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
+             `experiments/395-reconcile-repository.py`;
+             `TODO/packaging.md` T-1314
+Category:    packaging
+Priority:    P2
+Effort:      M
+Status:      done
+
+Problem:     The publish-branch reconciliation is a Python script. It is
+             git history and patch comparison, and it moves into the
+             `podbox-release` crate. Its verdicts distinguish a failed
+             expectation from a machine that could not answer.
+Premise:     The pins are the contract: the retained branch name and the
+             two fixed revision ranges. The `--expect-deleted` arm keeps
+             the script's test: absent is the expected state, and anything
+             else fails.
+Approach:    Port the logic to binary `podbox-reconcile` with no
+             dependencies, adding an optional `--root` that defaults to the
+             checkout found by walking up. Keep the experiment path as a
+             compat shim that execs the binary.
+Decision:    The script keeps its path and its flag; the binary owns the
+             git calls, the pins, and the verdict lines.
+Prove:       `cargo test -p podbox-release` green in the lane; the binary
+             reads the current branch state; `./target/release/podbox-gate`
+             exits 0.
+
+**Done 2026-10-01.** Binary `podbox-reconcile` ships in the
+`podbox-release` crate with no dependencies, and the experiment path
+stays as an exec shim. Lane proof
+([release-crate-proof](../experiments/results/release-crate-proof.txt),
+section 5): the binary reads the current branch state (rc 2 where the
+retained publish ref is absent, 0 where present) and the shim reaches
+its binary. Plant: the `--expect-deleted` arm runs over the live
+refs and prints its report. The record gate exits 0 on the landed tree.
+
+### T-1567 Port `experiments/399-publication.py` to `podbox-publish`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
+             `experiments/399-publication.py`; `TODO/packaging.md` T-1314
+Category:    packaging
+Priority:    P2
+Effort:      M
+Status:      done
+
+Problem:     The publication acceptance is a Python script. It reads exact
+             commit CI and the optional release and branch acceptance, and
+             it moves into the `podbox-release` crate. Signature content
+             verification stays with `podbox-verify`; this binary never
+             writes to a remote.
+Premise:     The error taxonomy is the contract: a failed expectation
+             prints `FAIL:` and exits 1, and a missing tool, ref, or answer
+             prints `cannot run:` and exits 2. The release tag shape and
+             the unique architecture matrix keep the script's tests.
+Approach:    Port the logic to binary `podbox-publish` with no
+             dependencies, including a minimal JSON reader for the `gh`
+             answers. Keep the experiment path as a compat shim that execs
+             the binary.
+Decision:    The script keeps its path and its flags; the binary owns the
+             workflow reads, the matrix parse, the asset-set comparison,
+             and the verdict line.
+Prove:       `cargo test -p podbox-release` green in the lane; a bad tag
+             shape fails and a missing origin refuses through the shim;
+             `./target/release/podbox-gate` exits 0.
+
+**Done 2026-10-01.** Binary `podbox-publish` ships in the
+`podbox-release` crate with no dependencies, and the experiment path
+stays as an exec shim. Lane proof
+([release-crate-proof](../experiments/results/release-crate-proof.txt),
+sections 4 and 4b): the shim reaches its binary, and a malformed tag
+through the shim exits 2 with `cannot run: required command failed:
+gh` (the remote read precedes the tag-shape check where `gh` is
+absent; the exit-1 shape on a connected host is unit-proven).
+`podbox-reconcile` beside it reads the same live branch state. The
+record gate exits 0 on the landed tree.

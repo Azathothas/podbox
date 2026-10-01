@@ -837,7 +837,7 @@ initramfs rather than about the kernel, which is exactly the mistake
 
 ### T-0113 Two probes in one process took each other's scratch name
 
-Source:      Found on 2026-09-09 by `scripts/dev.sh check`, on its first run
+Source:      Found on 2026-09-09 by `scripts/dev.sh check` (now `podbox-dev check`), on its first run
 Category:    probe
 Priority:    P1
 Effort:      S
@@ -881,7 +881,7 @@ Prove:       `cargo test -p podbox-probe two_concurrent_probes_do_not_take_each_
 counter, and red with the tag reduced to the pid, reporting
 `a concurrent probe reported /tmp as Skip: the scratch names collided`.
 
-⭐ **`scripts/dev.sh check` found this on its first run**, which is
+⭐ **`scripts/dev.sh check` found this on its first run** (now `podbox-dev check`), which is
 [T-1004](packaging.md)-adjacent evidence for that script existing:
 `cargo test --workspace` had been run many times in this session and had not
 surfaced it, and the one thing `check` does differently is run clippy over every

@@ -1,14 +1,14 @@
 == conditions
-date              2026-09-26T06:35:15Z
+date              2026-10-01T15:41:04Z
 host kernel       7.2.0-WSL2-STABLE
-podbox            podbox 0.1.0-beta.7
+podbox            podbox 0.1.0-beta.12
 qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
 gcc               gcc (Debian 12.2.0-14+deb12u1) 12.2.0
 image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
 kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
 qemu flags        -M pc,acpi=off -m 256 -nographic -no-reboot -accel tcg,thread=multi
 payload cflags    gcc -O2 -static
-host io backing   /dev/sdd       ext4 1055762868 11016304 991043092   2% /work
+host io backing   overlay        overlay 1055762868 5389072 996670324   1% /
 payload bench-int  aa9b927bac7da5b6f1506e103cf0c064362d92ca0d72ad0064a470cac97de832
 payload bench-sys  e8dcf374ed6f1689704025a0b8d9037542038fe4d044c55fd8a39461d0c1f8ba
 payload bench-mem  46c25638962e625eb14690962ab1112127fb8fc86ea0049ae78326ea62bc79e4
@@ -21,22 +21,20 @@ payload bench-io  1c3dbbb5dd7c136c10b5238d59a4d42b735bc82b41a3c17b737d675fa66903
   ok: host bench-io ran three times
 
 == 2. chroot runs through podbox
-chroot io backing /dev/sdd       ext4 1055762868 11031908 991027488   2% /work
-  ok: chroot bench-int ran through podbox three times
-  ok: chroot bench-sys ran through podbox three times
+chroot io backing overlay        overlay 1055762868 5404664 996654732   1% /
+  FAIL: chroot bench-int ran 1 of 3 times
+
+  FAIL: chroot bench-sys ran 2 of 3 times
+
   ok: chroot bench-mem ran through podbox three times
   ok: chroot bench-io ran through podbox three times
 
 == 3. guest assembly and batch boot
-  ok: assembly 14567556 bytes
-/work/experiments/.sweep154-work/vmlinuz-virt: OK
-  qemu rc=124 (124 is the halt the spec records: poweroff halts on pc,acpi=off)
-  ok: the guest ran the batch to VMR-BENCH-DONE
 
 == 4. one row per class
-  ok: int: host 0.155s chroot 0.148s (1.0x) guest 1.168s (7.5x) checksum ebb92308acb7eace 
-  ok: sys: host 0.288s chroot 0.257s (0.9x) guest 3.093s (10.7x) checksum 4f24f178e189eea5 
-  ok: mem: host 1.131s chroot 1.106s (1.0x) guest 1.557s (1.4x) checksum 1d3fea76c4222325 
-  ok: io: host 0.094s chroot 0.095s (1.0x) guest 0.457s (4.9x) checksum 7168c26550222325 
+  FAIL: int: host=[0.184/ebb92308acb7eace] chroot=[/ebb92308acb7eace] guest=[/]
+  FAIL: sys: host=[0.373/4f24f178e189eea5] chroot=[/4f24f178e189eea5] guest=[/]
+  FAIL: mem: host=[1.314/1d3fea76c4222325] chroot=[1.328/1d3fea76c4222325] guest=[/]
+  FAIL: io: host=[0.113/7168c26550222325] chroot=[0.113/7168c26550222325] guest=[/]
 
-== counts: 14 driven, 0 mismatches
+== counts: 6 driven, 6 mismatches

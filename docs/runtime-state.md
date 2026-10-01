@@ -20,6 +20,9 @@ Declared version: `0.1.0-beta.12`.
 | `podbox-complete` | [crates/podbox-complete/Cargo.toml](../crates/podbox-complete/Cargo.toml) |
 | `podbox-enter` | [crates/podbox-enter/Cargo.toml](../crates/podbox-enter/Cargo.toml) |
 | `podbox-gate` | [crates/podbox-gate/Cargo.toml](../crates/podbox-gate/Cargo.toml) |
+| `podbox-buildstate` | [crates/podbox-buildstate/Cargo.toml](../crates/podbox-buildstate/Cargo.toml) |
+| `podbox-release` | [crates/podbox-release/Cargo.toml](../crates/podbox-release/Cargo.toml) |
+| `podbox-podvm` | [crates/podbox-podvm/Cargo.toml](../crates/podbox-podvm/Cargo.toml) |
 | `podbox-supervise` | [crates/podbox-supervise/Cargo.toml](../crates/podbox-supervise/Cargo.toml) |
 | `podbox-windows` | [crates/podbox-windows/Cargo.toml](../crates/podbox-windows/Cargo.toml) |
 | `podbox-ssh` | [crates/podbox-ssh/Cargo.toml](../crates/podbox-ssh/Cargo.toml) |

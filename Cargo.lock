@@ -312,6 +312,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
+name = "podbox-buildstate"
+version = "0.1.0-beta.12"
+
+[[package]]
 name = "podbox-cli"
 version = "0.1.0-beta.12"
 dependencies = [
@@ -381,12 +385,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "podbox-podvm"
+version = "0.1.0-beta.12"
+
+[[package]]
 name = "podbox-probe"
 version = "0.1.0-beta.12"
 dependencies = [
  "linux-raw-sys",
  "syscalls",
 ]
+
+[[package]]
+name = "podbox-release"
+version = "0.1.0-beta.12"
 
 [[package]]
 name = "podbox-ssh"

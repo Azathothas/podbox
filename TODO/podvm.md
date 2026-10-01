@@ -702,7 +702,7 @@ Prove:       `./target/release/podbox-gate` resolves every row, and each of the 
 
 **Done 2026-09-22.** Every row of [reference-map.md](reference-map.md)
 names its verdict and the tree line that settles it, and
-`./scripts/check-todo.py` resolves every row green. `Vex` **confirms**
+`./scripts/check-todo.py` (now `podbox-gate`) resolves every row green. `Vex` **confirms**
 (`tree/src/commands/exec.rs:39` builds the qemu command line and spawns
 it: a composer, not a manager). `vml` **confirms**
 (`tree/README.md:20-26` names kvm, rsync, socat and cloud-localds).
@@ -904,3 +904,90 @@ Prove:       `./experiments/146-podvm-initramfs.sh` exits 0 on a lane-built bina
              152 on the host). One pre-existing wart, untouched: the
              subject prints `/bin/sh: 18: echo: echo: I/O error` where
              `grep -qm1` closes the pipe early; every row stays green.
+
+### T-1568 Port `experiments/145-podvm-parity.sh` to `podbox-podvm`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:55`;
+             `experiments/145-podvm-parity.sh`; `TODO/podvm.md` T-1302
+Category:    podvm
+Priority:    P2
+Effort:      M
+Status:      done
+
+Problem:     The podvm parity proof is shell. The pure half asserts that
+             `podbox --help` and `podvm --help` list one set of verbs, and
+             that half becomes a unit test; the live-payload rows stay
+             driven, by the binary the same way the script drove them.
+             Nothing here pulls an image.
+Premise:     The exit codes are data, read out of the binary like the
+             script reads them out of the exit-codes helper: a case the
+             table does not carry is a failure to read it, never a guess.
+             The name routes on the basename of argv[0], so a copy named
+             `podvm` drives exactly like the script's symlink, portably.
+Approach:    Port the proof to binary `podbox-podvm` with no
+             dependencies, parsing the parity and exit-code answers
+             in-process instead of `jq`. Keep the experiment path as a
+             compat shim that execs the binary, so T-1302 keeps its path.
+Decision:    The script keeps its path and its exit codes; the binary
+             owns the clauses, the copy it stages, and the report.
+Prove:       `cargo test -p podbox-podvm` green in the lane; the proof
+             drives the shipped binary; `./target/release/podbox-gate`
+             exits 0.
+
+**Done 2026-10-01.** The `podbox-podvm` crate carries `podbox-podvm`
+and `podbox-podvm-workload` with no dependencies, and both experiment
+paths stay as exec shims. Lane proof
+([podvm-crate-proof](../experiments/results/podvm-crate-proof.txt)):
+unit tests 3 and 4 passed; retired script and shim both exit 1 over
+the same CLI with identical counts (14 driven, 5 mismatches);
+verdicts agree retired-vs-binary; both shims reach their binaries;
+clippy and fmt clean. Plant
+([transcript](../experiments/results/podvm-crate-plant.txt)): unknown
+flags exit 2, an unreadable exit-code table exits 2, the median unit
+proof holds. Qualification: chroot rows intermittently report short
+counts with rc 0 while checksums agree where runs complete, and the
+guest half never reaches its done marker in the lane; both behaviours
+are environmental and identical retired-vs-binary, and stay owned by
+T-1302 and T-1308. The record gate exits 0 on the landed tree.
+
+### T-1569 Port `experiments/154-tcg-workload-spread.sh` to `podbox-podvm-workload`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:55`;
+             `experiments/154-tcg-workload-spread.sh`; `TODO/podvm.md` T-1308
+Category:    podvm
+Priority:    P2
+Effort:      S
+Status:      done
+
+Problem:     The workload spread measurement is shell. One payload binary
+             per class runs on three platforms, so equal checksums are the
+             control that every platform computed the same thing. It moves
+             into the `podbox-podvm` crate beside `podbox-podvm`.
+Premise:     The pins are the contract: the image ref, the kernel URL and
+             hash, the qemu flags, and the payload flags print in the
+             conditions. The guest assembly is ported, not shelled out
+             to: the base is a `find`/`cpio` pipeline driven without a
+             shell, and the extras archive is a byte-exact newc writer. A
+             median of fewer than three runs is a wrong number, not an
+             approximation.
+Approach:    Port the measurement to binary `podbox-podvm-workload` with
+             no dependencies. Keep the experiment path as a compat shim
+             that execs the binary, so T-1308 keeps its path.
+Decision:    The script keeps its path, its pins, and its exit codes; the
+             binary owns the runs, the assembly, and the rows.
+Prove:       `cargo test -p podbox-podvm` green in the lane;
+             `./target/release/podbox-gate` exits 0.
+
+**Done 2026-10-01.** Binary `podbox-podvm-workload` ships in the
+`podbox-podvm` crate with no dependencies, and the experiment path
+stays as an exec shim. Lane proof
+([podvm-crate-proof](../experiments/results/podvm-crate-proof.txt),
+section 5, rows in
+[tcg-workload-spread](../experiments/results/tcg-workload-spread.txt)):
+the workload drives to a verdict (exit 1, 6 driven, 6 mismatches)
+with the pins printed in the conditions; host and chroot checksums
+agree where runs complete. Qualification: chroot int and sys rows run
+short intermittently with rc 0, and the guest half never reaches its
+done marker in the lane; both are environmental, identical
+retired-vs-binary, and stay owned by T-1308. The record gate exits 0
+on the landed tree.

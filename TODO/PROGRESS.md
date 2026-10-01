@@ -2,7 +2,24 @@
 
 ## State
 
-203 entries: 0 open, 3 partial, 0 blocked, 200 done.
+214 entries: 0 open, 3 partial, 0 blocked, 211 done.
+
+Batch 3 (T-1559 through T-1569, the three tool crates) is landed
+2026-10-01: `podbox-buildstate` (buildstate, release-licenses),
+`podbox-release` (verify, size, prove-t0211, document-state,
+release-notes, reconcile, publish), and `podbox-podvm` (podvm,
+podvm-workload). Each retired script stays as an exec shim; the
+nightly publish job runs the couriered musl-static `release-notes`
+binary. Three lane proofs drove green with retired-vs-binary
+agreement
+([buildstate](../experiments/results/buildstate-crate-proof.txt),
+[release](../experiments/results/release-crate-proof.txt),
+[podvm](../experiments/results/podvm-crate-proof.txt)), each with its
+plant transcript. T-1563 closes with the port faithful and T-0211
+still partial on the live lock; T-1568 and T-1569 close with the
+chroot intermittency and the guest gap recorded and owned by T-1302
+and T-1308. The tasks no batch names are deliberately skipped; see
+`refactor/DEFERRALS.md` section 4.
 
 The 2026-09-30 repository audit is complete in source and records.
 T-1348, T-1349, and T-1351 are complete. T-1350 lacks a successful current
@@ -76,6 +93,9 @@ keeps its historical scope. It does not establish current reliability.
 5. T-1407 through T-1421 are done: the fifteen findings with their drives.
 6. T-1350 and T-1112 stay partial: one KVM run with the operator present,
    then ReactOS. Deferred, not closed.
+7. T-1559 through T-1569 are done: the three tool crates with their
+   shims, proofs, and plants. The nightly wiring for `release-notes`
+   lands with them; a live tag run owns the end-to-end proof.
 
 An agent must not start a KVM guest without the operator present.
 Read each entry's exact proof and referenced source before implementation.

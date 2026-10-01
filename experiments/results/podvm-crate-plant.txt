@@ -1,0 +1,15 @@
+== plant transcript: the podvm binaries refuse planted defects
+date 2026-10-01T15:41:21Z
+-- planted: podvm with an unknown flag
+podbox-podvm: unexpected argument: --frobnicate
+rc=2 (want 2)
+-- planted: podvm against a binary that cannot answer
+SKIP: cannot read podbox's exit-code table
+== conditions
+(want exit 2: the table did not print)
+rc=2 (want 2)
+-- planted: workload with an unknown flag, and without its tools
+podbox-podvm-workload: unexpected argument: --frobnicate
+rc=2 (want 2)
+-- planted: workload medians need exactly three runs (unit proof)
+verdict PODVM-PLANT-OK

@@ -254,7 +254,7 @@ Status note: **no longer blocked, and the musl gap is closed.** The measurement
              loud and still breaks the plain build. The objects committed as
              artefacts are build output in the tree, which
              `docs/conventions/git.md` section 4 forbids.
-             ⛔ **AND THE ORDER HAD TO MOVE WITH IT.** dev.sh check
+             ⛔ **AND THE ORDER HAD TO MOVE WITH IT.** dev.sh check (now `podbox-dev check`)
              and the gate workflow both built the binary BEFORE the objects, so
              with this shape they would have embedded two placeholders and
              passed. The interposer step now runs first in both.
@@ -1581,7 +1581,7 @@ on chroot-denied non-x86_64 hosts there is no fallback rung.
 Fix area is `crates/podbox-interpose`,
 `crates/podbox-cli/src/interpose.rs` with `build.rs`,
 `scripts/build-interpose.sh` `TARGETS`,
-nightly-smoke.sh, and `.github/workflows/nightly.yml`.
+nightly-smoke.sh (now `podbox-smoke`), and `.github/workflows/nightly.yml`.
 Risk if wrong is a release reading all-arch supported while six
 archs run no payload with no fallback rung. Prove is the entry's
 Prove: `readelf -h` on each shipped binary's embedded objects
@@ -1595,7 +1595,7 @@ the aarch64 leg proves `run` end to end. `build.rs` records each
 embedded object's ELF `e_machine` beside its digest
 (`PODBOX_INTERPOSE_{GNU,MUSL}_MACHINE`), `version --verbose`
 renders the two `interpose-gnu-machine` and
-`interpose-musl-machine` lines, and `nightly-smoke.sh` group 6
+`interpose-musl-machine` lines, and `nightly-smoke.sh` (now `podbox-smoke`) group 6
 reports outer beside embedded: on x86_64 legs the embeds must
 equal the artefact (a wrong-arch embed fails the smoke), on
 other legs the mismatch is printed and expected, never

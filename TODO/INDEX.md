@@ -264,10 +264,21 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1421](supervise.md) | P1 | supervise | done | A foreground run leaves a container record |
 | [T-1422](gate.md) | P2 | gate | done | Plant the kept-session check where the OS execs batch files |
 | [T-1423](packaging.md) | P1 | packaging | done | The release tag names the workspace version |
+| [T-1559](packaging.md) | P2 | packaging | done | Port `scripts/build-state.py` to `podbox-buildstate` |
+| [T-1560](packaging.md) | P2 | packaging | done | Port `scripts/release-licenses.py` to `podbox-release-licenses` |
+| [T-1561](packaging.md) | P2 | packaging | done | Port `scripts/verify-release.sh` to `podbox-verify` |
+| [T-1562](deps.md) | P0 | deps | done | Port `experiments/110-bloat-delta.sh` to `podbox-size` |
+| [T-1563](packaging.md) | P1 | packaging | done | Port `experiments/120-reproducible-build.sh` and `157` to `podbox-prove-t0211` |
+| [T-1564](complete.md) | P2 | complete | done | Port `scripts/document-state.py` to `document-state` |
+| [T-1565](packaging.md) | P2 | packaging | done | Port `scripts/release-notes.sh` to `release-notes` |
+| [T-1566](packaging.md) | P2 | packaging | done | Port `experiments/395-reconcile-repository.py` to `podbox-reconcile` |
+| [T-1567](packaging.md) | P2 | packaging | done | Port `experiments/399-publication.py` to `podbox-publish` |
+| [T-1568](podvm.md) | P2 | podvm | done | Port `experiments/145-podvm-parity.sh` to `podbox-podvm` |
+| [T-1569](podvm.md) | P2 | podvm | done | Port `experiments/154-tcg-workload-spread.sh` to `podbox-podvm-workload` |
 
 ## Counts
 
-203 items: 0 open, 3 partial, 0 blocked, 200 done.
+214 items: 0 open, 3 partial, 0 blocked, 211 done.
 
 Counted from the rows above by `./target/release/podbox-count` and asserted
 independently by `./target/release/podbox-gate`, which is the gate. A number here
@@ -275,11 +286,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 0 | 0 | 53 | 53 |
-| P1 | 0 | 3 | 0 | 101 | 104 |
-| P2 | 0 | 0 | 0 | 38 | 38 |
+| P0 | 0 | 0 | 0 | 54 | 54 |
+| P1 | 0 | 3 | 0 | 102 | 105 |
+| P2 | 0 | 0 | 0 | 47 | 47 |
 | P3 | 0 | 0 | 0 | 8 | 8 |
-| **All** | **0** | **3** | **0** | **200** | **203** |
+| **All** | **0** | **3** | **0** | **211** | **214** |
 
 ## Work order
 

@@ -120,6 +120,14 @@ jobs:
           mkdir -p dist
           cp target/${{ matrix.triple }}/release/podbox dist/podbox-${{ matrix.arch }}
           (cd dist && sha256sum podbox-${{ matrix.arch }} > podbox-${{ matrix.arch }}.sha256)
+          # TODO/packaging.md T-1565. The publish job has no Rust toolchain,
+          # so the x86_64 leg couriers the musl-static release-notes binary
+          # to it through its own artefact. The name stays outside the
+          # dist/podbox-* release glob, so the published asset set is
+          # unchanged and the signing loop skips it.
+          if [ "${{ matrix.arch }}" = "x86_64" ]; then
+            cp target/${{ matrix.triple }}/release/release-notes dist/release-notes-x86_64
+          fi
 
       - name: smoke and package the SSH helpers
         run: sh scripts/package-ssh.sh target/${{ matrix.triple }}/release ${{ matrix.arch }} ${{ matrix.qemu }}
@@ -185,11 +193,15 @@ jobs:
       # copied: the gate run is this workflow's own `gate` conclusion on
       # the tagged commit, and the boundary is T-1004's intra-host claim
       # with its condition stated. A `grep -c` over the notes finds both.
+      # TODO/packaging.md T-1565. The notes step runs the musl-static
+      # binary the x86_64 leg couriered through its artefact, not the
+      # shim: this job has no toolchain to build it with.
       - name: release notes with gate state and boundary
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          sh scripts/release-notes.sh "${{ github.ref_name }}" > release-notes.txt
+          chmod +x dist/release-notes-x86_64
+          ./dist/release-notes-x86_64 "${{ github.ref_name }}" > release-notes.txt
           cat release-notes.txt
       - name: publish
         env:

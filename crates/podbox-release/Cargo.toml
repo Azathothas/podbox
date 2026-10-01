@@ -1,0 +1,40 @@
+[package]
+name = "podbox-release"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# Release and publication tooling as binaries. Behaviour-preserving ports of
+# the wave-5 subjects (T-1561 through T-1567): the scripts stay as compat
+# shims that exec these binaries, and the binaries own the logic. Arguments
+# are parsed by hand; no dependencies.
+
+[[bin]]
+name = "podbox-verify"
+path = "src/verify.rs"
+
+[[bin]]
+name = "podbox-size"
+path = "src/size.rs"
+
+[[bin]]
+name = "podbox-prove-t0211"
+path = "src/prove_t0211.rs"
+
+[[bin]]
+name = "document-state"
+path = "src/document_state.rs"
+
+[[bin]]
+name = "release-notes"
+path = "src/notes.rs"
+
+[[bin]]
+name = "podbox-reconcile"
+path = "src/reconcile.rs"
+
+[[bin]]
+name = "podbox-publish"
+path = "src/publish.rs"

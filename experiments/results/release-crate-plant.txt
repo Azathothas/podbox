@@ -1,0 +1,31 @@
+== plant transcript: the release binaries refuse planted defects
+date 2026-10-01T14:54:43Z
+-- planted: verify with a bad kind
+verify-release: cosign is not installed
+rc=2 (want 2)
+-- planted: notes for a tag that names no commit
+release-notes: gh is not installed
+pipe done (want exit 2 from the binary)
+rc=2 (want 2)
+-- planted: publish with a malformed tag and a missing origin state
+== conditions
+2026-10-01T14:54:43+0000
+Scope: remote refs, workflow conclusions, and complete asset names.
+Signature content verification uses scripts/verify-release.sh separately.
+local commit: 803d48c348eef0c0cc401d25660d928bb295e1b3
+cannot run: required command failed: gh
+rc=2 (want 2 in the lane: the remote read comes before the tag check; want 1 on a connected host)
+-- planted: reconcile expecting a deleted ref that is present or absent
+== conditions
+2026-10-01T14:54:44Z
+commit main: 803d48c348eef0c0cc401d25660d928bb295e1b3
+commit origin/main: 803d48c348eef0c0cc401d25660d928bb295e1b3
+scope: Git history and patch comparison; runtime acceptance is separate
+== remote branch refs
+-- planted: prove with an unknown subcommand
+podbox-prove-t0211: usage: podbox-prove-t0211 {reproducible|lock-inheritance} [--root DIR]
+rc=2 (want 2)
+-- planted: document-state against a tree with a member removed
+document-state: cannot read source state: cannot read /tmp/tmp.9rVga1WMJA/Cargo.toml: No such file or directory (os error 2)
+rc above (want 2: no workspace)
+verdict RELEASE-PLANT-OK

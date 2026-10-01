@@ -1,0 +1,16 @@
+[package]
+name = "podbox-buildstate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# Build-input and licence-inventory tooling as binaries. Behaviour-preserving
+# ports of scripts/build-state.py (T-1559) and scripts/release-licenses.py
+# (T-1560): the scripts stay as compat shims that exec these binaries, and
+# the binaries own the logic. Arguments are parsed by hand; no dependencies.
+
+[[bin]]
+name = "podbox-release-licenses"
+path = "src/licenses.rs"

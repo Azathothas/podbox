@@ -1,0 +1,82 @@
+== conditions
+2026-10-01T15:12:48Z
+Linux 7.2.0-WSL2-STABLE
+cargo 1.99.0 (5f94df478 2026-08-27)
+rustc 1.99.0 (b940084d7 2026-09-28)
+
+== 1. unit tests for the crate
+  cargo test -p podbox-buildstate exits 0
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+== 2. release binaries build
+  cargo build --release -p podbox-buildstate exits 0
+  binaries: /work/target/x86_64-unknown-linux-musl/release/podbox-buildstate /work/target/x86_64-unknown-linux-musl/release/podbox-release-licenses
+
+== 3. agreement: retired script against the binary, same tree, same env
+  inputs digests agree: df7e555b87544eebc01becd59ab8e5f2be8441643ee44288eb2e23e2daf92936
+  commit agrees: 803d48c348eef0c0cc401d25660d928bb295e1b3-dirty
+
+== 4. cross-read: each writer's record reads ready under the other
+  python reads the binary record: ready
+  binary reads the python record: ready
+
+== 4b. both shims reach their binaries (the binary's message proves it)
+  build-state shim reaches its binary
+  licenses shim reaches its binary
+
+== 5. licences: identical inventories over the same lock
+  python licences exits 0
+  inventories identical
+
+== 6. freshness fixture through the binary (T-1349's proof, re-driven)
+  393 exits 0 against the binary
+ok: unchanged fixture is ready
+ok: changed bytes with the same timestamp: crates/podbox-cli/src/main.rs
+ok: changed bytes with the same timestamp: crates/podbox-cli/Cargo.toml
+ok: changed bytes with the same timestamp: crates/podbox-ssh/shims/fakepwd.c
+ok: changed bytes with the same timestamp: scripts/build-interpose.sh
+ok: changed bytes with the same timestamp: vendor/userland-execve/Cargo.toml
+ok: changed bytes with the same timestamp: Cargo.lock
+ok: changed bytes with the same timestamp: crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+ok: changed output bytes are stale
+ok: changed helper bytes are stale: node
+ok: changed helper bytes are stale: operator
+ok: changed helper bytes are stale: proxy
+ok: changed helper bytes are stale: shell
+ok: missing output is absent
+verdict BUILD-FRESHNESS-OK
+
+== 7. clippy and fmt for the new crate
+  clippy clean
+  fmt clean
+
+  plant transcript saved
+== plant transcript: podbox-buildstate refuses planted defects
+date 2026-10-01T15:13:05Z
+-- record then status: ready
+ready
+rc=0 (want 0 ready)
+-- planted: output byte flipped
+stale: binary bytes changed
+rc=1 (want 1 stale: binary bytes changed)
+-- planted: input byte flipped, timestamp restored
+stale: build inputs changed
+rc=1 (want 1 stale: build inputs changed)
+-- planted: record schema rewritten
+stale: build record schema differs
+rc=1 (want 1 stale: build record schema differs)
+-- planted: record corrupted
+stale: unreadable build record
+rc=1 (want 1 stale: unreadable build record)
+-- planted: binary removed
+absent
+rc=2 (want 2 absent)
+-- planted: licences with no output flag, and an unwritable output
+release-licenses: cannot produce inventory: --output DIR is required
+rc=2 (want 2)
+release-licenses: cannot produce inventory: cannot create /proc/cannot-write-here/adler2-2.0.1: No such file or directory (os error 2)
+rc=2 (want 2)
+verdict BUILDSTATE-PLANT-OK
+
+verdict BUILDSTATE-PROOF-OK

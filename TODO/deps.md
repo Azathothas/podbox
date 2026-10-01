@@ -951,3 +951,43 @@ lines are dependency edges, not versions). Proved at the lock commit
 suffix. The guard that stops recurrence is the same mechanism that
 reported the defect: a future manifest edit without its lock dirties the
 tree on the next build and the binary self-reports `-dirty` again.
+
+### T-1562 Port `experiments/110-bloat-delta.sh` to `podbox-size`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:52`;
+             `experiments/110-bloat-delta.sh`; `TODO/deps.md` T-0910
+Category:    deps
+Priority:    P0
+Effort:      M
+Status:      done
+
+Problem:     The artefact measurement is shell. It is the `deps`
+             category's ceiling instrument, and it moves into the
+             `podbox-release` crate. Three readers pin its path: the gate
+             workflow runs it, the record gate reads the ceiling out of
+             it, and the plant harness reads the digits. The waves cannot
+             move the readers without the file.
+Premise:     The ceiling keeps its one home in the shell stub
+             (`CEILING_BYTES=<n>`), and the binary reads it at runtime:
+             the gate refuses the digits anywhere else (D-1 option c). The
+             scaffold control, the zero-delta refusal, and the shipping
+             profile stay as written.
+Approach:    Port the measurement to binary `podbox-size` with no
+             dependencies. Keep the experiment path as a declaration stub
+             that execs the binary, so the gate job, the gate check, and
+             the plant harness move nothing.
+Decision:    The stub declares; the binary measures. The `ci` area keeps
+             its meaning: measured, never asserted; the ceiling is the
+             gate.
+Prove:       `cargo test -p podbox-release` green in the lane; the gate's
+             `ci` area still runs through the stub;
+             `./target/release/podbox-gate` exits 0.
+
+**Done 2026-10-01.** Binary `podbox-size` measures in the
+`podbox-release` crate with no dependencies; the experiment path stays
+as a declaration stub that execs the binary (D-1 option c, D-2 hoist
+honoured: the stub never moves). Lane proof
+([release-crate-proof](../experiments/results/release-crate-proof.txt),
+section 9): the workspace release build exits 0 and `podbox-size ci`
+through the stub exits 0 with `total_bytes 3277880` under the declared
+ceiling. The record gate exits 0 on the landed tree.

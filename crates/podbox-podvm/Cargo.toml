@@ -1,0 +1,18 @@
+[package]
+name = "podbox-podvm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# Machine-tier tooling as binaries. Behaviour-preserving ports of
+# experiments/145-podvm-parity.sh (T-1568) and
+# experiments/154-tcg-workload-spread.sh (T-1569): the scripts stay as
+# compat shims that exec these binaries, and the binaries own the logic.
+# Arguments are parsed by hand; no dependencies. JSON answers from the
+# binary are parsed in-process; the scripts' `jq` is not needed.
+
+[[bin]]
+name = "podbox-podvm-workload"
+path = "src/workload.rs"

@@ -39,7 +39,7 @@ Premise:     ⭐ **Measured on this tree.** Two defect classes the gate could no
              file's own citations are among the things counted, so writing the
              number down changes it. Measured while writing this entry, twice:
              `todo_links` moved from 261 to 262 because recording 261 added a
-             link. `./scripts/check-todo.py` prints the reading on every run,
+             link. `./scripts/check-todo.py` (now `podbox-gate`) prints the reading on every run,
              and no document copies it.
              What is fixed rather than measured, and safe to state: bare path
              citations were an **unchecked class** before this entry, and
@@ -61,8 +61,8 @@ Decision:    Resolve against git, not the disk. A check that agrees with
              told nothing is wrong.
 Prove:       `./target/release/podbox-gate && ./target/release/podbox-plant`
 
-**Done.** `./scripts/check-todo.py` exits 0 and prints a coverage line; the two
-plants for these checks, cases 11 and 14 in scripts/plant.sh, both go red.
+**Done.** `./scripts/check-todo.py` (now `podbox-gate`) exits 0 and prints a coverage line; the two
+plants for these checks, cases 11 and 14 in scripts/plant.sh (now `podbox-plant`), both go red.
 
 ---
 
@@ -80,7 +80,7 @@ Problem:     A check that quietly matches nothing exits 0 exactly like a check
              the tree by hand. That verification lived in a transcript, so it
              was worth nothing to the next session.
 Premise:     ⭐ **Measured, and it found a real one on its first run.**
-             scripts/plant.sh plants a defect per case and asserts each makes
+             scripts/plant.sh (now `podbox-plant`) plants a defect per case and asserts each makes
              the gate red **with that defect's own message**, and that the
              message was not already there. On its first run, over the fifteen
              cases it then had, case 6 landed its mutation and the gate
@@ -97,7 +97,7 @@ Premise:     ⭐ **Measured, and it found a real one on its first run.**
              the tree. Listing passing cases without naming the check that has
              none is the same vacuity this entry exists to remove.
              ⚠ The counts here are not held by anything and will move again.
-             `./scripts/plant.sh` prints the current pair on every run, and it
+             `./scripts/plant.sh` (now `podbox-plant`) prints the current pair on every run, and it
              is the answer; this line is a reading from one day.
              ⭐ **A second case rotted and guard 1 caught that too.** Case 3
              named `Status:      open` literally and stopped landing the moment
@@ -125,7 +125,7 @@ Decision:    Assert the message, not the exit code. A gate already red for
 Prove:       `./target/release/podbox-plant`
 
 **Done.** Exit 0: 20 plants caught, 0 missed; 3 controls quiet, 0 fired.
-⚠ The pair moves whenever a check lands. `./scripts/plant.sh` prints it, and
+⚠ The pair moves whenever a check lands. `./scripts/plant.sh` (now `podbox-plant`) prints it, and
 that is the answer; this line is a reading from the day it was taken.
 
 ---
@@ -228,7 +228,7 @@ Problem:     Check 17 reads `experiments/results/bloat-baseline.txt` and asserts
              ceiling exists to hold.
 Premise:     ⭐ **Measured on 2026-09-08.** M1 moved the artefact from 496,184 to
              2,130,672 bytes, and `experiments/results/bloat-image.txt` records
-             it. scripts/check-todo.py went green throughout, because the file
+             it. scripts/check-todo.py (now `podbox-gate`) went green throughout, because the file
              it reads did not change. ⚠ The ceiling is still enforced at BUILD
              time by `experiments/110-bloat-delta.sh`, which exits 1 over it, so
              nothing is currently unprotected: what is missing is the half that
@@ -263,7 +263,7 @@ not a pass, and it is equally not a size to hold.
 ⚠ The `Prove` above said "19 caught" when it was authored. The harness is at 21,
 because three cases have been added since for other checks, so the count is not
 quoted: `AGENTS.md`'s rule that a value lives in one file applies to this
-one too, and its home is scripts/plant.sh's own verdict line.
+one too, and its home is scripts/plant.sh's own verdict line (now `podbox-plant`).
 
 ---
 
@@ -323,15 +323,15 @@ Decision:    Enforce uniqueness rather than dropping the rule. The rule exists
              believed.
 Prove:       `./target/release/podbox-plant` exits 0 with cases 18a and 18b caught, each planting a duplicate experiment number
 
-**Done, 2026-09-08.** Check 18 of scripts/check-todo.py, and cases 18a and
-18b of scripts/plant.sh, in this change. `./scripts/plant.sh` exits 0 with
+**Done, 2026-09-08.** Check 18 of scripts/check-todo.py (now `podbox-gate`), and cases 18a and
+18b of scripts/plant.sh (now `podbox-plant`), in this change. `./scripts/plant.sh` (now `podbox-plant`) exits 0 with
 **20 caught, 0 missed, 3 controls quiet**.
 
 ⭐ **The check was written before the renumbering and run against the tree that
 still carried all four collisions.** It reported exactly the four this entry
 records and named the same `file:line` on each. A hand sweep and a check that
 agree independently is the check having been tested against a real defect as
-well as a planted one, which is the half scripts/plant.sh cannot supply.
+well as a planted one, which is the half scripts/plant.sh (now `podbox-plant`) cannot supply.
 
 ⚠ **Two cases, not one, because the halves fail apart.** A number can be
 claimed by a document promising a script (all four real collisions were this
@@ -339,7 +339,7 @@ shape) or by a second file arriving on disk. A case for one leaves the other
 unseen, which is this harness's own founding defect.
 
 ⛔ **The planted number is read out of the listing at run time and never
-written into scripts/plant.sh.** The gate reads that file like any other, so
+written into scripts/plant.sh (now `podbox-plant`).** The gate reads that file like any other, so
 a literal taken number there would put a second name on it and redden the clean
 tree, exactly as two literal citations did on 2026-09-08 and as `CEILING_NUM`
 would. The same trap, a third time, in the same file.
@@ -373,7 +373,7 @@ Premise:     ⭐ **Measured on 2026-09-09** by reading the workflow logs of ever
              | consecutive red runs after it | **9**, `702cc02` through `563df15` |
              | jobs red in each | `build` and `lint`; `todo` green throughout |
              | what both died on | `zig-cc.sh: zig is not on PATH`, inside `ring`'s build script, exit 101 |
-             | what a local `./scripts/dev.sh check` said | green, on every one of them |
+             | what a local `./scripts/dev.sh check` (now `podbox-dev check`) said | green, on every one of them |
 
              ⛔ **The break was a merge, not a commit.** M1 landed `rustls` and
              its `ring`, which compiles C behind a build script, and
@@ -407,8 +407,8 @@ Decision:    Derive, do not list. A second list of components here would be the
              to update.
 Prove:       `./target/release/podbox-plant` exits 0 with cases 19a and 19b caught, and the gate workflow is green on `main`
 
-**Done, 2026-09-09.** Check 19 of scripts/check-todo.py, cases 19a and 19b of
-scripts/plant.sh, and `zig` in both cargo-running jobs of
+**Done, 2026-09-09.** Check 19 of scripts/check-todo.py (now `podbox-gate`), cases 19a and 19b of
+scripts/plant.sh (now `podbox-plant`), and `zig` in both cargo-running jobs of
 `.github/workflows/gate.yml`, in this change.
 
 ⭐ **The check was run against the tree that carried the defect.** With `zig`
@@ -423,7 +423,7 @@ misses. An arm nothing exercises is an arm that has stopped working, which is
 [T-1202](gate.md)'s finding in a second place.
 
 ⛔ **The planted component is read out of `.cargo/config.toml`'s wrapper at run
-time and never written into scripts/plant.sh.** Naming it there would be a
+time and never written into scripts/plant.sh (now `podbox-plant`).** Naming it there would be a
 third declaration of the value this check exists to keep in one place, which is
 the trap `CEILING_NUM` and `TAKEN_EXP` were each written to avoid.
 
@@ -458,13 +458,13 @@ Premise:     The exclusion is right and is not what this entry proposes to
              bytes and are held to no ceiling at all, while they are embedded
              in the binary that IS held to one.
              ⛔ **CORRECTED 2026-09-21 BY READING THE TREE: the `Problem` above no
-             longer holds as written.** dev.sh check runs fmt, clippy
+             longer holds as written.** dev.sh check (now `podbox-dev check`) runs fmt, clippy
              with `-D warnings`, the interpose build and the interpose tests
              against the excluded crate, so Approach item 1 has landed in
              substance. What has not landed is item 2 (exported-symbol count
              against the version script at the gate), item 3 (per-libc size in
              T-0910's baseline) and item 4 (third-state reporting). The
-             Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check`,
+             Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check` (now `podbox-dev check`),
              each with its plant in the same change. The Decision below
              carries it; what is open is the implementation, now landed
              under the Prove.
@@ -477,7 +477,7 @@ Premise:     The exclusion is right and is not what this entry proposes to
              a changed map against a stale object is a real staleness the
              gate comparison catches, not a hypothetical one.
 Approach:    A second scope, not a second gate:
-             1. `dev.sh check` runs the same four steps against
+             1. `dev.sh check` (now `podbox-dev check`) runs the same four steps against
                 `crates/podbox-interpose` with its own target and linker, which
                 `scripts/build-interpose.sh` already knows how to select;
              2. the object's exported-symbol count is checked against
@@ -491,12 +491,12 @@ Approach:    A second scope, not a second gate:
              4. ⚠ a step that cannot run -- no `zig`, no gnu target installed
                 -- reports the third state and does not read as a failure,
                 which is the rule the rest of the harness already follows.
-Decision:    Not taken on the shape. ⚠ Whether this belongs in `dev.sh check`
-             or in a `dev.sh check --all` matters: check is what a change
+Decision:    Not taken on the shape. ⚠ Whether this belongs in `dev.sh check` (now `podbox-dev check`)
+             or in a `dev.sh check --all` (now `podbox-dev check --all`) matters: check is what a change
              passes before it is committed and it is currently about 30 s, and
              a second toolchain invocation on every commit is a cost the
              operator should rule on rather than inherit.
-             Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check`,
+             Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check` (now `podbox-dev check`),
              each with its plant in the same change. The per-commit toolchain
              cost is accepted; the entry stays open until all three land.
 Prove:       `./target/release/podbox-interpose-build` exits 1 naming the export
@@ -509,8 +509,8 @@ Prove:       `./target/release/podbox-interpose-build` exits 1 naming the export
              The committed clippy-and-fmt plant spelling is superseded:
              item 1 landed in substance without it, recorded above.
 
-**Done 2026-09-23.** Items 2 through 4 run in `dev.sh check`, each
-with its plant in the same change, and the full `plant.sh` run on the
+**Done 2026-09-23.** Items 2 through 4 run in `dev.sh check` (now `podbox-dev check`), each
+with its plant in the same change, and the full `plant.sh` (now `podbox-plant`) run on the
 committed tree reads 31 caught, 0 missed, 3 controls quiet. Every run
 below is taken.
 
@@ -533,13 +533,13 @@ Item 3 runs at link time under the ceiling declared once in
 335320, gnu 315432, binary total 3503032, the total under the binary
 ceiling and each object under the interpose ceiling). Check 23
 plants mirror the proven 17b/17c shapes.
-Item 4 runs in `dev.sh check`: each step's own status, 0 passing, 2
+Item 4 runs in `dev.sh check` (now `podbox-dev check`): each step's own status, 0 passing, 2
 reading SKIP with the step named, anything else FAILED; skips never
 fail the run and a run that passed nothing is red. Plant through the
 real gate with the interpose build forced to SKIP: 9 passed, 0
 failed, 1 skipped, exit 0. Check 25 holds the arm with its plant
 case, proven red with its own message on a trial run.
-Full `dev.sh check` green in the lane: 10 passed, 0 failed, 0
+Full `dev.sh check` (now `podbox-dev check`) green in the lane: 10 passed, 0 failed, 0
 skipped (fmt, clippy, interpose build, release build, 495 workspace
 tests, 25 interpose tests, gate, markers).
 
@@ -604,7 +604,7 @@ Approach:    Fix the rule first, then check it. Give section 5 the one stated
                 `Prove` field;
              2. that content opens with the bold `Done` marker, which is the
                 shape section 5 will state;
-             3. the plant, in scripts/plant.sh: delete the record from one
+             3. the plant, in scripts/plant.sh (now `podbox-plant`): delete the record from one
                 closed entry and assert the gate goes red naming that entry.
              A check with no plant is not a check, and [T-1202](gate.md)
              is the rule that says so.
@@ -628,17 +628,17 @@ Decision:    ⭐ **Taken on 2026-09-12: one shape, and it is the bold `Done`
              for neither, so making it a rule here would invent one.
 Prove:       `./target/release/podbox-gate` reports a `closure_records` coverage count equal to the number of closed entries, and the plant for it goes red naming the entry whose record was removed
 
-**Done 2026-09-21.** Check 22 in scripts/check-todo.py (every `done` entry
+**Done 2026-09-21.** Check 22 in scripts/check-todo.py (now `podbox-gate`) (every `done` entry
 opens its record with `**Done` on the first unindented line after `Prove`),
-its plant case in scripts/plant.sh, the RULES.md section 5 shape sentence,
+its plant case in scripts/plant.sh (now `podbox-plant`), the RULES.md section 5 shape sentence,
 and five records converted (T-0204, T-1103, T-0107, T-0108, T-0505).
 
 The check found five prose records, not the four this entry names: T-0505
 (`enter.md`) kept its `**Done` paragraph after a `Prove`-rewrite note, so the
 first unindented line after `Prove` was the note. All five open with `**Done`
-now, with their content preserved. `check-todo.py` reports
+now, with their content preserved. `check-todo.py` (now `podbox-gate`) reports
 `closure_records=101` against 101 `done` entries. The plant run on the
-committed tree: 27 caught, 0 missed, 3 controls quiet, full `dev.sh check`
+committed tree: 27 caught, 0 missed, 3 controls quiet, full `dev.sh check` (now `podbox-dev check`)
 green alongside.
 
 ---
@@ -724,7 +724,7 @@ Approach:    ⛔ **The rule before the sweep, and the check before the edits.** 
                 reader's own quota rather than the acceptance's, so it is not
                 this entry's defect; it is written down here so the next sweep
                 does not find it and think nobody looked;
-             4. the plant, in scripts/plant.sh: put `alpine:latest` into one
+             4. the plant, in scripts/plant.sh (now `podbox-plant`): put `alpine:latest` into one
                 `Prove` line and assert the gate goes red naming that entry.
              ⛔ A check with no plant is not a check, and [T-1202](gate.md) is
              the rule that says so.
@@ -775,22 +775,22 @@ T-0706](interpose.md) to name the defect without the literal so their
 `Prove` lines stay fully checked, and stated the mapping and the corrected
 count in this entry. The check and its plant landed together, per
 [T-1202](gate.md): check 21 in `crates/podbox-gate/src/main.rs` with cases 21a and
-21b in scripts/plant.sh, one per arm because the two spellings fail apart.
+21b in scripts/plant.sh (now `podbox-plant`), one per arm because the two spellings fail apart.
 
 ```
-$ py scripts/check-todo.py; echo EXIT:$?
+$ py scripts/check-todo.py; echo EXIT:$?  # historical 2026-09 run; the gate is now `podbox-gate`
 check-todo: 136 rows, 136 entries, 38 open, 3 partial, 0 blocked, 95 done
 check-todo: coverage bare_citations=1327 ci_components=3 corpus=41 counts=5 crossrefs=478 entries=136 exit_codes=5 experiment_numbers=471 fields=1360 prove_registry=136 rows=136 size_ceiling=232 todo_citations=101 todo_links=559 tree_citations=64 tree_links=342
 check-todo: ok
 EXIT:0
-$ sh scripts/plant.sh; echo EXIT:$?
+$ sh scripts/plant.sh; echo EXIT:$?  # historical 2026-09 run; plants are now `podbox-plant`
   plants   26 caught, 0 missed
   controls 3 quiet, 0 fired
   every check that was planted against went red with its own message.
 EXIT:0
 ```
 
-⚠ `plant.sh` ran under a `python3` shim on PATH pointing at the real
+⚠ `plant.sh` (now `podbox-plant`) ran under a `python3` shim on PATH pointing at the real
 interpreter, because this host's `python3` is a Microsoft Store stub that
 exits without running anything. The shim lived for the one command and was
 removed afterwards.
@@ -1246,7 +1246,7 @@ Premise:     Measured by the reporter on the beta.3 asset and confirmed
              on this tree: the T-0604 line still carries `--filter`, all
              three notes read as reported. `parity::TABLE` is data, so
              both checks are cheap.
-Approach:    Two checks in `check-todo.py` (or beside it), each with its
+Approach:    Two checks in `check-todo.py` (now `podbox-gate`, or beside it), each with its
              plant in the same change: extract `podbox <verb> <flags>`
              tokens from each `Prove:` line and admit them against the
              table the way `admit` does at runtime; assert the three
@@ -1267,7 +1267,7 @@ Prove:       `./target/release/podbox-plant` breaks each new check on purpose an
 
 **Done, 2026-09-23.** Checks 26 (done Prove commands admit) and 27
 (milestone-blame and missing-verb notes) in `crates/podbox-gate/src/main.rs`,
-six plant cases plus one control in scripts/plant.sh, in the same
+six plant cases plus one control in scripts/plant.sh (now `podbox-plant`), in the same
 change. The sweep paid at once: besides T-0604's `--filter` it found
 T-0804's `--network`/`--memory` (asserted success, red at runtime),
 T-0501's `--device` (its own Done says not implemented), T-0107's
@@ -1281,7 +1281,7 @@ script invocation; T-0504's `! ... --rootfs` stands, exempt by the
 documented `!` rule (it asserts refusal, and the spelling is the
 trigger). Lane prove [`pb-w25-prove`](../docs/history/lane-proofs-2026-09-23/pb-w25-prove.txt), verdict `fail=0`:
 every rewritten line green verbatim, 159 exits 0, the three notes in
-`system info`, crate units and clippy clean. `plant.sh` green after
+`system info`, crate units and clippy clean. `plant.sh` (now `podbox-plant`) green after
 the commit. The guards are the two checks themselves.
 
 **Partial, 2026-09-25.** Issue 60 extends check 27: assert a
@@ -1290,8 +1290,8 @@ land without a row and a missing row cannot pass as a refusal.
 The check extension with its plant lands in the same change as
 the T-0801 rows above, per the gate rule that a check and its
 plant arrive together. Fix area is `crates/podbox-gate/src/main.rs` check
-27 with scripts/plant.sh. Risk if wrong is a green gate over
-an omission the table exists to prevent. Prove is `plant.sh`
+27 with scripts/plant.sh (now `podbox-plant`). Risk if wrong is a green gate over
+an omission the table exists to prevent. Prove is `plant.sh` (now `podbox-plant`)
 green with the new plant case red-first.
 
 **Done, 2026-09-25.** Check 27 carries the curated arm:
@@ -1455,7 +1455,7 @@ unit guard `load_stages_inside_the_store` fails where the
 staging path leaves the store root, and the re-driven `load`
 row is green on both shapes. The run curve (first ~1.6 s,
 repeat ~2 s, late ~0.08 s, on both shapes) is recorded under
-order-named metrics with its cause isolated in T-1340. scripts/plant.sh case 30 inflates the `run.repeat`
+order-named metrics with its cause isolated in T-1340. scripts/plant.sh (now `podbox-plant`) case 30 inflates the `run.repeat`
 row past its ceiling and the gate goes red naming the
 regression.
 
@@ -1575,8 +1575,8 @@ Decision:    `first`, `repeat` and `late` keep their definitions
              (`run.repeat`) does not move.
 Out of scope: redefining the old rows, moving any old ceiling.
 Prove:       `360` exits 0 on the lane and on kvm with `run.kept`
-             ok under its ceiling, `check-todo.py` check 30 green,
-             and `plant.sh` case 30 still goes red naming
+             ok under its ceiling, `check-todo.py` (now `podbox-gate`) check 30 green,
+             and `plant.sh` (now `podbox-plant`) case 30 still goes red naming
              `run.repeat`.
 
 **Done 2026-09-27.** `run.kept` measured beside `start` in 360
@@ -1593,7 +1593,7 @@ keep their definitions and their history.
 ### T-1343 The Windows lane uses toolkit 6 job inputs and checks every retained job
 
 Source:      podbox issue 68; the installed `wsl-toolkit 6.0.0` manual;
-             `scripts/windows/run-in-base.sh`; scripts/check-todo.py
+             `scripts/windows/run-in-base.sh`; scripts/check-todo.py (now `podbox-gate`)
 Category:    gate
 Priority:    P1
 Effort:      M
@@ -1669,7 +1669,7 @@ no binary and named the correct `/work` binary path.
 ### T-1345 The Windows job wrapper runs a Bash caller with Bash
 
 Source:      the live plant run on 2026-09-28;
-             `scripts/windows/run-in-base.sh`; scripts/plant.sh
+             `scripts/windows/run-in-base.sh`; scripts/plant.sh (now `podbox-plant`)
 Category:    gate
 Priority:    P1
 Effort:      S
@@ -1697,7 +1697,7 @@ The repeat result is recorded in [PROGRESS.md](PROGRESS.md).
 
 ### T-1346 The plant script finds the checkout from a Windows job input
 
-Source:      the live plant run on 2026-09-28; scripts/plant.sh;
+Source:      the live plant run on 2026-09-28; scripts/plant.sh (now `podbox-plant`);
              `scripts/windows/run-in-base.sh`
 Category:    gate
 Priority:    P1
@@ -1717,14 +1717,14 @@ Prove:       `sh scripts/windows/run-in-base.sh ./target/release/podbox-plant` e
              with every plant caught and no missed case.
 
 **Done 2026-09-28.** The first Bash run reached the path guard and
-returned 2 for `//scripts/check-todo.py`. The repeat result is in
+returned 2 for `//scripts/check-todo.py` (now `podbox-gate`). The repeat result is in
 [PROGRESS.md](PROGRESS.md).
 
 ----
 
 ### T-1347 Check parity notes against the milestone entries
 
-Source:      the full plant run on 2026-09-28; scripts/check-todo.py;
+Source:      the full plant run on 2026-09-28; scripts/check-todo.py (now `podbox-gate`);
              [milestones.md](milestones.md)
 Category:    gate
 Priority:    P1
@@ -1868,7 +1868,7 @@ red-run plant is `experiments/results/smoke-port-plant.txt`.
 
 ### T-1422 Plant the kept-session check where the OS execs batch files
 
-Source:      this session's plant run; scripts/plant.sh
+Source:      this session's plant run; scripts/plant.sh (now `podbox-plant`)
 Category:    gate
 Priority:    P2
 Effort:      S
@@ -1876,11 +1876,11 @@ Status:      done
 
 Problem:     Plant case 29b misses on Windows. Its mockbin vehicle is an
              extensionless script, and Windows `CreateProcess` rejects it
-             with WinError 193, so `check-todo.py` records "the lane-job
+             with WinError 193, so `check-todo.py` (now `podbox-gate`) records "the lane-job
              ledger could not be read" and never names `plant-session`.
              The gate check itself works: it named every real kept job
              this session.
-Premise:     `check-todo.py` invokes `wsl-toolkit` through `subprocess`
+Premise:     `check-todo.py` (now `podbox-gate`) invokes `wsl-toolkit` through `subprocess`
              with no shell, so the mock must resolve to a vehicle the OS
              can exec. `shutil.which` prefers the runnable form per OS.
 Approach:    Ship a `.bat` twin of the mock beside the extensionless one

@@ -1,0 +1,153 @@
+== conditions
+2026-10-01T14:49:54Z
+Linux 7.2.0-WSL2-STABLE
+cargo 1.99.0 (5f94df478 2026-08-27)
+rustc 1.99.0 (b940084d7 2026-09-28)
+
+== 1. unit tests for the crate
+  cargo test -p podbox-release exits 0
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+== 2. release binaries build
+  cargo build --release -p podbox-release exits 0
+  all seven binaries present
+
+== 3. document-state agreement: retired script against the binary
+  rendered pages identical
+
+== 4. refusal shapes through the shims (no network)
+  verify without args exits 2
+  verify with a bad arch exits 2
+  notes without a tag exits 2
+  publish with a bad tag cannot run in the lane (rc=2)
+
+== 4b. every shim reaches its binary (the binary's message proves it)
+  verify shim reaches its binary
+  notes shim reaches its binary
+  document-state shim reaches its binary
+  reconcile shim reaches its binary
+  publish shim reaches its binary
+  120 shim reaches its binary
+  157 shim reaches its binary
+  publish bad tag refuses through the shim (rc=2)
+cannot run: required command failed: gh
+
+== 5. reconcile reads the branch state
+  reconcile rc=2 (2 where the publish ref is absent, 0 where present)
+cannot run: the comparison requires the retained publish ref
+
+== 6. lock-inheritance with two attempts per test plus both mutations
+  lock-inheritance exits 1 (0 caught, 1 not caught, 2 could not run)
+    passed           2 of 2
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 148 filtered out; finished in 0.40s
+    passed           2 of 2
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 148 filtered out; finished in 0.00s
+  a_fork_while_the_lock_is_held_does_not_extend_it exited 0  (want non-zero)
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 148 filtered out; finished in 0.40s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  a_spawned_process_does_not_inherit_the_lock exited 0  (want 0)
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 148 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  a_spawned_process_does_not_inherit_the_lock exited 0  (want non-zero)
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 148 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+  a_fork_while_the_lock_is_held_does_not_extend_it exited 0  (want 0)
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 148 filtered out; finished in 0.40s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+== 6b. the retired script beside the binary, same tree
+  retired 157 exits 1, binary exits 1
+  a_fork_while_the_lock_is_held_does_not_extend_it exited 0  (want non-zero)
+  a_spawned_process_does_not_inherit_the_lock exited 0  (want 0)
+  ⛔ the mutation did not redden its own test
+  a_spawned_process_does_not_inherit_the_lock exited 0  (want non-zero)
+  a_fork_while_the_lock_is_held_does_not_extend_it exited 0  (want 0)
+  ⛔ the mutation did not redden its own test
+    -  a_fork_while_the_lock_is_held_does_not_extend_it exited 101  (want non-zero)
+  verdicts agree retired-vs-binary
+
+== 7. reproducible proof without a lane refuses honestly
+  reproducible without wsl-toolkit exits 2
+
+== 9. the full measurement: workspace build plus podbox-size ci
+  interpose builder built
+  workspace release build exits 0
+  cargo-bloat absent; installing (bounded)
+  cargo-bloat installed
+  podbox-size ci through the stub exits 0
+  bloat-ci.txt carries a total
+total_bytes 3277880
+headroom_bytes 4722120
+unmeasured        0
+breakdown         taken from an unstripped build of the release profile
+
+== 10. clippy and fmt for the new crate
+  clippy clean
+  fmt clean
+
+  plant transcript saved
+== plant transcript: the release binaries refuse planted defects
+date 2026-10-01T14:54:43Z
+-- planted: verify with a bad kind
+verify-release: cosign is not installed
+rc=2 (want 2)
+-- planted: notes for a tag that names no commit
+release-notes: gh is not installed
+pipe done (want exit 2 from the binary)
+rc=2 (want 2)
+-- planted: publish with a malformed tag and a missing origin state
+== conditions
+2026-10-01T14:54:43+0000
+Scope: remote refs, workflow conclusions, and complete asset names.
+Signature content verification uses scripts/verify-release.sh separately.
+local commit: 803d48c348eef0c0cc401d25660d928bb295e1b3
+cannot run: required command failed: gh
+rc=2 (want 2 in the lane: the remote read comes before the tag check; want 1 on a connected host)
+-- planted: reconcile expecting a deleted ref that is present or absent
+== conditions
+2026-10-01T14:54:44Z
+commit main: 803d48c348eef0c0cc401d25660d928bb295e1b3
+commit origin/main: 803d48c348eef0c0cc401d25660d928bb295e1b3
+scope: Git history and patch comparison; runtime acceptance is separate
+== remote branch refs
+-- planted: prove with an unknown subcommand
+podbox-prove-t0211: usage: podbox-prove-t0211 {reproducible|lock-inheritance} [--root DIR]
+rc=2 (want 2)
+-- planted: document-state against a tree with a member removed
+document-state: cannot read source state: cannot read /tmp/tmp.9rVga1WMJA/Cargo.toml: No such file or directory (os error 2)
+rc above (want 2: no workspace)
+verdict RELEASE-PLANT-OK
+
+verdict RELEASE-PROOF-OK
