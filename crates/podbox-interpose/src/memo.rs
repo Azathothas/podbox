@@ -353,7 +353,11 @@ mod tests {
         drop(g);
         assert_eq!(
             got,
-            Lookup::Hit(Owner { uid: 0, gid: 43, set: SET_UID })
+            Lookup::Hit(Owner {
+                uid: 0,
+                gid: 43,
+                set: SET_UID
+            })
         );
         let _ = std::fs::remove_file(&small);
     }
