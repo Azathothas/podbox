@@ -2392,3 +2392,50 @@ clause 5 pulls a bad registry and shows one host with a plain cause,
 no doubled URL, no ureq capitalisation. This refines T-0805.
 
 **Open 2026-09-30 (history).** Filed from issue 85. Refines [T-0805](cli.md).
+
+### T-1602 The registry fixture fields are read by their consumer tests
+
+Source:      CI run 36894578988, job 110478235990, 2026-10-01;
+             `crates/podbox-image/tests/common/registry.rs` `:30`;
+             `refactor/INDEX.md` Batch 4 and `refactor/recon-c.md`
+             rows 117, 118, 121, and 126
+Category:    image
+Priority:    P0
+Effort:      M
+Status:      open
+
+Problem:     `cargo clippy --workspace --all-targets -- -D warnings`
+             exits 101 on
+             `error: fields `manifest`, `config`, `config_digest`, and
+             `layer` are never read`. The four fields are the fixture's
+             published surface and its own header calls them the contract
+             (`registry.rs:24`, "one manifest GET, one config and one
+             layer blob GET"). The lint fires on the test target
+             `parallel_layers`.
+Premise:     The fields are unread because their consumers do not exist
+             yet, not because they are wrong. The fixture was built
+             first and its two consumers, `acquisition.rs` and
+             `store_digest.rs`, are still open in
+             `refactor/recon-c.md`. The fixture landed ahead of its
+             consumers, which is the plan's stated order
+             (`refactor/INDEX.md`: "the fixture before its two
+             consumers").
+Approach:    Make the fields needed rather than deleting them, per
+             `TODO/RULES.md` section 11: dead code is a fault of the
+             reader until proven otherwise. Port the two consumer tests,
+             or the part of each that reads the four fields. Do not add
+             `#[expect(dead_code)]`: it silences the signal and then
+             errors once the fields are read, which is a tripwire that
+             fires later for the wrong reason. Do not remove the fields:
+             the fixture's stated contract becomes a lie and the
+             consumers re-add them.
+Decision:    The dead-code rule settles the general case; this entry is
+             the instance. T-1602 owns the registry fixture and its two
+             consumers until the four fields are read in a real
+             assertion.
+Prove:       `cargo clippy --workspace --all-targets -- -D warnings`
+             exits 0 with no dead-code error; `cargo test -p podbox-image`
+             passes and at least one test asserts on `manifest`,
+             `config`, `config_digest`, and `layer`; removing that
+             assertion reddens clippy (the plant this task owes);
+             `./target/release/podbox-gate` exits 0.

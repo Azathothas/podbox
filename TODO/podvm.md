@@ -991,3 +991,45 @@ short intermittently with rc 0, and the guest half never reaches its
 done marker in the lane; both are environmental, identical
 retired-vs-binary, and stay owned by T-1308. The record gate exits 0
 on the landed tree.
+
+### T-1606 Repoint all 47 `references/` citations before deleting the corpus
+
+Source:      End-state point 3; `refactor/DEFERRALS.md` section 3;
+             `TODO/reference-map.md`; `crates/podbox-gate/src/main.rs`
+             `check_tree`
+Category:    podvm
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     `references/` is 46 repositories and 168 MB of other
+             people's source, tracked in this repository and cited 47
+             times from `TODO/reference-map.md` and the live documents.
+             The end state calls for deleting it. Deleting it today turns
+             the record gate red, because `check_tree` reads every cited
+             path and line and fails when one does not resolve.
+Premise:     The corpus is evidence, not dead weight: every citation is a
+             recorded source and licence decision, and the gate validates
+             that each cited line still exists. Removing the corpus
+             without repointing would delete the evidence and the
+             validation together, and the gate would catch the loss only
+             as an unresolved link rather than as a missing decision.
+Approach:     Keep `references/` for now and repoint first. Each of the
+             47 citations moves to podbox's own source or is dropped
+             with a recorded reason, and the gate stays green through the
+             move rather than after it. File the repoint as its own
+             reviewable batch, then delete the corpus as a separate
+             change once the gate is green without it. Do not delete
+             first and fix citations after: that is a red tree in the
+             middle.
+Decision:    Repoint then delete, on the operator's answer of
+             2026-10-02 that `references/` stays and the repoint is filed
+             as work. The corpus is retained deliberately until this
+             entry closes, and its retention is a decision with a
+             clearing condition rather than an omission.
+Prove:       `grep -rn "references/" TODO/ docs/` returns no citation
+             that `check_tree` resolves outside the corpus, or every
+             remaining hit is recorded with its reason; `./target/release/podbox-gate`
+             exits 0 with `references/` still tracked; after the
+             deletion lands, the gate exits 0 with the corpus absent and
+             `git status` shows no tracked file referencing it.

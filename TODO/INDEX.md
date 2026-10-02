@@ -275,10 +275,18 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1567](packaging.md) | P2 | packaging | done | Port `experiments/399-publication.py` to `podbox-publish` |
 | [T-1568](podvm.md) | P2 | podvm | done | Port `experiments/145-podvm-parity.sh` to `podbox-podvm` |
 | [T-1569](podvm.md) | P2 | podvm | done | Port `experiments/154-tcg-workload-spread.sh` to `podbox-podvm-workload` |
+| [T-1601](interpose.md) | P0 | interpose | open | Unblock the static build under Rust 1.99 `invalid_runtime_symbol_definitions` |
+| [T-1602](image.md) | P0 | image | open | The registry fixture fields are read by their consumer tests |
+| [T-1603](gate.md) | P0 | gate | open | Remove `check-no-secrets` and add a pinned trufflehog scan workflow |
+| [T-1604](enter.md) | P1 | enter | open | Fix the detached-stdio serial mutex and the 1-of-3 detached start failure |
+| [T-1605](packaging.md) | P1 | packaging | open | Push a version tag and prove the nightly release-notes wiring live |
+| [T-1606](podvm.md) | P2 | podvm | open | Repoint all 47 `references/` citations before deleting the corpus |
+| [T-1607](gate.md) | P1 | gate | open | File the 21 unbatched plan tasks as a later queue |
+| [T-1608](gate.md) | P2 | gate | open | Reword the Batch 3 Done paragraphs so one-home passes |
 
 ## Counts
 
-214 items: 0 open, 3 partial, 0 blocked, 211 done.
+222 items: 8 open, 3 partial, 0 blocked, 211 done.
 
 Counted from the rows above by `./target/release/podbox-count` and asserted
 independently by `./target/release/podbox-gate`, which is the gate. A number here
@@ -286,11 +294,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 0 | 0 | 54 | 54 |
-| P1 | 0 | 3 | 0 | 102 | 105 |
-| P2 | 0 | 0 | 0 | 47 | 47 |
+| P0 | 3 | 0 | 0 | 54 | 57 |
+| P1 | 3 | 3 | 0 | 102 | 108 |
+| P2 | 2 | 0 | 0 | 47 | 49 |
 | P3 | 0 | 0 | 0 | 8 | 8 |
-| **All** | **0** | **3** | **0** | **211** | **214** |
+| **All** | **8** | **3** | **0** | **211** | **222** |
 
 ## Work order
 

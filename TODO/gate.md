@@ -1895,3 +1895,146 @@ Windows and the extensionless script elsewhere. The plant run is green
 end to end ([the log](../experiments/results/plant-2026-09-30.txt)).
 The minimal repro is an extensionless mock through `subprocess.run`
 raising where the `.bat` twin returns the ledger JSON.
+
+### T-1603 Remove `check-no-secrets` and add a pinned trufflehog scan workflow
+
+Source:      Operator decision 2026-10-02; CI run 36894578988 job
+             110478236087; `scripts/dev-lane.sh` `:205`;
+             `docs/security/secrets.md`
+Category:    gate
+Priority:    P0
+Effort:      M
+Status:      open
+
+Problem:     `check-no-secrets.sh --public` exits 1 on
+             `scripts/dev-lane.sh:205`, `export
+             HOME="${LANE_HOME:-/home/toolkit}"`, read as an absolute home
+             path. That literal is a lane runner's default `HOME`, not a
+             credential. A shape-matching regex standing in for a
+             secrets scanner produces this class of false positive
+             permanently, and narrowing its patterns one at a time is
+             unpaid work that never ends.
+Premise:     Reproduced on the current tree, not carried from a report:
+             `sh scripts/common/check-no-secrets.sh --public` exits 1 with
+             two categories matched, one being this line. The check's own
+             text already says a false positive should be handled by
+             narrowing the pattern "rather than switching the check off",
+             and the operator has now overruled that for this case.
+Approach:    Remove the check and replace it with a real scanner. Call
+             sites, all of which must be unwired or the tree keeps a
+             check nothing runs: `.github/workflows/gate.yml:89`;
+             `scripts/common/check-gate.sh:112` and `:123`;
+             `scripts/common/check-gate.ps1:111` and `:118`;
+             `crates/podbox-gate/src/smoke.rs:44`;
+             `scripts/common/check-twins.sh:303` and `:304`. Delete
+             `scripts/common/check-no-secrets.sh` and its PowerShell
+             twin `scripts/common/check-no-secrets.ps1`, which exist only
+             to be twins of each other. Add a trufflehog workflow
+             pinned to a commit SHA like every other action in this
+             repository, scanning the working tree and the history.
+             Update `docs/security/secrets.md`, which currently names the
+             shell script as the review mechanism. Update the comments
+             at `crates/podbox-ssh/src/mux.rs:1151` and
+             `crates/podbox-ssh/tests/mux_two_client.rs:1290`, which
+             cite the check as the reason for their placeholder shapes,
+             and `experiments/270-multiarch-image.sh:117`.
+Decision:    Scanner, not pattern. GitHub Actions runs its own scoped
+             ephemeral token; the operator directed this on 2026-10-02.
+             A grep cannot tell a checksum from a key, and this tree
+             carries both by design. Do not keep the scripts as dead
+             weight: check-twins.sh asserts on the pair, so leaving them
+             means either a failing twins check or a check comparing
+             nothing.
+Prove:       `./target/release/podbox-gate` exits 0; `sh scripts/common/check-twins.sh`
+             exits 0 with no `check-no-secrets` pair; `grep -rn check-no-secrets .`
+             outside `references/` and `experiments/results/` returns
+             nothing; the new workflow appears in a CI run on the landed
+             commit and reports a clean scan; a planted fake key in a
+             tracked file makes that workflow fail (the plant this task
+             owes, replacing what the deleted check planted).
+
+### T-1607 File the 21 unbatched plan tasks as a later queue
+
+Source:      Operator decision 2026-10-02, "no deferrals from now on";
+             `refactor/PLAN.md` "Do not take a task that no batch
+             names"; `refactor/recon-c.md` section 1, the 21 rows its
+             own preamble counts as unbatched
+Category:    gate
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     Twenty-one rows of the refactor plan name no batch. The
+             plan bars taking them, and the previous session recorded
+             them as deliberately skipped, so they sit outside the
+             tracked record where no gate reads them and no count moves.
+Premise:     Both planning documents say this set is 22 tasks. It is 21.
+             The contiguous block is 19 rows and the two named
+             singletons add two. The discrepancy is the same class as
+             the audit's earlier 99-versus-100 error, and it is recorded
+             here rather than repeated. Separately, most of the 21 are
+             decision records belonging to whichever wave implements
+             them, so they are not 21 units of independent work.
+Approach:     Move the set into this record so the gate counts it and a
+             session can find it. One entry owns the queue rather than 21
+             entries, because most rows are a decision to record, not a
+             code change, and 21 entries would each need a Prove clause
+             that is the same file read. Split an individual row out into
+             its own entry when it turns out to carry implementation
+             rather than a decision.
+Decision:     Queue, not deferral. The operator's 2026-10-02 answer is
+             that no item is parked: work needing a human becomes a
+             tracked task with a clearing condition, and work needing
+             capacity is batched and then finished. So this entry is
+             open work on the backlog, not a note. The singleton rows
+             stay with the wave that deletes `10` and with the store
+             work the lock-race clause cites; this entry names which is
+             which when it opens the queue.
+Prove:       `sh scripts/common/check-twins.sh` exits 0; `grep -cE
+             "T-155[0-9]|T-157[0-9]|T-1[6-9][0-9][0-9]" TODO/INDEX.md`
+             shows every planned row now has an index row or a recorded
+             decision naming where it went; `./target/release/podbox-gate`
+             exits 0 with no row naming an id that is not an entry.
+
+### T-1608 Reword the Batch 3 Done paragraphs so one-home passes
+
+Source:      `sh scripts/common/check-one-home.sh`, run on this tree
+             2026-10-02 and on `main` at `b9ed3ac` by stash, both red;
+             `TODO/packaging.md` `:749` and `TODO/podvm.md` `:984`
+Category:    gate
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     `check-one-home.sh` exits 1 with one sentence appearing in
+             two documents. The normalized match is the opening of two
+             Batch 3 Done paragraphs: both read "Binary `NAME` ships in
+             the `CRATE` crate with no dependencies, and the ... path
+             stays as an exec shim". Nine Done paragraphs were written
+             from one template, so the first 260 normalized characters
+             collide wherever the crate and binary names differ only
+             after the fixed prefix.
+Premise:     This is pre-existing on `main`, measured by stashing this
+             session's change and rerunning the check on the clean tree.
+             CI never showed it because the static-build job died on the
+             interpose lint first, and the gate job's maintained-checks
+             step is a separate step. So this is a real red check the
+             current CI never reached, not a regression from this
+             session.
+Approach:     Reword the two openings the check names so each says what
+             is specific to that entry, and vary the template across the
+             remaining Batch 3 Done paragraphs so the next reader does
+             not see nine paragraphs in one voice. Edit the current text
+             in place; do not move them to history, because a Done
+             record that stops describing what shipped is worse than
+             repetitive prose.
+Decision:     Recorded here rather than fixed in this session. The two
+             paragraphs belong to T-1560 and T-1569, closed by the
+             previous session, and this session's scope is the decision
+             round. Rewriting another session's closure evidence is
+             that session's call, and the operator's rule is that
+             corrections go in place by the agent that owns the work.
+Prove:       `sh scripts/common/check-one-home.sh` exits 0;
+             `./target/release/podbox-gate` exits 0; a CI run on the
+             landed commit reports the maintained repository checks step
+             green rather than skipped.

@@ -16,6 +16,13 @@ Work on `main`. The operator permits a normal push to `origin/main`.
 Do not force-push, rewrite published history, or skip required checks.
 Other repositories are read-only.
 
+⭐ 2026-10-02. The operator grants read and write on this repository and
+only this repository. That covers `git tag`, `git push` of a version tag,
+and the GitHub release it publishes. An agent does not stop to ask about
+those. It does not extend to another repository, a force-push, or a
+history rewrite. `Azathothas__TEMPLATE` and every other tree under
+`references/` stays read-only.
+
 A branch can have equivalent changes without being an ancestor of `main`.
 Compare commits, patch identities, source, and proof before integration.
 Do not apply an equivalent patch twice.
@@ -112,6 +119,10 @@ Do not invent a finding to satisfy a review quota.
 
 | Decision | Authority |
 | --- | --- |
+| Build compatibility is not a goal. Users take a published binary. Take whatever toolchain feature unlocks the tasks, nightly included. An agent fixes a toolchain rejection instead of asking the operator to pin. | Operator, 2026-10-02, over the `invalid_runtime_symbol_definitions` question on `crates/podbox-interpose/src/lib.rs` |
+| Dead code is a fault of the reader until proven otherwise. It is missing or unlooked-for use 99 times in 100. Make it needed, or find where it is needed and prove it is not needed there. Never delete a field to quiet a lint. | Operator, 2026-10-02, over `crates/podbox-image/tests/common/registry.rs` |
+| No deferrals. Work that needs a human becomes a tracked task with a named clearing condition, not a note in an untracked file. Batch for a later queue if needed, but finish it. | Operator, 2026-10-02 |
+| Read and write on this repository is authorized, including tags and releases. See section 2. | Operator, 2026-10-02 |
 | Rust; static musl release by default | captured TOOL.md section 3; T-1002 |
 | 0BSD for project-owned work | LICENSE |
 | Tracked source corpus | reference-map.md |

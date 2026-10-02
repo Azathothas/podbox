@@ -1613,3 +1613,46 @@ above; the consequence stands as written (no fallback rung on
 chroot-denied non-x86_64 hosts). Issue 26 needs no action: it
 closed with the objects decision, and this drive is its
 coverage proof on record here.
+
+### T-1601 Unblock the static build under Rust 1.99 `invalid_runtime_symbol_definitions`
+
+Source:      CI run 36894578988, job 110478235939, 2026-10-01;
+             `crates/podbox-interpose/src/lib.rs` `:2139` and `:2144`;
+             `rust-toolchain.toml`
+Category:    interpose
+Priority:    P0
+Effort:      S
+Status:      open
+
+Problem:     Main CI is red on all four jobs. The static build stops at
+             `crates/podbox-interpose/src/lib.rs:2144` with
+             `error: invalid definition of the runtime `open` symbol used
+             by the standard library`. The lint is deny-by-default, so it
+             fires without `-D warnings`. It takes down the static build,
+             the interposer tests, and plants 32e and 32f with it.
+Premise:     The signature is deliberate and already documented in the
+             file: stable Rust cannot define a C-variadic function at
+             all (rust-lang/rust#44930), so `open_fixed!` takes a fixed
+             third argument rather than `...`. The lint is a true report
+             about the shape, not a false positive.
+Approach:    Settle it the standing way, per `TODO/RULES.md` section 11:
+             take whatever unlocks the task. Attribute the macro body
+             `#[allow(invalid_runtime_symbol_definitions)]` beside the
+             `#[no_mangle]`, and put `#![allow(unknown_lints)]` at the
+             crate root so the attribute stays a no-op rather than a
+             warning on a toolchain without the lint. Do NOT pin
+             `rust-toolchain.toml`: the operator settled on 2026-10-02
+             that build compatibility is not a goal, users take a
+             published binary, and nightly is permitted. Do not port the
+             signature either; the C shim is larger surgery on an object
+             loaded into other processes than the allow costs.
+Decision:    Allow the lint at the definition, forward-compatible through
+             `unknown_lints`. The measured cost is one attribute and no
+             behaviour change; the alternative pins the whole tree off
+             stable.
+Prove:       `cargo build --release -p podbox-gate --bin podbox-interpose-build`
+             exits 0 in the Linux lane; the interposer clippy and test
+             steps in `.github/workflows/gate.yml` pass;
+             `./target/release/podbox-gate` exits 0; a CI run on the landed
+             commit reports the static-build job green and plants 32e
+             and 32f caught rather than MISS.

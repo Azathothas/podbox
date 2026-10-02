@@ -2,7 +2,23 @@
 
 ## State
 
-214 entries: 0 open, 3 partial, 0 blocked, 211 done.
+222 entries: 8 open, 3 partial, 0 blocked, 211 done.
+
+The 8 open entries are the CI remainder below, filed on 2026-10-02 as
+tracked tasks with a Prove clause each, replacing the operator-blocked
+list and the untracked `refactor/DEFERRALS.md`. Read
+`TODO/RULES.md` section 11 before taking any of them: the operator
+settled four standing decisions on 2026-10-02 and they change how the
+work is done, not only what it is.
+
+`refactor/DEFERRALS.md` is superseded and is no longer the record of
+what waits. Its four sections now live in tracked entries: the CI
+failures as T-1601 through T-1604, the KVM and emulator condition
+under T-1350 and T-1112 below, the corpus deletion as T-1606, and the
+unbatched plan rows as T-1607. The file itself stays untracked on
+purpose: `.gitignore:147` records that tracking `refactor/` turns the
+record gate red, measured 2026-10-01 at 1047 problems from that
+directory alone.
 
 Batch 3 (T-1559 through T-1569, the three tool crates) is landed
 2026-10-01: `podbox-buildstate` (buildstate, release-licenses),
@@ -91,34 +107,77 @@ keeps its historical scope. It does not establish current reliability.
 3. T-1401 is done: the compiled shim with the exit-42 proof.
 4. T-1003 is done: rung-complete FUSE, armed tmpfs entry, OCI-tarball rootfs.
 5. T-1407 through T-1421 are done: the fifteen findings with their drives.
-6. T-1350 and T-1112 stay partial: one KVM run with the operator present,
-   then ReactOS. Deferred, not closed.
+6. T-1350 and T-1112 stay partial: one KVM run with the operator
+   present, then ReactOS. Tracked and open, not deferred.
 7. T-1559 through T-1569 are done: the three tool crates with their
    shims, proofs, and plants. The nightly wiring for `release-notes`
-   lands with them; a live tag run owns the end-to-end proof.
+   lands with them; T-1605 owns the live tag proof.
+8. T-1601 through T-1604 clear CI: the 1.99 interpose lint, the
+   registry fixture dead code, the secrets check, and the detached
+   stdio cascade. Take T-1601 first; it also clears the plant MISSes.
+9. T-1607 files the 21 unbatched plan rows. T-1606 repoints the
+   `references/` citations. T-1605 pushes the version tag.
 
 An agent must not start a KVM guest without the operator present.
-Read each entry's exact proof and referenced source before implementation.
+That rule is about host risk and no standing decision removes it. It
+is a tracked condition on T-1350 and T-1112, not a deferral.
+Read each entry's exact proof and referenced source before
+implementation.
 
 ## CI remainder
 
-Main CI is red on all four jobs at `de4e08c`, and every cause is
-measured and outside Batch 3. Stable Rust moved from 1.98.1 to 1.99.0
+Main CI is red on all four jobs, measured on run 36894578988 at
+`b9ed3ac`. Every cause below was read off the run's own log rather
+than carried from a report. Stable Rust moved from 1.98.1 to 1.99.0
 between the 12:17 and 16:10 UTC runs on 2026-10-01
-(`rust-toolchain.toml` floats on `stable`). The new toolchain refuses
-the `open` interposition at `crates/podbox-interpose/src/lib.rs:2144`
-(deny-by-default `invalid_runtime_symbol_definitions`; the plant
-harness reports it as MISS on 32e and 32f). That one failure stops the
-static build, the interpose tests, and the plant step. Three more
-failures are pre-existing on both toolchains: the clippy dead-code
-shape at `crates/podbox-image/tests/common/registry.rs:30` (fixture
-work, owned by Batch 4), the detached stdio rows at
-`crates/podbox-cli/tests/detached_stdio.rs:138` and `:292`
-(engine-dependent), and the secrets-check flag on
-`scripts/dev-lane.sh:205` (false positive on `/home/toolkit`). The
-rustfmt drift spots are fixed in this session. Clearing the rest
-needs the operator: toolchain pin-or-port policy, the security-check
-pattern, and the fixture and interposer sources.
+(`rust-toolchain.toml` floats on `stable`).
+
+Four failures, four tracked entries. The rustfmt drift spots the
+previous session reported are fixed and the `fmt` step passes on that
+run.
+
+| id | failure | reading |
+| --- | --- | --- |
+| T-1601 | `invalid definition of the runtime `open` symbol` at `crates/podbox-interpose/src/lib.rs:2144`, deny-by-default, takes the static build, the interposer tests, and plants 32e and 32f | T-1601 settles it: allow the lint at the definition. Do not pin the toolchain. |
+| T-1602 | clippy dead code, `crates/podbox-image/tests/common/registry.rs:30`, four unread fields | T-1602 makes them needed. Do not delete the fields. |
+| T-1603 | `check-no-secrets --public` exits 1 on `scripts/dev-lane.sh:205` `/home/toolkit` | T-1603 removes the check and adds trufflehog. Reproduced locally, not assumed. |
+| T-1604 | `detached_stdio` 1 passed, 2 failed | T-1604: one defect, two symptoms. The `:138` PoisonError is the cascade, not a second defect. |
+
+The plant step's `MISS 32e` and `MISS 32f` lines read "red for
+another reason, not this one". They are T-1601's consequence, not a
+separate task, and they need no entry of their own. T-1601's Prove
+clause covers them.
+
+## Standing decisions
+
+Four, settled by the operator on 2026-10-02 and recorded in
+`TODO/RULES.md` section 11, with the read-write grant in section 2.
+They bind every future session and are not restated anywhere else:
+
+1. Build compatibility is not a goal. Users take a published binary.
+   Take whatever toolchain feature unlocks the task, nightly included.
+   Fix a toolchain rejection rather than asking for a pin.
+2. Dead code is a fault of the reader until proven otherwise. Never
+   delete a field to quiet a lint.
+3. No deferrals. Work that needs a human becomes a tracked task with a
+   named clearing condition. Batch for a later queue, then finish it.
+4. Read and write on this repository is authorized, including tags and
+   releases. It does not extend to another repository.
+
+## What no longer waits for the operator
+
+| item | before | now |
+| --- | --- | --- |
+| toolchain pin or port | operator call | settled, T-1601 |
+| registry fixture dead code | operator call | settled, T-1602 |
+| secrets-check pattern | operator call | settled, T-1603 |
+| version tag and release | operator action | authorized, T-1605 |
+
+The KVM and emulator work still needs a person in the room, because
+the rule is about host risk and no decision removes it. It is tracked,
+not deferred: T-1350 and T-1112 stay partial, and the ten emulator
+scripts plus the two tasks are T-1112's clearing condition, "an
+operator-present session accepting the host risk".
 
 ## Publication
 

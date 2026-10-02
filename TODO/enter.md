@@ -1118,3 +1118,53 @@ interpreter inside the rootfs stays with T-1407.
 
 **Open 2026-09-30 (history).** Filed from issue 78. Read the current source
 before implementation.
+
+### T-1604 Fix the detached-stdio serial mutex and the 1-of-3 detached start failure
+
+Source:      CI run 36894578988, job 110478236087, 2026-10-01;
+             `crates/podbox-cli/tests/detached_stdio.rs` `:138`, `:292`;
+             `experiments/340-detached-stdio.sh`
+Category:    enter
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     `cargo test --workspace` exits 101 on `detached_stdio` with
+             `test result: FAILED. 1 passed; 2 failed`. Read in order,
+             this is one defect with two symptoms, not two defects. The
+             test at `:292` fails first on its own assertion:
+             `only 1 of 3 detached starts ran`, `left: 1`,
+             `right: 3`. The test at `:138` then dies on
+             `called `Result::unwrap()` on an `Err` value:
+             PoisonError`, because `SERIAL.lock().unwrap()` at `:138`
+             inherits the poison left by the test that panicked while
+             holding the same `Mutex` (`:25`). The same
+             `SERIAL.lock().unwrap()` shape is at `:167` and `:196`.
+Premise:     A serialisation mutex must not propagate one test's panic
+             into the next. `unwrap()` on a poisoned lock makes the
+             second failure a report of the first, which is why the two
+             rows read as one confusing cascade instead of one clear
+             failure. The underlying 1-of-3 failure is engine- or
+             runner-dependent and identical on both toolchains, so it is
+             not a Rust 1.99 regression and not a Batch 3 change.
+Approach:    Two fixes, because the cascade hides the real failure. First,
+             make the serialisation mutex poison-tolerant at `:138`,
+             `:167`, and `:196`, so a failure in one test is reported as
+             itself and the next test still runs. Second, find and fix
+             why two of three detached starts did not run on a loaded
+             runner; drive `experiments/340-detached-stdio.sh` in the
+             Linux lane under CI-like conditions before changing the
+             assertion, because a test may not depend on a scheduling
+             order it cannot control
+             (`docs/methodology/authoring.md`, entry fields).
+Decision:    The cascade is the reporting defect and the 1-of-3 is the
+             product defect. Fix the mutex first so the second is
+             measurable, then measure the second. Do not weaken the
+             assertion at `:292` to accept 1 of 3: that would record a
+             green run over a real failure.
+Prove:       `cargo test -p podbox-cli --test detached_stdio` passes in
+             the Linux lane, run twice; a deliberately failing test in
+             the same binary does not poison its neighbours (the plant
+             this task owes); the saved lane log shows all three
+             detached starts running;
+             `./target/release/podbox-gate` exits 0.
