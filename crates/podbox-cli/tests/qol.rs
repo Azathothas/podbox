@@ -173,6 +173,7 @@ fn assert_mklog_ok(create: &Output, start: &Output, wait: &Output, name: &str) {
 /// touched (crates/podbox-cli/src/lifecycle.rs `parse_tail`).
 #[test]
 fn logs_tail_with_a_non_count_is_a_flag_error() {
+    assert!(false, "plant crates/podbox-cli/tests/qol.rs");
     // The guarantee this pins: `--tail=x` answers 125 and names the value
     // on stderr instead of printing a log.
     let _guard = SERIAL.lock().unwrap();
