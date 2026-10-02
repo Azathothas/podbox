@@ -1,123 +1,130 @@
 # Resume
 
-Session 2026-10-02, decision round. Tree `main` at `496d869`, pushed
-and clean. Record gate exits 0: 225 entries, 11 open, 3 partial,
-0 blocked, 211 done.
+Session 2026-10-02. Tree `main` clean and pushed. Record gate exits 0:
+226 entries, 10 open, 3 partial, 0 blocked, 213 done.
 
-This session asked the operator about every open, pending, or blocked
-item the previous session reported, settled all ten, and wrote the
-answers into the record. It implemented none of the settled work.
-Eleven entries are open and unstarted.
-
-One commit this session made was wrong and was reverted. `0c0ae8b`
-carried a live `podbox-plant` defect into `main` because `git add -A`
-ran while the plant was still writing. `246b462` reverted it. Read the
-note in `TODO/PROGRESS.md` before staging anything with `git add -A`.
+This file was rewritten at the end of the session because four read-only
+audits found it three commits stale, carrying three mutually inconsistent
+counts and still listing two completed entries as open blockers. It is
+the cold-start handoff; if it disagrees with the gate, the gate wins.
 
 ## Read before acting
 
-`TODO/RULES.md` section 11 carries four standing decisions the
-operator made on 2026-10-02, and section 2 carries the read-write
-grant. They change how the work is done, not only what it is, and
-they settle the questions this round was asked about:
+`TODO/RULES.md` section 11 carries the standing decisions and section 2
+the read-write grant. Do not re-ask any of these.
 
-1. Build compatibility is not a goal. Users take a published binary.
-   Take whatever toolchain feature unlocks the task, nightly included.
-   Fix a toolchain rejection; do not ask for a pin.
+1. Build compatibility is not a goal. Take whatever toolchain feature
+   unlocks the task, nightly included. Fix a toolchain rejection; do not
+   ask for a pin.
 2. Dead code is a fault of the reader until proven otherwise. Never
    delete a field to quiet a lint.
 3. No deferrals. Work needing a human becomes a tracked task with a
    clearing condition. Batch for a later queue, then finish it.
-4. Read and write on this repository is authorized. Not another
-   repository, not a force-push.
+4. Read and write on this repository is authorized, tags and releases
+   included. Not another repository, not a force-push.
+5. An unattended KVM guest run is permitted on this host under the
+   T-1609 watchdog. Everything the proof needs is installed into
+   `wsl-toolkit-podbox`; the Windows host qemu is never touched.
 
-Do not ask these again. They are answered.
+## Run these first
+
+The AGENTS.md start command targets `./target/release/`, which does not
+exist on this host. What runs here is the debug binary, and it is what
+the gate and every Prove clause on this host must use:
+
+```sh
+./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe
+```
+
+`cargo build --release -p podbox-gate` does not fill `target/release/`
+here because `.cargo/config.toml` sets the musl build target; zig is on
+PATH so it can be built, but it lands under
+`target/x86_64-unknown-linux-musl/release/`.
+
+Two checks are red on arrival and each has an owner. Neither is a
+surprise and neither blocks the work order:
+
+- `check-one-home.sh` exits 1 on a duplicated sentence in two Batch 3
+  Done paragraphs. T-1608.
+- `check-no-secrets.sh --public` exits 1 on `/home/toolkit` in the lane
+  runner. T-1603.
 
 ## Next action
 
 T-1601, in `TODO/interpose.md`. Rust 1.99 rejects the `open`
 interposition at `crates/podbox-interpose/src/lib.rs:2144` with a
-deny-by-default lint, and that failure stops the static build, the
-interposer tests, and plants 32e and 32f with it. The entry says what
-to do: allow the lint at the definition, forward-compatible through
-`unknown_lints`. Do not pin `rust-toolchain.toml`.
+deny-by-default lint, and that one failure stops the static build, the
+interposer tests, and plants 32e and 32f with it. Allow the lint at the
+definition, forward-compatible through `unknown_lints`. Do not pin the
+toolchain.
 
-Then T-1602, T-1603, and T-1604, which clear the other three red CI
-jobs. Then T-1607, T-1606, and T-1605.
+This cannot be reproduced on this host: `rustc -V` is 1.98.0 and 1.99 is
+not installed. The lint is a CI observation. Do not close the entry on
+a local green run, because a local run has no lint to fire.
 
-## The KVM rule changed on 2026-10-02
-
-The operator permits an **unattended** KVM guest run on this host,
-conditional on a watchdog outside the guest. Recorded in
-`TODO/RULES.md` section 11 and `docs/limits.md`. T-1350 and T-1112
-stay `partial` until it lands, and the work is no longer one entry:
-
-| id | blocker | measured 2026-10-02 |
-| --- | --- | --- |
-| T-1609 | no watchdog outside the guest | cleanup runs inside the guest and dies with it |
-| T-1610 | podman stale; which qemu to use | boot-ID error on every `podman` call; a qemu exists on the Windows host |
-
-The accelerator is live: `/dev/kvm` is present, `vmx` is in
-`/proc/cpuinfo`, 30 GiB available. The base has no in-guest qemu and no
-`/usr/share/edk2-ovmf`, measured four ways, but the Windows host has
-`qemu-system-x86_64.exe` under scoop and a host qemu beside `/dev/kvm`
-is the ordinary nested arrangement. Decide that before installing
-anything into anyone's base. T-1609 first, then T-1610, then the
-T-1350 proof.
-
-## What changed this session
-
-No source. Seven new entries, all `open`: T-1601 through T-1607. Two
-live documents rewritten: the CI remainder section of
-`TODO/PROGRESS.md` and this file. `TODO/RULES.md` gained the section 11
-decisions and the read-write grant in section 2.
-
-## Measured state
-
-| row | evidence |
-| --- | --- |
-| record gate | `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0, 220 rows |
-| counts | `podbox-count` wrote 220 items: 6 open, 3 partial, 0 blocked, 211 done |
-| CI | run 36894578988 at `b9ed3ac`, all four jobs red; causes read off that run's own log |
-| secrets check | `sh scripts/common/check-no-secrets.sh --public` exits 1 on `scripts/dev-lane.sh:205`, reproduced locally |
-| clippy | `registry.rs:30`, four unread fields, on the `parallel_layers` test target |
-| tests | `detached_stdio` 1 passed, 2 failed; `:138` is a PoisonError cascade from `:292` |
-| host release build | not available here: `.cargo/config.toml` sets the musl target, which needs `scripts/zig-cc.sh` |
-
-## Untracked working material
-
-`refactor/` stays untracked on purpose (`.gitignore:147`).
-`refactor/DEFERRALS.md` is superseded: its four sections now live in
-tracked entries. Do not treat it as the record.
-
-The plan's unbatched rows are 21, not the 22 both planning documents
-claim. T-1607 records the corrected figure and owns the queue.
+Then T-1602, T-1603, T-1604, which clear the other three red CI jobs,
+then T-1608 and T-1611, then T-1612, T-1607, T-1606, T-1605.
 
 ## Known open work
 
-| id | subject | blocking |
+| id | subject | note |
 | --- | --- | --- |
-| T-1601 | 1.99 interpose lint | needs a Linux lane run to re-verify |
-| T-1602 | registry fixture dead code | needs `acquisition.rs` and `store_digest.rs` |
-| T-1603 | remove the secrets check, add trufflehog | touches 7 call sites; needs a new pinned workflow |
+| T-1601 | 1.99 interpose lint | needs a Linux lane run; not reproducible locally |
+| T-1602 | registry fixture dead code | the cause is `parallel_layers`, not missing consumers; its Premise was corrected today |
+| T-1603 | remove the secrets check, add trufflehog | land both in one commit or the repo has no secrets scan in between |
 | T-1604 | detached stdio cascade | needs a Linux lane run |
-| T-1605 | live version tag proof | authorized; no operator action needed |
+| T-1605 | live version tag proof | authorized; do not push a tag while CI is red |
 | T-1606 | repoint 47 `references/` citations | blocks the corpus deletion |
-| T-1607 | file 21 unbatched rows | mechanical |
+| T-1607 | file 21 unbatched plan rows | needs `refactor/`, which is untracked; see its Approach |
 | T-1608 | one-home fails on Batch 3 prose | rewording two Done paragraphs |
-| T-1609 | KVM watchdog outside the guest | new script; blocks T-1350 |
-| T-1610 | podman stale after reboot; which qemu to use | repair first, then measure |
 | T-1611 | code maps name shims, miss four crates | documentation only |
+| T-1612 | four pieces of work have no owner | decide reopen-or-limit for each |
 
-T-1350 and T-1112 stay `partial` until T-1609 and T-1610 clear. The
-operator permits an unattended run; the two blockers above are what
-stands between this tree and the proof.
+## Partial entries
+
+T-1350 can now run: T-1609 built and wired the watchdog, T-1610 repaired
+the base and installed qemu and OVMF into it. Run it with both
+`--accept-host-risk` and `--unattended`.
+
+Before any guest run, check `/dev/kvm`. The base shipped it as
+`crw------- root root` and the guest account is uid 1000, so it was
+changed by hand to `crw-rw---- root kvm`. That is per boot: the base's
+own tmpfiles rule replays `z /dev/kvm 0666 - kvm -`. After a reboot,
+reapply it or run the guest as root.
+
+T-1112 stays partial: its KVM leg rides the same run, and its ReactOS
+leg needs a redistributable base that does not exist anywhere in the
+tree. No task owns that acquisition and no standing decision covers it.
+It is the one remaining item a human must decide.
+
+## Measured state
+
+| Row | Evidence |
+| --- | --- |
+| record gate | exit 0, 226 rows, 10 open, 3 partial, 0 blocked, 213 done |
+| KVM watchdog | `experiments/results/kvm-watchdog.txt`, three runs, three arms each, all green |
+| KVM bound | `experiments/results/kvm-watchdog-bound.txt`, a 3 s bound reports rc 124 and removes the emulator |
+| base packages | `experiments/results/kvm-base-provision.txt` |
+| CI | four jobs red at `3bd36f0`; run 36956512663 was in progress at session end |
+| toolchain | `rustc 1.98.0`; 1.99 not installed locally |
+| retained jobs | none; `wsl-toolkit gc --json` empty at session end |
+
+## Untracked working material
+
+`refactor/` stays untracked by `.gitignore:152`. It holds the refactor
+plan, including the 21 unbatched rows T-1607 owns, and they cannot be
+read from a fresh clone.
+
+`refactor/DEFERRALS.md` is superseded. Its four sections live in tracked
+entries. Do not treat it as the record.
 
 ## Next prompt
 
 ```
 Continue podbox from TODO/RESUME.md. Read TODO/RULES.md section 11
-before acting; four standing decisions from 2026-10-02 bind this work.
-Take T-1601 from TODO/interpose.md and implement it. The record gate
-must exit 0 before you close.
+before acting; five standing decisions from 2026-10-02 bind this work.
+The gate that runs on this host is
+./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe, not the one under
+target/release. Take T-1601 from TODO/interpose.md and implement it;
+its lint cannot be reproduced here, so prove it in the Linux lane.
 ```

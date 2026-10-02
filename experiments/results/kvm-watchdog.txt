@@ -1,19 +1,54 @@
-KVM watchdog selftest, 2026-10-02
-host: MINGW64_NT-10.0-26200 3.6.9-b4195d69.x86_64
-base: wsl-toolkit-podbox
-
+run 1 of 3, 2026-10-02T02:54:35Z
 == control: nothing to remove
 ok   control stayed quiet, found []
 == fault: a lingering emulator is removed
-ok   detached session 3e941b867dfcfc1e
-ok   the guard sees the fixture: ['6375']
-ok   the watchdog fired and removed ['6375']
+ok   detached session 107b58e420eddd82
+ok   the guard sees the fixture: ['20302']
+ok   the watchdog fired and removed ['20302']
 ok   no emulator survived
 ok   no scratch survived
 == isolation: an emulator that is not ours is left alone
+ok   the foreign emulator is running
 ok   the guard does not select a foreign emulator
 ok   the watchdog stayed quiet
 ok   the foreign emulator is still running
 == verdict
 verdict PODBOX-KVM-WATCHDOG.SH-OK
 selftest exit: 0
+
+run 2 of 3, 2026-10-02T02:54:55Z
+== control: nothing to remove
+ok   control stayed quiet, found []
+== fault: a lingering emulator is removed
+ok   detached session fd1562d781746649
+ok   the guard sees the fixture: ['20839']
+ok   the watchdog fired and removed ['20839']
+ok   no emulator survived
+ok   no scratch survived
+== isolation: an emulator that is not ours is left alone
+ok   the foreign emulator is running
+ok   the guard does not select a foreign emulator
+ok   the watchdog stayed quiet
+ok   the foreign emulator is still running
+== verdict
+verdict PODBOX-KVM-WATCHDOG.SH-OK
+selftest exit: 0
+
+run 3 of 3, 2026-10-02T02:55:14Z
+== control: nothing to remove
+ok   control stayed quiet, found []
+== fault: a lingering emulator is removed
+ok   detached session 0a27c12ba631fddf
+ok   the guard sees the fixture: ['21376']
+ok   the watchdog fired and removed ['21376']
+ok   no emulator survived
+ok   no scratch survived
+== isolation: an emulator that is not ours is left alone
+ok   the foreign emulator is running
+ok   the guard does not select a foreign emulator
+ok   the watchdog stayed quiet
+ok   the foreign emulator is still running
+== verdict
+verdict PODBOX-KVM-WATCHDOG.SH-OK
+selftest exit: 0
+

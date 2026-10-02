@@ -28,19 +28,49 @@ def main():
     parser.add_argument("--image", required=True, type=Path)
     parser.add_argument("--output", type=Path, default=ROOT / "experiments/results/kvm-guest.txt")
     parser.add_argument("--accept-host-risk", action="store_true",
-                        help="the operator is present and accepts nested KVM load on this host")
+                        help="the operator accepts nested KVM load on this host")
+    parser.add_argument("--unattended", action="store_true",
+                        help="run under the T-1609 watchdog instead of requiring the operator present")
     options = parser.parse_args()
+    # T-1609. The operator's 2026-10-02 decision permits an unattended run
+    # on this host conditional on a watchdog outside the guest. `--accept-host-risk`
+    # is the operator-present form; `--unattended` is the guarded form, and
+    # it is refused unless the watchdog is actually present and answering,
+    # so this flag cannot become a promise nothing keeps.
+    watchdog = ROOT / "scripts/windows/kvm-watchdog.py"
+    if options.unattended:
+        if not options.accept_host_risk:
+            print("kvm-guest: --unattended still requires --accept-host-risk: "
+                  "the host risk is accepted, and the watchdog bounds it.", file=sys.stderr)
+            return 2
+        if not watchdog.is_file():
+            print(f"kvm-guest: --unattended needs {watchdog}, which is not there. "
+                  "See TODO/gate.md T-1609.", file=sys.stderr)
+            return 2
+        probe = subprocess.run(
+            [sys.executable, str(watchdog), "selftest", "--probe-only"],
+            capture_output=True, timeout=120,
+        )
+        if probe.returncode != 0:
+            print(f"kvm-guest: the watchdog does not answer, refusing an unguarded run: "
+                  f"{probe.stderr.decode('utf-8', errors='replace').strip()}",
+                  file=sys.stderr)
+            return 2
     if not options.accept_host_risk:
         # A 2026-09-30 run left a KVM emulator that SIGKILL did not remove,
-        # and the Windows host then failed. An unattended agent must not start it.
+        # and the Windows host then failed. The operator accepted that risk
+        # on 2026-10-02: either form above accepts it, and --unattended adds
+        # the watchdog that bounds the failure.
         print("kvm-guest: refused: nested KVM can stop the Windows host. "
-              "An operator who is present passes --accept-host-risk. See docs/limits.md.",
+              "Pass --accept-host-risk, with --unattended to run under the "
+              "T-1609 watchdog. See docs/limits.md.",
               file=sys.stderr)
         return 2
     tool = shutil.which("wsl-toolkit")
     if tool is None:
         print("kvm-guest: wsl-toolkit is not on PATH", file=sys.stderr)
         return 2
+    guard = None
     try:
         binary = guest_path(options.binary)
         image = guest_path(options.image)
@@ -55,10 +85,43 @@ def main():
         with tempfile.TemporaryDirectory(prefix="podbox-kvm-proof-") as temporary:
             script = Path(temporary) / "guest.sh"
             script.write_text(prefix + body, encoding="utf-8", newline="\n")
-            result = subprocess.run(
-                [tool, "--instance", "podbox", "base", "exec", "--timeout", "65m", "--script", str(script)],
-                cwd=ROOT, capture_output=True, timeout=4200,
-            )
+            command = [tool, "--instance", "podbox", "base", "exec"]
+            if guard is None and options.unattended:
+                # T-1609. The proof runs detached so the watchdog has a
+                # session id to watch, and the watchdog's own bound sits
+                # above this one, so it is the last resort rather than the
+                # normal path. Without `--unattended` this is the original
+                # synchronous call and no guard runs, which is the
+                # operator-present form.
+                command += ["--detach", "--json"]
+            if not options.unattended:
+                command += ["--timeout", "65m", "--script", str(script)]
+                result = subprocess.run(
+                    command, cwd=ROOT, capture_output=True, timeout=4200,
+                )
+            else:
+                launched = subprocess.run(
+                    command + ["--script", str(script)],
+                    cwd=ROOT, capture_output=True, timeout=300,
+                )
+                if launched.returncode != 0:
+                    result = launched
+                else:
+                    import json as _json
+                    session = _json.loads(launched.stdout.decode("utf-8"))["id"]
+                    guard = subprocess.Popen(
+                        [sys.executable, str(watchdog), "sweep", session,
+                         "--seconds", "4800"],
+                        cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    )
+                    print(f"kvm-guest: session {session} under watchdog {guard.pid}")
+                    # `logs --follow` returns the session's exit code, so the
+                    # proof's verdict still comes from the tool that ran it.
+                    result = subprocess.run(
+                        [tool, "--instance", "podbox", "logs", session, "--follow"],
+                        cwd=ROOT, capture_output=True, timeout=4500,
+                    )
+                    guard.wait(timeout=180)
         output = result.stdout.decode("utf-8", errors="replace")
         output += result.stderr.decode("utf-8", errors="replace")
         # Paths are host conditions. Publish stable labels and state this conversion.

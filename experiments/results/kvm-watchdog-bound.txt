@@ -1,0 +1,8 @@
+bound proof, 2026-10-02. The bug this records: without --instance,
+wsl-toolkit wait resolved the instance by auto, answered 'no such job'
+rc 2 in 0 s, and the 4800 s bound never began.
+
+session: f5e6ebbf1d9ad376
+guard sees: ['22097']
+bound 3s -> wait_rc=124 timed_out=True elapsed=6.6s
+removed: ['22097'] survivors: [] scratch left: []

@@ -2412,30 +2412,35 @@ Problem:     `cargo clippy --workspace --all-targets -- -D warnings`
              (`registry.rs:24`, "one manifest GET, one config and one
              layer blob GET"). The lint fires on the test target
              `parallel_layers`.
-Premise:     The fields are unread because their consumers do not exist
-             yet, not because they are wrong. The fixture was built
-             first and its two consumers, `acquisition.rs` and
-             `store_digest.rs`, are still open in
-             `refactor/recon-c.md`. The fixture landed ahead of its
-             consumers, which is the plan's stated order
-             (`refactor/INDEX.md`: "the fixture before its two
-             consumers").
-Approach:    Make the fields needed rather than deleting them, per
-             `TODO/RULES.md` section 11: dead code is a fault of the
-             reader until proven otherwise. Port the two consumer tests,
-             or the part of each that reads the four fields. Do not add
+Premise:     CORRECTED 2026-10-02. This entry first claimed the consumers
+             did not exist yet. They do. Measured on the tree:
+             `crates/podbox-image/tests/acquisition.rs` and
+             `store_digest.rs` both exist and both read all four fields,
+             `store_digest.rs` alone at six sites. The real cause is
+             narrower and was missed by the original reading: the lint
+             fires on the `parallel_layers` target alone, because
+             `parallel_layers.rs:28` declares `mod common`, so the whole
+             fixture module compiles into that target, and that file
+             reads only `manifest_digest` and `layer_digest` of the four.
+             The other fields are dead *there* while being read by three
+             sibling targets.
+Approach:    Make the fields needed in the target that reports them dead,
+             per `TODO/RULES.md` section 11: dead code is a fault of the
+             reader until proven otherwise. Read what
+             `parallel_layers` is asserting and let it assert on the
+             manifest, config, and layer bytes the fixture already
+             serves, rather than only their digests. Do not add
              `#[expect(dead_code)]`: it silences the signal and then
-             errors once the fields are read, which is a tripwire that
-             fires later for the wrong reason. Do not remove the fields:
-             the fixture's stated contract becomes a lie and the
-             consumers re-add them.
-Decision:    The dead-code rule settles the general case; this entry is
-             the instance. T-1602 owns the registry fixture and its two
-             consumers until the four fields are read in a real
-             assertion.
-Prove:       `cargo clippy --workspace --all-targets -- -D warnings`
-             exits 0 with no dead-code error; `cargo test -p podbox-image`
-             passes and at least one test asserts on `manifest`,
-             `config`, `config_digest`, and `layer`; removing that
-             assertion reddens clippy (the plant this task owes);
-             `./target/release/podbox-gate` exits 0.
+             errors once the fields are read. Do not remove the fields:
+             three targets read them.
+Decision:    The dead-code rule settles the general case and this entry is
+             the instance, but the instance is one test file, not a pair
+             of unwritten consumers. Do not port anything; it is already
+             written.
+Prove:       `cargo clippy -p podbox-image --all-targets -- -D warnings`
+             exits 0 with no dead-code error; `cargo test -p podbox-image
+             --test parallel_layers` passes; that test asserts on
+             `manifest`, `config`, `config_digest`, and `layer` and not
+             only on digests; deleting one of those assertions reddens
+             clippy (the plant this task owes);
+             `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0.

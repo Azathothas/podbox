@@ -28,8 +28,10 @@ Usage:
     kvm-watchdog.py selftest
     kvm-watchdog.py unarm -- session-id
 
-Exit codes: 0 the bound held or nothing needed removing, 1 the watchdog
-fired and removed something, 2 it could not run.
+Exit codes: 0 nothing needed removing and the bound held, 3 the watchdog
+fired and removed an emulator that outlived its bound, 2 it could not
+run. Firing is not a failure of the tool; it is the tool working, and a
+caller reading it as an error learns the opposite of what happened.
 """
 
 import argparse
@@ -138,9 +140,17 @@ def scratch_dirs():
 
 
 def remove_emulator(pids):
-    """TERM, then KILL, then report what survived. Nothing is guessed."""
+    """TERM, then KILL, then report what survived. Nothing is guessed.
+
+    Each signal re-derives the pid list immediately before it is sent and
+    signals only pids still present in it. A bare `kill {pid}` taken from
+    an earlier scan can land on an unrelated process that inherited the
+    number inside the 15 s grace, and on this host the process it must not
+    touch is somebody else's guest.
+    """
     for pid in pids:
-        base_exec(f"kill {pid} 2>/dev/null || true")
+        if pid in owned_emulators():
+            base_exec(f"kill {pid} 2>/dev/null || true")
     deadline = time.time() + 15
     while time.time() < deadline:
         if not owned_emulators():
@@ -148,38 +158,70 @@ def remove_emulator(pids):
         time.sleep(1)
     remaining = owned_emulators()
     for pid in remaining:
-        base_exec(f"kill -KILL {pid} 2>/dev/null || true")
+        if pid in owned_emulators():
+            base_exec(f"kill -KILL {pid} 2>/dev/null || true")
     time.sleep(2)
     return owned_emulators()
 
 
 def wait_for(session, bound):
-    """Wait on the session. Returns its exit code, 124 on timeout."""
+    """Wait on the session. Returns its exit code, 124 on timeout.
+
+    `--instance` is load-bearing, not decoration. Omitted, the global
+    `wsl-toolkit wait` resolves the instance by `auto`, and this machine
+    has seven: acc, base, muse, nobase, pg-toolkit, podbox,
+    podbox-migrate. Measured on a live session: without `--instance` the
+    wait answered `no such job` with rc 2 in 0 s, collapsing the whole
+    bound; with it, rc 124 after the real timeout elapsed. A watchdog
+    whose bound never starts is the one defect this tool exists to prevent.
+    """
     result = subprocess.run(
-        [tool(), "wait", session, "--timeout", f"{bound}s"],
+        [tool(), "--instance", INSTANCE, "wait", session, "--timeout", f"{bound}s"],
         capture_output=True,
     )
     return result.returncode
 
 
+def stop_session(session):
+    """Stop a detached session, on the same instance that started it."""
+    return subprocess.run(
+        [tool(), "--instance", INSTANCE, "stop", session],
+        capture_output=True, timeout=60,
+    )
+
+
 def sweep(session, bound):
-    """The bound. Fires only on a session that overran it."""
+    """The bound. Fires only on a session that overran it.
+
+    A session that ends inside its bound is a success, and its scratch is
+    evidence: `experiments/lib/kvm-guest-base.sh` prints the `$KVM`
+    listing containing `ver.txt`, `setup.txt`, `doctor.txt`, `e42.txt`,
+    `seam.txt` and the serial logs, and the proof's whole value is those
+    bytes. So the scratch is removed only when the wait timed out, and
+    never when the run finished on its own.
+    """
     rc = wait_for(session, bound)
+    timed_out = rc == 124
     pids = owned_emulators()
     scratch = scratch_dirs()
     report = {
         "session": session,
         "wait_rc": rc,
+        "timed_out": timed_out,
         "emulators_found": pids,
         "scratch_found": scratch,
-        "fired": bool(pids or scratch),
+        # An emulator outliving the session is always worth reporting.
+        # Scratch alone is not a failure: on a clean exit it is the
+        # evidence the proof just produced.
+        "fired": bool(pids or (timed_out and scratch)),
     }
     if pids:
         report["survivors"] = remove_emulator(pids)
-    if scratch:
-        _, text = base_exec(
-            "for d in /home/*/podbox-kvm.*; do [ -d \"$d\" ] && rm -rf \"$d\"; done; true"
-        )
+    if timed_out and scratch:
+        # Iterate the validated list, not a fresh glob. A directory the
+        # validator rejects is not this proof's to delete.
+        for directory in scratch:
+            base_exec(f"rm -rf '{directory}' 2>/dev/null || true")
         report["scratch_left"] = scratch_dirs()
     return report
 
@@ -335,7 +377,7 @@ def selftest():
         finally:
             if session:
                 try:
-                    subprocess.run([tool(), "stop", session], capture_output=True, timeout=60)
+                    stop_session(session)
                 except Exception:
                     pass
             # `wsl-toolkit stop` signals the session's process group, which
@@ -374,13 +416,28 @@ def selftest():
         foreign_session = None
         try:
             foreign_session = detached_session(foreign)
-            seen = []
+            # `[q]emu-system`, never `qemu-system`. Measured with zero
+            # emulators running, `grep -c qemu-system` answers 1 because
+            # the pipeline matches its own command line, so an arm that
+            # waited for its fixture started would break instantly and an
+            # arm that checked the fixture survived could never fail.
+            # Both were live defects: this arm asserted nothing.
+            def foreign_alive():
+                _, text = base_exec('ps -eo args | grep -c "[q]emu-system" || true')
+                for line in text.splitlines():
+                    line = line.strip()
+                    if line.isdigit():
+                        return int(line) > 0
+                return False
+
             deadline = time.time() + 45
-            while time.time() < deadline:
-                if any("qemu-system" in line for line in base_exec(
-                        "ps -eo args | grep qemu-system || true")[1].splitlines()):
-                    break
+            while time.time() < deadline and not foreign_alive():
                 time.sleep(1)
+            if not foreign_alive():
+                failures.append("the foreign fixture never started, so the arm proved nothing")
+                print("FAIL the foreign emulator never started")
+            else:
+                print("ok   the foreign emulator is running")
             if owned_emulators():
                 failures.append("the guard selected an emulator outside the proof's scratch")
                 print("FAIL the guard claimed a foreign emulator")
@@ -392,8 +449,7 @@ def selftest():
                 print("FAIL the watchdog fired on someone else's guest")
             else:
                 print("ok   the watchdog stayed quiet")
-            alive = base_exec("ps -eo args | grep -c qemu-system || true")[1]
-            if "0" in alive.splitlines()[-1]:
+            if not foreign_alive():
                 failures.append("the foreign emulator was removed by the guard")
                 print("FAIL the guard removed an emulator it does not own")
             else:
@@ -401,8 +457,7 @@ def selftest():
         finally:
             if foreign_session:
                 try:
-                    subprocess.run([tool(), "stop", foreign_session],
-                                   capture_output=True, timeout=60)
+                    stop_session(foreign_session)
                 except Exception:
                     pass
             base_exec("pkill -f someone-elses-run 2>/dev/null || true")
@@ -426,7 +481,11 @@ def main():
     arm_parser.add_argument("--seconds", type=int, default=DEFAULT_BOUND_SECONDS)
     unarm_parser = sub.add_parser("unarm")
     unarm_parser.add_argument("session")
-    sub.add_parser("selftest")
+    selftest_parser = sub.add_parser("selftest")
+    selftest_parser.add_argument(
+        "--probe-only", action="store_true",
+        help="answer whether the guard can reach the base at all, without launching anything",
+    )
     sweep_parser = sub.add_parser("sweep")
     sweep_parser.add_argument("session")
     sweep_parser.add_argument("--seconds", type=int, default=DEFAULT_BOUND_SECONDS)
@@ -437,10 +496,18 @@ def main():
         if options.command == "unarm":
             return unarm(options.session)
         if options.command == "selftest":
+            if options.probe_only:
+                # What `--unattended` asks before it starts a guest: can
+                # this guard reach the base and see processes at all? It
+                # launches nothing, so it is safe to run before every
+                # guarded proof.
+                pids = owned_emulators()
+                print(f"watchdog: base reachable, {len(pids)} owned emulator(s) visible")
+                return 0
             return selftest()
         report = sweep(options.session, options.seconds)
         print(json.dumps(report, indent=2))
-        return 1 if report["fired"] else 0
+        return 3 if report["fired"] else 0
     except subprocess.TimeoutExpired:
         print(f"{RUN_PODBOX}: could not run: the base did not answer in time", file=sys.stderr)
         return 2

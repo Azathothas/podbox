@@ -1808,7 +1808,7 @@ Problem:     The unpublished KVM driver reuses an experiment number and private 
 Premise:     The KVM host is the toolkit base. The Windows checkout is read-only there.
 Approach:    Use explicit binary and image inputs, pinned image bytes, and owned scratch. Export the complete build on request.
 Decision:    Preserve the base and supplied image. Save proof before collecting its session.
-Prove:       `sh experiments/392-kvm-guest.sh --accept-host-risk --binary BINARY --image IMAGE` exits 0 with the operator present; the default wrapper exports podbox and four helpers; no owned job or scratch remains.
+Prove:       `sh experiments/392-kvm-guest.sh --accept-host-risk --unattended --binary BINARY --image IMAGE` exits 0; the default wrapper exports podbox and four helpers; no owned job or scratch remains.
 
 **Partial 2026-09-30.** Explicit inputs, unique experiment numbering,
 owned runtime scratch, emulator cleanup, and artifact export are implemented.
@@ -1828,8 +1828,9 @@ current setup and guest startup faults.
 did not remove. A later session of the same agent stopped the Windows host,
 and the operator removed the WSL distributions. The base enforces no memory
 limit. The driver now refuses without `--accept-host-risk`, beside another
-emulator, or with less than 6144 MiB available. The next run needs the
-operator present. An unattended agent must not run it.
+emulator, or with less than 6144 MiB available. The operator permitted an
+unattended run on 2026-10-02, so the next run adds `--unattended` and holds
+a T-1609 watchdog on the session rather than needing a person in the room.
 
 ----
 
@@ -1956,9 +1957,11 @@ Prove:       `./target/release/podbox-gate` exits 0; `sh scripts/common/check-tw
 ### T-1607 File the 21 unbatched plan tasks as a later queue
 
 Source:      Operator decision 2026-10-02, "no deferrals from now on";
-             `refactor/PLAN.md` "Do not take a task that no batch
-             names"; `refactor/recon-c.md` section 1, the 21 rows its
-             own preamble counts as unbatched
+             the refactor plan's own rule, "Do not take a task that no
+             batch names", and its section 1 table, the 21 rows its
+             preamble counts as unbatched. `refactor/` is untracked by
+             `.gitignore:152`, so those rows are not readable from a fresh
+             clone: see the Approach, which records that limit
 Category:    gate
 Priority:    P1
 Effort:      M
@@ -1982,6 +1985,16 @@ Approach:     Move the set into this record so the gate counts it and a
              that is the same file read. Split an individual row out into
              its own entry when it turns out to carry implementation
              rather than a decision.
+             LIMIT, found by the 2026-10-02 audit: the 21 rows live only
+             in `refactor/`, which `.gitignore:152` excludes, so a fresh
+             clone cannot read them and this entry cannot be started from
+             one. Read them from the operator's machine, or have the
+             operator track `refactor/` in a separate commit before this
+             entry is taken. Eleven tracked `Source:` fields across the
+             tree still cite `refactor/` paths for the same reason; those
+             are historical provenance on entries that are already done,
+             which is a weaker problem than an open entry depending on an
+             untracked file.
 Decision:     Queue, not deferral. The operator's 2026-10-02 answer is
              that no item is parked: work needing a human becomes a
              tracked task with a clearing condition, and work needing
@@ -2086,11 +2099,56 @@ Decision:     Watchdog outside the guest, keyed on the scratch path.
              replace them, it bounds the failure they cannot prevent.
 Prove:       `py scripts/windows/kvm-watchdog.py selftest` exits 0 and
              ends `verdict PODBOX-KVM-WATCHDOG.SH-OK`, on three
-             consecutive runs; `./target/release/podbox-gate` exits 0;
-             the driver accepts an unattended run without an operator
-             present.
+             consecutive runs saved in the result file;
+             `py scripts/windows/kvm-guest.py --unattended --accept-host-risk
+             --binary B --image I` starts a guarded run and names the
+             watchdog pid;
+             `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0
+             on this host.
 
-**Done 2026-10-02.** `scripts/windows/kvm-watchdog.py` watches the proof
+**Done 2026-10-02, corrected 2026-10-02.** The first version of this
+record claimed more than the tree could support. Four read-only audits
+ran over it and found the following false, each now fixed and each
+measured rather than asserted:
+
+- "the watchdog watches the proof". Nothing invoked it. The arm file
+  `podbox-kvm-watchdog.json` had no reader anywhere in the tree, and
+  `scripts/windows/kvm-guest.py` never mentioned the watchdog. The
+  driver now runs the proof detached and holds a watchdog process on its
+  session, and `--unattended` refuses unless the watchdog answers a
+  probe first, so the flag cannot become a promise nothing keeps.
+- "the time bound". `wait` and `stop` were called without `--instance`.
+  Omitted, the instance resolves by `auto` and this machine has seven:
+  acc, base, muse, nobase, pg-toolkit, podbox, podbox-migrate. Measured
+  on a live session: without it, `rc 2` and `no such job` in 0 s; with
+  it, `rc 124` after the real timeout. The 4800 s bound never began.
+  The bound is now measured working in
+  [kvm-watchdog-bound](../experiments/results/kvm-watchdog-bound.txt):
+  a 3 s bound reports `rc 124`, `timed_out true`, 6.6 s elapsed, the
+  emulator removed, no survivors.
+- "green on three consecutive runs". The result file held one run. All
+  three runs are now saved, and the isolation arm in each now proves
+  its fixture started.
+- `./target/release/podbox-gate` as the gate command. No such binary
+  exists on this host; `target/release/` holds only lock and fingerprint
+  directories. The command that runs here is the debug one.
+
+Two further defects were found in the same pass and fixed:
+
+- the isolation arm asserted nothing. It waited for its fixture with
+  `grep qemu-system`, which matches its own command line, and checked
+  survival with `grep -c qemu-system`, which measured 1 with zero
+  emulators running. Both now use `[q]emu-system`, and the arm fails if
+  its fixture never started.
+- `sweep` deleted the proof's own evidence. It ran `rm -rf` over every
+  `podbox-kvm.*` directory whether or not the bound had expired, taking
+  `ver.txt`, `setup.txt`, `doctor.txt`, `e42.txt`, `seam.txt` and the
+  serial logs from a run that had succeeded. It now removes scratch only
+  when the wait timed out, and iterates the validated list rather than a
+  fresh glob. `kill` re-derives the pid list immediately before each
+  signal, so a pid recycled inside the grace is not signalled.
+
+`scripts/windows/kvm-watchdog.py` watches the proof
 from the Windows side, where the session id is visible and where nothing
 the guest does can take the guard down with it. It selects an emulator
 through `/proc/PID/exe` and matches the proof's `podbox-kvm.` scratch on
@@ -2207,15 +2265,14 @@ Decision:     Measure before installing. The earlier report of this
              unverified premise. Repair the stale podman state through
              the documented flag first: it is required either way and it
              is the toolkit's own path.
-Prove:       `diff experiments/results/kvm-base-provision.txt -` records
-             the repair, the pinned package versions, the device mode, the
-             accelerator list, and both OVMF paths resolving; every line
-             of it was read off the base and none of it was written by
-             hand; `pacman -Q qemu-system-x86 edk2-ovmf` inside
-             `wsl-toolkit --instance podbox` answers the two pinned
-             versions; `/dev/kvm` opens O_RDWR as the `toolkit` account and
-             `KVM_GET_API_VERSION` returns 12; `./target/release/podbox-gate`
-             exits 0.
+Prove:       `pacman -Q qemu-system-x86 qemu-system-x86-firmware edk2-ovmf`
+             inside `wsl-toolkit --instance podbox base exec` answers the
+             three pinned versions; `ls /usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd`
+             and `OVMF_VARS.4m.fd` resolve; `/dev/kvm` opens O_RDWR as the
+             `toolkit` account and `KVM_GET_API_VERSION` returns 12;
+             `podman run --rm hello-world` succeeds;
+             `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0
+             on this host.
 
 **Done 2026-10-02.** The base runs a container and the proof's
 prerequisites are installed in it
@@ -2227,8 +2284,14 @@ cached boot ID; an unhandled reboot has occurred` and named
 `/tmp/wsl-toolkit-run-1000/libpod/tmp`. `wsl-toolkit --instance podbox
 base ensure --repair` is the documented route and it worked: the engine
 answers 6.1.2, `base ensure` reports `usable: true`, and `podman images`
-lists the cached images. The stale directories are gone and no container
-in this base could run before it.
+lists the cached images. The stale state is cleared. Two corrections
+from the 2026-10-02 audit pass, both measured: the directories are
+recreated by ordinary use afterwards, so "gone" described the instant of
+the repair and not a durable property; and the boot-ID failure itself was
+never saved to a result file, so it lives in this record and in the
+commit body rather than in `experiments/results/`. `podman run --rm
+hello-world` now succeeds in this base, which is the claim that carries
+weight.
 
 Then the packages, pinned, through `base exec --root`:
 `qemu-system-x86 11.1.1-4`, `qemu-system-x86-firmware 11.1.1-4`, and
@@ -2247,6 +2310,18 @@ here because measuring found them:
   660, and only then does `dd if=/dev/kvm` succeed as `toolkit`. The
   device is now `crw-rw---- root kvm` and the account reads
   `groups=1000(toolkit),990(kvm)`.
+- That mode is per boot and the record did not say so. Measured 2026-10-02
+  in the base: `/usr/lib/tmpfiles.d/static-nodes-permissions.conf` line 18
+  reads `z /dev/kvm 0666 - kvm -`, a systemd-tmpfiles rule that replays
+  on every boot and would reset the node to `crw-rw-rw- root kvm`, mode
+  666, group kvm. There is no udev rule for kvm under `/etc/udev/rules.d`.
+  So a session that starts after a reboot finds `/dev/kvm` unreadable
+  again, and must reapply `chown root:kvm` and `chmod 660` before any
+  guest runs, or drop to root and run the guest as root. This entry left
+  the node stricter than the base's own shipped policy on purpose; that
+  is a deliberate narrowing, not an accident, and the disagreement with
+  the tmpfiles rule is recorded here so a later session comparing the two
+  does not read it as a defect it should "fix" the other way.
 - Nothing about this needs the Windows host. A qemu exists there under
   scoop, and the operator's standing rule is that it is never touched;
   this entry installed everything into `wsl-toolkit-podbox` instead.
@@ -2314,3 +2389,58 @@ Prove:       `grep -c "podbox-buildstate\|podbox-release\|podbox-podvm\|podbox-g
              nothing; `sh scripts/common/check-docs.sh` exits 0;
              `sh scripts/common/check-one-home.sh` exits 0;
              `./target/release/podbox-gate` exits 0.
+
+### T-1612 Give the unowned work in the record an owner
+
+Source:      Plan-completeness audit 2026-10-02, four read-only passes
+             over `TODO/`, `docs/limits.md`, and `.github/workflows/`;
+             `TODO/image.md` `:311` and `:320`; `TODO/podssh.md` `:203`;
+             `docs/limits.md` `:29`; `TODO/gate.md` T-1610
+Premise:     Each of the four was read in the document that carries it,
+             not inferred from a status column. Two sit inside entries
+             the index marks `done`, which is the shape of the defect:
+             a sentence saying work remains, under a row saying nothing
+             does. A gate that reads statuses cannot see that, and the
+             session-start instruction is to run the gate.
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Four pieces of work are described in tracked documents as
+             still open, and none has a task row. They are real
+             capability, not documentation debt, and an agent cannot find
+             them because nothing indexes them.
+Approach:     Decide, for each, whether it is work or a limit. Two are
+             remaining acceptance on entries marked `done`, so the honest
+             move is to reopen the owning entry rather than invent a new
+             one. Two are genuine permanent limits on this host, so the
+             honest move is to stop describing them as pending work.
+Decision:     One entry owns the decision for all four, because the work
+             is the decision and each needs a human's judgement about
+             scope, not an implementation.
+Prove:       `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0;
+             `grep -rn -e "still open" -e "future work" -e "remains open"
+             TODO/ docs/limits.md` returns no sentence whose owning index
+             row is `done`; each of the four below names a reopened entry
+             or a corrected limits page.
+
+**The four, with what each one needs.**
+
+1. `TODO/image.md:311` gives T-0204 a Prove clause requiring `podbox run
+   -d --name gc-probe` to hold a lock across an exec, and `:320` says
+   plainly that this half is not done. The entry is `done`. The mechanism
+   is lock inheritance across exec, which is T-0211's subject and T-0211
+   is `partial`. Decide: reopen T-0204, or fold the clause into T-0211.
+2. `TODO/podssh.md:203` records that reconnect is proven on the loopback
+   fake relay and that pairing against the live relay stays open. T-1406
+   is `done`. Decide the same way.
+3. `docs/limits.md` records the base has no cgroup delegation, so engine
+   memory and CPU limits are accepted and not enforced. `TODO/RULES.md`
+   section 8 says an accepted option does not prove enforcement, so the
+   record knows the hazard. No task owns it and no tool can repair it;
+   `base ensure --repair` says so itself. This is a permanent limit on
+   this host unless the toolkit changes. Record it as a limit, not work.
+4. `docs/limits.md:29` assigns the live-entry prover and the
+   binary-appended footer to T-1003, which is `done`. A closed entry
+   cannot own future work. Decide where it goes or drop it.

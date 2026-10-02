@@ -62,9 +62,18 @@ ReactOS remains unproved in that entry.
 Nested KVM in the Windows base can stop the Windows host. On 2026-09-30 a
 KVM proof left an emulator that SIGKILL did not remove, and the host then
 failed. The operator permitted an unattended run on 2026-10-02, on this
-host only, conditional on the watchdog T-1609 builds. The proof driver
-still requires `--accept-host-risk` until that watchdog lands. It refuses
+host only, conditional on a watchdog outside the guest. That watchdog has
+landed: `--unattended` starts the proof detached and holds a T-1609
+watchdog on its session, and refuses unless the watchdog answers a probe
+first. The driver also still requires `--accept-host-risk`, and refuses
 beside another emulator or below 6144 MiB available.
+
+`/dev/kvm` in this base is `crw-rw---- root kvm`, set by hand because the
+node shipped as `crw------- root root` and the guest account is uid 1000.
+That mode is per boot: the base's own
+`/usr/lib/tmpfiles.d/static-nodes-permissions.conf` replays
+`z /dev/kvm 0666 - kvm -` on every boot. After a reboot, reapply the mode
+or run the guest as root.
 
 ## Development base
 

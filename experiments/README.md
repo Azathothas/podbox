@@ -51,10 +51,12 @@ The explicit KVM command is:
 sh experiments/392-kvm-guest.sh --accept-host-risk --binary BINARY --image IMAGE
 ```
 
-Only an operator who is present can pass `--accept-host-risk`. An agent
-must not run this proof unattended: nested KVM stopped the Windows host on
-2026-09-30. The driver refuses to start beside another emulator or with less
-than 6144 MiB available in the base.
+Nested KVM stopped the Windows host on 2026-09-30, so `--accept-host-risk`
+is required and was for a long time operator-only. The operator permitted
+an unattended run on 2026-10-02: pass `--unattended` as well, and the
+driver holds a T-1609 watchdog on the session, refusing to start unless
+that watchdog answers first. The driver also refuses to start beside
+another emulator or with less than 6144 MiB available in the base.
 The image length and digest are checked by the tracked driver. Keep the
 licensed disk outside Git. Save the report before collecting the owned job.
 Do not make a future test depend on `.tmp` or an expired toolkit transcript.

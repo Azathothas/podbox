@@ -2,7 +2,7 @@
 
 ## State
 
-225 entries: 9 open, 3 partial, 0 blocked, 213 done.
+226 entries: 10 open, 3 partial, 0 blocked, 213 done.
 
 The 11 open entries are the CI remainder below, filed on 2026-10-02 as
 tracked tasks with a Prove clause each, replacing the operator-blocked
@@ -59,8 +59,9 @@ the staged audit. It rebuilt `wsl-toolkit-podbox` with
 The recovery found a source defect. `podbox_windows::run` piped the
 emulator's streams and did not read them. The fix and its mutation proof
 are in T-1112 and [experiment 401](../experiments/results/emulator-streams.txt).
-The KVM driver now needs `--accept-host-risk` and an operator who is present.
-See T-1350 and [Limits](../docs/limits.md).
+The KVM driver needs `--accept-host-risk`, and an unattended run adds
+`--unattended`, which holds a T-1609 watchdog on the session and refuses
+unless that watchdog answers first. See T-1350 and [Limits](../docs/limits.md).
 
 The rebuilt base has no cgroup delegation. The engine accepts memory and
 CPU limits and does not enforce them.
@@ -107,8 +108,10 @@ keeps its historical scope. It does not establish current reliability.
 3. T-1401 is done: the compiled shim with the exit-42 proof.
 4. T-1003 is done: rung-complete FUSE, armed tmpfs entry, OCI-tarball rootfs.
 5. T-1407 through T-1421 are done: the fifteen findings with their drives.
-6. T-1350 and T-1112 stay partial: one KVM run with the operator
-   present, then ReactOS. Tracked and open, not deferred.
+6. T-1350 and T-1112 stay partial: one guarded KVM run with
+   `--unattended`, then ReactOS. ReactOS needs a redistributable base
+   that does not exist, so that half is blocked on a human. Tracked, not
+   deferred.
 7. T-1559 through T-1569 are done: the three tool crates with their
    shims, proofs, and plants. The nightly wiring for `release-notes`
    lands with them; T-1605 owns the live tag proof.
@@ -117,16 +120,13 @@ keeps its historical scope. It does not establish current reliability.
    stdio cascade. Take T-1601 first; it also clears the plant MISSes.
 9. T-1607 files the 21 unbatched plan rows. T-1606 repoints the
    `references/` citations. T-1605 pushes the version tag.
-10. T-1609 then T-1610 unblock the KVM proofs T-1350 and T-1112.
-    T-1611 repoints the code maps after the Batch 3 port.
+10. T-1611 repoints the code maps after the Batch 3 port. T-1350 is then
+    the next KVM run, and it needs `/dev/kvm` reapplied after a reboot.
 
-An agent may start a KVM guest unattended. The operator reversed
-the 2026-09-30 rule on 2026-10-02, conditional on a watchdog that runs
-outside the guest and removes an emulator that outlives its bound. See
-T-1609, which builds that watchdog; until it lands, the driver still
-refuses without `--accept-host-risk`.
-Read each entry's exact proof and referenced source before
-implementation.
+An agent may start a KVM guest unattended by passing both
+`--accept-host-risk` and `--unattended`; the driver then holds a T-1609
+watchdog on the session. T-1609 and T-1610 are done. Read each entry's
+exact proof and referenced source before implementation.
 
 ## CI remainder
 
@@ -178,11 +178,13 @@ They bind every future session and are not restated anywhere else:
 | version tag and release | operator action | authorized, T-1605 |
 
 The KVM and emulator work no longer needs a person in the room. The
-operator permitted an unattended run on 2026-10-02, conditional on the
-watchdog T-1609 builds. Two measured blockers stand between here and
-the proof: T-1609 the watchdog, and T-1610 which settles which qemu the
-proof uses and repairs podman's stale post-reboot state. T-1350 and
-T-1112 stay `partial` until both clear.
+operator permitted an unattended run on 2026-10-02, conditional on a
+watchdog outside the guest. Both blockers that stood between here and
+the proof are done: T-1609 built the watchdog and wired it to the driver,
+T-1610 repaired podman and installed qemu and OVMF into the base. T-1350
+can now run guarded. T-1112's KVM leg rides the same run; its ReactOS leg
+is still blocked on a redistributable base that does not exist in the
+tree.
 
 ## Publication
 
