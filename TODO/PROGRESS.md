@@ -180,8 +180,9 @@ They bind every future session and are not restated anywhere else:
 The KVM and emulator work no longer needs a person in the room. The
 operator permitted an unattended run on 2026-10-02, conditional on the
 watchdog T-1609 builds. Two measured blockers stand between here and
-the proof: T-1609 the watchdog, and T-1610 the missing qemu and OVMF
-packages. T-1350 and T-1112 stay `partial` until both clear.
+the proof: T-1609 the watchdog, and T-1610 which settles which qemu the
+proof uses and repairs podman's stale post-reboot state. T-1350 and
+T-1112 stay `partial` until both clear.
 
 ## Publication
 

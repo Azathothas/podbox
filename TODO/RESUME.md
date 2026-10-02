@@ -55,11 +55,15 @@ stay `partial` until it lands, and the work is no longer one entry:
 | id | blocker | measured 2026-10-02 |
 | --- | --- | --- |
 | T-1609 | no watchdog outside the guest | cleanup runs inside the guest and dies with it |
-| T-1610 | no qemu, no OVMF | `qemu-system-x86_64` absent, `/usr/share/edk2-ovmf/` absent, account uid 1000 with no `sudo` |
+| T-1610 | podman stale; which qemu to use | boot-ID error on every `podman` call; a qemu exists on the Windows host |
 
-The accelerator itself is live: `/dev/kvm` is present, `vmx` is in
-`/proc/cpuinfo`, 30 GiB available. T-1610 is packaging, not
-capability. T-1609 first, then T-1610, then the T-1350 proof.
+The accelerator is live: `/dev/kvm` is present, `vmx` is in
+`/proc/cpuinfo`, 30 GiB available. The base has no in-guest qemu and no
+`/usr/share/edk2-ovmf`, measured four ways, but the Windows host has
+`qemu-system-x86_64.exe` under scoop and a host qemu beside `/dev/kvm`
+is the ordinary nested arrangement. Decide that before installing
+anything into anyone's base. T-1609 first, then T-1610, then the
+T-1350 proof.
 
 ## What changed this session
 
@@ -102,7 +106,7 @@ claim. T-1607 records the corrected figure and owns the queue.
 | T-1607 | file 21 unbatched rows | mechanical |
 | T-1608 | one-home fails on Batch 3 prose | rewording two Done paragraphs |
 | T-1609 | KVM watchdog outside the guest | new script; blocks T-1350 |
-| T-1610 | qemu and OVMF absent from the base | needs the toolkit's root route |
+| T-1610 | podman stale after reboot; which qemu to use | repair first, then measure |
 | T-1611 | code maps name shims, miss four crates | documentation only |
 
 T-1350 and T-1112 stay `partial` until T-1609 and T-1610 clear. The

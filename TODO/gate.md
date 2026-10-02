@@ -2094,7 +2094,7 @@ Prove:       `sh experiments/401-kvm-watchdog.sh selftest` exits 0 and
              the driver accepts an unattended run without an operator
              present.
 
-### T-1610 Install qemu and OVMF in the KVM base
+### T-1610 Repair the base's stale podman state and settle which qemu the proof uses
 
 Source:      Measured on the base 2026-10-02 via `wsl-toolkit --instance
              podbox base exec`; `experiments/lib/kvm-guest-base.sh` `:16`
@@ -2112,26 +2112,63 @@ Problem:     T-1609 builds the watchdog, and the run still cannot happen:
              `sudo`, so it cannot install anything itself.
 Premise:     `/dev/kvm` and `vmx` are both present and 30 GiB is
              available, so the accelerator is live and the failure is
-             packaging, not capability. `pacman` exists at
-             `/usr/sbin/pacman`, so the packages exist; only the route to
-             root does.
-Approach:     Find the supported route rather than escalating privileges
-             by hand. `wsl-toolkit base exec --root` runs as root, and
-             `base bootstrap` installs the toolset the base carries, so
-             check whether the toolset includes qemu and edk2 first and
-             use `--root` with `pacman` only for what is missing. Pin the
-             package versions, because the pinned VHDX image digest in
-             `experiments/lib/kvm-guest-base.sh:15` assumes a known
-             guest and a moved qemu changes its behaviour.
-Decision:     Route through the toolkit before reaching for `--root`. A
-             hand-run `pacman` on someone's base is the change with the
-             widest blast radius in this plan, and the toolkit already
-             owns the base's package state.
-Prove:       `wsl-toolkit --instance podbox base exec -c 'qemu-system-x86_64 --version'`
-             exits 0 and `ls /usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd`
-             resolves; `podbox windows doctor` inside the base reports
-             `accelerator: kvm`; the package versions used are recorded
-             here; `./target/release/podbox-gate` exits 0.
+             packaging, not capability. The absence is scoped to the
+             Linux base, measured four ways on 2026-10-02:
+             `command -v qemu-system-x86_64` against the base `PATH`;
+             `ls /usr/bin/qemu-system* /usr/local/bin/qemu-system*`;
+             `pacman -Q | grep -E 'qemu|edk2'`, which returns nothing;
+             `ls -d /usr/share/edk2* /usr/share/OVMF* /usr/share/qemu*`,
+             which returns nothing. The pacman database is present at
+             `/var/lib/pacman` and the package cache holds neither, so
+             nothing is staged locally either.
+Premise:     A qemu DOES exist on the Windows host, at
+             `C:\Users\AjamX\scoop\apps\qemu\current\qemu-system-x86_64.exe`.
+             An earlier report of this session said qemu was absent and
+             named only the base; that was an incomplete measurement, not
+             a wrong one, and it matters because a Windows-host qemu beside
+             `/dev/kvm` is the ordinary nested arrangement under WSL and
+             may make installing anything unnecessary.
+Premise:     A second defect blocks every container run in the base,
+             KVM or not: podman answers `current system boot ID differs
+             from cached boot ID; an unhandled reboot has occurred` and
+             names `/tmp/wsl-toolkit-run-1000/containers` and
+             `/tmp/wsl-toolkit-run-1000/libpod/tmp`. Both exist.
+Approach:     Clear the stale podman state first, with the route the
+             toolkit documents for it: `wsl-toolkit --instance podbox
+             base ensure --repair`, which `base --help` says "may clear
+             engine run state a reboot invalidated" and which refuses
+             without the flag rather than repairing by default. That is
+             the lowest-risk first move and it is required for any
+             container to run in this base at all.
+             Then settle which qemu the proof uses, because the answer
+             decides whether anything is installed. `base bootstrap`
+             installs the toolset the base carries and the base reports
+             `toolset none` today, so check the available toolsets before
+             reaching for `--root` and `pacman`. If the Windows-host
+             qemu can serve the proof, install nothing: that is the
+             ordinary nested arrangement under WSL and it leaves the
+             base unmodified. Only install into the base if the proof
+             genuinely requires an in-guest binary, and then use
+             `base exec --root` with `pacman` and pin the versions,
+             because the pinned VHDX digest at
+             `experiments/lib/kvm-guest-base.sh:15` assumes a known guest.
+Decision:     Measure before installing. The earlier report of this
+             session called qemu absent on the strength of the base
+             alone; the Windows host has one under scoop. Installing a
+             second qemu into someone's base would be the change with
+             the widest blast radius in this plan, taken on an
+             unverified premise. Repair the stale podman state through
+             the documented flag first: it is required either way and it
+             is the toolkit's own path.
+Prove:       `wsl-toolkit --instance podbox base exec -c 'podman info'`
+             exits 0 with no boot-ID error; `wsl-toolkit --instance
+             podbox base ensure --probe` reports usable; whichever qemu
+             the proof uses is named here with its path and version, and
+             if that is the Windows host binary then no package was
+             installed into the base and `pacman -Q` still lists neither
+             qemu nor edk2; `podbox windows doctor` inside the base
+             reports `accelerator: kvm`;
+             `./target/release/podbox-gate` exits 0.
 
 ### T-1611 Repoint the code maps and limits page after the Batch 3 port
 

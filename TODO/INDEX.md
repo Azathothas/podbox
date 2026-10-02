@@ -284,7 +284,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1607](gate.md) | P1 | gate | open | File the 21 unbatched plan tasks as a later queue |
 | [T-1608](gate.md) | P2 | gate | open | Reword the Batch 3 Done paragraphs so one-home passes |
 | [T-1609](gate.md) | P0 | gate | open | Build the KVM watchdog that makes an unattended guest run safe |
-| [T-1610](gate.md) | P0 | gate | open | Install qemu and OVMF in the KVM base |
+| [T-1610](gate.md) | P0 | gate | open | Repair the base's stale podman state and settle which qemu the proof uses |
 | [T-1611](gate.md) | P1 | gate | open | Repoint the code maps and limits page after the Batch 3 port |
 
 ## Counts
