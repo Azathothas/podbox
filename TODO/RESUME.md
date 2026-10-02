@@ -65,20 +65,23 @@ a local green run, because a local run has no lint to fire.
 Then T-1602, T-1603, T-1604, which clear the other three red CI jobs,
 then T-1608 and T-1611, then T-1612, T-1607, T-1606, T-1605.
 
-## Known open work
+## Open work
 
-| id | subject | note |
-| --- | --- | --- |
-| T-1601 | 1.99 interpose lint | needs a Linux lane run; not reproducible locally |
-| T-1602 | registry fixture dead code | the cause is `parallel_layers`, not missing consumers; its Premise was corrected today |
-| T-1603 | remove the secrets check, add trufflehog | land both in one commit or the repo has no secrets scan in between |
-| T-1604 | detached stdio cascade | needs a Linux lane run |
-| T-1605 | live version tag proof | authorized; do not push a tag while CI is red |
-| T-1606 | repoint 47 `references/` citations | blocks the corpus deletion |
-| T-1607 | file 21 unbatched plan rows | needs `refactor/`, which is untracked; see its Approach |
-| T-1608 | one-home fails on Batch 3 prose | rewording two Done paragraphs |
-| T-1611 | code maps name shims, miss four crates | documentation only |
-| T-1612 | four pieces of work have no owner | decide reopen-or-limit for each |
+The work order lives in `TODO/PROGRESS.md` and only there;
+`docs/methodology/work-todo.md` forbids a second one. The ten open rows
+are T-1601 through T-1612 as listed in `TODO/INDEX.md`. Three carry a
+condition a previous session found and a new agent would otherwise
+rediscover:
+
+- **T-1601** cannot be reproduced here. `rustc -V` is 1.98.0 and 1.99 is
+  not installed, so a local green run has no lint to fire. Prove it in
+  the Linux lane.
+- **T-1602**'s Premise was corrected on 2026-10-02: its consumer tests
+  exist and read all four fields. The lint fires in `parallel_layers`
+  alone. Do not port anything that is already written.
+- **T-1603** must land the deletion and the trufflehog workflow in one
+  commit. Two commits leave the repository with no secrets scanning in
+  between, and pushes to `main` are authorized.
 
 ## Partial entries
 
