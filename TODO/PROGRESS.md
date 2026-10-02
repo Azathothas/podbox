@@ -2,10 +2,10 @@
 
 ## State
 
-249 entries: 23 open, 8 partial, 0 blocked, 218 done.
+250 entries: 23 open, 9 partial, 0 blocked, 218 done.
 
 The 23 open entries are the 22 T-1613 filed for the plan rows no batch
-named, plus T-1605. Read `TODO/RULES.md` section 11 before taking any of
+named, plus T-1641. Read `TODO/RULES.md` section 11 before taking any of
 them: the operator settled seven standing decisions and one read-write
 grant on 2026-10-02, and they change how the work is done, not only what
 it is. The CI remainder below is no longer open: T-1601, T-1602, T-1603,
@@ -131,9 +131,11 @@ keeps its historical scope. It does not establish current reliability.
    handoff. `/dev/kvm` needed no reapply this session; `qemu-img` did
    need installing into the base, and T-1610's Prove clause does not name
    it. T-1112's KVM leg rides this run.
-10. T-1605 pushes the version tag once the record lands: the workspace
-    version is `0.1.0-beta.12` and the newest tag is beta.12, so the tag
-    needs a version bump in the same change.
+10. T-1605 is `partial`: `v0.1.0-beta.13` is pushed and the nightly it
+    triggers ran red on six legs, all at the licence-inventory shim,
+    whose search list did not cover a per-triple build directory. The
+    shim is fixed in this change; the next tag push is what proves the
+    publish path end to end.
 
 An agent may start a KVM guest unattended by passing both
 `--accept-host-risk` and `--unattended`; the driver then holds a T-1609

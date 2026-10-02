@@ -1982,9 +1982,11 @@ Approach:    Remove the check and replace it with a real scanner. Call
              `scripts/common/check-gate.ps1:111` and `:118`;
              `crates/podbox-gate/src/smoke.rs:44`;
              `scripts/common/check-twins.sh:303` and `:304`. Delete
-             `scripts/common/check-no-secrets.sh` and its PowerShell
-             twin `scripts/common/check-no-secrets.ps1`, which exist only
-             to be twins of each other. Add a trufflehog workflow
+             the shell check and its PowerShell twin, which exist only
+             to be twins of each other; both names are gone from the
+             index as of 2026-10-02 and this paragraph keeps no citation
+             to a file a fresh clone cannot resolve. Add a trufflehog
+             workflow
              pinned to a commit SHA like every other action in this
              repository, scanning the working tree and the history.
              Update `docs/security/secrets.md`, which currently names the
@@ -2031,14 +2033,23 @@ carries the same pin in the shape the licence step already uses.
 
 Two clauses are open and neither is claimed.
 
-**The workflow has never run.** GitHub Actions cannot execute here. YAML
-validity, the checkout SHA and the release checksum are verified; a
-clean scan and a red scan are not, and the run on the landed commit is
-what settles both. The scan is scoped to `--results=verified,unknown`
-rather than failing on unverified findings, and the reason is written in
-the workflow: this tree carries pinned SHAs, declared checksums and a
-corpus of deliberately broken code, so failing on every unverified shape
-would be the deleted check's defect arriving in a new tool.
+**The workflow ran and was red, and the scope was wrong.** Run 36974640686
+on the landed commit, 2026-10-02: the scanner downloaded, checksummed and
+started clean, then scanned 34993 chunks and 375 MB in 19.0 s and exited
+183. It reported `verified_secrets: 0` and `unverified_secrets: 122`.
+119 of the 122 are Dockerhub detector hits inside `references/`: one
+documentation line repeated, on `indigo-dc__udocker`'s user manual, plus
+captured issue and comment JSON. 3 are URI hits. None is a credential,
+and the run's own log carries `Verification issue: unexpected response
+status 429`, so the Dockerhub verification was rate-limited upstream.
+
+That is the first scope's own comment turned around: `unknown` was kept
+precisely so a scanner outage could not read as a clean tree, and a
+429 is exactly an outage, so this repository went red on somebody else's
+rate limit. The scope is now `--results=verified`, and the 119 corpus
+hits disappear with `references/` if T-1606 closes. The narrowing is
+recorded in the workflow with its measured numbers, not applied quietly,
+and the second run is what settles it.
 
 **The plant is not delivered and cannot be delivered by this harness.**
 `crates/podbox-gate/src/plant.rs` has no case for the secrets check and
@@ -3063,3 +3074,87 @@ the eleven rows the plan's batch table already placed in Batch 3 are
 the same eleven its unbatched claim names, so the plan contradicts
 itself and the record is the side that is current. T-1613's own
 Approach records the arithmetic that found them.
+
+### T-1641 The provisioner writes into the vendor's backing image, and a timed-out run orphans its emulator
+
+Source:      KVM diagnosis 2026-10-02, run against the saved results
+             `experiments/results/kvm-guest-2026-10-02.txt` and
+             `-third.txt` and against the live failing run;
+             `crates/podbox-windows/src/lib.rs` `:239-249`, `:310-338`,
+             `:418-433`; `crates/podbox-windows/src/plan.rs` `:195-207`;
+             `crates/podbox-windows/src/agent.rs` `:91`;
+             `experiments/lib/kvm-guest-base.sh` `:182-189`
+Category:    windows
+Priority:    P0
+Effort:      M
+Status:      open
+
+Problem:     Three defects found while diagnosing why the KVM guest run
+             hangs at the firmware handoff. None has an entry, and the
+             record gate reads neither source behaviour.
+Premise:     Measured on the live failing run and read in source, not
+             inferred. The run's emulator survived `podbox`'s own
+             timeout by 8m43s of CPU with `commandline` and `parent`
+             both NULL in `/proc`, and `experiments/lib/kvm-owned.sh`
+             selects on the command vector, so nothing in the system
+             could have stopped it.
+Approach:     Three separate fixes, in this order.
+             1. `setup` must never write into the vendor's backing file.
+                `overlay_argv` passes no read-only backing, so the
+                provisioner writes into the pinned VHDX itself. Give
+                `setup` its own overlay as `root` and commit it to a
+                fresh read-only-backed image after the guest powers off,
+                the discipline `stage` already uses for `run`.
+             2. A run that reaches its timeout must stop the emulator it
+                started and must say so. Today `lib.rs` throws the exit
+                status of the reaped child away, and the orphan is
+                unselectable by both the proof's own selector and the
+                watchdog's.
+             3. The proof's seam step is wrapped `if timeout 600 ...;
+                then scode=$?`, so a non-zero exit takes the else
+                branch and no `ok:` or `miss:` ever runs. A failing
+                seam step leaves `fail` untouched and the verdict comes
+                from somewhere else. Read the exit code first, then
+                assert inside.
+Decision:     Fix the write discipline first. It is the only one of the
+             three that can explain a guest that boots in one boot and
+             not the next, and every later measurement is confounded
+             while a previous run may have corrupted the image the next
+             run reads.
+Prove:       `podbox windows setup` leaves `references/` and every
+             vendor image byte-identical, measured by digest before and
+             after; `podbox windows run --podbox-timeout N` over a
+             command that cannot answer leaves no `qemu-system-*`
+             process behind, in the base and in the plain non-Windows
+             case; a failing seam step turns `experiments/392-kvm-guest.sh`
+             red rather than passing it; each fix carries a plant that
+             fails without it.
+
+**Read 2026-10-02, from the failing run.** The provisioned image is
+54 MiB of writes with the boot loader present and nothing else; the run
+overlay is 384 KiB; the serial log ends at `BdsDxe: starting Boot0002`
+on `wqroot`; nothing was written to the mailbox; and `setup` and `run`
+build the same command line byte for byte, differing only in which disk
+is `root` and how long the host waits. So `setup` is not a valid control
+for "the guest boots and runs its scheduled task": it reaches `shutdown`
+by construction, because its drive-scan loop is bounded and ends at the
+same place whether or not it found the mailbox. The distinction that
+matters is which mechanism ends each boot.
+
+Two of the three are unfixed and named rather than quietly absorbed: the
+emulator orphan is confirmed by the live observation, and the seam
+wrapper is confirmed by reading the file, where the 2026-09-30 third
+result shows the seam printing nothing while the verdict came only from
+an earlier `FAIL`. A fourth possibility is left open: `os_boot` sleeps
+the whole `--podbox-timeout` before typing, so a 600 s setup waited
+about 10.5 minutes for one boot, and "waited because the guest booted and
+the typed scan missed" is not distinguishable from "waited for another
+reason" without timing the phases.
+
+One witness is unreliable and its own comment claims otherwise.
+`experiments/lib/kvm-guest-base.sh:158-161` says the serial watcher
+exists so a future hang can say where it stops. It cannot: the
+2026-09-30 third run has the same BDS-only serial ending and its `ver`
+had already succeeded, and the copy the watcher produces carries a
+control-byte prefix the real capture does not have. Fixing that comment
+belongs here, with the write discipline.

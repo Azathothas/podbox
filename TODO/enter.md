@@ -1208,8 +1208,44 @@ queued before any panic. CI saw the cascade because one test reached
 removes the accident, and no test buildable on this host demonstrates it
 reliably. The temporary test is not in the tree.
 
-What remains: the root cause of the one-of-three. It did not reproduce in
-four lane runs. Ruled out with evidence, not by assertion: image-lock
+**CI then named the exit, and it is not a scheduling accident.** Run
+36974640619 on this commit, 2026-10-02, four lane runs after the lane was
+green here. The stderr this entry added is what settled it:
+
+```
+assertion `left == right` failed: only 1 of 3 detached starts ran:
+  start 1 (`run -d` for det1-5332-1) exited Some(126) after 5, id "",
+  inspect exited Some(1) reading []
+    run -d stderr: podbox run: chroot(2) is denied on this machine, and
+    no no-chroot family runs this payload: the loader family declines the
+    payload: this podbox binary carries no glibc interposer object, so the
+    tier is declined; ./scripts/build-interpose.sh builds them.
+```
+
+Not a flaky start and not a scheduling order: the start takes 5 seconds
+and exits 126 with a refusal naming its own cause, and the refusal is
+correct for the tier. What is wrong is the test, because it asserts a
+detached start succeeds in an environment where the product refuses. So
+the entry's own rule applies, that a test may not depend on a scheduling
+order it cannot control, and here it depends on a *tier* it cannot
+control: the CI job that builds the workspace tests does not build the
+interposer objects, so the binary under test carries no glibc interposer
+and the no-chroot family declines. Every start in that job fails the same
+way; CI reported 1 of 3 only because the loop breaks on the first.
+
+The three questions this session could not answer from the lane are now
+answered from CI, and they change the fix: it is not in the mutex, not in
+the launcher, and not in the store. It is that the assertion is
+conditional on the environment and does not say so.
+
+What remains, precisely: make the assertion skip with a named reason
+where the tier legitimately declines, the way
+`tests/store_gates.rs` already does for a host that refuses namespaces,
+and keep it strict where the tier is available. The other half of the
+answer, whether the CI job should build the interposer before the
+workspace tests, belongs with T-1641's owner because the same
+`scripts/build-interpose.sh` path defect this session measured is what
+leaves the object out of the binary in the first place. Ruled out with evidence, not by assertion: image-lock
 contention, the store lock being held by the payload, name collision, and
 the deadline. Duration does not discriminate, because failing CI runs at
 44.18 s, 48.20 s and 51.05 s overlap passing lane runs at 46.86 s,

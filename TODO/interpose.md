@@ -1692,9 +1692,19 @@ Not driven here: `scripts/build-interpose.sh`, which resolves
 lands under `target/x86_64-unknown-linux-musl/release/`. That is a
 defect in the wrapper's path resolution, not in this fix, it predates
 this entry, and the lane job calls the same binary directly to get the
-same objects. It has no entry of its own yet. Plants 32e and 32f need
-the plant harness, which compiles this crate, and were not run in this
-session; CI on the landed commit is the remaining clause.
+same objects. It has no entry of its own yet.
+
+**CI confirms it. Run 36974640619, 2026-10-02, the static-build job is
+green.** Its `interposer, one object per libc`, `build`, `no PT_INTERP`
+and `binary size ceiling and breakdown` steps all report success, and
+the `fmt, clippy, shell` job's `clippy` and `interposer clippy` steps
+report success on the same commit. That is the clause the lane could not
+settle: the lint fires at link time, which is exactly where this host
+had no toolchain to reach.
+
+Plants 32e and 32f are the one clause still open. They need the plant
+harness, which compiles this crate and links it, and the harness was not
+run in this session.
 
 ### T-1628 Record `162-tar-symlink-modes.sh` as retained, DELETE refuted by VC-2
 

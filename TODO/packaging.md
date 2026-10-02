@@ -992,7 +992,7 @@ Source:      T-1565; `.github/workflows/nightly.yml`;
 Category:    packaging
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      partial
 
 Problem:     T-1565 ported `scripts/release-notes.sh` to the
              `release-notes` binary and the nightly job runs the
@@ -1022,6 +1022,43 @@ Prove:       `git tag --list` shows the new tag on the landed commit; the
              binary rather than by the retired shell; the run log names
              the binary path it executed;
              `./target/release/podbox-gate` exits 0.
+
+**Partial 2026-10-02. The tag is pushed and the nightly ran; it is red,
+and the cause is a shim, not the wiring.** `git tag --list` shows
+`v0.1.0-beta.13` on commit `1a87b10`, which is the landed commit and the
+version the workspace manifest names; the tag push triggered two nightly
+runs, 36974650357 and 36974650815. `TODO/RULES.md` section 2's grant
+covers this, so no authorisation was waited on.
+
+The wiring under test is not reached. All six per-arch legs fail at
+`smoke and package the SSH helpers` with exit 2 and this line:
+
+```
+release-licenses: podbox-release-licenses is not built;
+cargo build -p podbox-buildstate
+```
+
+That is `scripts/release-licenses.py`, the exec shim T-1560 left behind
+so `scripts/package-ssh.sh` and the `py_compile` gate step keep working.
+Its candidate list searched two fixed layouts, `target/release/` and
+`target/x86_64-unknown-linux-musl/release/`, plus two Windows ones. The
+nightly builds each leg for its own triple into `target/<triple>/release/`,
+so on i686, aarch64, riscv64gc, loongarch64, armv7 and powerpc64le the
+binary was built and the shim did not look where it was. The shim now
+searches all seven triples from the nightly's own matrix, and the list is
+checked against that matrix rather than kept in step by hand.
+
+So two clauses are unmet and neither is claimed. The nightly run does not
+exit 0, so the publish path has still never executed end to end. And
+because every leg stops before `publish`, the release notes were never
+generated on this tag and there is no release to read them from. What is
+established is the trigger and the courier path: the tag fires the
+nightly, and the failure is one line of shell between them.
+
+The two fixes this reading needs are in this change: the shim's search
+list, and the regenerated `docs/runtime-state.md`, which the `check-todo`
+job reported as stale because the version bump moved the declared
+version.
 
 ### T-1619 The `10`/`20`/`130` three-way decision belongs to the wave that deletes `10`
 

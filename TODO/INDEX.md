@@ -279,7 +279,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1602](image.md) | P0 | image | done | The registry fixture fields are read by their consumer tests |
 | [T-1603](gate.md) | P0 | gate | done | Remove `check-no-secrets` and add a pinned trufflehog scan workflow |
 | [T-1604](enter.md) | P1 | enter | partial | Fix the detached-stdio serial mutex and the 1-of-3 detached start failure |
-| [T-1605](packaging.md) | P1 | packaging | open | Push a version tag and prove the nightly release-notes wiring live |
+| [T-1605](packaging.md) | P1 | packaging | partial | Push a version tag and prove the nightly release-notes wiring live |
 | [T-1606](podvm.md) | P2 | podvm | partial | Repoint all 47 `references/` citations before deleting the corpus |
 | [T-1607](gate.md) | P1 | gate | partial | File the 21 unbatched plan tasks as a later queue |
 | [T-1608](gate.md) | P2 | gate | done | Reword the Batch 3 Done paragraphs so one-home passes |
@@ -311,9 +311,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1639](interpose.md) | P1 | interpose | open | Record the six interpose members and their excluded-crate proofs as separate jobs |
 | [T-1640](interpose.md) | P1 | interpose | open | Record that the interpose export check needs no `rlib` and no new test |
 
+| [T-1641](gate.md) | P0 | windows | open | The provisioner writes into the vendor's backing image, and a timed-out run orphans its emulator |
+
 ## Counts
 
-249 items: 23 open, 8 partial, 0 blocked, 218 done.
+250 items: 23 open, 9 partial, 0 blocked, 218 done.
 
 Counted from the rows above by `./target/release/podbox-count` and asserted
 independently by `./target/release/podbox-gate`, which is the gate. A number here
@@ -321,11 +323,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 3 | 0 | 0 | 59 | 62 |
-| P1 | 14 | 7 | 0 | 102 | 123 |
+| P0 | 4 | 0 | 0 | 59 | 63 |
+| P1 | 13 | 8 | 0 | 102 | 123 |
 | P2 | 5 | 1 | 0 | 49 | 55 |
 | P3 | 1 | 0 | 0 | 8 | 9 |
-| **All** | **23** | **8** | **0** | **218** | **249** |
+| **All** | **23** | **9** | **0** | **218** | **250** |
 
 ## Work order
 
