@@ -33,6 +33,21 @@ sh scripts/dev-lane.sh run JOB.sh --artifacts DIR  # Windows: full Linux proof
 The record gate reports status consistency. It does not prove that a feature
 works. Check the task's acceptance command and its evidence.
 
+**On Windows, `cargo build`, `cargo test`, `cargo run` and `cargo bench`
+build a Linux target and cannot work here.** `.cargo/config.toml` sets
+`[build] target = "x86_64-unknown-linux-musl"`, so the target is Linux on
+every host. Run those through the lane instead:
+
+```sh
+sh scripts/dev-lane.sh run JOB.sh --artifacts DIR
+```
+
+`cargo check`, `cargo clippy` and `cargo fmt` are correct on the host;
+they never link. `os error 193` from `scripts/zig-cc.sh` is not a host
+limitation, it is the wrong machine: the same build finished in 55 s
+through the lane on 2026-10-02. T-1642,
+`scripts/common/check-build-lane.sh`, refuses the wrong one.
+
 ## Task routing
 
 Read each named page in full. Read the union when two rows apply.

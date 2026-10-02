@@ -312,10 +312,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1640](interpose.md) | P1 | interpose | done | Record that the interpose export check needs no `rlib` and no new test |
 
 | [T-1641](gate.md) | P0 | windows | partial | The provisioner writes into the vendor's backing image, and a timed-out run orphans its emulator |
+| [T-1642](deps.md) | P1 | deps | done | Refuse a Linux-target cargo build launched on a Windows host |
 
 ## Counts
 
-250 items: 0 open, 10 partial, 0 blocked, 240 done.
+251 items: 0 open, 10 partial, 0 blocked, 241 done.
 
 Counted from the rows above by `./target/release/podbox-count` and asserted
 independently by `./target/release/podbox-gate`, which is the gate. A number here
@@ -324,10 +325,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 62 | 63 |
-| P1 | 0 | 8 | 0 | 115 | 123 |
+| P1 | 0 | 8 | 0 | 116 | 124 |
 | P2 | 0 | 1 | 0 | 54 | 55 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **0** | **10** | **0** | **240** | **250** |
+| **All** | **0** | **10** | **0** | **241** | **251** |
 
 ## Work order
 

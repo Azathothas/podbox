@@ -113,6 +113,19 @@ command -v pwsh >/dev/null 2>&1 && have_pwsh=1
 # a key, and it read a lane runner's default HOME as a credential. Credential
 # scanning now belongs to .github/workflows/secrets.yml, which runs a real
 # scanner and cannot run from here.
+# ⭐ check-build-lane runs its OWN self-test here, not the guard's judgment of
+# this host's cargo command. That distinction is the whole point. The guard
+# refuses a Linux build on a Windows host, so running it against this host's
+# own command would pass by construction and prove nothing. Its self-test
+# drives both host shapes through a stubbed `uname` and fails if either stops
+# behaving, which is what caught the `[ ]` glob bug that made revision one of
+# the guard silently allow this session's exact mistake. TODO/deps.md T-1642.
+if [ -f "$HERE/check-build-lane.sh" ]; then
+  run "check-build-lane" sh "$HERE/check-build-lane.sh" --self-test
+else
+  row "SKIP  check-build-lane  (not present)"; SKIP=$((SKIP + 1))
+fi
+
 for c in check-docs check-markers check-one-home check-placeholders \
          check-control-bytes check-changelog check-attribution; do
   if [ -f "$HERE/$c.sh" ]; then

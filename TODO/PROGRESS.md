@@ -2,7 +2,7 @@
 
 ## State
 
-250 entries: 0 open, 10 partial, 0 blocked, 240 done.
+251 entries: 0 open, 10 partial, 0 blocked, 241 done.
 
 **No entry is `open`.** Every filed row is `done` or `partial`, and each
 partial names its remaining acceptance. T-1613 filed the 21 unbatched
@@ -11,7 +11,10 @@ T-1607 still owns are described there rather than filed. T-1641 is
 `partial`: all three of its fixes are implemented and the record gate,
 `cargo fmt`, `cargo clippy` and the four prose checks exit 0, and its
 remaining acceptance is one guarded KVM run under the T-1609 watchdog.
-Read `TODO/RULES.md` section 11 before taking any further work: the
+T-1642 is `done`: a Linux-target cargo build launched on a Windows host
+is now refused by `scripts/common/check-build-lane.sh` rather than
+answered with an error an agent may misread as a host limit. Read
+`TODO/RULES.md` section 11 before taking any further work: the
 operator settled seven standing decisions and one read-write grant on
 2026-10-02, and they change how the work is done, not only what it is.
 The CI remainder below is no longer open: T-1601, T-1602, T-1603,

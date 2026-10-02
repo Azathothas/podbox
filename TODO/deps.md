@@ -1143,3 +1143,72 @@ question as unresolved. `PLAN.md:180` carries the same 13 with no file
 count beside it. No document in the corpus states 3 as a measured
 result.
 
+
+### T-1642 Refuse a Linux-target cargo build launched on a Windows host
+
+Source:      measured 2026-10-02 on this host; `.cargo/config.toml:7-8`;
+             `docs/containers.md:33`; `scripts/dev-lane.sh:1`;
+             `scripts/common/check-build-lane.sh`
+Category:    deps
+Priority:    P1
+Effort:      S
+Status:      done
+
+Problem:     A Linux build run on the Windows host fails deep inside a
+             C dependency, and the failure reads like a host limitation.
+             It is not one, and this session reported it as one.
+Premise:     `.cargo/config.toml` sets `[build] target =
+             "x86_64-unknown-linux-musl"`, so a bare `cargo build`
+             compiles a Linux target on every host including a Windows
+             one. `ring`'s build script then invokes
+             `scripts/zig-cc.sh` through a Windows process spawner:
+             `os error 193`. `cargo check` and `cargo clippy` never link,
+             so they pass on the same host, which is why the difference
+             is invisible until a link is attempted.
+Approach:     Make the refusal mechanical rather than documented. A guard
+             decides from the host and the pinned `[build] target`, and
+             refuses `build`, `test`, `run` and `bench` when that target
+             is a Linux triple. It allows `check`, `clippy`, `fmt` and a
+             Windows `--target`, because `check-gate.sh` builds the gate
+             as `x86_64-pc-windows-msvc` and a guard that refused that
+             would make the tree unverifiable on the host.
+Decision:     Refuse on the PLACE, not on the error. The error is loud and
+             harmless on its own; the damage is what an agent concludes
+             from it. This session confirmed the failure reproduced on a
+             clean tree and wrote "pre-existing, not introduced here" into
+             three records. Every observation was true and the conclusion
+             was worthless, because the build had run in the wrong place.
+             The guard therefore runs before cargo, in 0.665 s measured,
+             and its message names the lane and says the error is not a
+             host limitation.
+Prove:       `sh scripts/common/check-build-lane.sh --self-test` exits 0
+             with 16 cases, 8 per host, driven through a stubbed
+             `uname`: a Windows host refuses a bare build, a Linux
+             `--target` build and `cargo test`, and allows `check`,
+             `clippy`, `fmt`, a Windows `--target` and `cargo tree`; a
+             Linux host allows all eight, which is what keeps the CI
+             workflows valid at `gate.yml:45`. The plant: restoring
+             revision one's `[ "$u" != "MINGW"* ]` turns the self-test
+             red with exit 1, measured. `check-gate.sh` runs the
+             self-test so the guard cannot rot unobserved.
+
+**Done.** The guard is `scripts/common/check-build-lane.sh` and it is
+wired into `check-gate.sh:116` as `check-build-lane`, running its
+self-test rather than its own judgment of the host's command, because
+running the guard against this host's command would pass by
+construction and prove nothing. Its first revision compared
+`[ "$uname_out" != "MINGW"* ]`, where the quoted word leaves `*`
+literal, so the comparison never matched and every Windows host took
+the allow branch; it shipped that way and reported this session's exact
+offending command as allowed. The self-test caught it when the case was
+rewritten as `case`, and the mutation was then re-measured: restoring
+the `[ ]` form turns the self-test red with exit 1, so the guard is
+known to detect its own regression rather than merely to exist. Both
+directions are measured; a guard that only ever passed was the failure
+this entry is about.
+
+⚠ **What this does not do.** It refuses the mistake; it does not make
+the right command easy to find. A reader still has to reach for
+`sh scripts/dev-lane.sh run JOB.sh` on their own, and AGENTS.md:28 is
+one line in a list. That is why the entry keeps a documentation half
+beside the guard half, and why neither is described as sufficient.
