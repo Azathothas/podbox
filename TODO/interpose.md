@@ -1694,8 +1694,8 @@ defect in the wrapper's path resolution, not in this fix, it predates
 this entry, and the lane job calls the same binary directly to get the
 same objects. It has no entry of its own yet.
 
-**CI confirms it. Run 36974640619, 2026-10-02, the static-build job is
-green.** Its `interposer, one object per libc`, `build`, `no PT_INTERP`
+**CI confirms it. Runs 36974640619 and 36975394409, 2026-10-02, the
+static-build job is green in both.** Its `interposer, one object per libc`, `build`, `no PT_INTERP`
 and `binary size ceiling and breakdown` steps all report success, and
 the `fmt, clippy, shell` job's `clippy` and `interposer clippy` steps
 report success on the same commit. That is the clause the lane could not

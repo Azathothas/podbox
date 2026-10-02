@@ -2048,8 +2048,14 @@ precisely so a scanner outage could not read as a clean tree, and a
 429 is exactly an outage, so this repository went red on somebody else's
 rate limit. The scope is now `--results=verified`, and the 119 corpus
 hits disappear with `references/` if T-1606 closes. The narrowing is
-recorded in the workflow with its measured numbers, not applied quietly,
-and the second run is what settles it.
+recorded in the workflow with its measured numbers, not applied quietly.
+
+**Run 36975394456 is green, both scans.** `the working tree` and `the
+whole history` both report success, and the run took 5m58s against the
+19 s the tree scan alone took in the red run, so the history scan really
+did execute rather than being skipped. That is the clause the first run
+could not meet, and the plant clause below is the one thing still owed:
+nothing here drives a planted key into the job red.
 
 **The plant is not delivered and cannot be delivered by this harness.**
 `crates/podbox-gate/src/plant.rs` has no case for the secrets check and

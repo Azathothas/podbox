@@ -1,12 +1,14 @@
 # Resume
 
-Session 2026-10-02. Tree `main` clean and pushed. Record gate exits 0:
-226 entries, 10 open, 3 partial, 0 blocked, 213 done.
+Session 2026-10-02, second pass, worked unattended to the end of the
+batch. Tree `main` clean and pushed. Record gate exits 0:
+250 entries, 23 open, 9 partial, 0 blocked, 218 done.
 
-This file was rewritten at the end of the session because four read-only
-audits found it three commits stale, carrying three mutually inconsistent
-counts and still listing two completed entries as open blockers. It is
-the cold-start handoff; if it disagrees with the gate, the gate wins.
+The session before this one left ten open rows and a work order. This
+one took every one of them to a terminal or a named remaining clause,
+and filed the twenty-two rows the refactor plan's unbatched set needed.
+The full account is
+[SESSION-SUMMARY-2026-10-02-UNATTENDED](SESSION-SUMMARY-2026-10-02-UNATTENDED.md).
 
 ## Read before acting
 
@@ -23,129 +25,120 @@ the read-write grant. Do not re-ask any of these.
 4. Read and write on this repository is authorized, tags and releases
    included. Not another repository, not a force-push.
 5. An unattended KVM guest run is permitted on this host under the
-   T-1609 watchdog. Everything the proof needs is installed into
-   `wsl-toolkit-podbox`; the Windows host qemu is never touched.
+   T-1609 watchdog. The Windows host qemu is never touched.
 
 ## Run these first
 
 The AGENTS.md start command targets `./target/release/`, which does not
 exist on this host. What runs here is the debug binary, and it is what
-the gate and every Prove clause on this host must use:
+the gate and every Prove clause must use:
 
 ```sh
 ./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe
 ```
 
-`cargo build --release -p podbox-gate` does not fill `target/release/`
-here because `.cargo/config.toml` sets the musl build target; zig is on
-PATH so it can be built, but it lands under
-`target/x86_64-unknown-linux-musl/release/`.
+`scripts/release-licenses.py` and `scripts/build-state.py` search the
+per-triple build directories as well as `target/release/`, so the
+musl output is found on this host.
 
-Two checks are red on arrival and each has an owner. Neither is a
-surprise and neither blocks the work order:
+## What is green and what is not
 
-- `check-one-home.sh` exits 1 on a duplicated sentence in two Batch 3
-  Done paragraphs. T-1608.
-- `check-no-secrets.sh --public` exits 1 on `/home/toolkit` in the lane
-  runner. T-1603.
+Green on `main` at `3470982`, from CI run 36975394409 and the secrets
+run 36975394456: the static build, fmt, clippy, the shell and Python
+steps, the record gate, and the trufflehog scan of the working tree and
+the whole history. Green locally: the maintained repository checks, all
+nine of them.
+
+**Red, one row.** `workspace and interposer tests` fails on
+`detached_start_returns_before_the_payload_ends`, and T-1604 owns it.
+The failure is not a flake. The start exits 126 in five seconds because
+`chroot(2)` is denied and the CI job that runs the workspace tests does
+not build the interposer objects, so the binary under test carries no
+glibc interposer and the no-chroot family declines. The refusal is
+correct for the tier; the assertion is not conditional on the tier. Fix
+it the way `tests/store_gates.rs` already skips where a host refuses
+namespaces, and decide with T-1641 whether that CI job should build the
+interposer first.
 
 ## Next action
 
-T-1601, in `TODO/interpose.md`. Rust 1.99 rejects the `open`
-interposition at `crates/podbox-interpose/src/lib.rs:2144` with a
-deny-by-default lint, and that one failure stops the static build, the
-interposer tests, and plants 32e and 32f with it. Allow the lint at the
-definition, forward-compatible through `unknown_lints`. Do not pin the
-toolchain.
+T-1641, in `TODO/gate.md`. It is the only P0 open entry and it holds
+three defects the KVM diagnosis found, all read in source and none with
+an entry until now.
 
-This cannot be reproduced on this host: `rustc -V` is 1.98.0 and 1.99 is
-not installed. The lint is a CI observation. Do not close the entry on
-a local green run, because a local run has no lint to fire.
+1. `setup` writes into the vendor's backing image.
+   `overlay_argv` passes no read-only backing, so the provisioner writes
+   into the pinned VHDX itself and the guest hard-powers-off. Give
+   `setup` its own overlay as `root` and commit it to a fresh
+   read-only-backed image, the discipline `stage` already uses.
+2. A run that reaches its timeout orphans its emulator. Measured live:
+   the emulator outlived the kill by 8m43s of CPU with `commandline`
+   and `parent` both NULL in `/proc`, so neither
+   `experiments/lib/kvm-owned.sh` nor the watchdog can select it, and
+   `lib.rs` discards the reaped child's exit status.
+3. The proof's seam step is wrapped `if timeout 600 ...; then scode=$?`,
+   so a non-zero exit never reaches an `ok:` or a `miss:` and a failing
+   seam leaves the verdict to someone else.
 
-Then T-1602, T-1603, T-1604, which clear the other three red CI jobs,
-then T-1608 and T-1611, then T-1612, T-1607, T-1606, T-1605.
-
-## Open work
-
-The work order lives in `TODO/PROGRESS.md` and only there;
-`docs/methodology/work-todo.md` forbids a second one. The ten open rows
-are T-1601 through T-1612 as listed in `TODO/INDEX.md`. Three carry a
-condition a previous session found and a new agent would otherwise
-rediscover:
-
-- **T-1601** cannot be reproduced here. `rustc -V` is 1.98.0 and 1.99 is
-  not installed, so a local green run has no lint to fire. Prove it in
-  the Linux lane.
-- **T-1602**'s Premise was corrected on 2026-10-02: its consumer tests
-  exist and read all four fields. The lint fires in `parallel_layers`
-  alone. Do not port anything that is already written.
-- **T-1603** must land the deletion and the trufflehog workflow in one
-  commit. Two commits leave the repository with no secrets scanning in
-  between, and pushes to `main` are authorized.
-
-## Partial entries
-
-T-1350 can now run: T-1609 built and wired the watchdog, T-1610 repaired
-the base and installed qemu and OVMF into it. Run it with both
-`--accept-host-risk` and `--unattended`.
-
-Before any guest run, check `/dev/kvm`. The base shipped it as
-`crw------- root root` and the guest account is uid 1000, so it was
-changed by hand to `crw-rw---- root kvm`. That is per boot: the base's
-own tmpfiles rule replays `z /dev/kvm 0666 - kvm -`. After a reboot,
-reapply it or run the guest as root.
-
-T-1112 stays partial, and its ReactOS clause is now descoped rather than
-blocked: the operator dropped it on 2026-10-02 because ReactOS is itself
-a beta operating system, so proving against it proves against a moving
-target. T-1112 closes on its KVM leg alone. Nothing in the plan is
-blocked on a human decision any more.
+Then T-1604, then the rest of the filed queue.
 
 ## Measured state
 
 | Row | Evidence |
 | --- | --- |
-| record gate | exit 0, 226 rows, 10 open, 3 partial, 0 blocked, 213 done |
-| KVM watchdog | `experiments/results/kvm-watchdog.txt`, three runs, three arms each, all green |
-| KVM bound | `experiments/results/kvm-watchdog-bound.txt`, a 3 s bound reports rc 124 and removes the emulator |
-| base packages | `experiments/results/kvm-base-provision.txt` |
-| CI | four jobs red at `3bd36f0`; run 36956512663 was in progress at session end |
-| toolchain | `rustc 1.98.0`; 1.99 not installed locally |
-| retained jobs | none; `wsl-toolkit gc --json` empty at session end |
+| record gate | exit 0, 250 rows, 23 open, 9 partial, 0 blocked, 218 done |
+| lane, Rust 1.99 | [ci-lint-1.99](../experiments/results/ci-lint-1.99.txt): fmt 0, fmt-interpose 0, clippy 0, test 0, 38 suites |
+| interposer, 1.99 | [interpose-1.99-objects](../experiments/results/interpose-1.99-objects.txt) exit 0 |
+| CI | run 36975394409 on `8dbad80`: three of four jobs green |
+| secrets | run 36975394456 green, tree and history |
+| nightly | runs 36974650357 and 36974650815 red on six legs; the shim is fixed, the next tag proves it |
+| KVM | [attempt 1](../experiments/results/kvm-guest-2026-10-02.txt) and [attempt 3](../experiments/results/kvm-guest-2026-10-02-third.txt) |
+| toolchain | host `rustc 1.98.0`; the lane is 1.99.0 |
+| retained jobs | none; `wsl-toolkit gc --json` empty at the close |
 
-## Untracked working material
+## Notes that will save time
 
-`refactor/` stays untracked by `.gitignore:152`. It holds the refactor
-plan, including the 21 unbatched rows T-1607 owns, and they cannot be
-read from a fresh clone.
-
-`refactor/DEFERRALS.md` is superseded. Its four sections live in tracked
-entries. Do not treat it as the record.
+- `/dev/kvm` needed no reapply this session. `qemu-img` did need
+  installing into `wsl-toolkit-podbox`, and it ships in a separate Arch
+  package that T-1610's Prove clause does not name.
+- `scripts/build-interpose.sh` resolves
+  `target/release/podbox-interpose-build` and finds nothing, because
+  `.cargo/config.toml` sets the musl build target. It exits 2 in a lane
+  and would in CI; the nightly works around it by copying the binary by
+  hand. It predates this batch, it has no entry of its own yet, and it
+  is named in T-1601's record.
+- The serial log is not a hang location. T-1641 records the measurement
+  and the comment in `experiments/lib/kvm-guest-base.sh` that claims
+  otherwise.
+- `refactor/` stays untracked by `.gitignore:152`. T-1613 filed the
+  plan's named 21 rows into `TODO/`; the other 29 are still unfiled and
+  T-1607 owns them.
 
 ## Next prompt
 
 ```
 Continue podbox from TODO/RESUME.md and work unattended to completion.
 Do not stop to ask about anything already settled: TODO/RULES.md section
-11 carries seven standing decisions and section 2 the read-write grant.
+11 carries the standing decisions and section 2 the read-write grant.
 
 Gate first, with the binary that exists on this host:
 ./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe
 (target/release/ does not; .cargo/config.toml sets the musl target.)
 
-Use subagents and swarms; TODO/RULES.md section 12 owns the rules. Take
-the ten open rows from TODO/INDEX.md, group them by the files their
-Approach names, and dispatch one agent per disjoint group:
+Use subagents and swarms; TODO/RULES.md section 12 owns the rules. The
+open work order is T-1641 first, then T-1604, then the rows T-1613
+filed, one per file they touch, dispatched the same way: one writer per
+file per batch, one agent per disjoint group, a subagent reports and
+does not close.
 
-  wave 1, four agents, fully parallel, no shared file:
-    T-1601  crates/podbox-interpose/   needs a Linux lane proof
-    T-1602  crates/podbox-image/       parallel_layers reads the fields
-    T-1603  scripts/common/ + .github/workflows/
-    T-1604  crates/podbox-cli/tests/
-  wave 2, one writer, after wave 1: T-1608 then T-1611, which share the
-    Batch 3 Done paragraphs and both Prove on check-one-home
-  wave 3: T-1612, then T-1607, then T-1606, then T-1605
-  and the KVM run itself, T-1350, guarded and not delegated
+Two things the record names and this session did not do. T-1604's
+detached-stdio assertion is not conditional on the tier: it must skip
+with a named reason where the no-chroot family legitimately declines,
+and decide with T-1641 whether the CI job should build the interposer
+before the workspace tests. T-1641's three defects are the KVM guest
+hang: setup writes into the vendor's backing image, a timed-out run
+orphans an emulator nothing can select, and the proof's seam step
+swallows a non-zero exit.
 
 A subagent reports and does not close. Closing an entry, writing its
 Done paragraph, and running podbox-count belong to one writer at the

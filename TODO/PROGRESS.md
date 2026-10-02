@@ -207,6 +207,24 @@ published at build commit `067c0ce` with twenty-one closures: T-1003,
 T-1401, T-1405, T-1406 through T-1421, T-1422, and T-1423.
 No operator decision is pending.
 
+## Session 2026-10-02, unattended
+
+| Row | Evidence |
+| --- | --- |
+| Commits | `1a87b10`, `8dbad80`, `3470982`, all pushed to `main` |
+| Tag | `v0.1.0-beta.13` on `1a87b10`; the workspace version was bumped to match |
+| Record | 250 rows, 23 open, 9 partial, 0 blocked, 218 done; gate exit 0 |
+| Lane, 1.99 | fmt 0, fmt-interpose 0, clippy 0, test 0, 38 passing suites |
+| Interposer, 1.99 | musl 350184 bytes, glibc 330264, 112 exports each, both under the ceiling |
+| CI, final | run 36975394409: static build green, fmt and clippy green, index and citations green; `workspace and interposer tests` red on `detached_stdio` only, T-1604 |
+| Secrets | run 36975394456 green, working tree and whole history, 5m58s |
+| Nightly | runs 36974650357 and 36974650815 red on all six legs at the licence shim, which this session fixed and T-1605 records |
+| KVM | three guarded runs, all red; T-1350 partial, T-1641 filed |
+| Health | tree clean at the close, no guest running, `wsl-toolkit gc --json` empty |
+
+The summary beside this record is
+[SESSION-SUMMARY-2026-10-02-UNATTENDED](SESSION-SUMMARY-2026-10-02-UNATTENDED.md).
+
 ## Session 2026-10-02, decision round
 
 | Row | Evidence |

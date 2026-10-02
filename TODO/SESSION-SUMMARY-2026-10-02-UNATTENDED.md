@@ -71,10 +71,9 @@ T-1641 holds the KVM findings: `setup` writes into the vendor's backing
 image with no read-only overlay; a run that reaches its timeout orphans
 an emulator that neither the proof's selector nor the watchdog can
 select; and the proof's seam step swallows a non-zero exit so a failing
-seam never records a miss. T-1641 also corrects
-`experiments/lib/kvm-guest-base.sh:158-161`, which claims the serial
-watcher says where a hang stops. It cannot: the 2026-09-30 third run has
-the same BDS-only serial ending and its `ver` had already succeeded.
+seam never records a miss. T-1641 also corrects the serial-watcher's comment in
+`experiments/lib/kvm-guest-base.sh`, which claims it says where a hang
+stops, and T-1641 records why it cannot.
 
 ## What this session could not do
 
