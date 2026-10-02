@@ -1127,7 +1127,7 @@ Source:      CI run 36894578988, job 110478236087, 2026-10-01;
 Category:    enter
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      partial
 
 Problem:     `cargo test --workspace` exits 101 on `detached_stdio` with
              `test result: FAILED. 1 passed; 2 failed`. Read in order,
@@ -1168,3 +1168,52 @@ Prove:       `cargo test -p podbox-cli --test detached_stdio` passes in
              this task owes); the saved lane log shows all three
              detached starts running;
              `./target/release/podbox-gate` exits 0.
+
+**Partial 2026-10-02.** The cascade is fixed and measured; the
+one-of-three failure is not reproduced and is not root-caused, and the
+entry stays open on it.
+
+The reporting defect is gone. All three takes are now
+`SERIAL.lock().unwrap_or_else(|e| e.into_inner())`, which is the shape
+`tests/store_gates.rs` and `tests/curated_refusals.rs` already use in
+this crate, so the file is no longer a holdout. `cargo test --workspace`
+in the lane on `rustc 1.99.0` runs `detached_stdio` green, all three:
+`detached_run_without_an_image_is_a_cli_error`, `run_help_names_the_detach_flag`,
+and `detached_start_returns_before_the_payload_ends`
+([the drive](../experiments/results/ci-lint-1.99.txt)).
+`./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0.
+
+The second defect also got a fix, and it is the one that matters for the
+next attempt. The loop breaks on the first non-zero `run -d` and threw
+that start's stderr away, so the suite could only report
+`only 1 of 3 detached starts ran` and never name the exit that failed.
+Each start now carries its stderr and the count assertion prints every
+start: which iteration, which name, its exit code, its elapsed time, its
+id, what `inspect` returned, and what `run -d` said. A failure that
+cannot say what it saw is a failure the next session re-derives.
+
+**The assertion was not weakened.** `:292` still requires three starts,
+and the entry's decision stands.
+
+⚠ **The plant's control failed and the plant is not claimed.** A
+temporary test that panicked while holding the guard left its two
+neighbours green, which is the result the task wanted, and the control
+that put `unwrap()` back did **not** reproduce the cascade, so the green
+is not evidence. The measured reason: a thread already parked on a
+poisoned `std::sync::Mutex` is handed the lock and its `lock()` returns
+`Ok`; only a thread arriving after the poison is set gets `Err`. All
+three tests call `lock()` on their first line, so all three are normally
+queued before any panic. CI saw the cascade because one test reached
+`lock()` after the panic completed. It is a scheduling accident, the fix
+removes the accident, and no test buildable on this host demonstrates it
+reliably. The temporary test is not in the tree.
+
+What remains: the root cause of the one-of-three. It did not reproduce in
+four lane runs. Ruled out with evidence, not by assertion: image-lock
+contention, the store lock being held by the payload, name collision, and
+the deadline. Duration does not discriminate, because failing CI runs at
+44.18 s, 48.20 s and 51.05 s overlap passing lane runs at 46.86 s,
+48.01 s, 59.44 s and 65.14 s. With the stderr now carried, the next red
+run names the exit instead of asking a session to guess it, and
+`experiments/340-detached-stdio.sh` under a loaded runner is the
+measurement the Approach asked for and this session could not drive.

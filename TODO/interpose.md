@@ -1622,7 +1622,7 @@ Source:      CI run 36894578988, job 110478235939, 2026-10-01;
 Category:    interpose
 Priority:    P0
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Main CI is red on all four jobs. The static build stops at
              `crates/podbox-interpose/src/lib.rs:2144` with
@@ -1656,3 +1656,118 @@ Prove:       `cargo build --release -p podbox-gate --bin podbox-interpose-build`
              `./target/release/podbox-gate` exits 0; a CI run on the landed
              commit reports the static-build job green and plants 32e
              and 32f caught rather than MISS.
+
+**Done 2026-10-02.** One attribute on the crate root and one on each
+`open_fixed!` arm, and the two objects build under `rustc 1.99.0`
+([the lane drive](../experiments/results/interpose-1.99-objects.txt),
+exit 0): `libpodbox_interpose.so` is 350184 bytes on musl and 330264 on
+glibc, each naming its own libc and each exporting exactly the 112
+names `interpose.map` declares, against the ceiling the tracked wrapper
+declares. The four `gate.yml` lint steps also run clean
+on the same 1.99 toolchain: `cargo fmt --all -- --check` 0, the
+interpose `fmt` 0, `cargo clippy --workspace --all-targets -- -D
+warnings` 0, and `cargo test --workspace` 0 with 38 passing suites and
+zero `FAILED` lines. `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe`
+exits 0.
+
+Two corrections to the entry's own reading, both measured.
+
+The attribute went on **both** macro arms, not the one this entry named.
+The second arm defines `openat` and `openat64` with the same fixed
+third argument and the same `open*` runtime symbol family, so an allow
+on one arm alone leaves the other exposed to the identical lint.
+
+**The lint is not a 1.99 arrival.** `rustc -W help` on this host's 1.98.0
+lists `invalid-runtime-symbol-definitions` as deny. What cannot be
+reproduced here is the *failure*: 1.98's `cargo check` and
+`cargo clippy` on this crate both exit 0, and the lint appears to need
+the final link to see which symbols are exported, which this Windows host
+cannot reach without a Linux C toolchain. So the premise stands as
+written about what CI saw, and the "needs 1.99" reading is unsupported
+either way; the lane drive above is the measurement that settles it.
+
+Not driven here: `scripts/build-interpose.sh`, which resolves
+`target/release/podbox-interpose-build` and finds nothing, because
+`.cargo/config.toml` sets the musl build target and the release output
+lands under `target/x86_64-unknown-linux-musl/release/`. That is a
+defect in the wrapper's path resolution, not in this fix, it predates
+this entry, and the lane job calls the same binary directly to get the
+same objects. It has no entry of its own yet. Plants 32e and 32f need
+the plant harness, which compiles this crate, and were not run in this
+session; CI on the landed commit is the remaining clause.
+
+### T-1628 Record `162-tar-symlink-modes.sh` as retained, DELETE refuted by VC-2
+
+Source:      `refactor/recon-c.md:175`;
+             `refactor/06-entries/PLAN.md:168-170`;
+             `refactor/06-entries/PLAN.md:22-27`
+Category:    interpose
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     The ledger marks this script DELETE and a live entry names
+             it in a proof that is still open. Anyone reading the
+             ledger deletes a file the record depends on.
+Premise:     DELETE is refuted, not merely doubted: the script is named
+             in a live `Prove`, and it is retained as a deployment
+             proof at the level the code conventions name.
+Approach:     Record the refutation and the line that settles it in the
+             interpose entries, so the script's fate is written where a
+             reader of that category will find it.
+Decision:     Retained as a deployment proof, not a unit test. That is
+             the level statement the correction leaves implicit.
+Prove:       `grep -n "162-tar-symlink-modes" TODO/interpose.md` names
+             the refutation and the live `Prove` that settles it.
+
+
+### T-1639 Record the six interpose members and their excluded-crate proofs as separate jobs
+
+Source:      `refactor/recon-c.md:186`; `refactor/06-entries/PLAN.md:93-107`
+Category:    interpose
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     The interposer is excluded from the workspace, so the
+             proofs that run inside other people's processes are not
+             part of the workspace test run. One job over the workspace
+             cannot cover them.
+Premise:     The exclusion is deliberate and the cost is known. The
+             proofs need a separate job with their own target and linker.
+Approach:     Record the six members and which proof runs where, beside
+             the entry that owns the interpose build.
+Decision:     Separate jobs, not a flag. The object is loaded into
+             processes this project does not control, and a workspace
+             run cannot see it.
+Prove:       `grep -n "members" TODO/interpose.md` names the six members
+             and the job each one's proof runs in.
+
+
+### T-1640 Record that the interpose export check needs no `rlib` and no new test
+
+Source:      `refactor/recon-c.md:187`;
+             `refactor/06-entries/PLAN.md:93-107`
+Category:    interpose
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     A crate type that cannot host a test file invites the
+             obvious fix, and the obvious fix costs a second artefact on
+             every build for a test that already exists.
+Premise:     Adding a library target would fix name resolution and add a
+             release artefact built for two targets on every run, under
+             the byte ceiling. The export check already compares the
+             dynamic symbol table against a version script for both
+             targets.
+Approach:     Record the decision and its cost, so a later session
+             reading the failing test does not add the library target.
+             One check needs a `cc` invocation and joins the gate binary.
+Decision:     No `rlib`. The existing comparison is the check, and the
+             plan does not add a second artefact to hold a second copy
+             of it.
+Prove:       `grep -n "interpose.map" TODO/interpose.md` names the
+             export comparison that stands as the check, for both
+             targets.
+

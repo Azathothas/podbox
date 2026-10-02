@@ -1,0 +1,76 @@
+== conditions
+2026-10-02
+instance=podbox, lane job
+Subject: T-1601 and T-1207. Build the two per-libc interposer objects
+under the toolchain CI uses, rustc 1.99.0, and read each object's
+size against the ceiling declared in scripts/build-interpose.sh.
+The tracked wrapper could not drive it: build-interpose.sh resolves
+target/release/, which .cargo/config.toml's musl build target never
+fills, so the job calls the same binary directly.
+
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+root
+/work
+== the toolset
+== disk, before anything is written
+  974471 MB and 67017727 inodes available under /work
+
+== components
+
+  ok       rust: 1.99.0, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed openssh: openssh-server
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 3 installed, 0 failed
+everything requested is present.
+rustc 1.99.0 (b940084d7 2026-09-28)
+cargo 1.99.0 (5f94df478 2026-08-27)
+== disk, before anything is written
+/dev/sde       1007G  5.3G  951G   1% /work
+== the job
+== bootstrap rc=0
+== rustc rustc 1.99.0 (b940084d7 2026-09-28)
+== the interpose builder
+builder rc=0
+builder: target/x86_64-unknown-linux-musl/release/podbox-interpose-build
+== the two objects
+objects rc=0
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 6.43s
+   350184 /work/target/x86_64-unknown-linux-musl/release/../../../crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+   ok: exports 112 names, exactly what interpose.map declares
+   ok: rust_eh_personality is not exported
+   ok: 350184 bytes, under the interpose ceiling of 500000
+== x86_64-unknown-linux-gnu
+   stub: /work/target/x86_64-unknown-linux-musl/release/../../../crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 3.29s
+   330264 /work/target/x86_64-unknown-linux-musl/release/../../../crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+   ok: exports 112 names, exactly what interpose.map declares
+   ok: rust_eh_personality is not exported
+   ok: 330264 bytes, under the interpose ceiling of 500000
+== B. struct stat offsets, by offsetof and under both libcs
+  glibc  sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|
+  musl   sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|
+  B: both libcs agree on BOTH structs, and with the offsets src/lib.rs carries
+330264 crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+350184 crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+RESULT: both objects built and inside the 500000-byte ceiling
+== rc=0
+
+proof exit: 0

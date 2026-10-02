@@ -179,7 +179,7 @@ Source:      repository audit 2026-09-30; current source and saved results
 Category:    podssh
 Priority:    P1
 Effort:      L
-Status:      done
+Status:      partial
 
 Problem:     DNS resolution and stream writes can wait without a bound. Node redial pairing has no live reconnect proof.
 Premise:     node, operator, and session comments state the unbounded paths. Earlier relay proof covers simultaneous sessions only.
@@ -202,6 +202,18 @@ socket mid-session and the node redials the same name, the second
 operator session pairs, both sessions complete, no residue. Reconnect
 is proven on the loopback fake relay; pairing against the live relay
 stays open.
+
+**Reopened 2026-10-02 under T-1612.** The `Problem` field names a missing live
+reconnect proof, and the `Status` said `done`, which is the defect T-1612 names:
+a sentence saying work remains under a row saying nothing does. The remaining
+acceptance is the one clause above, live-relay node redial pairing. It is not
+folded into another entry because T-1406 is where the relay legs and the
+reconnect mode live, and [T-1403](podssh.md) proved concurrent sessions against
+the live relay without covering reconnect: its `Done` says so and points here.
+The loopback fake relay is a recorded test double, not the relay under test, and
+a drive against the live r12 relay is a one-pair lifecycle from this host, which
+[the relay note](../docs/history/references/ssh-relay-2026-09-28.md) records
+having run once with zero residue for pair, connect-token, node-token, and stop.
 
 **Open 2026-09-30 (history).** This is remaining capability work. Read the current
 source before implementation. The simultaneous-session result does not

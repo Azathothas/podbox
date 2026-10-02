@@ -113,8 +113,9 @@ unset PODBOX_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
 	printf 'podbox            %s\n' "$(pb 60 version)"
 	printf 'image             %s\n' "$IMAGE"
 	# ⛔ No absolute path here: on a non-native lane the scratch lives
-	# under the checkout, and a checkout path names the operator's home,
-	# which `check-no-secrets.sh --public` refuses. The store's freshness
+	# under the checkout, and a checkout path names the operator's home.
+	# That path is a fingerprint of a private machine and has no place
+	# in a published report. The store's freshness
 	# is the fact; its address is not.
 	if [ "$NATIVE" -eq 1 ]; then
 		printf 'store             a fresh directory under %s\n' "$(dirname "$WORK")"

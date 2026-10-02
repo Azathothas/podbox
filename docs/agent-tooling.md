@@ -26,10 +26,10 @@ Verify source against the captured commit.
 | [record gate](../crates/podbox-gate/src/main.rs) | Check task and document consistency |
 | [count writer](../crates/podbox-gate/src/count.rs) | Derive task counts |
 | [plant](../crates/podbox-gate/src/plant.rs) | Demonstrate gate refusals |
-| [common checks](../scripts/common/) | Documents, secrets, markers, attribution, and paired checks |
+| [common checks](../scripts/common/) | Documents, markers, attribution, and paired checks. The secret-shape scan was retired; the [secrets workflow](../.github/workflows/secrets.yml) owns that subject |
 | [doctor](../scripts/doctor/) | Environment report |
-| [build state](../scripts/build-state.py) | Verify build freshness |
-| [document state](../scripts/document-state.py) | Generate source-defined state |
+| [build state](../scripts/build-state.py) | An exec shim; the `podbox-buildstate` binary owns the logic |
+| [document state](../scripts/document-state.py) | An exec shim; the `document-state` binary owns the logic |
 | [experiment map](../experiments/README.md) | Repeatable runtime evidence |
 
 ## External tools

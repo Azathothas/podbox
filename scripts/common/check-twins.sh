@@ -300,8 +300,13 @@ compare_pair "check-changelog"      check-changelog.sh      "--json"          ch
 # trailer, a generated-with line, a bare tool name, a human co-author and a
 # message carrying git's own comment scaffolding.
 compare_pair "check-attribution"    check-attribution.sh    "--json"          check-attribution.ps1    "-Json"
-compare_pair "check-no-secrets"     check-no-secrets.sh     "--json"          check-no-secrets.ps1     "-Json"
-compare_pair "check-no-secrets pub" check-no-secrets.sh     "--public --json" check-no-secrets.ps1     "-Public -Json"
+
+# ⚠ NO SECRET-SHAPE PAIR HERE, AND THERE IS NO EXEMPTION FOR ONE. Such a pair
+# existed and TODO/gate.md T-1603 deleted both halves: a shape regex cannot
+# tell a checksum from a key, and this tree carries both by design. compare_pair
+# shells the file it names, so a row left pointing at a deleted pair reported
+# 127 against 127 and read as agreement about nothing. Credential scanning is
+# .github/workflows/secrets.yml's subject now, and it has no sh half to compare.
 
 # ⭐ mine-repo IS COMPARED THROUGH --selftest, AND THAT IS THE WHOLE POINT.
 # This pair used to be excluded, on the reasoning that comparing two miners

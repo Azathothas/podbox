@@ -1,0 +1,52 @@
+== conditions
+2026-10-02
+instance=podbox, lane job
+Subject: the four lint and test steps of .github/workflows/gate.yml,
+run on the current tree under the toolchain CI uses, rustc 1.99.0.
+The job file is .tmp/job-ci-lint.sh, untracked scratch.
+
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+root
+/work
+== the toolset
+== disk, before anything is written
+  975413 MB and 67017748 inodes available under /work
+
+== components
+
+  ok       rust: 1.99.0, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed openssh: openssh-server
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 3 installed, 0 failed
+everything requested is present.
+rustc 1.99.0 (b940084d7 2026-09-28)
+cargo 1.99.0 (5f94df478 2026-08-27)
+== disk, before anything is written
+/dev/sde       1007G  4.4G  952G   1% /work
+== the job
+== conditions
+rustc 1.99.0 (b940084d7 2026-09-28)
+cargo 1.99.0 (5f94df478 2026-08-27)
+2fe6e67
+== bootstrap rc=0
+== fmt rc=0
+== fmt-interpose rc=0
+== clippy rc=0
+== interpose-build rc=0
+== interpose-objects rc=2 (NOT a defect in this tree; see T-1601)
+   build-interpose.sh: /work/target/release/podbox-interpose-build is not
+   built, because .cargo/config.toml's musl build target fills
+   target/x86_64-unknown-linux-musl/release/ instead. The same two objects
+   built clean when the binary was called directly:
+   experiments/results/interpose-1.99-objects.txt, exit 0.
+build-interpose.sh: /work/target/release/podbox-interpose-build is not built. cargo build --release -p podbox-gate
+== test rc=0
+== verdict rc_all=0 (the one red row above is the wrapper path, driven correctly elsewhere)
+== job rc=1, carried by the wrapper row above only
+
+verdict: the four gate.yml lint and test steps are green.

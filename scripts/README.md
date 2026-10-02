@@ -18,7 +18,7 @@ It reports the host and selects the lane.
 | release-licenses.py | Retained licence texts for locked Cargo packages |
 | podbox-smoke | Architecture and image-path release smoke |
 | release-notes.sh | Exact-commit green gate and build boundary |
-| verify-release.sh | Signed binary or SSH archive verification |
+| verify-release.sh | An exec shim; `podbox-verify` owns the signature check |
 
 Use Python 3 on Linux and the py launcher on Windows.
 The project record gate is not the full Rust gate.

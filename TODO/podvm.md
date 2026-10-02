@@ -978,9 +978,9 @@ Decision:    The script keeps its path, its pins, and its exit codes; the
 Prove:       `cargo test -p podbox-podvm` green in the lane;
              `./target/release/podbox-gate` exits 0.
 
-**Done 2026-10-01.** Binary `podbox-podvm-workload` ships in the
-`podbox-podvm` crate with no dependencies, and the experiment path
-stays as an exec shim. Lane proof
+**Done 2026-10-01.** Alongside `podbox-podvm`, the dependency-free
+`podbox-podvm-workload` binary joined the `podbox-podvm` crate, and
+T-1308 keeps its path through an exec shim. Lane proof
 ([podvm-crate-proof](../experiments/results/podvm-crate-proof.txt),
 section 5, rows in
 [tcg-workload-spread](../experiments/results/tcg-workload-spread.txt)):
@@ -1000,7 +1000,7 @@ Source:      End-state point 3; `refactor/DEFERRALS.md` section 3;
 Category:    podvm
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      partial
 
 Problem:     `references/` is 46 repositories and 168 MB of other
              people's source, tracked in this repository and cited 47
@@ -1033,3 +1033,77 @@ Prove:       `grep -rn "references/" TODO/ docs/` returns no citation
              exits 0 with `references/` still tracked; after the
              deletion lands, the gate exits 0 with the corpus absent and
              `git status` shows no tracked file referencing it.
+
+**Partial 2026-10-02, and the entry's "47" was the wrong number twice.**
+The reference map is repointed; the rest of the corpus is not freed, and
+the clause cannot be met as written.
+
+`grep -rn "references/" TODO/ docs/` returns 198 hits outside
+`docs/history/`, and 156 of them are in superseded records that
+`docs/methodology/history.md` requires be kept verbatim. Of the rest,
+about 155 are `path:line` citations into third-party **source**, spread
+across seventeen `TODO/*.md` files, and they resolve through
+`check_document_state`. Repointing those is not a rewrite: each one
+records a mechanism podbox adopted, and the honest move is to write the
+finding into podbox's own record first and cite that. That is roughly an
+order of magnitude larger than what this entry scoped, and it is the
+work the entry should have been scoped to.
+
+What was done. `TODO/reference-map.md` now states each licence
+determination as a self-contained sentence with the file it was read
+from, so the decision no longer needs the captured bytes; the orphan
+pg-toolkit row, which sat in a stray one-row table after a blank line,
+is merged into the main table, which is what `corpus=46` checks. Each
+of the nine captures with no top-level licence file now says so instead
+of implying one was read. `git status --porcelain references/` is empty:
+no file under the corpus was touched, and the corpus stays tracked.
+`./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0 at
+`corpus=46`.
+
+**Two corrections to the entry's premise, both measured on disk.** `ls
+-d references/*/` is 46, not 47; the map held 46 rows plus one orphan,
+and a markdown accident rather than a 47th citation. And none of them
+ever cited a line of source: every one resolved to `tree/LICENSE`,
+`tree/COPYING`, a manifest line, or the repository API capture, which
+are licence determinations and carry no mechanism. So the instruction to
+move each citation to podbox's own source has no answer for any of the
+47, because nothing in `crates/` carries "fakeroot is GPL-3.0".
+
+**The corpus cannot be deleted while the notice stays.** `THIRD_PARTY.md`
+links `references/Azathothas__TEMPLATE/tree/LICENSE` as the retained
+0BSD notice, and a licence obligation needs the notice as a file. That
+citation is recorded, with its clearing condition, as the one binding
+the corpus by licence rather than by evidence. The clearing condition
+for the whole entry is therefore not "the 47 are moved": it is all the
+`path:line` mechanism citations given a recorded podbox-side finding,
+plus a licence decision on the template notice.
+
+An attempt worth recording, because it cost a gate run: stripping the
+`references/` prefix from the map's Tree cells turned the gate to 49
+problems. The corpus registry at `crates/podbox-gate/src/main.rs` reads
+that column to find every on-disk tree, so the path is load-bearing
+infrastructure and not decoration.
+
+### T-1626 Record that `149` clause 6 has no Rust arm and stays shell pending the guest fixture
+
+Source:      `refactor/recon-c.md:173`;
+             `refactor/06-entries/PLAN.md:124`
+Category:    podvm
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Clause 6 of this script shells to another script under a
+             1500-second bound. No Rust arm exists, so the script is not
+             deletable and the tree does not say why.
+Premise:     The other clauses of `149` are converted and their tests are
+             named in the source. This clause is the exception and it is
+             the one a reader counts when deciding whether the script is
+             finished.
+Approach:     Record the clause, its bound, and the guest fixture it
+             waits on. Name the entry that owns the fixture.
+Decision:     Record against the current guest entries rather than
+             opening a new one, so the gap has one owner.
+Prove:       `grep -n "149-podvm-non-goals" TODO/podvm.md` names clause
+             6 and the entry that clears it.
+

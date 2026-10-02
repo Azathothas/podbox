@@ -41,7 +41,6 @@ const DIAGNOSTIC_CHECKS: &[&str] = &[
     "check-control-bytes",
     "check-changelog",
     "check-attribution",
-    "check-no-secrets",
     "check-remote-items",
 ];
 const MARKER: &str = "FIXTURE-LATE-DIAGNOSTIC";

@@ -961,3 +961,28 @@ reopen it is a readable filter identity from the kernel, or a cache
 validation that re-runs a filter-sensitive discriminator probe on each
 read. The reporter's scenario (a live capability drop) is covered by the
 widened key above, which is the guard that stops recurrence.
+
+### T-1629 Record `95-podman-vfs-ignorechown.sh` as KEEP-SHELL, a deployment proof under VC-3 and VC-6
+
+Source:      `refactor/recon-c.md:176`;
+             `refactor/06-entries/PLAN.md:171-173` and `:185-188`
+Category:    probe
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     The ledger marks this script RUST-TEST and its own planned
+             proof was ignored for a reason. Both the verdict and the
+             level are wrong in the machine-readable file.
+Premise:     Its own exit-2 path does not exist. The subject is the
+             engine's own storage option rather than podbox code, so no
+             Rust test can replace it.
+Approach:     Record KEEP-SHELL and the level: a deployment proof needing
+             a live engine, not a unit test. Record the ignored proof so
+             a later session does not read the ignore as an oversight.
+Decision:     Both the verdict and the level go in the same record,
+             because correcting one leaves the other wrong.
+Prove:       `grep -n "95-podman-vfs-ignorechown" TODO/probe.md` names
+             KEEP-SHELL, the deployment level, and the live engine it
+             needs.
+

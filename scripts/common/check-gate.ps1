@@ -107,15 +107,16 @@ function Invoke-Check([string]$Name, [string]$Script, [string[]]$ExtraArgs = @()
 }
 
 foreach ($c in 'check-docs', 'check-markers', 'check-one-home', 'check-placeholders',
-                'check-control-bytes', 'check-changelog', 'check-attribution',
-                'check-no-secrets') {
+                'check-control-bytes', 'check-changelog', 'check-attribution') {
     Invoke-Check $c ($c + '.ps1')
 }
 
-# ⚠ -Public is a DIFFERENT question from the default run, not a stricter one.
-# Emails, absolute home paths and long hex are legitimate content in a private
-# project, so this is a second call rather than a flag on the first.
-Invoke-Check 'check-no-secrets -Public' 'check-no-secrets.ps1' @('-Public')
+# ⚠ THE SECRET SHAPE SCAN IS NOT IN THE LIST ABOVE, and its absence
+# is deliberate. TODO/gate.md T-1603 retired it: a shape regex cannot tell a
+# checksum from a key, and it read a lane runner's default HOME as a credential.
+# Credential scanning now belongs to .github/workflows/secrets.yml, which runs
+# a real scanner and cannot run from here. This list and the sh twin's must
+# agree.
 
 # ⚠ NEEDS gh AND THE NETWORK, so it exits 2 on a machine without them and that
 # reads as a skip rather than a pass. Correct: nothing was verified.

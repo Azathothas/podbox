@@ -86,7 +86,11 @@ jobs:
           for check in check-docs check-markers check-one-home check-placeholders check-control-bytes check-changelog check-attribution; do
             sh "scripts/common/$check.sh"
           done
-          sh scripts/common/check-no-secrets.sh --public
+          # ⚠ NO SECRET-SHAPE CHECK HERE. TODO/gate.md T-1603. A regex cannot
+          # tell a checksum from a key, and this tree carries both by design:
+          # the check read scripts/dev-lane.sh's default HOME as a credential
+          # and went permanently red on it. The scanner workflow owns this
+          # subject: .github/workflows/secrets.yml.
           sh scripts/common/mine-repo.sh --selftest
           sh scripts/common/check-twins.sh
 

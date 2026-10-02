@@ -166,7 +166,7 @@ fn noexec_store_says_no_and_refuses_before_fetch() {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
-    if probe.as_ref().map(|s| s.success()).unwrap_or(false) == false {
+    if !probe.as_ref().map(|s| s.success()).unwrap_or(false) {
         eprintln!(
             "SKIP: user and mount namespaces are refused here, so no noexec mount can be staged"
         );

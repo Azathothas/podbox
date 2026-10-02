@@ -48,17 +48,67 @@ fn pull_the_fixture_then_pull_it_again_for_up_to_date() {
         "the first pull fetched {:?}, want the config and the one layer",
         pulled.fetched
     );
-    assert!(
-        pulled.fetched.iter().any(|d| d == &fx.config_digest),
-        "fetched {:?} holds no config digest {}",
-        pulled.fetched,
-        fx.config_digest
+    assert_eq!(
+        pulled.record.digest, fx.manifest_digest,
+        "the record names a manifest the fixture did not serve"
+    );
+    // ⭐ A fetched list of digest strings is a claim, not a measurement: this
+    // is what the pull claims it fetched, checked against the bytes the
+    // fixture published for each name. The loopback fixture is immutable, so
+    // a body truncated in flight, or one crossed with another fetch, would
+    // otherwise pass as fetched here.
+    for (want, published) in [
+        (&fx.config_digest, &fx.config),
+        (&fx.layer_digest, &fx.layer),
+    ] {
+        assert!(
+            pulled.fetched.iter().any(|d| d == want),
+            "fetched {:?} holds no digest {want}",
+            pulled.fetched
+        );
+        let path = store
+            .blob_path(&podbox_image::digest::Digest::parse(want).expect("a parseable digest"));
+        let stored = std::fs::read(&path)
+            .unwrap_or_else(|e| panic!("no blob for {want} at {}: {e}", path.display()));
+        assert_eq!(
+            stored.len(),
+            published.len(),
+            "the fetch stored {} byte(s) for {want}, the registry published {}",
+            stored.len(),
+            published.len()
+        );
+        assert!(
+            stored == *published,
+            "the fetch stored bytes that are not the published ones for \
+             {want}, differing at {:?}",
+            stored.iter().zip(published).position(|(a, b)| a != b)
+        );
+    }
+    // The manifest GET is one fetch too, and its record names the bytes the
+    // reference resolved to.
+    assert_eq!(
+        pulled.record.manifest_digest, fx.manifest_digest,
+        "the record manifest digest names a manifest the fixture did not serve"
+    );
+    let manifest_path = store.blob_path(
+        &podbox_image::digest::Digest::parse(&fx.manifest_digest).expect("a parseable digest"),
+    );
+    let stored_manifest = std::fs::read(&manifest_path)
+        .unwrap_or_else(|e| panic!("no manifest blob at {}: {e}", manifest_path.display()));
+    assert_eq!(
+        stored_manifest.len(),
+        fx.manifest.len(),
+        "the pull stored {} manifest byte(s), the registry published {}",
+        stored_manifest.len(),
+        fx.manifest.len()
     );
     assert!(
-        pulled.fetched.iter().any(|d| d == &fx.layer_digest),
-        "fetched {:?} holds no layer digest {}",
-        pulled.fetched,
-        fx.layer_digest
+        stored_manifest == fx.manifest,
+        "the stored manifest is not the one served, differing at {:?}",
+        stored_manifest
+            .iter()
+            .zip(&fx.manifest)
+            .position(|(a, b)| a != b)
     );
 
     let mut again = Vec::new();

@@ -26,10 +26,22 @@ State its purpose so the public check can distinguish it.
 
 ## Review
 
-The [secret check](../../scripts/common/check-no-secrets.sh) detects known shapes.
-Use its public mode before publication.
-Read the matches. A green scan does not inspect all possible meanings.
+The [secrets workflow](../../.github/workflows/secrets.yml) runs TruffleHog
+over the working tree and over the whole history.
+It is the only credential scan this repository runs.
+A verified result is a credential the vendor confirmed against its own API.
+Read every result before publishing.
+A green scan does not inspect all possible meanings.
+A scan runs on every push to main, on every pull request, and on request.
 [Public rules](../public/README.md) define the wider publication scope.
+
+⛔ A SHAPE-REGEX SCANNER WAS RETIRED FROM THIS REPOSITORY ON 2026-10-02,
+by operator decision, and must not come back as a second opinion.
+TODO/gate.md T-1603 holds the record.
+It matched credential SHAPES, and it read `scripts/dev-lane.sh`'s default
+`HOME` as a fingerprint of a private machine and stayed red on it.
+A regex cannot tell a checksum from a key, and this tree carries both on
+purpose. A scan that cries wolf is a scan somebody turns off.
 
 ## Incident
 

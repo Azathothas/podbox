@@ -199,6 +199,64 @@ fn unreachable_rows_count_apart_from_broken_ones() {
     fx.shutdown();
 }
 
+/// ⭐ Script rule 1, which the three tests above take for granted: one row
+/// resolving to the seeded digest is a NAME, and the same row must hold the
+/// bytes that name. A pull can resolve to the right digest and store a body
+/// that is not the fixture's, a truncation in flight or one crossed with
+/// another fetch, and every row above would still call that a pull. The
+/// loopback fixture is immutable, so its published bytes are the only bytes
+/// these digests can name, and each row is compared against them byte for
+/// byte rather than re-hashed (a re-hash shares the producer's digest).
+#[test]
+fn a_row_holds_the_bytes_its_resolved_digest_names() {
+    let _held = PULLS.lock().unwrap_or_else(|e| e.into_inner());
+    let fx = common::registry::Fixture::start();
+    let policy = policy_for(&fx.endpoint);
+
+    let dir = fresh_dir("bytes");
+    let store = Store::open(&dir).expect("the row opens its store");
+    let mut out = Vec::new();
+    let pulled = pull::pull(
+        &store,
+        &fx.reference(),
+        &Platform::host(),
+        &policy,
+        &mut out,
+    )
+    .expect("the row pulls");
+    assert_eq!(
+        pulled.record.digest, fx.manifest_digest,
+        "the row resolved away from the seed"
+    );
+
+    for (want, published) in [
+        (&fx.manifest_digest, &fx.manifest),
+        (&fx.config_digest, &fx.config),
+        (&fx.layer_digest, &fx.layer),
+    ] {
+        let path = store
+            .blob_path(&podbox_image::digest::Digest::parse(want).expect("a parseable digest"));
+        let stored = std::fs::read(&path)
+            .unwrap_or_else(|e| panic!("no blob for {want} at {}: {e}", path.display()));
+        assert_eq!(
+            stored.len(),
+            published.len(),
+            "the row stored {} byte(s) for {want}, the registry published {}",
+            stored.len(),
+            published.len()
+        );
+        assert!(
+            stored == *published,
+            "the row stored bytes that are not the published ones for {want}, \
+             differing at {:?}",
+            stored.iter().zip(published).position(|(a, b)| a != b)
+        );
+    }
+
+    cleanup(&dir);
+    fx.shutdown();
+}
+
 /// The eleven live distribution rows (alpine through archlinux): they need a
 /// container engine and network access to Docker Hub, neither of which a
 /// hermetic test may assume. A live engine with registry access would reopen

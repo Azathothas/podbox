@@ -1286,8 +1286,9 @@ fn node_refuses_a_hello_it_does_not_speak() {
         ),
         (
             // ⛔ Built at runtime and leaked for the 'static the relay mode
-            // holds: the committed source carries no 32-hex literal
-            // (check-no-secrets --public) while the value stays a valid id,
+            // holds: the committed source carries no 32-hex literal,
+            // which a scanner reading a value rather than a shape would
+            // report, while the value stays a valid id,
             // which the "not hello" diagnosis needs.
             &*Box::leak(
                 format!(r#"{{"type":"open","id":"{id}"}}"#, id = mint_id()).into_boxed_str(),

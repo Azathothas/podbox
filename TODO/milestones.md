@@ -904,3 +904,81 @@ status, base-integrity, and cleanup assertions for each route.
 Do not treat a reachable desktop as a command channel.
 Earlier landing details are retained in
 [the captured entry](../docs/history/audit-before-2026-09-30/TODO/milestones.txt).
+
+### T-1623 Record the 29 KEEP-SHELL rows as the retained set, re-derived from the ledger
+
+Source:      `refactor/recon-c.md:170`; `refactor/06-entries/PLAN.md:61-64`
+Category:    milestones
+Priority:    P3
+Effort:      S
+Status:      open
+
+Problem:     29 scripts stay in shell, and the number that reaches a
+             reader is wrong. The plan's Round 2 breakdown says 27 and
+             its own category list sums to 30, and neither figure was
+             re-derived when two scripts were added.
+Premise:     The 29 is the most reliable part of the corpus: every row
+             was re-examined against one test, whether the script needs
+             a host tool, a device or an OS facility. None rests on a
+             Rust binary having to shell out, which is not a reason.
+Approach:     Re-derive the 29 from the ledger's rows rather than from
+             the plan's prose, then record the list with the reason each
+             row stays. The per-subject breakdown is the deliverable and
+             the plan explicitly does not supply it.
+Decision:     Re-derive, do not copy. The plan says its own figure was
+             not re-derived, so a copied one would carry the same error.
+Prove:       `grep -c "KEEP-SHELL" TODO/milestones.md` is at least 29;
+             the recorded list has no id twice and no id absent.
+
+
+### T-1631 Record the `10`/`20`/`130` irreducible dependency as open, with T-1550
+
+Source:      `refactor/recon-c.md:178`;
+             `refactor/06-entries/PLAN.md:174-177`; T-1619
+Category:    milestones
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     Three scripts depend on each other and the plan calls the
+             dependency irreducible. Nothing in the record says so, so
+             the next session reads it as an oversight and deletes one
+             of them.
+Premise:     Two of the three name the third in live paths, and the
+             reduction the plan considered is ruled out for a named
+             reason.
+Approach:     Record the dependency beside the decision entry that owns
+             it, so the two are found together and neither is closed
+             without the other.
+Decision:     Milestones carries the dependency; the packaging entry
+             carries the decision. A dependency is not a decision.
+Prove:       `grep -n "10-build-target-image" TODO/milestones.md` names
+             the three scripts and the entry that owns the decision.
+
+
+### T-1637 Record the eleven converged-on-Rust counts and the 29 that stay in shell
+
+Source:      `refactor/recon-c.md:184`;
+             `refactor/06-entries/PLAN.md:49-50`
+Category:    milestones
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     The corpus has two outcomes and the tree carries one
+             number for the whole of it. A reader cannot tell how much
+             is finished from how much is deliberately staying.
+Premise:     The plan's own arithmetic is 81 retiring plus 11 deletions
+             against 29 retained, and it sums to 121. The 81 is a sum
+             over three verdicts, so quoting it without the three is a
+             number nobody can check.
+Approach:     Record the three converging verdicts separately from the
+             sum, and the retained count beside them, so each is
+             checkable on its own.
+Decision:     The breakdown is the deliverable, not the total. A total
+             whose parts cannot be re-derived is the defect the audit
+             found twice already.
+Prove:       `grep -n "KEEP-SHELL" TODO/milestones.md` and the same for
+             each converging verdict name the counts that sum to the
+             corpus size.
+

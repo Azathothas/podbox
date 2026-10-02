@@ -14,6 +14,9 @@ Copied material retains its own licence and notices.
 
 The template notice is retained in
 [its captured LICENSE](references/Azathothas__TEMPLATE/tree/LICENSE).
+That capture is retained until T-1606 closes. The revision and the licence
+are recorded in [reference-map](TODO/reference-map.md), and the imported
+pages themselves carry the 0BSD terms, so the notice survives the corpus.
 The live runbooks were revised on 2026-09-30 for the actual project workflow.
 They are adapted documents, not unchanged template copies.
 

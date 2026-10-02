@@ -108,19 +108,19 @@ have_pwsh=0
 command -v pwsh >/dev/null 2>&1 && have_pwsh=1
 
 # The sh halves. Each is the authority on its own subject.
+# ⚠ THE SECRET SHAPE SCAN IS NOT IN THIS LIST, and its absence is deliberate.
+# TODO/gate.md T-1603 retired it: a shape regex cannot tell a checksum from
+# a key, and it read a lane runner's default HOME as a credential. Credential
+# scanning now belongs to .github/workflows/secrets.yml, which runs a real
+# scanner and cannot run from here.
 for c in check-docs check-markers check-one-home check-placeholders \
-         check-control-bytes check-changelog check-attribution check-no-secrets; do
+         check-control-bytes check-changelog check-attribution; do
   if [ -f "$HERE/$c.sh" ]; then
     run "$c" sh "$HERE/$c.sh"
   else
     row "SKIP  $c  (not present)"; SKIP=$((SKIP + 1))
   fi
 done
-
-# ⚠ --public is a DIFFERENT question from the default run, not a stricter one.
-# Emails, absolute home paths and long hex are legitimate content in a private
-# project, so this row is a second call rather than a flag on the first.
-[ -f "$HERE/check-no-secrets.sh" ] && run "check-no-secrets --public" sh "$HERE/check-no-secrets.sh" --public
 
 # ⚠ NEEDS gh AND THE NETWORK, so it exits 2 on a machine without them and that
 # reads as a skip rather than a pass. That is correct: nothing was verified.

@@ -2,14 +2,15 @@
 
 ## State
 
-226 entries: 10 open, 3 partial, 0 blocked, 213 done.
+249 entries: 23 open, 8 partial, 0 blocked, 218 done.
 
-The 11 open entries are the CI remainder below, filed on 2026-10-02 as
-tracked tasks with a Prove clause each, replacing the operator-blocked
-list and the untracked `refactor/DEFERRALS.md`. Read
-`TODO/RULES.md` section 11 before taking any of them: the operator
-settled four standing decisions on 2026-10-02 and they change how the
-work is done, not only what it is.
+The 23 open entries are the 22 T-1613 filed for the plan rows no batch
+named, plus T-1605. Read `TODO/RULES.md` section 11 before taking any of
+them: the operator settled seven standing decisions and one read-write
+grant on 2026-10-02, and they change how the work is done, not only what
+it is. The CI remainder below is no longer open: T-1601, T-1602, T-1603,
+T-1611 and T-1612 are done, T-1604, T-1606 and T-1607 are `partial`, and
+each says what still owes.
 
 `refactor/DEFERRALS.md` is superseded and is no longer the record of
 what waits. Its four sections now live in tracked entries: the CI
@@ -34,8 +35,9 @@ agreement
 plant transcript. T-1563 closes with the port faithful and T-0211
 still partial on the live lock; T-1568 and T-1569 close with the
 chroot intermittency and the guest gap recorded and owned by T-1302
-and T-1308. The tasks no batch names are deliberately skipped; see
-`refactor/DEFERRALS.md` section 4.
+and T-1308. The tasks no batch names are in the record now: T-1613
+filed the 21 the plan named, one per entry, and found that 4 of them
+were already closed work. See T-1613.
 
 The 2026-09-30 repository audit is complete in source and records.
 T-1348, T-1349, and T-1351 are complete. T-1350 lacks a successful current
@@ -104,7 +106,9 @@ keeps its historical scope. It does not establish current reliability.
 ## Work order
 
 1. T-1405 is done: beta.10 publishes all helper archives and signatures.
-2. T-1406 is done: DNS and write deadlines with the reconnect proof.
+2. T-1406 is `partial`, reopened by T-1612: the bounds and the loopback
+   reconnect proof are done, live-relay pairing is its one remaining
+   clause.
 3. T-1401 is done: the compiled shim with the exit-42 proof.
 4. T-1003 is done: rung-complete FUSE, armed tmpfs entry, OCI-tarball rootfs.
 5. T-1407 through T-1421 are done: the fifteen findings with their drives.
@@ -115,13 +119,21 @@ keeps its historical scope. It does not establish current reliability.
 7. T-1559 through T-1569 are done: the three tool crates with their
    shims, proofs, and plants. The nightly wiring for `release-notes`
    lands with them; T-1605 owns the live tag proof.
-8. T-1601 through T-1604 clear CI: the 1.99 interpose lint, the
-   registry fixture dead code, the secrets check, and the detached
-   stdio cascade. Take T-1601 first; it also clears the plant MISSes.
-9. T-1607 files the 21 unbatched plan rows. T-1606 repoints the
-   `references/` citations. T-1605 pushes the version tag.
-10. T-1611 repoints the code maps after the Batch 3 port. T-1350 is then
-    the next KVM run, and it needs `/dev/kvm` reapplied after a reboot.
+8. T-1601 and T-1602 are done, T-1603 is done, T-1604 is `partial`:
+   the 1.99 interpose lint, the registry fixture dead code, and the
+   secrets scan are closed on measured lane runs; T-1604 keeps only the
+   one-of-three detached start, whose cause is still open. T-1611 and
+   T-1612 are done. T-1607 is `partial`: the plan's named 21 are in the
+   record, the other 29 are not. T-1606 is `partial`: the map is
+   repointed, the `path:line` mechanism citations are not.
+9. T-1350 is `partial` and was driven three times on 2026-10-02 under the
+   watchdog. `setup` completes; `run ver` hangs after the firmware
+   handoff. `/dev/kvm` needed no reapply this session; `qemu-img` did
+   need installing into the base, and T-1610's Prove clause does not name
+   it. T-1112's KVM leg rides this run.
+10. T-1605 pushes the version tag once the record lands: the workspace
+    version is `0.1.0-beta.12` and the newest tag is beta.12, so the tag
+    needs a version bump in the same change.
 
 An agent may start a KVM guest unattended by passing both
 `--accept-host-risk` and `--unattended`; the driver then holds a T-1609

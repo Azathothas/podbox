@@ -984,10 +984,61 @@ Prove:       `cargo test -p podbox-release` green in the lane; the gate's
              `./target/release/podbox-gate` exits 0.
 
 **Done 2026-10-01.** Binary `podbox-size` measures in the
-`podbox-release` crate with no dependencies; the experiment path stays
-as a declaration stub that execs the binary (D-1 option c, D-2 hoist
-honoured: the stub never moves). Lane proof
+`podbox-release` crate, which it needs no dependencies for; the
+experiment path stays as a declaration stub that execs the binary (D-1
+option c, D-2 hoist honoured: the stub never moves). Lane proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
 section 9): the workspace release build exits 0 and `podbox-size ci`
 through the stub exits 0 with `total_bytes 3277880` under the declared
 ceiling. The record gate exits 0 on the landed tree.
+
+### T-1624 Record the 265-row parity figure and the four stale values the tree carries
+
+Source:      `refactor/recon-c.md:171`;
+             `refactor/06-entries/PLAN.md:190-194`
+Category:    deps
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     The parity table has one row count and this tree carries
+             four values for it. A reader cannot tell which is current
+             and one of the four is labelled CURRENT while being wrong.
+Premise:     265 is the source value. 220 and 164 are historical
+             readings, and 160 is a fourth. A count of 267 counted
+             `struct Row` and `impl Row` rather than the table's rows.
+Approach:     Record 265 once, beside the other three and the reason
+             each is what it is, so the four stop being four answers to
+             one question. Check the current value in the source before
+             writing it.
+Decision:     One page carries the figure and names the other three as
+             historical. Four pages each asserting a number is the defect.
+Prove:       `grep -n "265" TODO/deps.md` names the parity figure once
+             with the three stale values beside it.
+
+
+### T-1633 Record the 13-versus-3 `plant.sh` `Prove` discrepancy and which count is right
+
+Source:      `refactor/recon-c.md:180`;
+             `refactor/06-entries/PLAN.md:178-184`
+Category:    deps
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     Two documents give two counts for the same set of proof
+             lines, and a third says the count is wrong twice. Neither
+             figure has been re-derived, so a repair set built on either
+             is the wrong size.
+Premise:     The larger figure was verified twice and the correction is
+             itself recorded: the lines sit in two files, not three, and
+             one named file contributes none. The smaller figure has no
+             stated derivation.
+Approach:     Re-derive the count over the current tree and record the
+             count and its derivation together. The historical figure
+             stays named as historical.
+Decision:     Re-derive before recording. A correction that carries the
+             error forward under a new number is not a correction.
+Prove:       `grep -n "plant.sh" TODO/deps.md` names the current count
+             and the command that derives it.
+

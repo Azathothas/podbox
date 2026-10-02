@@ -104,7 +104,10 @@ sh scripts/verify-release.sh TAG ARCH binary
 sh scripts/verify-release.sh TAG ARCH ssh
 ```
 
-The verifier requires `gh` and `cosign`. It checks the tag's workflow identity.
+Binary `podbox-verify` owns that verification, and the two lines above
+are an exec shim.
+The verifier requires `gh` and `cosign`.
+It checks the tag's workflow identity.
 The server endpoint also needs the SSH server named by its configuration.
 
 ## Documents and evidence

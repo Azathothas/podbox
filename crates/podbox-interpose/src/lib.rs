@@ -47,6 +47,12 @@
 //! podbox swallows `EPERM` **and** `EINVAL` and records which.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
+// ⭐ T-1601. `invalid_runtime_symbol_definitions` is deny-by-default and
+// fires on the `open` family below, whose fixed third argument is deliberate:
+// stable Rust cannot define a C-variadic function (rust-lang/rust#44930).
+// The allow on the macro body would itself warn as an unknown lint on a
+// toolchain without the lint, and this keeps it a no-op there instead.
+#![allow(unknown_lints)]
 // ⛔ x86_64 ONLY, and refused by name rather than built wrong. The `stat`
 // offsets below are this architecture's, measured under both libcs; on i686 and
 // arm they differ, and an object that wrote a uid at the wrong offset would
@@ -2140,6 +2146,7 @@ macro_rules! open_fixed {
     ($name:ident, $real:ident, $path:ident, $flags:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
+        #[allow(invalid_runtime_symbol_definitions)]
         #[no_mangle]
         pub unsafe extern "C" fn $name($path: *const c_char, $flags: c_int, mode: c_uint) -> c_int {
             let Some(f) = $real() else {
@@ -2187,6 +2194,7 @@ macro_rules! open_fixed {
     ($name:ident, $real:ident, $dirfd:ident, $path:ident, $flags:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
+        #[allow(invalid_runtime_symbol_definitions)]
         #[no_mangle]
         pub unsafe extern "C" fn $name(
             $dirfd: c_int,

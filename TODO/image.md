@@ -287,7 +287,7 @@ Source:      `TOOL.md` section 5 M1, section 6.8
 Category:    image
 Priority:    P1
 Effort:      M
-Status:      done 2026-09-09
+Status:      partial 2026-09-09
 
 Problem:     A GC that runs while a container is using an extraction deletes the
              tree out from under it, and the payload's failure names a missing
@@ -322,6 +322,32 @@ over `crates/podbox-image/src/store.rs`, and the lock is
 in the script is `flock(1)` taking the same advisory lock on the same file, so
 the refusal path is driven for real; what is not yet driven is podbox holding it
 across its own exec.
+
+**Reopened 2026-10-02 under T-1612.** The `Prove` clause is still unproven and
+this entry's status said it was not, which is the defect T-1612 names. It is
+reopened rather than folded into [T-0211](#t-0211-an-image-lock-outlives-its-holder-whenever-anything-forks)
+because the clause is about the caller that holds the lock across an exec, and
+T-0211's subject is the opposite failure: a lock that outlives its holder by
+reaching an unrelated fork. T-0211's two plants are that shed path; the clause
+below exercises `Lock::hand_to_payload`, which T-0211 itself calls
+immediately before the fork that leads to the exec. One mechanism, two
+directions, two owners.
+
+⛔ **The clause does not yet read the mechanism it proves, and that has to be
+fixed before it can close.** `podbox image prune` names its two refusals from
+two different sources. The line `is in use by a running container` comes from
+`Store::delete` (`crates/podbox-image/src/store.rs:830`), which is the
+`flock(2)` hold check, and the line `is referenced by container <names>` comes
+from `podbox_supervise::referencing` (`crates/podbox-cli/src/images.rs:948`),
+which is the container-record table. This `Prove` greps for
+`is referenced by container gc-probe`, so it asserts the record path and never
+touches the lock. A detached `podbox run` writes a foreground record before
+`fg_end` flips it, and `Store::create` takes no hold
+(`store.rs:808-816` names both), so the clause as written would go green with
+the lock-inheritance mechanism removed. The clause to prove is the
+`in use by a running container` skip; `experiments/160-store-gc.sh` already
+drives that arm against an external `flock(1)` holder, and the remaining gap is
+podbox holding it across its own exec.
 
 What the script established:
 
@@ -2402,7 +2428,7 @@ Source:      CI run 36894578988, job 110478235990, 2026-10-01;
 Category:    image
 Priority:    P0
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     `cargo clippy --workspace --all-targets -- -D warnings`
              exits 101 on
@@ -2444,3 +2470,120 @@ Prove:       `cargo clippy -p podbox-image --all-targets -- -D warnings`
              only on digests; deleting one of those assertions reddens
              clippy (the plant this task owes);
              `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0.
+
+**Done 2026-10-02.** `cargo clippy --workspace --all-targets -- -D
+warnings` exits 0 on the current tree under `rustc 1.99.0`
+([the lane drive](../experiments/results/ci-lint-1.99.txt)), and
+`cargo test --workspace` exits 0 there with 38 passing suites, among
+them `concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest`,
+`the_pooled_transcript_lists_layers_in_manifest_order_and_repull_reuses`,
+and the new `a_row_holds_the_bytes_its_resolved_digest_names`.
+`./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0. No
+field was removed and no `#[allow]` or `#[expect]` was added.
+
+The approach was right and the premise was too narrow. The lint did not
+fire on one target: **every** `mod common;` target compiled the whole
+fixture module and each read a different subset, so clippy reported
+dead fields on four of the five and exited 101 on each. One consumer set
+cannot satisfy five compilation units, because making every target read
+all six fields would break the ones that legitimately read none. Each
+target now carries the assertion it actually wants: `parallel_layers`
+compares the stored bytes with the published bytes per concurrent pull
+and on the ordered cold pull; `store_digest` compares stored config and
+layer bytes and reads the manifest against the blob on disk;
+`acquisition` turns digest strings into length plus byte-for-byte
+comparisons; `across_distributions` gains the new row test above. Each
+comparison is length plus bytes and deliberately never a re-hash,
+because the digest crate is the same one production verification uses
+and a re-hash would share the producer's defect.
+
+The plant this task owes was driven by hand, because the harness that
+owns plants writes defects into tracked files and other work was running
+concurrently: deleting one new assertion turns clippy red with
+`unused variable` on the now-unread field binding, and restoring it
+turns clippy green again. The transcript is under the untracked scratch
+tree, not in `experiments/results/`, because the session kept a KVM
+proof and a lane job running at the time and staging a transcript is
+cheap while racing those is not. The plant this repository ships, its
+plant case for this file, does not exist and adding one is not part of
+this entry's clause.
+
+### T-1625 Record that `70-whiteout-contract.sh` check B needs a fixture, and where it goes
+
+Source:      `refactor/recon-c.md:172`;
+             `refactor/06-entries/PLAN.md:121`
+Category:    image
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Check B of this contract is a measurement over a real
+             `alpine` layer, and no Rust test reads one. The script is
+             not deletable and nothing says so, so the next session
+             reads the tree as half-converted.
+Premise:     Four predicates are already in Rust, and the crate asserts
+             the OPPOSITE outcome on a crafted layer. A conversion that
+             trusted the crate's own test would record the contract
+             backwards.
+Approach:     Record the gap, name the fixture check B needs, and say
+             why the existing crate assertion is not a substitute.
+             Read the current assertion before writing the record.
+Decision:     Record, not convert. The fixture does not exist, and a
+             test written against it now would be written blind.
+Prove:       `grep -n "whiteout" TODO/image.md` names the fixture the
+             check needs and the assertion that contradicts it.
+
+
+### T-1634 Record that `serve_once` is test-private and no fixture existed before T-1602
+
+Source:      `refactor/recon-c.md:181`;
+             `refactor/06-entries/PLAN.md:154`; T-1602
+Category:    image
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Registry-backed tests were written against a fixture that
+             did not exist and could not be reached. The record of why
+             is worth more than the fixture, because the next session
+             will otherwise read the test as having always had one.
+Premise:     The serving function is a private function inside a test
+             module: one request, plain HTTP, unreachable from any
+             binary. An existing entry's proof names a shell fixture for
+             the same work.
+Approach:     Record the state before the fixture and name the entry that
+             builds it, so the test's history and its owner are both
+             readable.
+Decision:     Record it on the image category entry that owns the
+             fixture work, not on the registry entry, so one fixture has
+             one owner.
+Prove:       `grep -n "serve_once" TODO/image.md` names the test-private
+             scope and the entry that made the fixture reachable.
+
+
+### T-1620 The lock-race clause decision belongs to the store work it cites
+
+Source:      `refactor/recon-c.md:158`, the plan's row, read off disk
+             2026-10-02; `refactor/DEFERRALS.md:54-55`
+Category:    image
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     One clause of a store measurement has no settled fate, and
+             the entry it depends on is the work that settles it. The
+             clause has a name in an untracked plan and no owner in the
+             record.
+Premise:     The clause waits on store work that cites it, so the two
+             cannot be separated without one of them deciding for the
+             other. The lock-race entry is tracked and the clause is
+             named in it.
+Approach:     This entry names the clause and its owner. The decision is
+             taken by the store entry, which is the work the clause
+             concerns. Record the outcome there and point here at it.
+Decision:     Named here, owned there, for the same reason as the
+             three-way row above.
+Prove:       `grep -n "153-store-lock-race" TODO/image.md` names this
+             entry as the owner of the clause question and the store
+             entry that settles it.
+

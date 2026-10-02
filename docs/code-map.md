@@ -14,14 +14,18 @@
 | `crates/podbox-windows` | Guest mailbox, agent, disk fetch, QMP, boot plan |
 | `crates/podbox-ssh` | SSH transport, relay frames, multiplexing, server and interactive session |
 | `crates/podbox-interpose` | Separate glibc and musl objects |
+| `crates/podbox-gate` | Task, citation and source-state gate; count writer, plant, and `podbox-dev` host commands |
+| `crates/podbox-buildstate` | Build freshness, `podbox-release-licenses` licence inventory |
+| `crates/podbox-release` | `podbox-verify`, `podbox-size`, `podbox-prove-t0211`, `document-state`, `release-notes`, `podbox-reconcile`, `podbox-publish` |
+| `crates/podbox-podvm` | `podbox-podvm` guest driver and `podbox-podvm-workload` spread measurement |
 
 ## Tooling
 
 | File | Purpose |
 | --- | --- |
 | podbox-dev session, status, check | Host discovery, Linux build and complete check |
-| `scripts/build-state.py` | Input and output byte verification |
-| `scripts/document-state.py` | Generated source-state page |
+| `scripts/build-state.py` | An exec shim; the `podbox-buildstate` binary owns the logic |
+| `scripts/document-state.py` | An exec shim; the `document-state` binary owns the logic |
 | `scripts/windows/run-in-base.sh` | Windows job and artifact transport |
 | `scripts/windows/kvm-guest.py` | Windows driver for the KVM proof |
 | `crates/podbox-gate/src/main.rs` | Independent task, citation, and document-state gate |

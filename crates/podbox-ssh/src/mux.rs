@@ -1148,8 +1148,9 @@ mod tests {
             "wss://example.com/v1/node/n",
             "wss://example.com?token=abc",
             // ⛔ Built in parts: the committed source carries no
-            // email-shaped literal (check-no-secrets --public) while the
-            // runtime value keeps its userinfo for the refusal under test.
+            // email-shaped literal, which a scanner reading a value rather
+            // than a shape would report, while the runtime value keeps its
+            // userinfo for the refusal under test.
             &("wss://user".to_string() + "@example.com"),
             "wss://example.com:0",
             "wss://example.com:99999",

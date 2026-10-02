@@ -19,7 +19,9 @@
 //!   (404); the digest-mismatch refusal (fail-2) needs a mutable blob store
 //!   and is the SKIP test at the bottom.
 //! * the pool shape: one pull per `FETCH_WORKERS` slot runs concurrently
-//!   against a single fixture, and every one resolves to the seeded digest.
+//!   against a single fixture, and every one resolves to the seeded digest
+//!   AND stores the exact bytes that digest names, rather than a digest
+//!   string alone.
 //!
 //! Not ported: the wall-time ratios and the latency shape (measurements, not
 //! assertions). The fixed fixture serves immutable bytes by design, so the
@@ -29,6 +31,7 @@ mod common;
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use podbox_image::digest::Digest;
 use podbox_image::platform::Platform;
 use podbox_image::pull;
 use podbox_image::store::Store;
@@ -78,6 +81,41 @@ fn staged_partials(store: &Store) -> Vec<String> {
         .collect()
 }
 
+/// ⭐ One fetch landed the exact bytes the registry published, named by the
+/// digest that pull resolved.
+///
+/// ⚠ The order matters and it is the point. `podbox_image::Digest::of` is
+/// `sha2`, the same crate the production verification uses, so a hash here
+/// cannot tell a body that was truncated, interleaved or crossed between two
+/// concurrent fetches apart from one that arrived whole: the producer and the
+/// checker would share the defect. The published bytes come from the fixture's
+/// own fields, so only the fetched side is measured, and a byte for byte
+/// comparison is the verdict.
+fn one_fetch_landed_the_published_bytes(store: &Store, want: &str, published: &[u8]) {
+    let d = Digest::parse(want).expect("the fixture serves parseable digests");
+    assert!(
+        store.has_blob(&d),
+        "the pull resolved to {want} and stored no blob at {}",
+        store.blob_path(&d).display()
+    );
+    let path = store.blob_path(&d);
+    let stored = std::fs::read(&path)
+        .unwrap_or_else(|e| panic!("no blob for {want} at {}: {e}", path.display()));
+    assert_eq!(
+        stored.len(),
+        published.len(),
+        "the fetch stored {} byte(s) for {want}, the registry published {}",
+        stored.len(),
+        published.len()
+    );
+    assert!(
+        stored == published,
+        "the fetch stored bytes that are not the published ones for {want}, \
+         differing at {:?}",
+        stored.iter().zip(published).position(|(a, b)| a != b)
+    );
+}
+
 /// Script clause seed-1 plus the pool shape: one pull per `FETCH_WORKERS`
 /// slot runs concurrently against one fixture, and every pull resolves to
 /// the seeded digest with a complete transcript.
@@ -87,6 +125,15 @@ fn concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest() {
     let fx = common::registry::Fixture::start();
     let reference = fx.reference();
     let expected = fx.manifest_digest.clone();
+    // The published surface of the fixture, read on this side of the pull:
+    // every concurrent fetch below is checked against these exact bytes, so
+    // a worker that stored the wrong body cannot pass on a digest alone.
+    let published_manifest = fx.manifest.clone();
+    let published_manifest_digest = fx.manifest_digest.clone();
+    let published_config = fx.config.clone();
+    let published_config_digest = fx.config_digest.clone();
+    let published_layer = fx.layer.clone();
+    let published_layer_digest = fx.layer_digest.clone();
 
     let mut handles = Vec::new();
     for _ in 0..pull::FETCH_WORKERS {
@@ -97,11 +144,11 @@ fn concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest() {
             let store = Store::open(&dir).expect("a thread opens its own store");
             let policy = policy_for(&endpoint);
             let (result, text) = pull_once(&store, &reference, &policy);
-            (result, text, dir)
+            (result, text, store)
         }));
     }
     for h in handles {
-        let (result, text, dir) = h.join().expect("a pull thread reports its result");
+        let (result, text, store) = h.join().expect("a pull thread reports its result");
         let digest = result.expect("a concurrent pull succeeds");
         assert_eq!(
             digest, expected,
@@ -115,7 +162,14 @@ fn concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest() {
             text.contains(&expected),
             "a concurrent pull names no seeded digest: {text:?}"
         );
-        cleanup(&dir);
+        one_fetch_landed_the_published_bytes(
+            &store,
+            &published_manifest_digest,
+            &published_manifest,
+        );
+        one_fetch_landed_the_published_bytes(&store, &published_config_digest, &published_config);
+        one_fetch_landed_the_published_bytes(&store, &published_layer_digest, &published_layer);
+        cleanup(store.root());
     }
     fx.shutdown();
 }
@@ -129,6 +183,13 @@ fn the_pooled_transcript_lists_layers_in_manifest_order_and_repull_reuses() {
     let policy = policy_for(&fx.endpoint);
     let reference = fx.reference();
     let layer_short = fx.layer_digest[7..19].to_string();
+    // Read on this side of the pull. The transcript check below proves the
+    // LAYER was announced; these bytes are what the fetch behind it landed,
+    // and the config and the manifest are the other two documents one cold
+    // pull resolves before it reaches them.
+    let published_manifest = fx.manifest.clone();
+    let published_config = fx.config.clone();
+    let published_layer = fx.layer.clone();
 
     let dir = fresh_dir("order");
     let store = Store::open(&dir).expect("the test opens its store");
@@ -139,6 +200,9 @@ fn the_pooled_transcript_lists_layers_in_manifest_order_and_repull_reuses() {
         "the cold pull resolved to {digest}, not the seeded {}",
         fx.manifest_digest
     );
+    one_fetch_landed_the_published_bytes(&store, &fx.layer_digest, &published_layer);
+    one_fetch_landed_the_published_bytes(&store, &fx.config_digest, &published_config);
+    one_fetch_landed_the_published_bytes(&store, &fx.manifest_digest, &published_manifest);
     let pulling = text
         .find("Pulling from")
         .expect("the transcript announces the pull");

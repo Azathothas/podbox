@@ -1620,3 +1620,32 @@ against the manifest and shows the `Config` object in the document.
 
 **Open 2026-09-30 (history).** Filed from issue 82. Read the current source
 before implementation.
+
+### T-1630 The symlink-escape script is converted, and its deletion has a condition
+
+Source:      `refactor/recon-c.md:177`, the plan's row, read off disk
+             2026-10-02
+Category:    cli
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     `experiments/85-completion-symlink-escape.sh` is converted
+             and its deletion is blocked on another task, so the tree
+             reads as an unfinished port with no owner and no
+             condition.
+Premise:     The conversion is the two library tests the plan names in
+             the completion write module. The deletion condition is the
+             entry that writes those tests, named in the plan's row and
+             not yet a tracked entry, so it is recorded here rather than
+             cited as an id a reader cannot follow.
+Approach:     Record the converted state and the deletion condition, and
+             name what clears it. Do not delete the script here: this
+             row is a record, and deleting it widens the unit past the
+             record.
+Decision:     Record, not delete. The condition is another task's and a
+             deletion taken from under it loses its plant.
+Prove:       `grep -n "85-completion-symlink-escape" TODO/cli.md` names
+             the converted tests and the work whose landing clears the
+             deletion.
+

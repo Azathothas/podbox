@@ -1433,9 +1433,9 @@ Prove:       `cargo test -p podbox-release` green in the lane; the binary
              and the retired script render identical pages;
              `./target/release/podbox-gate` exits 0.
 
-**Done 2026-10-01.** Binary `document-state` renders the page in the
-`podbox-release` crate with no dependencies, and the script stays as
-an exec shim. Lane proof
+**Done 2026-10-01.** The state page is rendered by `document-state`, a
+dependency-free binary in the `podbox-release` crate, and the retired
+script remains an exec shim. Lane proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
 section 3): retired script and binary render identical pages, and the
 shim reaches its binary. Plant: render against a tree with a member

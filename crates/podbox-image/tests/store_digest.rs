@@ -52,7 +52,34 @@ fn the_record_and_the_blobs_name_the_served_bytes() {
         "the record config digest names a config the fixture did not serve"
     );
 
-    for want in [&fx.config_digest, &fx.layer_digest] {
+    // ⭐ The manifest the pull resolved to is on disk under its own digest,
+    // and the bytes there are the ones the registry served. This is the
+    // only place `fx.manifest` is read, and the file's header names the
+    // manifest as one of the three documents a pull lands.
+    let path = store.root().join(
+        Digest::parse(&fx.manifest_digest)
+            .expect("the fixture serves parseable digests")
+            .blob_path(),
+    );
+    let served = std::fs::read(&path)
+        .unwrap_or_else(|e| panic!("the pull stored no manifest at {}: {e}", path.display()));
+    assert_eq!(
+        served.len(),
+        fx.manifest.len(),
+        "the stored manifest is {} byte(s), the registry published {}",
+        served.len(),
+        fx.manifest.len()
+    );
+    assert!(
+        served == fx.manifest,
+        "the stored manifest is not the one served, differing at {:?}",
+        served.iter().zip(&fx.manifest).position(|(a, b)| a != b)
+    );
+
+    for (want, published) in [
+        (&fx.config_digest, &fx.config),
+        (&fx.layer_digest, &fx.layer),
+    ] {
         let parsed = Digest::parse(want).expect("the fixture serves parseable digests");
         let path = store.root().join(parsed.blob_path());
         assert!(
@@ -67,8 +94,29 @@ fn the_record_and_the_blobs_name_the_served_bytes() {
             "the bytes at {} do not hash to {want}",
             path.display()
         );
+        // ⭐ And the bytes are the ones the registry published, not merely
+        // bytes that hash to the right name. The loopback fixture is
+        // immutable, so these are the only bytes {want} can name, and a
+        // truncation or a crossed write inside the fetch that landed here
+        // would pass the hash above.
+        assert_eq!(
+            bytes.len(),
+            published.len(),
+            "the stored {want} is {} byte(s), the registry published {}",
+            bytes.len(),
+            published.len()
+        );
+        assert!(
+            bytes == *published,
+            "the stored {want} is not the published blob, differing at {:?}",
+            bytes.iter().zip(published).position(|(a, b)| a != b)
+        );
     }
 
+    // ⚠ And the published bytes hash to the name, checked last and with the
+    // crate's own digest: this reads the FIXTURE side of the pair, so it is
+    // a check on what the registry published rather than on what was fetched,
+    // and it cannot stand in for the comparisons above.
     assert_eq!(
         Digest::of(&fx.manifest).to_string(),
         fx.manifest_digest,

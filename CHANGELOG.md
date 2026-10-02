@@ -6,6 +6,28 @@ Earlier repository change records are retained in
 [the captured changelog](docs/history/CHANGELOG.md-before-2026-09-30.txt).
 They describe their recorded revision, not the current build.
 
+## 0.1.0-beta.13
+
+- The static build compiles under Rust 1.99: the `open` family's fixed
+  third argument is deliberate, so the deny-by-default
+  `invalid_runtime_symbol_definitions` lint is allowed at the definition
+  and stays a no-op on older toolchains through `unknown_lints`. See
+  T-1601.
+- The registry fixture's manifest, config, config-digest and layer fields
+  are asserted on as bytes, not only as digests, in every test target
+  that compiles the fixture. See T-1602.
+- The secret-shape regex check is gone. Credential scanning is
+  `.github/workflows/secrets.yml`, a pinned trufflehog binary over the
+  working tree and the whole history. See T-1603.
+- The detached-stdio serialisation mutex no longer turns one test's panic
+  into the next test's failure, and a failed detached start now reports
+  the exit it took instead of only counting. The one-of-three start
+  failure is still open. See T-1604.
+- Nine Batch 3 closure paragraphs read as nine paragraphs again, the
+  source maps name the four crates the port added and mark each retired
+  script as a shim, and the limits page stops describing closed gaps as
+  open work. See T-1608, T-1611, T-1612.
+
 ## 0.1.0-beta.12
 
 - The release tag names the workspace version. Beta.11's binary

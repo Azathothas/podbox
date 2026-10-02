@@ -1,3 +1,4 @@
+kvm-guest: session 3d5fcdd6d4128818 under watchdog 854668
 == conditions
 2026-10-02T06:35:05Z
 instance=podbox

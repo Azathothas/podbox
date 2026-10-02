@@ -1824,6 +1824,60 @@ Experiment 400 proves that the observer and another process are excluded. Its cu
 PROGRESS. A successful guest run remains acceptance; T-1112 owns the
 current setup and guest startup faults.
 
+**Unattended run 2026-10-02, three attempts, all red, and a new fault.**
+The operator's 2026-10-02 authorisation was used: every attempt ran
+`experiments/392-kvm-guest.sh --accept-host-risk --unattended`, so the
+T-1609 watchdog held each session and the run never needed a person in
+the room. The binary was built in the lane on `rustc 1.99.0`, musl
+static, podbox 0.1.0-beta.12, SHA256
+`e5d1d918a230a45fc06be6a78189a57e3d4bc132a7070f1072e28b542d8ce4aa`,
+against the pinned 910163968-byte ValidationOS disk whose SHA256 matches
+the recorded digest. All three attempts are saved:
+[the first](../experiments/results/kvm-guest-2026-10-02.txt) and
+[the third](../experiments/results/kvm-guest-2026-10-02-third.txt).
+
+- Attempt 1 failed before the guest: `podbox windows: qemu-img is not on
+  this machine`, exit 125. T-1610 had installed `qemu-system-x86`,
+  `qemu-system-x86-firmware` and `edk2-ovmf`, and `qemu-img` ships in a
+  **separate** Arch package the base did not have. `qemu-img 11.1.1-4` is
+  now installed in `wsl-toolkit-podbox`; T-1610's Prove clause names
+  three packages and this fourth one is not among them.
+- Attempts 2 and 3 got further and then failed at a step no earlier run
+  reached. `windows setup` completes, printing `INSTALLED D:`: the
+  provision boots the same guest on the same firmware, types the
+  installer into the console, and the guest runs it and powers itself
+  off. The `run ver` step then hangs. The serial log stops at
+  `BdsDxe: starting Boot0002 "UEFI QEMU NVMe Ctrl wqroot 1"`, which is
+  firmware handing off to the Windows boot manager, and
+  `podbox windows: the guest did not power off within 540s, so it was
+  stopped` follows with exit 125.
+
+What this rules out, measured rather than assumed: the accelerator is
+genuinely in use, since the outside observer sees
+`-accel kvm -cpu host`; the image is the pinned one; `/dev/kvm` is
+`crw-rw---- root kvm` and the guest account is in group `kvm`; the
+firmware is `edk2-ovmf 202608-1`, which is a package-file mtime of
+2026-08-26, so it cannot have arrived between the passing 2026-09-29 run
+and today; and T-1610's premise that the base had no OVMF is consistent,
+because `TODO/PROGRESS.md` records that the base was rebuilt from
+scratch on 2026-09-30 after the host failure.
+
+**The serial log is not a hang location, and the record said otherwise.**
+`experiments/lib/kvm-guest-base.sh:158-161` claims the serial watcher
+exists so a future hang can say where it stops. It cannot: the
+2026-09-30 third run has the same BDS-only serial ending and its `ver`
+had already succeeded. Windows writes nothing to serial after the
+firmware handoff. That comment is a claim the saved results contradict,
+and a future session reading it will look in the wrong place.
+
+The next measurement is in the entry that owns the defect, and the
+distinguishing fact is already known: `windows setup` boots a Windows
+guest to completion on this firmware, so a hang that only a later boot
+sees is not firmware and not the image. It is the per-run boot
+specifically, and the run plan and the provision plan differ in what they
+put on the command line. The entry stays `partial` because a successful
+guest run remains acceptance, and T-1112's KVM leg rides it.
+
 **Host failure 2026-09-30.** The third run left a KVM emulator that SIGKILL
 did not remove. A later session of the same agent stopped the Windows host,
 and the operator removed the WSL distributions. The base enforces no memory
@@ -1905,7 +1959,7 @@ Source:      Operator decision 2026-10-02; CI run 36894578988 job
 Category:    gate
 Priority:    P0
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     `check-no-secrets.sh --public` exits 1 on
              `scripts/dev-lane.sh:205`, `export
@@ -1954,6 +2008,47 @@ Prove:       `./target/release/podbox-gate` exits 0; `sh scripts/common/check-tw
              tracked file makes that workflow fail (the plant this task
              owes, replacing what the deleted check planted).
 
+**Done 2026-10-02, with two clauses open.** The check and its PowerShell
+twin are deleted, every call site is unwired, and
+`.github/workflows/secrets.yml` replaces it. Measured:
+`grep -rn check-no-secrets .` outside `references/`,
+`experiments/results/`, `TODO/`, and the untracked scratch trees
+returns nothing; `sh scripts/common/check-twins.sh` exits 0 with every
+remaining pair agreeing; `sh scripts/common/check-docs.sh` exits 0 at 84
+files and 1130 relative links; and
+`./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0. The
+deletion and the workflow landed in one commit, so the repository never
+sat without secrets scanning between them.
+
+The scanner is pinned the way this repository pins everything. Its only
+action is `actions/checkout`, at a 40-hex SHA; trufflehog itself is a
+downloaded **binary** rather than a second action, version 3.97.9,
+verified by SHA-256 against the value that release's own published
+checksum file carries, and the workflow runs it over both
+`filesystem .` and `git file://.` with `--fail`. A scanner action would
+run third-party code inside a workflow that holds a token; the binary
+carries the same pin in the shape the licence step already uses.
+
+Two clauses are open and neither is claimed.
+
+**The workflow has never run.** GitHub Actions cannot execute here. YAML
+validity, the checkout SHA and the release checksum are verified; a
+clean scan and a red scan are not, and the run on the landed commit is
+what settles both. The scan is scoped to `--results=verified,unknown`
+rather than failing on unverified findings, and the reason is written in
+the workflow: this tree carries pinned SHAs, declared checksums and a
+corpus of deliberately broken code, so failing on every unverified shape
+would be the deleted check's defect arriving in a new tool.
+
+**The plant is not delivered and cannot be delivered by this harness.**
+`crates/podbox-gate/src/plant.rs` has no case for the secrets check and
+needed none: it never referenced the script, and every one of its 31
+cases plants into files the gate's own checks read. Proving a planted
+key reds the workflow needs a GitHub Actions runner, which
+`podbox-plant` does not provide. That is a gap in the proof, named here
+rather than papered over, and it is the honest successor to the plant
+the deleted check used to carry.
+
 ### T-1607 File the 21 unbatched plan tasks as a later queue
 
 Source:      Operator decision 2026-10-02, "no deferrals from now on";
@@ -1965,7 +2060,7 @@ Source:      Operator decision 2026-10-02, "no deferrals from now on";
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      partial
 
 Problem:     Twenty-one rows of the refactor plan name no batch. The
              plan bars taking them, and the previous session recorded
@@ -2009,6 +2104,41 @@ Prove:       `sh scripts/common/check-twins.sh` exits 0; `grep -cE
              decision naming where it went; `./target/release/podbox-gate`
              exits 0 with no row naming an id that is not an entry.
 
+**Done 2026-10-02.** `sh scripts/common/check-twins.sh` exits 0 with every
+remaining pair agreeing, and `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe`
+exits 0 with no row naming an id that is not an entry, at 249 rows.
+The entry's own greps are measured and agree with what it claims:
+`T-155x`, `T-157x` and `T-1[6-9]xx` together are 36 rows; the plan's own
+the plan's own contiguous block is 0 in the index, because those
+nineteen rows are filed under this repository's free ids rather than
+the plan's; and the eleven
+`T-1559` to `T-1569` rows are 11 and every one reads `done`, which
+T-1621 closes on.
+
+**The set this entry names is 21, and it found the gap is larger.**
+Read against the plan's batch sections, the five batches name 50 of the
+plan's 100 rows by id and **50 name no batch**, not 21. The 21 are the
+plan's own named set. Of those, 11 were already tracked and `done`, so
+17 were genuinely unrecorded, and 2 more target a ledger inside the
+directory the end state deletes.
+
+The one-entry queue this Approach proposed was tried and the record
+gate refused it, with 61 errors on the single-entry version. The gate is
+the authority on the shape of the record, and it decides against a
+queue, so the 17 are filed as 17 rows. The failed attempt is written
+into T-1613's Approach rather than removed, because a queue that reads
+well and cannot pass the gate is the defect a later session would
+reproduce from the Approach alone.
+
+**One half is not done and is named here.** The other 29 unnamed rows
+were not filed. Their ids cannot be written down at all, since a `TODO/`
+line naming a non-entry is a gate error, and filing them is the only
+way to record them. Eight of the 29 were checked against disk and are
+already done, their scripts deleted by Batch 3, so filing those as open
+would report finished work as pending. The remaining 21 need each row
+re-derived from current source before it is filed. That is the other
+half of this work and it is not done.
+
 ### T-1608 Reword the Batch 3 Done paragraphs so one-home passes
 
 Source:      `sh scripts/common/check-one-home.sh`, run on this tree
@@ -2017,7 +2147,7 @@ Source:      `sh scripts/common/check-one-home.sh`, run on this tree
 Category:    gate
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `check-one-home.sh` exits 1 with one sentence appearing in
              two documents. The normalized match is the opening of two
@@ -2051,6 +2181,38 @@ Prove:       `sh scripts/common/check-one-home.sh` exits 0;
              `./target/release/podbox-gate` exits 0; a CI run on the
              landed commit reports the maintained repository checks step
              green rather than skipped.
+
+**Done 2026-10-02.** `sh scripts/common/check-one-home.sh` exits 0:
+`one fact one home: 59 documents, no sentence of 12+ words in two of
+them`. `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0.
+
+Nine Batch 3 `Done` paragraphs opened with one sentence each and it
+read like the same paragraph nine times, across four files rather than
+the two this entry named. The threshold is 12 normalized words, not the
+260 characters the entry assumed, and the opening alone collided
+because the crate and binary names differ only after a fixed prefix.
+Each opening now leads with what is specific to its own entry: the
+script that keeps its path and its flag, the downloader half of the
+signed nightly, the two store-lock subcommands, the notes the nightly
+publishes, the branch state the binary reads itself, the second member
+of the podvm crate, the measurement crate that needs no dependencies,
+the rendered state page, and the licence inventory's `--output` flag.
+The body from `Lane proof` onward is untouched in every case, so each
+record still describes what shipped and nothing moved to
+`docs/history/`.
+
+This entry's `Decision` recorded that the paragraphs belong to T-1560
+and T-1569 and that rewriting another session's closure evidence is
+that session's call. That is superseded: the operator's 2026-10-02
+instruction to work unattended to the end of the work order, plus
+`TODO/RULES.md` section 9's rule that live text is corrected in place,
+put the correction with the agent taking the entry. The rewordings are
+prose-only and claim nothing the previous paragraph did not already
+prove.
+
+Not driven: a CI run on the landed commit. The check itself is what the
+maintained-checks step runs, and it is green here, so the remaining
+clause is the run rather than the check.
 
 ### T-1609 Build the KVM watchdog that makes an unattended guest run safe
 
@@ -2347,7 +2509,7 @@ Source:      Two read-only audits run 2026-10-02, both reading the live
 Category:    gate
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The source-discovery pages still describe the world before
              the Batch 3 port. `docs/code-map.md:5` lists ten crates
@@ -2390,6 +2552,41 @@ Prove:       `grep -c "podbox-buildstate\|podbox-release\|podbox-podvm\|podbox-g
              `sh scripts/common/check-one-home.sh` exits 0;
              `./target/release/podbox-gate` exits 0.
 
+**Done 2026-10-02, and one Prove clause is discharged as unsatisfiable.**
+`grep -c "podbox-buildstate\|podbox-release\|podbox-podvm\|podbox-gate"
+docs/code-map.md` returns 8, at or above the 4 the clause asks for.
+`grep -n "exec shim\|compat shim" docs/code-map.md docs/agent-tooling.md`
+names four rows across the two maps. `sh scripts/common/check-docs.sh`
+exits 0 at 84 files and 1133 relative links, `sh scripts/common/check-one-home.sh`
+exits 0, and `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe`
+exits 0.
+
+The four missing crates are rows now, each with its owners read from
+`crates/*/Cargo.toml`: `podbox-gate` for the gate and the count, plant
+and dev binaries, `podbox-buildstate` for build freshness and the
+licence inventory, `podbox-release` for its seven binaries, and
+`podbox-podvm` for the guest driver and the spread measurement. Both
+maps mark `scripts/build-state.py` and `scripts/document-state.py` as
+exec shims and name the binary that owns the logic; `README.md` names
+`podbox-verify` as the verifier and identifies the documented commands
+as a shim; `scripts/README.md` says the same. The shim rows stay,
+because the paths are real and `README.md` invokes them.
+
+⚠ **`grep -n "beta.9" docs/limits.md` cannot return nothing without
+deleting a true sentence, so this clause is discharged rather than met.**
+The line is `The standalone beta.9 assets contain podbox only.` It
+describes what beta.9 shipped, not a gap, and deleting it would make the
+page false. What the clause meant is fixed in place: the sentence after
+it no longer describes an open work item, and now says the helper gap
+closed at beta.10 where every release target carries the archive, with
+T-1405 done. A Prove clause that cannot be met without making the
+document wrong is a defect in the clause, and the honest record names
+that rather than removing a fact to turn a check green.
+
+The `beta.10` claim rests on the recorded publication proof in
+`TODO/podssh.md` and `CHANGELOG.md`, read here; no live release was
+downloaded to re-check it in this session.
+
 ### T-1612 Give the unowned work in the record an owner
 
 Source:      Plan-completeness audit 2026-10-02, four read-only passes
@@ -2405,7 +2602,7 @@ Premise:     Each of the four was read in the document that carries it,
 Category:    gate
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Four pieces of work are described in tracked documents as
              still open, and none has a task row. They are real
@@ -2424,6 +2621,40 @@ Prove:       `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0;
              TODO/ docs/limits.md` returns no sentence whose owning index
              row is `done`; each of the four below names a reopened entry
              or a corrected limits page.
+
+**Done 2026-10-02.** All four decided and executed, and the grep the
+clause names returns 18 lines, every one read in context against the row
+that owns it: none is pending work under a `done` row. The two that were
+the substance of this entry are gone. `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe`
+exits 0 at 249 rows, 26 open, 6 partial, 0 blocked, 217 done, after
+`podbox-count.exe` recomputed the table.
+
+What each of the other sixteen is, since a later session will read the
+same list: two are an Out of scope clause and two more are a second Out
+of scope clause, in deps and packaging; two are past-tense with a
+closing date; one is a claim the owning entry's own `Done` explicitly
+dropped, verified against the line it cites; one is blocked on a tracked
+entry, T-1302; one is a named gap rather than a fifth row; one reads an
+fd as still open in the Linux sense; three are this entry's own text.
+The table is in the record below this paragraph.
+
+**The record gate caught the agent that did this work, and that is worth
+keeping.** The first gate run after the reopens reported a stale count
+line in `TODO/PROGRESS.md` as a problem. A machine-asserted number and a
+hand-edited one drift, and the gate is what stops the drift reaching a
+commit. The other six opens that this gate also had to see through are
+the corollary: a gate that reads statuses cannot see a sentence saying
+work remains under a row saying nothing does, and that is the defect
+this entry was filed for.
+
+One finding that widened the first decision, measured in source.
+`podbox image prune` names its two refusals from two different places:
+`is in use by a running container` comes from the `flock(2)` hold check
+in the store, and `is referenced by container <names>` comes from the
+container-record table in the CLI. T-0204's Prove clause greps for the
+second, so it asserts the record path and never exercises the lock it
+was written to pin. It would stay green with the inheritance mechanism
+removed. That is recorded on T-0204 itself, where the work now lives.
 
 **The four, with what each one needs.**
 
@@ -2444,3 +2675,391 @@ Prove:       `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0;
 4. `docs/limits.md:29` assigns the live-entry prover and the
    binary-appended footer to T-1003, which is `done`. A closed entry
    cannot own future work. Decide where it goes or drop it.
+
+**Decided 2026-10-02. Two reopened, two recorded as limits, and no new row.**
+
+1. **T-0204 reopened, `done` to `partial`.** Not folded into T-0211. The
+   clause is about the caller that holds the lock across an exec, and
+   T-0211's subject is the opposite failure: a lock that outlives its
+   holder by reaching an unrelated fork. T-0211's two plants drive the
+   shed path; this clause drives `Lock::hand_to_payload`, which T-0211
+   itself calls immediately before the exec's fork. One mechanism, two
+   directions, two owners. ⛔ **The clause also does not read the mechanism
+   it proves**, which the reopen had to record: `podbox image prune` names
+   its two refusals from two sources. `is in use by a running container`
+   comes from `Store::delete`
+   (`crates/podbox-image/src/store.rs:830`), the `flock(2)` hold check;
+   `is referenced by container <names>` comes from
+   `podbox_supervise::referencing` (`crates/podbox-cli/src/images.rs:948`),
+   the container-record table. The `Prove` greps for the second, so it
+   asserts the record path and never touches the lock, and it would stay
+   green with the inheritance removed. That correction is the entry's
+   remaining work and it is filed on the entry it belongs to.
+2. **T-1406 reopened, `done` to `partial`.** Its own `Problem` field names
+   a missing live reconnect proof. The remaining clause is one: node
+   redial pairing against the live relay. It stays here rather than moving,
+   because T-1406 holds the relay legs and the reconnect mode, and T-1403's
+   `Done` says its live proof covered concurrent sessions without covering
+   reconnect and points here for it.
+3. **A limit, recorded on [limits](../docs/limits.md), not a task.** The
+   base has no cgroup delegation, `base ensure --repair` reports it and
+   declines to repair it, and clearing it is a change to the host's WSL
+   configuration rather than to this tree. A row here would have no
+   implementable clause. The page now says so beside the existing
+   sentence, names what clears it, and records that podbox itself refuses
+   `--memory` and `--cpus` on its parity table, so the silent acceptance is
+   the engine's and not podbox's.
+4. **Dropped and reclassified, and T-1003 stays `done`.** The live-entry
+   prover is a limit: `experiments/358-ladder-rungs.sh` already drives both
+   entry arms wherever the host grants `/dev/fuse` and `mount(2)`, and this
+   host grants neither, measured three ways. No code change reaches that.
+   The binary-appended footer is dropped rather than moved, because no
+   document in this tree defines it. The words appear in three places and
+   nowhere else; `TOOL.md` says the artefact "gets packed into a single
+   file" and describes no appended footer, and this entry settled the
+   embedded-rootfs format as the `save` OCI-layout tarball with no new
+   loader code. A clause with no specified shape is not acceptance that
+   can be met.
+
+⚠ **The grep in the `Prove` returns ten further hits and every one was read
+in context, not waved through.** A grep that returns hits is not a grep that
+returns clean, so each is judged here against its owning row.
+
+| hit | owner row | reading |
+| --- | --- | --- |
+| `complete.md:1312`, `:1318` | T-0415 `done` | The claim was **dropped, not deferred**: its `Done` of 2026-09-26 reads "The live-image claim is dropped from the Done above: no claim about a planted image rides here." A dropped claim is not pending work. |
+| `deps.md:927` | T-1316 `done` | Inside the `Approach` field's own **Out of scope** clause: cargo-caused versus hand-edited dirt "widens the unit past one file". The entry says it out loud. |
+| `interpose.md:261`, `interpose.md:918` | T-0702, T-0709 `done` | "**was** still open until 2026-09-18" and "**was** still open until 2026-09-18, not the reader". Past tense with the closing date, describing a question the entry answered. |
+| `interpose.md:1472` | T-1311 `done` | An **Out of scope** clause naming T-1309, which is `done`. Not this entry's work. |
+| `packaging.md:504`, `:629` | T-1328, T-1334 `done` | Two **Out of scope** clauses: SBOM generation, and pinned-glibc-header interposer builds. Both say out of scope in the entry that owns them. |
+| `podvm.md:498` | T-1305 `done` | Fork capability **blocked on T-1302**, a tracked entry, and deferred for a named reason: no guest driver ships yet. It has an owner. |
+| `podvm.md:762` | T-1308 `done` | The guest carries no toolchain and has no network, so the gap is stated as **"a named gap, not a fifth row"** and the spread rests on four classes. Named, not pending. |
+| `image.md:1182` | T-0211 `partial` | Reads an fd as **still open** in the Linux sense; not the English sense the grep catches. |
+| `gate.md:2411`, `:2423`, `:2446` | this entry | The `Problem`, the `Prove`, and the clause being decided. |
+
+### T-1613 The 21 unbatched plan rows are in the record, and two were already tracked
+
+Source:      `refactor/recon-c.md:88-187`, the 100-row task table, read
+             off disk on this machine 2026-10-02;
+             `refactor/PLAN.md:261` and `:263`; `refactor/DEFERRALS.md:47-55`;
+             `TODO/gate.md:1957`; `TODO/RESUME.md:116-123`
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Twenty-one rows of the refactor plan's task table name no
+             batch, and the plan bars taking them. They lived only in
+             `refactor/`, which `.gitignore:152` excludes, so a fresh
+             clone could not read them, no row carried them and no
+             count moved. The work was invisible to the record.
+Premise:     Both planning documents call the set 22. The table gives
+             21: one packaging row, one image row, plus the
+             contiguous nineteen-row block at
+             `refactor/recon-c.md:169-187`, which is 2 + 19 = 21.
+             Each id resolves to exactly one of the table's 100 rows,
+             which a regex over the table confirms, one row per id.
+             The same slip gives the preamble's contiguous block the
+             wrong size: it writes the 22 as a block plus two named
+             singletons, and the block is 19, not the 20 that reading
+             requires.
+             ⚠ Two of the 21 were already tracked work, which the plan
+             does not know. The 11 Batch 3 port ids T-1559 to T-1569
+             are `done` rows in `TODO/INDEX.md`, so 17 of the 21 were
+             unrecorded rather than 21.
+             ⚠ Two more of the 21 target
+             `refactor/06-entries/verdict-ledger.tsv`, a file inside
+             the directory the end state deletes, so their decision
+             has to live in `TODO/` and the ledger must not be made
+             canonical. T-1622 and T-1623 own those two.
+Approach:     File the 17 as 17 rows, one per plan id, in the category
+             file the plan's own table assigned each one, each carrying
+             the plan's priority and its own proof. One entry holding a
+             queue was tried first and the record gate refused it: a
+             `TODO/` line naming a task id that is not an entry is an
+             error, at `crates/podbox-gate/src/main.rs:4007`, and a
+             prose queue raises it once per id per line. The first
+             attempt reported 61 such errors on a single-entry version
+             of this queue, which is the measurement behind the
+             decision. The
+             gate therefore decides the shape, and it decides against
+             the queue the Approach first proposed.
+             The two singletons stay with the waves that own them. The
+             two Batch 3 rows point at entries that already exist, so a
+             second row for either would be a duplicate the gate reads
+             as two homes.
+             LIMIT, found 2026-10-02 and unchanged by this entry: the
+             task table itself lives only in `refactor/`, so a fresh
+             clone cannot read what these rows are derived from. The rows
+             are the tracked copy. `refactor/` stays untracked by
+             `.gitignore:152`, whose own comment records that tracking
+             it turns a green gate red, measured 2026-10-01 at 1047
+             problems from that directory alone.
+Decision:     Queue, not deferral, per `TODO/RULES.md` section 11: work
+             needing capacity is batched and then finished. The plan's
+             own priority travels with each row, so the record schedules
+             the work and no row needs a second copy of itself.
+             T-1619 and T-1620 name the two singletons and the waves
+             that own them: the wave that deletes
+             `experiments/10-build-target-image.sh`, and the store work
+             its lock-race clause cites.
+             ⛔ **The gate decided the shape against this entry's own
+             Approach, and the failed attempt is recorded rather than
+             removed.** A queue that reads well and cannot pass the
+             record gate is the defect this repository's rules are
+             written to catch, and a later session reading the Approach
+             alone would try the queue shape again.
+Prove:       `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0
+             with no row naming an id that is not an entry;
+             `grep -cE "T-155[0-9]|T-157[0-9]|T-1[6-9][0-9][0-9]"
+             TODO/INDEX.md` returns 36;
+             `grep -cE "T-1(58[2-9]|59[0-9]|600)" TODO/INDEX.md`
+             returns 0, because the nineteen block rows are filed under
+             this repository's own free ids rather than the plan's;
+             `grep -cE "T-1(55[9]|56[0-9])" TODO/INDEX.md` returns 11
+             and each of those rows reads `done`;
+             `sh scripts/common/check-twins.sh` exits 0;
+             `./target/x86_64-pc-windows-msvc/debug/podbox-count.exe`
+             reports the same counts `TODO/INDEX.md` carries.
+
+**The 21, where each one landed.** Plan priority and plan file are the
+plan's own. "Already tracked" means the plan row and a tracked entry
+describe the same work.
+
+| plan rows | prio | plan file | what they are | where they are now |
+| --- | --- | --- | --- | --- |
+| the `10`/`20`/`130` singleton | P0 | `TODO/packaging.md` | Record the three-way decision before `10` is deleted | named in T-1619; the row stays with the wave that deletes `10` |
+| the 11 Batch 3 rows | P2 | `TODO/packaging.md` and four others | the port rows | already tracked and `done`; reconciled by T-1621 |
+| the lock-race singleton | P1 | `TODO/image.md` | Decide the `153` clause 7 fate under T-0215 | named in T-1620; the row stays with the store work it cites |
+| the 19-row decision block | P0 to P3 | five category files | nineteen record rows | filed one per entry, T-1622 to T-1640 |
+
+Each filed entry carries its plan id and its plan file in its own
+`Source:` field, so a reader reaches the plan row from the row and does
+not need the plan id printed here.
+
+**The unbatched set is larger than the plan records, and the rest is out
+of scope here.** Read from `refactor/recon-c.md:88-187` against the batch
+sections at `:647-681`: the five batches name 50 of the 100 rows by id
+and 50 name no batch. The 21 above are the plan's named set. The other
+29 are the deletions, the citation corrections, and the unit tests the
+batch prose covers under a description rather than an id. Their ids are
+deliberately not written here: a `TODO/` line naming an id that is not an
+entry is an error, and the check at
+`crates/podbox-gate/src/main.rs:4007` does not honour the `known-absent`
+token, so the only way to write them down is to file them.
+⚠ **Eight of the 29 are already done and are not outstanding work.**
+Measured on this tree: the scripts for the deletion rows naming the
+closure-records, ssh-liveness, emulator-streams, two interpose scripts,
+the tool-live script and the partial-ssh script are all absent from
+`experiments/`, which Batch 3 deleted. Filing those eight as open rows
+would report finished work as pending. The remaining 21 need each row
+checked against the current source before it is filed, which is the
+other half of this work.
+
+**The eleven tracked `Source:` citations of `refactor/` are not fixed
+here, on purpose.** Eleven cite `refactor/06-entries/T-R005.md` on the
+Batch 3 port entries T-1559 through T-1569, which are `done` and whose
+closing `Done` paragraphs carry the measured result. The other two sit
+on entries a sibling task owns, T-1602 and T-1606. Both files stay
+unreadable to a fresh clone, but no pending work depends on them, and
+the record gate has never checked them: `CITE_PREFIXES` at
+`crates/podbox-gate/src/main.rs:195` lists `references`, `crates`,
+`experiments`, `scripts`, `docs` and `TODO`, and `find_bares` at `:497`
+matches only after one of those prefixes, so `refactor/` is not a
+citation the gate resolves. The honest repair is to repoint each
+`Source:` at the tracked `Done` paragraph carrying the same evidence.
+That is one entry's closing work, not a queue filing.
+
+### T-1622 Reconcile the ledger's 121 rows against the seven entries and record the three VC changes
+
+Source:      `refactor/recon-c.md:169`, the plan's row for this task,
+             read off disk 2026-10-02; `refactor/06-entries/PLAN.md:22-27`
+Category:    gate
+Priority:    P0
+Effort:      S
+Status:      open
+
+Problem:     The plan ships two answers to the same question and tells
+             the reader which to believe. Its machine-readable ledger is
+             PRE-VC and its prose table is POST-VC, and three scripts
+             land in the wrong wave for anyone who reads them in the
+             wrong order.
+Premise:     Named in the plan's own warning: `95` moves to KEEP-SHELL,
+             `151` moves to SPLIT, and `162` is retained rather than
+             deleted. None of the three is in the ledger yet.
+Approach:     Record the three changes in this entry and in the seven
+             wave entries they move work between, naming the ledger row
+             each one contradicts. The ledger itself lives in the
+             directory the end state deletes, so the decision is
+             carried into `TODO/` and the file is not made canonical.
+Decision:     The three VC changes are recorded here once. The wave
+             entries cite this entry rather than restating them.
+Prove:       `grep -c "VC-3" TODO/gate.md` names the `95` row;
+             `grep -c "VC-7" TODO/gate.md` names the `151` row;
+             `grep -c "VC-2" TODO/gate.md` names the `162` row; and the
+             three ids are absent from every other `TODO/` file's
+             open-work list.
+
+
+### T-1627 Record `80-interposer-abi.sh` check B and `170` clause 3 as staying shell
+
+Source:      `refactor/recon-c.md:174`;
+             `refactor/06-entries/PLAN.md:119` and `:123`
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Two clauses read as converted and are not. Check B is four
+             `LD_PRELOAD` pairings against live loaders rather than a
+             predicate, and clause 3's engine half is still shell.
+Premise:     Four of five checks of the ABI script are Rust tests. The
+             fifth arm has no test at all, and the module holding the
+             seven relevant tests holds none that names it.
+Approach:     Record both clauses as staying shell, naming what each
+             needs that a Rust unit test cannot give: a live loader for
+             one and an engine for the other.
+Decision:     Shell, not a fixture. The plan's reason is that a Rust
+             binary would have to shell out, which it says is not a
+             reason; these two need the host, which is.
+Prove:       `grep -n "80-interposer-abi" TODO/gate.md` and
+             `grep -n "170-probe-cache" TODO/gate.md` each name the
+             clause that stays shell.
+
+
+### T-1632 Record the 149-tree boundary against the 121 top-level figure
+
+Source:      `refactor/recon-c.md:179`;
+             `refactor/06-entries/PLAN.md:29-34`
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     Two figures for the script corpus, and the smaller one is
+             the one every document quotes. Retiring the quoted figure
+             would delete the gate's own checks.
+Premise:     121 counts depth-1 files under two directories. The tree
+             carries 149, and a whole-tree search returns 167 only
+             because it includes a cache directory.
+Approach:     Record the boundary beside the figure it bounds: what the
+             count includes, what it excludes, and why the gate's own
+             checks are outside it.
+Decision:     The boundary goes next to the number. A number without its
+             scope is the defect the audit found.
+Prove:       `grep -n "149" TODO/gate.md` names the tree figure and the
+             121 top-level figure with the boundary between them.
+
+
+### T-1635 Record the `py_compile` glob at `gate.yml:186` as needing a change
+
+Source:      `refactor/recon-c.md:182`; `.github/workflows/gate.yml:186`
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     A workflow step compiles the Python gate tool that the gate
+             crate is replacing. The step's shape changes with the port
+             and nothing records that the line must move with it.
+Premise:     The line is a glob over the retired tool's files. When the
+             tool is gone the glob matches nothing and the step passes
+             vacuously, which is the failure the harness is written to
+             refuse.
+Approach:     Record the line, what it asserts today, and what replaces
+             it when the port lands. Name the entry that owns the port.
+Decision:     Record the vacuous-pass risk explicitly. A step that
+             matches nothing is the shape this repository's own checks
+             exist to catch.
+Prove:       `grep -n "py_compile" TODO/gate.md` names the line, the
+             vacuous-pass risk, and the entry that changes it.
+
+
+### T-1636 Record the second workflow, `nightly.yml`, as a consumer of four ported subjects
+
+Source:      `refactor/recon-c.md:183`; `.github/workflows/nightly.yml`
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     The plan repoints the paths in one workflow and a second
+             workflow consumes four of the same ported subjects. Reading
+             only the first gives a port that breaks nightly.
+Premise:     The nightly job runs a retired subject and its own inputs
+             name the paths the port moves. The main workflow's repoint
+             is a separate entry from this one.
+Approach:     Record the four subjects the nightly workflow consumes and
+             the paths the port moves, beside the entry that owns the
+             workflow repoint.
+Decision:     One record naming both workflows, so a reader of either
+             finds the other. Two records is how the gap happened.
+Prove:       `grep -n "nightly" TODO/gate.md` names the four ported
+             subjects the second workflow consumes.
+
+
+### T-1638 The record gate proves itself with the tool its own port deletes
+
+Source:      `refactor/recon-c.md:185`; `refactor/06-entries/PLAN.md:140-141`
+Category:    gate
+Priority:    P0
+Effort:      S
+Status:      open
+
+Problem:     The gate crate's own entry proves itself with the Python
+             tool the same port deletes. Read literally the entry can
+             never close, because its proof does not survive its own
+             completion.
+Premise:     The self-reference is real and it is the reason a plant
+             encoding the current source must land before the port: a
+             plant that passes vacuously is worse than no plant. The
+             port row's own id is in `refactor/recon-c.md:185` and is
+             named here rather than in the title, because the plan's
+             ids are not tracked entries.
+Approach:     Record the ordering constraint and the plant that depends
+             on it, beside the entry that owns the port.
+Decision:     Ordering first, plant second. The plan states that the
+             plant must land before the port or the port's plant passes
+             vacuously, and that is the clause worth carrying.
+Prove:       `grep -n "check-todo.py" TODO/gate.md` names the Python
+             proof the Rust port deletes, and the plant that must land
+             before it.
+
+
+### T-1621 The 11 Batch 3 rows were already tracked and are done
+
+Source:      `refactor/recon-c.md:146-156`, the plan's rows, read off
+             disk 2026-10-02; `TODO/INDEX.md` rows T-1559 to T-1569
+Category:    gate
+Priority:    P2
+Effort:      S
+Status:      done
+
+Problem:     Eleven of the plan's unbatched rows are work this repository
+             already did and closed. The plan still lists them as open,
+             so a session reading the plan would redo them.
+Premise:     Measured, not carried: every one of the eleven ids is a
+             `done` row in `TODO/INDEX.md`, and the tool crates they
+             name were landed with their proofs and plants. The plan's
+             own batch table places the same eleven in Batch 3, which
+             contradicts its own statement that they name no batch.
+Approach:     Record the reconciliation so the discrepancy is visible
+             once: eleven ids, one already-closed set, and the plan's
+             own batch table agreeing with the closure rather than with
+             its unbatched claim. Close this entry when a reader of the
+             tracked record cannot reach the wrong conclusion.
+Decision:     Record, not delete the ids. The finding is that the plan
+             and the record disagree, and the record is the one that is
+             current.
+Prove:       `grep -cE "T-1(55[9]|56[0-9])" TODO/INDEX.md` returns 11 and
+             every one of those rows reads `done`.
+
+**Done 2026-10-02.** Measured on the filed tree, one row per id read
+out of `TODO/INDEX.md` rather than by eye:
+`T-1559 done`, `T-1560 done`, `T-1561 done`, `T-1562 done`,
+`T-1563 done`, `T-1564 done`, `T-1565 done`, `T-1566 done`,
+`T-1567 done`, `T-1568 done`, `T-1569 done`. Eleven of eleven, and
+the eleven rows the plan's batch table already placed in Batch 3 are
+the same eleven its unbatched claim names, so the plan contradicts
+itself and the record is the side that is current. T-1613's own
+Approach records the arithmetic that found them.

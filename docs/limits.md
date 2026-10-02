@@ -24,22 +24,30 @@ Forced FUSE mode enters through a rung-complete read-only server; its live
 entry arm and the permitted-tmpfs entry arm prove automatically where a
 host grants the device and the mount, and refuse naming them where it
 does not. The embedded-rootfs format is the `save` OCI-layout tarball,
-verified per blob on `load`. T-1003 in [packaging](../TODO/packaging.md)
-owns the remaining live-entry prover (a mount-granting host) and the
-binary-appended footer as future work.
+verified per blob on `load`.
+
+⛔ **Live FUSE and tmpfs entry are a limit of this host, not pending work.**
+The prover exists: `experiments/358-ladder-rungs.sh` drives both entry arms
+and asserts payload word, bytes, and cleanup wherever the host grants
+`/dev/fuse` and `mount(2)`. This host grants neither, measured at the node,
+at `mount(2)`, and inside a user namespace. No task clears it, so none owns
+it. T-1003 in [packaging](../TODO/packaging.md) stays `done`: everything it
+claimed to deliver is delivered and its `Prove` exits 0.
 
 ## SSH
 
 The source build produces separate `node`, `operator`, `proxy`, and `shell` executables.
 The remote CLI needs compatible helpers beside podbox or on PATH.
 The standalone beta.9 assets contain podbox only.
-T-1405 in [podssh](../TODO/podssh.md) owns release packaging for those helpers.
+That gap closed at beta.10, where every release target carries the helper
+archive, and T-1405 in [podssh](../TODO/podssh.md) is done.
 
 The relay legs carry 10 s DNS and write deadlines; a stalled peer ends
 the operation loud instead of wedging the loop. Node redial pairing is
-proven on the loopback fake relay; pairing against the live relay stays
-open. T-1406 owns the bounds and the reconnect evidence. The earlier
-T-1403 acceptance proves concurrent sessions under its tested conditions.
+proven on the loopback fake relay; pairing against the live relay is the
+one remaining clause of T-1406, which is `partial` and owns both the
+bounds and the reconnect evidence. The earlier T-1403 acceptance proves
+concurrent sessions under its tested conditions.
 
 The passwd shim compiles from retained source on a glibc-dynamic lane
 and serves the restricted host to exit 42; no workspace or release
@@ -81,3 +89,20 @@ A Windows base probe can report usable without cgroup delegation.
 On the recorded host, engine memory and CPU limits are accepted but not enforced.
 Read the current `base status --probe` result before a resource-limit claim.
 Keep other base instances and host distributions unchanged.
+
+⛔ **This is a limit of the base, not pending work, and no task owns it because
+no task can clear it.** The delegation is absent from the host's WSL
+configuration and the toolkit does not install it. `base ensure --repair`
+reports the condition and declines to repair it; the same reading is recorded
+under T-1610, which installed everything the KVM proof needs and left this
+unchanged. It clears if and only if the base gains cgroup delegation, which is a
+change to the host rather than to this tree, so an entry here would be a row
+with no implementable clause.
+
+⚠ **`podbox` does not depend on it and does not enforce it either way.** The CLI
+refuses `--memory` and `--cpus` on its own parity table
+([cli](../TODO/cli.md) T-0804, `resource limits need a cgroup this runtime does
+not grant`), so a caller gets exit 125 and a named reason instead of an accepted
+flag that does nothing. The hazard is the engine underneath podbox, which
+accepts those limits silently; [RULES](../TODO/RULES.md) section 8 says an
+option accepted by an engine does not prove enforcement.

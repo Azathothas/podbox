@@ -154,7 +154,7 @@ automatically where a host grants them; the pack clause loads, runs,
 and refuses the corrupt tarball at 125 naming the digest mismatch.
 Limit stated beside the proof: live FUSE and tmpfs entry are
 unproved here (`/dev/fuse` absent, `mount(2)` denied even in a
-userns, all measured) and the binary-appended footer stays future
+userns, all measured) and the binary-appended footer was future
 work; the four completed staging implementations are not repeated.
 
 **Partial 2026-09-30 (history).** The audit reopened the entry from its source.
@@ -166,6 +166,27 @@ The embedded-rootfs work is absent and remains acceptance work here.
 [Earlier evidence](../docs/history/audit-before-2026-09-30/TODO/packaging.txt)
 retains the implementation stages and the earlier scoped Done record.
 Do not repeat the four completed staging implementations.
+
+**Settled 2026-10-02 under T-1612: the two clauses named as future work are
+split by what can clear them, and neither reopens this entry.** The binary-
+appended footer is dropped rather than moved, because no document in this tree
+defines it. The words appear in three places and nowhere else: this entry's
+`Done`, [limits](../docs/limits.md), and T-1612 itself. `TOOL.md` says the
+artefact "gets packed into a single file" (sections 3.2 and 3.5) and names
+onelf's launch ladder, but no section describes appending a footer to the
+binary, and this entry settled the embedded-rootfs format as the `save`
+OCI-layout tarball with no new loader code. A clause with no specified shape is
+not acceptance that can be met; carrying it forward under any status would
+repeat the defect T-1612 found. If a footer is wanted later, it needs its own
+entry that defines the bytes, the reader, and the failure it reports.
+
+The live-entry prover is a limit rather than a task. The `358-ladder-rungs.sh`
+drive already carries the entry arm and asserts word, bytes, and cleanup
+wherever a host grants `/dev/fuse` and the mount; what is missing is a host
+that grants them, and this one does not, measured three ways at `/dev/fuse`,
+`mount(2)`, and inside a userns. No code change reaches that. [Limits](../docs/limits.md)
+records it; this entry's status stays `done` because everything it claimed to
+deliver is delivered and its `Prove` exits 0.
 
 ----
 
@@ -745,9 +766,9 @@ Prove:       `cargo test -p podbox-buildstate` green in the lane; the
              retired script and the binary produce identical inventories
              over the same lock; `./target/release/podbox-gate` exits 0.
 
-**Done 2026-10-01.** Binary `podbox-release-licenses` ships in the
-`podbox-buildstate` crate with no dependencies, and the script stays
-as an exec shim with its `--output` flag. Lane proof
+**Done 2026-10-01.** `scripts/release-licenses.py` keeps its path and
+its `--output` flag and now execs `podbox-release-licenses` from the
+`podbox-buildstate` crate, which pulls in no dependencies. Lane proof
 ([buildstate-crate-proof](../experiments/results/buildstate-crate-proof.txt),
 section 5): retired script and binary produce identical inventories
 over the same lock, and the shim reaches its binary. Plant: a
@@ -783,9 +804,10 @@ Prove:       `cargo test -p podbox-release` green in the lane; a missing
              tool and a bad kind each exit 2 through the shim;
              `./target/release/podbox-gate` exits 0.
 
-**Done 2026-10-01.** Binary `podbox-verify` ships in the
-`podbox-release` crate with no dependencies, and the script stays as
-an exec shim. Lane proof
+**Done 2026-10-01.** The downloader half of the signed nightly runs as
+binary `podbox-verify`, built from the `podbox-release` crate with no
+dependencies, and `scripts/verify-release.sh` remains a shim that execs
+it. Lane proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
 section 4): no arguments exits 2 and a bad arch exits 2, both through
 the shim, and the shim reaches its binary. Plant: a bad kind exits 2
@@ -824,9 +846,10 @@ Prove:       `cargo test -p podbox-release` green in the lane; the
              lock-inheritance proof runs its two mutations against the
              current tree; `./target/release/podbox-gate` exits 0.
 
-**Done 2026-10-01.** Binary `podbox-prove-t0211` ships in the
-`podbox-release` crate with no dependencies, and both experiment
-paths stay as exec shims. Lane proof
+**Done 2026-10-01.** One dependency-free binary, `podbox-prove-t0211`,
+now lives in the `podbox-release` crate and answers both store-lock
+subcommands, so the two retired experiments reach it through shims that
+exec it. Lane proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
 sections 6 and 6b): the lock-inheritance proof runs both mutations
 against the current tree with two attempts per test; retired and
@@ -869,9 +892,10 @@ Prove:       `cargo test -p podbox-release` green in the lane; a tag with
              no gate refuses through the shim; `./target/release/podbox-gate`
              exits 0.
 
-**Done 2026-10-01.** Binary `release-notes` ships in the
-`podbox-release` crate with no dependencies, and the script stays as
-an exec shim for operators. Lane proof
+**Done 2026-10-01.** The nightly notes come from the dependency-free
+binary `release-notes` in the `podbox-release` crate;
+`scripts/release-notes.sh` stays as an exec shim for operators. Lane
+proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
 section 4): a tag with no gate refuses through the shim, and the
 shim reaches its binary. Plant: notes for a tag that names no commit
@@ -911,9 +935,9 @@ Prove:       `cargo test -p podbox-release` green in the lane; the binary
              reads the current branch state; `./target/release/podbox-gate`
              exits 0.
 
-**Done 2026-10-01.** Binary `podbox-reconcile` ships in the
-`podbox-release` crate with no dependencies, and the experiment path
-stays as an exec shim. Lane proof
+**Done 2026-10-01.** `podbox-release` grew binary `podbox-reconcile`,
+which carries no dependencies and reads the branch state itself; the
+retired experiment path execs it as a shim. Lane proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
 section 5): the binary reads the current branch state (rc 2 where the
 retained publish ref is absent, 0 where present) and the shim reaches
@@ -949,9 +973,10 @@ Prove:       `cargo test -p podbox-release` green in the lane; a bad tag
              shape fails and a missing origin refuses through the shim;
              `./target/release/podbox-gate` exits 0.
 
-**Done 2026-10-01.** Binary `podbox-publish` ships in the
-`podbox-release` crate with no dependencies, and the experiment path
-stays as an exec shim. Lane proof
+**Done 2026-10-01.** The publication acceptance is now binary
+`podbox-publish`, a dependency-free member of the `podbox-release`
+crate; the experiment path stays as an exec shim that reaches it. Lane
+proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
 sections 4 and 4b): the shim reaches its binary, and a malformed tag
 through the shim exits 2 with `cannot run: required command failed:
@@ -997,3 +1022,37 @@ Prove:       `git tag --list` shows the new tag on the landed commit; the
              binary rather than by the retired shell; the run log names
              the binary path it executed;
              `./target/release/podbox-gate` exits 0.
+
+### T-1619 The `10`/`20`/`130` three-way decision belongs to the wave that deletes `10`
+
+Source:      `refactor/recon-c.md:137`, the plan's row, read off disk
+             2026-10-02; `refactor/06-entries/PLAN.md:174-177`;
+             `refactor/DEFERRALS.md:51-53`
+Category:    packaging
+Priority:    P0
+Effort:      M
+Status:      open
+
+Problem:     One script's deletion is conditional on two others, and the
+             three-way dependency is called irreducible. The decision
+             has to be recorded before the deletion, and nothing in the
+             tracked record says who owns it.
+Premise:     The plan's correction is conditional: the delete stands only
+             if the two dependants are dealt with first, and both name
+             the script in live paths. The plan also rules that a
+             reduction of the dependency was considered and does not
+             work.
+Approach:     This entry records the ownership and the clearing condition
+             only. The decision itself is taken by the wave that
+             deletes `experiments/10-build-target-image.sh`, because that
+             wave is the one whose deletion the decision unblocks. Write
+             the decision into that wave's entry, here, or in both with
+             one pointing at the other.
+Decision:     Named here, owned there. A second decision record would be
+             two places to keep in step, and this entry's value is that
+             the question has a name and an owner rather than a
+             duplicate of the answer.
+Prove:       `grep -n "10-build-target-image" TODO/packaging.md` names
+             this entry as the owner of the decision and the wave entry
+             that takes it.
+

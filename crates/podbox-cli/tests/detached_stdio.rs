@@ -22,6 +22,15 @@ const PODBOX: &str = env!("CARGO_BIN_EXE_podbox");
 /// Serializes the tests in this file. The store path travels per command
 /// (see `run_podbox`), and the lock keeps two tests from racing the
 /// process-wide state around it.
+///
+/// ⛔ Taken with `unwrap_or_else(|e| e.into_inner())`, never `unwrap()`.
+/// A mutex guards ordering, not memory this test trusts afterwards: every
+/// test here builds its own store and reads only its own child's output, so a
+/// panic while the guard is held leaves nothing the next test could observe.
+/// What it does leave is a POISONED mutex, and `unwrap()` turns that into a
+/// second failure that is only a report of the first, so a real defect reads
+/// as a confusing cascade. TODO/enter.md T-1604; the house shape is the one in
+/// `tests/store_gates.rs` and `tests/curated_refusals.rs`.
 static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// Counter beside the pid so two tests never share a store or a name.
@@ -135,7 +144,7 @@ fn live_skip_reason(store: &Path) -> Option<String> {
 fn run_help_names_the_detach_flag() {
     // The guarantee this pins: the usage text the caller reads before any
     // detached start documents `-d`/`--detach`.
-    let _guard = SERIAL.lock().unwrap();
+    let _guard = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
     let store = fresh_store("help");
     let out = run_podbox(&["run", "--help"], &store, Duration::from_secs(60));
     assert_eq!(
@@ -164,7 +173,7 @@ fn run_help_names_the_detach_flag() {
 fn detached_run_without_an_image_is_a_cli_error() {
     // The guarantee this pins: a `run -d` that names no image never starts
     // anything, and answers 1 the way `docker run` with no image does.
-    let _guard = SERIAL.lock().unwrap();
+    let _guard = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
     let store = fresh_store("noimage");
     let out = run_podbox(
         &["run", "-d", "--name", "det-noimage"],
@@ -193,7 +202,7 @@ fn detached_run_without_an_image_is_a_cli_error() {
 /// `id="$(...)"`, so a launcher holding stdout blocks it the same way.
 #[test]
 fn detached_start_returns_before_the_payload_ends() {
-    let _guard = SERIAL.lock().unwrap();
+    let _guard = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
     let store = fresh_store("detached");
     if let Some(reason) = live_skip_reason(&store) {
         eprintln!("SKIP detached start: {reason}");
@@ -229,6 +238,7 @@ fn detached_start_returns_before_the_payload_ends() {
         id: String,
         inspect_code: Option<i32>,
         row: String,
+        stderr: String,
     }
     let mut starts: Vec<Start> = Vec::new();
     for i in 1..=ITERATIONS {
@@ -268,6 +278,12 @@ fn detached_start_returns_before_the_payload_ends() {
         // iteration outlives this test otherwise.
         let _ = run_podbox(&["rm", "-f", &name], &store, Duration::from_secs(120));
         let code = out.status.code();
+        // ⭐ T-1604. The stderr of the start is KEPT, because the loop below
+        // breaks on the first non-zero exit and the break used to throw this
+        // away: the suite could then only say "only 1 of 3 detached starts ran"
+        // and never name which exit the second one took. A failure that cannot
+        // say what it saw is a failure the next session has to re-derive.
+        let stderr = stderr_text(&out, &["run -d"]);
         starts.push(Start {
             name,
             code,
@@ -275,6 +291,7 @@ fn detached_start_returns_before_the_payload_ends() {
             id,
             inspect_code: inspect.status.code(),
             row,
+            stderr,
         });
         if code != Some(0) {
             break;
@@ -289,11 +306,37 @@ fn detached_start_returns_before_the_payload_ends() {
         let _ = run_podbox(&["rm", "-f", id], &store, Duration::from_secs(120));
     }
 
+    // ⭐ T-1604. The loop breaks on the first non-zero `run -d`, so this count is
+    // the assertion that fires when a start fails, and it must carry WHICH start
+    // and WHAT it said. The stderr below is what names the exit.
+    let ran: Vec<String> = starts
+        .iter()
+        .enumerate()
+        .map(|(n, s)| {
+            format!(
+                "  start {} (`run -d` for {}) exited {:?} after {:?}, id {:?}, \
+                 inspect exited {:?} reading [{}]\n    run -d stderr: {}",
+                n + 1,
+                s.name,
+                s.code,
+                s.took.as_secs(),
+                s.id,
+                s.inspect_code,
+                s.row,
+                if s.stderr.trim().is_empty() {
+                    "(empty)".to_string()
+                } else {
+                    s.stderr.trim().to_string()
+                }
+            )
+        })
+        .collect();
     assert_eq!(
         starts.len(),
         ITERATIONS as usize,
-        "only {} of {ITERATIONS} detached starts ran",
-        starts.len()
+        "only {} of {ITERATIONS} detached starts ran:\n{}",
+        starts.len(),
+        ran.join("\n")
     );
     for (n, s) in starts.iter().enumerate() {
         assert_eq!(

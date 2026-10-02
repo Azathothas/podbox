@@ -87,7 +87,10 @@ must still have its intended mode in git before commit.
 The wrapper excludes `codegraph.db`, its sidecars, `daemon.log`,
 `daemon.pid`, `target`, `.dev`, and `.tmp`. It keeps `.git` and
 `references/`: checks read the index and cited source lines. Do not
-exclude every log file; tracked reference logs are evidence.
+exclude every log file; tracked reference logs are evidence. The corpus is
+retained until [T-1606](../TODO/podvm.md) closes, and the reference map
+names what each capture decided rather than citing its lines, so dropping
+the corpus is a later change to this policy and not to the evidence.
 
 `--container-lifecycle ephemeral` removes the container and guest job
 directory after the run. The host job directory keeps the transcript until
