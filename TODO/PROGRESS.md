@@ -186,3 +186,41 @@ with a version-string defect: its binary reports beta.10. Beta.12 is
 published at build commit `067c0ce` with twenty-one closures: T-1003,
 T-1401, T-1405, T-1406 through T-1421, T-1422, and T-1423.
 No operator decision is pending.
+
+## Session 2026-10-02, decision round
+
+| Row | Evidence |
+| --- | --- |
+| Elapsed | 06:59 to 07:40 local, 41 minutes |
+| Commits | `b6da03b`, then `246b462` reverting a bad commit; both on `main` |
+| Work | Ten questions asked and settled; eight entries filed (T-1601 to T-1608); no source changed |
+| Changes | 10 files under `TODO/`, 560 insertions, 43 deletions |
+| Size | `git diff --shortstat` over `b9ed3ac..b6da03b` |
+| Checks | Record gate exit 0, 214 rows then 222; seven maintained checks exit 0; `check-one-home` exit 1 and `check-no-secrets` exit 1, both owned by T-1608 and T-1603 |
+| CI | Run 36952440949 on `b6da03b`; the prior run 36894578988 was read for all four causes |
+| Cost | - |
+| Health | Tree clean and pushed at the close; no guest started; no engine state changed |
+
+### A commit made during this session was wrong, and it was reverted
+
+Commit `0c0ae8b`, titled "Record the 2026-10-02 session summary beside
+the record", contains one inserted line and nothing else:
+`assert!(false, "plant crates/podbox-cli/tests/qol.rs")` at
+`crates/podbox-cli/tests/qol.rs:176`. It is a live plant, and it was
+committed while the plant harness was still running in the background.
+
+The cause is the order of operations, not a mistake in the content: the
+plant writes its defects into tracked files and restores them at the
+end, so the tree is briefly red with defects that are not real. This
+session ran `git add -A` while that window was open and swept a planted
+line into a commit. `246b462` reverts it. The session summary the commit
+claimed to record was lost the same way, when the plant restored
+`TODO/PROGRESS.md` from its own backup; it is rewritten here.
+
+Two consequences for the next session. The record gate exits 0 over a
+tree carrying a planted `assert!(false)`, because it reads records and
+not test bodies, so the gate is not evidence that the tree builds. And
+no session may run `git add -A` while `podbox-plant` is running. Either
+finish the plant and read its exit code first, or stage explicit paths.
+The same applies to any tool that edits tracked files and restores them
+at the end.
