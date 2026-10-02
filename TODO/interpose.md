@@ -1714,7 +1714,7 @@ Source:      `refactor/recon-c.md:175`;
 Category:    interpose
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The ledger marks this script DELETE and a live entry names
              it in a proof that is still open. Anyone reading the
@@ -1730,6 +1730,52 @@ Decision:     Retained as a deployment proof, not a unit test. That is
 Prove:       `grep -n "162-tar-symlink-modes" TODO/interpose.md` names
              the refutation and the live `Prove` that settles it.
 
+**Done.** The record stands on the refutation, not on the ledger's DELETE row.
+`refactor/06-entries/PLAN.md:168-170` (VC-2) moves
+`experiments/162-tar-symlink-modes.sh` from DELETE to RETAIN, and
+`refactor/06-entries/PLAN.md:22-27` is the stated scope of the change, so
+`refactor/recon-c.md:175` and
+`refactor/06-entries/verdict-ledger.tsv` still carry the pre-correction form
+by design. `docs/conventions/code.md:25-30` names the level: a script that
+drives a real tarball carrying symlinks through the shipped binary is
+deployment proof, so it stays shell. The proof is
+`grep -n "162-tar-symlink-modes" TODO/interpose.md`, which matches 9 lines
+now, 2 of them above this entry, and exits 0. T-1311's live `Prove` is line
+1479.
+
+**DELETE is refuted for `experiments/162-tar-symlink-modes.sh`, and the line
+that settles it is this file.** `refactor/06-entries/PLAN.md:168-170` (VC-2)
+records the refutation: `TODO/interpose.md:1479` is the `Prove` of T-1311, an
+entry with `Status: done`, and it names the script. A script named in a live
+`Prove` is not dead, whatever its ledger row says.
+
+**The ledger row is PRE-VC and the correction is POST-VC, so the two disagree
+by design.** `refactor/06-entries/PLAN.md:22-27` states the scope: three rows
+change under the numbered corrections, and this one of them moves
+`162-tar-symlink-modes.sh` from DELETE to RETAIN. `refactor/recon-c.md:175`
+still carries the pre-correction ledger row, and
+`refactor/06-entries/verdict-ledger.tsv` is that pre-correction form. A reader
+who takes the ledger over the section 2 table lands this script in the wrong
+wave, which is what the plan's own constraint warns against.
+
+**It is a deployment proof, and `docs/conventions/code.md:25-30` is the level
+it belongs to.** That section names three kinds and requires each to be stated:
+pure tests for deterministic logic, fault tests for conditions a real service
+cannot produce on demand, and integration and deployment proof for the actual
+default path. The script drives a real tarball carrying symlinks through the
+shipped binary with the plain driver beside it, back to back
+(`experiments/162-tar-symlink-modes.sh:9-11`), on a pinned image digest
+(`:25`). It is the default path, so it is deployment proof and it stays
+shell.
+
+**Deleting it would retire the only end-to-end check of this defect.** T-1311's
+own Done record shows what it carries: exit 1 on the pre-fix binary with one
+`Cannot change mode` error per link and a green engine control
+(`experiments/results/tar-symlink-modes-prefix.txt`), and exit 0 on the fixed
+binary. The guard is the unit test `tests::fchmodat_forwards_flags`; the
+script is the proof that the unit test's subject is reached through the
+product. Neither substitutes for the other, and `code.md:25-30` requires each
+kind to be named for what it proves.
 
 ### T-1639 Record the six interpose members and their excluded-crate proofs as separate jobs
 
@@ -1737,7 +1783,7 @@ Source:      `refactor/recon-c.md:186`; `refactor/06-entries/PLAN.md:93-107`
 Category:    interpose
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The interposer is excluded from the workspace, so the
              proofs that run inside other people's processes are not
@@ -1753,6 +1799,68 @@ Decision:     Separate jobs, not a flag. The object is loaded into
 Prove:       `grep -n "members" TODO/interpose.md` names the six members
              and the job each one's proof runs in.
 
+**Done.** The record stands on the corrected counts. The entry's six is the
+plan's word: `refactor/06-entries/PLAN.md:80-84` says nine members,
+`grep -c '^    "crates/' Cargo.toml` returns 13 at `Cargo.toml:4-16`, and
+there is one excluded crate at `Cargo.toml:24`, not six interpose members and
+not six excluded-crate proofs. The separate jobs are real. Four steps in
+`gate.yml:127-132`, `:193-196`, `:237-242` and `:260-263` reach the excluded
+crate by `--manifest-path`, and `crates/podbox-gate/src/dev.rs:55-69` mirrors
+them as `CHECK_STEPS`. The Prove is `grep -n "members" TODO/interpose.md`,
+which matches 9 lines now, 1 of them above this entry, and exits 0.
+
+**⛔ The entry's "six" is the refactor plan's word and it does not match the
+tree.** `refactor/06-entries/PLAN.md:80-84` counts the workspace at **nine**
+members and names them: probe, image, extract, complete, enter, supervise,
+windows, ssh, cli. That count is stale. `grep -c '^    "crates/' Cargo.toml`
+returns **13** on this tree today, at `Cargo.toml:4-16`. `podbox-interpose` is
+excluded at `Cargo.toml:24` under the same `exclude` key the plan cites as
+`:20`, and the line moved because the wave-4 and wave-5 crates landed. The
+exclusion is the durable fact; both member counts are dated.
+
+**What the six is not.** It is not six interpose members. There is one excluded
+crate. It is not six excluded-crate proofs either: the ledger carries ten rows
+whose name mentions interpose, spread over `KEEP-SHELL`, `SPLIT`, `DELETE`,
+`RUST-TOOL`, and one RUST-TOOL for `scripts/build-interpose.sh`
+(`refactor/06-entries/verdict-ledger.tsv:3,4,5,24,25,39,99,100,102,107`).
+Neither figure is six, and the source does not support the number this entry's
+title carries.
+
+**The separate jobs are real, and they are in `gate.yml` by name.** Four CI
+steps reach the excluded crate, and every one of them passes
+`--manifest-path crates/podbox-interpose/Cargo.toml` rather than naming the
+workspace, because `cargo test --workspace` cannot reach an excluded crate:
+
+| step | where | what it proves |
+| --- | --- | --- |
+| the objects, one object per libc | `gate.yml:127-132` | both build, one per libc |
+| interposer clippy | `gate.yml:193-196` | the excluded crate lints |
+| interposer tests | `gate.yml:260-263` | the unit suite, gnu target |
+| the objects, in the test job | `gate.yml:237-242` | the objects exist first |
+
+Each names `--manifest-path crates/podbox-interpose/Cargo.toml` rather than the
+workspace, and `gate.yml:260-263` carries `RUSTFLAGS` naming the crt-static
+flag. `crates/podbox-gate/src/dev.rs:55-69` mirrors the same split as
+`CHECK_STEPS`, one step per line, with the same manifest path.
+
+**The two targets are not a preference.** `.cargo/config.toml:7-8` sets
+`build.target = x86_64-unknown-linux-musl`, and `:10-11` adds
+`target-feature=+crt-static` to it. The excluded crate's tests therefore name
+`--target x86_64-unknown-linux-gnu` and `-C target-feature=-crt-static`, the
+other side of both settings. `scripts/build-interpose.sh:17-19` records the
+consequence: a plain `cargo build --release` lands under
+`target/<triple>/release/` and `target/release/` is never written.
+
+**The exclusion is the subject of the check, so the check must stay outside
+it.** `refactor/06-entries/T-R005.md:148` states the rule: a crate that checks
+whether the interposer builds as a `cdylib` cannot be a workspace member,
+because adding it would invert the thing it measures. The check lives at
+`crates/podbox-gate/src/libc_interpose.rs`, which its own module comment at
+`:3-4` names as a port of `60-interposer-libc.sh`. That script is the subject
+of the plan's row at `refactor/recon-c.md:164`, whose id is not a tracked
+entry. The cost of the exclusion is that no single job covers the tree, and
+the price is paid as four extra steps rather than as a flag.
+
 
 ### T-1640 Record that the interpose export check needs no `rlib` and no new test
 
@@ -1761,7 +1869,7 @@ Source:      `refactor/recon-c.md:187`;
 Category:    interpose
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     A crate type that cannot host a test file invites the
              obvious fix, and the obvious fix costs a second artefact on
@@ -1780,4 +1888,72 @@ Decision:     No `rlib`. The existing comparison is the check, and the
 Prove:       `grep -n "interpose.map" TODO/interpose.md` names the
              export comparison that stands as the check, for both
              targets.
+
+**Done.** No `rlib`, and the decision rests on the existing export check at
+`crates/podbox-gate/src/interpose_build.rs:501-517`, inside the per-target
+loop at `:790-797`. It compares `declared_exports` against `exported_symbols`
+for equality at `:508`, and the map declares 112 names. Check B, the
+`struct stat` and `struct statx` offsets at `:601-700`, needs `cc` and joins
+the same binary. The Prove is `grep -n "interpose.map" TODO/interpose.md`,
+which matches 11 lines now, 7 of them above this entry, and exits 0. The
+plan's line reference at `refactor/06-entries/PLAN.md:102-105` is stale, so
+the citation above is the code.
+
+**No `rlib`, and the failure a later session will meet is a name-resolution
+error, not a missing test.** `crates/podbox-interpose/Cargo.toml:15` declares
+`crate-type = ["cdylib"]`, and a `cdylib` produces no importable Rust library
+for a test target to name. A `tests/*.rs` in that crate fails with
+`error[E0433]: cannot find module or crate`. Adding `rlib` to that list is the
+obvious repair and it is the wrong one here.
+
+**The export check is already written, and it stands as the check.** It lives in
+`crates/podbox-gate/src/interpose_build.rs:501-517`, inside the per-target
+loop at `:790-797`, so it runs once for every target `TARGETS` names. The
+comparison is `declared_exports(&krate.join(MAP))` at `:501` against
+`exported_symbols(&so, root)` at `:506`. `declared_exports` parses
+`crates/podbox-interpose/interpose.map` (`:242-267`) and `exported_symbols`
+runs `nm -D --defined-only` and keeps the `T` fields (`:270-285`). The two
+lists are compared for equality at `:508`, not for containment, and the pass
+line prints the count (`:510-512`). A name in the map the object does not
+export is a silent non-interposition; a name the object exports that the map
+does not list is a symbol some other library in the payload's process resolves
+to podbox. The comment at `:494-500` states both halves.
+
+**The map declares 112 names, and the check asserts that count against the
+object.** `awk '/global:/{g=1;next} /local:/{g=0} g && /;/{n++} END{print n}'
+crates/podbox-interpose/interpose.map` prints **112** and exits 0, and that
+walk is the one `declared_exports` performs between the `global:` and `local:`
+markers. T-1601's Done record reports the same 112 for both objects on the same
+comparison, and this figure is measured rather than copied from there.
+
+**⛔ The plan's line reference for this check is stale and names a file that no
+longer holds it.** `refactor/06-entries/PLAN.md:102-105` puts the byte ceiling
+at line 48 of the script and the export comparison at lines 197 to 214 of the
+same file. That script is **41 lines** today and is a declaration stub: its own
+header comment at `:2-3` names the plan row for porting it, and the build
+itself moved into the `podbox-interpose-build` binary. The ceiling moved with
+it and is read at runtime; the stub is where the ceiling is declared, and
+`interpose_build.rs:18-20` records that no Rust source repeats the digits
+because the gate scans for them. The committed per-libc reading is
+`experiments/results/bloat-interpose.txt`, which carries one size per libc.
+**A reader who followed the plan's citation would open a 41-line shell stub
+and find no comparison in it.**
+
+**The byte cost of `rlib` is bounded by that same ceiling, and the ceiling is
+per object.** Both objects embed in the release binary, which the stub's
+comment at `:7-9` states, so their growth hides in that binary's headroom. An
+`rlib` is a third artefact for two targets and adds to every
+`podbox-interpose-build` run and every `gate.yml` invocation. The empty
+`[dependencies]` at `crates/podbox-interpose/Cargo.toml:18` means the cost is
+not shared resolution; it is a second and third artefact alone.
+
+**One check does need `cc`, and it joins the same binary rather than a new
+target.** Check B is `struct stat` and `struct statx` offsets under both
+libcs, at `interpose_build.rs:601-700`, reached from `main` at `:798`. It
+compiles `OFF_C` (`:571-596`) and needs `cc` or `zig`; when the write fails it
+prints `COULD NOT BUILD OR RUN` and returns 2 (`:608-610`), which is the third
+state, not a pass. The comment at `:598-600` records that it answers a glibc
+payload rather than one libc twice: coreutils' `stat` on a modern glibc asks
+`statx(2)` and never reaches `stat`. It is already inside `podbox-gate`, so it
+costs no new crate and no new library target.
 

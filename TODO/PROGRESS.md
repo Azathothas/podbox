@@ -2,15 +2,21 @@
 
 ## State
 
-250 entries: 23 open, 9 partial, 0 blocked, 218 done.
+250 entries: 0 open, 10 partial, 0 blocked, 240 done.
 
-The 23 open entries are the 22 T-1613 filed for the plan rows no batch
-named, plus T-1641. Read `TODO/RULES.md` section 11 before taking any of
-them: the operator settled seven standing decisions and one read-write
-grant on 2026-10-02, and they change how the work is done, not only what
-it is. The CI remainder below is no longer open: T-1601, T-1602, T-1603,
-T-1611 and T-1612 are done, T-1604, T-1606 and T-1607 are `partial`, and
-each says what still owes.
+**No entry is `open`.** Every filed row is `done` or `partial`, and each
+partial names its remaining acceptance. T-1613 filed the 21 unbatched
+plan rows and they are now closed with their own records; the 29 rows
+T-1607 still owns are described there rather than filed. T-1641 is
+`partial`: all three of its fixes are implemented and the record gate,
+`cargo fmt`, `cargo clippy` and the four prose checks exit 0, and its
+remaining acceptance is one guarded KVM run under the T-1609 watchdog.
+Read `TODO/RULES.md` section 11 before taking any further work: the
+operator settled seven standing decisions and one read-write grant on
+2026-10-02, and they change how the work is done, not only what it is.
+The CI remainder below is no longer open: T-1601, T-1602, T-1603,
+T-1611 and T-1612 are done, T-1604, T-1606 and T-1607 are `partial`,
+and each says what still owes.
 
 `refactor/DEFERRALS.md` is superseded and is no longer the record of
 what waits. Its four sections now live in tracked entries: the CI
@@ -121,16 +127,32 @@ keeps its historical scope. It does not establish current reliability.
    lands with them; T-1605 owns the live tag proof.
 8. T-1601 and T-1602 are done, T-1603 is done, T-1604 is `partial`:
    the 1.99 interpose lint, the registry fixture dead code, and the
-   secrets scan are closed on measured lane runs; T-1604 keeps only the
-   one-of-three detached start, whose cause is still open. T-1611 and
+   secrets scan are closed on measured lane runs. T-1604's cause is
+   now named and fixed: the CI job built no interposer, so the binary
+   under test declined every payload on a runner that denies `chroot(2)`
+   and the test asserted a detached start succeeds where the product
+   correctly refuses. The job builds the interposer before the workspace
+   tests, the test skips with a named reason where the tier is
+   unavailable, and `scripts/build-interpose.sh` resolves the binary in
+   a per-triple directory. What it keeps is the lane run. T-1611 and
    T-1612 are done. T-1607 is `partial`: the plan's named 21 are in the
    record, the other 29 are not. T-1606 is `partial`: the map is
    repointed, the `path:line` mechanism citations are not.
-9. T-1350 is `partial` and was driven three times on 2026-10-02 under the
+9. The ten `partial` entries are the whole remaining work, and each
+   names its own remaining acceptance: T-0204 (store GC cannot delete a
+   running rootfs), T-0211 (the image lock outlives a forking holder),
+   T-1112 (the Windows guest), T-1350 (explicit KVM inputs),
+   T-1406 (live-relay pairing), T-1604 (the lane run), T-1605 (the live
+   tag proof), T-1606 (the `path:line` repoint), T-1607 (the 29
+   unfiled plan rows), and T-1641 (one guarded KVM run). T-1350 is
+   `partial` and was driven three times on 2026-10-02 under the
    watchdog. `setup` completes; `run ver` hangs after the firmware
    handoff. `/dev/kvm` needed no reapply this session; `qemu-img` did
    need installing into the base, and T-1610's Prove clause does not name
-   it. T-1112's KVM leg rides this run.
+   it. T-1112's KVM leg rides this run. T-1641 implemented the three
+   fixes its diagnosis found and corrected the two causes the diagnosis
+   got wrong; it owes one guarded KVM run, which needs a musl static
+   binary this Windows host cannot build.
 10. T-1605 is `partial`: `v0.1.0-beta.13` is pushed and the nightly it
     triggers ran red on six legs, all at the licence-inventory shim,
     whose search list did not cover a per-triple build directory. The
@@ -159,7 +181,7 @@ run.
 | T-1601 | `invalid definition of the runtime `open` symbol` at `crates/podbox-interpose/src/lib.rs:2144`, deny-by-default, takes the static build, the interposer tests, and plants 32e and 32f | T-1601 settles it: allow the lint at the definition. Do not pin the toolchain. |
 | T-1602 | clippy dead code, `crates/podbox-image/tests/common/registry.rs:30`, four unread fields | T-1602 makes them needed. Do not delete the fields. |
 | T-1603 | `check-no-secrets --public` exits 1 on `scripts/dev-lane.sh:205` `/home/toolkit` | T-1603 removes the check and adds trufflehog. Reproduced locally, not assumed. |
-| T-1604 | `detached_stdio` 1 passed, 2 failed | T-1604: one defect, two symptoms. The `:138` PoisonError is the cascade, not a second defect. |
+| T-1604 | `detached_stdio` 1 passed, 2 failed | T-1604: one defect, two symptoms. The `:138` PoisonError is the cascade, not a second defect. The 1-of-3 was the tier: the job built no interposer, so the binary under test declined every payload where `chroot(2)` is denied. Fixed 2026-10-02; the lane run remains. |
 
 The plant step's `MISS 32e` and `MISS 32f` lines read "red for
 another reason, not this one". They are T-1601's consequence, not a
@@ -262,3 +284,18 @@ no session may run `git add -A` while `podbox-plant` is running. Either
 finish the plant and read its exit code first, or stage explicit paths.
 The same applies to any tool that edits tracked files and restores them
 at the end.
+
+## Session 2026-10-02, KVM correction and tier skip
+
+| Row | Evidence |
+| --- | --- |
+| Record | 250 rows, 22 open, 10 partial, 0 blocked, 218 done; `podbox-count` exit 0, gate exit 0 |
+| T-1641 | partial. Three fixes implemented; two of its stated causes were refuted in source and are filed as refutations. Owes one guarded KVM run |
+| T-1604 | partial. The tier skip and the CI interposer step are in; the lane run remains |
+| Checks | `cargo fmt --all --check` 0, `cargo clippy -p podbox-windows --all-targets` 0, `cargo check -p podbox-windows --all-targets` 0, `check-docs`/`check-markers`/`check-placeholders`/`check-control-bytes` 0 each, interposer fmt 0, workflow YAML parses |
+| Not run | `cargo test --workspace` and the KVM proof, both blocked by `ring`'s build script failing here through `scripts/zig-cc.sh`; reproduces on the clean tree with the edits stashed |
+| Diff | 10 files, 852 insertions, 141 deletions |
+| Health | no guest started, no engine state changed, no job retained |
+
+The summary beside this record is
+[SESSION-SUMMARY-2026-10-02-KVM-CORRECTION](SESSION-SUMMARY-2026-10-02-KVM-CORRECTION.md).

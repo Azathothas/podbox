@@ -1091,7 +1091,7 @@ Source:      `refactor/recon-c.md:173`;
 Category:    podvm
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Clause 6 of this script shells to another script under a
              1500-second bound. No Rust arm exists, so the script is not
@@ -1106,4 +1106,69 @@ Decision:     Record against the current guest entries rather than
              opening a new one, so the gap has one owner.
 Prove:       `grep -n "149-podvm-non-goals" TODO/podvm.md` names clause
              6 and the entry that clears it.
+
+**Done 2026-10-02.** The entry records that clause 6 of
+`experiments/149-podvm-non-goals.sh:183-193` has no Rust arm while clauses
+0 through 5 are converted and tested at
+`crates/podbox-probe/src/nongoals.rs:252-318` and
+`crates/podbox-probe/src/report.rs:1068` and `:1087`. Clause 6 runs
+`experiments/361-guest-usernet.sh` under `timeout 1500` and owns that exit
+code alone, so the `149` script is not deletable. The fixture is a booting
+guest with UDP forwarding (`experiments/361-guest-usernet.sh:293-299`), no
+Rust test builds one, and T-1306 owns it: its Done record at line 606
+built 361 and the ledger keeps 149 at SPLIT and 361 at KEEP-SHELL
+(`refactor/06-entries/verdict-ledger.tsv:15` and `:65`). One correction to
+the cited source: `refactor/06-entries/PLAN.md:124` names
+`crates/podbox-supervise/src/nongoals.rs` <!-- known-absent -->, a path
+never on disk. The
+proof is `grep -n "149-podvm-non-goals" TODO/podvm.md`, now returning 9
+matching lines.
+
+**Recorded 2026-10-02.** Clause 6 of
+`experiments/149-podvm-non-goals.sh:183-193` has no Rust arm and the
+script is not deletable. The clause tests `[ -x
+"$REPO/experiments/361-guest-usernet.sh" ]`, then runs that script
+under `timeout 1500` with `PODBOX_BIN` exported, writes its output to
+`$WORK/361.log`, and appends the whole of it to the report on failure.
+It owns the exit code and nothing else, so a red 361 reads here as a
+missed promotion rather than a stance regression, which is what the
+clause's own comment says. Clauses 0 through 5 are the converted
+half: they read `podbox probe --json` and its stderr evidence, and
+their tests are
+`crates/podbox-probe/src/nongoals.rs:252-318` (five tests, `mod tests`
+at `:227`) and `crates/podbox-probe/src/report.rs:1068` and `:1087`.
+The audit calls the clause a claim about a different script
+(`refactor/01-audit/group-9.md:117`), and the ledger keeps 149 at
+SPLIT and 361 at KEEP-SHELL
+(`refactor/06-entries/verdict-ledger.tsv:15` and `:65`).
+
+The fixture clause 6 waits on is a booting guest, and no Rust test in
+the tree builds one. `experiments/361-guest-usernet.sh` pulls the
+pinned alpine image through the binary, fetches the netboot kernel and
+its modloop against their pins, assembles the base and extras
+archives, and drives `qemu-system-x86_64` with
+`-netdev user,id=u0,hostfwd=udp::$HPORT-:$GPORT`
+(`experiments/361-guest-usernet.sh:293-299`) so a token crosses guest
+to host and a reply is forwarded back. The only Rust in this tree that
+starts an emulator is `crates/podbox-podvm/src/workload.rs:740`, and
+it runs TCG with a serial console and no forwarding, so it cannot
+stand in for the fixture.
+
+⛔ **T-1306 owns the fixture, and it is the entry that clears it.** Its
+Done record at line 606 above is what built 361 and what carries its
+pins, its result file and its conditions. The clause is removed only
+when that entry's guest path has a Rust arm, which is new work and
+not this entry's. The one thing that would remove the clause sooner is
+a Rust guest-networking fixture, and
+`refactor/06-entries/PLAN.md:154` states the shape such work takes: a
+Rust fixture first, as its own wave-0-adjacent entry.
+
+⚠ **One correction to the source above.** The plan's row for the
+`149` script at `refactor/06-entries/PLAN.md:124` cites
+`crates/podbox-supervise/src/nongoals.rs` <!-- known-absent --> with
+a line range. That path was never on disk.
+`crates/podbox-supervise/src/` holds `launcher.rs`, `lib.rs` and
+`table.rs` and no non-goals module. The tests are in
+`crates/podbox-probe/src/nongoals.rs`, and the six row names they
+assert are hard-coded at `experiments/149-podvm-non-goals.sh:95-100`.
 

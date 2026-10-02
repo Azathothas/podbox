@@ -1628,7 +1628,7 @@ Source:      `refactor/recon-c.md:177`, the plan's row, read off disk
 Category:    cli
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `experiments/85-completion-symlink-escape.sh` is converted
              and its deletion is blocked on another task, so the tree
@@ -1648,4 +1648,72 @@ Decision:     Record, not delete. The condition is another task's and a
 Prove:       `grep -n "85-completion-symlink-escape" TODO/cli.md` names
              the converted tests and the work whose landing clears the
              deletion.
+
+**Done 2026-10-02.** Recorded the converted state of
+`experiments/85-completion-symlink-escape.sh` and the condition that
+clears its deletion. The six doors the script plants are carried by two
+tests in `crates/podbox-complete/src/write.rs`:
+`a_write_replaces_an_out_link_with_a_regular_file` (`write.rs:752`) for
+clauses A to E, and
+`a_write_follows_a_directory_link_that_stays_inside` (`write.rs:779`)
+for clause F. The premise that the plan's row at
+`refactor/recon-c.md:110` is the whole conversion does not hold: the two
+library tests named at `refactor/01-audit/group-4.md:286` and `:288` are
+absent, and the reachability integration test asked for at
+`group-4.md:290` was never written. The record stands on that correction.
+The script is only partly converted, and the deletion stays blocked
+until the plan's library-test row and its reachability half land as
+tracked entries. `grep -n "85-completion-symlink-escape" TODO/cli.md`
+exits 0 and reports 6 matches.
+
+**Recorded 2026-10-02.** `experiments/85-completion-symlink-escape.sh`
+stays on disk and is converted in the library. The script plants six
+doors, five out of the rootfs and one legitimate internal link
+(`85-completion-symlink-escape.sh:23`, `:105`): A `/etc/mtab` (`:25`), B
+`/etc/resolv.conf` (`:26`), C `/etc/hosts` (`:27`), E `/etc/passwd`
+(`:28`), D `/etc/ssl/certs` (`:29`), F `/etc/apt -> /var/aptreal` (`:30`).
+
+The converted tests are the two in
+`crates/podbox-complete/src/write.rs` `mod tests` that name the script's
+clauses. `a_write_replaces_an_out_link_with_a_regular_file`
+(`write.rs:752`) carries clauses A through E: the out-link is replaced by
+a regular file inside the rootfs, so a later reader does not follow it
+out, and the outside canary stays byte-identical (`write.rs:748`,
+`:754`, `:766`). `a_write_follows_a_directory_link_that_stays_inside`
+(`write.rs:779`) carries clause F, openSUSE's own shape: a directory link
+that stays inside is followed and the drop-in lands at its target
+(`write.rs:775`, `:781`, `:787`).
+
+**The deletion condition, and what clears it.** The script is deletable
+when the plan's library-test row lands. That row sits at
+`refactor/recon-c.md:110`, and it reads
+`Write the two library tests into crates/podbox-complete/src/write.rs mod
+tests (:640)`. Its id is a plan id, not a tracked entry: no `TODO/*.md`
+carries a heading for it. The only place that id appears in the tracked
+tree is the two doc comments in `write.rs` (`:748`, `:775`) that name the
+tests it owns. The plan's own row for this record is
+`refactor/recon-c.md:177`, and it makes that row the clearing condition.
+
+⛔ **The condition has not landed, and the tree disagrees with the plan's
+wording.** The two tests are present and committed, so the library half of
+the plan's row is done. The plan's conversion for this script is wider.
+`refactor/01-audit/group-4.md:290` asks for a reachability
+integration test in `crates/podbox-cli/tests/`, to drive the four doors
+through the shipped binary. The plan names a target file for it at
+`group-4.md:294`. That file was never written: the directory git tracks
+holds `curated_refusals.rs`, `detached_stdio.rs`, `qol.rs`, and
+`store_gates.rs`, and no file of that name exists under `crates/`.
+Two further library tests the plan names at `group-4.md:286` and `:288`,
+`the_link_is_replaced_and_the_file_outside_is_untouched` and
+`a_dangling_directory_link_is_refused_and_reported`, are also absent.
+
+So the script is **partly converted**, and the deletion is blocked by
+more than the plan's row states. The library doors are answered at
+`write.rs`; the shipped-binary reach that the script's own header at
+`:10-15` calls necessary is not, and that header's reason is that a
+containment check right in the library and unreached by `podbox run` is
+a check nobody has (`group-4.md:272-278`). Deleting the script now drops
+the only drive of the reach path. The deletion clears when the plan's
+library-test row and its reachability half land as tracked entries. Until
+then this row is the record, and no entry deletes the script.
 

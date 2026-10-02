@@ -45,8 +45,15 @@ fn agent() -> ureq::Agent {
 /// the first revision got that wrong.** `run`'s disk is a disposable overlay
 /// over the base image, so an installer that wrote into a scratch overlay
 /// left the agent in a file `run` then threw away: the guest booted, the task
-/// was gone, and every run timed out. `setup` therefore produces a *new base*
-///, the vendor's image plus the agent, and `run` makes its overlay over it.
+/// was gone, and every run timed out.
+///
+/// ⛔ **And the writes are committed into this file rather than left in the
+/// overlay.** `provision` boots a scratch overlay inside the per-run
+/// directory, which `cleanup` removes, and `qemu-img commit`s it into a
+/// second, standalone qcow2 at this path. So `setup` produces a *new base*,
+/// the vendor's image plus the agent, and `run` makes its overlay over it.
+/// The provisioned image names no backing file, so the vendor's is free to
+/// move or be removed afterwards. `TODO/gate.md` T-1641.
 pub(crate) fn provisioned_path(image: &Path) -> PathBuf {
     let stem = image
         .file_stem()
@@ -136,7 +143,20 @@ pub(crate) fn fetch(a: &Args) -> i32 {
     }
 }
 
+/// ⛔ `out` is a qcow2 whatever the vendor image is, and that is not a
+/// re-encoding: `commit` copies the backing's bytes into it. The size is the
+/// vendor image's size, so a large base costs a large `out`.
+const PROVISIONED_FORMAT: &str = "qcow2";
+
 /// `setup`: provision the image once, into [`provisioned_path`].
+///
+/// ⛔ **The provisioning boot is disposable and its writes are committed, so
+/// the vendor image is never a destination.** `plan::build` already put
+/// `root` inside the per-run directory; that overlay is what the installer
+/// writes into, and `provision` commits it into [`provisioned_path`] with no
+/// `-b`. ⛔ The plan is left exactly as built: a `root` pointed at `out`
+/// would make the commit fold the vendor's backing into the file that names
+/// it. `TODO/gate.md` T-1641.
 pub(crate) fn setup(a: &Args) -> i32 {
     let Some(image) = a.image.clone() else {
         eprintln!("podbox windows setup: --image is required\n{USAGE}");
@@ -162,23 +182,21 @@ pub(crate) fn setup(a: &Args) -> i32 {
         Ok(p) => p,
         Err(c) => return c,
     };
-    // ⚠ The provisioned image IS this boot's disk, not a disposable overlay
-    // over it: what the installer writes here has to survive.
-    let plan = podbox_windows::Plan {
-        root: out.clone(),
-        ..plan
-    };
+    // The commit writes a new file at this path, so a survivor of an earlier
+    // attempt would be refused by the preflight above and overwritten here.
+    let commit_target = out.with_extension(PROVISIONED_FORMAT);
     match podbox_windows::provision(
         &plan::qemu_img(),
         &image,
         &plan,
+        &commit_target,
         Duration::from_secs(a.timeout.unwrap_or(240)),
     ) {
         Ok(report) => {
             println!("{}", String::from_utf8_lossy(&report));
-            println!("provisioned {}", out.display());
-            // ⚠ `out` is beside the vendor image and is the whole product of
-            // this step, so only the scratch directory goes.
+            println!("provisioned {}", commit_target.display());
+            // ⚠ `commit_target` is beside the vendor image and is the whole
+            // product of this step, so only the scratch directory goes.
             podbox_windows::cleanup(&plan);
             0
         }
@@ -186,9 +204,9 @@ pub(crate) fn setup(a: &Args) -> i32 {
             eprintln!("podbox windows setup: {e}");
             eprintln!(
                 "podbox windows setup: nothing was left at {}",
-                out.display()
+                commit_target.display()
             );
-            let _ = std::fs::remove_file(&out);
+            let _ = std::fs::remove_file(&commit_target);
             podbox_windows::cleanup(&plan);
             EXIT_RUNTIME_ERROR
         }
@@ -209,6 +227,47 @@ mod tests {
             provisioned_path(Path::new("freedos.img")),
             PathBuf::from("freedos.podbox.qcow2")
         );
+    }
+
+    /// ⛔ The defect this pins: `setup` pointed the boot's root at the
+    /// provisioned image, which is the vendor image plus a `-b` pointer at the
+    /// vendor file. Every later run then read `run.qcow2` -> `out` -> `base.vhdx`
+    /// and broke when the vendor file moved. `plan::build` puts `root` in the
+    /// per-run directory and `provision` commits it into this separate file.
+    #[test]
+    fn the_provisioning_root_is_scratch_and_the_product_is_a_separate_file() {
+        let scratch = podbox_windows::scratch_dir("setup-shape").expect("a scratch directory");
+        let vendor = std::env::temp_dir().join(format!("pbx-setup-{}", std::process::id()));
+        std::fs::create_dir_all(&vendor).unwrap();
+        let image = vendor.join("ValidationOS.vhdx");
+        let out = provisioned_path(&image);
+        let root = scratch.join("run.qcow2");
+        assert_eq!(out, vendor.join("ValidationOS.podbox.qcow2"));
+        assert_ne!(
+            root, out,
+            "the overlay the installer writes into is not the image it is committed to"
+        );
+        assert_eq!(
+            podbox_windows::scratch_of(&podbox_windows::Plan {
+                emulator: "qemu-system-x86_64".into(),
+                accel: podbox_windows::Accel::Tcg,
+                share: "/usr/share/qemu".into(),
+                firmware_code: "/code.fd".into(),
+                firmware_vars: scratch.join("vars.fd"),
+                root: root.clone(),
+                mailbox: scratch.join("mailbox.img"),
+                serial: scratch.join("serial.log"),
+                monitor: scratch.join("qmp.sock"),
+                memory_mib: 4096,
+                cpus: 2,
+                emu_args: Vec::new(),
+            })
+            .as_deref(),
+            Some(scratch.as_path()),
+            "the scratch overlay is the only per-run residue, and cleanup removes it"
+        );
+        let _ = std::fs::remove_dir_all(&scratch);
+        let _ = std::fs::remove_dir_all(&vendor);
     }
 
     /// A hung origin fails on the read timeout instead of hanging the

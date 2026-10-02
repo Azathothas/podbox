@@ -40,14 +40,15 @@ pub mod plan;
 pub mod qmp;
 
 use std::os::unix::fs::DirBuilderExt;
+use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
 pub use agent::Code;
 pub use fat16::Fat16;
 pub use fetch::{Ceiling, FetchError};
-pub use plan::{accel_for, argv, overlay_argv, Accel, Plan};
+pub use plan::{accel_for, argv, commit_argv, overlay_argv, Accel, Plan};
 
 /// A command to run in the guest.
 #[derive(Debug, Clone)]
@@ -80,10 +81,67 @@ pub enum Error {
     NoAcceleration(String),
     /// An I/O step failed.
     Io(String),
-    /// The guest never produced a result before the timeout.
-    Timeout(Duration),
+    /// The guest never produced a result before the timeout. The second field
+    /// is what happened to the emulator, never an assumption about it.
+    Timeout(Duration, Stop),
     /// A result file was there but did not parse.
     BadResult(String),
+}
+
+/// What happened to an emulator this crate started and then had to stop.
+///
+/// ⛔ **Two states and no third, because a caller acts on the difference.** A
+/// reader who is told only "it was stopped" cannot tell a reaped child from a
+/// survivor, and those are opposite: the first needs nothing, the second needs
+/// a survivor removed. [`Stop::Confirmed`] means the emulator was reaped by
+/// this process, so the pid it held is gone and its own children were killed
+/// as its process group. [`Stop::Attempted`] means the kill was issued and the
+/// child was not observed to die inside the wait, so it may still be running.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Stop {
+    /// The emulator was reaped here. Its process group was killed first, so
+    /// anything it forked is gone with it.
+    Confirmed { pid: u32 },
+    /// The stop was asked for through QMP and then issued as a signal, and
+    /// the child was not observed to die within the wait. The message names
+    /// the pid so a reader can go and look for it.
+    Attempted { pid: u32 },
+}
+
+impl Stop {
+    /// The emulator process this describes. Reported whether the stop was
+    /// confirmed or only attempted: a reader looking for a survivor needs the
+    /// pid in both cases.
+    pub fn pid(self) -> u32 {
+        match self {
+            Stop::Confirmed { pid } | Stop::Attempted { pid } => pid,
+        }
+    }
+
+    /// Whether the emulator was observed to die. A timeout message that does
+    /// not carry this is asserting a stop nobody checked.
+    pub fn confirmed(self) -> bool {
+        matches!(self, Stop::Confirmed { .. })
+    }
+}
+
+impl std::fmt::Display for Stop {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Stop::Confirmed { pid } => {
+                write!(
+                    f,
+                    "the emulator {pid} was killed and reaped, so its process group is gone"
+                )
+            }
+            Stop::Attempted { pid } => write!(
+                f,
+                "the stop of emulator {pid} was attempted and not confirmed: \
+                 QMP quit and SIGKILL to its process group were issued, and it \
+                 was still not reaped within the wait, so it may still be running"
+            ),
+        }
+    }
 }
 
 impl std::fmt::Display for Error {
@@ -92,9 +150,9 @@ impl std::fmt::Display for Error {
             Error::NoEmulator(e) => write!(f, "{e}"),
             Error::NoAcceleration(e) => write!(f, "{e}"),
             Error::Io(e) => write!(f, "{e}"),
-            Error::Timeout(d) => write!(
+            Error::Timeout(d, stop) => write!(
                 f,
-                "the guest did not power off within {}s, so it was stopped",
+                "the guest did not power off within {}s; {stop}",
                 d.as_secs()
             ),
             Error::BadResult(e) => write!(f, "{e}"),
@@ -181,7 +239,15 @@ pub fn stage(
     Ok(m)
 }
 
-pub(crate) fn run_steps(argv: &[String]) -> Result<(), Error> {
+/// Run one argv to completion and answer its status.
+///
+/// ⚠ **The status comes back with `Ok`, and is not read for success.** Two
+/// callers need different things from the same exit: `stage` and the
+/// provisioning commit need only that it did not fail, and the stop path
+/// needs to know that a signal killed it. Reporting success and reporting the
+/// status are different questions, so the status is the answer and each caller
+/// judges it.
+pub(crate) fn run_steps(argv: &[String]) -> Result<ExitStatus, Error> {
     let (prog, rest) = argv
         .split_first()
         .ok_or_else(|| Error::Io("empty argv".into()))?;
@@ -198,8 +264,122 @@ pub(crate) fn run_steps(argv: &[String]) -> Result<(), Error> {
             String::from_utf8_lossy(&out.stderr).trim()
         )));
     }
-    Ok(())
+    Ok(out.status)
 }
+
+/// Spawn the emulator with `args`, in a process group of its own.
+///
+/// ⛔ **The group is the point, and it is set before the child exists.**
+/// `process_group(0)` puts the child in a new group whose id is its own pid,
+/// so [`stop_emulator`] can signal the whole group and take anything the
+/// emulator forked with it. A kill of the direct child alone leaves a helper
+/// running, and a helper that holds the disk image open is what leaves a
+/// machine in a state the next run cannot enter. Neither `process_group` nor
+/// the signal below is `unsafe`, so [`forbid(unsafe_code)`] stands.
+///
+/// ⚠ **The argv is the caller's, not [`plan::argv`]'s.** The two flavors have
+/// different machine lines: the Windows guest is q35 with two NVMe devices and
+/// the DOS guest is `pc` with IDE disks, and one spawn serving both would
+/// change whichever line it did not own. `plan` supplies the binary and the
+/// stop needs it; the command line stays with the flavor that builds it.
+pub(crate) fn spawn_emulator(plan: &Plan, args: &[String], stderr: Stdio) -> Result<Child, Error> {
+    let mut cmd = Command::new(&plan.emulator);
+    cmd.args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(stderr)
+        .process_group(0);
+    cmd.spawn()
+        .map_err(|e| Error::NoEmulator(format!("{}: {e}", plan.emulator.display())))
+}
+
+/// Spawn the Windows guest, whose machine line is [`plan::argv`]'s.
+pub(crate) fn spawn_windows(plan: &Plan, stderr: Stdio) -> Result<Child, Error> {
+    spawn_emulator(plan, &argv(plan), stderr)
+}
+
+/// How long [`stop_emulator`] waits for a killed emulator to be reaped. A
+/// killed process is reaped as soon as the kernel has torn it down, and the
+/// group is dead with it, so this is a bound and not a wait that has to
+/// elapse.
+const STOP_WAIT: Duration = Duration::from_secs(5);
+/// How long the QMP `quit` is given to work before the signal is sent. ⛔ The
+/// guest is the wrong thing to wait for: it is what timed out. This bounds
+/// how long the emulator keeps running on the polite path, nothing more.
+const QUIT_WAIT: Duration = Duration::from_secs(2);
+
+/// Stop the emulator this crate started, and report what was observed.
+///
+/// ⛔ **Three steps in a fixed order, and each one answers with evidence.**
+/// QMP `quit` first, so a guest that can still reach its monitor ends without
+/// a signal. Then `SIGKILL` to the whole process group from
+/// [`spawn_emulator`], because `SIGKILL` is what a stuck emulator needs and a
+/// helper it forked is in that group too. Then the child is waited for, and
+/// the reaped status *is* the confirmation: [`Child::try_wait`] answers
+/// `Ok(Some(status))` only for a process this process reaped, and a process
+/// that was never reaped is still running however many signals it took.
+///
+/// ⚠ **The QMP step is best effort and its failure changes nothing.** The
+/// monitor is gone once the emulator is stopping, and a guest that has already
+/// powered itself off has no socket to answer on. Both are the success case,
+/// so a refusal from `quit` is not reported as a failure of the stop.
+pub(crate) fn stop_emulator(plan: &Plan, child: &mut Child) -> Stop {
+    stop_with(plan, child, QUIT_WAIT, STOP_WAIT)
+}
+
+/// [`stop_emulator`] with both bounds supplied, so the wait for a stop can be
+/// tested without a signal that has to be delivered.
+fn stop_with(plan: &Plan, child: &mut Child, quit_wait: Duration, reap_wait: Duration) -> Stop {
+    let pid = child.id();
+    stop(plan);
+    let start = Instant::now();
+    while start.elapsed() < quit_wait {
+        if child.try_wait().ok().flatten().is_some() {
+            // ⛔ A guest that obeyed `quit` needs no signal at all, and a kill
+            // here would be aimed at a pid the kernel may already have reused.
+            return Stop::Confirmed { pid };
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    kill_group(pid);
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => return Stop::Confirmed { pid },
+            Ok(None) => {}
+            // ⛔ A `try_wait` that cannot answer is not a clean exit, so it is
+            // not read as one: the worst report is the honest one.
+            Err(_) => return Stop::Attempted { pid },
+        }
+        if start.elapsed() >= reap_wait {
+            return Stop::Attempted { pid };
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// `kill(-pgid, SIGKILL)`, the group form of the signal.
+///
+/// ⛔ **The group, and the emulator's pid as the negative target.** The group
+/// id is the child's pid because [`spawn_emulator`] asked for `process_group(0)`
+/// before the child existed, so `-pid` is this emulator's group and nothing
+/// else: the driver is in its own group and is never a target here.
+///
+/// ⚠ **The errno is not reported, and the reap is what reports.** `ESRCH`
+/// means the group is already gone, which is the outcome this wanted; any
+/// other errno leaves the child alive, and the reap loop below is what turns
+/// that into [`Stop::Attempted`]. A second error path here would say the same
+/// thing twice, and the one that cannot be wrong is the one that observed it.
+fn kill_group(pid: u32) {
+    let _ = podbox_probe::sys::kill(-(pid as i64), SIGKILL as i64);
+}
+
+/// `SIGKILL`, 9 in `asm-generic/signal.h` and in every architecture's
+/// `general.rs` the probe reads its numbers from. ⛔ **Not `SIGTERM`.** A
+/// guest that has to be killed has already had its chance: the QMP `quit`
+/// above is the polite stop, and a term signal between it and the kill would
+/// add a wait that has been measured not to finish.
+const SIGKILL: u8 = 9;
 
 /// Boot the guest, wait for it to power itself off, and read the result.
 ///
@@ -220,14 +400,7 @@ pub fn run(plan: &Plan, request: &Request) -> Result<Outcome, Error> {
             .map_err(|e| Error::Io(format!("{}: {e}", path.display())))?,
         None => Stdio::null(),
     };
-    let mut cmd = Command::new(&plan.emulator);
-    cmd.args(argv(plan))
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(stderr);
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| Error::NoEmulator(format!("{}: {e}", plan.emulator.display())))?;
+    let mut child = spawn_windows(plan, stderr)?;
     let start = Instant::now();
     let status = loop {
         match child.try_wait().map_err(|e| Error::Io(e.to_string()))? {
@@ -237,11 +410,18 @@ pub fn run(plan: &Plan, request: &Request) -> Result<Outcome, Error> {
         }
     };
     if status.is_none() {
-        let _ = child.kill();
-        let _ = child.wait();
-        return Err(Error::Timeout(request.timeout));
+        // ⚠ The emulator that hit this is the one the run started. The agent
+        // powers the machine off only after it has written the exit code, so
+        // this is a run that is still going, and what it leaves behind is a
+        // machine rather than a file.
+        let stop = stop_emulator(plan, &mut child);
+        return Err(Error::Timeout(request.timeout, stop));
     }
-    let _ = status.expect("checked above").code();
+    // The emulator exited with a status the host does not act on, so it is
+    // judged and dropped here rather than carried past the point that would
+    // report it: the mailbox below is what this function answers from, and a
+    // missing result is the error either way. ⛔ Do not turn it into `Ok`.
+    let _ = status.expect("checked above");
     // Re-read the volume from disk: the guest is what wrote the result, and
     // the in-memory copy is the one we handed it, not the one it filled in.
     let bytes = std::fs::read(&plan.mailbox).map_err(|e| Error::Io(e.to_string()))?;
@@ -290,10 +470,24 @@ fn log_tail(path: &Path) -> String {
 /// base image.** Everything after it is the mailbox. The driver types a
 /// drive-scanning loop rather than a drive letter: Windows assigns the letter
 /// and the reference image has been seen to change it between boots.
+///
+/// ⛔ **The base is written to nothing.** The installer runs on
+/// [`Plan::root`], which is a disposable overlay over `base` created by
+/// [`overlay_argv`], and the overlay is never `base`: the vendor image is
+/// named only as that overlay's `-b`, which `qemu-img create` opens
+/// read-only. `TODO/gate.md` T-1641.
+///
+/// ⛔ **And the provisioned image is a separate standalone file.** The overlay
+/// is committed by [`commit_argv`] into the second path named here, with no
+/// `-b`, so what comes out of this carries no pointer back at `base` and the
+/// vendor file can be moved or removed afterwards. The commit happens after
+/// the guest has powered itself off, because a commit reads the overlay while
+/// the emulator still holds it.
 pub fn provision(
     qemu_img: &Path,
     base: &Path,
     plan: &Plan,
+    out: &Path,
     wait: Duration,
 ) -> Result<Vec<u8>, Error> {
     let mut m = Fat16::new();
@@ -306,14 +500,14 @@ pub fn provision(
         .map_err(|e| Error::Io(format!("{}: {e}", plan.mailbox.display())))?;
     let _ = std::fs::remove_file(&plan.root);
     let _ = std::fs::remove_file(&plan.monitor);
+    // ⚠ `qemu-img create` refuses an existing file, and `out` is the caller's
+    // product rather than scratch, so it is only removed here when this boot
+    // is going to overwrite it.
+    if out != plan.root {
+        let _ = std::fs::remove_file(out);
+    }
     run_steps(&overlay_argv(qemu_img, base, &plan.root))?;
-    let mut child = Command::new(&plan.emulator)
-        .args(argv(plan))
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| Error::NoEmulator(format!("{}: {e}", plan.emulator.display())))?;
+    let mut child = spawn_windows(plan, Stdio::null())?;
     // The shell needs the image to finish booting first; typing into a boot
     // screen types into nothing.
     std::thread::sleep(wait);
@@ -324,18 +518,33 @@ pub fn provision(
     // exit is what makes the read below safe; killing it here is a read of a
     // volume the guest had not finished writing.
     let start = Instant::now();
+    let mut exited = false;
     while start.elapsed() < wait {
         if child
             .try_wait()
             .map_err(|e| Error::Io(e.to_string()))?
             .is_some()
         {
+            exited = true;
             break;
         }
         std::thread::sleep(Duration::from_millis(500));
     }
-    let _ = child.kill();
-    let _ = child.wait();
+    // ⚠ The signal is only for an emulator that outlived its wait. A child
+    // that already exited has been reaped by the `try_wait` above, and a kill
+    // aimed at its pid afterwards is aimed at a pid the kernel may already
+    // have reused.
+    let _stop = if exited {
+        Stop::Confirmed { pid: child.id() }
+    } else {
+        stop_emulator(plan, &mut child)
+    };
+    // ⛔ The commit happens here, after the emulator is gone and before
+    // anything is reported as provisioned. `run_steps` turns a non-zero exit
+    // into `Error::Io` carrying the program and its own stderr, so a commit
+    // that failed is named rather than leaving a half-written `out` behind
+    // that a later `run` would boot and call a provisioned image.
+    run_steps(&commit_argv(qemu_img, &plan.root, out))?;
     // The installer writes SETUP.TXT back to the mailbox; that file is the
     // evidence that provisioning ran, and it is read after the guest stops.
     let bytes = std::fs::read(&plan.mailbox).map_err(|e| Error::Io(e.to_string()))?;
@@ -386,10 +595,13 @@ pub fn cap_status(code: i32) -> Option<i32> {
 /// plan's mailbox has no parent.
 ///
 /// ⛔ **Not `Plan::root`'s parent, and that distinction is a defect that was
-/// caught in review.** `setup` points `root` at the provisioned image beside
-/// the *vendor's*, so a cleanup keyed on `root` would remove the directory a
-/// caller keeps their Windows images in. The mailbox never moves out of the
-/// per-run directory, which is why it is the field this reads.
+/// caught in review.** A cleanup keyed on `root` would remove whatever
+/// directory the root disk lives in, and on the `setup` path that is a
+/// caller's directory of Windows images beside the vendor's. The mailbox
+/// never moves out of the per-run directory, which is why it is the field this
+/// reads. `TODO/gate.md` T-1641 took `setup`'s `root` back into the per-run
+/// directory as well; this is keyed on the mailbox because `run`'s root is
+/// still per-run and the two must not depend on that staying true.
 pub fn scratch_of(plan: &Plan) -> Option<PathBuf> {
     plan.mailbox.parent().map(|p| p.to_path_buf())
 }
@@ -541,10 +753,57 @@ const DIGIT: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 #[cfg(test)]
 mod tests {
-    /// ⛔ The defect this pins: `setup` puts `root` beside the vendor image,
-    /// so a cleanup keyed on `root` would delete the directory a caller
-    /// keeps their Windows images in. It is keyed on the mailbox, and it
-    /// refuses a directory that is not named like a scratch one.
+    use super::*;
+
+    /// The provisioning boot's root disk, which `T-1641` moved into the
+    /// per-run directory. ⛔ It is not the provisioned image: that is a second
+    /// path, and this is the disposable scratch overlay the commit reads.
+    #[test]
+    fn the_provisioning_root_is_per_run_scratch_and_not_the_provisioned_image() {
+        let scratch = scratch_dir("provision-root").expect("a scratch directory");
+        let vendor = std::env::temp_dir().join(format!("pbx-prov-{}", std::process::id()));
+        std::fs::create_dir_all(&vendor).unwrap();
+        let image = vendor.join("ValidationOS.vhdx");
+        std::fs::write(&image, b"not really a disk image").unwrap();
+        let out = vendor.join("ValidationOS.podbox.qcow2");
+        let plan = Plan {
+            emulator: "qemu-system-x86_64".into(),
+            accel: Accel::Tcg,
+            share: "/usr/share/qemu".into(),
+            firmware_code: "/code.fd".into(),
+            firmware_vars: scratch.join("vars.fd"),
+            // exactly what the CLI's `setup` does
+            root: scratch.join("run.qcow2"),
+            mailbox: scratch.join("mailbox.img"),
+            serial: scratch.join("serial.log"),
+            monitor: scratch.join("qmp.sock"),
+            memory_mib: 4096,
+            cpus: 2,
+            emu_args: Vec::new(),
+        };
+        assert_ne!(plan.root, out, "the two are separate files");
+        assert_eq!(
+            scratch_of(&plan).as_deref(),
+            Some(scratch.as_path()),
+            "the root overlay is inside the directory cleanup removes"
+        );
+        // and the boot's own disk line names that per-run file
+        let a = argv(&plan);
+        assert!(
+            a.iter()
+                .any(|x| x.contains("run.qcow2") && x.contains("id=root")),
+            "{a:?}"
+        );
+        // ⛔ so a cleanup cannot reach the directory the vendor image and the
+        // provisioned image live in, whatever a caller does with `root`.
+        let _ = std::fs::remove_dir_all(&scratch);
+        let _ = std::fs::remove_dir_all(&vendor);
+    }
+
+    /// ⛔ The defect this pins: `setup` puts `root` in a caller's directory of
+    /// Windows images in every revision but one, so a cleanup keyed on `root`
+    /// would delete that directory. It is keyed on the mailbox, and it refuses
+    /// a directory that is not named like a scratch one.
     #[test]
     fn cleanup_never_removes_the_directory_a_vendor_image_lives_in() {
         let vendor = std::env::temp_dir().join(format!("pbx-vendor-{}", std::process::id()));
@@ -624,8 +883,6 @@ mod tests {
         }
         assert!(!scratch.exists(), "dropping the guard removes the run");
     }
-
-    use super::*;
 
     /// ⛔ The defect this pins: the emulator's streams were piped and not
     /// read, so an emulator that wrote more than one pipe buffer blocked and
@@ -736,9 +993,131 @@ mod tests {
     }
 
     #[test]
-    fn the_timeout_message_names_the_time() {
-        let e = Error::Timeout(Duration::from_secs(600));
+    fn the_timeout_message_names_the_time_and_the_pid() {
+        let e = Error::Timeout(Duration::from_secs(600), Stop::Confirmed { pid: 4242 });
         assert!(format!("{e}").contains("600"), "{e}");
+        assert!(format!("{e}").contains("4242"), "{e}");
+    }
+
+    /// ⛔ The defect this pins: the message said "so it was stopped" on a path
+    /// where nothing confirmed a stop, and the kill's own result was thrown
+    /// away. The two states read differently and each names the pid, because
+    /// a reader chasing a survivor needs it in both.
+    #[test]
+    fn a_timeout_says_whether_the_stop_was_confirmed_and_names_the_pid() {
+        let confirmed = Error::Timeout(Duration::from_secs(60), Stop::Confirmed { pid: 1234 });
+        let text = format!("{confirmed}");
+        assert!(text.contains("1234"), "{text}");
+        assert!(
+            text.contains("reaped"),
+            "a confirmed stop says the child was reaped: {text}"
+        );
+        let attempted = Error::Timeout(Duration::from_secs(60), Stop::Attempted { pid: 1234 });
+        let text = format!("{attempted}");
+        assert!(text.contains("1234"), "{text}");
+        assert!(
+            text.contains("not confirmed"),
+            "an unconfirmed stop does not claim one: {text}"
+        );
+        assert!(
+            text.contains("still be running"),
+            "an unconfirmed stop names the risk a reader has to act on: {text}"
+        );
+        assert!(
+            Stop::Confirmed { pid: 1234 }.confirmed() && !Stop::Attempted { pid: 1234 }.confirmed()
+        );
+        assert_eq!(Stop::Confirmed { pid: 1234 }.pid(), 1234);
+    }
+
+    /// ⛔ The defect this pins: the emulator was spawned without a process
+    /// group and killed as a direct child, so a helper it forked outlived the
+    /// kill. The emulator and its forked helper are in one group here, and
+    /// neither survives.
+    #[test]
+    fn a_stopped_emulator_takes_its_process_group_with_it() {
+        let scratch = scratch_dir("stop-group").expect("a scratch directory");
+        let marker = scratch.join("group-survived");
+        let fake = scratch.join("fake-emulator");
+        // The emulator stands in for its own group; the `sleep` stands for a
+        // helper that forks under it, and writes its file only if it outlives
+        // the kill.
+        std::fs::write(&fake, "#!/bin/sh\n(sleep 30; : > \"$0\") &\nwait\n").unwrap();
+        std::fs::set_permissions(&fake, std::os::unix::fs::PermissionsExt::from_mode(0o700))
+            .unwrap();
+        let mut plan = plan_over(&scratch, &fake);
+        plan.root = scratch.join("run.qcow2");
+        let mut child = spawn_windows(&plan, Stdio::null()).expect("the fake emulator starts");
+        let child_pid = child.id();
+        // ⛔ The child is not in the driver's own group, so the group kill below
+        // cannot reach this test process.
+        let stop = stop_with(
+            &plan,
+            &mut child,
+            Duration::from_millis(50),
+            Duration::from_secs(10),
+        );
+        assert!(
+            matches!(stop, Stop::Confirmed { .. }),
+            "the emulator was reaped: {stop}"
+        );
+        assert_eq!(stop.pid(), child_pid);
+        assert_ne!(
+            std::process::id(),
+            child_pid,
+            "the emulator is its own process"
+        );
+        std::thread::sleep(Duration::from_millis(500));
+        assert!(!marker.exists(), "a forked helper outlived the group kill");
+        let _ = std::fs::remove_dir_all(&scratch);
+    }
+
+    /// A guest that has already powered itself off needs no signal, and the
+    /// report says the emulator was reaped rather than that a kill was issued.
+    /// The wait is zero, so this does not sleep on a real timeout.
+    #[test]
+    fn an_emulator_that_exited_on_its_own_is_reported_as_a_confirmed_stop() {
+        let scratch = scratch_dir("stop-exited").expect("a scratch directory");
+        let fake = scratch.join("fake-emulator");
+        std::fs::write(&fake, "#!/bin/sh\nexit 0\n").unwrap();
+        std::fs::set_permissions(&fake, std::os::unix::fs::PermissionsExt::from_mode(0o700))
+            .unwrap();
+        let plan = plan_over(&scratch, &fake);
+        let mut child = spawn_windows(&plan, Stdio::null()).expect("the fake emulator starts");
+        // Let the child be reaped by the stop, not by a caller that already
+        // waited for it.
+        std::thread::sleep(Duration::from_millis(200));
+        let stop = stop_with(
+            &plan,
+            &mut child,
+            Duration::from_millis(50),
+            Duration::from_secs(5),
+        );
+        assert!(
+            matches!(stop, Stop::Confirmed { pid } if pid == child.id()),
+            "{stop}"
+        );
+        let _ = std::fs::remove_dir_all(&scratch);
+    }
+
+    /// The plan every stop test needs: a real emulator binary that is not
+    /// qemu, and a monitor socket that was never created. ⛔ `stop` polls the
+    /// monitor before it signals, and a socket that is absent makes that
+    /// polling the bound rather than a connection to something live.
+    fn plan_over(scratch: &Path, emulator: &Path) -> Plan {
+        Plan {
+            emulator: emulator.to_path_buf(),
+            accel: Accel::Tcg,
+            share: "/usr/share/qemu".into(),
+            firmware_code: "/code.fd".into(),
+            firmware_vars: scratch.join("vars.fd"),
+            root: scratch.join("run.qcow2"),
+            mailbox: scratch.join("mailbox.img"),
+            serial: scratch.join("serial.log"),
+            monitor: scratch.join("qmp.sock"),
+            memory_mib: 512,
+            cpus: 1,
+            emu_args: Vec::new(),
+        }
     }
 
     #[test]

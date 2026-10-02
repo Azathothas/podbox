@@ -17,7 +17,7 @@
 //! image and takes the other flavor.
 
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Stdio};
 use std::time::{Duration, Instant};
 
 use super::plan::Plan;
@@ -193,6 +193,9 @@ fn boot_keys(m: &mut Monitor) -> Result<(), String> {
 /// bytes where the same line typed inline wrote 68, measured on the lane.
 /// The mailbox files stay as provenance: the guest can `type` them.
 pub fn run(plan: &Plan, batch: &str, token: &str, timeout: Duration) -> Result<Outcome, Error> {
+    // ⛔ **The DOS machine line is its own**, SeaBIOS on `pc` with IDE disks,
+    // and it is passed to the shared spawn rather than dropped: the two
+    // flavors have different disks and the same kill discipline.
     let args = argv(
         plan.accel,
         &plan.root,
@@ -202,16 +205,12 @@ pub fn run(plan: &Plan, batch: &str, token: &str, timeout: Duration) -> Result<O
         plan.memory_mib,
         &plan.emu_args,
     );
-    let mut child: Child = Command::new(&plan.emulator)
-        .args(&args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| Error::NoEmulator(format!("{}: {e}", plan.emulator.display())))?;
+    // ⛔ The shared spawn is what puts the emulator in a process group of its
+    // own, so a stop that killed the direct child left a helper running, and a
+    // helper that holds the disk image open is what the next run meets.
+    let mut child: Child = crate::spawn_emulator(plan, &args, Stdio::null())?;
     let failed = |child: &mut Child, e: String| -> Error {
-        let _ = child.kill();
-        let _ = child.wait();
+        let _ = crate::stop_emulator(plan, child);
         Error::Io(e)
     };
     let mut mon = match Monitor::connect(&plan.monitor, Duration::from_secs(10)) {
@@ -250,22 +249,10 @@ pub fn run(plan: &Plan, batch: &str, token: &str, timeout: Duration) -> Result<O
         }
         std::thread::sleep(Duration::from_millis(500));
     }
-    super::stop(plan);
-    let start = Instant::now();
-    loop {
-        match child.try_wait().map_err(|e| Error::Io(e.to_string()))? {
-            Some(_) => break,
-            None if start.elapsed() > Duration::from_secs(5) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                break;
-            }
-            None => std::thread::sleep(Duration::from_millis(100)),
-        }
-    }
+    let stop = crate::stop_emulator(plan, &mut child);
     match code {
         Some(o) => Ok(o),
-        None => Err(Error::Timeout(timeout)),
+        None => Err(Error::Timeout(timeout, stop)),
     }
 }
 

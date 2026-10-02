@@ -969,7 +969,7 @@ Source:      `refactor/recon-c.md:176`;
 Category:    probe
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The ledger marks this script RUST-TEST and its own planned
              proof was ignored for a reason. Both the verdict and the
@@ -985,4 +985,64 @@ Decision:     Both the verdict and the level go in the same record,
 Prove:       `grep -n "95-podman-vfs-ignorechown" TODO/probe.md` names
              KEEP-SHELL, the deployment level, and the live engine it
              needs.
+
+**Done.** The ledger row `experiments/95-podman-vfs-ignorechown.sh 4
+RUST-TEST group-4.md:498` (`refactor/06-entries/verdict-ledger.tsv:105`) is
+corrected on both the verdict and the level. It is recorded as KEEP-SHELL
+and as a deployment proof, not a unit test, because the script tests podman's
+own `vfs.ignore_chown_errors` storage option and reaches it through
+`podman machine ssh "$MACHINE"` at `:75`. The Premise is confirmed from the
+script header: `experiments/95-podman-vfs-ignorechown.sh:19-21` says "Never
+2: this script runs where the session's engine host is", so no exit-2 path
+exists. The ignore described in `PLAN.md:187` belongs to a Rust port that was
+never written. `grep -rn "ignore_chown_errors" crates/` exits 1 and returns
+nothing. The `Prove` matches: `grep -c "95-podman-vfs-ignorechown"
+TODO/probe.md` prints 4, and each line names the KEEP-SHELL verdict or the
+deployment level. `verdict-ledger.tsv:105` still reads RUST-TEST; that row is
+in the untracked `refactor/` tree.
+
+**Recorded 2026-10-02.** The ledger row
+`experiments/95-podman-vfs-ignorechown.sh 4 RUST-TEST group-4.md:498`
+(`refactor/06-entries/verdict-ledger.tsv:105`) is wrong on both the verdict
+and the level. `refactor/06-entries/PLAN.md:171-173` (VC-3) corrects the
+verdict to **KEEP-SHELL** and `PLAN.md:185-188` (VC-6) corrects the level to
+a deployment proof. Both stand in the same record because correcting the
+verdict alone leaves the level wrong.
+
+⭐ **The level is deployment proof, not a unit test**, under
+`docs/conventions/code.md:29`, "Use integration and deployment proof for the
+actual default path." The subject is podman's own storage option, not podbox
+code, so no Rust test can replace it.
+
+The script's own header settles the level without an inference.
+`experiments/95-podman-vfs-ignorechown.sh:19-21` reads "Exit: 0 the
+combination opens the path, 1 it does not. Never 2: this script runs where
+the session's engine host is". **Its exit-2 path does not exist**, which is
+what the Premise claimed and what a unit test could not stage.
+
+⛔ **It needs a live engine.** The script reaches the engine through a
+machine, at `:33` `MACHINE="podman-machine-default"` and `:75`
+`podman machine ssh "$MACHINE" 'id; podman --version'`. An unreachable
+engine is recorded as "the combination is not shown here" at `:76`, not as
+a failure. Every load runs under `podman unshare` with a staged seccomp
+filter (`:150`, `:166`), and the control at `:112` is labelled "the fixture
+is valid (rootful control)". A rootless engine cannot stand in for it:
+`:11-12` records that rootless maps every uid into the subuid range, so
+nothing fails and the chown wall never appears.
+
+⚠ **The ignore is a level consequence, not an oversight.** The script is
+the live `Prove` of `TODO/image.md:433` T-0205, and `TODO/image.md:436`
+records it as done with exit 0 under host podman (client 6.1.2, machine
+5.8.6). The ignore that `PLAN.md:187` describes belongs to the **Rust port
+that was never written**: a `#[ignore]` cannot exist here, because the tree
+carries no Rust test for `ignore_chown_errors` at all. Searching
+`crates/` for `ignore_chown_errors` and for an `#[ignore]` beside any vfs or
+ignore-chown subject returns nothing. So the ignore is not a defect in the
+tree to repair; it is the reason a unit test must not be added, and it
+already had its correct answer from the shell script.
+
+⛔ **Where the machine-readable file still disagrees.** The ledger at
+`verdict-ledger.tsv:105` is the only machine-readable row and it still reads
+RUST-TEST. This record is the correction; `refactor/` is untracked, so no
+tracked ledger row carries the verdict yet.
 

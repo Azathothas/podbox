@@ -1068,7 +1068,7 @@ Source:      `refactor/recon-c.md:137`, the plan's row, read off disk
 Category:    packaging
 Priority:    P0
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     One script's deletion is conditional on two others, and the
              three-way dependency is called irreducible. The decision
@@ -1092,4 +1092,106 @@ Decision:     Named here, owned there. A second decision record would be
 Prove:       `grep -n "10-build-target-image" TODO/packaging.md` names
              this entry as the owner of the decision and the wave entry
              that takes it.
+
+**Done 2026-10-02.** The entry names the owner and the clearing
+condition, and it does not take the decision: the wave that deletes
+`experiments/10-build-target-image.sh` takes it. The body records the
+two live pointers at `experiments/20-enter-target.sh:70` and
+`experiments/300-run.sh:308-311`, the one-unit conversion rule at
+`TODO/gate.md:1139-1140`, and `refactor/DEFERRALS.md:49-53` as the
+assignment. It corrects the `Premise` on two points: three citers read
+`TODO/gate.md:1125` as the `Decision:` when it is a `Problem:`
+continuation line, and no document records a reduced dependency being
+tried and rejected. `grep -c "10-build-target-image"
+TODO/packaging.md` returns 8.
+
+**The owner, named, and the wave that takes the decision.** The three
+scripts are `experiments/10-build-target-image.sh`, which builds the image,
+`experiments/20-enter-target.sh`, which enters it, and
+`experiments/130-probe-parity.sh`, whose clauses 1 and 3 drive `20`
+(`experiments/130-probe-parity.sh:131`, `:149`).
+
+⛔ **The deletion is conditional on the other two, not free.** Two live
+paths name `10` by name. `experiments/20-enter-target.sh:70` prints
+`SKIP: $IMAGE not built. Run ./experiments/10-build-target-image.sh` and
+exits 2 inside the check that guards its own run, and
+`experiments/300-run.sh:308-311` prints the same path after
+`docker image inspect container-research/target:1` fails. A deletion that
+leaves either pointer naming a file that is gone is not a deletion.
+`refactor/03-peer-review-2/round-2.md:129-137` records this as Correction
+7, and `refactor/02-peer-review-1/round-1.md:720-724` as its item 7.
+
+**The three convert as one unit, and the word is `irreducible`.**
+`TODO/gate.md:1139-1140` reads "The three convert as one unit. Converting
+`130` without `20` tests nothing, and converting `20` without `10` builds
+nothing." That sentence is the ruling the plan carries, so the conversion
+order is already settled. `refactor/06-entries/PLAN.md:174-177` (VC-4)
+and `refactor/06-entries/T-R006.md:67` both cite it.
+
+⚠ **Three places cite that ruling at `TODO/gate.md:1125`, and on this
+tree `:1125` is a `Problem:` continuation line, not the `Decision:`.**
+The `Decision:` moved to `:1139` at commit `996cb98` (2026-10-01), which
+is the shell-retirement port. `refactor/07-verify/verify-waves.md:144`
+marks the claim **TRUE** while reading `:1125` as the `Decision:`, so its
+check passed on a line number that had already moved. The three citers
+are `refactor/06-entries/PLAN.md:177`, `refactor/06-entries/T-R006.md:67`
+and `refactor/03-peer-review-2/round-2.md:407`, and `refactor/` is
+untracked by `.gitignore:152`, so nothing repairs them.
+
+⚠ **The Premise's second claim is not supported by the sources it names.**
+Reading `refactor/06-entries/PLAN.md:174-177`, `T-R006.md:67`, both peer
+reviews, and the two group reports, no document records a reduced
+dependency being tried and rejected. The plan asserts
+`irreducible` and cites the `Decision:` above, and that is all: a
+statement about conversion order, not a record of a rejected reduction.
+Searched for `reduc`, `two-way`, and each way of naming the SKIP line
+being dropped or inlined; every hit is the word `irreducible` itself.
+`refactor/01-audit/group-7.md:145-153` names the decision the owner has to
+take, and it offers two shapes, keep the reconstruction or drop it, rather
+than ruling one out.
+
+**The owner is the wave that deletes `10`, and no tracked entry is that
+wave yet.** The script exists in `refactor/06-entries/T-R006.md`, whose
+row `:67` reads "this one waits for a separate decision about the
+three-way dependency. It is listed so it is not forgotten, not so it can
+be deleted alongside the other eleven." The other ten are already gone,
+deleted by commit `996cb98`; `10` is the one that stayed, which is
+consistent with the row's own condition.
+`refactor/DEFERRALS.md:49-53` assigns the row to the wave that deletes
+`10`, and `refactor/recon-c.md:34-39` records that `T-R006.md` is a
+seventh wave the plan's section 8 omits, so a reader following that
+section drops it. `refactor/recon-c.md:804-810` still carries the open
+question of whether that seventh wave is authorised work at all.
+
+⛔ **So the owner is named here and the clearing condition is unmet until
+a wave entry exists.** `refactor/` is untracked, so its ids cannot be
+written into a `TODO/` body: the gate's cross-reference check at
+`crates/podbox-gate/src/main.rs:4007` reads every `T-` followed by four
+digits on a body line and raises "names T-NNNN, which is not an entry"
+for each, and it has no exemption for a plan id. The plan's own row
+number is therefore not printed here. `refactor/06-entries/T-R006.md` is
+the wave document, and `refactor/recon-c.md:137` is its task row. When a
+tracked wave entry lands, this entry takes the decision and that entry
+points here, per the `Approach`.
+
+⚠ **The ledger is PRE-VC and this row is one of the three the plan does
+not list as changed.** `refactor/06-entries/verdict-ledger.tsv:2` records
+`experiments/10-build-target-image.sh` at DELETE, group report
+`group-7.md:120`. `refactor/06-entries/PLAN.md:22-27` says the ledger is
+PRE-VC and names the rows that change: `95` (VC-3), `151` (VC-7) and
+`162` (VC-2). `10` is not among them, so a reader who trusts the ledger
+over the prose deletes `10` and keeps the other two. The same ledger
+carries `20` as KEEP-SHELL (`:33`) and `130` as RUST-TEST (`:9`), and
+`refactor/06-entries/T-R006.md:13-14` sources its own table from the
+ledger, so the error reaches the wave document.
+
+**What clears it.** The three-way decision is recorded in a tracked wave
+entry, that entry's `Decision` names what happens to
+`experiments/10-build-target-image.sh`, and the pointers at
+`experiments/20-enter-target.sh:70` and `experiments/300-run.sh:308-311`
+are repaired in the same change as the deletion, per
+`refactor/06-entries/T-R006.md:86-95`, which warns that a bare
+`experiments/` citation left behind turns the gate red. [T-1631](milestones.md)
+carries the dependency itself beside this entry's question, so the two
+are found together and neither closes alone.
 

@@ -911,7 +911,7 @@ Source:      `refactor/recon-c.md:170`; `refactor/06-entries/PLAN.md:61-64`
 Category:    milestones
 Priority:    P3
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     29 scripts stay in shell, and the number that reaches a
              reader is wrong. The plan's Round 2 breakdown says 27 and
@@ -930,6 +930,80 @@ Decision:     Re-derive, do not copy. The plan says its own figure was
 Prove:       `grep -c "KEEP-SHELL" TODO/milestones.md` is at least 29;
              the recorded list has no id twice and no id absent.
 
+**Done.** The entry records the 29 retained scripts as a per-row table, each
+with the host tool, device or OS facility that keeps it in shell and the audit
+line the reason is read at. The 29 is re-derived from the ledger rows, not
+copied from the plan prose: the shipped ledger counts KEEP-SHELL 27, and the
+three numbered corrections move `95` in by VC-3 and `162` in by VC-2. The
+`162` row is refuted rather than re-derived, because `TODO/interpose.md:1479` is
+the `Prove` of T-1311 and names that script. `grep -c "KEEP-SHELL"
+TODO/milestones.md` returns 43, at or above the 29 the Prove sets. The shipped
+ledger still counts 27, so T-1622 owns the reconciliation and the two files
+disagree by design until it lands.
+
+**The 29 are re-derived from `refactor/06-entries/verdict-ledger.tsv` rows, not
+copied from the plan's prose, and the re-derivation returns 29 only after the
+three numbered corrections are applied.** The ledger is the plan's own scope
+statement: `refactor/06-entries/PLAN.md:22-27` says it is PRE-VC and that three
+rows change. Read as shipped,
+`awk -F'\t' 'NR>1{c[$3]++} END{for(v in c) print v, c[v]}'` over the ledger
+returns `SPLIT 35`, `DELETE 12`, `KEEP-SHELL 27`, `RUST-TOOL 27`, `RUST-TEST
+20`. Apply the three corrections and the counts are `KEEP-SHELL 29`, `SPLIT 36`,
+`RUST-TEST 18`, `RUST-TOOL 27`, `DELETE 11`, which is the table at
+`refactor/06-entries/PLAN.md:40-47`. So the 29 is the 27 the ledger holds plus
+the two the corrections move into it: `95` from RUST-TEST by VC-3
+(`refactor/06-entries/PLAN.md:22-27`) and `162` from DELETE by VC-2 (`:168-170`).
+Neither is in the shipped ledger, so both rows below are marked as corrected.
+
+Every reason below is the audit's own, read at the line the ledger cites. Each
+one names a host tool, a device, or an OS facility a Rust binary cannot provide.
+
+| script | ledger verdict | the reason it stays in shell | evidence |
+| --- | --- | --- | --- |
+| `100-interpose-symbols.sh` | KEEP-SHELL | compiles C from `references/VHSgunzo__pathmap/tree/`, reads the ELF dynamic symbol table with `nm -D --defined-only`, and runs `LD_PRELOAD` interposition arms that need a C compiler and a live kernel | `refactor/01-audit/group-6.md:110` |
+| `147-podvm-exec.sh` | KEEP-SHELL | `qemu-system-x86_64`, a pinned kernel fetched over the network, and a `mkfifo` pair the driver holds `O_RDWR` before the emulator starts | `refactor/01-audit/group-3.md:236` |
+| `180-registry-fixture.sh` | KEEP-SHELL | the `zot` binary, `/proc/net/route` and `getent hosts` read inside a `--network=none` container, and a host `openssl` certificate with Windows path spellings | `refactor/01-audit/group-6.md:294` |
+| `20-enter-target.sh` | KEEP-SHELL | a privileged container for `eng_privrun`, Go binaries built from a read-only corpus, and the fixed three-way relationship with `10` and `130` | `refactor/01-audit/group-3.md:590` |
+| `200-registry-auth.sh` | KEEP-SHELL | a live TLS registry on loopback with `htpasswd`, `openssl passwd -5` and `curl --cacert`, and an asserted network isolation | `refactor/01-audit/group-8.md:927` |
+| `210-store-concurrency.sh` | KEEP-SHELL | real processes racing a shared filesystem through a network registry, `kill -9` on a running pull, and a prune racing it | `refactor/01-audit/group-10.md:428` |
+| `240-distro-sweep.sh` | KEEP-SHELL | a foreign OCI engine as control, through `experiments/lib/engine.sh` | `refactor/01-audit/group-7.md:739` |
+| `245-interpose-sweep.sh` | KEEP-SHELL | glibc and musl interposer objects built by the host toolchain, compared byte for byte against the placed objects | `refactor/01-audit/group-4.md:900` |
+| `280-insecure-registry.sh` | KEEP-SHELL | two live `registry:2` instances, one plain HTTP and one with a script-generated certificate nothing trusts, reached through a `tcpfwd` forward | `refactor/01-audit/group-10.md:597` |
+| `290-microvm.sh` | KEEP-SHELL | `qemu-system-x86_64 -M microvm` and a cpio initramfs read back off a serial console; it measures what a different kernel answers to `landlock_create_ruleset` | `refactor/01-audit/group-6.md:346` |
+| `353-open-issue-triage.sh` | KEEP-SHELL | a `wsl-toolkit` lane that bootstraps a toolchain before it can build, and 22 open issues measured against a beta binary on that lane | `refactor/01-audit/group-4.md:984` |
+| `357-tcg-profile.sh` | KEEP-SHELL | a kvm-less machine with `qemu-system-x86_64` installed at run time, a real initramfs boot under TCG, and a Windows job wrapper; clause 5 alone is a QEMU boot | `refactor/01-audit/group-10.md:746` |
+| `361-guest-usernet.sh` | KEEP-SHELL | `qemu-system-x86_64` with `-netdev user,hostfwd=udp::`, and the forwarding is the subject | `refactor/01-audit/group-7.md:1027` |
+| `367-qemu-user-aarch64.sh` | KEEP-SHELL | a live `binfmt_misc` registration for aarch64, which is machine-wide state podbox reads and never writes | `refactor/01-audit/group-7.md:1316` |
+| `369-windows-tcg-dos.sh` | KEEP-SHELL | `qemu-system-x86_64` in TCG mode against a real 32 MiB FreeDOS image, with a deadline enforced through a QMP mailbox and the base sha256 compared before and after | `refactor/01-audit/group-4.md:1061` |
+| `371-validationos-stream.sh` | KEEP-SHELL | `curl` with byte-range support against an anonymous third-party origin, an `RLIMIT_FSIZE` ceiling, and `qemu-img` | `refactor/01-audit/group-2.md:701` |
+| `382-restricted-sshd.sh` | KEEP-SHELL | a real `sshd` and a real `ssh` client; clause 3 exists because a static `sshd` cannot take `LD_PRELOAD` | `refactor/01-audit/group-4.md:1140` |
+| `384-windows-lane-v6.sh` | KEEP-SHELL | `wsl-toolkit`, a Windows-only CLI, and its job-id collection contract | `refactor/01-audit/group-2.md:761` |
+| `385-kvm-open.sh` | KEEP-SHELL | `wsl-toolkit` and `/dev/kvm` inside that tool's base | `refactor/01-audit/group-10.md:806` |
+| `387-mux-two-client.sh` | KEEP-SHELL | a third-party hosted relay over the network, with a real `ssh` client and a real `sshd` per session; the Rust test is the fake, and this is the acceptance gate against the real relay | `refactor/01-audit/group-2.md:809` |
+| `391-machine-bridge.sh` | KEEP-SHELL | a C file that must link static against musl, built with `zig cc -target x86_64-linux-musl -static` | `refactor/01-audit/group-9.md:842` |
+| `392-kvm-guest.sh` | KEEP-SHELL | `wsl-toolkit --instance podbox base exec`, nested-KVM QEMU on `/dev/kvm`, an OVMF pflash pair, a licensed operator disk, and a QMP socket | `refactor/01-audit/group-8.md:1185` |
+| `396-audit-linux.sh` | KEEP-SHELL | a Windows job input that requires `PWD=/work` and a copied container checkout | `refactor/01-audit/group-2.md:988` |
+| `400-kvm-cleanup.py` | KEEP-SHELL | `ps -eo pid,args` and `awk` against argv[0] being the emulator name, and the shell matcher is what the real KVM path calls | `refactor/01-audit/group-5.md:1032` |
+| `95-podman-vfs-ignorechown.sh` | KEEP-SHELL (VC-3) | a rootful podman machine, podman's own storage option, and a seccomp-filtered `podman unshare` load; the subject is podman's option, not podbox | VC-3, `refactor/06-entries/PLAN.md:22-27`; reason at `refactor/01-audit/group-4.md:498` |
+| `targetfs.sh` | KEEP-SHELL | the container's pid 1, calling `mount(2)` and `pivot_root(2)` before any confinement is applied, so nothing here is reachable from inside | `refactor/01-audit/group-3.md:1158` |
+| `162-tar-symlink-modes.sh` | KEEP-SHELL (VC-2) | a deployment proof over a real engine on a pinned image digest; DELETE is refuted because `TODO/interpose.md:1479` is the `Prove` of T-1311 and names this script | VC-2, `refactor/06-entries/PLAN.md:168-170`; reason recorded in [T-1628](interpose.md) |
+| `gnu-link-stub.sh` | KEEP-SHELL | `rustc`'s `-C linker=` takes a PROGRAM and the object must be the first argument on the link line, which a Rust program cannot express | `refactor/01-audit/group-1.md:953` |
+| `zig-ar.sh` | KEEP-SHELL | `zig` itself, named in `.cargo/config.toml` as the archiver for eight targets; the `ar` key takes a program path, not a crate | `refactor/01-audit/group-6.md:884` |
+
+**Two rows carry a correction, and one of the two is refuted rather than
+re-derived, so the list is not a copy of the shipped ledger.**
+`refactor/06-entries/verdict-ledger.tsv` still reads RUST-TEST for `95` and
+DELETE for `162`. The reasons are the plan's at
+`refactor/06-entries/PLAN.md:22-27` and `:168-170`. The `162` refutation is
+written where a reader of that category finds it, in
+[T-1628](interpose.md), because the `Prove` at `TODO/interpose.md:1479` is
+what settles it.
+
+⚠ **The shipped ledger still counts 27, and an implementor who reads it lands a
+different set than this one.** `refactor/06-entries/verdict-ledger.tsv` is the
+file the plan calls PRE-VC at `refactor/06-entries/PLAN.md:22-27`. T-1622 owns
+making it post-VC. Until that lands, the two files disagree by design and this
+entry is the one that says which is which.
 
 ### T-1631 Record the `10`/`20`/`130` irreducible dependency as open, with T-1550
 
@@ -938,7 +1012,7 @@ Source:      `refactor/recon-c.md:178`;
 Category:    milestones
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Three scripts depend on each other and the plan calls the
              dependency irreducible. Nothing in the record says so, so
@@ -955,6 +1029,47 @@ Decision:     Milestones carries the dependency; the packaging entry
 Prove:       `grep -n "10-build-target-image" TODO/milestones.md` names
              the three scripts and the entry that owns the decision.
 
+**Done.** The entry records that `experiments/10-build-target-image.sh`,
+`experiments/20-enter-target.sh` and `experiments/130-probe-parity.sh` are one
+unit and the dependency is irreducible, so a later session does not delete one
+of them. The reduction the plan considered is refuted on disk: two scripts name
+the third in live paths, and `experiments/130-probe-parity.sh` names no engine of
+its own yet cannot run where `20` cannot. T-1213 carries the measurement and is
+`Status: done`. `grep -n "10-build-target-image" TODO/milestones.md` names the
+unit at this entry, and also names the owning decision through
+[T-1619](packaging.md). The two close together.
+
+⛔ **`experiments/10-build-target-image.sh`, `experiments/20-enter-target.sh`
+and `experiments/130-probe-parity.sh` are one unit, and the plan calls the
+dependency irreducible. Do not delete one of the three.** The plan's own
+correction is conditional, not a free deletion: VC-4 at
+`refactor/06-entries/PLAN.md:174-177` reads "DELETE is conditional on `20` and
+`130`". Two of the three name the third in live paths, both verified on disk
+here: `experiments/20-enter-target.sh:70` prints `SKIP: $IMAGE not built. Run
+./experiments/10-build-target-image.sh`, and `experiments/300-run.sh:310` tells
+the reader the same. The wave that owns the deletion lists the script and marks
+it conditional in its own table: `refactor/06-entries/T-R006.md:67` reads "this
+one waits for a separate decision about the three-way dependency. It is listed
+so it is not forgotten, not so it can be deleted alongside the other eleven."
+
+**The reduction was considered and does not work, and the reason is measured.**
+`experiments/130-probe-parity.sh` names no engine of its own, zero
+`docker|podman` lines, and still cannot run where `20` cannot. That is
+T-1213's own Problem field at `TODO/gate.md:1124-1129`, and its Decision at
+`:1139-1140` reads "The three convert as one unit. Converting `130` without
+`20` tests nothing, and converting `20` without `10` builds nothing." T-1213 is
+`Status: done`, so the unit is measured, not asserted: its Done record at
+`TODO/gate.md:1146-1148` names the host podman build of `10` at image id
+`9ed4f5c81452` and a `130` run of 16 matched and 0 differed.
+
+**Milestones carries the dependency; [T-1619](packaging.md) carries the
+decision, and neither closes without the other.** T-1619 owns the question and
+names this entry's half at `TODO/packaging.md:1082-1087`. The plan's own task
+row for that decision sits at `refactor/recon-c.md:137`. `refactor/` is
+untracked and its ids have no heading in `TODO/`, so the gate cannot
+resolve a plan id printed here, and T-1619 says the same at
+`TODO/packaging.md:1154-1163`. The plan row and the tracked entry point at
+one decision. A reader who finds either row finds the other.
 
 ### T-1637 Record the eleven converged-on-Rust counts and the 29 that stay in shell
 
@@ -963,7 +1078,7 @@ Source:      `refactor/recon-c.md:184`;
 Category:    milestones
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The corpus has two outcomes and the tree carries one
              number for the whole of it. A reader cannot tell how much
@@ -981,4 +1096,68 @@ Decision:     The breakdown is the deliverable, not the total. A total
 Prove:       `grep -n "KEEP-SHELL" TODO/milestones.md` and the same for
              each converging verdict name the counts that sum to the
              corpus size.
+
+**Done.** The entry records the corpus as two outcomes rather than one number,
+with each converging verdict counted on its own: RUST-TOOL 27 and RUST-TEST 18
+give the 45 that converge wholly on Rust, SPLIT 36 retires because each has a
+Rust half, and the KEEP-SHELL 29 and DELETE 11 rows do not. Those sum to the 121
+total, and the ledger holds 122 lines with one header, so the size is
+re-derived rather than quoted. The figures are the plan's post-correction table
+at `refactor/06-entries/PLAN.md:40-47`; the shipped ledger is PRE-VC and counts
+SPLIT 35, DELETE 12, KEEP-SHELL 27, RUST-TEST 20, so T-1622 owns the gap. The
+Prove matches: `grep -c` in `TODO/milestones.md` returns KEEP-SHELL 43, SPLIT 9,
+RUST-TOOL 7, RUST-TEST 11, DELETE 13, each verdict named in the table below. The
+121 counts `experiments/*` and `scripts/*` at depth 1 only; `scripts/common/`
+holds 28 more that the gate runs.
+
+**The corpus has two outcomes and the 81 is a sum over three verdicts, so the
+three are recorded here and the sum is not the deliverable.** The figures are
+copied from the plan's post-correction table at
+`refactor/06-entries/PLAN.md:40-47`, counted from the group report bodies after
+VC-1 through VC-7, as that table's own lead-in at `:38` states.
+
+| verdict | count | converges on Rust |
+| --- | --- | --- |
+| KEEP-SHELL | 29 | no. A host tool, device or OS facility. |
+| SPLIT | 36 | partly. Every one has a Rust half. |
+| RUST-TOOL | 27 | yes. A Rust binary replaces the script. |
+| RUST-TEST | 18 | yes. A Rust test replaces the script. |
+| DELETE | 11 | no. The measurement is obsolete. |
+| **total** | **121** | 45 converge wholly on a Rust test or tool |
+
+**The arithmetic is checkable, and it is the plan's line
+`refactor/06-entries/PLAN.md:49-50`.** RUST-TOOL 27 plus RUST-TEST 18 is the 45
+converging wholly, which is the total column at `:47`. Adding the 36 SPLIT
+rows, each of which has a Rust half, gives the 81 that retire. 81 plus the 29
+KEEP-SHELL rows plus the 11 DELETE rows is 121, and `grep -c ''` over
+`refactor/06-entries/verdict-ledger.tsv` returns 122 lines, one of them the
+header. So the corpus size is re-derivable from the ledger, not only quoted.
+
+**The 29 that stay in shell are recorded per row in [T-1623](#t-1623-record-the-29-keep-shell-rows-as-the-retained-set-re-derived-from-the-ledger),
+with the host dependency each one rests on.** The plan says those verdicts are
+the most reliable part of the corpus, at
+`refactor/06-entries/PLAN.md:52-59`, and that none of them rests on "a Rust
+binary would have to shell out", which is not a reason.
+
+⚠ **The ledger is PRE-VC and the table is POST-VC, so a reader counting the
+ledger gets a different split for two rows and is not wrong about the file it
+read.** `refactor/06-entries/PLAN.md:22-27` says so explicitly and names the
+three rows: `95` RUST-TEST to KEEP-SHELL, `151` RUST-TEST to SPLIT, and `162`
+DELETE to RETAIN. Counted from the shipped
+`refactor/06-entries/verdict-ledger.tsv`, the figures are SPLIT 35, DELETE 12,
+KEEP-SHELL 27, RUST-TOOL 27, RUST-TEST 20, which is 121 rows either way. The
+difference is exactly the three corrections. T-1622 owns reconciling the ledger
+with the seven entries, so this entry names the gap rather than repeating the
+ledger. The same warning is on [T-1623](#t-1623-record-the-29-keep-shell-rows-as-the-retained-set-re-derived-from-the-ledger),
+where the retained list is re-derived.
+
+**The 121 figure is scoped to top-level files, and the whole tree carries more.**
+`refactor/06-entries/PLAN.md:29-34` states the boundary: the 121 counts
+`experiments/*` and `scripts/*` at depth 1 only, `scripts/common/` holds 28 more
+scripts the gate runs at `gate.yml:59`, and a whole-tree count returns 167 only
+because it also sweeps the local Python bytecode cache that
+`.gitignore:123-125` ignores. Retiring the 121 must not delete
+`scripts/common/check-*.sh`, which are the gate's checks rather than
+measurements. The three rows counted here carry no such file, so the 81 does not
+reach the gate's own checks.
 

@@ -999,7 +999,7 @@ Source:      `refactor/recon-c.md:171`;
 Category:    deps
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The parity table has one row count and this tree carries
              four values for it. A reader cannot tell which is current
@@ -1016,6 +1016,42 @@ Decision:     One page carries the figure and names the other three as
 Prove:       `grep -n "265" TODO/deps.md` names the parity figure once
              with the three stale values beside it.
 
+**Done 2026-10-02.** The 265-row figure is recorded once, with the three
+other values named as dated readings beside it: 220 from `TODO/cli.md:166`,
+164 from `experiments/results/parity-drive.txt:7`, and 160 from
+`TODO/cli.md:694`. The value is re-derived on this tree rather than copied:
+`TABLE` runs from `crates/podbox-cli/src/parity.rs:232` to `:537` and holds
+265 `Row {` literals inside that range. A fourth figure, 267, is recorded as
+a whole-file artefact, because `pub struct Row` at `:58` and `impl Row` at
+`:65` both match the same grep; the whole-file count is 267. The Prove grep
+`grep -n "265" TODO/deps.md` matches, and each of its lines is either this
+entry or the record it wrote.
+
+**Recorded 2026-10-02.** One figure answers one question: how many rows
+`TABLE` holds. The source reads **265**, and the plan carries the same
+figure with the same range (`refactor/06-entries/PLAN.md:190`). Measured
+on this tree: `TABLE` opens at `crates/podbox-cli/src/parity.rs:232`
+and closes at `:537`, and 265 `Row {` literals lie between them.
+
+The three other values are readings, not sources, and each says when it
+was taken:
+
+| Value | Where | What it is |
+| --- | --- | --- |
+| 265 | `crates/podbox-cli/src/parity.rs:232-537` | the source count, current |
+| 220 | `TODO/cli.md:166` | T-0801's 2026-09-25 reading |
+| 164 | `experiments/results/parity-drive.txt:7` | the 2026-09-22 drive |
+| 160 | `TODO/cli.md:694` | T-0808's 2026-09-21 reading |
+
+⚠ A count of 267 is not a fourth reading. `grep -c 'Row {'` over the
+whole file returns 267 because `pub struct Row` at `:58` and `impl Row`
+at `:65` both match. Neither is a table row.
+
+The live page is `TODO/cli.md:63`, which reads 265 and labels itself
+CURRENT. It carries the current value and does not need this entry; the
+three historical rows name it rather than assert a number, so the table
+has one cell that answers and three that do not compete with it.
+
 
 ### T-1633 Record the 13-versus-3 `plant.sh` `Prove` discrepancy and which count is right
 
@@ -1024,7 +1060,7 @@ Source:      `refactor/recon-c.md:180`;
 Category:    deps
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Two documents give two counts for the same set of proof
              lines, and a third says the count is wrong twice. Neither
@@ -1041,4 +1077,69 @@ Decision:     Re-derive before recording. A correction that carries the
              error forward under a new number is not a correction.
 Prove:       `grep -n "plant.sh" TODO/deps.md` names the current count
              and the command that derives it.
+
+**Done 2026-10-02.** The entry stands on a re-derivation over this tree,
+not on the premise. The current count of `Prove` clauses that drive the
+plant harness is 4, not 13 and not 3: the derivation below prints T-1207,
+T-1338, T-1341 and T-1343, all in `TODO/gate.md`. The historical 13 keeps
+its 12 + 1 + 0 breakdown, and 3 is recorded as a file count that the two
+documents giving one put at 2. The reason the figure moved is recorded:
+the harness was ported to binary `podbox-plant`
+(`crates/podbox-gate/src/plant.rs:3`), so the plan's own command now reads
+a finished repair set as an absence. The Prove grep
+`grep -n "plant.sh" TODO/deps.md` matches, and each of its lines is either
+this entry or the record it wrote.
+
+**Recorded 2026-10-02.** Re-derived over this tree, and the current
+count is **0**. The historical figure is **13**, from
+`refactor/recon-c.md:523` and `refactor/06-entries/PLAN.md:180-182`.
+
+The plan's own command, run here, returns nothing and exits 1:
+
+```sh
+grep -rn 'scripts/plant.sh' TODO/*.md | grep -c 'Prove'   ->  0
+```
+
+The reason is not that the record lost the lines. The old plant harness
+was ported to the binary `podbox-plant`
+(`crates/podbox-gate/src/plant.rs:3`), and every mention of the retired
+harness under `TODO/` carries the correction `(now \`podbox-plant\`)` or is
+itself the new spelling. Outside this entry, no line under `TODO/`
+names the retired harness without that correction, and none leaves a
+bare backticked citation. The repair set the plan asked for has
+therefore already been carried, and the `grep` its figure came from
+now reads the finished state as an absence.
+
+Derivation over the current tree, independent of the path spelling:
+
+```sh
+awk '/^### T-[0-9]+/ { id = $2; p = 0; next }
+     /^[A-Z][A-Za-z-]*:/ { p = ($0 ~ /^Prove:/); next }
+     /^$/ { p = 0; next }
+     /^\*\*/ { p = 0; next }
+     p && ($0 ~ /podbox-plant/ || $0 ~ /plant\.sh/) { print id " " FILENAME }' \
+    TODO/*.md
+```
+
+It prints four entries, all in `TODO/gate.md`: T-1207, T-1338, T-1341
+and T-1343. So 4 `Prove` clauses drive the plant harness on this tree,
+and each already names the binary or carries the correction beside the
+old path. Nothing is left to repoint.
+
+The historical 13 and its 12 + 1 + 0 breakdown stand as historical.
+They were measured against the pre-port tree, where
+`refactor/06-entries/T-R004.md:119` still reads 13 `Prove:` lines
+across three `TODO/` files and `PLAN.md:183-184` corrects the file
+count to two. Neither file moves, because `refactor/` stays untracked
+(`.gitignore:152`); this entry is the tracked record of both figures.
+
+⚠ The 3 the title names never had a derivation. The count of 3 is a
+file count, and the two documents that give one put it at 2:
+`refactor/06-entries/T-R004.md:119` reads 13 lines across three files,
+and `refactor/06-entries/PLAN.md:183-184` corrects that to two.
+`refactor/recon-b.md:43` records the correction and its evidence, and
+`refactor/recon-c.md:799-803` records the author naming the same
+question as unresolved. `PLAN.md:180` carries the same 13 with no file
+count beside it. No document in the corpus states 3 as a measured
+result.
 

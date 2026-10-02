@@ -1253,3 +1253,57 @@ the deadline. Duration does not discriminate, because failing CI runs at
 run names the exit instead of asking a session to guess it, and
 `experiments/340-detached-stdio.sh` under a loaded runner is the
 measurement the Approach asked for and this session could not drive.
+
+**Partial 2026-10-02, the tier skip and the CI decision are in.** The
+remaining clause is the lane run, not the design. The record gate,
+`cargo fmt`, the four prose checks and the workflow's YAML parse all
+exit 0.
+
+The assertion is now conditional on the tier, in the way
+`tests/store_gates.rs` already conditions on namespaces. Where the no-
+chroot family legitimately declines, the test skips and says why:
+`crates/podbox-cli/tests/detached_stdio.rs:93-112` requires exit 126
+**and** both halves of the refusal, the `decide_entry` sentence from
+`lifecycle.rs:1837-1845` and the absent-object leg from
+`interpose.rs:222-226`. The exit code alone is not enough and the
+comment says why: 126 is also what podbox returns for a loader this
+machine cannot run and for a payload that is not an ELF, and those are
+real failures. Every recorded start is checked, not the first, because
+the loop breaks on the first non-zero. Where the tier is available the
+three-start assertion is byte for byte what it was; the entry's
+decision to not weaken it stands and was not traded away.
+
+The CI half is decided and done. The `workspace and interposer tests`
+job builds the interposer before `cargo test --workspace`
+(`.github/workflows/gate.yml:230-243`), mirroring the static-build job.
+The premise is verified in source, not assumed: `crates/podbox-cli/
+build.rs:86-91` writes an empty placeholder object when the real one is
+absent and `:101-122` records that it is empty so the runtime refuses,
+so without the step the binary under test interposes nothing. The
+second half of the cause is `scripts/build-interpose.sh`, which resolved
+only `target/release/` and exited 2 with the binary built, because
+`.cargo/config.toml` sets the musl target and the binary lands in
+`target/<triple>/release/`. It now searches the flat directory and the
+per-triple ones with the same first-match order `release-notes.sh` and
+`verify-release.sh` already use, and its exit 2 names where it looked.
+
+Three defects in this entry's own history were false and are corrected
+here rather than carried. The mutex cascade was a scheduling accident,
+already recorded above; the 1-of-3 was never a scheduling order; and
+the entry's earlier statement that the test could be fixed in the mutex
+was wrong, because CI's own stderr named the tier as the cause. What
+the previous session measured still holds and is what made this fix
+findable: a failure that cannot say what it saw is a failure the next
+session has to re-derive.
+
+What still owes: the lane run of `cargo test -p podbox-cli --test
+detached_stdio` in CI, where the skip and the strict path are both
+exercised in place. It could not run from this host because `ring`'s
+build script fails here through `scripts/zig-cc.sh`, which a Windows
+process spawner cannot execute (`os error 193`); the failure reproduces
+on the clean tree with these edits stashed. The predicate was driven
+directly against the captured CI stderr and its negatives instead, and
+the writer's first attempt at it was caught by those drives: a
+text-only match would have skipped a start that exited 0 having
+started a container. Adding the exit-code guard turned the plant red
+when removed, which is the direction that matters.

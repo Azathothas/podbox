@@ -2515,7 +2515,7 @@ Source:      `refactor/recon-c.md:172`;
 Category:    image
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Check B of this contract is a measurement over a real
              `alpine` layer, and no Rust test reads one. The script is
@@ -2533,6 +2533,64 @@ Decision:     Record, not convert. The fixture does not exist, and a
 Prove:       `grep -n "whiteout" TODO/image.md` names the fixture the
              check needs and the assertion that contradicts it.
 
+**Done.** The entry records check B of
+`experiments/70-whiteout-contract.sh` as a measurement over one real
+pinned `alpine` layer, pulled with `docker pull` and unpacked from
+`docker save` at `:61-67`, with the saved reading naming `etc/shadow` as
+uid 0 and gid 42. It records that no Rust test reads such a layer:
+`crates/podbox-extract/src/drive.rs:452` and `:480` both build their tar
+in memory. The `Premise` that the crate asserts the opposite outcome is
+refuted by the current source, and the record stands on that correction:
+both tests agree with the contract, and what is missing is the real
+image, not a contradicting assertion. The fixture it names is one real
+pinned `alpine` layer read into the extractor, and it is not written here.
+The proof is the entry's own `Prove` clause: `grep -n "whiteout"
+TODO/image.md`, which now names the fixture and the reading on 6 lines.
+The clause it states, "and the assertion that contradicts it", is not
+met: no assertion in the crate contradicts check B, and the record says
+so.
+
+**The gap check B carries, and the fixture it needs.** Check B of
+`experiments/70-whiteout-contract.sh` is a measurement over a real
+pinned `alpine` layer. It pins
+`alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc`
+in `ALPINE` at `:35`, pulls it with `docker pull` and unpacks `docker
+save` output at `:61-67`, reads one layer path per line out of
+`manifest.json` at `:69-76`, and asserts the last matching line for
+`etc/shadow` carries ` 0/42 ` (`:93-103`). The saved reading is
+[`../experiments/results/whiteout-contract.txt`](../experiments/results/whiteout-contract.txt):
+`-rw-r----- 0/42 260 2026-04-15 16:09 etc/shadow`, and `ok B: etc/shadow
+is uid 0 gid 42, the section 9.1 wall`.
+
+No Rust test reads a real pinned layer. The tests that cover the wall
+build their tar in memory: `crates/podbox-extract/src/drive.rs:452`
+`the_shadow_file_extracts_and_its_dropped_gid_is_recorded` calls
+`layer(&[E::Dir("etc/", 0o755), E::Owned("etc/shadow", b"root:!::\n", 0,
+42)])`, and `run` at `:131` writes that crafted layer into the store
+under `sha256:layer0` (`:141`). `drive.rs:480`
+`the_sidecar_does_not_claim_an_ownership_the_kernel_did_not_apply`
+builds its layer the same way.
+
+⚠ **The premise that the crate asserts the OPPOSITE outcome is not
+supported by the current source.** `drive.rs:452` asserts the sidecar
+row carries `"gid":42`, `"uid":0`, a `reason` field, and the text `gid
+42 unmapped`, and `:480` asserts the on-disk gid is NOT 42 and equals
+the extracting id. Both agree with the outcome check B measures. The
+contract is not recorded backwards; what is missing is the REAL IMAGE
+in the input, not a contradicting assertion. ⛔ A later session must not
+convert this on the belief that the crate disagrees with the contract.
+
+The fixture check B needs is one real pinned `alpine` layer read into
+the extractor. It is not the shell script's digest list and not the
+in-memory `layer` builder. `experiments/180-registry-fixture.sh` proves
+the loopback OCI endpoint shape T-0206 built and serves manifest,
+config, and blob GET over plain HTTP on loopback; a Rust fixture
+reading a pinned `alpine` is its crate-side equivalent. ⛔ It is not
+written here: a test written against a fixture that does not exist
+would be written blind, which is what this entry's `Decision` says. The
+script is not deletable until that fixture lands, because check B is
+the only proof in this tree that a real layer carries the wall.
+
 
 ### T-1634 Record that `serve_once` is test-private and no fixture existed before T-1602
 
@@ -2541,7 +2599,7 @@ Source:      `refactor/recon-c.md:181`;
 Category:    image
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Registry-backed tests were written against a fixture that
              did not exist and could not be reached. The record of why
@@ -2560,6 +2618,47 @@ Decision:     Record it on the image category entry that owns the
 Prove:       `grep -n "serve_once" TODO/image.md` names the test-private
              scope and the entry that made the fixture reachable.
 
+**Done.** The entry records `serve_once` at
+`crates/podbox-image/src/registry.rs:955` as a `fn` inside `mod tests`,
+answering one request on a loopback listener and unreachable from any
+binary, with its two callers at `:989` and `:1014`. The `Premise` that
+T-1602 made the fixture reachable is refuted by the source history, and
+the record stands on that correction: `crates/podbox-image/tests/common/registry.rs`
+landed in commit `996cb98` on 2026-10-01 with its four consumers, and
+T-1602 owns only the fixture fields clippy reported dead. The proof is
+`grep -n "serve_once" TODO/image.md`, which names the test-private scope
+and the fixture that superseded it on 5 lines.
+
+**The state before the fixture, and where the fixture landed.**
+`crates/podbox-image/src/registry.rs:955` `serve_once` is a `fn` inside
+`mod tests` at `:949`, so it is `#[cfg(test)]` code: it answers one
+request on a loopback `TcpListener` bound to `127.0.0.1:0`, writes one
+`HTTP/1.0 200 OK` head with `Content-Length` and `Connection: close`,
+sends `body`, and the thread ends at the first `accept` (`:957-971`).
+Two callers exist, `registry.rs:989` and `:1014`. ⛔ Nothing outside
+`mod tests` can name it and no binary can reach it, so the registry
+those two tests exercise is a single reply and not a registry.
+
+⛔ **The entry that made the fixture reachable is not T-1602 and not
+the plan's row for the fixture at `refactor/recon-c.md:244`.**
+`crates/podbox-image/tests/common/registry.rs` landed in
+commit `996cb98`, "Land shell-retirement port, dev-lane runner, and
+cleanup", 2026-10-01, which added the fixture and its four consumers in
+one change: `tests/acquisition.rs`, `tests/across_distributions.rs`,
+`tests/parallel_layers.rs`, and `tests/store_digest.rs`. That fixture
+is the reachable one: it serves one manifest GET with
+`Docker-Content-Digest` and `ETag`, one config and one layer blob GET,
+and blob HEAD, over plain HTTP on loopback, and answers anything else
+with 404 (`common/registry.rs:1-14`).
+
+⚠ **The plan id for that row is not an id in this repository.** The
+plan's row names the fixture, but this repository has no entry for it.
+T-1602 came later and did not build the fixture: it made the fixture's
+`manifest`, `config`, `config_digest`, and `layer` fields read by their
+consumers, because clippy reported them dead on every `mod common;`
+target. One owner, one fact: the fixture's existence is the commit's,
+and T-1602 owns the fields.
+
 
 ### T-1620 The lock-race clause decision belongs to the store work it cites
 
@@ -2568,7 +2667,7 @@ Source:      `refactor/recon-c.md:158`, the plan's row, read off disk
 Category:    image
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     One clause of a store measurement has no settled fate, and
              the entry it depends on is the work that settles it. The
@@ -2586,4 +2685,48 @@ Decision:     Named here, owned there, for the same reason as the
 Prove:       `grep -n "153-store-lock-race" TODO/image.md` names this
              entry as the owner of the clause question and the store
              entry that settles it.
+
+**Done.** The entry names clause 7 of
+`experiments/153-store-lock-race.sh` as the same suite with every lock on
+a second filesystem, and records that the clause has already ruled its
+own idea out: it prints `SKIP` and returns when the two paths do not
+differ in filesystem type. It records that its fate is already settled by
+[T-0215](image.md), which is `done` and whose `Prove` excludes clause 7.
+The record therefore carries no new decision. What it carries is the
+condition that would reopen the question: a host where the race is chased
+again and the two paths differ. The proof is `grep -n
+"153-store-lock-race" TODO/image.md`, which names this entry and the
+store entry on 9 lines.
+
+**The clause, named, and the store work that settles it.** Clause 7 of
+`experiments/153-store-lock-race.sh` is the same suite with every lock
+on a second filesystem and nothing else changed. It moves `TMPDIR` from
+`${TMPDIR:-/tmp}` to `${PODBOX_RACE_ALT_TMP:-/dev/shm}/podbox-race-$$`
+and reads both paths with `stat -f -c %T`
+(`experiments/153-store-lock-race.sh:262-295`). It resolves because
+`scratch` in the store's tests goes through `std::env::temp_dir()`,
+which `TMPDIR` moves (`:37-41`).
+
+⛔ **It has already ruled its idea out, and it says so in the file.**
+The clause refuses to report a comparison it did not make: where the
+two paths are the same filesystem type, or the alternate path is not a
+writable directory, it prints `SKIP` and returns (`:263-290`). Under
+[T-0215](image.md) it moved every lock from this container's `overlayfs`
+`/tmp` to a `tmpfs` and changed nothing else. The failure arrived at 6
+and 10 of 20, then at 9 and 7 of 20 (`TODO/image.md:1606-1609`). The
+script keeps it because a filesystem is worth re-varying on any host
+where this race is chased again (`:42-43`).
+
+**Why the decision cannot be taken here.** The clause is a negative
+result already carried in the entry it concerns, and
+[T-0215](image.md) is `done`. Its `Decision` names the fix, `Lock::drop`
+releasing explicitly with `flock(LOCK_UN)` before it closes, with
+`Lock::hand_to_payload` exempt because the payload holds a duplicate of
+that same description, and its `Prove` runs the script with
+`PODBOX_RACE_CLAUSES="0 1 6 12 13 14"`, which excludes clause 7.
+⛔ **So this entry has no fate left to decide**, and nothing here
+settles the store work it cites. What it records is the condition that
+would reopen the question: a host where the race is chased again, where
+clause 7 does not skip because the two paths differ in filesystem
+type.
 

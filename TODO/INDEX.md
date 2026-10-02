@@ -287,35 +287,35 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1610](gate.md) | P0 | gate | done | Repair the base's stale podman state and settle which qemu the proof uses |
 | [T-1611](gate.md) | P1 | gate | done | Repoint the code maps and limits page after the Batch 3 port |
 | [T-1612](gate.md) | P1 | gate | done | Give the unowned work in the record an owner |
-| [T-1613](gate.md) | P1 | gate | open | The 21 unbatched plan rows are in the record, and two were already tracked |
-| [T-1619](packaging.md) | P0 | packaging | open | The `10`/`20`/`130` three-way decision belongs to the wave that deletes `10` |
-| [T-1620](image.md) | P1 | image | open | The lock-race clause decision belongs to the store work it cites |
+| [T-1613](gate.md) | P1 | gate | done | The 21 unbatched plan rows are in the record, and two were already tracked |
+| [T-1619](packaging.md) | P0 | packaging | done | The `10`/`20`/`130` three-way decision belongs to the wave that deletes `10` |
+| [T-1620](image.md) | P1 | image | done | The lock-race clause decision belongs to the store work it cites |
 | [T-1621](gate.md) | P2 | gate | done | The 11 Batch 3 rows were already tracked and are done |
-| [T-1622](gate.md) | P0 | gate | open | Reconcile the ledger's 121 rows against the seven entries and record the three VC changes |
-| [T-1623](milestones.md) | P3 | milestones | open | Record the 29 KEEP-SHELL rows as the retained set, re-derived from the ledger |
-| [T-1624](deps.md) | P2 | deps | open | Record the 265-row parity figure and the four stale values the tree carries |
-| [T-1625](image.md) | P1 | image | open | Record that `70-whiteout-contract.sh` check B needs a fixture, and where it goes |
-| [T-1626](podvm.md) | P1 | podvm | open | Record that `149` clause 6 has no Rust arm and stays shell pending the guest fixture |
-| [T-1627](gate.md) | P1 | gate | open | Record `80-interposer-abi.sh` check B and `170` clause 3 as staying shell |
-| [T-1628](interpose.md) | P1 | interpose | open | Record `162-tar-symlink-modes.sh` as retained, DELETE refuted by VC-2 |
-| [T-1629](probe.md) | P2 | probe | open | Record `95-podman-vfs-ignorechown.sh` as KEEP-SHELL, a deployment proof under VC-3 and VC-6 |
-| [T-1630](cli.md) | P1 | cli | open | The symlink-escape script is converted, and its deletion has a condition |
-| [T-1631](milestones.md) | P2 | milestones | open | Record the `10`/`20`/`130` irreducible dependency as open, with T-1550 |
-| [T-1632](gate.md) | P1 | gate | open | Record the 149-tree boundary against the 121 top-level figure |
-| [T-1633](deps.md) | P2 | deps | open | Record the 13-versus-3 `plant.sh` `Prove` discrepancy and which count is right |
-| [T-1634](image.md) | P1 | image | open | Record that `serve_once` is test-private and no fixture existed before T-1602 |
-| [T-1635](gate.md) | P1 | gate | open | Record the `py_compile` glob at `gate.yml:186` as needing a change |
-| [T-1636](gate.md) | P1 | gate | open | Record the second workflow, `nightly.yml`, as a consumer of four ported subjects |
-| [T-1637](milestones.md) | P2 | milestones | open | Record the eleven converged-on-Rust counts and the 29 that stay in shell |
-| [T-1638](gate.md) | P0 | gate | open | The record gate proves itself with the tool its own port deletes |
-| [T-1639](interpose.md) | P1 | interpose | open | Record the six interpose members and their excluded-crate proofs as separate jobs |
-| [T-1640](interpose.md) | P1 | interpose | open | Record that the interpose export check needs no `rlib` and no new test |
+| [T-1622](gate.md) | P0 | gate | done | Reconcile the ledger's 121 rows against the seven entries and record the three VC changes |
+| [T-1623](milestones.md) | P3 | milestones | done | Record the 29 KEEP-SHELL rows as the retained set, re-derived from the ledger |
+| [T-1624](deps.md) | P2 | deps | done | Record the 265-row parity figure and the four stale values the tree carries |
+| [T-1625](image.md) | P1 | image | done | Record that `70-whiteout-contract.sh` check B needs a fixture, and where it goes |
+| [T-1626](podvm.md) | P1 | podvm | done | Record that `149` clause 6 has no Rust arm and stays shell pending the guest fixture |
+| [T-1627](gate.md) | P1 | gate | done | Record `80-interposer-abi.sh` check B and `170` clause 3 as staying shell |
+| [T-1628](interpose.md) | P1 | interpose | done | Record `162-tar-symlink-modes.sh` as retained, DELETE refuted by VC-2 |
+| [T-1629](probe.md) | P2 | probe | done | Record `95-podman-vfs-ignorechown.sh` as KEEP-SHELL, a deployment proof under VC-3 and VC-6 |
+| [T-1630](cli.md) | P1 | cli | done | The symlink-escape script is converted, and its deletion has a condition |
+| [T-1631](milestones.md) | P2 | milestones | done | Record the `10`/`20`/`130` irreducible dependency as open, with T-1550 |
+| [T-1632](gate.md) | P1 | gate | done | Record the 149-tree boundary against the 121 top-level figure |
+| [T-1633](deps.md) | P2 | deps | done | Record the 13-versus-3 `plant.sh` `Prove` discrepancy and which count is right |
+| [T-1634](image.md) | P1 | image | done | Record that `serve_once` is test-private and no fixture existed before T-1602 |
+| [T-1635](gate.md) | P1 | gate | done | Record the `py_compile` glob at `gate.yml:186` as needing a change |
+| [T-1636](gate.md) | P1 | gate | done | Record the second workflow, `nightly.yml`, as a consumer of four ported subjects |
+| [T-1637](milestones.md) | P2 | milestones | done | Record the eleven converged-on-Rust counts and the 29 that stay in shell |
+| [T-1638](gate.md) | P0 | gate | done | The record gate proves itself with the tool its own port deletes |
+| [T-1639](interpose.md) | P1 | interpose | done | Record the six interpose members and their excluded-crate proofs as separate jobs |
+| [T-1640](interpose.md) | P1 | interpose | done | Record that the interpose export check needs no `rlib` and no new test |
 
-| [T-1641](gate.md) | P0 | windows | open | The provisioner writes into the vendor's backing image, and a timed-out run orphans its emulator |
+| [T-1641](gate.md) | P0 | windows | partial | The provisioner writes into the vendor's backing image, and a timed-out run orphans its emulator |
 
 ## Counts
 
-250 items: 23 open, 9 partial, 0 blocked, 218 done.
+250 items: 0 open, 10 partial, 0 blocked, 240 done.
 
 Counted from the rows above by `./target/release/podbox-count` and asserted
 independently by `./target/release/podbox-gate`, which is the gate. A number here
@@ -323,11 +323,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 4 | 0 | 0 | 59 | 63 |
-| P1 | 13 | 8 | 0 | 102 | 123 |
-| P2 | 5 | 1 | 0 | 49 | 55 |
-| P3 | 1 | 0 | 0 | 8 | 9 |
-| **All** | **23** | **9** | **0** | **218** | **250** |
+| P0 | 0 | 1 | 0 | 62 | 63 |
+| P1 | 0 | 8 | 0 | 115 | 123 |
+| P2 | 0 | 1 | 0 | 54 | 55 |
+| P3 | 0 | 0 | 0 | 9 | 9 |
+| **All** | **0** | **10** | **0** | **240** | **250** |
 
 ## Work order
 

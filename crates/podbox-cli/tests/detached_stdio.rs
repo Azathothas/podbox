@@ -11,6 +11,14 @@
 //! Live clauses need Linux container entry plus a pulled image, and SKIP
 //! early with the reason where either is absent. Nothing here fakes green:
 //! past the gates every clause asserts exit codes and output substrings.
+//!
+//! ⭐ T-1604. A third gate sits between: the tier a detached start enters.
+//! Where the binary under test carries no interposer object and the machine
+//! denies chroot(2), no no-chroot family runs a dynamic payload and `run -d`
+//! refuses at 126 with that sentence. That refusal is correct for the tier,
+//! so the test SKIPS with its reason, the way `tests/store_gates.rs` skips
+//! where a host refuses namespaces. Where the tier IS available the clause
+//! is unchanged and still requires every start.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
@@ -60,6 +68,47 @@ fn fresh_store(tag: &str) -> PathBuf {
 
 fn cleanup(store: &Path) {
     let _ = std::fs::remove_dir_all(store);
+}
+
+/// ⭐ T-1604. The refusal the no-chroot family emits when this binary carries
+/// no interposer object for the payload's libc: `lifecycle.rs` `decide_entry`
+/// wraps `interpose::Reach::Declined` as "the loader family declines the
+/// payload: ...", and `interpose::classify_elf` names the absent object.
+const TIER_REFUSAL_HEAD: &str =
+    "chroot(2) is denied on this machine, and no no-chroot family runs this payload";
+/// The absent-object leg on its own. It is the only sentence in the tree that
+/// reports the tier is missing, and it is absent from every other no-chroot
+/// refusal, so it is what separates a tier skip from a product failure.
+const TIER_REFUSAL_TAIL: &str = "carries no";
+
+/// docker's found-but-not-invocable code, which podbox shares
+/// (TODO/cli.md T-0802). The no-chroot tier declines with it.
+const EXIT_CANNOT_INVOKE: i32 = 126;
+
+/// None where the no-chroot family could run the payload, else the SKIP
+/// reason naming why the tier is unavailable.
+///
+/// ⛔ It matches the REFUSAL, not the exit code alone. 126 is what podbox
+/// returns for a loader this machine cannot run, a `#!` script whose
+/// interpreter dangles, and a payload that is not an ELF file as well. Those
+/// are real failures, so the sentence is required too.
+///
+/// ⚠ A non-zero exit is REQUIRED as well, and the two together are the
+/// condition. A start that exited 0 has started a container, and a skip there
+/// would discard a green run over a real defect. Neither half is the test.
+fn tier_skip_reason(code: Option<i32>, stderr: &str) -> Option<String> {
+    if code != Some(EXIT_CANNOT_INVOKE) {
+        return None;
+    }
+    if !stderr.contains(TIER_REFUSAL_HEAD) || !stderr.contains(TIER_REFUSAL_TAIL) {
+        return None;
+    }
+    Some(format!(
+        "the no-chroot tier is unavailable: run -d exited {code:?} and the \
+         binary under test carries no interposer object, so the loader family \
+         declines every dynamic payload on a machine that denies chroot(2). \
+         Build the objects first: ./scripts/build-interpose.sh"
+    ))
 }
 
 /// Run the podbox binary with `$PODBOX_STORE` pointed at `store`, and
@@ -304,6 +353,31 @@ fn detached_start_returns_before_the_payload_ends() {
         .collect::<Vec<_>>()
     {
         let _ = run_podbox(&["rm", "-f", id], &store, Duration::from_secs(120));
+    }
+
+    // ⭐ T-1604. Where the tier is legitimately unavailable, the assertion
+    // below would otherwise report a product failure for a refusal the
+    // product is right to make. The refusal is read as well as the exit, so a
+    // 126 from any other cause still fails the test.
+    //
+    // ⚠ EVERY start is checked, not the first. The loop above breaks on the
+    // first non-zero, so a tree where the first start declines and a later one
+    // would have run must not skip on the strength of the first alone.
+    if let Some(reason) = starts
+        .iter()
+        .find_map(|s| tier_skip_reason(s.code, &s.stderr))
+    {
+        eprintln!(
+            "SKIP detached start: {reason}\n{}",
+            starts
+                .iter()
+                .enumerate()
+                .map(|(n, s)| format!("  start {} exited {:?}", n + 1, s.code))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        cleanup(&store);
+        return;
     }
 
     // ⭐ T-1604. The loop breaks on the first non-zero `run -d`, so this count is

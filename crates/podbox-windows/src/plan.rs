@@ -72,7 +72,15 @@ pub struct Plan {
     pub firmware_code: PathBuf,
     /// OVMF's variable store. Copied per run, so the copy is what changes.
     pub firmware_vars: PathBuf,
-    /// The per-run disposable overlay, backed by the read-only base image.
+    /// The emulator's root disk, and the field carries both roles.
+    ///
+    /// ⛔ **On the `run` path it is the disposable per-run overlay**, created
+    /// by [`overlay_argv`] with `-b` at the read-only base image, so nothing
+    /// a run writes survives it. **On the `setup` path it is the disposable
+    /// scratch overlay** the provisioning boot writes its installer into, and
+    /// it is created by [`overlay_argv`] and then discarded: the installer's
+    /// writes are committed by [`commit_argv`] into a separate standalone
+    /// image that carries no backing pointer. It is never the vendor image.
     pub root: PathBuf,
     /// The raw FAT mailbox volume.
     pub mailbox: PathBuf,
@@ -192,6 +200,11 @@ pub fn base_format(base: &Path) -> &'static str {
 
 /// The `qemu-img create` argv for the disposable overlay: `run.qcow2` over
 /// the read-only base image, so nothing a run writes survives it.
+///
+/// ⛔ **The base is only ever named as `-b`, which is a read.** `qemu-img
+/// create` opens the backing file read-only and never writes to it, and
+/// neither does anything else in this crate: the vendor image is a source,
+/// never a destination.
 pub fn overlay_argv(qemu_img: &Path, base: &Path, overlay: &Path) -> Vec<String> {
     vec![
         qemu_img.to_string_lossy().to_string(),
@@ -203,6 +216,38 @@ pub fn overlay_argv(qemu_img: &Path, base: &Path, overlay: &Path) -> Vec<String>
         "-b".to_string(),
         base.to_string_lossy().to_string(),
         overlay.to_string_lossy().to_string(),
+    ]
+}
+
+/// The `qemu-img commit` argv: fold a scratch overlay's writes into a fresh
+/// standalone qcow2 at `out`.
+///
+/// ⛔ **`-b` is absent and the argument order carries the reason.**
+/// `qemu-img commit [-b BASE] [-F FMT] FILENAME [OUTFILE]` writes the
+/// overlay into `OUTFILE` when it is named. ⛔ **`OUTFILE` is a
+/// `qemu-img create` of its own**, so it comes into existence as a new image
+/// rather than as an existing file whose metadata is rewritten. The overlay's
+/// own backing is never named, so `OUTFILE` carries no `-b` pointer at all
+/// and is self-contained: the vendor image can be moved or removed and the
+/// result still boots.
+///
+/// ⛔ **And `-f qcow2` is stated rather than left to the suffix.** `OUTFILE`
+/// here is named by the caller and this crate does not choose its name, so
+/// the format is given rather than inferred. `overlay_argv` does the same,
+/// which is the existing pattern here and not a new one.
+///
+/// ⚠ The output format follows the overlay, which [`overlay_argv`] created as
+/// `qcow2`, so a `qcow2` overlay over a VHDX backing commits to a `qcow2`
+/// image holding the VHDX's full size. That is the cost of not writing into
+/// the vendor file, and it is stated here rather than discovered later.
+pub fn commit_argv(qemu_img: &Path, overlay: &Path, out: &Path) -> Vec<String> {
+    vec![
+        qemu_img.to_string_lossy().to_string(),
+        "commit".to_string(),
+        "-f".to_string(),
+        "qcow2".to_string(),
+        overlay.to_string_lossy().to_string(),
+        out.to_string_lossy().to_string(),
     ]
 }
 
@@ -345,5 +390,63 @@ mod tests {
         let b = a.iter().position(|x| x == "-b").expect("-b is stated");
         assert_eq!(a[b + 1], "ValidationOS.vhdx");
         assert_eq!(a.last().unwrap(), "run.qcow2");
+    }
+
+    /// ⛔ The defect this pins: `setup` provisioned by committing the scratch
+    /// overlay in place, so the image it left carried `-b` at the vendor file
+    /// and every later run read `run.qcow2` -> `out` -> `base.vhdx`. The
+    /// commit names a second file, and names no backing at all, so the image
+    /// it writes stands alone. `TODO/gate.md` T-1641.
+    #[test]
+    fn the_commit_writes_a_separate_standalone_image() {
+        let a = commit_argv(
+            Path::new("qemu-img"),
+            Path::new("/run/podbox-windows-1-run/run.qcow2"),
+            Path::new("/images/ValidationOS.podbox.qcow2"),
+        );
+        assert_eq!(a[0], "qemu-img");
+        assert_eq!(a[1], "commit");
+        assert!(
+            !has(&a, "-b"),
+            "a -b here would give the provisioned image a backing pointer: {a:?}"
+        );
+        assert!(
+            !a.iter().any(|x| x.contains("ValidationOS.vhdx")),
+            "the vendor image is not named by the commit: {a:?}"
+        );
+        // ⛔ `commit [-b BASE] [-F FMT] FILENAME [OUTFILE]`: the overlay is
+        // FILENAME and the fresh image is OUTFILE, in that order. Reversed,
+        // the vendor's backing is folded into itself.
+        assert_eq!(
+            &a[a.len() - 2..],
+            &[
+                "/run/podbox-windows-1-run/run.qcow2".to_string(),
+                "/images/ValidationOS.podbox.qcow2".to_string()
+            ]
+        );
+        assert_eq!(a.last().unwrap(), "/images/ValidationOS.podbox.qcow2");
+    }
+
+    /// The scratch overlay and the provisioned image are two files, and the
+    /// `setup` path creates both: a cleanup keyed on one cannot remove the
+    /// other, and the vendor image is named by neither.
+    #[test]
+    fn the_provisioned_image_is_a_different_file_from_the_overlay_it_comes_from() {
+        let overlay = Path::new("/run/podbox-windows-1-run/run.qcow2");
+        let out = Path::new("/images/ValidationOS.podbox.qcow2");
+        assert_ne!(overlay, out);
+        let create = overlay_argv(
+            Path::new("qemu-img"),
+            Path::new("/images/ValidationOS.vhdx"),
+            overlay,
+        );
+        let commit = commit_argv(Path::new("qemu-img"), overlay, out);
+        assert_eq!(
+            create.last().unwrap(),
+            &commit[commit.len() - 2],
+            "the boot writes the overlay the commit reads"
+        );
+        assert!(create.iter().any(|x| x.contains("ValidationOS.vhdx")));
+        assert!(!commit.iter().any(|x| x.contains("ValidationOS.vhdx")));
     }
 }

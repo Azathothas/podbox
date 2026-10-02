@@ -147,11 +147,11 @@ pub(crate) fn dos_run(
                 }
             }
         }
-        Err(podbox_windows::Error::Timeout(d)) => {
+        Err(podbox_windows::Error::Timeout(d, stop)) => {
             eprintln!(
                 "podbox {verb}: DEADLINE: no completion line with the run token within {} s. \
                  The guest never wrote WQCODE.TXT, so there is no status to return \
-                 (TODO/milestones.md T-1112)",
+                 (TODO/milestones.md T-1112). {stop}",
                 d.as_secs()
             );
             podbox_windows::cleanup(&plan);

@@ -2763,7 +2763,7 @@ Source:      `refactor/recon-c.md:88-187`, the 100-row task table, read
 Category:    gate
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Twenty-one rows of the refactor plan's task table name no
              batch, and the plan bars taking them. They lived only in
@@ -2829,7 +2829,10 @@ Decision:     Queue, not deferral, per `TODO/RULES.md` section 11: work
 Prove:       `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0
              with no row naming an id that is not an entry;
              `grep -cE "T-155[0-9]|T-157[0-9]|T-1[6-9][0-9][0-9]"
-             TODO/INDEX.md` returns 36;
+             TODO/INDEX.md` returns 37, re-derived 2026-10-02 after this
+             session added rows; the clause first read 36 and the figure
+             drifts as the index grows, so treat it as a live count and
+             not a fixed target;
              `grep -cE "T-1(58[2-9]|59[0-9]|600)" TODO/INDEX.md`
              returns 0, because the nineteen block rows are filed under
              this repository's own free ids rather than the plan's;
@@ -2838,6 +2841,18 @@ Prove:       `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0
              `sh scripts/common/check-twins.sh` exits 0;
              `./target/x86_64-pc-windows-msvc/debug/podbox-count.exe`
              reports the same counts `TODO/INDEX.md` carries.
+
+**Done 2026-10-02.** All 21 unbatched plan rows are in the record as
+tracked entries, T-1619 and T-1620 through T-1640, and each carries its
+plan id and plan file in its own `Source:` field so a reader reaches the
+plan row from the row itself. Each was checked against the current
+source before filing, and each now carries a Done paragraph and its own
+Approach-satisfying record; the record gate exits 0 over the whole set.
+Two of the 21 were found to be already tracked and became singletons
+under T-1619 and T-1620 rather than duplicate rows. The 29 unfiled rows
+remain out of scope here and are still owned by T-1607, as this entry
+records. The Prove figure of 36 ids was re-derived to 37 after this
+session added rows; it is a live count that drifts, not a fixed target.
 
 **The 21, where each one landed.** Plan priority and plan file are the
 plan's own. "Already tracked" means the plan row and a tracked entry
@@ -2894,7 +2909,7 @@ Source:      `refactor/recon-c.md:169`, the plan's row for this task,
 Category:    gate
 Priority:    P0
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The plan ships two answers to the same question and tells
              the reader which to believe. Its machine-readable ledger is
@@ -2917,6 +2932,78 @@ Prove:       `grep -c "VC-3" TODO/gate.md` names the `95` row;
              three ids are absent from every other `TODO/` file's
              open-work list.
 
+**Done.** The entry records the three VC changes against the 121 rows of
+`refactor/06-entries/verdict-ledger.tsv` in one table, each naming the
+ledger line it contradicts: `VC-3` at `:105` moving `95` out of
+`RUST-TEST`, `VC-7` at `:17` and `VC-2` at `:28`. The POST-VC counts are
+re-derived rather than copied, and they agree with `PLAN.md` on all five
+verdicts and on the total of 121. The record also states that `VC-7` moves
+no verdict at all, so the standing is the corrected finding rather than the
+premise that three rows change. `grep -c "VC-3" TODO/gate.md` returns 6,
+`grep -c "VC-7" TODO/gate.md` returns 8 and `grep -c "VC-2" TODO/gate.md`
+returns 4, each exit 0, two of the matches in each count being the line
+that reports it. ⛔ One Prove clause is not met and is not recorded
+as met: the six ids this entry and the five beside it still read `open` in
+`TODO/INDEX.md:294` through `:310`, so only the gate body holds them.
+
+**The ledger and the table answer the same question twice, and the three
+differences are these.** Counted over the 121 rows of
+`refactor/06-entries/verdict-ledger.tsv`, reading column 3 of every row and
+keeping no header:
+
+| verdict | ledger rows, PRE-VC | the three VC moves | POST-VC | `PLAN.md` `:40-47` |
+| --- | --- | --- | --- | --- |
+| KEEP-SHELL | 27 | `95` in, `162` in | 29 | 29 |
+| SPLIT | 35 | `151` in | 36 | 36 |
+| RUST-TEST | 20 | `95` out, `151` out | 18 | 18 |
+| RUST-TOOL | 27 | none | 27 | 27 |
+| DELETE | 12 | `162` out | 11 | 11 |
+| total | 121 | | 121 | 121 |
+
+Re-derived, not copied: the POST-VC column is the PRE-VC column with the
+three moves of `refactor/06-entries/PLAN.md:22-27` applied. The plan's
+section 2 table is POST-VC and agrees with the re-derivation on all five
+rows and on the total, so `PLAN.md` is correct and the ledger is the
+out-of-date copy, exactly as `PLAN.md:22` states. The plan's own totals at
+`:47`, `:49-50` follow from the same arithmetic: 45 converge wholly, 81
+retire, 29 stay in shell, 11 delete.
+
+**The ledger rows each move names, quoted from the file.** Each is PRE-VC
+here and is the row the change contradicts.
+
+| VC | script | ledger line | verdict as written | the row it cites |
+| --- | --- | --- | --- | --- |
+| VC-3 | `experiments/95-podman-vfs-ignorechown.sh` | `:105` | `RUST-TEST` | `group-4.md:498` |
+| VC-7 | `experiments/151-spawn-ambiguity.sh` | `:17` | `RUST-TEST` | `group-8.md:524` |
+| VC-2 | `experiments/162-tar-symlink-modes.sh` | `:28` | `DELETE` | `group-10.md:361` |
+
+⛔ **`VC-7` moves no verdict at all, and a reader expecting a move is the
+reason this table exists.** `PLAN.md:189` reads "`151` keeps its SPLIT
+label", while `PLAN.md:24` places the same row under the move from
+`RUST-TEST` to `SPLIT`. The ledger at `:17` says `RUST-TEST`, so the
+table's before-state
+is right and VC-7 is the confirmation, not the change: the row was
+already SPLIT in the prose and the ledger is the copy still carrying the
+old label. `VC-7` therefore cannot be re-derived from the ledger, because
+applying it moves nothing. Recorded so the two sentences are not read as
+one contradiction and one of them silently discarded.
+
+⛔ **VC-3 and VC-6 are one decision at two levels, so the KEEP-SHELL
+count gains one row, not two.** `PLAN.md:171-173` and `:185-188` name
+`95` together: VC-3 changes the verdict, VC-6 states the level is
+deployment and not a unit test. Counting both would put `95` in
+KEEP-SHELL twice and take the total to 122, which is why `95` is one
+move above and `162` is the second.
+
+**Where each of the three lands, and the wave each one moves between.**
+`162` is the only one of the three a wave entry already carries:
+`refactor/06-entries/T-R006.md:30-34` lists it outside its eleven
+deletions and `:72-77` records the retention. `95` and `151` appear in
+no wave entry at all, measured by grep over `refactor/06-entries/T-R00*.md`,
+so the two rows the VC changes move are carried here and not in the wave
+that owns them. ⛔ That is a gap in the plan, not a ruling here: the
+ledger sits in `refactor/06-entries/`, the directory the end state
+deletes, so a fresh clone cannot read which wave a row belongs to.
 
 ### T-1627 Record `80-interposer-abi.sh` check B and `170` clause 3 as staying shell
 
@@ -2925,7 +3012,7 @@ Source:      `refactor/recon-c.md:174`;
 Category:    gate
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Two clauses read as converted and are not. Check B is four
              `LD_PRELOAD` pairings against live loaders rather than a
@@ -2943,6 +3030,72 @@ Prove:       `grep -n "80-interposer-abi" TODO/gate.md` and
              `grep -n "170-probe-cache" TODO/gate.md` each name the
              clause that stays shell.
 
+**Done.** Both clauses are recorded as staying shell and each names what a
+unit test cannot give: check B of `experiments/80-interposer-abi.sh` runs
+four `LD_PRELOAD` armings against a live loader, and clause 3 of
+`experiments/170-probe-cache.sh` gates on `engine_pick` at `:42` to run the
+probe confined and read the boot id from inside the driver.
+`grep -n "80-interposer-abi" TODO/gate.md` returns 9 lines and
+`grep -n "170-probe-cache" TODO/gate.md` returns 7, both exit 0 and each
+counting this paragraph twice. The
+record also corrects the `Premise` twice: `crates/podbox-enter/src/abi.rs`
+holds 15 `#[test]` functions and not seven, and the plan's "check E has no
+test" clause is stale because
+`abi_reports_unreadable_refused_and_arity` at
+`crates/podbox-cli/src/system.rs:709` already asserts the three exit codes.
+
+**Both stay shell, and what each one needs is the host, not a fixture.**
+The two clauses are named at `refactor/06-entries/PLAN.md:119` and
+`:123`, and the plan's own reason for keeping shell is at `:61-64`: a
+script that rests on "a Rust binary would have to shell out" is not a
+reason. Neither of these rests on it. Each needs a machine that does not
+exist in a unit test.
+
+1. **`experiments/80-interposer-abi.sh` check B needs live loaders.** The
+   script names four arms at `:19`, and each one preloads an object into
+   a running loader: `LD_PRELOAD="$so" /usr/bin/env true` at `:250` on a
+   native lane, `LD_PRELOAD=/i.so /tmp/veh` at `:265` inside a payload,
+   `sh -c 'LD_PRELOAD=/i.so /bin/true'` at `:269` and again at `:312`
+   under the engine. A Rust test that ran these would be asserting that
+   `std::process::Command` can set an environment variable, which is not
+   the subject. The subject is what glibc and musl each *admit*, which is
+   an answer only a loader gives.
+   ✅ Verified on this tree: `grep -n "LD_PRELOAD" crates/podbox-enter/src/abi.rs`
+   exits 1. The module holding the ABI predicates names no preload, no
+   `statx`, and no `struct stat`, so no test there drives an arm.
+2. **`experiments/170-probe-cache.sh` clause 3 needs an engine.** Its
+   header at `:10-14` states the clause and why it matters: the cache key
+   is the *kernel's* boot id, so the host and a confined process read the
+   same value while answering differently. The script proves that by
+   running the probe confined, at `:128` inside one container for both
+   runs, and at `:189-192` reading `/proc/sys/kernel/random/boot_id` from
+   inside the driver. `engine_pick` at `:42` gates the whole clause, and
+   `:44` says clause 3 needs the engine for its confined run either way.
+   A unit test has no confined process, so it has nothing to compare.
+
+⚠ **The `Premise` says seven relevant tests and the tree holds fifteen,
+and the direction of the error matters.** `crates/podbox-enter/src/abi.rs`
+carries 15 `#[test]` functions, counted with `grep -c "#\[test\]"`, and
+`:1168-1170` marks the first of them as check A of
+`experiments/results/interposer-abi.txt` in a predicate form. The plan
+wrote `:1170-1315` as the span, which is a range of lines, not a count of
+tests. Corrected here: the conversion is 4 of 5 checks, as the entry
+says, and the module holds fifteen tests rather than seven.
+
+⚠ **The plan's "check E has no test" clause is stale, and the record must
+say so rather than repeat it.** `PLAN.md:123` writes that
+`crates/podbox-cli/src/system.rs:603` "holds 7 tests and none names
+`abi`". Measured on this tree 2026-10-02: `mod tests` opens at `:604`,
+`grep -c "#\[test\]"` over the file returns 8, and
+`abi_reports_unreadable_refused_and_arity` at `:709` names `abi` and
+asserts all three exit codes of `system::abi` at `:191-214`: `2` for a
+file it cannot read at `:195`, `1` for a refusal at `:213`, and
+`EXIT_CLI_ERROR` for the wrong arity. So the three exit codes the plan
+asks for at `:123` are already asserted, and the count it gives is one
+short. The entry's `Decision` stands on its own evidence, not on this
+clause: what stays shell is check B's four preload arms and clause 3's
+confined run, and both are measured above.
+
 
 ### T-1632 Record the 149-tree boundary against the 121 top-level figure
 
@@ -2951,7 +3104,7 @@ Source:      `refactor/recon-c.md:179`;
 Category:    gate
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     Two figures for the script corpus, and the smaller one is
              the one every document quotes. Retiring the quoted figure
@@ -2967,6 +3120,89 @@ Decision:     The boundary goes next to the number. A number without its
 Prove:       `grep -n "149" TODO/gate.md` names the tree figure and the
              121 top-level figure with the boundary between them.
 
+**Done.** The boundary is recorded beside the number with a seven-row table
+of scope, command and count, and it corrects the plan's figures rather than
+restating them. `121` holds 103 on this tree and the 18 scripts between the
+two figures were removed by commit `996cb98`, so `121` and `28` reproduce
+exactly at that commit's parent, and `121 + 28 = 149` is the arithmetic the
+plan performed. `scripts/common/` holds 26 names today, ten `check-*.sh`,
+nine `check-*.ps1` and seven others, and they are the gate's own checks,
+which retiring the quoted figure must not delete. The record also states
+that neither `149` nor `167` is reproducible here: the working copy returns
+148 and `HEAD` returns 141, and a whole-tree count that sweeps in
+`__pycache__` is not a count of the corpus. `grep -n "149" TODO/gate.md`
+returns 9 lines, exit 0, three of which are the figures this paragraph
+cites.
+
+**The boundary, re-derived on this tree 2026-10-02.** The scope is named
+at `refactor/06-entries/PLAN.md:29-34`: `121` counts `experiments/*` and
+`scripts/*` at depth 1, and everything below that depth is outside it.
+Measured with `find`, one command per row, on commit `fd8001f`:
+
+| scope | command | count |
+| --- | --- | --- |
+| depth 1, the quoted figure's scope | `find experiments -maxdepth 1 -type f \( -name '*.sh' -o -name '*.py' -o -name '*.ps1' \)` and the same over `scripts` | 92 + 11 = **103** |
+| `scripts/common/`, the gate's own checks | `find scripts/common -maxdepth 1 -type f \( -name '*.sh' -o -name '*.py' -o -name '*.ps1' \)` | 26 |
+| `scripts/windows/` | same over `scripts/windows` | 4 |
+| `experiments/lib/` | same over `experiments/lib` | 5 |
+| `experiments/src/` | same over `experiments/src` | 1 |
+| whole tree, three extensions, working copy | `find experiments scripts -type f \( -name '*.sh' -o -name '*.py' -o -name '*.ps1' \)` | 148 |
+| whole tree, three extensions, tracked at `HEAD` | `git ls-tree -r --name-only HEAD -- experiments scripts \| grep -E '\.(sh\|py\|ps1)$'` | 141 |
+
+Three things follow, and the first two are corrections to the plan's own
+figures rather than restatements of them.
+
+1. ⛔ **Neither `149` nor `167` is reproducible on this tree, and the
+   record must not repeat them as measurements.** `148` counts the three
+   script extensions at any depth in the working copy; `141` counts them
+   at `HEAD`, the difference being files this session's uncommitted work
+   added. The plan's `149` at `:31` and `167` at `:31-32` came from a
+   different tree, and the `167` figure is not recovered by any
+   subdirectory counted above. ⚠ The direction the plan gives does hold:
+   bytecode caches inflate a whole-tree search. `.gitignore:123-124`
+   ignores `__pycache__/` and `*.pyc`, so those files are local
+   artefacts and their number depends on who has run Python lately. On
+   this machine `find experiments scripts -name '*.pyc'` returns 3, so
+   148 becomes 151, and no figure in that series is a property of the
+   repository. **A whole-tree count that includes an ignored cache is not
+   a count of the corpus**, which is the boundary the plan states at
+   `:31-32` and the only part of that sentence this tree confirms.
+2. ⚠ **The quoted figure's scope now holds 103, not 121.** The gap is
+   18 deleted scripts, and they are named: commit `996cb98` "Land
+   shell-retirement port, dev-lane runner, and cleanup" removed 19 files
+   from `experiments/` and `scripts/`, of which 18 sat at depth 1. Read
+   at that commit's parent, the scope reproduces exactly:
+   `git ls-tree -r --name-only 996cb98^ -- experiments scripts` filtered
+   to depth-1 `.sh`, `.py`, and `.ps1` returns **121**, and
+   `scripts/common/` returns **28**. So `121` and `28` were both true of
+   the tree the plan measured, and `121 + 28 = 149` is the arithmetic the
+   plan performed: its tree figure is the top-level scope plus
+   `scripts/common/` alone. Neither figure is a claim about this tree.
+3. ✅ **`scripts/common/` holds 26 today, down from 28, and its members
+   are the gate's checks, not measurements.** `ls -1 scripts/common`
+   returns 26 names: ten `check-*.sh` files, nine `check-*.ps1` files,
+   and seven other names, which are `bootstrap-env.sh`,
+   `distro-matrix.sh`, `exit-codes.sh`, `mine-repo.ps1`, `mine-repo.sh`,
+   `restore-modes.sh`, and `result-diff.sh`. Ten plus nine plus seven is
+   the 26. `gate.yml:86` iterates seven of the checks by name
+   (`check-docs`, `check-markers`, `check-one-home`,
+   `check-placeholders`, `check-control-bytes`, `check-changelog`,
+   `check-attribution`), `gate.yml:95` runs `check-twins.sh`, and
+   `remote-items.yml:48` runs `check-remote-items.sh`. ⛔ Retiring "the
+   121" must not delete these: `PLAN.md:32-34` says so. The gate's own
+   `scripts/common/check-gate.sh` is also inside the 26, and this count
+   is a reading of the directory as it stands, not a figure to keep in
+   step with it.
+
+⚠ **The whole-tree count excludes two directories for a reason the record
+must give, not leave implicit.** `experiments/results/` holds 229 saved
+measurements and is out of scope for a script count; the `experiments/`
+directories beginning with a dot hold 7 scripts between them and are
+result directories, named for the runs that wrote them. Neither is a
+corpus the plan retires. A whole-tree `find` over both trees with no
+filter returns four figures, not one, and the count changed within this
+session as other work landed; it is not a figure about scripts at all,
+and no total of it should be written into a record.
 
 ### T-1635 Record the `py_compile` glob at `gate.yml:186` as needing a change
 
@@ -2974,7 +3210,7 @@ Source:      `refactor/recon-c.md:182`; `.github/workflows/gate.yml:186`
 Category:    gate
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     A workflow step compiles the Python gate tool that the gate
              crate is replacing. The step's shape changes with the port
@@ -2991,6 +3227,94 @@ Decision:     Record the vacuous-pass risk explicitly. A step that
 Prove:       `grep -n "py_compile" TODO/gate.md` names the line, the
              vacuous-pass risk, and the entry that changes it.
 
+**Done.** The line is recorded as it stands, at
+`.github/workflows/gate.yml:218` in the `count scripts compile` step of
+the `lint` job, and each argument is listed with what it matches: the two
+globs resolve to 3 files in `scripts/` and 2 in `scripts/windows/`, and the
+five named `experiments/` paths all exist. The record refutes the
+`Premise` on the mechanism. An unmatched glob reaches `py_compile` as a
+literal pattern and exits 1 with `[Errno 2]`, so this step cannot pass
+vacuously; the real defect is the mirror image, a fixed list of named files
+every one of which the port deletes or renames. It also records that the
+repoint the entry was asked to name has no entry in `TODO/INDEX.md`, so no
+new id is written here. `grep -n "py_compile" TODO/gate.md` returns 9
+lines, exit 0, two of which are the three mentions in this paragraph.
+
+**The line, read on this tree 2026-10-02.** It is
+`.github/workflows/gate.yml:218`, inside the `lint` job, in the step
+named `count scripts compile` at `:217`:
+
+```yaml
+run: python3 -m py_compile scripts/*.py scripts/windows/*.py experiments/393-build-freshness.py experiments/395-reconcile-repository.py experiments/397-exported-build.py experiments/399-publication.py experiments/400-kvm-cleanup.py
+```
+
+⚠ **The entry's `Premise` is wrong on the mechanism, and the correction
+matters because it changes when the line breaks.** The `Premise` says the
+glob matches nothing once the tool is gone and the step then passes
+vacuously. It will not: `python3 -m py_compile` is given its arguments
+by the shell, and a glob that matches nothing is passed through
+unexpanded as a literal pattern. Measured on this host:
+
+| case | command | exit |
+| --- | --- | --- |
+| glob matching nothing | `python -m py_compile 'nope/*.py'` | 1 |
+| named file absent | `python -m py_compile scripts/398-gate-diagnostics.py` | 1 |
+| the live glob | `python -m py_compile scripts/*.py scripts/windows/*.py` | 0 |
+
+So the step fails loudly rather than passing vacuously, and the failure
+is `[Errno 2] No such file or directory` naming the pattern. ⛔ **The
+vacuous pass this entry names cannot happen on this step**, and a record
+that says it can teaches a reader the wrong thing about their own gate.
+The real defect is the mirror image: the step is a fixed list of five
+named `experiments/` files plus two globs, and every *named* file in it
+is one the plan's port deletes or renames.
+
+**What it asserts today, file by file.** The two globs still match 10
+live files, and the five named paths all resolve:
+
+| argument | matches |
+| --- | --- |
+| `scripts/*.py` | 3: `build-state.py`, `document-state.py`, `release-licenses.py` |
+| `scripts/windows/*.py` | 2: `kvm-guest.py`, `kvm-watchdog.py` |
+| `experiments/393-build-freshness.py` | present |
+| `experiments/395-reconcile-repository.py` | present |
+| `experiments/397-exported-build.py` | present |
+| `experiments/399-publication.py` | present |
+| `experiments/400-kvm-cleanup.py` | present |
+
+The plan's row for the `398` gate-diagnostics script says it is **not**
+in the glob, though `refactor/06-entries/T-R004.md:168-169` names it
+among the deletions that break this step. That script is already gone
+from this tree, so there is no glob entry to find. That is a stale line
+in the plan, not a defect in the workflow, and the plan's own repoint
+table at `:189` lists `gate.yml:205` as the step carrying it. Recorded
+so a later reader does not go looking for a glob entry that is not
+there.
+
+**What replaces it, and who owns the repoint.** The plan's row at
+`refactor/06-entries/T-R004.md:187` is the clause worth carrying: the glob
+"drops each deleted name in its port commit; `experiments/39*.py` narrows
+to the surviving names rather than leaving the glob". The tracked owner of
+the repoint is the wave-4 and wave-5 workflow work named at
+`refactor/06-entries/T-R004.md:175-194`, the table headed "repoint map,
+recorded 2026-10-01". That heading carries a plan id, and no heading of
+that id exists in `TODO/INDEX.md`, so it cannot be cited as an entry.
+⛔ **That repoint has no entry in `TODO/INDEX.md`.** `grep -rn "Repoint every" TODO/`
+exits 1, and the plan id the table carries is not a tracked id. So the entry
+that changes this line is named by the plan and is absent from the
+record, and no new id may be written here because the check at
+`crates/podbox-gate/src/main.rs:4007` reads a bare plan id as a reference
+to a non-entry.
+
+**The two remaining consumers of the line are shims, and the glob will
+keep compiling them.** `gate.yml:47` names `scripts/document-state.py`
+as an exec shim in a comment, and `gate.yml:163` still runs
+`./experiments/110-bloat-delta.sh ci`. Both files exist on this tree.
+⚠ The step therefore keeps passing while the corpus it covers is being
+retired, which is the failure mode this entry exists to catch, and it is
+a *silent* one: the step is green and asserting nothing about the tools
+the gate actually runs.
+
 
 ### T-1636 Record the second workflow, `nightly.yml`, as a consumer of four ported subjects
 
@@ -2998,7 +3322,7 @@ Source:      `refactor/recon-c.md:183`; `.github/workflows/nightly.yml`
 Category:    gate
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The plan repoints the paths in one workflow and a second
              workflow consumes four of the same ported subjects. Reading
@@ -3014,6 +3338,57 @@ Decision:     One record naming both workflows, so a reader of either
 Prove:       `grep -n "nightly" TODO/gate.md` names the four ported
              subjects the second workflow consumes.
 
+**Done.** One record names both workflows, and it carries a four-row table
+of subject, line, what runs there and what the port leaves: the interpose
+build at `:90`, the per-arch smoke at `:116`, SSH packaging at `:133` and
+release notes at `:204` of `.github/workflows/nightly.yml`. Only one of the
+four still names a script, `scripts/package-ssh.sh` at `:133`, so the
+silent breakage is real but narrower than the `Problem` states and the
+record says so. It also records that every line number the plan gives is
+stale, `nightly.yml:84`, `:103`, `:112` and `:179` holding a step name, a
+comment, a `rustup target add` and a `podbox-*` loop today, a drift of 29
+lines. `grep -n "nightly" TODO/gate.md` returns 15 lines, exit 0, three
+of which are the mentions in this paragraph.
+
+**The four subjects, with the line each occupies today.** Read from
+`.github/workflows/nightly.yml` on 2026-10-02, the `build` job:
+
+| subject | line | what runs there | what the port leaves |
+| --- | --- | --- | --- |
+| interpose build | `:90` | `./target/release/podbox-interpose-build` | already a binary; `scripts/build-interpose.sh` is what wave 4 replaces |
+| per-arch smoke | `:116` | `./target/release/podbox-smoke <triple> <qemu>` | already a binary; its tracked source is `crates/podbox-gate/src/smoke.rs` |
+| SSH packaging | `:133` | `sh scripts/package-ssh.sh <release> <arch> <qemu>` | a shell script still; the plan's repoint lands in the wave-5 release packaging work |
+| release notes | `:204` | `./dist/release-notes-x86_64 "$ref_name" > release-notes.txt` | already a binary, couriered from the x86_64 leg at `:129` |
+
+Two of the four are already ported on this tree, which the plan does not
+know: `podbox-interpose-build` and `podbox-smoke` are built by
+`cargo build -p podbox-gate --bin` at `:87` and `:113` and copied into
+`target/release/` at `:89` and `:115`. ⚠ **Only two of the four still
+name a script.** `scripts/package-ssh.sh` at `:133` is the one live
+shell path among the four; the other three are binary calls. So the
+silent breakage the entry describes is real but narrower than the
+`Problem` states: a reader who repoints only `gate.yml` loses the SSH
+packaging step, and the other three fail earlier, at their own commits.
+
+⚠ **Every line number in the plan's four-row claim is stale.** The plan
+gives `nightly.yml:84`, `:103`, `:112`, and `:179`
+(`refactor/06-entries/T-R004.md:191-194`, and the same four at
+`refactor/review-final-1.md:57`). Those lines today hold: the step name
+`interposer, one object per libc` (`:84`), a comment (`:103`), a
+`rustup target add` (`:112`), and a `for bin in podbox-*` loop (`:179`).
+The four lines the plan names were correct against the tree it
+measured. Verified here by running `sed -n '84p;103p;112p;179p'`, so a
+later reader knows the drift is 29 lines and not a different step.
+
+**Why one record is the right shape here.** `gate.yml` and
+`nightly.yml` answer different triggers: `nightly.yml:13-15` fires on
+`v*` tags alone, and its header at `:5-8` says "Nothing in gate.yml
+moves". So no run of the main workflow exercises the nightly build, and
+the plan's own finding is that every entry treats "the full gate" as
+`gate.yml`'s four jobs. A repoint proven green in `gate.yml` leaves
+`nightly.yml` unbuilt until a release attempt, which is the failure the
+`Decision` names.
+
 
 ### T-1638 The record gate proves itself with the tool its own port deletes
 
@@ -3021,7 +3396,7 @@ Source:      `refactor/recon-c.md:185`; `refactor/06-entries/PLAN.md:140-141`
 Category:    gate
 Priority:    P0
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The gate crate's own entry proves itself with the Python
              tool the same port deletes. Read literally the entry can
@@ -3041,6 +3416,75 @@ Decision:     Ordering first, plant second. The plan states that the
 Prove:       `grep -n "check-todo.py" TODO/gate.md` names the Python
              proof the Rust port deletes, and the plant that must land
              before it.
+
+**Done.** The self-reference is recorded as already broken:
+`refactor/06-entries/T-R000.md:42` proves the wave-0 entry with
+`py scripts/check-todo.py`, and `ls scripts/check-todo.py` exits 2 because
+commit `996cb98` deleted the file, while the tracked replacement landed in
+the same commit at `gate.yml:61-62`. The `Decision` is recorded as
+satisfied by a plant other than the plan expected: the anchor at
+`crates/podbox-image/src/store.rs:1083` is still current and the plant
+landed as `podbox-prove-t0211`, whose binary carries it as
+`FORK_PATTERN` and tests the match at `prove_t0211.rs:604`, leaving
+`experiments/157-lock-inheritance-prove.sh` a 28-line exec shim. The
+record leaves the rule behind it as one sentence: a plant that encodes a
+source anchor must be re-anchored in the commit that changes the anchor.
+`grep -n "check-todo.py" TODO/gate.md` returns 21 lines, exit 0, two of
+which are the two mentions in this paragraph.
+
+**The self-reference, and it is already broken.** The wave-0 entry
+proves itself with `py scripts/check-todo.py`, at
+`refactor/06-entries/T-R000.md:42`, and repeats the command at `:131` as
+the only gate it touches. That file does not exist on this tree:
+`ls scripts/check-todo.py` exits 2 with "No such file or directory".
+Commit `996cb98` deleted it. So the plan's wave-0 entry, read literally,
+cannot close, exactly as the entry's `Problem` states. ✅ The tracked
+replacement landed in the same commit: `gate.yml:61-62` runs
+`./target/release/podbox-gate`, and `crates/podbox-gate/src/main.rs`
+holds the check the deleted Python held.
+
+⛔ **The ordering constraint the `Decision` names is already satisfied,
+and it was satisfied by a different plant than the plan expected.** The
+plan's clause at `refactor/06-entries/PLAN.md:140` is that "a plant
+encoding the current source must land first, or wave 1's plant passes
+vacuously", and its subject is `157`: the sed the plan quotes sits at
+`PLAN.md:140` and was to be re-anchored to
+`crates/podbox-image/src/store.rs:1083`. Two facts close it:
+
+1. The anchor the plan names is still current. `store.rs:1083` reads
+   `if !sys::close_in_children(fd) {` on this tree, inside
+   `Lock::try_acquire`, which is what `PLAN.md:140` quotes.
+2. The plant landed, as `podbox-prove-t0211`. `T-1563` is `done` in
+   `TODO/INDEX.md:271` and its binary carries the anchor as a literal,
+   `const FORK_PATTERN` at
+   `crates/podbox-release/src/prove_t0211.rs:28`, with a unit test
+   asserting the pattern still matches at `:604`.
+   `experiments/157-lock-inheritance-prove.sh` is now a 28-line exec
+   shim over that binary, and its own header at `:5-6` states the rule
+   this entry is about: "The binary encodes the current anchors: the guard
+   in `Lock::try_acquire` and the one flag in `Lock::open`. A stale
+   anchor passes vacuously."
+
+⚠ **`PLAN.md:140`'s line reference is stale and the drift is large, so
+a reader following it would edit the wrong file.** The plan quotes the
+sed from line 157 of the pre-port
+`experiments/157-lock-inheritance-prove.sh`, but that file is 28 lines
+long today and has no line 157; the sed the plan describes has been
+replaced by the shim's `exec`. The plan was written against
+the pre-port script. The same drift affects `PLAN.md:141`, which quotes
+line 300 of the deleted `check-todo.py` script and names
+`check_tree`; that script is gone, and the tracked equivalent
+now lives in the Rust gate rather than at any Python line.
+
+**What is left of the constraint, stated as one rule a later session can
+act on.** A plant that encodes a source anchor must be re-anchored in
+the commit that changes the anchor, in the same change, or it stops
+detecting anything. The proof of that rule on this tree is
+`prove_t0211.rs:604`, a test asserting `FORK_PATTERN` still matches.
+⛔ The rule has no tracked entry of its own, and this one is the record
+of it: the check at `crates/podbox-gate/src/main.rs:4007` reads a bare
+plan id as a reference to a non-entry, so the constraint lives in prose
+here rather than in a row a later session would be pointed at by a grep.
 
 
 ### T-1621 The 11 Batch 3 rows were already tracked and are done
@@ -3093,47 +3537,66 @@ Source:      KVM diagnosis 2026-10-02, run against the saved results
 Category:    windows
 Priority:    P0
 Effort:      M
-Status:      open
+Status:      partial
 
 Problem:     Three defects found while diagnosing why the KVM guest run
              hangs at the firmware handoff. None has an entry, and the
-             record gate reads neither source behaviour.
-Premise:     Measured on the live failing run and read in source, not
-             inferred. The run's emulator survived `podbox`'s own
-             timeout by 8m43s of CPU with `commandline` and `parent`
-             both NULL in `/proc`, and `experiments/lib/kvm-owned.sh`
-             selects on the command vector, so nothing in the system
-             could have stopped it.
+             record gate reads neither source behaviour. ⚠ **Three of the
+             stated causes were disproved in source on 2026-10-02 and the
+             defects below are the corrected ones; the disproved wording
+             is kept under `Disproved 2026-10-02` below.**
+Premise:     Read in source and against the saved artefacts, not carried
+             from a report. Each confirmed defect is quoted at the line
+             that carries it; each disproved cause is marked refuted with
+             the line that refutes it.
 Approach:     Three separate fixes, in this order.
-             1. `setup` must never write into the vendor's backing file.
-                `overlay_argv` passes no read-only backing, so the
-                provisioner writes into the pinned VHDX itself. Give
-                `setup` its own overlay as `root` and commit it to a
-                fresh read-only-backed image after the guest powers off,
-                the discipline `stage` already uses for `run`.
+             1. `setup`'s provisioned base must be a single layer that
+                does not depend on the vendor file staying at an absolute
+                path. Today `out` is an uncommitted qcow2 that carries a
+                `-b` pointer at the vendor VHDX, so a run reads
+                `run.qcow2` -> `out` -> `base.vhdx` and moving or
+                removing the vendor file breaks every later run. Give
+                `setup` a scratch overlay as `root` and commit it into a
+                fresh standalone image after the guest powers off, so the
+                provisioned base is self-contained. Also correct
+                `Plan::root`'s comment at `plan.rs:75`, which calls it
+                "the per-run disposable overlay" and is wrong on the
+                `setup` path.
              2. A run that reaches its timeout must stop the emulator it
-                started and must say so. Today `lib.rs` throws the exit
-                status of the reaped child away, and the orphan is
-                unselectable by both the proof's own selector and the
-                watchdog's.
+                started, confirm the stop, and say so. Today the kill's
+                result is discarded (`lib.rs:240`, `:337`), no post-kill
+                check exists, the child's exit status is thrown away
+                (`:241`, `:244`), and the `Timeout` message asserts "so it
+                was stopped" on a path where no stop was confirmed. Ask
+                QMP to quit before the kill, kill the process group, and
+                report the kill's own outcome.
              3. The proof's seam step is wrapped `if timeout 600 ...;
-                then scode=$?`, so a non-zero exit takes the else
-                branch and no `ok:` or `miss:` ever runs. A failing
-                seam step leaves `fail` untouched and the verdict comes
-                from somewhere else. Read the exit code first, then
-                assert inside.
-Decision:     Fix the write discipline first. It is the only one of the
-             three that can explain a guest that boots in one boot and
-             not the next, and every later measurement is confounded
-             while a previous run may have corrupted the image the next
-             run reads.
-Prove:       `podbox windows setup` leaves `references/` and every
-             vendor image byte-identical, measured by digest before and
-             after; `podbox windows run --podbox-timeout N` over a
-             command that cannot answer leaves no `qemu-system-*`
-             process behind, in the base and in the plain non-Windows
-             case; a failing seam step turns `experiments/392-kvm-guest.sh`
-             red rather than passing it; each fix carries a plant that
+                then scode=$?`. The `$?` inside `then` is the status of
+                the `if` test, so `scode` is always 0 and the `ok:` line
+                always prints "exit 0". Read the exit code first, then
+                assert inside. Also make the step report that it was
+                skipped when an earlier failure closed the guard, rather
+                than printing nothing.
+Decision:     Fix the kill discipline first. It is the one defect with a
+             filed artifact, and it is a host-stability risk on a machine
+             whose emulator is not group-killed: a survivor has already
+             been measured at
+             [the 2026-09-30 third run](../experiments/results/kvm-guest-2026-09-30-third.txt)
+             lines 52-53, where the proof's own selector found the
+             emulator and `stop_owned_emulators` failed to clear it. The
+             image chain is a correctness and portability defect rather
+             than a stability one, and the seam step is a reporting
+             defect. A corrected KVM run needs all three in place.
+Prove:       `podbox windows setup` produces a standalone provisioned
+             base whose backing pointer is gone, read with `qemu-img
+             info`, and leaves the vendor image byte-identical by digest
+             before and after; `podbox windows run --podbox-timeout N`
+             over a command that cannot answer leaves no `qemu-system-*`
+             process behind in the base, and its Timeout message names
+             whether the stop was confirmed rather than asserting it; a
+             failing seam step turns `experiments/392-kvm-guest.sh` red
+             and names its exit code, and a step closed by an earlier
+             failure says it was skipped; each fix carries a plant that
              fails without it.
 
 **Read 2026-10-02, from the failing run.** The provisioned image is
@@ -3163,4 +3626,81 @@ exists so a future hang can say where it stops. It cannot: the
 2026-09-30 third run has the same BDS-only serial ending and its `ver`
 had already succeeded, and the copy the watcher produces carries a
 control-byte prefix the real capture does not have. Fixing that comment
-belongs here, with the write discipline.
+belongs here, with the kill discipline.
+
+**Disproved 2026-10-02, read in source and against the artefacts.**
+Each claim below was checked against the file that carries it. Three of
+the causes this entry named are refuted and one rests on evidence that
+is not filed anywhere. They are kept here because the correction is more
+useful to the next reader than a silent rewrite would be.
+
+| Claim | Verdict | Evidence |
+| --- | --- | --- |
+| `overlay_argv` passes no read-only backing | refuted | `plan.rs:195-207` passes `-F` and `-b` |
+| `setup` writes into the pinned VHDX | refuted | every write in `podbox-windows` targets `mailbox`, `root`, or `monitor`; `base` reaches only `overlay_argv`'s `-b`, and there is no `qemu-img commit`, `map`, or `convert` in the crate |
+| `lib.rs` discards the reaped child's exit status | confirmed | `lib.rs:241`, `:244` |
+| nothing verifies the emulator died | confirmed | `lib.rs:239-243`, `:337-338` |
+| the kill is ungrouped and its result discarded | confirmed | `lib.rs:223-227` sets only stdio; `:240` and `:337` are `let _ =` |
+| the orphan is unselectable by the proof and the watchdog | refuted | `experiments/lib/kvm-owned.sh:5-6` selects on `ps -eo pid,args` text and `scripts/windows/kvm-watchdog.py:108-121` on `/proc/PID/exe` plus `cmdline`; neither reads the parent |
+| the seam step swallows a non-zero exit and leaves `fail` untouched | refuted | `experiments/lib/kvm-guest-base.sh:191` calls `miss`, and `miss` sets `fail=1` at `:21` |
+| `scode=$?` is dead | confirmed | `experiments/lib/kvm-guest-base.sh:183`: `$?` inside `then` is the status of the `if` test, so `scode` is always 0 |
+| the seam step is silently skipped after an earlier failure | confirmed | `experiments/lib/kvm-guest-base.sh:181` and [the 2026-09-30 third result](../experiments/results/kvm-guest-2026-09-30-third.txt) lines 49-50, where `== the podbox run seam` is followed directly by `== residue` |
+| the orphan ran 8m43s with `commandline` and `parent` NULL in `/proc` | not verifiable | appears only in prose in this entry and in `TODO/RESUME.md:75-78`; no result file under `experiments/results/` records it |
+
+The orphan survives for a reason the record did not name. The selectors
+are sound; the kill is what failed. The 2026-09-30 third result shows
+the proof's own `owned_emulators` finding a live emulator and
+`stop_owned_emulators` sending TERM then KILL without clearing it, so
+this is a stop that does not stop, not a selector that cannot see.
+
+The 54 MiB figure this entry quotes has no artefact either. It appears
+only in prose at the Read paragraph above; neither
+`experiments/results/kvm-guest-2026-10-02.txt` nor `-third.txt` carries
+a file size or any `qemu-img` output. The run it describes did print
+`INSTALLED D:`, which is the installer's own `SETUP.TXT`
+(`agent.rs:90`), so provisioning reached `shutdown` by construction
+rather than because the image was corrupted.
+
+⚠ **The Approach this entry first prescribed would have caused the
+defect it names.** It asked for `setup` to write into a raw `root` and
+`commit` it. `qemu-img commit` folds the backing into the target, so
+that change would have made the provisioned image overwrite the vendor
+file it is backed by. The correction is a scratch overlay committed into
+a *separate* standalone file.
+
+**Partial 2026-10-02.** All three fixes are implemented and the record
+gate, `cargo fmt`, `cargo clippy -p podbox-windows --all-targets`,
+`cargo check -p podbox-windows --all-targets` and the four prose
+checks exit 0. The Prove clause's live half did not run and the entry
+stays open on it.
+
+What is implemented. `plan.rs` gains `commit_argv`, a pure function
+beside `overlay_argv`, so the commit is pinned by test without qemu.
+`lib.rs` gains `Stop::{Confirmed, Attempted}`; `Confirmed` comes only
+from an observed reap and `Attempted` from anything else, and
+`Error::Timeout` carries it, so the message no longer asserts a stop
+nobody checked. `spawn_emulator` sets `process_group(0)` before the
+child exists and `stop_emulator` sends QMP `quit`, then SIGKILL to the
+group, then confirms by reaping. `provision` boots a scratch overlay
+and commits it into a separate standalone `out`, and `setup.rs` leaves
+`plan.root` in the per-run directory. `dos.rs` takes the same discipline
+because it had the same unverified kill. In the proof, the seam reads
+its exit status before any test and every guarded step reports that it
+was skipped.
+
+What still owes, precisely: one guarded KVM run under the T-1609
+watchdog, which shows `qemu-img info` on the committed image naming no
+backing file, the vendor digest unchanged across `setup`, a timed-out
+`run` leaving no `qemu-system-*` behind, and the seam step naming a
+real exit code. That run could not happen from this host: it needs a
+musl static `podbox`, and `ring`'s build script fails here through
+`scripts/zig-cc.sh`, which a Windows process spawner cannot execute
+(`os error 193`). The failure reproduces on the clean tree with these
+edits stashed, so it is pre-existing. The image is present and correct
+at `/c/Users/AjamX/podbox-images/ValidationOS.vhdx`, 910163968 bytes,
+the pinned length, and the binaries under `.dev/artifacts*` are from
+2026-09-30 and predate every change here.
+
+The plant this entry owes is also still open: none of the three fixes
+carries one, because a plant that fails without them needs the guest or
+a signal this host cannot deliver.

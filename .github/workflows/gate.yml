@@ -227,6 +227,20 @@ jobs:
       - name: bootstrap
         run: ./scripts/common/bootstrap-env.sh rust cc zig tools openssh
 
+      # ⛔ BEFORE THE WORKSPACE TESTS, because the two objects are an INPUT to
+      # the binary they test. `crates/podbox-cli/build.rs` embeds them, and it
+      # embeds an EMPTY placeholder where one is absent, so `cargo test
+      # --workspace` built without this step produces a podbox that interposes
+      # nothing. That binary declines every payload on a runner where chroot(2)
+      # is denied, and `detached_stdio` then failed on a refusal that is correct
+      # for the tier. TODO/interpose.md T-0702; TODO/enter.md T-1604.
+      - name: interposer, one object per libc
+        run: |
+          cargo build --release -p podbox-gate --bin podbox-interpose-build
+          mkdir -p target/release
+          cp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/
+          ./target/release/podbox-interpose-build
+
       - name: workspace tests
         run: cargo test --workspace
 

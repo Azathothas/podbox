@@ -78,6 +78,8 @@ if [ "$fail" -eq 0 ]; then
   sum=$(sha256sum "$KVM/base.vhdx" 2>/dev/null | cut -d' ' -f1)
   [ "$sum" = "$VHDX_SHA256" ] || miss "image digest mismatch"
   [ "$fail" -eq 0 ] && ok "installed disk copied with the pinned digest"
+else
+  say "skipped: an earlier step already failed"
 fi
 
 say "== doctor"
@@ -92,6 +94,8 @@ if [ "$fail" -eq 0 ]; then
   else
     miss "doctor refused"; cat "$KVM/doctor.txt"
   fi
+else
+  say "skipped: an earlier step already failed"
 fi
 
 say "== setup"
@@ -109,6 +113,8 @@ if [ "$fail" -eq 0 ]; then
     setup_rc=$?
     miss "setup failed with exit $setup_rc"; tail -n 10 "$KVM/setup.txt"
   fi
+else
+  say "skipped: an earlier step already failed"
 fi
 
 say "== run ver with the emulator command line watched"
@@ -151,20 +157,24 @@ if [ "$fail" -eq 0 ]; then
     *"-accel kvm"*"-cpu host"*) ok "outside observer: the guest ran under -accel kvm -cpu host" ;;
     *) miss "emulator command line does not show kvm" ;;
   esac
+else
+  say "skipped: an earlier step already failed"
 fi
 
 say "== run exit 42"
 if [ "$fail" -eq 0 ]; then
-  # A serial watcher runs beside the guest: one 540 s hang on
-  # 2026-09-29 never reproduced, and the driver's scratch cleanup
-  # takes the serial log with it, so the watch copy survives to say
-  # where a future hang stops.
+  # The watcher keeps a copy of the serial log because the scratch cleanup
+  # takes the original with it. It is not evidence that the guest booted.
+  # A 540 s hang on 2026-09-29 was never reproduced, and the 2026-09-30
+  # third run ended its serial log at the BDS stage while its ver run had
+  # already succeeded. Its copy also opens with the console clear and mode
+  # set escape bytes the raw capture does not carry.
   (n=0; while [ "$n" -lt 55 ]; do sleep 10; n=$((n + 1));
     for d in "$XDG_RUNTIME_DIR"/podbox-windows-*-run; do
       [ -f "$d/serial.log" ] && cp "$d/serial.log" "$KVM/serial-watch.log" 2>/dev/null
     done; done) &
   watchpid=$!
-  timeout 600 "$PODBOX" windows run --image "$PROV" --podbox-timeout 540 -- ver '>nul' '&' cmd /c exit 42 >"$KVM/e42.txt" 2>"$KVM/e42.err"
+  timeout 650 "$PODBOX" windows run --image "$PROV" --podbox-timeout 540 -- ver '>nul' '&' cmd /c exit 42 >"$KVM/e42.txt" 2>"$KVM/e42.err"
   ecode=$?
   kill "$watchpid" 2>/dev/null || true
   wait "$watchpid" 2>/dev/null || true
@@ -175,21 +185,28 @@ if [ "$fail" -eq 0 ]; then
     miss "exit 42 failed with $ecode"; tail -n 5 "$KVM/e42.err"
     [ ! -f "$KVM/serial-watch.log" ] || tr -d '\r' <"$KVM/serial-watch.log"
   fi
+else
+  say "skipped: an earlier step already failed"
 fi
 
 say "== the podbox run seam"
 if [ "$fail" -eq 0 ]; then
-  if timeout 600 "$PODBOX" run --podbox-tier=machine --platform windows/amd64 "$PROV" cmd /c ver >"$KVM/seam.txt" 2>"$KVM/seam.err"; then
-    scode=$?
-    tr -d '\r' <"$KVM/seam.txt"
+  # The command status is read before any test. A status read inside a
+  # then list is the status of the test itself, so it would always be 0.
+  timeout 600 "$PODBOX" run --podbox-tier=machine --platform windows/amd64 "$PROV" cmd /c ver >"$KVM/seam.txt" 2>"$KVM/seam.err"
+  scode=$?
+  tr -d '\r' <"$KVM/seam.txt"
+  if [ "$scode" -eq 0 ]; then
     if grep -q "Microsoft Windows" "$KVM/seam.txt"; then
       ok "podbox run reached the disk guest with exit $scode"
     else
       miss "seam run missed the version string"
     fi
   else
-    miss "podbox run seam failed"; tail -n 5 "$KVM/seam.err"
+    miss "podbox run seam failed with exit $scode"; tail -n 5 "$KVM/seam.err"
   fi
+else
+  say "skipped: an earlier step already failed"
 fi
 
 say "== residue"
