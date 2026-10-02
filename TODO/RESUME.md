@@ -15,6 +15,15 @@ The full account is
 `TODO/RULES.md` section 11 carries the standing decisions and section 2
 the read-write grant. Do not re-ask any of these.
 
+0. **⛔ KVM and Windows-guest work is deferred by the operator,
+   2026-10-02. Do not start a KVM guest.** T-1641, T-1112 and T-1350
+   are set aside and each stays `partial` with its remaining acceptance
+   recorded. The clearing condition is the operator saying the KVM work
+   resumes: not elapsed time, not a green record, not an agent judging
+   the work ready. Their code, driver, watchdog and base stay in place;
+   only driving them again is deferred. The live work order is the other
+   seven partials, and the nearest is T-1604's lane run.
+
 1. Build compatibility is not a goal. Take whatever toolchain feature
    unlocks the task, nightly included. Fix a toolchain rejection; do not
    ask for a pin.

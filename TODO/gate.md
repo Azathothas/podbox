@@ -1886,6 +1886,17 @@ emulator, or with less than 6144 MiB available. The operator permitted an
 unattended run on 2026-10-02, so the next run adds `--unattended` and holds
 a T-1609 watchdog on the session rather than needing a person in the room.
 
+⛔ **DEFERRED BY THE OPERATOR, 2026-10-02. Do not start a KVM guest for
+this entry until the operator lifts it.** The driver, the watchdog, the
+base and the image are all in place and stay in place; what is set aside
+is driving them again. `TODO/RULES.md` section 11 carries the decision
+and its clearing condition: the operator saying the KVM work resumes.
+Not elapsed time, and not a green record. The entry stays `partial` with
+its measured state above: three runs on 2026-10-02, `setup` completing
+with `INSTALLED D:`, and `run ver` hanging after the firmware handoff,
+which no fix has yet been shown to explain. T-1641 and T-1112 are
+deferred with it.
+
 ----
 
 ### T-1351 Keep the failed check's complete diagnostic
@@ -3713,6 +3724,17 @@ The image is present and correct at
 pinned length. The binaries under `.dev/artifacts*` are from 2026-09-30
 and predate every change here, so a run with any of them would prove
 nothing; the run needs the binary this lane builds.
+
+⛔ **DEFERRED BY THE OPERATOR, 2026-10-02. Do not start a KVM guest for
+this entry until the operator lifts it.** It stays `partial` and its
+remaining acceptance is the one paragraph above, which is recorded
+rather than lost. `TODO/RULES.md` section 11 carries the decision and
+its clearing condition: the operator saying the KVM work resumes. Elapsed
+time does not clear it and a green record does not clear it. The code is
+in place and compiles; only the live run is deferred. The nine tracked
+records written alongside it, including `scripts/build-interpose.sh`, the
+CI interposer step and the `detached_stdio` tier skip, are NOT deferred
+and stay live under T-1604.
 
 The plant this entry owes is also still open: none of the three fixes
 carries one, because a plant that fails without them needs the guest or

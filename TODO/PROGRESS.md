@@ -141,22 +141,32 @@ keeps its historical scope. It does not establish current reliability.
    T-1612 are done. T-1607 is `partial`: the plan's named 21 are in the
    record, the other 29 are not. T-1606 is `partial`: the map is
    repointed, the `path:line` mechanism citations are not.
-9. The ten `partial` entries are the whole remaining work, and each
-   names its own remaining acceptance: T-0204 (store GC cannot delete a
-   running rootfs), T-0211 (the image lock outlives a forking holder),
-   T-1112 (the Windows guest), T-1350 (explicit KVM inputs),
-   T-1406 (live-relay pairing), T-1604 (the lane run), T-1605 (the live
-   tag proof), T-1606 (the `path:line` repoint), T-1607 (the 29
-   unfiled plan rows), and T-1641 (one guarded KVM run). T-1350 is
-   `partial` and was driven three times on 2026-10-02 under the
-   watchdog. `setup` completes; `run ver` hangs after the firmware
-   handoff. `/dev/kvm` needed no reapply this session; `qemu-img` did
-   need installing into the base, and T-1610's Prove clause does not name
-   it. T-1112's KVM leg rides this run. T-1641 implemented the three
-   fixes its diagnosis found and corrected the two causes the diagnosis
-   got wrong; it owes one guarded KVM run, whose binary the Linux lane
-   builds in about a minute.
-10. T-1605 is `partial`: `v0.1.0-beta.13` is pushed and the nightly it
+9. ⛔ **THREE ENTRIES ARE DEFERRED BY THE OPERATOR. Do not start a KVM
+   guest, and do not attempt any of this work, until the operator lifts
+   it.** T-1641, T-1112 and T-1350 are set aside. This overrides the
+   "no deferrals" rule in `TODO/RULES.md` section 11 for exactly these
+   three and nothing else. The clearing condition is the operator saying
+   the KVM work resumes: not elapsed time, not a green record, and not
+   an agent's judgement that the work is ready. They stay `partial` and
+   each keeps its remaining acceptance below, so nothing is lost and no
+   session re-derives the state. The other seven partials are the live
+   work order.
+10. The seven live partials are T-0204 (a store GC cannot delete a
+    running rootfs), T-0211 (the image lock outlives a forking holder),
+    T-1406 (live-relay pairing), T-1604 (the lane run),
+    T-1605 (the live tag proof), T-1606 (the `path:line` repoint) and
+    T-1607 (29 unfiled plan rows). T-1604's lane run is the nearest and
+    needs no guest: `cargo test -p podbox-cli --test detached_stdio`
+    through `sh scripts/dev-lane.sh`.
+11. The three deferred entries carry this state, so a later session does
+    not re-derive it. T-1641 implemented all three fixes and had two of
+    its stated causes refuted in source; it owes one guarded KVM run,
+    whose binary the lane builds in about a minute. T-1350 was driven
+    three times on 2026-10-02 under the watchdog: `setup` completes and
+    `run ver` hangs after the firmware handoff, which no fix has yet been
+    shown to explain. T-1112's remaining acceptance is its KVM leg; its
+    ReactOS clause was descoped, not deferred.
+12. T-1605 is `partial`: `v0.1.0-beta.13` is pushed and the nightly it
     triggers ran red on six legs, all at the licence-inventory shim,
     whose search list did not cover a per-triple build directory. The
     shim is fixed in this change; the next tag push is what proves the
