@@ -1,0 +1,24 @@
+KVM base provisioning, 2026-10-02
+== repair ==
+  this base ALREADY EXISTS: wsl-toolkit-podbox is registered. Nothing will be created; checking what it is
+  the engine answers: podman version 6.1.2
+  registered  true
+  usable      true
+  engine      podman version 6.1.2
+  limits      enforced: no   stats usable: no
+     what   this base has no cgroup delegation for the engine's account, so podman creates no cgroup per container
+
+== packages ==
+qemu-system-x86 11.1.1-4
+qemu-system-x86-firmware 11.1.1-4
+edk2-ovmf 202608-1
+== kvm device ==
+crw-rw---- 1 root kvm 10, 232 Oct  2 06:50 /dev/kvm
+uid=1000(toolkit) gid=1000(toolkit) groups=1000(toolkit),990(kvm)
+== accelerator ==
+QEMU emulator version 11.1.1
+Accelerators supported in QEMU binary: tcg mshv nitro kvm 
+
+== ovmf paths the proof names ==
+OK /usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd
+OK /usr/share/edk2-ovmf/x64/OVMF_VARS.4m.fd

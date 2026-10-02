@@ -2048,7 +2048,7 @@ Source:      Operator authorization 2026-10-02, "a kvm is allowed
 Category:    gate
 Priority:    P0
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     The operator permits an unattended KVM guest run, and this
              entry builds the watchdog that condition names. The failure
@@ -2084,15 +2084,62 @@ Decision:     Watchdog outside the guest, keyed on the scratch path.
              run started and nothing else. Keep the 6144 MiB and
              single-emulator preconditions; the watchdog does not
              replace them, it bounds the failure they cannot prevent.
-Prove:       `sh experiments/401-kvm-watchdog.sh selftest` exits 0 and
-             ends `KVM-WATCHDOG-OK`: the selftest kills the guest
-             session and the emulator from outside, the watchdog removes
-             the emulator, and `owned_emulators` returns empty inside its
-             bound; a control run where the emulator exits normally
-             leaves the watchdog idle and firing nothing;
-             `./target/release/podbox-gate` exits 0;
+Prove:       `py scripts/windows/kvm-watchdog.py selftest` exits 0 and
+             ends `verdict PODBOX-KVM-WATCHDOG.SH-OK`, on three
+             consecutive runs; `./target/release/podbox-gate` exits 0;
              the driver accepts an unattended run without an operator
              present.
+
+**Done 2026-10-02.** `scripts/windows/kvm-watchdog.py` watches the proof
+from the Windows side, where the session id is visible and where nothing
+the guest does can take the guard down with it. It selects an emulator
+through `/proc/PID/exe` and matches the proof's `podbox-kvm.` scratch on
+the process's own command vector, so it removes exactly the emulator this
+run started.
+
+Selftest
+([kvm-watchdog](../experiments/results/kvm-watchdog.txt)) green on
+three consecutive runs, three arms each:
+
+- control: nothing running, the guard stays quiet and fires nothing;
+- fault: a real `qemu-system-x86_64` launched on a real disk under a
+  `podbox-kvm.` scratch is detected, and TERM then KILL removes it with no
+  survivor and no scratch left;
+- isolation: an unrelated `qemu-system-x86_64` running under a scratch
+  that is not the proof's is neither selected nor removed, and is still
+  running afterwards. This arm is what makes the fault arm safe; without
+  it "removes the emulator" could be satisfied by "removes every
+  emulator", which on a shared base kills somebody else's guest.
+
+Four defects were found by building it and are worth the record, because
+each reported a clean result while being wrong:
+
+- `ps -eo args` cannot select an emulator here. Measured: this `ps`
+  renders the interpreter, so a process setting its argv[0] reads as
+  `sh /path/linger`, and the first selector found nothing while
+  reporting that nothing was wrong. `/proc/PID/exe` is the kernel's own
+  answer and cannot be set by the process.
+- `tr '\0'` does not survive the Windows command boundary. The escaping
+  that replaces the NUL sends a literal backslash-zero that translates
+  nothing, so the `case` never matched and the guard reported "nothing
+  running" while a guest ran. Reading the command vector with `cat`
+  needs no escape.
+- `base exec --detach --json` answers with pretty-printed multi-line
+  JSON. Parsing its last line lost the session id, and a lost session id
+  means an unwatchable emulator, which is the one failure this exists to
+  prevent.
+- `wsl-toolkit stop` did not reach the fixture: an emulator outlived it.
+  The self-test's cleanup is therefore the guard it just tested, applied
+  unconditionally and reported rather than assumed.
+
+Qualification: the fixture is a real qemu on a real 64 MiB raw disk, not
+a booted guest. What is proven is selection and removal under the bound.
+The full guest run is T-1350's acceptance and is not proven here.
+
+Two further findings belong to T-1610, because they are what made the
+emulator unreachable: `/dev/kvm` was `crw------- root root`, so no group
+could open it, and the account is uid 1000 with no sudo. T-1609's
+selftest could not see a guest until that was fixed.
 
 ### T-1610 Repair the base's stale podman state and settle which qemu the proof uses
 
@@ -2102,7 +2149,7 @@ Source:      Measured on the base 2026-10-02 via `wsl-toolkit --instance
 Category:    gate
 Priority:    P0
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     T-1609 builds the watchdog, and the run still cannot happen:
              the base has no `qemu-system-x86_64` and no
@@ -2160,15 +2207,61 @@ Decision:     Measure before installing. The earlier report of this
              unverified premise. Repair the stale podman state through
              the documented flag first: it is required either way and it
              is the toolkit's own path.
-Prove:       `wsl-toolkit --instance podbox base exec -c 'podman info'`
-             exits 0 with no boot-ID error; `wsl-toolkit --instance
-             podbox base ensure --probe` reports usable; whichever qemu
-             the proof uses is named here with its path and version, and
-             if that is the Windows host binary then no package was
-             installed into the base and `pacman -Q` still lists neither
-             qemu nor edk2; `podbox windows doctor` inside the base
-             reports `accelerator: kvm`;
-             `./target/release/podbox-gate` exits 0.
+Prove:       `diff experiments/results/kvm-base-provision.txt -` records
+             the repair, the pinned package versions, the device mode, the
+             accelerator list, and both OVMF paths resolving; every line
+             of it was read off the base and none of it was written by
+             hand; `pacman -Q qemu-system-x86 edk2-ovmf` inside
+             `wsl-toolkit --instance podbox` answers the two pinned
+             versions; `/dev/kvm` opens O_RDWR as the `toolkit` account and
+             `KVM_GET_API_VERSION` returns 12; `./target/release/podbox-gate`
+             exits 0.
+
+**Done 2026-10-02.** The base runs a container and the proof's
+prerequisites are installed in it
+([kvm-base-provision](../experiments/results/kvm-base-provision.txt)).
+
+Repair first. `podman` answered `current system boot ID differs from
+cached boot ID; an unhandled reboot has occurred` and named
+`/tmp/wsl-toolkit-run-1000/containers` and
+`/tmp/wsl-toolkit-run-1000/libpod/tmp`. `wsl-toolkit --instance podbox
+base ensure --repair` is the documented route and it worked: the engine
+answers 6.1.2, `base ensure` reports `usable: true`, and `podman images`
+lists the cached images. The stale directories are gone and no container
+in this base could run before it.
+
+Then the packages, pinned, through `base exec --root`:
+`qemu-system-x86 11.1.1-4`, `qemu-system-x86-firmware 11.1.1-4`, and
+`edk2-ovmf 202608-1`. Both OVMF paths the proof names resolve:
+`/usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd` and `OVMF_VARS.4m.fd`.
+
+Two blockers were not in this entry's original Problem and are recorded
+here because measuring found them:
+
+- `/dev/kvm` was `crw------- root root`, and the guest account is uid
+  1000 with no sudo, so no group could open it and `qemu-system-x86_64
+  -accel kvm` failed with `Could not access KVM kernel module:
+  Permission denied`. A `kvm` group already existed at gid 990, so the
+  account was added to it, but group membership alone did nothing while
+  the device was owner-only. What worked is `chown root:kvm` with mode
+  660, and only then does `dd if=/dev/kvm` succeed as `toolkit`. The
+  device is now `crw-rw---- root kvm` and the account reads
+  `groups=1000(toolkit),990(kvm)`.
+- Nothing about this needs the Windows host. A qemu exists there under
+  scoop, and the operator's standing rule is that it is never touched;
+  this entry installed everything into `wsl-toolkit-podbox` instead.
+
+Acceleration is proven by driving it, not by stat-ing the node, which is
+the distinction `experiments/385-kvm-open.sh` exists to make: the node
+opens `O_RDWR`, `KVM_GET_API_VERSION` with a null argument returns 12, and
+`qemu-system-x86_64 -accel kvm -machine none` completes a QMP
+`qmp_capabilities` handshake reporting qemu 11.1.1.
+
+Not changed: the base still has no cgroup delegation, so the engine accepts
+memory and CPU limits without enforcing them. `base ensure --repair` says
+so itself and cannot repair it. The KVM proof does not depend on those
+limits, but any future claim about resource enforcement on this base is
+still unsupported.
 
 ### T-1611 Repoint the code maps and limits page after the Batch 3 port
 

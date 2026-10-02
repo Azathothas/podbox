@@ -2,7 +2,7 @@
 
 ## State
 
-225 entries: 11 open, 3 partial, 0 blocked, 211 done.
+225 entries: 9 open, 3 partial, 0 blocked, 213 done.
 
 The 11 open entries are the CI remainder below, filed on 2026-10-02 as
 tracked tasks with a Prove clause each, replacing the operator-blocked
