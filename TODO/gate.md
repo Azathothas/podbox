@@ -3692,14 +3692,27 @@ What still owes, precisely: one guarded KVM run under the T-1609
 watchdog, which shows `qemu-img info` on the committed image naming no
 backing file, the vendor digest unchanged across `setup`, a timed-out
 `run` leaving no `qemu-system-*` behind, and the seam step naming a
-real exit code. That run could not happen from this host: it needs a
-musl static `podbox`, and `ring`'s build script fails here through
-`scripts/zig-cc.sh`, which a Windows process spawner cannot execute
-(`os error 193`). The failure reproduces on the clean tree with these
-edits stashed, so it is pre-existing. The image is present and correct
-at `/c/Users/AjamX/podbox-images/ValidationOS.vhdx`, 910163968 bytes,
-the pinned length, and the binaries under `.dev/artifacts*` are from
-2026-09-30 and predate every change here.
+real exit code.
+
+⛔ **This session first wrote that the run was impossible on this host,
+and that was wrong. The binary builds; it was built in the wrong
+place.** The earlier text claimed `ring`'s build script cannot run here
+because it invokes `scripts/zig-cc.sh` through a Windows process
+spawner (`os error 193`), and it reported that failure as pre-existing
+on the clean tree. Both observations were real and the conclusion was
+not: `docs/containers.md:33` says Linux builds run in a job container
+in `wsl-toolkit-podbox`, and `scripts/dev-lane.sh` is the one lane
+runner. Building on the Windows host is what produced the error. Run
+through the lane on 2026-10-02, the same build finishes in 55 s on
+`rustc 1.99.0` with zig 0.16.0 at `/usr/local/bin/zig` and produces
+`target/x86_64-unknown-linux-musl/release/podbox`, 3277880 bytes, exit
+0. So the blocker was the lane this session skipped, not the toolchain.
+
+The image is present and correct at
+`/c/Users/AjamX/podbox-images/ValidationOS.vhdx`, 910163968 bytes, the
+pinned length. The binaries under `.dev/artifacts*` are from 2026-09-30
+and predate every change here, so a run with any of them would prove
+nothing; the run needs the binary this lane builds.
 
 The plant this entry owes is also still open: none of the three fixes
 carries one, because a plant that fails without them needs the guest or

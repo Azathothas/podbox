@@ -62,17 +62,30 @@ a separate standalone file.
 
 ## Not run, and why
 
-- **`cargo test --workspace` did not run here.** `ring`'s build script
-  invokes `scripts/zig-cc.sh` through a Windows process spawner, which
-  cannot execute a shell script: `%1 is not a valid Win32 application
-  (os error 193)`. Verified on the clean tree with the edits stashed, so
-  it is pre-existing and not introduced here.
-- **The KVM proof did not run.** It needs a musl static `podbox` binary,
-  and the same `ring` failure is what blocks that build on this host. The
-  image is present and correct: `/c/Users/AjamX/podbox-images/ValidationOS.vhdx`,
-  910163968 bytes, the pinned length. The binaries under `.dev/artifacts*`
-  are from 2026-09-30 and predate every change in this session, so a run
-  with any of them would prove nothing. T-1641 therefore closes partial,
-  with the lane as its named remaining acceptance.
+⛔ **The first draft of this section said both proofs were blocked by the
+host, and that was wrong. Both run in the Linux lane. This session built
+on the Windows host, where `ring`'s build script invokes
+`scripts/zig-cc.sh` through a Windows process spawner and fails with
+`%1 is not a valid Win32 application (os error 193)`. The failure was
+real, it reproduced on the clean tree, and it was still the wrong
+measurement: `docs/containers.md:33` says Linux builds run in a job
+container in `wsl-toolkit-podbox`, and `scripts/dev-lane.sh` is the one
+lane runner.** Reported as a host limit, a build-location mistake read
+as a platform limitation.
+
+Corrected, measured in the lane on 2026-10-02:
+
+| Row | Evidence |
+| --- | --- |
+| Lane build | `sh scripts/dev-lane.sh run .tmp/probe-build.sh`, job `d1e71f0605f63e9f`, exit 0, 104.2 s wall |
+| Toolchain there | `rustc 1.99.0 (b940084d7 2026-09-28)`, `cargo 1.99.0`, zig 0.16.0 at `/usr/local/bin/zig`, gcc 12, musl target present |
+| The binary the KVM proof needs | `target/x86_64-unknown-linux-musl/release/podbox`, 3277880 bytes, `Finished release profile in 55.16s`, build exit 0 |
+| Job collected | `wsl-toolkit --instance podbox gc --job d1e71f0605f63e9f --apply`, "ledger compacted to 0 open record(s)", exit 0 |
+| Lane linter | refused my first job because it piped cargo into `tail`, because a pipe reports the pipe's status. The refusal was correct and is the rule in `scripts/dev-lane.sh` |
+
+So the remaining acceptance for T-1641 and T-1604 is unchanged and is
+only a lane run; the binary it needs already builds. Neither proof was
+run this session.
+
 - No subagent ran a guest. No subagent edited a `TODO/` row or ran
   `podbox-count`.

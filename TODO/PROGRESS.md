@@ -151,8 +151,8 @@ keeps its historical scope. It does not establish current reliability.
    need installing into the base, and T-1610's Prove clause does not name
    it. T-1112's KVM leg rides this run. T-1641 implemented the three
    fixes its diagnosis found and corrected the two causes the diagnosis
-   got wrong; it owes one guarded KVM run, which needs a musl static
-   binary this Windows host cannot build.
+   got wrong; it owes one guarded KVM run, whose binary the Linux lane
+   builds in about a minute.
 10. T-1605 is `partial`: `v0.1.0-beta.13` is pushed and the nightly it
     triggers ran red on six legs, all at the licence-inventory shim,
     whose search list did not cover a per-triple build directory. The
