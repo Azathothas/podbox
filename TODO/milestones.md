@@ -864,12 +864,24 @@ Approach:    Keep the shared mailbox and QMP driver. Prove each guest route
 Decision:    Keep this entry partial until the ReactOS acceptance passes.
              Historical ValidationOS and DOS results keep their stated
              scope. They do not prove the current failed KVM repetition.
+             REVISED 2026-10-02. The operator descoped ReactOS: it is low
+             priority and ReactOS is itself a beta operating system, so
+             proving podbox against it is proving against a moving
+             target. The clause is dropped rather than deferred, because
+             "deferred" means it will be picked up later and this will not
+             be. What still owns this entry is the KVM leg: one guarded
+             run under `--unattended`, which T-1609 and T-1610 have
+             unblocked. The entry becomes `done` on that leg and not
+             before. Do not read this revision as a claim that a
+             non-Linux guest route is proven; the DOS and ValidationOS
+             results keep exactly the scope stated above.
 Prove:       `sh experiments/369-windows-tcg-dos.sh`,
              `sh experiments/370-windows-guest.sh`, and
-             `sh experiments/392-kvm-guest.sh --accept-host-risk --binary BINARY --image IMAGE`
-             return 0 on their stated hosts. A tracked ReactOS driver must
-             also prove command output, guest exit 42, unchanged base, and
-             no owned residue on two consecutive runs.
+             `sh experiments/392-kvm-guest.sh --accept-host-risk
+             --unattended --binary BINARY --image IMAGE` return 0 on
+             their stated hosts. The ReactOS clause is descoped by the
+             operator on 2026-10-02 and is not part of this entry's
+             acceptance; see the Decision.
 
 **Partial 2026-09-30.** Earlier tracked results prove FreeDOS under TCG
 and ValidationOS under TCG. The saved KVM result from 2026-09-29 proves

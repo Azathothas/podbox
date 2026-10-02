@@ -109,9 +109,9 @@ keeps its historical scope. It does not establish current reliability.
 4. T-1003 is done: rung-complete FUSE, armed tmpfs entry, OCI-tarball rootfs.
 5. T-1407 through T-1421 are done: the fifteen findings with their drives.
 6. T-1350 and T-1112 stay partial: one guarded KVM run with
-   `--unattended`, then ReactOS. ReactOS needs a redistributable base
-   that does not exist, so that half is blocked on a human. Tracked, not
-   deferred.
+   `--unattended`, then T-1112 closes on that leg. Its ReactOS clause
+   was descoped on 2026-10-02, not deferred: ReactOS is a beta operating
+   system and the operator judged the proof worth less than the churn.
 7. T-1559 through T-1569 are done: the three tool crates with their
    shims, proofs, and plants. The nightly wiring for `release-notes`
    lands with them; T-1605 owns the live tag proof.
@@ -182,9 +182,8 @@ operator permitted an unattended run on 2026-10-02, conditional on a
 watchdog outside the guest. Both blockers that stood between here and
 the proof are done: T-1609 built the watchdog and wired it to the driver,
 T-1610 repaired podman and installed qemu and OVMF into the base. T-1350
-can now run guarded. T-1112's KVM leg rides the same run; its ReactOS leg
-is still blocked on a redistributable base that does not exist in the
-tree.
+can now run guarded. T-1112's KVM leg rides the same run, and its ReactOS
+clause was descoped on 2026-10-02. Nothing is blocked on a human.
 
 ## Publication
 

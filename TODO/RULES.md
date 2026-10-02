@@ -132,3 +132,46 @@ Do not invent a finding to satisfy a review quota.
 | Windows route is wsl-toolkit, instance podbox | containers.md |
 | An unattended KVM guest run is permitted on this host, conditional on a watchdog outside the guest that removes an emulator outliving its bound. Reverses the 2026-09-30 operator-present rule. No other host is covered. | Operator, 2026-10-02; T-1609, T-1350, T-1112 |
 | Everything the KVM proof needs is installed into `wsl-toolkit-podbox`. The Windows host qemu is never touched, used, or invoked, even where a host binary would answer the question. | Operator, 2026-10-02; T-1610 |
+| ReactOS is descoped, not deferred. Proving podbox against a beta operating system is proving against a moving target, and it is low priority. T-1112 closes on its KVM leg. | Operator, 2026-10-02; T-1112 |
+| Work unattended to completion. Use subagents and swarms where they help; do not stop to ask about anything already settled in section 11 or section 2. Take the work order, finish it, and leave the record green. | Operator, 2026-10-02 |
+
+## 12. Subagents and parallel work
+
+Subagents are the normal way to take this project, not an exception.
+Nothing in this section is optional and nothing in it needs an operator.
+
+**One writer for the record.** `podbox-count` rewrites the whole Counts
+block of `TODO/INDEX.md` from every row, and `check_tree` then reads the
+whole tree. Two agents editing `TODO/INDEX.md` are both green and the
+merge is wrong. The same is true of any file whose whole content one
+tool rewrites: `docs/runtime-state.md` is written by `document-state`,
+and `TODO/PROGRESS.md` carries the only work order. Pick one writer per
+file per batch and let the others read.
+
+**Dispatch on disjoint files.** Take the open rows from
+`TODO/INDEX.md` and group them by the files their Approach names. T-1601
+through T-1604 touch `crates/podbox-interpose/`, `crates/podbox-image/`,
+`scripts/common/` plus a workflow, and `crates/podbox-cli/tests/`
+respectively, so four agents run fully parallel. T-1608 and T-1611 both
+edit the Batch 3 Done paragraphs and both Prove on `check-one-home`, so
+they serialise behind one writer, T-1608 first.
+
+**A subagent reports, it does not assume.** Give it the exact path or
+command, not a description of where to look. Read its conclusion; do
+not paste its intermediate output into the record as fact. Every claim
+it makes is a claim until something reads the artefact.
+
+**Proof is the parent's job.** A subagent may run a gate or a check to
+answer a question. Closing an entry, writing its Done paragraph, and
+running `podbox-count` belong to one writer at the end. Two agents
+closing two entries at once is how a count line and a row disagree.
+
+**Never `git add -A` while a tool is writing the tree.** `podbox-plant`
+and the `--script` family plant defects into tracked files and restore
+them at the end. Staging during that window commits a defect. Stage
+explicit paths. This happened once on 2026-10-02 and `246b462` reverted
+it.
+
+**No subagent runs a KVM guest.** The proof is a host-stability risk. One
+parent session runs it, with `--accept-host-risk --unattended`, and no
+subagent is given a proof to execute.

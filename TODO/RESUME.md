@@ -95,10 +95,11 @@ changed by hand to `crw-rw---- root kvm`. That is per boot: the base's
 own tmpfiles rule replays `z /dev/kvm 0666 - kvm -`. After a reboot,
 reapply it or run the guest as root.
 
-T-1112 stays partial: its KVM leg rides the same run, and its ReactOS
-leg needs a redistributable base that does not exist anywhere in the
-tree. No task owns that acquisition and no standing decision covers it.
-It is the one remaining item a human must decide.
+T-1112 stays partial, and its ReactOS clause is now descoped rather than
+blocked: the operator dropped it on 2026-10-02 because ReactOS is itself
+a beta operating system, so proving against it proves against a moving
+target. T-1112 closes on its KVM leg alone. Nothing in the plan is
+blocked on a human decision any more.
 
 ## Measured state
 
@@ -124,10 +125,34 @@ entries. Do not treat it as the record.
 ## Next prompt
 
 ```
-Continue podbox from TODO/RESUME.md. Read TODO/RULES.md section 11
-before acting; five standing decisions from 2026-10-02 bind this work.
-The gate that runs on this host is
-./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe, not the one under
-target/release. Take T-1601 from TODO/interpose.md and implement it;
-its lint cannot be reproduced here, so prove it in the Linux lane.
+Continue podbox from TODO/RESUME.md and work unattended to completion.
+Do not stop to ask about anything already settled: TODO/RULES.md section
+11 carries seven standing decisions and section 2 the read-write grant.
+
+Gate first, with the binary that exists on this host:
+./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe
+(target/release/ does not; .cargo/config.toml sets the musl target.)
+
+Use subagents and swarms; TODO/RULES.md section 12 owns the rules. Take
+the ten open rows from TODO/INDEX.md, group them by the files their
+Approach names, and dispatch one agent per disjoint group:
+
+  wave 1, four agents, fully parallel, no shared file:
+    T-1601  crates/podbox-interpose/   needs a Linux lane proof
+    T-1602  crates/podbox-image/       parallel_layers reads the fields
+    T-1603  scripts/common/ + .github/workflows/
+    T-1604  crates/podbox-cli/tests/
+  wave 2, one writer, after wave 1: T-1608 then T-1611, which share the
+    Batch 3 Done paragraphs and both Prove on check-one-home
+  wave 3: T-1612, then T-1607, then T-1606, then T-1605
+  and the KVM run itself, T-1350, guarded and not delegated
+
+A subagent reports and does not close. Closing an entry, writing its
+Done paragraph, and running podbox-count belong to one writer at the
+end. Never git add -A while podbox-plant or any --script tool is
+running; stage explicit paths. No subagent starts a KVM guest.
+
+Finish the batch, then keep taking the work order until the record is
+green, and print the next prompt at the close. Save the measured summary
+beside the record before you stop.
 ```
