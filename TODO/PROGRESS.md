@@ -2,9 +2,9 @@
 
 ## State
 
-222 entries: 8 open, 3 partial, 0 blocked, 211 done.
+225 entries: 11 open, 3 partial, 0 blocked, 211 done.
 
-The 8 open entries are the CI remainder below, filed on 2026-10-02 as
+The 11 open entries are the CI remainder below, filed on 2026-10-02 as
 tracked tasks with a Prove clause each, replacing the operator-blocked
 list and the untracked `refactor/DEFERRALS.md`. Read
 `TODO/RULES.md` section 11 before taking any of them: the operator
@@ -117,10 +117,14 @@ keeps its historical scope. It does not establish current reliability.
    stdio cascade. Take T-1601 first; it also clears the plant MISSes.
 9. T-1607 files the 21 unbatched plan rows. T-1606 repoints the
    `references/` citations. T-1605 pushes the version tag.
+10. T-1609 then T-1610 unblock the KVM proofs T-1350 and T-1112.
+    T-1611 repoints the code maps after the Batch 3 port.
 
-An agent must not start a KVM guest without the operator present.
-That rule is about host risk and no standing decision removes it. It
-is a tracked condition on T-1350 and T-1112, not a deferral.
+An agent may start a KVM guest unattended. The operator reversed
+the 2026-09-30 rule on 2026-10-02, conditional on a watchdog that runs
+outside the guest and removes an emulator that outlives its bound. See
+T-1609, which builds that watchdog; until it lands, the driver still
+refuses without `--accept-host-risk`.
 Read each entry's exact proof and referenced source before
 implementation.
 
@@ -173,11 +177,11 @@ They bind every future session and are not restated anywhere else:
 | secrets-check pattern | operator call | settled, T-1603 |
 | version tag and release | operator action | authorized, T-1605 |
 
-The KVM and emulator work still needs a person in the room, because
-the rule is about host risk and no decision removes it. It is tracked,
-not deferred: T-1350 and T-1112 stay partial, and the ten emulator
-scripts plus the two tasks are T-1112's clearing condition, "an
-operator-present session accepting the host risk".
+The KVM and emulator work no longer needs a person in the room. The
+operator permitted an unattended run on 2026-10-02, conditional on the
+watchdog T-1609 builds. Two measured blockers stand between here and
+the proof: T-1609 the watchdog, and T-1610 the missing qemu and OVMF
+packages. T-1350 and T-1112 stay `partial` until both clear.
 
 ## Publication
 

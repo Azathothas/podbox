@@ -130,3 +130,4 @@ Do not invent a finding to satisfy a review quota.
 | No upstream writes | vendoring.md |
 | Refuse the docker name beside a reachable daemon unless explicitly selected | T-0803 |
 | Windows route is wsl-toolkit, instance podbox | containers.md |
+| An unattended KVM guest run is permitted on this host, conditional on a watchdog outside the guest that removes an emulator outliving its bound. Reverses the 2026-09-30 operator-present rule. No other host is covered. | Operator, 2026-10-02; T-1609, T-1350, T-1112 |

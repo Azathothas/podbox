@@ -283,10 +283,13 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1606](podvm.md) | P2 | podvm | open | Repoint all 47 `references/` citations before deleting the corpus |
 | [T-1607](gate.md) | P1 | gate | open | File the 21 unbatched plan tasks as a later queue |
 | [T-1608](gate.md) | P2 | gate | open | Reword the Batch 3 Done paragraphs so one-home passes |
+| [T-1609](gate.md) | P0 | gate | open | Build the KVM watchdog that makes an unattended guest run safe |
+| [T-1610](gate.md) | P0 | gate | open | Install qemu and OVMF in the KVM base |
+| [T-1611](gate.md) | P1 | gate | open | Repoint the code maps and limits page after the Batch 3 port |
 
 ## Counts
 
-222 items: 8 open, 3 partial, 0 blocked, 211 done.
+225 items: 11 open, 3 partial, 0 blocked, 211 done.
 
 Counted from the rows above by `./target/release/podbox-count` and asserted
 independently by `./target/release/podbox-gate`, which is the gate. A number here
@@ -294,11 +297,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 3 | 0 | 0 | 54 | 57 |
-| P1 | 3 | 3 | 0 | 102 | 108 |
+| P0 | 5 | 0 | 0 | 54 | 59 |
+| P1 | 4 | 3 | 0 | 102 | 109 |
 | P2 | 2 | 0 | 0 | 47 | 49 |
 | P3 | 0 | 0 | 0 | 8 | 8 |
-| **All** | **8** | **3** | **0** | **211** | **222** |
+| **All** | **11** | **3** | **0** | **211** | **225** |
 
 ## Work order
 

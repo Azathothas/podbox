@@ -2038,3 +2038,149 @@ Prove:       `sh scripts/common/check-one-home.sh` exits 0;
              `./target/release/podbox-gate` exits 0; a CI run on the
              landed commit reports the maintained repository checks step
              green rather than skipped.
+
+### T-1609 Build the KVM watchdog that makes an unattended guest run safe
+
+Source:      Operator authorization 2026-10-02, "a kvm is allowed
+             unattended now, with a watchdog";
+             `experiments/lib/kvm-guest-base.sh` `:36` and `:196`;
+             `experiments/lib/kvm-owned.sh`; `docs/limits.md`
+Category:    gate
+Priority:    P0
+Effort:      M
+Status:      open
+
+Problem:     The operator permits an unattended KVM guest run, and this
+             entry builds the watchdog that condition names. The failure
+             it answers to is measured: on 2026-09-30 a proof left a
+             4 GiB emulator that SIGKILL did not remove and the Windows
+             host then failed. The existing cleanup is not enough,
+             because it runs inside the guest (`stop_owned_emulators`,
+             `experiments/lib/kvm-owned.sh:8`) and is reached through
+             the guest's own EXIT trap. A guest that hangs, dies, or is
+             reaped takes its trap with it, which is the case the
+             2026-09-30 failure was.
+Premise:     Measured on this host 2026-10-02: `/dev/kvm` is a character
+             device and `vmx` is in `/proc/cpuinfo`, with 30 GiB
+             available, so the nested accelerator is live. But
+             `qemu-system-x86_64` is absent from the base and
+             `/usr/share/edk2-ovmf/` does not exist, and the guest
+             account is uid 1000 with no `sudo`. So the watchdog is the
+             first of the two blockers, not the only one.
+Approach:     The watchdog runs on the Windows side, outside the guest,
+             because a guard inside the guarded process is not a guard.
+             It starts before the driver, takes the guest session id
+             from `wsl-toolkit base exec --detach`, and on expiry stops
+             the session and removes any `qemu-system-x86_64` still
+             running from that scratch directory. Reuse
+             `experiments/lib/kvm-owned.sh`'s ownership rule, which
+             already selects an emulator by its `$KVM/` path rather than
+             by name, so the watchdog cannot kill an unrelated emulator.
+             Bound it above the driver's own 4200 s so the watchdog is
+             the last resort, not the normal path.
+Decision:     Watchdog outside the guest, keyed on the scratch path.
+             Reusing the existing ownership rule is what makes it safe
+             to run unattended: it removes exactly the emulator this
+             run started and nothing else. Keep the 6144 MiB and
+             single-emulator preconditions; the watchdog does not
+             replace them, it bounds the failure they cannot prevent.
+Prove:       `sh experiments/401-kvm-watchdog.sh selftest` exits 0 and
+             ends `KVM-WATCHDOG-OK`: the selftest kills the guest
+             session and the emulator from outside, the watchdog removes
+             the emulator, and `owned_emulators` returns empty inside its
+             bound; a control run where the emulator exits normally
+             leaves the watchdog idle and firing nothing;
+             `./target/release/podbox-gate` exits 0;
+             the driver accepts an unattended run without an operator
+             present.
+
+### T-1610 Install qemu and OVMF in the KVM base
+
+Source:      Measured on the base 2026-10-02 via `wsl-toolkit --instance
+             podbox base exec`; `experiments/lib/kvm-guest-base.sh` `:16`
+             and `:59`
+Category:    gate
+Priority:    P0
+Effort:      M
+Status:      open
+
+Problem:     T-1609 builds the watchdog, and the run still cannot happen:
+             the base has no `qemu-system-x86_64` and no
+             `/usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd`, which
+             `experiments/lib/kvm-guest-base.sh:16` requires by path and
+             `:59` runs by version. The guest account is uid 1000 with no
+             `sudo`, so it cannot install anything itself.
+Premise:     `/dev/kvm` and `vmx` are both present and 30 GiB is
+             available, so the accelerator is live and the failure is
+             packaging, not capability. `pacman` exists at
+             `/usr/sbin/pacman`, so the packages exist; only the route to
+             root does.
+Approach:     Find the supported route rather than escalating privileges
+             by hand. `wsl-toolkit base exec --root` runs as root, and
+             `base bootstrap` installs the toolset the base carries, so
+             check whether the toolset includes qemu and edk2 first and
+             use `--root` with `pacman` only for what is missing. Pin the
+             package versions, because the pinned VHDX image digest in
+             `experiments/lib/kvm-guest-base.sh:15` assumes a known
+             guest and a moved qemu changes its behaviour.
+Decision:     Route through the toolkit before reaching for `--root`. A
+             hand-run `pacman` on someone's base is the change with the
+             widest blast radius in this plan, and the toolkit already
+             owns the base's package state.
+Prove:       `wsl-toolkit --instance podbox base exec -c 'qemu-system-x86_64 --version'`
+             exits 0 and `ls /usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd`
+             resolves; `podbox windows doctor` inside the base reports
+             `accelerator: kvm`; the package versions used are recorded
+             here; `./target/release/podbox-gate` exits 0.
+
+### T-1611 Repoint the code maps and limits page after the Batch 3 port
+
+Source:      Two read-only audits run 2026-10-02, both reading the live
+             tree; `docs/code-map.md` `:5` and `:23`;
+             `docs/agent-tooling.md` `:31`; `docs/limits.md` `:33`;
+             `README.md` `:103`; `scripts/README.md` `:21`
+Category:    gate
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     The source-discovery pages still describe the world before
+             the Batch 3 port. `docs/code-map.md:5` lists ten crates
+             and `crates/` holds fourteen: `podbox-buildstate`,
+             `podbox-release`, and `podbox-podvm` are absent, and so is
+             `podbox-gate`, which supplies `podbox-dev`, `podbox-count`,
+             `podbox-plant`, and `podbox-smoke`.
+             `docs/code-map.md:23` and `docs/agent-tooling.md:31` both
+             give `scripts/build-state.py` and `scripts/document-state.py`
+             as the owners of behaviour that moved to
+             `crates/podbox-buildstate` and the `document-state` binary;
+             each file is an exec shim and says so in its own header.
+             `README.md:103` and `scripts/README.md:21` still name
+             `verify-release.sh` as the verifier where the logic is now
+             `podbox-verify`. `docs/limits.md:33` points T-1405 at
+             release packaging for helpers that beta.10 already ships.
+Premise:     Every claim above was read in the source, not inferred.
+             `docs/runtime-state.md:14` and `Cargo.toml:3` already list
+             all thirteen members, so the page that tracks the port is
+             the generated one and the two hand-written maps are the
+             ones that missed it. The documented shell commands still
+             work, because T-1561 keeps each shim deliberately, so this
+             is stale ownership naming rather than a broken procedure.
+Approach:     Add the four missing crates to `docs/code-map.md` with
+             their owners, mark each shim in both maps as a shim and
+             name the binary that owns the logic, and correct the
+             beta.9 sentence in `docs/limits.md` to say the helper gap
+             closed at beta.10 with T-1405 done. Do not delete the shim
+             rows: the paths are real and the commands in `README.md`
+             invoke them.
+Decision:     Fix the hand-written maps. The generated page was right
+             and the prose was wrong, so the prose is where the
+             correction belongs. `docs/limits.md` is a limits page, so a
+             closed gap stated as a live limit is the specific kind of
+             drift that misleads a reader choosing a path.
+Prove:       `grep -c "podbox-buildstate\|podbox-release\|podbox-podvm\|podbox-gate" docs/code-map.md`
+             is 4 or more; `grep -n "exec shim\|compat shim" docs/code-map.md docs/agent-tooling.md`
+             names each shim row; `grep -n "beta.9" docs/limits.md` returns
+             nothing; `sh scripts/common/check-docs.sh` exits 0;
+             `sh scripts/common/check-one-home.sh` exits 0;
+             `./target/release/podbox-gate` exits 0.

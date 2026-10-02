@@ -61,8 +61,10 @@ ReactOS remains unproved in that entry.
 
 Nested KVM in the Windows base can stop the Windows host. On 2026-09-30 a
 KVM proof left an emulator that SIGKILL did not remove, and the host then
-failed. The proof driver requires `--accept-host-risk` and an operator who
-is present. It refuses beside another emulator or below 6144 MiB available.
+failed. The operator permitted an unattended run on 2026-10-02, on this
+host only, conditional on the watchdog T-1609 builds. The proof driver
+still requires `--accept-host-risk` until that watchdog lands. It refuses
+beside another emulator or below 6144 MiB available.
 
 ## Development base
 

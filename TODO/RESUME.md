@@ -1,14 +1,18 @@
 # Resume
 
-Session 2026-10-02, decision round. Tree `main` at `b9ed3ac`, pushed,
-clean apart from this session's own record change. Record gate exits 0
-on the landed tree: 220 entries, 6 open, 3 partial, 0 blocked, 211
-done.
+Session 2026-10-02, decision round. Tree `main` at `496d869`, pushed
+and clean. Record gate exits 0: 225 entries, 11 open, 3 partial,
+0 blocked, 211 done.
 
 This session asked the operator about every open, pending, or blocked
 item the previous session reported, settled all ten, and wrote the
 answers into the record. It implemented none of the settled work.
-Seven entries are open and unstarted.
+Eleven entries are open and unstarted.
+
+One commit this session made was wrong and was reverted. `0c0ae8b`
+carried a live `podbox-plant` defect into `main` because `git add -A`
+ran while the plant was still writing. `246b462` reverted it. Read the
+note in `TODO/PROGRESS.md` before staging anything with `git add -A`.
 
 ## Read before acting
 
@@ -40,6 +44,22 @@ to do: allow the lint at the definition, forward-compatible through
 
 Then T-1602, T-1603, and T-1604, which clear the other three red CI
 jobs. Then T-1607, T-1606, and T-1605.
+
+## The KVM rule changed on 2026-10-02
+
+The operator permits an **unattended** KVM guest run on this host,
+conditional on a watchdog outside the guest. Recorded in
+`TODO/RULES.md` section 11 and `docs/limits.md`. T-1350 and T-1112
+stay `partial` until it lands, and the work is no longer one entry:
+
+| id | blocker | measured 2026-10-02 |
+| --- | --- | --- |
+| T-1609 | no watchdog outside the guest | cleanup runs inside the guest and dies with it |
+| T-1610 | no qemu, no OVMF | `qemu-system-x86_64` absent, `/usr/share/edk2-ovmf/` absent, account uid 1000 with no `sudo` |
+
+The accelerator itself is live: `/dev/kvm` is present, `vmx` is in
+`/proc/cpuinfo`, 30 GiB available. T-1610 is packaging, not
+capability. T-1609 first, then T-1610, then the T-1350 proof.
 
 ## What changed this session
 
@@ -80,10 +100,14 @@ claim. T-1607 records the corrected figure and owns the queue.
 | T-1605 | live version tag proof | authorized; no operator action needed |
 | T-1606 | repoint 47 `references/` citations | blocks the corpus deletion |
 | T-1607 | file 21 unbatched rows | mechanical |
+| T-1608 | one-home fails on Batch 3 prose | rewording two Done paragraphs |
+| T-1609 | KVM watchdog outside the guest | new script; blocks T-1350 |
+| T-1610 | qemu and OVMF absent from the base | needs the toolkit's root route |
+| T-1611 | code maps name shims, miss four crates | documentation only |
 
-T-1350 and T-1112 stay `partial` on one condition no decision removes:
-an operator-present KVM session accepting host risk. Do not start a
-KVM guest unattended.
+T-1350 and T-1112 stay `partial` until T-1609 and T-1610 clear. The
+operator permits an unattended run; the two blockers above are what
+stands between this tree and the proof.
 
 ## Next prompt
 
