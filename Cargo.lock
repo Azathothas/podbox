@@ -313,11 +313,11 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "podbox-buildstate"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 
 [[package]]
 name = "podbox-cli"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 dependencies = [
  "podbox-complete",
  "podbox-enter",
@@ -333,7 +333,7 @@ dependencies = [
 
 [[package]]
 name = "podbox-complete"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 dependencies = [
  "podbox-extract",
  "podbox-image",
@@ -344,14 +344,14 @@ dependencies = [
 
 [[package]]
 name = "podbox-enter"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 dependencies = [
  "podbox-probe",
 ]
 
 [[package]]
 name = "podbox-extract"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 dependencies = [
  "flate2",
  "podbox-image",
@@ -365,11 +365,11 @@ dependencies = [
 
 [[package]]
 name = "podbox-gate"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 
 [[package]]
 name = "podbox-image"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 dependencies = [
  "base64 0.23.1",
  "podbox-probe",
@@ -386,11 +386,11 @@ dependencies = [
 
 [[package]]
 name = "podbox-podvm"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 
 [[package]]
 name = "podbox-probe"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 dependencies = [
  "linux-raw-sys",
  "syscalls",
@@ -398,11 +398,11 @@ dependencies = [
 
 [[package]]
 name = "podbox-release"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 
 [[package]]
 name = "podbox-ssh"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 dependencies = [
  "base64 0.23.1",
  "podbox-probe",
@@ -414,7 +414,7 @@ dependencies = [
 
 [[package]]
 name = "podbox-supervise"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 dependencies = [
  "podbox-enter",
  "podbox-image",
@@ -425,7 +425,7 @@ dependencies = [
 
 [[package]]
 name = "podbox-windows"
-version = "0.1.0-beta.12"
+version = "0.1.0-beta.13"
 dependencies = [
  "podbox-probe",
  "sha2",
@@ -570,9 +570,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4"
+checksum = "47d7069beb7d6ac7b9acd1039986e73443f24234f41074da099d6f994ac9ad19"
 dependencies = [
  "cfg-if",
  "cpufeatures",
