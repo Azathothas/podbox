@@ -1,5 +1,5 @@
 // Deprecated: Use go.podman.io/storage instead.
-go 1.23.0
+go 1.24
 
 // Warning: Ensure the "go" and "toolchain" versions match exactly to prevent unwanted auto-updates.
 // That generally means there should be no toolchain directive present.
@@ -13,7 +13,7 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/google/go-intervals v0.0.2
 	github.com/json-iterator/go v1.1.12
-	github.com/klauspost/compress v1.18.0
+	github.com/klauspost/compress v1.18.7
 	github.com/klauspost/pgzip v1.2.6
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mistifyio/go-zfs/v3 v3.0.1
