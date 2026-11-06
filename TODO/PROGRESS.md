@@ -2,7 +2,7 @@
 
 ## State
 
-294 entries: 33 open, 9 partial, 10 blocked, 242 done.
+294 entries: 34 open, 9 partial, 9 blocked, 242 done.
 
 The project was renamed from podbox to podvm on 2026-11-06 (commit
 `rename: podbox is podvm`): entries closed before that commit ran their
@@ -210,9 +210,11 @@ keeps its historical scope. It does not establish current reliability.
     T-1680 take the podcrates crates in the order of COORD-001
     (issue 194), each on its podcrates release, and T-1681 hands over
     the seven generic crates on podcrates' import. T-1672 moves the
-    record to the pod-todo format on that crate's release, T-1674 waits
-    for the owner's line limit, and T-1682 waits for the KVM deferral
-    of item 9 to lift.
+    record to the pod-todo format on that crate's release, and T-1682
+    waits for the KVM deferral of item 9 to lift. T-1674 is open and P1
+    since the owner's ruling of 2026-11-06: split every `.rs` file to
+    500 lines, the M6 crates first, before other work, then hold the
+    limit in the gate.
 
 An agent may start a KVM guest unattended by passing both
 `--accept-host-risk` and `--unattended`; the driver then holds a T-1609
@@ -274,8 +276,8 @@ watchdog outside the guest. Both blockers that stood between here and
 the proof are done: T-1609 built the watchdog and wired it to the driver,
 T-1610 repaired podman and installed qemu and OVMF into the base. T-1350
 can now run guarded. T-1112's KVM leg rides the same run, and its ReactOS
-clause was descoped on 2026-10-02. Two entries wait on the owner:
-T-1682 on the KVM deferral, and T-1674 on a line limit.
+clause was descoped on 2026-10-02. One entry waits on the owner:
+T-1682 on the KVM deferral.
 
 ## Publication
 

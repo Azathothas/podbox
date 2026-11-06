@@ -3876,37 +3876,41 @@ Prove:       `git show origin/archive/podbox-worktree:refactor/recon-c.md`
 
 ---
 
-### T-1674 A source-file size limit with an allowlist that only shrinks
+### T-1674 Split every Rust source file to 500 lines, then hold the limit in the gate
 
-Source:      the migration of 2026-11-06; `crates/podvm-gate/src/main.rs:1`
+Source:      the owner's ruling of 2026-11-06 ("500, split everything
+             now"); `docs/decisions.md`; `crates/podvm-gate/src/main.rs:1`
              (4,220 lines); `crates/podvm-interpose/src/lib.rs:1` (3,129
              lines); `crates/podvm/src/lifecycle.rs:1` (2,926 lines)
 Category:    gate
-Priority:    P2
-Effort:      S
-Status:      blocked
+Priority:    P1
+Effort:      L
+Status:      open
 
-Problem:     No check bounds the size of a source file. The largest,
-             `crates/podvm-gate/src/main.rs`, has 4,220 lines, and six
-             other `.rs` files have over 2,000. A large file is hard to
-             review and hard to split once a crate leaves for podcrates.
-Premise:     The gate already bounds the release binary size
-             (`check_size_ceiling`, `main.rs:2026`). It has no check for
-             source lines. The right number of lines is a question for the
-             owner.
-Approach:    Add a check to the gate: a tracked source file over N lines
-             fails, unless it is on an allowlist with its current count. An
-             entry on the allowlist may only go down; a file that grows
-             fails. Plant a file one line over the limit and a listed file
-             that grows.
-Decision:    The allowlist shrinks and never grows. A file leaves it when it
-             falls under N. N is the owner's number.
+Problem:     No check bounds the size of a source file. On 2026-11-06, 55
+             tracked `.rs` files outside `vendor/` have more than 500 lines,
+             65,247 lines in all; the largest is
+             `crates/podvm-gate/src/main.rs` with 4,220. A large file is
+             hard to review, and podcrates takes a crate only with each file
+             at 500 lines or fewer, so every crate that moves there needs
+             the split first.
+Premise:     podcrates holds each source file to 500 lines with no
+             allowlist. The owner ruled the same rule for podvm, and that
+             every oversized file is split now, before the check lands,
+             not over time.
+Approach:    Split the 55 files into modules of at most 500 lines each,
+             crate by crate, starting with the seven crates that move to
+             podcrates (wave M6: probe, image, extract, complete, enter,
+             supervise, windows). A split moves code; it changes no
+             behaviour, and each crate's test count stays the same. Then
+             add a gate check: a tracked `.rs` file outside `vendor/` with
+             more than 500 lines fails, with no allowlist. Plant a file of
+             501 lines.
+Decision:    500 lines, no allowlist, every file split before other work
+             (the owner, 2026-11-06). `vendor/` keeps upstream's layout.
 Prove:       `./target/release/podvm-gate` exits 0 with the check in place,
-             and `./target/release/podvm-plant` exits 0 with two new plants
-             caught: a file one line over N, and a listed file that grows.
-
-**Blocked 2026-11-06.** Blocker: the owner has not given N, the line
-limit. Clears when: the owner states N.
+             and `./target/release/podvm-plant` exits 0 with one new plant
+             caught: a tracked `.rs` file of 501 lines.
 
 ---
 

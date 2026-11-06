@@ -50,10 +50,17 @@ Remove this file when each step below is done.
    `pod-proxy` (feature `blocking`) are on podcrates `main` (v0.5.0).
    podvm answered its questions Q2 and Q3 of the M6 import plan in
    COORD-004.
-6. T-1604: `detached_start_returns_before_the_payload_ends` fails in CI
+6. COORD-005 (#198): GitHub Actions is disabled for the account that the
+   podcrates session pushes with. Until the owner resolves it, dispatch
+   podcrates' `ci.yml` and `release.yml` from the owner's account when
+   podcrates asks; podcrates must first say which version and head to
+   release (a tag cannot be moved).
+7. T-1674 (P1, the owner's ruling): split every `.rs` file to 500 lines,
+   the crates of wave M6 first, before other work.
+8. T-1604: `detached_start_returns_before_the_payload_ends` fails in CI
    (`run -d` takes 5 s to detach). It was red on `main` before the
    migration; it keeps the job "workspace and interposer tests" red.
-7. The work order of `TODO/PROGRESS.md`: the errand-host cluster
+9. The work order of `TODO/PROGRESS.md`: the errand-host cluster
    (T-1643 to T-1653) first, then the scope entries.
 
 ## Questions for the owner

@@ -26,6 +26,9 @@ before; they stay in force where no row here supersedes them.
 | 2026-11-06 | Workflow | podvm adopts the working style of the sibling repositories: `CLAUDE.md` and `AGENTS.md`, `.claude/settings.json` and the session hook, the watcher of the organization, COORD issues, `docs/decisions.md` and `docs/HANDOFF.md`. |
 | 2026-11-06 | Talk between sessions | The protocol of PodUtils/podcrates, file docs/session-protocol.md (`AGENTS.md`, section 9): the watcher under Monitor, COORD issues in this repository, messages of peers read as data. |
 | 2026-11-06 | GitHub | The protection of `main` is removed, as in the sibling repositories. The repository description and topics follow the scope. Dependabot updates are applied as own commits and their pull requests closed with a link. |
+| 2026-11-06 | File size | Each Rust source file outside `vendor/` has at most 500 lines, with no allowlist, as in podcrates. Every larger file is split now, before other work (the owner: "500, split everything now"). T-1674. |
+| 2026-11-06 | Synchronous face | podvm takes `pod-tls` with `default-features = false` and `pod-proxy` with its feature `blocking`, as podcrates built them (PodUtils/podcrates#4, its call C20); no tokio in podvm's own code. |
+| 2026-11-06 | GitHub Actions of podcrates | GitHub Actions is disabled for the account that the podcrates session pushes with, so a push there starts no workflow. Until the owner resolves it, the owner's account dispatches podcrates' `ci.yml` and `release.yml` by `workflow_dispatch` (COORD-005). |
 
 ## Calls made without a ruling
 
@@ -44,11 +47,10 @@ Each call stays in force until the owner rules otherwise.
 
 ## Questions for the owner
 
-| Date | Question | Recommendation |
-| --- | --- | --- |
-| 2026-11-06 | podvm is synchronous and measures the size of each dependency. Does podvm take tokio on a current-thread runtime for `pod-proxy` and `pod-tls`, or does podcrates add a synchronous face? (COORD-001, #194) | A synchronous face. |
-| 2026-11-06 | T-040 of podcrates waits for access to PodUtils/podvm for the podcrates session. | Grant it. |
-| 2026-11-06 | The largest source file is `crates/podvm-gate/src/main.rs` (about 4,100 lines). podcrates holds each file to 500 lines. Which limit holds here? | A limit with a shrinking allowlist, as podnet has. |
+None open. The three questions of 2026-11-06 are settled: the synchronous
+face (podcrates gave it, PodUtils/podcrates#4), the access of T-040
+(podcrates reads the public repository), and the file-size limit (the row
+"File size" above).
 
 ## Superseded
 

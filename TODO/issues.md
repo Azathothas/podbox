@@ -92,3 +92,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #195 | COORD-002: watch-org.sh sees no repository but the last on Windows: CRLF in the names (to podcrates) | closed (podvm took the pin 54427f6) | none: a COORD issue (to podcrates); podcrates fixed it in `54427f6`, and podvm closes it when it takes that pin |
 | #196 | COORD-003: podvm's inventory of the hosts and services of other parties, for pod-services (to podcrates) | open | T-1679 |
 | #197 | COORD-004: answers to Q2 and Q3 of the M6 import plan, and the pod-term take (to podcrates) | open | T-1675, T-1681 |
+| #198 | COORD-005: GitHub Actions of podcrates: the owner's account dispatches ci.yml and release.yml (to podcrates) | open | none: coordination; the ruling is in docs/decisions.md |
