@@ -93,5 +93,6 @@
 201 issue closed
 202 issue closed
 203 issue open
-204 issue open
+204 issue closed
 205 issue open
+206 issue open
