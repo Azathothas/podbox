@@ -94,5 +94,6 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #197 | COORD-004: answers to Q2 and Q3 of the M6 import plan, and the pod-term take (to podcrates) | open | T-1675, T-1681 |
 | #198 | COORD-005: GitHub Actions of podcrates: the owner's account dispatches ci.yml and release.yml (to podcrates) | open | none: coordination; the ruling is in docs/decisions.md |
 | #199 | [gh action] requested | closed (gate run 42177003497, secrets run 42177007581) | none: a request of a workflow run (AGENTS.md, section 9) |
-| #201 | [gh action] requested | open | none: a request of a workflow run for T-1604 (AGENTS.md, section 9) |
+| #201 | [gh action] requested | closed (gate run 42177673037) | none: a request of a workflow run for T-1604 (AGENTS.md, section 9) |
+| #202 | [gh action] requested | open | none: a request of a workflow run for T-1604 (AGENTS.md, section 9) |
 | #200 | COORD-006: the Alpine netboot pins: podvm fetches the 3.22.6 archive (to podcrates) | open | T-1687 |
