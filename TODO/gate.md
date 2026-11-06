@@ -2003,7 +2003,7 @@ Approach:    Remove the check and replace it with a real scanner. Call
              Update `docs/security/secrets.md`, which currently names the
              shell script as the review mechanism. Update the comments
              at `crates/podvm-ssh/src/mux/tests.rs:71` and
-             `crates/podvm-ssh/tests/mux_two_client.rs:1290`, which
+             `crates/podvm-ssh/tests/mux_two_client/refusals.rs:136`, which
              cite the check as the reason for their placeholder shapes,
              and `experiments/270-multiarch-image.sh:117`.
 Decision:    Scanner, not pattern. GitHub Actions runs its own scoped
