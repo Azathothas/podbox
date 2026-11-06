@@ -1321,8 +1321,14 @@ presence, `podvm_extract::extract` hashes each layer before it writes
 "missing" in place of "missing or corrupt". After the change
 `cargo test -p podvm --test detached_stdio` passes, 3 of 3 tests, and
 `absent_record_blobs_names_a_deleted_layer_and_does_not_hash` passes.
-What still owes: the CI run of the same test (the skip path, where
-chroot is denied).
+CI, 2026-11-06: gate run 42177673037 at `0496ce7`: the step
+"workspace tests" of the job "workspace and interposer tests" exits 0,
+`detached_stdio` included. The steps after it had never run in CI; the
+next commit fixes the two that then failed (`podvm-buildstate` not
+built for experiment 393, and the diagnostics fixture of `podvm-smoke`
+with no stub for `check-build-lane`). Remaining of the Prove: the
+plant (a failing test in the same binary does not poison its
+neighbours), a second lane run, and the saved lane log.
 ---
 
 ### T-1647 Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes

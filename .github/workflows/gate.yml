@@ -245,7 +245,9 @@ jobs:
         run: cargo test --workspace
 
       - name: build freshness guards
-        run: python3 experiments/393-build-freshness.py
+        run: |
+          cargo build -p podvm-buildstate
+          python3 experiments/393-build-freshness.py
 
       - name: failed gate diagnostics and skip states
         run: |

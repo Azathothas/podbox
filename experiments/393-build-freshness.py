@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CANDIDATES = (
     ROOT / "target" / "release" / "podvm-buildstate",
     ROOT / "target" / "x86_64-unknown-linux-musl" / "release" / "podvm-buildstate",
+    ROOT / "target" / "x86_64-unknown-linux-musl" / "debug" / "podvm-buildstate",
     ROOT / "target" / "debug" / "podvm-buildstate",
 )
 OUTPUT_NAMES = ("podvm", "node", "operator", "proxy", "shell")

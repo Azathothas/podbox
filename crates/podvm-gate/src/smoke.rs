@@ -42,6 +42,7 @@ const DIAGNOSTIC_CHECKS: &[&str] = &[
     "check-changelog",
     "check-attribution",
     "check-remote-items",
+    "check-build-lane",
 ];
 const MARKER: &str = "FIXTURE-LATE-DIAGNOSTIC";
 const RUN_TIMEOUT_SECS: u64 = 90;
