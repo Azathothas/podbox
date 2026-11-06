@@ -3541,8 +3541,9 @@ Approach records the arithmetic that found them.
 Source:      KVM diagnosis 2026-10-02, run against the saved results
              `experiments/results/kvm-guest-2026-10-02.txt` and
              `-third.txt` and against the live failing run;
-             `crates/podvm-windows/src/lib.rs` `:239-249`, `:310-338`,
-             `:418-433`; `crates/podvm-windows/src/plan.rs` `:195-207`;
+             `crates/podvm-windows/src/lib.rs` `:239-244`, `:279-294`;
+             `crates/podvm-windows/src/emulator.rs` `:3-6`, `:67-100`;
+             `crates/podvm-windows/src/plan.rs` `:195-207`;
              `crates/podvm-windows/src/agent.rs` `:91`;
              `experiments/lib/kvm-guest-base.sh` `:182-189`
 Category:    windows
