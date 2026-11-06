@@ -150,3 +150,7 @@ dist/
 # branch archive/podbox-worktree: docs/history/worktree-archive.md says how to
 # read it.
 /refactor/
+
+# Agent scratch: the org watcher state, cloud-setup downloads, parallel worktrees.
+.work/
+.claude/worktrees/

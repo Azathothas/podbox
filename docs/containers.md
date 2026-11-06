@@ -41,7 +41,7 @@ not report Windows base status.
 ## Windows base
 
 The Windows lane is parked since 2026-11-06: work moved to cloud sessions
-(see `docs/decisions/`). It targets wsl-toolkit 9.0.1 and stays correct, but
+(see [the decisions](decisions.md)). It targets wsl-toolkit 9.0.1 and stays correct, but
 no session needs it.
 
 The instance name is `podvm`. The distribution name is
