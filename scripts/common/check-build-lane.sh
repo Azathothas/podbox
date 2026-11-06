@@ -83,7 +83,7 @@ case "${1:-}" in
 		printf '#!/bin/sh\necho %s\n' "$1" >"$stub/uname"
 		chmod +x "$stub/uname"
 		run() {
-			PATH="$stub:$PATH" "$0" -- "$2" >/dev/null 2>&1
+			PATH="$stub:$PATH" sh "$0" -- "$2" >/dev/null 2>&1
 			echo $?
 		}
 		want() {
