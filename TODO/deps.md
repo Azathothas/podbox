@@ -1442,6 +1442,7 @@ to 3,974,296 bytes (-36 KiB), `node` 1,913,816, `operator` 1,868,824.
 Call C10 of `docs/decisions.md` takes the runtime into the binaries and
 the two known gaps (podcrates T-075, T-077). The count of threads during
 a pull was not measured: the runtime is current-thread.
+Gate run 42227206423 at `826bb86` is green in each job.
 
 **Partial, 2026-11-06.** podvm took `pod-proxy` 0.4.0 with feature
 `blocking` by `adoption/podvm/pod-proxy.patch` of PodUtils/podcrates
