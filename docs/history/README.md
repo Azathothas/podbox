@@ -32,6 +32,8 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 | [`t1112-kvm-blocker-before-2026-09-28.txt`](t1112-kvm-blocker-before-2026-09-28.txt) | [T-1112](../../TODO/milestones.md)'s superseded KVM blocker text |
 | [`reviews/2026-09-28-windows-lane.md`](reviews/2026-09-28-windows-lane.md) | Three review passes over the Windows lane and work record |
 | [`sessions/`](sessions/) | Superseded source-project session summaries |
+| [Worktree archive](worktree-archive.md) | Where the untracked material of the old checkout (`refactor/`, lane job scripts, proof logs) lives since 2026-11-06 |
+| [Hidden issues of 2026-11-06](github-hidden-issues-2026-11-06.md) | The 41 issue and pull request numbers GitHub hid with their author, and what came back |
 | [`reviews/`](reviews/) | Focused review outcomes for migrated changes |
 | [Session summary 2026-09-28](sessions/2026-09-28.md) and [SSH session summary](sessions/2026-09-28-SSH.md) | Final checks, change size, remote and machine state; the SSH reconcile, partial, machine arm, and KVM unblock |
 

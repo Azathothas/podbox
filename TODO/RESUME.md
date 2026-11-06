@@ -119,7 +119,8 @@ Then T-1604, then the rest of the filed queue.
 - The serial log is not a hang location. T-1641 records the measurement
   and the comment in `experiments/lib/kvm-guest-base.sh` that claims
   otherwise.
-- `refactor/` stays untracked by `.gitignore:152`. T-1613 filed the
+- `refactor/` stays off `main` (`.gitignore:158`) and lives on the branch
+  `archive/podbox-worktree`. T-1613 filed the
   plan's named 21 rows into `TODO/`; the other 29 are still unfiled and
   T-1607 owns them.
 

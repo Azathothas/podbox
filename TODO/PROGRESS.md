@@ -25,10 +25,11 @@ and each says what still owes.
 what waits. Its four sections now live in tracked entries: the CI
 failures as T-1601 through T-1604, the KVM and emulator condition
 under T-1350 and T-1112 below, the corpus deletion as T-1606, and the
-unbatched plan rows as T-1607. The file itself stays untracked on
-purpose: `.gitignore:147` records that tracking `refactor/` turns the
-record gate red, measured 2026-10-01 at 1047 problems from that
-directory alone.
+unbatched plan rows as T-1607. `refactor/` stays off `main` on
+purpose: `.gitignore:151` records that tracking it turns the record
+gate red, measured 2026-10-01 at 1047 problems from that directory
+alone. Since 2026-11-06 it lives on the branch `archive/podbox-worktree`;
+[the archive page](../docs/history/worktree-archive.md) says how to read it.
 
 Batch 3 (T-1559 through T-1569, the three tool crates) is landed
 2026-10-01: `podbox-buildstate` (buildstate, release-licenses),
