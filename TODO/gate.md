@@ -3937,6 +3937,7 @@ with no allowlist: `./target/release/podvm-gate` exits 0 with it
 (coverage `rs_file_size=318`), and `./target/release/podvm-plant` exits
 0 with 68 plants caught, 0 missed and 4 controls quiet. Plant 33 grows
 `crates/podvm-probe/src/exit.rs` to 501 lines and is caught.
+Gate run 42214046548 at `586c921` is green in each job.
 
 ---
 

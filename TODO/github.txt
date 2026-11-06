@@ -95,4 +95,4 @@
 203 issue open
 204 issue closed
 205 issue open
-206 issue open
+206 issue closed
