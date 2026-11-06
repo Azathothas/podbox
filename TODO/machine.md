@@ -1184,7 +1184,7 @@ archives, and drives `qemu-system-x86_64` with
 `-netdev user,id=u0,hostfwd=udp::$HPORT-:$GPORT`
 (`experiments/361-guest-usernet.sh:293-299`) so a token crosses guest
 to host and a reply is forwarded back. The only Rust in this tree that
-starts an emulator is `crates/podvm-measure/src/workload.rs:740`, and
+starts an emulator is `crates/podvm-measure/src/workload/drive.rs:323`, and
 it runs TCG with a serial console and no forwarding, so it cannot
 stand in for the fixture.
 
