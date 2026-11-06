@@ -70,4 +70,4 @@ is left as upstream evidence.
 The owned source and document changes have no open review finding.
 The SSH implementation is still open in T-1401 to T-1404. The remote
 CI state for this session is recorded in the
-[session summary](../../../TODO/SESSION-SUMMARY-2026-09-28.md).
+[session summary](../sessions/2026-09-28.md).

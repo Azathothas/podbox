@@ -8,7 +8,7 @@ The session before this one left ten open rows and a work order. This
 one took every one of them to a terminal or a named remaining clause,
 and filed the twenty-two rows the refactor plan's unbatched set needed.
 The full account is
-[SESSION-SUMMARY-2026-10-02-UNATTENDED](SESSION-SUMMARY-2026-10-02-UNATTENDED.md).
+[SESSION-SUMMARY-2026-10-02-UNATTENDED](../docs/history/sessions/2026-10-02-UNATTENDED.md).
 
 ## Read before acting
 

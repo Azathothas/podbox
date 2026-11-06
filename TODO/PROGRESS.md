@@ -258,7 +258,7 @@ No operator decision is pending.
 | Health | tree clean at the close, no guest running, `wsl-toolkit gc --json` empty |
 
 The summary beside this record is
-[SESSION-SUMMARY-2026-10-02-UNATTENDED](SESSION-SUMMARY-2026-10-02-UNATTENDED.md).
+[SESSION-SUMMARY-2026-10-02-UNATTENDED](../docs/history/sessions/2026-10-02-UNATTENDED.md).
 
 ## Session 2026-10-02, decision round
 
@@ -311,4 +311,4 @@ at the end.
 | Health | no guest started, no engine state changed, no job retained |
 
 The summary beside this record is
-[SESSION-SUMMARY-2026-10-02-KVM-CORRECTION](SESSION-SUMMARY-2026-10-02-KVM-CORRECTION.md).
+[SESSION-SUMMARY-2026-10-02-KVM-CORRECTION](../docs/history/sessions/2026-10-02-KVM-CORRECTION.md).

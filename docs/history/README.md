@@ -33,7 +33,7 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 | [`reviews/2026-09-28-windows-lane.md`](reviews/2026-09-28-windows-lane.md) | Three review passes over the Windows lane and work record |
 | [`sessions/`](sessions/) | Superseded source-project session summaries |
 | [`reviews/`](reviews/) | Focused review outcomes for migrated changes |
-| [Session summary 2026-09-28](../../TODO/SESSION-SUMMARY-2026-09-28.md) and [SSH session summary](../../TODO/SESSION-SUMMARY-2026-09-28-SSH.md) | Final checks, change size, remote and machine state; the SSH reconcile, partial, machine arm, and KVM unblock |
+| [Session summary 2026-09-28](sessions/2026-09-28.md) and [SSH session summary](sessions/2026-09-28-SSH.md) | Final checks, change size, remote and machine state; the SSH reconcile, partial, machine arm, and KVM unblock |
 
 ---
 
