@@ -47,14 +47,21 @@ Do not send credentials to a proxy.
 
 ## Corpus
 
-Keep source evidence under `references/`, tracked on `main`.
-Keep original source paths and notices.
-Do not include instruction files, credentials, build outputs, or caches.
-Record the selected commit in `PROVENANCE.md`.
+Since 2026-11-06 the corpus is not kept on `main` (the operator's ruling).
+Each studied repository is tracked in a GitHub issue with the label
+`reference`. The issue names the upstream, the commit read, the licence
+determination, what podvm took from it, and the entries that cite it.
+Read a source at its upstream, at the commit the issue names.
 
-A selected capture is permitted for a focused local study.
-It must name omitted areas and must not claim a full-tree review.
-A future session must be able to inspect each cited line without session scratch.
+The 46 trees captured before that date stay in the history of `main`.
+`references/MANIFEST.tsv` lists each of their files with its line count, at
+the commit named in its header, and `references/README.md` maps each tree to
+its issue. The record gate resolves a citation into `references/` against the
+manifest, so the existing citations stay checked. Read a captured file with
+`git show COMMIT:PATH`, the commit from the manifest header.
+
+Do not capture a tree into `references/` again. Cite a new source by its
+upstream permalink at the commit read, and add its facts to the issue.
 
 ## Findings
 

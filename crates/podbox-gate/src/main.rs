@@ -40,6 +40,13 @@ use std::time::{Duration, Instant};
 // documents beside those imported directories are checked like every
 // other project file.
 const CORPUS_PREFIX: &str = "references/";
+
+// The captured trees left the live tree on 2026-11-06, by the operator's
+// ruling: each reference is tracked in a GitHub issue instead. This manifest
+// lists every file the trees held, with its line count, at the last commit
+// that held them. A citation into `references/` resolves against it, so the
+// record stays checked in a fresh or shallow clone that has no trees.
+const CORPUS_MANIFEST: &str = "references/MANIFEST.tsv";
 const VERBATIM_PREFIXES: [&str; 3] = ["docs/conventions/", "docs/methodology/", "docs/security/"];
 
 // The imported methodology links resolve today. Holding zero is what stops
@@ -307,6 +314,58 @@ fn read_text(path: &Path) -> Result<String, String> {
             Err(_) => Err("not readable".to_string()),
         },
         Err(_) => Err("not readable".to_string()),
+    }
+}
+
+// Path to line count, from `CORPUS_MANIFEST`. A line is `PATH<TAB>LINES`;
+// a line that starts with `#` is a comment. An unreadable manifest gives an
+// empty map, and `run_gate` reports that as its own problem.
+fn load_corpus(root: &Path) -> BTreeMap<String, usize> {
+    let mut corpus = BTreeMap::new();
+    let Ok(text) = read_text(&root.join(CORPUS_MANIFEST)) else {
+        return corpus;
+    };
+    for line in text.split('\n') {
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if let Some((path, lines)) = line.split_once('\t') {
+            if let Ok(lines) = lines.trim().parse::<usize>() {
+                corpus.insert(path.to_string(), lines);
+            }
+        }
+    }
+    corpus
+}
+
+// True when the manifest lists `stem` as a file or as a directory.
+fn corpus_names(corpus: &BTreeMap<String, usize>, stem: &str) -> bool {
+    if corpus.contains_key(stem) {
+        return true;
+    }
+    let dir = format!("{stem}/");
+    corpus
+        .range(dir.clone()..)
+        .next()
+        .is_some_and(|(path, _)| path.starts_with(&dir))
+}
+
+// The problem with a `PATH:LINE` citation into the corpus, if any.
+fn corpus_cite_problem(corpus: &BTreeMap<String, usize>, cite: &Cite) -> Option<String> {
+    let range = match cite.end {
+        Some(end) => format!("{}-{end}", cite.start),
+        None => format!("{}", cite.start),
+    };
+    match corpus.get(&cite.cited) {
+        None => Some(format!(
+            "cites {}:{range}, and {CORPUS_MANIFEST} lists no such file",
+            cite.cited
+        )),
+        Some(&count) if cite.end.unwrap_or(cite.start) > count => Some(format!(
+            "cites {}:{range}, and that file has {count} lines",
+            cite.cited
+        )),
+        Some(_) => None,
     }
 }
 
@@ -1800,6 +1859,7 @@ fn contains_number_with_boundaries(line: &str, number: &str) -> bool {
 }
 
 fn check_tree(gate: &mut Gate, root: &Path, files: &BTreeSet<String>) {
+    let corpus = load_corpus(root);
     let mut dangling_verbatim = 0;
     for rel in files.iter() {
         if rel.starts_with(CORPUS_PREFIX) {
@@ -1823,6 +1883,12 @@ fn check_tree(gate: &mut Gate, root: &Path, files: &BTreeSet<String>) {
                     }
                     gate.bump("tree_citations");
                     let where_ = format!("{rel}:{n}");
+                    if cite.cited.starts_with(CORPUS_PREFIX) {
+                        if let Some(problem) = corpus_cite_problem(&corpus, &cite) {
+                            gate.err(&where_, problem);
+                        }
+                        continue;
+                    }
                     let target = root.join(&cite.cited);
                     if !target.is_file() {
                         gate.err(
@@ -1871,6 +1937,9 @@ fn check_tree(gate: &mut Gate, root: &Path, files: &BTreeSet<String>) {
                     }
                     let stem = cited.trim_end_matches('/');
                     if files.contains(stem) {
+                        continue;
+                    }
+                    if stem.starts_with(CORPUS_PREFIX) && corpus_names(&corpus, stem) {
                         continue;
                     }
                     let stem_slash = format!("{stem}/");
@@ -3555,7 +3624,7 @@ fn starts_double_indented(text: &str) -> bool {
 
 fn run_gate(root: &Path) -> i32 {
     let todo = root.join("TODO");
-    let refs = root.join("references");
+    let corpus = load_corpus(root);
     let Ok(index) = read_text(&todo.join("INDEX.md")) else {
         eprintln!("check-todo: TODO/INDEX.md does not exist");
         return 2;
@@ -3872,39 +3941,45 @@ fn run_gate(root: &Path) -> i32 {
                 "names no reference under references/".to_string(),
             );
         }
+        if corpus.is_empty() {
+            gate.err(
+                CORPUS_MANIFEST,
+                "is missing or lists no file, so no citation into references/ \
+                 can resolve"
+                    .to_string(),
+            );
+        }
         let mut named_sorted: Vec<&String> = named.iter().collect();
         named_sorted.sort();
         for tree in named_sorted {
-            let dir = refs.join(tree);
             gate.bump("corpus");
-            if !dir.is_dir() {
+            if !corpus_names(&corpus, &format!("{CORPUS_PREFIX}{tree}")) {
                 gate.err(
                     "TODO/reference-map.md",
-                    format!("references/{tree} does not exist"),
+                    format!("references/{tree} is not in {CORPUS_MANIFEST}"),
                 );
-            } else if !dir.join("PROVENANCE.md").is_file() {
+            } else if !corpus.contains_key(&format!("{CORPUS_PREFIX}{tree}/PROVENANCE.md")) {
                 gate.err(
                     "TODO/reference-map.md",
-                    format!("references/{tree} has no PROVENANCE.md"),
+                    format!("references/{tree} has no PROVENANCE.md in {CORPUS_MANIFEST}"),
                 );
             }
         }
-        let mut on_disk = BTreeSet::new();
-        if refs.is_dir() {
-            if let Ok(dir_entries) = fs::read_dir(&refs) {
-                for entry in dir_entries.flatten() {
-                    if entry.path().is_dir() {
-                        on_disk.insert(entry.file_name().to_string_lossy().into_owned());
-                    }
-                }
+        let mut in_corpus = BTreeSet::new();
+        for path in corpus.keys() {
+            if let Some((tree, _)) = path
+                .strip_prefix(CORPUS_PREFIX)
+                .and_then(|rest| rest.split_once('/'))
+            {
+                in_corpus.insert(tree.to_string());
             }
         }
-        let mut extra: Vec<&String> = on_disk.difference(&named).collect();
+        let mut extra: Vec<&String> = in_corpus.difference(&named).collect();
         extra.sort();
         for tree in extra {
             gate.err(
                 "TODO/reference-map.md",
-                format!("references/{tree} is on disk and the map does not name it"),
+                format!("references/{tree} is in {CORPUS_MANIFEST} and the map does not name it"),
             );
         }
     }
@@ -3918,8 +3993,14 @@ fn run_gate(root: &Path) -> i32 {
         for (index_no, line) in text.split('\n').enumerate() {
             for cite in find_cites(line) {
                 gate.bump("todo_citations");
-                let target = root.join(&cite.cited);
                 let where_ = format!("TODO/{name}:{}", index_no + 1);
+                if cite.cited.starts_with(CORPUS_PREFIX) {
+                    if let Some(problem) = corpus_cite_problem(&corpus, &cite) {
+                        gate.err(&where_, problem);
+                    }
+                    continue;
+                }
+                let target = root.join(&cite.cited);
                 if !target.is_file() {
                     gate.err(
                         &where_,

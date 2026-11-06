@@ -35,18 +35,12 @@ scratch/
 *.log
 logs/
 
-# references/ is EVIDENCE, and a log there is the evidence itself.
-# Measured on 2026-09-11: the two rules above are unanchored, so they matched
-# every `logs/` directory in the corpus and excluded 83 committed experiment
-# logs across four reference trees. A citation into one of them resolved on
-# this disk and would not have resolved in a fresh clone, which is the defect
-# podbox-gate exists to catch. It caught this one.
-!references/**/logs/
-!references/**/logs/**
-!references/**/*.log
-# experiments/results/ is evidence for the same reason. Measured on
-# 2026-11-06: the two rules above had also hidden three result logs of
-# sweep163 (setup.log, pull-alpine.log, pull-debian.log).
+# experiments/results/ is EVIDENCE, and a log there is the evidence itself.
+# The two rules above are unanchored. Measured on 2026-09-11, they excluded 83
+# experiment logs of the reference corpus; measured on 2026-11-06, they had
+# also hidden three result logs of sweep163. A citation into one of them
+# resolves on one disk and not in a fresh clone, which is the defect
+# podbox-gate exists to catch.
 !experiments/results/**/*.log
 
 # -- coverage and test output -----------------------------------------------
@@ -63,8 +57,8 @@ CLAUDE.local.md
 .cursorignore
 
 # -- Rust --------------------------------------------------------------------
-# ⛔ ROOTED. A bare `target/` also swallows `references/*/tree/target`, which is
-# somebody else's source directory in several of the corpus trees.
+# ⛔ ROOTED. A bare `target/` also matched source directories named `target`
+# in the reference corpus, and it would match one in `vendor/` too.
 /target/
 # ⛔ AND THE INTERPOSER HAS ITS OWN. It is excluded from the workspace, so it
 # builds into its own target directory, which the rooted rule above does not
@@ -87,10 +81,10 @@ CLAUDE.local.md
 experiments/.*/
 verification/build/
 
-# ⛔ `references/` IS NOT IGNORED. docs/methodology/references.md section 4:
-# the corpus is the evidence, and an ignored corpus is lost on the next
-# machine. scripts/common/mine-repo.sh refuses to write into a directory these
-# rules would swallow.
+# `references/` holds MANIFEST.tsv and README.md only. The captured trees left
+# the live tree on 2026-11-06; each one is tracked in a GitHub issue, and the
+# manifest keeps every citation into them checked. Do not capture a tree here
+# again: docs/methodology/references.md, section Corpus.
 
 # ⛔ Windows reserved device names. A shell that does not map `2>/dev/null`
 # creates a real file called `nul`, which breaks `git stash`.

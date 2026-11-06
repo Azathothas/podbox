@@ -1,7 +1,7 @@
 # The untracked working material, archived on 2026-11-06
 
-Until 2026-11-06 the project was worked in one Windows checkout,
-`C:\Users\AjamX\Downloads\podbox`. Some files there were never tracked on
+Until 2026-11-06 the project was worked in one checkout on the operator's
+Windows host. Some files there were never tracked on
 `main`, and the record cites several of them. When the project became podvm
 and moved to cloud sessions, that checkout was deleted. Its untracked material
 of value is on the branch `archive/podbox-worktree`, at the original paths.
@@ -22,9 +22,8 @@ git show origin/archive/podbox-worktree:refactor/recon-c.md | sed -n 177p
 ```
 
 The branch README lists the contents, and `MANIFEST.sha256` holds the
-SHA-256 of each file. A second copy is a tarball outside the repository,
-`D:\_WORK_\PodUtils\archive\podbox-worktree-2026-11-06.tar.gz`, on the
-operator's host.
+SHA-256 of each file. A second copy is a tarball on the operator's host,
+outside the repository.
 
 These cited files were already missing from the old checkout and are lost:
 `.tmp/artifacts-mutate/mutation-epipe.txt`, `.tmp/diag390/`,

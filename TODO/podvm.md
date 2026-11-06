@@ -1000,7 +1000,7 @@ Source:      End-state point 3; `refactor/DEFERRALS.md` section 3;
 Category:    podvm
 Priority:    P2
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     `references/` is 46 repositories and 168 MB of other
              people's source, tracked in this repository and cited 47
@@ -1033,6 +1033,40 @@ Prove:       `grep -rn "references/" TODO/ docs/` returns no citation
              exits 0 with `references/` still tracked; after the
              deletion lands, the gate exits 0 with the corpus absent and
              `git status` shows no tracked file referencing it.
+
+**Done 2026-11-06, under a new ruling.** The operator ruled on
+2026-11-06 that the corpus leaves the live tree and that each reference is
+tracked in a GitHub issue with the label `reference` instead. That replaces
+the repoint above: the citations stay as written and are checked against a
+manifest. The 46 issues are #132 to #192; `references/README.md` maps each
+tree to its issue and records the state of its upstream.
+
+`references/MANIFEST.tsv` lists the 7,974 files of the 46 trees with their
+line counts, read from the blobs of commit `452d792`, and counted as
+`count_lines_bytes` counts them. `crates/podbox-gate/src/main.rs` resolves
+each `references/` citation against it: the `path:line` citations of
+`check_tree` and of the TODO pass (`corpus_cite_problem`), the bare names
+(`corpus_names`), and the trees of the reference map. An empty or missing
+manifest is its own problem. Plant 6 now expects "and the map does not name
+it", and the new plant 6b cites a corpus path the manifest does not list and
+turns the gate red with "MANIFEST.tsv lists no such file".
+
+The two bindings above are cleared. The template notice is now a tracked
+file, `docs/notices/Azathothas__TEMPLATE-LICENSE.txt`, which
+`THIRD_PARTY.md` links. The 155 mechanism citations resolve through the
+manifest, so no podvm-side finding has to be written before the deletion.
+Three experiments read corpus files at run time
+(`experiments/20-enter-target.sh`, `experiments/80-interposer-abi.sh`,
+`experiments/100-interpose-symbols.sh`); each now reads them from commit
+`452d792` when the tree is absent. `.gitattributes`, `.gitignore` and
+`.github/dependabot.yml` drop their corpus rules, and
+`docs/methodology/references.md` states the new method.
+
+Proof: with `references/` holding only `MANIFEST.tsv` and `README.md`,
+`./target/release/podbox-gate` exits 0 at `corpus=46`, and `podbox-plant`
+reports plants 6 and 6b caught. The last clause of the Prove, "no tracked
+file referencing it", is superseded by the ruling: the citations into
+`references/` stay by design.
 
 **Partial 2026-10-02, and the entry's "47" was the wrong number twice.**
 The reference map is repointed; the rest of the corpus is not freed, and

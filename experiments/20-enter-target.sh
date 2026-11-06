@@ -91,6 +91,11 @@ IID="${IID#sha256:}"
 # `HARNESS_SRC` names the one place they are, and the check below says so
 # rather than letting `cd` say it.
 HARNESS_SRC="${HARNESS_SRC:-$REPO/references/Azathothas__container-research/tree/verification}"
+# The corpus left the live tree on 2026-11-06 (T-1606). Without a checkout of
+# it, unpack the harness from the last commit that held it.
+if [ ! -d "$HARNESS_SRC" ] && [ -n "${WORK:-}" ]; then
+	git -C "$REPO" archive 452d792760abec03caa5c5c905be8d7efe6d4de5 references/Azathothas__container-research/tree/verification | tar -x -C "$WORK" && HARNESS_SRC="$WORK/references/Azathothas__container-research/tree/verification"
+fi
 command -v go >/dev/null 2>&1 || { echo "SKIP: go is required to build the harness" >&2; exit 2; }
 for d in confine probe; do
 	[ -d "$HARNESS_SRC/$d" ] || {

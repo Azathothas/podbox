@@ -1,6 +1,0 @@
-target
-.vscode
-Cargo.lock
-test
-sharun*
-wrappe*

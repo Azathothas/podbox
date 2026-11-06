@@ -46,6 +46,12 @@ OUT="${OUT:-$HERE/.symbols}"
 rm -rf "$OUT"; mkdir -p "$OUT"
 
 SRC="$ROOT/references/VHSgunzo__pathmap/tree/path-mapping.c"
+# The corpus left the live tree on 2026-11-06 (T-1606). Without a checkout of
+# it, read the file from the last commit that held it.
+if [ ! -r "${SRC}" ]; then
+	mkdir -p "$OUT/corpus"
+	git -C "$ROOT" show 452d792760abec03caa5c5c905be8d7efe6d4de5:references/VHSgunzo__pathmap/tree/path-mapping.c > "$OUT/corpus/path-mapping.c" && SRC="$OUT/corpus/path-mapping.c"
+fi
 ROOTFS='debian@sha256:2f65600e1252c5649d2213e1d1ea4d74253d26514dc6530102a875e429245929'
 
 # shellcheck source=lib/engine.sh

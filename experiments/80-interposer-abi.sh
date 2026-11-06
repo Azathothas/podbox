@@ -63,6 +63,12 @@ if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 trap eng_cleanup EXIT INT TERM
 
 SRC="$ROOT/references/VHSgunzo__pathmap/tree/path-mapping.c"
+# The corpus left the live tree on 2026-11-06 (T-1606). Without a checkout of
+# it, read the file from the last commit that held it.
+if [ ! -r "${SRC}" ]; then
+	mkdir -p "$OUT/corpus"
+	git -C "$ROOT" show 452d792760abec03caa5c5c905be8d7efe6d4de5:references/VHSgunzo__pathmap/tree/path-mapping.c > "$OUT/corpus/path-mapping.c" && SRC="$OUT/corpus/path-mapping.c"
+fi
 GLIBC_PAYLOAD='ubuntu@sha256:c664f8f86ed5a386b0a340d981b8f81714e21a8b9c73f658c4bea56aa179d54a'
 MUSL_PAYLOAD='alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
 # ⭐ The admitting partner for a modern object. Check C builds the subject

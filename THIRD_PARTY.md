@@ -13,8 +13,9 @@ Copied material retains its own licence and notices.
 | Initial experiments 10 through 50 and target reconstruction | container-research `0f155e3` | 0BSD | Project measurements and proof |
 
 The template notice is retained in
-[its captured LICENSE](references/Azathothas__TEMPLATE/tree/LICENSE).
-That capture is retained until T-1606 closes. The revision and the licence
+[a copy of its LICENSE](docs/notices/Azathothas__TEMPLATE-LICENSE.txt),
+taken from the capture at TEMPLATE commit `ea26c7d`. The capture itself left
+the tree with the corpus on 2026-11-06 (T-1606). The revision and the licence
 are recorded in [reference-map](TODO/reference-map.md), and the imported
 pages themselves carry the 0BSD terms, so the notice survives the corpus.
 The live runbooks were revised on 2026-09-30 for the actual project workflow.

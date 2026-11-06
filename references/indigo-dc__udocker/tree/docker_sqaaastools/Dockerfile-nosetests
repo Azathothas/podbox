@@ -1,4 +1,0 @@
-FROM python:3
-LABEL maintainer='Mario David <mariojmdavid@gmail.com>'
-
-RUN pip install pycurl coverage nose nosexcover

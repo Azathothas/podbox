@@ -20,8 +20,12 @@ Do not infer an unchanged transitive package count or binary size.
 Check the source licence, not only repository metadata.
 Keep each copied notice. Copyleft and unlicensed captures remain read-only.
 
-The `Tree` column is the capture's own directory, and the gate checks that
-it exists and carries a `PROVENANCE.md`. It names the capture. It is not a
+The captured trees left the live tree on 2026-11-06 (T-1606). Each one is
+tracked in a GitHub issue with the label `reference`;
+[references/README.md](../references/README.md) maps each tree to its issue.
+The `Tree` column names the capture, and the gate checks that
+[the corpus manifest](../references/MANIFEST.tsv) lists the tree and its
+`PROVENANCE.md`. It is not a
 citation into the source: no row here reads a line of captured code. Each
 row states the determination, where it was read, and what may be done with
 it, so the licence decision stands on its own without the captured bytes.

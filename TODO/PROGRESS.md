@@ -2,7 +2,7 @@
 
 ## State
 
-251 entries: 0 open, 10 partial, 0 blocked, 241 done.
+251 entries: 0 open, 9 partial, 0 blocked, 242 done.
 
 **No entry is `open`.** Every filed row is `done` or `partial`, and each
 partial names its remaining acceptance. T-1613 filed the 21 unbatched

@@ -4,7 +4,7 @@ The local checkout was read-only at
 commit `0da2ec94847264eeee801c54b99aaee6603ca020`.
 Its Git status was clean before and after capture.
 No project setup or check was run.
-[Provenance](../../../references/Azathothas__pg-toolkit/PROVENANCE.md)
+[Provenance](https://github.com/PodUtils/podvm/blob/452d792760abec03caa5c5c905be8d7efe6d4de5/references/Azathothas__pg-toolkit/PROVENANCE.md)
 states the selected files, read depth, omissions, and tracker gap.
 
 ## Transfer decisions

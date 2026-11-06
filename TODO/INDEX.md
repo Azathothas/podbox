@@ -280,7 +280,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1603](gate.md) | P0 | gate | done | Remove `check-no-secrets` and add a pinned trufflehog scan workflow |
 | [T-1604](enter.md) | P1 | enter | partial | Fix the detached-stdio serial mutex and the 1-of-3 detached start failure |
 | [T-1605](packaging.md) | P1 | packaging | partial | Push a version tag and prove the nightly release-notes wiring live |
-| [T-1606](podvm.md) | P2 | podvm | partial | Repoint all 47 `references/` citations before deleting the corpus |
+| [T-1606](podvm.md) | P2 | podvm | done | Repoint all 47 `references/` citations before deleting the corpus |
 | [T-1607](gate.md) | P1 | gate | partial | File the 21 unbatched plan tasks as a later queue |
 | [T-1608](gate.md) | P2 | gate | done | Reword the Batch 3 Done paragraphs so one-home passes |
 | [T-1609](gate.md) | P0 | gate | done | Build the KVM watchdog that makes an unattended guest run safe |
@@ -316,7 +316,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-251 items: 0 open, 10 partial, 0 blocked, 241 done.
+251 items: 0 open, 9 partial, 0 blocked, 242 done.
 
 Counted from the rows above by `./target/release/podbox-count` and asserted
 independently by `./target/release/podbox-gate`, which is the gate. A number here
@@ -326,9 +326,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 62 | 63 |
 | P1 | 0 | 8 | 0 | 116 | 124 |
-| P2 | 0 | 1 | 0 | 54 | 55 |
+| P2 | 0 | 0 | 0 | 55 | 55 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **0** | **10** | **0** | **241** | **251** |
+| **All** | **0** | **9** | **0** | **242** | **251** |
 
 ## Work order
 

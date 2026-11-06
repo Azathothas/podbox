@@ -1,3 +1,0 @@
-net.type = "tap"
-net.gateway = "172.16.0.1"
-net.nameservers = ["8.8.8.8"]

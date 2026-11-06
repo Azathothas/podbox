@@ -899,12 +899,31 @@ fn run() -> i32 {
     // so deleting one row leaves the other and the check never loses it.
     plant.case_plant(
         "6 a corpus tree the map lost",
-        "is on disk and the map does not name it",
+        "and the map does not name it",
         scratch,
         &|| {
             let text = read_file(&root, "TODO/reference-map.md");
             let out = text.replace("`references/qaidvoid__onelf`", "the onelf tree");
             write_file(&root, "TODO/reference-map.md", &out);
+            true
+        },
+    );
+
+    // The trees left the live tree on 2026-11-06. A citation into one resolves
+    // only against references/MANIFEST.tsv, so a path the manifest does not
+    // list must turn the gate red.
+    plant.case_plant(
+        "6b a corpus citation the manifest does not list",
+        "MANIFEST.tsv lists no such file",
+        scratch,
+        &|| {
+            // Assembled here, so this source line is not a citation itself.
+            let missing = ["references", "qaidvoid__onelf", "tree", "no-such-file.rs"].join("/");
+            append_file(
+                &root,
+                "TODO/probe.md",
+                &format!("\nSee `{missing}:1` for this.\n"),
+            );
             true
         },
     );
