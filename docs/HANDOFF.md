@@ -45,9 +45,9 @@ Remove this file when each step below is done.
 5. T-1687 is `partial` (COORD-006, #200, to podcrates): the Alpine
    netboot files come from the 3.22.6 archive; a run of
    `podvm-workload` remains.
-6. Watch PodUtils/podcrates#1 and COORD-001 (#194), and the import of
-   the seven hand-over crates (wave M6): from the import, their files
-   here take fixes only.
+6. Wave M6: podcrates imported `pod-hostprobe` from podvm at `2c03085`
+   (PodUtils/podcrates#11). The 29 files of T-1681 take fixes only, each
+   as a COORD issue `(to podcrates)`. Watch for the other six imports.
 7. COORD-005 (#198): dispatch podcrates' `ci.yml` and `release.yml` from
    the owner's account when podcrates asks.
 8. T-1674 is done: each `.rs` file outside `vendor/` has 500 lines or

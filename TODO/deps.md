@@ -1555,7 +1555,7 @@ Source:      COORD-001, issue 194, "What podvm hands to podcrates";
 Category:    deps
 Priority:    P2
 Effort:      L
-Status:      blocked
+Status:      open
 
 Problem:     The owner ruled on 2026-11-06 that each generic crate of podvm
              moves to podcrates as `pod-*`. Until podcrates imports them and
@@ -1587,10 +1587,22 @@ Prove:       `./target/release/podvm-gate` exits 0 with each of the seven
              podvm crates replaced by its `pod-*` dependency, and
              `cargo test --workspace` exits 0 in the Linux lane.
 
-**Blocked 2026-11-06.** Blocker: podcrates has not imported the seven
-crates (podcrates T-055 to T-061). Clears when: podcrates names, in
-issue 194, the import commit of a crate; the entry then proceeds crate
-by crate.
+**Open 2026-11-06.** The blocker cleared for the first crate.
+podcrates imported `pod-hostprobe` (T-055) from podvm at `2c03085`
+(PodUtils/podcrates#11). From that import the 29 files that the block
+`repo PodUtils/podvm` of `crates/pod-hostprobe/SOURCES` lists take fixes
+only, each written as a COORD issue `(to podcrates)`:
+`crates/podvm-probe/src/` except `exit.rs`, `json.rs`, `report.rs`,
+`report/` and `nongoals.rs`; `crates/podvm-probe/tests/namespace*.rs`;
+and `crates/podvm-image/src/space.rs`, `exec_probe.rs` and
+`tests/space_precheck.rs`. Two fixes are podcrates': `sys::statfs` reads
+the narrow struct on i686 and arm through a `statfs64`-shaped buffer
+(podcrates T-072), and `exec::try_exec` retries `ETXTBSY`, which is the
+cause of the flake of `exec_probe::two_probes_in_one_process_take_two_names`
+seen at `cec4bcb`. podvm takes them with the crate; the trial
+`adoption/podvm/pod-hostprobe.patch` comes with the next podcrates
+release, after the registry trial of T-1677. The other six crates wait
+for their imports (podcrates T-056 to T-061).
 
 ---
 
