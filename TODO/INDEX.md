@@ -10,6 +10,8 @@ work order and is the only place that has one. This file carries the list, defin
 [RULES.md](RULES.md) is how this repository is worked on.
 [reference-map.md](reference-map.md) is the corpus and its licence
 determinations.
+[issues.md](issues.md) maps each GitHub issue of the record to its
+entries, and `TODO/github.txt` lists the numbers it holds.
 
 `crates/podvm-gate/src/main.rs` checks this file against the entries: a status that
 disagrees, a row with no entry, an entry with no row, a count that does not add
@@ -340,10 +342,27 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1666](probe.md) | P2 | probe | open | A security probe inside the payload, and a compare against a reference report |
 | [T-1667](cli.md) | P2 | cli | open | Doctor and installers: one check per scope capability, verified downloads, a space floor |
 | [T-1668](gate.md) | P2 | gate | open | A findings page for the scope: observed or inferred, with host conditions per row |
+| [T-1669](deps.md) | P1 | deps | open | Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate |
+| [T-1670](probe.md) | P1 | probe | open | The first cloud session measures its host and saves the result |
+| [T-1671](packaging.md) | P2 | packaging | open | Release `v0.2.0-beta.1` with `## Breaking` notes, from a dispatched `release.yml` |
+| [T-1672](gate.md) | P2 | gate | blocked | Move the record to the format of `pod-todo`, with a `podvm-todo` wrapper and a todo.toml |
+| [T-1673](gate.md) | P2 | gate | open | File the 29 plan rows that T-1607 owns, read from the archive branch |
+| [T-1674](gate.md) | P2 | gate | blocked | A source-file size limit with an allowlist that only shrinks |
+| [T-1675](deps.md) | P2 | deps | blocked | Take `pod-term` for the SSH line discipline |
+| [T-1676](deps.md) | P2 | deps | blocked | Take `pod-tls` for both TLS stacks, with its synchronous face |
+| [T-1677](deps.md) | P2 | deps | blocked | Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial |
+| [T-1678](deps.md) | P2 | deps | blocked | Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1` |
+| [T-1679](deps.md) | P2 | deps | blocked | Take `pod-services` for the third-party hosts compiled into podvm |
+| [T-1680](deps.md) | P2 | deps | blocked | Take `pod-todo` for the record half of `podvm-gate` |
+| [T-1681](deps.md) | P2 | deps | blocked | Hand the seven generic crates to podcrates and freeze their files |
+| [T-1682](machine.md) | P2 | machine | blocked | A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner |
+| [T-1683](gate.md) | P2 | gate | open | Retire the PowerShell twins of `scripts/common/` and `check-twins.sh` |
+| [T-1684](gate.md) | P2 | gate | open | Fuzz the parsers that read untrusted input, and watch `vendor/` upstream |
+| [T-1685](gate.md) | P2 | gate | open | A maintenance page and a development page in the sibling form |
 
 ## Counts
 
-277 items: 26 open, 9 partial, 0 blocked, 242 done.
+294 items: 33 open, 9 partial, 10 blocked, 242 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -352,10 +371,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 62 | 64 |
-| P1 | 6 | 8 | 0 | 116 | 130 |
-| P2 | 19 | 0 | 0 | 55 | 74 |
+| P1 | 8 | 8 | 0 | 116 | 132 |
+| P2 | 24 | 0 | 10 | 55 | 89 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **26** | **9** | **0** | **242** | **277** |
+| **All** | **33** | **9** | **10** | **242** | **294** |
 
 ## Work order
 

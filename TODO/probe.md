@@ -1108,3 +1108,47 @@ F10: kernel.yama.ptrace_scope 0 here and 1 in the reference, so /proc/1/mem
 matrix vs errand-bailey: podman-none 307 / 92, docker-none 305 / 86,
   docker-open 306 / 85; containers differ most in fs (54)
 ```
+
+---
+
+### T-1670 The first cloud session measures its host and saves the result
+
+Source:      the migration of 2026-11-06 to cloud sessions; issue 114 (the
+             target host); `crates/podvm-probe/src/probes.rs:225`;
+             `crates/podvm-probe/src/probes.rs:231`;
+             `crates/podvm/src/doctor.rs:149`
+Category:    probe
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     From 2026-11-06 podvm is worked in cloud sessions, not on the
+             operator's Windows host. No record says what a cloud session's
+             host grants. An entry that assumes `/dev/kvm`, user namespaces
+             or a direct network on that host can be wrong without anyone
+             seeing it.
+Premise:     `podvm probe` measures most mechanisms in disposable children:
+             the seccomp listener (`probes.rs:225`) and Landlock
+             (`probes.rs:231`) among them. `podvm doctor` reports the machine
+             legs (`doctor.rs:149`). The probe does not measure Syscall User
+             Dispatch (T-1652 adds it), and neither tool tests which
+             registries answer through the egress proxy. The main session
+             adds a setup script for cloud sessions, scripts/cloud-setup.sh.
+Approach:    In the first cloud session, run the setup script, then
+             `podvm probe --json` and `podvm doctor`. Add measurements that
+             the probe lacks, in a tracked experiment that prints its
+             conditions: `/dev/kvm`, user namespaces, `chroot`, `/dev/ptmx`,
+             `/dev/fuse`, seccomp, the `prctl` of Syscall User Dispatch,
+             `openat2(RESOLVE_IN_ROOT)`, a manifest fetch from each registry
+             of DISTRO_ROWS_M5 through the proxy, and free blocks and inodes.
+             Save the output under `experiments/results/`. Compare the
+             result with issue 114 and name each difference.
+Decision:    A measurement on the cloud host is a property of that host
+             (T-1203). Exit 2 means could not run, never denied. A host
+             property that changes an entry's premise is corrected in that
+             entry, in place.
+Prove:       `sh experiments/424-cloud-host.sh` exits 0 or 1 in the first
+             cloud session after `sh scripts/cloud-setup.sh` exits 0, with
+             its output and `podvm probe --json` saved under
+             `experiments/results/`, and `./target/release/podvm-gate`
+             exits 0 with the result file cited here.

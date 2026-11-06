@@ -1212,3 +1212,312 @@ the right command easy to find. A reader still has to reach for
 `sh scripts/dev-lane.sh run JOB.sh` on their own, and AGENTS.md:28 is
 one line in a list. That is why the entry keeps a documentation half
 beside the guard half, and why neither is described as sufficient.
+
+---
+
+### T-1669 Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate
+
+Source:      call C6 of the decisions page of 2026-11-06 (the main session
+             adds it as docs/decisions.md); COORD-001, issue 194, "podvm
+             moves to the pinned stable Rust and edition 2024 before its
+             first take"; `rust-toolchain.toml:2`; `Cargo.toml:28-29`;
+             `crates/podvm-interpose/Cargo.toml:4-5`
+Category:    deps
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     The toolchain floats on `stable`, so the compiler changes under
+             the tree without a commit. Stable moved from 1.98.1 to 1.99.0
+             between two CI runs on 2026-10-01 and turned the static build
+             red (T-1601). The podcrates crates that podvm takes next build
+             on a pinned stable and edition 2024; podvm is on edition 2021.
+Premise:     `rust-toolchain.toml:2` reads `channel = "stable"`. The
+             workspace sets `edition = "2021"` and `rust-version = "1.85"`
+             (`Cargo.toml:28-29`). The interposer is outside the workspace
+             and sets the same two values
+             (`crates/podvm-interpose/Cargo.toml:4-5`). T-1601 recorded "do
+             not pin the toolchain" under the 2026-10-02 rule of
+             `TODO/RULES.md` section 11; call C6 of 2026-11-06 orders the
+             pin.
+Approach:    Read the stable version of the day of the change with `rustup
+             check`. Set `channel` to that exact version, and keep the
+             components and the musl target. Set `edition = "2024"` and
+             `rust-version` to the pinned version in the workspace and in
+             the interposer. Run `cargo fix --edition` for each, then fix
+             what remains by hand. Run the full lane: fmt, clippy, tests,
+             the static build and both interposer objects. A later bump is
+             one commit that changes the pin and passes the same lane.
+Decision:    C6 settles the pin; it supersedes T-1601's "do not pin" for the
+             channel only. The rule "take whatever toolchain feature unlocks
+             the task" of `TODO/RULES.md` section 11 stays: a bump to a newer
+             pin is how a feature is taken. This entry comes before the
+             first `pod-*` take (T-1675) and before the record moves to
+             pod-todo (T-1672).
+Prove:       `cargo fmt --all --check`, `cargo clippy --workspace
+             --all-targets -- -D warnings` and `cargo test --workspace` each
+             exit 0 in the Linux lane (`sh scripts/dev-lane.sh run JOB.sh`)
+             on the pinned toolchain; `./target/release/podvm-interpose-build`
+             exits 0 with both objects under the ceiling; and
+             `rustc --version` in the lane prints the version that
+             `rust-toolchain.toml` names.
+
+---
+
+### T-1675 Take `pod-term` for the SSH line discipline
+
+Source:      COORD-001, issue 194, "What podvm takes, in this order", row 1;
+             PodUtils podcrates issue 3; `crates/podvm-ssh/src/session.rs:1`
+Category:    deps
+Priority:    P2
+Effort:      M
+Status:      blocked
+
+Problem:     podvm carries its own terminal line discipline in
+             `crates/podvm-ssh/src/session.rs` (1,132 lines). podcrates
+             makes the same code a shared crate, `pod-term`, so podnet,
+             podssh and podvm keep one copy.
+Premise:     COORD-001 puts `pod-term` first because it needs no tokio.
+             podcrates recorded the order in its answer (podcrates issue 3)
+             and hands each crate over as `adoption/podvm/CRATE.patch` and
+             `.run` at the tag of its release (podcrates T-040). The pinned
+             toolchain comes first (T-1669).
+Approach:    When the release is out, apply its adoption patch: depend on
+             `pod-term` at the release version and replace the line
+             discipline in `session.rs` with calls to the crate. Keep the
+             existing session tests and run them against the crate. Write
+             the commit that took the crate as a COORD issue `(to
+             podcrates)`, as podcrates issue 3 asks.
+Decision:    podvm takes a released version, never a path or a git
+             dependency. A defect found in the crate goes to podcrates as a
+             COORD issue; podvm does not patch a copy.
+Prove:       `cargo test -p podvm-ssh` exits 0 in the Linux lane with the
+             session tests passing through `pod-term`, and
+             `./target/release/podvm-gate` exits 0.
+
+**Blocked 2026-11-06.** Blocker: podcrates has not released `pod-term`.
+Clears when: podcrates publishes a `pod-term` release with its adoption
+patch for podvm, and T-1669 is done.
+
+---
+
+### T-1676 Take `pod-tls` for both TLS stacks, with its synchronous face
+
+Source:      COORD-001, issue 194, row 2; PodUtils podcrates issue 3,
+             question 1 (call C20 of podcrates); `crates/podvm-ssh/src/tls.rs:1`;
+             `crates/podvm-image/src/tls.rs:1`
+Category:    deps
+Priority:    P2
+Effort:      M
+Status:      blocked
+
+Problem:     podvm has two TLS setups: `crates/podvm-ssh/src/tls.rs` (153
+             lines) and `crates/podvm-image/src/tls.rs` (290 lines). It
+             needs TLS 1.2, RSA and `ring` for intercepting proxies.
+             podcrates makes this `pod-tls`.
+Premise:     podvm is synchronous and measures the size of each dependency.
+             podcrates answered question 1: with `default-features = false`,
+             `pod-tls` builds its configurations, roots and stores with no
+             tokio, and podvm drives rustls's own synchronous stream.
+             `pod-rootfs` (T-1681) reads the CA data that moves to
+             `pod-tls`.
+Approach:    Take the released `pod-tls` with `default-features = false`.
+             Replace both modules with the crate's configuration and roots.
+             Measure the binary size before and after with
+             `./target/release/podvm-size` and record both. Report the
+             taken commit in a COORD issue `(to podcrates)`.
+Decision:    No tokio enters podvm through this crate. A size growth past
+             the ceiling the gate checks is a blocker to raise with
+             podcrates, not a ceiling to move.
+Prove:       `cargo test -p podvm-image` and `cargo test -p podvm-ssh` exit
+             0 in the Linux lane, `cargo tree -p podvm -e normal -i tokio`
+             finds no tokio, and `./target/release/podvm-gate` exits 0.
+
+**Blocked 2026-11-06.** Blocker: podcrates has not released `pod-tls`
+with the no-tokio feature set. Clears when: that release and its
+adoption patch exist, and T-1675 is done.
+
+---
+
+### T-1677 Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial
+
+Source:      COORD-001, issue 194, row 3; PodUtils podcrates issue 3,
+             question 1 (podcrates T-063); `crates/podvm-image/src/transport.rs:1`;
+             `crates/podvm-ssh/src/transport.rs:226`
+Category:    deps
+Priority:    P2
+Effort:      L
+Status:      blocked
+
+Problem:     podvm dials registries and SSH targets directly
+             (`crates/podvm-ssh/src/transport.rs:226`). It reads no
+             `HTTPS_PROXY` and no `NO_PROXY`, so on a host whose only way
+             out is a proxy, `pull` and the guest image fetch cannot reach
+             the network.
+Premise:     podcrates answered question 1 with a feature `blocking`: a
+             blocking `Dialer` and `Client` over a private current-thread
+             runtime, on the same code as the async ones (call C20). Where
+             podvm's measurement asks for no tokio, the protocol parts
+             become state machines that a synchronous driver runs.
+             podcrates records that as T-063, before podvm takes the crate.
+Approach:    Take the released `pod-proxy` with `blocking`. Route the
+             registry transport, the SSH dial and the guest image fetch
+             through its `Dialer`, honouring `HTTPS_PROXY`, `HTTP_PROXY`,
+             `ALL_PROXY` and `NO_PROXY`. Measure the size, and the count of
+             threads during a pull. Report the taken commit.
+Decision:    The proxy credential never appears in argv, in a log line or in
+             an error message. Whether the private runtime is acceptable is
+             decided by the measurement: where it is not, podvm waits for the
+             state-machine form of podcrates T-063.
+Prove:       `cargo test -p podvm-image` exits 0 in the Linux lane with a
+             test that pulls through a local CONNECT proxy fixture and
+             bypasses it for a `NO_PROXY` host, and
+             `./target/release/podvm-gate` exits 0.
+
+**Blocked 2026-11-06.** Blocker: podcrates has not released `pod-proxy`
+with feature `blocking` (podcrates T-063). Clears when: that release and
+its adoption patch exist, and T-1676 is done.
+
+---
+
+### T-1678 Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1`
+
+Source:      COORD-001, issue 194, row 4; PodUtils podcrates issue 3;
+             `crates/podvm-ssh/src/mux.rs:1`; `crates/podvm-ssh/src/ws.rs:1`
+Category:    deps
+Priority:    P2
+Effort:      L
+Status:      blocked
+
+Problem:     podvm carries its own relay: `crates/podvm-ssh/src/mux.rs`
+             (1,356 lines), `crates/podvm-ssh/src/ws.rs` (1,051 lines), and a
+             pairing through curl in `crates/podvm/src/remote/`. podcrates
+             makes the relay a shared crate, `pod-relay`.
+Premise:     COORD-001 takes `pod-relay` with feature `blocking` when
+             podcrates' wave M2 lands, and the protocol keeps podvm's live
+             `reverse-v1`. T-1406 is partial on live-relay pairing.
+Approach:    Take the released crate. Replace `mux.rs`, `ws.rs` and the curl
+             pairing with its blocking client. Keep `reverse-v1` on the
+             wire, and prove it against a relay that runs the version podvm
+             shipped. Report the taken commit.
+Decision:    The wire protocol does not change in this entry. A protocol
+             change is its own entry with a version bump.
+Prove:       `cargo test -p podvm-ssh` exits 0 in the Linux lane with the
+             mux and relay tests passing through `pod-relay`, and
+             `./target/release/podvm-gate` exits 0.
+
+**Blocked 2026-11-06.** Blocker: podcrates' wave M2 and a `pod-relay`
+release with feature `blocking`. Clears when: that release and its
+adoption patch exist, and T-1677 is done.
+
+---
+
+### T-1679 Take `pod-services` for the third-party hosts compiled into podvm
+
+Source:      COORD-001, issue 194, row 5; PodUtils podcrates issue 3, "One
+             ask of podvm" (podcrates T-054); COORD-003, issue 196
+Category:    deps
+Priority:    P2
+Effort:      M
+Status:      blocked
+
+Problem:     The relay URL, the registry endpoints and the guest image
+             sources are compiled into podvm in several places. A changed
+             host means a source edit in each place, and no list says which
+             hosts podvm contacts.
+Premise:     podcrates' `pod-services` holds the hosts of other parties for
+             each consumer. podcrates asked for podvm's inventory of those
+             hosts; COORD-003, issue 196, sends it. podcrates T-054 takes
+             that inventory into the crate.
+Approach:    When the release carries podvm's hosts, replace each compiled
+             host with a read from `pod-services`. Keep a test that lists
+             every host podvm can contact and compares it with the crate's
+             list for podvm.
+Decision:    A host podvm contacts and the crate does not list is a defect
+             of the inventory, reported to podcrates. podvm does not keep a
+             second list.
+Prove:       `cargo test -p podvm` exits 0 with the host-list test, and
+             `./target/release/podvm-gate` exits 0.
+
+**Blocked 2026-11-06.** Blocker: podcrates has not released
+`pod-services` with podvm's inventory (podcrates T-054). Clears when:
+that release exists, and T-1678 is done.
+
+---
+
+### T-1680 Take `pod-todo` for the record half of `podvm-gate`
+
+Source:      COORD-001, issue 194, row 8; PodUtils podcrates issue 3;
+             `crates/podvm-gate/src/main.rs:1`; `crates/podvm-gate/src/grammar.rs:1`
+Category:    deps
+Priority:    P2
+Effort:      L
+Status:      blocked
+
+Problem:     `podvm-gate` checks the record (rows, fields, counts,
+             citations, links) and the tree (sizes, exports, plants) in one
+             4,220-line file. The record half is the same work that
+             podcrates' `pod-todo` does for its other consumers.
+Premise:     COORD-001 takes `pod-todo` last, "after podvm's record moves
+             to the format of pod-todo". That move is T-1672. The grammar
+             is shared with `podvm-count` (`grammar.rs`).
+Approach:    After T-1672, remove the record checks from `podvm-gate` and
+             call `pod-todo` through the `podvm-todo` wrapper. Keep the
+             tree checks in `podvm-gate`. Move each plant of a record check
+             to the wrapper and prove each still fails the gate. Report the
+             taken commit.
+Decision:    No record check is lost: each one is in `pod-todo`, in the
+             wrapper, or recorded as retired with its reason.
+Prove:       `./target/release/podvm-gate` exits 0, and
+             `./target/release/podvm-plant` exits 0 with every record plant
+             caught through the wrapper.
+
+**Blocked 2026-11-06.** Blocker: podcrates has not released `pod-todo`.
+Clears when: that release exists, and T-1672 is done.
+
+---
+
+### T-1681 Hand the seven generic crates to podcrates and freeze their files
+
+Source:      COORD-001, issue 194, "What podvm hands to podcrates";
+             PodUtils podcrates issue 3, wave M6 (podcrates T-055 to T-061);
+             PodUtils podcrates issue 1
+Category:    deps
+Priority:    P2
+Effort:      L
+Status:      blocked
+
+Problem:     The owner ruled on 2026-11-06 that each generic crate of podvm
+             moves to podcrates as `pod-*`. Until podcrates imports them and
+             podvm takes them back, two copies can drift: a fix in one does
+             not reach the other.
+Premise:     podcrates wave M6 imports, in order: `pod-hostprobe` from
+             `crates/podvm-probe` (first, because extract, rootfs, enter and
+             supervise read its raw syscalls), `pod-oci` from part of
+             `crates/podvm-image`, `pod-extract` from `crates/podvm-extract`,
+             `pod-rootfs` from `crates/podvm-complete`, `pod-enter` from
+             `crates/podvm-enter`, `pod-supervise` from
+             `crates/podvm-supervise` and `pod-guest` from
+             `crates/podvm-windows`. Each import starts from the rename
+             commit that COORD-001 names. From the import on, the imported
+             files of podvm are frozen (fixes only) until a `taken` line in
+             podcrates' `SOURCES` ends the freeze.
+Approach:    For each crate, as podcrates imports it: record the frozen
+             files in this repository, send each fix of a frozen file to
+             podcrates as a COORD issue with its commit, and, when the
+             crate is released, replace the podvm crate with a dependency
+             on it and report the taken commit. The content store stays in
+             podvm. The CA data that `pod-rootfs` reads moves to `pod-tls`
+             (T-1676).
+Decision:    One entry tracks the hand-over of all seven, because each step
+             is the same procedure; a crate whose take needs code work gets
+             its own entry. A frozen file takes fixes only, as podcrates
+             issue 3 states.
+Prove:       `./target/release/podvm-gate` exits 0 with each of the seven
+             podvm crates replaced by its `pod-*` dependency, and
+             `cargo test --workspace` exits 0 in the Linux lane.
+
+**Blocked 2026-11-06.** Blocker: podcrates has not imported the seven
+crates (podcrates T-055 to T-061). Clears when: podcrates names, in
+issue 194, the import commit of a crate; the entry then proceeds crate
+by crate.

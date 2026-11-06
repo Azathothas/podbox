@@ -2,15 +2,18 @@
 
 ## State
 
-277 entries: 26 open, 9 partial, 0 blocked, 242 done.
+294 entries: 33 open, 9 partial, 10 blocked, 242 done.
 
 The project was renamed from podbox to podvm on 2026-11-06 (commit
 `rename: podbox is podvm`): entries closed before that commit ran their
 commands under the name podbox, and the record now spells them as podvm.
 
-**Twenty-six entries are `open`: T-1643 through T-1653, item 13 of the
-work order, and T-1654 through T-1668, item 14.** Every other filed row is `done` or `partial`, and each partial
-names its remaining acceptance. T-1613 filed the 21 unbatched
+**Thirty-three entries are `open` and ten are `blocked`.** T-1643
+through T-1653 are item 13 of the work order, T-1654 through T-1668
+item 14, and the migration follow-ups T-1669 through T-1685 item 15;
+each blocked entry names its blocker and the condition that clears it.
+Every other filed row is `done` or `partial`, and each partial names
+its remaining acceptance. T-1613 filed the 21 unbatched
 plan rows and they are now closed with their own records; the 29 rows
 T-1607 still owns are described there rather than filed. T-1641 is
 `partial`: all three of its fixes are implemented and the record gate,
@@ -196,6 +199,20 @@ keeps its historical scope. It does not establish current reliability.
     entries T-1665, T-1662, T-1663 and T-1664 on T-1656, the profiles
     T-1659, T-1661 and T-1660, and T-1668 beside them all. Each names
     the podcrates crate it builds on, and none waits for that crate.
+15. T-1669 through T-1685 are the follow-ups of the 2026-11-06 migration
+    to podvm and cloud sessions. The two P1 entries come first: T-1669
+    pins the stable Rust of the day and edition 2024 (call C6), and
+    T-1670 has the first cloud session measure its host. Then the open
+    P2 entries: T-1671 (the first podvm release from a dispatched
+    `release.yml`), T-1673 (the 29 plan rows of T-1607), T-1683 (retire
+    the PowerShell twins), T-1684 (fuzzing and the vendor watch) and
+    T-1685 (the two sibling-form pages). Ten are `blocked`. T-1675 to
+    T-1680 take the podcrates crates in the order of COORD-001
+    (issue 194), each on its podcrates release, and T-1681 hands over
+    the seven generic crates on podcrates' import. T-1672 moves the
+    record to the pod-todo format on that crate's release, T-1674 waits
+    for the owner's line limit, and T-1682 waits for the KVM deferral
+    of item 9 to lift.
 
 An agent may start a KVM guest unattended by passing both
 `--accept-host-risk` and `--unattended`; the driver then holds a T-1609
@@ -246,7 +263,7 @@ They bind every future session and are not restated anywhere else:
 
 | item | before | now |
 | --- | --- | --- |
-| toolchain pin or port | operator call | settled, T-1601 |
+| toolchain pin or port | operator call | settled, T-1601; the pin itself is T-1669 |
 | registry fixture dead code | operator call | settled, T-1602 |
 | secrets-check pattern | operator call | settled, T-1603 |
 | version tag and release | operator action | authorized, T-1605 |
@@ -257,7 +274,8 @@ watchdog outside the guest. Both blockers that stood between here and
 the proof are done: T-1609 built the watchdog and wired it to the driver,
 T-1610 repaired podman and installed qemu and OVMF into the base. T-1350
 can now run guarded. T-1112's KVM leg rides the same run, and its ReactOS
-clause was descoped on 2026-10-02. Nothing is blocked on a human.
+clause was descoped on 2026-10-02. Two entries wait on the owner:
+T-1682 on the KVM deferral, and T-1674 on a line limit.
 
 ## Publication
 

@@ -1195,3 +1195,44 @@ are repaired in the same change as the deletion, per
 carries the dependency itself beside this entry's question, so the two
 are found together and neither closes alone.
 
+
+---
+
+### T-1671 Release `v0.2.0-beta.1` with `## Breaking` notes, from a dispatched `release.yml`
+
+Source:      the rename of 2026-11-06 (`CHANGELOG.md:11`, "Breaking: podbox
+             is podvm"); `.github/workflows/nightly.yml:13-15`; the
+             release workflows of the sibling repositories PodUtils podnet
+             and PodUtils podcrates
+Category:    packaging
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     No release carries the name podvm: the changelog says the
+             rename is "not deployed". A release starts only from a pushed
+             version tag (`nightly.yml:13-15`), and a cloud session cannot
+             push a tag. The sibling repositories release from a workflow
+             that an operator or a session dispatches.
+Premise:     `nightly.yml` builds and smoke-tests every architecture and
+             publishes a pre-release named nightly for each `v*` tag. The
+             rename is a clean break with no compatibility
+             (`CHANGELOG.md:11-14`). T-1605 is partial on the live tag
+             proof of the publish path. The workspace version is
+             `0.1.0-beta.13` (`Cargo.toml:27`).
+Approach:    Add `.github/workflows/release.yml` with `workflow_dispatch`
+             and a version input. It checks that the input matches the
+             workspace version and that `CHANGELOG.md` has a section for
+             it, creates the tag from the workflow, and runs the build,
+             smoke, sign and publish jobs of `nightly.yml`. Then retire the
+             tag trigger. Bump the workspace to `0.2.0-beta.1`, write the
+             `## Breaking` notes from the Unreleased section, and dispatch
+             the release.
+Decision:    The version moves to 0.2 because the rename breaks every
+             caller. The release workflow creates the tag; no session pushes
+             one. T-1605's publish-path proof closes on this release if the
+             same jobs publish it.
+Prove:       `gh workflow run release.yml -f version=0.2.0-beta.1` starts a
+             run that exits green, and `gh release view v0.2.0-beta.1`
+             lists the seven static binaries with their hashes and
+             signatures and a `## Breaking` section in its notes.

@@ -3797,3 +3797,221 @@ F28 F31 F33 -> T-1655; F14 -> T-1657; F15 F16 F32 F35 L7 -> T-1656; F9 F18
 F19 F20 F21 L1 L2 L3 L5 L6 -> T-1662; F22 F23 -> T-1663; F11 F27 F29 ->
 T-1665; F10 -> T-1666; F12 F25 F34 -> T-1667
 ```
+
+---
+
+### T-1672 Move the record to the format of `pod-todo`, with a `podvm-todo` wrapper and a todo.toml
+
+Source:      call C6 of the decisions page of 2026-11-06 (the main session
+             adds it as docs/decisions.md), "the record moves to the format
+             of pod-todo as its own milestone after that"; COORD-001, issue
+             194, row 8; `crates/podvm-gate/src/grammar.rs:35-38`
+Category:    gate
+Priority:    P2
+Effort:      L
+Status:      blocked
+
+Problem:     podvm's record format is its own: ten fields, a row table and
+             a Counts block that `podvm-count` rewrites. The sibling
+             repositories keep their record in the format of podcrates'
+             `pod-todo`. A session that moves between the repositories
+             reads two formats, and podvm cannot take `pod-todo` (T-1680)
+             while its record is in another one.
+Premise:     The ten fields are fixed in `grammar.rs:35-38`, which both
+             `podvm-gate` and `podvm-count` read. 277 or more rows and
+             their entries live in the area files under `TODO/`. C6 orders
+             this move after the toolchain pin (T-1669).
+Approach:    Read the `pod-todo` format at its release. Add a
+             wrapper crate, crates/podvm-todo, that depends on `pod-todo`
+             and carries podvm's own checks (Prove flags against the parity
+             table, image references against DISTRO_ROWS_M5). Add
+             TODO/todo.toml with the categories, priorities and paths.
+             Convert every entry with a script that the change commits and
+             that proves the conversion loses no field: each entry's text
+             before and after compares field by field.
+Decision:    The conversion is one commit, made by a script, never by hand.
+             podvm's own checks stay, in the wrapper. The history of an
+             entry stays readable through git.
+Prove:       `cargo test -p podvm-todo` exits 0, the conversion script
+             exits 0 and prints that 0 fields were lost, and
+             `./target/release/podvm-gate` exits 0 on the converted record.
+
+**Blocked 2026-11-06.** Blocker: podcrates has not released `pod-todo`,
+so its format has no fixed version to convert to. Clears when: a
+`pod-todo` release exists and T-1669 is done.
+
+---
+
+### T-1673 File the 29 plan rows that T-1607 owns, read from the archive branch
+
+Source:      [T-1607](gate.md), its open half; `docs/history/worktree-archive.md:12`
+             (the `refactor/` row); the branch `archive/podbox-worktree`
+Category:    gate
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     T-1607 filed the 21 plan rows that the refactor plan named and
+             left the other 29 unfiled. Those 29 rows live only in
+             `refactor/`, which is not on `main`. Since 2026-11-06 that
+             directory is on the branch `archive/podbox-worktree`, so a
+             session can read them for the first time from a fresh clone.
+Premise:     T-1607 records that 8 of the 29 were checked against disk and
+             are already done (their scripts were deleted by Batch 3), and
+             that the remaining 21 need each row re-derived from current
+             source. The archive page says how to read a cited file from the
+             branch (`docs/history/worktree-archive.md:20-21`).
+Approach:    Fetch the branch and read the plan's 100 rows. List the 29
+             that no batch names and that are not yet filed. For each,
+             read the current source: file it as an entry where work
+             remains, or record it in T-1607 as done with the commit that
+             did it. Then close T-1607's open half.
+Decision:    A row is filed from current source, never copied from the plan
+             as it stands. A row whose subject the rename or the migration
+             removed is recorded as obsolete with the reason.
+Prove:       `git show origin/archive/podbox-worktree:refactor/recon-c.md`
+             exits 0 in the session that reads the plan, and
+             `./target/release/podvm-gate` exits 0 with each of the 29 rows
+             filed as an entry or named in T-1607 as done or obsolete.
+
+---
+
+### T-1674 A source-file size limit with an allowlist that only shrinks
+
+Source:      the migration of 2026-11-06; `crates/podvm-gate/src/main.rs:1`
+             (4,220 lines); `crates/podvm-interpose/src/lib.rs:1` (3,129
+             lines); `crates/podvm/src/lifecycle.rs:1` (2,926 lines)
+Category:    gate
+Priority:    P2
+Effort:      S
+Status:      blocked
+
+Problem:     No check bounds the size of a source file. The largest,
+             `crates/podvm-gate/src/main.rs`, has 4,220 lines, and six
+             other `.rs` files have over 2,000. A large file is hard to
+             review and hard to split once a crate leaves for podcrates.
+Premise:     The gate already bounds the release binary size
+             (`check_size_ceiling`, `main.rs:2026`). It has no check for
+             source lines. The right number of lines is a question for the
+             owner.
+Approach:    Add a check to the gate: a tracked source file over N lines
+             fails, unless it is on an allowlist with its current count. An
+             entry on the allowlist may only go down; a file that grows
+             fails. Plant a file one line over the limit and a listed file
+             that grows.
+Decision:    The allowlist shrinks and never grows. A file leaves it when it
+             falls under N. N is the owner's number.
+Prove:       `./target/release/podvm-gate` exits 0 with the check in place,
+             and `./target/release/podvm-plant` exits 0 with two new plants
+             caught: a file one line over N, and a listed file that grows.
+
+**Blocked 2026-11-06.** Blocker: the owner has not given N, the line
+limit. Clears when: the owner states N.
+
+---
+
+### T-1683 Retire the PowerShell twins of `scripts/common/` and `check-twins.sh`
+
+Source:      the migration of 2026-11-06; `scripts/common/check-twins.sh:12-21`
+Category:    gate
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     Ten checks in `scripts/common/` have a `.ps1` twin, and
+             `check-twins.sh` compares each pair. Every change to a check is
+             made twice. The twins exist because a POSIX check could not be
+             assumed to run on Windows.
+Premise:     `check-twins.sh:12-21` records the measurement behind the
+             twins: on one Windows 11 machine on 2026-08-25, with Git Bash
+             off PATH, `sed` was absent and `sort` was PowerShell's alias.
+             The work now runs in cloud sessions on Linux, and on Windows
+             under Git Bash, where the `.sh` checks have coreutils. That
+             second claim is not measured for every check.
+Approach:    Run each `.sh` check under Git Bash on Windows and save the
+             exit codes and the coreutils that each one resolves. Where all
+             pass, delete the ten `.ps1` files and `check-twins.sh`, and
+             remove their callers in the workflows and the docs. Where one
+             fails, fix the `.sh` check so it does not depend on an aliased
+             tool.
+Decision:    One implementation of each check. A Windows session runs the
+             `.sh` checks under Git Bash. The measurement of 2026-08-25
+             moves to history with the twins.
+Prove:       `sh scripts/common/check-docs.sh` and each other `.sh` check of
+             `scripts/common/` exit 0 under Git Bash on Windows and on
+             Linux, with the transcript saved under `experiments/results/`;
+             `./target/release/podvm-gate` exits 0 with no `.ps1` file left
+             in `scripts/common/`.
+
+---
+
+### T-1684 Fuzz the parsers that read untrusted input, and watch `vendor/` upstream
+
+Source:      the migration of 2026-11-06; `crates/podvm-image/src/oci.rs:170`;
+             `crates/podvm-extract/src/apply.rs:77`;
+             `crates/podvm-image/src/registry.rs:914`;
+             `crates/podvm-enter/src/abi.rs:156`;
+             `vendor/userland-execve/Cargo.toml:3`
+Category:    gate
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     podvm parses input that a registry or an image author controls:
+             OCI manifests and indexes, tar layers, registry auth
+             challenges, and ELF headers. No fuzz target exercises any of
+             them. The vendored `userland-execve` (version 0.2.0) has no
+             check that tells when upstream fixes a defect.
+Premise:     The parsers are `Fetched::parse` (`oci.rs:170`), `apply_layer`
+             (`apply.rs:77`), `parse_challenge` (`registry.rs:914`) and
+             `Elf::read` (`abi.rs:156`). T-1646 adds a bounded ELF reader to
+             the interposer. The vendored tree records its upstream in
+             `TODO/reference-map.md` (io12 `userland-execve-rust` at
+             `02ef0e0`).
+Approach:    Add `cargo fuzz` targets for the four parsers, and for the
+             interposer's ELF reader when T-1646 lands. Add
+             `.github/workflows/fuzz.yml` that runs each target for a fixed
+             time on a schedule and on dispatch, and uploads a crash input.
+             Add a scheduled job that compares the vendored revision with
+             upstream's default branch and opens nothing: it fails with the
+             new commits listed.
+Decision:    A crash input becomes a regression test in the crate before
+             the fix lands. The upstream watch reports; a person decides
+             whether to take a change, by `docs/methodology/vendoring.md`.
+Prove:       `cargo fuzz run oci_manifest -- -max_total_time=60` and the
+             other targets each exit 0 in the Linux lane, and `gh workflow
+             run fuzz.yml` starts a run that exits green.
+
+---
+
+### T-1685 A maintenance page and a development page in the sibling form
+
+Source:      the migration of 2026-11-06; the two pages of PodUtils
+             podcrates; `docs/conventions/code.md:1`;
+             `docs/conventions/shell.md:1`; `docs/conventions/git.md:31-41`
+Category:    gate
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     A session that moves from podcrates to podvm finds the
+             development rules in another shape. podcrates has
+             docs/maintenance.md and docs/development.md; podvm spreads
+             the same subject over `docs/conventions/code.md`, `shell.md`
+             and section 3 of `git.md`.
+Premise:     `code.md` has 36 lines and `shell.md` 70. Section 3 of
+             `git.md` (`git.md:31-41`) is the commit procedure. The document
+             roles are in `docs/conventions/docs.md`, and the one-home check
+             fails a fact kept in two places.
+Approach:    Write docs/development.md (build, lanes, tests, code and
+             shell rules) and docs/maintenance.md (commits, releases,
+             dependencies, vendoring) in the form of the podcrates pages.
+             Fold `code.md`, `shell.md` and `git.md` section 3 into them,
+             and leave each old path as a link or remove it with its
+             callers. Update the document roles page.
+Decision:    Each fact moves to one home. No rule changes in the move; a
+             rule change is its own entry.
+Prove:       `sh scripts/common/check-docs.sh` and
+             `sh scripts/common/check-one-home.sh` exit 0, and
+             `./target/release/podvm-gate` exits 0 with the two pages in
+             the tree.

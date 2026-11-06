@@ -1280,3 +1280,43 @@ limits: no shared directory, so /workspace writes never return; stdout and
 not built: Firecracker, Cloud Hypervisor (same kernel boots on QEMU
      microvm), Kata (973 MB bundle), microsandbox and smolvm (need /dev/kvm)
 ```
+
+---
+
+### T-1682 A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner
+
+Source:      the migration of 2026-11-06 to cloud sessions; `TODO/RULES.md:137`
+             (the KVM deferral); `experiments/392-kvm-guest.sh:1`;
+             `crates/podvm/src/tier.rs:105`
+Category:    machine
+Priority:    P2
+Effort:      M
+Status:      blocked
+
+Problem:     The KVM proof of the machine tier has run only on the
+             operator's host. One run there left an emulator that SIGKILL
+             did not remove, and the host failed later. A cloud session
+             has no `/dev/kvm` (issue 114). No workflow runs the Linux guest
+             under KVM, so the KVM leg has no place to run that cannot harm
+             a host.
+Premise:     GitHub's hosted Linux runners expose `/dev/kvm` to a job that
+             enables it with a udev rule; this is a documented runner
+             property, not measured here. The KVM guest experiment is
+             `experiments/392-kvm-guest.sh`. The machine tier's entry point
+             is `enter_machine` (`crates/podvm/src/tier.rs:105`). The
+             operator deferred KVM work (`TODO/RULES.md:137`).
+Approach:    Add `.github/workflows/kvm.yml`, dispatched by hand. It checks
+             for `/dev/kvm`, builds podvm, runs the Linux guest experiment
+             with a job timeout and the T-1609 watchdog, and uploads the
+             transcript. A missing `/dev/kvm` exits 2, not red as denied.
+Decision:    The deferral governs this entry: no session adds or runs the
+             workflow before the operator lifts it. A hosted runner is the
+             first choice over any session host once it is lifted.
+Prove:       `gh workflow run kvm.yml` starts a run whose guest experiment
+             exits 0, with the transcript saved under
+             `experiments/results/`, and `./target/release/podvm-gate`
+             exits 0 with the result cited.
+
+**Blocked 2026-11-06.** Blocker: the operator's KVM deferral of
+2026-10-02 (`TODO/RULES.md` section 11). Clears when: the operator says
+the KVM work resumes. Nothing else clears it.
