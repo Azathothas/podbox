@@ -439,7 +439,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                 }
             },
             other if other.starts_with("--env=") => o.env.push(other[6..].to_string()),
-            other if other.starts_with("--log-driver=") => match &other["--podvm-mem=".len()..] {
+            other if other.starts_with("--log-driver=") => match &other[13..] {
                 "json-file" => {}
                 v => {
                     eprintln!(
@@ -468,7 +468,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                 }
             }
             other if other.starts_with("--entrypoint=") => {
-                o.entrypoint = Some(other["--podvm-mem=".len()..].to_string())
+                o.entrypoint = Some(other[13..].to_string())
             }
             other if other.starts_with("--platform=") => o.platform = Some(other[11..].to_string()),
             other if other.starts_with("--pull=") => o.pull = other[7..].to_string(),
@@ -502,7 +502,7 @@ fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             other if other.starts_with("--insecure-registry=") => {
                 o.insecure.push(other[20..].to_string())
             }
-            other if other.starts_with("--tls-verify=") => match &other["--podvm-mem=".len()..] {
+            other if other.starts_with("--tls-verify=") => match &other[13..] {
                 "true" | "1" => o.tls_verify = Some(true),
                 "false" | "0" => o.tls_verify = Some(false),
                 v => {
