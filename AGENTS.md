@@ -166,15 +166,27 @@ watches them.
      COORD issue `(to podcrates)`, so that podcrates ports it.
 
 5. To start a workflow that a cloud session cannot start (GitHub Actions is
-   disabled for its pushing account, or it may not push a tag), open an issue
-   in this repository titled exactly `[gh action] requested`. Its body holds
-   the exact `gh` command or commands to run, one per line in one `sh` block,
-   each with `-R OWNER/NAME` and every flag, and one line that says why. The
-   owner's local agent runs the commands as the owner and writes the run ids
-   back into the issue. Example body:
+   disabled for its pushing account, or it may not push a tag), open a NEW
+   issue in this repository titled exactly `[gh action] requested`, one for
+   each run. The owner's local agent that runs it is a smaller model (the
+   owner, 2026-11-06), so the body holds nothing that needs judgement:
+
+   * one line that says why;
+   * ONE `sh` block: `set -e` first, each `gh` command in full (`-R
+     OWNER/NAME` and every flag), and a last line that echoes the run ids;
+   * the closing sentence: "Run the block as it is, once. Then write here:
+     the output of the last line, or the line where it stopped and its
+     error."
+
+   Never amend the block of an open request, and never add a second block
+   in a comment: close the issue and open a new one. If the block checks
+   the head of `main`, push nothing to `main` until it ran. Example block:
 
    ```sh
-   gh workflow run release.yml -R PodUtils/podcrates --ref main -f version=0.4.0
+   set -e
+   gh workflow run gate.yml -R PodUtils/podvm --ref main
+   sleep 10
+   echo "run ids: $(gh run list -R PodUtils/podvm --workflow gate.yml --branch main --limit 1 --json databaseId --jq '.[].databaseId')"
    ```
 
 ## 10. Decisions
