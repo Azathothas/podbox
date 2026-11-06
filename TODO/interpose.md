@@ -2177,7 +2177,7 @@ same path.
 Source:      issues 89 and 127 (127 reposts the hidden issue 95);
              issue 114 section 2 item 2 and section 6 item 3;
              `crates/podvm-interpose/src/lib.rs:1014-1020`;
-             `crates/podvm/src/lifecycle.rs:1984`;
+             `crates/podvm/src/lifecycle/entry.rs:422`;
              `experiments/356-no-chroot-rung.sh:376-383`
 Category:    interpose
 Priority:    P1

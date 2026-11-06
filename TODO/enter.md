@@ -1080,7 +1080,7 @@ before implementation.
 
 ### T-1413 A script refusal names the file and its shebang
 
-Source:      issue 78; `crates/podvm/src/lifecycle.rs:1779`;
+Source:      issue 78; `crates/podvm/src/lifecycle/entry.rs:217`;
              `crates/podvm-enter/src/memfd.rs:147`;
              `crates/podvm-enter/src/ladder.rs:148`
 Category:    enter
@@ -1352,7 +1352,7 @@ Premise:     Two 128 MiB ceilings read the whole file into memory.
              `Elf::read` (`abi.rs:157`) serves the tier classifier
              (`crates/podvm/src/interpose.rs:184`). `payload_bytes`
              (`ladder.rs:238`) serves `decide_entry`
-             (`crates/podvm/src/lifecycle.rs:1859`), so the loader
+             (`crates/podvm/src/lifecycle/entry.rs:297`), so the loader
              family refuses too, though it never stages the bytes.
              `memfd::stage` (`memfd.rs:108`) takes one contiguous buffer.
              `memfd::eligible` (`memfd.rs:262`) reads the ELF header and
@@ -1397,8 +1397,8 @@ error: unable to find zig installation directory '/memfd:sandhome (deleted)'
 ### T-1648 A static Go payload runs into a GOROOT error instead of a named refusal
 
 Source:      issue 91; issue 114 section 3.4;
-             `crates/podvm/src/lifecycle.rs:1895`;
-             `crates/podvm/src/lifecycle.rs:1919`;
+             `crates/podvm/src/lifecycle/entry.rs:333`;
+             `crates/podvm/src/lifecycle/entry.rs:357`;
              `crates/podvm/src/interpose.rs:355`;
              `experiments/356-no-chroot-rung.sh:481`
 Category:    enter

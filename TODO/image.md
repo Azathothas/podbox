@@ -2291,7 +2291,7 @@ pre-flight is now `find`) plus `unnecessary_map_or` (now
 
 Source:      issue 71; `crates/podvm-image/src/store.rs:218`;
              `crates/podvm-image/src/space.rs:155`;
-             `crates/podvm/src/lifecycle.rs:1700`;
+             `crates/podvm/src/lifecycle/entry.rs:138`;
              [T-0203](image.md)
 Category:    image
 Priority:    P1

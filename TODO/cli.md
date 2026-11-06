@@ -1423,7 +1423,7 @@ closes below.
 
 ### T-1414 The no-chroot path returns 127 and 126
 
-Source:      issue 75; `crates/podvm/src/lifecycle.rs:1746`;
+Source:      issue 75; `crates/podvm/src/lifecycle/entry.rs:184`;
              `crates/podvm-probe/src/exit.rs:86`;
              `experiments/330-exit-codes.sh`
 Category:    cli
@@ -1722,7 +1722,7 @@ then this row is the record, and no entry deletes the script.
 ### T-1649 A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out
 
 Source:      issue 92; issue 114 section 3.3 and section 6 item 7;
-             `crates/podvm/src/lifecycle.rs:1879`;
+             `crates/podvm/src/lifecycle/entry.rs:317`;
              `crates/podvm-enter/src/memfd.rs:199`;
              `crates/podvm/src/run.rs:1236`
 Category:    cli
@@ -1785,7 +1785,7 @@ HI
 Source:      issue 93; issue 114 section 3.7 and section 6 item 8;
              `crates/podvm/src/complete.rs:251`;
              `crates/podvm/src/complete.rs:296`;
-             `crates/podvm/src/lifecycle.rs:1984`; [T-1415](cli.md)
+             `crates/podvm/src/lifecycle/entry.rs:422`; [T-1415](cli.md)
 Category:    cli
 Priority:    P1
 Effort:      M
