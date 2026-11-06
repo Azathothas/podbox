@@ -1957,3 +1957,289 @@ payload rather than one libc twice: coreutils' `stat` on a modern glibc asks
 `statx(2)` and never reaches `stat`. It is already inside `podbox-gate`, so it
 costs no new crate and no new library target.
 
+---
+
+### T-1643 A relative path resolves against the host cwd and gets the rootfs prefix twice
+
+Source:      issues 86 and 131 (131 reposts the hidden issue 105);
+             issue 114 section 3.1 and section 6 item 5;
+             `crates/podbox-interpose/src/map.rs:506`;
+             `crates/podbox-interpose/src/lib.rs:1151`
+Category:    interpose
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     On the userland rung every relative path fails with
+             `ENOENT`. A relative read, a relative write with or without
+             `-w`, a dirfd-relative `openat`, and `cd /; echo x > rel.txt`
+             all miss the file. `apk info` cannot open its database. A
+             tool that writes a relative output fails before it starts.
+Premise:     `absolutize` (`map.rs:506`) takes the `AT_FDCWD` base from
+             the real `getcwd` (`map.rs:507`). podbox starts the payload
+             with its working directory inside the rootfs, so that base
+             is a host path under the rootfs. `prepare` (`map.rs:613`)
+             gives the joined path to `rewrite` (`map.rs:361`), and the
+             `/` pair of the T-1407 table adds the rootfs prefix a second
+             time. A descriptor base read from `/proc/self/fd/<n>` has
+             the same shape. The interposer's own `getcwd` (`lib.rs:1151`)
+             already reverse-maps the real cwd with `unrewrite`
+             (`map.rs:457`, called at `lib.rs:1170`). `absolutize` does
+             not.
+Approach:    In `absolutize`, reverse-map the real cwd and the descriptor
+             base with `unrewrite` before the join. Then `rewrite` adds
+             the prefix once. Normalise `.`, `..` and `//` before the
+             match. Keep the existing refusal where the cwd cannot be
+             read.
+Decision:    The input to `rewrite` is always a guest path. A base that
+             already carries the rootfs prefix is a host path, and the
+             interposer reverse-maps it before the join. The kernel cwd
+             does not move: issue 86 pass 4 records that a move breaks
+             the store paths the interposer uses. A resolution failure
+             never falls back to the unmapped relative path.
+Prove:       `cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+             exits 0 in the Linux lane with a new unit test: a cwd inside
+             the table target absolutizes to one prefix, for `AT_FDCWD`
+             and for a descriptor. `sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a new clause on the chroot-denying fixture: a
+             relative read, a relative write under `-w /tmp`, a
+             dirfd-relative `openat` and `cd /; echo x > rel.txt` each
+             land inside the rootfs.
+
+**Filed 2026-11-06.** The measured facts below are quoted from issue 86
+and its review, so the entry stands if GitHub hides the issue. They were
+measured on release 0.1.0-beta.12 (sha256 `7ef3cf35...`) on a host that
+denies chroot and user namespaces. The line numbers above were read on
+this tree. A static probe with no interposer printed the real cwd:
+
+```text
+$ podbox run alpine:3.20 /bin/touch RELFILE
+touch: RELFILE: No such file or directory
+$ podbox run alpine:3.20 /bin/cat /lib/apk/db/installed   # prints the db
+$ podbox run alpine:3.20 /bin/cat lib/apk/db/installed
+cat: can't open 'lib/apk/db/installed': No such file or directory
+$ podbox run python:3-alpine python3 -c \
+    'import os; os.chdir("/"); print(os.getcwd()); open("etc/hostname")'
+/
+FileNotFoundError: [Errno 2] No such file or directory: 'etc/hostname'
+static probe: getcwd=/workspace/podbox-ux/store/rootfs/sha256_1667.../rootfs
+```
+
+---
+
+### T-1644 Admit a glibc payload against its whole NEEDED closure, read inside the rootfs
+
+Source:      issues 87, 128 and 129 (128 and 129 repost the hidden
+             issues 96 and 97); issue 114 section 3.2 and section 6
+             item 4; `crates/podbox-cli/src/interpose.rs:281`;
+             `crates/podbox-enter/src/abi.rs:518`;
+             `crates/podbox-enter/src/abi.rs:589`;
+             `crates/podbox-interpose/src/real.rs:44`
+Category:    interpose
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     On a chroot-denied host the loader family declined every
+             glibc payload in release 0.1.0-beta.12. Each image failed on
+             a different provider: bookworm-slim and gcc:13-bookworm on
+             `__tls_get_addr`, bullseye-slim on `dlsym`. The no-chroot
+             rung then runs musl images only. The beta.10 lane ran
+             bookworm-slim at 0 (no-chroot-rung.txt clause 4).
+Premise:     The gnu object needs `libdl.so.2`, `libgcc_s.so.1`,
+             `libc.so.6` and `ld-linux-x86-64.so.2`. Its `dlsym` is
+             pinned to `GLIBC_2.2.5` under `libdl.so.2` (`real.rs:44`,
+             T-1312). `__tls_get_addr` is the loader's since glibc 2.34.
+             The current tree admits against a union on the production
+             path (`interpose.rs:281`, `abi.rs:518`): libc, the
+             `libgcc_s.so.1` beside it (`interpose.rs:264`) and the
+             interpreter (`interpose.rs:271`). The union omits
+             `libdl.so.2` and the rest of `DT_NEEDED`. The interpreter
+             path is a host join, and `Elf::read` follows its link on the
+             host. Debian's `/lib64/ld-linux-x86-64.so.2` is an absolute
+             link, so a host file, or no file, decides the set. The glibc
+             arm of `libc_beside` tests `exists()` on a host path
+             (`abi.rs:589`); the musl arm already uses `resolve_in`
+             (`abi.rs:713`). No run on this tree has measured the three
+             images since beta.12.
+Approach:    Build the union from the object's whole `DT_NEEDED` closure
+             as the rootfs holds it, plus the interpreter. Resolve every
+             member, and the glibc libc path, with `resolve_in`. Match
+             versions per provider namespace: `GLIBC_*` against libc and
+             the loader, `GCC_*` against `libgcc_s.so.1`. Keep the
+             `.dynsym`-only rule and the weak-undefined exemption of
+             T-0709. Name the provider that would satisfy a missing
+             import in the decline.
+Decision:    The admission set is the set the loader resolves, read
+             inside the rootfs. A host file never decides it. Issue 114
+             names a deeper alternative: do not emulate a foreign rootfs
+             libc. This entry keeps the loader family and corrects its
+             admission; T-1652 owns the static rung.
+Prove:       `cargo test -p podbox-enter` and `cargo test -p podbox-cli`
+             exit 0 with unit tests: a union read from a fixture closure
+             admits an object that imports `__tls_get_addr`, `dlsym` and
+             `_Unwind_Resume`, and a loader link that resolves only on
+             the host is not read. `sh experiments/356-no-chroot-rung.sh`
+             exits 0 with clauses that run
+             `public.ecr.aws/debian/debian:bookworm-slim` `echo hi` and
+             `gcc --version` on the gcc image at 0, each with the glibc
+             object preloaded.
+
+**Filed 2026-11-06.** Quoted from issue 87 and its review, measured on
+release 0.1.0-beta.12 with the embedded `interpose-gnu` object at file
+offset 2353803 (sha256 `6159c1aa...`). No single object admits it:
+
+```text
+NEEDED libdl.so.2, libgcc_s.so.1, libc.so.6, ld-linux-x86-64.so.2
+UND __tls_get_addr@GLIBC_2.3   # ld-linux defines it since glibc 2.34
+UND _Unwind_Resume@GCC_3.0     # libgcc_s defines it
+UND dlsym@GLIBC_2.2.5          # libdl before glibc 2.34, libc after
+debian:bookworm-slim  -> 126  __tls_get_addr
+debian:bullseye-slim  -> 125  dlsym
+gcc:13-bookworm       -> 126  __tls_get_addr
+system abi against libc.so.6     -> 1, `_Unwind_Resume` at `GCC_3.0`
+system abi against ld-linux      -> 1, `dlsym` not defined
+system abi against libgcc_s.so.1 -> 1, `dlsym` at `GLIBC_2.2.5`
+system abi against libdl.so.2    -> 1, `dlsym` not defined
+```
+
+Issue 128 adds that the absolute `lib64/ld-linux-x86-64.so.2` link
+decided the result for gcc:13, node:20 and golang:1.22.
+
+---
+
+### T-1645 Intercept `dlopen` and `dlmopen`
+
+Source:      issue 88; issue 114 section 2 item 4 and section 3.2;
+             `crates/podbox-interpose/interpose.map:43`;
+             `crates/podbox-interpose/src/lib.rs:1014`;
+             `crates/podbox-interpose/src/real.rs:44`
+Category:    interpose
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     A dynamic payload on the userland rung cannot load a guest
+             shared object at run time. `python3 -c 'import subprocess'`
+             fails to load `_posixsubprocess`, though the file is in the
+             rootfs. CPython C extensions, NSS, gconv, PAM and plugin
+             hosts all take this path.
+Premise:     The interposer defines no `dlopen` and no `dlmopen`. The
+             export map lists the path entry points, `execve` among them
+             at `interpose.map:43`, and names neither. The T-0703 record hands both to T-0708
+             and the loader, and neither entry defines them. The payload's
+             loader opens the guest object by its guest path, and nothing
+             rewrites it. The path entry points are macro-generated
+             (`lib.rs:1014` is `execve`), and the next definition comes
+             through `dlsym(RTLD_NEXT)` (`real.rs`).
+Approach:    Define `dlopen` and `dlmopen`. Route a path argument that
+             holds a `/` through `map::prepare`, as `open` does, and call
+             the next definition. Leave a bare soname unchanged: the
+             loader searches its own list, and the loader family points
+             that list into the rootfs. `dlmopen` keeps its namespace
+             argument. Add both names to `interpose.map`, and move the
+             export comparison and the size ceiling with them.
+Decision:    `dlopen` is a path entry point like `open`. A bare soname is
+             a search, not a path. A load that glibc starts inside libc
+             (NSS, gconv) calls the loader directly and does not reach an
+             exported `dlopen`; the drive measures that arm and the entry
+             records the result, a pass or a named limit.
+Prove:       `cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+             exits 0 in the Linux lane with a test that loads a mapped
+             object by its guest path. `./target/release/podbox-interpose-build`
+             exits 0 with both objects exporting `dlopen` and `dlmopen`.
+             `sh experiments/356-no-chroot-rung.sh` exits 0 with a clause
+             that runs `python3 -c 'import subprocess'` from the python
+             image at 0 on the fixture.
+
+**Filed 2026-11-06.** Quoted from issue 88, measured on release
+0.1.0-beta.12 with the embedded musl object (file offset 2687787):
+
+```text
+$ readelf -Ws interpose-musl.so | grep -i dl
+   UND dladdr
+   UND dlsym
+$ podbox run python:3-alpine python3 -c 'print(1+1)'
+2
+$ podbox run python:3-alpine python3 -c 'import subprocess'
+ImportError: Error loading shared library
+  /usr/local/lib/python3.14/lib-dynload/_posixsubprocess.cpython-314-x86_64-linux-musl.so:
+  No such file or directory
+```
+
+The object is in the rootfs, 26544 bytes, and `open` reads it by the
+same path.
+
+---
+
+### T-1646 A dynamic grandchild re-enters through the host loader
+
+Source:      issues 89 and 127 (127 reposts the hidden issue 95);
+             issue 114 section 2 item 2 and section 6 item 3;
+             `crates/podbox-interpose/src/lib.rs:1014-1020`;
+             `crates/podbox-cli/src/lifecycle.rs:1984`;
+             `experiments/356-no-chroot-rung.sh:376-383`
+Category:    interpose
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     On the userland rung `run` runs one dynamic process. A
+             dynamic grandchild fails 127: `sh -c 'echo a | /bin/cat'`
+             prints `sh: /bin/cat: not found`. A static grandchild runs.
+             So a shell pipeline, `make`, the helper scripts of `apk`
+             and every compiler driver fail.
+Premise:     The exec family (`lib.rs:1014-1020`: `execve`, `execv`,
+             `execvp`, `execvpe`, `execveat`, `posix_spawn`,
+             `posix_spawnp`) maps the path and calls the real function.
+             The kernel then reads the mapped ELF's `PT_INTERP`, for
+             example `/lib/ld-musl-x86_64.so.1`, and resolves it on the
+             host root. Where the host has no such file, `execve` returns
+             `ENOENT`. Where the host has a loader at that path, the child
+             runs under the host loader and host libraries, which is the
+             libc mixing T-1407 refused at the top level. That second case
+             follows from the mechanism and is not measured. The top
+             level avoids both through the loader family (`loader_plan`,
+             `crates/podbox-enter/src/userland.rs:187`). The banner names
+             the limit (`lifecycle.rs:1984`), and clause 17 of experiment
+             356 pins the 127 as informational, not as a gate.
+Approach:    In the exec family, read the head of the mapped file. For
+             an ELF with `PT_INTERP`, resolve the interpreter inside the
+             rootfs and exec the guest loader with `--library-path` and
+             the mapped binary. Keep `argv[0]` and the busybox applet
+             name. For a `#!` script, resolve its interpreter inside the
+             rootfs the same way. A static ELF keeps the direct exec. The
+             interposer has no dependencies
+             (`crates/podbox-interpose/Cargo.toml:18`), so it carries its
+             own bounded header reader, and a unit test pins it against
+             `loader_plan` on one fixture. Promote clause 17 to a gate.
+Decision:    A child enters through the same loader as its parent. The
+             host loader never runs a guest binary. Where the interpreter
+             does not resolve inside the rootfs, the exec fails with
+             `ENOENT` and a named line, never a host fallback. Re-arming
+             Syscall User Dispatch in a child belongs to T-1652.
+Prove:       `cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+             exits 0 in the Linux lane with tests for the ELF, script and
+             static arms. `sh experiments/356-no-chroot-rung.sh` exits 0
+             with clause 17 as a gate: `sh -c 'echo a | /bin/cat'` and
+             `sh -c '/bin/busybox echo grandchild-ok'` exit 0 on the
+             fixture, and `gcc /tmp/h.c -o /tmp/h && /tmp/h` runs at 0 on
+             the gcc image once T-1644 admits it.
+
+**Filed 2026-11-06.** Quoted from issue 89 and its review, measured on
+release 0.1.0-beta.12 on the errand host:
+
+```text
+$ podbox run alpine:3.20 /bin/ls /               # top level works
+bin dev etc ...
+$ podbox run alpine:3.20 /bin/sh -c '/bin/ls /'
+sh: /bin/ls: not found                           [exit 127]
+$ podbox run alpine:3.20 /bin/sh -c 'echo a | /bin/cat'
+sh: /bin/cat: not found                          [exit 127]
+$ podbox run alpine:3.20 /bin/sh -c '/tmp/hello' # a static grandchild
+STATIC_HELLO pid=17763                           [exit 0]
+```
+
+Issue 127 rebuilds the hidden issue 95: the same failure seen from the
+child side, plus absolute in-image link targets and `..` that do not
+resolve in the root.

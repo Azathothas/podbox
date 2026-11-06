@@ -1717,3 +1717,120 @@ the only drive of the reach path. The deletion clears when the plan's
 library-test row and its reachability half land as tracked entries. Until
 then this row is the record, and no entry deletes the script.
 
+---
+
+### T-1649 A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out
+
+Source:      issue 92; issue 114 section 3.3 and section 6 item 7;
+             `crates/podbox-cli/src/lifecycle.rs:1879`;
+             `crates/podbox-enter/src/memfd.rs:199`;
+             `crates/podbox-cli/src/run.rs:1236`
+Category:    cli
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     On a chroot-denied host this run exits 126:
+             `run node:alpine node -e 'console.log(1)'`. The entrypoint
+             `docker-entrypoint.sh` is a `#!` script, and its interpreter
+             resolves on the host root. The caller gave a command. The
+             way out, `--entrypoint node`, exists, and the refusal does
+             not name it, so a docker user cannot find it.
+Premise:     `run.rs:1236` builds argv from the image Entrypoint and Cmd,
+             the caller's command and `--entrypoint`, by docker's rule.
+             The image script stays the program and the caller's words
+             become its arguments. `decide_entry` refuses a script at
+             `lifecycle.rs:1879`. The message (`memfd.rs:199`, T-1413)
+             names the path and the `#!` line but no remedy.
+Approach:    Where the refused script is the image's own Entrypoint and
+             the caller gave a command, the refusal adds: retry with
+             `--entrypoint` followed by the caller's first word. For a
+             top-level `#!` payload, resolve the interpreter inside the
+             rootfs and run it on the loader family with the script path
+             as its argument. T-1646 does the same for a child.
+Decision:    docker's argv rule stays: podbox does not drop the image
+             Entrypoint on its own. The refusal names the remedy. Where
+             the interpreter resolves inside the rootfs, the script runs
+             and no refusal prints.
+Prove:       `cargo test -p podbox-cli` exits 0 with a test: the script
+             refusal for an image Entrypoint plus a caller command
+             contains `--entrypoint` and the caller's first word.
+             `sh experiments/356-no-chroot-rung.sh` exits 0 with clause 13
+             changed: a `#!/bin/sh` script whose interpreter is in the
+             image runs at 0, and the node image run with a caller
+             command either reaches the payload or refuses naming
+             `--entrypoint`.
+
+**Filed 2026-11-06.** Quoted from issue 92 and its comments, measured on
+release 0.1.0-beta.12 on the errand host:
+
+```text
+$ podbox run node:alpine node -e 'console.log(1)'
+podbox run: ... the payload .../rootfs/usr/local/bin/docker-entrypoint.sh
+is a #! script (#!/bin/sh), whose interpreter path resolves on the host
+root without a chroot (TODO/enter.md T-1413)                  [exit 126]
+$ podbox run --entrypoint node node:alpine -e 'console.log(1)'
+... node is 149234536 bytes, over the 134217728-byte ceiling  [exit 125]
+on a noexec mount, a #! script run from a memfd fd:
+$ /state/home/noexec-test/t.sh
+bash: /state/home/noexec-test/t.sh: /bin/sh: bad interpreter: Permission denied
+$ /tmp/sandhome-memexec /state/home/noexec-test/t.sh
+HI
+```
+
+---
+
+### T-1650 `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run
+
+Source:      issue 93; issue 114 section 3.7 and section 6 item 8;
+             `crates/podbox-cli/src/complete.rs:251`;
+             `crates/podbox-cli/src/complete.rs:296`;
+             `crates/podbox-cli/src/lifecycle.rs:1984`; [T-1415](cli.md)
+Category:    cli
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     No strictness level means "refuse a rung that cannot run
+             this command". `run --strict` of `sh -c '/bin/ls /'` warns,
+             then the shell fails `not found` at 127. `run --strict=all`
+             of `/bin/echo hi` refuses at 125 over five substitutions: the
+             namespace share and `dev/null`, `zero`, `random`, `urandom`.
+Premise:     `classify_strict` (`complete.rs:251`) has two kinds, safety
+             and substitution. Where chroot is denied the userland rung
+             is a substitution (`complete.rs:296`), by T-1415's decision.
+             No reason names a capability gap of the selected family. The
+             exec gap appears only in the banner (`lifecycle.rs:1984`).
+Approach:    Add a third kind, capability, for the gaps of the selected
+             family: a dynamic grandchild cannot exec (T-1646), a guest
+             object cannot load (T-1645), a relative path cannot resolve
+             (T-1643), a static payload cannot be reached (T-1648). A gap
+             leaves the list in the change that fixes it. `--strict`
+             refuses on a capability gap the payload will hit: a shell
+             given `-c` or a script runs children. Where podbox cannot
+             tell, it warns. The refusal names the gap and a rung that
+             runs the command, once T-1651 or T-1652 provides one.
+             `--strict=all` keeps its rule for substitutions.
+Decision:    T-1415 stays: the userland rung alone is a warning where no
+             better rung exists. A gap that decides whether the command
+             can run at all is safety-relevant, and `--strict` refuses
+             it.
+Prove:       `cargo test -p podbox-cli` exits 0 with `classify_strict`
+             tests for the capability kind. `sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a strict clause on the fixture: `run --strict`
+             of `sh -c '/bin/ls /'` exits 125 naming the exec gap, or 0
+             with the listing once T-1646 is done, and `run --strict` of
+             `/bin/echo hi` exits 0.
+
+**Filed 2026-11-06.** Quoted from issue 93, measured on release
+0.1.0-beta.12 on the errand host with the exit codes read unpiped:
+
+```text
+$ podbox run --strict alpine:3.20 /bin/sh -c '/bin/ls /'
+podbox run: --strict warning [substitution]: unchanged dev/random ...
+sh: /bin/ls: not found
+[exit 127]                       # strict did not refuse the run
+$ podbox run --strict=all alpine:3.20 /bin/echo hi
+... --strict=all refused ... [substitution] unchanged dev/zero ...
+[exit 125]                       # refuses a run that would have worked
+```

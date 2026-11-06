@@ -2,10 +2,11 @@
 
 ## State
 
-251 entries: 0 open, 9 partial, 0 blocked, 242 done.
+262 entries: 11 open, 9 partial, 0 blocked, 242 done.
 
-**No entry is `open`.** Every filed row is `done` or `partial`, and each
-partial names its remaining acceptance. T-1613 filed the 21 unbatched
+**Eleven entries are `open`: T-1643 through T-1653, item 13 of the work
+order.** Every other filed row is `done` or `partial`, and each partial
+names its remaining acceptance. T-1613 filed the 21 unbatched
 plan rows and they are now closed with their own records; the 29 rows
 T-1607 still owns are described there rather than filed. T-1641 is
 `partial`: all three of its fixes are implemented and the record gate,
@@ -172,6 +173,15 @@ keeps its historical scope. It does not establish current reliability.
     whose search list did not cover a per-triple build directory. The
     shim is fixed in this change; the next tag push is what proves the
     publish path end to end.
+13. T-1643 through T-1653 are `open`, filed on 2026-11-06 from the
+    errand-host issues 86 to 94 and 109 and the reposts 127 to 131 of
+    hidden issues. Issue 114 is the dossier behind all eleven: a host
+    that denies chroot, user namespaces, mount and ptrace and has no
+    `/dev/fuse`. Take T-1648 first, the one P0: a static payload runs
+    against the host tree and the cause stays hidden. Then the four
+    interposer entries T-1643 to T-1646, then T-1647, T-1650 and T-1649.
+    The new rungs come last, T-1652 before T-1651, then T-1653. None of
+    them needs a KVM guest.
 
 An agent may start a KVM guest unattended by passing both
 `--accept-host-risk` and `--unattended`; the driver then holds a T-1609

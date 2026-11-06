@@ -1307,3 +1307,322 @@ the writer's first attempt at it was caught by those drives: a
 text-only match would have skipped a start that exited 0 having
 started a container. Adding the exit-code guard turned the plant red
 when removed, which is the direction that matters.
+
+---
+
+### T-1647 Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes
+
+Source:      issue 90; issue 114 section 3.3 and section 6 item 6;
+             `crates/podbox-enter/src/ladder.rs:238`;
+             `crates/podbox-enter/src/abi.rs:157`;
+             `crates/podbox-enter/src/memfd.rs:108`
+Category:    enter
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     On a chroot-denied host podbox refuses a payload over
+             134217728 bytes at 125 before it runs. `node` in node:alpine
+             is 149234536 bytes, and a zig toolchain binary is 172641672
+             bytes. `doctor` and `probe` do not report the cap, so the
+             image is pulled first and the run fails after.
+Premise:     Two 128 MiB ceilings read the whole file into memory.
+             `Elf::read` (`abi.rs:157`) serves the tier classifier
+             (`crates/podbox-cli/src/interpose.rs:184`). `payload_bytes`
+             (`ladder.rs:238`) serves `decide_entry`
+             (`crates/podbox-cli/src/lifecycle.rs:1859`), so the loader
+             family refuses too, though it never stages the bytes.
+             `memfd::stage` (`memfd.rs:108`) takes one contiguous buffer.
+             `memfd::eligible` (`memfd.rs:262`) reads the ELF header and
+             the program headers, not the whole file.
+Approach:    Classify from a bounded read of the ELF header and its
+             tables. Stage the memfd family's payload by a copy from the
+             file into the memfd in bounded chunks, and hash during the
+             copy where a digest is needed. Bound the bytes held in
+             memory, not the file size. Where a size limit must stay,
+             report it in `doctor` and `probe` and refuse before the pull.
+Decision:    File size is not a refusal reason; memory held is bounded.
+             A static runtime that locates its install tree through
+             `/proc/self/exe` cannot run from a memfd (issue 90 measured
+             zig). That case is out of this entry: T-1648 refuses it by
+             name and T-1652 serves it.
+Prove:       `cargo test -p podbox-enter` exits 0 with a test that
+             classifies and stages a sparse 200 MiB fixture through a
+             bounded buffer. `cargo test -p podbox-cli` exits 0.
+             `sh experiments/356-no-chroot-rung.sh` exits 0 with a clause
+             that runs `node -e 'console.log(1)'` from the node image
+             with `--entrypoint node`, past the size check.
+
+**Filed 2026-11-06.** Quoted from issue 90 and its comments, measured on
+release 0.1.0-beta.12 on the errand host:
+
+```text
+$ podbox run --entrypoint node node:alpine -e 'console.log(1)'
+podbox run: chroot(2) is denied on this machine, and no no-chroot family
+runs this payload: node resolved but its bytes could not be read:
+.../rootfs/usr/local/bin/node is 149234536 bytes, over the
+134217728-byte ceiling podbox reads a payload within.   [exit 125]
+streamed into a memfd in 128 KiB chunks (sandhome shims/memexec.c):
+$ time /tmp/sandhome-memexec /state/home/noexec-test/zig version
+0.16.0
+real    0m0.126s
+$ /tmp/sandhome-memexec /state/home/noexec-test/zig env
+error: unable to find zig installation directory '/memfd:sandhome (deleted)'
+```
+
+---
+
+### T-1648 A static Go payload runs into a GOROOT error instead of a named refusal
+
+Source:      issue 91; issue 114 section 3.4;
+             `crates/podbox-cli/src/lifecycle.rs:1895`;
+             `crates/podbox-cli/src/lifecycle.rs:1919`;
+             `crates/podbox-cli/src/interpose.rs:355`;
+             `experiments/356-no-chroot-rung.sh:481`
+Category:    enter
+Priority:    P0
+Effort:      S
+Status:      open
+
+Problem:     On a chroot-denied host `go version` from the golang image
+             exits 2 with the payload's own error: "cannot find GOROOT
+             directory". The error blames the image. The real reason
+             prints only under `--verbose`. The payload sees the host
+             tree: `go build -o /tmp/gohello` wrote a 2238818-byte file
+             into the host `/tmp`. That is a host write by a container
+             payload, with the cause hidden.
+Premise:     `decide_entry` sends every static payload to the memfd
+             family (`lifecycle.rs:1895`), where no interposer loads. Its
+             banner says that absolute paths resolve on the host
+             (`lifecycle.rs:1919`), and the quiet default of T-1416 hides
+             the banner. `interpose::apply` records the Go decline as a
+             banner note (`crates/podbox-cli/src/interpose.rs:355`),
+             which the quiet default also hides. Clause 18 of experiment
+             356 pins exit 2 naming GOROOT as the boundary
+             (`356-no-chroot-rung.sh:481`).
+Approach:    On a chroot-denied host, refuse a static payload at 125
+             before the exec, unless `--unsafe-host-paths` opts in. That
+             is T-1407's flag for this exact host pass-through. The
+             refusal says the payload is static, says its absolute paths
+             resolve on the host, and names the routes: a host with
+             chroot, the opt-in, and the rungs of T-1651 and T-1652 where
+             they exist. Under the opt-in, the host-root line prints even
+             under `-q`. Every clause of experiment 356 that drives the
+             memfd family passes the opt-in. Clause 18 changes from exit
+             2 to exit 125.
+Decision:    Refusal beats a silent host write, T-1407's rule applied to
+             the memfd family. podbox does not inject `GOROOT`: clause 18
+             already refused payload-specific magic. The measured
+             host-path `GOROOT` recipe stays a caller choice under the
+             opt-in.
+Prove:       `cargo test -p podbox-cli` exits 0 with a test: a static
+             fixture payload refuses at 125 without the opt-in and
+             enters the memfd family with it.
+             `sh experiments/356-no-chroot-rung.sh` exits 0 with clause 18
+             changed: `go version` from the golang image refuses at 125
+             naming the static reason, and never exits 2 naming GOROOT.
+
+**Filed 2026-11-06.** Quoted from issue 91 and its comments, measured on
+release 0.1.0-beta.12 on the errand host:
+
+```text
+$ podbox run golang:1.24-alpine go version
+go: cannot find GOROOT directory: 'go' binary is trimmed and GOROOT is not set
+[exit 2]
+--verbose: podbox run: interpose: declined for "go": go carries Go build
+markers, and Go issues syscalls directly rather than through libc, so the
+tier cannot reach it
+$ podbox run -e GOROOT=<store>/rootfs/<golang>/usr/local/go \
+    golang:1.24-alpine /usr/local/go/bin/go version
+go version go1.24.13 linux/amd64          # the host path works
+$ podbox exec ... gb /usr/local/go/bin/go build -o /tmp/gohello main.go
+$ ls -l /tmp/gohello                      # 2238818 bytes on the HOST
+```
+
+---
+
+### T-1651 An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads
+
+Source:      issue 94; issue 114 section 3.1 and section 4;
+             `crates/podbox-cli/src/tier.rs:26`;
+             `crates/podbox-probe/src/report.rs:451`;
+             `crates/podbox-extract/src/safety.rs:261`; [T-0506](enter.md)
+Category:    enter
+Priority:    P2
+Effort:      XL
+Status:      open
+
+Problem:     On a host that denies chroot, user namespaces, mount and
+             ptrace, a static payload has no rung that keeps it inside
+             the image. qemu-user with `-L` runs one process in the image
+             and leaks in three ways. A child it execs runs from the
+             host. A path absent from the rootfs is read from the host.
+             An absolute link in the image resolves on the host.
+Premise:     `--podbox-tier` takes `machine` or `chroot` only
+             (`tier.rs:26`). The probe marks an emulator's answers in
+             `measured_by` (`report.rs:451`), the T-0506 rule. In qemu,
+             `do_execve` hands the raw guest path to the host, and
+             `util/path.c` `path()` returns the unprefixed host path
+             after an `access()` miss. `openat2(RESOLVE_IN_ROOT)` works
+             unprivileged on the errand host's kernel 7.2.2, and podbox
+             already wraps it in `podbox_extract::safety`
+             (`safety.rs:261`).
+Approach:    Add an `emulate` tier. podbox invokes a qemu-user as its own
+             process, patched in three places. `do_execve` applies the
+             prefix and re-execs the emulator with the same `-L`.
+             `path()` fails closed with `ENOENT`. Path resolution, `stat`,
+             `access` and `readlink` included, goes through a root
+             descriptor with `RESOLVE_IN_ROOT`. The tier answers
+             `/proc/self/exe` with the guest path (T-1409's rule). The
+             banner names the tier, and the probe marks its answers as
+             the emulator's (T-0506).
+Decision:    The emulate tier is a rung the caller selects or the ladder
+             names, never a hidden fallback. qemu stays a separate GPL
+             process, the boundary the machine tier's `qemu-system`
+             already keeps. podbox refuses an unpatched qemu, because its
+             fallback serves host files. For a native static payload
+             T-1652 is the first choice; this tier covers other
+             architectures and payloads whose exec or threads that loader
+             cannot follow. The cost is an estimate of about 2x native
+             (sandhome measured 0.421 s against 0.845 s on one payload).
+Prove:       `cargo test -p podbox-cli` exits 0 with tests for the tier
+             value and its banner. `sh experiments/356-no-chroot-rung.sh`
+             exits 0 with an emulate clause: `go version` from the golang
+             image and a shell pipeline exit 0 under the tier, a path
+             absent from the rootfs is refused and not read from the
+             host, and `podbox probe` under the tier reports
+             `measured_by.emulated` true.
+
+**Filed 2026-11-06.** Quoted from issue 94 and its comments, measured
+with `qemu-x86_64` 11.1.1 (static-pie) on the errand host:
+
+```text
+$ qemu-x86_64 -L <alpine-rootfs> <alpine-rootfs>/bin/busybox cat /etc/os-release
+NAME="Alpine Linux"                     # absolute paths are prefixed
+$ qemu-x86_64 -L <golang-rootfs> <golang-rootfs>/usr/local/go/bin/go version
+go version go1.24.13 linux/amd64        # a static payload runs
+$ qemu-x86_64 -L <alpine-rootfs> <alpine-rootfs>/bin/busybox sh -c 'cat /etc/os-release'
+cat: /etc/os-release: No such file or directory   # the child left the image
+$ qemu-x86_64 -L <alpine-rootfs> <alpine-rootfs>/bin/busybox cat /workspace/hostonly.txt
+LEAK-PROBE                              # a host file served on a miss
+openat2(rootfd, "/bin/cat", RESOLVE_IN_ROOT)             -> fd 4, magic 7f454c46
+openat2(rootfd, "../../etc/os-release", RESOLVE_IN_ROOT) -> fd 4, clamped
+openat2(rootfd, "/no/such/file", RESOLVE_IN_ROOT)        -> -1 ENOENT
+```
+
+---
+
+### T-1652 A native-static rung: userland execve, Syscall User Dispatch and openat2(RESOLVE_IN_ROOT)
+
+Source:      issue 109; issue 114 section 1, section 4 and section 6
+             item 1; `crates/podbox-probe/src/select.rs:35`;
+             `crates/podbox-probe/src/probes.rs:266`;
+             `crates/podbox-enter/src/memfd.rs:108`
+Category:    enter
+Priority:    P2
+Effort:      XL
+Status:      open
+
+Problem:     On the errand host the supervise rung is out of reach. A
+             tracer reads a path argument through `process_vm_readv`,
+             which is `EPERM`, or `/proc/<pid>/mem`, which is `EACCES`.
+             A static payload therefore has no native rung that keeps it
+             inside the image.
+Premise:     Syscall User Dispatch (Linux 5.11 and later) delivers
+             `SIGSYS` to a handler in the payload's own address space.
+             The handler reads the path argument with a plain
+             dereference. Issue 109 measured the trap and an in-root open
+             on kernel 7.2.2 as uid 966. Dispatch does not survive
+             `fork`, `clone` or `execve`: a forked child did not trap. The
+             rung list (`select.rs:35`) has no such rung. The probe's
+             supervise leg measures `process_vm_readv` (`probes.rs:266`).
+             The memfd driver stages a payload (`memfd.rs:108`).
+Approach:    Build the rung from four parts. A userland execve loader maps
+             the static payload into its own address space and jumps to
+             it. `PR_SET_SYSCALL_USER_DISPATCH` with
+             `PR_SYS_DISPATCH_EXCLUSIVE_ON` makes the loader's own code
+             the trusted region, so every payload syscall dispatches. The
+             handler serves path calls through `openat2(rootfd, path,
+             RESOLVE_IN_ROOT)`. The handler intercepts `clone` and `fork`
+             to arm dispatch in the child, and `execve` to load again.
+             Add a probe leg for the `prctl`, a rung word, and
+             `measured_by.user_dispatch`. Stage the bytes through T-1647.
+Decision:    For a native static payload this rung is the first choice
+             over T-1651: native speed, no extra binary, no privilege. A
+             refused `prctl` or an older kernel falls back to the emulate
+             tier by name, never silently. Dynamic payloads stay on the
+             loader family.
+Prove:       `cargo test -p podbox-enter` and `cargo test -p podbox-probe`
+             exit 0 with tests for the trap, the in-root open and the
+             re-arm in a child. `sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a native-static clause: `go version` and a
+             `go build` of a hello program exit 0 from the golang image,
+             the probe reports `measured_by.user_dispatch` true, and with
+             the `prctl` refused the run names the emulate tier.
+
+**Filed 2026-11-06.** Quoted from issue 109, measured on the errand
+host (kernel 7.2.2, uid 966, no chroot, user namespace, mount or ptrace):
+
+```text
+prctl(PR_SET_SYSCALL_USER_DISPATCH, PR_SYS_DISPATCH_EXCLUSIVE_ON, 0, 0, &selector) -> 0
+traps=1 raw_getpid_via_sud=4242 real=16567
+host has /etc/os-release: no
+SUD-CHROOT traps=1 rewritten=1 fd=4 line=NAME="Alpine Linux"
+selector: 0 = SYSCALL_DISPATCH_FILTER_ALLOW, 1 = BLOCK
+```
+
+---
+
+### T-1653 `-v` volumes on a host with no /dev/fuse and no mount
+
+Source:      issue 130 (130 reposts the hidden issue 104); issue 114
+             section 3.6; `crates/podbox-cli/src/parity.rs:335`;
+             `crates/podbox-enter/src/userland.rs:313`;
+             `crates/podbox-interpose/src/map.rs:325`
+Category:    enter
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     `run -v` is refused on every rung. The errand host has no
+             `/dev/fuse` and denies `mount(2)`, so podbox can make neither
+             an overlay nor a bind mount. A payload has no way to see a
+             host directory at a guest path.
+Premise:     The parity table refuses `-v, --volume` with status None:
+             "a volume would be a copy pretending to be a mount"
+             (`parity.rs:335`). The userland table is one pair, `/` to
+             the rootfs (`userland.rs:313`). The interposer takes the
+             longest matching prefix (`map.rs:325`), so a pair for a guest
+             directory wins over the root pair. T-0703 drove a mapped pair
+             end to end and left `-v` out of scope.
+Approach:    On the loader family, turn each `-v HOST:GUEST` into a
+             `GUEST:HOST` pair in the `PODBOX_MAPS` table beside the root
+             pair. Apply the T-1407 spelling checks to both sides. Refuse
+             `:ro` by name until podbox enforces it. The memfd family has
+             no interposer, so it keeps the refusal until T-1652 maps a
+             volume prefix to a host directory descriptor. The parity row
+             moves from None to Degraded and names the family that
+             serves it.
+Decision:    A volume on this host is a path rewrite. It is not a copy and
+             not an overlay. A write lands in the host directory, as with
+             a docker bind mount. The two-root view of issue 114 copies
+             executables, which is the copy the parity row refuses, so
+             podbox does not use it. A payload execs from a volume only
+             where the host mount allows exec, and the banner names a
+             noexec source.
+Prove:       `cargo test -p podbox-enter` and `cargo test -p podbox-cli`
+             exit 0 with table tests for a volume pair and a refused
+             spelling. `sh experiments/356-no-chroot-rung.sh` exits 0 with
+             a volume clause on the fixture: a host file reads back at
+             the guest path, and a guest write lands in the host
+             directory.
+
+**Filed 2026-11-06.** Issue 130 rebuilds the hidden issue 104 from
+issue 114, which states the case in one table row:
+
+```text
+overlay/volumes | no -v (issue #104) | no /dev/fuse, no mount |
+two-root view (copy regular executables, symlink data back), not an overlay
+references: containers/fuse-overlayfs (needs /dev/fuse), mpartel/bindfs,
+trapexit/mergerfs; sandhome sh_promote_tree copies execs, links the rest
+```
