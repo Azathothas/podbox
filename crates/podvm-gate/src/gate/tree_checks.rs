@@ -450,3 +450,32 @@ pub(super) fn check_ci_components(gate: &mut Gate, root: &Path, files: &BTreeSet
         }
     }
 }
+
+/// The largest number of lines a Rust source file may have.
+const RS_FILE_LINES: usize = 500;
+
+/// TODO/gate.md T-1674: each tracked Rust source file outside `vendor/` has
+/// 500 lines or fewer. There is no allowlist (the owner, 2026-11-06);
+/// `vendor/` keeps upstream's layout.
+pub(super) fn check_rust_file_lines(gate: &mut Gate, root: &Path, files: &BTreeSet<String>) {
+    for rel in files {
+        if !rel.ends_with(".rs") || rel.starts_with("vendor/") {
+            continue;
+        }
+        gate.bump("rs_file_size");
+        let Ok(text) = read_text(&root.join(rel)) else {
+            continue;
+        };
+        let lines =
+            text.matches('\n').count() + usize::from(!text.ends_with('\n') && !text.is_empty());
+        if lines > RS_FILE_LINES {
+            gate.err(
+                rel,
+                format!(
+                    "has {lines} lines, over the limit of {RS_FILE_LINES} for a Rust source \
+                     file. Split it into modules; no file is exempt. TODO/gate.md T-1674."
+                ),
+            );
+        }
+    }
+}

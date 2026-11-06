@@ -8,6 +8,27 @@ pub(super) fn finish_run(plant: &mut Plant, root: &Path, scratch: &str) -> i32 {
     // read as a regex back reference under some tools and the mutation would
     // land nowhere. The glyph itself is built from bytes, never written out.
     let glyph = String::from_utf8(vec![0xE2u8, 0x9Bu8, 0x94u8]).unwrap_or_default();
+    // T-1674: a Rust source file one line over the limit. The file grows
+    // with comment lines, so no other check has a reason to fire.
+    plant.case_plant(
+        "33 a Rust source file of 501 lines",
+        "over the limit of 500",
+        scratch,
+        &|| {
+            let file = "crates/podvm-probe/src/exit.rs";
+            let mut text = read_file(root, file);
+            if !text.ends_with('\n') {
+                text.push('\n');
+            }
+            let have = text.matches('\n').count();
+            for _ in have..501 {
+                text.push_str("// plant: one line over the limit\n");
+            }
+            write_file(root, file, &text);
+            true
+        },
+    );
+
     plant.case_plant(
         "28 a glyph in a printed string",
         "prints U+26D4",
