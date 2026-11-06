@@ -3886,7 +3886,7 @@ Source:      the owner's ruling of 2026-11-06 ("500, split everything
 Category:    gate
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     No check bounds the size of a source file. On 2026-11-06, 55
              tracked `.rs` files outside `vendor/` have more than 500 lines,
@@ -3912,6 +3912,31 @@ Decision:    500 lines, no allowlist, every file split before other work
 Prove:       `./target/release/podvm-gate` exits 0 with the check in place,
              and `./target/release/podvm-plant` exits 0 with one new plant
              caught: a tracked `.rs` file of 501 lines.
+
+**Done 2026-11-06.** Each tracked `.rs` file outside `vendor/` has 500
+lines or fewer: 318 files on `main`, the largest exactly 500. The splits move
+code and change no behaviour. A trailing `#[cfg(test)] mod tests` moves
+to a `tests.rs` beside its file. Contiguous items move to a child module
+with `use super::*`, and an item that the parent uses becomes
+`pub(super)`, the reach it had before. A binary root names its children
+with `#[path]`, and a child that defines a `macro_rules!` is declared
+with `#[macro_use]`. Five functions over the limit lost a part to a
+helper: `run::prepare` (`entry_banner`), the gate's `run_gate`
+(`check_index_counts`, `check_reference_map`), the plant's `run` and
+`continue_run` (`middle_run`, `finish_run`), and `podvm-size`'s `main`
+(`breakdown`, `dependency_count`). Code that the gate or the plant
+reads as text stays where they read it (`TABLE` and `CLUSTER_BOUNDARY`
+in `parity.rs`, the export comparison of `interpose_build.rs`), or the
+gate and the plant name its new file (`DEVCHECK`, the pins of plant 32).
+The test count of each crate is the same before and after (the
+workspace 1,033, the interposer 50), and the tests pass except the two
+device tests of T-1686. Each interposer object grows by 80 bytes and
+exports exactly the 112 names of `interpose.map`. Line citations of the
+record follow the moved code. The check is `check_rust_file_lines`,
+with no allowlist: `./target/release/podvm-gate` exits 0 with it
+(coverage `rs_file_size=318`), and `./target/release/podvm-plant` exits
+0 with 68 plants caught, 0 missed and 4 controls quiet. Plant 33 grows
+`crates/podvm-probe/src/exit.rs` to 501 lines and is caught.
 
 ---
 

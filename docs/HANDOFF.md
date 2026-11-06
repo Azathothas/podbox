@@ -50,8 +50,8 @@ Remove this file when each step below is done.
    here take fixes only.
 7. COORD-005 (#198): dispatch podcrates' `ci.yml` and `release.yml` from
    the owner's account when podcrates asks.
-8. T-1674 (P1, the owner's ruling): split every `.rs` file to 500 lines,
-   the crates of wave M6 first, before other work.
+8. T-1674 is done: each `.rs` file outside `vendor/` has 500 lines or
+   fewer, and `check_rust_file_lines` of the gate holds the limit.
 9. The work order of `TODO/PROGRESS.md`: the errand-host cluster
    (T-1643 to T-1653) first, then the scope entries.
 
