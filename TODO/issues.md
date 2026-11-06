@@ -104,5 +104,5 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #208 | COORD-010: podvm took the registry patch; ureq leaves, and C10 takes pod-proxy's runtime (to podcrates) | open | T-1677 |
 | #209 | [gh action] requested | closed (gate run 42227206423, green) | none: a request of a workflow run for T-1677 and T-1686 (AGENTS.md, section 9) |
 | #210 | COORD-011: podvm moved to v0.6.0 and took pod-hostprobe; the freeze of the 29 files ends (to podcrates) | open | T-1681 |
-| #211 | [gh action] requested | open | none: a request of a workflow run for T-1681 (AGENTS.md, section 9) |
+| #211 | [gh action] requested | closed (gate run 42265769964, green) | none: a request of a workflow run for T-1681 (AGENTS.md, section 9) |
 | #200 | COORD-006: the Alpine netboot pins: podvm fetches the 3.22.6 archive (to podcrates) | open | T-1687 |

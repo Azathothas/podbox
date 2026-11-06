@@ -1618,6 +1618,8 @@ exits 0 in a Linux container (about 866 tests, none failed;
 `mux_two_client` 15 passes against sshd, and the test the `.run` skips,
 `abi::tests::resolve_past_a_denied_listing`, passes as uid 0. Call C11
 of `docs/decisions.md` accepts the four points of podcrates#17.
+Gate run 42265769964 at `8899c2e` is green in each job; podcrates
+recorded the take (its T-055 done) and closed PodUtils/podcrates#11.
 Remaining: the other six crates, each on its import and trial
 (podcrates T-056 to T-061).
 
