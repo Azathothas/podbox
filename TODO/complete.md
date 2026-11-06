@@ -1442,3 +1442,32 @@ shim reaches its binary. Plant: render against a tree with a member
 removed exits 2. `docs/runtime-state.md` is regenerated through the
 binary, and the gate `todo` job builds the binary before the gate
 runs. The record gate exits 0 on the landed tree.
+
+---
+
+### T-1686 The device tests of a stand-in fail where `mknod` is permitted
+
+Source:      the first Linux cloud session, 2026-11-06 (`cargo test
+             --workspace` as root); `crates/podvm-complete/src/devices.rs:588`;
+             `crates/podvm-complete/src/devices.rs:612`
+Category:    complete
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     `a_symlink_at_a_device_path_is_replaced_and_named` and
+             `a_fifo_at_a_device_path_is_replaced_and_named` fail on a host
+             that permits `mknod(2)`. There, `run` makes a real character
+             device, reports `Created` and does not name the symlink or the
+             fifo that it replaced. The tests expect the stand-in path.
+Premise:     The CI runner is not root, so the tests pass there. A cloud
+             container runs as uid 0 and permits `mknod`, so both tests fail
+             there, before and after edition 2024 (T-1669).
+Approach:    Decide if the row of a real device must name what it replaced.
+             If yes, add the name to the detail on the `mknod` path. Then make
+             each test assert the path that the host permits, as
+             `tests/store_gates.rs` does for namespaces.
+Decision:    The detail names the replaced object on both paths: the row is
+             the only record of a removed symlink or fifo.
+Prove:       `cargo test -p podvm-complete --lib devices` exits 0 as root
+             in a cloud container and as a user in CI.

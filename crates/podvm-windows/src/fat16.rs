@@ -309,7 +309,7 @@ pub fn format() -> Vec<u8> {
     // ------------------------------------------------------------------ BPB
     let b = PART_LBA * SECTOR;
     img[b..b + 3].copy_from_slice(&[0xEB, 0x3C, 0x90]);
-    img[b + 3..b + 11].copy_from_slice(b"PODVM  ");
+    img[b + 3..b + 11].copy_from_slice(b"PODVM   ");
     img[b + 11..b + 13].copy_from_slice(&(SECTOR as u16).to_le_bytes());
     img[b + 13] = SECTORS_PER_CLUSTER as u8;
     img[b + 14..b + 16].copy_from_slice(&(RESERVED_SECTORS as u16).to_le_bytes());

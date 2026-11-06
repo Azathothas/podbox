@@ -1,0 +1,4 @@
+# The tree keeps the rustfmt style of edition 2021 under language edition 2024
+# (T-1669): the 2024 style rewraps 80 files, breaks the line citations of
+# the record, and unfolds the one-line rows of the parity table.
+style_edition = "2021"

@@ -335,10 +335,10 @@ fn load_corpus(root: &Path) -> BTreeMap<String, usize> {
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        if let Some((path, lines)) = line.split_once('\t') {
-            if let Ok(lines) = lines.trim().parse::<usize>() {
-                corpus.insert(path.to_string(), lines);
-            }
+        if let Some((path, lines)) = line.split_once('\t')
+            && let Ok(lines) = lines.trim().parse::<usize>()
+        {
+            corpus.insert(path.to_string(), lines);
         }
     }
     corpus
@@ -2314,10 +2314,10 @@ fn entry_heads(lines: &[String]) -> Vec<(usize, String)> {
             continue;
         }
         let rest = &line["### ".len()..];
-        if let Some(id) = rest.get(..6) {
-            if is_task_id(id) {
-                heads.push((index, id.to_string()));
-            }
+        if let Some(id) = rest.get(..6)
+            && is_task_id(id)
+        {
+            heads.push((index, id.to_string()));
         }
     }
     heads
@@ -2551,12 +2551,11 @@ fn check_interpose_sizes(gate: &mut Gate, root: &Path, files: &BTreeSet<String>)
     for line in text.split('\n') {
         for which in ["gnu", "musl"] {
             let head = format!("interpose_{which}_bytes ");
-            if let Some(rest) = line.strip_prefix(&head) {
-                if rest == "absent"
-                    || (!rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit()))
-                {
-                    got.insert(which.to_string(), rest.to_string());
-                }
+            if let Some(rest) = line.strip_prefix(&head)
+                && (rest == "absent"
+                    || (!rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit())))
+            {
+                got.insert(which.to_string(), rest.to_string());
             }
         }
     }
@@ -2835,10 +2834,10 @@ fn milestone_blame(note: &str) -> Vec<u64> {
             while pos < bytes.len() && bytes[pos].is_ascii_digit() {
                 pos += 1;
             }
-            if pos > start {
-                if let Ok(num) = note[start..pos].parse::<u64>() {
-                    out.push(num);
-                }
+            if pos > start
+                && let Ok(num) = note[start..pos].parse::<u64>()
+            {
+                out.push(num);
             }
             at = pos.max(at + 1);
         }
@@ -3792,18 +3791,18 @@ fn run_gate(root: &Path) -> i32 {
             if field == "Status" {
                 match status_word(value) {
                     Some(status) if STATUSES.contains(&status.as_str()) => {
-                        if let Some(row) = rows.get(tid) {
-                            if status != row.status {
-                                gate.err(
-                                    &where_,
-                                    format!(
-                                        "{tid} entry status {} disagrees with the index \
+                        if let Some(row) = rows.get(tid)
+                            && status != row.status
+                        {
+                            gate.err(
+                                &where_,
+                                format!(
+                                    "{tid} entry status {} disagrees with the index \
                                          row's {}",
-                                        quote_repr(&status),
-                                        quote_repr(&row.status)
-                                    ),
-                                );
-                            }
+                                    quote_repr(&status),
+                                    quote_repr(&row.status)
+                                ),
+                            );
                         }
                     }
                     Some(status) => {
@@ -3828,46 +3827,43 @@ fn run_gate(root: &Path) -> i32 {
                     }
                 }
             }
-            if field == "Category" {
-                if let Some(row) = rows.get(tid) {
-                    if value != row.category {
-                        gate.err(
-                            &where_,
-                            format!(
-                                "{tid} Category {} disagrees with the row's {}",
-                                quote_repr(value),
-                                quote_repr(&row.category)
-                            ),
-                        );
-                    }
-                }
-            }
-            if field == "Priority" {
-                if let Some(row) = rows.get(tid) {
-                    if value != row.prio {
-                        gate.err(
-                            &where_,
-                            format!(
-                                "{tid} Priority {} disagrees with the row's {}",
-                                quote_repr(value),
-                                quote_repr(&row.prio)
-                            ),
-                        );
-                    }
-                }
-            }
-        }
-        if let Some(remainder) = prove_first_line(&entry.body) {
-            if !remainder.contains("```")
-                && !contains_backtick_span(&remainder)
-                && !starts_double_indented(&remainder)
+            if field == "Category"
+                && let Some(row) = rows.get(tid)
+                && value != row.category
             {
-                let head: String = remainder.chars().take(60).collect();
                 gate.err(
                     &where_,
-                    format!("{tid} Prove is prose, not a command: {}", quote_repr(&head)),
+                    format!(
+                        "{tid} Category {} disagrees with the row's {}",
+                        quote_repr(value),
+                        quote_repr(&row.category)
+                    ),
                 );
             }
+            if field == "Priority"
+                && let Some(row) = rows.get(tid)
+                && value != row.prio
+            {
+                gate.err(
+                    &where_,
+                    format!(
+                        "{tid} Priority {} disagrees with the row's {}",
+                        quote_repr(value),
+                        quote_repr(&row.prio)
+                    ),
+                );
+            }
+        }
+        if let Some(remainder) = prove_first_line(&entry.body)
+            && !remainder.contains("```")
+            && !contains_backtick_span(&remainder)
+            && !starts_double_indented(&remainder)
+        {
+            let head: String = remainder.chars().take(60).collect();
+            gate.err(
+                &where_,
+                format!("{tid} Prove is prose, not a command: {}", quote_repr(&head)),
+            );
         }
     }
 
@@ -3934,10 +3930,10 @@ fn run_gate(root: &Path) -> i32 {
         let mut named = BTreeSet::new();
         for line in map_text.split('\n') {
             for cited in find_bares(line) {
-                if let Some(tree) = cited.strip_prefix("references/") {
-                    if !tree.contains('/') {
-                        named.insert(tree.to_string());
-                    }
+                if let Some(tree) = cited.strip_prefix("references/")
+                    && !tree.contains('/')
+                {
+                    named.insert(tree.to_string());
                 }
             }
         }

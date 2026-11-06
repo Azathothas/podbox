@@ -320,11 +320,11 @@ pub fn ps(args: &[String]) -> i32 {
     // ⛔ Checked before anything is read, exactly as `images --format` is: a
     // template validated only inside the loop over results is never checked at
     // all when there are none, and a caller's typo then reads as "no containers".
-    if let Some(t) = &template {
-        if let Err(bad) = format::check(t, &fields) {
-            eprintln!("podvm ps: {bad}");
-            return EXIT_CLI_ERROR;
-        }
+    if let Some(t) = &template
+        && let Err(bad) = format::check(t, &fields)
+    {
+        eprintln!("podvm ps: {bad}");
+        return EXIT_CLI_ERROR;
     }
     let s = match store() {
         Ok(s) => s,
@@ -1032,16 +1032,16 @@ fn copy_named(
     out_of: bool,
     recursive: bool,
 ) -> i32 {
-    if let Some((name, inside)) = split(arg) {
-        if let Ok(c) = podvm_supervise::get(s, &name) {
-            return copy_one(
-                std::path::Path::new(&c.rootfs),
-                &inside,
-                outside,
-                out_of,
-                recursive,
-            );
-        }
+    if let Some((name, inside)) = split(arg)
+        && let Ok(c) = podvm_supervise::get(s, &name)
+    {
+        return copy_one(
+            std::path::Path::new(&c.rootfs),
+            &inside,
+            outside,
+            out_of,
+            recursive,
+        );
     }
     let (image, inside) = match arg.rsplit_once(':') {
         Some((image, inside)) if !image.is_empty() && !inside.is_empty() => (image, inside),
@@ -1071,10 +1071,10 @@ fn copy_named(
             return podvm_image::error::EXIT_RUNTIME_ERROR;
         }
     };
-    if !podvm_extract::is_extracted(s, &record.manifest_digest) {
-        if let Err(c) = crate::run::extract_now("cp", s, &record) {
-            return c;
-        }
+    if !podvm_extract::is_extracted(s, &record.manifest_digest)
+        && let Err(c) = crate::run::extract_now("cp", s, &record)
+    {
+        return c;
     }
     let (rootfs, _) = podvm_extract::paths(s, &record.manifest_digest);
     copy_one(&rootfs, inside, outside, out_of, recursive)
@@ -1155,11 +1155,9 @@ fn copy_one(
         );
         return EXIT_RUNTIME_ERROR;
     }
-    if !out_of {
-        if let Err(msg) = clear_of_symlinks(root, &dst) {
-            eprintln!("podvm cp: {msg}");
-            return EXIT_RUNTIME_ERROR;
-        }
+    if !out_of && let Err(msg) = clear_of_symlinks(root, &dst) {
+        eprintln!("podvm cp: {msg}");
+        return EXIT_RUNTIME_ERROR;
     }
     // ⚠ Stat the SOURCE side: a missing destination directory on the way
     // in must still read as a directory copy. (`src_is_link` above already
@@ -1223,11 +1221,11 @@ fn replicate_link(src: &std::path::Path, dst: &std::path::Path) -> i32 {
             return EXIT_RUNTIME_ERROR;
         }
     };
-    if let Some(parent) = dst.parent() {
-        if let Err(e) = std::fs::create_dir_all(parent) {
-            eprintln!("podvm cp: {}: {e}", parent.display());
-            return EXIT_RUNTIME_ERROR;
-        }
+    if let Some(parent) = dst.parent()
+        && let Err(e) = std::fs::create_dir_all(parent)
+    {
+        eprintln!("podvm cp: {}: {e}", parent.display());
+        return EXIT_RUNTIME_ERROR;
     }
     match std::os::unix::fs::symlink(&target, dst) {
         Ok(()) => {}
@@ -1419,11 +1417,11 @@ fn copy_tree(
     }
     let mut bytes = 0u64;
     for (from, to) in &files {
-        if let Some(parent) = to.parent() {
-            if let Err(e) = std::fs::create_dir_all(parent) {
-                eprintln!("podvm cp: {}: {e}", parent.display());
-                return EXIT_RUNTIME_ERROR;
-            }
+        if let Some(parent) = to.parent()
+            && let Err(e) = std::fs::create_dir_all(parent)
+        {
+            eprintln!("podvm cp: {}: {e}", parent.display());
+            return EXIT_RUNTIME_ERROR;
         }
         match std::fs::copy(from, to) {
             Ok(n) => bytes += n,

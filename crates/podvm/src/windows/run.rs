@@ -109,10 +109,8 @@ pub(crate) fn run(verb: &str, a: &Args) -> i32 {
 /// failure by accident is how a hundred megabytes per attempt accumulates.
 fn after(plan: &Plan, kept: bool, dir: Option<&std::path::Path>) {
     podvm_windows::cleanup(plan);
-    if kept {
-        if let Some(d) = dir {
-            eprintln!("podvm windows: kept {} (PODVM_WINDOWS_KEEP)", d.display());
-        }
+    if kept && let Some(d) = dir {
+        eprintln!("podvm windows: kept {} (PODVM_WINDOWS_KEEP)", d.display());
     }
 }
 

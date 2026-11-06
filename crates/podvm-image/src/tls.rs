@@ -85,14 +85,14 @@ pub fn host_bundle_bytes() -> Option<HostBundle> {
     }
     candidates.extend(BUNDLE_PATHS.iter().map(|p| ((*p).to_string(), None)));
     for (p, var) in candidates {
-        if load_bundle(&p).is_some() {
-            if let Ok(bytes) = std::fs::read(&p) {
-                return Some(HostBundle {
-                    path: p,
-                    announced_by: var.map(str::to_string),
-                    bytes,
-                });
-            }
+        if load_bundle(&p).is_some()
+            && let Ok(bytes) = std::fs::read(&p)
+        {
+            return Some(HostBundle {
+                path: p,
+                announced_by: var.map(str::to_string),
+                bytes,
+            });
         }
     }
     None

@@ -10,7 +10,7 @@
 
 use core::ffi::{c_char, c_void};
 
-extern "C" {
+unsafe extern "C" {
     fn write(fd: i32, buf: *const c_void, count: usize) -> isize;
     fn getenv(name: *const c_char) -> *mut c_char;
 }

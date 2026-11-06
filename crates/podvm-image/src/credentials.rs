@@ -285,11 +285,11 @@ pub fn store_login_in(
     } else {
         docker_config
     };
-    if let Some(parent) = target.parent() {
-        if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("would not create {}: {e}", parent.display()))?;
-        }
+    if let Some(parent) = target.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("would not create {}: {e}", parent.display()))?;
     }
     let before = std::fs::read_to_string(target).unwrap_or_default();
     let after = upsert_auth_json(&before, host, username, password);

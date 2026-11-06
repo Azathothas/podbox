@@ -87,10 +87,10 @@ pub fn make_keys(keygen: &Path, tmp: &Path) -> Keys {
 }
 
 pub fn current_user() -> String {
-    if let Ok(u) = std::env::var("USER") {
-        if !u.trim().is_empty() {
-            return u;
-        }
+    if let Ok(u) = std::env::var("USER")
+        && !u.trim().is_empty()
+    {
+        return u;
     }
     let out = Command::new("id").arg("-un").output().unwrap();
     assert!(out.status.success(), "cannot learn the current user");

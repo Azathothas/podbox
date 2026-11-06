@@ -74,10 +74,10 @@ fn workspace_members(text: &str) -> Result<Vec<String>, String> {
     for raw in text.split('\n') {
         let line = raw.trim();
         if array.is_none() {
-            if line.starts_with("members") {
-                if let Some(eq) = line.find('=') {
-                    array = Some(line[eq + 1..].to_string());
-                }
+            if line.starts_with("members")
+                && let Some(eq) = line.find('=')
+            {
+                array = Some(line[eq + 1..].to_string());
             }
             continue;
         }
@@ -115,12 +115,13 @@ fn workspace_version(text: &str) -> Result<String, String> {
             inside = line == "[workspace.package]";
             continue;
         }
-        if inside && line.starts_with("version") {
-            if let Some(eq) = line.find('=') {
-                let value = line[eq + 1..].trim().trim_matches('"').to_string();
-                if !value.is_empty() {
-                    return Ok(value);
-                }
+        if inside
+            && line.starts_with("version")
+            && let Some(eq) = line.find('=')
+        {
+            let value = line[eq + 1..].trim().trim_matches('"').to_string();
+            if !value.is_empty() {
+                return Ok(value);
             }
         }
     }

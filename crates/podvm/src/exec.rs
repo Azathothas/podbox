@@ -408,17 +408,17 @@ fn enter(
     // preload becomes the host path and the libraries come from the
     // image. A caller preload naming guest paths is dropped and named.
     let mut dropped_preload: Option<String> = None;
-    if let Some(u) = &userland {
-        if u.family == podvm_enter::userland::Family::Loader {
-            let (hosted, dropped) = podvm_enter::userland::host_env(
-                rootfs,
-                crate::interpose::GUEST_PATH,
-                &env,
-                &u.lib_dirs,
-            );
-            env = hosted;
-            dropped_preload = dropped;
-        }
+    if let Some(u) = &userland
+        && u.family == podvm_enter::userland::Family::Loader
+    {
+        let (hosted, dropped) = podvm_enter::userland::host_env(
+            rootfs,
+            crate::interpose::GUEST_PATH,
+            &env,
+            &u.lib_dirs,
+        );
+        env = hosted;
+        dropped_preload = dropped;
     }
     let path_dirs = podvm_enter::Plan::path_from(&env);
     // ⭐ TODO/complete.md T-0413: the re-entered payload's guest path, as in
@@ -769,17 +769,17 @@ pub fn exec(args: &[String]) -> i32 {
     // ⭐ The loader transform and the maps/exe-force, as on the container
     // path above and in `run`'s `prepare`.
     let mut dropped_preload: Option<String> = None;
-    if let Some(u) = &userland {
-        if u.family == podvm_enter::userland::Family::Loader {
-            let (hosted, dropped) = podvm_enter::userland::host_env(
-                &rootfs,
-                crate::interpose::GUEST_PATH,
-                &env,
-                &u.lib_dirs,
-            );
-            env = hosted;
-            dropped_preload = dropped;
-        }
+    if let Some(u) = &userland
+        && u.family == podvm_enter::userland::Family::Loader
+    {
+        let (hosted, dropped) = podvm_enter::userland::host_env(
+            &rootfs,
+            crate::interpose::GUEST_PATH,
+            &env,
+            &u.lib_dirs,
+        );
+        env = hosted;
+        dropped_preload = dropped;
     }
     let path_dirs = Plan::path_from(&env);
     // ⭐ TODO/complete.md T-0413: the re-entered payload's guest path, as in

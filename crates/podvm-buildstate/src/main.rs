@@ -488,10 +488,10 @@ fn main() {
                 Err(e) => fail(e),
             };
             let destination = root.join(".dev/build-state.json");
-            if let Some(parent) = destination.parent() {
-                if let Err(e) = fs::create_dir_all(parent) {
-                    fail(format!("cannot create {}: {e}", parent.display()));
-                }
+            if let Some(parent) = destination.parent()
+                && let Err(e) = fs::create_dir_all(parent)
+            {
+                fail(format!("cannot create {}: {e}", parent.display()));
             }
             let temporary = destination.with_extension("new");
             if let Err(e) = fs::write(&temporary, record_json(&inputs, &outputs) + "\n") {

@@ -188,14 +188,17 @@ mod tests {
 
     #[test]
     fn the_emulator_default_is_a_name_and_the_override_is_a_path() {
-        std::env::remove_var("PODVM_QEMU");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_QEMU") };
         assert_eq!(emulator(), PathBuf::from("qemu-system-x86_64"));
-        std::env::set_var("PODVM_QEMU", "/opt/qemu/bin/qemu-system-x86_64");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_QEMU", "/opt/qemu/bin/qemu-system-x86_64") };
         assert_eq!(
             emulator(),
             PathBuf::from("/opt/qemu/bin/qemu-system-x86_64")
         );
-        std::env::remove_var("PODVM_QEMU");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_QEMU") };
     }
 
     #[test]
@@ -208,8 +211,10 @@ mod tests {
 
     #[test]
     fn the_firmware_pair_is_two_paths_and_the_environment_wins() {
-        std::env::set_var("PODVM_OVMF_CODE", "/tmp/code.fd");
-        std::env::set_var("PODVM_OVMF_VARS", "/tmp/vars.fd");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_OVMF_CODE", "/tmp/code.fd") };
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_OVMF_VARS", "/tmp/vars.fd") };
         let (c, v) = firmware();
         assert_eq!(c, PathBuf::from("/tmp/code.fd"));
         assert_eq!(v, PathBuf::from("/tmp/vars.fd"));
@@ -217,8 +222,10 @@ mod tests {
             c, v,
             "a shared variable store leaks boot entries between runs"
         );
-        std::env::remove_var("PODVM_OVMF_CODE");
-        std::env::remove_var("PODVM_OVMF_VARS");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_OVMF_CODE") };
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_OVMF_VARS") };
     }
 
     #[test]

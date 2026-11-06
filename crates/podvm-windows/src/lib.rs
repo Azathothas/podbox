@@ -30,7 +30,11 @@
 //! command and buys a guest that cannot talk to the host except through a
 //! volume the host owns.
 
-#![forbid(unsafe_code)]
+// Edition 2024 makes `std::env::set_var` and `remove_var` unsafe. The tests
+// change variables of the process, so a test build denies unsafe code in
+// place of forbidding it, and only the test modules allow it.
+#![cfg_attr(not(test), forbid(unsafe_code))]
+#![cfg_attr(test, deny(unsafe_code))]
 
 pub mod agent;
 pub mod dos;
@@ -693,10 +697,10 @@ pub fn scratch_dir(tag: &str) -> Result<PathBuf, Error> {
 /// experiment isolates with its own copy, else under the home directory so
 /// it survives between runs the way an image cache should.
 pub fn base_cache() -> PathBuf {
-    if let Some(p) = std::env::var_os("PODVM_WINDOWS_BASE") {
-        if !p.is_empty() {
-            return PathBuf::from(p);
-        }
+    if let Some(p) = std::env::var_os("PODVM_WINDOWS_BASE")
+        && !p.is_empty()
+    {
+        return PathBuf::from(p);
     }
     let home = std::env::var_os("HOME").unwrap_or_else(|| "/tmp".into());
     Path::new(&home).join(".local/share/podvm/windows/base.vhdx")
@@ -752,6 +756,7 @@ const LETTER: [&str; 26] = [
 const DIGIT: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 #[cfg(test)]
+#[allow(unsafe_code)]
 mod tests {
     use super::*;
 
@@ -826,7 +831,8 @@ mod tests {
             cpus: 2,
             emu_args: Vec::new(),
         };
-        std::env::remove_var("PODVM_WINDOWS_KEEP");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_WINDOWS_KEEP") };
         cleanup(&plan);
         assert_eq!(scratch_of(&plan).as_deref(), Some(scratch.as_path()));
         assert!(image.is_file(), "the vendor image is untouched");
@@ -845,12 +851,14 @@ mod tests {
 
         // ⭐ and the override keeps it
         let kept = scratch_dir("cleanup-keep").expect("a scratch directory");
-        std::env::set_var("PODVM_WINDOWS_KEEP", "1");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_WINDOWS_KEEP", "1") };
         let mut p2 = plan.clone();
         p2.mailbox = kept.join("mailbox.img");
         cleanup(&p2);
         assert!(kept.is_dir(), "PODVM_WINDOWS_KEEP keeps the run");
-        std::env::remove_var("PODVM_WINDOWS_KEEP");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_WINDOWS_KEEP") };
         let _ = std::fs::remove_dir_all(&kept);
         let _ = std::fs::remove_dir_all(&vendor);
     }
@@ -876,7 +884,8 @@ mod tests {
             cpus: 1,
             emu_args: Vec::new(),
         };
-        std::env::remove_var("PODVM_WINDOWS_KEEP");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_WINDOWS_KEEP") };
         {
             let _guard = RunGuard::arm(&plan);
             assert!(scratch.is_dir(), "the run is staged");
@@ -932,7 +941,8 @@ mod tests {
             attempt += 1;
             std::thread::sleep(Duration::from_millis(50));
         };
-        std::env::remove_var("PODVM_WINDOWS_KEEP");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_WINDOWS_KEEP") };
         cleanup(&plan);
         assert!(
             elapsed < Duration::from_secs(20),

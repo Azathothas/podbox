@@ -19,7 +19,7 @@
 
 use core::ffi::{c_char, c_int};
 
-extern "C" {
+unsafe extern "C" {
     static environ: *const *const c_char;
 }
 

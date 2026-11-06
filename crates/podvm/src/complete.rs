@@ -92,10 +92,10 @@ pub fn banner_quiet(store: &podvm_image::Store) -> bool {
         if line.starts_with('#') {
             continue;
         }
-        if let Some((k, v)) = line.split_once('=') {
-            if k.trim() == BANNER_KEY {
-                return matches!(v.trim(), "quiet" | "off" | "false" | "0");
-            }
+        if let Some((k, v)) = line.split_once('=')
+            && k.trim() == BANNER_KEY
+        {
+            return matches!(v.trim(), "quiet" | "off" | "false" | "0");
         }
     }
     false
@@ -781,7 +781,8 @@ mod tests {
         let d = std::env::temp_dir().join(format!("podvm-cfg-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
-        std::env::set_var("PODVM_STORE", &d);
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_STORE", &d) };
         let s = podvm_image::open_store().unwrap();
         // Default: quiet. The banner config key still reads as before.
         assert!(!banner_quiet(&s));
@@ -803,7 +804,8 @@ mod tests {
         std::fs::write(s.root().join(CONFIG_FILE), "# a comment\nbanner = quiet\n").unwrap();
         assert!(banner_quiet(&s));
         assert!(!banner_loud(&s, &verbose));
-        std::env::remove_var("PODVM_STORE");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_STORE") };
         let _ = std::fs::remove_dir_all(&d);
     }
 }

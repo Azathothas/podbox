@@ -110,10 +110,10 @@ fn elapsed_median(workload: &str, log: &str) -> String {
                 .chars()
                 .take_while(|ch| ch.is_ascii_digit() || *ch == '.')
                 .collect();
-            if !digits.is_empty() {
-                if let Ok(value) = digits.parse::<f64>() {
-                    values.push((value, digits));
-                }
+            if !digits.is_empty()
+                && let Ok(value) = digits.parse::<f64>()
+            {
+                values.push((value, digits));
             }
         }
     }

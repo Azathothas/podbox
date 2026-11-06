@@ -43,7 +43,7 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 #[cfg(target_env = "gnu")]
 core::arch::global_asm!(".symver dlsym,dlsym@GLIBC_2.2.5");
 
-extern "C" {
+unsafe extern "C" {
     fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
 }
 

@@ -833,10 +833,10 @@ mod tests {
         let mut n = 0;
         if let Ok(dir) = std::fs::read_dir("/proc/self/task") {
             for e in dir.flatten() {
-                if let Ok(name) = std::fs::read_to_string(e.path().join("comm")) {
-                    if name.trim().starts_with(prefix) {
-                        n += 1;
-                    }
+                if let Ok(name) = std::fs::read_to_string(e.path().join("comm"))
+                    && name.trim().starts_with(prefix)
+                {
+                    n += 1;
                 }
             }
         }

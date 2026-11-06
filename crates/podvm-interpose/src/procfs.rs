@@ -120,7 +120,7 @@ pub(crate) unsafe fn exe_override_hit(path: *const c_char) -> bool {
     should_override_exe(true, bytes)
 }
 
-extern "C" {
+unsafe extern "C" {
     fn fstatfs(fd: c_int, buf: *mut c_void) -> c_int;
     fn fcntl(fd: c_int, cmd: c_int, arg: c_int) -> c_int;
     fn read(fd: c_int, buf: *mut c_void, count: usize) -> isize;

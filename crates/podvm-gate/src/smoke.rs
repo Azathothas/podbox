@@ -149,10 +149,10 @@ fn smoke_unrun(triple: &str, message: &str) -> ExitCode {
 
 fn doc_line(doc: &str, key: &str) -> String {
     for line in doc.lines() {
-        if let Some((name, value)) = line.split_once(": ") {
-            if name == key {
-                return value.to_string();
-            }
+        if let Some((name, value)) = line.split_once(": ")
+            && name == key
+        {
+            return value.to_string();
         }
     }
     String::new()

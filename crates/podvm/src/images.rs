@@ -405,11 +405,11 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
     // checked only inside the loop is never checked at all: measured on
     // 2026-09-08, `--format '{{.Nope}}'` against an empty store printed
     // nothing and exited 0, so a caller's typo read as an empty result set.
-    if let Some(t) = &o.format {
-        if let Err(bad) = format::check(t, IMAGE_FIELDS) {
-            eprintln!("podvm images: {bad}");
-            return EXIT_CLI_ERROR;
-        }
+    if let Some(t) = &o.format
+        && let Err(bad) = format::check(t, IMAGE_FIELDS)
+    {
+        eprintln!("podvm images: {bad}");
+        return EXIT_CLI_ERROR;
     }
 
     let store = match podvm_image::open_store() {
@@ -1077,11 +1077,9 @@ pub fn extract(verb: &str, args: &[String]) -> i32 {
         println!("{}", rootfs.display());
         return 0;
     }
-    if force {
-        if let Err(e) = podvm_extract::remove_extracted(&store, &record.manifest_digest) {
-            eprintln!("podvm extract: {e}");
-            return podvm_image::error::EXIT_RUNTIME_ERROR;
-        }
+    if force && let Err(e) = podvm_extract::remove_extracted(&store, &record.manifest_digest) {
+        eprintln!("podvm extract: {e}");
+        return podvm_image::error::EXIT_RUNTIME_ERROR;
     }
 
     let manifest_digest = match podvm_image::digest::Digest::parse(&record.manifest_digest) {
@@ -1663,14 +1661,13 @@ pub fn inspect(verb: &str, args: &[String]) -> i32 {
     // ⚠ Checked against the IMAGE fields here and against the container's in
     // `lifecycle::inspect_container`, because the two kinds have different
     // fields and a union would accept a name neither of them has.
-    if let Some(t) = &template {
-        if format::check(t, INSPECT_FIELDS).is_err()
-            && format::check(t, crate::lifecycle::CONTAINER_INSPECT_FIELDS).is_err()
-        {
-            let bad = format::check(t, INSPECT_FIELDS).unwrap_err();
-            eprintln!("podvm inspect: {bad}");
-            return EXIT_CLI_ERROR;
-        }
+    if let Some(t) = &template
+        && format::check(t, INSPECT_FIELDS).is_err()
+        && format::check(t, crate::lifecycle::CONTAINER_INSPECT_FIELDS).is_err()
+    {
+        let bad = format::check(t, INSPECT_FIELDS).unwrap_err();
+        eprintln!("podvm inspect: {bad}");
+        return EXIT_CLI_ERROR;
     }
     let store = match podvm_image::open_store() {
         Ok(s) => s,

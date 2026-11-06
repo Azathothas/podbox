@@ -122,10 +122,10 @@ pub fn registrations() -> Vec<Registration> {
         if name == "register" || name == "status" {
             continue;
         }
-        if let Some(r) = parse_one(&e.path()) {
-            if r.enabled {
-                out.push(r);
-            }
+        if let Some(r) = parse_one(&e.path())
+            && r.enabled
+        {
+            out.push(r);
         }
     }
     out

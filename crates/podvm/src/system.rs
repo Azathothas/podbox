@@ -455,11 +455,11 @@ pub fn info(verb: &str, args: &[String]) -> i32 {
     }
     // ⛔ The caller's own input is checked before anything about the machine is
     // measured, so a typo is not paid for with a probe.
-    if let Some(t) = &template {
-        if let Err(bad) = format::check_with_documents(t, FIELDS, DOCUMENTS) {
-            eprintln!("podvm system info: {bad}");
-            return EXIT_CLI_ERROR;
-        }
+    if let Some(t) = &template
+        && let Err(bad) = format::check_with_documents(t, FIELDS, DOCUMENTS)
+    {
+        eprintln!("podvm system info: {bad}");
+        return EXIT_CLI_ERROR;
     }
 
     let fields = collect();

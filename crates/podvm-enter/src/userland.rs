@@ -67,10 +67,10 @@ pub fn lib_dirs(rootfs: &str, interp_guest: &str) -> Vec<String> {
             out.push(dir);
         }
     };
-    if let Some((d, _)) = interp_guest.rsplit_once('/') {
-        if !d.is_empty() {
-            push(format!("{base}{d}"));
-        }
+    if let Some((d, _)) = interp_guest.rsplit_once('/')
+        && !d.is_empty()
+    {
+        push(format!("{base}{d}"));
     }
     for d in [
         "/lib",

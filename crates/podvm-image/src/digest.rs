@@ -178,16 +178,16 @@ impl<W: Write> Verifier<W> {
                 got: got.to_string(),
             });
         }
-        if let Some(size) = want_size {
-            if size != self.written {
-                return Err(Error::Http {
-                    what: what.to_string(),
-                    detail: format!(
-                        "the descriptor declares {size} byte(s) and {} arrived",
-                        self.written
-                    ),
-                });
-            }
+        if let Some(size) = want_size
+            && size != self.written
+        {
+            return Err(Error::Http {
+                what: what.to_string(),
+                detail: format!(
+                    "the descriptor declares {size} byte(s) and {} arrived",
+                    self.written
+                ),
+            });
         }
         Ok(self.inner)
     }

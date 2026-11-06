@@ -376,17 +376,17 @@ fn filled(
 ) -> Result<Vec<Fixup>> {
     // ⚠ A shim already the right length is left alone: rewriting a megabyte on
     // every container start is a cost with no reading behind it.
-    if let Kind::Regular { len, .. } = root.kind(path)? {
-        if len as usize == bytes.len() {
-            return Ok(vec![Fixup::new(
-                "T-0401",
-                "dev-shim",
-                path,
-                Action::Unchanged,
-            )
-            .why(format!("already a {} byte shim", bytes.len()))
-            .degraded()]);
-        }
+    if let Kind::Regular { len, .. } = root.kind(path)?
+        && len as usize == bytes.len()
+    {
+        return Ok(vec![Fixup::new(
+            "T-0401",
+            "dev-shim",
+            path,
+            Action::Unchanged,
+        )
+        .why(format!("already a {} byte shim", bytes.len()))
+        .degraded()]);
     }
     let w = root.write(path, bytes, 0o666)?;
     let mut detail = format!(

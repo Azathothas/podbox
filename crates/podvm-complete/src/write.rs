@@ -286,22 +286,22 @@ impl Root {
         // of an `/etc/passwd` whose content it does not touch, and a comparison
         // on the bytes alone reported that as a no-op and left the file
         // read-only, which is the failure the fixup exists for.
-        if let Kind::Regular { mode: have, .. } = existing {
-            if self.read(rel)?.as_deref() == Some(bytes) {
-                if have == mode {
-                    return Ok(Wrote::Unchanged);
-                }
-                let Ok((parent, name)) = self.parent(rel, false)? else {
-                    return Ok(Wrote::Unchanged);
-                };
-                let c = CBuf::new(&name).ok_or_else(|| {
-                    Error::Complete(format!("{rel} contains a NUL and cannot be written"))
-                })?;
-                sys::fchmodat(parent.fd(), &c, mode as u64, 0).map_err(|e| {
-                    Error::Complete(format!("cannot set the mode of {rel}: {}", e.name()))
-                })?;
-                return Ok(Wrote::Replaced);
+        if let Kind::Regular { mode: have, .. } = existing
+            && self.read(rel)?.as_deref() == Some(bytes)
+        {
+            if have == mode {
+                return Ok(Wrote::Unchanged);
             }
+            let Ok((parent, name)) = self.parent(rel, false)? else {
+                return Ok(Wrote::Unchanged);
+            };
+            let c = CBuf::new(&name).ok_or_else(|| {
+                Error::Complete(format!("{rel} contains a NUL and cannot be written"))
+            })?;
+            sys::fchmodat(parent.fd(), &c, mode as u64, 0).map_err(|e| {
+                Error::Complete(format!("cannot set the mode of {rel}: {}", e.name()))
+            })?;
+            return Ok(Wrote::Replaced);
         }
         let (parent, name) = match self.parent(rel, true)? {
             Ok(x) => x,

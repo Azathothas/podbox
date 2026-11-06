@@ -1265,14 +1265,15 @@ pub(crate) fn prepare(
     // and the affected verbs.
     let userland =
         crate::lifecycle::decide_entry(verb, &rootfs, &argv, &env, support_native, &findings)?;
-    if let Some(u) = &userland {
-        if (o.detach || verb == "create") && u.family != podvm_enter::userland::Family::Loader {
-            eprintln!(
-                "{}",
-                crate::lifecycle::detached_userland_refusal(verb, u.family.name())
-            );
-            return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
-        }
+    if let Some(u) = &userland
+        && (o.detach || verb == "create")
+        && u.family != podvm_enter::userland::Family::Loader
+    {
+        eprintln!(
+            "{}",
+            crate::lifecycle::detached_userland_refusal(verb, u.family.name())
+        );
+        return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
     }
     // ⭐ T-0702 and T-0706: classify the payload and place the object BEFORE
     // the banner is built, so the banner names the write before anything of
@@ -1287,17 +1288,17 @@ pub(crate) fn prepare(
     // libraries come from the image. A caller preload naming guest paths
     // is dropped and named, because it cannot resolve.
     let mut dropped_preload: Option<String> = None;
-    if let Some(u) = &userland {
-        if u.family == podvm_enter::userland::Family::Loader {
-            let (hosted, dropped) = podvm_enter::userland::host_env(
-                &rootfs,
-                crate::interpose::GUEST_PATH,
-                &env,
-                &u.lib_dirs,
-            );
-            env = hosted;
-            dropped_preload = dropped;
-        }
+    if let Some(u) = &userland
+        && u.family == podvm_enter::userland::Family::Loader
+    {
+        let (hosted, dropped) = podvm_enter::userland::host_env(
+            &rootfs,
+            crate::interpose::GUEST_PATH,
+            &env,
+            &u.lib_dirs,
+        );
+        env = hosted;
+        dropped_preload = dropped;
     }
     let path_dirs = Plan::path_from(&env);
     // ⭐ TODO/enter.md T-0501. The device spec travels in the environment,

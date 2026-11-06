@@ -46,14 +46,14 @@ fn run_inner(argv: &[String]) -> Result<i32, Error> {
     // ⛔ A command in the environment is a caller mistake, not a second
     // way to pass one: exec requests arrive refused below, and anything
     // else in the environment is ignored rather than half-honoured.
-    if let Ok(cmd) = std::env::var("SSH_ORIGINAL_COMMAND") {
-        if !cmd.trim().is_empty() {
-            return Err(Error::new(
+    if let Ok(cmd) = std::env::var("SSH_ORIGINAL_COMMAND")
+        && !cmd.trim().is_empty()
+    {
+        return Err(Error::new(
                 Kind::Usage,
                 "shell session",
                 "a session server serves sessions: exec requests name SSH_ORIGINAL_COMMAND and are refused",
             ));
-        }
     }
     let shell = parse_args(argv)?;
     if shell.trim().is_empty() {

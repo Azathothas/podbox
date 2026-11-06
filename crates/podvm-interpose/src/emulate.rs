@@ -78,7 +78,7 @@ struct IoVec {
     len: usize,
 }
 
-extern "C" {
+unsafe extern "C" {
     fn write(fd: c_int, buf: *const c_void, count: usize) -> isize;
     fn writev(fd: c_int, iov: *const IoVec, iovcnt: c_int) -> isize;
 }

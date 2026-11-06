@@ -223,7 +223,7 @@ unsafe fn report_statx(st: *mut c_void) {
 // the thread's errno slot, and reading `errno` through it is what any C caller
 // does.
 
-extern "C" {
+unsafe extern "C" {
     fn __errno_location() -> *mut c_int;
 }
 
@@ -526,7 +526,7 @@ unsafe fn ids_of_fd(fd: c_int) -> Option<(u64, u64)> {
 
 /// # Safety
 /// The payload's own contract for `chown(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn chown(path: *const c_char, uid: c_uint, gid: c_uint) -> c_int {
     let mut buf = [0u8; crate::map::OUT];
     let p = unsafe { crate::map::prepare(b"chown", crate::map::AT_FDCWD, path, &mut buf) };
@@ -540,7 +540,7 @@ pub unsafe extern "C" fn chown(path: *const c_char, uid: c_uint, gid: c_uint) ->
 
 /// # Safety
 /// The payload's own contract for `lchown(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn lchown(path: *const c_char, uid: c_uint, gid: c_uint) -> c_int {
     let mut buf = [0u8; crate::map::OUT];
     let p = unsafe { crate::map::prepare(b"lchown", crate::map::AT_FDCWD, path, &mut buf) };
@@ -554,7 +554,7 @@ pub unsafe extern "C" fn lchown(path: *const c_char, uid: c_uint, gid: c_uint) -
 
 /// # Safety
 /// The payload's own contract for `fchown(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn fchown(fd: c_int, uid: c_uint, gid: c_uint) -> c_int {
     let ids = unsafe { ids_of_fd(fd) };
     let rc = next_fchown().map(|f| unsafe { f(fd, uid, gid) });
@@ -568,7 +568,7 @@ pub unsafe extern "C" fn fchown(fd: c_int, uid: c_uint, gid: c_uint) -> c_int {
 /// `references/VHSgunzo__pathmap/tree/path-mapping.c:1242-1256` also writes out:
 /// the flags decide whether the target is the link or what it points at, and a
 /// macro over the family cannot express that.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn fchownat(
     dirfd: c_int,
     path: *const c_char,
@@ -622,7 +622,7 @@ macro_rules! stat_entry {
     ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* $(,)? ), $st:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
             let Some(f) = $real() else {
                 unsafe { *__errno_location() = EINVAL };
@@ -644,7 +644,7 @@ macro_rules! stat_path_entry {
     ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* $(,)? ), $st:ident, $path:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
             let Some(f) = $real() else {
                 unsafe { *__errno_location() = EINVAL };
@@ -696,7 +696,7 @@ macro_rules! stat_at_entry {
     ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* $(,)? ), $st:ident, $dirfd:ident, $path:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
             let Some(f) = $real() else {
                 unsafe { *__errno_location() = EINVAL };
@@ -818,7 +818,7 @@ stat_at_entry!(
 ///
 /// # Safety
 /// The payload's own contract for `statx(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn statx(
     dirfd: c_int,
     path: *const c_char,
@@ -901,7 +901,7 @@ macro_rules! path_int {
     ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $path:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
             let Some(f) = $real() else { set_errno(EINVAL); return -1; };
             let mut buf = [0u8; crate::map::OUT];
@@ -926,7 +926,7 @@ macro_rules! path_nonneg {
     ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $path:ident, $ret:ty) => {
         /// # Safety
         /// The payload's own contract for this entry point.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name($($arg: $ty),*) -> $ret {
             let fail: $ret = -1 as $ret;
             let Some(f) = $real() else { set_errno(EINVAL); return fail; };
@@ -952,7 +952,7 @@ macro_rules! path_ptr {
     ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $path:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name($($arg: $ty),*) -> *mut c_void {
             let Some(f) = $real() else { set_errno(EINVAL); return core::ptr::null_mut(); };
             let mut buf = [0u8; crate::map::OUT];
@@ -977,7 +977,7 @@ macro_rules! path_at_int {
     ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $dirfd:ident, $path:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
             let Some(f) = $real() else { set_errno(EINVAL); return -1; };
             let mut buf = [0u8; crate::map::OUT];
@@ -1147,7 +1147,7 @@ unsafe fn reverse_alloc(real: *mut c_void) -> *mut c_char {
 
 /// # Safety
 /// The payload's own contract for this entry point.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn getcwd(buf: *mut c_char, size: usize) -> *mut c_char {
     let Some(f) = crate::map::next_getcwd() else {
         set_errno(EINVAL);
@@ -1195,7 +1195,7 @@ pub unsafe extern "C" fn getcwd(buf: *mut c_char, size: usize) -> *mut c_char {
 
 /// # Safety
 /// The payload's own contract for this entry point.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn get_current_dir_name() -> *mut c_char {
     let Some(f) = next_get_current_dir_name() else {
         set_errno(EINVAL);
@@ -1214,7 +1214,7 @@ pub unsafe extern "C" fn get_current_dir_name() -> *mut c_char {
 
 /// # Safety
 /// The payload's own contract for this entry point.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn realpath(path: *const c_char, resolved: *mut c_char) -> *mut c_char {
     let Some(f) = next_realpath() else {
         set_errno(EINVAL);
@@ -1263,7 +1263,7 @@ pub unsafe extern "C" fn realpath(path: *const c_char, resolved: *mut c_char) ->
 
 /// # Safety
 /// The payload's own contract for this entry point.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn canonicalize_file_name(path: *const c_char) -> *mut c_char {
     let Some(f) = next_canonicalize() else {
         set_errno(EINVAL);
@@ -1294,7 +1294,7 @@ pub unsafe extern "C" fn canonicalize_file_name(path: *const c_char) -> *mut c_c
 
 /// # Safety
 /// The payload's own contract for this entry point.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn readlink(path: *const c_char, buf: *mut c_char, n: usize) -> isize {
     let fail: isize = -1;
     let Some(f) = crate::map::next_readlink() else {
@@ -1307,10 +1307,10 @@ pub unsafe extern "C" fn readlink(path: *const c_char, buf: *mut c_char, n: usiz
     // flag; declined where no guest path rides, falling through to the real
     // call. The substitution says nothing here: the CLI names it once on
     // the banner.
-    if unsafe { crate::procfs::exe_override_hit(path) } {
-        if let Some(e) = unsafe { proc_readlink_exe(buf, n) } {
-            return e;
-        }
+    if unsafe { crate::procfs::exe_override_hit(path) }
+        && let Some(e) = unsafe { proc_readlink_exe(buf, n) }
+    {
+        return e;
     }
     let mut ibuf = [0u8; crate::map::OUT];
     let p = unsafe { crate::map::prepare(b"readlink", crate::map::AT_FDCWD, path, &mut ibuf) };
@@ -1322,10 +1322,11 @@ pub unsafe extern "C" fn readlink(path: *const c_char, buf: *mut c_char, n: usiz
         let rc = unsafe { f(p, buf, n) };
         // T-0413: where no procfs is mounted the real call fails `ENOENT`,
         // and only there does the emulation answer.
-        if rc < 0 && errno() == crate::procfs::ENOENT {
-            if let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) } {
-                return e;
-            }
+        if rc < 0
+            && errno() == crate::procfs::ENOENT
+            && let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) }
+        {
+            return e;
         }
         return rc;
     }
@@ -1335,10 +1336,11 @@ pub unsafe extern "C" fn readlink(path: *const c_char, buf: *mut c_char, n: usiz
         // the table left it untouched (`p` is then that same pointer): a
         // deliberate mapping of `/dev/fd` wins over this emulation, and
         // the `/proc` leaves never rewrite (T-0707 excludes them).
-        if p == path && errno() == crate::procfs::ENOENT {
-            if let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) } {
-                return e;
-            }
+        if p == path
+            && errno() == crate::procfs::ENOENT
+            && let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) }
+        {
+            return e;
         }
         return rc;
     }
@@ -1364,7 +1366,7 @@ pub unsafe extern "C" fn readlink(path: *const c_char, buf: *mut c_char, n: usiz
 
 /// # Safety
 /// The payload's own contract for this entry point.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn readlinkat(
     dirfd: c_int,
     path: *const c_char,
@@ -1378,10 +1380,10 @@ pub unsafe extern "C" fn readlinkat(
     };
     // ⭐ T-1409, as in `readlink`: the guest exe answers even where the real
     // call succeeds, gated on the CLI-set flag.
-    if unsafe { crate::procfs::exe_override_hit(path) } {
-        if let Some(e) = unsafe { proc_readlink_exe(buf, n) } {
-            return e;
-        }
+    if unsafe { crate::procfs::exe_override_hit(path) }
+        && let Some(e) = unsafe { proc_readlink_exe(buf, n) }
+    {
+        return e;
     }
     let mut ibuf = [0u8; crate::map::OUT];
     let p = unsafe { crate::map::prepare(b"readlinkat", dirfd, path, &mut ibuf) };
@@ -1392,20 +1394,22 @@ pub unsafe extern "C" fn readlinkat(
     if t.n == 0 {
         let rc = unsafe { f(dirfd, p, buf, n) };
         // T-0413, as in `readlink`: only `ENOENT` answers.
-        if rc < 0 && errno() == crate::procfs::ENOENT {
-            if let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) } {
-                return e;
-            }
+        if rc < 0
+            && errno() == crate::procfs::ENOENT
+            && let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) }
+        {
+            return e;
         }
         return rc;
     }
     let rc = unsafe { f(dirfd, p, buf, n) };
     if rc < 0 {
         // T-0413, as in `readlink`: untouched spellings only.
-        if p == path && errno() == crate::procfs::ENOENT {
-            if let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) } {
-                return e;
-            }
+        if p == path
+            && errno() == crate::procfs::ENOENT
+            && let Some(e) = unsafe { proc_emulate_readlink(path, buf, n) }
+        {
+            return e;
         }
         return rc;
     }
@@ -1954,7 +1958,7 @@ unsafe fn mknod_make(path: *const c_char, mode: c_uint) -> c_int {
 
 /// # Safety
 /// The payload's own contract for this entry point.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn mknod(path: *const c_char, mode: c_uint, dev: u64) -> c_int {
     let _ = dev;
     // No tally behind it, no emulation: the real call and its honest
@@ -1973,7 +1977,7 @@ pub unsafe extern "C" fn mknod(path: *const c_char, mode: c_uint, dev: u64) -> c
 /// # Safety
 /// The payload's own contract for this entry point: `__xmknod` is the
 /// spelling glibc before 2.33 compiles `mknod` to, version first.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __xmknod(
     ver: c_int,
     path: *const c_char,
@@ -1992,7 +1996,7 @@ pub unsafe extern "C" fn __xmknod(
 
 /// # Safety
 /// The payload's own contract for this entry point.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn mount(
     source: *const c_char,
     target: *const c_char,
@@ -2054,7 +2058,7 @@ pub unsafe extern "C" fn mount(
 
 /// # Safety
 /// The payload's own contract for this entry point.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn unshare(flags: c_int) -> c_int {
     // A flag-less call succeeds genuinely: forward it rather than counting
     // a no-op as an emulation.
@@ -2094,7 +2098,7 @@ pub unsafe extern "C" fn unshare(flags: c_int) -> c_int {
 /// passing seven has every one forwarded. Stable Rust cannot declare the
 /// C-variadic shape, so this is the fixed-arity equivalent (the `open`
 /// family in this file is the precedent).
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn clone(
     func: *mut c_void,
     stack: *mut c_void,
@@ -2147,7 +2151,7 @@ macro_rules! open_fixed {
         /// # Safety
         /// The payload's own contract for this entry point.
         #[allow(invalid_runtime_symbol_definitions)]
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name($path: *const c_char, $flags: c_int, mode: c_uint) -> c_int {
             let Some(f) = $real() else {
                 set_errno(EINVAL);
@@ -2195,7 +2199,7 @@ macro_rules! open_fixed {
         /// # Safety
         /// The payload's own contract for this entry point.
         #[allow(invalid_runtime_symbol_definitions)]
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name(
             $dirfd: c_int,
             $path: *const c_char,
@@ -2250,7 +2254,7 @@ macro_rules! path_dual {
     ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $dirfd_a:ident, $path_a:ident, $dirfd_b:ident, $path_b:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
             let Some(f) = $real() else { set_errno(EINVAL); return -1; };
             let mut bufa = [0u8; crate::map::OUT];
@@ -2272,7 +2276,7 @@ macro_rules! path_dual {
     ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $path_a:ident, $path_b:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name($($arg: $ty),*) -> c_int {
             let Some(f) = $real() else { set_errno(EINVAL); return -1; };
             let mut bufa = [0u8; crate::map::OUT];
@@ -2319,7 +2323,7 @@ path_dual!(renameat2, next_renameat2, (olddirfd: c_int, old: *const c_char, newd
 ///
 /// # Safety
 /// The payload's own contract for `symlink(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char) -> c_int {
     let Some(f) = next_symlink() else {
         set_errno(EINVAL);
@@ -2337,7 +2341,7 @@ pub unsafe extern "C" fn symlink(target: *const c_char, linkpath: *const c_char)
 
 /// # Safety
 /// The payload's own contract for `symlinkat(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn symlinkat(
     target: *const c_char,
     newdirfd: c_int,
@@ -2434,7 +2438,7 @@ unsafe fn map_template(
 
 /// # Safety
 /// The payload's own contract for `mkstemp(3)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn mkstemp(template: *mut c_char) -> c_int {
     let Some(f) = next_mkstemp() else {
         set_errno(EINVAL);
@@ -2450,7 +2454,7 @@ pub unsafe extern "C" fn mkstemp(template: *mut c_char) -> c_int {
 
 /// # Safety
 /// The payload's own contract for `mkostemp(3)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn mkostemp(template: *mut c_char, flags: c_int) -> c_int {
     let Some(f) = next_mkostemp() else {
         set_errno(EINVAL);
@@ -2466,7 +2470,7 @@ pub unsafe extern "C" fn mkostemp(template: *mut c_char, flags: c_int) -> c_int 
 
 /// # Safety
 /// The payload's own contract for `mkdtemp(3)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn mkdtemp(template: *mut c_char) -> *mut c_char {
     let Some(f) = next_mkdtemp() else {
         set_errno(EINVAL);
@@ -2491,7 +2495,7 @@ pub unsafe extern "C" fn mkdtemp(template: *mut c_char) -> *mut c_char {
 ///
 /// # Safety
 /// The payload's own contract for `tmpfile(3)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn tmpfile() -> *mut c_void {
     let Some(f) = next_tmpfile() else {
         set_errno(EINVAL);
@@ -2502,7 +2506,7 @@ pub unsafe extern "C" fn tmpfile() -> *mut c_void {
 
 /// # Safety
 /// The payload's own contract for `tmpfile64(3)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn tmpfile64() -> *mut c_void {
     let Some(f) = next_tmpfile64() else {
         set_errno(EINVAL);
@@ -2571,7 +2575,7 @@ fn valid(id: u32) -> bool {
 
 /// # Safety
 /// The payload's own contract for `setuid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn setuid(uid: c_uint) -> c_int {
     let Some(f) = next_setuid() else {
         set_errno(EINVAL);
@@ -2588,7 +2592,7 @@ pub unsafe extern "C" fn setuid(uid: c_uint) -> c_int {
 
 /// # Safety
 /// The payload's own contract for `setgid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn setgid(gid: c_uint) -> c_int {
     let Some(f) = next_setgid() else {
         set_errno(EINVAL);
@@ -2605,7 +2609,7 @@ pub unsafe extern "C" fn setgid(gid: c_uint) -> c_int {
 
 /// # Safety
 /// The payload's own contract for `seteuid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn seteuid(euid: c_uint) -> c_int {
     let Some(f) = next_seteuid() else {
         set_errno(EINVAL);
@@ -2628,7 +2632,7 @@ pub unsafe extern "C" fn seteuid(euid: c_uint) -> c_int {
 
 /// # Safety
 /// The payload's own contract for `setegid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn setegid(egid: c_uint) -> c_int {
     let Some(f) = next_setegid() else {
         set_errno(EINVAL);
@@ -2651,7 +2655,7 @@ pub unsafe extern "C" fn setegid(egid: c_uint) -> c_int {
 
 /// # Safety
 /// The payload's own contract for `setreuid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn setreuid(ruid: c_int, euid: c_int) -> c_int {
     let Some(f) = next_setreuid() else {
         set_errno(EINVAL);
@@ -2679,7 +2683,7 @@ pub unsafe extern "C" fn setreuid(ruid: c_int, euid: c_int) -> c_int {
 
 /// # Safety
 /// The payload's own contract for `setregid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn setregid(rgid: c_int, egid: c_int) -> c_int {
     let Some(f) = next_setregid() else {
         set_errno(EINVAL);
@@ -2705,7 +2709,7 @@ pub unsafe extern "C" fn setregid(rgid: c_int, egid: c_int) -> c_int {
 
 /// # Safety
 /// The payload's own contract for `setresuid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn setresuid(ruid: c_int, euid: c_int, suid: c_int) -> c_int {
     let Some(f) = next_setresuid() else {
         set_errno(EINVAL);
@@ -2729,7 +2733,7 @@ pub unsafe extern "C" fn setresuid(ruid: c_int, euid: c_int, suid: c_int) -> c_i
 
 /// # Safety
 /// The payload's own contract for `setresgid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn setresgid(rgid: c_int, egid: c_int, sgid: c_int) -> c_int {
     let Some(f) = next_setresgid() else {
         set_errno(EINVAL);
@@ -2753,7 +2757,7 @@ pub unsafe extern "C" fn setresgid(rgid: c_int, egid: c_int, sgid: c_int) -> c_i
 
 /// # Safety
 /// The payload's own contract for `setgroups(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn setgroups(size: usize, list: *const c_uint) -> c_int {
     let Some(f) = next_setgroups() else {
         set_errno(EINVAL);
@@ -2789,7 +2793,7 @@ pub unsafe extern "C" fn setgroups(size: usize, list: *const c_uint) -> c_int {
 
 /// # Safety
 /// The payload's own contract for `getuid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn getuid() -> c_uint {
     if identity::enabled() {
         return identity::ruid();
@@ -2802,7 +2806,7 @@ pub unsafe extern "C" fn getuid() -> c_uint {
 
 /// # Safety
 /// The payload's own contract for `geteuid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn geteuid() -> c_uint {
     if identity::enabled() {
         return identity::euid();
@@ -2815,7 +2819,7 @@ pub unsafe extern "C" fn geteuid() -> c_uint {
 
 /// # Safety
 /// The payload's own contract for `getgid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn getgid() -> c_uint {
     if identity::enabled() {
         return identity::rgid();
@@ -2828,7 +2832,7 @@ pub unsafe extern "C" fn getgid() -> c_uint {
 
 /// # Safety
 /// The payload's own contract for `getegid(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn getegid() -> c_uint {
     if identity::enabled() {
         return identity::egid();
@@ -2841,7 +2845,7 @@ pub unsafe extern "C" fn getegid() -> c_uint {
 
 /// # Safety
 /// The payload's own contract for `getgroups(2)`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn getgroups(size: c_int, list: *mut c_uint) -> c_int {
     if !identity::enabled() {
         let Some(f) = next_getgroups() else {
@@ -2868,7 +2872,7 @@ macro_rules! getres {
     ($name:ident, $real:ident, $r:ident, $e:ident, $s:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub unsafe extern "C" fn $name(
             ruid: *mut c_uint,
             euid: *mut c_uint,
@@ -2907,7 +2911,7 @@ mod tests {
     use std::ffi::CString;
     use std::os::unix::ffi::OsStrExt;
 
-    extern "C" {
+    unsafe extern "C" {
         fn dlopen(name: *const c_char, flag: c_int) -> *mut c_void;
         fn dlsym(handle: *mut c_void, sym: *const c_char) -> *mut c_void;
     }
@@ -3089,8 +3093,10 @@ mod tests {
     /// owns it and this pins the default that must not change.)
     #[test]
     fn exe_override_is_off_without_the_flag() {
-        std::env::remove_var("PODVM_GUEST_EXE_FORCE");
-        std::env::remove_var("PODVM_GUEST_EXE");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_GUEST_EXE_FORCE") };
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_GUEST_EXE") };
         assert!(!unsafe { crate::procfs::exe_override_hit(c"/proc/self/exe".as_ptr()) });
         let mut out = [0u8; crate::map::OUT];
         assert!(unsafe { stat_exe_path(&mut out) }.is_none());

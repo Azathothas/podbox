@@ -407,14 +407,14 @@ fn identity_block(id: &Identity) -> String {
             None => out.push_str(&format!("  {label}: unreadable\n")),
         }
     }
-    if let Some(map) = &id.uid_map {
-        if crate::identity::is_single_id_map(map) {
-            out.push_str(
-                "  the uid map is a single range of one id. That is the fact that\n     \
+    if let Some(map) = &id.uid_map
+        && crate::identity::is_single_id_map(map)
+    {
+        out.push_str(
+            "  the uid map is a single range of one id. That is the fact that\n     \
                  explains every EINVAL from chown(2) and setuid(2) here: the id is\n     \
                  not mapped, so no capability makes it valid.\n",
-            );
-        }
+        );
     }
     if id.groups.contains(&65534) {
         out.push_str(

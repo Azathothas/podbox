@@ -479,22 +479,22 @@ pub fn admits(object: &Elf, libc: &Elf) -> Verdict {
         // found`; a reader that asked "is it defined" first said `dlsym` is
         // missing, which is true and sends the reader to look for libdl instead
         // of at the build host.
-        if let Some(v) = &want.version {
-            if !libc.declares.iter().any(|d| d == v) {
-                return refuse(format!(
-                    "{} imports `{}` at version `{v}`, and {} declares {}. refused: This \
+        if let Some(v) = &want.version
+            && !libc.declares.iter().any(|d| d == v)
+        {
+            return refuse(format!(
+                "{} imports `{}` at version `{v}`, and {} declares {}. refused: This \
                      is a build host newer than the target: the loader refuses \
                      naming the version, whatever the NAME resolves to",
-                    object.path,
-                    want.name,
-                    libc.path,
-                    if libc.declares.is_empty() {
-                        "no versions at all".to_string()
-                    } else {
-                        format!("up to `{}`", newest(&libc.declares))
-                    }
-                ));
-            }
+                object.path,
+                want.name,
+                libc.path,
+                if libc.declares.is_empty() {
+                    "no versions at all".to_string()
+                } else {
+                    format!("up to `{}`", newest(&libc.declares))
+                }
+            ));
         }
         if !libc.defines(want) {
             return refuse(format!(

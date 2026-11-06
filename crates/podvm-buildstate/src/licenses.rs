@@ -531,10 +531,10 @@ fn main() {
                 .strip_prefix(&canonical_source)
                 .unwrap_or_else(|_| fail(format!("licence path leaves package: {name} {version}")));
             let target = destination.join(relative);
-            if let Some(parent) = target.parent() {
-                if let Err(e) = fs::create_dir_all(parent) {
-                    fail(format!("cannot create {}: {e}", parent.display()));
-                }
+            if let Some(parent) = target.parent()
+                && let Err(e) = fs::create_dir_all(parent)
+            {
+                fail(format!("cannot create {}: {e}", parent.display()));
             }
             if let Err(e) = fs::copy(&resolved, &target) {
                 fail(format!("cannot copy {}: {e}", resolved.display()));

@@ -188,19 +188,18 @@ fn run(args: &[String], help: &dyn Fn(&str) -> Option<String>) -> i32 {
             }
         }
     }
-    if let Some(name) = want {
-        if parity::TABLE
+    if let Some(name) = want
+        && parity::TABLE
             .iter()
             .all(|r| r.flag.is_some() || r.verb != name)
-        {
-            let mut err = std::io::stderr().lock();
-            let _ = writeln!(
-                err,
-                "podvm man: {name}: podvm has no such command, and neither does \
+    {
+        let mut err = std::io::stderr().lock();
+        let _ = writeln!(
+            err,
+            "podvm man: {name}: podvm has no such command, and neither does \
                  the parity table (TOOL.md section 6.8)"
-            );
-            return podvm_image::error::EXIT_CLI_ERROR;
-        }
+        );
+        return podvm_image::error::EXIT_CLI_ERROR;
     }
     let text = match render(want, &help) {
         Some(t) => t,

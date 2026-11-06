@@ -343,10 +343,10 @@ fn probe(args: &[String]) -> i32 {
     for a in args {
         // ⛔ TODO/cli.md T-0801. The table decides, as in every other parser:
         // an unlisted flag never reaches an arm.
-        if a.starts_with('-') {
-            if let Err(c) = crate::parity::admit("probe", a, PROBE_USAGE) {
-                return c;
-            }
+        if a.starts_with('-')
+            && let Err(c) = crate::parity::admit("probe", a, PROBE_USAGE)
+        {
+            return c;
         }
         match a.as_str() {
             "--json" => json = true,

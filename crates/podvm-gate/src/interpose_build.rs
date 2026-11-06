@@ -145,10 +145,10 @@ fn dt_needed(obj: &Path, root: &Path) -> Vec<String> {
             if !line.contains("NEEDED") {
                 continue;
             }
-            if let Some(open) = line.find('[') {
-                if let Some(close) = line[open..].find(']') {
-                    names.push(line[open + 1..open + close].to_string());
-                }
+            if let Some(open) = line.find('[')
+                && let Some(close) = line[open..].find(']')
+            {
+                names.push(line[open + 1..open + close].to_string());
             }
         }
     }

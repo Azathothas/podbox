@@ -251,20 +251,20 @@ pub fn assess(f: &Findings) -> Assessment {
 /// where the verdict is `Ok` and the accelerator list is what blocks:
 /// an `ok` inside a refusal would read as the tier holding.
 fn refusal_detail(legs: &[Leg], leg: &Leg) -> String {
-    if let Some(o) = &leg.outcome {
-        if o.verdict == Verdict::Ok {
-            if leg.name == ACCEL_LEG && !accelerators_in(&o.reason).contains(&"tcg") {
-                let listed = o
-                    .reason
-                    .strip_prefix("accelerators:")
-                    .unwrap_or(&o.reason)
-                    .trim();
-                let listed = if listed.is_empty() { "no list" } else { listed };
-                return format!("{}: tcg not listed ({listed})", leg.name);
-            }
-            if leg.name == KVM_LEG && !accel_usable(legs, "kvm") {
-                return format!("{}: the node opens but the emulator lists no kvm", leg.name);
-            }
+    if let Some(o) = &leg.outcome
+        && o.verdict == Verdict::Ok
+    {
+        if leg.name == ACCEL_LEG && !accelerators_in(&o.reason).contains(&"tcg") {
+            let listed = o
+                .reason
+                .strip_prefix("accelerators:")
+                .unwrap_or(&o.reason)
+                .trim();
+            let listed = if listed.is_empty() { "no list" } else { listed };
+            return format!("{}: tcg not listed ({listed})", leg.name);
+        }
+        if leg.name == KVM_LEG && !accel_usable(legs, "kvm") {
+            return format!("{}: the node opens but the emulator lists no kvm", leg.name);
         }
     }
     leg.detail()

@@ -961,12 +961,14 @@ DownloadUserAgent = x
         // parses as at least one certificate.
         let host = std::env::temp_dir().join(format!("podvm-hostca-{}.pem", std::process::id()));
         std::fs::write(&host, SELF_SIGNED_PEM).unwrap();
-        std::env::set_var("SSL_CERT_FILE", &host);
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("SSL_CERT_FILE", &host) };
 
         let root = Root::open(&d).unwrap();
         let first = ca_bundle(&root, "T-0407", &Options::default()).unwrap();
         let second = ca_bundle(&root, "T-0407", &Options::default()).unwrap();
-        std::env::remove_var("SSL_CERT_FILE");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("SSL_CERT_FILE") };
 
         let got =
             std::fs::read_to_string(format!("{d}/etc/ssl/certs/ca-certificates.crt")).unwrap();
@@ -992,7 +994,8 @@ DownloadUserAgent = x
         std::fs::write(&p, "# THE IMAGE OWN ROOTS\n").unwrap();
         let host = std::env::temp_dir().join(format!("podvm-hostca2-{}.pem", std::process::id()));
         std::fs::write(&host, SELF_SIGNED_PEM).unwrap();
-        std::env::set_var("SSL_CERT_FILE", &host);
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("SSL_CERT_FILE", &host) };
         let root = Root::open(&d).unwrap();
         let fs = ca_bundle(
             &root,
@@ -1003,7 +1006,8 @@ DownloadUserAgent = x
             },
         )
         .unwrap();
-        std::env::remove_var("SSL_CERT_FILE");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("SSL_CERT_FILE") };
         assert_eq!(fs[0].action, Action::Skipped);
         assert!(fs[0].degraded);
         assert_eq!(
@@ -1071,7 +1075,8 @@ DownloadUserAgent = x
         .unwrap();
         let host = std::env::temp_dir().join(format!("podvm-{name}-{}.pem", std::process::id()));
         std::fs::write(&host, format!("{SELF_SIGNED_PEM}{OTHER_PEM}")).unwrap();
-        std::env::set_var("SSL_CERT_FILE", &host);
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("SSL_CERT_FILE", &host) };
         (d, host)
     }
 
@@ -1084,7 +1089,8 @@ DownloadUserAgent = x
         let (d, host) = capath_scratch("cahash");
         let root = Root::open(&d).unwrap();
         let (fs, steps) = ca_hash_dir(&root, &Options::default()).unwrap();
-        std::env::remove_var("SSL_CERT_FILE");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("SSL_CERT_FILE") };
 
         assert_eq!(fs[0].action, Action::Rewrote, "{:?}", fs[0]);
         assert!(fs[0].degraded, "a trust change is a degradation");
@@ -1126,7 +1132,8 @@ DownloadUserAgent = x
         )
         .unwrap();
         let (fs, steps) = ca_hash_dir(&root, &Options::default()).unwrap();
-        std::env::remove_var("SSL_CERT_FILE");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("SSL_CERT_FILE") };
 
         assert_eq!(fs[0].action, Action::Unchanged, "{:?}", fs[0]);
         assert!(steps.is_empty(), "{steps:?}");
@@ -1151,7 +1158,8 @@ DownloadUserAgent = x
             },
         )
         .unwrap();
-        std::env::remove_var("SSL_CERT_FILE");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("SSL_CERT_FILE") };
 
         assert_eq!(fs[0].action, Action::Skipped);
         assert!(fs[0].degraded);
@@ -1188,7 +1196,8 @@ DownloadUserAgent = x
         .unwrap();
         let root = Root::open(&d).unwrap();
         let (fs, steps) = ca_hash_dir(&root, &Options::default()).unwrap();
-        std::env::remove_var("SSL_CERT_FILE");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("SSL_CERT_FILE") };
         assert_eq!(fs[0].action, Action::Rewrote, "{:?}", fs[0]);
         assert_eq!(steps.len(), 1, "{steps:?}");
         assert!(
@@ -1213,10 +1222,12 @@ DownloadUserAgent = x
         .unwrap();
         let host = std::env::temp_dir().join(format!("podvm-cahash4-{}.pem", std::process::id()));
         std::fs::write(&host, OTHER_PEM).unwrap();
-        std::env::set_var("SSL_CERT_FILE", &host);
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("SSL_CERT_FILE", &host) };
         let root = Root::open(&d).unwrap();
         let (fs, steps) = ca_hash_dir(&root, &Options::default()).unwrap();
-        std::env::remove_var("SSL_CERT_FILE");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("SSL_CERT_FILE") };
         assert_eq!(fs[0].action, Action::Skipped);
         assert!(!fs[0].degraded, "nothing was given up: there is no CApath");
         assert!(steps.is_empty());

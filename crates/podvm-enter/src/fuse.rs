@@ -1087,10 +1087,10 @@ fn serve_until_destroy(fd: i64, backing: &Path, ready: i64) -> i32 {
             let _ = write_all(ready, &0u32.to_le_bytes());
             told = true;
         }
-        if let Some(bytes) = answer {
-            if write_all(fd, &bytes).is_err() {
-                return 1;
-            }
+        if let Some(bytes) = answer
+            && write_all(fd, &bytes).is_err()
+        {
+            return 1;
         }
         if done {
             return 0;

@@ -226,14 +226,11 @@ fn run(argv: &[String]) -> ExitCode {
     if let (Some(id), Some(status)) = (set_id.as_ref(), set_status.as_ref()) {
         let mut moved = false;
         for line in lines.iter_mut() {
-            if let Some(m) = match_row(line) {
-                if &m.id == id {
-                    line.replace_range(
-                        m.status_start..m.status_end,
-                        &render(m.status_bold, status),
-                    );
-                    moved = true;
-                }
+            if let Some(m) = match_row(line)
+                && &m.id == id
+            {
+                line.replace_range(m.status_start..m.status_end, &render(m.status_bold, status));
+                moved = true;
             }
         }
         if !moved {

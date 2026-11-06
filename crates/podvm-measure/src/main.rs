@@ -462,10 +462,9 @@ fn drive_inner(binary: &str, twins: &[(&str, String)], report: &mut Report) -> i
         for row in &rows {
             if let (Some(Json::Str(case)), Some(Json::Number(code))) =
                 (field(row, "case"), field(row, "code"))
+                && let Ok(number) = code.parse::<i32>()
             {
-                if let Ok(number) = code.parse::<i32>() {
-                    codes.insert(case.clone(), number);
-                }
+                codes.insert(case.clone(), number);
             }
         }
     }

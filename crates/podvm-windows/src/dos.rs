@@ -33,10 +33,10 @@ use super::{agent, outcome, Accel, Error, Outcome};
 /// cache defect `docs/conventions/forbidden-patterns.md` refuses: a DOS
 /// run would boot a Windows disk and report its output as DOS's.
 pub fn base_cache() -> PathBuf {
-    if let Some(p) = std::env::var_os("PODVM_DOS_BASE") {
-        if !p.is_empty() {
-            return PathBuf::from(p);
-        }
+    if let Some(p) = std::env::var_os("PODVM_DOS_BASE")
+        && !p.is_empty()
+    {
+        return PathBuf::from(p);
     }
     let home = std::env::var_os("HOME").unwrap_or_else(|| "/tmp".into());
     Path::new(&home).join(".local/share/podvm/windows/freedos-base.img")
@@ -235,16 +235,16 @@ pub fn run(plan: &Plan, batch: &str, token: &str, timeout: Duration) -> Result<O
         if let Ok(Some(_)) = child.try_wait() {
             break;
         }
-        if let Ok(bytes) = std::fs::read(&plan.mailbox) {
-            if let Some(m) = super::Fat16::from_image(bytes) {
-                match outcome(&m, token) {
-                    Ok(Some(o)) => {
-                        code = Some(o);
-                        break;
-                    }
-                    Ok(None) => {}
-                    Err(_) => {}
+        if let Ok(bytes) = std::fs::read(&plan.mailbox)
+            && let Some(m) = super::Fat16::from_image(bytes)
+        {
+            match outcome(&m, token) {
+                Ok(Some(o)) => {
+                    code = Some(o);
+                    break;
                 }
+                Ok(None) => {}
+                Err(_) => {}
             }
         }
         std::thread::sleep(Duration::from_millis(500));
@@ -265,6 +265,7 @@ pub fn batch_from_argv(argv: &[String]) -> String {
 }
 
 #[cfg(test)]
+#[allow(unsafe_code)]
 mod tests {
     use super::*;
 
@@ -314,13 +315,17 @@ mod tests {
 
     #[test]
     fn the_dos_cache_is_not_the_windows_cache() {
-        std::env::set_var("PODVM_DOS_BASE", "/tmp/dos-base.img");
-        std::env::set_var("PODVM_WINDOWS_BASE", "/tmp/win-base.vhdx");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_DOS_BASE", "/tmp/dos-base.img") };
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_WINDOWS_BASE", "/tmp/win-base.vhdx") };
         assert_eq!(base_cache(), PathBuf::from("/tmp/dos-base.img"));
         assert_eq!(crate::base_cache(), PathBuf::from("/tmp/win-base.vhdx"));
         assert_ne!(base_cache(), crate::base_cache());
-        std::env::remove_var("PODVM_DOS_BASE");
-        std::env::remove_var("PODVM_WINDOWS_BASE");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_DOS_BASE") };
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_WINDOWS_BASE") };
         let p = base_cache();
         assert!(p.to_string_lossy().ends_with("freedos-base.img"), "{p:?}");
     }

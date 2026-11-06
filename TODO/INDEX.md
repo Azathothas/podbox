@@ -342,7 +342,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1666](probe.md) | P2 | probe | open | A security probe inside the payload, and a compare against a reference report |
 | [T-1667](cli.md) | P2 | cli | open | Doctor and installers: one check per scope capability, verified downloads, a space floor |
 | [T-1668](gate.md) | P2 | gate | open | A findings page for the scope: observed or inferred, with host conditions per row |
-| [T-1669](deps.md) | P1 | deps | open | Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate |
+| [T-1669](deps.md) | P1 | deps | partial | Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate |
 | [T-1670](probe.md) | P1 | probe | open | The first cloud session measures its host and saves the result |
 | [T-1671](packaging.md) | P2 | packaging | open | Release `v0.2.0-beta.1` with `## Breaking` notes, from a dispatched `release.yml` |
 | [T-1672](gate.md) | P2 | gate | blocked | Move the record to the format of `pod-todo`, with a `podvm-todo` wrapper and a todo.toml |
@@ -359,10 +359,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1683](gate.md) | P2 | gate | open | Retire the PowerShell twins of `scripts/common/` and `check-twins.sh` |
 | [T-1684](gate.md) | P2 | gate | open | Fuzz the parsers that read untrusted input, and watch `vendor/` upstream |
 | [T-1685](gate.md) | P2 | gate | open | A maintenance page and a development page in the sibling form |
+| [T-1686](complete.md) | P2 | complete | open | The device tests of a stand-in fail where `mknod` is permitted |
 
 ## Counts
 
-294 items: 34 open, 9 partial, 8 blocked, 243 done.
+295 items: 34 open, 10 partial, 8 blocked, 243 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -371,10 +372,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 62 | 64 |
-| P1 | 9 | 8 | 0 | 116 | 133 |
-| P2 | 24 | 0 | 8 | 56 | 88 |
+| P1 | 8 | 9 | 0 | 116 | 133 |
+| P2 | 25 | 0 | 8 | 56 | 89 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **34** | **9** | **8** | **243** | **294** |
+| **All** | **34** | **10** | **8** | **243** | **295** |
 
 ## Work order
 

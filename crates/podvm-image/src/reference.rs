@@ -126,16 +126,15 @@ impl Reference {
                 )));
             }
         }
-        if let Some(t) = &tag {
-            if t.is_empty()
+        if let Some(t) = &tag
+            && (t.is_empty()
                 || !t
                     .bytes()
-                    .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
-            {
-                return Err(Error::Reference(format!(
-                    "{input:?}: tag {t:?} is not valid"
-                )));
-            }
+                    .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b)))
+        {
+            return Err(Error::Reference(format!(
+                "{input:?}: tag {t:?} is not valid"
+            )));
         }
 
         let repository = if domain == DEFAULT_DOMAIN && !path.contains('/') {
@@ -209,10 +208,10 @@ fn is_domain(head: &str) -> bool {
         Some((h, p)) => (h, Some(p)),
         None => (head, None),
     };
-    if let Some(p) = port {
-        if p.is_empty() || !p.bytes().all(|b| b.is_ascii_digit()) {
-            return false;
-        }
+    if let Some(p) = port
+        && (p.is_empty() || !p.bytes().all(|b| b.is_ascii_digit()))
+    {
+        return false;
     }
     !host.is_empty()
         && host.split('.').all(|label| {

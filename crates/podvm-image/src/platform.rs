@@ -150,11 +150,11 @@ impl Platform {
             return Platform::parse(f);
         }
         for var in ENV_VARS {
-            if let Ok(v) = std::env::var(var) {
-                if !v.trim().is_empty() {
-                    return Platform::parse(v.trim())
-                        .map_err(|e| Error::Usage(format!("${var} is not a platform: {e}")));
-                }
+            if let Ok(v) = std::env::var(var)
+                && !v.trim().is_empty()
+            {
+                return Platform::parse(v.trim())
+                    .map_err(|e| Error::Usage(format!("${var} is not a platform: {e}")));
             }
         }
         Ok(Platform::host())

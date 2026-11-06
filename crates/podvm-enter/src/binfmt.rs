@@ -109,10 +109,10 @@ pub fn copy_interpreter_in(root: &str, r: &Registration) -> std::io::Result<Path
     // ⚠ Skipped where it is already there and the same size: re-copying a
     // 10 MB static qemu on every `run` is a cost with no benefit, and the
     // interpreter is a fixed artefact rather than something that drifts.
-    if let (Ok(a), Ok(b)) = (std::fs::metadata(&r.interpreter), std::fs::metadata(&dest)) {
-        if a.len() == b.len() {
-            return Ok(dest);
-        }
+    if let (Ok(a), Ok(b)) = (std::fs::metadata(&r.interpreter), std::fs::metadata(&dest))
+        && a.len() == b.len()
+    {
+        return Ok(dest);
     }
     std::fs::copy(&r.interpreter, &dest)?;
     // The interpreter has to be executable inside the rootfs.

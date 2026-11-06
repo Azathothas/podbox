@@ -115,12 +115,12 @@ fn read_ceiling(root: &Path) -> u64 {
     let text = fs::read_to_string(root.join(DECLARATION)).unwrap_or_default();
     for line in text.split('\n') {
         let line = line.trim();
-        if let Some(digits) = line.strip_prefix(&format!("{DECL_NAME}=")) {
-            if !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()) {
-                if let Ok(value) = digits.parse::<u64>() {
-                    return value;
-                }
-            }
+        if let Some(digits) = line.strip_prefix(&format!("{DECL_NAME}="))
+            && !digits.is_empty()
+            && digits.bytes().all(|b| b.is_ascii_digit())
+            && let Ok(value) = digits.parse::<u64>()
+        {
+            return value;
         }
     }
     eprintln!("podvm-size: the ceiling declaration is absent from {DECLARATION}");
@@ -264,10 +264,9 @@ fn main() {
         60,
     )
     .and_then(|text| text.split('\n').next().map(str::to_string))
+        && !first.starts_with("podvm ")
     {
-        if !first.starts_with("podvm ") {
-            scaffold_said = first.trim().to_string();
-        }
+        scaffold_said = first.trim().to_string();
     }
     println!(
         "  scaffold    {}",
@@ -337,16 +336,14 @@ fn main() {
                 let _ = fs::write(&err_log, "cargo bloat did not run");
             }
         }
-        if bloat_txt.is_file() {
-            if let Ok(table) = fs::read_to_string(&bloat_txt) {
-                if !table.trim().is_empty() {
-                    for line in table.split('\n') {
-                        println!("  {line}");
-                    }
-                    bloat_status =
-                        "taken from an unstripped build of the release profile".to_string();
-                }
+        if bloat_txt.is_file()
+            && let Ok(table) = fs::read_to_string(&bloat_txt)
+            && !table.trim().is_empty()
+        {
+            for line in table.split('\n') {
+                println!("  {line}");
             }
+            bloat_status = "taken from an unstripped build of the release profile".to_string();
         }
         if bloat_status.is_empty() {
             bloat_status = "not taken: cargo bloat produced nothing".to_string();

@@ -88,25 +88,23 @@ impl Spawner {
 
     fn find_self() -> (Option<CBuf>, String) {
         let magic = "/proc/self/exe";
-        if std::fs::metadata(magic).is_ok() {
-            if let Some(c) = CBuf::new(magic) {
-                return (Some(c), magic.to_string());
-            }
+        if std::fs::metadata(magic).is_ok()
+            && let Some(c) = CBuf::new(magic)
+        {
+            return (Some(c), magic.to_string());
         }
-        if let Ok(p) = std::env::current_exe() {
-            if let Some(s) = p.to_str() {
-                if let Some(c) = CBuf::new(s) {
-                    return (Some(c), format!("current_exe {s}"));
-                }
-            }
+        if let Ok(p) = std::env::current_exe()
+            && let Some(s) = p.to_str()
+            && let Some(c) = CBuf::new(s)
+        {
+            return (Some(c), format!("current_exe {s}"));
         }
         // argv[0], and only when it names a path rather than a PATH lookup.
-        if let Some(a0) = std::env::args().next() {
-            if a0.contains('/') {
-                if let Some(c) = CBuf::new(&a0) {
-                    return (Some(c), format!("argv[0] {a0}"));
-                }
-            }
+        if let Some(a0) = std::env::args().next()
+            && a0.contains('/')
+            && let Some(c) = CBuf::new(&a0)
+        {
+            return (Some(c), format!("argv[0] {a0}"));
         }
         (None, "unavailable".to_string())
     }

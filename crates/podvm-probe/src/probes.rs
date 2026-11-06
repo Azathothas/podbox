@@ -1191,11 +1191,11 @@ fn a_move_mount_real() -> Outcome {
         Err((e, step)) => return precondition(step.label(), e),
     };
     let dest = c(DEST);
-    if let Err(e) = sys::mkdir(&dest, 0o755) {
-        if e != sys::EEXIST {
-            let _ = sys::close(mfd);
-            return precondition(&format!("mkdir {DEST}"), e);
-        }
+    if let Err(e) = sys::mkdir(&dest, 0o755)
+        && e != sys::EEXIST
+    {
+        let _ = sys::close(mfd);
+        return precondition(&format!("mkdir {DEST}"), e);
     }
     let empty = sys::cempty();
     let r = unsafe {

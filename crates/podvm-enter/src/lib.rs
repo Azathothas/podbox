@@ -368,21 +368,21 @@ impl Child {
                 // ⛔ `ssi_signo` is the first word. A short read is not a
                 // signal, and anything but SIGINT/SIGTERM cannot arrive: the
                 // mask holds exactly those two bits.
-                if let Ok(n) = sys::read(sfd, &mut buf) {
-                    if n >= 4 {
-                        let signo = u32::from_ne_bytes([buf[0], buf[1], buf[2], buf[3]]) as i64;
-                        if signo == sys::SIGINT as i64 || signo == sys::SIGTERM as i64 {
-                            // ⚠ ESRCH is not a failure: the payload exited
-                            // between the read and this kill, and the pidfd
-                            // half reaps it below.
-                            let _ = sys::kill(self.pid, signo);
-                            let _ = writeln!(
-                                err,
-                                "forwarded {} to the payload (pid {})",
-                                signal_name(signo),
-                                self.pid
-                            );
-                        }
+                if let Ok(n) = sys::read(sfd, &mut buf)
+                    && n >= 4
+                {
+                    let signo = u32::from_ne_bytes([buf[0], buf[1], buf[2], buf[3]]) as i64;
+                    if signo == sys::SIGINT as i64 || signo == sys::SIGTERM as i64 {
+                        // ⚠ ESRCH is not a failure: the payload exited
+                        // between the read and this kill, and the pidfd
+                        // half reaps it below.
+                        let _ = sys::kill(self.pid, signo);
+                        let _ = writeln!(
+                            err,
+                            "forwarded {} to the payload (pid {})",
+                            signal_name(signo),
+                            self.pid
+                        );
                     }
                 }
             }
@@ -963,14 +963,14 @@ fn spawn_with(
     // the wrong directory with exit 0. The CLI names the image where it
     // checks ([`check_workdir`]); here only the rootfs is known. A NUL byte
     // skips this check and fails at the `CBuf` above with its own sentence.
-    if !plan.working_dir.contains('\0') {
-        if let Err(kind) = workdir_kind(&root.path, &plan.working_dir) {
-            return Err(refuse_workdir(
-                &plan.working_dir,
-                &format!("in the image's rootfs {:?}", root.path),
-                kind,
-            ));
-        }
+    if !plan.working_dir.contains('\0')
+        && let Err(kind) = workdir_kind(&root.path, &plan.working_dir)
+    {
+        return Err(refuse_workdir(
+            &plan.working_dir,
+            &format!("in the image's rootfs {:?}", root.path),
+            kind,
+        ));
     }
 
     // ⛔ The banner before the fork, so it cannot interleave with the payload's
@@ -1089,10 +1089,10 @@ fn spawn_with(
                 // the image, addressed relatively from the descriptor above.
                 // ⛔ T-1412, as in the chroot arm: a missing one refuses as
                 // step 11 rather than running from the rootfs with exit 0.
-                if let Some(w) = &workdir_rel {
-                    if let Err(e) = sys::chdir(w) {
-                        report(11, e);
-                    }
+                if let Some(w) = &workdir_rel
+                    && let Err(e) = sys::chdir(w)
+                {
+                    report(11, e);
                 }
             }
 

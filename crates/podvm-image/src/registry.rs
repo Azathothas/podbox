@@ -477,19 +477,20 @@ impl Client {
                     // `None` for every endpoint nobody named, which keeps
                     // T-0201's finding intact. An automatic downgrade on a
                     // network where tcp/80 is black-holed is a hang.
-                    if transport_host.is_some() && !self.http_endpoints.contains(endpoint) {
-                        if let Some(d) = self.policy.after_connect_failure(endpoint) {
-                            self.http_endpoints.insert(endpoint.to_string());
-                            let _ = writeln!(
-                                std::io::stderr(),
-                                "podvm: {endpoint} did not answer over HTTPS ({why}), and it \
+                    if transport_host.is_some()
+                        && !self.http_endpoints.contains(endpoint)
+                        && let Some(d) = self.policy.after_connect_failure(endpoint)
+                    {
+                        self.http_endpoints.insert(endpoint.to_string());
+                        let _ = writeln!(
+                            std::io::stderr(),
+                            "podvm: {endpoint} did not answer over HTTPS ({why}), and it \
                                  is configured as an insecure registry, so this and every \
                                  later request to it use {}://",
-                                d.scheme
-                            );
-                            target = format!("{}{}", self.base(endpoint), path);
-                            continue;
-                        }
+                            d.scheme
+                        );
+                        target = format!("{}{}", self.base(endpoint), path);
+                        continue;
                     }
                     if attempt + 1 < ATTEMPTS {
                         std::thread::sleep(backoff(attempt + 1, after));
@@ -597,10 +598,10 @@ impl Client {
         // secret reaches a log that records rejected attempts.
         if let Some(b) = basic {
             req = req.set("Authorization", b);
-        } else if let Some(host) = host_of(url) {
-            if let Some(t) = self.tokens.get(&key(&host, scope)) {
-                req = req.set("Authorization", &format!("Bearer {t}"));
-            }
+        } else if let Some(host) = host_of(url)
+            && let Some(t) = self.tokens.get(&key(&host, scope))
+        {
+            req = req.set("Authorization", &format!("Bearer {t}"));
         }
         req.call()
     }
@@ -795,15 +796,15 @@ fn split_host_path(url: &str) -> (String, String) {
 /// own URL first, because a redirect can fail on a host the request did not
 /// name, and the request URL where the transport carries none.
 fn transport_host(url: &str, t: &ureq::Transport) -> String {
-    if let Some(u) = t.url() {
-        if let Some(h) = u.host_str() {
-            // ⚠ The port stays where the URL wrote it: two registries on one
-            // host are two hosts for this message's purpose.
-            return match u.port() {
-                Some(p) => format!("{h}:{p}"),
-                None => h.to_string(),
-            };
-        }
+    if let Some(u) = t.url()
+        && let Some(h) = u.host_str()
+    {
+        // ⚠ The port stays where the URL wrote it: two registries on one
+        // host are two hosts for this message's purpose.
+        return match u.port() {
+            Some(p) => format!("{h}:{p}"),
+            None => h.to_string(),
+        };
     }
     split_host_path(url).0
 }
@@ -815,11 +816,11 @@ fn transport_host(url: &str, t: &ureq::Transport) -> String {
 /// dropped until `-v` exists to hold them (T-1416).
 fn transport_why(t: &ureq::Transport) -> String {
     let mut s = format!("{}", t.kind()).to_lowercase();
-    if let Some(m) = t.message() {
-        if !m.is_empty() {
-            s.push_str(": ");
-            s.push_str(m);
-        }
+    if let Some(m) = t.message()
+        && !m.is_empty()
+    {
+        s.push_str(": ");
+        s.push_str(m);
     }
     let mut source = std::error::Error::source(t);
     while let Some(e) = source {

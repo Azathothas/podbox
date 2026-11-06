@@ -262,10 +262,10 @@ fn classify_elf(name: &str, elf: &podvm_enter::abi::Elf, rootfs: &str, objs: &Pa
     let mut rest = Vec::new();
     if let Some(dir) = libc_path.rsplit_once('/').map(|(d, _)| d) {
         let sib = format!("{dir}/libgcc_s.so.1");
-        if sib != libc_path {
-            if let Ok(e) = podvm_enter::abi::Elf::read(&sib) {
-                rest.push(e);
-            }
+        if sib != libc_path
+            && let Ok(e) = podvm_enter::abi::Elf::read(&sib)
+        {
+            rest.push(e);
         }
     }
     let interp_path = format!(
@@ -273,10 +273,10 @@ fn classify_elf(name: &str, elf: &podvm_enter::abi::Elf, rootfs: &str, objs: &Pa
         rootfs.trim_end_matches('/'),
         rel = interp.trim_start_matches('/')
     );
-    if interp_path != libc_path {
-        if let Ok(e) = podvm_enter::abi::Elf::read(&interp_path) {
-            rest.push(e);
-        }
+    if interp_path != libc_path
+        && let Ok(e) = podvm_enter::abi::Elf::read(&interp_path)
+    {
+        rest.push(e);
     }
     let set = podvm_enter::abi::union(&libc_elf, &rest);
     match podvm_enter::abi::admits(obj, &set) {

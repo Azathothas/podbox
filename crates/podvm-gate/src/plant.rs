@@ -448,10 +448,11 @@ fn set_bare_reading(root: &Path, file: &str, name: &str, value: &str) {
     let out: Vec<String> = text
         .split('\n')
         .map(|line| {
-            if let Some(rest) = line.strip_prefix(&head) {
-                if !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit()) {
-                    return format!("{head}{value}");
-                }
+            if let Some(rest) = line.strip_prefix(&head)
+                && !rest.is_empty()
+                && rest.bytes().all(|b| b.is_ascii_digit())
+            {
+                return format!("{head}{value}");
             }
             line.to_string()
         })
@@ -481,12 +482,12 @@ fn exit_declaration() -> String {
 
 fn ceiling_from_file(root: &Path, file: &str, name: &str) -> Option<String> {
     for line in read_file(root, file).split('\n') {
-        if let Some(rest) = line.strip_prefix(name) {
-            if let Some(digits) = rest.strip_prefix('=') {
-                if !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()) {
-                    return Some(digits.to_string());
-                }
-            }
+        if let Some(rest) = line.strip_prefix(name)
+            && let Some(digits) = rest.strip_prefix('=')
+            && !digits.is_empty()
+            && digits.bytes().all(|b| b.is_ascii_digit())
+        {
+            return Some(digits.to_string());
         }
     }
     None
@@ -585,13 +586,13 @@ fn cc_component(root: &Path) -> Option<(String, String)> {
 // on the line goes.
 fn strip_component_line(line: &str, component: &str) -> String {
     let needle = format!(" {component}");
-    if let Some(boot) = line.find("bootstrap-env.sh") {
-        if let Some(rel) = line[boot..].rfind(&needle) {
-            let at = boot + rel;
-            let mut out = line.to_string();
-            out.replace_range(at..at + needle.len(), "");
-            return out;
-        }
+    if let Some(boot) = line.find("bootstrap-env.sh")
+        && let Some(rel) = line[boot..].rfind(&needle)
+    {
+        let at = boot + rel;
+        let mut out = line.to_string();
+        out.replace_range(at..at + needle.len(), "");
+        return out;
     }
     line.to_string()
 }
@@ -853,15 +854,14 @@ fn run() -> i32 {
                 .split('\n')
                 .map(|line| {
                     let mut parts = line.splitn(2, " items: ");
-                    if let (Some(head), Some(tail)) = (parts.next(), parts.next()) {
-                        if !head.is_empty()
-                            && head.bytes().all(|b| b.is_ascii_digit())
-                            && tail.contains(" open")
-                        {
-                            let mut tail_parts = tail.splitn(2, ' ');
-                            if let (Some(_), Some(rest)) = (tail_parts.next(), tail_parts.next()) {
-                                return format!("{head} items: 999 {rest}");
-                            }
+                    if let (Some(head), Some(tail)) = (parts.next(), parts.next())
+                        && !head.is_empty()
+                        && head.bytes().all(|b| b.is_ascii_digit())
+                        && tail.contains(" open")
+                    {
+                        let mut tail_parts = tail.splitn(2, ' ');
+                        if let (Some(_), Some(rest)) = (tail_parts.next(), tail_parts.next()) {
+                            return format!("{head} items: 999 {rest}");
                         }
                     }
                     line.to_string()
@@ -971,15 +971,14 @@ fn run() -> i32 {
                 .split('\n')
                 .map(|line| {
                     let mut parts = line.splitn(2, " entries: ");
-                    if let (Some(head), Some(tail)) = (parts.next(), parts.next()) {
-                        if !head.is_empty()
-                            && head.bytes().all(|b| b.is_ascii_digit())
-                            && tail.contains(" open")
-                        {
-                            let mut tail_parts = tail.splitn(2, ' ');
-                            if let (Some(_), Some(rest)) = (tail_parts.next(), tail_parts.next()) {
-                                return format!("{head} entries: 999 {rest}");
-                            }
+                    if let (Some(head), Some(tail)) = (parts.next(), parts.next())
+                        && !head.is_empty()
+                        && head.bytes().all(|b| b.is_ascii_digit())
+                        && tail.contains(" open")
+                    {
+                        let mut tail_parts = tail.splitn(2, ' ');
+                        if let (Some(_), Some(rest)) = (tail_parts.next(), tail_parts.next()) {
+                            return format!("{head} entries: 999 {rest}");
                         }
                     }
                     line.to_string()

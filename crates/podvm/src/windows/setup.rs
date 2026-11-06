@@ -93,11 +93,11 @@ pub(crate) fn fetch(a: &Args) -> i32 {
         );
         return EXIT_FLAG_ERROR;
     }
-    if let Some(dir) = dest.parent() {
-        if let Err(e) = std::fs::create_dir_all(dir) {
-            eprintln!("podvm windows fetch: {}: {e}", dir.display());
-            return EXIT_RUNTIME_ERROR;
-        }
+    if let Some(dir) = dest.parent()
+        && let Err(e) = std::fs::create_dir_all(dir)
+    {
+        eprintln!("podvm windows fetch: {}: {e}", dir.display());
+        return EXIT_RUNTIME_ERROR;
     }
     let fsize = match plan::ceiling() {
         Ok(c) => c,

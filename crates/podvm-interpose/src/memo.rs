@@ -65,7 +65,7 @@ pub const SET_GID: u32 = 2;
 /// refusal, never a stale answer (T-0710 check G).
 const SCAN_CEILING: usize = 4 * 1024 * 1024;
 
-extern "C" {
+unsafe extern "C" {
     fn write(fd: c_int, buf: *const c_void, count: usize) -> isize;
     fn read(fd: c_int, buf: *mut c_void, count: usize) -> isize;
     fn lseek(fd: c_int, offset: i64, whence: c_int) -> i64;
@@ -329,9 +329,11 @@ mod tests {
         f.write_all(&record(7, 9, 0, 42)).unwrap();
         f.set_len((131208 * RECORD) as u64).unwrap();
         let fd = f.as_raw_fd();
-        std::env::set_var("PODVM_MEMO_FD", fd.to_string());
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_MEMO_FD", fd.to_string()) };
         let got = lookup(7, 9);
-        std::env::remove_var("PODVM_MEMO_FD");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_MEMO_FD") };
         drop(f);
         assert_eq!(got, Lookup::BeyondCeiling);
         let _ = std::fs::remove_file(&path);
@@ -347,9 +349,11 @@ mod tests {
         g.write_all(&record(7, 9, 0, 42)).unwrap();
         g.write_all(&record(7, 9, 0, 43)).unwrap();
         let fd = g.as_raw_fd();
-        std::env::set_var("PODVM_MEMO_FD", fd.to_string());
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_MEMO_FD", fd.to_string()) };
         let got = lookup(7, 9);
-        std::env::remove_var("PODVM_MEMO_FD");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_MEMO_FD") };
         drop(g);
         assert_eq!(
             got,

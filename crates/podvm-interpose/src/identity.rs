@@ -245,7 +245,7 @@ pub unsafe fn groups(out: *mut c_uint, len: c_int) -> c_int {
     have as c_int
 }
 
-extern "C" {
+unsafe extern "C" {
     fn __errno_location() -> *mut c_int;
 }
 
@@ -315,15 +315,20 @@ mod tests {
     /// the other.
     #[test]
     fn the_gate_follows_the_variable_and_nothing_else() {
-        std::env::remove_var("PODVM_IDENTITY");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_IDENTITY") };
         assert!(!enabled(), "clause A/C0: no variable must mean honest");
-        std::env::set_var("PODVM_IDENTITY", "1000:100");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_IDENTITY", "1000:100") };
         assert!(enabled(), "clause B: a fake identity must switch the gate");
-        std::env::set_var("PODVM_IDENTITY", "1000");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_IDENTITY", "1000") };
         assert!(enabled(), "clause B: a bare uid is a fake identity too");
-        std::env::set_var("PODVM_IDENTITY", "bogus");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::set_var("PODVM_IDENTITY", "bogus") };
         assert!(!enabled(), "garbage must not switch the gate");
-        std::env::remove_var("PODVM_IDENTITY");
+        // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+        unsafe { std::env::remove_var("PODVM_IDENTITY") };
         assert!(!enabled());
     }
 }

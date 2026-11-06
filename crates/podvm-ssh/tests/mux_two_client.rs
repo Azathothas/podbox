@@ -732,17 +732,17 @@ fn serve(
         // A sessionless socket in Lonely mode ends after its grace: the
         // `--once` exit-1 path needs a clean end with zero sessions, and
         // no live relay idles a socket that never serves.
-        if mode == Mode::Lonely {
-            if let Some(since) = node_since {
-                if node.is_some() && since.elapsed() > Duration::from_secs(1) {
-                    if let Some(n) = node.as_mut() {
-                        let _ = n.send_text(br#"{"type":"bye"}"#);
-                        let _ = n.send_close(1000, b"no sessions");
-                    }
-                    node = None;
-                    node_since = None;
-                }
+        if mode == Mode::Lonely
+            && let Some(since) = node_since
+            && node.is_some()
+            && since.elapsed() > Duration::from_secs(1)
+        {
+            if let Some(n) = node.as_mut() {
+                let _ = n.send_text(br#"{"type":"bye"}"#);
+                let _ = n.send_close(1000, b"no sessions");
             }
+            node = None;
+            node_since = None;
         }
     }
 }
@@ -1077,7 +1077,8 @@ fn three_authenticated_ssh_sessions_share_one_node_connection() {
             keys.authorized.display().to_string(),
         ),
     ];
-    std::env::remove_var("PODSSH_SERVER");
+    // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+    unsafe { std::env::remove_var("PODSSH_SERVER") };
     let (node, node_err) = spawn_node(&relay.origin(), name, "node-tok-b", &["--once"], &envs);
     node_err.wait_contains("node", "registered as mux-b", DEADLINE);
     // ⛔ `node_err` moves into the evidence guard: later waits go through

@@ -1225,7 +1225,7 @@ Source:      call C6 of the decisions page of 2026-11-06 (the main session
 Category:    deps
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      partial
 
 Problem:     The toolchain floats on `stable`, so the compiler changes under
              the tree without a commit. Stable moved from 1.98.1 to 1.99.0
@@ -1261,6 +1261,28 @@ Prove:       `cargo fmt --all --check`, `cargo clippy --workspace
              exits 0 with both objects under the ceiling; and
              `rustc --version` in the lane prints the version that
              `rust-toolchain.toml` names.
+
+**Partial, 2026-11-06.** `rust-toolchain.toml` pins `channel = "1.99"`,
+the toolchain of podcrates; `rustc --version` prints 1.99.1. The
+workspace and the interposer set `edition = "2024"` and
+`rust-version = "1.99"`. `cargo fix --edition` and `cargo clippy --fix`
+made the changes, and `rustfmt.toml` keeps the 2021 style, so the record's
+line citations and the one-line rows of the parity table stay. The tests
+that change the environment take an `unsafe` block; podvm-ssh's `detect`
+takes the value as an argument in its test, and podvm-windows forbids
+unsafe code outside its test modules. A rename defect came to light:
+the OEM name of the FAT16 builder was 7 bytes, so 13 tests of
+podvm-windows panicked; it is 8 bytes again. Results in a Linux cloud
+container: `cargo fmt --all --check`, `cargo clippy --workspace
+--all-targets -- -D warnings`, the interposer's clippy, its 50 tests
+with one thread, `scripts/build-interpose.sh` (both objects, 330,288
+bytes under the 500,000 ceiling), the static-pie release `podvm` with no
+`PT_INTERP`, and `./target/release/podvm-gate` each exit 0. The
+interposer's tests fail with parallel threads (2 of 2 runs, also before
+the change), so `gate.yml` runs them with one thread.
+Remaining: `cargo test --workspace` exits 101 on three tests that fail
+before the change too: `detached_start_returns_before_the_payload_ends`
+(T-1604) and the two device tests of T-1686.
 
 ---
 

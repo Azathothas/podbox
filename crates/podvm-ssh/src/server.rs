@@ -134,12 +134,18 @@ pub fn probe_server(command: &str) -> Option<String> {
 /// candidate is probed by starting it, and a server that says why it cannot
 /// run does not win.
 pub fn detect() -> Result<String, Error> {
+    detect_with(std::env::var("PODSSH_SERVER").ok())
+}
+
+/// `detect` with the value of `PODSSH_SERVER` as an argument, so that a test
+/// does not change the environment of the process.
+fn detect_with(named: Option<String>) -> Result<String, Error> {
     // ⛔ The operator's explicit choice always wins. Detection never
     // overrides a named command.
-    if let Ok(s) = std::env::var("PODSSH_SERVER") {
-        if !s.trim().is_empty() {
-            return Ok(s);
-        }
+    if let Some(s) = named
+        && !s.trim().is_empty()
+    {
+        return Ok(s);
     }
     let mut refused: Vec<String> = Vec::new();
     if on_path("sshd") {
@@ -189,10 +195,10 @@ fn on_path(name: &str) -> bool {
 }
 
 fn dropbear_command() -> Option<String> {
-    if let Ok(k) = std::env::var("PODSSH_DROPBEAR_HOSTKEY") {
-        if !k.trim().is_empty() {
-            return Some(format!("dropbear -i -E -s -g -r {}", shell_quote(&k)));
-        }
+    if let Ok(k) = std::env::var("PODSSH_DROPBEAR_HOSTKEY")
+        && !k.trim().is_empty()
+    {
+        return Some(format!("dropbear -i -E -s -g -r {}", shell_quote(&k)));
     }
     for k in [
         "/etc/dropbear/dropbear_ed25519_host_key",
@@ -292,15 +298,15 @@ pub fn write_sshd_config(
 }
 
 fn runtime_dir() -> PathBuf {
-    if let Ok(d) = std::env::var("PODSSH_RUNTIME") {
-        if !d.trim().is_empty() {
-            return PathBuf::from(d);
-        }
+    if let Ok(d) = std::env::var("PODSSH_RUNTIME")
+        && !d.trim().is_empty()
+    {
+        return PathBuf::from(d);
     }
-    if let Ok(d) = std::env::var("XDG_RUNTIME_DIR") {
-        if !d.trim().is_empty() {
-            return PathBuf::from(d).join("podssh");
-        }
+    if let Ok(d) = std::env::var("XDG_RUNTIME_DIR")
+        && !d.trim().is_empty()
+    {
+        return PathBuf::from(d).join("podssh");
     }
     PathBuf::from(format!("/tmp/podvm-ssh-{}", process_uid()))
 }
@@ -344,9 +350,7 @@ mod tests {
 
     #[test]
     fn explicit_server_command_wins_over_detection() {
-        std::env::set_var("PODSSH_SERVER", "cat");
-        let got = detect().unwrap();
-        std::env::remove_var("PODSSH_SERVER");
+        let got = detect_with(Some("cat".to_string())).unwrap();
         assert_eq!(got, "cat");
     }
 

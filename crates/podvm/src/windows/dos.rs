@@ -168,10 +168,10 @@ pub(crate) fn dos_run(
 }
 
 fn kept(plan: &podvm_windows::Plan) {
-    if std::env::var_os("PODVM_WINDOWS_KEEP").is_some() {
-        if let Some(d) = podvm_windows::scratch_of(plan) {
-            eprintln!("podvm windows: kept {} (PODVM_WINDOWS_KEEP)", d.display());
-        }
+    if std::env::var_os("PODVM_WINDOWS_KEEP").is_some()
+        && let Some(d) = podvm_windows::scratch_of(plan)
+    {
+        eprintln!("podvm windows: kept {} (PODVM_WINDOWS_KEEP)", d.display());
     }
 }
 

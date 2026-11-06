@@ -633,10 +633,10 @@ pub fn admit(verb: &str, arg: &str, usage: &str) -> Result<(), i32> {
 /// row is unreachable. A value that starts with `-` must use the `=` form.
 pub fn admit_all(verb: &str, args: &[String], usage: &str) -> Option<i32> {
     for a in args {
-        if a.starts_with('-') {
-            if let Err(c) = admit(verb, a, usage) {
-                return Some(c);
-            }
+        if a.starts_with('-')
+            && let Err(c) = admit(verb, a, usage)
+        {
+            return Some(c);
         }
     }
     None

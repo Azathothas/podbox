@@ -898,12 +898,9 @@ mod tests {
     #[test]
     fn accept_without_key_is_refused() {
         let (a, b) = pair();
-        let server = std::thread::spawn(move || {
-            let e = match Ws::server(b) {
-                Ok(_) => panic!("a keyless upgrade must not succeed"),
-                Err(e) => e,
-            };
-            e
+        let server = std::thread::spawn(move || match Ws::server(b) {
+            Ok(_) => panic!("a keyless upgrade must not succeed"),
+            Err(e) => e,
         });
         let mut a = a;
         use std::io::Write as _;

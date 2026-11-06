@@ -941,10 +941,10 @@ pub fn run_operator(cfg: &OperatorConfig, io: &mut dyn Stream) -> Result<(), Err
                 ),
             ));
         }
-        if let Some(by) = goodbye_by {
-            if Instant::now() >= by {
-                break;
-            }
+        if let Some(by) = goodbye_by
+            && Instant::now() >= by
+        {
+            break;
         }
         match ws.read_frame().map_err(Error::pump)? {
             None => {}

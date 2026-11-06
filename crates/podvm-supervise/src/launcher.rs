@@ -579,21 +579,21 @@ fn serve(listener: &UnixListener, pidfd: i64, child: &podvm_enter::Child) -> i32
         }
         if sfd >= 0 && fds[2].revents & (sys::POLLIN | sys::POLLHUP) != 0 {
             let mut buf = [0u8; 128];
-            if let Ok(n) = sys::read(sfd, &mut buf) {
-                if n >= 4 {
-                    let signo = u32::from_ne_bytes([buf[0], buf[1], buf[2], buf[3]]) as i64;
-                    if signo == sys::SIGINT as i64 || signo == sys::SIGTERM as i64 {
-                        // The `kill`-and-not-`pidfd_send_signal` reasoning in
-                        // `handle` applies unchanged: parent, unreaped.
-                        let _ = sys::kill(child.pid, signo);
-                    }
+            if let Ok(n) = sys::read(sfd, &mut buf)
+                && n >= 4
+            {
+                let signo = u32::from_ne_bytes([buf[0], buf[1], buf[2], buf[3]]) as i64;
+                if signo == sys::SIGINT as i64 || signo == sys::SIGTERM as i64 {
+                    // The `kill`-and-not-`pidfd_send_signal` reasoning in
+                    // `handle` applies unchanged: parent, unreaped.
+                    let _ = sys::kill(child.pid, signo);
                 }
             }
         }
-        if fds[1].revents & (sys::POLLIN | sys::POLLHUP) != 0 {
-            if let Ok((stream, _)) = listener.accept() {
-                handle(stream, child, &mut waiters);
-            }
+        if fds[1].revents & (sys::POLLIN | sys::POLLHUP) != 0
+            && let Ok((stream, _)) = listener.accept()
+        {
+            handle(stream, child, &mut waiters);
         }
         if fds[0].revents & (sys::POLLIN | sys::POLLHUP) != 0 {
             // ⭐ T-0601: the status comes through the pidfd, so it cannot be
