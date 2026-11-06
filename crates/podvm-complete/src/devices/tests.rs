@@ -160,11 +160,21 @@ fn a_symlink_at_a_device_path_is_replaced_and_named() {
         .iter()
         .find(|f| f.entry == "T-0401" && f.path == "dev/null")
         .unwrap();
+    // T-1686: the host decides the path. Where `mknod` is permitted the row
+    // is a real node, else a shim; either row names the link it replaced.
     assert_eq!(f.action, Action::Created, "{f:?}");
-    assert!(f.degraded, "{f:?}");
     assert!(f.detail.contains("symlink"), "{}", f.detail);
     assert!(f.detail.contains("outside"), "{}", f.detail);
-    assert_eq!(std::fs::metadata(format!("{d}/dev/null")).unwrap().len(), 0);
+    let meta = std::fs::symlink_metadata(format!("{d}/dev/null")).unwrap();
+    if f.id == "dev-node" {
+        use std::os::unix::fs::FileTypeExt;
+        assert!(!f.degraded, "{f:?}");
+        assert!(meta.file_type().is_char_device(), "{meta:?}");
+    } else {
+        assert!(f.degraded, "{f:?}");
+        assert!(meta.is_file(), "{meta:?}");
+        assert_eq!(meta.len(), 0);
+    }
     assert_eq!(std::fs::read(format!("{d}/outside")).unwrap(), b"stay");
     let _ = std::fs::remove_dir_all(&d);
 }
@@ -187,12 +197,17 @@ fn a_fifo_at_a_device_path_is_replaced_and_named() {
         .iter()
         .find(|f| f.entry == "T-0401" && f.path == "dev/zero")
         .unwrap();
+    // T-1686: a real node where `mknod` is permitted, else a shim; either
+    // row names the fifo it replaced.
     assert_eq!(f.action, Action::Rewrote, "{f:?}");
     assert!(f.detail.contains("a fifo"), "{}", f.detail);
-    assert_eq!(
-        std::fs::metadata(format!("{d}/dev/zero")).unwrap().len() as usize,
-        FILLED_BYTES
-    );
+    let meta = std::fs::symlink_metadata(format!("{d}/dev/zero")).unwrap();
+    if f.id == "dev-node" {
+        use std::os::unix::fs::FileTypeExt;
+        assert!(meta.file_type().is_char_device(), "{meta:?}");
+    } else {
+        assert_eq!(meta.len() as usize, FILLED_BYTES);
+    }
     let _ = std::fs::remove_dir_all(&d);
 }
 

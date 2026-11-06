@@ -342,7 +342,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1666](probe.md) | P2 | probe | open | A security probe inside the payload, and a compare against a reference report |
 | [T-1667](cli.md) | P2 | cli | open | Doctor and installers: one check per scope capability, verified downloads, a space floor |
 | [T-1668](gate.md) | P2 | gate | open | A findings page for the scope: observed or inferred, with host conditions per row |
-| [T-1669](deps.md) | P1 | deps | partial | Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate |
+| [T-1669](deps.md) | P1 | deps | done | Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate |
 | [T-1670](probe.md) | P1 | probe | open | The first cloud session measures its host and saves the result |
 | [T-1671](packaging.md) | P2 | packaging | open | Release `v0.2.0-beta.1` with `## Breaking` notes, from a dispatched `release.yml` |
 | [T-1672](gate.md) | P2 | gate | blocked | Move the record to the format of `pod-todo`, with a `podvm-todo` wrapper and a todo.toml |
@@ -359,12 +359,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1683](gate.md) | P2 | gate | open | Retire the PowerShell twins of `scripts/common/` and `check-twins.sh` |
 | [T-1684](gate.md) | P2 | gate | open | Fuzz the parsers that read untrusted input, and watch `vendor/` upstream |
 | [T-1685](gate.md) | P2 | gate | open | A maintenance page and a development page in the sibling form |
-| [T-1686](complete.md) | P2 | complete | open | The device tests of a stand-in fail where `mknod` is permitted |
+| [T-1686](complete.md) | P2 | complete | done | The device tests of a stand-in fail where `mknod` is permitted |
 | [T-1687](deps.md) | P2 | deps | partial | Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive |
 
 ## Counts
 
-296 items: 33 open, 12 partial, 6 blocked, 245 done.
+296 items: 32 open, 11 partial, 6 blocked, 247 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -373,10 +373,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 62 | 64 |
-| P1 | 7 | 9 | 0 | 117 | 133 |
-| P2 | 25 | 2 | 6 | 57 | 90 |
+| P1 | 7 | 8 | 0 | 118 | 133 |
+| P2 | 24 | 2 | 6 | 58 | 90 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **33** | **12** | **6** | **245** | **296** |
+| **All** | **32** | **11** | **6** | **247** | **296** |
 
 ## Work order
 

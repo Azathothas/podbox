@@ -1225,7 +1225,7 @@ Source:      call C6 of the decisions page of 2026-11-06 (the main session
 Category:    deps
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     The toolchain floats on `stable`, so the compiler changes under
              the tree without a commit. Stable moved from 1.98.1 to 1.99.0
@@ -1262,6 +1262,10 @@ Prove:       `cargo fmt --all --check`, `cargo clippy --workspace
              `rustc --version` in the lane prints the version that
              `rust-toolchain.toml` names.
 
+**Done 2026-11-06.** `cargo test --workspace` exits 0 in a Linux
+cloud container on the pinned 1.99.1, with no test failing; fmt, clippy,
+both interposer objects and `rustc --version` hold as recorded below.
+
 **Partial, 2026-11-06.** `rust-toolchain.toml` pins `channel = "1.99"`,
 the toolchain of podcrates; `rustc --version` prints 1.99.1. The
 workspace and the interposer set `edition = "2024"` and
@@ -1280,9 +1284,8 @@ bytes under the 500,000 ceiling), the static-pie release `podvm` with no
 `PT_INTERP`, and `./target/release/podvm-gate` each exit 0. The
 interposer's tests fail with parallel threads (2 of 2 runs, also before
 the change), so `gate.yml` runs them with one thread.
-Remaining: `cargo test --workspace` exits 101 on three tests that fail
-before the change too: `detached_start_returns_before_the_payload_ends`
-(T-1604) and the two device tests of T-1686.
+The remaining clause closed on 2026-11-06: the detached start passes
+since `4c2cb91` (T-1604) and the device tests since T-1686.
 
 ---
 

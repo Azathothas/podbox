@@ -168,12 +168,22 @@ fn run(root: &Root) -> Result<Vec<Fixup>> {
         // gets the real thing and this is not a degradation at all.
         match root.mknod_char(path, 0o666, *major, *minor)? {
             Ok(()) => {
-                out.push(
-                    Fixup::new("T-0401", "dev-node", path, Action::Created).why(format!(
-                        "a real character device {major}:{minor}. This machine permits \
-                         mknod(2), so podvm made the node rather than a shim"
-                    )),
+                // T-0415 and T-1686: the row names what the node replaced on
+                // this path too, as the shim's does. A removed symlink leaves
+                // the path empty, so the node is created; anything else at the
+                // path is rewritten.
+                let mut detail = format!(
+                    "a real character device {major}:{minor}. This machine permits \
+                     mknod(2), so podvm made the node rather than a shim"
                 );
+                if let Some(s) = &displaced {
+                    detail.push_str(&format!(". It replaced {s}."));
+                }
+                let action = match (&displaced, &k) {
+                    (Some(_), Kind::Symlink(_)) | (None, _) => Action::Created,
+                    (Some(_), _) => Action::Rewrote,
+                };
+                out.push(Fixup::new("T-0401", "dev-node", path, action).why(detail));
                 continue;
             }
             Err(why) => {

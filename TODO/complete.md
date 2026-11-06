@@ -1453,7 +1453,7 @@ Source:      the first Linux cloud session, 2026-11-06 (`cargo test
 Category:    complete
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `a_symlink_at_a_device_path_is_replaced_and_named` and
              `a_fifo_at_a_device_path_is_replaced_and_named` fail on a host
@@ -1471,3 +1471,13 @@ Decision:    The detail names the replaced object on both paths: the row is
              the only record of a removed symlink or fifo.
 Prove:       `cargo test -p podvm-complete --lib devices` exits 0 as root
              in a cloud container and as a user in CI.
+
+**Done 2026-11-06.** On the `mknod` path, the row of a real node now
+names what it replaced (`It replaced a fifo.`, `It replaced a symlink to
+...`), as the shim's row does, and its action is `Rewrote` where
+something other than a removed symlink stood at the path. The two tests
+read which path the host took (`dev-node` or `dev-shim`) and assert that
+path: a character device, or the shim with its length.
+`cargo test -p podvm-complete --lib devices` passes 11 of 11 as uid 0,
+which permits `mknod`, and 11 of 11 as uid 65534 under `setpriv`, which
+does not; the library passes 53 of 53.
