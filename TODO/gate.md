@@ -2716,7 +2716,7 @@ removed. That is recorded on T-0204 itself, where the work now lives.
    it proves**, which the reopen had to record: `podvm image prune` names
    its two refusals from two sources. `is in use by a running container`
    comes from `Store::delete`
-   (`crates/podvm-image/src/store.rs:830`), the `flock(2)` hold check;
+   (`crates/podvm-image/src/store/records.rs:275`), the `flock(2)` hold check;
    `is referenced by container <names>` comes from
    `podvm_supervise::referencing` (`crates/podvm/src/images.rs:948`),
    the container-record table. The `Prove` greps for the second, so it
@@ -3434,7 +3434,7 @@ Prove:       `grep -n "check-todo.py" TODO/gate.md` names the Python
 commit `996cb98` deleted the file, while the tracked replacement landed in
 the same commit at `gate.yml:61-62`. The `Decision` is recorded as
 satisfied by a plant other than the plan expected: the anchor at
-`crates/podvm-image/src/store.rs:1083` is still current and the plant
+`crates/podvm-image/src/store/files.rs:185` is still current and the plant
 landed as `podvm-prove-t0211`, whose binary carries it as
 `FORK_PATTERN` and tests the match at `prove_t0211.rs:604`, leaving
 `experiments/157-lock-inheritance-prove.sh` a 28-line exec shim. The
@@ -3460,7 +3460,7 @@ plan's clause at `refactor/06-entries/PLAN.md:140` is that "a plant
 encoding the current source must land first, or wave 1's plant passes
 vacuously", and its subject is `157`: the sed the plan quotes sits at
 `PLAN.md:140` and was to be re-anchored to
-`crates/podvm-image/src/store.rs:1083`. Two facts close it:
+`crates/podvm-image/src/store/files.rs:185`. Two facts close it:
 
 1. The anchor the plan names is still current. `store.rs:1083` reads
    `if !sys::close_in_children(fd) {` on this tree, inside
@@ -3953,7 +3953,7 @@ Prove:       `sh scripts/common/check-docs.sh` and each other `.sh` check of
 
 Source:      the migration of 2026-11-06; `crates/podvm-image/src/oci.rs:170`;
              `crates/podvm-extract/src/apply.rs:77`;
-             `crates/podvm-image/src/registry.rs:914`;
+             `crates/podvm-image/src/registry/wire.rs:159`;
              `crates/podvm-enter/src/abi.rs:156`;
              `vendor/userland-execve/Cargo.toml:3`
 Category:    gate

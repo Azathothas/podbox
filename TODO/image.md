@@ -336,7 +336,7 @@ directions, two owners.
 ⛔ **The clause does not yet read the mechanism it proves, and that has to be
 fixed before it can close.** `podvm image prune` names its two refusals from
 two different sources. The line `is in use by a running container` comes from
-`Store::delete` (`crates/podvm-image/src/store.rs:830`), which is the
+`Store::delete` (`crates/podvm-image/src/store/records.rs:275`), which is the
 `flock(2)` hold check, and the line `is referenced by container <names>` comes
 from `podvm_supervise::referencing` (`crates/podvm/src/images.rs:948`),
 which is the container-record table. This `Prove` greps for
@@ -1100,7 +1100,7 @@ Premise:     ⭐ **Measured on 2026-09-08, twice: once by accident and once on
 
              It first appeared as an intermittent failure of
              `store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune`
-             at `crates/podvm-image/src/store.rs:792`, the assertion
+             at `crates/podvm-image/src/store/records.rs:237`, the assertion
              `!s.in_use(&r).unwrap()` immediately after `drop(held)`. It did not
              reproduce in eleven consecutive runs of that test alone or of the
              whole `podvm-image` suite, and it reproduces in the **full
@@ -1218,7 +1218,7 @@ oracles, which assert `in_use` after `drop(held)`. Remainder: retarget clause
 2 `must_red` to `the_seventeenth_concurrent_registration_is_refused_by_name`,
 which the quota arm still reddens; give clause 3 a pre-drop or fd-presence
 oracle; correct the independence claim at
-`crates/podvm-image/src/store/tests.rs:863-865`.
+`crates/podvm-image/src/store/tests/locks.rs:106-108`.
 
 ### T-0212 The platform is decided at run time, and the store holds more than one
 
@@ -1802,7 +1802,7 @@ and the failure was only ever in the safe direction by luck.
 
 ### T-1310 The store suite exhausts the sixteen fork-shed slots, and the victim varies
 
-Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podvm-image/src/store.rs:1003`; `crates/podvm-probe/src/sys/raw.rs:190`
+Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podvm-image/src/store/files.rs:105`; `crates/podvm-probe/src/sys/raw.rs:190`
 Category:    image
 Priority:    P1
 Effort:      S
@@ -1816,7 +1816,7 @@ Problem:     Full parallel runs of the `podvm-image` suite intermittently refuse
              process-wide and fixed at `FORK_CLOSE_SLOTS`
              (`crates/podvm-probe/src/sys/raw.rs:190`), and every
              `Lock::try_acquire` takes one slot
-             (`crates/podvm-image/src/store.rs:1003-1021`). Libtest runs the
+             (`crates/podvm-image/src/store/files.rs:105-123`). Libtest runs the
              suite in threads of one process, and each `two_*` test holds two or
              more locks at once, so parallel neighbours exhaust the pool and the
              test that asks last is refused.
@@ -1829,9 +1829,9 @@ Premise:     ⭐ **The figures above are inherited, not measured here.** They co
              ⭐ **What was checked here, at file and line.**
              `FORK_CLOSE_SLOTS` is 16
              (`crates/podvm-probe/src/sys/raw.rs:190`). Every lock registers
-             (`crates/podvm-image/src/store.rs:1003-1021`), including staging
+             (`crates/podvm-image/src/store/files.rs:105-123`), including staging
              locks: a `StagedFile` holds one for its life
-             (`crates/podvm-image/src/store.rs:867-871`). So do transient sweep
+             (`crates/podvm-image/src/store/records.rs:312-316`). So do transient sweep
              and `in_use` probes. Every store test reaches `Store::open` through
              `scratch` or directly. A production process holds at most three at
              once by inspection: one image lock plus transient index or staging
@@ -2041,7 +2041,7 @@ under a hash that matches, from a registry or a tarball alike.
 ### T-1321 A store-health verb and a pull-provenance record
 
 Source:      issue 15, client beta testing 2026-09-22 (no `verify`, no
-             provenance); `crates/podvm-image/src/store.rs:430`
+             provenance); `crates/podvm-image/src/store/blobs.rs:48`
              (`read_blob` re-verifies on read; nothing sweeps);
              `experiments/210-store-concurrency.sh` (`verify()` shell
              loop, the starting shape)
@@ -2383,7 +2383,7 @@ re-fetch. This extends T-1321.
 
 ### T-1420 Transport errors name the host once
 
-Source:      issue 85; `crates/podvm-image/src/registry.rs:808`;
+Source:      issue 85; `crates/podvm-image/src/registry/wire.rs:53`;
              `crates/podvm-image/src/error.rs:104`; [T-0805](cli.md)
 Category:    image
 Priority:    P2

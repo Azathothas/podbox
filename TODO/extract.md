@@ -430,7 +430,7 @@ is asserted directly there.
 Source:      issue 10, client beta testing 2026-09-22 (tampered store blob
              extracts cleanly); `crates/podvm-extract/src/layer.rs:50`,
              `crates/podvm-extract/src/layer.rs:105`,
-             `crates/podvm-image/src/store.rs:430`
+             `crates/podvm-image/src/store/blobs.rs:48`
 Category:    extract
 Priority:    P1
 Effort:      S
