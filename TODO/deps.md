@@ -1553,3 +1553,55 @@ Prove:       `./target/release/podvm-gate` exits 0 with each of the seven
 crates (podcrates T-055 to T-061). Clears when: podcrates names, in
 issue 194, the import commit of a crate; the entry then proceeds crate
 by crate.
+
+---
+
+### T-1687 Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive
+
+Source:      PodUtils podcrates issue 6 (COORD-004 of podcrates);
+             `crates/podvm-measure/src/workload.rs:37-42`;
+             `experiments/146-podvm-initramfs.sh:54-55`;
+             `experiments/147-podvm-exec.sh:52-53`;
+             `experiments/360-perf-harness.sh:49-50`;
+             `experiments/361-guest-usernet.sh:45-48`;
+             `experiments/390-machine-ssh.sh:50-51`
+Category:    deps
+Priority:    P2
+Effort:      S
+Status:      partial
+
+Problem:     podvm pins `vmlinuz-virt` and `modloop-virt` of Alpine v3.22 by
+             SHA-256 and fetches them from `netboot/`. That directory follows
+             each point release and serves 3.22.8 now, so the sum check
+             fails on each fresh download.
+Premise:     The pinned sums are the files of 3.22.6. Measured 2026-11-06:
+             `alpine-netboot-3.22.6-x86_64.tar.gz` of
+             `https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/`
+             is 301,555,932 bytes with SHA-256 `74ff3dd7ed96186b5fd4d728dd63ce5947578b40cf48ef792b8420e2463dc267`,
+             and its `boot/vmlinuz-virt` and `boot/modloop-virt` have the two
+             pinned sums.
+Approach:    Fetch the archive, check its SHA-256, extract the two files
+             with `tar`, and check their sums as now. Keep one cached copy
+             of the archive in the scratch directory of the run. Change the
+             five experiments and `podvm-measure` the same way.
+Decision:    Way 1 of podcrates issue 6: the pinned files stay, and a point
+             release does not move them. The values that moved to
+             `pod-services` are frozen lines; the change goes to podcrates
+             as a COORD issue `(to podcrates)`.
+Prove:       `cargo test -p podvm-measure` exits 0, and the fetch step of
+             `podvm-workload` reports the two pinned sums from a fresh
+             download.
+
+**Partial, 2026-11-06.** `experiments/lib/alpine-netboot.sh` downloads
+the 3.22.6 archive once, checks its SHA-256 and copies one member out;
+experiments 146, 147, 360, 361 and 390 call it in place of `curl` of
+`netboot/`, and each still checks the sum of the file. `podvm-measure`
+fetches the archive and extracts `boot/vmlinuz-virt` with `tar`; its
+default download timeout is 600 s. The helper gave the two pinned sums
+(`6b58e5d7...` and `9a5252fa...`) from the archive downloaded on
+2026-11-06. `cargo test -p podvm-measure` and its clippy exit 0, and
+each changed script parses with `sh -n`.
+COORD-006 (issue 200) writes the fix of the frozen lines to podcrates.
+Remaining: a run of `podvm-workload` whose fetch step reports the pinned
+kernel sum.
+

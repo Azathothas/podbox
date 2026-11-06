@@ -360,10 +360,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1684](gate.md) | P2 | gate | open | Fuzz the parsers that read untrusted input, and watch `vendor/` upstream |
 | [T-1685](gate.md) | P2 | gate | open | A maintenance page and a development page in the sibling form |
 | [T-1686](complete.md) | P2 | complete | open | The device tests of a stand-in fail where `mknod` is permitted |
+| [T-1687](deps.md) | P2 | deps | partial | Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive |
 
 ## Counts
 
-295 items: 34 open, 10 partial, 8 blocked, 243 done.
+296 items: 34 open, 11 partial, 8 blocked, 243 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -373,9 +374,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 62 | 64 |
 | P1 | 8 | 9 | 0 | 116 | 133 |
-| P2 | 25 | 0 | 8 | 56 | 89 |
+| P2 | 25 | 1 | 8 | 56 | 90 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **34** | **10** | **8** | **243** | **295** |
+| **All** | **34** | **11** | **8** | **243** | **296** |
 
 ## Work order
 

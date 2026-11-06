@@ -34,8 +34,11 @@ use std::time::Duration;
 
 // Every input pinned, as in the script's 146 shape.
 const ALPINE_REF: &str = "public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764";
-const KURL: &str =
-    "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt";
+// The netboot archive of 3.22.6, not `netboot/vmlinuz-virt`: that directory
+// follows each point release, and the pinned kernel is the one of 3.22.6
+// (T-1687, PodUtils/podcrates#6).
+const KURL: &str = "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-netboot-3.22.6-x86_64.tar.gz";
+const KARCHIVE_MEMBER: &str = "boot/vmlinuz-virt";
 const KERNEL_SHA256: &str = "6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51";
 const QEMU_FLAGS: &str = "-M pc,acpi=off -m 256 -nographic -no-reboot -accel tcg,thread=multi";
 const BENCH_CFLAGS: &str = "-O2 -static";
@@ -309,10 +312,12 @@ fn drive(root: &Path, bin_flag: Option<String>) -> i32 {
         fails: 0,
         failed: false,
     };
+    // The netboot archive is about 300 MB (T-1687), so the default allows
+    // ten minutes.
     let curl_timeout: u64 = std::env::var("PODVM_154_CURL_TIMEOUT")
         .ok()
         .and_then(|text| text.parse().ok())
-        .unwrap_or(60);
+        .unwrap_or(600);
     let boot_timeout: u64 = std::env::var("PODVM_154_TIMEOUT")
         .ok()
         .and_then(|text| text.parse().ok())
@@ -687,6 +692,7 @@ fn drive_inner(
     }
     if !report.failed {
         let kernel = scratch.join("vmlinuz-virt");
+        let archive = scratch.join("alpine-netboot.tar.gz");
         match run_capture(
             "curl",
             &[
@@ -694,7 +700,7 @@ fn drive_inner(
                 "--max-time",
                 &curl_timeout.to_string(),
                 "-o",
-                &kernel.to_string_lossy(),
+                &archive.to_string_lossy(),
                 KURL,
             ],
             root,
@@ -705,6 +711,29 @@ fn drive_inner(
             _ => {
                 report.miss("the kernel did not fetch");
             }
+        }
+        if !report.failed {
+            let scratch_dir = scratch.to_string_lossy().into_owned();
+            match run_capture(
+                "tar",
+                &[
+                    "-xzf",
+                    &archive.to_string_lossy(),
+                    "-C",
+                    &scratch_dir,
+                    KARCHIVE_MEMBER,
+                ],
+                root,
+                &[],
+                120,
+            ) {
+                Some((true, _, _))
+                    if fs::rename(scratch.join(KARCHIVE_MEMBER), &kernel).is_ok() => {}
+                _ => {
+                    report.miss("the kernel did not extract from the netboot archive");
+                }
+            }
+            let _ = fs::remove_file(&archive);
         }
         if !report.failed {
             match run_capture("sha256sum", &[&kernel.to_string_lossy()], root, &[], 60) {

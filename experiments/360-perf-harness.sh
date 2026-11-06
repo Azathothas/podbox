@@ -46,7 +46,7 @@ rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 # ratios); the kernel is 154's pin beside its sha256.
 DEBIAN='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
 ALPINE='public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764'
-KURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt"
+KURL="alpine-netboot-3.22.6-x86_64.tar.gz:boot/vmlinuz-virt"
 KERNEL_SHA256="6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51"
 QEMU_TCG="-M pc,acpi=off -m 256 -nographic -no-reboot -accel tcg,thread=multi"
 QEMU_KVM="-M pc,acpi=off -m 256 -nographic -no-reboot -accel kvm"
@@ -308,7 +308,9 @@ else
 			row "guest.$ACCEL_NAME.cmd" "$ACCEL_NAME" "-" "s wall" "could-not-run"
 			echo "  note: no extracted rootfs: guest metrics could not run" >>"$WORK/report"
 		else
-			if ! curl -fsSL --max-time 60 -o "$WORK/vmlinuz-virt" "$KURL" >>"$WORK/report" 2>&1; then
+			# shellcheck source=lib/alpine-netboot.sh
+			. "$REPO/experiments/lib/alpine-netboot.sh"
+			if ! alpine_netboot_fetch vmlinuz-virt "$WORK/vmlinuz-virt" 60 >>"$WORK/report" 2>&1; then
 				row "guest.$ACCEL_NAME.boot" "$ACCEL_NAME" "-" "s wall" "could-not-run"
 				row "guest.$ACCEL_NAME.cmd" "$ACCEL_NAME" "-" "s wall" "could-not-run"
 				echo "  note: the kernel did not fetch: guest metrics could not run" >>"$WORK/report"

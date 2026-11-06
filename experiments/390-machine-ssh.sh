@@ -47,7 +47,7 @@ DBSRC="$work/dropbear-src"
 
 # ⭐ Every input pinned, as in 146/147.
 ALPINE_REF='public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764'
-KURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt"
+KURL="alpine-netboot-3.22.6-x86_64.tar.gz:boot/vmlinuz-virt"
 KERNEL_SHA256="6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51"
 DROPBEAR_COMMIT="59870ad43153fe8d4f1c96f5d5752116c94f31ff"
 DROPBEAR_ORIGIN="https://github.com/mkj/dropbear"
@@ -74,6 +74,8 @@ done
 
 # shellcheck source=lib/podvm-guest.sh
 . "$LIB"
+# shellcheck source=lib/alpine-netboot.sh
+. "$PWD/experiments/lib/alpine-netboot.sh"
 
 say "== 1. the lane-built binaries and the help paths"
 if timeout 25m cargo build -p podvm -p podvm-ssh --bins >>"$OUT" 2>&1; then
@@ -318,7 +320,7 @@ PYEOF
   fi
 fi
 if [ "$fail" -eq 0 ]; then
-  if curl -fsSL --max-time "$CURL_TIMEOUT" -o "$work/vmlinuz-virt" "$KURL" \
+  if alpine_netboot_fetch vmlinuz-virt "$work/vmlinuz-virt" "$CURL_TIMEOUT" \
       && printf '%s  %s\n' "$KERNEL_SHA256" "$work/vmlinuz-virt" | sha256sum -c - >>"$OUT" 2>&1; then
     ok "kernel matches the pin"
   else

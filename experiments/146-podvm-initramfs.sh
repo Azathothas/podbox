@@ -47,11 +47,13 @@ export PODVM_STORE="$STORE"
 
 # shellcheck source=lib/podvm-guest.sh
 . "$HERE/lib/podvm-guest.sh"
+# shellcheck source=lib/alpine-netboot.sh
+. "$HERE/lib/alpine-netboot.sh"
 
 # ⭐ Every input pinned. A registry that moves a tag is a different
 # measurement wearing the same name.
 ALPINE_REF='public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764'
-KURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt"
+KURL="alpine-netboot-3.22.6-x86_64.tar.gz:boot/vmlinuz-virt"
 KERNEL_SHA256="6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51"
 BOOT_TIMEOUT="${PODVM_146_TIMEOUT:-180}"
 CURL_TIMEOUT="${PODVM_146_CURL_TIMEOUT:-60}"
@@ -156,7 +158,7 @@ fi
 if [ "$fail" -eq 0 ]; then
 say ""
 say "== 5. boot under TCG to the marker"
-if ! curl -fsSL --max-time "$CURL_TIMEOUT" -o "$WORK/vmlinuz-virt" "$KURL"; then
+if ! alpine_netboot_fetch vmlinuz-virt "$WORK/vmlinuz-virt" "$CURL_TIMEOUT"; then
 	miss "the kernel did not fetch"
 else
 	printf '%s  %s\n' "$KERNEL_SHA256" "$WORK/vmlinuz-virt" | sha256sum -c - >>"$WORK/report" 2>&1 || {

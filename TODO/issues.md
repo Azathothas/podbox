@@ -93,3 +93,5 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #196 | COORD-003: podvm's inventory of the hosts and services of other parties, for pod-services (to podcrates) | open | T-1679 |
 | #197 | COORD-004: answers to Q2 and Q3 of the M6 import plan, and the pod-term take (to podcrates) | open | T-1675, T-1681 |
 | #198 | COORD-005: GitHub Actions of podcrates: the owner's account dispatches ci.yml and release.yml (to podcrates) | open | none: coordination; the ruling is in docs/decisions.md |
+| #199 | [gh action] requested | open | none: a request of a workflow run (AGENTS.md, section 9) |
+| #200 | COORD-006: the Alpine netboot pins: podvm fetches the 3.22.6 archive (to podcrates) | open | T-1687 |

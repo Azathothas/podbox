@@ -40,11 +40,13 @@ export PODVM_STORE="$STORE"
 
 # shellcheck source=lib/podvm-guest.sh
 . "$HERE/lib/podvm-guest.sh"
+# shellcheck source=lib/alpine-netboot.sh
+. "$HERE/lib/alpine-netboot.sh"
 
 ALPINE_REF='public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764'
-KURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt"
+KURL="alpine-netboot-3.22.6-x86_64.tar.gz:boot/vmlinuz-virt"
 KERNEL_SHA256="6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51"
-MURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/modloop-virt"
+MURL="alpine-netboot-3.22.6-x86_64.tar.gz:boot/modloop-virt"
 MODLOOP_SHA256="9a5252fa3e49f908fa7bc796a38b7ce57c9a930c91670324278a352effa5c30f"
 BOOT_TIMEOUT="${PODVM_361_TIMEOUT:-240}"
 CURL_TIMEOUT="${PODVM_361_CURL_TIMEOUT:-60}"
@@ -124,7 +126,7 @@ fi
 if [ "$fail" -eq 0 ]; then
 say ""
 say "== 3. the kernel and the modloop fetch against their pins"
-if ! curl -fsSL --max-time "$CURL_TIMEOUT" -o "$WORK/vmlinuz-virt" "$KURL"; then
+if ! alpine_netboot_fetch vmlinuz-virt "$WORK/vmlinuz-virt" "$CURL_TIMEOUT"; then
 	miss "the kernel did not fetch"
 else
 	printf '%s  %s\n' "$KERNEL_SHA256" "$WORK/vmlinuz-virt" | sha256sum -c - >>"$WORK/report" 2>&1 || {
@@ -135,7 +137,7 @@ fi
 # image: virtio_pci binds (seen on the console) but no interface
 # appears, because virtio_net is a module. The pin below was measured
 # on the lane the way the kernel pin was, not inherited.
-if ! curl -fsSL --max-time "$CURL_TIMEOUT" -o "$WORK/modloop-virt" "$MURL"; then
+if ! alpine_netboot_fetch modloop-virt "$WORK/modloop-virt" "$CURL_TIMEOUT"; then
 	miss "the modloop did not fetch"
 else
 	printf '%s  %s\n' "$MODLOOP_SHA256" "$WORK/modloop-virt" | sha256sum -c - >>"$WORK/report" 2>&1 || {
