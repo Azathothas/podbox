@@ -1837,7 +1837,7 @@ Premise:     ⭐ **The figures above are inherited, not measured here.** They co
              once by inspection: one image lock plus transient index or staging
              locks. The spawn path is asserted single-threaded
              (`nothing_on_the_spawn_path_can_spawn_a_thread`,
-             `crates/podvm-supervise/src/launcher.rs:565`). `pull` resolves the
+             `crates/podvm-supervise/src/launcher.rs:257`). `pull` resolves the
              probe before it stages anything
              (`crates/podvm-image/src/pull.rs:93`, and [T-0211](image.md)'s
              premise). So no production shape on record reaches sixteen. Only
@@ -2538,7 +2538,7 @@ Prove:       `grep -n "whiteout" TODO/image.md` names the fixture the
 pinned `alpine` layer, pulled with `docker pull` and unpacked from
 `docker save` at `:61-67`, with the saved reading naming `etc/shadow` as
 uid 0 and gid 42. It records that no Rust test reads such a layer:
-`crates/podvm-extract/src/drive.rs:452` and `:480` both build their tar
+`crates/podvm-extract/src/drive/records.rs:34` and `:62` both build their tar
 in memory. The `Premise` that the crate asserts the opposite outcome is
 refuted by the current source, and the record stands on that correction:
 both tests agree with the contract, and what is missing is the real
@@ -2563,7 +2563,7 @@ save` output at `:61-67`, reads one layer path per line out of
 is uid 0 gid 42, the section 9.1 wall`.
 
 No Rust test reads a real pinned layer. The tests that cover the wall
-build their tar in memory: `crates/podvm-extract/src/drive.rs:452`
+build their tar in memory: `crates/podvm-extract/src/drive/records.rs:34`
 `the_shadow_file_extracts_and_its_dropped_gid_is_recorded` calls
 `layer(&[E::Dir("etc/", 0o755), E::Owned("etc/shadow", b"root:!::\n", 0,
 42)])`, and `run` at `:131` writes that crafted layer into the store
