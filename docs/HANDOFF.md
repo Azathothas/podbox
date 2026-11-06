@@ -1,7 +1,7 @@
 # Handoff
 
-The state at the end of the session of 2026-11-06: the move from podbox
-to podvm, and from one Windows checkout to cloud sessions. Read this file
+The state at the end of the first cloud session of 2026-11-06, after the
+move from podbox to podvm and from one Windows checkout to cloud sessions. Read this file
 first, then `AGENTS.md`, `TODO/PROGRESS.md` and `docs/decisions.md`.
 Remove this file when each step below is done.
 
@@ -27,39 +27,29 @@ Remove this file when each step below is done.
 
 ## Next steps, in order
 
-1. The first cloud session: run `sh scripts/cloud-setup.sh`, measure the
-   host, and save the result (the entry for the first cloud session in
-   `TODO/PROGRESS.md`).
-2. Move the toolchain to the pinned stable Rust and edition 2024 before
-   the first `pod-*` crate (`docs/decisions.md`, call C6).
-3. Watch PodUtils/podcrates#1 (the names that podvm asked for) and
-   COORD-001 (#194). Take each `pod-*` crate on the day of its release:
-   `adoption/podvm/CRATE.patch` and `.run` at the tag (`AGENTS.md`,
-   section 9). Until podcrates imports a podvm file, change it for fixes
-   only.
-4. podcrates asked for podvm's inventory of the hosts of other parties
-   (PodUtils/podcrates#3, T-054 there); COORD-003 answers it. Watch for the
-   import of the seven hand-over crates (wave M6 of podcrates): from the
-   import, their files here take fixes only.
-5. podcrates COORD-003 (PodUtils/podcrates#4): take `pod-term` now with
-   `adoption/podvm/pod-term.patch` and `.run` at podcrates `784469a`,
-   pinned to `tag = "v0.3.0"` (v0.4.0 does not exist yet). The patch raises
-   `rust-version` to 1.99 (T-1669) and fixes three clippy findings; run the
-   Linux tests in CI, then write the commit as a COORD issue
-   `(to podcrates)` (T-1675). The synchronous faces of `pod-tls` and
-   `pod-proxy` (feature `blocking`) are on podcrates `main` (v0.5.0).
-   podvm answered its questions Q2 and Q3 of the M6 import plan in
-   COORD-004.
-6. COORD-005 (#198): GitHub Actions is disabled for the account that the
-   podcrates session pushes with. Until the owner resolves it, dispatch
-   podcrates' `ci.yml` and `release.yml` from the owner's account when
-   podcrates asks; podcrates must first say which version and head to
-   release (a tag cannot be moved).
-7. T-1674 (P1, the owner's ruling): split every `.rs` file to 500 lines,
+1. The first cloud session ran on 2026-11-06: `sh scripts/cloud-setup.sh`
+   exits 0 (zig 0.16.0, Rust 1.99.1, openssh-server). The host is uid 0
+   with no `/dev/kvm`; it permits chroot and `mknod`. Saving the host
+   measurement is T-1670.
+2. T-1669 is `partial`: the pin `1.99` and edition 2024 are on `main`
+   (`75ed306`, `5085c14`); `cargo test --workspace` still fails on the
+   two device tests of T-1686 where `mknod` is permitted.
+3. T-1675 is done: podvm took `pod-term` at `tag = "v0.3.0"` (`75ed306`,
+   COORD-004, #197). Change the tag to `v0.4.0` when podcrates publishes
+   it. The next hand-offs of podcrates are the trials of `pod-tls` with
+   no tokio and `pod-proxy` with the feature `blocking` (T-1676, T-1677).
+4. T-1604: `4c2cb91` makes `run` check the presence of the blobs, not
+   their hash, before each start. #201 asks for the CI run that proves it.
+5. T-1687 is `partial` (COORD-006, #200, to podcrates): the Alpine
+   netboot files come from the 3.22.6 archive; a run of
+   `podvm-workload` remains.
+6. Watch PodUtils/podcrates#1 and COORD-001 (#194), and the import of
+   the seven hand-over crates (wave M6): from the import, their files
+   here take fixes only.
+7. COORD-005 (#198): dispatch podcrates' `ci.yml` and `release.yml` from
+   the owner's account when podcrates asks.
+8. T-1674 (P1, the owner's ruling): split every `.rs` file to 500 lines,
    the crates of wave M6 first, before other work.
-8. T-1604: `detached_start_returns_before_the_payload_ends` fails in CI
-   (`run -d` takes 5 s to detach). It was red on `main` before the
-   migration; it keeps the job "workspace and interposer tests" red.
 9. The work order of `TODO/PROGRESS.md`: the errand-host cluster
    (T-1643 to T-1653) first, then the scope entries.
 
