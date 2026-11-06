@@ -1206,3 +1206,77 @@ a line range. That path was never on disk.
 `crates/podvm-probe/src/nongoals.rs`, and the six row names they
 assert are hard-coded at `experiments/149-podvm-non-goals.sh:95-100`.
 
+
+---
+
+### T-1656 MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG
+
+Source:      issue 168; #193; the owner's ruling of 2026-11-06
+Category:    machine
+Priority:    P2
+Effort:      XL
+Status:      open
+
+Problem:     The owner's scope says podvm will "quickly create full on
+             microvms". `podvm run --podvm-tier=machine` probes the tier and
+             then refuses: running a guest from `run` is not wired. sand-net
+             booted a QEMU `microvm` machine from an OCI image and returned
+             the exit status of one command.
+Premise:     `enter_machine` (`crates/podvm/src/tier.rs:105`) assesses the
+             machine profile and exits 125 with "running a guest arrives
+             with TODO/machine.md T-1303 and T-1304" (`tier.rs:138-141`).
+             T-1303 builds the initramfs from an extracted rootfs with an
+             appended console archive, and T-1304 is the serial exec
+             protocol with a nonce; both closed on experiments, not on the
+             `run` path. The TCG cost is 3x to 21x (T-1308). User-mode
+             networking already carried a guest in
+             `experiments/361-guest-usernet.sh:299`. The issue names the
+             podcrates crate `pod-microvm` (podcrates wave M7, PodUtils
+             podcrates issue 3).
+Approach:    Wire `run --podvm-tier=machine` to boot a guest. Cache the base
+             archive by image digest and append only the per-run archive
+             (`/init`, the project, `resolv.conf`). Pin a small virtio-mmio
+             kernel by digest. Count boots for each machine flag set and
+             record which flags boot reliably. Give the guest QEMU
+             user-mode networking. Return the exit status through the
+             T-1304 markers. Carry `/workspace` back through 9p
+             (`-virtfs local`) or a userland block image, else say it is a
+             copy. Separate stdout and stderr on a second serial or
+             virtio-console port. Measure cold and warm time to the ready
+             marker under KVM and under TCG. Build on `pod-microvm` once
+             podcrates releases it, and do not wait for it.
+Decision:    The banner names the boundary: the emulator process under TCG,
+             never hardware. One boot proves nothing about the next: the
+             acceptance counts twenty. vsock needs `/dev/vhost-vsock`, so
+             the second channel is a serial or virtio-console port. A
+             guest run on this host stays under the KVM deferral of
+             `TODO/RULES.md` section 11; the TCG leg and a hosted KVM runner
+             carry the proof.
+Prove:       `cargo test -p podvm` exits 0 with tests for the archive cache
+             key and the exit marker parse.
+             `sh experiments/412-microvm-boot.sh` exits 0 on a TCG host:
+             `podvm run --podvm-tier=machine IMAGE sh -c 'uname -r; exit 7'`
+             prints the guest kernel and exits 7, twenty boots in a row
+             reach the command, a second run reuses the base archive, the
+             guest fetches a URL through the host's loopback proxy, and a
+             file written to `/workspace` is on the host or the run says it
+             is a copy.
+
+**Filed 2026-11-06.** Quoted from issue 168, measured on an 8 vCPU Incus
+guest with `/dev/kvm` and QEMU 10.0.13:
+
+```text
+qemu-system-x86_64 -enable-kvm -M microvm,rtc=on,pit=off,pic=off -cpu host
+  -m MEM -smp 1 -nodefaults -no-user-config -nographic -serial stdio -no-reboot
+  -kernel vmlinux -initrd initrd -append "console=ttyS0 earlyprintk=serial,ttyS0
+  reboot=k panic=1 tsc=reliable sand.cmd=BASE64 ..."
+F15: virtkit 6.18 under -M microvm,rtc=on crashed (divide error in
+     kmem_cache_init_late) or hung in 5 of 6 boots; with pit=off,pic=off and
+     tsc=reliable, 24 of 24 booted; which setting matters was not isolated
+F16: console=ttyS0 alone printed nothing; earlyprintk=serial,ttyS0 gave all
+memory at least 512 MiB; timeout 600 s; exit 7 came back as 7
+limits: no shared directory, so /workspace writes never return; stdout and
+     stderr merged on one serial line; no stdin
+not built: Firecracker, Cloud Hypervisor (same kernel boots on QEMU
+     microvm), Kata (973 MB bundle), microsandbox and smolvm (need /dev/kvm)
+```

@@ -2,14 +2,14 @@
 
 ## State
 
-262 entries: 11 open, 9 partial, 0 blocked, 242 done.
+277 entries: 26 open, 9 partial, 0 blocked, 242 done.
 
 The project was renamed from podbox to podvm on 2026-11-06 (commit
 `rename: podbox is podvm`): entries closed before that commit ran their
 commands under the name podbox, and the record now spells them as podvm.
 
-**Eleven entries are `open`: T-1643 through T-1653, item 13 of the work
-order.** Every other filed row is `done` or `partial`, and each partial
+**Twenty-six entries are `open`: T-1643 through T-1653, item 13 of the
+work order, and T-1654 through T-1668, item 14.** Every other filed row is `done` or `partial`, and each partial
 names its remaining acceptance. T-1613 filed the 21 unbatched
 plan rows and they are now closed with their own records; the 29 rows
 T-1607 still owns are described there rather than filed. T-1641 is
@@ -186,6 +186,16 @@ keeps its historical scope. It does not establish current reliability.
     interposer entries T-1643 to T-1646, then T-1647, T-1650 and T-1649.
     The new rungs come last, T-1652 before T-1651, then T-1653. None of
     them needs a KVM guest.
+14. T-1654 through T-1668 are `open`, filed on 2026-11-06 from the
+    scope issues 166 to 189 under the owner's ruling that podvm does what
+    sand-net did, without root (index issue 193). Each entry quotes its
+    issue. Take them after item 13, because most build on its rungs:
+    T-1655 and T-1654 first (the run flags, then profiles over them),
+    then T-1658 and T-1657 on T-1652, T-1666 and T-1667 (the probe and
+    the doctor), T-1656 (the machine tier from `run`), the network
+    entries T-1665, T-1662, T-1663 and T-1664 on T-1656, the profiles
+    T-1659, T-1661 and T-1660, and T-1668 beside them all. Each names
+    the podcrates crate it builds on, and none waits for that crate.
 
 An agent may start a KVM guest unattended by passing both
 `--accept-host-risk` and `--unattended`; the driver then holds a T-1609

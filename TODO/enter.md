@@ -1626,3 +1626,129 @@ two-root view (copy regular executables, symlink data back), not an overlay
 references: containers/fuse-overlayfs (needs /dev/fuse), mpartel/bindfs,
 trapexit/mergerfs; sandhome sh_promote_tree copies execs, links the rest
 ```
+
+---
+
+### T-1657 A syscall-interpreting tier: the gVisor capability without user namespaces
+
+Source:      issue 169; #193; the owner's ruling of 2026-11-06
+Category:    enter
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     gVisor's `runsc` answers a payload's syscalls in user space, so
+             the payload does not reach the host kernel for files. On the
+             target host `runsc` cannot start: it needs a user namespace,
+             mount and ptrace, and the host denies all three. podvm has no
+             tier that gives the same view: a fixed kernel identity, a
+             private `/proc`, a sized `/tmp` and a placed `/workspace` that
+             writes through.
+Premise:     T-1652 builds the native-static rung: a userland execve loader
+             with Syscall User Dispatch, whose handler serves path calls
+             through `openat2(RESOLVE_IN_ROOT)`. T-1651 is the emulate tier
+             for foreign and other payloads. `--podvm-tier` takes `machine`
+             or `chroot` only (`crates/podvm/src/tier.rs:22`). The rung list
+             is `crates/podvm-probe/src/select.rs:35`. The issue names the
+             podcrates crate `pod-sud` (wave M7).
+Approach:    On top of the T-1652 handler, answer `uname` with a fixed
+             string that names the tier. Serve a private `/proc` view for
+             the payload's own entries. Serve `/tmp` from a store directory
+             with a size cap. Place `/workspace` as a path-map entry whose
+             writes reach the host directory, and plant the F14 trap: a
+             write that lands in a private overlay fails the test. Resolve
+             `..`, absolute links and a missing file in the root or fail
+             closed. Where a host grants user namespaces, offer `runsc` as
+             an optional backend from the namespace rung.
+Decision:    An in-process handler shares the payload's address space. It
+             is a compatibility layer, not a boundary, and the banner says
+             so, as it does for the interposer. podvm does not copy gVisor's
+             network stack. The optional `runsc` backend is not the answer
+             for the target host. Build on `pod-sud` once podcrates
+             releases it.
+Prove:       `cargo test -p podvm-enter` exits 0 with tests for the `uname`
+             answer, the `/tmp` cap and fail-closed resolution of `..`, an
+             absolute link and a missing file.
+             `sh experiments/413-syscall-tier.sh` exits 0 on a
+             chroot-denied fixture: a static payload reads `/etc/os-release`
+             from the image with no ptrace and no qemu, its write to
+             `/workspace` is on the host after the run, `uname -r` names the
+             tier, and the banner says the layer is not a boundary.
+
+**Filed 2026-11-06.** Quoted from issue 169:
+
+```text
+runsc --root RUN/runsc-root --rootless --network=none|host --ignore-cgroups
+      --platform=systrap run -bundle RUN/bundle sand-ID
+inside: uname -r is 4.19.0-gvisor; /usr is not writable; /workspace writes
+      through to the host
+F14: `runsc do -volume SRC:/workspace` wrote into gVisor's in-memory overlay
+      and never reached the host; a bundle with a bind mount did
+F14: runsc refuses rootless create ("Rootless mode not supported with
+      "create""), so an image under gVisor needed rootful podman
+--ignore-cgroups is required with no cgroup delegation
+```
+
+---
+
+### T-1658 A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier
+
+Source:      issue 170; #193; the owner's ruling of 2026-11-06
+Category:    enter
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     bwrap and bailey confine a host process with user and mount
+             namespaces, which the target host denies. Landlock needs no
+             privilege, but podvm applies no Landlock ruleset, no seccomp
+             deny filter and no built environment to a payload. A profile
+             cannot say "read these paths, write these, connect to port 443
+             only".
+Premise:     The probe measures `landlock_create_ruleset(VERSION)`
+             (`crates/podvm-probe/src/probes.rs:231`, body at
+             `probes.rs:1331`) and sets `PR_SET_NO_NEW_PRIVS` in a child
+             (`probes.rs:1287`). The Landlock and seccomp sweeps are T-0903
+             and T-0902. Landlock domains stack, so a payload can add a
+             ruleset over the host's, but whether the target host's outer
+             policy allows a nested ruleset is not measured. The issue
+             names the podcrates crate `pod-confine` (wave M7).
+Approach:    Before the exec, set `PR_SET_NO_NEW_PRIVS`, add a Landlock
+             ruleset from the profile's read, write and execute lists and
+             TCP ports (ABI 4 or later for the network rules), load a
+             seccomp deny filter for namespace, mount, ptrace, keyctl, bpf
+             and similar calls, build the environment, and set rlimits.
+             Report the Landlock ABI and the nested-ruleset answer in
+             `podvm probe`. Place `/workspace` through the path map, where
+             landrun could not (F30). Ship the bailey policy of issue 170
+             as a built-in `errand` profile.
+Decision:    Where Landlock is absent, a profile that asks for it refuses by
+             name; it never runs unconfined. The default-route trap (F2)
+             and the trust-parent trap (F3) are causes to probe and name
+             before the start. Build on `pod-confine` once podcrates
+             releases it.
+Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm-probe`
+             exit 0 with tests for the ruleset builder and the probe's ABI
+             answer. `sh experiments/414-confine.sh` exits 0 on a host that
+             grants Landlock: a profile with `fs.read` and `net.ports =
+             [443]` makes `cat /etc/hostname` fail with `EACCES`, a connect
+             to port 22 fail with `EACCES` and port 443 pass;
+             `/proc/self/status` shows `NoNewPrivs 1` and `Seccomp 2`; with
+             Landlock absent the profile refuses by name.
+
+**Filed 2026-11-06.** Quoted from issue 170:
+
+```text
+landrun: --best-effort, --rox system paths, --ro /etc files, --rwx project,
+      --rw state, --connect-tcp PORT per net.ports
+F1: bailey v0.2.4 musl cannot start where mounts are relatime in a user
+      namespace (MS_STRICTATIME, EPERM): nix 0.29 drops ST_RELATIME on musl
+F2: bailey's brokered modes refuse without an IPv4 default route
+F3: bailey refuses a policy under a group-writable parent with no sticky bit
+F4: /usr/bin/cc points into /etc/alternatives, which the read list omitted
+F30: landrun: `ls /` and /etc/hostname give EACCES; /tmp is not writable;
+      no TCP unless net.ports
+L4: bailey's port rule refuses bind() to a source port outside net.ports
+reference compare: no capabilities, NoNewPrivs 1, seccomp mode 2, every
+      namespace and mount call refused; 382 same, 9 differ
+```

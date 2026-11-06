@@ -1046,3 +1046,65 @@ already had its correct answer from the shell script.
 RUST-TEST. This record is the correction; `refactor/` is untracked, so no
 tracked ledger row carries the verdict yet.
 
+
+---
+
+### T-1666 A security probe inside the payload, and a compare against a reference report
+
+Source:      issue 186; #193; the owner's ruling of 2026-11-06
+Category:    probe
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     `podvm probe` measures the host's mechanisms before a run. No
+             tool reports what a payload actually gets inside a tier: which
+             escalations it can make, which host paths it can reach, what
+             `/proc` and identity it sees. An honest banner needs both
+             halves.
+Premise:     The probe runs one disposable child for each probe and records
+             the errno, not a boolean (T-0101, T-0109). It marks an
+             emulator's answers in `measured_by`
+             (`crates/podvm-probe/src/report.rs:451`). sand-net's probe was
+             Python, which busybox and distroless images do not have. The
+             issue's crate is podcrates `pod-sandprobe` (wave M7).
+Approach:    Build a static musl probe that runs inside the payload and
+             writes records `SECTION<TAB>TARGET<TAB>VERDICT<TAB>DETAIL` in the
+             sandprobe format and verdict vocabulary. Add `podvm
+             probe-inside [--podvm-tier T] [--profile P] -o FILE` and
+             `podvm compare REPORT --reference REF [--strict]`, with an
+             expected-differences file in the repository. `--strict` exits
+             1 only for an unexplained difference in an invariant section.
+             Scrub secret-shaped values. Run the matrix of every tier on
+             the target host class and commit it.
+Decision:    A verdict is emitted only for something observed; "could not
+             test" is UNKNOWN with the reason, the T-0109 rule. A compare
+             between hosts is never a pass by itself: only the invariant
+             sections can fail, and only without an observed cause. The
+             interposer and dispatch tiers are not boundaries, and the
+             report shows where a host path stays reachable. Take
+             `pod-sandprobe` when podcrates releases it.
+Prove:       `cargo test -p podvm-probe` exits 0 with tests: a planted token
+             is REDACTED, and the compare exits 0 on two reports of one tier
+             and 1 on a planted escape in an invariant section.
+             `sh experiments/422-probe-inside.sh` exits 0: the static probe
+             writes a report inside a musl row of DISTRO_ROWS_M5, a busybox
+             image and a distroless image, and inside a machine-tier guest, and
+             the per-section matrix is saved under `experiments/results/`.
+
+**Filed 2026-11-06.** Quoted from issue 186:
+
+```text
+verdicts: ALLOW, DENY, ABSENT, UNKNOWN, TIMEOUT, UNRESOLVED, REFUSED,
+  DROPPED, EXHAUSTED
+invariant sections: escalation, escape-surface, procfs, raw-socket, proxy,
+  tcp-direct, tcp-direct-ip, udp-direct, loopback, metadata, dns
+errand-bailey-rust against the reference (2026-11-03): 382 same, 9 differ
+  (each explained), 26 only in the reference, 86 only here; --strict exit 0;
+  646 records (ABSENT 349, ALLOW 167, DENY 84, UNRESOLVED 30, DROPPED 9,
+  UNKNOWN 6, EXHAUSTED 1)
+F10: kernel.yama.ptrace_scope 0 here and 1 in the reference, so /proc/1/mem
+  opens
+matrix vs errand-bailey: podman-none 307 / 92, docker-none 305 / 86,
+  docker-open 306 / 85; containers differ most in fs (54)
+```

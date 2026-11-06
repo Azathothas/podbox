@@ -55,6 +55,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [machine](machine.md) | the machine tier | `https://github.com/talaria0101/vm-research`, its podvm-spec document |
 | [gate](gate.md) | `scripts/` | `docs/methodology/gate.md` |
 | [podssh](podssh.md) | proposed SSH crate | the SSH work in pull requests 66 and 67 |
+| [net](net.md) | proposed: podcrates `pod-netlab`, `pod-pcap`, `pod-egress`, `pod-netstack` | issues 178, 180, 182 and 184 of the widened scope, index issue 193 |
 
 ## Entries
 
@@ -324,10 +325,25 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1651](enter.md) | P2 | enter | open | An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads |
 | [T-1652](enter.md) | P2 | enter | open | A native-static rung: userland execve, Syscall User Dispatch and openat2(RESOLVE_IN_ROOT) |
 | [T-1653](enter.md) | P2 | enter | open | `-v` volumes on a host with no /dev/fuse and no mount |
+| [T-1654](cli.md) | P2 | cli | open | Profiles: strict TOML recipes with `extends` and `-s` overrides |
+| [T-1655](cli.md) | P2 | cli | open | The sandbox hardening line: each `run` flag works on the tier or refuses by name |
+| [T-1656](machine.md) | P2 | machine | open | MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG |
+| [T-1657](enter.md) | P2 | enter | open | A syscall-interpreting tier: the gVisor capability without user namespaces |
+| [T-1658](enter.md) | P2 | enter | open | A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier |
+| [T-1659](cli.md) | P2 | cli | open | Provider shapes and bare userlands as built-in profiles |
+| [T-1660](cli.md) | P2 | cli | open | `podvm notebook`: Jupyter and marimo cycles that keep one directory |
+| [T-1661](cli.md) | P2 | cli | open | Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd |
+| [T-1662](net.md) | P2 | net | open | Network labs: NAT, IPv6, policy and impairment labs inside one guest |
+| [T-1663](net.md) | P2 | net | open | Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs |
+| [T-1664](net.md) | P2 | net | open | Observability: capture, counters and connection logs without `CAP_NET_RAW` |
+| [T-1665](net.md) | P2 | net | open | An egress broker, and the guest's view of a loopback-only proxy |
+| [T-1666](probe.md) | P2 | probe | open | A security probe inside the payload, and a compare against a reference report |
+| [T-1667](cli.md) | P2 | cli | open | Doctor and installers: one check per scope capability, verified downloads, a space floor |
+| [T-1668](gate.md) | P2 | gate | open | A findings page for the scope: observed or inferred, with host conditions per row |
 
 ## Counts
 
-262 items: 11 open, 9 partial, 0 blocked, 242 done.
+277 items: 26 open, 9 partial, 0 blocked, 242 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -337,9 +353,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 62 | 64 |
 | P1 | 6 | 8 | 0 | 116 | 130 |
-| P2 | 4 | 0 | 0 | 55 | 59 |
+| P2 | 19 | 0 | 0 | 55 | 74 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **11** | **9** | **0** | **242** | **262** |
+| **All** | **26** | **9** | **0** | **242** | **277** |
 
 ## Work order
 

@@ -1834,3 +1834,377 @@ $ podvm run --strict=all alpine:3.20 /bin/echo hi
 ... --strict=all refused ... [substitution] unchanged dev/zero ...
 [exit 125]                       # refuses a run that would have worked
 ```
+
+---
+
+### T-1654 Profiles: strict TOML recipes with `extends` and `-s` overrides
+
+Source:      issue 166; #193; the owner's ruling of 2026-11-06
+Category:    cli
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     podvm has the docker and podman command line and a tier flag,
+             but no recipe layer. A caller cannot name a sandbox shape once
+             and run it again. sand-net ran 43 shapes from TOML recipes, and
+             each command line ran unchanged in every shape.
+Premise:     The parity table is the only description of what `run`
+             accepts (`crates/podvm/src/parity.rs:322-389`). `--podvm-tier`
+             takes `machine` or `chroot` (`crates/podvm/src/tier.rs:22`).
+             Resource flags refuse by name (`parity.rs:341`, T-0804). The
+             identity calls are virtualised (T-0711, `parity.rs:338`). No
+             source reads a profile file, and no verb lists one.
+Approach:    Add `podvm profile list` and `podvm profile show NAME`, and
+             `--profile NAME` on `run`. A profile is TOML with the tables
+             `fs`, `limits`, `net` and `env.set`. `extends` merges the
+             child's tables over the parent's. `-s key=value` sets one leaf
+             and repeats; the value parses as TOML and falls back to a
+             string. Built-in profiles live in the binary; user profiles
+             live under the XDG config directory. Map `fs.backend` to the
+             tier, `fs.user` to the identity of T-0711, `fs.wrap` to an
+             entrypoint prefix, and `limits.file_max` to `RLIMIT_FSIZE`.
+             `limits.memory` and `limits.cpus` keep the T-0804 refusal on a
+             rootfs tier and become guest RAM and vCPUs on the machine tier.
+Decision:    An unknown key and a wrong type are errors that name the key:
+             "a misspelt key that is silently ignored leaves a cage looser
+             than the recipe says" (issue 166). A profile that names a
+             mechanism the probe reports absent refuses with the probe's
+             reason, at load time where the host is known, else at run
+             time. `--strict` keeps its meaning. On a host with no mount,
+             `/workspace` and `/state` are path-map entries (T-1653,
+             T-1652), not bind mounts.
+Prove:       `cargo test -p podvm` exits 0 with tests: an unknown key and a
+             wrong type each refuse and name the key, a planted misspelt
+             key is refused, and `extends` plus `-s` give the expected
+             effective profile. `sh experiments/410-profiles.sh` exits 0:
+             `podvm profile show NAME -s k=v` prints the effective profile,
+             a profile that asks for an absent tier refuses with the
+             probe's reason, `sh -c 'pwd; ls /workspace'` answers the same
+             in every built-in profile that places `/workspace`, and
+             `limits.memory` refuses by name on a rootfs tier.
+
+**Filed 2026-11-06.** The facts below are quoted from issue 166, so the
+entry stands if GitHub hides the issue. sand-net is the 0BSD tool that
+issue 193 describes; its source is deleted.
+
+```text
+tables:   fs (backend, profile, read, write, execute, path_extra, disk_tmp,
+          as_root, image, runtime, user, wrap, persist, rw_root),
+          limits (file_max, tmp_size, shm_size, memory, cpus, pids),
+          net (mode, ports, allow, auth, resolv, netns), env.set
+defaults: backend bailey, net.mode broker, ports [443], tmp 256m, shm 250m,
+          file_max 1g
+-s 'net.ports=[80,443]'   -> a list (parsed as TOML)
+-s net.mode=open          -> a string (TOML parse failed)
+validation: broker and proxy-net need bailey; gvisor, bwrap, landrun take
+          none, open, netns; microvm none and netns; ports 1 to 65535
+F30: landrun has no mount namespace, so /workspace did not exist and
+          `sand run landrun-none -- sh /workspace/probe.sh` failed
+F24: a 0700 project made a rootless keep-id container fail to stat it
+```
+
+---
+
+### T-1655 The sandbox hardening line: each `run` flag works on the tier or refuses by name
+
+Source:      issue 167; #193; the owner's ruling of 2026-11-06
+Category:    cli
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     sand-net ran podman and docker with one fixed hardening line.
+             podvm refuses most of that line with status None, so the same
+             command cannot run under podvm. Some of the refused flags have
+             an unprivileged equivalent that podvm does not use.
+Premise:     The parity table refuses `--read-only` (`parity.rs:370`),
+             `--tmpfs` (`parity.rs:372`), `--ulimit` (`parity.rs:385`),
+             `--cap-add, --cap-drop` (`parity.rs:340`), `--security-opt`
+             (`parity.rs:389`), `--runtime` (`parity.rs:388`) and `--userns`
+             (`parity.rs:386`). `-u, --user` is Degraded through the
+             interposer identity (`parity.rs:338`). `setrlimit`,
+             `PR_SET_NO_NEW_PRIVS` and a seccomp filter need no privilege;
+             the probe already sets `PR_SET_NO_NEW_PRIVS` in a child
+             (`crates/podvm-probe/src/probes.rs:1287`).
+Approach:    Write an experiment that runs the sand-net line through
+             `podvm run` and records each flag as passed or refused by
+             name. Then implement the unprivileged equivalents. `--ulimit
+             fsize` calls `setrlimit` before the exec. `--read-only` makes
+             a write outside the named writable paths fail with `EROFS` in
+             the interposer and in the T-1652 path layer. `--cap-drop ALL`
+             and `--security-opt no-new-privileges` set
+             `PR_SET_NO_NEW_PRIVS`. `--tmpfs` with a size becomes a store
+             directory under a size check. `--memory`, `--cpus` and
+             `--pids-limit` keep the T-0804 refusal on a rootfs tier and
+             set guest resources on the machine tier. Each parity row moves
+             with its change.
+Decision:    A flag works on the selected tier or refuses with a reason;
+             nothing in between. A flag that a path layer enforces is
+             Degraded, and its note says which layer, because the
+             interposer is not a boundary. `--userns keep-id` stays None:
+             there is no user namespace, and identity is virtualised, not
+             mapped. An image record carries its input digest, not a
+             timestamp (F33).
+Prove:       `cargo test -p podvm` exits 0 with parity tests for each
+             changed row. `sh experiments/411-hardening-line.sh` exits 0 on
+             a chroot-denied fixture: every flag of the line passes or
+             refuses by name, `--read-only` gives `EROFS` for a write to `/`
+             while `/workspace` and `/tmp` stay writable, `--user 993:990`
+             reports 993 from `id -u` and writes the project, a write past
+             `--ulimit fsize` fails with `EFBIG`, and `--memory 128m`
+             refuses by name on a rootfs tier.
+
+**Filed 2026-11-06.** Quoted from issue 167. The host was Debian 13 in an
+unprivileged Incus container, podman 5.4.2, docker 26.1.5, with egress
+only through a loopback HTTP proxy:
+
+```text
+run --rm --cap-drop ALL --security-opt no-new-privileges --read-only
+  --tmpfs /tmp:rw,nosuid,nodev,size=N --tmpfs /dev/shm:rw,nosuid,nodev,size=N
+  --ulimit fsize=N -v PROJECT:/workspace -v STATE:/state
+  -v RESOLV:/etc/resolv.conf:ro -w /workspace --network none|host|pasta|slirp4netns
+  --http-proxy=false --userns keep-id[:uid=U,gid=G] --entrypoint CMD IMAGE ARGS
+F13: rootless podman refused every cgroup limit ("rootless needs no limits +
+     no cgrouppath when no permission is granted for cgroups")
+F28: --user U:G without a mapping made the project read-only for 993, 1000, 0
+F26: pasta printed --version and then failed "Couldn't set IPv4 route(s) in
+     guest: Invalid argument" beside a linkdown route
+F33: a cache-hit rebuild keeps Created, so a stale image looked current
+probe matrix vs the bailey baseline: podman-none 307 same / 92 differ,
+     docker-none 305 / 86, most in fs (54)
+```
+
+---
+
+### T-1659 Provider shapes and bare userlands as built-in profiles
+
+Source:      issue 172; #193; the owner's ruling of 2026-11-06
+Category:    cli
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     A caller cannot run a tool in the shape of its production
+             host: the provider's user, limits and variables. sand-net had
+             seven such shapes. podvm pulls each image, and has no profile
+             to put the shape around it.
+Premise:     Profiles arrive with T-1654. The identity calls are virtualised
+             (T-0711), so `id -u` can answer 993 while the real owner of the
+             project stays the caller. Resource flags refuse by name on a
+             rootfs tier (`crates/podvm/src/parity.rs:341`, T-0804). The
+             Lambda and Vercel images are glibc, which the rootfs tier
+             declines today (T-1644).
+Approach:    Ship built-in profiles: `lambda-al2023`, `cloudflare-sandbox`,
+             `vercel-sandbox`, `busybox-bare`, `distroless-static` and
+             `node-shell`, each with the user, environment and limits of
+             issue 172. Memory and pids limits run on the machine tier or
+             refuse by name. A read-only root and a sized `/tmp` use the
+             T-1655 path layer. Each profile prints what it does not
+             model. A profile that needs a missing tool, curl for example,
+             detects it and says so.
+Decision:    A shape is a profile, not a tier. podvm never infers success
+             from a zero exit of a pipeline: `curl ... | sh` with no curl
+             exits 0 and installs nothing. `RLIMIT_NPROC` and
+             `RLIMIT_FSIZE` are partial stand-ins and the profile labels
+             them so. The Alpine and busybox shapes come first; the glibc
+             shapes follow T-1644.
+Prove:       `cargo test -p podvm` exits 0 with a test that every built-in
+             profile loads and lists what it leaves out.
+             `sh experiments/415-provider-shapes.sh` exits 0: the
+             `lambda-al2023` profile prints 993 for `id -u`, prints
+             `AWS_LAMBDA_FUNCTION_NAME`, gives a read-only error for
+             `touch /x` and leaves the project writable; `busybox-bare`
+             runs `wget`; `distroless-static` runs a static binary and
+             refuses `sh -c true` by name; the memory limit refuses by name
+             on a rootfs tier.
+
+**Filed 2026-11-06.** Quoted from issue 172:
+
+```text
+lambda-al2023  public.ecr.aws/lambda/provided:al2023  user 993:990, memory 128m,
+               /tmp 512m, pids 1024, read-only root, AWS_LAMBDA_FUNCTION_NAME,
+               AWS_REGION=us-east-1, LAMBDA_TASK_ROOT=/var/task, TZ=:UTC
+vercel-sandbox amazonlinux:2023, user 1000:1000, USER=LOGNAME=vercel-sandbox
+busybox-bare   busybox:musl; wget prints "TLS certificate validation not
+               implemented", and expired, self-signed and wrong-host
+               certificates all exit 0
+distroless     gcr.io/distroless/static-debian12; `sh -c true` fails to start,
+               a static binary placed in the project runs
+install by `curl -fsSL URL | sh`: node-shell, cloudflare-sandbox and
+               busybox-bare had no curl, and the pipeline exited 0 with
+               nothing installed
+```
+
+---
+
+### T-1660 `podvm notebook`: Jupyter and marimo cycles that keep one directory
+
+Source:      issue 174; #193; the owner's ruling of 2026-11-06
+Category:    cli
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     The owner names notebooks in the scope. podvm has no verb that
+             runs a notebook, and no model of a hosted session that wipes
+             its root on restart and keeps one directory.
+Premise:     `run --rm` starts from the stored rootfs, so a fresh root for
+             each cycle costs nothing. A kept directory needs a volume,
+             which a host with no mount cannot give (T-1653); `cp` copies
+             in and out (T-1323, `crates/podvm/src/parity.rs:268`). The
+             supervisor holds one pidfd for the direct child
+             (`crates/podvm-supervise/src/launcher.rs:469`, T-0601) and
+             starts a session (`launcher.rs:230`). A Jupyter kernel is a
+             grandchild, which T-1646 must reach. python:3.13-slim is
+             glibc (T-1644).
+Approach:    Add `podvm notebook NB --persist DIR [--cycles N] [--kill-after
+             S] [--restart-kernel-after CELL]`. Each cycle is a new
+             container with a read-only root, a `/workspace` that holds
+             only the notebook, a new kernel and `DIR` at `/persist`. Print
+             each output line as `[N] text` and exit 1 when a cell raised.
+             `--kill-after` ends the cycle with 143 and kills the whole
+             process tree through the session. A `.py` notebook runs
+             through `marimo export html`. Use an Alpine Python image
+             until T-1644 admits glibc.
+Decision:    The kept directory is the only state that crosses a cycle.
+             Two concurrent notebooks share the host network on a rootfs
+             tier, so each picks its own loopback ports; the banner says
+             the ports are not private. A failed `!` line does not raise,
+             so the verb does not report it as a failure.
+Prove:       `cargo test -p podvm` exits 0 with tests for the argument
+             parse and the `[N]` line format.
+             `sh experiments/416-notebook-cycles.sh` exits 0: three cycles
+             keep only the `--persist` content, `--restart-kernel-after 1`
+             loses variables and keeps `/persist`, `--kill-after 5` on a
+             sleeping cell exits 143 and leaves no process, and a marimo
+             file exports to HTML.
+
+**Filed 2026-11-06.** Quoted from issue 174:
+
+```text
+jupyter cage:  jupyter nbconvert --to notebook --execute --stdout --log-level=ERROR NB
+marimo cage:   marimo export html --no-include-code NB.py
+sand notebook NB --persist DIR [--cycles N] [--lab LAB] [--kill-after S]
+               [--restart-kernel-after CELL]... [--cage C]
+NotebookCycles: only /persist survives a cycle and a kernel restart;
+               variables do not survive the restart; /tmp does not survive
+               the cycle; /workspace holds only the notebook
+killing the client left the container running; leftover containers were
+               found by their project volume and killed; exit 143
+`curl -fsSL URL | sh` without curl: "curl: not found", exit 0, nothing installed
+```
+
+---
+
+### T-1661 Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd
+
+Source:      issue 176; #193; the owner's ruling of 2026-11-06
+Category:    cli
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     For a language runtime with its own permission model, the
+             runtime is the boundary. podvm cannot start such a runtime
+             with its flags from one statement of the paths, and cannot say
+             which part the runtime enforces and which part podvm enforces.
+Premise:     None of these runtimes needs a privilege. Today they hit filed
+             limits: the Debian images are glibc (T-1644), `node` in
+             node:alpine is over the read ceiling (T-1647), its entrypoint
+             is a `#!` script (T-1649), and `npm` spawns children (T-1646).
+             An `fs.wrap` prefix arrives with T-1654.
+Approach:    Ship built-in profiles `node-permission`, `deno-permissions`,
+             `bun-runtime`, `wasmtime-wasi` and `workerd-test`. Generate the
+             runtime's flags (`--allow-fs-read`, `--allow-write`, `--dir`)
+             from the profile's `fs.read` and `fs.write`, so a profile
+             states each path once. Check the linkage of a host-style
+             binary before the rung is chosen. `profile show` prints the
+             runtime flags and podvm's path map side by side.
+Decision:    The WASI profile needs no interposer and no tier: the module
+             sees only its preopened directories. Bun has no permission
+             model, and its profile says so. A runtime check never stands
+             in for podvm's own path map.
+Prove:       `cargo test -p podvm` exits 0 with a test that one profile's
+             paths produce both the runtime flags and the path map.
+             `sh experiments/417-runtime-profiles.sh` exits 0 with the
+             fixtures of issue 176: `node-permission` prints `permission
+             on`, DENY for `/etc/hostname` and `/tmp`, ALLOW for
+             `/workspace`; `deno-permissions` prints `NotCapable` for the
+             outside read and for `Deno.env`; `wasmtime-wasi` prints `hello
+             from wasi`; `workerd-test` reports `typeof process =
+             undefined`.
+
+**Filed 2026-11-06.** Quoted from issue 176:
+
+```text
+node-permission (Node 26): permission on; read /etc/hostname ERR_ACCESS_DENIED;
+                 write /workspace/out.txt allowed; write /tmp/out.txt
+                 ERR_ACCESS_DENIED
+deno-permissions (Deno 2.9): NotCapable for reads outside /workspace, for
+                 /tmp writes and for Deno.env (HOME)
+bun-runtime (Bun 1.4): no permission model
+wasmtime-wasi (wasmtime 50): "hello from wasi" with only /workspace
+                 preopened and no sockets
+workerd-test: typeof process = undefined; node:fs and node:child_process
+                 cannot be imported; [ PASS ] main
+F25: wasmtime and workerd publish no checksum; recorded by hash on first use
+```
+
+---
+
+### T-1667 Doctor and installers: one check per scope capability, verified downloads, a space floor
+
+Source:      issue 188; #193; the owner's ruling of 2026-11-06
+Category:    cli
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     `podvm doctor` reports the rootfs and machine legs. It does
+             not cover the widened scope: Landlock, Syscall User Dispatch,
+             `openat2(RESOLVE_IN_ROOT)`, user-mode networking, labs in a
+             guest, proxy reach. Assets that the new scope downloads
+             (guest kernels, runtimes) have no stated verification rule.
+Premise:     The doctor is `crates/podvm/src/doctor.rs:149`, and it reads
+             the machine assessment (`doctor.rs:190`). The probe already
+             has a Landlock leg (`crates/podvm-probe/src/probes.rs:231`).
+             Space is checked before large writes
+             (`crates/podvm-image/src/space.rs:146`, T-0806). Release
+             verification uses cosign and the workflow identity (T-1328).
+Approach:    Add one doctor group for each scope capability. Each check
+             prints `ok`, `MISSING` with a `fix:` line, or "cannot be fixed
+             on this host" with the reason. `--strict` exits 1 on a
+             MISSING. Each check proves the thing runs: a guest boots, a
+             payload enters. For each downloaded asset, verify a checksum
+             and a signature where upstream publishes them, else record a
+             first-use hash in the store and refuse a change. Fetch a
+             release through `gh`, and fall back to the public API when
+             the call fails, not when `gh auth status` fails.
+Decision:    A present file is not a working one (T-1301). An auth check is
+             not a working credential: a suspended token passes `gh auth
+             status` and then gets 403 (F34). A checksum proves integrity,
+             not who built the file, and the doctor says which of the two
+             it has.
+Prove:       `cargo test -p podvm` exits 0 with tests: a planted changed
+             asset is refused, a planted rejected `gh` token falls back to
+             the API, and a run below the space floor refuses and names the
+             path. `sh experiments/423-doctor-scope.sh` exits 0 on a
+             chroot-denied fixture: `podvm doctor` lists every scope
+             capability with one of the three answers, and `podvm doctor
+             --strict` exits 1 where one is MISSING.
+
+**Filed 2026-11-06.** Quoted from issue 188:
+
+```text
+F34: `gh auth status` exits 0 for a suspended token while every
+     `gh release` call returns 403; the unauthenticated API allows 60
+     requests an hour per address, and an install script hit the limit
+F25: landrun, wasmtime and workerd publish no checksum, and
+     `gh release view --json assets` gives no digest for them
+F12: `apt-get install tayga` pulled apparmor; its pasta profile in enforce
+     mode made `pasta --version` exit 139
+F26: `pasta --version` succeeding does not mean pasta works
+F31: a run failed with "no space left on device" at 188 MiB free; the
+     disk guard warns below 1 GiB and refuses below 64 MiB
+```

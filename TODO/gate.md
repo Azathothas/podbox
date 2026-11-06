@@ -3739,3 +3739,61 @@ and stay live under T-1604.
 The plant this entry owes is also still open: none of the three fixes
 carries one, because a plant that fails without them needs the guest or
 a signal this host cannot deliver.
+
+---
+
+### T-1668 A findings page for the scope: observed or inferred, with host conditions per row
+
+Source:      issue 189; #193; the owner's ruling of 2026-11-06
+Category:    gate
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     sand-net kept a ledger of tool defects (F1 to F35) and lab
+             traits (L1 to L7), each marked observed or inferred with its
+             evidence and host conditions. Its source is deleted. The rows
+             now live only in the scope issues, and podvm has no page that
+             records a third-party tool defect or host trait with the
+             conditions under which it was seen.
+Premise:     podvm closes an entry on a recorded `Prove` run, plants a
+             failure for each check (T-1202), and holds that "a
+             measurement taken on one host is a property of that host"
+             (T-1203). The gate resolves every cited path and line. No
+             page under `docs/` carries findings in the observed or
+             inferred form.
+Approach:    Add a findings page under `docs/` for the scope. Each row has
+             an id, the tool or trait, observed or inferred, the command or
+             result file that shows it, and the host conditions. Import the
+             sand-net rows that apply to a podvm capability, each marked
+             re-measured, not reproduced, or not applicable, with their
+             original conditions. Extend the gate so that each row cites a
+             command or a result file, and plant a row with neither.
+Decision:    A result from the target host class is never a property of
+             podvm in general. The open rows (F12, F15, F18, F32, L3, L5,
+             L7) are re-test targets when podvm reaches the same capability.
+             The rules of issue 189 carry over: probe by doing, a zero exit
+             of a pipeline proves nothing, a timestamp is not a build
+             identity, an auth check is not a working credential.
+Prove:       `./target/release/podvm-gate` exits 0 with the findings page in
+             the tree, and `./target/release/podvm-plant` exits 0 with a new
+             plant: a findings row with no command and no result file turns
+             the gate red.
+
+**Filed 2026-11-06.** Quoted from issue 189. The conditions of every
+sand-net row:
+
+```text
+Debian 13 in an unprivileged Incus system container, kernel 6.12.113,
+8 vCPU, /dev/kvm present, root through `sudo -n`, no default route and no
+UDP out, an HTTP proxy on the loopback as the only way out, 2026-11-03.
+bailey 0.2.4, nftables 1.1.3, iproute2 6.15.0, podman 5.4.2, docker 26.1.5,
+QEMU 10.0.13, Python 3.13.5. One host only.
+open rows: F12 (which apparmor denial broke pasta), F15 (which microvm flag
+fixes the boot), F18 (NAT64 prefix cause inferred, not tested), F32
+(MicroVMInLab failed twice in full-suite runs), L3, L5, L7 (causes suspected)
+row homes: F1 F1a F2 F3 F4 F17 F30 L4 -> T-1658; F5 F6 F7 F8 F13 F24 F26
+F28 F31 F33 -> T-1655; F14 -> T-1657; F15 F16 F32 F35 L7 -> T-1656; F9 F18
+F19 F20 F21 L1 L2 L3 L5 L6 -> T-1662; F22 F23 -> T-1663; F11 F27 F29 ->
+T-1665; F10 -> T-1666; F12 F25 F34 -> T-1667
+```
