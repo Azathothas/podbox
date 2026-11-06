@@ -80,10 +80,10 @@ names two candidates: `experiments/results/bloat-syscalls-libc.txt` and
 the entry predicted for the other reason.** Neither crate moves a static musl
 binary measurably: `libc` on this target is mostly declarations against a libc
 already linked, and `rustix`'s `linux_raw` backend emits the same instruction
-`crates/podvm-probe/src/sys.rs` emits. ⚠ Both readings passed the instrument's
+`pod_hostprobe::sys` emits. ⚠ Both readings passed the instrument's
 scaffold control, so a zero here is a reading and not an unmeasured run.
 
-**Ruling: hand-declare, and neither crate lands.** `crates/podvm-probe/src/sys.rs`
+**Ruling: hand-declare, and neither crate lands.** `pod_hostprobe::sys`
 is 330 lines including its documentation and its tests, and it already covers
 the half the entry expected to stay hand-written anyway: the new mount API,
 `seccomp`, `landlock_create_ruleset`, `kcmp` and `pidfd_getfd`. The 46 numbers
@@ -123,7 +123,7 @@ Prove:       `./experiments/110-bloat-delta.sh seccomp` exits 0 and writes `expe
 costs **+8,192 bytes** and 2 crates.
 
 **Ruling: hand-emit, and it does not land.** The filter podvm installs is one
-BPF instruction, already emitted in `crates/podvm-probe/src/probes.rs` as four
+BPF instruction, already emitted in `pod_hostprobe::probes` as four
 fields of a `#[repr(C)]` struct, and the reference emits a real one in about
 sixty lines. 8 KB for sixty lines fails the third row of this file's own
 vendor-and-registry table: the dependency is bigger than the code it replaces.
@@ -169,7 +169,7 @@ control answered) and **13 crates**.
 price: thirteen crates is thirteen more things to audit, pin and rebuild for a
 mechanism podvm uses one syscall of. What podvm needs today is the ABI probe,
 and that is `landlock_create_ruleset(NULL, 0, 1)`, already one row of
-`crates/podvm-probe/src/probes.rs`. Revisit if podvm ever installs a ruleset,
+`pod_hostprobe::probes`. Revisit if podvm ever installs a ruleset,
 which needs a kernel that has Landlock at all.
 
 ---
@@ -540,7 +540,7 @@ hold on this tree, and `110-bloat-delta.sh memfd` exits 0 with
    the base, the `has_shebang` router predicate, the `is_executable` probe
    (mode bits plus `faccessat` `X_OK`), and `memfd_create`, with four unit
    tests watched fail before the implementation and pass after. Beside it,
-   `faccessat` joins the `*at` wrappers in `crates/podvm-probe/src/sys.rs`
+   `faccessat` joins the `*at` wrappers in `pod_hostprobe::sys`
    with `SYS_FACCESSAT` and `X_OK`. The `fexecve` call itself is not here:
    it takes the argv and env arrays, and it belongs to the ladder that owns
    them ([T-1003](packaging.md)). Vendored whole beside it:
@@ -644,14 +644,14 @@ breakdown was not taken, because a skip is not a pass.
 
 ### T-0911 The syscall table and the kernel structs come from a crate, per architecture
 
-Source:      Found by the operator on 2026-09-09, reading `crates/podvm-probe/src/sys.rs`
+Source:      Found by the operator on 2026-09-09, reading `pod_hostprobe::sys`
 Category:    deps
 Priority:    P0
 Effort:      M
 Status:      done 2026-09-09
 
 Problem:     ⛔ **podvm was a single-architecture runtime because of a table
-             somebody typed.** `crates/podvm-probe/src/sys.rs` declared 46
+             somebody typed.** `pod_hostprobe::sys` declared 46
              x86_64 syscall numbers and a `#[repr(C)] struct stat` by hand, and
              opened with a `compile_error!` for every other architecture. The
              `compile_error!` was the right call given the table, a wrong
@@ -781,7 +781,7 @@ podvm's design rather than changing it.** It registers `qemu-ppc` through
 `multiarch/qemu-user-static --reset -p yes`, asserts the registration took by
 reading `/proc/sys/fs/binfmt_misc/<handler>` back, and checks the `F` flag,
 because without it the kernel opens the interpreter inside the container's own
-filesystem. ⚠ That is the same three things `crates/podvm-probe/src/binfmt.rs`
+filesystem. ⚠ That is the same three things `pod_hostprobe::binfmt`
 reads and the same reason `experiments/260-multiarch.sh` reads its magic back
 before proceeding. podvm's answer on a machine with no such registration is
 already the right one: refuse by name, with the ELF machine it looked for.
@@ -816,7 +816,7 @@ Premise:     ⭐ **Measured, and the measurement is why this is an entry rather
 Approach:    Take the syscall numbers for powerpc64, s390x and mips from
              `linux-raw-sys`, which podvm already depends on for the kernel
              structs, and carry podvm's own trap for those architectures in
-             `crates/podvm-probe/src/sys.rs` beside the ones it already has.
+             `pod_hostprobe::sys` beside the ones it already has.
              ⛔ Not a fork of `syscalls` and not a patch to it in this tree: the
              numbers are already available from a crate podvm takes, and one
              more source of them is one more place for them to disagree.
@@ -841,7 +841,7 @@ stable however podvm uses it. The dependency is therefore **target-gated in
 own: a superset would drop `syscalls` where it works, a subset would leave the
 build broken where it does not.
 
-On those five, `crates/podvm-probe/src/sys.rs` takes every number from
+On those five, `pod_hostprobe::sys` takes every number from
 `linux-raw-sys`, which podvm already depends on for the kernel structs. ⚠ Both
 spellings are on one line -- `nr!(openat, __NR_openat)` -- so a reader can check
 the pair and a rename cannot silently take a different number on one
@@ -1572,7 +1572,7 @@ Source:      COORD-001, issue 194, "What podvm hands to podcrates";
 Category:    deps
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      partial
 
 Problem:     The owner ruled on 2026-11-06 that each generic crate of podvm
              moves to podcrates as `pod-*`. Until podcrates imports them and
@@ -1603,6 +1603,23 @@ Decision:    One entry tracks the hand-over of all seven, because each step
 Prove:       `./target/release/podvm-gate` exits 0 with each of the seven
              podvm crates replaced by its `pod-*` dependency, and
              `cargo test --workspace` exits 0 in the Linux lane.
+
+**Partial, 2026-11-06.** The first of the seven crates is taken:
+podvm took `pod-hostprobe` 0.6.0 by `adoption/podvm/pod-hostprobe.patch`
+of PodUtils/podcrates (`main` at `5535a27`, made at podvm `b32b19c`),
+applied with `git apply --3way`; its two conflicts were the move to
+v0.6.0 that podvm had made the same day, and its side was taken. 26
+files leave podvm; `podvm-probe` keeps its report and re-exports the
+crate, and `space.rs` and `exec_probe.rs` of podvm-image wrap it. The
+freeze of the 29 files ends, and with it the two 32-bit faults of
+`sys/` (podcrates T-072 and T-080). Each line of `pod-hostprobe.run`
+exits 0 in a Linux container (about 866 tests, none failed;
+`podvm probe --rows` gives 66 rows; the wire is `pod-hostprobe/1`),
+`mux_two_client` 15 passes against sshd, and the test the `.run` skips,
+`abi::tests::resolve_past_a_denied_listing`, passes as uid 0. Call C11
+of `docs/decisions.md` accepts the four points of podcrates#17.
+Remaining: the other six crates, each on its import and trial
+(podcrates T-056 to T-061).
 
 **Open 2026-11-06.** The blocker cleared for the first crate.
 podcrates imported `pod-hostprobe` (T-055) from podvm at `2c03085`

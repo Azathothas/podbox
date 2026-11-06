@@ -99,7 +99,7 @@ pub fn measure(why: impl Into<String>) -> (String, Source) {
 /// when it does not.
 pub fn resolve(store: &Store) -> Probe {
     let path = store.root().join(CACHE_FILE);
-    let live = identity::confinement_key(&identity::read());
+    let live = podvm_probe::confinement_key(&identity::read());
 
     let why = match std::fs::read_to_string(&path) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -330,7 +330,7 @@ mod tests {
     /// an answer whose instrument is unknown is exactly the one to re-measure.
     #[test]
     fn a_key_from_before_the_instrument_was_recorded_never_matches() {
-        let live = identity::confinement_key(&identity::read());
+        let live = podvm_probe::confinement_key(&identity::read());
         let old = ConfinementKey {
             interpreter: None,
             ..live.clone()

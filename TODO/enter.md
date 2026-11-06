@@ -463,7 +463,7 @@ rather than "is there any interpreter at all". A magic too short to reach byte
 18 does not select on the architecture, and podvm treats that as no match
 rather than as a match.
 
-**Point 5 done, 2026-09-09.** `crates/podvm-probe/src/interp.rs`,
+**Point 5 done, 2026-09-09.** `pod_hostprobe::interp`,
 `measured_by` in `report::document`, a line in the banner, and `interpreter` as
 the eighth component of the cache key. Driven by
 `experiments/260-multiarch.sh` clause 6.
@@ -689,7 +689,7 @@ podvm-probe 97 passed, 0 failed).
 Source:      issue 59, beta.7 drive 2026-09-25 (`README.md:56-62`
              promised it, `run` never did); `crates/podvm-enter/src/lib.rs:47-61`
              (`ENTERED_RUNG` is `Chroot` on every machine),
-             `crates/podvm-probe/src/select.rs:138-155` (returns
+             `pod_hostprobe::select` (returns
              `Rung::Namespace`), `crates/podvm/src/system/df_info.rs:213-216`
              (asserts the two differ)
 Category:    enter
@@ -1538,7 +1538,7 @@ openat2(rootfd, "/no/such/file", RESOLVE_IN_ROOT)        -> -1 ENOENT
 
 Source:      issue 109; issue 114 section 1, section 4 and section 6
              item 1; `crates/podvm-probe/src/select.rs:35`;
-             `crates/podvm-probe/src/probes.rs:266`;
+             `pod_hostprobe::probes`;
              `crates/podvm-enter/src/memfd.rs:108`
 Category:    enter
 Priority:    P2
@@ -1728,7 +1728,7 @@ Problem:     bwrap and bailey confine a host process with user and mount
              cannot say "read these paths, write these, connect to port 443
              only".
 Premise:     The probe measures `landlock_create_ruleset(VERSION)`
-             (`crates/podvm-probe/src/probes.rs:231`, body at
+             (`pod_hostprobe::probes`, body at
              `probes.rs:1331`) and sets `PR_SET_NO_NEW_PRIVS` in a child
              (`probes.rs:1287`). The Landlock and seccomp sweeps are T-0903
              and T-0902. Landlock domains stack, so a payload can add a

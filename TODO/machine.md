@@ -104,8 +104,8 @@ Prove:       `experiments/357-tcg-profile.sh` exits 0 (report in
              re-driven with the same binary booting to VMR-GUEST-READY.
 
 **Done 2026-09-21.** Six legs in `Group::Machine`
-(`crates/podvm-probe/src/probes.rs`, `MACHINE_LEGS`), one verdict per
-leg, read back through `crates/podvm-probe/src/machine.rs`, which refuses
+(`pod_hostprobe::probes`, `MACHINE_LEGS`), one verdict per
+leg, read back through `pod_hostprobe::machine`, which refuses
 the tier naming every missing leg. `report::document` carries
 `tiers.machine.legs` with a null verdict where a row is absent, so a
 document written before the legs existed cannot read as a measured tier;
@@ -145,7 +145,7 @@ and `35-podvm`): refusal names the missing legs at 125 on a host
 whose only gap is the emulator and the two nodes; the `podvm`
 subverb spelling is refused by name per T-1302 (the name is
 `argv[0]`, not a verb). Fix area is `MACHINE_LEGS` in
-`crates/podvm-probe/src/probes.rs` with the `machine.rs`
+`pod_hostprobe::probes` with the `machine.rs`
 assessor. Risk if wrong is emulated execution claimed as hardware
 isolated. Prove is `tiers.machine.refusal` null for the TCG
 profile on a kvm-less but tcg-capable host, with the initramfs

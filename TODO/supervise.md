@@ -56,7 +56,7 @@ PID namespace, so a grandchild that reparents is outside podvm's reach.
 race:** `si_status` was read at byte 20 of the `siginfo_t`, which is `si_uid`. A
 SIGTERMed payload reported exit **128** instead of 143. On a 64-bit architecture
 the three leading ints are followed by four bytes of padding and `_sifields`
-begins at 16, so `si_status` is at 24. `crates/podvm-probe/src/sys.rs` carries
+begins at 16, so `si_status` is at 24. `pod_hostprobe::sys` carries
 the reasoning beside the read.
 
 ---
@@ -405,7 +405,7 @@ Prove:       `podvm probe --json | jq -e '.tiers.supervise | (.legs | length == 
              legs, and a refusal exactly where not every leg is `ok`.
 
 **Done 2026-09-22.** The tier's own three legs, and the refusal they drive.
-`crates/podvm-probe/src/probes.rs` gains `Group::Supervise` with the block
+`pod_hostprobe::probes` gains `Group::Supervise` with the block
 and `SUPERVISE_LEGS`: `seccomp(NEW_LISTENER) [supervise]`, a live
 `process_vm_readv` aimed at one byte of own memory, and
 `ptrace(PTRACE_TRACEME) [supervise]`. The listener and ptrace rows share
@@ -413,7 +413,7 @@ their bodies with the census and attribution rows that run the same
 operation: one implementation, two readings. `s_read_channel` is new; the
 bogus-pid discriminator beside it separates a filter from a policy and
 never copies a byte, so it cannot answer the channel question.
-`crates/podvm-probe/src/supervise.rs` assesses the legs the way
+`pod_hostprobe::supervise` assesses the legs the way
 `machine.rs` does, with the refusal naming every missing leg. The report
 carries both tiers in one `tiers` object plus a `supervise, one leg per
 fact` text block, and the selection reads the owned rows: all three `ok`
@@ -449,7 +449,7 @@ re-check starts there. Measured on the lane 2026-09-25
 (`experiments/results/triage-353.txt` clause `30-probe-chroot`):
 all three supervise legs `ok` with `refusal: null`, so the lane
 cannot show the fallback; the target shape (`ok`, `EPERM`,
-`EPERM`) is the driver. Fix area is `crates/podvm-probe/src/probes.rs`
+`EPERM`) is the driver. Fix area is `pod_hostprobe::probes`
 with `supervise.rs` and the report selection. Risk if wrong is a
 silent `Continue`-style false success: the banner must state
 mediation off wherever the fallback runs. Prove is the probe Prove
@@ -764,7 +764,7 @@ Prove:       `./experiments/351-signal-forward.sh` exits 0. Close
 SIGINT/SIGTERM and read them from a signalfd beside the payload's
 pidfd in one `ppoll`, so the signal never kills the waiter between
 the decision and the forward, and a reused pid can never be signalled
-instead (`crates/podvm-probe/src/sys.rs` `sigblock_shutdown`,
+instead (`pod_hostprobe::sys` `sigblock_shutdown`,
 `signalfd_shutdown`; `crates/podvm-enter/src/lib.rs`
 `Child::wait_forwarding`, naming each forward and a signaled end on
 stderr; `crates/podvm-supervise/src/launcher.rs` `serve`, silent,

@@ -280,8 +280,14 @@ fn render(root: &Path) -> Result<String, String> {
     lines.push(String::new());
     lines.push("## Mechanism declarations".to_string());
     lines.push(String::new());
+    // The rungs are declared in pod-hostprobe, outside this tree.
+    lines.push(
+        "`Rung` is `pod_hostprobe::select::Rung` (PodUtils/podcrates), \
+         re-exported by [crates/podvm-probe/src/select.rs](../crates/podvm-probe/src/select.rs)."
+            .to_string(),
+    );
+    lines.push(String::new());
     for (path, name) in [
-        ("crates/podvm-probe/src/select.rs", "Rung"),
         ("crates/podvm/src/tier.rs", "Tier"),
         ("crates/podvm-enter/src/ladder.rs", "Mode"),
     ] {

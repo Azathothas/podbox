@@ -31,7 +31,7 @@ Separate crate: `crates/podvm-interpose`.
 
 ## Mechanism declarations
 
-`Rung` in [crates/podvm-probe/src/select.rs](../crates/podvm-probe/src/select.rs): `Namespace`, `Supervise`, `Chroot`, `Userland`, `Interpose`, `Unsupported`.
+`Rung` is `pod_hostprobe::select::Rung` (PodUtils/podcrates), re-exported by [crates/podvm-probe/src/select.rs](../crates/podvm-probe/src/select.rs).
 
 `Tier` in [crates/podvm/src/tier.rs](../crates/podvm/src/tier.rs): `Ladder`, `Chroot`, `Machine`.
 
@@ -52,8 +52,8 @@ Separate crate: `crates/podvm-interpose`.
 | --- | --- |
 | `base64` | `0.23.1` |
 | `flate2` | `1.1.10` |
-| `linux-raw-sys` | `0.12.1` |
 | `pod-core` | `0.6.0` |
+| `pod-hostprobe` | `0.6.0` |
 | `pod-proxy` | `0.6.0` |
 | `pod-term` | `0.6.0` |
 | `pod-tls` | `0.6.0` |

@@ -112,10 +112,7 @@ const FILES: &[&str] = &[
     "crates/podvm-image/tests/common/registry.rs",
     "crates/podvm-image/tests/parallel_layers.rs",
     "crates/podvm-image/tests/registry_fixture.rs",
-    "crates/podvm-image/tests/space_precheck.rs",
     "crates/podvm-image/tests/store_digest.rs",
-    "crates/podvm-probe/tests/namespace.rs",
-    "crates/podvm-probe/tests/namespace_base.rs",
 ];
 
 const GATE_TIMEOUT_SECS: u64 = 300;

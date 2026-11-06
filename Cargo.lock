@@ -415,6 +415,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pod-hostprobe"
+version = "0.6.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.6.0#4aa2ee043fda8166dc92ce8422bac45ec82f8868"
+dependencies = [
+ "linux-raw-sys",
+ "pod-core",
+ "syscalls",
+]
+
+[[package]]
 name = "pod-proxy"
 version = "0.6.0"
 source = "git+https://github.com/PodUtils/podcrates?tag=v0.6.0#4aa2ee043fda8166dc92ce8422bac45ec82f8868"
@@ -516,6 +526,7 @@ version = "0.1.0-beta.13"
 dependencies = [
  "base64",
  "pod-core",
+ "pod-hostprobe",
  "pod-proxy",
  "pod-tls",
  "podvm-probe",
@@ -535,8 +546,7 @@ version = "0.1.0-beta.13"
 name = "podvm-probe"
 version = "0.1.0-beta.13"
 dependencies = [
- "linux-raw-sys",
- "syscalls",
+ "pod-hostprobe",
 ]
 
 [[package]]

@@ -262,17 +262,6 @@ pub(super) fn run_pins(plant: &mut Plant, root: &Path, scratch: &str) {
         &|| pin_test(root, "crates/podvm-image/tests/registry_fixture.rs", test),
     );
 
-    let test = "require_refuses_short_bytes_and_short_inodes_naming_the_destination";
-    plant.case_rust_test(
-        "33l space_precheck",
-        "crates/podvm-image/tests/space_precheck.rs",
-        test,
-        &cargo_test("podvm-image", "space_precheck", test),
-        &none,
-        scratch,
-        &|| pin_test(root, "crates/podvm-image/tests/space_precheck.rs", test),
-    );
-
     let test = "the_record_and_the_blobs_name_the_served_bytes";
     plant.case_rust_test(
         "33m store_digest",
@@ -282,27 +271,5 @@ pub(super) fn run_pins(plant: &mut Plant, root: &Path, scratch: &str) {
         &none,
         scratch,
         &|| pin_test(root, "crates/podvm-image/tests/store_digest.rs", test),
-    );
-
-    let test = "lane_shape_selects_below_namespace";
-    plant.case_rust_test(
-        "33n namespace",
-        "crates/podvm-probe/tests/namespace.rs",
-        test,
-        &cargo_test("podvm-probe", "namespace", test),
-        &none,
-        scratch,
-        &|| pin_test(root, "crates/podvm-probe/tests/namespace.rs", test),
-    );
-
-    let test = "capable_shape_selects_namespace";
-    plant.case_rust_test(
-        "33o namespace_base",
-        "crates/podvm-probe/tests/namespace_base.rs",
-        test,
-        &cargo_test("podvm-probe", "namespace_base", test),
-        &none,
-        scratch,
-        &|| pin_test(root, "crates/podvm-probe/tests/namespace_base.rs", test),
     );
 }

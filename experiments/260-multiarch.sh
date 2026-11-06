@@ -3,7 +3,7 @@
 # aarch64" actually mean when the only aarch64 available is an emulator?
 #
 # TODO/deps.md T-0911, TODO/packaging.md T-1005. Until 2026-09-09
-# `crates/podvm-probe/src/sys.rs` declared x86_64's syscall numbers by hand and
+# `pod_hostprobe::sys` declared x86_64's syscall numbers by hand and
 # `compile_error!`d everywhere else, so podvm was a single-architecture runtime
 # for no reason but the table. The numbers and the kernel structs now come from
 # `syscalls` and `linux-raw-sys`, per architecture, and this is what asks

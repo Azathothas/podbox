@@ -24,6 +24,9 @@ pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.6.0", defau
 # code stays synchronous. `pod-core` gives the stage of a failure.
 pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.6.0", default-features = false, features = ["blocking"] }
 pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.6.0", default-features = false }
+# The space and exec checks of a directory (`space.rs`, `exec_probe.rs`),
+# with podvm's settings from `podvm-probe`.
+pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.6.0" }
 sha2.workspace = true
 serde.workspace = true
 serde_json.workspace = true

@@ -259,7 +259,7 @@ before.
    above names it.
 2. The `Approach` says `statvfs`. The code calls **`statfs(2)`**, which is the
    syscall behind `statvfs(3)` and is what
-   `crates/podvm-probe/src/writable.rs` already calls, so free space has one
+   `pod_hostprobe::writable` already calls, so free space has one
    read path in this tree rather than two.
 
 ⚠ **`f_files == 0` means inodes are not counted**, not that there are none.
@@ -313,7 +313,7 @@ Prove:       `podvm run -d --name gc-probe public.ecr.aws/docker/library/alpine:
 **Done 2026-09-09, in the two halves below.** `images`, `image ls`, `rmi`, `image rm`, `tag`,
 `image prune` and `inspect` are implemented in `crates/podvm/src/images.rs`
 over `crates/podvm-image/src/store.rs`, and the lock is
-`crates/podvm-probe/src/sys.rs`'s `flock(2)` on an fd opened **without**
+`pod_hostprobe::sys`'s `flock(2)` on an fd opened **without**
 `O_CLOEXEC`, which is the inheritance the mechanism depends on.
 `experiments/160-store-gc.sh` exits 0 and drives all five clauses.
 
@@ -609,7 +609,7 @@ Approach:    A bounded pool of worker threads over the descriptor list, with the
              bound a named constant and not a per-machine guess. ⛔ The bound
              plus transient locks stays under sixteen concurrent `Lock`s in one
              process: every lock registers a fork-shed slot
-             (`crates/podvm-probe/src/sys/raw.rs:190`), and
+             (`pod_hostprobe::sys`), and
              [T-1310](#t-1310-the-store-suite-exhausts-the-sixteen-fork-shed-slots-and-the-victim-varies)
              measured what exceeding it costs. Each worker
              stages, verifies and commits through the existing store functions,
@@ -637,7 +637,7 @@ bound is fixed per the Decision fork: the constraint is the registry, not
 cores. The arithmetic: 4 workers hold one staging lock each, plus
 `FETCH_LOCK_HEADROOM = 3` transients (the index lock at record time, a
 sweep on another thread, one spare) is 7 against the sixteen fork-shed
-slots (`crates/podvm-probe/src/sys/raw.rs:190`), pinned by a `const` assert
+slots (`pod_hostprobe::sys`), pinned by a `const` assert
 that refuses the build rather than a test. Each worker builds its own
 `Client::with_policy(policy.clone())`, because `Client::blob` takes
 `&mut self`, and stages, verifies and commits through the same store
@@ -1142,14 +1142,14 @@ Approach:    ⛔ **CORRECTED ON 2026-09-09 BY BUILDING IT: the approach written
              unconditionally, and `flock(2)` is held on the open file
              description the duplicates share, so it lives until the last of
              them closes. The child that reproduces this defect, `clone_accepted`
-             in `crates/podvm-probe/src/child.rs:119`, one per `clone` probe,
+             in `pod_hostprobe::child`, one per `clone` probe,
              **never execs at all**, so no `FD_CLOEXEC` setting can reach it.
              The first build of this entry was red with the entry's own fix
              applied.
 
              ⭐ **Two defences, because they cover two different failures.**
              1. **The fork.** A fixed-size registry of fds that a fork must
-                shed, in `crates/podvm-probe/src/sys.rs`, drained inside
+                shed, in `pod_hostprobe::sys`, drained inside
                 `clone_fork` itself before it returns into the child.
                 `Store::hold` registers its fd and `Lock::drop` deregisters it.
                 ⚠ Inside `clone_fork` and not in each caller's `Ok(0)` arm, so a
@@ -1174,7 +1174,7 @@ Approach:    ⛔ **CORRECTED ON 2026-09-09 BY BUILDING IT: the approach written
 Decision:    Fix the inheritance, not the test. Marking the test `#[serial]` or
              giving it its own process would hide a defect that is real outside
              the suite; the suite found something and the finding is the point.
-             ⚠ `fcntl(2)` was not in `crates/podvm-probe/src/sys.rs` and is two
+             ⚠ `fcntl(2)` was not in `pod_hostprobe::sys` and is two
              lines there.
              ⛔ **Neither test may wait on a duration.** Both were written with a
              sleep first and both were then intermittent for a *third* reason:
@@ -1546,7 +1546,7 @@ pulling every row, and the unit test for the restart.
 
 ### T-0215 Four lock tests fail in two runs of five, and the gate has never said so
 
-Source:      `crates/podvm-image/src/store.rs`; `crates/podvm-probe/src/sys.rs`
+Source:      `crates/podvm-image/src/store.rs`; `pod_hostprobe::sys`
 Category:    image
 Priority:    P0
 Effort:      M
@@ -1802,7 +1802,7 @@ and the failure was only ever in the safe direction by luck.
 
 ### T-1310 The store suite exhausts the sixteen fork-shed slots, and the victim varies
 
-Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podvm-image/src/store/files.rs:105`; `crates/podvm-probe/src/sys/raw.rs:190`
+Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podvm-image/src/store/files.rs:105`; `pod_hostprobe::sys`
 Category:    image
 Priority:    P1
 Effort:      S
@@ -1814,7 +1814,7 @@ Problem:     Full parallel runs of the `podvm-image` suite intermittently refuse
              (`two_holders_of_one_image...`, `two_staging_calls...`,
              `two_platforms...`). A serial run passes 97 of 97. The pool is
              process-wide and fixed at `FORK_CLOSE_SLOTS`
-             (`crates/podvm-probe/src/sys/raw.rs:190`), and every
+             (`pod_hostprobe::sys`), and every
              `Lock::try_acquire` takes one slot
              (`crates/podvm-image/src/store/files.rs:105-123`). Libtest runs the
              suite in threads of one process, and each `two_*` test holds two or
@@ -1828,7 +1828,7 @@ Premise:     ⭐ **The figures above are inherited, not measured here.** They co
              rate from another lane is a reading from that lane.
              ⭐ **What was checked here, at file and line.**
              `FORK_CLOSE_SLOTS` is 16
-             (`crates/podvm-probe/src/sys/raw.rs:190`). Every lock registers
+             (`pod_hostprobe::sys`). Every lock registers
              (`crates/podvm-image/src/store/files.rs:105-123`), including staging
              locks: a `StagedFile` holds one for its life
              (`crates/podvm-image/src/store/records.rs:312-316`). So do transient sweep
@@ -2290,7 +2290,7 @@ pre-flight is now `find`) plus `unnecessary_map_or` (now
 ### T-1418 A noexec store refuses before the pull
 
 Source:      issue 71; `crates/podvm-image/src/store.rs:218`;
-             `crates/podvm-image/src/space.rs:155`;
+             `pod_hostprobe::space`;
              `crates/podvm/src/lifecycle/entry.rs:138`;
              [T-0203](image.md)
 Category:    image

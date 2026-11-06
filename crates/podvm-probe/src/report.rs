@@ -124,7 +124,7 @@ pub fn entry_banner(f: &Findings, sel: &Selection, entered: Rung) -> String {
     // the banner says so HERE, beside the rung, rather than further down: the
     // rung is the line a caller acts on, and a rung measured by qemu is a
     // statement about qemu.
-    if let Some(note) = crate::interp::detect().note() {
+    if let Some(note) = crate::interpreter().note() {
         out.push_str(&note);
         out.push('\n');
     }

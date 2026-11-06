@@ -57,8 +57,8 @@ Prove:       `podvm probe --json | jq -e '.probes | length >= 24 and (map(select
 
 **Done 2026-09-08.** The `Prove` command was run and exits 0: **48 probes**, and
 no probe reports a verdict other than `ok` without an errno beside it.
-`crates/podvm-probe/src/probes.rs` is the set and
-`crates/podvm-probe/src/child.rs` is the child.
+`pod_hostprobe::probes` is the set and
+`pod_hostprobe::child` is the child.
 
 ⭐ **The fork is `clone(2)`, not `std::process::Command`**, because the minimum
 set needs `clone(CLONE_NEWNS)` and `clone(CLONE_NEWUSER)` attempted *with those
@@ -68,7 +68,7 @@ kinds of probe: a `Kind::Clone` row's verdict is the clone's own errno, and a
 namespace flags that row needs.
 
 ⭐ **The multithreaded rule is checked, not assumed.**
-`crates/podvm-probe/src/probes.rs`'s `unshare(CLONE_NEWUSER)` body reads
+`pod_hostprobe::probes`'s `unshare(CLONE_NEWUSER)` body reads
 `/proc/self/status`'s `Threads:` line first and reports a `skip` where it is
 above one, because the kernel refuses that call to any multithreaded caller
 with `EINVAL` whatever the policy. That is what makes the rule survive the day
@@ -81,11 +81,11 @@ and is reproducible:
 
 ```sh
 printf '#include <sys/syscall.h>\n#include <stdio.h>\nint main(void){printf("%%d\\n",SYS_move_mount);}\n' \
-  | gcc -x c - -o /tmp/nr && /tmp/nr   # against `crates/podvm-probe/src/sys.rs`
+  | gcc -x c - -o /tmp/nr && /tmp/nr   # against `pod_hostprobe::sys`
 ```
 
 All 46 declared numbers and all 19 flag constants matched on 2026-09-08. Two
-tests in `crates/podvm-probe/src/sys.rs` additionally cross-check the trap, the
+tests in `pod_hostprobe::sys` additionally cross-check the trap, the
 ABI and the negative-return window against facts the process already knows by
 another route, and the sixteen attribution numbers are exercised on every run of
 `experiments/130-probe-parity.sh`.
@@ -98,13 +98,13 @@ through. Driven on 2026-09-08 with `podvm probe 1>&- 2>err`: the evidence block
 is identical to an ordinary run, two skips either way.
 
 ⚠ **The errno comes from the raw syscall, not from a libc wrapper.**
-`crates/podvm-probe/src/sys.rs` issues `syscall` directly, so the value in
+`pod_hostprobe::sys` issues `syscall` directly, so the value in
 `-4095..=-1` *is* `-errno` with no thread-local in between. glibc's `setuid(3)`
 runs a multi-threaded id-change dance and musl's runs another; either answer
 would be the library's rather than the kernel's.
 
 ⚠ **Four probes of the Go instrument were changed on purpose**, and the module
-header of `crates/podvm-probe/src/probes.rs` carries all four with the reason.
+header of `pod_hostprobe::probes` carries all four with the reason.
 The one worth naming here: the bare `mount(MS_SLAVE,/)` row is not ported,
 because in the caller's mount namespace it changes the propagation of `/` for
 the machine, permanently. The same operation is measured inside
@@ -222,7 +222,7 @@ Decision:    Report four verdicts rather than one `mounts: no`. The four-way
 Prove:       `podvm probe --json | jq -e '.mounts | has("create") and has("configure") and has("attach") and has("use")'`
 
 **Done 2026-09-08.** The `Prove` command was run and exits 0.
-`crates/podvm-probe/src/mounts.rs` derives the four from the attribution rows
+`pod_hostprobe::mounts` derives the four from the attribution rows
 that already ran, rather than issuing a second set of calls that would answer
 about a different moment.
 
@@ -265,7 +265,7 @@ Decision:    Write a real file and remove it, rather than `access(W_OK)`.
 Prove:       `podvm probe --json | jq -e '.writable | type == "array" and length > 0 and all(has("path") and has("blocks_free") and has("inodes_free"))'`
 
 **Done 2026-09-08.** The `Prove` command was run and exits 0.
-`crates/podvm-probe/src/writable.rs` creates a real file `O_EXCL`, writes bytes
+`pod_hostprobe::writable` creates a real file `O_EXCL`, writes bytes
 to it, removes it, then `statfs(2)`s the directory for blocks **and** inodes.
 
 ⭐ **The set reported is the set obtained.** Every candidate carries its own
@@ -309,7 +309,7 @@ Decision:    Read the maps even where every probe already ran. They cost one
 Prove:       `podvm probe --json | jq -e '.identity.uid_map != null and .identity.setgroups != null and .identity.cap_eff != null'`
 
 **Done 2026-09-08.** The `Prove` command was run and exits 0.
-`crates/podvm-probe/src/identity.rs` reads the three files and selects the
+`pod_hostprobe::identity` reads the three files and selects the
 `/proc/self/status` lines **by name**, never by position.
 
 ⭐ **Two sentences in the diagnostic are the whole reason for the entry**, and
@@ -566,7 +566,7 @@ Prove:       `./experiments/30-attribution-census.sh; test $? -ne 1` and `podvm 
 
 ⭐ **Rule 1 is enforced by the parent, not by review.** A probe child writes its
 verdict on stdout *and* sets its exit status from the operation, and
-`crates/podvm-probe/src/child.rs`'s `interpret` refuses the pair when they
+`pod_hostprobe::child`'s `interpret` refuses the pair when they
 disagree. A child that contradicts itself has established nothing, so that is a
 `skip`. A child that says nothing, or dies on a signal, is the same. There is no
 path by which an exit code alone becomes a verdict.
@@ -625,11 +625,11 @@ Premise:     ⭐ **Measured, and it disagrees with the specification's key.**
              to a confined process on the first `run` after a probe.
 Approach:    Key on the boot id **and** on what the probe measured about the
              confinement. ⚠ Three of the four below are already read by
-             `crates/podvm-probe/src/identity.rs`; the fourth is not and is
+             `pod_hostprobe::identity`; the fourth is not and is
              new work this entry carries:
              1. the boot id, which catches a reboot;
              2. `/proc/self/uid_map`, `/proc/self/gid_map` and
-                `/proc/self/setgroups`, which `crates/podvm-probe/src/identity.rs`
+                `/proc/self/setgroups`, which `pod_hostprobe::identity`
                 already reads and which change with the user namespace;
              3. `Seccomp` and `Seccomp_filters` from `/proc/self/status`, which
                 change when a filter is installed;
@@ -658,7 +658,7 @@ Prove:       `podvm probe --json > /tmp/a.json && podvm probe --json > /tmp/b.js
 
 **Done 2026-09-08**, beside the store, as the entry's `Decision` said it would
 be. `crates/podvm-image/src/probe_cache.rs` holds the store I/O and the
-comparison; `crates/podvm-probe/src/identity.rs` holds the one reader of the
+comparison; `pod_hostprobe::identity` holds the one reader of the
 key. `experiments/170-probe-cache.sh` is both halves of the `Prove` and exits 0.
 
 ⭐ **The measurement that made this entry necessary reproduced, on one kernel,
@@ -894,7 +894,7 @@ scheduled.
 
 Source:      issue 28, client beta testing 2026-09-22 (same key across
              a capability change serves a stale verdict);
-             `crates/podvm-probe/src/identity.rs:150`
+             `pod_hostprobe::identity`
              (`ConfinementKey`: eight components, no capability field;
              `cap_eff`/`cap_bnd` are read at `:26`-`:28` but never keyed)
 Category:    probe
@@ -931,7 +931,7 @@ Prove:       `cargo test -p podvm-probe` green with a new test
              recurrence.
 
 **Done 2026-09-23.** Key the two capability sets, as decided.
-`ConfinementKey` (`crates/podvm-probe/src/identity.rs`) gains `cap_eff`
+`ConfinementKey` (`pod_hostprobe::identity`) gains `cap_eff`
 and `cap_bnd`, read from the `Identity` the probe already carries; the
 fixed-order `components()` goes from eight to ten, so `differences()`,
 `missing()`, `is_complete()` and the document's `cache_key` block (written
@@ -1114,8 +1114,8 @@ matrix vs errand-bailey: podman-none 307 / 92, docker-none 305 / 86,
 ### T-1670 The first cloud session measures its host and saves the result
 
 Source:      the migration of 2026-11-06 to cloud sessions; issue 114 (the
-             target host); `crates/podvm-probe/src/probes.rs:225`;
-             `crates/podvm-probe/src/probes.rs:231`;
+             target host); `pod_hostprobe::probes`;
+             `pod_hostprobe::probes`;
              `crates/podvm/src/doctor.rs:149`
 Category:    probe
 Priority:    P1

@@ -24,7 +24,7 @@ fn the_cache_key_agrees_with_the_identity_block_it_is_derived_from() {
     // wrong one. This is that check. TODO/probe.md T-0111.
     let doc = one_document();
     let id = crate::identity::read();
-    let key = crate::identity::confinement_key(&id);
+    let key = crate::confinement_key(&id);
     for (name, value) in key.components() {
         if let Some(v) = value {
             assert!(

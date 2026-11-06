@@ -19,7 +19,7 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
     // this has read qemu's answer as the machine's.
     // ⚠ `emulated: false` is the absence of evidence and says so in `checked`;
     // it is not a claim that this is a bare machine.
-    let interp = crate::interp::detect();
+    let interp = crate::interpreter();
     o.obj("measured_by", |m| {
         m.bool("emulated", interp.is_emulated());
         m.str("interpreter", &interp.key());
@@ -287,7 +287,7 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
     // `docs/conventions/forbidden-patterns.md` forbids a value in two places
     // WITH NO CHECK THAT THEY AGREE, and the check is
     // `the_cache_key_agrees_with_the_identity_block_it_is_derived_from` below.
-    let key = crate::identity::confinement_key(&f.identity);
+    let key = crate::confinement_key(&f.identity);
     o.obj("cache_key", |k| {
         for (name, value) in key.components() {
             k.opt_str(name, value);

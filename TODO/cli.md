@@ -1926,7 +1926,7 @@ Premise:     The parity table refuses `--read-only` (`parity.rs:370`),
              interposer identity (`parity.rs:338`). `setrlimit`,
              `PR_SET_NO_NEW_PRIVS` and a seccomp filter need no privilege;
              the probe already sets `PR_SET_NO_NEW_PRIVS` in a child
-             (`crates/podvm-probe/src/probes/attribution.rs:315`).
+             (`pod_hostprobe::probes`).
 Approach:    Write an experiment that runs the sand-net line through
              `podvm run` and records each flag as passed or refused by
              name. Then implement the unprivileged equivalents. `--ulimit
@@ -2168,9 +2168,9 @@ Problem:     `podvm doctor` reports the rootfs and machine legs. It does
              (guest kernels, runtimes) have no stated verification rule.
 Premise:     The doctor is `crates/podvm/src/doctor.rs:149`, and it reads
              the machine assessment (`doctor.rs:190`). The probe already
-             has a Landlock leg (`crates/podvm-probe/src/probes.rs:231`).
+             has a Landlock leg (`pod_hostprobe::probes`).
              Space is checked before large writes
-             (`crates/podvm-image/src/space.rs:146`, T-0806). Release
+             (`pod_hostprobe::space`, T-0806). Release
              verification uses cosign and the workflow identity (T-1328).
 Approach:    Add one doctor group for each scope capability. Each check
              prints `ok`, `MISSING` with a `fix:` line, or "cannot be fixed

@@ -1165,7 +1165,7 @@ listing is required. Measured on the lane 2026-09-25
 `readdir(/)` ok with 22 entries, `open(/bin)` ok, `creat(/)` ok,
 ptmx stat and open ok, so the legs read correctly where nothing is
 denied; the enumeration-free path stays the work. Fix area is the
-Census legs in `crates/podvm-probe/src/probes.rs` and every call
+Census legs in `pod_hostprobe::probes` and every call
 site that enumerates. Risk if wrong is a failure that reads as a
 missing file rather than a listing denial. Prove is `155` extended
 with a payload that lists `/` on an `EACCES` host and still runs
