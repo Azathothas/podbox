@@ -20,15 +20,28 @@ fn serve_once(body: Vec<u8>) -> u16 {
     port
 }
 
-fn get(port: u16) -> ureq::Response {
-    ureq::AgentBuilder::new()
-        .timeout_connect(Duration::from_secs(5))
-        .timeout_read(Duration::from_secs(5))
-        .timeout_write(Duration::from_secs(5))
-        .build()
-        .get(&format!("http://127.0.0.1:{port}/blob"))
-        .call()
-        .expect("the loopback origin answers")
+const TEST_LIMITS: Limits = Limits {
+    head: Duration::from_secs(5),
+    idle: Duration::from_secs(5),
+};
+
+/// A transport with no proxy, whatever the environment of the test says.
+fn net() -> Net {
+    let (config, _) = crate::tls::client_config();
+    Net::with_environment(config, pod_proxy::Environment::default()).expect("the transport starts")
+}
+
+fn get(port: u16) -> Body {
+    match net().send(
+        "GET",
+        &format!("http://127.0.0.1:{port}/blob"),
+        &[],
+        true,
+        TEST_LIMITS,
+    ) {
+        Ok(body) => body,
+        Err(e) => panic!("the loopback origin answers: {e}"),
+    }
 }
 
 /// A body past its declared size is refused mid-stream, and the
@@ -180,37 +193,26 @@ fn a_request_url_splits_into_host_and_path() {
     );
 }
 
-/// TODO/image.md T-1420. The reported shape was `Dns Failed`: every kind
-/// ureq names renders in plain lowercase, with no table to drift.
+/// TODO/image.md T-1420. The reported shape was `Dns Failed`: each cause
+/// that `net` names is plain lowercase, by the stage that broke.
 #[test]
-fn every_transport_kind_renders_in_plain_lowercase() {
-    let kinds = [
-        (ureq::ErrorKind::Dns, "dns failed"),
-        (ureq::ErrorKind::ConnectionFailed, "connection failed"),
-        (ureq::ErrorKind::InvalidUrl, "bad url"),
-        (ureq::ErrorKind::Io, "network error"),
-    ];
-    for (kind, want) in kinds {
-        assert_eq!(format!("{kind}").to_lowercase(), want);
-    }
+fn every_transport_cause_renders_in_plain_lowercase() {
+    let t = refused_transport();
+    let cause = t.why.split(':').next().unwrap_or("");
+    assert_eq!(cause, "connection failed", "{}", t.why);
+    assert_eq!(t.host, "127.0.0.1:1");
 }
 
 /// One refused loopback port, no network leaving the machine: the
 /// synthesis for every transport test below.
-fn refused_transport() -> ureq::Transport {
-    let err = ureq::AgentBuilder::new()
-        .timeout_connect(Duration::from_secs(5))
-        .timeout_read(Duration::from_secs(5))
-        .timeout_write(Duration::from_secs(5))
-        .build()
-        .get("https://127.0.0.1:1/v2/")
-        .call()
-        .unwrap_err();
-    match err {
-        ureq::Error::Transport(t) => t,
-        ureq::Error::Status(code, _) => {
-            panic!("a refused port is a transport error, not a status {code}")
-        }
+fn refused_transport() -> crate::net::Transport {
+    match net().send("GET", "https://127.0.0.1:1/v2/", &[], true, TEST_LIMITS) {
+        Err(Refusal::Transport(t)) => t,
+        Err(e) => panic!("a refused port is a transport error, not {e}"),
+        Ok(body) => panic!(
+            "a refused port is a transport error, not a status {}",
+            body.status()
+        ),
     }
 }
 

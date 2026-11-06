@@ -31,6 +31,7 @@ pub mod error;
 pub mod exec_probe;
 pub mod health;
 pub mod layout;
+pub mod net;
 pub mod oci;
 pub mod platform;
 pub mod probe_cache;

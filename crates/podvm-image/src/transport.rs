@@ -32,62 +32,8 @@ use crate::error::{Error, Result};
 /// `docker --insecure-registry`'s own environment spelling, plus podvm's.
 const ENV_INSECURE: &str = "PODVM_INSECURE_REGISTRIES";
 
-/// ⛔ **A loopback registry is never reached through a proxy, whatever the
-/// environment says.** Measured on 2026-09-09 against a `registry:2` on
-/// `localhost:5000`: with an intercepting proxy set in the environment, the
-/// plain-HTTP request went to the proxy and came back **HTTP 405**, which reads
-/// as a broken registry and is a proxy refusing a non-CONNECT request. docker
-/// and podman both bypass the proxy for loopback and podvm does too.
-///
-/// ⚠ This is a **host** test and not an address test: podvm does not resolve
-/// the name to decide, because a resolver call here would be a network round
-/// trip inside a function that is choosing how to make network round trips.
-pub fn is_loopback(endpoint: &str) -> bool {
-    let host = host_of(endpoint);
-    host == "localhost"
-        || host == "::1"
-        || host.eq_ignore_ascii_case("ip6-localhost")
-        || host.strip_prefix("127.").is_some_and(|rest| {
-            rest.split('.').count() == 3 && rest.split('.').all(|o| o.parse::<u8>().is_ok())
-        })
-}
-
-/// The host part of an `endpoint`, with any port and any IPv6 brackets removed.
-///
-/// ⚠ **A bare IPv6 address has colons and no port**, so splitting at the last
-/// colon turns `::1` into the host `::`. The rule is the URL syntax's own: a
-/// port follows the LAST colon only when the address is bracketed or has just
-/// one colon in it.
-fn host_of(endpoint: &str) -> &str {
-    if let Some(rest) = endpoint.strip_prefix('[') {
-        // `[::1]` or `[::1]:5000`
-        return rest.split(']').next().unwrap_or(rest);
-    }
-    if endpoint.matches(':').count() > 1 {
-        // An unbracketed address with several colons is IPv6 with no port.
-        return endpoint;
-    }
-    match endpoint.rsplit_once(':') {
-        Some((h, p)) if !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()) => h,
-        _ => endpoint,
-    }
-}
-
-/// The `NO_PROXY` entries, lower-cased. ⚠ Both spellings, because curl reads
-/// the lower-case one and most tooling sets the upper.
-fn no_proxy_entries() -> Vec<String> {
-    let mut out = Vec::new();
-    for var in ["NO_PROXY", "no_proxy"] {
-        if let Ok(v) = std::env::var(var) {
-            out.extend(
-                v.split(',')
-                    .map(|e| e.trim().trim_start_matches('.').to_ascii_lowercase())
-                    .filter(|e| !e.is_empty()),
-            );
-        }
-    }
-    out
-}
+// ⛔ A loopback registry is never reached through a proxy, and `NO_PROXY` is
+// honoured. [`crate::net`] and `pod-proxy` decide, for each request.
 
 /// One host per line, `#` comments. ⚠ Deliberately line-based rather than TOML:
 /// podman's `registries.conf` is a schema this would have to track, and a file
@@ -230,26 +176,6 @@ impl Policy {
     pub fn named(&self) -> Vec<&str> {
         self.insecure.iter().map(String::as_str).collect()
     }
-
-    /// Whether this endpoint goes through the environment's proxy.
-    ///
-    /// ⛔ Loopback never does, and that is not configurable: a proxy cannot
-    /// reach the caller's own loopback, so sending it there produces a
-    /// confusing failure rather than a slow success. `NO_PROXY` is honoured on
-    /// top of that, matching a bare host or any parent domain, which is the
-    /// rule curl uses.
-    pub fn use_proxy(&self, endpoint: &str) -> bool {
-        if is_loopback(endpoint) {
-            return false;
-        }
-        let host = host_of(endpoint).to_ascii_lowercase();
-        for entry in no_proxy_entries() {
-            if entry == "*" || host == entry || host.ends_with(&format!(".{entry}")) {
-                return false;
-            }
-        }
-        true
-    }
 }
 
 /// ⚠ A host, never a URL. `--insecure-registry https://x/` is a common mistake
@@ -377,28 +303,6 @@ mod tests {
         // the second.
         assert!(!p.permits_explicit_http("ghcr.io"));
         assert_eq!(p.after_connect_failure("ghcr.io"), None);
-    }
-
-    #[test]
-    fn loopback_never_goes_through_a_proxy() {
-        // ⛔ Measured: with a proxy in the environment the plain-HTTP request to
-        // a loopback registry came back HTTP 405, which is a proxy refusing a
-        // non-CONNECT request and reads as a broken registry.
-        let p = Policy::default();
-        for host in [
-            "localhost",
-            "localhost:5000",
-            "127.0.0.1:5000",
-            "127.1.2.3",
-            "::1",
-            "[::1]:5000",
-        ] {
-            assert!(is_loopback(host), "{host} was not read as loopback");
-            assert!(!p.use_proxy(host), "{host} would go through a proxy");
-        }
-        for host in ["ghcr.io", "registry-1.docker.io", "127.example.com"] {
-            assert!(!is_loopback(host), "{host} was read as loopback");
-        }
     }
 
     #[test]

@@ -15,10 +15,15 @@ podvm-probe = { path = "../podvm-probe" }
 rustls.workspace = true
 rustls-pki-types.workspace = true
 # The roots, the PEM reader and the client configuration (`tls.rs`), shared
-# with podssh and podnet through PodUtils/podcrates. No tokio: podvm is
-# synchronous. The provider is podvm's `ring`.
+# with podssh and podnet through PodUtils/podcrates. The provider is podvm's
+# `ring`.
 pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.5.0", default-features = false }
-ureq.workspace = true
+# The HTTP transport (`net.rs`): the registry, the token realm, the guest image
+# fetch and the mirror probe, through the proxy of the environment. The
+# feature `blocking` runs it on a private runtime of one thread, so podvm's own
+# code stays synchronous. `pod-core` gives the stage of a failure.
+pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.5.0", default-features = false, features = ["blocking"] }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.5.0", default-features = false }
 sha2.workspace = true
 serde.workspace = true
 serde_json.workspace = true

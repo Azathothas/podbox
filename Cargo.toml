@@ -80,9 +80,6 @@ rustls-pki-types = "1"
 syscalls = { version = "0.8", default-features = false }
 linux-raw-sys = { version = "0.12", default-features = false, features = ["general", "no_std"] }
 
-# T-0906, `experiments/results/bloat-http.txt`. Blocking, no async runtime.
-ureq = { version = "2", default-features = false, features = ["tls", "gzip"] }
-
 # T-0907, `experiments/results/bloat-archive.txt`. ⛔ `rust_backend` is named
 # rather than defaulted: flate2's default backend is C.
 tar = { version = "0.4", default-features = false }
@@ -102,9 +99,8 @@ serde_json = "1"
 # T-0209 prefers the registry crate over a hand-rolled encoding (a second
 # implementation of a seam with exactly one, which the vendor-and-registry
 # table refuses). The pin has moved since that measurement: the workspace
-# resolves `base64` 0.23.1 while 0.22.1 stays in the graph as `ureq`'s
-# dependency, so this pin carries one marginal version. The `Engine` API
-# in use exists in both.
+# resolves `base64` 0.23.1, the one version in the graph since the registry
+# left `ureq` for `pod-proxy`.
 base64 = "0.23"
 
 [profile.release]

@@ -16,6 +16,8 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+use podvm_image::net::{Limits, Net, Refusal};
+
 /// ⚠ Two seconds to connect and two to read. The whole point is that the
 /// alternative -- a black-holed tcp/80 inside the payload -- costs the package
 /// manager's own timeout, which is minutes.
@@ -93,23 +95,24 @@ impl Prober {
 
 fn probe(host: &str) -> Answer {
     let (config, _roots) = podvm_image::tls::client_config();
-    let agent = ureq::AgentBuilder::new()
-        .tls_config(config)
-        // ⚠ The environment's proxy where it sets one. An intercepting proxy is
-        // the normal case in the environments podvm is built for, and ignoring
-        // it turns a working mirror into a connect timeout.
-        .try_proxy_from_env(true)
-        .timeout_connect(CONNECT)
-        .timeout_read(READ)
-        .timeout_write(READ)
-        .user_agent(concat!("podvm/", env!("CARGO_PKG_VERSION")))
-        .build();
-    match agent.head(&format!("https://{host}/")).call() {
+    // ⚠ The environment's proxy where it sets one (`podvm_image::net`). An
+    // intercepting proxy is the normal case in the environments podvm is
+    // built for, and ignoring it turns a working mirror into a connect
+    // timeout.
+    let mut net = match Net::from_environment(config) {
+        Ok(n) => n,
+        Err(why) => return Answer::No(why),
+    };
+    let limits = Limits {
+        head: CONNECT.saturating_add(READ),
+        idle: READ,
+    };
+    match net.send("HEAD", &format!("https://{host}/"), &[], true, limits) {
         Ok(_) => Answer::Https,
         // ⭐ A status is an answer. The host terminated TLS and replied, which
         // is the whole question; that it has nothing at `/` is not.
-        Err(ureq::Error::Status(_, _)) => Answer::Https,
-        Err(ureq::Error::Transport(t)) => Answer::No(format!("{t}")),
+        Err(Refusal::Status(_)) => Answer::Https,
+        Err(e) => Answer::No(e.to_string()),
     }
 }
 

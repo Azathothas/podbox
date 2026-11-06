@@ -6,13 +6,13 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 
-# ⛔ No new pin. Every dependency here is already in the artefact: `ureq` and
-# the TLS stack came in with `podvm-image` (TODO/deps.md T-0905), and the
+# ⛔ No new pin. Every dependency here is already in the artefact: the HTTP
+# transport (`podvm_image::net`) and the TLS stack come with `podvm-image`
+# (TODO/deps.md T-0905), and the
 # containment-checked writes are `podvm-extract`'s own `safety` module rather
 # than a second implementation of it (TODO/complete.md T-0405).
 [dependencies]
 podvm-probe = { path = "../podvm-probe" }
 podvm-image = { path = "../podvm-image" }
 podvm-extract = { path = "../podvm-extract" }
-ureq.workspace = true
 serde_json.workspace = true

@@ -12,8 +12,9 @@
 //! token is held in memory, never logged, never put in an error, and every URL
 //! that reaches a message goes through [`redact`] first.
 //!
-//! Blocking, per the entry's Decision: podvm has no reason to be async and an
-//! async runtime is a large dependency with nothing to do here.
+//! Blocking, per the entry's Decision: podvm has no reason to be async. The
+//! transport is `pod-proxy`'s blocking face ([`crate::net`]): its runtime of
+//! one thread is private, and podvm's own code stays synchronous.
 
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -23,6 +24,7 @@ use serde::Deserialize;
 
 use crate::digest::{Digest, Verifier};
 use crate::error::{Error, Result};
+use crate::net::{Body, Limits, Net, Refusal};
 use crate::oci;
 
 /// A sink a cut-short transfer can start over on.
@@ -41,7 +43,12 @@ pub trait Restart {
 /// connection that has stopped producing bytes.
 const READ_TIMEOUT: Duration = Duration::from_secs(120);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
-const WRITE_TIMEOUT: Duration = Duration::from_secs(60);
+/// The dial and the head of the answer within the connect and the read
+/// bounds together; each wait for the bytes of a body within the read bound.
+const LIMITS: Limits = Limits {
+    head: CONNECT_TIMEOUT.saturating_add(READ_TIMEOUT),
+    idle: READ_TIMEOUT,
+};
 
 /// `RULES.md` section 8: bounded retry, never an unbounded one.
 const ATTEMPTS: u32 = 3;
@@ -61,6 +68,9 @@ const MANIFEST_CEILING: u64 = 32 * 1024 * 1024;
 /// and a megabyte ceiling leaves two orders of headroom before a runaway
 /// body is refused rather than buffered.
 const TAGS_CEILING: u64 = 1024 * 1024;
+
+/// A token answer, and the error body of a registry, are read up to this.
+const TOKEN_CEILING: u64 = 10 * 1024 * 1024;
 
 /// A `null` tags list reads as empty: some registries send one for a
 /// repository with no tags rather than `[]`.
@@ -99,13 +109,11 @@ pub struct FetchedManifest {
 }
 
 pub struct Client {
-    agent: ureq::Agent,
-    /// ⚠ Agents by `(verify, proxy)`, built lazily. Separate rather than flags
-    /// on one agent, because a `ureq::Agent` carries one `ClientConfig`, one
-    /// proxy setting and one connection pool: verifying for one registry and
-    /// not another through the same pool is how a verified connection gets
-    /// reused for an unverified request.
-    agents: HashMap<(bool, bool), ureq::Agent>,
+    /// ⚠ The transport (`pod-proxy`), or why it could not start. Each request
+    /// takes the trust that the policy gives its endpoint, so a verified and
+    /// an unverified request never share a connection: `pod-proxy` keeps no
+    /// pool, and each request has its own.
+    net: std::result::Result<Net, String>,
     pub policy: crate::transport::Policy,
     /// Endpoints whose HTTPS connect failed and which the policy permits over
     /// HTTP. ⛔ Only ever populated for a host the caller named insecure.
@@ -125,20 +133,13 @@ impl Client {
 
     pub fn with_policy(policy: crate::transport::Policy) -> Client {
         let (config, roots) = crate::tls::client_config();
-        let agent = ureq::AgentBuilder::new()
-            .tls_config(config)
-            // ⚠ The environment's proxy, when it sets one. An intercepting
-            // proxy is the normal case in the environments podvm is built for,
-            // and ignoring it produces a connect timeout rather than a refusal.
-            .try_proxy_from_env(true)
-            .timeout_connect(CONNECT_TIMEOUT)
-            .timeout_read(READ_TIMEOUT)
-            .timeout_write(WRITE_TIMEOUT)
-            .user_agent(concat!("podvm/", env!("CARGO_PKG_VERSION")))
-            .build();
+        // ⚠ The environment's proxy, when it sets one. An intercepting proxy
+        // is the normal case in the environments podvm is built for, and
+        // ignoring it produces a connect timeout rather than a refusal.
+        // ⛔ A loopback registry is never reached through a proxy, and
+        // `NO_PROXY` is honoured: `crate::net` and `pod-proxy` decide.
         Client {
-            agent,
-            agents: HashMap::new(),
+            net: Net::from_environment(config),
             policy,
             http_endpoints: std::collections::BTreeSet::new(),
             tokens: HashMap::new(),
@@ -146,45 +147,11 @@ impl Client {
         }
     }
 
-    /// The agent for one endpoint, and the scheme to use with it.
-    ///
-    /// ⛔ Two agents rather than one with a switch: a `ureq::Agent` carries one
-    /// `ClientConfig` and one connection pool, and verifying for one registry
-    /// and not another through the same pool is how a verified connection gets
-    /// reused for an unverified request.
-    fn agent_for(&mut self, endpoint: &str) -> ureq::Agent {
-        let verify = self.policy.verify(endpoint);
-        let proxy = self.policy.use_proxy(endpoint);
-        if verify && proxy {
-            return self.agent.clone();
-        }
-        self.agents
-            .entry((verify, proxy))
-            .or_insert_with(|| {
-                let (config, _roots) = if verify {
-                    crate::tls::client_config()
-                } else {
-                    crate::tls::client_config_unverified()
-                };
-                let mut b = ureq::AgentBuilder::new()
-                    .tls_config(config)
-                    .timeout_connect(CONNECT_TIMEOUT)
-                    .timeout_read(READ_TIMEOUT)
-                    .timeout_write(WRITE_TIMEOUT)
-                    .user_agent(concat!("podvm/", env!("CARGO_PKG_VERSION")));
-                // ⛔ A loopback registry is never reached through a proxy, and
-                // `NO_PROXY` is honoured. Measured on 2026-09-09: with an
-                // intercepting proxy in the environment, a plain-HTTP request
-                // to `localhost:5000` came back HTTP 405, which is the proxy
-                // refusing a non-CONNECT request and reads as a broken
-                // registry. `ureq` 2's `try_proxy_from_env` does not consult
-                // `NO_PROXY`, so this is where that is decided.
-                if proxy {
-                    b = b.try_proxy_from_env(true);
-                }
-                b.build()
-            })
-            .clone()
+    /// The transport, or the refusal that it could not start.
+    fn net(&mut self) -> std::result::Result<&mut Net, Refusal> {
+        self.net
+            .as_mut()
+            .map_err(|why| Refusal::Refused(why.clone()))
     }
 
     /// The base URL for an endpoint, `https://` unless this one has already
@@ -221,8 +188,7 @@ impl Client {
         let mut bytes = Vec::new();
         // ⛔ `take` before `read_to_end`, so the ceiling bounds what is read
         // rather than being checked after the memory is already spent.
-        resp.into_reader()
-            .take(MANIFEST_CEILING + 1)
+        resp.take(MANIFEST_CEILING + 1)
             .read_to_end(&mut bytes)
             .map_err(|e| Error::Http {
                 what: format!("GET {}", redact(&path)),
@@ -278,8 +244,7 @@ impl Client {
             let resp = self.get(&path, endpoint, &scope, None)?;
             let link = resp.header("Link").map(str::to_string);
             let mut bytes = Vec::new();
-            resp.into_reader()
-                .take(TAGS_CEILING + 1)
+            resp.take(TAGS_CEILING + 1)
                 .read_to_end(&mut bytes)
                 .map_err(|e| Error::Http {
                     what: format!("GET {}", redact(&path)),
@@ -395,14 +360,14 @@ impl Client {
     /// `RLIMIT_FSIZE` is refused instead of dying with SIGXFSZ. The refusal
     /// repeats the size shape `Verifier::finish` reports at the end.
     fn drain<W: Write>(
-        resp: ureq::Response,
+        resp: Body,
         sink: &mut W,
         want: &Digest,
         size: Option<u64>,
         path: &str,
     ) -> Result<()> {
         let mut verifier = Verifier::new(sink);
-        let mut reader = resp.into_reader();
+        let mut reader = resp;
         let ceiling = crate::space::file_ceiling().unwrap_or(u64::MAX);
         let cap = size.unwrap_or(u64::MAX).min(ceiling);
         let bound = if size.is_some_and(|s| s <= ceiling) {

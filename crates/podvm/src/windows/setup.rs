@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use podvm_image::error::{EXIT_FLAG_ERROR, EXIT_RUNTIME_ERROR};
+use podvm_image::net::{Body, Limits, Net};
 use podvm_windows::Ceiling;
 
 use super::args::{Args, USAGE};
@@ -20,22 +21,24 @@ const _: () = assert!(DEFAULT_MAX_BYTES > 0 && DEFAULT_MAX_BYTES < u64::MAX);
 
 /// Bounds a stalled transfer, not a large one. The body is streamed, so an
 /// overall deadline would fail a slow but healthy download; these fail a
-/// connection that has stopped producing bytes. The triple repeats the
+/// connection that has stopped producing bytes. The pair repeats the
 /// registry client's (`podvm-image/src/registry.rs`), one shape per caller
 /// rather than a shared constant in a third place.
 const FETCH_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 const FETCH_READ_TIMEOUT: Duration = Duration::from_secs(120);
-const FETCH_WRITE_TIMEOUT: Duration = Duration::from_secs(60);
+const FETCH_LIMITS: Limits = Limits {
+    head: FETCH_CONNECT_TIMEOUT.saturating_add(FETCH_READ_TIMEOUT),
+    idle: FETCH_READ_TIMEOUT,
+};
 
-/// The HTTP caller for `fetch`, with the timeouts above rather than the
-/// library default, so a black-holed origin fails loud instead of hanging
-/// a caller that cannot prompt.
-fn agent() -> ureq::Agent {
-    ureq::AgentBuilder::new()
-        .timeout_connect(FETCH_CONNECT_TIMEOUT)
-        .timeout_read(FETCH_READ_TIMEOUT)
-        .timeout_write(FETCH_WRITE_TIMEOUT)
-        .build()
+/// One GET of `url` with `limits`, through the proxy of the environment
+/// (`podvm_image::net`), with the redirects followed. A black-holed origin
+/// fails loud instead of hanging a caller that cannot prompt.
+fn get(url: &str, limits: Limits) -> Result<Body, String> {
+    let (config, _roots) = podvm_image::tls::client_config();
+    let mut net = Net::from_environment(config)?;
+    net.send("GET", url, &[], true, limits)
+        .map_err(|e| e.to_string())
 }
 
 /// Where `setup` leaves the provisioned image: beside the vendor's, under a
@@ -107,7 +110,7 @@ pub(crate) fn fetch(a: &Args) -> i32 {
         max_bytes: a.max_bytes.unwrap_or(DEFAULT_MAX_BYTES),
         fsize,
     };
-    let response = match agent().get(&url).call() {
+    let response = match get(&url, FETCH_LIMITS) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("podvm windows fetch: {url}: {e}");
@@ -117,13 +120,7 @@ pub(crate) fn fetch(a: &Args) -> i32 {
     let declared = response
         .header("Content-Length")
         .and_then(|v| v.trim().parse::<u64>().ok());
-    match podvm_windows::fetch::store(
-        response.into_reader(),
-        declared,
-        &dest,
-        a.sha256.as_deref(),
-        ceiling,
-    ) {
+    match podvm_windows::fetch::store(response, declared, &dest, a.sha256.as_deref(), ceiling) {
         Ok(got) => {
             println!("{got}  {}", dest.display());
             if a.sha256.is_none() {
@@ -271,10 +268,10 @@ mod tests {
     }
 
     /// A hung origin fails on the read timeout instead of hanging the
-    /// caller: the defect was `ureq::get` with the library default and no
-    /// bound at all. The server accepts and then never answers; the agent
-    /// carries a 200 ms read timeout for the test, so the error must arrive
-    /// long before the server's 10 s hold ends.
+    /// caller: the defect was a GET with the library default and no bound
+    /// at all. The server accepts and then never answers; the request
+    /// carries a 200 ms limit for the test, so the error must arrive long
+    /// before the server's 10 s hold ends.
     #[test]
     fn a_hung_origin_fails_on_the_read_timeout() {
         use std::net::TcpListener;
@@ -285,18 +282,17 @@ mod tests {
             std::thread::sleep(Duration::from_secs(10));
         });
         let t0 = std::time::Instant::now();
-        let agent = ureq::AgentBuilder::new()
-            .timeout_connect(Duration::from_secs(5))
-            .timeout_read(Duration::from_millis(200))
-            .timeout_write(Duration::from_secs(5))
-            .build();
-        let err = agent
-            .get(&format!("http://127.0.0.1:{port}/hangs"))
-            .call()
-            .unwrap_err();
+        let limits = Limits {
+            head: Duration::from_millis(200),
+            idle: Duration::from_millis(200),
+        };
+        let err = match get(&format!("http://127.0.0.1:{port}/hangs"), limits) {
+            Ok(_) => panic!("a hung origin gives no answer"),
+            Err(e) => e,
+        };
         assert!(
-            matches!(err, ureq::Error::Transport(_)),
-            "a hung read is a transport error, not {err:?}"
+            err.contains("127.0.0.1"),
+            "a hung read names its host: {err}"
         );
         assert!(
             t0.elapsed() < Duration::from_secs(8),

@@ -8,7 +8,7 @@ impl Client {
         endpoint: &str,
         scope: &str,
         accept: Option<&str>,
-    ) -> Result<ureq::Response> {
+    ) -> Result<Body> {
         let mut last: Option<Error> = None;
         let mut target = format!("{}{path}", self.base(endpoint));
         for attempt in 0..ATTEMPTS {
@@ -78,10 +78,10 @@ impl Client {
         scope: &str,
         accept: Option<&str>,
     ) -> Result<Attempt> {
-        let agent = self.agent_for(endpoint);
-        match self.send(&agent, url, scope, accept, None) {
+        let verify = self.policy.verify(endpoint);
+        match self.send(url, scope, accept, None, verify) {
             Ok(r) => Ok(Attempt::Done(Box::new(r))),
-            Err(ureq::Error::Status(401, resp)) => {
+            Err(Refusal::Status(resp)) if resp.status() == 401 => {
                 // The challenge decides where the token comes from. ⚠ Read from
                 // the response rather than hard-coded, so a registry that is not
                 // Docker Hub works without a table of hosts.
@@ -98,21 +98,21 @@ impl Client {
                 // after a Basic 401 fails the same way and teaches nothing.
                 let scheme = challenge.split_whitespace().next().unwrap_or("");
                 if scheme.eq_ignore_ascii_case("basic") {
-                    return self.answer_basic(&agent, url, scope, accept, &challenge);
+                    return self.answer_basic(url, scope, accept, &challenge, verify);
                 }
                 let token = self.token(endpoint, scope, &challenge)?;
                 self.tokens.insert(key(endpoint, scope), token);
-                match self.send(&agent, url, scope, accept, None) {
+                match self.send(url, scope, accept, None, verify) {
                     Ok(r) => Ok(Attempt::Done(Box::new(r))),
                     Err(e) => Err(status_error(url, e)),
                 }
             }
-            Err(ureq::Error::Status(code, resp)) if retryable(code) => Ok(Attempt::Retry {
+            Err(Refusal::Status(resp)) if retryable(resp.status()) => Ok(Attempt::Retry {
                 after: resp.header("Retry-After").and_then(parse_retry_after),
-                why: format!("HTTP {code}"),
+                why: format!("HTTP {}", resp.status()),
                 transport_host: None,
             }),
-            Err(ureq::Error::Transport(t)) => Ok(Attempt::Retry {
+            Err(Refusal::Transport(t)) => Ok(Attempt::Retry {
                 after: None,
                 transport_host: Some(transport_host(url, &t)),
                 why: transport_why(&t),
@@ -121,41 +121,37 @@ impl Client {
         }
     }
 
-    // ⚠ `clippy::result_large_err`: `ureq::Error` carries a whole `Response`
-    // and is a foreign type. Boxing it here would box it again at every call
-    // site that matches on its variants, which is the only thing this function
-    // exists to let callers do. The escape hatch is named with its reason, as
-    // `docs/conventions/code.md` requires.
-    #[allow(clippy::result_large_err)]
+    /// One GET through the transport of this client, with the trust that
+    /// the policy gives the endpoint.
     fn send(
-        &self,
-        agent: &ureq::Agent,
+        &mut self,
         url: &str,
         scope: &str,
         accept: Option<&str>,
         basic: Option<&str>,
-    ) -> std::result::Result<ureq::Response, ureq::Error> {
-        let mut req = agent.get(url);
+        verify: bool,
+    ) -> std::result::Result<Body, Refusal> {
+        let mut headers: Vec<(&str, String)> = Vec::new();
         if let Some(a) = accept {
-            req = req.set("Accept", a);
+            headers.push(("Accept", a.to_string()));
         }
         // ⚠ Keyed by the URL's own host: a redirect to a CDN must not be sent
-        // the registry's bearer token, and ureq does not carry headers across
-        // hosts by default. The token is attached to the request this client
-        // builds, which is always the registry.
+        // the registry's bearer token, and `net` does not carry the
+        // `Authorization` header to another host. The token is attached to the
+        // request this client builds, which is always the registry.
         //
         // ⚠ A Basic answer rides instead of the token, never beside it: the
         // 401 that produced it refused the Bearer the first request carried,
         // and re-sending a refused credential beside the new one is how a
         // secret reaches a log that records rejected attempts.
         if let Some(b) = basic {
-            req = req.set("Authorization", b);
+            headers.push(("Authorization", b.to_string()));
         } else if let Some(host) = host_of(url)
             && let Some(t) = self.tokens.get(&key(&host, scope))
         {
-            req = req.set("Authorization", &format!("Bearer {t}"));
+            headers.push(("Authorization", format!("Bearer {t}")));
         }
-        req.call()
+        self.net()?.send("GET", url, &headers, verify, LIMITS)
     }
 
     /// Answer a `Basic` challenge from the stored logins.
@@ -164,12 +160,12 @@ impl Client {
     /// retry: the registry just refused the anonymous request. A failed
     /// helper refuses by name through the lookup's error.
     fn answer_basic(
-        &self,
-        agent: &ureq::Agent,
+        &mut self,
         url: &str,
         scope: &str,
         accept: Option<&str>,
         challenge: &str,
+        verify: bool,
     ) -> Result<Attempt> {
         let host = host_of(url).unwrap_or_else(|| "<unknown>".into());
         let cred = match crate::credentials::lookup(&host) {
@@ -191,14 +187,14 @@ impl Client {
             }
         };
         let header = crate::credentials::basic_header(&cred);
-        match self.send(agent, url, scope, accept, Some(&header)) {
+        match self.send(url, scope, accept, Some(&header), verify) {
             Ok(r) => Ok(Attempt::Done(Box::new(r))),
             Err(e) => Err(status_error(url, e)),
         }
     }
 
     /// Answer a `Bearer` challenge at the realm it names.
-    fn token(&self, endpoint: &str, scope: &str, challenge: &str) -> Result<String> {
+    fn token(&mut self, endpoint: &str, scope: &str, challenge: &str) -> Result<String> {
         let params = parse_challenge(challenge);
         let scheme = challenge.split_whitespace().next().unwrap_or("");
         if !scheme.eq_ignore_ascii_case("bearer") {
@@ -241,26 +237,30 @@ impl Client {
             });
         }
 
-        let mut req = self.agent.get(realm);
+        let mut url = realm.clone();
+        let mut sep = if realm.contains('?') { '&' } else { '?' };
         if let Some(service) = params.get("service") {
-            req = req.query("service", service);
+            url.push_str(&format!(
+                "{sep}service={}",
+                crate::net::query_value(service)
+            ));
+            sep = '&';
         }
         // ⚠ The challenge's own scope when it gives one, and the scope this
         // request needs otherwise. A registry that omits it still has to be
         // told what the token is for.
-        req = req.query(
-            "scope",
-            params.get("scope").map(String::as_str).unwrap_or(scope),
-        );
+        let wanted = params.get("scope").map(String::as_str).unwrap_or(scope);
+        url.push_str(&format!("{sep}scope={}", crate::net::query_value(wanted)));
 
         // TODO/image.md T-0209: a stored login rides to the token realm as
         // Basic. No login stays anonymous, exactly as before; a failed
         // helper refuses here rather than minting an anonymous token behind
         // a delegation that just failed.
+        let mut headers: Vec<(&str, String)> = Vec::new();
         if let Some(realm_host) = host_of(realm) {
             match crate::credentials::lookup(&realm_host) {
                 Ok(Some(cred)) => {
-                    req = req.set("Authorization", &crate::credentials::basic_header(&cred));
+                    headers.push(("Authorization", crate::credentials::basic_header(&cred)));
                 }
                 Ok(None) => {}
                 Err(refused) => {
@@ -277,12 +277,17 @@ impl Client {
             token: Option<String>,
             access_token: Option<String>,
         }
-        let resp = req.call().map_err(|e| status_error(realm, e))?;
-        // ⚠ `into_string` rather than ureq's `json` feature: `serde_json` is
-        // already pinned by TODO/deps.md T-0908 and measured, and a second JSON
-        // reader in the graph would be a dependency nobody ruled on. It is
-        // bounded by ureq at 10 MiB, which a token response is far under.
-        let text = resp.into_string().map_err(|e| Error::Http {
+        // ⚠ The realm is verified whatever the registry's policy: a token is a
+        // credential, and only the registry was named insecure.
+        let mut resp = self
+            .net()
+            .map_err(|e| status_error(realm, e))?
+            .send("GET", &url, &headers, true, LIMITS)
+            .map_err(|e| status_error(realm, e))?;
+        // ⚠ The text and `serde_json`, which TODO/deps.md T-0908 already
+        // pinned and measured, rather than a second JSON reader. It is bounded
+        // at 10 MiB, which a token response is far under.
+        let text = crate::net::text(&mut resp, TOKEN_CEILING).map_err(|e| Error::Http {
             what: format!("token from {}", redact(realm)),
             detail: format!("reading the token response: {e}"),
         })?;

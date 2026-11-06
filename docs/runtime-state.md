@@ -50,9 +50,10 @@ Separate crate: `crates/podvm-interpose`.
 
 | Dependency | Locked versions |
 | --- | --- |
-| `base64` | `0.22.1`, `0.23.1` |
+| `base64` | `0.23.1` |
 | `flate2` | `1.1.10` |
 | `linux-raw-sys` | `0.12.1` |
+| `pod-core` | `0.5.0` |
 | `pod-proxy` | `0.5.0` |
 | `pod-term` | `0.5.0` |
 | `pod-tls` | `0.5.0` |
@@ -63,4 +64,3 @@ Separate crate: `crates/podvm-interpose`.
 | `serde_json` | `1.0.154` |
 | `sha2` | `0.11.1` |
 | `tar` | `0.4.46` |
-| `ureq` | `2.12.1` |

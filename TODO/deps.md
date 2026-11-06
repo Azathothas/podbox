@@ -1396,7 +1396,7 @@ Source:      COORD-001, issue 194, row 3; PodUtils podcrates issue 3,
 Category:    deps
 Priority:    P2
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     podvm dials registries and SSH targets directly
              (`crates/podvm-ssh/src/transport.rs:226`). It reads no
@@ -1423,6 +1423,26 @@ Prove:       `cargo test -p podvm-image` exits 0 in the Linux lane with a
              bypasses it for a `NO_PROXY` host, and
              `./target/release/podvm-gate` exits 0.
 
+**Done 2026-11-06.** podvm took the registry patch
+`adoption/podvm/pod-proxy-registry.patch` of PodUtils/podcrates (`main`
+at `e6a609b`, made at podvm `f3eccd8`), applied with `git apply --3way`
+and no conflict. Each HTTP request of podvm goes through
+`pod_proxy::blocking::Client::send_streamed` (`crates/podvm-image/src/net.rs`):
+the registry, `podvm windows fetch` and the mirror probe of
+podvm-complete; ureq leaves the graph. `tests/proxy_pull.rs` pulls the
+registry fixture of podvm-image through a CONNECT stand-in named by `HTTPS_PROXY`, with
+the registry's name resolvable only through the proxy, and bypasses it
+for a `NO_PROXY` host. Each line of `pod-proxy-registry.run` exits 0:
+`cargo test -p podvm-image` (156 unit tests and each integration test),
+the Windows fetch 21, `store_gates` 4, podvm-complete 15, podvm-ssh 107
+and `mux_two_client` 15 against sshd, clippy, rustfmt, the runtime-state
+rows, `./target/release/podvm-gate`, the toolchains, ureq absent, and
+the static check of `node` and `podvm`. Release sizes: `podvm` 4,011,064
+to 3,974,296 bytes (-36 KiB), `node` 1,913,816, `operator` 1,868,824.
+Call C10 of `docs/decisions.md` takes the runtime into the binaries and
+the two known gaps (podcrates T-075, T-077). The count of threads during
+a pull was not measured: the runtime is current-thread.
+
 **Partial, 2026-11-06.** podvm took `pod-proxy` 0.4.0 with feature
 `blocking` by `adoption/podvm/pod-proxy.patch` of PodUtils/podcrates
 (`main` at `d703263`, made at podvm `f9eae80`), applied with `git apply
@@ -1441,12 +1461,8 @@ Release sizes: `node` 1,672,024 to 1,913,816 bytes (+236 KiB),
 `operator` 1,635,224 to 1,864,728 (+224 KiB); `podvm` 4,011,064. Call C10
 of `docs/decisions.md` accepts the runtime and the two changes of
 behaviour.
-Remaining: the registry transport through `pod-proxy`, with the Prove's
-pull through a local CONNECT fixture and its `NO_PROXY` bypass. It waits
-for podcrates T-069 (a streamed body in `blocking::Client`); until then
-podvm-image keeps ureq's own `try_proxy_from_env`, so a pull already
-uses a proxy of the environment. The guest image fetch is the same
-remaining clause.
+The registry and the guest image fetch followed with the registry patch
+above.
 
 ---
 

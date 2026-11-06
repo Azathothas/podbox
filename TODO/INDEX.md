@@ -350,7 +350,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1674](gate.md) | P1 | gate | done | Split every Rust source file to 500 lines, then hold the limit in the gate |
 | [T-1675](deps.md) | P2 | deps | done | Take `pod-term` for the SSH line discipline |
 | [T-1676](deps.md) | P2 | deps | done | Take `pod-tls` for both TLS stacks, with its synchronous face |
-| [T-1677](deps.md) | P2 | deps | partial | Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial |
+| [T-1677](deps.md) | P2 | deps | done | Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial |
 | [T-1678](deps.md) | P2 | deps | blocked | Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1` |
 | [T-1679](deps.md) | P2 | deps | blocked | Take `pod-services` for the third-party hosts compiled into podvm |
 | [T-1680](deps.md) | P2 | deps | blocked | Take `pod-todo` for the record half of `podvm-gate` |
@@ -364,7 +364,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-296 items: 33 open, 11 partial, 5 blocked, 247 done.
+296 items: 33 open, 10 partial, 5 blocked, 248 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -374,9 +374,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 62 | 64 |
 | P1 | 7 | 8 | 0 | 118 | 133 |
-| P2 | 25 | 2 | 5 | 58 | 90 |
+| P2 | 25 | 1 | 5 | 59 | 90 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **33** | **11** | **5** | **247** | **296** |
+| **All** | **33** | **10** | **5** | **248** | **296** |
 
 ## Work order
 
