@@ -63,6 +63,20 @@ Remove this file when each step below is done.
 9. The work order of `TODO/PROGRESS.md`: the errand-host cluster
    (T-1643 to T-1653) first, then the scope entries.
 
+## A workflow that a session cannot start
+
+To start a workflow that a cloud session cannot start (GitHub Actions is
+disabled for its pushing account, or it may not push a tag), open an issue
+in this repository titled exactly `[gh action] requested`. Its body holds
+the exact `gh` command or commands to run, one per line in one `sh` block,
+each with `-R OWNER/NAME` and every flag, and one line that says why. The
+owner's local agent runs the commands as the owner and writes the run ids
+back into the issue. Example body:
+
+```sh
+gh workflow run release.yml -R PodUtils/podcrates --ref main -f version=0.4.0
+```
+
 ## Questions for the owner
 
 `docs/decisions.md`, "Questions for the owner": the synchronous face of

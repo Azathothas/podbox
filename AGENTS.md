@@ -165,6 +165,18 @@ watches them.
      `taken` line ends the freeze. Write each fix of a frozen file as a
      COORD issue `(to podcrates)`, so that podcrates ports it.
 
+5. To start a workflow that a cloud session cannot start (GitHub Actions is
+   disabled for its pushing account, or it may not push a tag), open an issue
+   in this repository titled exactly `[gh action] requested`. Its body holds
+   the exact `gh` command or commands to run, one per line in one `sh` block,
+   each with `-R OWNER/NAME` and every flag, and one line that says why. The
+   owner's local agent runs the commands as the owner and writes the run ids
+   back into the issue. Example body:
+
+   ```sh
+   gh workflow run release.yml -R PodUtils/podcrates --ref main -f version=0.4.0
+   ```
+
 ## 10. Decisions
 
 * `docs/decisions.md` has each ruling of the owner since 2026-11-06 with

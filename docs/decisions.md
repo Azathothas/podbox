@@ -29,6 +29,7 @@ before; they stay in force where no row here supersedes them.
 | 2026-11-06 | File size | Each Rust source file outside `vendor/` has at most 500 lines, with no allowlist, as in podcrates. Every larger file is split now, before other work (the owner: "500, split everything now"). T-1674. |
 | 2026-11-06 | Synchronous face | podvm takes `pod-tls` with `default-features = false` and `pod-proxy` with its feature `blocking`, as podcrates built them (PodUtils/podcrates#4, its call C20); no tokio in podvm's own code. |
 | 2026-11-06 | GitHub Actions of podcrates | GitHub Actions is disabled for the account that the podcrates session pushes with, so a push there starts no workflow. Until the owner resolves it, the owner's account dispatches podcrates' `ci.yml` and `release.yml` by `workflow_dispatch` (COORD-005). |
+| 2026-11-06 | Workflow requests | A session that needs a workflow run it cannot start opens an issue titled `[gh action] requested` with the exact `gh` commands in its body; the owner's local agent runs them and writes back the run ids. |
 
 ## Calls made without a ruling
 
