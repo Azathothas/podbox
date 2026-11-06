@@ -443,6 +443,13 @@ fn dial_ws(origin: &str, path: &str, token: &str) -> Result<Ws, Error> {
         host: host.clone(),
         port,
     })?;
+    // ⛔ The write bound is set here, once, so every frame on this leg
+    // carries it: a relay that stops reading ends the op inside
+    // `WRITE_DEADLINE` instead of wedging the loop, and the socket ends so
+    // the node redials. It is set before TLS, because the handshake runs in
+    // `Tls::connect` and its writes take the same bound.
+    base.set_write_timeout(Some(WRITE_DEADLINE))
+        .map_err(|e| Error::dial(format!("relay write bound {host}:{port}{path}"), e))?;
     if tls {
         let cfg = crate::tls::TlsConfig::load().map_err(|e| Error::dial("relay tls roots", e))?;
         base = Box::new(
@@ -452,12 +459,6 @@ fn dial_ws(origin: &str, path: &str, token: &str) -> Result<Ws, Error> {
     }
     let host_header = format!("{host}:{port}");
     let headers = vec![("X-Relay-Token".to_string(), token.to_string())];
-    // ⛔ The write bound is set here, once, so every frame on this leg
-    // carries it: a relay that stops reading ends the op inside
-    // `WRITE_DEADLINE` instead of wedging the loop, and the socket ends so
-    // the node redials.
-    base.set_write_timeout(Some(WRITE_DEADLINE))
-        .map_err(|e| Error::dial(format!("relay write bound {host}:{port}{path}"), e))?;
     let ws = Ws::client(base, &host_header, path, &headers)
         .map_err(|e| Error::dial(format!("relay websocket {host}:{port}{path}"), e))?;
     // ⛔ The version is reported to the caller, never gated on here. The

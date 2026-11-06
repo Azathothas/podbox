@@ -6,21 +6,23 @@
 //! certificates can deny service and observe timing, and a test relay that
 //! needs no verification speaks plain `ws` on loopback instead.
 //!
-//! The root store loads the host bundles first, because a cage with an
-//! intercepting proxy puts its CA in the host bundle, and falls back to
-//! `webpki-roots` for a machine with no bundle at all. Either way the
-//! default is verify, never trust-anything.
+//! The trust anchors and the handshake are the ones of `pod-tls`
+//! (PodUtils/podcrates), with `ring` passed in: the first readable host
+//! bundle, because a cage with an intercepting proxy puts its CA in the host
+//! bundle, and the compiled-in `webpki-roots`, for a machine with no bundle at
+//! all. Either way the default is verify, never trust-anything.
 
 use std::io::{self, Read, Write};
-use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use rustls::pki_types::ServerName;
+use pod_tls::{Context, Settings, Trust, Words};
 
 use crate::transport::Stream;
 
-/// Where a normal Linux host keeps its trust anchors, in load order.
+/// Where a normal Linux host keeps its trust anchors, in load order. The
+/// first one with a usable root is read.
 pub const HOST_BUNDLES: &[&str] = &[
     "/etc/ssl/certs/ca-certificates.crt",
     "/etc/pki/tls/certs/ca-bundle.crt",
@@ -31,47 +33,31 @@ pub const HOST_BUNDLES: &[&str] = &[
 /// A client TLS configuration, shared by every dial on one process.
 #[derive(Debug, Clone)]
 pub struct TlsConfig {
-    config: Arc<rustls::ClientConfig>,
+    context: Arc<Context>,
 }
 
 impl TlsConfig {
-    /// Build the root store: host bundles first, `webpki-roots` when none
-    /// loaded. An unreadable bundle is skipped and an empty one adds
-    /// nothing; there is no refusal when no host bundle exists, because
-    /// the fallback is the design for a machine with none at all, and a
-    /// client with the fallback still verifies everything.
+    /// Build the root store and the configuration over it. An unreadable
+    /// bundle is skipped and an empty one adds nothing; there is no refusal
+    /// when no host bundle exists, because the compiled-in roots are the
+    /// design for a machine with none at all, and a client with them still
+    /// verifies everything.
     pub fn load() -> io::Result<Self> {
-        let mut roots = rustls::RootCertStore::empty();
-        let mut loaded = 0usize;
-        for p in HOST_BUNDLES {
-            match load_pem_roots(&mut roots, Path::new(p)) {
-                Ok(n) => loaded += n,
-                Err(_) => continue,
-            }
-        }
-        if loaded == 0 {
-            roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-        }
-        let config = rustls::ClientConfig::builder()
-            .with_root_certificates(roots)
-            .with_no_client_auth();
+        // The words of an unknown issuer name the one place that podvm-ssh
+        // reads a CA from.
+        let mut words = Words::new("podvm");
+        words.replace_roots = format!("the first host CA bundle ({})", HOST_BUNDLES[0]);
+        let mut settings = Settings::new(words);
+        settings.system_bundles = HOST_BUNDLES.iter().map(PathBuf::from).collect();
+        let context = Context::new(Arc::new(rustls::crypto::ring::default_provider()), settings);
+        // The configuration is made here: a failure names the roots, not a dial.
+        context
+            .config_for(&Trust::Default)
+            .map_err(io::Error::other)?;
         Ok(TlsConfig {
-            config: Arc::new(config),
+            context: Arc::new(context),
         })
     }
-}
-
-fn load_pem_roots(roots: &mut rustls::RootCertStore, path: &Path) -> io::Result<usize> {
-    let data = std::fs::read(path)?;
-    let mut cursor = std::io::Cursor::new(data);
-    let mut n = 0;
-    for cert in rustls_pemfile::certs(&mut cursor) {
-        roots
-            .add(cert?)
-            .map_err(|e| io::Error::other(format!("{}: {e}", path.display())))?;
-        n += 1;
-    }
-    Ok(n)
 }
 
 /// A client TLS stream over any byte transport, so `wss://` rides the same
@@ -81,17 +67,18 @@ pub struct Tls {
 }
 
 impl Tls {
+    /// The verified handshake runs here, before the first frame. A
+    /// refusal names the server and says what to do about an unknown
+    /// issuer or a host clock that refuses the certificate.
     pub fn connect(base: Box<dyn Stream>, host: &str, cfg: &TlsConfig) -> io::Result<Self> {
         // ⛔ The name is validated before the handshake, not during it: a
         // dial to something that is not a DNS name fails here, naming the
         // value, rather than mid-handshake.
-        let name = ServerName::try_from(host.to_string())
-            .map_err(|e| io::Error::other(format!("bad TLS server name {host:?}: {e}")))?;
-        let conn = rustls::ClientConnection::new(cfg.config.clone(), name)
-            .map_err(|e| io::Error::other(format!("TLS client: {e}")))?;
-        Ok(Tls {
-            inner: rustls::StreamOwned::new(conn, base),
-        })
+        let inner = cfg
+            .context
+            .tls_over_blocking(base, host, &Trust::Default)
+            .map_err(io::Error::other)?;
+        Ok(Tls { inner })
     }
 }
 
@@ -148,6 +135,9 @@ mod tests {
             Ok(_) => panic!("a garbage server name must not connect"),
             Err(e) => e,
         };
-        assert!(e.to_string().contains("bad TLS server name"), "got {e}");
+        assert!(
+            e.to_string().contains("is not a valid server name"),
+            "got {e}"
+        );
     }
 }

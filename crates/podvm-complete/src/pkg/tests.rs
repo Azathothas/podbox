@@ -381,7 +381,8 @@ fn a_capath_that_is_not_hash_indexed_is_left_alone() {
 }
 
 /// ⚠ Any certificate at all; nothing here checks its contents, only that
-/// `rustls_pemfile` finds one, which is what `host_bundle_bytes` requires.
+/// the PEM reader of `pod-tls` finds one, which is what `host_bundle_bytes`
+/// requires.
 const SELF_SIGNED_PEM: &str = "\
 -----BEGIN CERTIFICATE-----
 MIIBITCBxaADAgECAgEBMAoGCCqGSM49BAMCMA8xDTALBgNVBAMMBHRlc3QwHhcN

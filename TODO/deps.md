@@ -1341,7 +1341,7 @@ Source:      COORD-001, issue 194, row 2; PodUtils podcrates issue 3,
 Category:    deps
 Priority:    P2
 Effort:      M
-Status:      blocked
+Status:      done
 
 Problem:     podvm has two TLS setups: `crates/podvm-ssh/src/tls.rs` (153
              lines) and `crates/podvm-image/src/tls.rs` (290 lines). It
@@ -1365,9 +1365,23 @@ Prove:       `cargo test -p podvm-image` and `cargo test -p podvm-ssh` exit
              0 in the Linux lane, `cargo tree -p podvm -e normal -i tokio`
              finds no tokio, and `./target/release/podvm-gate` exits 0.
 
-**Blocked 2026-11-06.** Blocker: podcrates has not released `pod-tls`
-with the no-tokio feature set. Clears when: that release and its
-adoption patch exist, and T-1675 is done.
+**Done 2026-11-06.** podvm took `pod-tls` 0.4.0 with
+`default-features = false` by `adoption/podvm/pod-tls.patch` of
+PodUtils/podcrates (`main` at `deacfef`, made at podvm `b5473a2`). The
+patch applied with `git apply --3way`; its one hunk of
+`crates/podvm-complete/src/pkg.rs` is a comment of a test that T-1674 had
+moved to `pkg/tests.rs`, and was applied there by hand. `pod-term` moves
+to `v0.4.0`; `rustls-pemfile` and podvm's own `webpki-roots` are gone, and
+`cargo update -p webpki-roots@1.0.9` gives the lock 1.0.11. Each line of
+`pod-tls.run` exits 0 in a Linux container: podvm-ssh 101 tests,
+podvm-image 23 and podvm-complete 15 of the TLS paths, `mux_two_client`
+15 against sshd, clippy, rustfmt, the runtime-state rows, the record
+gate, `check-consumer-toolchains.py` and `check-static.sh` of `node` and
+`podvm`. `cargo test -p podvm-image -p podvm-ssh` passes, and `cargo tree
+-p podvm -e normal -i tokio` finds no tokio. Release sizes, before and
+after: `podvm` 3,974,200 and 4,006,968 bytes (+32 KiB), `node` 1,622,872
+and 1,672,024 (+48 KiB), `operator` 1,594,264 and 1,635,224 (+40 KiB).
+Call C9 of `docs/decisions.md` accepts the three changes of behaviour.
 
 ---
 

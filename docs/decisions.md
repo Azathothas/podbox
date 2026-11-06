@@ -45,6 +45,7 @@ Each call stays in force until the owner rules otherwise.
 | 2026-11-06 | C6 | The move to the pinned stable Rust and edition 2024 is the first step of the first cloud session, before the first `pod-*` crate. The record moves to the format of `pod-todo` as its own milestone after that. |
 | 2026-11-06 | C7 | `.claude/settings.json` is podcrates' file, with force-push denied. |
 | 2026-11-06 | C8 | The variables that a payload and podvm-interpose read (`PODVM_MODE`, `PODVM_MAPS` and the rest) become settings of `pod-enter` and `pod-supervise` that podvm fills; no crate hard-codes a `PODVM_` name. podvm-interpose, the memo format and the download of a guest base image stay in podvm (COORD-004, #197). |
+| 2026-11-06 | C9 | podvm takes `pod-tls` 0.4.0 with `default-features = false` and accepts its three changes of behaviour: podvm-ssh trusts the first usable host bundle and the compiled-in roots together; a bundle with a block that is not valid base64 is skipped whole; the TLS handshake of the relay runs in `Tls::connect`, before the WebSocket upgrade, with the write bound set before it. The hint of `pod-tls` that names a CA file "which replace podvm's roots" is podcrates' known gap (PodUtils/podcrates#7); podvm waits for its fix. |
 
 ## Questions for the owner
 

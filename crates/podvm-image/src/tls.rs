@@ -52,17 +52,13 @@ pub struct Roots {
     pub count: usize,
 }
 
+/// The certificates of one bundle, read with the PEM reader of `pod-tls`, so
+/// that the bundle this module chooses is a bundle that `pod-tls` reads too.
 fn load_bundle(path: &str) -> Option<Vec<CertificateDer<'static>>> {
     let data = std::fs::read(path).ok()?;
-    let mut rd = std::io::BufReader::new(&data[..]);
-    let certs: Vec<CertificateDer<'static>> = rustls_pemfile::certs(&mut rd)
-        .filter_map(|c| c.ok())
-        .collect();
-    if certs.is_empty() {
-        None
-    } else {
-        Some(certs)
-    }
+    pod_tls::bundle::pem_certificates(&data)
+        .ok()
+        .filter(|certs| !certs.is_empty())
 }
 
 /// The host's CA bundle as the PEM bytes on disk, and where they came from.
@@ -115,23 +111,6 @@ pub struct HostBundle {
     /// announcement at all and is not a reason to touch an image's own trust.
     pub announced_by: Option<String>,
     pub bytes: Vec<u8>,
-}
-
-fn host_bundle() -> Option<(String, Vec<CertificateDer<'static>>)> {
-    for var in BUNDLE_ENV {
-        if let Some(p) = std::env::var_os(var) {
-            let p = p.to_string_lossy().to_string();
-            if let Some(certs) = load_bundle(&p) {
-                return Some((format!("${var} ({p})"), certs));
-            }
-        }
-    }
-    for p in BUNDLE_PATHS {
-        if let Some(certs) = load_bundle(p) {
-            return Some(((*p).to_string(), certs));
-        }
-    }
-    None
 }
 
 /// A verifier that accepts anything, for a registry the caller named insecure.
@@ -214,55 +193,64 @@ pub fn client_config_unverified() -> (Arc<ClientConfig>, Roots) {
 }
 
 /// Build the client configuration and say where its trust came from.
+///
+/// ⭐ The host bundle is used alone, as `pod-tls` uses a CA file
+/// ([`pod_tls::CaFile`]); the compiled-in roots are the fallback for a machine
+/// with no bundle, or with a bundle that has no usable root. `pod-tls` makes the
+/// configuration: its verifier, the protocol versions and the store of sessions.
 pub fn client_config() -> (Arc<ClientConfig>, Roots) {
-    let mut store = rustls::RootCertStore::empty();
-    let roots = match host_bundle() {
-        Some((source, certs)) => {
-            let offered = certs.len();
-            let (added, _ignored) = store.add_parsable_certificates(certs);
-            // ⚠ The count is what the store ACCEPTED, not what the file held.
-            // A bundle whose certificates all fail to parse would otherwise be
-            // reported as trust that does not exist.
-            if added == 0 {
-                store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-                Roots {
-                    source: format!(
-                        "webpki-roots, compiled in: {source} held {offered} PEM block(s) and \
-                         none parsed as a certificate"
-                    ),
-                    count: store.len(),
-                }
-            } else {
-                Roots {
-                    source,
-                    count: added,
-                }
-            }
-        }
-        None => {
-            store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-            Roots {
-                source: "webpki-roots, compiled in: this machine has no CA bundle at any \
-                         known path"
-                    .to_string(),
-                count: store.len(),
-            }
-        }
-    };
-
+    let roots = host_roots().unwrap_or_else(|why| {
+        let mut compiled = pod_tls::roots_from_compiled_set();
+        compiled.source = format!("webpki-roots, compiled in: {why}");
+        compiled
+    });
     // ⛔ The provider is named rather than taken from the process default.
     // `ClientConfig::builder()` resolves a default that depends on which
     // provider features anything else in the graph enabled, so naming `ring`
     // here is what makes the build's crypto the crypto TODO/deps.md T-0905
     // measured.
-    let config =
-        ClientConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
-            .with_safe_default_protocol_versions()
-            .expect("ring supports the default protocol versions")
-            .with_root_certificates(store)
-            .with_no_client_auth();
+    let context = pod_tls::Context::new(
+        Arc::new(rustls::crypto::ring::default_provider()),
+        pod_tls::Settings::new(pod_tls::Words::new("podvm")),
+    );
+    let config = context
+        .client_config(&roots)
+        .expect("a store with at least one root builds its verifier");
+    (
+        config,
+        Roots {
+            source: roots.source,
+            count: roots.count,
+        },
+    )
+}
 
-    (Arc::new(config), roots)
+/// The roots of the host bundle alone, or why there are none.
+fn host_roots() -> Result<pod_tls::TlsRoots, String> {
+    let Some(host) = host_bundle_bytes() else {
+        return Err("this machine has no CA bundle at any known path".to_string());
+    };
+    let source = match &host.announced_by {
+        Some(var) => format!("${var} ({})", host.path),
+        None => host.path.clone(),
+    };
+    let file = pod_tls::CaFile::new(source.clone(), &host.path);
+    match pod_tls::roots::load(Some(&file), None, &[]) {
+        // ⚠ The count is what the store ACCEPTED, not what the file held. A
+        // bundle whose certificates all fail to parse would otherwise be
+        // reported as trust that does not exist.
+        Ok(roots) => Ok(pod_tls::TlsRoots {
+            count: roots.store.len(),
+            roots: (*roots.store).clone(),
+            source,
+        }),
+        Err(_) => {
+            let offered = pod_tls::bundle::pem_certificates(&host.bytes).map_or(0, |c| c.len());
+            Err(format!(
+                "{source} held {offered} PEM block(s) and none parsed as a certificate"
+            ))
+        }
+    }
 }
 
 #[cfg(test)]

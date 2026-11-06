@@ -61,19 +61,10 @@ repository = "https://github.com/PodUtils/podvm"
 # the entry carries what that drags.
 rustls = { version = "0.23", default-features = false, features = ["std", "ring", "tls12"] }
 rustls-pki-types = "1"
-# The host bundle first, because T-0407 needs it read anyway; `webpki-roots` is
-# the fallback for a machine that has none. `bloat-tls-hostroots.txt` is the
-# same arm without it, which is what prices the fallback.
-rustls-pemfile = "2"
-# ⚠ `1`, not `0.26`, and the reason is measured rather than a preference.
-# `webpki-roots 0.26.11` is a compatibility SHIM that itself depends on
-# `webpki-roots 1.0.9`; `ureq 2.12` pins the 0.26 line, so the graph carries
-# the shim whichever version podvm names. Naming `0.26` here would put podvm
-# behind the shim as well and hide which crate actually holds the roots. Read
-# out of `cargo metadata`'s resolve graph on 2026-09-08:
-#     podvm-image  -> webpki-roots 1.0.9
-#     ureq 2.12.1   -> webpki-roots 0.26.11 -> webpki-roots 1.0.9
-webpki-roots = "1"
+# The host bundle first, because T-0407 needs it read anyway; the compiled-in
+# roots are the fallback for a machine that has none. `pod-tls` (podcrates)
+# holds the PEM reader and `webpki-roots`. `bloat-tls-hostroots.txt` is the
+# same arm without the fallback, which is what prices it.
 
 # ⭐ T-0911, `experiments/results/bloat-syscalls-multiarch.txt`. THE SYSCALL
 # TABLE AND THE KERNEL STRUCTS, PER ARCHITECTURE, so podvm is not a

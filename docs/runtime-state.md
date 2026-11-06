@@ -53,9 +53,9 @@ Separate crate: `crates/podvm-interpose`.
 | `base64` | `0.22.1`, `0.23.1` |
 | `flate2` | `1.1.10` |
 | `linux-raw-sys` | `0.12.1` |
-| `pod-term` | `0.3.0` |
+| `pod-term` | `0.4.0` |
+| `pod-tls` | `0.4.0` |
 | `rustls` | `0.23.46` |
-| `rustls-pemfile` | `2.2.0` |
 | `rustls-pki-types` | `1.15.1` |
 | `ruzstd` | `0.9.1` |
 | `serde` | `1.0.229` |
@@ -63,4 +63,3 @@ Separate crate: `crates/podvm-interpose`.
 | `sha2` | `0.11.1` |
 | `tar` | `0.4.46` |
 | `ureq` | `2.12.1` |
-| `webpki-roots` | `0.26.11`, `1.0.9` |
