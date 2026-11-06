@@ -1271,7 +1271,7 @@ Source:      COORD-001, issue 194, "What podvm takes, in this order", row 1;
 Category:    deps
 Priority:    P2
 Effort:      M
-Status:      blocked
+Status:      done
 
 Problem:     podvm carries its own terminal line discipline in
              `crates/podvm-ssh/src/session.rs` (1,132 lines). podcrates
@@ -1295,9 +1295,19 @@ Prove:       `cargo test -p podvm-ssh` exits 0 in the Linux lane with the
              session tests passing through `pod-term`, and
              `./target/release/podvm-gate` exits 0.
 
-**Blocked 2026-11-06.** Blocker: podcrates has not released `pod-term`.
-Clears when: podcrates publishes a `pod-term` release with its adoption
-patch for podvm, and T-1669 is done.
+**Done 2026-11-06.** podvm took `pod-term` with
+`adoption/podvm/pod-term.patch` of PodUtils/podcrates at `784469a`,
+applied with `git apply --3way` and no conflict. The dependency is
+`tag = "v0.3.0"`, because the tag `v0.4.0` does not exist yet and
+`pod-term` has no change of code since `v0.3.0`. `session.rs` takes
+`pod_term::echo` and keeps its supervisor. Each line of `pod-term.run`
+exited 0 in a Linux cloud container on Rust 1.99.1: the 29 tests of the
+discipline, the 12 tests of `session_interactive` against an installed
+sshd, clippy of the workspace, rustfmt of podvm-ssh, the record gate,
+`check-consumer-toolchains.py` (2 pins, 0 below 1.99) and
+`check-static.sh` of the musl binary `shell`. The decision "a released
+version, never a git dependency" holds with a git tag; the crate is not
+on a registry.
 
 ---
 

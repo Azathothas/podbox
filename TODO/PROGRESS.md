@@ -2,7 +2,7 @@
 
 ## State
 
-294 entries: 34 open, 9 partial, 9 blocked, 242 done.
+294 entries: 34 open, 9 partial, 8 blocked, 243 done.
 
 The project was renamed from podbox to podvm on 2026-11-06 (commit
 `rename: podbox is podvm`): entries closed before that commit ran their
@@ -206,9 +206,10 @@ keeps its historical scope. It does not establish current reliability.
     P2 entries: T-1671 (the first podvm release from a dispatched
     `release.yml`), T-1673 (the 29 plan rows of T-1607), T-1683 (retire
     the PowerShell twins), T-1684 (fuzzing and the vendor watch) and
-    T-1685 (the two sibling-form pages). Ten are `blocked`. T-1675 to
-    T-1680 take the podcrates crates in the order of COORD-001
-    (issue 194), each on its podcrates release, and T-1681 hands over
+    T-1685 (the two sibling-form pages). Nine are `blocked`. T-1675
+    took `pod-term` on 2026-11-06; T-1676 to T-1680 take the other
+    podcrates crates in the order of COORD-001 (issue 194), each on its
+    podcrates release, and T-1681 hands over
     the seven generic crates on podcrates' import. T-1672 moves the
     record to the pod-todo format on that crate's release, and T-1682
     waits for the KVM deferral of item 9 to lift. T-1674 is open and P1

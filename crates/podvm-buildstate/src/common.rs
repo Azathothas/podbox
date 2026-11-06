@@ -91,7 +91,7 @@ pub fn sha256_hex(data: &[u8]) -> String {
         padded.push(0);
     }
     padded.extend_from_slice(&(data.len() as u64).wrapping_mul(8).to_be_bytes());
-    for chunk in padded.chunks_exact(64) {
+    for chunk in padded.as_chunks::<64>().0 {
         let mut block = [0u8; 64];
         block.copy_from_slice(chunk);
         sha256_block(&mut state, &block);

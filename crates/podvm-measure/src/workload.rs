@@ -860,7 +860,7 @@ mod tests {
         // dev/ directory, dev/console 5:1, an executable init, a trailer:
         // four records, each starting with the newc magic, 4-aligned.
         let archive = extras_archive(b"#!/bin/sh\n");
-        assert!(archive.len() % 4 == 0);
+        assert!(archive.len().is_multiple_of(4));
         let magic = b"070701";
         let mut count = 0;
         for window in archive.windows(magic.len()) {

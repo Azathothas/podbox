@@ -312,6 +312,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
+name = "pod-term"
+version = "0.3.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.3.0#c0d62b8d64c0ddde0ab9727adca62307d17213dd"
+dependencies = [
+ "unicode-width",
+]
+
+[[package]]
 name = "podvm"
 version = "0.1.0-beta.13"
 dependencies = [
@@ -405,6 +413,7 @@ name = "podvm-ssh"
 version = "0.1.0-beta.13"
 dependencies = [
  "base64 0.23.1",
+ "pod-term",
  "podvm-probe",
  "rustls",
  "rustls-pemfile",
@@ -685,6 +694,12 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "unicode-width"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca718471876992059f251e33aafc334346ada08042b7661dd1fe313a9bced557"
 
 [[package]]
 name = "untrusted"
