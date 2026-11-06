@@ -1467,7 +1467,7 @@ $ ls -l /tmp/gohello                      # 2238818 bytes on the HOST
 
 Source:      issue 94; issue 114 section 3.1 and section 4;
              `crates/podvm/src/tier.rs:26`;
-             `crates/podvm-probe/src/report.rs:451`;
+             `crates/podvm-probe/src/report/document.rs:23`;
              `crates/podvm-extract/src/safety.rs:261`; [T-0506](enter.md)
 Category:    enter
 Priority:    P2

@@ -1926,7 +1926,7 @@ Premise:     The parity table refuses `--read-only` (`parity.rs:370`),
              interposer identity (`parity.rs:338`). `setrlimit`,
              `PR_SET_NO_NEW_PRIVS` and a seccomp filter need no privilege;
              the probe already sets `PR_SET_NO_NEW_PRIVS` in a child
-             (`crates/podvm-probe/src/probes.rs:1287`).
+             (`crates/podvm-probe/src/probes/attribution.rs:315`).
 Approach:    Write an experiment that runs the sand-net line through
              `podvm run` and records each flag as passed or refused by
              name. Then implement the unprivileged equivalents. `--ulimit

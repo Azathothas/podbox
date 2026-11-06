@@ -609,7 +609,7 @@ Approach:    A bounded pool of worker threads over the descriptor list, with the
              bound a named constant and not a per-machine guess. ⛔ The bound
              plus transient locks stays under sixteen concurrent `Lock`s in one
              process: every lock registers a fork-shed slot
-             (`crates/podvm-probe/src/sys.rs:702`), and
+             (`crates/podvm-probe/src/sys/raw.rs:190`), and
              [T-1310](#t-1310-the-store-suite-exhausts-the-sixteen-fork-shed-slots-and-the-victim-varies)
              measured what exceeding it costs. Each worker
              stages, verifies and commits through the existing store functions,
@@ -637,7 +637,7 @@ bound is fixed per the Decision fork: the constraint is the registry, not
 cores. The arithmetic: 4 workers hold one staging lock each, plus
 `FETCH_LOCK_HEADROOM = 3` transients (the index lock at record time, a
 sweep on another thread, one spare) is 7 against the sixteen fork-shed
-slots (`crates/podvm-probe/src/sys.rs:702`), pinned by a `const` assert
+slots (`crates/podvm-probe/src/sys/raw.rs:190`), pinned by a `const` assert
 that refuses the build rather than a test. Each worker builds its own
 `Client::with_policy(policy.clone())`, because `Client::blob` takes
 `&mut self`, and stages, verifies and commits through the same store
@@ -1802,7 +1802,7 @@ and the failure was only ever in the safe direction by luck.
 
 ### T-1310 The store suite exhausts the sixteen fork-shed slots, and the victim varies
 
-Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podvm-image/src/store.rs:1003`; `crates/podvm-probe/src/sys.rs:702`
+Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podvm-image/src/store.rs:1003`; `crates/podvm-probe/src/sys/raw.rs:190`
 Category:    image
 Priority:    P1
 Effort:      S
@@ -1814,7 +1814,7 @@ Problem:     Full parallel runs of the `podvm-image` suite intermittently refuse
              (`two_holders_of_one_image...`, `two_staging_calls...`,
              `two_platforms...`). A serial run passes 97 of 97. The pool is
              process-wide and fixed at `FORK_CLOSE_SLOTS`
-             (`crates/podvm-probe/src/sys.rs:702`), and every
+             (`crates/podvm-probe/src/sys/raw.rs:190`), and every
              `Lock::try_acquire` takes one slot
              (`crates/podvm-image/src/store.rs:1003-1021`). Libtest runs the
              suite in threads of one process, and each `two_*` test holds two or
@@ -1828,7 +1828,7 @@ Premise:     ⭐ **The figures above are inherited, not measured here.** They co
              rate from another lane is a reading from that lane.
              ⭐ **What was checked here, at file and line.**
              `FORK_CLOSE_SLOTS` is 16
-             (`crates/podvm-probe/src/sys.rs:702`). Every lock registers
+             (`crates/podvm-probe/src/sys/raw.rs:190`). Every lock registers
              (`crates/podvm-image/src/store.rs:1003-1021`), including staging
              locks: a `StagedFile` holds one for its life
              (`crates/podvm-image/src/store.rs:867-871`). So do transient sweep

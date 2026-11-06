@@ -1065,7 +1065,7 @@ Problem:     `podvm probe` measures the host's mechanisms before a run. No
 Premise:     The probe runs one disposable child for each probe and records
              the errno, not a boolean (T-0101, T-0109). It marks an
              emulator's answers in `measured_by`
-             (`crates/podvm-probe/src/report.rs:451`). sand-net's probe was
+             (`crates/podvm-probe/src/report/document.rs:23`). sand-net's probe was
              Python, which busybox and distroless images do not have. The
              issue's crate is podcrates `pod-sandprobe` (wave M7).
 Approach:    Build a static musl probe that runs inside the payload and
