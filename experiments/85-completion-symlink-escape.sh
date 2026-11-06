@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: can a symlink inside an image make podbox's own completion layer
+# Question: can a symlink inside an image make podvm's own completion layer
 # write OUTSIDE the rootfs, onto the host?
 #
 # TODO/complete.md T-0405. `/etc/mtab` is a symlink in most images, and
@@ -8,15 +8,15 @@
 # ../run/systemd/resolve/stub-resolv.conf`, and the next one nobody has met.
 #
 # ⭐ WHY THIS IS A MEASUREMENT AND NOT A UNIT TEST. The unit tests in
-# `crates/podbox-complete/src/write.rs` drive one function. This drives the
+# `crates/podvm-complete/src/write.rs` drive one function. This drives the
 # SHIPPED BINARY through the path a real container start takes: a real image,
 # extracted into a real store, tampered with the way an image could ship, and
 # then run. A containment check that is right in the library and not reached by
-# `podbox run` is a check nobody has.
+# `podvm run` is a check nobody has.
 #
 # ⛔ THE ASSERTION IS ON THE FILESYSTEM, NOT ON AN EXIT CODE. A canary file
 # outside the rootfs is written before the run and its bytes are compared after
-# it. `podbox run` exiting 0 says nothing about where its writes landed, which
+# it. `podvm run` exiting 0 says nothing about where its writes landed, which
 # is the mistake `experiments/220-extract-path-safety.sh` was built to avoid on
 # the extraction side.
 #
@@ -48,19 +48,19 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/completion-symlink-escape.txt"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
-IMAGE="${PODBOX_COMPLETE_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
+IMAGE="${PODVM_COMPLETE_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
 
 [ -x "$BIN" ] || {
 	echo "SKIP: $BIN is not an executable. ./scripts/dev.sh build" >&2
 	exit 2
 }
 
-export PODBOX_STORE="$WORK/store"
+export PODVM_STORE="$WORK/store"
 fail=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
 
@@ -68,7 +68,7 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'image             %s\n' "$IMAGE"
 	echo
 } >"$WORK/report"
@@ -81,7 +81,7 @@ timeout 600 "$BIN" pull "$IMAGE" >"$WORK/pull.log" 2>&1 || {
 }
 ROOTFS="$(timeout 300 "$BIN" extract "$IMAGE" 2>>"$WORK/pull.log" | tail -1)"
 [ -d "$ROOTFS" ] || {
-	echo "SKIP: podbox extract did not print a rootfs directory" >&2
+	echo "SKIP: podvm extract did not print a rootfs directory" >&2
 	sed 's/^/  /' "$WORK/pull.log" >&2
 	exit 2
 }
@@ -112,7 +112,7 @@ ln -s "$CANARY/passwd" "$ROOTFS/etc/passwd"
 rm -rf "$ROOTFS/etc/ssl"
 mkdir -p "$ROOTFS/etc/ssl"
 ln -s "$CANARY/dir" "$ROOTFS/etc/ssl/certs"
-# F: openSUSE's own shape -- a directory link that stays inside, which podbox
+# F: openSUSE's own shape -- a directory link that stays inside, which podvm
 # MUST follow or it writes the fixup somewhere the payload does not read.
 rm -rf "$ROOTFS/etc/apt" "$ROOTFS/var/aptreal"
 mkdir -p "$ROOTFS/var/aptreal/apt.conf.d"
@@ -126,8 +126,8 @@ timeout 300 "$BIN" run "$IMAGE" /bin/true >"$WORK/run.out" 2>"$WORK/run.err"
 run_rc=$?
 say "== the run"
 say "  exit              $run_rc"
-say "  fixups reported   $(grep -c 'podbox: complete:' "$WORK/run.err")"
-grep 'podbox: complete:' "$WORK/run.err" | redact | sed 's/^/    /' | cut -c1-150 >>"$WORK/report"
+say "  fixups reported   $(grep -c 'podvm: complete:' "$WORK/run.err")"
+grep 'podvm: complete:' "$WORK/run.err" | redact | sed 's/^/    /' | cut -c1-150 >>"$WORK/report"
 say ""
 
 # ------------------------------------------------------------------ the check
@@ -156,12 +156,12 @@ for pair in "etc/mtab: /" "etc/resolv.conf:nameserver" "etc/hosts:localhost"; do
 	rel="${pair%%:*}"
 	needle="${pair#*:}"
 	if [ -L "$ROOTFS/$rel" ]; then
-		say "  $rel is STILL a symlink: podbox did not replace it"
+		say "  $rel is STILL a symlink: podvm did not replace it"
 		fail=1
 	elif grep -qF -- "$needle" "$ROOTFS/$rel" 2>/dev/null; then
-		say "  $rel is a regular file inside the rootfs and carries what podbox wrote"
+		say "  $rel is a regular file inside the rootfs and carries what podvm wrote"
 	else
-		say "  $rel: ⛔ podbox wrote nothing readable here"
+		say "  $rel: ⛔ podvm wrote nothing readable here"
 		fail=1
 	fi
 done
@@ -182,7 +182,7 @@ say ""
 say "== F: a legitimate INTERNAL directory link is followed"
 # ⭐ The other half, and without it every assertion above is satisfied by a
 # completion layer that writes nothing at all.
-if [ -f "$ROOTFS/var/aptreal/apt.conf.d/99podbox" ]; then
+if [ -f "$ROOTFS/var/aptreal/apt.conf.d/99podvm" ]; then
 	say "  etc/apt -> /var/aptreal was followed, and the drop-in is at its target"
 else
 	say "  ⛔ etc/apt -> /var/aptreal was NOT followed: the fixup did not reach"
@@ -190,7 +190,7 @@ else
 	fail=1
 fi
 # ⚠ D is a DANGLING link once it is rebased: `/tmp/.../canary/dir` does not exist
-# inside the rootfs. Two outcomes are correct and a third is not. Either podbox
+# inside the rootfs. Two outcomes are correct and a third is not. Either podvm
 # creates the rebased directory and writes there, or it refuses -- and a refusal
 # has to be REPORTED, because a fixup that quietly did nothing is the sandlock
 # failure TODO/cli.md T-0804 names. What is never correct is the write landing
@@ -201,7 +201,7 @@ elif grep -q 'complete: failed' "$WORK/run.err"; then
 	say "  D: refused, and the refusal is on the banner:"
 	grep 'complete: failed' "$WORK/run.err" | redact | sed 's/^/       /' | cut -c1-140 >>"$WORK/report"
 else
-	say "  D: ⛔ podbox neither wrote it nor said it could not. A fixup that"
+	say "  D: ⛔ podvm neither wrote it nor said it could not. A fixup that"
 	say "     quietly did nothing is what T-0804 exists to refuse."
 	fail=1
 fi

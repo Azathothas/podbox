@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Question: does the whole nix 2.2.2 + nixpkgs 22.05 pipeline run through the
-# shipped podbox binary -- register, fetch over TLS, evaluate, build locally,
+# shipped podvm binary -- register, fetch over TLS, evaluate, build locally,
 # run the artefact -- with the namespace wall refused by name?
 #
 # TODO/milestones.md T-1111, M8's acceptance. It drives the SHIPPED binary,
@@ -10,13 +10,13 @@
 # unconditionally and this runtime has no /dev/ptmx; nixpkgs 22.11+ gates on
 # Nix >= 2.3. So 2.2.2 with 22.05 is the newest release pair whose whole
 # pipeline runs with no pty. Tracking the current pair would measure the
-# wall instead of podbox, and the wall is already T-0503's subject.
+# wall instead of podvm, and the wall is already T-0503's subject.
 #
 # ⛔ UNPATCHED, OR A NAMED DECLINE. Nothing is pre-assembled: the payload
 # downloads its own toolchain pieces inside the run. A row that passes
 # because the operator pre-assembled the rootfs measures nothing.
 #
-#   ./152-nix-acceptance.sh            the whole pipeline, one podbox run
+#   ./152-nix-acceptance.sh            the whole pipeline, one podvm run
 #
 # Exit: 0 every row green, with the built artefact's own output; 1 a row
 #       failed, naming it; 2 nothing ran.
@@ -24,7 +24,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="${OUT:-$REPO/experiments/results/nix-acceptance.txt}"
 TRANSCRIPT="${TRANSCRIPT:-$REPO/experiments/results/nix-acceptance-transcript.txt}"
 
@@ -37,8 +37,8 @@ NIXPKGS_TARBALL_URL="https://github.com/NixOS/nixpkgs/archive/refs/tags/22.05.ta
 BASE='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
 DRIVER="$BASE"
 
-RUN_TIMEOUT="${PODBOX_NIX_TIMEOUT:-3600}"
-CURL_TIMEOUT="${PODBOX_NIX_CURL_TIMEOUT:-60}"
+RUN_TIMEOUT="${PODVM_NIX_TIMEOUT:-3600}"
+CURL_TIMEOUT="${PODVM_NIX_CURL_TIMEOUT:-60}"
 
 case "$(uname -s)" in
 Linux) NATIVE=1; WORK="$(mktemp -d)" ;;
@@ -53,7 +53,7 @@ ENGINE_REPO="$REPO"
 ENGINE_WORK="$WORK"
 if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 
-[ -r "$BIN" ] || { echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2; exit 2; }
+[ -r "$BIN" ] || { echo "SKIP: $BIN is not readable (set PODVM_BIN to a guest build artifact)" >&2; exit 2; }
 
 {
 echo "== conditions"
@@ -61,9 +61,9 @@ printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
 printf 'engine            %s\n' "$(engine_describe)"
 if [ "$NATIVE" -eq 1 ]; then
-  printf 'podbox            %s\n' "$("$BIN" version 2>&1)"
+  printf 'podvm            %s\n' "$("$BIN" version 2>&1)"
 else
-  printf 'podbox            %s (staged, not executed on this lane)\n' "$BIN"
+  printf 'podvm            %s (staged, not executed on this lane)\n' "$BIN"
 fi
 printf 'nix tarball       %s (%s bytes)\n' "$NIX_TARBALL_URL" "$NIX_TARBALL_BYTES"
 printf 'nixpkgs           tag %s\n' "$NIXPKGS_TAG"
@@ -75,7 +75,7 @@ printf 'curl timeout      %s s\n' "$CURL_TIMEOUT"
 # ------------------------------------------------------------------ the subject
 #
 # ⛔ ONE RUN, SEVEN VERDICTS. The rows share one /nix (register once, build
-# once), so they run in one podbox run and each prints its own verdict line.
+# once), so they run in one podvm run and each prints its own verdict line.
 # A per-row container would re-download the compiler closure seven times.
 cat >"$WORK/subject.sh" <<SUBJECT_EOF
 #!/bin/sh
@@ -211,18 +211,18 @@ chmod +x "$WORK/subject.sh"
 # ------------------------------------------------------------------ the driver
 # Non-native lane: the shipped binary cannot execute here, so it is staged
 # into the driver beside the subject, exactly as 240 stages /pb. The nix
-# rows run in ONE podbox run (one /nix, one register, one build); each row
+# rows run in ONE podvm run (one /nix, one register, one build); each row
 # prints its own verdict line and the runner asserts all seven.
 if [ "$NATIVE" -eq 0 ]; then
-  [ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine on a lane where the podbox binary does not execute" >&2; exit 2; }
+  [ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine on a lane where the podvm binary does not execute" >&2; exit 2; }
   mkdir -p "$WORK/w" "$WORK/stage"
-  cp "$BIN" "$WORK/stage/podbox"
+  cp "$BIN" "$WORK/stage/podvm"
   eng_pull "$DRIVER" || exit 2
-  eng_mount "$WORK/stage/podbox" /pb \
+  eng_mount "$WORK/stage/podvm" /pb \
     && eng_mount "$WORK/w" /w rw \
     && eng_mount "$WORK/subject.sh" /subj/subject.sh \
     || { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
-  # The lane's CA announcement, as a file: podbox-complete appends the
+  # The lane's CA announcement, as a file: podvm-complete appends the
   # machine's bundle into the rootfs, and nix fetches over TLS.
   eng_run 600 "$DRIVER" "" -- /bin/sh -c 'DEBIAN_FRONTEND=noninteractive apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ca-certificates && cp /etc/ssl/certs/ca-certificates.crt /w/cacert.pem && test -s /w/cacert.pem' \
     >/dev/null 2>"$WORK/ca-install.log" || {
@@ -231,11 +231,11 @@ if [ "$NATIVE" -eq 0 ]; then
   }
   cat >"$WORK/row-driver.sh" <<ROWDRIVER_EOF
 #!/bin/sh
-# One podbox pull and one podbox run in the driver. Readings to /w/row.
+# One podvm pull and one podvm run in the driver. Readings to /w/row.
 # Unquoted heredoc: \$RUN_TIMEOUT below is baked at write time; every other
 # dollar is escaped for the container.
 set -u
-export PODBOX_STORE=/tmp/ostore
+export PODVM_STORE=/tmp/ostore
 if [ -f /w/cacert.pem ]; then
   export SSL_CERT_FILE=/w/cacert.pem
 fi
@@ -260,7 +260,7 @@ ROWDRIVER_EOF
   esac
 else
   # Native lane: the binary executes here.
-  export PODBOX_STORE="${PODBOX_SWEEP_STORE:-$WORK/store}"
+  export PODVM_STORE="${PODVM_SWEEP_STORE:-$WORK/store}"
   "$BIN" pull "$BASE" >"$WORK/pull.log" 2>&1 || { echo "no-pull (base image)" | tee -a "$OUT"; tail -3 "$WORK/pull.log" | tee -a "$OUT"; exit 2; }
   timeout "$RUN_TIMEOUT" "$BIN" run --rm "$BASE" /bin/sh -c "$(cat "$WORK/subject.sh")" \
     >"$WORK/out" 2>"$WORK/err"
@@ -271,13 +271,13 @@ fi
 {
   echo "--- the pull"
   tail -4 "$WORK/pull.log" | cut -c1-200
-  echo "--- podbox run exit $row_rc"
+  echo "--- podvm run exit $row_rc"
   echo "--- stdout (verdicts and artefact)"
   grep -E "^(ROW=|Hello)" "$WORK/out" | cut -c1-200
   echo "--- the completion layer said"
-  grep 'podbox: complete:' "$WORK/err" | cut -c1-160
+  grep 'podvm: complete:' "$WORK/err" | cut -c1-160
   echo "--- the last of stderr"
-  grep -v 'podbox: complete:' "$WORK/err" | tail -5 | cut -c1-200
+  grep -v 'podvm: complete:' "$WORK/err" | tail -5 | cut -c1-200
 } | tee "$TRANSCRIPT"
 
 get() { sed -n "s/^ROW=$1 //p" "$WORK/out" | head -1; }

@@ -37,8 +37,8 @@ claimed to deliver is delivered and its `Prove` exits 0.
 ## SSH
 
 The source build produces separate `node`, `operator`, `proxy`, and `shell` executables.
-The remote CLI needs compatible helpers beside podbox or on PATH.
-The standalone beta.9 assets contain podbox only.
+The remote CLI needs compatible helpers beside podvm or on PATH.
+The standalone beta.9 assets contain podvm only.
 That gap closed at beta.10, where every release target carries the helper
 archive, and T-1405 in [podssh](../TODO/podssh.md) is done.
 
@@ -99,10 +99,10 @@ unchanged. It clears if and only if the base gains cgroup delegation, which is a
 change to the host rather than to this tree, so an entry here would be a row
 with no implementable clause.
 
-⚠ **`podbox` does not depend on it and does not enforce it either way.** The CLI
+⚠ **`podvm` does not depend on it and does not enforce it either way.** The CLI
 refuses `--memory` and `--cpus` on its own parity table
 ([cli](../TODO/cli.md) T-0804, `resource limits need a cgroup this runtime does
 not grant`), so a caller gets exit 125 and a named reason instead of an accepted
-flag that does nothing. The hazard is the engine underneath podbox, which
+flag that does nothing. The hazard is the engine underneath podvm, which
 accepts those limits silently; [RULES](../TODO/RULES.md) section 8 says an
 option accepted by an engine does not prove enforcement.

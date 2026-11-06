@@ -3,7 +3,7 @@
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
 
-`crates/podbox-interpose`. `TOOL.md` section 6.7, milestone M6.
+`crates/podvm-interpose`. `TOOL.md` section 6.7, milestone M6.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
 [RULES.md](RULES.md) is how an entry closes. [reference-map.md](reference-map.md) is the corpus.
@@ -37,7 +37,7 @@ Premise:     ⭐ **Measured here.** experiments/60-interposer-libc.sh check A
              workspace's own `+crt-static`:
 
              ```
-             error: cannot produce cdylib for `podbox-interpose` as the target
+             error: cannot produce cdylib for `podvm-interpose` as the target
              `x86_64-unknown-linux-musl` does not support these crate types
              ```
 
@@ -61,7 +61,7 @@ Approach:    Four constraints, none optional:
              rather than a pthread mutex, and **nothing under it can re-enter
              it**. Without any lock, two threads both pass a bounds check and
              both post-increment an index, writing one entry past the end of a
-             table. The rule podbox holds is **no re-entry under the lock**.
+             table. The rule podvm holds is **no re-entry under the lock**.
              `references/fritzw__ld-preload-open` paid for the other half of
              this twice: tracker PR #4 "fix memory corruption" and PR #3 "Cache
              the results of dlsym".
@@ -80,7 +80,7 @@ Decision:    A `dlsym(RTLD_NEXT, ...)` result cached in a `static` per entry
 Prove:       `./experiments/105-interpose-ownership.sh` exits 0, and its check A asserts the exported set against `interpose.map` and that `rust_eh_personality` is not in it
 
 
-**Done 2026-09-09.** `crates/podbox-interpose/`, and all four constraints are
+**Done 2026-09-09.** `crates/podvm-interpose/`, and all four constraints are
 asserted rather than intended.
 
 ⭐ **`interpose.map` is the version script and check A compares the OBJECT with
@@ -89,7 +89,7 @@ it**, in both directions and for both libcs: 17 declared, 17 exported, and 0
 counting exports is what makes it a check: a name in the script that `src/lib.rs`
 does not define is a silent non-interposition, and one the object exports that
 the script does not list is a symbol some other library in the payload's process
-resolves to podbox.
+resolves to podvm.
 
 ⛔ **`scripts/build-interpose.sh` produced TWO GLIBC OBJECTS and exited 0.** The
 `x86_64-unknown-linux-musl` object recorded `libc.so.6`, `libgcc_s.so.1` and
@@ -170,7 +170,7 @@ Premise:     ⚠ **The premise as first written was wrong, and the correction is
              QUESTION B musl object -> glibc      rc=127  /lib/x86_64-linux-gnu/libc.so: invalid ELF header
              ```
 
-             ⭐ **And on 2026-09-08 it was measured a second time, with podbox's
+             ⭐ **And on 2026-09-08 it was measured a second time, with podvm's
              OWN Rust cdylib rather than the C reference interposer, which is
              what the correction above said could not be done here.**
              experiments/60-interposer-libc.sh exits **0** for the first time,
@@ -216,13 +216,13 @@ Approach:    Build one object per libc, embed both, and select on the payload's
              Also from that tracker, issue #6 and its 2025-02-17 comment: the C
              source needs `struct stat64` to `struct stat`, `DISABLE_FTW`, and a
              hand-defined `__OPEN_NEEDS_MODE` to build against musl at all.
-             podbox declares the syscalls rather than the libc struct variants
+             podvm declares the syscalls rather than the libc struct variants
              and avoids that whole class.
 Decision:    Two objects, not one with runtime detection. Runtime detection
              cannot change a struct offset the compiler already emitted.
 Status note: **no longer blocked, and the musl gap is closed.** The measurement
              this entry waited on is taken by `experiments/80-interposer-abi.sh`.
-             ⭐ And podbox's own Rust cdylib IS musl-linked now:
+             ⭐ And podvm's own Rust cdylib IS musl-linked now:
              `scripts/build-interpose.sh` passes `scripts/zig-cc.sh` as the
              linker for that target and asserts the resulting `DT_NEEDED`, so
              the object records `libc.so` where it recorded `libc.so.6` before.
@@ -231,12 +231,12 @@ Status note: **no longer blocked, and the musl gap is closed.** The measurement
              success.
              ⭐ **THE EMBEDDING IS RULED AND HALF BUILT, on 2026-09-12.** This
              `Approach` says "embed both", and the two objects are built by a
-             script rather than by cargo, so `include_bytes!` in `podbox-cli`
+             script rather than by cargo, so `include_bytes!` in `podvm`
              would make an ordinary `cargo build` fail on a tree where the
              script has not run, which breaks `cargo test --workspace`, the
              acceptance and every contributor's first command.
              ⚠ **A FOURTH SHAPE WAS TAKEN, AND IT IS NOT ONE OF THE THREE THIS
-             ENTRY LISTED.** `crates/podbox-cli/build.rs` COPIES what
+             ENTRY LISTED.** `crates/podvm/build.rs` COPIES what
              `scripts/build-interpose.sh` left behind, and writes an EMPTY file
              where an object is absent. `include_bytes!` always compiles, a
              fresh clone with no zig still builds, and an empty object is read
@@ -254,20 +254,20 @@ Status note: **no longer blocked, and the musl gap is closed.** The measurement
              loud and still breaks the plain build. The objects committed as
              artefacts are build output in the tree, which
              `docs/conventions/git.md` section 4 forbids.
-             ⛔ **AND THE ORDER HAD TO MOVE WITH IT.** dev.sh check (now `podbox-dev check`)
+             ⛔ **AND THE ORDER HAD TO MOVE WITH IT.** dev.sh check (now `podvm-dev check`)
              and the gate workflow both built the binary BEFORE the objects, so
              with this shape they would have embedded two placeholders and
              passed. The interposer step now runs first in both.
              ⚠ **The PLACEMENT was still open until 2026-09-18**, which is this
              `Approach`'s second sentence: the selected object written INSIDE
              the rootfs before the chroot, and `LD_PRELOAD` set to the path the
-             payload will see. It landed in `crates/podbox-cli/src/interpose.rs`
+             payload will see. It landed in `crates/podvm/src/interpose.rs`
              (`place`, called from `apply`); the Done note below carries the
              run.
-Prove:       `./experiments/80-interposer-abi.sh` exits 0, and `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -f /.podbox/interpose.so && env | grep -q "^LD_PRELOAD=/\.podbox/interpose\.so"'`. ⛔ **The reference was an unqualified tag until 2026-09-12**, which resolves through the engine's shortname aliases to a quota-bearing registry, so this acceptance could not be run under the rule `scripts/common/distro-matrix.sh` states. It names the M5 row for that distribution now. [T-1209](gate.md) owns the other 42 lines with the same defect. ⛔ **The second half read `/proc/self/environ` until 2026-09-18**, and the chroot has no `/proc`, so that line could not pass under podbox: `grep` answered `No such file or directory` while the object sat placed beside it. The environ is read through the payload's own `env` instead.
+Prove:       `./experiments/80-interposer-abi.sh` exits 0, and `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -f /.podvm/interpose.so && env | grep -q "^LD_PRELOAD=/\.podvm/interpose\.so"'`. ⛔ **The reference was an unqualified tag until 2026-09-12**, which resolves through the engine's shortname aliases to a quota-bearing registry, so this acceptance could not be run under the rule `scripts/common/distro-matrix.sh` states. It names the M5 row for that distribution now. [T-1209](gate.md) owns the other 42 lines with the same defect. ⛔ **The second half read `/proc/self/environ` until 2026-09-18**, and the chroot has no `/proc`, so that line could not pass under podvm: `grep` answered `No such file or directory` while the object sat placed beside it. The environ is read through the payload's own `env` instead.
 
 
-**Done 2026-09-18.** The placement half landed in `crates/podbox-cli/src/interpose.rs` (`place`, and `apply` calling it): the selected object is written to `/.podbox/interpose.so` inside the rootfs before the chroot, sibling plus rename, and `LD_PRELOAD` names it, podbox's object first where the caller set one. `run`, `exec` and `create` share the one call. `experiments/159-interpose-placement.sh` clause A is this `Prove`, pinned to the M5 digest, and `experiments/results/interpose-placement.txt` carries the run: file present, `LD_PRELOAD` in the payload's `env`, exit 0.
+**Done 2026-09-18.** The placement half landed in `crates/podvm/src/interpose.rs` (`place`, and `apply` calling it): the selected object is written to `/.podvm/interpose.so` inside the rootfs before the chroot, sibling plus rename, and `LD_PRELOAD` names it, podvm's object first where the caller set one. `run`, `exec` and `create` share the one call. `experiments/159-interpose-placement.sh` clause A is this `Prove`, pinned to the M5 digest, and `experiments/results/interpose-placement.txt` carries the run: file present, `LD_PRELOAD` in the payload's `env`, exit 0.
 
 ⭐ **The resolver follows absolute links under the rootfs, because the first
 shape declined every dynamic payload.** Alpine's `/bin/sh` points at the
@@ -280,8 +280,8 @@ guest kernel would; `..` past the root and a link loop are refused rather
 than followed.
 
 **Done 2026-10-01 (the libc-interpose port).** The `60-interposer-libc.sh`
-measurement is the `podbox-libc-interpose` binary in the gate crate
-(`crates/podbox-gate/src/libc_interpose.rs`), staying out of the workspace
+measurement is the `podvm-libc-interpose` binary in the gate crate
+(`crates/podvm-gate/src/libc_interpose.rs`), staying out of the workspace
 members: no new crate, no member row. No `Prove` line names the retired
 script and no workflow step runs it, so nothing repoints; the red-run
 plant is `experiments/results/libc-interpose-port-plant.txt`.
@@ -347,7 +347,7 @@ Approach:    ⭐ **Do not maintain a list. Produce the gap with a command.**
              ⚠ Read the rootfs from **outside**. A reader run inside the image
              measures that image's package list rather than its binaries, and
              most images ship no `readelf` at all. It is also the wrong
-             position: podbox extracts a rootfs and inspects it from outside.
+             position: podvm extracts a rootfs and inspects it from outside.
              Cover the families, not a list of names: `open*`, `stat*`, `exec*`,
              `chdir`, `readdir`, `getcwd`, `readlink`, `realpath`, the xattr
              family, `link*`, `rename*`, `mkdir*`, `mk*temp`, `glob`, `scandir`,
@@ -357,11 +357,11 @@ Approach:    ⭐ **Do not maintain a list. Produce the gap with a command.**
              `absolute_from_dirfd()`: a relative path is made absolute by
              `readlink`ing `/proc/self/fd/<dirfd>`, and `/proc/self/cwd` for
              `AT_FDCWD`, before any matching happens.
-             ⚠ **And one defect in it that podbox must not copy.** On a
+             ⚠ **And one defect in it that podvm must not copy.** On a
              `readlink` failure that function does `return path`, handing the
              **unmapped relative path** to the real call with no diagnostic. A
              path that could not be resolved then reaches the real tree
-             silently. podbox fails the call with `ENOENT` and writes one line
+             silently. podvm fails the call with `ENOENT` and writes one line
              to fd 2, because a silent escape from a virtual view is the
              `sandlock` failure mode in another costume.
 Decision:    A macro over the families, as
@@ -370,7 +370,7 @@ Decision:    A macro over the families, as
              only the ones whose argument shape the macro cannot express, which
              in pathmap is `fchownat` at
              `references/VHSgunzo__pathmap/tree/path-mapping.c:1242-1256`.
-Prove:       `./experiments/161-path-rewrite.sh` exits 0 and `nm -D --defined-only crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so | grep -c ' T ' | awk '$1 >= 60'`. ⛔ **The first half named `50-interpose-tier.sh` until 2026-09-18**, which measures pathmap, somebody else's object, and cannot verify this one: the wrong subject with a green exit, the same defect class [T-0709](#t-0709-select-the-interposer-by-dt_needed-and-refuse-on-the-version-predicate) amended its own `Prove` for. `161` drives podbox's object through podbox on both libcs, and `experiments/results/interpose-paths.txt` carries the run.
+Prove:       `./experiments/161-path-rewrite.sh` exits 0 and `nm -D --defined-only crates/podvm-interpose/target/x86_64-unknown-linux-gnu/release/libpodvm_interpose.so | grep -c ' T ' | awk '$1 >= 60'`. ⛔ **The first half named `50-interpose-tier.sh` until 2026-09-18**, which measures pathmap, somebody else's object, and cannot verify this one: the wrong subject with a green exit, the same defect class [T-0709](#t-0709-select-the-interposer-by-dt_needed-and-refuse-on-the-version-predicate) amended its own `Prove` for. `161` drives podvm's object through podvm on both libcs, and `experiments/results/interpose-paths.txt` carries the run.
 
 
 **Done 2026-09-18.** The object interposes 89 names (`src/map.rs` plus ten
@@ -382,9 +382,9 @@ macros and twelve hand-written shapes in `src/lib.rs`): the `open`, `stat`
 included. Functions taking only descriptors stay out, which is
 `experiments/100-interpose-symbols.sh`'s own rule: there is nothing in them
 to rewrite. The table
-is one variable, `PODBOX_MAPS`, in `FROM:TO[,FROM:TO...]` pairs mirroring
+is one variable, `PODVM_MAPS`, in `FROM:TO[,FROM:TO...]` pairs mirroring
 pathmap's syntax; longest match wins at a component boundary, and
-`/.podbox/` never rewrites. With no table every call forwards unchanged, so
+`/.podvm/` never rewrites. With no table every call forwards unchanged, so
 an unmapped payload cannot fail here at all.
 
 ⭐ **Three deviations from the letter, each with its reason.** `AT_FDCWD`
@@ -444,25 +444,25 @@ Approach:    Intercept the `chown` family and return success after recording the
              `if(r&&(errno==EPERM)) r=0;`, and there are eight such sites at
              `:903`, `:930`, `:960`, `:995`, `:1033`, `:1066`, `:1100` and
              `:1134`. **Here the errno is `EINVAL`**, so every one of them would
-             return the error to the caller. podbox swallows `EPERM` **and**
+             return the error to the caller. podvm swallows `EPERM` **and**
              `EINVAL`, and records which it swallowed.
              The switch that decides whether to attempt the real call at all is
              `references/salsa-debian__fakeroot/tree/libfakeroot.c:669-678`
              `dont_try_chown()`, a cached read of an environment variable.
-             podbox probes once instead of asking the user, and caches the
+             podvm probes once instead of asking the user, and caches the
              verdict the same way.
 Decision:    Probe once and cache, rather than fakeroot's environment variable.
              A user who has to know to set a variable has to know the wall
              exists, and the audience is automated.
-Prove:       `./experiments/105-interpose-ownership.sh` exits 0, and then `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` once T-0702 places the object
+Prove:       `./experiments/105-interpose-ownership.sh` exits 0, and then `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` once T-0702 places the object
 
 **Done 2026-09-22.** Both items the entry left open landed under their own
 entries with driven evidence. The wiring is [T-0702](#t-0702-one-object-per-libc-and-it-must-live-inside-the-rootfs),
-done 2026-09-18: `place` writes the object to `/.podbox/interpose.so`
+done 2026-09-18: `place` writes the object to `/.podvm/interpose.so`
 before the chroot and `apply` sets `LD_PRELOAD` to it, driven by
 `experiments/159-interpose-placement.sh` clause A with the run in
 `experiments/results/interpose-placement.txt`. The identity half is
-[T-0711](#t-0711-the-identity-calls-and-podboxs-honesty-rules-point-the-other-way-from-fakeroots),
+[T-0711](#t-0711-the-identity-calls-and-podvms-honesty-rules-point-the-other-way-from-fakeroots),
 done 2026-09-19: the operator's answer 3 rules the fork this entry left
 open, so the `Approach` sentence asking for success-plus-memo on
 `setuid`, `setgid` and `setgroups` is superseded by honest refusal by
@@ -471,27 +471,27 @@ default with `--user` turning on the fakeroot behaviour, driven by
 half is re-driven since: `experiments/105-interpose-ownership.sh`
 check G runs it end to end through the host memo with
 `experiments/results/interpose-ownership.txt` carrying 7 checks, exit 0,
-and a guest `podbox run` smoke test answered `0:42`.
+and a guest `podvm run` smoke test answered `0:42`.
 
 **Partial, 2026-09-09.** The object does it and it is measured under both libcs;
-what is not in is the wiring that puts the object inside a rootfs `podbox run`
+what is not in is the wiring that puts the object inside a rootfs `podvm run`
 enters, which is
 [T-0702](#t-0702-one-object-per-libc-and-it-must-live-inside-the-rootfs), and the
 identity half of the `Approach`.
 
 ⛔ **THE SIDECAR CANNOT BE THE MEMO, and this `Approach` said it would be.**
-`crates/podbox-extract/src/sidecar.rs` writes JSONL **beside the rootfs in the
+`crates/podvm-extract/src/sidecar.rs` writes JSONL **beside the rootfs in the
 store**, and this object runs after the `chroot`, where the store does not exist.
 It is also JSON, and parsing it would allocate on an interposed path, which
 [T-0701](#t-0701-the-cdylib-build-constraints) constraint 2 forbids. The memo is
-a fixed-width binary file at `/.podbox/ownership.memo`, **inside** the rootfs,
+a fixed-width binary file at `/.podvm/ownership.memo`, **inside** the rootfs,
 keyed by `(dev, ino)` rather than by path: a path is renamed, hard-linked and
 resolved through symlinks, and the question is about the inode.
 
 ⛔ **AND IT MUST CROSS PROCESSES, which rules out a table in memory.** This
 entry's own `Prove` is `sh -c 'chown 0:42 /tmp/f && stat -c %u:%g /tmp/f'`, and
 those are two `execve`s: a memo in this object's memory would be gone before the
-question was asked. fakeroot solves that with a DAEMON, `faked`, which podbox has
+question was asked. fakeroot solves that with a DAEMON, `faked`, which podvm has
 no room for inside somebody else's chroot. `O_APPEND` and one 32-byte write per
 record is what replaces the daemon and the lock both.
 
@@ -506,12 +506,12 @@ and one libc's importers.
 ⚠ The errno correction this entry predicted is real and is implemented: the
 object swallows `EPERM` **and** `EINVAL`, where fakeroot tests `EPERM` alone at
 eight sites. `--cap-drop=CHOWN` gives `EPERM` and is what checks D and E use;
-the runtime podbox targets gives `EINVAL` for an unmapped id.
+the runtime podvm targets gives `EINVAL` for an unmapped id.
 
 ⛔ **The control comes first and it is the one that could have made every other
 arm pass for the wrong reason.** On a machine that CAN chown, the object must
 change nothing and write no memo: check C asserts `stat` reports `0:42` because
-the KERNEL did it and `/.podbox/ownership.memo` does not exist. An interposer
+the KERNEL did it and `/.podvm/ownership.memo` does not exist. An interposer
 that reported the caller's intent where the real call would have worked is weaker
 than the bare chroot it replaces.
 
@@ -522,9 +522,9 @@ than the bare chroot it replaces.
   an inode-keyed file cannot carry one. fakeroot's answer is an environment
   variable, which this entry's `Decision` rejected for the file question and
   which may be right for this one; it is a fork nobody has ruled on;
-- **the wiring**: nothing sets `LD_PRELOAD` yet, so `podbox run` does not load
+- **the wiring**: nothing sets `LD_PRELOAD` yet, so `podvm run` does not load
   this object at all. T-0702 is that entry, and until it lands the `Prove` above
-  runs through `docker run -v` rather than through podbox.
+  runs through `docker run -v` rather than through podvm.
 
 Prove, run 2026-09-09:
 
@@ -533,8 +533,8 @@ $ ./experiments/105-interpose-ownership.sh
   A: both objects export exactly what interpose.map declares, 17 each,
      and rust_eh_personality is in neither
   B: sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32, under both libcs
-  C: the real chown worked and podbox wrote no memo
-  D: the bare chown failed (rc=1) and podbox's answered 0:42     glibc
+  C: the real chown worked and podvm wrote no memo
+  D: the bare chown failed (rc=1) and podvm's answered 0:42     glibc
   E: the musl object answered 0:42 where the bare chown failed   musl
   F: the reader refused the too-old pair from ELF and the loader agreed
 ```
@@ -568,19 +568,19 @@ Approach:    Reverse-map `getcwd`, `get_current_dir_name`, `readlink`,
              `realpath` and `canonicalize_file_name`. `readdir`'s `d_name`
              takes no reversal: a bare name carries no prefix, so there is
              nothing to match it against. For the caller-supplied-buffer case
-             podbox writes the virtual name when it fits and returns `ERANGE`
+             podvm writes the virtual name when it fits and returns `ERANGE`
              when it does not,
              rather than silently returning the real one: `ERANGE` is a defined
              answer the caller handles and a real path is a leak.
 Decision:    `ERANGE` over a silent real path. The buffer case is rare and a
              leaked host path in a `configure` script's output is a build that
              bakes in the wrong prefix.
-Prove:       `podbox run --rm -e PODBOX_MAPS=/mapped:$PWD public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
+Prove:       `podvm run --rm -e PODVM_MAPS=/mapped:$PWD public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
              (The `-v` spelling the entry was authored with does not exist;
              `-e` carries the same table and the assertion is unchanged.)
 
 **Done 2026-09-22.** `map::unrewrite` mirrors `rewrite` with the sides
-swapped (longest TO wins, the `/.podbox/` guard holds, `-2` past the
+swapped (longest TO wins, the `/.podvm/` guard holds, `-2` past the
 buffer), with unit tests for the match, the boundary, the longest
 win, the guard, the trailing-slash and root TO sides. Six entry
 points read results back through it: `getcwd` (both the allocating
@@ -654,17 +654,17 @@ Decision:    Decline the tier, do not fall back to a copy silently. A `-v` that
              `references/proot-me__proot/tree/src/cli/cli.c:135-138` shows what
              a tool that assumes otherwise tells the user.
 Prove:       `./experiments/159-interpose-placement.sh` exits 0. Clause B is
-             row 2's acceptance: it stages podbox's own release binary
+             row 2's acceptance: it stages podvm's own release binary
              (musl static, no `PT_INTERP` per
              [T-0701](#t-0701-the-cdylib-build-constraints)) with `extract`
              plus a host copy plus `run`, and asserts the
              `interpose: declined` line and exit 0. The old `run -v`
              one-liner never ran and is gone: `run -v` is a refused `None`
-             row, and check 26 of `crates/podbox-gate/src/main.rs` now refuses any
-             done Prove that names one (TODO/gate.md T-1325). ⚠ **That drives row 2 of the table and not row 3**, and the substitution is stated rather than quiet: podbox's own release binary is `x86_64-unknown-linux-musl` under the workspace's `+crt-static`, which [T-0701](#t-0701-the-cdylib-build-constraints) records, so it carries no `PT_INTERP` and is a static payload this tree already builds. ⭐ The command IS the check on that: a payload with a `PT_INTERP` would not be declined and the line would fail. ⛔ **The line named an unqualified Go image until 2026-09-12**, which resolves through the engine's shortname aliases to a quota-bearing registry. ⚠ **Row 3, the Go payload, has no acceptance now**, because every row of `DISTRO_ROWS_M5` is a base distribution and none is a Go image, and inventing a reference is what [T-1209](gate.md) refuses. That entry's `Approach` step 2 is where the row is asked for. ⛔ **The `-v` in that line never ran: `run -v` is a refused `None` row.** `experiments/159-interpose-placement.sh` clause B stages the same static binary with `extract` plus a host copy plus `run` instead, and asserts the decline line and exit 0.
+             row, and check 26 of `crates/podvm-gate/src/main.rs` now refuses any
+             done Prove that names one (TODO/gate.md T-1325). ⚠ **That drives row 2 of the table and not row 3**, and the substitution is stated rather than quiet: podvm's own release binary is `x86_64-unknown-linux-musl` under the workspace's `+crt-static`, which [T-0701](#t-0701-the-cdylib-build-constraints) records, so it carries no `PT_INTERP` and is a static payload this tree already builds. ⭐ The command IS the check on that: a payload with a `PT_INTERP` would not be declined and the line would fail. ⛔ **The line named an unqualified Go image until 2026-09-12**, which resolves through the engine's shortname aliases to a quota-bearing registry. ⚠ **Row 3, the Go payload, has no acceptance now**, because every row of `DISTRO_ROWS_M5` is a base distribution and none is a Go image, and inventing a reference is what [T-1209](gate.md) refuses. That entry's `Approach` step 2 is where the row is asked for. ⛔ **The `-v` in that line never ran: `run -v` is a refused `None` row.** `experiments/159-interpose-placement.sh` clause B stages the same static binary with `extract` plus a host copy plus `run` instead, and asserts the decline line and exit 0.
 
 
-**Done 2026-09-18.** The classifier landed in `crates/podbox-cli/src/interpose.rs` (`classify`, read once per payload, advisory, safe direction on every doubt) and runs at `run`, at `exec` on both paths, and at `create` through the shared `prepare`. Where it says unreachable the tier is declined by name on stderr and the payload still runs. `experiments/results/interpose-placement.txt` carries the run: row 2 declines naming the static payload with exit 0, the dynamic control is preloaded and not declined. ⭐ **Row 3 is proved without an image.** The Go markers outrank a present interpreter by unit test over all four section names, because [T-1209](gate.md) refuses an invented reference and no `DISTRO_ROWS_M5` row is a Go image. That answers [PROGRESS.md](PROGRESS.md)'s open question with the second option: the classification's Go case is proved some other way.
+**Done 2026-09-18.** The classifier landed in `crates/podvm/src/interpose.rs` (`classify`, read once per payload, advisory, safe direction on every doubt) and runs at `run`, at `exec` on both paths, and at `create` through the shared `prepare`. Where it says unreachable the tier is declined by name on stderr and the payload still runs. `experiments/results/interpose-placement.txt` carries the run: row 2 declines naming the static payload with exit 0, the dynamic control is preloaded and not declined. ⭐ **Row 3 is proved without an image.** The Go markers outrank a present interpreter by unit test over all four section names, because [T-1209](gate.md) refuses an invented reference and no `DISTRO_ROWS_M5` row is a Go image. That answers [PROGRESS.md](PROGRESS.md)'s open question with the second option: the classification's Go case is proved some other way.
 
 ---
 
@@ -695,15 +695,15 @@ Approach:    A built-in exclusion list, not only a user-supplied one:
              `/proc` (one tree prefix covers `/proc/self/fd`,
              `/proc/self/cwd` and `/proc/self/exe`, the leaves the machinery
              reads, and whatever it names next), and the interposer's own
-             object and memo under `/.podbox/`. The store takes no entry:
+             object and memo under `/.podvm/`. The store takes no entry:
              payload paths never address the host store. Match at a component
              boundary so `/proctor` is not excluded by `/proc`. Then accept a
-             user list on top of it, in `PODBOX_EXCLUDE_PATH`.
+             user list on top of it, in `PODVM_EXCLUDE_PATH`.
 Decision:    Built-in first, user list second, and the built-in entries are not
              removable. A user who removes `/proc/self/fd` from the list gets an
              interposer that cannot resolve `*at` calls, and the failure names
              nothing.
-Prove:       `podbox run --rm -e PODBOX_MAPS=/proc:/etc public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -z "$(ls /proc)"'`
+Prove:       `podvm run --rm -e PODVM_MAPS=/proc:/etc public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -z "$(ls /proc)"'`
              (The `-v` spelling the entry was authored with does not exist;
              `-e` carries the same table. The broad map is the point: under a
              map covering `/proc`, the directory still reads as itself, and
@@ -712,7 +712,7 @@ Prove:       `podbox run --rm -e PODBOX_MAPS=/proc:/etc public.ecr.aws/docker/li
 
 **Done 2026-09-22.** The never-rewrite predicate lives in `map.rs`:
 `excluded` answers the built-in `/proc` tree first (not removable) and
-the colon-separated `PODBOX_EXCLUDE_PATH` list second, consulted from
+the colon-separated `PODVM_EXCLUDE_PATH` list second, consulted from
 both `longest` and `longest_to`, so machinery paths never rewrite
 forward and results naming them never read back virtual. Unit tests pin
 the tree, the boundary (`/proctor`, `/procself` still map), empty list
@@ -751,7 +751,7 @@ Approach:    Implement the four. ⛔ Every one of them is a lie to the payload a
              the banner says the tier is emulating them. A `mount` that returned
              success and mounted nothing is exactly the class of defect the
              honesty rules exist for, and the only thing that makes it
-             acceptable is that podbox says so.
+             acceptable is that podvm says so.
 Decision:    Strip namespace flags from `clone` rather than failing it. Failing
              it stops shells and build systems that set them speculatively;
              stripping them produces a process that works with less isolation,
@@ -759,7 +759,7 @@ Decision:    Strip namespace flags from `clone` rather than failing it. Failing
              ⚠ Do not strip `CLONE_NEWNET` silently: an empty netns is
              `ENETUNREACH` for every connection, which reads as a network outage
              rather than as a stripped flag. Report it.
-Prove:       `podbox create --name e1 public.ecr.aws/docker/library/alpine:3.20 sh -c 'mknod /tmp/n c 1 3 && test -f /tmp/n' && podbox start e1 && podbox wait e1 && podbox inspect --format '{{.Interpose.Emulated.mknod}}' e1 | grep -q '^[1-9]'; rc=$?; podbox rm -f e1 >/dev/null 2>&1; exit $rc`
+Prove:       `podvm create --name e1 public.ecr.aws/docker/library/alpine:3.20 sh -c 'mknod /tmp/n c 1 3 && test -f /tmp/n' && podvm start e1 && podvm wait e1 && podvm inspect --format '{{.Interpose.Emulated.mknod}}' e1 | grep -q '^[1-9]'; rc=$?; podvm rm -f e1 >/dev/null 2>&1; exit $rc`
 
 **Done 2026-09-22.** The tally rides the ownership memo file through the
 same descriptor (`dev` `u64::MAX`, the operation in the inode word: 1
@@ -804,7 +804,7 @@ and the interpose suite at 25 of 25 in the lane check.
 work.** It ran `run --rm` and read `ps -lq`. A foreground run keeps no
 record: `--rm` removes the memo `inspect` reads, and without it the
 ephemeral memo is deleted on exit. `ps` takes no `-l` flag
-(`crates/podbox-cli/src/lifecycle.rs` `ps`). The tally rows use the
+(`crates/podvm/src/lifecycle.rs` `ps`). The tally rows use the
 create/start/wait/inspect/rm cycle.
 
 ---
@@ -860,12 +860,12 @@ Decision:    Select and assert, never try. The assertion is cheap, it runs
 Prove:       `./experiments/80-interposer-abi.sh` exits 0, and its check E is this reader answering what the loader answered in A, B and C
 
 
-**Done 2026-09-09.** `crates/podbox-enter/src/abi.rs`, driven by
-`podbox system abi <object> <libc>` and asserted by check E of
+**Done 2026-09-09.** `crates/podvm-enter/src/abi.rs`, driven by
+`podvm system abi <object> <libc>` and asserted by check E of
 `experiments/80-interposer-abi.sh`.
 
 ⛔ **The `Prove` above was amended, and the reason is that its second half could
-not fail.** It read `podbox run --rm alpine:latest true 2>&1 | grep -qv 'symbol
+not fail.** It read `podvm run --rm alpine:latest true 2>&1 | grep -qv 'symbol
 not found'`; with no interposer to preload, no run can produce that string, so
 the clause passes on a tree where nothing is implemented. Check E is the
 assertion that can go red: the reader's verdict is compared with what the loader
@@ -873,7 +873,7 @@ actually did in checks A, B and C, over the same objects and the same pinned
 payload libcs.
 
 ```
-== E. podbox's own reader, against the same four situations
+== E. podvm's own reader, against the same four situations
   control glibc obj -> host libc     rc=0    admitted
   glibc obj -> musl libc             rc=1    refused (names musl and glibc)
   control musl obj -> musl libc      rc=0    admitted
@@ -886,7 +886,7 @@ ok   E: the reader's answer is the loader's, on every arm that ran
 `lib/x86_64-linux-gnu/libc.so.6` in the reader: the payload's own `PT_INTERP`
 names the loader that will run it, and on musl that file IS the C library while
 on glibc the libc sits in the loader's own directory. A table would be a list of
-the distributions somebody thought of, and `crates/podbox-complete/src/identity.rs`
+the distributions somebody thought of, and `crates/podvm-complete/src/identity.rs`
 already carries one for a coarser question.
 
 Four things the implementation had to get right, and three of them were found by
@@ -927,10 +927,10 @@ channel.
 A Debian payload declined every run because the object imports
 `_Unwind_Resume@GCC_3.0`, which no `libc.so.6` declares and `libgcc_s.so.1`
 beside it does. `abi::union` merges the libc with the runtimes beside it
-for the check; `podbox system abi` keeps the direct two-file question. The
+for the check; `podvm system abi` keeps the direct two-file question. The
 multiarch search that found that libc is in the same change.
 
-⭐ **A second thing this closed, in the harness rather than in podbox.**
+⭐ **A second thing this closed, in the harness rather than in podvm.**
 `experiments/80-interposer-abi.sh` exited **2** on this container because
 `musl-gcc` is absent from it, so question B and both musl arms of check E could
 not be taken. It now falls back to `scripts/zig-cc.sh`, which is the compiler
@@ -943,7 +943,7 @@ arm ran" means something different depending on it.
 
 ### T-0710 The ownership memo lives where the payload can edit it, and answers by linear scan
 
-Source:      `crates/podbox-interpose/src/memo.rs`; `experiments/results/interpose-ownership.txt`
+Source:      `crates/podvm-interpose/src/memo.rs`; `experiments/results/interpose-ownership.txt`
 Category:    interpose
 Priority:    P1
 Effort:      L
@@ -951,7 +951,7 @@ Status:      done 2026-09-19
 
 Problem:     T-0704's memo makes `chown` answerable on a runtime that refuses
              it, and the shape it took to get there is a append-only log at
-             `/.podbox/ownership.memo` **inside the payload's own rootfs**,
+             `/.podvm/ownership.memo` **inside the payload's own rootfs**,
              read back by scanning it backwards for the last record naming a
              `(dev, ino)` pair. Three consequences, and the first is the one
              that matters:
@@ -962,7 +962,7 @@ Problem:     T-0704's memo makes `chown` answerable on a runtime that refuses
              payload concludes its own call did nothing.
              ⚠ The payload can `rm` it, truncate it, or fill it. Everything in
              the rootfs is the payload's, which is the property that makes
-             `podbox exec` see what the first process wrote and also the
+             `podvm exec` see what the first process wrote and also the
              property that makes the record forgeable.
              ⚠ It grows without bound: one 32-byte record per `chown`, and a
              `chown -R` over a distribution tree writes one per inode with no
@@ -974,8 +974,8 @@ Premise:     Measured, `experiments/105-interpose-ownership.sh` checks C, D
              one `O_APPEND` write and no lock, which is atomic for a
              fixed-size record and is why there is no lock to begin with.
              ⚠ fakeroot's own answer is a daemon holding the table in memory
-             (`references/salsa-debian__fakeroot/tree/libfakeroot.c:875-907`), which podbox cannot copy: there
-             is no process to hold it across `podbox exec`, and a daemon is the
+             (`references/salsa-debian__fakeroot/tree/libfakeroot.c:875-907`), which podvm cannot copy: there
+             is no process to hold it across `podvm exec`, and a daemon is the
              notification tier T-0606 is blocked on in a different shape.
 Approach:    Three questions, and the first is the operator's to rule:
              1. **Where it lives.** Inside the rootfs, visible and forgeable, or
@@ -992,7 +992,7 @@ Approach:    Three questions, and the first is the operator's to rule:
              3. **What a forged record may do.** It can name any `(dev, ino)`,
                 so a payload can make any file read as owned by anyone. That is
                 inside the payload's own trust boundary and harmless there;
-                it stops being harmless if podbox ever reads the memo to decide
+                it stops being harmless if podvm ever reads the memo to decide
                 something on the host, which nothing does today and which this
                 entry should forbid in writing.
 Decision:    **The memo lives on the host, beside the container record. Ruled by
@@ -1000,7 +1000,7 @@ Decision:    **The memo lives on the host, beside the container record. Ruled by
              truncate it or delete it, so the forgery question closes instead of
              being argued about each time somebody reads the entry.
              ⛔ **The cost is real and it is in the spawn path, not at `chown`
-             time.** `podbox exec` re-enters the chroot, so every entry must be
+             time.** `podvm exec` re-enters the chroot, so every entry must be
              handed a descriptor to the memo, and an entry that is not handed
              one must REFUSE rather than start with no memo: a second process
              that silently has no ownership record answers a `stat` with the
@@ -1020,8 +1020,8 @@ Prove:       `experiments/105-interpose-ownership.sh` gains a check G: write
 
 
 **Done 2026-09-19.** The memo lives on the host beside the container record
-(`podbox-supervise/src/table.rs` `memo_path`, `MEMO_CHILD_FD` 17,
-`PODBOX_MEMO_FD`), handed as a descriptor at every spawn (`run` foreground
+(`podvm-supervise/src/table.rs` `memo_path`, `MEMO_CHILD_FD` 17,
+`PODVM_MEMO_FD`), handed as a descriptor at every spawn (`run` foreground
 ephemeral under staging, `create`/`run -d` moved to `containers/<id>/`,
 `exec` re-handed, launcher and T-0412 steps sharing it) and refused where not
 handed (`interpose::apply` returns `Err`). The interposer reads and writes
@@ -1031,17 +1031,17 @@ answers the real owner marked degraded, never a stale record.
 `experiments/105-interpose-ownership.sh` check G drives it end to end with
 `experiments/results/interpose-ownership.txt` carrying the run: 7 checks, exit
 0 (OLD_STAT=0:42, NEW_STAT=0:0 refusal with the degraded line, 5242944 bytes).
-A guest `podbox run` smoke test answered 0:42 through the host memo. Nothing
+A guest `podvm run` smoke test answered 0:42 through the host memo. Nothing
 on the host reads the memo to decide anything.
 
 ⚠ **One lane trap this change records.** The 105 harness hands fd 9 and not
 17: the old glibc payload's `/bin/sh` is dash, which redirects single-digit
 descriptors only (`exec 17<>` answers `17: not found`, measured 2026-09-19).
-podbox hands 17 by `dup2` with no shell involved, so production is unaffected.
+podvm hands 17 by `dup2` with no shell involved, so production is unaffected.
 
 ---
 
-### T-0711 The identity calls, and podbox's honesty rules point the other way from fakeroot's
+### T-0711 The identity calls, and podvm's honesty rules point the other way from fakeroot's
 
 Source:      `TOOL.md` section 6.7; `references/salsa-debian__fakeroot/tree/libfakeroot.c:669-678`
 Category:    interpose
@@ -1050,14 +1050,14 @@ Effort:      L
 Status:      done
 
 Problem:     A payload that is already uid 0 still calls `setuid`, `setgid` and
-             `setgroups`, and on the runtimes podbox targets they fail. A
+             `setgroups`, and on the runtimes podvm targets they fail. A
              package manager that drops to an unprivileged user to run a
              maintainer script, `sshd`, and every build system with a "do not
              run as root" guard all take that path.
              ⛔ **The fork is unruled and the two answers are incompatible.**
              fakeroot answers by LYING: it records the requested id and reports
              it back through `getuid`, so the payload believes it dropped
-             privilege. podbox's own honesty rules
+             privilege. podvm's own honesty rules
              ([cli.md](cli.md) T-0804) forbid output implying a property the
              runtime does not provide, and "you are now uid 1000" on a process
              that still holds every capability bit is exactly that.
@@ -1102,7 +1102,7 @@ Decision:    **Answer 3, and the default is the honest refusal. Ruled by the
              ⛔ **The flag marks the container degraded and `--strict` refuses
              it**, which is the same shape T-0407 already carries for the host
              CA bundle. ⛔ A run under the flag says so in the banner, because
-             this entry exists to stop podbox and its own output disagreeing
+             this entry exists to stop podvm and its own output disagreeing
              about who the payload is.
              ⚠ The measurement in `Approach` is still owed and still decides the
              SHAPE of the honest refusal: which errno each call returns on a
@@ -1112,7 +1112,7 @@ Prove:       `./experiments/106-interpose-identity.sh`, which runs a payload
              that calls `setuid(1000)` and then `getuid()` under the object on
              both libcs, asserts whichever of the three answers the ruling
              picks, and asserts the BANNER says the same thing the call did --
-             because the failure this entry exists to prevent is podbox and its
+             because the failure this entry exists to prevent is podvm and its
              own output disagreeing about who the payload is.
 
 
@@ -1124,17 +1124,17 @@ report identical to the bare one, musl honest checked against the same
 kernel's bare glibc lines in C0); with `--user 1000:100` the setters
 answer 0 and every getter answers the record on both libcs (B, C,
 including `setreuid(2000,-1)` reporting `2000:1000:1000`, the kernel's
-saved-follows-effective rule); `podbox run --user` makes `id` answer the
+saved-follows-effective rule); `podvm run --user` makes `id` answer the
 request on both libcs with the banner naming the faked identity (D);
 `--strict` refuses naming `--user` through its Degraded parity row (E);
 and a static payload with `--user` is declined by name and still runs (F).
 
 The shape the entry ruled: `run`, `create` and both `exec` paths resolve
-`--user` through one call (`crates/podbox-cli/src/lifecycle.rs`
+`--user` through one call (`crates/podvm/src/lifecycle.rs`
 `apply_user`, numeric ids or names from the image's own files, a bare
-name taking its primary group from passwd) into `PODBOX_IDENTITY`, which
+name taking its primary group from passwd) into `PODVM_IDENTITY`, which
 the object reads per process with no lock and no allocation
-(`crates/podbox-interpose/src/identity.rs`), surviving `fork` by copy
+(`crates/podvm-interpose/src/identity.rs`), surviving `fork` by copy
 and `execve` by re-read. The sixteen identity entry points are declared
 in `interpose.map` and asserted against it by `105` check A. What the
 entry's `Approach` still names as owed, the errno-by-call measurement
@@ -1176,7 +1176,7 @@ before: success needs no diagnostic. All older clauses held
 beside the new one, and the `wall_errnos_carry_their_names`
 unit test is green with the interpose suite.
 Keep the current default as the fallback. Fix area is
-`crates/podbox-interpose/src/identity.rs` with `interpose.map`.
+`crates/podvm-interpose/src/identity.rs` with `interpose.map`.
 Risk is low: the gap is the honesty of the refusal wording, not a
 silent wrong answer. Prove is the recorded reading with the
 refusal naming the call and the errno beside it.
@@ -1189,7 +1189,7 @@ record with or without a wall, and the control compares bare against
 loaded rather than against the kernel, which is why no clause asserts an
 absolute honest-failure rc. The musl victim cannot execute on the glibc
 job container (its interpreter is the absent musl loader), so clause C
-runs it staged inside the alpine rootfs through podbox itself.
+runs it staged inside the alpine rootfs through podvm itself.
 
 
 ---
@@ -1207,7 +1207,7 @@ Status:      done
 Problem:     [T-1110](milestones.md) drives a payload matrix across payload
              classes, and [T-0706](interpose.md) owns the named decline for the
              classes the tier cannot reach. **A matrix that changes two things
-             between its rows measures neither**, and the fixture podbox would
+             between its rows measures neither**, and the fixture podvm would
              copy has exactly that defect.
 Premise:     **Read at the line, and the header disagrees with the code.**
              That fixture's header and its README both say the three victims run
@@ -1223,7 +1223,7 @@ Premise:     **Read at the line, and the header disagrees with the code.**
              ownership wall, and it is nothing of the kind: it asked for a gid
              that is mapped. A reader taking that row as evidence would conclude
              that static payloads escape wall 1.
-Approach:    podbox's own matrix holds the argument constant across every row and
+Approach:    podvm's own matrix holds the argument constant across every row and
              varies **only** the payload class. One unmapped target for every
              row, so "reached" and "cleared" are two columns of the same table
              rather than two experiments.
@@ -1248,13 +1248,13 @@ is about.)
 ### T-1309 libdnf repodata downloads fail under the preloaded interposer
 
 Source:      `experiments/240-distro-sweep.sh` rocky and rocky-minimal rows;
-             `crates/podbox-interpose/src/lib.rs` (the interposed symbol set)
+             `crates/podvm-interpose/src/lib.rs` (the interposed symbol set)
 Category:    interpose
 Priority:    P1
 Effort:      M
 Status:      done
 
-Problem:     The rocky and rocky-minimal rows of `240` fail under podbox
+Problem:     The rocky and rocky-minimal rows of `240` fail under podvm
              while the engine control builds and runs 42 on the same image.
              `dnf`/`microdnf` (libdnf) report `Yum repo downloading error:
              Invalid path: repodata/<hash>-primary.xml.gz` after a slow
@@ -1272,7 +1272,7 @@ Premise:     Measured 2026-09-19 on host podman, fixed URL, back to back,
              sides and are identical (one AAAA, Fastly), the resolver is
              `10.255.255.254` on both, and both share one network
              namespace, so neither names the cause. The interposer wraps
-             no socket symbol (`crates/podbox-interpose/src/lib.rs`: chown,
+             no socket symbol (`crates/podvm-interpose/src/lib.rs`: chown,
              stat, open, path and identity families only), so socket
              shaping is refuted by reading; a file-path operation in the
              download path (`mkstemp`, `statx`, `openat` handling) is the
@@ -1280,7 +1280,7 @@ Premise:     Measured 2026-09-19 on host podman, fixed URL, back to back,
              Correction measured 2026-09-22 on host podman 6.1.2: the
              suspect above is wrong. No file-path operation fails. An
              `LD_PRELOAD` shim that forwards `realpath` untouched
-             reproduces the failure with no podbox and no interpose
+             reproduces the failure with no podvm and no interpose
              object. librepo calls `realpath(path, NULL)`. The forwarded
              call answers NULL with `EINVAL` on paths that `stat`
              confirms exist. Bare succeeds on the same paths. An
@@ -1323,8 +1323,8 @@ Approach:    Forward the seven multi-version names to their default
              reference the defaults, and the fallback keeps older ones
              working.
 Decision:    Fix in the interposer, not around it. The control exists to
-             separate "podbox is missing a fixup" from "this machine
-             cannot do it either", and here it names podbox: no sweep-side
+             separate "podvm is missing a fixup" from "this machine
+             cannot do it either", and here it names podvm: no sweep-side
              workaround is legitimate.
 Prove:       `./experiments/240-distro-sweep.sh` exits 0 with both
              libdnf rows reading 42, on host podman, with the
@@ -1360,22 +1360,22 @@ no interposer at all.
 
 Source:      the T-1111 nix unpack (`experiments/results/nix-acceptance.txt`
              carries the loader error);
-             `crates/podbox-interpose/src/real.rs:28`
+             `crates/podvm-interpose/src/real.rs:28`
 Category:    interpose
 Priority:    P1
 Effort:      S
 Status:      done
 
-Problem:     The nix 2.2.2 closure unpacks under podbox now (T-1311), but no
+Problem:     The nix 2.2.2 closure unpacks under podvm now (T-1311), but no
              nix binary starts: the loader refuses each one with
              `version 'GLIBC_2.34' not found (required by
-             /.podbox/interpose.so)`. The closure ships glibc 2.27, and the
+             /.podvm/interpose.so)`. The closure ships glibc 2.27, and the
              preloaded object binds symbols its libc predates, so the whole
              T-1111 pipeline stops at REGISTER.
 Premise:     Measured 2026-09-21 in the lane: `readelf -VW` on the shipped
              glibc object needs `GLIBC_2.34` for `dlsym` and `GLIBC_2.30`
              for `gettid`, and nothing else above 2.27. The `dlsym` reference
-             is this object's own (`crates/podbox-interpose/src/real.rs:28`);
+             is this object's own (`crates/podvm-interpose/src/real.rs:28`);
              glibc re-versioned the merged `libdl` symbols at 2.34, so any
              link against a newer libc stamps it. No crate code calls
              `gettid`: the reference arrives with Rust std, which this
@@ -1405,7 +1405,7 @@ Decision:    Fix in the interposer, not around it. Shipping a second older
              be a special case with a second thing to maintain; one object
              that loads anywhere back to 2.27 is the product T-0702
              describes.
-Prove:       `./target/release/podbox-interpose-build` exits 0 with the ceiling
+Prove:       `./target/release/podvm-interpose-build` exits 0 with the ceiling
              assertion recorded in its output, and the 152 REGISTER row
              reads ok (recorded under the T-1111 run).
 
@@ -1432,14 +1432,14 @@ defines no version node; and the SONAME is `libdl.so.2`, not `.6`.
 
 Source:      the T-1111 nix unpack (the symptom is in
              `experiments/results/tar-symlink-modes-prefix.txt`);
-             `crates/podbox-interpose/src/lib.rs:356`,
-             `crates/podbox-interpose/src/lib.rs:1038`
+             `crates/podvm-interpose/src/lib.rs:356`,
+             `crates/podvm-interpose/src/lib.rs:1038`
 Category:    interpose
 Priority:    P1
 Effort:      S
 Status:      done
 
-Problem:     Unpacking a tarball that carries symlinks fails under podbox
+Problem:     Unpacking a tarball that carries symlinks fails under podvm
              while the engine control unpacks it cleanly. GNU tar reports
              `tar: ./l: Cannot change mode to rwxrwxrwx: No such file or
              directory` for each link and exits 2, so the nix 2.2.2 binary
@@ -1447,11 +1447,11 @@ Problem:     Unpacking a tarball that carries symlinks fails under podbox
              links succeeds, and regular files extract with their modes
              intact: only the mode-set on symlinks fails.
 Premise:     Measured 2026-09-21 on host podman, same image, back to back:
-             under `podbox run` the minimal tar-symlink repro exits 2 with
+             under `podvm run` the minimal tar-symlink repro exits 2 with
              one such error per link; in the plain driver container the same
              commands exit 0. The interposed `fchmodat` is declared with
-             three arguments (`crates/podbox-interpose/src/lib.rs:356`) and
-             forwards three (`crates/podbox-interpose/src/lib.rs:1038`),
+             three arguments (`crates/podvm-interpose/src/lib.rs:356`) and
+             forwards three (`crates/podvm-interpose/src/lib.rs:1038`),
              while libc takes four `(dirfd, path, mode, flags)`: the real
              call receives a fourth register the wrapper never set, so any
              caller passing flags gets the wrong answer. Tar's symlink
@@ -1460,28 +1460,28 @@ Premise:     Measured 2026-09-21 on host podman, same image, back to back:
              `faccessat`, `utimensat`, `linkat`, `execveat`, `openat2`,
              `fstatat`), so this is the one truncation, not the pattern.
              An empty path table returns the caller's pointer before any
-             resolution (`crates/podbox-interpose/src/map.rs:448`), which
+             resolution (`crates/podvm-interpose/src/map.rs:448`), which
              refutes the rewrite as the cause on runs with no table set.
              The ownership memo never sees `chmod`, which refutes that
              layer.
 Approach:    Carry `flags` through the declaration and the wrapper. Add a
              unit test that compares the interposed `fchmodat` against
              libc's own for a symlink with `AT_SYMLINK_NOFOLLOW` and with
-             flags 0. Drive the tar-symlink repro under podbox with the
+             flags 0. Drive the tar-symlink repro under podvm with the
              engine control beside it. Out of scope: the T-1309 libdnf
              failure (same family, a different call, still open), the
              T-0705 reverse mapping, and the non-native `$BIN version`
              line of 152 (T-1111's area, cosmetic).
 Decision:    Fix in the interposer, not around it. The control names
-             podbox, so no script-side workaround is legitimate: stripping
+             podvm, so no script-side workaround is legitimate: stripping
              symlink modes or passing tar permission-dodging flags would
              test a different product, the same ruling T-1309 carries.
 Prove:       `./experiments/162-tar-symlink-modes.sh` exits 0 on host
              podman, with the conditions block naming the driver.
 
 **Done 2026-09-21.** The declaration and the wrapper carry `flags`
-(`crates/podbox-interpose/src/lib.rs:356`,
-`crates/podbox-interpose/src/lib.rs:1038`); every other flags-taking
+(`crates/podvm-interpose/src/lib.rs:356`,
+`crates/podvm-interpose/src/lib.rs:1038`); every other flags-taking
 `*at` wrapper already did, so the audit closes with this one. Guard:
 `tests::fchmodat_forwards_flags` compares the interposed entry point
 against libc's own on a symlink with flags 0 and `AT_SYMLINK_NOFOLLOW`.
@@ -1500,7 +1500,7 @@ binary (unpack rc 0 with both links and the mode green on both sides;
 
 Source:      issue 26, client beta testing 2026-09-22 (every binary
              embeds x86_64 objects; T-0704 cited for another subject);
-             `.github/workflows/nightly.yml`, `crates/podbox-interpose`
+             `.github/workflows/nightly.yml`, `crates/podvm-interpose`
 Category:    interpose
 Priority:    P2
 Effort:      L
@@ -1542,9 +1542,9 @@ template), so `grep T-0704` on the publish path is empty and the
 citation half is closed in the same change.
 
 What the lane measured, one arch at a time, is why the objects do
-not follow the binaries. `podbox-interpose` carries x86_64's
+not follow the binaries. `podvm-interpose` carries x86_64's
 `struct stat` field offsets as constants
-(`crates/podbox-interpose/src/lib.rs:88-91`: `ST_UID 28`,
+(`crates/podvm-interpose/src/lib.rs:88-91`: `ST_UID 28`,
 `ST_GID 32`, measured under both libcs by
 `experiments/105-interpose-ownership.sh`), and an object that wrote
 a uid at the wrong offset would corrupt whatever field is there:
@@ -1578,10 +1578,10 @@ per arch, or add the qemu-user payload-execution leg for one arch
 (aarch64 first) so at least one non-x86_64 arch proves `run` end
 to end. While it stays x86_64-only, name the consequence here:
 on chroot-denied non-x86_64 hosts there is no fallback rung.
-Fix area is `crates/podbox-interpose`,
-`crates/podbox-cli/src/interpose.rs` with `build.rs`,
+Fix area is `crates/podvm-interpose`,
+`crates/podvm/src/interpose.rs` with `build.rs`,
 `scripts/build-interpose.sh` `TARGETS`,
-nightly-smoke.sh (now `podbox-smoke`), and `.github/workflows/nightly.yml`.
+nightly-smoke.sh (now `podvm-smoke`), and `.github/workflows/nightly.yml`.
 Risk if wrong is a release reading all-arch supported while six
 archs run no payload with no fallback rung. Prove is the entry's
 Prove: `readelf -h` on each shipped binary's embedded objects
@@ -1593,9 +1593,9 @@ sha256-ok, outer `e_machine` per arch, exactly two embedded
 **Done 2026-09-26.** The smoke asserts the embed per arch, and
 the aarch64 leg proves `run` end to end. `build.rs` records each
 embedded object's ELF `e_machine` beside its digest
-(`PODBOX_INTERPOSE_{GNU,MUSL}_MACHINE`), `version --verbose`
+(`PODVM_INTERPOSE_{GNU,MUSL}_MACHINE`), `version --verbose`
 renders the two `interpose-gnu-machine` and
-`interpose-musl-machine` lines, and `nightly-smoke.sh` (now `podbox-smoke`) group 6
+`interpose-musl-machine` lines, and `nightly-smoke.sh` (now `podvm-smoke`) group 6
 reports outer beside embedded: on x86_64 legs the embeds must
 equal the artefact (a wrong-arch embed fails the smoke), on
 other legs the mismatch is printed and expected, never
@@ -1617,7 +1617,7 @@ coverage proof on record here.
 ### T-1601 Unblock the static build under Rust 1.99 `invalid_runtime_symbol_definitions`
 
 Source:      CI run 36894578988, job 110478235939, 2026-10-01;
-             `crates/podbox-interpose/src/lib.rs` `:2139` and `:2144`;
+             `crates/podvm-interpose/src/lib.rs` `:2139` and `:2144`;
              `rust-toolchain.toml`
 Category:    interpose
 Priority:    P0
@@ -1625,7 +1625,7 @@ Effort:      S
 Status:      done
 
 Problem:     Main CI is red on all four jobs. The static build stops at
-             `crates/podbox-interpose/src/lib.rs:2144` with
+             `crates/podvm-interpose/src/lib.rs:2144` with
              `error: invalid definition of the runtime `open` symbol used
              by the standard library`. The lint is deny-by-default, so it
              fires without `-D warnings`. It takes down the static build,
@@ -1650,24 +1650,24 @@ Decision:    Allow the lint at the definition, forward-compatible through
              `unknown_lints`. The measured cost is one attribute and no
              behaviour change; the alternative pins the whole tree off
              stable.
-Prove:       `cargo build --release -p podbox-gate --bin podbox-interpose-build`
+Prove:       `cargo build --release -p podvm-gate --bin podvm-interpose-build`
              exits 0 in the Linux lane; the interposer clippy and test
              steps in `.github/workflows/gate.yml` pass;
-             `./target/release/podbox-gate` exits 0; a CI run on the landed
+             `./target/release/podvm-gate` exits 0; a CI run on the landed
              commit reports the static-build job green and plants 32e
              and 32f caught rather than MISS.
 
 **Done 2026-10-02.** One attribute on the crate root and one on each
 `open_fixed!` arm, and the two objects build under `rustc 1.99.0`
 ([the lane drive](../experiments/results/interpose-1.99-objects.txt),
-exit 0): `libpodbox_interpose.so` is 350184 bytes on musl and 330264 on
+exit 0): `libpodvm_interpose.so` is 350184 bytes on musl and 330264 on
 glibc, each naming its own libc and each exporting exactly the 112
 names `interpose.map` declares, against the ceiling the tracked wrapper
 declares. The four `gate.yml` lint steps also run clean
 on the same 1.99 toolchain: `cargo fmt --all -- --check` 0, the
 interpose `fmt` 0, `cargo clippy --workspace --all-targets -- -D
 warnings` 0, and `cargo test --workspace` 0 with 38 passing suites and
-zero `FAILED` lines. `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe`
+zero `FAILED` lines. `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe`
 exits 0.
 
 Two corrections to the entry's own reading, both measured.
@@ -1687,7 +1687,7 @@ written about what CI saw, and the "needs 1.99" reading is unsupported
 either way; the lane drive above is the measurement that settles it.
 
 Not driven here: `scripts/build-interpose.sh`, which resolves
-`target/release/podbox-interpose-build` and finds nothing, because
+`target/release/podvm-interpose-build` and finds nothing, because
 `.cargo/config.toml` sets the musl build target and the release output
 lands under `target/x86_64-unknown-linux-musl/release/`. That is a
 defect in the wrapper's path resolution, not in this fix, it predates
@@ -1805,7 +1805,7 @@ plan's word: `refactor/06-entries/PLAN.md:80-84` says nine members,
 there is one excluded crate at `Cargo.toml:24`, not six interpose members and
 not six excluded-crate proofs. The separate jobs are real. Four steps in
 `gate.yml:127-132`, `:193-196`, `:237-242` and `:260-263` reach the excluded
-crate by `--manifest-path`, and `crates/podbox-gate/src/dev.rs:55-69` mirrors
+crate by `--manifest-path`, and `crates/podvm-gate/src/dev.rs:55-69` mirrors
 them as `CHECK_STEPS`. The Prove is `grep -n "members" TODO/interpose.md`,
 which matches 9 lines now, 1 of them above this entry, and exits 0.
 
@@ -1813,7 +1813,7 @@ which matches 9 lines now, 1 of them above this entry, and exits 0.
 tree.** `refactor/06-entries/PLAN.md:80-84` counts the workspace at **nine**
 members and names them: probe, image, extract, complete, enter, supervise,
 windows, ssh, cli. That count is stale. `grep -c '^    "crates/' Cargo.toml`
-returns **13** on this tree today, at `Cargo.toml:4-16`. `podbox-interpose` is
+returns **13** on this tree today, at `Cargo.toml:4-16`. `podvm-interpose` is
 excluded at `Cargo.toml:24` under the same `exclude` key the plan cites as
 `:20`, and the line moved because the wave-4 and wave-5 crates landed. The
 exclusion is the durable fact; both member counts are dated.
@@ -1828,7 +1828,7 @@ title carries.
 
 **The separate jobs are real, and they are in `gate.yml` by name.** Four CI
 steps reach the excluded crate, and every one of them passes
-`--manifest-path crates/podbox-interpose/Cargo.toml` rather than naming the
+`--manifest-path crates/podvm-interpose/Cargo.toml` rather than naming the
 workspace, because `cargo test --workspace` cannot reach an excluded crate:
 
 | step | where | what it proves |
@@ -1838,9 +1838,9 @@ workspace, because `cargo test --workspace` cannot reach an excluded crate:
 | interposer tests | `gate.yml:260-263` | the unit suite, gnu target |
 | the objects, in the test job | `gate.yml:237-242` | the objects exist first |
 
-Each names `--manifest-path crates/podbox-interpose/Cargo.toml` rather than the
+Each names `--manifest-path crates/podvm-interpose/Cargo.toml` rather than the
 workspace, and `gate.yml:260-263` carries `RUSTFLAGS` naming the crt-static
-flag. `crates/podbox-gate/src/dev.rs:55-69` mirrors the same split as
+flag. `crates/podvm-gate/src/dev.rs:55-69` mirrors the same split as
 `CHECK_STEPS`, one step per line, with the same manifest path.
 
 **The two targets are not a preference.** `.cargo/config.toml:7-8` sets
@@ -1855,7 +1855,7 @@ consequence: a plain `cargo build --release` lands under
 it.** `refactor/06-entries/T-R005.md:148` states the rule: a crate that checks
 whether the interposer builds as a `cdylib` cannot be a workspace member,
 because adding it would invert the thing it measures. The check lives at
-`crates/podbox-gate/src/libc_interpose.rs`, which its own module comment at
+`crates/podvm-gate/src/libc_interpose.rs`, which its own module comment at
 `:3-4` names as a port of `60-interposer-libc.sh`. That script is the subject
 of the plan's row at `refactor/recon-c.md:164`, whose id is not a tracked
 entry. The cost of the exclusion is that no single job covers the tree, and
@@ -1890,7 +1890,7 @@ Prove:       `grep -n "interpose.map" TODO/interpose.md` names the
              targets.
 
 **Done.** No `rlib`, and the decision rests on the existing export check at
-`crates/podbox-gate/src/interpose_build.rs:501-517`, inside the per-target
+`crates/podvm-gate/src/interpose_build.rs:501-517`, inside the per-target
 loop at `:790-797`. It compares `declared_exports` against `exported_symbols`
 for equality at `:508`, and the map declares 112 names. Check B, the
 `struct stat` and `struct statx` offsets at `:601-700`, needs `cc` and joins
@@ -1900,28 +1900,28 @@ plan's line reference at `refactor/06-entries/PLAN.md:102-105` is stale, so
 the citation above is the code.
 
 **No `rlib`, and the failure a later session will meet is a name-resolution
-error, not a missing test.** `crates/podbox-interpose/Cargo.toml:15` declares
+error, not a missing test.** `crates/podvm-interpose/Cargo.toml:15` declares
 `crate-type = ["cdylib"]`, and a `cdylib` produces no importable Rust library
 for a test target to name. A `tests/*.rs` in that crate fails with
 `error[E0433]: cannot find module or crate`. Adding `rlib` to that list is the
 obvious repair and it is the wrong one here.
 
 **The export check is already written, and it stands as the check.** It lives in
-`crates/podbox-gate/src/interpose_build.rs:501-517`, inside the per-target
+`crates/podvm-gate/src/interpose_build.rs:501-517`, inside the per-target
 loop at `:790-797`, so it runs once for every target `TARGETS` names. The
 comparison is `declared_exports(&krate.join(MAP))` at `:501` against
 `exported_symbols(&so, root)` at `:506`. `declared_exports` parses
-`crates/podbox-interpose/interpose.map` (`:242-267`) and `exported_symbols`
+`crates/podvm-interpose/interpose.map` (`:242-267`) and `exported_symbols`
 runs `nm -D --defined-only` and keeps the `T` fields (`:270-285`). The two
 lists are compared for equality at `:508`, not for containment, and the pass
 line prints the count (`:510-512`). A name in the map the object does not
 export is a silent non-interposition; a name the object exports that the map
 does not list is a symbol some other library in the payload's process resolves
-to podbox. The comment at `:494-500` states both halves.
+to podvm. The comment at `:494-500` states both halves.
 
 **The map declares 112 names, and the check asserts that count against the
 object.** `awk '/global:/{g=1;next} /local:/{g=0} g && /;/{n++} END{print n}'
-crates/podbox-interpose/interpose.map` prints **112** and exits 0, and that
+crates/podvm-interpose/interpose.map` prints **112** and exits 0, and that
 walk is the one `declared_exports` performs between the `global:` and `local:`
 markers. T-1601's Done record reports the same 112 for both objects on the same
 comparison, and this figure is measured rather than copied from there.
@@ -1931,7 +1931,7 @@ longer holds it.** `refactor/06-entries/PLAN.md:102-105` puts the byte ceiling
 at line 48 of the script and the export comparison at lines 197 to 214 of the
 same file. That script is **41 lines** today and is a declaration stub: its own
 header comment at `:2-3` names the plan row for porting it, and the build
-itself moved into the `podbox-interpose-build` binary. The ceiling moved with
+itself moved into the `podvm-interpose-build` binary. The ceiling moved with
 it and is read at runtime; the stub is where the ceiling is declared, and
 `interpose_build.rs:18-20` records that no Rust source repeats the digits
 because the gate scans for them. The committed per-libc reading is
@@ -1943,8 +1943,8 @@ and find no comparison in it.**
 per object.** Both objects embed in the release binary, which the stub's
 comment at `:7-9` states, so their growth hides in that binary's headroom. An
 `rlib` is a third artefact for two targets and adds to every
-`podbox-interpose-build` run and every `gate.yml` invocation. The empty
-`[dependencies]` at `crates/podbox-interpose/Cargo.toml:18` means the cost is
+`podvm-interpose-build` run and every `gate.yml` invocation. The empty
+`[dependencies]` at `crates/podvm-interpose/Cargo.toml:18` means the cost is
 not shared resolution; it is a second and third artefact alone.
 
 **One check does need `cc`, and it joins the same binary rather than a new
@@ -1954,7 +1954,7 @@ compiles `OFF_C` (`:571-596`) and needs `cc` or `zig`; when the write fails it
 prints `COULD NOT BUILD OR RUN` and returns 2 (`:608-610`), which is the third
 state, not a pass. The comment at `:598-600` records that it answers a glibc
 payload rather than one libc twice: coreutils' `stat` on a modern glibc asks
-`statx(2)` and never reaches `stat`. It is already inside `podbox-gate`, so it
+`statx(2)` and never reaches `stat`. It is already inside `podvm-gate`, so it
 costs no new crate and no new library target.
 
 ---
@@ -1963,8 +1963,8 @@ costs no new crate and no new library target.
 
 Source:      issues 86 and 131 (131 reposts the hidden issue 105);
              issue 114 section 3.1 and section 6 item 5;
-             `crates/podbox-interpose/src/map.rs:506`;
-             `crates/podbox-interpose/src/lib.rs:1151`
+             `crates/podvm-interpose/src/map.rs:506`;
+             `crates/podvm-interpose/src/lib.rs:1151`
 Category:    interpose
 Priority:    P1
 Effort:      M
@@ -1976,7 +1976,7 @@ Problem:     On the userland rung every relative path fails with
              all miss the file. `apk info` cannot open its database. A
              tool that writes a relative output fails before it starts.
 Premise:     `absolutize` (`map.rs:506`) takes the `AT_FDCWD` base from
-             the real `getcwd` (`map.rs:507`). podbox starts the payload
+             the real `getcwd` (`map.rs:507`). podvm starts the payload
              with its working directory inside the rootfs, so that base
              is a host path under the rootfs. `prepare` (`map.rs:613`)
              gives the joined path to `rewrite` (`map.rs:361`), and the
@@ -1997,7 +1997,7 @@ Decision:    The input to `rewrite` is always a guest path. A base that
              does not move: issue 86 pass 4 records that a move breaks
              the store paths the interposer uses. A resolution failure
              never falls back to the unmapped relative path.
-Prove:       `cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
              exits 0 in the Linux lane with a new unit test: a cwd inside
              the table target absolutizes to one prefix, for `AT_FDCWD`
              and for a descriptor. `sh experiments/356-no-chroot-rung.sh`
@@ -2013,16 +2013,16 @@ denies chroot and user namespaces. The line numbers above were read on
 this tree. A static probe with no interposer printed the real cwd:
 
 ```text
-$ podbox run alpine:3.20 /bin/touch RELFILE
+$ podvm run alpine:3.20 /bin/touch RELFILE
 touch: RELFILE: No such file or directory
-$ podbox run alpine:3.20 /bin/cat /lib/apk/db/installed   # prints the db
-$ podbox run alpine:3.20 /bin/cat lib/apk/db/installed
+$ podvm run alpine:3.20 /bin/cat /lib/apk/db/installed   # prints the db
+$ podvm run alpine:3.20 /bin/cat lib/apk/db/installed
 cat: can't open 'lib/apk/db/installed': No such file or directory
-$ podbox run python:3-alpine python3 -c \
+$ podvm run python:3-alpine python3 -c \
     'import os; os.chdir("/"); print(os.getcwd()); open("etc/hostname")'
 /
 FileNotFoundError: [Errno 2] No such file or directory: 'etc/hostname'
-static probe: getcwd=/workspace/podbox-ux/store/rootfs/sha256_1667.../rootfs
+static probe: getcwd=/workspace/podvm-ux/store/rootfs/sha256_1667.../rootfs
 ```
 
 ---
@@ -2031,10 +2031,10 @@ static probe: getcwd=/workspace/podbox-ux/store/rootfs/sha256_1667.../rootfs
 
 Source:      issues 87, 128 and 129 (128 and 129 repost the hidden
              issues 96 and 97); issue 114 section 3.2 and section 6
-             item 4; `crates/podbox-cli/src/interpose.rs:281`;
-             `crates/podbox-enter/src/abi.rs:518`;
-             `crates/podbox-enter/src/abi.rs:589`;
-             `crates/podbox-interpose/src/real.rs:44`
+             item 4; `crates/podvm/src/interpose.rs:281`;
+             `crates/podvm-enter/src/abi.rs:518`;
+             `crates/podvm-enter/src/abi.rs:589`;
+             `crates/podvm-interpose/src/real.rs:44`
 Category:    interpose
 Priority:    P1
 Effort:      M
@@ -2075,7 +2075,7 @@ Decision:    The admission set is the set the loader resolves, read
              names a deeper alternative: do not emulate a foreign rootfs
              libc. This entry keeps the loader family and corrects its
              admission; T-1652 owns the static rung.
-Prove:       `cargo test -p podbox-enter` and `cargo test -p podbox-cli`
+Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm`
              exit 0 with unit tests: a union read from a fixture closure
              admits an object that imports `__tls_get_addr`, `dlsym` and
              `_Unwind_Resume`, and a loader link that resolves only on
@@ -2111,9 +2111,9 @@ decided the result for gcc:13, node:20 and golang:1.22.
 ### T-1645 Intercept `dlopen` and `dlmopen`
 
 Source:      issue 88; issue 114 section 2 item 4 and section 3.2;
-             `crates/podbox-interpose/interpose.map:43`;
-             `crates/podbox-interpose/src/lib.rs:1014`;
-             `crates/podbox-interpose/src/real.rs:44`
+             `crates/podvm-interpose/interpose.map:43`;
+             `crates/podvm-interpose/src/lib.rs:1014`;
+             `crates/podvm-interpose/src/real.rs:44`
 Category:    interpose
 Priority:    P1
 Effort:      M
@@ -2144,9 +2144,9 @@ Decision:    `dlopen` is a path entry point like `open`. A bare soname is
              (NSS, gconv) calls the loader directly and does not reach an
              exported `dlopen`; the drive measures that arm and the entry
              records the result, a pass or a named limit.
-Prove:       `cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
              exits 0 in the Linux lane with a test that loads a mapped
-             object by its guest path. `./target/release/podbox-interpose-build`
+             object by its guest path. `./target/release/podvm-interpose-build`
              exits 0 with both objects exporting `dlopen` and `dlmopen`.
              `sh experiments/356-no-chroot-rung.sh` exits 0 with a clause
              that runs `python3 -c 'import subprocess'` from the python
@@ -2159,9 +2159,9 @@ Prove:       `cargo test --manifest-path crates/podbox-interpose/Cargo.toml --ta
 $ readelf -Ws interpose-musl.so | grep -i dl
    UND dladdr
    UND dlsym
-$ podbox run python:3-alpine python3 -c 'print(1+1)'
+$ podvm run python:3-alpine python3 -c 'print(1+1)'
 2
-$ podbox run python:3-alpine python3 -c 'import subprocess'
+$ podvm run python:3-alpine python3 -c 'import subprocess'
 ImportError: Error loading shared library
   /usr/local/lib/python3.14/lib-dynload/_posixsubprocess.cpython-314-x86_64-linux-musl.so:
   No such file or directory
@@ -2176,8 +2176,8 @@ same path.
 
 Source:      issues 89 and 127 (127 reposts the hidden issue 95);
              issue 114 section 2 item 2 and section 6 item 3;
-             `crates/podbox-interpose/src/lib.rs:1014-1020`;
-             `crates/podbox-cli/src/lifecycle.rs:1984`;
+             `crates/podvm-interpose/src/lib.rs:1014-1020`;
+             `crates/podvm/src/lifecycle.rs:1984`;
              `experiments/356-no-chroot-rung.sh:376-383`
 Category:    interpose
 Priority:    P1
@@ -2200,7 +2200,7 @@ Premise:     The exec family (`lib.rs:1014-1020`: `execve`, `execv`,
              libc mixing T-1407 refused at the top level. That second case
              follows from the mechanism and is not measured. The top
              level avoids both through the loader family (`loader_plan`,
-             `crates/podbox-enter/src/userland.rs:187`). The banner names
+             `crates/podvm-enter/src/userland.rs:187`). The banner names
              the limit (`lifecycle.rs:1984`), and clause 17 of experiment
              356 pins the 127 as informational, not as a gate.
 Approach:    In the exec family, read the head of the mapped file. For
@@ -2210,7 +2210,7 @@ Approach:    In the exec family, read the head of the mapped file. For
              name. For a `#!` script, resolve its interpreter inside the
              rootfs the same way. A static ELF keeps the direct exec. The
              interposer has no dependencies
-             (`crates/podbox-interpose/Cargo.toml:18`), so it carries its
+             (`crates/podvm-interpose/Cargo.toml:18`), so it carries its
              own bounded header reader, and a unit test pins it against
              `loader_plan` on one fixture. Promote clause 17 to a gate.
 Decision:    A child enters through the same loader as its parent. The
@@ -2218,7 +2218,7 @@ Decision:    A child enters through the same loader as its parent. The
              does not resolve inside the rootfs, the exec fails with
              `ENOENT` and a named line, never a host fallback. Re-arming
              Syscall User Dispatch in a child belongs to T-1652.
-Prove:       `cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
              exits 0 in the Linux lane with tests for the ELF, script and
              static arms. `sh experiments/356-no-chroot-rung.sh` exits 0
              with clause 17 as a gate: `sh -c 'echo a | /bin/cat'` and
@@ -2230,13 +2230,13 @@ Prove:       `cargo test --manifest-path crates/podbox-interpose/Cargo.toml --ta
 release 0.1.0-beta.12 on the errand host:
 
 ```text
-$ podbox run alpine:3.20 /bin/ls /               # top level works
+$ podvm run alpine:3.20 /bin/ls /               # top level works
 bin dev etc ...
-$ podbox run alpine:3.20 /bin/sh -c '/bin/ls /'
+$ podvm run alpine:3.20 /bin/sh -c '/bin/ls /'
 sh: /bin/ls: not found                           [exit 127]
-$ podbox run alpine:3.20 /bin/sh -c 'echo a | /bin/cat'
+$ podvm run alpine:3.20 /bin/sh -c 'echo a | /bin/cat'
 sh: /bin/cat: not found                          [exit 127]
-$ podbox run alpine:3.20 /bin/sh -c '/tmp/hello' # a static grandchild
+$ podvm run alpine:3.20 /bin/sh -c '/tmp/hello' # a static grandchild
 STATIC_HELLO pid=17763                           [exit 0]
 ```
 

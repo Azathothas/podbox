@@ -1,0 +1,134 @@
+//! One boot, one command, and the guest's own exit code.
+//! `TODO/milestones.md` T-1112.
+
+use podvm_image::error::{EXIT_FLAG_ERROR, EXIT_RUNTIME_ERROR};
+use podvm_windows::{Plan, Request};
+
+use super::args::{Args, USAGE};
+use super::{plan, resolve_image};
+
+/// The default wait for a boot that has to reach the mailbox, run one line
+/// and power itself off. Measured at 28 s on a warm overlay under `tcg`, so
+/// the margin is for a cold boot and a slow command rather than for luck.
+pub(crate) const DEFAULT_TIMEOUT: u64 = 600;
+
+/// `podvm windows run`, and the guest half of `podvm run`.
+///
+/// ⛔ **The exit status is the guest's, and a timeout is never a zero.** A
+/// guest that ran the command reports its own status; `0..=124` passes
+/// through, because that is the range docker reserves for a container's own
+/// status. A guest status of 125 or more cannot be passed through without
+/// reading as podvm itself failing, so it is capped and named out loud
+/// rather than silently remapped.
+///
+/// ⚠ **`RLIMIT_FSIZE` does not gate this, and saying why matters.** The
+/// Linux tiers hit that ceiling with a guest memory backing file
+/// (`TODO/machine.md` T-1305); here QEMU's guest memory is anonymous and the
+/// overlay is sparse, so the only file that must fit is the base image the
+/// caller already has, and the ceiling binds where a file really is written
+///, in [`super::setup::fetch`], whose download is one.
+pub(crate) fn run(verb: &str, a: &Args) -> i32 {
+    let image = match resolve_image(a.image.as_deref()) {
+        Ok(p) => p,
+        Err(c) => return c,
+    };
+    if !image.is_file() {
+        eprintln!("podvm {verb}: {} is not a file\n{USAGE}", image.display());
+        return EXIT_FLAG_ERROR;
+    }
+    let plan = match plan::build(a) {
+        Ok(p) => p,
+        Err(c) => return c,
+    };
+    // Backstops every explicit cleanup below: a panic past staging still
+    // removes the per-run directory on unwind.
+    let _run_guard = podvm_windows::RunGuard::arm(&plan);
+    let command = if a.command.trim().is_empty() {
+        "ver".to_string()
+    } else {
+        a.command.clone()
+    };
+    let request = Request {
+        command,
+        token: podvm_windows::agent::nonce(),
+        // 0 is refused at the flag surface; the default still applies where
+        // the flag is absent.
+        timeout: super::request_timeout(a.timeout, DEFAULT_TIMEOUT),
+    };
+    report(&plan, &request, &image);
+    // ⭐ The per-run directory is about a hundred megabytes and is not the
+    // caller's to remember: it goes unless `PODVM_WINDOWS_KEEP` says this
+    // is the run somebody needs to look at.
+    let kept = std::env::var_os("PODVM_WINDOWS_KEEP").is_some();
+    let dir = plan.root.parent().map(|d| d.to_path_buf());
+    // ⚠ The mailbox carries the agent text as well as the command, so the
+    // volume a run is read back from is self-describing: an operator who
+    // dumps it sees the exact agent that was installed, not a stale copy.
+    if let Err(e) = podvm_windows::stage(
+        &plan::qemu_img(),
+        &image,
+        &plan,
+        podvm_windows::agent::AGENT_CMD,
+        &request,
+    ) {
+        eprintln!("podvm {verb}: {e}");
+        podvm_windows::cleanup(&plan);
+        return EXIT_RUNTIME_ERROR;
+    }
+    match podvm_windows::run(&plan, &request) {
+        Ok(out) => {
+            use std::io::Write;
+            let _ = std::io::stdout().write_all(&out.stdout);
+            let _ = std::io::stdout().flush();
+            let _ = std::io::stderr().write_all(&out.stderr);
+            after(&plan, kept, dir.as_deref());
+            match podvm_windows::cap_status(out.code) {
+                Some(c) => c,
+                None => {
+                    eprintln!(
+                        "podvm {verb}: the guest exited {}, which is outside docker's \
+                         0-124 range, so podvm reports {EXIT_RUNTIME_ERROR}",
+                        out.code
+                    );
+                    EXIT_RUNTIME_ERROR
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("podvm {verb}: {e}");
+            after(&plan, kept, dir.as_deref());
+            EXIT_RUNTIME_ERROR
+        }
+    }
+}
+
+/// Remove the run's directory, or say where it was kept.
+///
+/// ⚠ Named after every exit, not only the good one: the run that needs
+/// looking at is the one that failed, and a directory that survives a
+/// failure by accident is how a hundred megabytes per attempt accumulates.
+fn after(plan: &Plan, kept: bool, dir: Option<&std::path::Path>) {
+    podvm_windows::cleanup(plan);
+    if kept {
+        if let Some(d) = dir {
+            eprintln!("podvm windows: kept {} (PODVM_WINDOWS_KEEP)", d.display());
+        }
+    }
+}
+
+/// One line of what was asked and where, before the boot.
+///
+/// ⚠ On stderr, so the guest's own stdout is never mixed with ours: a
+/// caller who pipes the command's output has to get the command's output.
+fn report(plan: &Plan, request: &Request, image: &std::path::Path) {
+    eprintln!(
+        "podvm windows: {} {} {:?} over {}, {} MiB x{} cpu, token {}",
+        plan.accel.word(),
+        plan.accel.cpu(),
+        request.command,
+        image.display(),
+        plan.memory_mib,
+        plan.cpus,
+        request.token
+    );
+}

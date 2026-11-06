@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Question: does podbox's extractor refuse an entry that resolves OUTSIDE the
+# Question: does podvm's extractor refuse an entry that resolves OUTSIDE the
 # destination, and does it still extract the legitimate images that look
 # superficially like the same thing (TODO/extract.md T-0304 and T-0305,
 # TOOL.md section 5 M2 acceptance 3)?
 #
 # ⭐ The two halves are one question. A refusal that also refuses
 # `/etc/mtab -> /proc/self/mounts` has not made anything safe, it has made
-# podbox unable to extract a distro rootfs; the refusal that must NOT be copied
+# podvm unable to extract a distro rootfs; the refusal that must NOT be copied
 # is references/qaidvoid__onelf/tree/crates/onelf-format/src/manifest.rs:27-29,
 # which returns false for any absolute target. So every hostile case below is
 # paired with a legitimate one that must survive.
@@ -24,7 +24,7 @@
 #   E. ⭐ the legitimate absolute symlinks, which must be CREATED, not refused,
 #      and must be stored verbatim rather than rebased on disk
 #   F. ⭐ nothing landed outside the destination in any of A to D, checked by
-#      looking at the filesystem rather than at podbox's exit code
+#      looking at the filesystem rather than at podvm's exit code
 #
 # ⚠ Every hostile archive is CRAFTED, and deliberately: no honest image
 # contains one, so passing against the two pinned images would say nothing.
@@ -49,15 +49,15 @@ ROOT="$(CDPATH= cd -- "$HERE/.." && pwd)"
 OUT="${OUT:-$HERE/.pathsafety}"
 rm -rf "$OUT"; mkdir -p "$OUT"
 
-PODBOX="${PODBOX:-$ROOT/target/x86_64-unknown-linux-musl/release/podbox}"
+PODVM="${PODVM:-$ROOT/target/x86_64-unknown-linux-musl/release/podvm}"
 
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
 _py="$(python3 --version 2>/dev/null)"
 printf 'python3           %s\n' "${_py:-MISSING}"
-printf 'podbox            %s\n' "$PODBOX"
-# ⭐ openat2(2) is Linux 5.6 and podbox falls back to an O_NOFOLLOW walk without
+printf 'podvm            %s\n' "$PODVM"
+# ⭐ openat2(2) is Linux 5.6 and podvm falls back to an O_NOFOLLOW walk without
 # it. WHICH MECHANISM ANSWERED is part of the reading: a pass here on a 6.x
 # kernel says nothing about the fallback, and the fallback is what every older
 # kernel runs. The crate's own tests drive both; this line records which one
@@ -71,8 +71,8 @@ fi
 echo
 
 command -v python3 >/dev/null 2>&1 || { echo "SKIP: no python3" >&2; exit 2; }
-[ -x "$PODBOX" ] || {
-  echo "SKIP: $PODBOX is not built. cargo build --release --target x86_64-unknown-linux-musl" >&2
+[ -x "$PODVM" ] || {
+  echo "SKIP: $PODVM is not built. cargo build --release --target x86_64-unknown-linux-musl" >&2
   exit 2
 }
 
@@ -82,11 +82,11 @@ pass() { printf 'ok   %s\n' "$1"; }
 
 # ---------------------------------------------------------------- the store
 #
-# ⛔ A REAL STORE, built by hand, so `podbox extract` runs its real code path.
+# ⛔ A REAL STORE, built by hand, so `podvm extract` runs its real code path.
 # The alternative is a test-only entry point, and a safety check that is only
 # reachable from a test harness is not the one that ships.
 STORE="$OUT/store"
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 mkdir -p "$STORE/blobs/sha256"
 
 # craft NAME  -> writes $OUT/<name>.tar.gz and echoes its sha256 and size
@@ -116,7 +116,7 @@ if kind == "traverse":
 elif kind == "dotdot":
     add("../escaped", b"pwned\n")
 elif kind == "absolute":
-    add("/etc/podbox-must-never-write-this", b"pwned\n")
+    add("/etc/podvm-must-never-write-this", b"pwned\n")
 elif kind == "hardlink":
     add("stolen", typ=tarfile.LNKTYPE, link="/etc/passwd")
 elif kind == "legit":
@@ -160,7 +160,7 @@ install_image() {
   python3 - "$STORE/store.json" "$repo" "$mdig" "$cdig" "$ldig" "$lsize" <<'PY'
 import json, os, sys
 p, repo, mdig, cdig, ldig, lsize = sys.argv[1:7]
-ix = json.load(open(p)) if os.path.exists(p) else {"podbox_store": 1, "images": []}
+ix = json.load(open(p)) if os.path.exists(p) else {"podvm_store": 1, "images": []}
 ix["images"].append({
     "repository": "localhost/" + repo, "tag": "crafted",
     "digest": "sha256:" + mdig,
@@ -180,7 +180,7 @@ for k in traverse dotdot absolute hardlink legit; do
 done
 
 # ⭐ A canary OUTSIDE the destination, so check F is a statement about the
-# filesystem rather than about podbox's exit code. A refusal that still wrote
+# filesystem rather than about podvm's exit code. A refusal that still wrote
 # the file would pass a test that only read the exit code.
 CANARY="$OUT/store/rootfs"
 mkdir -p "$CANARY"
@@ -189,12 +189,12 @@ mkdir -p "$CANARY"
 # entry rather than merely say no.
 refuses() {
   local name="$1" label="$2" out code
-  out="$("$PODBOX" extract "localhost/$name:crafted" 2>&1)"; code=$?
-  # ⛔ The exit code is read from `podbox` itself, unpiped: a pipeline would
+  out="$("$PODVM" extract "localhost/$name:crafted" 2>&1)"; code=$?
+  # ⛔ The exit code is read from `podvm` itself, unpiped: a pipeline would
   # report the last command's status and a refusal that did not happen would
   # read as green.
   if [ "$code" -eq 0 ]; then
-    fail "$label: podbox extracted it (exit 0)"
+    fail "$label: podvm extracted it (exit 0)"
     printf '%s\n' "$out" | sed 's/^/       /'
     return
   fi
@@ -223,12 +223,12 @@ refuses hardlink "D hardlink"
 echo
 
 echo "== E. the legitimate absolute symlinks, which must SURVIVE"
-legit_out="$("$PODBOX" extract localhost/legit:crafted 2>&1)"; legit_code=$?
+legit_out="$("$PODVM" extract localhost/legit:crafted 2>&1)"; legit_code=$?
 if [ "$legit_code" -ne 0 ]; then
-  fail "E legit: podbox refused a legitimate rootfs (exit $legit_code)"
+  fail "E legit: podvm refused a legitimate rootfs (exit $legit_code)"
   printf '%s\n' "$legit_out" | sed 's/^/       /'
 else
-  R="$("$PODBOX" inspect --format '{{.RootfsPath}}' localhost/legit:crafted 2>/dev/null)"
+  R="$("$PODVM" inspect --format '{{.RootfsPath}}' localhost/legit:crafted 2>/dev/null)"
   # ⛔ Stored VERBATIM. Rebasing decides whether a link is ALLOWED, never what
   # is written: storing the rebased form would bake this host's idea of the
   # rootfs into the image (T-0305's Decision).
@@ -249,7 +249,7 @@ echo
 echo "== F. nothing landed outside a destination, checked on the filesystem"
 escaped=0
 # The four hostile layers all try to write one of these.
-for p in "$OUT/escaped" "$OUT/store/escaped" /etc/podbox-must-never-write-this; do
+for p in "$OUT/escaped" "$OUT/store/escaped" /etc/podvm-must-never-write-this; do
   if [ -e "$p" ]; then printf '       ESCAPED: %s\n' "$p"; escaped=1; fi
 done
 # ⚠ And no rootfs directory acquired an `etc/passwd` it was never given: check
@@ -282,7 +282,7 @@ fi
 # experiments/140-space-precheck.sh does with the same argument.
 RESULT="$ROOT/experiments/results/extract-path-safety.txt"
 {
-  echo "# podbox extraction path safety, TODO/extract.md T-0304 and T-0305"
+  echo "# podvm extraction path safety, TODO/extract.md T-0304 and T-0305"
   printf '# taken %s on kernel %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(uname -r)"
   echo "# Every hostile layer is crafted: no honest image carries one, so a pass"
   echo "# against the pinned images would say nothing. Each is paired with a"
@@ -295,7 +295,7 @@ RESULT="$ROOT/experiments/results/extract-path-safety.txt"
   printf 'checks_failed       %s\n' "$rc"
   echo
   echo "## the refusal, verbatim"
-  "$PODBOX" extract localhost/traverse:crafted 2>&1 |
+  "$PODVM" extract localhost/traverse:crafted 2>&1 |
     sed -e "s|$OUT|<work>|g" -e 's/^/  /'
 } > "$RESULT"
 

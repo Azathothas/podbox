@@ -5,7 +5,7 @@
 # ⛔ WHY THIS EXISTS. `.cargo/config.toml` sets `[build] target =
 # "x86_64-unknown-linux-musl"`, so a bare `cargo build` compiles a LINUX
 # target on every host, including a Windows one. `docs/containers.md:33` says
-# Linux builds and tests run in a job container in `wsl-toolkit-podbox`, and
+# Linux builds and tests run in a job container in `wsl-toolkit-podvm`, and
 # `scripts/dev-lane.sh` is the one lane runner. Running the build on the host
 # instead produces `ring`'s build script invoking `scripts/zig-cc.sh` through
 # a Windows process spawner: `os error 193`, "%1 is not a valid Win32
@@ -96,13 +96,13 @@ case "${1:-}" in
 			fi
 		}
 		printf 'build-lane self-test, host %s\n' "$1"
-		want "$(run "$1" 'cargo build -p podbox-cli')" "$2" 'build without --target'
+		want "$(run "$1" 'cargo build -p podvm')" "$2" 'build without --target'
 		want "$(run "$1" 'cargo test --workspace')" "$2" 'cargo test'
-		want "$(run "$1" 'cargo build --release -p podbox-cli --target x86_64-unknown-linux-musl')" \
+		want "$(run "$1" 'cargo build --release -p podvm --target x86_64-unknown-linux-musl')" \
 			"$2" 'build with a Linux --target'
-		want "$(run "$1" 'cargo check -p podbox-windows')" 0 'cargo check'
-		want "$(run "$1" 'cargo clippy -p podbox-windows')" 0 'cargo clippy'
-		want "$(run "$1" 'cargo build --target x86_64-pc-windows-msvc -p podbox-gate')" 0 \
+		want "$(run "$1" 'cargo check -p podvm-windows')" 0 'cargo check'
+		want "$(run "$1" 'cargo clippy -p podvm-windows')" 0 'cargo clippy'
+		want "$(run "$1" 'cargo build --target x86_64-pc-windows-msvc -p podvm-gate')" 0 \
 			'build with a Windows --target'
 		want "$(run "$1" 'cargo fmt --all')" 0 'cargo fmt'
 		want "$(run "$1" 'cargo tree')" 0 'cargo tree'
@@ -111,7 +111,7 @@ case "${1:-}" in
 	}
 	total=0
 	# A Linux host allows everything, which is what keeps the CI workflows
-	# valid: gate.yml:45 runs a bare `cargo build --release -p podbox-gate`.
+	# valid: gate.yml:45 runs a bare `cargo build --release -p podvm-gate`.
 	self_test Linux 0 || total=$((total + 1))
 	# A Windows host refuses a Linux build and allows the rest.
 	self_test MINGW64_NT-10.0-26200 1 || total=$((total + 1))
@@ -149,7 +149,7 @@ MINGW* | MSYS* | CYGWIN* | Windows_NT)
 	;;
 *)
 	# Not a Windows host. Every cargo command is allowed, which includes the
-	# `cargo build --release -p podbox-gate` the workflows run on a Linux
+	# `cargo build --release -p podvm-gate` the workflows run on a Linux
 	# runner. Exiting here is what keeps those workflows valid.
 	exit 0
 	;;
@@ -179,7 +179,7 @@ fi
 if [ "$explicit_target" -eq 1 ]; then
 	# `--target <not a Linux triple>` is the one build a Windows host should
 	# run: the gate itself is built as
-	# `cargo build --target x86_64-pc-windows-msvc -p podbox-gate`, and
+	# `cargo build --target x86_64-pc-windows-msvc -p podvm-gate`, and
 	# `scripts/common/check-gate.sh` depends on that working on this host.
 	# Naming a Windows target on purpose is not the mistake this check
 	# exists to stop, so it is allowed through here and refused only below

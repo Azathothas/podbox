@@ -25,7 +25,7 @@
 #   tools     jq, binutils (readelf, nm), file, xz, ca-certificates.
 #   qemu      ⭐ TWO SEPARATE THINGS AND BOTH ARE NEEDED.
 #             `qemu-user-static` plus binfmt_misc runs a FOREIGN-ARCHITECTURE
-#             binary on this one, which is how experiments/260- measures podbox
+#             binary on this one, which is how experiments/260- measures podvm
 #             on aarch64 and how TODO/enter.md T-0506 runs a foreign image.
 #             `qemu-system-x86_64` boots a whole VM, which is how
 #             experiments/290- answers the two questions this host's kernel
@@ -34,7 +34,7 @@
 #             ⚠ There is no /dev/kvm here, so the VM runs under TCG. Measured on
 #             2026-09-09: the whole boot-probe-poweroff cycle is about 6 s.
 #   vmtools   busybox-static and cpio, which build experiments/290-'s initramfs.
-#   openssh   the SSH client and server the podbox-ssh end-to-end test
+#   openssh   the SSH client and server the podvm-ssh end-to-end test
 #             drives. A suite that cannot start a real server cannot prove
 #             the SSH path.
 #
@@ -223,8 +223,8 @@ if want qemu; then
 fi
 
 # ------------------------------------------------------------------ openssh
-# The SSH client and server the podbox-ssh end-to-end test drives
-# (`crates/podbox-ssh/tests/ssh_over_unix_e2e.rs`). A workspace suite that
+# The SSH client and server the podvm-ssh end-to-end test drives
+# (`crates/podvm-ssh/tests/ssh_over_unix_e2e.rs`). A workspace suite that
 # cannot start a real server cannot prove the SSH path, so this is a lane
 # requirement rather than an experiment-local install.
 if want openssh; then
@@ -235,7 +235,7 @@ if want openssh; then
 	if [ -z "$missing" ]; then
 		ok "openssh: client and server present"
 	elif [ "$CHECK_ONLY" -eq 1 ]; then
-		skipped "openssh: missing$missing (--check). the podbox-ssh e2e fails without them"
+		skipped "openssh: missing$missing (--check). the podvm-ssh e2e fails without them"
 	elif apt_install $missing; then
 		still=""
 		have ssh || still="$still ssh"

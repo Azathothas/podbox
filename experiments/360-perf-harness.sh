@@ -1,5 +1,5 @@
 #!/bin/sh
-# Question: how fast is podbox here, against what budget, and did it regress?
+# Question: how fast is podvm here, against what budget, and did it regress?
 #
 # TODO/gate.md T-1338 (issue 57: performance claims scattered across
 # single-purpose experiments, each on one host and one shape). One
@@ -24,7 +24,7 @@
 # check 30 COMPARES them (one read path: the comparison lives in
 # exactly one place).
 #
-# Usage: PODBOX_BIN=/path/to/podbox sh experiments/360-perf-harness.sh [lane|kvm]
+# Usage: PODVM_BIN=/path/to/podvm sh experiments/360-perf-harness.sh [lane|kvm]
 #
 # Exit: 0 every metric ran, 1 a metric failed, 2 the shape could not
 # run (no binary, no pull, no qemu, no KVM where the shape needs it).
@@ -35,7 +35,7 @@ set -u
 REPO="$(pwd)"
 cd "$REPO" || exit 2
 SHAPE="${1:-lane}"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/perf-$SHAPE.txt"
 WORK="$REPO/experiments/.sweep360-work-$SHAPE"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
@@ -75,7 +75,7 @@ echo "host              $HOST"
 echo "kernel            $KERNEL"
 echo "arch              $ARCH"
 echo "io backing        $FSBACK"
-echo "podbox            $($BIN version 2>/dev/null || echo MISSING)"
+echo "podvm            $($BIN version 2>/dev/null || echo MISSING)"
 echo "qemu              $QEMU_V"
 echo "debian            $DEBIAN"
 echo "alpine            $ALPINE"
@@ -140,7 +140,7 @@ echo "" >>"$WORK/report"
 echo "== pulls (cold store)" >>"$WORK/report"
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 MTIMEOUT=600
 measure pull.tag.cold loopback "$BIN" pull "$DEBIAN"
@@ -217,8 +217,8 @@ for rung in rundir cache memfd tmpfs fuse; do
 		continue
 	fi
 	case "$rung" in
-		cache) FORCE="env PODBOX_CACHE=1 PODBOX_MODE=cache" ;;
-		*) FORCE="env PODBOX_MODE=$rung" ;;
+		cache) FORCE="env PODVM_CACHE=1 PODVM_MODE=cache" ;;
+		*) FORCE="env PODVM_MODE=$rung" ;;
 	esac
 	case "$rung" in
 		memfd) IMAGE="perfstatic:1"; CMD="/hello" ;;

@@ -17,7 +17,7 @@
 #      `{{.Config.Cmd}}` carries /bin/sh; the JSON document has Config.
 #   3. noexec store: on a noexec tmpfs `doctor store_exec` prints no at
 #      1, and `run` refuses pre-pull at 125 naming the directory and
-#      `$PODBOX_STORE`.
+#      `$PODVM_STORE`.
 #   4. missing blob: deleting one blob makes `run --pull never` refuse
 #      at 125 naming `--pull always`, marks the record on `images`
 #      stderr, and fails `verify` at 125; `run --pull always`
@@ -71,18 +71,18 @@ else
 	tail -15 "$WORK/build.log"
 	exit 1
 fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 [ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
-echo "podbox            $("$PB" version)" >>"$REPORT"
+echo "podvm            $("$PB" version)" >>"$REPORT"
 
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$PB" || { echo "cannot read podbox's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-RUN_ERR=$PODBOX_EXIT_RUNTIME_ERROR
+podvm_exit_codes "$PB" || { echo "cannot read podvm's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+RUN_ERR=$PODVM_EXIT_RUNTIME_ERROR
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 fail=0
 
 step() {
@@ -106,10 +106,10 @@ step() {
 # and marks nothing; the exec row passes where files execute.
 ESTORE="$WORK/empty-store"
 mkdir -p "$ESTORE" || exit 2
-step empty-images 0 env PODBOX_STORE="$ESTORE" "$PB" images
+step empty-images 0 env PODVM_STORE="$ESTORE" "$PB" images
 grep -q "alpine" "$WORK/out-empty-images.txt" && { echo "empty store listed rows" >>"$REPORT"; fail=1; }
 grep -q "missing from the" "$WORK/out-empty-images.txt" && { echo "empty store marked a record" >>"$REPORT"; fail=1; }
-step empty-doctor 0 env PODBOX_STORE="$ESTORE" "$PB" doctor store_exec
+step empty-doctor 0 env PODVM_STORE="$ESTORE" "$PB" doctor store_exec
 grep -q "store_exec: yes" "$WORK/out-empty-doctor.txt" || { echo "exec row did not pass on an executable store" >>"$REPORT"; fail=1; }
 
 # The pull happens once, outside every gate below.
@@ -132,10 +132,10 @@ grep -q '"Config"' "$WORK/out-cfg-json.txt" || { echo "JSON inspect has no Confi
 # naming the directory and the remedy.
 NX="$WORK/noexec-store"
 mkdir -p "$NX" || exit 2
-step nx-doctor 1 unshare -Urm sh -c "mount -t tmpfs -o noexec tmpfs '$NX' && PODBOX_STORE='$NX' '$PB' doctor store_exec"
+step nx-doctor 1 unshare -Urm sh -c "mount -t tmpfs -o noexec tmpfs '$NX' && PODVM_STORE='$NX' '$PB' doctor store_exec"
 grep -q "store_exec: no" "$WORK/out-nx-doctor.txt" || { echo "exec row did not say no on noexec" >>"$REPORT"; fail=1; }
-step nx-run "$RUN_ERR" unshare -Urm sh -c "mount -t tmpfs -o noexec tmpfs '$NX' && PODBOX_STORE='$NX' '$PB' run --rm --pull never '$ALPINE' true"
-grep -q "PODBOX_STORE" "$WORK/out-nx-run.txt" || { echo "noexec refusal did not name the remedy" >>"$REPORT"; fail=1; }
+step nx-run "$RUN_ERR" unshare -Urm sh -c "mount -t tmpfs -o noexec tmpfs '$NX' && PODVM_STORE='$NX' '$PB' run --rm --pull never '$ALPINE' true"
+grep -q "PODVM_STORE" "$WORK/out-nx-run.txt" || { echo "noexec refusal did not name the remedy" >>"$REPORT"; fail=1; }
 grep -q "$NX" "$WORK/out-nx-run.txt" || { echo "noexec refusal did not name the directory" >>"$REPORT"; fail=1; }
 
 # Clause 4 (missing blob, T-1419): one deleted blob refuses the run,

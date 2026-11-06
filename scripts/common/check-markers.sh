@@ -74,7 +74,7 @@
 # -- THE TWO EXEMPTIONS, EACH FOR A REASON THAT WOULD OTHERWISE BREAK ---------
 #
 # ⛔ references/ IS EXEMPT. It is the immutable third-party research corpus.
-# Applying podbox's prose alphabet there would require modifying evidence.
+# Applying podvm's prose alphabet there would require modifying evidence.
 #
 # ⛔ LICENSES/*.txt IS EXEMPT. Those are canonical SPDX texts. GPL-3.0 and
 # LGPL-3.0 carry typographic quotes and a copyright sign, and four of the

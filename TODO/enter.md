@@ -3,7 +3,7 @@
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
 
-`crates/podbox-enter`. `TOOL.md` section 6.5, milestone M3.
+`crates/podvm-enter`. `TOOL.md` section 6.5, milestone M3.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
 [RULES.md](RULES.md) is how an entry closes. [reference-map.md](reference-map.md) is the corpus.
@@ -45,17 +45,17 @@ Approach:    Open stdio, the log sinks, any host device the config exposes via
 Decision:    Pass descriptors rather than bind-mounting anything. There is no
              attach path on this runtime, so a descriptor is the only thing that
              crosses the boundary.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo hi' | grep -qx hi`
+Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo hi' | grep -qx hi`
 
-**Done 2026-09-09.** `crates/podbox-enter/src/lib.rs`. Every buffer the child
+**Done 2026-09-09.** `crates/podvm-enter/src/lib.rs`. Every buffer the child
 touches after the `chroot`, the argv, the environment, the working directory and
 the candidate program paths, is built **before** the fork, because between
 `clone` and `execve` only async-signal-safe work is permitted and nothing there
 may allocate.
 
 ⚠ **stdio is inherited rather than re-opened, deliberately**, and that is what
-makes `podbox run <image> cmd | consumer` give the consumer the payload's bytes.
-The `/dev/null` trap this entry names is real and is why podbox never *closes*
+makes `podvm run <image> cmd | consumer` give the consumer the payload's bytes.
+The `/dev/null` trap this entry names is real and is why podvm never *closes*
 stdio: a child with none opens `/dev/null`, which an extracted rootfs does not
 have. ⛔ The PTY pair is **not implemented**; it is
 [T-0503](#t-0503-probe-devptmx-and-refuse--t-by-name-where-it-is-absent)'s and
@@ -72,18 +72,18 @@ row naming why and let the parser refuse it by name. The parser keeps
 asking the table (T-0801), not a second list. The `None` row half
 landed with T-0801 (`--device` refused naming shims, not devices);
 the device-map run below stays open. Fix area is
-`crates/podbox-enter`'s device plan. Risk if wrong is a docker flag
+`crates/podvm-enter`'s device plan. Risk if wrong is a docker flag
 answered as an omission rather than a decision. Prove is one run
 mapping a host device and reading it inside, with the refusal arm
 (`experiments/355-parity-curated.sh` clause 1, `--device` at 125
 naming status None) beside it.
 
 **Done 2026-09-26.** `--device HOST[:GUEST[:PERMS]]` maps through
-the device plan both halves name: `crates/podbox-enter/src/device.rs`
+the device plan both halves name: `crates/podvm-enter/src/device.rs`
 parses (both paths absolute, perms from r, w and m) and opens the
 host paths before the root changes (child descriptors from 41, host
 descriptors relocated clear of them), and
-`crates/podbox-interpose/src/device.rs` serves the exact guest
+`crates/podvm-interpose/src/device.rs` serves the exact guest
 spelling as a duplicate where the real open fails ENOENT. The
 access mode is checked against the row first (EACCES, before
 creation, as the kernel answers it); creation is then the node's
@@ -149,20 +149,20 @@ Approach:    Resolve the program path **after** `chroot` and `chdir("/")`, in
 Decision:    Resolve in the child rather than pass a pre-resolved absolute path
              from the parent. A parent-resolved path names the outer tree, and
              the outer tree is gone.
-Prove:       `env -i "$(command -v podbox)" run --rm public.ecr.aws/docker/library/alpine:3.20 /bin/sh -c 'echo ok' | grep -qx ok`
+Prove:       `env -i "$(command -v podvm)" run --rm public.ecr.aws/docker/library/alpine:3.20 /bin/sh -c 'echo ok' | grep -qx ok`
 
-**Done 2026-09-09.** `podbox_enter::run` resolves the program **after**
+**Done 2026-09-09.** `podvm_enter::run` resolves the program **after**
 `fchdir`, `chroot(".")` and `chdir("/")`, in the process that did them.
 `Plan::program_candidates` builds the list before the fork and the child tries
 each with `execve`; nothing is resolved in the parent.
 
-⭐ Driven: `podbox run <image> sh -c 'echo onpath'` finds `sh` along the image's
+⭐ Driven: `podvm run <image> sh -c 'echo onpath'` finds `sh` along the image's
 own `PATH` **inside the new root**, and `experiments/300-run.sh` clause 4 asserts
 it. A parent-resolved path would have named the outer tree, which is gone.
 
 ⚠ The relative-store hazard this entry names is closed from the other side too:
 `Store::default_root` is computed before any environment change, and clause 7 of
-`300-run.sh` runs with `PODBOX_STORE` set to a path inside `/workspace` and
+`300-run.sh` runs with `PODVM_STORE` set to a path inside `/workspace` and
 enters a rootfs under it.
 
 ---
@@ -196,10 +196,10 @@ Approach:    `stat("/dev/ptmx")` in the **outer** environment, before the chroot
 Decision:    Refuse rather than degrade. `-t` is a request for a terminal, and a
              terminal that is not there cannot be approximated by a pipe without
              changing what every interactive program does.
-Prove:       `podbox probe --json | jq -e 'has("ptmx")' && { podbox run --rm -t public.ecr.aws/docker/library/alpine:3.20 true || podbox run --rm -t public.ecr.aws/docker/library/alpine:3.20 true 2>&1 | grep -q 'ptmx'; }`
+Prove:       `podvm probe --json | jq -e 'has("ptmx")' && { podvm run --rm -t public.ecr.aws/docker/library/alpine:3.20 true || podvm run --rm -t public.ecr.aws/docker/library/alpine:3.20 true 2>&1 | grep -q 'ptmx'; }`
 
 **Done 2026-09-22.** Both verbs ask one shared predicate
-(`podbox-probe/src/probes.rs` `ptmx_usable`): only the OPEN row with `Ok`
+(`podvm-probe/src/probes.rs` `ptmx_usable`): only the OPEN row with `Ok`
 promises a pty. `run` and `exec` refuse by name otherwise, through two
 call sites that shared one had three copies of the check. A five-case
 unit test pins the predicate: denied, skipped, absent, and
@@ -231,7 +231,7 @@ a mutation of the process doing the measuring.
 HAVING DONE SO.** It reproduces the target's `/dev` from the same mount table
 this entry says cannot answer the question, so its `ENOENT` is that mount table
 repeated back, not an independent measurement. ⭐ What HAS changed is that the
-question is now one command on the machine that matters: `podbox probe --json |
+question is now one command on the machine that matters: `podvm probe --json |
 jq .ptmx` on the target, by anyone who can reach it. Until somebody runs it
 there, the premise stays unresolved and is stated as unresolved.
 
@@ -262,9 +262,9 @@ namespace hiding `/dev/pts` plus `experiments/deny-chroot.c`
 denying `chroot(2)` with EPERM:
 
 ```
-$ fixture podbox run --rm -t ALPINE true; echo $?
-podbox run: -t was asked for and /dev/ptmx is not usable on this machine [...]
-podbox run: chroot(2) is denied on this machine as well [...]
+$ fixture podvm run --rm -t ALPINE true; echo $?
+podvm run: -t was asked for and /dev/ptmx is not usable on this machine [...]
+podvm run: chroot(2) is denied on this machine as well [...]
 125
 ```
 
@@ -296,9 +296,9 @@ Approach:    `lstat` the resolved rootfs path and refuse if it is a symlink,
 Decision:    Refuse rather than resolve. Resolving accepts a rootfs the store
              does not own, and the store is where the ownership sidecar and the
              lock (T-0204) live.
-Prove:       `ln -sfn "$(podbox inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)" /tmp/rootlink && ! podbox run --rm --rootfs /tmp/rootlink public.ecr.aws/docker/library/alpine:3.20 true`
+Prove:       `ln -sfn "$(podvm inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)" /tmp/rootlink && ! podvm run --rm --rootfs /tmp/rootlink public.ecr.aws/docker/library/alpine:3.20 true`
 
-**Done 2026-09-09.** `podbox_enter::RootDir::open` `lstat`s with
+**Done 2026-09-09.** `podvm_enter::RootDir::open` `lstat`s with
 `AT_SYMLINK_NOFOLLOW`, refuses a symlink **naming its target**, refuses anything
 that is not a directory, and then holds the directory open with
 `O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC`. The entry uses `fchdir` on that descriptor
@@ -318,7 +318,7 @@ Priority:    P1
 Effort:      S
 Status:      done 2026-09-09
 
-Problem:     `docker exec` enters the container's namespaces. podbox has none to
+Problem:     `docker exec` enters the container's namespaces. podvm has none to
              enter, so its `exec` re-runs the section 6.5 sequence against the same
              rootfs. It shares the filesystem tree with the original process and
              nothing else, and a caller that assumes otherwise gets a process
@@ -331,21 +331,21 @@ Approach:    Implement `exec` as a fresh entry, and mark it **Degraded** in the
              container so a caller can check rather than assume.
              ⛔ Do not imply containment. A pidfd addresses one process; it does
              not contain descendants and it is not a PID namespace, and
-             grandchildren that reparent are outside podbox's reach.
+             grandchildren that reparent are outside podvm's reach.
 Decision:    A fresh chroot rather than refusing `exec`. `exec` is load-bearing
              for M4's lifecycle test and for every agent workflow, and the
              filesystem-only sharing is enough for the overwhelming majority of
              uses provided it is stated.
 Prove:       `./experiments/320-cli-contract.sh` clause 4 and `./experiments/300-run.sh` clause 8: exec's stdout is the payload's, the banner says it is a fresh chroot, and `inspect --format '{{.Exec.Shares}}'` reads `filesystem`
 
-**Done, 2026-09-09.** `crates/podbox-cli/src/exec.rs`, `Exec.Mode` and
+**Done, 2026-09-09.** `crates/podvm/src/exec.rs`, `Exec.Mode` and
 `Exec.Shares` on `inspect`, and clause 8 of `experiments/300-run.sh`.
 
 ⛔ **The `Prove` above was rewritten, and the original is here because the
 rewrite is the finding.** It read
 
 ```
-podbox run -d --name execprobe alpine:latest sleep 30 && podbox exec execprobe ... && podbox rm -f execprobe
+podvm run -d --name execprobe alpine:latest sleep 30 && podvm exec execprobe ... && podvm rm -f execprobe
 ```
 
 and every verb in it except `exec` is M4's: `run -d`, `--name` and `rm` need
@@ -356,8 +356,8 @@ half: `exec` re-enters a rootfs, and today a rootfs is named by an image
 reference and at M4 by a container name that resolves to the same directory.
 
 ⭐ **The degradation is stated in three places and they cannot disagree**,
-because all three read one pair of constants in `crates/podbox-cli/src/images.rs`:
-the banner on every `exec`, `podbox inspect --format '{{.Exec.Mode}}'` for a
+because all three read one pair of constants in `crates/podvm/src/images.rs`:
+the banner on every `exec`, `podvm inspect --format '{{.Exec.Mode}}'` for a
 program, and the `Degraded` row for the verb in [T-0801](cli.md)'s parity table.
 A unit test asserts the banner contains what `inspect` reports, and clause 8
 asserts it on the shipped binary.
@@ -365,7 +365,7 @@ asserts it on the shipped binary.
 ⛔ **`exec` never pulls and never extracts.** A verb that creates the thing it
 claims to attach to is exactly the lie `TOOL.md` section 4.1 forbids, so an
 image the store does not hold, or holds and has never extracted, is a refusal
-naming `podbox run`. ⚠ It also has no default command: an image's `Cmd` is what
+naming `podvm run`. ⚠ It also has no default command: an image's `Cmd` is what
 `run` starts, and re-running it from `exec` is a process nobody asked for.
 
 ⛔ **`--format` had to learn a dotted name for this.** `{{.Exec.Shares}}` was
@@ -377,23 +377,23 @@ still refused rather than resolving half of itself and rendering a blank.
 
 ### T-0506 A foreign-architecture container, and never a rung measured by the emulator
 
-Source:      Found on 2026-09-09 by running `podbox probe` under `qemu-aarch64`, while closing [T-0911](deps.md)
+Source:      Found on 2026-09-09 by running `podvm probe` under `qemu-aarch64`, while closing [T-0911](deps.md)
 Category:    enter
 Priority:    P0
 Effort:      M
 Status:      done 2026-09-09
 
 Problem:     ⛔ **A probe run under `qemu-user` measures the emulator, and
-             printing its rung as the machine's is the exact lie podbox exists
+             printing its rung as the machine's is the exact lie podvm exists
              to refuse.** Measured on 2026-09-09,
              `experiments/results/multiarch.txt` clause 4: `qemu-aarch64`
              answers `EINVAL` to `clone(CLONE_NEWNS)`, `ENOSYS` to `fsmount` and
              `move_mount`, and reports `Seccomp: 0` and `NoNewPrivs: 0` however
              the host is confined. Every one of those is a statement about QEMU.
-             ⚠ It was harmless while podbox ran only where it was built. The
-             multiarch work makes it reachable by an ordinary user: `podbox run`
+             ⚠ It was harmless while podvm ran only where it was built. The
+             multiarch work makes it reachable by an ordinary user: `podvm run`
              on a `linux/arm64` image on an amd64 host executes its payload,
-             and any `podbox probe` inside it, under precisely this emulator.
+             and any `podvm probe` inside it, under precisely this emulator.
 Premise:     ⭐ **Measured, in this tree.** The aarch64 binary reports rung
              `namespace` under qemu on a host that is also `namespace`, so the
              two agree today and the agreement is a coincidence of this host
@@ -413,14 +413,14 @@ Approach:    Read the image's platform and the host's, and where they differ:
                 reachable by path inside the rootfs, which is the copy-in below.
              3. Where an interpreter is registered without `F`, copy the static
                 interpreter into the rootfs, the operator's ruling of
-                2026-09-09, and ⛔ **disclose the write**: podbox put a file in
+                2026-09-09, and ⛔ **disclose the write**: podvm put a file in
                 the payload's tree, which is a thing the payload can see, and
                 the honesty rules do not have an exception for convenience.
              4. Where no interpreter is registered at all, **refuse** with exit
                 125, naming the host platform, the image platform, whether
                 `binfmt_misc` is mounted, and what would fix it. ⛔ Never exec
                 into a bare `Exec format error`.
-             5. ⛔ **Mark the probe answer as the emulator's** wherever podbox
+             5. ⛔ **Mark the probe answer as the emulator's** wherever podvm
                 runs under one, in the evidence block and in `--json`, and
                 refuse to write it into `$store/probe.json` under a key that
                 does not name the emulator. [T-0111](probe.md)'s cache key is
@@ -428,23 +428,23 @@ Approach:    Read the image's platform and the host's, and where they differ:
 Decision:    Report and refuse before falling back. A runtime that guesses which
              architecture a payload wanted has the same problem as one that
              guesses a rung. ⚠ The copy-in is deliberate and disclosed rather
-             than refused, because refusing it would make podbox useless on
+             than refused, because refusing it would make podvm useless on
              every machine whose binfmt registration predates `F`, which is most
              of them.
-Prove:       `podbox run --rm --platform linux/arm64 <image> /bin/true` succeeds where an interpreter is registered and exits 125 naming both platforms where none is, and `podbox probe --json` run inside it carries the interpreter in `measured_by`
+Prove:       `podvm run --rm --platform linux/arm64 <image> /bin/true` succeeds where an interpreter is registered and exits 125 naming both platforms where none is, and `podvm probe --json` run inside it carries the interpreter in `measured_by`
 
-**Done 2026-09-09.** `crates/podbox-enter/src/binfmt.rs` and the `run` verb,
+**Done 2026-09-09.** `crates/podvm-enter/src/binfmt.rs` and the `run` verb,
 driven by `experiments/300-run.sh` clause 5 and
 `experiments/260-multiarch.sh` clause 5.
 
 | | |
 | --- | --- |
-| `podbox run --platform linux/arm64 <image> /bin/uname -m`, on an amd64 host | **`aarch64`**, exit 0 |
-| what podbox said on stderr | it named the image's platform, the host's, and the interpreter, and that the binfmt `F` flag makes it reachable inside the chroot |
+| `podvm run --platform linux/arm64 <image> /bin/uname -m`, on an amd64 host | **`aarch64`**, exit 0 |
+| what podvm said on stderr | it named the image's platform, the host's, and the interpreter, and that the binfmt `F` flag makes it reachable inside the chroot |
 | `--platform linux/riscv64`, nothing registered | exit **125**, naming the ELF machine it looked for, how many registrations are enabled, and that installing `qemu-user-static` is what docker and podman rely on too |
 
-⛔ **podbox reads the registrations and never writes one.** Registering an
-interpreter is a machine-wide change and podbox is not the machine's owner.
+⛔ **podvm reads the registrations and never writes one.** Registering an
+interpreter is a machine-wide change and podvm is not the machine's owner.
 What it does write, on the operator's ruling of 2026-09-09, is the interpreter
 **into the rootfs** where the registration lacks `F`, and that write is
 disclosed in the banner naming the exact path: the payload can see that file,
@@ -458,22 +458,22 @@ registration ran an aarch64 binary in a bare chroot containing nothing but that
 binary.
 
 ⚠ **The `e_machine` is parsed out of the registration's own magic**, at byte 18
-of the ELF header, so podbox answers "is there an interpreter for THIS image"
+of the ELF header, so podvm answers "is there an interpreter for THIS image"
 rather than "is there any interpreter at all". A magic too short to reach byte
-18 does not select on the architecture, and podbox treats that as no match
+18 does not select on the architecture, and podvm treats that as no match
 rather than as a match.
 
-**Point 5 done, 2026-09-09.** `crates/podbox-probe/src/interp.rs`,
+**Point 5 done, 2026-09-09.** `crates/podvm-probe/src/interp.rs`,
 `measured_by` in `report::document`, a line in the banner, and `interpreter` as
 the eighth component of the cache key. Driven by
 `experiments/260-multiarch.sh` clause 6.
 
 | | |
 | --- | --- |
-| `measured_by.emulated`, aarch64 podbox under qemu on this amd64 host | **`true`** |
+| `measured_by.emulated`, aarch64 podvm under qemu on this amd64 host | **`true`** |
 | `measured_by.interpreter` and `cache_key.interpreter` | both `/usr/bin/qemu-aarch64-static` |
 | what the banner says, beside the rung | `⛔ MEASURED BY /usr/bin/qemu-aarch64-static, NOT BY THIS MACHINE` |
-| that answer offered to a native podbox sharing the store | refused: `the instrument changed` |
+| that answer offered to a native podvm sharing the store | refused: `the instrument changed` |
 
 ⭐ **What can be detected was measured rather than assumed**, by running the
 arm64 rootfs's own tools under `qemu-aarch64-static`:
@@ -485,27 +485,27 @@ arm64 rootfs's own tools under `qemu-aarch64-static`:
 | `/proc/self/maps` | guest mappings only; qemu's own are filtered out | ⛔ no |
 | `ls /proc/sys/fs/binfmt_misc` | the **host's** registrations | ⭐ yes |
 
-⛔ **So the claim is conditional and says so.** podbox cannot prove it is
+⛔ **So the claim is conditional and says so.** podvm cannot prove it is
 running natively; what it establishes is that this machine routes binaries of
-podbox's **own** ELF machine through an interpreter. The other state is
+podvm's **own** ELF machine through an interpreter. The other state is
 `NoEvidence`, it carries the list of what was checked, and it is never printed
 as "measured natively": `TODO/probe.md` T-0109 rule 1 forbids collapsing "no
 evidence" into an answer.
 
 ⚠ **Two routes in, and only one leaves a `binfmt_misc` trace.** An explicit
-`qemu-aarch64-static ./podbox` involves no registration at all, so the
+`qemu-aarch64-static ./podvm` involves no registration at all, so the
 environment is checked for the variables qemu-user reads. That is weaker
 evidence and is reported as its own sentence rather than merged with the first.
 
-⛔ **The reader moved to `podbox-probe` rather than being copied.**
-`podbox-enter::binfmt` asks "can this machine execute a FOREIGN image"; this
-asks the mirror question about podbox's OWN architecture. One parser answers
-both, and `podbox-enter` re-exports it.
+⛔ **The reader moved to `podvm-probe` rather than being copied.**
+`podvm-enter::binfmt` asks "can this machine execute a FOREIGN image"; this
+asks the mirror question about podvm's OWN architecture. One parser answers
+both, and `podvm-enter` re-exports it.
 
 ⚠ **A defect this found in `experiments/260-multiarch.sh`**: clause 4's reading
 depended on whatever binfmt state the machine happened to be in, because
-`podbox probe` re-execs itself once per probe and an explicitly-invoked aarch64
-podbox cannot start its own children without a registration. The rung read
+`podvm probe` re-execs itself once per probe and an explicitly-invoked aarch64
+podvm cannot start its own children without a registration. The rung read
 `namespace` on a machine that had one and `unsupported` on a machine that did
 not, and the committed reading recorded only the first. The registration is now
 made once, before clause 4, and the trap removes it.
@@ -516,7 +516,7 @@ made once, before clause 4, and the trap removes it.
 
 Source:      issue 12, client beta testing 2026-09-22 (every rung dies at
              `chroot(".")` EPERM while probe selects `interpose`);
-             `crates/podbox-enter/src/lib.rs` (fchdir/chroot/chdir entry
+             `crates/podvm-enter/src/lib.rs` (fchdir/chroot/chdir entry
              sequence, T-0502)
 Category:    enter
 Priority:    P1
@@ -547,16 +547,16 @@ Decision:    Up-front refusal, for three reasons. A no-chroot rung would
              chroot-denied hosts as unsupported contradicts the README's
              first paragraph, which names these hosts as the audience.
              The refused-rung table already has the legs to gate this.
-Prove:       `podbox run` on a chroot-denied host (or a fixture that
+Prove:       `podvm run` on a chroot-denied host (or a fixture that
              denies chroot) exits 125 naming `chroot(2)` denied with no
-             rootfs mutation, and `podbox probe` maps its chroot leg to
+             rootfs mutation, and `podvm probe` maps its chroot leg to
              the same refusal; on a chroot-capable host every rung runs
              as before. Close issue 12 with a comment showing both
              outputs and the probe-gated refusal as the guard that stops
              recurrence.
 
 **Done 2026-09-23.** Up-front refusal, as decided. One helper,
-`lifecycle::ensure_chroot_usable` (`crates/podbox-cli/src/lifecycle.rs`),
+`lifecycle::ensure_chroot_usable` (`crates/podvm/src/lifecycle.rs`),
 beside the T-1112 gate: it admits where `probes::chroot_usable` finds an
 `Ok` chroot row and otherwise refuses at 125 naming `chroot(2)` denied,
 the probe's chroot leg, and that no fixup has run. Three call sites.
@@ -580,14 +580,14 @@ lane (`rust:1.98.1-bookworm` through host podman 6.1.2), with full suites
 green beside it and clippy `-D warnings` clean.
 
 Driven on the shipped binary in the same lane with a seccomp fixture (a
-C launcher denying `chroot(2)` with EPERM, then execing podbox),
+C launcher denying `chroot(2)` with EPERM, then execing podvm),
 `public.ecr.aws/docker/library/alpine:3.20`:
 
 ```
-$ podbox probe            # unfiltered:  chroot=ok
-$ fixture podbox probe    # filtered:    chroot=EPERM
-$ fixture podbox run --rm IMG echo hi; echo $?
-podbox run: chroot(2) is denied on this machine, so the chroot tier
+$ podvm probe            # unfiltered:  chroot=ok
+$ fixture podvm probe    # filtered:    chroot=EPERM
+$ fixture podvm run --rm IMG echo hi; echo $?
+podvm run: chroot(2) is denied on this machine, so the chroot tier
 cannot be entered. [...]
 125
 ```
@@ -618,7 +618,7 @@ rungs named. Acceptance names the target shape: chroot `EPERM` with
 kvm, tun and ptmx absent, one of the two families runs with the
 banner naming the rung, and refusal stays only where neither family
 can run with both refusals named. Fix area is
-`crates/podbox-enter` entry sequence, the `lifecycle` gate, and the
+`crates/podvm-enter` entry sequence, the `lifecycle` gate, and the
 T-1003 ladder. Risk if wrong is weaker isolation stated as equal.
 Prove is `run --rm alpine echo hi` at exit 0 with the banner naming
 the rung on the chroot-denying fixture, beside the current refusal
@@ -628,10 +628,10 @@ test as the strict arm, with no rootfs mutation on the refusal path.
 `lifecycle::decide_entry` before any fixup mutates the rootfs:
 dynamic payloads through the image's own loader with the image's
 library directories and the interposer preloaded by host path
-(`podbox-enter/src/userland.rs` `loader_plan`, `host_env`), static
+(`podvm-enter/src/userland.rs` `loader_plan`, `host_env`), static
 payloads from a staged memfd exactly as the ladder stages it
 (`Family::Memfd`). `Rung::Userland` orders after chroot and never
-claims isolation: the banner, `PODBOX_ACTIVE_MODE=userland` and
+claims isolation: the banner, `PODVM_ACTIVE_MODE=userland` and
 `system info` `.EnteredRung` read `userland` on every userland run.
 Refusals name every tried rung with its missing leg at 125: scripts,
 foreign images, unresolvable payloads, `--strict` against the weaker
@@ -650,36 +650,36 @@ fixture (pinned alpine `d9e853e8`, pinned debian `833d7afe`,
 locally built static hello):
 
 ```
-$ fixture podbox run --rm DEBIAN sh -c 'echo $PODBOX_ACTIVE_MODE'; echo $?
+$ fixture podvm run --rm DEBIAN sh -c 'echo $PODVM_ACTIVE_MODE'; echo $?
 entering without chroot on the loader family: [...] runs [...]/usr/bin/sh [...]
 userland
 0
-$ fixture podbox run --rm ALPINE sh -c 'echo $PODBOX_ACTIVE_MODE'; echo $?
+$ fixture podvm run --rm ALPINE sh -c 'echo $PODVM_ACTIVE_MODE'; echo $?
 entering without chroot on the loader family: [...] runs [...]/bin/busybox
 [...] the invoked name "sh" rides as the applet [...]
 userland
 0
-$ fixture podbox run --rm static-hello:1 /hello; echo $?
+$ fixture podvm run --rm static-hello:1 /hello; echo $?
 entering without chroot on the memfd family: [...]
 static-hi
 0
-$ fixture podbox run --rm --strict ALPINE true; echo $?
-podbox run: --strict, and this run is degraded in 6 way(s). [...]
+$ fixture podvm run --rm --strict ALPINE true; echo $?
+podvm run: --strict, and this run is degraded in 6 way(s). [...]
 125
-$ fixture podbox run --rm ALPINE /nonexistent-probe-target; echo $?
-podbox run: chroot(2) is denied [...] no no-chroot family runs [...]
+$ fixture podvm run --rm ALPINE /nonexistent-probe-target; echo $?
+podvm run: chroot(2) is denied [...] no no-chroot family runs [...]
 125         (rootfs byte-identical after)
 ```
 
-Forced `PODBOX_MODE=memfd` enters the static hello at 0, refuses
+Forced `PODVM_MODE=memfd` enters the static hello at 0, refuses
 over dynamic alpine naming the unforced family at 125, and forced
 `fuse` refuses naming the force at 125. Unit guards:
 `userland.rs` (loader plan, lib dirs, host env, invocation name,
 applet argv), `lifecycle.rs` (rung decision), `ladder.rs` (forced
 no-chroot drives and refusals), `system.rs` (`.EnteredRung`
 `userland` where chroot is denied); lane `cargo test` green over
-the three crates beside the drive (podbox-cli 143, podbox-enter 64,
-podbox-probe 97 passed, 0 failed).
+the three crates beside the drive (podvm 143, podvm-enter 64,
+podvm-probe 97 passed, 0 failed).
 
 
 ---
@@ -687,10 +687,10 @@ podbox-probe 97 passed, 0 failed).
 ### T-1339 Enter the namespace rung where the probe permits it
 
 Source:      issue 59, beta.7 drive 2026-09-25 (`README.md:56-62`
-             promised it, `run` never did); `crates/podbox-enter/src/lib.rs:47-61`
+             promised it, `run` never did); `crates/podvm-enter/src/lib.rs:47-61`
              (`ENTERED_RUNG` is `Chroot` on every machine),
-             `crates/podbox-probe/src/select.rs:138-155` (returns
-             `Rung::Namespace`), `crates/podbox-cli/src/system.rs:428-431`
+             `crates/podvm-probe/src/select.rs:138-155` (returns
+             `Rung::Namespace`), `crates/podvm/src/system.rs:428-431`
              (asserts the two differ)
 Category:    enter
 Priority:    P1
@@ -728,8 +728,8 @@ Decision:    Implement behind the probe, not beside it. No flag
 Out of scope: a network or pid namespace (mount and ID maps
              first), changing the probe legs, touching the machine
              tier.
-Prove:       on a namespace-capable host `podbox probe` reports
-             `namespace` and `podbox system info --format
+Prove:       on a namespace-capable host `podvm probe` reports
+             `namespace` and `podvm system info --format
              '{{.EnteredRung}}'` reports `namespace` after a run
              that isolates a mount the host cannot see; on a denied
              host both report `chroot` as today.
@@ -787,8 +787,8 @@ the drives.
 
 ### T-1407 Anchor userland paths inside the rootfs or refuse
 
-Source:      issues 69 and 70; `crates/podbox-enter/src/userland.rs`;
-             `crates/podbox-interpose/src/map.rs`
+Source:      issues 69 and 70; `crates/podvm-enter/src/userland.rs`;
+             `crates/podvm-interpose/src/map.rs`
 Category:    enter
 Priority:    P0
 Effort:      L
@@ -800,12 +800,12 @@ Problem:     On the userland rung an absolute guest path resolves on the
              warning in issue 69 is host mutation through the runtime.
 Premise:     The rung states the pass-through in `userland.rs:15`. An
              empty map table rewrites nothing (`map.rs:68`). Nothing in
-             `crates/podbox-cli/src` sets `PODBOX_MAPS` for a userland
+             `crates/podvm/src` sets `PODVM_MAPS` for a userland
              run (measured by grep: zero hits). `host_env` rewrites
              `LD_LIBRARY_PATH` (`userland.rs:257`) and leaves `PATH` to
              the caller. First-level lookup is image-side through
              `resolve_payload` (`ladder.rs:148`).
-Approach:    Set a root-anchoring `PODBOX_MAPS` for every userland run,
+Approach:    Set a root-anchoring `PODVM_MAPS` for every userland run,
              minus the never-rewrite paths that T-0706 and T-0707 name.
              Refuse with a named errno where a call cannot be
              virtualized. Add an explicit `--unsafe-host-paths` opt-in
@@ -813,21 +813,21 @@ Approach:    Set a root-anchoring `PODBOX_MAPS` for every userland run,
 Decision:    Refusal beats a silent host write. The table is owned by
              `run` and set before the payload starts. No caller edits
              the table by hand.
-Prove:       `cargo test -p podbox-enter` exits 0 with the new unit
+Prove:       `cargo test -p podvm-enter` exits 0 with the new unit
              guards. A tracked drive on a chroot-denying fixture reads
              back a rootfs marker through an absolute path, writes no
              host `/tmp` file, and runs `sh -c` compound commands with
              image binaries only.
 
 **Done 2026-09-30.** Every userland run sets a root-anchoring
-`PODBOX_MAPS` table (`userland_maps_table`: guest `/` inside the
+`PODVM_MAPS` table (`userland_maps_table`: guest `/` inside the
 rootfs, minus the never-rewrite paths), the caller value scrubbed
 first, through one `userland_env` path for run and both exec entries;
 `--unsafe-host-paths` opts into the pass-through with its own parity
-row, banner line, and `--strict` refusal. `cargo test -p podbox-enter`
+row, banner line, and `--strict` refusal. `cargo test -p podvm-enter`
 exits 0. `sh experiments/356-no-chroot-rung.sh` exits 0
 ([the drive](../experiments/results/no-chroot-rung.txt)): the banner
-names the anchoring, a `PODBOX_MAPS=/:evil` caller value never reaches
+names the anchoring, a `PODVM_MAPS=/:evil` caller value never reaches
 the payload, the absolute-path read sees the image release, and a
 `/tmp` write never lands on the host. Issue 69 (host mutation through
 the runtime) and issue 70 (libc mixing) close on those two clauses.
@@ -840,9 +840,9 @@ one acceptance clause per issue.
 
 ### T-1408 Resolve the loader symlink inside the rootfs
 
-Source:      issue 73; `crates/podbox-enter/src/userland.rs:191`;
-             `crates/podbox-enter/src/memfd.rs:49`;
-             `crates/podbox-enter/src/abi.rs:713`
+Source:      issue 73; `crates/podvm-enter/src/userland.rs:191`;
+             `crates/podvm-enter/src/memfd.rs:49`;
+             `crates/podvm-enter/src/abi.rs:713`
 Category:    enter
 Priority:    P1
 Effort:      S
@@ -862,7 +862,7 @@ Approach:    Resolve `interp_guest` through `resolve_in`, bounded and
              still fails.
 Decision:    The rootfs is the resolution root for every guest path on
              this rung. The host root is never a fallback.
-Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive runs
+Prove:       `cargo test -p podvm-enter` exits 0. A tracked drive runs
              `public.ecr.aws/debian/debian:bookworm-slim echo hi` and
              `public.ecr.aws/docker/library/gcc:13-bookworm gcc --version`
              on a chroot-denying fixture. Both images join
@@ -871,7 +871,7 @@ Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive runs
 **Done 2026-09-30.** `loader_plan` resolves the guest interpreter
 through `resolve_in` (bounded, rootfs-contained) before
 `is_executable`; the refusal still names the guest path.
-`cargo test -p podbox-enter` exits 0 with the absolute-link loader
+`cargo test -p podvm-enter` exits 0 with the absolute-link loader
 fixture test. `sh experiments/356-no-chroot-rung.sh` exits 0
 ([the drive](../experiments/results/no-chroot-rung.txt)): debian runs
 `sh` on the fixture (clause 4) and `gcc --version` answers on the gcc
@@ -884,9 +884,9 @@ before implementation.
 
 ### T-1409 Answer the payload-visible exe on the loader family
 
-Source:      issue 74; `crates/podbox-interpose/src/lib.rs:1256`;
-             `crates/podbox-enter/src/ladder.rs:187`;
-             `crates/podbox-cli/src/run.rs:798`
+Source:      issue 74; `crates/podvm-interpose/src/lib.rs:1256`;
+             `crates/podvm-enter/src/ladder.rs:187`;
+             `crates/podvm/src/run.rs:798`
 Category:    enter
 Priority:    P1
 Effort:      M
@@ -899,26 +899,26 @@ Problem:     Entering through the loader leaves `/proc/self/exe`
 Premise:     The exe emulation answers only where the real call fails
              with `ENOENT` (`lib.rs:1256`). On the userland rung the
              host `/proc` is mounted, so the real `readlink` succeeds
-             with the loader path and `PODBOX_GUEST_EXE` (`run.rs:798`)
+             with the loader path and `PODVM_GUEST_EXE` (`run.rs:798`)
              is never consulted. `ladder.rs:187` documents the
              chroot-only assumption.
 Approach:    On loader-family entries answer `/proc/self/exe` and the
              `readlinkat`, `open`, and `stat` shapes from
-             `PODBOX_GUEST_EXE` even where the real call succeeds.
+             `PODVM_GUEST_EXE` even where the real call succeeds.
              State the substitution in the banner.
 Decision:    The payload sees its own path, not the loader's. The
              emulation is named, never silent.
-Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive runs
+Prove:       `cargo test -p podvm-enter` exits 0. A tracked drive runs
              `go version`, `go env GOROOT`, and a hello build on
              `public.ecr.aws/docker/library/golang:1.24.7-bookworm`
              over a chroot-denying fixture with no extra `-e`.
 
 **Done 2026-09-30.** The loader entry resolves the payload to its
-guest path (`ladder.rs:206`), carries it in `PODBOX_GUEST_EXE`
+guest path (`ladder.rs:206`), carries it in `PODVM_GUEST_EXE`
 (`run.rs:996`), and the interposer answers `/proc/self/exe` and the
 `readlinkat`, `open`, and `stat` shapes from it even where the real
 call succeeds (`lib.rs:1541`); the banner names the substitution.
-`cargo test -p podbox-enter` exits 0 with the `guest_exe` and
+`cargo test -p podvm-enter` exits 0 with the `guest_exe` and
 `push_guest_exe` arms pinned. `sh experiments/356-no-chroot-rung.sh`
 exits 0 ([the drive](../experiments/results/no-chroot-rung.txt)):
 clause 12 forces the exe and reads it back, clause 18 prints
@@ -944,8 +944,8 @@ before implementation.
 
 ### T-1410 Exec through the no-chroot family
 
-Source:      issue 80; `crates/podbox-cli/src/exec.rs:444`;
-             `crates/podbox-cli/src/run.rs:1078`; [T-0505](enter.md)
+Source:      issue 80; `crates/podvm/src/exec.rs:444`;
+             `crates/podvm/src/run.rs:1078`; [T-0505](enter.md)
 Category:    enter
 Priority:    P1
 Effort:      L
@@ -954,7 +954,7 @@ Status:      done
 Problem:     `run` works on a chroot-denied host but `exec` on the same
              extracted rootfs fails with `EPERM`. `exec` only knows the
              chroot path.
-Premise:     `exec` calls `podbox_enter::run` directly (`exec.rs:444`).
+Premise:     `exec` calls `podvm_enter::run` directly (`exec.rs:444`).
              It never calls `decide_entry`, which is the `run` path
              (`run.rs:1078`). T-1317 scoped `exec` out deliberately and
              left the helper one call away.
@@ -963,14 +963,14 @@ Approach:    Route `exec` through `decide_entry` and the loader and
              contract from T-0505. Refusals name the blocking call.
 Decision:    `exec` and `run` share the entry decision. They keep
              separate banners and separate records.
-Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive
+Prove:       `cargo test -p podvm` exits 0. A tracked drive
              extracts `public.ecr.aws/docker/library/alpine:3.20` and
              runs `exec echo hi` with rc 0 on a chroot-denying fixture.
 
 **Done 2026-09-30.** Both exec paths (container and image) route
 through `decide_entry` and the loader and memfd drive, keeping the
 fresh-entry-shares-filesystem contract with separate banners and
-records; refusals name the blocking call. `cargo test -p podbox-cli`
+records; refusals name the blocking call. `cargo test -p podvm`
 exits 0. `sh experiments/356-no-chroot-rung.sh` exits 0
 ([the drive](../experiments/results/no-chroot-rung.txt)): clause 15
 extracts the image and runs image-exec and container-exec at 0 on the
@@ -983,8 +983,8 @@ before implementation.
 
 ### T-1411 A detached launcher for the no-chroot family
 
-Source:      issue 72; `crates/podbox-cli/src/run.rs:1079`;
-             `crates/podbox-cli/src/lifecycle.rs:213`; [T-1317](enter.md)
+Source:      issue 72; `crates/podvm/src/run.rs:1079`;
+             `crates/podvm/src/lifecycle.rs:213`; [T-1317](enter.md)
 Category:    enter
 Priority:    P1
 Effort:      L
@@ -1015,7 +1015,7 @@ Prove:       `cargo test --workspace` exits 0. A tracked drive runs
 
 **Done 2026-09-30.** `create` records a userland entry where chroot
 is denied (rung `userland`, exact loader argv in `userland_exec`,
-library dirs, `PODBOX_MAPS` and `PODBOX_GUEST_EXE` in the stored
+library dirs, `PODVM_MAPS` and `PODVM_GUEST_EXE` in the stored
 environment); detached `start` drives it through `spawn_userland`
 with pidfd supervision as today; the foreground path is unchanged.
 This reverses T-1317's last-resort decision in writing at the three
@@ -1038,8 +1038,8 @@ before implementation.
 
 ### T-1412 A missing workdir refuses naming the path
 
-Source:      issue 81; `crates/podbox-enter/src/lib.rs:1009`;
-             `crates/podbox-cli/src/run.rs:301`
+Source:      issue 81; `crates/podvm-enter/src/lib.rs:1009`;
+             `crates/podvm/src/run.rs:301`
 Category:    enter
 Priority:    P1
 Effort:      S
@@ -1057,18 +1057,18 @@ Approach:    Check the workdir before the fork on both rungs. Refuse
              naming the path and the image. Keep `-w /tmp` printing
              `/tmp` as the passing control.
 Decision:    Refusal beats a silent wrong directory. docker creates the
-             directory; podbox refuses and names it, and the refusal
+             directory; podvm refuses and names it, and the refusal
              says so.
-Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive
+Prove:       `cargo test -p podvm-enter` exits 0. A tracked drive
              refuses `-w /no/such/dir` with the path named and prints
              `/tmp` for `-w /tmp`.
 
 **Done 2026-09-30.** The workdir is checked before the fork on both
 rungs and both exec paths (`check_workdir`: resolved under the
 rootfs, refused naming the path and the image, noting that docker
-creates the directory while podbox refuses); the child race arrives
+creates the directory while podvm refuses); the child race arrives
 as a named step-11 error instead of a silent wrong directory.
-`cargo test -p podbox-enter` exits 0. `sh experiments/356-no-chroot-rung.sh`
+`cargo test -p podvm-enter` exits 0. `sh experiments/356-no-chroot-rung.sh`
 exits 0 ([the drive](../experiments/results/no-chroot-rung.txt)):
 clause 10 refuses the missing directory on the fixture and the sane
 host and prints exactly `/tmp` for the control.
@@ -1080,16 +1080,16 @@ before implementation.
 
 ### T-1413 A script refusal names the file and its shebang
 
-Source:      issue 78; `crates/podbox-cli/src/lifecycle.rs:1779`;
-             `crates/podbox-enter/src/memfd.rs:147`;
-             `crates/podbox-enter/src/ladder.rs:148`
+Source:      issue 78; `crates/podvm/src/lifecycle.rs:1779`;
+             `crates/podvm-enter/src/memfd.rs:147`;
+             `crates/podvm-enter/src/ladder.rs:148`
 Category:    enter
 Priority:    P2
 Effort:      S
 Status:      done
 
 Problem:     `node:*-alpine` refuses as a `#!` script without naming the
-             file or its shebang. The caller cannot tell whether podbox
+             file or its shebang. The caller cannot tell whether podvm
              picked the entrypoint, a wrapper, or the wrong binary.
 Premise:     `eligible` returns the unit variant `RoutePastScript`
              (`memfd.rs:147`), so path and first line are already
@@ -1103,14 +1103,14 @@ Approach:    Thread the resolved path and first line into the
 Decision:    The refusal names the exact payload path and its `#!`
              line. An anonymous refusal is a defect in the message, not
              a separate capability.
-Prove:       `cargo test -p podbox-enter` exits 0. A tracked drive shows
+Prove:       `cargo test -p podvm-enter` exits 0. A tracked drive shows
              the node refusal naming the resolved file and its `#!`
              line, or the payload runs.
 
 **Done 2026-09-30.** `RoutePastScript` carries the resolved path and
 first shebang line into the `no_chroot` refusal, so the node payload
 refuses naming the exact file and its `#!` line instead of
-anonymously. `cargo test -p podbox-enter` exits 0.
+anonymously. `cargo test -p podvm-enter` exits 0.
 `sh experiments/356-no-chroot-rung.sh` exits 0
 ([the drive](../experiments/results/no-chroot-rung.txt)): clause 13
 refuses at 126 naming `/hello.sh` and its shebang. Routing the
@@ -1122,7 +1122,7 @@ before implementation.
 ### T-1604 Fix the detached-stdio serial mutex and the 1-of-3 detached start failure
 
 Source:      CI run 36894578988, job 110478236087, 2026-10-01;
-             `crates/podbox-cli/tests/detached_stdio.rs` `:138`, `:292`;
+             `crates/podvm/tests/detached_stdio.rs` `:138`, `:292`;
              `experiments/340-detached-stdio.sh`
 Category:    enter
 Priority:    P1
@@ -1162,12 +1162,12 @@ Decision:    The cascade is the reporting defect and the 1-of-3 is the
              measurable, then measure the second. Do not weaken the
              assertion at `:292` to accept 1 of 3: that would record a
              green run over a real failure.
-Prove:       `cargo test -p podbox-cli --test detached_stdio` passes in
+Prove:       `cargo test -p podvm --test detached_stdio` passes in
              the Linux lane, run twice; a deliberately failing test in
              the same binary does not poison its neighbours (the plant
              this task owes); the saved lane log shows all three
              detached starts running;
-             `./target/release/podbox-gate` exits 0.
+             `./target/release/podvm-gate` exits 0.
 
 **Partial 2026-10-02.** The cascade is fixed and measured; the
 one-of-three failure is not reproduced and is not root-caused, and the
@@ -1181,7 +1181,7 @@ in the lane on `rustc 1.99.0` runs `detached_stdio` green, all three:
 `detached_run_without_an_image_is_a_cli_error`, `run_help_names_the_detach_flag`,
 and `detached_start_returns_before_the_payload_ends`
 ([the drive](../experiments/results/ci-lint-1.99.txt)).
-`./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0.
+`./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0.
 
 The second defect also got a fix, and it is the one that matters for the
 next attempt. The loop breaks on the first non-zero `run -d` and threw
@@ -1216,9 +1216,9 @@ green here. The stderr this entry added is what settled it:
 assertion `left == right` failed: only 1 of 3 detached starts ran:
   start 1 (`run -d` for det1-5332-1) exited Some(126) after 5, id "",
   inspect exited Some(1) reading []
-    run -d stderr: podbox run: chroot(2) is denied on this machine, and
+    run -d stderr: podvm run: chroot(2) is denied on this machine, and
     no no-chroot family runs this payload: the loader family declines the
-    payload: this podbox binary carries no glibc interposer object, so the
+    payload: this podvm binary carries no glibc interposer object, so the
     tier is declined; ./scripts/build-interpose.sh builds them.
 ```
 
@@ -1262,11 +1262,11 @@ exit 0.
 The assertion is now conditional on the tier, in the way
 `tests/store_gates.rs` already conditions on namespaces. Where the no-
 chroot family legitimately declines, the test skips and says why:
-`crates/podbox-cli/tests/detached_stdio.rs:93-112` requires exit 126
+`crates/podvm/tests/detached_stdio.rs:93-112` requires exit 126
 **and** both halves of the refusal, the `decide_entry` sentence from
 `lifecycle.rs:1837-1845` and the absent-object leg from
 `interpose.rs:222-226`. The exit code alone is not enough and the
-comment says why: 126 is also what podbox returns for a loader this
+comment says why: 126 is also what podvm returns for a loader this
 machine cannot run and for a payload that is not an ELF, and those are
 real failures. Every recorded start is checked, not the first, because
 the loop breaks on the first non-zero. Where the tier is available the
@@ -1276,7 +1276,7 @@ decision to not weaken it stands and was not traded away.
 The CI half is decided and done. The `workspace and interposer tests`
 job builds the interposer before `cargo test --workspace`
 (`.github/workflows/gate.yml:230-243`), mirroring the static-build job.
-The premise is verified in source, not assumed: `crates/podbox-cli/
+The premise is verified in source, not assumed: `crates/podvm/
 build.rs:86-91` writes an empty placeholder object when the real one is
 absent and `:101-122` records that it is empty so the runtime refuses,
 so without the step the binary under test interposes nothing. The
@@ -1296,7 +1296,7 @@ the previous session measured still holds and is what made this fix
 findable: a failure that cannot say what it saw is a failure the next
 session has to re-derive.
 
-What still owes: the lane run of `cargo test -p podbox-cli --test
+What still owes: the lane run of `cargo test -p podvm --test
 detached_stdio` in CI, where the skip and the strict path are both
 exercised in place. It could not run from this host because `ring`'s
 build script fails here through `scripts/zig-cc.sh`, which a Windows
@@ -1313,24 +1313,24 @@ when removed, which is the direction that matters.
 ### T-1647 Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes
 
 Source:      issue 90; issue 114 section 3.3 and section 6 item 6;
-             `crates/podbox-enter/src/ladder.rs:238`;
-             `crates/podbox-enter/src/abi.rs:157`;
-             `crates/podbox-enter/src/memfd.rs:108`
+             `crates/podvm-enter/src/ladder.rs:238`;
+             `crates/podvm-enter/src/abi.rs:157`;
+             `crates/podvm-enter/src/memfd.rs:108`
 Category:    enter
 Priority:    P1
 Effort:      M
 Status:      open
 
-Problem:     On a chroot-denied host podbox refuses a payload over
+Problem:     On a chroot-denied host podvm refuses a payload over
              134217728 bytes at 125 before it runs. `node` in node:alpine
              is 149234536 bytes, and a zig toolchain binary is 172641672
              bytes. `doctor` and `probe` do not report the cap, so the
              image is pulled first and the run fails after.
 Premise:     Two 128 MiB ceilings read the whole file into memory.
              `Elf::read` (`abi.rs:157`) serves the tier classifier
-             (`crates/podbox-cli/src/interpose.rs:184`). `payload_bytes`
+             (`crates/podvm/src/interpose.rs:184`). `payload_bytes`
              (`ladder.rs:238`) serves `decide_entry`
-             (`crates/podbox-cli/src/lifecycle.rs:1859`), so the loader
+             (`crates/podvm/src/lifecycle.rs:1859`), so the loader
              family refuses too, though it never stages the bytes.
              `memfd::stage` (`memfd.rs:108`) takes one contiguous buffer.
              `memfd::eligible` (`memfd.rs:262`) reads the ELF header and
@@ -1346,9 +1346,9 @@ Decision:    File size is not a refusal reason; memory held is bounded.
              `/proc/self/exe` cannot run from a memfd (issue 90 measured
              zig). That case is out of this entry: T-1648 refuses it by
              name and T-1652 serves it.
-Prove:       `cargo test -p podbox-enter` exits 0 with a test that
+Prove:       `cargo test -p podvm-enter` exits 0 with a test that
              classifies and stages a sparse 200 MiB fixture through a
-             bounded buffer. `cargo test -p podbox-cli` exits 0.
+             bounded buffer. `cargo test -p podvm` exits 0.
              `sh experiments/356-no-chroot-rung.sh` exits 0 with a clause
              that runs `node -e 'console.log(1)'` from the node image
              with `--entrypoint node`, past the size check.
@@ -1357,11 +1357,11 @@ Prove:       `cargo test -p podbox-enter` exits 0 with a test that
 release 0.1.0-beta.12 on the errand host:
 
 ```text
-$ podbox run --entrypoint node node:alpine -e 'console.log(1)'
-podbox run: chroot(2) is denied on this machine, and no no-chroot family
+$ podvm run --entrypoint node node:alpine -e 'console.log(1)'
+podvm run: chroot(2) is denied on this machine, and no no-chroot family
 runs this payload: node resolved but its bytes could not be read:
 .../rootfs/usr/local/bin/node is 149234536 bytes, over the
-134217728-byte ceiling podbox reads a payload within.   [exit 125]
+134217728-byte ceiling podvm reads a payload within.   [exit 125]
 streamed into a memfd in 128 KiB chunks (sandhome shims/memexec.c):
 $ time /tmp/sandhome-memexec /state/home/noexec-test/zig version
 0.16.0
@@ -1375,9 +1375,9 @@ error: unable to find zig installation directory '/memfd:sandhome (deleted)'
 ### T-1648 A static Go payload runs into a GOROOT error instead of a named refusal
 
 Source:      issue 91; issue 114 section 3.4;
-             `crates/podbox-cli/src/lifecycle.rs:1895`;
-             `crates/podbox-cli/src/lifecycle.rs:1919`;
-             `crates/podbox-cli/src/interpose.rs:355`;
+             `crates/podvm/src/lifecycle.rs:1895`;
+             `crates/podvm/src/lifecycle.rs:1919`;
+             `crates/podvm/src/interpose.rs:355`;
              `experiments/356-no-chroot-rung.sh:481`
 Category:    enter
 Priority:    P0
@@ -1396,7 +1396,7 @@ Premise:     `decide_entry` sends every static payload to the memfd
              banner says that absolute paths resolve on the host
              (`lifecycle.rs:1919`), and the quiet default of T-1416 hides
              the banner. `interpose::apply` records the Go decline as a
-             banner note (`crates/podbox-cli/src/interpose.rs:355`),
+             banner note (`crates/podvm/src/interpose.rs:355`),
              which the quiet default also hides. Clause 18 of experiment
              356 pins exit 2 naming GOROOT as the boundary
              (`356-no-chroot-rung.sh:481`).
@@ -1411,11 +1411,11 @@ Approach:    On a chroot-denied host, refuse a static payload at 125
              memfd family passes the opt-in. Clause 18 changes from exit
              2 to exit 125.
 Decision:    Refusal beats a silent host write, T-1407's rule applied to
-             the memfd family. podbox does not inject `GOROOT`: clause 18
+             the memfd family. podvm does not inject `GOROOT`: clause 18
              already refused payload-specific magic. The measured
              host-path `GOROOT` recipe stays a caller choice under the
              opt-in.
-Prove:       `cargo test -p podbox-cli` exits 0 with a test: a static
+Prove:       `cargo test -p podvm` exits 0 with a test: a static
              fixture payload refuses at 125 without the opt-in and
              enters the memfd family with it.
              `sh experiments/356-no-chroot-rung.sh` exits 0 with clause 18
@@ -1426,16 +1426,16 @@ Prove:       `cargo test -p podbox-cli` exits 0 with a test: a static
 release 0.1.0-beta.12 on the errand host:
 
 ```text
-$ podbox run golang:1.24-alpine go version
+$ podvm run golang:1.24-alpine go version
 go: cannot find GOROOT directory: 'go' binary is trimmed and GOROOT is not set
 [exit 2]
---verbose: podbox run: interpose: declined for "go": go carries Go build
+--verbose: podvm run: interpose: declined for "go": go carries Go build
 markers, and Go issues syscalls directly rather than through libc, so the
 tier cannot reach it
-$ podbox run -e GOROOT=<store>/rootfs/<golang>/usr/local/go \
+$ podvm run -e GOROOT=<store>/rootfs/<golang>/usr/local/go \
     golang:1.24-alpine /usr/local/go/bin/go version
 go version go1.24.13 linux/amd64          # the host path works
-$ podbox exec ... gb /usr/local/go/bin/go build -o /tmp/gohello main.go
+$ podvm exec ... gb /usr/local/go/bin/go build -o /tmp/gohello main.go
 $ ls -l /tmp/gohello                      # 2238818 bytes on the HOST
 ```
 
@@ -1444,9 +1444,9 @@ $ ls -l /tmp/gohello                      # 2238818 bytes on the HOST
 ### T-1651 An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads
 
 Source:      issue 94; issue 114 section 3.1 and section 4;
-             `crates/podbox-cli/src/tier.rs:26`;
-             `crates/podbox-probe/src/report.rs:451`;
-             `crates/podbox-extract/src/safety.rs:261`; [T-0506](enter.md)
+             `crates/podvm/src/tier.rs:26`;
+             `crates/podvm-probe/src/report.rs:451`;
+             `crates/podvm-extract/src/safety.rs:261`; [T-0506](enter.md)
 Category:    enter
 Priority:    P2
 Effort:      XL
@@ -1458,16 +1458,16 @@ Problem:     On a host that denies chroot, user namespaces, mount and
              and leaks in three ways. A child it execs runs from the
              host. A path absent from the rootfs is read from the host.
              An absolute link in the image resolves on the host.
-Premise:     `--podbox-tier` takes `machine` or `chroot` only
+Premise:     `--podvm-tier` takes `machine` or `chroot` only
              (`tier.rs:26`). The probe marks an emulator's answers in
              `measured_by` (`report.rs:451`), the T-0506 rule. In qemu,
              `do_execve` hands the raw guest path to the host, and
              `util/path.c` `path()` returns the unprefixed host path
              after an `access()` miss. `openat2(RESOLVE_IN_ROOT)` works
-             unprivileged on the errand host's kernel 7.2.2, and podbox
-             already wraps it in `podbox_extract::safety`
+             unprivileged on the errand host's kernel 7.2.2, and podvm
+             already wraps it in `podvm_extract::safety`
              (`safety.rs:261`).
-Approach:    Add an `emulate` tier. podbox invokes a qemu-user as its own
+Approach:    Add an `emulate` tier. podvm invokes a qemu-user as its own
              process, patched in three places. `do_execve` applies the
              prefix and re-execs the emulator with the same `-L`.
              `path()` fails closed with `ENOENT`. Path resolution, `stat`,
@@ -1479,18 +1479,18 @@ Approach:    Add an `emulate` tier. podbox invokes a qemu-user as its own
 Decision:    The emulate tier is a rung the caller selects or the ladder
              names, never a hidden fallback. qemu stays a separate GPL
              process, the boundary the machine tier's `qemu-system`
-             already keeps. podbox refuses an unpatched qemu, because its
+             already keeps. podvm refuses an unpatched qemu, because its
              fallback serves host files. For a native static payload
              T-1652 is the first choice; this tier covers other
              architectures and payloads whose exec or threads that loader
              cannot follow. The cost is an estimate of about 2x native
              (sandhome measured 0.421 s against 0.845 s on one payload).
-Prove:       `cargo test -p podbox-cli` exits 0 with tests for the tier
+Prove:       `cargo test -p podvm` exits 0 with tests for the tier
              value and its banner. `sh experiments/356-no-chroot-rung.sh`
              exits 0 with an emulate clause: `go version` from the golang
              image and a shell pipeline exit 0 under the tier, a path
              absent from the rootfs is refused and not read from the
-             host, and `podbox probe` under the tier reports
+             host, and `podvm probe` under the tier reports
              `measured_by.emulated` true.
 
 **Filed 2026-11-06.** Quoted from issue 94 and its comments, measured
@@ -1515,9 +1515,9 @@ openat2(rootfd, "/no/such/file", RESOLVE_IN_ROOT)        -> -1 ENOENT
 ### T-1652 A native-static rung: userland execve, Syscall User Dispatch and openat2(RESOLVE_IN_ROOT)
 
 Source:      issue 109; issue 114 section 1, section 4 and section 6
-             item 1; `crates/podbox-probe/src/select.rs:35`;
-             `crates/podbox-probe/src/probes.rs:266`;
-             `crates/podbox-enter/src/memfd.rs:108`
+             item 1; `crates/podvm-probe/src/select.rs:35`;
+             `crates/podvm-probe/src/probes.rs:266`;
+             `crates/podvm-enter/src/memfd.rs:108`
 Category:    enter
 Priority:    P2
 Effort:      XL
@@ -1552,7 +1552,7 @@ Decision:    For a native static payload this rung is the first choice
              refused `prctl` or an older kernel falls back to the emulate
              tier by name, never silently. Dynamic payloads stay on the
              loader family.
-Prove:       `cargo test -p podbox-enter` and `cargo test -p podbox-probe`
+Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm-probe`
              exit 0 with tests for the trap, the in-root open and the
              re-arm in a child. `sh experiments/356-no-chroot-rung.sh`
              exits 0 with a native-static clause: `go version` and a
@@ -1576,16 +1576,16 @@ selector: 0 = SYSCALL_DISPATCH_FILTER_ALLOW, 1 = BLOCK
 ### T-1653 `-v` volumes on a host with no /dev/fuse and no mount
 
 Source:      issue 130 (130 reposts the hidden issue 104); issue 114
-             section 3.6; `crates/podbox-cli/src/parity.rs:335`;
-             `crates/podbox-enter/src/userland.rs:313`;
-             `crates/podbox-interpose/src/map.rs:325`
+             section 3.6; `crates/podvm/src/parity.rs:335`;
+             `crates/podvm-enter/src/userland.rs:313`;
+             `crates/podvm-interpose/src/map.rs:325`
 Category:    enter
 Priority:    P2
 Effort:      L
 Status:      open
 
 Problem:     `run -v` is refused on every rung. The errand host has no
-             `/dev/fuse` and denies `mount(2)`, so podbox can make neither
+             `/dev/fuse` and denies `mount(2)`, so podvm can make neither
              an overlay nor a bind mount. A payload has no way to see a
              host directory at a guest path.
 Premise:     The parity table refuses `-v, --volume` with status None:
@@ -1596,9 +1596,9 @@ Premise:     The parity table refuses `-v, --volume` with status None:
              directory wins over the root pair. T-0703 drove a mapped pair
              end to end and left `-v` out of scope.
 Approach:    On the loader family, turn each `-v HOST:GUEST` into a
-             `GUEST:HOST` pair in the `PODBOX_MAPS` table beside the root
+             `GUEST:HOST` pair in the `PODVM_MAPS` table beside the root
              pair. Apply the T-1407 spelling checks to both sides. Refuse
-             `:ro` by name until podbox enforces it. The memfd family has
+             `:ro` by name until podvm enforces it. The memfd family has
              no interposer, so it keeps the refusal until T-1652 maps a
              volume prefix to a host directory descriptor. The parity row
              moves from None to Degraded and names the family that
@@ -1607,10 +1607,10 @@ Decision:    A volume on this host is a path rewrite. It is not a copy and
              not an overlay. A write lands in the host directory, as with
              a docker bind mount. The two-root view of issue 114 copies
              executables, which is the copy the parity row refuses, so
-             podbox does not use it. A payload execs from a volume only
+             podvm does not use it. A payload execs from a volume only
              where the host mount allows exec, and the banner names a
              noexec source.
-Prove:       `cargo test -p podbox-enter` and `cargo test -p podbox-cli`
+Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm`
              exit 0 with table tests for a volume pair and a refused
              spelling. `sh experiments/356-no-chroot-rung.sh` exits 0 with
              a volume clause on the fixture: a host file reads back at

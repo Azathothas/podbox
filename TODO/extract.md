@@ -3,7 +3,7 @@
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
 
-`crates/podbox-extract`. `TOOL.md` section 6.3, milestone M2.
+`crates/podvm-extract`. `TOOL.md` section 6.3, milestone M2.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
 [RULES.md](RULES.md) is how an entry closes. [reference-map.md](reference-map.md) is the corpus.
@@ -45,23 +45,23 @@ Approach:    Drive a tar reader at **entry level**: read a header, decide, act.
 Decision:    In-process over a Rust tar reader, rather than a vendored C
              libarchive. libarchive is where `short write: -20` came from
              (T-0203), it is a C dependency that complicates `crt-static`, and
-             the entry-level API podbox needs is the smaller half of what it
+             the entry-level API podvm needs is the smaller half of what it
              offers.
 Prove:       `./experiments/220-extract-path-safety.sh` exits 0, and
-             `strace -f -e trace=execve -o /tmp/e.txt podbox extract --force public.ecr.aws/docker/library/alpine:3.20; grep -c 'execve.*"tar"' /tmp/e.txt` prints 0
+             `strace -f -e trace=execve -o /tmp/e.txt podvm extract --force public.ecr.aws/docker/library/alpine:3.20; grep -c 'execve.*"tar"' /tmp/e.txt` prints 0
 
-**Done, 2026-09-08.** `crates/podbox-extract/src/apply.rs` drives
+**Done, 2026-09-08.** `crates/podvm-extract/src/apply.rs` drives
 `tar::Archive::entries()` and makes every decision itself. 515 entries out of a
 real `alpine`, 4,664 out of a two-layer `voidlinux-musl`.
 
 ⭐ **Measured on 2026-09-08, both halves.** The shipped binary reports
 `statically linked` and carries no `archive` anything; a full extraction issues
-**one** `execve`, which is podbox itself. The `Prove` above is rewritten because
+**one** `execve`, which is podvm itself. The `Prove` above is rewritten because
 the original piped `grep -c` into `grep -qx 0`, and `AGENTS.md` names that
 exact trap twice: `grep -c` exits 1 on zero matches, so the pipeline's status
 was `grep`'s and the clause could not fail the way it was written.
 
-⚠ **A finding about the crate, not about podbox.** `tar::Builder` REFUSES to
+⚠ **A finding about the crate, not about podvm.** `tar::Builder` REFUSES to
 write a member whose path contains `..` ("paths in archives must not have
 `..`"), and `tar::Archive`'s reader hands that same member straight to the
 caller. The writer's validation is not the reader's, so the hostile archives in
@@ -119,12 +119,12 @@ Decision:    A sidecar, not `--no-same-owner` semantics alone. The alternative
              failure into a warning, and it is reachable by configuration:
              `references/containers__storage/tree/types/options.go:473-474` and
              `references/containers__storage/tree/drivers/vfs/driver.go:59-62`.
-             That does not change podbox's design and it does change a claim
+             That does not change podvm's design and it does change a claim
              about podman, which is T-0205.
-Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox extract public.ecr.aws/docker/library/alpine:3.20 && jq -e 'select(.path=="etc/shadow") | .uid==0 and .gid==42 and .applied.gid==0' "$(podbox inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/../.meta.jsonl"`
+Prove:       `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 && jq -e 'select(.path=="etc/shadow") | .uid==0 and .gid==42 and .applied.gid==0' "$(podvm inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/../.meta.jsonl"`
 
-**Done, 2026-09-08.** `crates/podbox-extract/src/sidecar.rs`, written per entry
-by `crates/podbox-extract/src/apply.rs`. The `Prove` above runs and exits 0
+**Done, 2026-09-08.** `crates/podvm-extract/src/sidecar.rs`, written per entry
+by `crates/podvm-extract/src/apply.rs`. The `Prove` above runs and exits 0
 against a real `alpine`, and the row it reads is, verbatim:
 
 ```
@@ -138,8 +138,8 @@ and exactly that gid, and the extraction found it without being told.
 `voidlinux-musl` has three: `usr/bin/wall` and `usr/bin/write` at gid 5, and
 `usr/bin/xbps-uchroot` at gid 101.
 
-⛔ **The `Prove` no longer runs `podbox run --rm`**, which is M3, because
-`podbox extract` is the verb that puts the rootfs there and this entry is about
+⛔ **The `Prove` no longer runs `podvm run --rm`**, which is M3, because
+`podvm extract` is the verb that puts the rootfs there and this entry is about
 the sidecar rather than about entering the image. [T-1103](milestones.md)
 carries the clauses that genuinely need M3 and is `partial` for them.
 
@@ -184,7 +184,7 @@ Decision:    Basename matching over any glob. A glob is what produced the
              archive and a bare one.
 Prove:       `./experiments/70-whiteout-contract.sh` exits 0
 
-**Done, 2026-09-08.** `crates/podbox-extract/src/whiteout.rs`.
+**Done, 2026-09-08.** `crates/podvm-extract/src/whiteout.rs`.
 
 ⭐ **Mutation-proved against the defect it exists for.** Replacing the basename
 test with udocker's own slash-anchored selector (`path.contains("/.wh.")`) turns
@@ -236,7 +236,7 @@ Decision:    Refuse rather than sanitize. Rewriting a hostile path to something
              clean one.
 Prove:       `./experiments/220-extract-path-safety.sh` exits 0
 
-**Done, 2026-09-08.** `crates/podbox-extract/src/safety.rs`, and the script
+**Done, 2026-09-08.** `crates/podvm-extract/src/safety.rs`, and the script
 exits 0 with six checks. `experiments/results/extract-path-safety.txt` is the
 reading; the refusal it captures names the layer digest and the entry:
 
@@ -294,7 +294,7 @@ Approach:    Interpret an absolute target **relative to the rootfs**, which is
 Decision:    Rebase rather than reject, and rebase rather than dereference at
              extraction time. Dereferencing would bake the build host's tree
              into the image.
-Prove:       `podbox pull ghcr.io/void-linux/void-musl:latest && podbox extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podbox inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`
+Prove:       `podvm pull ghcr.io/void-linux/void-musl:latest && podvm extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podvm inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`
 
 **Done, 2026-09-08.** `safety::rebase_symlink_target`, and driven against the
 image the entry names. `var/cache/xbps` is **gone** from the extracted tree,
@@ -310,7 +310,7 @@ Storing the rebased form would bake this host's idea of the rootfs into the
 image, which is the same mistake as dereferencing and is what this entry's
 Decision refuses.
 
-⚠ The `Prove` is rewritten: the original ran `readlink` under `podbox run`,
+⚠ The `Prove` is rewritten: the original ran `readlink` under `podvm run`,
 which is M3, and asserted "prints nothing and exits non-zero",  a shape that
 also passes when `run` itself is missing. It now asks the filesystem.
 
@@ -339,13 +339,13 @@ Premise:     Read at file and line, not measured here.
 Approach:    After each layer, walk what that layer wrote and add owner read,
              write and, for directories, execute. Record every mode changed in
              the sidecar beside the ownership, so the intended mode survives a
-             re-export. Do not `chgrp`: podbox extracts as the only mapped id
+             re-export. Do not `chgrp`: podvm extracts as the only mapped id
              already.
 Decision:    Widen only the owner bits, and only on entries this extraction
              wrote. Widening group or other bits changes what the image means
              for a payload that reads modes, and widening everything makes the
              sidecar the only record of the real image.
-Prove:       `cargo test -p podbox-extract a_read_only_directory_in_one_layer_can_be_written_into_by_the_next` passes, and `podbox extract ghcr.io/void-linux/void-musl:latest` succeeds on a two-layer image
+Prove:       `cargo test -p podvm-extract a_read_only_directory_in_one_layer_can_be_written_into_by_the_next` passes, and `podvm extract ghcr.io/void-linux/void-musl:latest` succeeds on a two-layer image
 
 **Done, 2026-09-08.** The pass runs after each layer, over what **that layer
 wrote**, and adds owner read, write and execute to directories.
@@ -360,10 +360,10 @@ pair is exactly that, and it fails without the pass.
 `re_permissioning_widens_the_owner_and_leaves_group_and_other_alone` checks that
 a 0555 directory ends 0755 and that the group and other bits are untouched.
 Widening those would change what the image means for a payload that reads modes.
-⛔ **No `chgrp`**, which is udocker's third action: podbox extracts as the only
+⛔ **No `chgrp`**, which is udocker's third action: podvm extracts as the only
 mapped id already.
 
-⚠ The `Prove` no longer runs `podbox run --rm` (M3) against
+⚠ The `Prove` no longer runs `podvm run --rm` (M3) against
 `debian:bookworm-slim`. The real two-layer image it now names is one
 [T-1103](milestones.md) already pulls, so the acceptance costs no extra
 registry traffic,  and Docker Hub's anonymous quota is what
@@ -396,9 +396,9 @@ Approach:    For each layer in manifest order: apply that layer's whiteouts to
              Preserve symlinks as symlinks; never dereference.
 Decision:    Whiteouts before the layer's own entries, per udocker. The opposite
              order deletes what the same layer just wrote.
-Prove:       `./experiments/70-whiteout-contract.sh` exits 0 and `cargo test -p podbox-extract a_layer_may_delete_a_path_and_recreate_it_in_the_same_layer` passes
+Prove:       `./experiments/70-whiteout-contract.sh` exits 0 and `cargo test -p podvm-extract a_layer_may_delete_a_path_and_recreate_it_in_the_same_layer` passes
 
-**Done, 2026-09-08.** `crates/podbox-extract/src/remove.rs` collects a layer's
+**Done, 2026-09-08.** `crates/podvm-extract/src/remove.rs` collects a layer's
 whiteouts and applies them to the accumulated tree **before** that layer's own
 entries, per
 `references/indigo-dc__udocker/tree/udocker/container/structure.py:279`.
@@ -419,7 +419,7 @@ outside it is **refused**, driven both ways. A hard link out of the rootfs is a
 file the payload can write through, which the containment check would otherwise
 never see because the escape is in the link target rather than in the path.
 
-⚠ The `Prove` no longer runs `xbps-install` under `podbox run` (M3). The
+⚠ The `Prove` no longer runs `xbps-install` under `podvm run` (M3). The
 `Symbolic link loop` it watched for is the T-0305 case, and the extracted tree
 is asserted directly there.
 
@@ -428,9 +428,9 @@ is asserted directly there.
 ### T-1315 Extract re-verifies the blob digest against the manifest
 
 Source:      issue 10, client beta testing 2026-09-22 (tampered store blob
-             extracts cleanly); `crates/podbox-extract/src/layer.rs:50`,
-             `crates/podbox-extract/src/layer.rs:105`,
-             `crates/podbox-image/src/store.rs:430`
+             extracts cleanly); `crates/podvm-extract/src/layer.rs:50`,
+             `crates/podvm-extract/src/layer.rs:105`,
+             `crates/podvm-image/src/store.rs:430`
 Category:    extract
 Priority:    P1
 Effort:      S
@@ -460,27 +460,27 @@ Approach:    Hash each blob while streaming it into the decompressor in
 Decision:    Stream-and-compare, not `read_blob` (which would read every
              byte twice) and not a document amendment (the invariant is
              worth keeping).
-Prove:       `cargo test -p podbox-extract` with a new test that commits
+Prove:       `cargo test -p podvm-extract` with a new test that commits
              a tar through the store scaffolding, flips one content byte
              in the stored blob, and asserts `extract` refuses with a
              digest mismatch naming the blob; plus the reporter binary
-             repro (`podbox extract` after a one-byte flip exits non-zero
+             repro (`podvm extract` after a one-byte flip exits non-zero
              with the tampered bytes never written). Close issue 10 with
              a comment showing the fix commit, the test output, and the
              per-extract hash as the guard that stops recurrence.
 
 **Done 2026-09-23.** Stream-and-compare, as decided, with one widening
 the Decision left open: two passes, not one. `layer::open_hashed`
-(`crates/podbox-extract/src/layer.rs`) returns the decompressor over a
+(`crates/podvm-extract/src/layer.rs`) returns the decompressor over a
 reader that hashes every raw byte delivered (`Rc<RefCell<Sha256>>` inside
 the file reader, so no decoder `into_inner` is needed), and
-`extract_layers` (`crates/podbox-extract/src/lib.rs`) verifies both
+`extract_layers` (`crates/podvm-extract/src/lib.rs`) verifies both
 passes through the store's own `DigestMismatch` shape. The first pass is
 the gate: whiteouts are collected in memory and the digest is compared
 before `remove::apply` or `apply_layer` touches the tree, so a blob
 edited after pull is refused with the tampered bytes never written. The
 second pass re-checks, so a change between the two reads is still caught.
-`layer::open` is deleted; no new crate (`sha2` joins `podbox-extract`,
+`layer::open` is deleted; no new crate (`sha2` joins `podvm-extract`,
 already ruled under T-0908).
 
 The new test was watched fail first
@@ -491,8 +491,8 @@ an uncompressed tar through the store scaffolding (the sharpest case in
 the Problem: no gzip CRC backstop), flips `hello` to `heLlo` in the
 stored blob, and asserts `extract` errors with a mismatch naming the
 manifest digest and the `greeting` file absent from the rootfs. Full
-suites green beside it: podbox-extract 47, podbox-cli 107,
-podbox-image 117, podbox-probe 96, 0 failed; clippy `-D warnings` clean.
+suites green beside it: podvm-extract 47, podvm 107,
+podvm-image 117, podvm-probe 96, 0 failed; clippy `-D warnings` clean.
 
 Driven on the shipped binary in the same lane, against
 `public.ecr.aws/docker/library/alpine:3.20` (one layer flipped at its
@@ -500,7 +500,7 @@ midpoint, then `extract --force`):
 
 ```
 tampered-extract-rc=125
-podbox extract: stored blob /tmp/px-store/blobs/sha256/25f1d6b1...:
+podvm extract: stored blob /tmp/px-store/blobs/sha256/25f1d6b1...:
 digest mismatch, expected sha256:25f1d6b1... and computed
 sha256:40459f6e.... The bytes were discarded
 ```

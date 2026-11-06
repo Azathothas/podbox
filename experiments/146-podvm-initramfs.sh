@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Question: does a podbox-extracted rootfs boot under TCG when wrapped as an
+# Question: does a podvm-extracted rootfs boot under TCG when wrapped as an
 # initramfs with an appended console node, and print its ready marker?
 #
-# TODO/podvm.md T-1303 (the image wrapping; the emulator driver is T-1302's
+# TODO/machine.md T-1303 (the image wrapping; the emulator driver is T-1302's
 # flag and T-1304's protocol, and neither is driven here).
 #
 # Clauses over pinned inputs:
@@ -24,7 +24,7 @@
 #
 # Runs on Linux, native or in a job container: qemu, cpio and python3 come
 # from the guest package manager and are recorded in the conditions. On a
-# Windows host run it inside the base with PODBOX_BIN set to a guest build
+# Windows host run it inside the base with PODVM_BIN set to a guest build
 # artifact.
 #
 # ⚠ `set -u` and no `pipefail`: this script also runs under `sh` in a
@@ -37,13 +37,13 @@ set -u
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/podvm-initramfs.txt"
 WORK="$REPO/experiments/.sweep146-work"; rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
 STORE="$WORK/store"
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 # shellcheck source=lib/podvm-guest.sh
 . "$HERE/lib/podvm-guest.sh"
@@ -53,8 +53,8 @@ export PODBOX_STORE="$STORE"
 ALPINE_REF='public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764'
 KURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt"
 KERNEL_SHA256="6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51"
-BOOT_TIMEOUT="${PODBOX_146_TIMEOUT:-180}"
-CURL_TIMEOUT="${PODBOX_146_CURL_TIMEOUT:-60}"
+BOOT_TIMEOUT="${PODVM_146_TIMEOUT:-180}"
+CURL_TIMEOUT="${PODVM_146_CURL_TIMEOUT:-60}"
 
 fail=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
@@ -74,7 +74,7 @@ done
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'qemu              %s\n' "$(qemu-system-x86_64 --version | head -1)"
 	printf 'image             %s\n' "$ALPINE_REF"
 	printf 'kernel            %s (sha256 %s)\n' "$KURL" "$KERNEL_SHA256"

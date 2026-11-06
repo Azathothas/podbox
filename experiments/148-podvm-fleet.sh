@@ -2,8 +2,8 @@
 # Question: is a guest whose configured memory crosses the per-file ceiling
 # refused BEFORE it starts, with the ceiling in the message?
 #
-# TODO/podvm.md T-1305 (the fleet decision; the ceiling leg is T-1301's
-# `prlimit(RLIMIT_FSIZE)` row, and the flag is `--podbox-mem`).
+# TODO/machine.md T-1305 (the fleet decision; the ceiling leg is T-1301's
+# `prlimit(RLIMIT_FSIZE)` row, and the flag is `--podvm-mem`).
 #
 # The ceiling is RLIMIT_FSIZE, read live: it bounds a single file, and a
 # guest memory image is a single file, so a guest above it dies from
@@ -26,7 +26,7 @@
 #
 # Runs on Linux, native or in a job container: the binary executes
 # directly, and nothing here pulls an image. On a Windows host run it
-# inside the base with PODBOX_BIN set to a guest build artifact.
+# inside the base with PODVM_BIN set to a guest build artifact.
 #
 # ⚠ `set -u` and no `pipefail`: this script also runs under `sh` in a
 # Linux job container, where `sh` is dash. No `read -t`, no coproc, no
@@ -38,13 +38,13 @@ set -u
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/podvm-fleet.txt"
 WORK="$REPO/experiments/.sweep148-work"; rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
 STORE="$WORK/store"
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 # ⭐ The lowered ceiling, in bytes. 1 GiB: far above anything the refusal
 # path itself writes, far below the 4 GiB over-ceiling guest.
@@ -71,13 +71,13 @@ done
 
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$BIN" || { echo "SKIP: cannot read podbox's exit-code table" >&2; exit 2; }
+podvm_exit_codes "$BIN" || { echo "SKIP: cannot read podvm's exit-code table" >&2; exit 2; }
 
 {
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'jq                %s\n' "$(jq --version)"
 	printf 'python3           %s\n' "$(python3 --version 2>&1)"
 	printf 'natural ceiling   %s\n' "$(python3 -c 'import resource; print(resource.getrlimit(resource.RLIMIT_FSIZE))')"
@@ -93,7 +93,7 @@ podbox_exit_codes "$BIN" || { echo "SKIP: cannot read podbox's exit-code table" 
 [ "$?" -eq 0 ] || { echo "SKIP: the parity table did not print" >&2; exit 2; }
 
 say "== 0. the mem rows are data"
-for row in "run --podbox-mem" "exec --podbox-mem"; do
+for row in "run --podvm-mem" "exec --podvm-mem"; do
 	set -- $row
 	if jq -e --arg v "$1" --arg f "$2" \
 		'.[] | select(.verb == $v and ((.flag // "-") | startswith($f)))' \
@@ -125,23 +125,23 @@ over_msg() { printf '%s' "$R_OUT" | grep -q "guest memory $OVER_BYTES bytes"; }
 refused_tier() { printf '%s' "$R_OUT" | grep -q "machine tier refused"; }
 holds_msg() { printf '%s' "$R_OUT" | grep -q "the machine tier holds"; }
 flag_error() { printf '%s' "$R_OUT" | grep -q "takes a byte count"; }
-needs_machine() { printf '%s' "$R_OUT" | grep -q "needs --podbox-tier=machine"; }
+needs_machine() { printf '%s' "$R_OUT" | grep -q "needs --podvm-tier=machine"; }
 
 say ""
 say "== 1. over the ceiling is refused before anything starts"
-R_OUT="$(limited run --podbox-tier=machine --podbox-mem="$OVER_MEM" never-pulled-148:tag /bin/true 2>&1)"; R_RC=$?
-if [ "$R_RC" -eq "$PODBOX_EXIT_RUNTIME_ERROR" ] && refused_tier && ceiling_msg && over_msg; then
-	pass "run --podbox-tier=machine --podbox-mem=$OVER_MEM refused naming the ceiling ($CEIL_BYTES) and the guest ($OVER_BYTES)"
+R_OUT="$(limited run --podvm-tier=machine --podvm-mem="$OVER_MEM" never-pulled-148:tag /bin/true 2>&1)"; R_RC=$?
+if [ "$R_RC" -eq "$PODVM_EXIT_RUNTIME_ERROR" ] && refused_tier && ceiling_msg && over_msg; then
+	pass "run --podvm-tier=machine --podvm-mem=$OVER_MEM refused naming the ceiling ($CEIL_BYTES) and the guest ($OVER_BYTES)"
 else
 	miss "over-ceiling run (rc=$R_RC): $R_OUT"
 fi
 
 say ""
 say "== 2. under the ceiling reaches the legs verdict with no ceiling language"
-R_OUT="$(limited run --podbox-tier=machine --podbox-mem="$UNDER_MEM" never-pulled-148:tag /bin/true 2>&1)"; R_RC=$?
-if [ "$R_RC" -eq "$PODBOX_EXIT_RUNTIME_ERROR" ] && ! ceiling_msg; then
+R_OUT="$(limited run --podvm-tier=machine --podvm-mem="$UNDER_MEM" never-pulled-148:tag /bin/true 2>&1)"; R_RC=$?
+if [ "$R_RC" -eq "$PODVM_EXIT_RUNTIME_ERROR" ] && ! ceiling_msg; then
 	if refused_tier || holds_msg; then
-		pass "run --podbox-tier=machine --podbox-mem=$UNDER_MEM passed the check to the legs verdict"
+		pass "run --podvm-tier=machine --podvm-mem=$UNDER_MEM passed the check to the legs verdict"
 	else
 		miss "under-ceiling run reached neither verdict (rc=$R_RC): $R_OUT"
 	fi
@@ -151,45 +151,45 @@ fi
 
 say ""
 say "== 3. what is not a size is a flag error"
-run run --podbox-tier=machine --podbox-mem=bogus never-pulled-148:tag /bin/true
-if [ "$R_RC" -eq "$PODBOX_EXIT_FLAG_ERROR" ] && flag_error; then
-	pass "--podbox-mem=bogus is a flag error"
+run run --podvm-tier=machine --podvm-mem=bogus never-pulled-148:tag /bin/true
+if [ "$R_RC" -eq "$PODVM_EXIT_FLAG_ERROR" ] && flag_error; then
+	pass "--podvm-mem=bogus is a flag error"
 else
-	miss "--podbox-mem=bogus (rc=$R_RC): $R_OUT"
+	miss "--podvm-mem=bogus (rc=$R_RC): $R_OUT"
 fi
-run run --podbox-tier=machine --podbox-mem 0 never-pulled-148:tag /bin/true
-if [ "$R_RC" -eq "$PODBOX_EXIT_FLAG_ERROR" ] && flag_error; then
-	pass "--podbox-mem 0 is a flag error"
+run run --podvm-tier=machine --podvm-mem 0 never-pulled-148:tag /bin/true
+if [ "$R_RC" -eq "$PODVM_EXIT_FLAG_ERROR" ] && flag_error; then
+	pass "--podvm-mem 0 is a flag error"
 else
-	miss "--podbox-mem 0 (rc=$R_RC): $R_OUT"
+	miss "--podvm-mem 0 (rc=$R_RC): $R_OUT"
 fi
-run run --podbox-tier=machine --podbox-mem=18446744073709551615T never-pulled-148:tag /bin/true
-if [ "$R_RC" -eq "$PODBOX_EXIT_FLAG_ERROR" ] && flag_error; then
-	pass "--podbox-mem past 64 bits is a flag error"
+run run --podvm-tier=machine --podvm-mem=18446744073709551615T never-pulled-148:tag /bin/true
+if [ "$R_RC" -eq "$PODVM_EXIT_FLAG_ERROR" ] && flag_error; then
+	pass "--podvm-mem past 64 bits is a flag error"
 else
-	miss "--podbox-mem overflow (rc=$R_RC): $R_OUT"
+	miss "--podvm-mem overflow (rc=$R_RC): $R_OUT"
 fi
 
 say ""
 say "== 4. the flag outside the machine tier is refused as needs-machine"
-run run --podbox-mem=1G never-pulled-148:tag /bin/true
-if [ "$R_RC" -eq "$PODBOX_EXIT_FLAG_ERROR" ] && needs_machine; then
-	pass "run --podbox-mem without the machine tier is a flag error"
+run run --podvm-mem=1G never-pulled-148:tag /bin/true
+if [ "$R_RC" -eq "$PODVM_EXIT_FLAG_ERROR" ] && needs_machine; then
+	pass "run --podvm-mem without the machine tier is a flag error"
 else
-	miss "run --podbox-mem without the tier (rc=$R_RC): $R_OUT"
+	miss "run --podvm-mem without the tier (rc=$R_RC): $R_OUT"
 fi
-run exec --podbox-mem=1G never-pulled-148:tag /bin/true
-if [ "$R_RC" -eq "$PODBOX_EXIT_FLAG_ERROR" ] && needs_machine; then
-	pass "exec --podbox-mem without the machine tier is a flag error"
+run exec --podvm-mem=1G never-pulled-148:tag /bin/true
+if [ "$R_RC" -eq "$PODVM_EXIT_FLAG_ERROR" ] && needs_machine; then
+	pass "exec --podvm-mem without the machine tier is a flag error"
 else
-	miss "exec --podbox-mem without the tier (rc=$R_RC): $R_OUT"
+	miss "exec --podvm-mem without the tier (rc=$R_RC): $R_OUT"
 fi
 
 say ""
 say "== 5. exec mirrors run on the over-ceiling refusal"
-R_OUT="$(limited exec --podbox-tier=machine --podbox-mem="$OVER_MEM" never-pulled-148:tag /bin/true 2>&1)"; R_RC=$?
-if [ "$R_RC" -eq "$PODBOX_EXIT_RUNTIME_ERROR" ] && refused_tier && ceiling_msg && over_msg; then
-	pass "exec --podbox-tier=machine --podbox-mem=$OVER_MEM refused naming the ceiling and the guest"
+R_OUT="$(limited exec --podvm-tier=machine --podvm-mem="$OVER_MEM" never-pulled-148:tag /bin/true 2>&1)"; R_RC=$?
+if [ "$R_RC" -eq "$PODVM_EXIT_RUNTIME_ERROR" ] && refused_tier && ceiling_msg && over_msg; then
+	pass "exec --podvm-tier=machine --podvm-mem=$OVER_MEM refused naming the ceiling and the guest"
 else
 	miss "over-ceiling exec (rc=$R_RC): $R_OUT"
 fi

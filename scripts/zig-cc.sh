@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `zig cc` as a single-word C cross-compiler, for the target podbox ships.
+# `zig cc` as a single-word C cross-compiler, for the target podvm ships.
 #
 # ⛔ WHY A WRAPPER AND NOT A VARIABLE. `cc-rs` and `rustc`'s linker option both
 # take a PROGRAM, not a command line, so `CC="zig cc"` sets the program to
@@ -46,7 +46,7 @@
 # against rustc's `rcrt1.o`.
 #
 # ⚠ What this gives up is UBSan instrumentation of a VENDORED C dependency in
-# debug builds. podbox consumes no UBSan diagnostic from it, the shipped
+# debug builds. podvm consumes no UBSan diagnostic from it, the shipped
 # artefact is the release profile and never had the instrumentation, and the
 # flag makes the two profiles agree rather than removing a check this project
 # was reading. `ZIG_SANITIZE=1` restores it, for a session that wants to link
@@ -75,7 +75,7 @@ command -v zig >/dev/null 2>&1 || {
 # Anything already in zig's three-field shape passes through unchanged.
 #
 # ⚠ THE ARCH FIELD IS NOT ALWAYS THE SAME WORD. Measured on 2026-09-09 while
-# making podbox build for every architecture Linux ships: rust says
+# making podvm build for every architecture Linux ships: rust says
 # `riscv64gc` and `i686` where zig says `riscv64` and `x86`, and an untranslated
 # field fails as `UnknownArchitecture`, which reads like a broken toolchain.
 # Only the names that actually differ are listed; anything else passes through.

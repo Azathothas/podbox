@@ -43,7 +43,7 @@ exist on this host. What runs here is the debug binary, and it is what
 the gate and every Prove clause must use:
 
 ```sh
-./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe
+./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe
 ```
 
 `scripts/release-licenses.py` and `scripts/build-state.py` search the
@@ -108,10 +108,10 @@ Then T-1604, then the rest of the filed queue.
 ## Notes that will save time
 
 - `/dev/kvm` needed no reapply this session. `qemu-img` did need
-  installing into `wsl-toolkit-podbox`, and it ships in a separate Arch
+  installing into `wsl-toolkit-podvm`, and it ships in a separate Arch
   package that T-1610's Prove clause does not name.
 - `scripts/build-interpose.sh` resolves
-  `target/release/podbox-interpose-build` and finds nothing, because
+  `target/release/podvm-interpose-build` and finds nothing, because
   `.cargo/config.toml` sets the musl build target. It exits 2 in a lane
   and would in CI; the nightly works around it by copying the binary by
   hand. It predates this batch, it has no entry of its own yet, and it
@@ -127,12 +127,12 @@ Then T-1604, then the rest of the filed queue.
 ## Next prompt
 
 ```
-Continue podbox from TODO/RESUME.md and work unattended to completion.
+Continue podvm from TODO/RESUME.md and work unattended to completion.
 Do not stop to ask about anything already settled: TODO/RULES.md section
 11 carries the standing decisions and section 2 the read-write grant.
 
 Gate first, with the binary that exists on this host:
-./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe
+./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe
 (target/release/ does not; .cargo/config.toml sets the musl target.)
 
 Use subagents and swarms; TODO/RULES.md section 12 owns the rules. The
@@ -151,8 +151,8 @@ orphans an emulator nothing can select, and the proof's seam step
 swallows a non-zero exit.
 
 A subagent reports and does not close. Closing an entry, writing its
-Done paragraph, and running podbox-count belong to one writer at the
-end. Never git add -A while podbox-plant or any --script tool is
+Done paragraph, and running podvm-count belong to one writer at the
+end. Never git add -A while podvm-plant or any --script tool is
 running; stage explicit paths. No subagent starts a KVM guest.
 
 Finish the batch, then keep taking the work order until the record is

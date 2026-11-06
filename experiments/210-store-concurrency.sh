@@ -3,13 +3,13 @@
 # processes, or only against the orderings somebody imagined?
 #
 # TODO/image.md T-0210. The invariants are I1 to I7 in
-# `crates/podbox-image/src/store.rs`'s module header, and each clause here drives
+# `crates/podvm-image/src/store.rs`'s module header, and each clause here drives
 # one of them. ⛔ THE CONTRACT LIVES IN THE CODE AND THIS SCRIPT DRIVES IT. A
 # contract in an entry that nobody reads while changing the store is not one.
 #
 # ⭐ REAL PROCESSES, NOT A MOCK. T-0210's Decision: a race that only a mock can
 # produce is a race the mock's author imagined. Every worker below is a separate
-# `podbox` process against one store directory.
+# `podvm` process against one store directory.
 #
 # ⛔ THE REGISTRY IS NOT UNDER TEST HERE AND MUST NOT BE THE BOTTLENECK. Three
 # small references from `public.ecr.aws`, which is the acceptance's registry
@@ -22,7 +22,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/store-concurrency.txt"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT INT TERM
@@ -31,11 +31,11 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 # blob and never exercise the interesting half: two writers adding different
 # records to one index.
 REFS=(
-	"${PODBOX_TEST_IMAGE:-public.ecr.aws/docker/library/alpine:latest}"
-	"${PODBOX_TEST_IMAGE_2:-public.ecr.aws/docker/library/alpine:3.20}"
-	"${PODBOX_TEST_IMAGE_3:-public.ecr.aws/docker/library/alpine:3.19}"
+	"${PODVM_TEST_IMAGE:-public.ecr.aws/docker/library/alpine:latest}"
+	"${PODVM_TEST_IMAGE_2:-public.ecr.aws/docker/library/alpine:3.20}"
+	"${PODVM_TEST_IMAGE_3:-public.ecr.aws/docker/library/alpine:3.19}"
 )
-WORKERS="${PODBOX_CONCURRENCY_WORKERS:-8}"
+WORKERS="${PODVM_CONCURRENCY_WORKERS:-8}"
 
 [ -x "$BIN" ] || {
 	echo "SKIP: $BIN is not an executable. Build it:" >&2
@@ -52,7 +52,7 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'workers           %s\n' "$WORKERS"
 	printf 'references        %s\n' "${#REFS[@]}"
 	echo
@@ -77,7 +77,7 @@ verify() {
 		[ -e "$f" ] || continue
 		partials=$((partials + 1))
 	done
-	# ⛔ Read through podbox rather than by parsing the index by hand: a
+	# ⛔ Read through podvm rather than by parsing the index by hand: a
 	# verifier with its own reader checks its own reader.
 	while IFS= read -r line; do
 		[ -n "$line" ] || continue
@@ -87,7 +87,7 @@ verify() {
 			[ -e "$store/blobs/sha256/${name#sha256:}" ] || missing=$((missing + 1))
 		done
 	done <<-EOF
-		$(PODBOX_STORE="$store" "$BIN" images --format '{{.Digest}}' 2>/dev/null)
+		$(PODVM_STORE="$store" "$BIN" images --format '{{.Digest}}' 2>/dev/null)
 	EOF
 	printf 'blobs=%d bad=%d records=%d missing=%d partials=%d\n' \
 		"$blobs" "$bad" "$records" "$missing" "$partials"
@@ -103,7 +103,7 @@ mkdir -p "$S1"
 i=0
 while [ "$i" -lt "$WORKERS" ]; do
 	ref="${REFS[$((i % ${#REFS[@]}))]}"
-	(PODBOX_STORE="$S1" timeout 900 "$BIN" pull "$ref" >"$WORK/w$i.out" 2>&1; echo "$?" >"$WORK/w$i.rc") &
+	(PODVM_STORE="$S1" timeout 900 "$BIN" pull "$ref" >"$WORK/w$i.out" 2>&1; echo "$?" >"$WORK/w$i.rc") &
 	i=$((i + 1))
 done
 wait
@@ -145,7 +145,7 @@ else
 	esac
 	# ⛔ One record per reference and no duplicates: the index survived
 	# concurrent read-modify-writes.
-	n="$(PODBOX_STORE="$S1" "$BIN" images --format '{{.Digest}}' 2>/dev/null | sort -u | wc -l)"
+	n="$(PODVM_STORE="$S1" "$BIN" images --format '{{.Digest}}' 2>/dev/null | sort -u | wc -l)"
 	say "  distinct images  $n (want ${#REFS[@]})"
 	[ "$n" -eq "${#REFS[@]}" ] || {
 		say "  FAIL: concurrent writers lost or duplicated a record"
@@ -165,7 +165,7 @@ if [ ! -d "$S1/blobs" ] || [ "$skipped" -eq 1 ]; then
 else
 	ref="${REFS[0]}"
 	# A holder that lives for a few seconds, taken through the real verb.
-	PODBOX_STORE="$S1" timeout 300 "$BIN" run --pull never "$ref" /bin/sleep 6 \
+	PODVM_STORE="$S1" timeout 300 "$BIN" run --pull never "$ref" /bin/sleep 6 \
 		>"$WORK/holder.out" 2>&1 &
 	holder=$!
 	# ⚠ Give the holder time to reach its hold. It extracts first, so the
@@ -178,7 +178,7 @@ else
 	done
 	held="$(ls -A "$S1/locks" 2>/dev/null | wc -l)"
 	say "  image locks held while the payload runs: $held"
-	out="$(PODBOX_STORE="$S1" timeout 300 "$BIN" image prune -af 2>&1)"
+	out="$(PODVM_STORE="$S1" timeout 300 "$BIN" image prune -af 2>&1)"
 	rc=$?
 	say "  prune -af        rc=$rc"
 	say "    $(printf '%s' "$out" | grep -i 'skipped' | head -1 | cut -c1-88)"
@@ -215,13 +215,13 @@ S3="$WORK/s3"
 mkdir -p "$S3"
 # ⛔ NO `timeout` ON THE VICTIM, and that is the opposite of this repository's
 # usual rule for a reason. Measured on 2026-09-09, and it cost this clause a
-# false FAIL: `timeout 900 podbox pull &` makes `$!` the pid of TIMEOUT, so
-# `kill -9 "$!"` kills the wrapper and leaves podbox running, still holding its
+# false FAIL: `timeout 900 podvm pull &` makes `$!` the pid of TIMEOUT, so
+# `kill -9 "$!"` kills the wrapper and leaves podvm running, still holding its
 # staging file. The sweep then correctly refuses to take a file a live writer
 # holds, and the clause reads that correct behaviour as a defect.
 # ⚠ The upper bound is still here: the wait loop below is bounded to 10 s and
 # the kill happens whether or not it saw anything.
-PODBOX_STORE="$S3" "$BIN" pull "${REFS[0]}" >/dev/null 2>&1 &
+PODVM_STORE="$S3" "$BIN" pull "${REFS[0]}" >/dev/null 2>&1 &
 victim=$!
 # ⚠ Killed mid-pull rather than at a chosen point: the contract is about what a
 # SIGKILL can leave, and choosing the moment would test the moment.
@@ -242,7 +242,7 @@ if [ "$left" -eq 0 ]; then
 	skipped=1
 else
 	# ⛔ Opening the store is what sweeps, and every command opens it.
-	PODBOX_STORE="$S3" "$BIN" images >/dev/null 2>&1
+	PODVM_STORE="$S3" "$BIN" images >/dev/null 2>&1
 	swept="$(ls -A "$S3/staging" 2>/dev/null | wc -l)"
 	say "  after any later command:      $swept"
 	[ "$swept" -eq 0 ] || {
@@ -261,7 +261,7 @@ say "== 4. I5 again, from the other side: the sweep leaves a live writer alone"
 # another process is mid-write, which turns a fixed leak into a broken pull.
 S4="$WORK/s4"
 mkdir -p "$S4"
-PODBOX_STORE="$S4" timeout 900 "$BIN" pull "${REFS[0]}" >"$WORK/s4.out" 2>&1 &
+PODVM_STORE="$S4" timeout 900 "$BIN" pull "${REFS[0]}" >"$WORK/s4.out" 2>&1 &
 writer=$!
 waited=0
 while [ "$waited" -lt 100 ]; do
@@ -270,8 +270,8 @@ while [ "$waited" -lt 100 ]; do
 	waited=$((waited + 1))
 done
 during="$(ls -A "$S4/staging" 2>/dev/null | wc -l)"
-# A second podbox opens the same store, which is what runs the sweep.
-PODBOX_STORE="$S4" "$BIN" images >/dev/null 2>&1
+# A second podvm opens the same store, which is what runs the sweep.
+PODVM_STORE="$S4" "$BIN" images >/dev/null 2>&1
 wait "$writer"
 wrc=$?
 say "  staging files mid-pull:       $during"

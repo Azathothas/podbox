@@ -21,7 +21,7 @@
 # not run (no binary, no pull, no binfmt, no emulator).
 set -u
 
-BIN="${PB_BIN:-/workspaces/pb365/podbox}"
+BIN="${PB_BIN:-/workspaces/pb365/podvm}"
 WORK="${PB_WORK:-/tmp/pb367-work}"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 
@@ -37,7 +37,7 @@ echo "== conditions"
 echo "date              $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "host kernel       $(uname -sr)"
 echo "id                $(id -u):$(id -g)"
-echo "podbox            $($BIN version 2>/dev/null || echo MISSING)"
+echo "podvm            $($BIN version 2>/dev/null || echo MISSING)"
 echo "alpineaa64        $ALPINE_AA64 (pulled by tag with --platform linux/arm64)"
 echo "binfmt            $(cat /proc/sys/fs/binfmt_misc/qemu-aarch64 2>/dev/null | tr '\n' ';' || echo absent)"
 } >"$WORK/report"
@@ -48,7 +48,7 @@ command -v timeout >/dev/null 2>&1 || { echo "timeout is missing: COULD NOT RUN"
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 echo "" >>"$WORK/report"
 echo "== qemu-1. binfmt carries aarch64 with an interpreter" >>"$WORK/report"

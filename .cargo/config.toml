@@ -31,8 +31,8 @@ rustflags = ["-C", "target-feature=+crt-static"]
 # scripts/zig-cc.sh says why zig rather than musl-tools; scripts/common/bootstrap-env.sh
 # installs it, pinned and checksummed.
 # ⭐ EVERY TARGET, not just the host's. TODO/deps.md T-0911 and
-# TODO/packaging.md: podbox is a multi-architecture runtime, so a C dependency
-# has to cross-compile for every architecture podbox claims, and `ring` is that
+# TODO/packaging.md: podvm is a multi-architecture runtime, so a C dependency
+# has to cross-compile for every architecture podvm claims, and `ring` is that
 # dependency. `scripts/zig-cc.sh` translates the rust triple to zig's for all of
 # them; these entries are what point cc-rs at it per target.
 #
@@ -53,7 +53,7 @@ CC_armv7_unknown_linux_musleabihf = { value = "scripts/zig-cc.sh", relative = tr
 AR_armv7_unknown_linux_musleabihf = { value = "scripts/zig-ar.sh", relative = true }
 CC_i686_unknown_linux_musl = { value = "scripts/zig-cc.sh", relative = true }
 AR_i686_unknown_linux_musl = { value = "scripts/zig-ar.sh", relative = true }
-# ⭐ TODO/deps.md T-0912. The architecture that did not build until podbox
+# ⭐ TODO/deps.md T-0912. The architecture that did not build until podvm
 # stopped taking its syscall trap from a crate that gates it behind nightly.
 CC_powerpc64le_unknown_linux_musl = { value = "scripts/zig-cc.sh", relative = true }
 AR_powerpc64le_unknown_linux_musl = { value = "scripts/zig-ar.sh", relative = true }
@@ -66,7 +66,7 @@ AR_s390x_unknown_linux_gnu = { value = "scripts/zig-ar.sh", relative = true }
 # The cross link, TODO/packaging.md T-1314. `cargo check` never links, so the
 # workspace checked for six architectures while only two linked: the host `cc`
 # refuses foreign objects (`file in wrong format`, measured on rust's own
-# self-contained crt and on podbox's objects). The recipe is
+# self-contained crt and on podvm's objects). The recipe is
 # `experiments/260-multiarch.sh` clauses 4 and 7, moved here so every
 # `cargo build --target` uses it instead of a third copy in the next script:
 # `rust-lld` as the linker over rust's self-contained objects, named bare.

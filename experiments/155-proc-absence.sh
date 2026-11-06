@@ -8,7 +8,7 @@
 # `/dev/fd` beside it). T-0413 rules no static fixture ships: nothing static
 # can carry `/proc/self/fd` semantics, so absent plus named is the answer.
 #
-# The binary is `$PODBOX_BIN`, a lane-built podbox (the legs are its
+# The binary is `$PODVM_BIN`, a lane-built podvm (the legs are its
 # code). A non-native lane stages it through the M5 debian driver, the
 # experiments/270 pattern: the probe runs inside the driver container,
 # and the conditions block says so.
@@ -20,7 +20,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/proc-absence.txt"
 WORK="$REPO/experiments/.sweep155-work"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
@@ -40,8 +40,8 @@ case "$(uname -s)" in
 # The artifact is a Linux binary: executing it here would prove nothing
 # about the binary and only that this host is not Linux. Readability is
 # the check; the driver runs it below.
-Linux) echo "podbox            $($BIN version 2>/dev/null || echo MISSING)" ;;
-*) if [ -r "$BIN" ]; then echo "podbox            lane-built artifact, runs in the driver below"; else echo "podbox            MISSING ($BIN unreadable)"; fi ;;
+Linux) echo "podvm            $($BIN version 2>/dev/null || echo MISSING)" ;;
+*) if [ -r "$BIN" ]; then echo "podvm            lane-built artifact, runs in the driver below"; else echo "podvm            MISSING ($BIN unreadable)"; fi ;;
 esac
 } >"$WORK/report"
 
@@ -54,7 +54,7 @@ ENGINE_WORK="$WORK"
 if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 # The engine drives the driver lane only, and `LANE` below is native on
 # every Linux machine: a native lane runs each clause directly and needs
-# no daemon. Requiring one here exits 2 on machines that run podbox
+# no daemon. Requiring one here exits 2 on machines that run podvm
 # natively without docker (a lane job container holds no NET_ADMIN and
 # cannot start dockerd, measured 2026-09-19 in `experiments/lib/engine.sh`).
 case "$(uname -s)" in
@@ -72,12 +72,12 @@ DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740
 case "$(uname -s)" in
 Linux) BIN_RUN="$BIN"; [ -x "$BIN_RUN" ] || { echo "binary $BIN is not executable" >>"$WORK/report"; echo "verdict           COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; } ;;
 *)
-	[ -r "$BIN" ] || { echo "binary $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >>"$WORK/report"; echo "verdict           COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
+	[ -r "$BIN" ] || { echo "binary $BIN is not readable (set PODVM_BIN to a guest build artifact)" >>"$WORK/report"; echo "verdict           COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
 	STAGE="$WORK/stage"
 	eng_pull "$DRIVER" || exit 2
 	mkdir -p "$STAGE" "$WORK/w" || exit 2
-	cp "$BIN" "$STAGE/podbox" || exit 2
-	eng_mount "$STAGE/podbox" /pb \
+	cp "$BIN" "$STAGE/podvm" || exit 2
+	eng_mount "$STAGE/podvm" /pb \
 		&& eng_mount "$WORK/w" /w rw \
 		&& eng_volmount "x155-$$" /v rw \
 		|| { echo "driver inputs could not be staged" >>"$WORK/report"; echo "verdict           COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
@@ -175,24 +175,24 @@ RUN_IMAGE='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552
 if [ "$LANE" = "native" ]; then
 	STORE155="$WORK/store155"
 	rm -rf "$STORE155"
-	if PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" pull "$RUN_IMAGE" >"$WORK/pull155.log" 2>&1; then
-		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'cat <(echo hi)' >"$WORK/run155.out" 2>"$WORK/run155.err"
+	if PODVM_STORE="$STORE155" timeout 300 "$BIN_RUN" pull "$RUN_IMAGE" >"$WORK/pull155.log" 2>&1; then
+		PODVM_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'cat <(echo hi)' >"$WORK/run155.out" 2>"$WORK/run155.err"
 		echo "$?" >"$WORK/run155.rc"
 		# T-0413 emulation arms beside the success arm: the failure where
 		# emulation cannot apply, the exe passthrough, the generated mount
 		# table and the pipe-descriptor readlink shape.
-		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'cat /proc/cpuinfo' >"$WORK/run155-cpuinfo.out" 2>"$WORK/run155-cpuinfo.err"
+		PODVM_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'cat /proc/cpuinfo' >"$WORK/run155-cpuinfo.out" 2>"$WORK/run155-cpuinfo.err"
 		echo "$?" >"$WORK/run155-cpuinfo.rc"
-		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'readlink /proc/self/exe' >"$WORK/run155-exe.out" 2>"$WORK/run155-exe.err"
+		PODVM_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'readlink /proc/self/exe' >"$WORK/run155-exe.out" 2>"$WORK/run155-exe.err"
 		echo "$?" >"$WORK/run155-exe.rc"
-		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'cat /proc/mounts' >"$WORK/run155-mounts.out" 2>"$WORK/run155-mounts.err"
+		PODVM_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'cat /proc/mounts' >"$WORK/run155-mounts.out" 2>"$WORK/run155-mounts.err"
 		echo "$?" >"$WORK/run155-mounts.rc"
-		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'echo hi | readlink /proc/self/fd/0' >"$WORK/run155-fdzero.out" 2>"$WORK/run155-fdzero.err"
+		PODVM_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'echo hi | readlink /proc/self/fd/0' >"$WORK/run155-fdzero.out" 2>"$WORK/run155-fdzero.err"
 		echo "$?" >"$WORK/run155-fdzero.rc"
-		PODBOX_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'echo hi | cat /dev/stdin' >"$WORK/run155-stdin.out" 2>"$WORK/run155-stdin.err"
+		PODVM_STORE="$STORE155" timeout 300 "$BIN_RUN" run --rm "$RUN_IMAGE" /bin/bash -c 'echo hi | cat /dev/stdin' >"$WORK/run155-stdin.out" 2>"$WORK/run155-stdin.err"
 		echo "$?" >"$WORK/run155-stdin.rc"
 	else
-		leg_not_run "podbox pull $RUN_IMAGE" "see $WORK/pull155.log"
+		leg_not_run "podvm pull $RUN_IMAGE" "see $WORK/pull155.log"
 	fi
 else
 	cat >"$WORK/row155.sh" <<'ROW155_EOF'
@@ -200,7 +200,7 @@ else
 # One chroot run in the driver: pull, then a process-substitution payload.
 # Stdout carries only stage failures; the readings land in /w/row155/.
 set -u
-export PODBOX_STORE=/tmp/ostore155
+export PODVM_STORE=/tmp/ostore155
 rm -rf /tmp/ostore155
 if [ -f /w/cacert.pem ]; then
 	export SSL_CERT_FILE=/w/cacert.pem
@@ -294,10 +294,10 @@ if [ -f "$WORK/run155-mounts.rc" ]; then
 	rc="$(cat "$WORK/run155-mounts.rc")"
 	echo "  payload exit: $rc" >>"$WORK/report"
 	[ "$rc" = "0" ] || { echo "  FAIL: reading /proc/mounts exited $rc" >>"$WORK/report"; fail=1; }
-	if grep -q '^podbox / ' "$WORK/run155-mounts.out" 2>/dev/null; then
-		echo "  fixture names the podbox root: $(grep '^podbox / ' "$WORK/run155-mounts.out" | head -1)" >>"$WORK/report"
+	if grep -q '^podvm / ' "$WORK/run155-mounts.out" 2>/dev/null; then
+		echo "  fixture names the podvm root: $(grep '^podvm / ' "$WORK/run155-mounts.out" | head -1)" >>"$WORK/report"
 	else
-		echo "  FAIL: no podbox root line in the served table" >>"$WORK/report"
+		echo "  FAIL: no podvm root line in the served table" >>"$WORK/report"
 		fail=1
 	fi
 else
@@ -367,11 +367,11 @@ if [ "$LANE" = "native" ] && command -v setpriv >/dev/null 2>&1; then
 	# pull and create leave a root-owned lock file behind, and a copy
 	# that cannot open the lock dies 125 naming EACCES before any
 	# listing (measured 2026-09-26).
-	if env HOME="$NOBODY_HOME" PODBOX_STORE="$NOBODY_STORE" "$BIN_RUN" pull "$RUN_IMAGE" >"$WORK/pull155-nobody.log" 2>&1 \
-	&& env HOME="$NOBODY_HOME" PODBOX_STORE="$NOBODY_STORE" "$BIN_RUN" create --name nolistc "$RUN_IMAGE" >/dev/null 2>&1 \
+	if env HOME="$NOBODY_HOME" PODVM_STORE="$NOBODY_STORE" "$BIN_RUN" pull "$RUN_IMAGE" >"$WORK/pull155-nobody.log" 2>&1 \
+	&& env HOME="$NOBODY_HOME" PODVM_STORE="$NOBODY_STORE" "$BIN_RUN" create --name nolistc "$RUN_IMAGE" >/dev/null 2>&1 \
 	&& chown -R 65534:65534 "$NOBODY_STORE" "$NOBODY_HOME" 2>/dev/null; then
 		# shellcheck disable=SC2086
-		$PRIV env HOME="$NOBODY_HOME" PODBOX_STORE="$NOBODY_STORE" "$BIN_RUN" cp -r /tmp/pb155-nolist nolistc:/dst >"$WORK/cp155.out" 2>"$WORK/cp155.err"
+		$PRIV env HOME="$NOBODY_HOME" PODVM_STORE="$NOBODY_STORE" "$BIN_RUN" cp -r /tmp/pb155-nolist nolistc:/dst >"$WORK/cp155.out" 2>"$WORK/cp155.err"
 		echo "$?" >"$WORK/cp155.rc"
 		rc="$(cat "$WORK/cp155.rc")"
 		echo "  cp exit: $rc" >>"$WORK/report"

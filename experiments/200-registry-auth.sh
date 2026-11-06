@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Question: can podbox log in to a private registry and pull from it, with
+# Question: can podvm log in to a private registry and pull from it, with
 # the credential never entering this tree's logs, errors, or result files?
 #
 # TODO/image.md T-0209.
 #
 # The fixture is T-0206's: one pinned zot binary plus a seeded storage dir, a
 # generated cert and an htpasswd file, all staged host-side; the Prove runs
-# inside one `--network=none` driver container where zot and podbox meet on
+# inside one `--network=none` driver container where zot and podvm meet on
 # container loopback. Only the htpasswd-required config serves here: the
-# anonymous 401 with its Basic challenge is what podbox must answer, and the
-# open half already proved podbox pulls anonymously (T-0206).
+# anonymous 401 with its Basic challenge is what podvm must answer, and the
+# open half already proved podvm pulls anonymously (T-0206).
 #
 #   ./200-registry-auth.sh
-#   PODBOX_BIN=/path/to/podbox ./200-registry-auth.sh
+#   PODVM_BIN=/path/to/podvm ./200-registry-auth.sh
 #
 # Exit: 0 every clause held, 1 one of them did not, 2 could not run.
 set -uo pipefail
@@ -67,39 +67,39 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 pass() { say "  ok $1"; }
 refuse() { say "  FAIL: $1"; fail=1; }
 
-# ------------------------------------------------------- the podbox binary
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+# ------------------------------------------------------- the podvm binary
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 # ⛔ `-f` and not `-x` on a non-native lane: NTFS carries no POSIX mode bit,
 # so a lane-built ELF arrives without it and still executes once staged
 # into a container (the 180 shape).
 if [ "$NATIVE" -eq 1 ]; then [ -x "$BIN" ] || BIN=""; else [ -f "$BIN" ] || BIN=""; fi
 if [ -z "$BIN" ]; then
-	say "== podbox binary: not staged, building it in the lane"
+	say "== podvm binary: not staged, building it in the lane"
 	cat >"$WORK/pb-build-job.sh" <<'JOB_EOF'
 #!/bin/sh
 set -u
 cd /work || exit 2
 ./scripts/common/bootstrap-env.sh rust cc zig tools || exit 2
 cargo build --release --target x86_64-unknown-linux-musl --manifest-path "$PWD/Cargo.toml" || exit 2
-cp "/work/target/x86_64-unknown-linux-musl/release/podbox" /out/podbox || exit 2
-echo "== podbox staged"
+cp "/work/target/x86_64-unknown-linux-musl/release/podvm" /out/podvm || exit 2
+echo "== podvm staged"
 exit 0
 JOB_EOF
 	mkdir -p "$WORK/stage" || exit 2
-	if PODBOX_ARTIFACTS="$WORK/stage" sh "$REPO/scripts/windows/run-in-base.sh" "$WORK/pb-build-job.sh" >"$WORK/pb-build.log" 2>&1; then
-		BIN="$WORK/stage/podbox"
+	if PODVM_ARTIFACTS="$WORK/stage" sh "$REPO/scripts/windows/run-in-base.sh" "$WORK/pb-build-job.sh" >"$WORK/pb-build.log" 2>&1; then
+		BIN="$WORK/stage/podvm"
 	else
-		echo "SKIP: no podbox binary (set PODBOX_BIN or repair the lane build)" >&2
+		echo "SKIP: no podvm binary (set PODVM_BIN or repair the lane build)" >&2
 		tail -n 10 "$WORK/pb-build.log" >&2
 		exit 2
 	fi
 fi
 if [ "$NATIVE" -eq 1 ]; then
-	[ -x "$BIN" ] || { echo "SKIP: podbox binary is not executable: $BIN" >&2; exit 2; }
+	[ -x "$BIN" ] || { echo "SKIP: podvm binary is not executable: $BIN" >&2; exit 2; }
 else
-	[ -f "$BIN" ] && [ "$(wc -c <"$BIN" | tr -d ' ')" != "0" ] || { echo "SKIP: podbox binary is missing or empty: $BIN" >&2; exit 2; }
+	[ -f "$BIN" ] && [ "$(wc -c <"$BIN" | tr -d ' ')" != "0" ] || { echo "SKIP: podvm binary is missing or empty: $BIN" >&2; exit 2; }
 fi
-say "== podbox: staged musl binary ($(wc -c <"$BIN" | tr -d ' ') bytes; path omitted: host checkouts differ per lane, version read back inside the driver)"
+say "== podvm: staged musl binary ($(wc -c <"$BIN" | tr -d ' ') bytes; path omitted: host checkouts differ per lane, version read back inside the driver)"
 
 # ------------------------------------------------------- the zot binary
 say "== zot pin"
@@ -208,7 +208,7 @@ say "== driver image"
 mkdir -p "$WORK/ctx" || exit 2
 # ⛔ The build log rides stdout beside the id, so the id is the last line,
 # not the whole output; the exit code still belongs to the build.
-_BUILD_OUT="$(eng_build 600 podbox-x180-driver "$REPO/experiments/180-driver.Dockerfile" "$WORK/ctx" --)" || { echo "SKIP: driver image did not build" >&2; exit 2; }
+_BUILD_OUT="$(eng_build 600 podvm-x180-driver "$REPO/experiments/180-driver.Dockerfile" "$WORK/ctx" --)" || { echo "SKIP: driver image did not build" >&2; exit 2; }
 DRIVER_ID="$(printf '%s' "$_BUILD_OUT" | tail -n 1)"
 pass "driver $DRIVER_ID"
 
@@ -218,7 +218,7 @@ pass "driver $DRIVER_ID"
 say "== driver run (network none)"
 cat >"$WORK/w/driver.sh" <<DRIVER_EOF
 #!/bin/sh
-# 200 inside the none-network container: zot and podbox on loopback alone.
+# 200 inside the none-network container: zot and podvm on loopback alone.
 set -u
 SEED_REQ="$SEED_REQ"
 USER="$FIX_USER"
@@ -231,7 +231,7 @@ bad() { printf '  FAIL: %s\n' "\$1"; fails=\$((fails + 1)); }
 chmod +x /zb 2>/dev/null || true
 unset XDG_RUNTIME_DIR
 echo "-- staged binaries"
-printf '  podbox: %s\n' "\$(/pb version 2>/dev/null || echo MISSING)"
+printf '  podvm: %s\n' "\$(/pb version 2>/dev/null || echo MISSING)"
 printf '  zot: binary executes (pin verified host-side; zot has no version subcommand carrying the release tag)\n'
 /zb --help >/dev/null 2>&1 || { bad "staged zot does not execute"; }
 
@@ -299,8 +299,8 @@ CRED=""; AUTH_LINE=""
 # ⛔ One store per pull clause: a second pull of a held reference exits 0
 # without touching the network, which would prove nothing about the login
 # under test and would let a refusal clause pass without being refused.
-if SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/pbs4 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" >/w/pull-tag.log 2>&1; then
-	GOT="\$(SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/pbs4 /pb inspect --format '{{.Digest}}' "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" 2>/dev/null)"
+if SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/pbs4 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" >/w/pull-tag.log 2>&1; then
+	GOT="\$(SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/pbs4 /pb inspect --format '{{.Digest}}' "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" 2>/dev/null)"
 	if [ "\$GOT" = "sha256:\$SEED_REQ" ]; then
 		ok "auth-4: authed pull by tag exits 0 and inspects to the seeded digest"
 	else
@@ -309,13 +309,13 @@ if SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/pbs4 /pb pull "127.0.0.1:\$PORT_
 else
 	bad "auth-4: authed pull by tag failed"
 fi
-if SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/pbs5 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO@sha256:\$SEED_REQ" >/w/pull-digest.log 2>&1; then
+if SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/pbs5 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO@sha256:\$SEED_REQ" >/w/pull-digest.log 2>&1; then
 	ok "auth-5: authed pull by digest exits 0"
 else
 	bad "auth-5: authed pull by digest failed"
 fi
 if printf '%s' "\$PASS" | /pb login -u "\$USER" --password-stdin "https://127.0.0.1:\$PORT_REQ/v2/" >/w/login-scheme.log 2>&1; then
-	if SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/pbs6 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" >/w/pull-scheme.log 2>&1; then
+	if SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/pbs6 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" >/w/pull-scheme.log 2>&1; then
 		ok "auth-6: a schemeful server names the same host and still pulls"
 	else
 		bad "auth-6: pull after a schemeful login failed"
@@ -324,7 +324,7 @@ else
 	bad "auth-6: schemeful login failed"
 fi
 if printf '%s' "wrong-password" | /pb login -u "\$USER" --password-stdin "127.0.0.1:\$PORT_REQ" >/w/login-wrong.log 2>&1; then
-	if SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/pbs7 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" >/w/pull-wrong.log 2>&1; then
+	if SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/pbs7 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" >/w/pull-wrong.log 2>&1; then
 		bad "auth-7: a wrong-password pull succeeded"
 	else
 		if grep -qi '401' /w/pull-wrong.log 2>/dev/null; then
@@ -340,7 +340,7 @@ fi
 echo "-- refusals (fresh homes, no usable login)"
 export HOME=/dev/shm/h-b
 mkdir -p "\$HOME" || { bad "setup: HOME_B"; }
-if SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/pbs8 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" >/w/pull-anon.log 2>&1; then
+if SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/pbs8 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" >/w/pull-anon.log 2>&1; then
 	bad "auth-8: an anonymous pull succeeded against a required registry"
 else
 	if grep -q -F "no login is stored" /w/pull-anon.log 2>/dev/null; then
@@ -351,11 +351,11 @@ else
 fi
 export HOME=/dev/shm/h-c
 mkdir -p "\$HOME/.docker" || { bad "setup: HOME_C"; }
-printf '{"auths":{},"credHelpers":{"127.0.0.1:%s":"podbox-no-such-helper-xyz"}}' "\$PORT_REQ" >"\$HOME/.docker/config.json"
-if SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/pbs9 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" >/w/pull-helper.log 2>&1; then
+printf '{"auths":{},"credHelpers":{"127.0.0.1:%s":"podvm-no-such-helper-xyz"}}' "\$PORT_REQ" >"\$HOME/.docker/config.json"
+if SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/pbs9 /pb pull "127.0.0.1:\$PORT_REQ/\$REPO:\$TAG" >/w/pull-helper.log 2>&1; then
 	bad "auth-9: a bogus-helper pull succeeded"
 else
-	if grep -q -F "podbox-no-such-helper-xyz" /w/pull-helper.log 2>/dev/null; then
+	if grep -q -F "podvm-no-such-helper-xyz" /w/pull-helper.log 2>/dev/null; then
 		ok "auth-9: a bogus helper fails naming the helper"
 	else
 		bad "auth-9: a bogus helper fails without naming the helper"

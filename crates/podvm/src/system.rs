@@ -1,0 +1,740 @@
+//! `podvm system info`, and `podvm info` as docker spells it.
+//!
+//! [`TODO/cli.md`](../../../TODO/cli.md) T-0801.
+//!
+//! ⭐ **This verb exists so the parity table is reachable from a program.** An
+//! agent that knows docker needs to be able to ask what this podvm will and
+//! will not do BEFORE it runs anything, and the answer has to be data:
+//!
+//! ```sh
+//! podvm system info --format '{{json .Parity}}' | jq -r '.[] | select(.status=="None") | .verb'
+//! ```
+//!
+//! ⛔ **podvm has no daemon**, so docker's server half of `info` is not
+//! withheld and not faked: what stands in its place is the rung this machine
+//! permits, measured, and what that rung does not provide.
+
+use crate::{format, parity};
+use podvm_image::error::{EXIT_CLI_ERROR, EXIT_FLAG_ERROR, EXIT_RUNTIME_ERROR};
+use podvm_probe::select::Rung;
+
+pub const SYSTEM_USAGE: &str = "\
+usage: podvm system info [--format T]
+       podvm system df
+       podvm system install-names [--dir D] [--force]
+       podvm system abi <object> <libc>
+       podvm info [--format T]
+
+  df           disk usage: images with one row each, containers, stored
+               blob bytes beside extracted rootfs bytes, and what
+               `image prune` would reclaim. Accounting never fails the
+               verb: an unreadable file counts nothing (TODO/cli.md
+               T-1337)
+
+  abi          may <object> be preloaded into a payload served by <libc>?
+               Answered by READING both, never by loading one:
+               DT_NEEDED against the libc's own SONAME, then every imported
+               symbol and every imported symbol VERSION, from .dynsym and
+               never .symtab (TODO/interpose.md T-0709).
+               Exit 0 it may, 1 it may not and the reason is on stderr, 2 a
+               file could not be read.
+
+  Fields: .Parity .ParityRows .ExitCodes .Version .Rung .EnteredRung
+          .StrictOk .Store .Banner .Platform .Kernel .Verbs .VerbsNative
+          .VerbsDegraded .VerbsStub .VerbsNone
+
+  --format T   {{.Field}} placeholders, plus `{{json .Field}}`. .Parity is
+               already a JSON document, so both spellings print it.
+
+  refused: podvm has no daemon, so there is no client/server split to report. The
+    rung this machine permits stands where docker prints a server version,
+    and it is measured rather than assumed.
+
+  refused: .Rung and .EnteredRung are TWO ANSWERS and a caller needs both. .Rung is
+    what this machine would permit; .EnteredRung is the sequence `podvm run`
+    actually performs, which is a chroot everywhere except where chroot(2) is
+    denied and a no-chroot family runs (TODO/enter.md T-1317), where it reads
+    `userland`. Reporting the first
+    as if it were the second is the defect TODO/cli.md T-0804 was opened for.
+
+  note: .ExitCodes is docker's exit-code contract as data: one object per case,
+    with `case`, `code` and `what`. Measured against docker rather than read,
+    by experiments/330-exit-codes.sh (TODO/cli.md T-0802).
+
+  note: .Parity is the verb and flag parity table (TOOL.md section 6.8) as data:
+    one object per row, with `verb`, `flag`, `status` and `note`. `status` is
+    one of Native, Degraded, Stub, None and there is no fifth.
+";
+
+/// Fields whose value is already a JSON document, so `{{json .X}}` prints it
+/// rather than quoting it. ⚠ A subset of [`FIELDS`], never a second list.
+const DOCUMENTS: &[&str] = &["Parity", "ExitCodes"];
+
+pub const FIELDS: &[&str] = &[
+    "Parity",
+    "ParityRows",
+    // ⭐ T-0802. docker's exit codes as data, for the same reason the parity
+    // table is data: a caller decides from it, and a measurement asserts
+    // against it rather than against a number typed into a shell script.
+    "ExitCodes",
+    "Version",
+    "Rung",
+    // ⭐ T-0804 rule 4, as DATA. The entered rung is the one constant the
+    // banner is built from wherever chroot holds, and `userland` where it
+    // does not (TODO/enter.md T-1317): a script that had only `.Rung` to
+    // read could print "the rung podvm uses" and name a rung podvm does not
+    // enter with -- which `experiments/240-distro-sweep.sh` did.
+    "EnteredRung",
+    "StrictOk",
+    "Store",
+    "Banner",
+    "Platform",
+    "Kernel",
+    "Verbs",
+    "VerbsNative",
+    "VerbsDegraded",
+    "VerbsStub",
+    "VerbsNone",
+];
+
+/// Whether this machine's `<store>/config` suppresses the mode banner.
+///
+/// ⚠ Reads `printed` where no store can be opened rather than refusing: the
+/// banner's default is on, and a machine with no store has not suppressed it.
+fn banner_state() -> String {
+    match podvm_image::open_store() {
+        Ok(s) if crate::complete::banner_quiet(&s) => format!(
+            "suppressed by {}/{} ({} = quiet)",
+            s.root().display(),
+            crate::complete::CONFIG_FILE,
+            crate::complete::BANNER_KEY
+        ),
+        _ => "printed on every run and exec".to_string(),
+    }
+}
+
+/// `podvm system <sub>`.
+pub fn system(args: &[String]) -> i32 {
+    let rest = if args.len() > 1 { &args[1..] } else { &[] };
+    match args.first().map(String::as_str) {
+        Some("info") => info("system info", rest),
+        Some("df") => df("system df", rest),
+        Some("install-names") => crate::names::install("system install-names", rest),
+        Some("abi") => abi("system abi", rest),
+        Some("-h") | Some("--help") | None => {
+            print!("{SYSTEM_USAGE}");
+            0
+        }
+        Some(first) if first.starts_with('-') => {
+            if let Err(c) = crate::parity::admit("system", first, SYSTEM_USAGE) {
+                return c;
+            }
+            crate::parity::no_arm("system", first)
+        }
+        Some(other) => {
+            // ⛔ The table answers, not this match arm. `podvm system df` gets
+            // the reason `system` is Degraded rather than a bare "no".
+            eprintln!(
+                "podvm system: {other:?} is not implemented. `podvm system info` is, \
+                 and `podvm system info --format '{{{{json .Parity}}}}'` lists every \
+                 verb podvm has and every one it does not"
+            );
+            podvm_image::error::EXIT_RUNTIME_ERROR
+        }
+    }
+}
+
+/// `podvm system abi <object> <libc>`.
+///
+/// ⭐ **[`TODO/interpose.md`](../../../TODO/interpose.md) T-0709's answer, made
+/// drivable.** The selection is a reader, so the way to assert it is to point
+/// it at two real files and compare its prediction with what the loader then
+/// does -- which is what `experiments/80-interposer-abi.sh` does, against the
+/// same objects it builds for its own checks.
+///
+/// ⛔ Three exit codes and the third is not a failure: 0 admitted, 1 refused
+/// with the reason on stderr, 2 a file podvm could not read.
+pub fn abi(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, SYSTEM_USAGE),
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all(verb, args, SYSTEM_USAGE) {
+        return c;
+    }
+    let mut paths: Vec<&str> = Vec::new();
+    for a in args {
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{SYSTEM_USAGE}");
+                return 0;
+            }
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, SYSTEM_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
+            }
+            other => paths.push(other),
+        }
+    }
+    if paths.len() != 2 {
+        eprintln!("podvm system abi: two paths are required: <object> <libc>");
+        eprint!("{SYSTEM_USAGE}");
+        return EXIT_CLI_ERROR;
+    }
+    let read = |p: &str| podvm_enter::abi::Elf::read(p);
+    let (object, libc) = match (read(paths[0]), read(paths[1])) {
+        (Ok(o), Ok(l)) => (o, l),
+        (Err(e), _) | (_, Err(e)) => {
+            eprintln!("podvm system abi: {e}");
+            // ⛔ 2, and it means "could not be measured". A file podvm cannot
+            // read is not a file podvm has refused.
+            return 2;
+        }
+    };
+    match podvm_enter::abi::admits(&object, &libc) {
+        podvm_enter::abi::Verdict::Admitted => {
+            println!(
+                "admitted: {} may be preloaded into a payload served by {} ({}, {} \
+                 imports checked against {} definitions)",
+                object.path,
+                libc.path,
+                libc.flavour().word(),
+                object.imported.len(),
+                libc.defined.len()
+            );
+            0
+        }
+        podvm_enter::abi::Verdict::Refused(why) => {
+            eprintln!("refused: {why}");
+            1
+        }
+    }
+}
+
+/// `podvm system df`.
+///
+/// ⭐ [`TODO/cli.md`](../../../TODO/cli.md) T-1337's answer to `docker
+/// system df`, as data rather than prose. One row per image with its
+/// stored blob bytes beside its extracted rootfs bytes, the container
+/// count, and what `image prune` would reclaim.
+///
+/// ⛔ Three properties the drive pins. First, the reclaimable number is
+/// the number `image prune` would free on a quiet store: the same gate
+/// chain (`prune_candidates(false)`, the `referencing` record-gate,
+/// the `in_use` hold check) with `reclaimable_bytes` standing in for
+/// `delete`. Second, accounting never fails the verb: an unreadable
+/// file counts nothing. Third, only a gate failure (an unopenable
+/// store, a lock that will not answer) exits non-zero; the bytes
+/// themselves never do.
+pub fn df(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, SYSTEM_USAGE),
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all(verb, args, SYSTEM_USAGE) {
+        return c;
+    }
+    // ⭐ The `logout` shape (TODO/cli.md T-0209): flags collect and the
+    // verb decides after the loop, so `--help` wins over positionals
+    // and every arm need not diverge.
+    let mut help = false;
+    for a in args {
+        match a.as_str() {
+            "-h" | "--help" => help = true,
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, SYSTEM_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
+            }
+            other => {
+                eprintln!("podvm system df: unknown option {other:?}");
+                eprint!("{SYSTEM_USAGE}");
+                return EXIT_FLAG_ERROR;
+            }
+        }
+    }
+    if help {
+        print!("{SYSTEM_USAGE}");
+        return 0;
+    }
+    let store = match podvm_image::open_store() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("podvm system df: {e}");
+            return e.exit_code();
+        }
+    };
+    let images = match store.list() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("podvm system df: {e}");
+            return e.exit_code();
+        }
+    };
+    let containers = match podvm_supervise::list(&store, true) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("podvm system df: {e}");
+            return EXIT_RUNTIME_ERROR;
+        }
+    };
+    // ⭐ TODO/image.md T-1322's chain, read-only: what `image prune`
+    // would consider, minus what a container references or holds, with
+    // the sizing standing in for the unlinking.
+    let mut rest: Vec<podvm_image::Record> = Vec::new();
+    let mut kept: Vec<String> = Vec::new();
+    let candidates = match store.prune_candidates(false) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("podvm system df: {e}");
+            return e.exit_code();
+        }
+    };
+    for record in candidates {
+        match podvm_supervise::referencing(&store, &record.manifest_digest) {
+            Ok(found) if !found.is_empty() => kept.push(record.name()),
+            Ok(_) => match store.in_use(&record) {
+                Ok(true) => kept.push(record.name()),
+                Ok(false) => rest.push(record),
+                Err(e) => {
+                    eprintln!("podvm system df: {e}");
+                    return e.exit_code();
+                }
+            },
+            Err(e) => {
+                eprintln!("podvm system df: {e}");
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+    }
+    let reclaimable = match store.reclaimable_bytes(&rest) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("podvm system df: {e}");
+            return e.exit_code();
+        }
+    };
+    // Per-image rows bill what the image needs: a blob two tags share
+    // is billed under both, the way docker bills shared layers under
+    // every image. The totals below count each blob once, which is the
+    // store's own accounting and what the drive asserts.
+    let mut rows: Vec<(String, String, String, u64, u64, bool)> = Vec::new();
+    for r in &images {
+        let mut stored = 0u64;
+        for b in r.blobs() {
+            stored = stored.saturating_add(store.blob_bytes(b));
+        }
+        let (rootfs, _) = podvm_extract::paths(&store, &r.manifest_digest);
+        let rootfs_bytes = podvm_image::space::dir_bytes(&rootfs);
+        let extracted = rootfs.is_dir();
+        rows.push((
+            r.display_repository(),
+            r.tag.clone().unwrap_or_else(|| "<none>".to_string()),
+            short_id(&r.digest).to_string(),
+            stored,
+            rootfs_bytes,
+            extracted,
+        ));
+    }
+    rows.sort();
+    let repo_w = rows
+        .iter()
+        .map(|r| r.0.len())
+        .max()
+        .unwrap_or(10)
+        .max("REPOSITORY".len());
+    println!(
+        "{:<repo_w$}  {:<16}  {:<12}  {:>12}  {:>12}",
+        "REPOSITORY", "TAG", "IMAGE ID", "STORED", "ROOTFS"
+    );
+    let mut rootfs_total = 0u64;
+    let mut extracted_count = 0usize;
+    for (repo, tag, id, stored, rootfs_bytes, extracted) in &rows {
+        println!(
+            "{repo:<repo_w$}  {tag:<16}  {id:<12}  {:>12}  {:>12}",
+            podvm_image::space::mib(*stored),
+            podvm_image::space::mib(*rootfs_bytes)
+        );
+        rootfs_total = rootfs_total.saturating_add(*rootfs_bytes);
+        if *extracted {
+            extracted_count += 1;
+        }
+    }
+    // The totals deduplicate: one blob on disk is billed once no matter
+    // how many tags need it. A totals line above the rows would disagree
+    // with them by exactly the shared bytes; below, it is the store's
+    // own accounting.
+    let mut unique_stored = 0u64;
+    let mut counted: Vec<String> = Vec::new();
+    for r in &images {
+        for b in r.blobs() {
+            if counted.iter().any(|c| c == b) {
+                continue;
+            }
+            counted.push(b.to_string());
+            unique_stored = unique_stored.saturating_add(store.blob_bytes(b));
+        }
+    }
+    let running = containers
+        .iter()
+        .filter(|c| c.state == podvm_supervise::table::State::Running)
+        .count();
+    println!();
+    println!("Images: {} ({} extracted)", images.len(), extracted_count);
+    println!("Containers: {} ({} running)", containers.len(), running);
+    println!("Stored blobs: {}", podvm_image::space::mib(unique_stored));
+    println!(
+        "Extracted rootfs: {}",
+        podvm_image::space::mib(rootfs_total)
+    );
+    println!(
+        "Reclaimable: {} (what `image prune` would free)",
+        podvm_image::space::mib(reclaimable)
+    );
+    if !kept.is_empty() {
+        kept.sort();
+        println!("Kept: {} (referenced or in use)", kept.join(", "));
+    }
+    0
+}
+
+/// The first twelve hex digits, docker's IMAGE ID width. A digest that
+/// does not parse is not a gate failure: the row still prints.
+fn short_id(digest: &str) -> &str {
+    let hex = digest.split(':').next_back().unwrap_or(digest);
+    &hex[..hex.len().min(12)]
+}
+
+pub fn info(verb: &str, args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded: Vec<String> = match crate::parity::expand(verb, args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member(verb, &member, SYSTEM_USAGE),
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all(verb, args, SYSTEM_USAGE) {
+        return c;
+    }
+    let mut template: Option<String> = None;
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{SYSTEM_USAGE}");
+                return 0;
+            }
+            "-f" | "--format" => match it.next() {
+                Some(t) => template = Some(t.clone()),
+                None => {
+                    eprintln!("podvm system info: --format needs a template");
+                    return EXIT_FLAG_ERROR;
+                }
+            },
+            other if other.starts_with("--format=") => {
+                template = Some(other["--format=".len()..].to_string())
+            }
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(verb, other, SYSTEM_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm(verb, other);
+            }
+            other => {
+                eprintln!("podvm system info: unknown option {other:?}");
+                eprint!("{SYSTEM_USAGE}");
+                return EXIT_FLAG_ERROR;
+            }
+        }
+    }
+    // ⛔ The caller's own input is checked before anything about the machine is
+    // measured, so a typo is not paid for with a probe.
+    if let Some(t) = &template {
+        if let Err(bad) = format::check_with_documents(t, FIELDS, DOCUMENTS) {
+            eprintln!("podvm system info: {bad}");
+            return EXIT_CLI_ERROR;
+        }
+    }
+
+    let fields = collect();
+    match template {
+        Some(t) => match format::render_with_documents(&t, &fields, DOCUMENTS) {
+            Ok(line) => {
+                println!("{line}");
+                0
+            }
+            Err(bad) => {
+                eprintln!("podvm system info: {bad}");
+                EXIT_CLI_ERROR
+            }
+        },
+        None => {
+            print!("{}", human(&fields));
+            0
+        }
+    }
+}
+
+/// Everything `info` can report, measured once.
+///
+/// ⚠ The measuring is HERE and the assembling is in [`fields_from`], so a test
+/// can assert the field names without running 50 probe children of whatever
+/// binary it happens to be. `podvm_probe::run` re-execs argv[0], and under
+/// `cargo test` argv[0] is the test harness.
+fn collect() -> Vec<(&'static str, String)> {
+    let findings = podvm_probe::run();
+    let selection = podvm_probe::select::Selection::choose(&findings);
+    let store = podvm_image::open_store()
+        .map(|s| s.root().display().to_string())
+        .unwrap_or_else(|e| format!("unavailable: {e}"));
+    fields_from(
+        selection.rung,
+        selection.exit_code(podvm_probe::select::Strictness::Refuse) == 0,
+        store,
+    )
+}
+
+fn fields_from(selection: Rung, strict_ok: bool, store: String) -> Vec<(&'static str, String)> {
+    let count = |s: parity::Status| {
+        parity::TABLE
+            .iter()
+            .filter(|r| r.flag.is_none() && r.status == s)
+            .count()
+            .to_string()
+    };
+    vec![
+        ("Parity", parity::json()),
+        ("ParityRows", parity::TABLE.len().to_string()),
+        ("ExitCodes", podvm_probe::exit::json()),
+        ("Version", env!("CARGO_PKG_VERSION").to_string()),
+        ("Rung", selection.word().to_string()),
+        (
+            "EnteredRung",
+            podvm_enter::entered_word(selection).to_string(),
+        ),
+        ("StrictOk", strict_ok.to_string()),
+        ("Store", store),
+        // ⭐ T-0804 rule 1: the banner is suppressible by CONFIG and never by
+        // the command line, and whether a machine has suppressed it is itself
+        // reported. A silent banner nobody can tell from an absent one is the
+        // `sandlock` shape this rule exists to refuse.
+        ("Banner", banner_state()),
+        (
+            "Platform",
+            podvm_image::platform::Platform::host().to_string(),
+        ),
+        ("Kernel", kernel_release()),
+        (
+            "Verbs",
+            parity::TABLE
+                .iter()
+                .filter(|r| r.flag.is_none())
+                .count()
+                .to_string(),
+        ),
+        ("VerbsNative", count(parity::Status::Native)),
+        ("VerbsDegraded", count(parity::Status::Degraded)),
+        ("VerbsStub", count(parity::Status::Stub)),
+        ("VerbsNone", count(parity::Status::None)),
+    ]
+}
+
+/// ⚠ Read from `/proc`, and a dash where it cannot be read. AGENTS.md
+/// absolute 3: a dash where a value is unknown, never a plausible-looking one.
+fn kernel_release() -> String {
+    std::fs::read_to_string("/proc/sys/kernel/osrelease")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|_| "-".into())
+}
+
+fn pick(fields: &[(&str, String)], key: &str) -> String {
+    fields
+        .iter()
+        .find(|(k, _)| *k == key)
+        .map(|(_, v)| v.clone())
+        .unwrap_or_default()
+}
+
+fn human(fields: &[(&str, String)]) -> String {
+    let mut out = String::new();
+    out.push_str(&format!(
+        "podvm {}\n  rung          {}   (--strict would {})\n  entered with  {}\n  \
+         platform      {}\n  kernel        {}\n  store         {}\n\n",
+        pick(fields, "Version"),
+        pick(fields, "Rung"),
+        if pick(fields, "StrictOk") == "true" {
+            "pass"
+        } else {
+            "refuse"
+        },
+        pick(fields, "EnteredRung"),
+        pick(fields, "Platform"),
+        pick(fields, "Kernel"),
+        pick(fields, "Store"),
+    ));
+    out.push_str(&format!(
+        "parity (TOOL.md section 6.8): {} rows, {} verbs\n  \
+         Native {}   Degraded {}   Stub {}   None {}\n\n",
+        pick(fields, "ParityRows"),
+        pick(fields, "Verbs"),
+        pick(fields, "VerbsNative"),
+        pick(fields, "VerbsDegraded"),
+        pick(fields, "VerbsStub"),
+        pick(fields, "VerbsNone"),
+    ));
+    // ⛔ **WHICH INTERPOSER OBJECTS THIS BINARY CARRIES, and it is printed
+    // because a caller cannot otherwise tell.** A podvm built where
+    // `scripts/build-interpose.sh` could not run carries none and declines
+    // every payload, which is a different tool from one that carries both.
+    // `TOOL.md` section 4.1 forbids output that implies a capability podvm
+    // does not have, and silence here would imply one.
+    // `TODO/interpose.md` T-0702.
+    out.push_str(&format!("{}\n\n", crate::interpose::carried()));
+    out.push_str(&parity::text());
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn system_usage_is_plain_ascii() {
+        // TODO/cli.md T-1336: `system --help` and its subverb usages
+        // print on a constrained host; a glyph there is unrenderable.
+        let bad = SYSTEM_USAGE.bytes().filter(|b| *b > 0x7F).count();
+        assert_eq!(bad, 0, "system usage carries {bad} non-ASCII bytes");
+    }
+
+    /// ⛔ Every declared field is built, and every built field is declared. A
+    /// name in one list and not the other is a field that `--format` accepts
+    /// and renders blank, which is the wrong answer that looks right.
+    #[test]
+    fn the_declared_fields_are_the_built_ones() {
+        let built: Vec<&str> = fields_from(Rung::Chroot, false, "/nowhere".into())
+            .iter()
+            .map(|(k, _)| *k)
+            .collect();
+        assert_eq!(built, FIELDS);
+        for d in DOCUMENTS {
+            assert!(FIELDS.contains(d), "{d} is a document and not a field");
+        }
+    }
+
+    /// ⭐ T-0804 rule 4, as an assertion, for the namespace rung
+    /// (TODO/enter.md T-1339). Where the probe selects `namespace`,
+    /// podvm enters it: `.EnteredRung` reads `namespace`, equal to
+    /// `.Rung`, because "what podvm did" and "what this machine
+    /// would permit" agree here. The divergence the rule guards is
+    /// covered the other way by the userland test below.
+    #[test]
+    fn the_entered_rung_is_namespace_where_selected() {
+        let fields = fields_from(Rung::Namespace, true, "/nowhere".into());
+        assert_eq!(pick(&fields, "Rung"), "namespace");
+        assert_eq!(pick(&fields, "EnteredRung"), "namespace");
+    }
+
+    /// ⭐ TODO/enter.md T-1317. Where the probe selects `interpose`
+    /// (chroot denied), the entered sequence is `userland`, not the
+    /// selection: the field names what `run` enters with.
+    #[test]
+    fn the_entered_rung_is_userland_where_chroot_is_denied() {
+        let fields = fields_from(Rung::Interpose, false, "/nowhere".into());
+        assert_eq!(pick(&fields, "Rung"), "interpose");
+        assert_eq!(pick(&fields, "EnteredRung"), "userland");
+        let fields = fields_from(Rung::Chroot, false, "/nowhere".into());
+        assert_eq!(pick(&fields, "EnteredRung"), "chroot");
+    }
+
+    /// ⭐ T-0801's `Prove`, without a shell: the template it names renders the
+    /// table, and what comes out parses as an array of the right shape.
+    #[test]
+    fn the_acceptance_template_renders_the_whole_table() {
+        let fields = vec![("Parity", parity::json())];
+        let out = format::render_with_documents("{{json .Parity}}", &fields, DOCUMENTS).unwrap();
+        let doc: serde_json::Value = serde_json::from_str(&out).unwrap();
+        let arr = doc.as_array().unwrap();
+        assert!(arr.len() >= 60, "{} rows", arr.len());
+        assert!(arr.iter().all(|r| {
+            matches!(
+                r["status"].as_str(),
+                Some("Native") | Some("Degraded") | Some("Stub") | Some("None")
+            )
+        }));
+    }
+
+    /// TODO/cli.md T-1337: `system df` decides its arguments before it
+    /// touches the store, so `--help` prints without one and a bad flag
+    /// is a flag error without one. Both arms run hermetic here.
+    #[test]
+    fn df_help_and_bad_flag_need_no_store() {
+        assert_eq!(df("system df", &["--help".to_string()]), 0);
+        assert_eq!(
+            df("system df", &["--bogus".to_string()]),
+            podvm_image::error::EXIT_FLAG_ERROR
+        );
+        assert_eq!(
+            df("system df", &["some-image".to_string()]),
+            podvm_image::error::EXIT_FLAG_ERROR
+        );
+    }
+
+    /// TODO/cli.md T-1337: IMAGE ID is docker's twelve hex digits, and
+    /// a digest that does not parse still prints its row.
+    #[test]
+    fn short_id_is_twelve_hex() {
+        assert_eq!(
+            short_id("sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a"),
+            "833d7afe7d42"
+        );
+        assert_eq!(short_id("bogus"), "bogus");
+    }
+
+    /// T-1519 (`80-interposer-abi.sh` check E). `system abi` reports three
+    /// exit codes: 0 admitted, 1 refused with the reason on stderr, 2 a file
+    /// podvm could not read. The unreadable and refused arms are pinned
+    /// here with hermetic inputs: two bogus paths for 2, and the test
+    /// binary against itself for 1 (same machine, but no libc SONAME or
+    /// libc name, so gate 2 of `admits` refuses on every host). The
+    /// admitted arm needs a real admitted pair and stays with the live
+    /// `80` pairings; only the return codes are asserted, never the
+    /// streams.
+    #[test]
+    fn abi_reports_unreadable_refused_and_arity() {
+        let bogus = |n: &str| {
+            std::env::temp_dir()
+                .join(format!("podvm-abi-{n}-{}", std::process::id()))
+                .to_string_lossy()
+                .into_owned()
+        };
+        assert_eq!(
+            abi(
+                "system abi",
+                &[bogus("object"), bogus("libc")]
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>()
+            ),
+            2
+        );
+        let me = std::env::current_exe()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        assert_eq!(
+            abi("system abi", &[me.clone(), me]),
+            1,
+            "the binary against itself must refuse, not admit"
+        );
+        assert_eq!(
+            abi("system abi", &["only-one-path".to_string()]),
+            EXIT_CLI_ERROR
+        );
+    }
+}

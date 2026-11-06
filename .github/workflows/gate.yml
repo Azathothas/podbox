@@ -42,43 +42,43 @@ jobs:
 
       - name: build the gate binaries
         run: |
-          cargo build --release -p podbox-gate
+          cargo build --release -p podvm-gate
           # TODO/complete.md T-1564. The gate's document check runs the
           # source-state page through scripts/document-state.py, which is
           # an exec shim since the port: the binary must exist where this
           # job runs, and this job is where it gets built. The shim finds
           # it under target/release/ or the musl target directory.
-          cargo build --release -p podbox-release --bin document-state
+          cargo build --release -p podvm-release --bin document-state
           mkdir -p target/release
-          cp target/x86_64-unknown-linux-musl/release/podbox-gate target/release/
-          cp target/x86_64-unknown-linux-musl/release/podbox-count target/release/
-          cp target/x86_64-unknown-linux-musl/release/podbox-plant target/release/
-          cp target/x86_64-unknown-linux-musl/release/podbox-dev target/release/
-          cp target/x86_64-unknown-linux-musl/release/podbox-smoke target/release/
-          cp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/
-          cp target/x86_64-unknown-linux-musl/release/podbox-libc-interpose target/release/
+          cp target/x86_64-unknown-linux-musl/release/podvm-gate target/release/
+          cp target/x86_64-unknown-linux-musl/release/podvm-count target/release/
+          cp target/x86_64-unknown-linux-musl/release/podvm-plant target/release/
+          cp target/x86_64-unknown-linux-musl/release/podvm-dev target/release/
+          cp target/x86_64-unknown-linux-musl/release/podvm-smoke target/release/
+          cp target/x86_64-unknown-linux-musl/release/podvm-interpose-build target/release/
+          cp target/x86_64-unknown-linux-musl/release/podvm-libc-interpose target/release/
 
       - name: check-todo
-        run: ./target/release/podbox-gate
+        run: ./target/release/podvm-gate
 
       # The writer must be a no-op on a tree the reader already passed. If it
       # changes anything, the committed counts were not derived from the rows.
-      - name: podbox-count is idempotent
+      - name: podvm-count is idempotent
         run: |
-          ./target/release/podbox-count
+          ./target/release/podvm-count
           git diff --exit-code -- TODO/
 
-      # ⭐ The step that makes the one above mean something. podbox-gate
+      # ⭐ The step that makes the one above mean something. podvm-gate
       # reports success identically whether its assertions passed or whether it
       # examined nothing, and the second is the state this repository shipped
-      # its first commit in. podbox-plant breaks each check on purpose and asserts
+      # its first commit in. podvm-plant breaks each check on purpose and asserts
       # it goes red with that check's own message.
       #
       # ⛔ It plants into tracked files and restores them from a copy, so it
       # refuses to start on a dirty tree. Run it after checkout and before
       # anything that writes.
       - name: every check can fail
-        run: ./target/release/podbox-plant
+        run: ./target/release/podvm-plant
 
       - name: maintained repository checks
         run: |
@@ -112,24 +112,24 @@ jobs:
       # repository actually uses.
       #
       # ⛔ `zig` is not optional and its absence is not a skip. `.cargo/config.toml`
-      # names `scripts/zig-cc.sh` as `CC_<target>` for every target podbox
+      # names `scripts/zig-cc.sh` as `CC_<target>` for every target podvm
       # builds for, and `rustls`'s `ring` compiles C behind a build script, so
       # `cargo build` without zig dies in `ring`'s build script with
-      # "zig is not on PATH" and exit 101. Check 18 of `crates/podbox-gate/src/main.rs`
+      # "zig is not on PATH" and exit 101. Check 18 of `crates/podvm-gate/src/main.rs`
       # holds every cargo-running job here to that component list.
       - name: bootstrap
         run: ./scripts/common/bootstrap-env.sh rust bloat cc zig tools
 
       # ⛔ BEFORE THE BINARY, because the two objects are an INPUT to it.
-      # `crates/podbox-cli/build.rs` embeds them, so a binary built first
-      # embeds two empty placeholders and this job passes with a podbox that
+      # `crates/podvm/build.rs` embeds them, so a binary built first
+      # embeds two empty placeholders and this job passes with a podvm that
       # interposes nothing. TODO/interpose.md T-0702.
       - name: interposer, one object per libc
         run: |
-          cargo build --release -p podbox-gate --bin podbox-interpose-build
+          cargo build --release -p podvm-gate --bin podvm-interpose-build
           mkdir -p target/release
-          cp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/
-          ./target/release/podbox-interpose-build
+          cp target/x86_64-unknown-linux-musl/release/podvm-interpose-build target/release/
+          ./target/release/podvm-interpose-build
 
       - name: build
         run: cargo build --release --target x86_64-unknown-linux-musl
@@ -138,15 +138,15 @@ jobs:
       # PT_INTERP would mean it is not.
       - name: no PT_INTERP
         run: |
-          readelf -l target/x86_64-unknown-linux-musl/release/podbox
-          test "$(readelf -l target/x86_64-unknown-linux-musl/release/podbox | grep -c INTERP)" -eq 0
+          readelf -l target/x86_64-unknown-linux-musl/release/podvm
+          test "$(readelf -l target/x86_64-unknown-linux-musl/release/podvm | grep -c INTERP)" -eq 0
 
       # T-0910's ceiling and its breakdown. A dependency that lands quietly
       # fails here rather than being noticed at release.
       #
       # ⛔ The script owns the number. This step used to carry its own copy of
       # it, which is a value in two places: raising one and not the other lets
-      # a build through that the other would have refused. podbox-gate's
+      # a build through that the other would have refused. podvm-gate's
       # check 17 holds that there is exactly one declaration.
       #
       # ⚠ cargo-bloat comes from the bootstrap step above on purpose: the      # measurement script exits 2 without it, and a skip is not a pass.
@@ -185,7 +185,7 @@ jobs:
       - name: fmt
         run: |
           cargo fmt --all -- --check
-          cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check
+          cargo fmt --manifest-path crates/podvm-interpose/Cargo.toml -- --check
 
       - name: clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
@@ -193,7 +193,7 @@ jobs:
       - name: interposer clippy
         env:
           RUSTFLAGS: -C target-feature=-crt-static
-        run: cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
+        run: cargo clippy --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
 
       # docs/conventions/prose.md: no em dashes, nothing outside the five
       # allowed markers, and a density ceiling, over every tracked text file.
@@ -228,18 +228,18 @@ jobs:
         run: ./scripts/common/bootstrap-env.sh rust cc zig tools openssh
 
       # ⛔ BEFORE THE WORKSPACE TESTS, because the two objects are an INPUT to
-      # the binary they test. `crates/podbox-cli/build.rs` embeds them, and it
+      # the binary they test. `crates/podvm/build.rs` embeds them, and it
       # embeds an EMPTY placeholder where one is absent, so `cargo test
-      # --workspace` built without this step produces a podbox that interposes
+      # --workspace` built without this step produces a podvm that interposes
       # nothing. That binary declines every payload on a runner where chroot(2)
       # is denied, and `detached_stdio` then failed on a refusal that is correct
       # for the tier. TODO/interpose.md T-0702; TODO/enter.md T-1604.
       - name: interposer, one object per libc
         run: |
-          cargo build --release -p podbox-gate --bin podbox-interpose-build
+          cargo build --release -p podvm-gate --bin podvm-interpose-build
           mkdir -p target/release
-          cp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/
-          ./target/release/podbox-interpose-build
+          cp target/x86_64-unknown-linux-musl/release/podvm-interpose-build target/release/
+          ./target/release/podvm-interpose-build
 
       - name: workspace tests
         run: cargo test --workspace
@@ -249,10 +249,10 @@ jobs:
 
       - name: failed gate diagnostics and skip states
         run: |
-          cargo build --release -p podbox-gate --bin podbox-smoke
+          cargo build --release -p podvm-gate --bin podvm-smoke
           mkdir -p target/release
-          cp target/x86_64-unknown-linux-musl/release/podbox-smoke target/release/
-          ./target/release/podbox-smoke --diagnostics
+          cp target/x86_64-unknown-linux-musl/release/podvm-smoke target/release/
+          ./target/release/podvm-smoke --diagnostics
 
       - name: owned KVM emulator selection and cleanup
         run: python3 experiments/400-kvm-cleanup.py
@@ -260,4 +260,4 @@ jobs:
       - name: interposer tests
         env:
           RUSTFLAGS: -C target-feature=-crt-static
-        run: cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu
+        run: cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: `podbox-complete` supplies `/etc/passwd`, `/etc/group` and
+# Question: `podvm-complete` supplies `/etc/passwd`, `/etc/group` and
 # `/etc/resolv.conf` into a rootfs (TOOL.md section 6.5). Under what condition
 # does the payload actually read them?
 #
@@ -92,7 +92,7 @@ fi
 
 cat > "$OUT/passwd" <<'EOF'
 root:x:0:0:root:/root:/bin/sh
-podboxsupplied:x:1000:1000:supplied by podbox-complete:/workspace:/bin/sh
+podvmsupplied:x:1000:1000:supplied by podvm-complete:/workspace:/bin/sh
 EOF
 printf 'passwd: files\ngroup: files\n'     > "$OUT/nsw.files"
 printf 'passwd: systemd\ngroup: systemd\n' > "$OUT/nsw.other"
@@ -110,7 +110,7 @@ for ns in files other; do
 done
 if [ "${res_files:-}" = FOUND ] && [ "${res_other:-}" = NOTFOUND ]; then
   pass "A: the supplied /etc/passwd is read under 'files' and IGNORED otherwise"
-  echo "     ⛔ podbox-complete must supply /etc/nsswitch.conf too, or assert it"
+  echo "     ⛔ podvm-complete must supply /etc/nsswitch.conf too, or assert it"
   echo "        already names files. Supplying /etc/passwd alone is a no-op on"
   echo "        any rootfs whose nsswitch names another service."
 elif [ "${res_files:-}" != FOUND ]; then

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: does `podbox run` behave the way an agent that knows docker expects,
+# Question: does `podvm run` behave the way an agent that knows docker expects,
 # on a runtime where no namespace can be entered?
 #
 # TODO/milestones.md T-1104, TODO/enter.md T-0501 to T-0506, TODO/cli.md T-0802.
@@ -7,12 +7,12 @@
 # ⭐ THE THREE CONTRACTS AN AUTOMATED CALLER ACTUALLY DEPENDS ON, and each is a
 # clause here rather than a claim in a document:
 #
-#   1. the payload owns stdout, so `podbox run ... | consumer` gives the
+#   1. the payload owns stdout, so `podvm run ... | consumer` gives the
 #      consumer the payload's bytes and NOTHING else;
 #   2. the exit code is the payload's own, and a signalled payload is
 #      128+signal, so a caller branching on the code can tell a clean exit from
 #      a SIGKILL;
-#   3. the banner says what podbox is NOT doing, on stderr, every time.
+#   3. the banner says what podvm is NOT doing, on stderr, every time.
 #
 # ⛔ AND THE ONE THAT MATTERS MOST ON A MULTI-ARCHITECTURE HOST: a foreign image
 # either runs through a registered interpreter or is REFUSED BY NAME. Never an
@@ -25,7 +25,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/run.txt"
 # ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
 # because an ELF built here does not execute there. The lane's scratch
@@ -35,7 +35,7 @@ case "$(uname -s)" in
 Linux) NATIVE=1; WORK="$(mktemp -d)"; PSTORE="$WORK/store"; EMPTY_STORE="$WORK/empty-store" ;;
 *)     NATIVE=0; WORK="$REPO/experiments/.sweep300-work"; rm -rf "$WORK"; mkdir -p "$WORK/w" || exit 2; PSTORE="/v/store"; EMPTY_STORE="/v/empty-store" ;;
 esac
-BINFMT_NAME="podbox-x300-$$"
+BINFMT_NAME="podvm-x300-$$"
 
 cleanup() {
 	[ -f "/proc/sys/fs/binfmt_misc/$BINFMT_NAME" ] &&
@@ -45,7 +45,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-IMAGE="${PODBOX_RUN_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
+IMAGE="${PODVM_RUN_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
 
 # The engine is `experiments/lib/engine.sh`: a docker daemon where one
 # answers, else host podman. What each clause asserts is unchanged.
@@ -57,19 +57,19 @@ ENGINE_WORK="$WORK"
 if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 [ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
 
-# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# The driver: the M5 debian row, pinned. It hosts the staged podvm binary
 # for every `$BIN` call on a non-native lane.
 DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
 STAGE="$WORK/stage"
 if [ "$NATIVE" -eq 0 ]; then
 	[ -r "$BIN" ] || {
-		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		echo "SKIP: $BIN is not readable (set PODVM_BIN to a guest build artifact)" >&2
 		exit 2
 	}
 	eng_pull "$DRIVER" || exit 2
 	mkdir -p "$STAGE" || exit 2
-	cp "$BIN" "$STAGE/podbox"
-	eng_mount "$STAGE/podbox" /pb \
+	cp "$BIN" "$STAGE/podvm"
+	eng_mount "$STAGE/podvm" /pb \
 		&& eng_mount "$WORK/w" /w rw \
 		&& eng_volmount "x300-$$" /v rw \
 		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
@@ -79,7 +79,7 @@ else
 	BIN_RUN="$BIN"
 fi
 
-# pb TIMEOUT ARGS... - podbox with the sweep's store: directly where it
+# pb TIMEOUT ARGS... - podvm with the sweep's store: directly where it
 # executes, staged in the driver elsewhere. Timeouts stay per call site,
 # as before.
 pb() {
@@ -106,13 +106,13 @@ fi
 . "$REPO/scripts/common/exit-codes.sh"
 # Read out of the binary; on a lane where it does not execute, the
 # generated shim runs that one call staged in the driver.
-podbox_exit_codes "$BIN_RUN" || {
-	echo "SKIP: cannot read podbox's exit-code table; is jq installed and the binary built?" >&2
+podvm_exit_codes "$BIN_RUN" || {
+	echo "SKIP: cannot read podvm's exit-code table; is jq installed and the binary built?" >&2
 	exit 2
 }
 
-export PODBOX_STORE="$WORK/store"
-unset PODBOX_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
+export PODVM_STORE="$WORK/store"
+unset PODVM_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
 
 fail=0
 skipped=0
@@ -123,7 +123,7 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
 	printf 'host arch         %s\n' "$(uname -m)"
-	printf 'podbox            %s\n' "$(pb 60 version)"
+	printf 'podvm            %s\n' "$(pb 60 version)"
 	printf 'engine            %s\n' "$(engine_describe)"
 	printf 'image             %s\n' "$IMAGE"
 	echo
@@ -234,7 +234,7 @@ else
 			fail=1
 		}
 		grep -q 'registered interpreter' "$WORK/e5" || {
-			say "  FAIL: podbox ran a foreign image without saying so"
+			say "  FAIL: podvm ran a foreign image without saying so"
 			fail=1
 		}
 	fi
@@ -262,10 +262,10 @@ else
 		err="$(pb 2400 run --platform linux/riscv64 "$IMAGE" /bin/true 2>&1 >/dev/null)"
 		rc=$?
 		say "  riscv64, nothing registered: rc=$rc"
-		say "    $(printf '%s' "$err" | grep -o 'podbox cannot execute it.*' | cut -c1-88)"
+		say "    $(printf '%s' "$err" | grep -o 'podvm cannot execute it.*' | cut -c1-88)"
 		[ "$rc" -eq 125 ] || { say "  FAIL: expected exit 125"; fail=1; }
 		printf '%s' "$err" | grep -q 'cannot execute it' || {
-			say "  FAIL: the refusal does not say podbox cannot execute it"
+			say "  FAIL: the refusal does not say podvm cannot execute it"
 			fail=1
 		}
 		printf '%s' "$err" | grep -q 'linux/amd64' || {
@@ -293,8 +293,8 @@ printf '%s' "$err" | grep -q 'holds' || {
 say ""
 say "== 7. T-1104's own acceptance: inside the reconstruction"
 # ⭐ THE CLAUSE THAT MAKES THE OTHERS MEAN SOMETHING. Everything above ran on
-# this host, where podbox selects the `namespace` rung and every capability is
-# present. The reconstruction is where `mount(2)` is EPERM and podbox has to
+# this host, where podvm selects the `namespace` rung and every capability is
+# present. The reconstruction is where `mount(2)` is EPERM and podvm has to
 # fall to `chroot`, which is the rung this milestone is named for.
 #
 # ⚠ The store is pre-pulled OUTSIDE and staged in, and the run is `--pull never`.
@@ -311,14 +311,14 @@ elif ! docker image inspect container-research/target:1 >/dev/null 2>&1; then
 	skipped=1
 else
 	recon_store="$WORK/recon-store"
-	PODBOX_STORE="$recon_store" PSTORE="$recon_store" pb 900 pull "$IMAGE" >/dev/null 2>&1
+	PODVM_STORE="$recon_store" PSTORE="$recon_store" pb 900 pull "$IMAGE" >/dev/null 2>&1
 	if [ ! -d "$recon_store" ]; then
 		say "  SKIP: could not pre-pull $IMAGE for the reconstruction"
 		skipped=1
 	else
 		out="$(timeout 2400 "$REPO/experiments/20-enter-target.sh" \
 			--stage "$BIN" --stage "$recon_store" \
-			-- /bin/sh -c "PODBOX_STORE=/workspace/$(basename "$recon_store") /workspace/podbox run --rm --pull never $IMAGE /bin/echo hi" \
+			-- /bin/sh -c "PODVM_STORE=/workspace/$(basename "$recon_store") /workspace/podvm run --rm --pull never $IMAGE /bin/echo hi" \
 			2>"$WORK/e7")"
 		rc=$?
 		rung="$(sed -n 's/.*mode=\([a-z]*\).*/\1/p' "$WORK/e7" | head -1)"
@@ -346,7 +346,7 @@ fi
 # --------------------------------------------------------------------- 8
 say ""
 say "== 8. T-0505: exec is a fresh chroot, and every channel says so"
-# ⛔ `docker exec` enters the container's namespaces. podbox has none to enter,
+# ⛔ `docker exec` enters the container's namespaces. podvm has none to enter,
 # so the whole content of this clause is that the difference is STATED rather
 # than discovered: on stderr for a person, in `inspect` for a program, and by
 # refusing to invent the thing it cannot attach to.
@@ -376,13 +376,13 @@ grep -q "$mode" "$WORK/e8" || {
 # ⚠ The status is read once, from the process that produced it, into a variable.
 pb 300 exec "$IMAGE" >/dev/null 2>&1
 rc=$?
-say "  exec with no command: rc=$rc  (want $PODBOX_EXIT_CLI_ERROR, the cli-error code)"
-[ "$rc" -eq "$PODBOX_EXIT_CLI_ERROR" ] || {
+say "  exec with no command: rc=$rc  (want $PODVM_EXIT_CLI_ERROR, the cli-error code)"
+[ "$rc" -eq "$PODVM_EXIT_CLI_ERROR" ] || {
 	say "  FAIL: exec fell back to the image's Cmd, or used the wrong exit code"
 	fail=1
 }
 # ⛔ And it never pulls: an empty store is a refusal that names `run`, not a fetch.
-err="$(PODBOX_STORE="$EMPTY_STORE" PSTORE="$EMPTY_STORE" pb 300 exec "$IMAGE" /bin/true 2>&1 >/dev/null)"
+err="$(PODVM_STORE="$EMPTY_STORE" PSTORE="$EMPTY_STORE" pb 300 exec "$IMAGE" /bin/true 2>&1 >/dev/null)"
 rc=$?
 say "  against an empty store: rc=$rc"
 say "    $(printf '%s' "$err" | grep -o 'never pulls.*' | cut -c1-72)"

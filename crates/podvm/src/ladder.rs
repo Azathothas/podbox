@@ -1,0 +1,754 @@
+//! TODO/packaging.md T-1003: the CLI half of the launch ladder.
+//!
+//! Read `PODVM_MODE`, refuse it where no ladder drives, feed the ladder its
+//! `Availability` from the probe rows, and drive the chosen rung. Unset means
+//! the chroot-by-path entry, untouched: the ladder only engages on a request.
+
+use std::io::Write;
+
+use podvm_enter::ladder::{self, Availability, Mode};
+use podvm_enter::memfd::{self, MemfdRefusal};
+use podvm_enter::{Plan, RootDir};
+use podvm_probe::Findings;
+
+/// Read the request variable. None where unset or empty: the default entry is
+/// the chroot by path, and the ladder only engages on a request. An unknown
+/// word refuses with the rung list, never a guess.
+pub(crate) fn forced_mode() -> Result<Option<Mode>, podvm_enter::Error> {
+    parse_request(&std::env::var(Plan::MODE_REQUEST_VAR).unwrap_or_default())
+}
+
+/// The pure half of [`forced_mode`], over the value rather than the process
+/// environment, so tests drive it without touching process-global state.
+fn parse_request(raw: &str) -> Result<Option<Mode>, podvm_enter::Error> {
+    let req = raw.trim();
+    if req.is_empty() {
+        return Ok(None);
+    }
+    ladder::Mode::parse(req).map(Some)
+}
+
+/// Refuse a request the verb cannot honor. Only foreground `run` drives the
+/// ladder: `create` and `run -d` launch through the supervisor, `exec`
+/// re-enters, and the machine tier never reaches the chroot entry. A force
+/// that fell through any of those would run the payload from a place the
+/// caller forbade, so each refuses naming what was asked.
+fn scope_refusal(verb: &str, detach: bool, machine_tier: bool, raw: &str) -> Option<String> {
+    if raw.trim().is_empty() {
+        return None;
+    }
+    if machine_tier {
+        return Some(format!(
+            "PODVM_MODE={raw:?} requests a launch rung, which the machine tier never reaches: it boots a guest rather than entering a rootfs"
+        ));
+    }
+    if verb != "run" {
+        return Some(format!(
+            "PODVM_MODE={raw:?} requests a launch rung, which `{verb}` does not drive: only foreground `podvm run` honors it"
+        ));
+    }
+    if detach {
+        return Some(format!(
+            "PODVM_MODE={raw:?} requests a launch rung, which `run -d` does not drive: the detached launcher enters by path"
+        ));
+    }
+    None
+}
+
+/// Refuse `PODVM_MODE` on the verbs that never reach the ladder, and on the
+/// machine tier. `run`'s `prepare` and `exec` both ask this before anything is
+/// fetched, so a force refused here costs the caller nothing.
+pub(crate) fn refuse_where_undriven(
+    verb: &str,
+    detach: bool,
+    machine_tier: bool,
+) -> Result<(), String> {
+    let raw = std::env::var(Plan::MODE_REQUEST_VAR).unwrap_or_default();
+    if verb == "run" && !detach && !machine_tier {
+        return Ok(());
+    }
+    match scope_refusal(verb, detach, machine_tier, &raw) {
+        Some(text) => Err(text),
+        None => Ok(()),
+    }
+}
+
+/// Feed the ladder from the probe rows. FUSE from the open row beside ptmx's
+/// own rule; tmpfs from the attach verdict (an ephemeral tmpfs needs a mount
+/// the payload can use, and `Mounts::summary` is the one predicate that says
+/// so); rundir and cache from the store's staging directories, made where
+/// missing: a rung is up where its staging is writable, down naming it
+/// where it is not.
+fn availability(
+    findings: &Findings,
+    memfd_up: bool,
+    cache_requested: bool,
+    store_root: &std::path::Path,
+) -> Availability {
+    Availability {
+        memfd: memfd_up,
+        fuse: podvm_probe::probes::fuse_usable(findings),
+        tmpfs: podvm_probe::mounts::Mounts::of(findings).summary() == "full",
+        rundir: ensure_stage_base(&store_root.join("runs")),
+        cache: cache_requested && ensure_stage_base(&store_root.join("cache")),
+        cache_requested,
+    }
+}
+
+/// Make a staging base exist. True where it exists or was just made:
+/// idempotent, empty, and the only mutation availability performs. False
+/// names nothing here; the rung refusal names the base.
+fn ensure_stage_base(base: &std::path::Path) -> bool {
+    std::fs::create_dir_all(base).is_ok()
+}
+
+/// Whether `PODVM_CACHE` opts this launch into the cache rung: `1` or
+/// `true`, case-insensitive. Anything else leaves it out, so an unset or
+/// misspelled value cannot silently litter the disk.
+fn cache_requested() -> bool {
+    matches!(
+        std::env::var("PODVM_CACHE")
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+            .as_str(),
+        "1" | "true"
+    )
+}
+
+/// Stage a private per-run root under the store's runs/ base: a unique
+/// directory replicating the extracted tree, removed by the caller when
+/// the payload exits. A tree that is already there refuses rather than
+/// merging: staging never donates a stale file to a run.
+fn stage_rundir(
+    store_root: &std::path::Path,
+    rootfs: &str,
+) -> Result<std::path::PathBuf, podvm_enter::Error> {
+    use podvm_enter::Error;
+    let base = store_root.join("runs");
+    std::fs::create_dir_all(&base).map_err(|e| {
+        Error::Runtime(format!(
+            "PODVM_MODE=rundir was forced but {} could not be prepared: {e}",
+            base.display()
+        ))
+    })?;
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let dir = base.join(format!("run-{}-{nanos}", std::process::id()));
+    podvm_enter::stage::copy_tree(std::path::Path::new(rootfs), &dir)
+        .map_err(|r| Error::Runtime(format!("PODVM_MODE=rundir was forced but {r}")))?;
+    Ok(dir)
+}
+
+/// Enter a caller-staged directory rung and clean up behind it. `keep`
+/// leaves the tree (the cache rung's persistence); otherwise the staged
+/// root goes when the payload exits, on success and on failure alike.
+fn enter_staged(
+    staged: &std::path::Path,
+    plan: &Plan,
+    mode: Mode,
+    keep: bool,
+    err: &mut dyn Write,
+) -> podvm_enter::Result<i32> {
+    let staged_str = staged.to_string_lossy().into_owned();
+    let code = (|| {
+        let staged_root = RootDir::open(&staged_str)?;
+        podvm_enter::run_ladder(&staged_root, plan, mode, None, err)
+    })();
+    if !keep {
+        let _ = std::fs::remove_dir_all(staged);
+    }
+    code
+}
+
+/// Resolve the payload for the memfd rung: the bytes with the eligibility
+/// answer beside them. A payload that is not there is a refusal naming it,
+/// not a rung decision: no rung can run what nothing resolved.
+fn memfd_payload(
+    rootfs: &str,
+    argv0: &str,
+    path_dirs: &[String],
+) -> Result<(Vec<u8>, Option<MemfdRefusal>), podvm_enter::Error> {
+    use podvm_enter::Error;
+    let bytes = ladder::payload_bytes(rootfs, argv0, path_dirs)
+        .map_err(|e| Error::Runtime(format!("PODVM_MODE=memfd was forced but {e}")))?;
+    let why = memfd::eligible(&bytes).err();
+    Ok((bytes, why))
+}
+
+/// Choose the forced rung and drive it. Admission (is the rung up?) and
+/// execution (write this rung's bytes) meet in one place, so the two cannot
+/// disagree about what "up" meant.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn enter_forced(
+    root: &RootDir,
+    plan: &Plan,
+    mode: Mode,
+    rootfs: &str,
+    argv0: &str,
+    path_dirs: &[String],
+    findings: &Findings,
+    store_root: &std::path::Path,
+    cache_digest: &str,
+    err: &mut dyn Write,
+) -> podvm_enter::Result<i32> {
+    let mut memfd_up = false;
+    let mut memfd_why: Option<MemfdRefusal> = None;
+    let mut staged: Option<Vec<u8>> = None;
+    if mode == Mode::Memfd {
+        let (bytes, why) = memfd_payload(rootfs, argv0, path_dirs)?;
+        memfd_why = why;
+        memfd_up = memfd_why.is_none() && memfd::kernel_takes_memfd();
+        if memfd_up {
+            staged = Some(bytes);
+        }
+    }
+    let avail = availability(findings, memfd_up, cache_requested(), store_root);
+    // ⭐ TODO/enter.md T-1317. Without chroot the ladder's fd-exec still
+    // runs a static payload: the memfd enters with the host's root. A
+    // forced memfd over anything else refuses naming the force and the
+    // unforced loader family, and every other forced rung refuses naming
+    // the force: their mechanisms need what this host denies.
+    if !podvm_probe::probes::chroot_usable(findings) {
+        if mode == Mode::Memfd {
+            match staged {
+                Some(bytes) => {
+                    let fd = memfd::stage(&bytes)?;
+                    return podvm_enter::run_userland(
+                        root,
+                        plan,
+                        plan.argv.clone(),
+                        podvm_probe::select::Rung::Userland.word(),
+                        Some(fd),
+                        err,
+                    );
+                }
+                None => {
+                    return Err(podvm_enter::Error::Runtime(format!(
+                        "PODVM_MODE=memfd was forced but {}: without chroot(2) \
+                         only a static payload enters, through the unforced \
+                         loader family where the tier reaches it: run without \
+                         PODVM_MODE (TODO/enter.md T-1317)",
+                        memfd_why
+                            .as_ref()
+                            .map(|w| w.to_string())
+                            .unwrap_or_else(|| { "the payload did not stage".to_string() })
+                    )));
+                }
+            }
+        }
+        return Err(podvm_enter::Error::Runtime(format!(
+            "PODVM_MODE={} was forced but chroot(2) is denied on this machine, \
+             and only the memfd rung enters without it (TODO/enter.md T-1317)",
+            mode.name()
+        )));
+    }
+    let chosen = ladder::choose(Some(mode), &avail, memfd_why.as_ref())?;
+    if chosen == Mode::Memfd {
+        match staged {
+            Some(bytes) => {
+                let fd = memfd::stage(&bytes)?;
+                podvm_enter::run_ladder(root, plan, Mode::Memfd, Some(fd), err)
+            }
+            // Admission staged the bytes it chose on. Reaching here means the
+            // choice and the staging disagreed, which is a defect rather than
+            // a rung, and it refuses as one.
+            None => Err(podvm_enter::Error::Runtime(
+                "the ladder chose the memfd rung it had just refused: this is a podvm defect, not a payload one (TODO/packaging.md T-1003)".to_string(),
+            )),
+        }
+    } else if chosen == Mode::RunDir {
+        // ⭐ TODO/packaging.md T-1003. The private per-run root: resolved
+        // first (no rung runs what nothing resolved), staged from the
+        // extracted tree, entered by path, removed on exit.
+        ladder::resolve_payload(rootfs, argv0, path_dirs).map_err(|e| {
+            podvm_enter::Error::Runtime(format!("PODVM_MODE=rundir was forced but {e}"))
+        })?;
+        let staged = stage_rundir(store_root, rootfs)?;
+        enter_staged(&staged, plan, Mode::RunDir, false, err)
+    } else if chosen == Mode::Cache {
+        // ⭐ TODO/packaging.md T-1003. The persistent per-image root:
+        // copied once under the digest, reused while its marker names
+        // it, kept when the payload exits.
+        ladder::resolve_payload(rootfs, argv0, path_dirs).map_err(|e| {
+            podvm_enter::Error::Runtime(format!("PODVM_MODE=cache was forced but {e}"))
+        })?;
+        let staged =
+            podvm_enter::stage::stage_cache(store_root, cache_digest, std::path::Path::new(rootfs))
+                .map_err(|r| {
+                    podvm_enter::Error::Runtime(format!("PODVM_MODE=cache was forced but {r}"))
+                })?;
+        enter_staged(&staged, plan, Mode::Cache, true, err)
+    } else if chosen == Mode::Tmpfs {
+        // ⭐ TODO/packaging.md T-1003. The ephemeral per-run root: resolved
+        // first (no rung runs what nothing resolved), mounted and staged
+        // from the extracted tree, entered by path, unmounted and removed
+        // on exit. Where the mount is refused the staging names it, after
+        // the ladder's own attach verdict already refused it above.
+        ladder::resolve_payload(rootfs, argv0, path_dirs).map_err(|e| {
+            podvm_enter::Error::Runtime(format!("PODVM_MODE=tmpfs was forced but {e}"))
+        })?;
+        let staged = podvm_enter::stage::stage_tmpfs(store_root, std::path::Path::new(rootfs))
+            .map_err(|r| {
+                podvm_enter::Error::Runtime(format!("PODVM_MODE=tmpfs was forced but {r}"))
+            })?;
+        let staged_str = staged.to_string_lossy().into_owned();
+        let code = (|| {
+            let staged_root = RootDir::open(&staged_str)?;
+            podvm_enter::run_ladder(&staged_root, plan, Mode::Tmpfs, None, err)
+        })();
+        podvm_enter::stage::release_tmpfs(&staged);
+        code
+    } else if chosen == Mode::Fuse {
+        // ⭐ TODO/packaging.md T-1003. The served root: resolved first
+        // (no rung runs what nothing resolved), served over a FUSE mount
+        // straight from the extracted tree, entered by path on the
+        // mount, killed, unmounted and removed on exit. Where the node
+        // does not open or the mount is refused the staging names it,
+        // after the ladder's own open row already refused it above.
+        ladder::resolve_payload(rootfs, argv0, path_dirs).map_err(|e| {
+            podvm_enter::Error::Runtime(format!("PODVM_MODE=fuse was forced but {e}"))
+        })?;
+        let mounted = podvm_enter::fuse::serve_tree(store_root, std::path::Path::new(rootfs))
+            .map_err(|r| {
+                podvm_enter::Error::Runtime(format!("PODVM_MODE=fuse was forced but {r}"))
+            })?;
+        let mounted_str = mounted.dir.to_string_lossy().into_owned();
+        let code = (|| {
+            let mounted_root = RootDir::open(&mounted_str)?;
+            podvm_enter::run_ladder(&mounted_root, plan, Mode::Fuse, None, err)
+        })();
+        podvm_enter::fuse::release_mount(&mounted);
+        code
+    } else {
+        // Admission staged what it chose on. Reaching here means the
+        // choice and the staging disagreed, which is a defect rather
+        // than a rung, and it refuses as one.
+        Err(podvm_enter::Error::Runtime(
+            "the ladder chose a rung no arm drives: this is a podvm defect, not a payload one (TODO/packaging.md T-1003)".to_string(),
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use podvm_probe::verdict::Outcome;
+
+    fn findings_with(rows: Vec<(&'static str, Outcome)>) -> Findings {
+        Findings {
+            rows,
+            ..Findings::empty()
+        }
+    }
+
+    /// Unset and empty mean the default entry: the ladder only engages on a
+    /// request, and no request is the common case.
+    #[test]
+    fn no_request_means_the_default_entry() {
+        assert_eq!(parse_request("").unwrap(), None);
+        assert_eq!(parse_request("   ").unwrap(), None);
+        assert_eq!(parse_request("memfd").unwrap(), Some(Mode::Memfd));
+    }
+
+    /// An unknown word refuses with the rung list and exits docker's runtime
+    /// error, never a guess at what was meant.
+    #[test]
+    fn an_unknown_request_refuses_with_the_list() {
+        let e = parse_request("memfd2").unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("memfd2"), "{text}");
+        assert!(text.contains("rundir"), "{text}");
+        assert_eq!(e.exit_code(), podvm_enter::EXIT_RUNTIME_ERROR);
+    }
+
+    /// Only foreground `run` drives the ladder. Every other verb, the
+    /// detached form and the machine tier refuse naming what was asked, and
+    /// no request refuses nowhere.
+    #[test]
+    fn the_ladder_is_foreground_run_or_a_named_refusal() {
+        assert!(scope_refusal("run", false, false, "").is_none());
+        assert!(scope_refusal("run", false, false, "memfd").is_none());
+        for (verb, detach, machine) in [
+            ("exec", false, false),
+            ("create", false, false),
+            ("run", true, false),
+            ("run", false, true),
+        ] {
+            let text = scope_refusal(verb, detach, machine, "memfd")
+                .expect("a force outside foreground run refuses");
+            assert!(text.contains("PODVM_MODE"), "{text}");
+            assert!(text.contains("memfd"), "{text}");
+        }
+    }
+
+    /// The FUSE feed is the open row beside ptmx's rule: an `Ok` open is up,
+    /// a denial is down, and a missing row is down rather than a promise.
+    #[test]
+    fn fuse_is_up_only_where_the_open_row_answered_ok() {
+        // ⛔ Tagged, as above: never share a removable base path.
+        let base =
+            std::env::temp_dir().join(format!("podvm-ladder-base-fuse-{}", std::process::id()));
+        let up = findings_with(vec![("open(/dev/fuse, O_RDWR)", Outcome::ok())]);
+        assert!(availability(&up, false, false, &base).fuse);
+        let down = findings_with(vec![(
+            "open(/dev/fuse, O_RDWR)",
+            Outcome::denied(podvm_probe::sys::EPERM),
+        )]);
+        assert!(!availability(&down, false, false, &base).fuse);
+        assert!(!availability(&Findings::empty(), false, false, &base).fuse);
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// The tmpfs feed is the attach verdict: only a mount the payload can use
+    /// counts, and anything less refuses naming the mount.
+    #[test]
+    fn tmpfs_is_up_only_where_a_mount_attached() {
+        // ⛔ Tagged, not pid-only: the directory-rung tests below share
+        // one base path shape and remove it mid-stage under parallel
+        // threads (T-0413 drive: the directory-rungs test failed
+        // in-suite at `assert!(avail.rundir)` and passed alone).
+        let base =
+            std::env::temp_dir().join(format!("podvm-ladder-base-tmpfs-{}", std::process::id()));
+        let attached = findings_with(vec![("move_mount(-> /tmp/mm-probe)", Outcome::ok())]);
+        assert!(availability(&attached, false, false, &base).tmpfs);
+        assert!(!availability(&Findings::empty(), false, false, &base).tmpfs);
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// Rundir is up where the store takes staging; the cache additionally
+    /// needs asking. Claiming either where its base is missing is the
+    /// rung that does not exist.
+    #[test]
+    fn the_directory_rungs_need_their_stage_base() {
+        // ⛔ Tagged, as above: the tmpfs test beside this one removes
+        // the shared shape mid-stage.
+        let base =
+            std::env::temp_dir().join(format!("podvm-ladder-base-dirrung-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let avail = availability(&Findings::empty(), true, true, &base);
+        assert!(avail.memfd);
+        assert!(avail.rundir);
+        assert!(avail.cache);
+        assert!(avail.cache_requested);
+        let _ = std::fs::remove_dir_all(&base);
+        // Without the opt-in the cache stays down while rundir holds.
+        let avail = availability(&Findings::empty(), false, false, &base);
+        assert!(avail.rundir);
+        assert!(!avail.cache);
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// A forced cache is admitted where asked with a writable base, and
+    /// refused naming the opt-in where not. Fork-free: the entry itself
+    /// is what the drive proves.
+    #[test]
+    fn a_forced_cache_is_admitted_only_where_asked() {
+        use podvm_enter::ladder as ladder_mod;
+        // ⛔ Tagged, as above.
+        let base = std::env::temp_dir().join(format!(
+            "podvm-ladder-base-forcecache-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&base);
+        let avail = availability(&Findings::empty(), false, true, &base);
+        assert_eq!(
+            ladder_mod::choose(Some(Mode::Cache), &avail, None).unwrap(),
+            Mode::Cache
+        );
+        let avail = availability(&Findings::empty(), false, false, &base);
+        let e = ladder_mod::choose(Some(Mode::Cache), &avail, None).unwrap_err();
+        assert!(format!("{e}").contains("PODVM_CACHE=1"), "{e}");
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// A forced rundir over a missing payload refuses naming the force and
+    /// the missing file, not a rung decision: no rung can run what nothing
+    /// resolved. No fork happens: the resolve precedes the staging.
+    #[test]
+    fn a_forced_rundir_over_a_missing_payload_names_it() {
+        let dir = std::env::temp_dir().join(format!("podvm-ladder-cli-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        // ⛔ Tagged, not pid-only: two tests sharing one store path race
+        // each other's removal mid-stage (T-0413 drive, two green runs
+        // each failing a different rundir test).
+        let store =
+            std::env::temp_dir().join(format!("podvm-ladder-store-mp-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&store);
+        let root = RootDir::open(dir.to_str().unwrap()).expect("a temp dir opens");
+        let plan = Plan {
+            argv: vec!["true".to_string()],
+            env: Vec::new(),
+            working_dir: "/".to_string(),
+            fds: podvm_enter::Fds::default(),
+            banner: String::new(),
+            path_dirs: vec!["/bin".to_string()],
+        };
+        let mut sink = Vec::new();
+        let usable = findings_with(vec![("chroot(/tmp)", Outcome::ok())]);
+        let e = enter_forced(
+            &root,
+            &plan,
+            Mode::RunDir,
+            dir.to_str().unwrap(),
+            "true",
+            &plan.path_dirs,
+            &usable,
+            &store,
+            "sha256:test",
+            &mut sink,
+        )
+        .unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("PODVM_MODE=rundir was forced"), "{text}");
+        assert!(text.contains("names no file"), "{text}");
+        assert_eq!(e.exit_code(), podvm_enter::EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&store);
+    }
+
+    /// A forced rundir stages the tree whole: the staged root carries the
+    /// payload, and nothing is merged into an existing tree. Fork-free:
+    /// the entry itself is what the drive proves.
+    #[test]
+    fn a_forced_rundir_stages_the_tree_whole() {
+        let dir = std::env::temp_dir().join(format!("podvm-ladder-stage-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("bin")).unwrap();
+        std::fs::write(dir.join("bin/prog"), b"\x7fELF").unwrap();
+        // ⛔ Tagged, as above: this store path collided with the missing-
+        // payload test's under parallel threads.
+        let store =
+            std::env::temp_dir().join(format!("podvm-ladder-store-st-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&store);
+        let staged = stage_rundir(&store, dir.to_str().unwrap()).expect("staging copies");
+        assert_eq!(std::fs::read(staged.join("bin/prog")).unwrap(), b"\x7fELF");
+        assert!(store.join("runs").is_dir());
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&store);
+    }
+
+    /// A forced tmpfs over a missing payload refuses naming the force
+    /// and the missing file, not a rung decision: no rung can run what
+    /// nothing resolved. No fork happens: the resolve precedes the mount.
+    #[test]
+    fn a_forced_tmpfs_over_a_missing_payload_names_it() {
+        let dir = std::env::temp_dir().join(format!("podvm-ladder-cli-t{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let root = RootDir::open(dir.to_str().unwrap()).expect("a temp dir opens");
+        let plan = Plan {
+            argv: vec!["true".to_string()],
+            env: Vec::new(),
+            working_dir: "/".to_string(),
+            fds: podvm_enter::Fds::default(),
+            banner: String::new(),
+            path_dirs: vec!["/bin".to_string()],
+        };
+        let mut sink = Vec::new();
+        let usable = findings_with(vec![
+            ("chroot(/tmp)", Outcome::ok()),
+            ("move_mount(-> /tmp/mm-probe)", Outcome::ok()),
+        ]);
+        let store = store_dir("t");
+        let e = enter_forced(
+            &root,
+            &plan,
+            Mode::Tmpfs,
+            dir.to_str().unwrap(),
+            "true",
+            &plan.path_dirs,
+            &usable,
+            &store,
+            "sha256:test",
+            &mut sink,
+        )
+        .unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("PODVM_MODE=tmpfs was forced"), "{text}");
+        assert!(text.contains("names no file"), "{text}");
+        assert_eq!(e.exit_code(), podvm_enter::EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&store);
+    }
+
+    /// A forced fuse over a missing payload refuses naming the force
+    /// and the missing file, not a rung decision: no rung can run what
+    /// nothing resolved. No fork happens: the resolve precedes the serve.
+    #[test]
+    fn a_forced_fuse_over_a_missing_payload_names_it() {
+        let dir = std::env::temp_dir().join(format!("podvm-ladder-cli-f{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let root = RootDir::open(dir.to_str().unwrap()).expect("a temp dir opens");
+        let plan = Plan {
+            argv: vec!["true".to_string()],
+            env: Vec::new(),
+            working_dir: "/".to_string(),
+            fds: podvm_enter::Fds::default(),
+            banner: String::new(),
+            path_dirs: vec!["/bin".to_string()],
+        };
+        let mut sink = Vec::new();
+        let usable = findings_with(vec![
+            ("chroot(/tmp)", Outcome::ok()),
+            ("open(/dev/fuse, O_RDWR)", Outcome::ok()),
+        ]);
+        let store = store_dir("f");
+        let e = enter_forced(
+            &root,
+            &plan,
+            Mode::Fuse,
+            dir.to_str().unwrap(),
+            "true",
+            &plan.path_dirs,
+            &usable,
+            &store,
+            "sha256:test",
+            &mut sink,
+        )
+        .unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("PODVM_MODE=fuse was forced"), "{text}");
+        assert!(text.contains("names no file"), "{text}");
+        assert_eq!(e.exit_code(), podvm_enter::EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&store);
+    }
+
+    /// TODO/enter.md T-1317. Where chroot is denied, a forced fuse rung
+    /// refuses naming the force and the denial rather than the rung:
+    /// their mechanisms need what this host denies, and only the memfd
+    /// rung enters without it.
+    #[test]
+    fn a_forced_fuse_rung_without_chroot_names_the_denial() {
+        let dir = std::env::temp_dir().join(format!("podvm-ladder-cli-nc{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let root = RootDir::open(dir.to_str().unwrap()).expect("a temp dir opens");
+        let plan = Plan {
+            argv: vec!["true".to_string()],
+            env: Vec::new(),
+            working_dir: "/".to_string(),
+            fds: podvm_enter::Fds::default(),
+            banner: String::new(),
+            path_dirs: vec!["/bin".to_string()],
+        };
+        let mut sink = Vec::new();
+        let denied = findings_with(vec![(
+            "chroot(/tmp)",
+            Outcome::denied(podvm_probe::sys::EPERM),
+        )]);
+        let store = store_dir("nc");
+        let e = enter_forced(
+            &root,
+            &plan,
+            Mode::Fuse,
+            dir.to_str().unwrap(),
+            "true",
+            &plan.path_dirs,
+            &denied,
+            &store,
+            "sha256:test",
+            &mut sink,
+        )
+        .unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("PODVM_MODE=fuse was forced"), "{text}");
+        assert!(text.contains("chroot(2) is denied"), "{text}");
+        assert_eq!(e.exit_code(), podvm_enter::EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&store);
+    }
+
+    /// A forced memfd over a missing payload refuses naming the force and
+    /// the missing file, not a rung decision: no rung can run what nothing
+    /// resolved. No fork happens: the resolve precedes every entry.
+    #[test]
+    fn a_forced_memfd_over_a_missing_payload_names_it() {
+        let dir = std::env::temp_dir().join(format!("podvm-ladder-cli-m{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("bin")).unwrap();
+        let root = RootDir::open(dir.to_str().unwrap()).expect("a temp dir opens");
+        let plan = Plan {
+            argv: vec!["absent".to_string()],
+            env: Vec::new(),
+            working_dir: "/".to_string(),
+            fds: podvm_enter::Fds::default(),
+            banner: String::new(),
+            path_dirs: vec!["/bin".to_string()],
+        };
+        let mut sink = Vec::new();
+        let store = store_dir("m");
+        let e = enter_forced(
+            &root,
+            &plan,
+            Mode::Memfd,
+            dir.to_str().unwrap(),
+            "absent",
+            &plan.path_dirs,
+            &Findings::empty(),
+            &store,
+            "sha256:test",
+            &mut sink,
+        )
+        .unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("PODVM_MODE=memfd was forced"), "{text}");
+        assert!(text.contains("names no file"), "{text}");
+        assert_eq!(e.exit_code(), podvm_enter::EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&store);
+    }
+
+    /// A forced memfd over a script payload refuses naming the force and the
+    /// route-past, rather than exec'ing down a rung the bytes cannot take.
+    /// No fork happens here either: the refusal precedes the entry.
+    #[test]
+    fn a_forced_memfd_over_a_script_refuses_naming_both() {
+        let dir = std::env::temp_dir().join(format!("podvm-ladder-cli-s{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("bin")).unwrap();
+        std::fs::write(dir.join("bin/run.sh"), b"#!/bin/sh\necho hi\n").unwrap();
+        let root = RootDir::open(dir.to_str().unwrap()).expect("a temp dir opens");
+        let plan = Plan {
+            argv: vec!["run.sh".to_string()],
+            env: Vec::new(),
+            working_dir: "/".to_string(),
+            fds: podvm_enter::Fds::default(),
+            banner: String::new(),
+            path_dirs: vec!["/bin".to_string()],
+        };
+        let mut sink = Vec::new();
+        let store = store_dir("s");
+        let e = enter_forced(
+            &root,
+            &plan,
+            Mode::Memfd,
+            dir.to_str().unwrap(),
+            "run.sh",
+            &plan.path_dirs,
+            &Findings::empty(),
+            &store,
+            "sha256:test",
+            &mut sink,
+        )
+        .unwrap_err();
+        let text = format!("{e}");
+        assert!(text.contains("PODVM_MODE=memfd was forced"), "{text}");
+        assert!(text.contains("routes past"), "{text}");
+        assert_eq!(e.exit_code(), podvm_enter::EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&store);
+    }
+
+    /// A fresh store root for the staging tests, removed by the caller.
+    fn store_dir(tag: &str) -> std::path::PathBuf {
+        let d =
+            std::env::temp_dir().join(format!("podvm-ladder-store-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        d
+    }
+}

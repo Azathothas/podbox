@@ -3,7 +3,7 @@
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
 
-`crates/podbox-supervise`. `TOOL.md` section 6.6, milestone M4.
+`crates/podvm-supervise`. `TOOL.md` section 6.6, milestone M4.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
 [RULES.md](RULES.md) is how an entry closes. [reference-map.md](reference-map.md) is the corpus.
@@ -34,29 +34,29 @@ Approach:    Hold a pidfd per direct child from the moment it is created. Exit
              reconstruct it from `/proc`.
              ⛔ Say what a pidfd is not: it addresses one process, it does not
              contain descendants, and it is not a PID namespace. Grandchildren
-             that reparent are outside podbox's reach and `inspect` says so
+             that reparent are outside podvm's reach and `inspect` says so
              rather than implying containment.
 Decision:    A pidfd rather than a pid plus a start time. The pid is reusable
              and the start-time check is a heuristic; a pidfd cannot address a
              process that has been reaped.
-Prove:       `podbox run -d --name pidfdprobe public.ecr.aws/docker/library/alpine:3.20 sleep 5 && podbox wait pidfdprobe | grep -qx 0 && podbox rm pidfdprobe`
+Prove:       `podvm run -d --name pidfdprobe public.ecr.aws/docker/library/alpine:3.20 sleep 5 && podvm wait pidfdprobe | grep -qx 0 && podvm rm pidfdprobe`
 
-**Done, 2026-09-09.** `crates/podbox-supervise/src/launcher.rs`. One launcher per
+**Done, 2026-09-09.** `crates/podvm-supervise/src/launcher.rs`. One launcher per
 container holds a pidfd on its payload from the moment the payload exists,
 `ppoll`s it for readiness and reaps it with `waitid(P_PIDFD)`, so the status
 cannot be redirected by pid reuse between the readiness and the reap. The
-container table is `crates/podbox-supervise/src/table.rs` and nothing in it is
+container table is `crates/podvm-supervise/src/table.rs` and nothing in it is
 reconstructed from `/proc`.
 
-⛔ **Said, not implied**, and `podbox inspect --format '{{.Contains}}'` prints it:
+⛔ **Said, not implied**, and `podvm inspect --format '{{.Contains}}'` prints it:
 a pidfd addresses ONE process. It does not contain descendants and it is not a
-PID namespace, so a grandchild that reparents is outside podbox's reach.
+PID namespace, so a grandchild that reparents is outside podvm's reach.
 
 ⚠ **A defect the `waitid` path cost, and it is a fixed offset rather than a
 race:** `si_status` was read at byte 20 of the `siginfo_t`, which is `si_uid`. A
 SIGTERMed payload reported exit **128** instead of 143. On a 64-bit architecture
 the three leading ints are followed by four bytes of padding and `_sifields`
-begins at 16, so `si_status` is at 24. `crates/podbox-probe/src/sys.rs` carries
+begins at 16, so `si_status` is at 24. `crates/podvm-probe/src/sys.rs` carries
 the reasoning beside the read.
 
 ---
@@ -82,12 +82,12 @@ Approach:    Wait on the pidfd, or on a readiness fd the child writes to and the
              state, not when a timer expires. Every wait has an upper bound and
              a distinct outcome for the bound being reached, per
              [RULES.md](RULES.md) section 8.
-             ⛔ podbox inherits this as a product requirement, not just as
+             ⛔ podvm inherits this as a product requirement, not just as
              session hygiene: a container runtime that hangs waiting is unusable
              by the audience it is built for.
 Decision:    A readiness fd over polling `ps`. Polling reintroduces the interval
              the entry exists to remove.
-Prove:       `for i in $(seq 20); do podbox run -d --name loop$i public.ecr.aws/docker/library/alpine:3.20 sleep 1 && podbox ps -q | grep -q . && podbox stop loop$i && podbox rm loop$i || exit 1; done`
+Prove:       `for i in $(seq 20); do podvm run -d --name loop$i public.ecr.aws/docker/library/alpine:3.20 sleep 1 && podvm ps -q | grep -q . && podvm stop loop$i && podvm rm loop$i || exit 1; done`
 
 **Done, 2026-09-09**, and it took three failing runs and a door sweep to get
 there. `./experiments/230-lifecycle-loop.sh 20` reports **20 of 20 consecutive
@@ -127,8 +127,8 @@ hand-driven loop with a person's pauses in it passed every time.
 ⭐ **The fix is that a launcher which is already gone is a container that already
 stopped, and `Ended` says which of three things happened**: the launcher
 answered with a code, there is no launcher left to answer, or the bound was
-reached. Only the last means podbox does not know, and collapsing the first two
-is what made this a failure. `podbox wait` had the same shape and takes the same
+reached. Only the last means podvm does not know, and collapsing the first two
+is what made this a failure. `podvm wait` had the same shape and takes the same
 fix, re-reading the table because the launcher's last act is to write the code
 into it.
 
@@ -159,7 +159,7 @@ Premise:     Read. It is a kernel property, not a runtime property, and it is on
              `references/89luca89__lilipod/tree/pkg/procutils/proc_utils.go:48-56`
              sets `Pdeathsig: syscall.SIGTERM` in the same `SysProcAttr` as the
              `Credential` that fails, which is the shape the account describes.
-Approach:    podbox is single-threaded on the path that clones, chroots and
+Approach:    podvm is single-threaded on the path that clones, chroots and
              execs (`TOOL.md` section 4.2), so the creating thread is the process. Keep
              it that way: spawn threads only for log pumps and the notification
              supervisor, and assert it in a test rather than in a comment.
@@ -168,7 +168,7 @@ Decision:    Keep the spawn path single-threaded rather than pinning a thread.
              Pinning works and it is a constraint every future contributor has to
              know; a single-threaded path is a constraint the type system can be
              made to hold.
-Prove:       `podbox run -d --name pdprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && grep -qx 1 /proc/$(podbox inspect --format '{{.Pid}}' pdprobe)/status.threads 2>/dev/null || test "$(ls /proc/$(pgrep -f 'podbox run' | head -1)/task | wc -l)" -le 3`
+Prove:       `podvm run -d --name pdprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && grep -qx 1 /proc/$(podvm inspect --format '{{.Pid}}' pdprobe)/status.threads 2>/dev/null || test "$(ls /proc/$(pgrep -f 'podvm run' | head -1)/task | wc -l)" -le 3`
 
 **Done, 2026-09-09.** The spawn path is single-threaded and nothing on it spawns
 a thread: the launcher forks with `clone_fork`, the payload's `chroot` and
@@ -181,7 +181,7 @@ terminal.
 first one was wrong.** A unit test read `/proc/self/task` before and after the
 spawn path and failed about one run in five, because `cargo test` runs tests in
 THREADS of one process and that count moves for reasons that have nothing to do
-with podbox: a test whose name claimed more than it checked. It now reads the
+with podvm: a test whose name claimed more than it checked. It now reads the
 two crates' own sources and asserts neither spawns a thread at all, with the
 needles assembled at run time so the assertion does not match itself. ⭐ The
 runtime half is clause 3 of `experiments/230-lifecycle-loop.sh`, which reads
@@ -208,14 +208,14 @@ Approach:    A single container table in the store, written by the launcher,
              infers membership from a marker file.
 Decision:    Reconcile on start rather than trust the table. A launcher killed
              with `SIGKILL` leaves the table saying "running", and the only
-             honest answer after that is "this process exited while podbox was
+             honest answer after that is "this process exited while podvm was
              not watching".
-Prove:       `podbox run -d --name stateprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && kill -9 "$(podbox inspect --format '{{.Pid}}' stateprobe)" && podbox ps -a --format '{{.Names}} {{.Status}}' | grep '^stateprobe ' | grep -qi exited && podbox rm stateprobe`
+Prove:       `podvm run -d --name stateprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && kill -9 "$(podvm inspect --format '{{.Pid}}' stateprobe)" && podvm ps -a --format '{{.Names}} {{.Status}}' | grep '^stateprobe ' | grep -qi exited && podvm rm stateprobe`
 
 **Done, 2026-09-09.** Clause 2 of `experiments/230-lifecycle-loop.sh` drives it:
 a detached container whose LAUNCHER is `SIGKILL`ed reads `dead`, `inspect
 --format '{{.ExitCode}}'` prints a dash, a time is recorded for when it was
-noticed, and `podbox wait` on it exits **125** rather than printing a number.
+noticed, and `podvm wait` on it exits **125** rather than printing a number.
 
 ⭐ **The mechanism.** A launcher holds an exclusive `flock` on its container's
 own lock file for its whole life, so `table::reconcile` decides whether a
@@ -223,12 +223,12 @@ launcher is gone by TRYING TO TAKE IT: a lock this process can take is a launche
 that is not there. ⛔ Never by pid, and never with a start-time check beside it: a
 pid is reused and the check that clears a stale pid file is the race being
 closed. Such a container becomes `dead`, with the time it was NOTICED and ⛔ **no
-exit code at all**; `podbox wait` on it refuses rather than printing a number,
+exit code at all**; `podvm wait` on it refuses rather than printing a number,
 and `inspect --format '{{.ExitCode}}'` prints a dash.
 
 ⚠ **The payload outlives its launcher and that is not hidden.** Killing the
 launcher does not kill the container's process, so the clause kills it too on the
-way out; podbox has no PID namespace and `inspect --format '{{.Contains}}'` says
+way out; podvm has no PID namespace and `inspect --format '{{.Contains}}'` says
 exactly that.
 
 ---
@@ -255,16 +255,16 @@ Decision:    A file in the store rather than a pipe pumped by the launcher. A
              pipe loses everything written after the launcher dies, and the
              launcher is the process most likely to be killed by an outer
              `timeout`.
-Prove:       `podbox run --rm --name logprobe public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo out; echo err >&2' >/dev/null 2>&1; podbox logs logprobe 2>&1 | grep -q out`
+Prove:       `podvm run --rm --name logprobe public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo out; echo err >&2' >/dev/null 2>&1; podvm logs logprobe 2>&1 | grep -q out`
 
 **Done, 2026-09-09.** Clause 4 of `experiments/230-lifecycle-loop.sh`:
-`podbox run -d ... sh -c 'echo out; echo err >&2'` then `podbox logs` reads back
+`podvm run -d ... sh -c 'echo out; echo err >&2'` then `podvm logs` reads back
 `out err`, so both streams reached one file opened before the chroot.
 
 The log sink is opened in the launcher BEFORE anything changes root, and its
 descriptors are handed to the payload as fds 1 and 2 through the same
 `Plan.fds.pass` the entry sequence already had; stdin is `/dev/null`, opened in
-the same place. `podbox logs` reads the file out of the store. ⛔ A sink opened
+the same place. `podvm logs` reads the file out of the store. ⛔ A sink opened
 after the chroot cannot reach the store, which is outside the new root, and that
 is step 2 of `TOOL.md` section 6.5 made in a different place.
 
@@ -284,8 +284,8 @@ the parser answers `unknown option`. Measured on the lane
 `--log-driver` row with its parser arm: `json-file` accepted, any
 other value refused naming the value and this runtime's single
 sink. A stream split stays a separate entry; it does not ride here.
-Fix area is `crates/podbox-cli/src/parity.rs`, the `run` parser,
-and the `crates/podbox-supervise` sink. Risk if wrong is a docker
+Fix area is `crates/podvm/src/parity.rs`, the `run` parser,
+and the `crates/podvm-supervise` sink. Risk if wrong is a docker
 flag that reads as an omission rather than a decision. Prove is the
 accept arm and the refusal arm through the shipped binary, beside
 the table row.
@@ -387,7 +387,7 @@ Decision:    Refuse the whole tier when any leg is missing, rather than offering
 Status note: **open, and it was wrongly marked blocked.** Reconciled on
              2026-09-11. ⛔ `docs/methodology/sessions.md` defines blocked as
              "somebody outside this session must act", and nobody does. The
-             deliverable here is podbox's OWN three-leg probe and the tier
+             deliverable here is podvm's OWN three-leg probe and the tier
              refusal it drives, and both are writable today against a target
              where every leg is denied.
              ⚠ What the corpus settles is the OUTCOME on that target, not
@@ -397,7 +397,7 @@ Status note: **open, and it was wrongly marked blocked.** Reconciled on
              in the code, because the next runtime may permit a leg this one
              does not. Treating "the answer is known" as "the work is blocked"
              is what kept this entry closed to work for two sessions.
-Prove:       `podbox probe --json | jq -e '.tiers.supervise | (.legs | length == 3) and (([.legs[] | select(.verdict != "ok")] | length == 0) == (.refusal == null))'`
+Prove:       `podvm probe --json | jq -e '.tiers.supervise | (.legs | length == 3) and (([.legs[] | select(.verdict != "ok")] | length == 0) == (.refusal == null))'`
              ⚠ Amended 2026-09-22: the committed spelling selected `.ok` and
              `.refused` fields the legs never carried (they carry `verdict`
              strings and the tier carries one `refusal`), so it could never
@@ -405,7 +405,7 @@ Prove:       `podbox probe --json | jq -e '.tiers.supervise | (.legs | length ==
              legs, and a refusal exactly where not every leg is `ok`.
 
 **Done 2026-09-22.** The tier's own three legs, and the refusal they drive.
-`crates/podbox-probe/src/probes.rs` gains `Group::Supervise` with the block
+`crates/podvm-probe/src/probes.rs` gains `Group::Supervise` with the block
 and `SUPERVISE_LEGS`: `seccomp(NEW_LISTENER) [supervise]`, a live
 `process_vm_readv` aimed at one byte of own memory, and
 `ptrace(PTRACE_TRACEME) [supervise]`. The listener and ptrace rows share
@@ -413,13 +413,13 @@ their bodies with the census and attribution rows that run the same
 operation: one implementation, two readings. `s_read_channel` is new; the
 bogus-pid discriminator beside it separates a filter from a policy and
 never copies a byte, so it cannot answer the channel question.
-`crates/podbox-probe/src/supervise.rs` assesses the legs the way
+`crates/podvm-probe/src/supervise.rs` assesses the legs the way
 `machine.rs` does, with the refusal naming every missing leg. The report
 carries both tiers in one `tiers` object plus a `supervise, one leg per
 fact` text block, and the selection reads the owned rows: all three `ok`
 enters the tier, anything else pushes the named `Rejection` and falls
 through. The "never fall back per call" half is an audit, not a deletion:
-no notify mediation exists anywhere in the tree (`podbox-supervise` is the
+no notify mediation exists anywhere in the tree (`podvm-supervise` is the
 lifecycle in `launcher.rs`/`table.rs`), so there is no per-call fallback
 to remove, and the refusal before entry is what enforces the Decision.
 Driven 2026-09-22 on a lane-built musl release binary: `probe --json`
@@ -449,7 +449,7 @@ re-check starts there. Measured on the lane 2026-09-25
 (`experiments/results/triage-353.txt` clause `30-probe-chroot`):
 all three supervise legs `ok` with `refusal: null`, so the lane
 cannot show the fallback; the target shape (`ok`, `EPERM`,
-`EPERM`) is the driver. Fix area is `crates/podbox-probe/src/probes.rs`
+`EPERM`) is the driver. Fix area is `crates/podvm-probe/src/probes.rs`
 with `supervise.rs` and the report selection. Risk if wrong is a
 silent `Continue`-style false success: the banner must state
 mediation off wherever the fallback runs. Prove is the probe Prove
@@ -485,7 +485,7 @@ pinned alpine. The denied-notify shape is unit-pinned (mediation
 refused naming EPERM beside held supervision, banner line on,
 banner line off where mediation holds): the lane permits all
 three notify legs, so no lane run can show the fallback. Full
-`podbox-probe` suite green on the same drive (107 passed,
+`podvm-probe` suite green on the same drive (107 passed,
 0 failed).
 
 ---
@@ -534,7 +534,7 @@ Priority:    P1
 Effort:      M
 Status:      done
 
-Problem:     ⛔ **`podbox run -d` returned a container id, and one second later
+Problem:     ⛔ **`podvm run -d` returned a container id, and one second later
              `inspect` read `exited`, pid `0`, launcher pid `0`, exit code `0`,
              for a payload that was `sleep 20`.** `logs` was empty. Whatever
              happened, the record says the container ran and ended cleanly, and
@@ -556,7 +556,7 @@ Premise:     ⚠ **SEEN TWICE AND NOT REPRODUCED, and that is written down rathe
 
              ⛔ No cause is claimed. Two candidates are worth ruling out first
              and neither has been: the readiness pipe's bound being reached under
-             load and reported as an exit rather than as "podbox does not know",
+             load and reported as an exit rather than as "podvm does not know",
              and `reconcile` running between `create` and `start` and writing a
              terminal state over a container that had not started yet. ⚠ The
              second would explain the `0` exit code, because `reconcile`'s
@@ -581,14 +581,14 @@ Decision:    An entry rather than a note in `PROGRESS.md`, because an
 Prove:       `./experiments/340-detached-stdio.sh 40` reproduced it on iteration 1 before the fix and reports 40 of 40 after it
 
 
-**Done 2026-09-09.** `crates/podbox-supervise/src/launcher.rs`, and ⛔ **neither
+**Done 2026-09-09.** `crates/podvm-supervise/src/launcher.rs`, and ⛔ **neither
 of the two candidates above was it.** The entry refused to act on either and
 that was right.
 
 ⭐ **THE LAUNCHER KEPT THE CALLER'S STDOUT.** `clone` copies every descriptor and
 the launcher never execs, so it inherited the caller's stdin, stdout and stderr
-and held them for the container's whole life. `podbox run -d` prints a container
-id, so every caller captures it -- `id="$(podbox run -d ...)"` -- and command
+and held them for the container's whole life. `podvm run -d` prints a container
+id, so every caller captures it -- `id="$(podvm run -d ...)"` -- and command
 substitution reads that pipe **to EOF**. The id was written in the first second;
 the shell was released when the container ended.
 
@@ -601,7 +601,7 @@ that path by design.
 Measured on 2026-09-09, before the fix:
 
 ```
-$ id=$(podbox run -d --name subst <arch> /bin/sleep 20)   # took 20 s
+$ id=$(podvm run -d --name subst <arch> /bin/sleep 20)   # took 20 s
 $ ls -l /proc/<launcher>/fd/1
   l-wx------ 1 root root 64 ... 1 -> pipe:[93367]
 ```
@@ -626,7 +626,7 @@ this defect.
 
 ⚠ **The payload's own stdio was never the problem** and is unchanged: `0` is
 `/dev/null` and `1` and `2` are the container log, handed over before the chroot
-([T-0605](#t-0605-the-container-log-and-what-podbox-may-claim-about-it)).
+([T-0605](#t-0605-the-container-log-and-what-podvm-may-claim-about-it)).
 
 Prove, run 2026-09-09:
 
@@ -643,7 +643,7 @@ $ ./experiments/340-detached-stdio.sh 40
 
 Source:      issue 16, client beta testing 2026-09-22 (automated
              callers poll `logs` in a loop);
-             `crates/podbox-cli/src/parity.rs` (the `logs` row: `-f`
+             `crates/podvm/src/parity.rs` (the `logs` row: `-f`
              not implemented, T-0605 covers capture-at-spawn only)
 Category:    supervise
 Priority:    P3
@@ -661,7 +661,7 @@ Approach:    Follow by tailing the container's log file (inotify where
              log rotation (named if needed), changing capture.
 Decision:    File-follow, not a new channel. The log file already
              exists; the verb watches it.
-Prove:       `podbox logs -f` on a payload writing lines on a timer
+Prove:       `podvm logs -f` on a payload writing lines on a timer
              shows each line before the container exits, and `-f` exits
              promptly after; `logs` without `-f` is byte-identical.
              Close issue 16 (logs third) with a comment showing the run
@@ -669,7 +669,7 @@ Prove:       `podbox logs -f` on a payload writing lines on a timer
 
 **Done 2026-09-23.** File-follow, as decided: bounded poll (100 ms),
 never inotify (no new crate, same behaviour everywhere).
-`podbox-supervise::follow` prints what is there, then poll-appends from
+`podvm-supervise::follow` prints what is there, then poll-appends from
 the log file until the container reaches a terminal state (`Exited` or
 `Dead`), with one bounded final drain (200 ms) so a write racing the
 state flip is still shown. The poll step is its own function
@@ -702,7 +702,7 @@ writing `line1`..`line5` one second apart (one external `/bin/echo`
 process per line, so no stdio buffering can hold a line back):
 
 ```
-$ podbox logs -f timer1 > follow.out & sleep 3; grep -c line follow.out
+$ podvm logs -f timer1 > follow.out & sleep 3; grep -c line follow.out
 2                                            # line1, line2 while running
 $ wait; echo rc=$?; cat follow.out
 rc=0
@@ -711,7 +711,7 @@ line2
 line3
 line4
 line5
-$ podbox logs timer1 | cmp - follow.out && echo IDENTICAL
+$ podvm logs timer1 | cmp - follow.out && echo IDENTICAL
 IDENTICAL
 ```
 
@@ -726,7 +726,7 @@ ends, instead of polling in a loop.
 
 Source:      issue 16, client beta testing 2026-09-22 (Ctrl-C on
              foreground `run` has no specified behavior);
-             `crates/podbox-cli/src/parity.rs` (the `stop`/`kill` rows:
+             `crates/podvm/src/parity.rs` (the `stop`/`kill` rows:
              pidfd reach, reparented grandchildren out of reach)
 Category:    supervise
 Priority:    P3
@@ -735,7 +735,7 @@ Status:      done 2026-09-23
 
 Problem:    `stop`/`kill` reach the payload by pidfd, but the inverse,
             the launcher itself receiving SIGINT/SIGTERM (Ctrl-C on a
-            foreground `podbox run`) has no specified behavior: no
+            foreground `podvm run`) has no specified behavior: no
             entry says whether the payload is forwarded the signal or
             dies with the launcher via `PR_SET_PDEATHSIG` (T-0603).
 Premise:    Read from the table and the T-0603 shape: the mechanism for
@@ -764,13 +764,13 @@ Prove:       `./experiments/351-signal-forward.sh` exits 0. Close
 SIGINT/SIGTERM and read them from a signalfd beside the payload's
 pidfd in one `ppoll`, so the signal never kills the waiter between
 the decision and the forward, and a reused pid can never be signalled
-instead (`crates/podbox-probe/src/sys.rs` `sigblock_shutdown`,
-`signalfd_shutdown`; `crates/podbox-enter/src/lib.rs`
+instead (`crates/podvm-probe/src/sys.rs` `sigblock_shutdown`,
+`signalfd_shutdown`; `crates/podvm-enter/src/lib.rs`
 `Child::wait_forwarding`, naming each forward and a signaled end on
-stderr; `crates/podbox-supervise/src/launcher.rs` `serve`, silent,
+stderr; `crates/podvm-supervise/src/launcher.rs` `serve`, silent,
 the signaled exit in the table record). A payload that traps or
 ignores the signal is waited on, not killed. The parity rows carry
-the forward (`crates/podbox-cli/src/parity.rs`).
+the forward (`crates/podvm/src/parity.rs`).
 
 `experiments/351-signal-forward.sh` drives it on the shipped binary
 in the lane (`rust:1.98.1-bookworm` through host podman 6.1.2),
@@ -788,7 +788,7 @@ stderr; `the_shutdown_mask_holds_exactly_the_forwarded_pair` pins
 without job control bequeaths an ignored SIGINT that `trap -`
 cannot reset and SIG_IGN survives exec, so the harness runs every
 foreground leg through `env --default-signal=INT,QUIT`: no line of
-podbox resets a caller-bequeathed ignore, and whether a foreground
+podvm resets a caller-bequeathed ignore, and whether a foreground
 `run` should is follow-up work recorded here, not expanded here.
 
 Units by exact name (`a_wait_status_becomes_dockers_exit_code`,
@@ -803,8 +803,8 @@ experiment: a waiter that stops forwarding fails its clauses.
 
 ### T-1421 A foreground run leaves a container record
 
-Source:      issue 84; `crates/podbox-cli/src/run.rs:522`;
-             `crates/podbox-cli/src/run.rs:762`;
+Source:      issue 84; `crates/podvm/src/run.rs:522`;
+             `crates/podvm/src/run.rs:762`;
              [T-0607](supervise.md)
 Category:    supervise
 Priority:    P1

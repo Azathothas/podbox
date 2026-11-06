@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Question: is podbox a multi-architecture runtime, and what does "runs on
+# Question: is podvm a multi-architecture runtime, and what does "runs on
 # aarch64" actually mean when the only aarch64 available is an emulator?
 #
 # TODO/deps.md T-0911, TODO/packaging.md T-1005. Until 2026-09-09
-# `crates/podbox-probe/src/sys.rs` declared x86_64's syscall numbers by hand and
-# `compile_error!`d everywhere else, so podbox was a single-architecture runtime
+# `crates/podvm-probe/src/sys.rs` declared x86_64's syscall numbers by hand and
+# `compile_error!`d everywhere else, so podvm was a single-architecture runtime
 # for no reason but the table. The numbers and the kernel structs now come from
 # `syscalls` and `linux-raw-sys`, per architecture, and this is what asks
 # whether that is true rather than merely written down.
@@ -13,7 +13,7 @@
 # run under `qemu-user` measures QEMU, not an aarch64 kernel: qemu answers
 # `EINVAL` to `clone(CLONE_NEWNS)` and `ENOSYS` to `fsmount`, and reports
 # `Seccomp: 0` because it does not pass the host's through. The rung it prints
-# is qemu's and podbox may not report it as the machine's. That is the same
+# is qemu's and podvm may not report it as the machine's. That is the same
 # class of mistake as `experiments/20-enter-target.sh`'s `/dev` answering out of
 # the mount table the question doubts, and it is recorded here because the
 # multiarch feature makes it reachable by ordinary users: a foreign-architecture
@@ -31,15 +31,15 @@ WORK="$(mktemp -d)"
 # ⛔ ONE REGISTRATION, MADE BEFORE CLAUSE 4 AND REMOVED BY THE TRAP. Measured on
 # 2026-09-09: clause 4 used to run with whatever binfmt state the machine
 # happened to be in, and its reading flipped between `namespace` and
-# `unsupported` because of it. `podbox probe` re-execs ITSELF once per probe
+# `unsupported` because of it. `podvm probe` re-execs ITSELF once per probe
 # (a successful unshare, chroot or setuid mutates the prober), so an aarch64
-# podbox reached through an explicit `qemu-aarch64-static ./podbox` cannot start
+# podvm reached through an explicit `qemu-aarch64-static ./podvm` cannot start
 # its own children unless the kernel routes aarch64 binaries somewhere. With no
 # registration every child exits 127 and the rung reads `unsupported`; with one
 # they run and it reads `namespace`. Both are qemu's answers and neither is an
 # ARM machine's, but a tracked reading that depends on an unstated condition
 # cannot reproduce, so the condition is made here rather than assumed.
-BINFMT_NAME="podbox-probe-aarch64-$$"
+BINFMT_NAME="podvm-probe-aarch64-$$"
 cleanup() {
 	[ -f "/proc/sys/fs/binfmt_misc/$BINFMT_NAME" ] &&
 		echo -1 >"/proc/sys/fs/binfmt_misc/$BINFMT_NAME" 2>/dev/null
@@ -50,7 +50,7 @@ trap cleanup EXIT INT TERM
 cd "$REPO" || exit 2
 command -v cargo >/dev/null 2>&1 || { echo "SKIP: cargo is not on PATH" >&2; exit 2; }
 
-# ⚠ Every architecture podbox claims, and the ONE it does not, named rather than
+# ⚠ Every architecture podvm claims, and the ONE it does not, named rather than
 # omitted. `AGENTS.md` absolute 5: a blocked thing stays visible.
 TARGETS=(
 	x86_64-unknown-linux-musl
@@ -61,7 +61,7 @@ TARGETS=(
 	i686-unknown-linux-musl
 	# ⭐ T-0912. This one was BLOCKED until 2026-09-09: `syscalls` 0.8.1 carries
 	# `#![feature(asm_experimental_arch)]` for it, which is a crate-level
-	# attribute and refuses to compile on stable whatever podbox writes. podbox
+	# attribute and refuses to compile on stable whatever podvm writes. podvm
 	# now takes the numbers from `linux-raw-sys` and carries its own trap, and
 	# clause 5 RUNS the result under `qemu-ppc64le-static`.
 	powerpc64le-unknown-linux-musl
@@ -110,9 +110,9 @@ done
 echo >>"$WORK/report"
 echo "== 2. the architectures that do NOT build, and exactly why" >>"$WORK/report"
 if [ "${#BLOCKED[@]}" -eq 0 ]; then
-	printf '  none. ⭐ T-0912 cleared the one there was: podbox no longer takes\n' >>"$WORK/report"
+	printf '  none. ⭐ T-0912 cleared the one there was: podvm no longer takes\n' >>"$WORK/report"
 	printf '  its syscall trap from a crate that gates five architectures behind\n' >>"$WORK/report"
-	printf '  nightly. `crates/podbox-probe/Cargo.toml` target-gates `syscalls`\n' >>"$WORK/report"
+	printf '  nightly. `crates/podvm-probe/Cargo.toml` target-gates `syscalls`\n' >>"$WORK/report"
 	printf '  away on those five and `sys.rs` reads linux-raw-sys instead.\n' >>"$WORK/report"
 	printf '  ⚠ mips, mips64 and 32-bit powerpc are NOT in clause 1 and are not\n' >>"$WORK/report"
 	printf '  silently skipped either: sys.rs answers them with a compile_error\n' >>"$WORK/report"
@@ -164,7 +164,7 @@ asm_rc=$?
 if [ "$asm_rc" -eq 0 ]; then
 	printf '  ⚠ powerpc64 inline asm COMPILES on %s\n' "$(rustc --version)" >>"$WORK/report"
 	printf '    so the crate gate is stale, not a rustc limit. ⭐ T-0912 took the\n' >>"$WORK/report"
-	printf '    second of the two options this clause named: podbox carries its\n' >>"$WORK/report"
+	printf '    second of the two options this clause named: podvm carries its\n' >>"$WORK/report"
 	printf '    own trap and reads the numbers from linux-raw-sys, and clause 1\n' >>"$WORK/report"
 	printf '    now includes powerpc64le. This clause stays because the day a\n' >>"$WORK/report"
 	printf '    syscalls release drops the gate is worth knowing too.\n' >>"$WORK/report"
@@ -174,15 +174,15 @@ fi
 
 # --------------------------------------------------------------------- 4
 echo >>"$WORK/report"
-echo "== 4. podbox RUNS on aarch64, and what that sentence is worth" >>"$WORK/report"
-BIN="$REPO/target/aarch64-unknown-linux-musl/release/podbox"
+echo "== 4. podvm RUNS on aarch64, and what that sentence is worth" >>"$WORK/report"
+BIN="$REPO/target/aarch64-unknown-linux-musl/release/podvm"
 if ! command -v qemu-aarch64-static >/dev/null 2>&1; then
 	printf '  SKIP: qemu-aarch64-static is not installed, so no aarch64 can be\n' >>"$WORK/report"
 	printf '        reached from this host. Clause 4 measured nothing.\n' >>"$WORK/report"
 	skipped=1
 else
 	RUSTFLAGS="-C target-feature=+crt-static -C linker=rust-lld -C link-self-contained=yes" \
-		cargo build --release -p podbox-cli --target aarch64-unknown-linux-musl \
+		cargo build --release -p podvm --target aarch64-unknown-linux-musl \
 		>"$WORK/build.log" 2>&1
 	if [ ! -x "$BIN" ]; then
 		printf '  SKIP: the aarch64 binary did not build; see the log\n' >>"$WORK/report"
@@ -225,7 +225,7 @@ else
 		[ "$ver_rc" -eq 0 ] || { printf '  FAIL: the aarch64 binary does not run\n' >>"$WORK/report"; fail=1; }
 
 		rung="$(qemu-aarch64-static "$BIN" probe 2>/dev/null | head -1)"
-		host_rung="$("$REPO/target/x86_64-unknown-linux-musl/release/podbox" probe 2>/dev/null | head -1)"
+		host_rung="$("$REPO/target/x86_64-unknown-linux-musl/release/podvm" probe 2>/dev/null | head -1)"
 		printf '  rung, aarch64   %s   ⛔ QEMU'"'"'S ANSWER, NOT AN ARM MACHINE'"'"'S\n' "$rung" >>"$WORK/report"
 		printf '  rung, host      %s   the same host, measured natively\n' "$host_rung" >>"$WORK/report"
 
@@ -273,12 +273,12 @@ else
 			# what a foreign-architecture container needs.
 			root="$WORK/root"
 			mkdir -p "$root"
-			cp "$BIN" "$root/podbox"
-			out="$(chroot "$root" /podbox version 2>&1)"
+			cp "$BIN" "$root/podvm"
+			out="$(chroot "$root" /podvm version 2>&1)"
 			rc=$?
 			printf '  in a bare chroot with NO qemu in it: %s (rc=%d)\n' "$out" "$rc" >>"$WORK/report"
 			if [ "$rc" -eq 0 ]; then
-				printf '  ⭐ That is the mechanism podbox run uses for a foreign\n' >>"$WORK/report"
+				printf '  ⭐ That is the mechanism podvm run uses for a foreign\n' >>"$WORK/report"
 				printf '    image, and it needs nothing copied into the rootfs.\n' >>"$WORK/report"
 			else
 				printf '  FAIL: the F flag did not carry the interpreter into the chroot\n' >>"$WORK/report"
@@ -288,7 +288,7 @@ else
 			# ⭐ T-0506 POINT 5, and it needs the registration above to be
 			# LIVE, so it is measured here rather than in a clause of its
 			# own: with an interpreter registered for aarch64, an aarch64
-			# podbox running on this amd64 host must say that the emulator
+			# podvm running on this amd64 host must say that the emulator
 			# answered, and must key its cache on that.
 			echo >>"$WORK/report"
 			echo "== 6. T-0506 point 5: the answer is labelled with its instrument" >>"$WORK/report"
@@ -327,9 +327,9 @@ else
 				# emulated one share a store and must never serve each other.
 				st="$WORK/interp-store"
 				rm -rf "$st"
-				PODBOX_STORE="$st" "$REPO/target/x86_64-unknown-linux-musl/release/podbox" \
+				PODVM_STORE="$st" "$REPO/target/x86_64-unknown-linux-musl/release/podvm" \
 					probe --cached >/dev/null 2>&1
-				why="$(PODBOX_STORE="$st" qemu-aarch64-static "$BIN" probe --cached 2>&1 >/dev/null |
+				why="$(PODVM_STORE="$st" qemu-aarch64-static "$BIN" probe --cached 2>&1 >/dev/null |
 					grep -o 'measured now, because .*' | head -1)"
 				printf '  the emulated run against the native cache:\n    %s\n' \
 					"$(printf '%s' "$why" | cut -c1-110)" >>"$WORK/report"
@@ -352,9 +352,9 @@ fi
 
 # --------------------------------------------------------------------- 7
 echo >>"$WORK/report"
-echo "== 7. podbox's OWN syscall trap, executed rather than only compiled" >>"$WORK/report"
+echo "== 7. podvm's OWN syscall trap, executed rather than only compiled" >>"$WORK/report"
 # ⭐ T-0912. The architecture this workspace could not build for now builds, and
-# the reason it builds is a register convention podbox wrote by hand. ⛔ Asm
+# the reason it builds is a register convention podvm wrote by hand. ⛔ Asm
 # nobody has executed is a claim: getting a convention wrong is not a build
 # failure, it is a syscall with the arguments in the wrong places. So this
 # clause RUNS it.
@@ -364,7 +364,7 @@ echo "== 7. podbox's OWN syscall trap, executed rather than only compiled" >>"$W
 # read every failure as a huge success. What is asserted below is a value the
 # binary can only produce by reading its own ELF header through its own
 # syscalls: the machine number, 0x15 for PowerPC64.
-PPC_BIN="$REPO/target/powerpc64le-unknown-linux-musl/release/podbox"
+PPC_BIN="$REPO/target/powerpc64le-unknown-linux-musl/release/podvm"
 if ! command -v qemu-ppc64le-static >/dev/null 2>&1; then
 	printf '  SKIP: qemu-ppc64le-static is not installed, so the trap was compiled\n' >>"$WORK/report"
 	printf '        and not executed. That is half the question and is recorded\n' >>"$WORK/report"
@@ -372,7 +372,7 @@ if ! command -v qemu-ppc64le-static >/dev/null 2>&1; then
 	skipped=1
 else
 	RUSTFLAGS="-C target-feature=+crt-static -C linker=rust-lld -C link-self-contained=yes" \
-		cargo build --release -p podbox-cli --target powerpc64le-unknown-linux-musl \
+		cargo build --release -p podvm --target powerpc64le-unknown-linux-musl \
 		>"$WORK/ppc.log" 2>&1
 	if [ ! -x "$PPC_BIN" ]; then
 		printf '  FAIL: the powerpc64le binary did not build; see the log\n' >>"$WORK/report"
@@ -386,7 +386,7 @@ else
 		[ "$ver_rc" -eq 0 ] || { printf '  FAIL: it does not run\n' >>"$WORK/report"; fail=1; }
 
 		# ⭐ THE ASSERTION. `measured_by.checked` names the ELF machine of this
-		# binary, which podbox reads out of its own header with `openat` and
+		# binary, which podvm reads out of its own header with `openat` and
 		# `read` -- through the trap this entry wrote. 0x15 is PowerPC64.
 		doc="$(timeout 300 qemu-ppc64le-static "$PPC_BIN" probe --json 2>/dev/null)"
 		machine="$(printf '%s' "$doc" | grep -oE 'ELF machine 0x[0-9a-f]+' | head -1)"
@@ -397,7 +397,7 @@ else
 		}
 		# ⚠ And the document parses, which a trap returning garbage would break.
 		if command -v jq >/dev/null 2>&1; then
-			printf '%s' "$doc" | jq -e '.podbox and .rung' >/dev/null 2>&1
+			printf '%s' "$doc" | jq -e '.podvm and .rung' >/dev/null 2>&1
 			jq_rc=$?
 			printf '  probe --json parses and carries a rung: rc=%d\n' "$jq_rc" >>"$WORK/report"
 			[ "$jq_rc" -eq 0 ] || { printf '  FAIL: the document is malformed\n' >>"$WORK/report"; fail=1; }

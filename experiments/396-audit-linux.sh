@@ -16,27 +16,27 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
     git -c commit.gpgsign=false commit -m 'Record audit snapshot for verification' || exit 2
 fi
 echo "copied snapshot commit: $(git rev-parse HEAD)"
-cargo build --release -p podbox-gate || exit 2
+cargo build --release -p podvm-gate || exit 2
 mkdir -p target/release
-cp target/x86_64-unknown-linux-musl/release/podbox-gate target/release/
-cp target/x86_64-unknown-linux-musl/release/podbox-count target/release/
-cp target/x86_64-unknown-linux-musl/release/podbox-plant target/release/
-cp target/x86_64-unknown-linux-musl/release/podbox-dev target/release/
-cp target/x86_64-unknown-linux-musl/release/podbox-smoke target/release/
-cp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/
-cp target/x86_64-unknown-linux-musl/release/podbox-libc-interpose target/release/
-./target/release/podbox-dev check >/out/linux-check.txt 2>&1
+cp target/x86_64-unknown-linux-musl/release/podvm-gate target/release/
+cp target/x86_64-unknown-linux-musl/release/podvm-count target/release/
+cp target/x86_64-unknown-linux-musl/release/podvm-plant target/release/
+cp target/x86_64-unknown-linux-musl/release/podvm-dev target/release/
+cp target/x86_64-unknown-linux-musl/release/podvm-smoke target/release/
+cp target/x86_64-unknown-linux-musl/release/podvm-interpose-build target/release/
+cp target/x86_64-unknown-linux-musl/release/podvm-libc-interpose target/release/
+./target/release/podvm-dev check >/out/linux-check.txt 2>&1
 rc=$?
 cat /out/linux-check.txt
 [ "$rc" -eq 0 ] || exit "$rc"
-./target/release/podbox-plant >/out/plant.txt 2>&1
+./target/release/podvm-plant >/out/plant.txt 2>&1
 rc=$?
 cat /out/plant.txt
 [ "$rc" -eq 0 ] || exit "$rc"
-for binary in podbox node operator proxy shell; do
+for binary in podvm node operator proxy shell; do
     cp "target/x86_64-unknown-linux-musl/release/$binary" "/out/$binary" || exit 1
 done
 cp .dev/build-state.json /out/build-state.json || exit 1
-cp dist/podbox-ssh-x86_64.tar.gz /out/ || exit 1
-cp dist/podbox-ssh-x86_64.tar.gz.sha256 /out/ || exit 1
+cp dist/podvm-ssh-x86_64.tar.gz /out/ || exit 1
+cp dist/podvm-ssh-x86_64.tar.gz.sha256 /out/ || exit 1
 echo 'verdict AUDIT-LINUX-OK'

@@ -1,4 +1,4 @@
-// An LD_PRELOAD interposer in Rust, of the shape podbox's `interpose` tier
+// An LD_PRELOAD interposer in Rust, of the shape podvm's `interpose` tier
 // needs (paper section 5.5, section 10.3): override one libc symbol, record that it was
 // reached, and return success without performing the operation - which is
 // what makes ownership restoration survivable on a runtime that answers

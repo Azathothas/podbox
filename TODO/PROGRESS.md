@@ -4,6 +4,10 @@
 
 262 entries: 11 open, 9 partial, 0 blocked, 242 done.
 
+The project was renamed from podbox to podvm on 2026-11-06 (commit
+`rename: podbox is podvm`): entries closed before that commit ran their
+commands under the name podbox, and the record now spells them as podvm.
+
 **Eleven entries are `open`: T-1643 through T-1653, item 13 of the work
 order.** Every other filed row is `done` or `partial`, and each partial
 names its remaining acceptance. T-1613 filed the 21 unbatched
@@ -33,16 +37,16 @@ alone. Since 2026-11-06 it lives on the branch `archive/podbox-worktree`;
 [the archive page](../docs/history/worktree-archive.md) says how to read it.
 
 Batch 3 (T-1559 through T-1569, the three tool crates) is landed
-2026-10-01: `podbox-buildstate` (buildstate, release-licenses),
-`podbox-release` (verify, size, prove-t0211, document-state,
-release-notes, reconcile, publish), and `podbox-podvm` (podvm,
+2026-10-01: `podvm-buildstate` (buildstate, release-licenses),
+`podvm-release` (verify, size, prove-t0211, document-state,
+release-notes, reconcile, publish), and `podvm-measure` (podvm-parity,
 podvm-workload). Each retired script stays as an exec shim; the
 nightly publish job runs the couriered musl-static `release-notes`
 binary. Three lane proofs drove green with retired-vs-binary
 agreement
 ([buildstate](../experiments/results/buildstate-crate-proof.txt),
 [release](../experiments/results/release-crate-proof.txt),
-[podvm](../experiments/results/podvm-crate-proof.txt)), each with its
+[podvm-measure](../experiments/results/podvm-crate-proof.txt)), each with its
 plant transcript. T-1563 closes with the port faithful and T-0211
 still partial on the live lock; T-1568 and T-1569 close with the
 chroot intermittency and the guest gap recorded and owned by T-1302
@@ -66,10 +70,10 @@ The audit session staged its work and did not commit. Its third KVM run
 left an emulator that SIGKILL did not remove. Later, the Windows host
 failed. The operator removed the WSL distributions and stopped the
 processes. The recovery session on 2026-09-30 started from `005638d` with
-the staged audit. It rebuilt `wsl-toolkit-podbox` with
-`wsl-toolkit --instance podbox base ensure --probe` and ran no guest.
+the staged audit. It rebuilt `wsl-toolkit-podvm` with
+`wsl-toolkit --instance podvm base ensure --probe` and ran no guest.
 
-The recovery found a source defect. `podbox_windows::run` piped the
+The recovery found a source defect. `podvm_windows::run` piped the
 emulator's streams and did not read them. The fix and its mutation proof
 are in T-1112 and [experiment 401](../experiments/results/emulator-streams.txt).
 The KVM driver needs `--accept-host-risk`, and an unattended run adds
@@ -89,7 +93,7 @@ counts. [The comparison](../experiments/results/publish-branch-comparison.txt)
 records the finding. Delete the branch after verified main publication.
 
 The retained io12 loader is not linked. The native userland loader is in
-podbox-enter. The passwd shim is retained source without a compiled build
+podvm-enter. The passwd shim is retained source without a compiled build
 path. See [Source state](../docs/runtime-state.md) and [Limits](../docs/limits.md).
 
 The read-only [pg-toolkit report](../docs/history/references/pg-toolkit-2026-09-30.md)
@@ -158,7 +162,7 @@ keeps its historical scope. It does not establish current reliability.
     T-1406 (live-relay pairing), T-1604 (the lane run),
     T-1605 (the live tag proof), T-1606 (the `path:line` repoint) and
     T-1607 (29 unfiled plan rows). T-1604's lane run is the nearest and
-    needs no guest: `cargo test -p podbox-cli --test detached_stdio`
+    needs no guest: `cargo test -p podvm --test detached_stdio`
     through `sh scripts/dev-lane.sh`.
 11. The three deferred entries carry this state, so a later session does
     not re-derive it. T-1641 implemented all three fixes and had two of
@@ -202,8 +206,8 @@ run.
 
 | id | failure | reading |
 | --- | --- | --- |
-| T-1601 | `invalid definition of the runtime `open` symbol` at `crates/podbox-interpose/src/lib.rs:2144`, deny-by-default, takes the static build, the interposer tests, and plants 32e and 32f | T-1601 settles it: allow the lint at the definition. Do not pin the toolchain. |
-| T-1602 | clippy dead code, `crates/podbox-image/tests/common/registry.rs:30`, four unread fields | T-1602 makes them needed. Do not delete the fields. |
+| T-1601 | `invalid definition of the runtime `open` symbol` at `crates/podvm-interpose/src/lib.rs:2144`, deny-by-default, takes the static build, the interposer tests, and plants 32e and 32f | T-1601 settles it: allow the lint at the definition. Do not pin the toolchain. |
+| T-1602 | clippy dead code, `crates/podvm-image/tests/common/registry.rs:30`, four unread fields | T-1602 makes them needed. Do not delete the fields. |
 | T-1603 | `check-no-secrets --public` exits 1 on `scripts/dev-lane.sh:205` `/home/toolkit` | T-1603 removes the check and adds trufflehog. Reproduced locally, not assumed. |
 | T-1604 | `detached_stdio` 1 passed, 2 failed | T-1604: one defect, two symptoms. The `:138` PoisonError is the cascade, not a second defect. The 1-of-3 was the tier: the job built no interposer, so the binary under test declined every payload where `chroot(2)` is denied. Fixed 2026-10-02; the lane run remains. |
 
@@ -289,8 +293,8 @@ The summary beside this record is
 
 Commit `0c0ae8b`, titled "Record the 2026-10-02 session summary beside
 the record", contains one inserted line and nothing else:
-`assert!(false, "plant crates/podbox-cli/tests/qol.rs")` at
-`crates/podbox-cli/tests/qol.rs:176`. It is a live plant, and it was
+`assert!(false, "plant crates/podvm/tests/qol.rs")` at
+`crates/podvm/tests/qol.rs:176`. It is a live plant, and it was
 committed while the plant harness was still running in the background.
 
 The cause is the order of operations, not a mistake in the content: the
@@ -304,7 +308,7 @@ claimed to record was lost the same way, when the plant restored
 Two consequences for the next session. The record gate exits 0 over a
 tree carrying a planted `assert!(false)`, because it reads records and
 not test bodies, so the gate is not evidence that the tree builds. And
-no session may run `git add -A` while `podbox-plant` is running. Either
+no session may run `git add -A` while `podvm-plant` is running. Either
 finish the plant and read its exit code first, or stage explicit paths.
 The same applies to any tool that edits tracked files and restores them
 at the end.
@@ -313,10 +317,10 @@ at the end.
 
 | Row | Evidence |
 | --- | --- |
-| Record | 250 rows, 22 open, 10 partial, 0 blocked, 218 done; `podbox-count` exit 0, gate exit 0 |
+| Record | 250 rows, 22 open, 10 partial, 0 blocked, 218 done; `podvm-count` exit 0, gate exit 0 |
 | T-1641 | partial. Three fixes implemented; two of its stated causes were refuted in source and are filed as refutations. Owes one guarded KVM run |
 | T-1604 | partial. The tier skip and the CI interposer step are in; the lane run remains |
-| Checks | `cargo fmt --all --check` 0, `cargo clippy -p podbox-windows --all-targets` 0, `cargo check -p podbox-windows --all-targets` 0, `check-docs`/`check-markers`/`check-placeholders`/`check-control-bytes` 0 each, interposer fmt 0, workflow YAML parses |
+| Checks | `cargo fmt --all --check` 0, `cargo clippy -p podvm-windows --all-targets` 0, `cargo check -p podvm-windows --all-targets` 0, `check-docs`/`check-markers`/`check-placeholders`/`check-control-bytes` 0 each, interposer fmt 0, workflow YAML parses |
 | Not run | `cargo test --workspace` and the KVM proof, both blocked by `ring`'s build script failing here through `scripts/zig-cc.sh`; reproduces on the clean tree with the edits stashed |
 | Diff | 10 files, 852 insertions, 141 deletions |
 | Health | no guest started, no engine state changed, no job retained |

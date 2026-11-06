@@ -13,38 +13,38 @@ Declared version: `0.1.0-beta.13`.
 
 | Member | Manifest |
 | --- | --- |
-| `podbox-cli` | [crates/podbox-cli/Cargo.toml](../crates/podbox-cli/Cargo.toml) |
-| `podbox-probe` | [crates/podbox-probe/Cargo.toml](../crates/podbox-probe/Cargo.toml) |
-| `podbox-image` | [crates/podbox-image/Cargo.toml](../crates/podbox-image/Cargo.toml) |
-| `podbox-extract` | [crates/podbox-extract/Cargo.toml](../crates/podbox-extract/Cargo.toml) |
-| `podbox-complete` | [crates/podbox-complete/Cargo.toml](../crates/podbox-complete/Cargo.toml) |
-| `podbox-enter` | [crates/podbox-enter/Cargo.toml](../crates/podbox-enter/Cargo.toml) |
-| `podbox-gate` | [crates/podbox-gate/Cargo.toml](../crates/podbox-gate/Cargo.toml) |
-| `podbox-buildstate` | [crates/podbox-buildstate/Cargo.toml](../crates/podbox-buildstate/Cargo.toml) |
-| `podbox-release` | [crates/podbox-release/Cargo.toml](../crates/podbox-release/Cargo.toml) |
-| `podbox-podvm` | [crates/podbox-podvm/Cargo.toml](../crates/podbox-podvm/Cargo.toml) |
-| `podbox-supervise` | [crates/podbox-supervise/Cargo.toml](../crates/podbox-supervise/Cargo.toml) |
-| `podbox-windows` | [crates/podbox-windows/Cargo.toml](../crates/podbox-windows/Cargo.toml) |
-| `podbox-ssh` | [crates/podbox-ssh/Cargo.toml](../crates/podbox-ssh/Cargo.toml) |
+| `podvm` | [crates/podvm/Cargo.toml](../crates/podvm/Cargo.toml) |
+| `podvm-probe` | [crates/podvm-probe/Cargo.toml](../crates/podvm-probe/Cargo.toml) |
+| `podvm-image` | [crates/podvm-image/Cargo.toml](../crates/podvm-image/Cargo.toml) |
+| `podvm-extract` | [crates/podvm-extract/Cargo.toml](../crates/podvm-extract/Cargo.toml) |
+| `podvm-complete` | [crates/podvm-complete/Cargo.toml](../crates/podvm-complete/Cargo.toml) |
+| `podvm-enter` | [crates/podvm-enter/Cargo.toml](../crates/podvm-enter/Cargo.toml) |
+| `podvm-gate` | [crates/podvm-gate/Cargo.toml](../crates/podvm-gate/Cargo.toml) |
+| `podvm-buildstate` | [crates/podvm-buildstate/Cargo.toml](../crates/podvm-buildstate/Cargo.toml) |
+| `podvm-release` | [crates/podvm-release/Cargo.toml](../crates/podvm-release/Cargo.toml) |
+| `podvm-measure` | [crates/podvm-measure/Cargo.toml](../crates/podvm-measure/Cargo.toml) |
+| `podvm-supervise` | [crates/podvm-supervise/Cargo.toml](../crates/podvm-supervise/Cargo.toml) |
+| `podvm-windows` | [crates/podvm-windows/Cargo.toml](../crates/podvm-windows/Cargo.toml) |
+| `podvm-ssh` | [crates/podvm-ssh/Cargo.toml](../crates/podvm-ssh/Cargo.toml) |
 
-Separate crate: `crates/podbox-interpose`.
+Separate crate: `crates/podvm-interpose`.
 
 ## Mechanism declarations
 
-`Rung` in [crates/podbox-probe/src/select.rs](../crates/podbox-probe/src/select.rs): `Namespace`, `Supervise`, `Chroot`, `Userland`, `Interpose`, `Unsupported`.
+`Rung` in [crates/podvm-probe/src/select.rs](../crates/podvm-probe/src/select.rs): `Namespace`, `Supervise`, `Chroot`, `Userland`, `Interpose`, `Unsupported`.
 
-`Tier` in [crates/podbox-cli/src/tier.rs](../crates/podbox-cli/src/tier.rs): `Ladder`, `Chroot`, `Machine`.
+`Tier` in [crates/podvm/src/tier.rs](../crates/podvm/src/tier.rs): `Ladder`, `Chroot`, `Machine`.
 
-`Mode` in [crates/podbox-enter/src/ladder.rs](../crates/podbox-enter/src/ladder.rs): `Memfd`, `Fuse`, `Tmpfs`, `RunDir`, `Cache`.
+`Mode` in [crates/podvm-enter/src/ladder.rs](../crates/podvm-enter/src/ladder.rs): `Memfd`, `Fuse`, `Tmpfs`, `RunDir`, `Cache`.
 
 ## SSH helper sources
 
 | Executable | Source |
 | --- | --- |
-| `node` | [crates/podbox-ssh/src/bin/node.rs](../crates/podbox-ssh/src/bin/node.rs) |
-| `operator` | [crates/podbox-ssh/src/bin/operator.rs](../crates/podbox-ssh/src/bin/operator.rs) |
-| `proxy` | [crates/podbox-ssh/src/bin/proxy.rs](../crates/podbox-ssh/src/bin/proxy.rs) |
-| `shell` | [crates/podbox-ssh/src/bin/shell.rs](../crates/podbox-ssh/src/bin/shell.rs) |
+| `node` | [crates/podvm-ssh/src/bin/node.rs](../crates/podvm-ssh/src/bin/node.rs) |
+| `operator` | [crates/podvm-ssh/src/bin/operator.rs](../crates/podvm-ssh/src/bin/operator.rs) |
+| `proxy` | [crates/podvm-ssh/src/bin/proxy.rs](../crates/podvm-ssh/src/bin/proxy.rs) |
+| `shell` | [crates/podvm-ssh/src/bin/shell.rs](../crates/podvm-ssh/src/bin/shell.rs) |
 
 ## Declared direct registry dependencies
 

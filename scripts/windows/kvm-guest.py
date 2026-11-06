@@ -79,13 +79,13 @@ def main():
         body = (ROOT / "experiments/lib/kvm-owned.sh").read_text(encoding="utf-8")
         body += (ROOT / "experiments/lib/kvm-guest-base.sh").read_text(encoding="utf-8")
         prefix = (
-            "PODBOX_BIN_SRC=" + shlex.quote(binary) + "\n"
+            "PODVM_BIN_SRC=" + shlex.quote(binary) + "\n"
             "IMG_HOST=" + shlex.quote(image) + "\n"
         )
-        with tempfile.TemporaryDirectory(prefix="podbox-kvm-proof-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="podvm-kvm-proof-") as temporary:
             script = Path(temporary) / "guest.sh"
             script.write_text(prefix + body, encoding="utf-8", newline="\n")
-            command = [tool, "--instance", "podbox", "base", "exec"]
+            command = [tool, "--instance", "podvm", "base", "exec"]
             if guard is None and options.unattended:
                 # T-1609. The proof runs detached so the watchdog has a
                 # session id to watch, and the watchdog's own bound sits
@@ -118,7 +118,7 @@ def main():
                     # `logs --follow` returns the session's exit code, so the
                     # proof's verdict still comes from the tool that ran it.
                     result = subprocess.run(
-                        [tool, "--instance", "podbox", "logs", session, "--follow"],
+                        [tool, "--instance", "podvm", "logs", session, "--follow"],
                         cwd=ROOT, capture_output=True, timeout=4500,
                     )
                     guard.wait(timeout=180)
@@ -127,17 +127,17 @@ def main():
         # Paths are host conditions. Publish stable labels and state this conversion.
         for path, label in ((binary, "$BINARY"), (image, "$IMAGE")):
             output = output.replace(path, label)
-        output = re.sub(r"/home/[^/\s]+/podbox-kvm\.[A-Za-z0-9]+", "$SCRATCH", output)
+        output = re.sub(r"/home/[^/\s]+/podvm-kvm\.[A-Za-z0-9]+", "$SCRATCH", output)
         output = re.sub(r"/home/[^/\s]+", "$BASE_HOME", output)
         output = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]",
                         lambda match: "\\x%02x" % ord(match.group()), output)
         lines = []
         for line in output.splitlines():
-            if "instance podbox: distribution" not in line:
+            if "instance podvm: distribution" not in line:
                 lines.append(line)
         stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         report = (
-            "== conditions\n" + stamp + "\ninstance=podbox\n"
+            "== conditions\n" + stamp + "\ninstance=podvm\n"
             "Host input paths use $BINARY and $IMAGE. Base scratch uses $SCRATCH.\n"
             "Control bytes use \\xNN labels.\n"
             "\n" + "\n".join(lines) + f"\nproof exit: {result.returncode}\n"

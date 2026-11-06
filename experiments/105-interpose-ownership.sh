@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: does podbox's own interposer clear the ownership wall, and does it
+# Question: does podvm's own interposer clear the ownership wall, and does it
 # stay quiet on a machine that has no wall?
 #
 # TODO/interpose.md T-0701 (the cdylib's build constraints) and T-0704
@@ -18,7 +18,7 @@
 #      rather than by reading a header. `src/lib.rs` carries all of them, and a
 #      check that asserted only the first struct would have left unmeasured the
 #      one that actually answers a modern glibc payload.
-#   C. THE CONTROL, and it comes first: on a machine that CAN chown, podbox must
+#   C. THE CONTROL, and it comes first: on a machine that CAN chown, podvm must
 #      change nothing and write no memo. An interposer that reported the
 #      caller's intent where the kernel would have done the real thing is weaker
 #      than the bare chroot it replaces.
@@ -29,13 +29,13 @@
 #   E. THE WALL, musl, with the musl-linked object, because T-0702 is that one
 #      object per libc is required and an arm that only ran under glibc would
 #      not have tested that.
-#   F. THE PAIR podbox MUST REFUSE, and it is podbox's own object rather than
+#   F. THE PAIR podvm MUST REFUSE, and it is podvm's own object rather than
 #      the C reference interposer 80-interposer-abi.sh uses: this object is
 #      built on glibc 2.39 and imports `dlsym@GLIBC_2.34`, so a 2.31 payload
 #      cannot load it. T-0709's reader says so from ELF, with nothing loaded,
 #      and the loader is asked afterwards to agree.
 #
-# WHY NOT THIS HOST DIRECTLY. It grants real ownership -- `podbox probe` reads
+# WHY NOT THIS HOST DIRECTLY. It grants real ownership -- `podvm probe` reads
 # `ownership: real` -- so `chown 0:42` SUCCEEDS here and the memo path never
 # runs. A check that passed for that reason would be measuring the kernel.
 # `--cap-drop=CHOWN` removes exactly the capability and nothing else.
@@ -45,7 +45,7 @@
 # at `public.ecr.aws`, never Docker Hub), and the objects
 # `scripts/build-interpose.sh` produces from this tree, or `GNU_SO` and
 # `MUSL_SO` in the environment pointing at a guest build's artifacts. The
-# podbox binary for check F is `PODBOX_BIN` (a Linux binary: on a Linux lane
+# podvm binary for check F is `PODVM_BIN` (a Linux binary: on a Linux lane
 # it runs directly, anywhere else staged inside the glibc payload image,
 # which is statically linked enough to need nothing from it but a kernel).
 #
@@ -59,7 +59,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 ROOT="$(CDPATH= cd -- "$HERE/.." && pwd)"
-CRATE="$ROOT/crates/podbox-interpose"
+CRATE="$ROOT/crates/podvm-interpose"
 OUT="${OUT:-$HERE/.ownership}"
 rm -rf "$OUT"
 mkdir -p "$OUT"
@@ -72,12 +72,12 @@ ENGINE_WORK="$OUT"
 engine_pick || exit 2
 trap eng_cleanup EXIT INT TERM
 
-GNU_SO="${GNU_SO:-$CRATE/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so}"
-MUSL_SO="${MUSL_SO:-$CRATE/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so}"
+GNU_SO="${GNU_SO:-$CRATE/target/x86_64-unknown-linux-gnu/release/libpodvm_interpose.so}"
+MUSL_SO="${MUSL_SO:-$CRATE/target/x86_64-unknown-linux-musl/release/libpodvm_interpose.so}"
 # The glibc payload is newer than the build host's, and that is not a
 # convenience. This object is linked against the host's glibc 2.39 and imports
 # `dlsym@GLIBC_2.34`, so it CANNOT be loaded into a 2.31 payload: check F puts
-# the old one to podbox's own reader and requires it to be refused before
+# the old one to podvm's own reader and requires it to be refused before
 # anything is loaded, which is TODO/interpose.md T-0709.
 GLIBC_PAYLOAD='quay.io/fedora/fedora@sha256:e78cd1a688cd079c23864f289a89a49a3f4ad66d817864e325e1d058310ee95c'
 # Bare `ubuntu` with a pinned digest: no M5 row names this older libc, so it
@@ -117,7 +117,7 @@ echo "== A. the exported set, against the version script"
 # compared with it: a name in `interpose.map` that `src/lib.rs` does not define
 # is a silent non-interposition, and one the object exports that the script does
 # not list is a symbol some other library in the payload's process would resolve
-# to podbox.
+# to podvm.
 awk '/global:/{g=1;next} /local:/{g=0} g && /;/{gsub(/[ \t;]/,"");if($0!="")print}' \
 	"$CRATE/interpose.map" | sort >"$OUT/declared"
 nm -D --defined-only "$GNU_SO" | awk '$2=="T"{print $3}' | sort >"$OUT/exported.gnu"
@@ -152,7 +152,7 @@ cat >"$OUT/off.c" <<'EOF'
 /* NOT <linux/stat.h>. musl's own <sys/stat.h> defines `struct statx` and the
  * kernel header then redefines it; glibc since 2.28 defines it there too under
  * _GNU_SOURCE. Two libcs declaring one kernel struct in two different headers
- * is exactly why podbox's object carries OFFSETS rather than a struct. */
+ * is exactly why podvm's object carries OFFSETS rather than a struct. */
 int main(void){
   printf("sizeof=%zu dev=%zu ino=%zu mode=%zu uid=%zu gid=%zu\n",
     sizeof(struct stat), offsetof(struct stat, st_dev), offsetof(struct stat, st_ino),
@@ -221,7 +221,7 @@ if [ -f "$OUT/off_m" ] && [ -z "$m_off" ]; then
 fi
 printf '  glibc  %s\n' "${g_off:-COULD NOT BUILD OR RUN}"
 printf '  musl   %s\n' "${m_off:-COULD NOT BUILD OR RUN}"
-# The numbers `crates/podbox-interpose/src/lib.rs` carries, asserted here
+# The numbers `crates/podvm-interpose/src/lib.rs` carries, asserted here
 # rather than believed. They agree on x86_64 and that is this architecture's
 # property, not a general one: T-0702's premise is that struct layout is what a
 # preload cannot bridge.
@@ -236,15 +236,15 @@ fi
 echo
 
 # subject SO IMAGE CAPS -> prints "<rc-of-chown> <what stat reports> <memo bytes>"
-# ⭐ T-0710: the memo is handed as a descriptor, as podbox hands it at spawn.
-# Where the payload preloads the object the harness opens `/.podbox/` (inside
-# this test container, standing in for the host file podbox holds) read-write
-# and hands fd 9 with `PODBOX_MEMO_FD=9`; bare runs hand nothing and write
+# ⭐ T-0710: the memo is handed as a descriptor, as podvm hands it at spawn.
+# Where the payload preloads the object the harness opens `/.podvm/` (inside
+# this test container, standing in for the host file podvm holds) read-write
+# and hands fd 9 with `PODVM_MEMO_FD=9`; bare runs hand nothing and write
 # no memo. Read-write (`<>`) rather than append (`>>`): the interposer reads
 # through the same descriptor it writes, and a write-only one answers `EBADF`
 # on the read. The object seeks to the end before each record, so the position
 # is exact either way. Fd 9 and not 17: the old glibc payload's `/bin/sh` is
-# dash, which redirects single-digit descriptors only; podbox itself hands 17
+# dash, which redirects single-digit descriptors only; podvm itself hands 17
 # by `dup2` before the `exec` and no shell is involved there.
 subject() {
 	local so="$1" img="$2" caps="$3" preload="$4"
@@ -252,10 +252,10 @@ subject() {
 	eng_run 180 "$img" "$caps" -- /bin/sh -c "
     case ' ${preload} ' in
       *LD_PRELOAD*)
-        mkdir -p /.podbox
-        : >/.podbox/ownership.memo
-        exec 9<>/.podbox/ownership.memo
-        export PODBOX_MEMO_FD=9
+        mkdir -p /.podvm
+        : >/.podvm/ownership.memo
+        exec 9<>/.podvm/ownership.memo
+        export PODVM_MEMO_FD=9
         ;;
     esac
     ${preload}
@@ -263,7 +263,7 @@ subject() {
     chown 0:42 /tmp/f 2>/tmp/e; echo \"CHOWN_RC=\$?\"
     echo \"CHOWN_ERR=\$(head -1 /tmp/e 2>/dev/null | cut -c1-80)\"
     echo \"STAT=\$(stat -c %u:%g /tmp/f 2>/dev/null)\"
-    echo \"MEMO=\$( [ -f /.podbox/ownership.memo ] && wc -c </.podbox/ownership.memo || echo none )\"
+    echo \"MEMO=\$( [ -f /.podvm/ownership.memo ] && wc -c </.podvm/ownership.memo || echo none )\"
   " 2>&1
 }
 
@@ -279,7 +279,7 @@ c_memo="$(printf '%s' "$c_out" | sed -n 's/^MEMO=//p')"
 # records, so none (no file, bare runs) or 0 (empty file, real chown needed no
 # record) both pass. Anything else is a record where the kernel did the work.
 if [ "$c_stat" = "0:42" ] && { [ "$c_memo" = "none" ] || [ "$c_memo" = "0" ]; }; then
-	pass "C: the real chown worked and podbox wrote no memo"
+	pass "C: the real chown worked and podvm wrote no memo"
 else
 	fail "C: stat says [$c_stat] and the memo is [$c_memo]; it should be 0:42 and none or 0"
 fi
@@ -287,7 +287,7 @@ echo
 
 echo "== D. the wall, glibc: root WITHOUT CAP_CHOWN"
 # `--cap-drop=CHOWN` refuses the call with EPERM, which is one of the two
-# errnos T-0704 names. The runtime podbox targets answers EINVAL for an unmapped
+# errnos T-0704 names. The runtime podvm targets answers EINVAL for an unmapped
 # id, and the object swallows both; fakeroot tests EPERM alone at eight sites
 # and would return the error on every one of them here.
 d_bare="$(subject "$GNU_SO" "$GLIBC_PAYLOAD" "--cap-drop=CHOWN" 'true')"
@@ -302,7 +302,7 @@ pre_stat="$(printf '%s' "$d_pre" | sed -n 's/^STAT=//p')"
 if [ "$bare_rc" = "0" ]; then
 	cannot "the control chown SUCCEEDED without CAP_CHOWN, so there is no wall here"
 elif [ "$pre_rc" = "0" ] && [ "$pre_stat" = "0:42" ]; then
-	pass "D: the bare chown failed (rc=$bare_rc) and podbox's answered 0:42"
+	pass "D: the bare chown failed (rc=$bare_rc) and podvm's answered 0:42"
 else
 	fail "D: with the object the chown exited $pre_rc and stat says [$pre_stat]"
 fi
@@ -327,13 +327,13 @@ else
 fi
 echo
 
-echo "== F. the pair podbox must refuse BEFORE loading anything"
-# TODO/interpose.md T-0709, against podbox's OWN object rather than the C
+echo "== F. the pair podvm must refuse BEFORE loading anything"
+# TODO/interpose.md T-0709, against podvm's OWN object rather than the C
 # reference interposer 80-interposer-abi.sh uses. The object is built on glibc
 # 2.39 and imports `dlsym@GLIBC_2.34`; the older payload declares up to
 # GLIBC_2.31. The reader must say so from ELF, with nothing loaded, and the
 # loader must agree when the pair is forced.
-BIN="${PODBOX_BIN:-$ROOT/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$ROOT/target/x86_64-unknown-linux-musl/release/podvm}"
 # The reader runs where a Linux binary executes. On a Linux lane that is
 # here. Anywhere else it runs staged inside the glibc payload image: the
 # release binary is statically linked, so it needs nothing from the image
@@ -346,14 +346,14 @@ Linux)
 	if [ -x "$BIN" ]; then
 		_can_read="1"
 	else
-		cannot "$BIN is not an executable (set PODBOX_BIN), so the reader cannot be asked"
+		cannot "$BIN is not an executable (set PODVM_BIN), so the reader cannot be asked"
 	fi
 	;;
 *)
 	if [ -r "$BIN" ]; then
 		_can_engine="1"
 	else
-		cannot "PODBOX_BIN is not readable (set it to a guest build artifact), so the reader cannot be asked"
+		cannot "PODVM_BIN is not readable (set it to a guest build artifact), so the reader cannot be asked"
 	fi
 	;;
 esac
@@ -376,7 +376,7 @@ if [ -n "$_can_read" ] || [ -n "$_can_engine" ]; then
 			f_out=""
 			f_rc=2
 		fi
-		printf '  podbox system abi: rc=%s %s\n' "$f_rc" \
+		printf '  podvm system abi: rc=%s %s\n' "$f_rc" \
 			"$(printf '%s' "$f_out" | head -1 | sed "s#$ROOT/##g" | cut -c1-100)"
 		# subject() stages the object itself; staging it here too would only
 		# double the same destination.
@@ -408,21 +408,21 @@ echo "== G. past the scan ceiling: correct or refusal, never stale"
 # chown to 0:42 (records old), fill past the ceiling with zeros, chown the
 # same file to 0:43 (records new, past the ceiling), then stat. Correct is
 # 0:43, refusal is the real 0:0, stale is 0:42. The harness hands fd 9 as
-# `subject` does (dash reaches single-digit descriptors only); podbox hands 17
+# `subject` does (dash reaches single-digit descriptors only); podvm hands 17
 # by `dup2` with no shell involved.
 if eng_mount "$GNU_SO" /i.so; then
 	g_out="$(eng_run 180 "$GLIBC_PAYLOAD" "--cap-drop=CHOWN" -- /bin/sh -c '
-    mkdir -p /.podbox
-    : >/.podbox/ownership.memo
-    exec 9<>/.podbox/ownership.memo
-    export PODBOX_MEMO_FD=9 LD_PRELOAD=/i.so
+    mkdir -p /.podvm
+    : >/.podvm/ownership.memo
+    exec 9<>/.podvm/ownership.memo
+    export PODVM_MEMO_FD=9 LD_PRELOAD=/i.so
     : >/tmp/g
     chown 0:42 /tmp/g 2>/dev/null
     echo "OLD_STAT=$(stat -c %u:%g /tmp/g 2>/dev/null)"
-    dd if=/dev/zero bs=1M count=5 >>/.podbox/ownership.memo 2>/dev/null
+    dd if=/dev/zero bs=1M count=5 >>/.podvm/ownership.memo 2>/dev/null
     chown 0:43 /tmp/g 2>/dev/null
     echo "NEW_STAT=$(stat -c %u:%g /tmp/g 2>/dev/null)"
-    echo "MEMO_BYTES=$(wc -c </.podbox/ownership.memo)"
+    echo "MEMO_BYTES=$(wc -c </.podvm/ownership.memo)"
   ' 2>&1)"
 	g_rc=$?
 	eng_clear
@@ -448,7 +448,7 @@ echo
 
 echo "== verdict"
 if [ "$rc" -eq 0 ] && [ "$could_not" -eq 0 ]; then
-	echo "  every check ran and matched. podbox's own object clears the ownership"
+	echo "  every check ran and matched. podvm's own object clears the ownership"
 	echo "  wall and stays quiet where there is none."
 elif [ "$rc" -eq 0 ]; then
 	echo "  every check that ran matched; one or more could not be taken here."

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: does podbox refuse a pull it cannot fit BEFORE fetching anything,
+# Question: does podvm refuse a pull it cannot fit BEFORE fetching anything,
 # and does the refusal name the destination, the free amount, the required
 # amount and the unit?
 #
@@ -22,9 +22,9 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/space-precheck.txt"
-REFERENCE="${PODBOX_TEST_IMAGE:-public.ecr.aws/docker/library/alpine:latest}"
+REFERENCE="${PODVM_TEST_IMAGE:-public.ecr.aws/docker/library/alpine:latest}"
 WORK="$(mktemp -d)"
 SMALL="$WORK/small"
 trap 'mountpoint -q "$SMALL" 2>/dev/null && umount "$SMALL"; rm -rf "$WORK"' EXIT INT TERM
@@ -42,11 +42,11 @@ trap 'mountpoint -q "$SMALL" 2>/dev/null && umount "$SMALL"; rm -rf "$WORK"' EXI
 # on 2026-09-08 after this session's own runs, which turns a re-run of a check
 # about disk space into a check about somebody else's quota.
 # `experiments/150-image-acquisition.sh` stays on `alpine:latest` because it
-# must ask docker about the same tag. `PODBOX_TEST_IMAGE` overrides this.
+# must ask docker about the same tag. `PODVM_TEST_IMAGE` overrides this.
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
-printf 'podbox            %s\n' "$("$BIN" version)"
+printf 'podvm            %s\n' "$("$BIN" version)"
 printf 'reference         %s\n' "$REFERENCE"
 echo
 
@@ -72,7 +72,7 @@ registry_refused() {
 # own exit code, never a failure: TODO/RULES.md section 6, "could not run" must
 # never read as "denied".
 tmpfs_ok=0
-if mount -t tmpfs -o size=1M,nr_inodes=64 podbox-precheck "$SMALL" 2>"$WORK/mount.err"; then
+if mount -t tmpfs -o size=1M,nr_inodes=64 podvm-precheck "$SMALL" 2>"$WORK/mount.err"; then
 	tmpfs_ok=1
 else
 	echo "== 1. a destination with no room"
@@ -83,9 +83,9 @@ else
 fi
 
 echo "== 1. a pull into a destination with no room is refused up front"
-# ⛔ The exit code is read from podbox, not through a pipe. AGENTS.md
+# ⛔ The exit code is read from podvm, not through a pipe. AGENTS.md
 # absolute 8: a guard piped into anything reports the pipeline's status.
-PODBOX_STORE="$SMALL/store" "$BIN" pull "$REFERENCE" >"$WORK/out.txt" 2>"$WORK/err.txt"
+PODVM_STORE="$SMALL/store" "$BIN" pull "$REFERENCE" >"$WORK/out.txt" 2>"$WORK/err.txt"
 rc=$?
 msg="$(cat "$WORK/err.txt" "$WORK/out.txt")"
 printf '  exit %s\n' "$rc"
@@ -97,7 +97,7 @@ if registry_refused "$WORK/err.txt"; then
 	exit 2
 fi
 if [ "$rc" -eq 0 ]; then
-	echo "  FAIL: podbox pulled into a 1 MiB filesystem"
+	echo "  FAIL: podvm pulled into a 1 MiB filesystem"
 	fail=1
 fi
 
@@ -142,9 +142,9 @@ free_inodes="-"
 # the same script reported `ran` and then `refused earlier` on two runs of one
 # machine. Building the store while inodes are plentiful and consuming the rest
 # afterwards puts the check in exactly one place.
-if mount -t tmpfs -o size=256M,nr_inodes=64 podbox-precheck "$SMALL" 2>"$WORK/mount2.err"; then
+if mount -t tmpfs -o size=256M,nr_inodes=64 podvm-precheck "$SMALL" 2>"$WORK/mount2.err"; then
 	# `images` opens the store, which is what creates its directories.
-	PODBOX_STORE="$SMALL/store" "$BIN" images >/dev/null 2>&1
+	PODVM_STORE="$SMALL/store" "$BIN" images >/dev/null 2>&1
 	# Then eat inodes until fewer remain than a pull needs: one per layer plus
 	# eight, and alpine has one layer.
 	i=0
@@ -154,7 +154,7 @@ if mount -t tmpfs -o size=256M,nr_inodes=64 podbox-precheck "$SMALL" 2>"$WORK/mo
 	done
 	free_inodes="$(stat -f -c%d "$SMALL")"
 	printf '  free inodes       %s\n' "$free_inodes"
-	PODBOX_STORE="$SMALL/store" "$BIN" pull "$REFERENCE" >"$WORK/out2.txt" 2>"$WORK/err2.txt"
+	PODVM_STORE="$SMALL/store" "$BIN" pull "$REFERENCE" >"$WORK/out2.txt" 2>"$WORK/err2.txt"
 	rc2=$?
 	printf '  exit %s\n' "$rc2"
 	sed 's/^/    /' "$WORK/err2.txt"
@@ -163,7 +163,7 @@ if mount -t tmpfs -o size=256M,nr_inodes=64 podbox-precheck "$SMALL" 2>"$WORK/mo
 		inode_clause="could not run: the registry refused"
 		exit 2
 	elif [ "$rc2" -eq 0 ]; then
-		echo "  FAIL: podbox pulled into a filesystem with $free_inodes free inodes"
+		echo "  FAIL: podvm pulled into a filesystem with $free_inodes free inodes"
 		fail=1
 	elif grep -qF "inodes" "$WORK/err2.txt"; then
 		echo "  ok      the refusal names inodes"
@@ -180,7 +180,7 @@ else
 fi
 
 {
-	printf '# podbox space precheck, TODO/image.md T-0203\n'
+	printf '# podvm space precheck, TODO/image.md T-0203\n'
 	printf '# taken %s on kernel %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(uname -r)"
 	printf '# A 1 MiB tmpfs, and a roomy one filled until few inodes remain. Both\n'
 	printf '# are mounted by this script rather than being fixtures.\n'

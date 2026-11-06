@@ -312,50 +312,50 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
-name = "podbox-buildstate"
-version = "0.1.0-beta.13"
-
-[[package]]
-name = "podbox-cli"
+name = "podvm"
 version = "0.1.0-beta.13"
 dependencies = [
- "podbox-complete",
- "podbox-enter",
- "podbox-extract",
- "podbox-image",
- "podbox-probe",
- "podbox-supervise",
- "podbox-windows",
+ "podvm-complete",
+ "podvm-enter",
+ "podvm-extract",
+ "podvm-image",
+ "podvm-probe",
+ "podvm-supervise",
+ "podvm-windows",
  "serde_json",
  "sha2",
  "ureq",
 ]
 
 [[package]]
-name = "podbox-complete"
+name = "podvm-buildstate"
+version = "0.1.0-beta.13"
+
+[[package]]
+name = "podvm-complete"
 version = "0.1.0-beta.13"
 dependencies = [
- "podbox-extract",
- "podbox-image",
- "podbox-probe",
+ "podvm-extract",
+ "podvm-image",
+ "podvm-probe",
  "serde_json",
  "ureq",
 ]
 
 [[package]]
-name = "podbox-enter"
+name = "podvm-enter"
 version = "0.1.0-beta.13"
 dependencies = [
- "podbox-probe",
+ "podvm-probe",
 ]
 
 [[package]]
-name = "podbox-extract"
+name = "podvm-extract"
 version = "0.1.0-beta.13"
 dependencies = [
  "flate2",
- "podbox-image",
- "podbox-probe",
+ "podvm-image",
+ "podvm-probe",
  "ruzstd",
  "serde",
  "serde_json",
@@ -364,15 +364,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "podbox-gate"
+name = "podvm-gate"
 version = "0.1.0-beta.13"
 
 [[package]]
-name = "podbox-image"
+name = "podvm-image"
 version = "0.1.0-beta.13"
 dependencies = [
  "base64 0.23.1",
- "podbox-probe",
+ "podvm-probe",
  "rustls",
  "rustls-pemfile",
  "rustls-pki-types",
@@ -385,11 +385,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "podbox-podvm"
+name = "podvm-measure"
 version = "0.1.0-beta.13"
 
 [[package]]
-name = "podbox-probe"
+name = "podvm-probe"
 version = "0.1.0-beta.13"
 dependencies = [
  "linux-raw-sys",
@@ -397,15 +397,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "podbox-release"
+name = "podvm-release"
 version = "0.1.0-beta.13"
 
 [[package]]
-name = "podbox-ssh"
+name = "podvm-ssh"
 version = "0.1.0-beta.13"
 dependencies = [
  "base64 0.23.1",
- "podbox-probe",
+ "podvm-probe",
  "rustls",
  "rustls-pemfile",
  "serde_json",
@@ -413,21 +413,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "podbox-supervise"
+name = "podvm-supervise"
 version = "0.1.0-beta.13"
 dependencies = [
- "podbox-enter",
- "podbox-image",
- "podbox-probe",
+ "podvm-enter",
+ "podvm-image",
+ "podvm-probe",
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "podbox-windows"
+name = "podvm-windows"
 version = "0.1.0-beta.13"
 dependencies = [
- "podbox-probe",
+ "podvm-probe",
  "sha2",
 ]
 

@@ -43,7 +43,7 @@
 # something refused, 2 no engine answered.
 set -u
 
-# Set by engine_pick. ENGINE_BIN is `docker` or `podbox host podman` spelled
+# Set by engine_pick. ENGINE_BIN is `docker` or `podvm host podman` spelled
 # as one command; on a Windows host that is the podman executable itself.
 ENGINE_BIN=""
 ENGINE_NAME=""
@@ -101,24 +101,24 @@ basepath() {
 # engine_pick - choose the engine and prove it answers. Prefers a docker
 # daemon where one is reachable, because the runs on record used one, and
 # falls back to host podman. Prints the choice; returns 2 where nothing
-# answers. PODBOX_ENGINE=docker|podman pins the choice instead of probing.
+# answers. PODVM_ENGINE=docker|podman pins the choice instead of probing.
 #
 # Each probe runs three times: a machine under load answers slowly rather
 # than never, and one timed-out probe is a coincidence, not a verdict.
 engine_pick() {
-	case "${PODBOX_ENGINE:-auto}" in
+	case "${PODVM_ENGINE:-auto}" in
 	docker | podman | auto) ;;
-	*) _refuse "PODBOX_ENGINE takes docker, podman or auto, not ${PODBOX_ENGINE:-}" || return 1 ;;
+	*) _refuse "PODVM_ENGINE takes docker, podman or auto, not ${PODVM_ENGINE:-}" || return 1 ;;
 	esac
 	command -v timeout >/dev/null 2>&1 || return 2
-	if [ "${PODBOX_ENGINE:-auto}" = "docker" ] || [ "${PODBOX_ENGINE:-auto}" = "auto" ]; then
+	if [ "${PODVM_ENGINE:-auto}" = "docker" ] || [ "${PODVM_ENGINE:-auto}" = "auto" ]; then
 		if command -v docker >/dev/null 2>&1 && _answers docker info; then
 			ENGINE_BIN="docker"
 			ENGINE_NAME="docker"
 			printf 'engine            docker (daemon)\n'
 			return 0
 		fi
-		[ "${PODBOX_ENGINE:-auto}" = "docker" ] && return 2
+		[ "${PODVM_ENGINE:-auto}" = "docker" ] && return 2
 	fi
 	if command -v podman >/dev/null 2>&1 && _answers podman info; then
 		ENGINE_BIN="podman"
@@ -231,7 +231,7 @@ eng_mount() {
 
 # eng_volmount NAME DST [rw] - stage a NAMED VOLUME binding for the next
 # eng_run, and register NAME for eng_cleanup. For engine-local persistent
-# state: a podbox store that must survive `--rm` one-shots on a filesystem
+# state: a podvm store that must survive `--rm` one-shots on a filesystem
 # the host cannot share (a Windows-backed bind is case-insensitive, and an
 # archlinux extract does not survive one). NAME is a volume name, never a
 # path: it names nothing on the operator's disk, so unlike eng_mount it
@@ -358,7 +358,7 @@ eng_privrun() {
 
 # eng_serve NAME IMAGE PORTS ENV -- CMD... - a fixture server that outlives
 # one call. Prints the id on stdout and nothing else, and registers it for
-# eng_cleanup. NAME is a fixed fixture name (`podbox-x280-http-<pid>`), so a
+# eng_cleanup. NAME is a fixed fixture name (`podvm-x280-http-<pid>`), so a
 # re-run can pre-clean a previous run's fixture by name. PORTS is
 # `HPORT:CPORT` words published as given (fixtures serve the test alone, on
 # ports the caller chose). ENV is `K=V` words passed through `-e`; values
@@ -465,8 +465,8 @@ eng_cleanup() {
 	fi
 }
 
-# eng_pbrun TIMEOUT IMAGE STORE [VAR=VAL ...] -- ARGS... - podbox staged in
-# the driver with STORE as its PODBOX_STORE. The caller staged /pb (and any
+# eng_pbrun TIMEOUT IMAGE STORE [VAR=VAL ...] -- ARGS... - podvm staged in
+# the driver with STORE as its PODVM_STORE. The caller staged /pb (and any
 # mounts) first; STORE is a /w path on lanes that share the store with the
 # host and a container-local path where nothing host-side reads it. Further
 # variables (a driver-spelled config path, an insecure-registry list) travel
@@ -492,7 +492,7 @@ eng_pbrun() {
 	done
 	[ "${1:-}" = "--" ] || return 1
 	shift
-	_script="$_pfx"PODBOX_STORE="$_store"' exec /pb "$@"'
+	_script="$_pfx"PODVM_STORE="$_store"' exec /pb "$@"'
 	eng_run "$_t" "$_img" "" -- /bin/sh -c "$_script" _ "$@"
 }
 
@@ -537,7 +537,7 @@ eng_push() {
 }
 
 # eng_image_inspect REF FORMAT - one engine-side record, for parity checks
-# against podbox's own. --format is spelled the same on both engines.
+# against podvm's own. --format is spelled the same on both engines.
 eng_image_inspect() {
 	[ $# -eq 2 ] || return 1
 	[ -n "$ENGINE_BIN" ] || return 1
@@ -582,7 +582,7 @@ eng_start() {
 
 # eng_pb SHIM TIMEOUT IMAGE - write an executable that forwards to the
 # staged /pb in the driver, for readers that need a PATH rather than a
-# function: `podbox_exit_codes` runs `$BIN system info`, and multicall
+# function: `podvm_exit_codes` runs `$BIN system info`, and multicall
 # clauses exec names. The shim carries no mounts (readers needing files
 # use eng_run directly) and forwards the exit code; timeout bounds it as
 # eng_run would. Generated, never edited: the five lines below are the
@@ -591,11 +591,11 @@ eng_pb() {
 	[ $# -eq 3 ] || return 1
 	[ -n "$ENGINE_BIN" ] || return 1
 	[ -n "$ENGINE_WORK" ] || return 1
-	_pb="$ENGINE_WORK/stage/podbox"
-	[ -f "$_pb" ] || _refuse "no staged podbox at $_pb" || return 1
+	_pb="$ENGINE_WORK/stage/podvm"
+	[ -f "$_pb" ] || _refuse "no staged podvm at $_pb" || return 1
 	cat >"$1" <<EOF_PB
 #!/bin/sh
-# Generated by eng_pb. Forwards to the staged podbox; takes no mounts.
+# Generated by eng_pb. Forwards to the staged podvm; takes no mounts.
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
 exec timeout $2 "$ENGINE_BIN" run --rm -v "$(winpath "$_pb"):/pb:ro" "$3" /pb "\$@"
 EOF_PB

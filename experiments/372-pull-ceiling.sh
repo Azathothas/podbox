@@ -8,7 +8,7 @@
 # blobs up front naming the object bytes, the ceiling and the room, with
 # no partial left; an unlimited ceiling pulls the same bytes clean.
 # The mid-stream cap against a lying origin is unit-pinned in
-# `crates/podbox-image/src/registry.rs` (an infinite reader served
+# `crates/podvm-image/src/registry.rs` (an infinite reader served
 # over loopback), because no honest registry lies on demand.
 #
 # Pinned inputs: the debian digest 360 pulls, the 10 MiB ceiling.
@@ -58,13 +58,13 @@ else
 	tail -15 "$WORK/build.log"
 	exit 1
 fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 [ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
-echo "podbox            $($PB version 2>&1)" >>"$REPORT"
+echo "podvm            $($PB version 2>&1)" >>"$REPORT"
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 fail=0
 
 echo "" >>"$REPORT"

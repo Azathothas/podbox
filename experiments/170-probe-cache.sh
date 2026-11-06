@@ -5,7 +5,7 @@
 # TODO/probe.md T-0111. ⛔ A cache keyed wrongly is worse than no cache, and
 # this is the one component where a stale answer is the exact failure the
 # project exists to prevent: a `namespace` verdict served to a process that has
-# a `chroot` is podbox telling the lie it was built to refuse.
+# a `chroot` is podvm telling the lie it was built to refuse.
 #
 # ⭐ THE SPECIFICATION'S KEY DOES NOT WORK, AND CLAUSE 3 IS WHY. `TOOL.md`
 # section 6.1 says to key on `/proc/sys/kernel/random/boot_id`. That value is
@@ -20,7 +20,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/probe-cache.txt"
 # ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
 # because an ELF built here does not execute there. The lane's scratch
@@ -43,22 +43,22 @@ if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 # Clauses 1 and 2 need the binary to execute: natively, or staged in the
 # driver. Clause 3 needs the engine for its confined run either way.
 if [ "$NATIVE" -eq 0 ]; then
-	[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine on a lane where the podbox binary does not execute" >&2; exit 2; }
+	[ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine on a lane where the podvm binary does not execute" >&2; exit 2; }
 	[ -r "$BIN" ] || {
-		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		echo "SKIP: $BIN is not readable (set PODVM_BIN to a guest build artifact)" >&2
 		exit 2
 	}
 fi
 
-# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# The driver: the M5 debian row, pinned. It hosts the staged podvm binary
 # for every `$BIN` call on a non-native lane.
 DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
 STAGE="$WORK/stage"
 if [ "$NATIVE" -eq 0 ]; then
 	eng_pull "$DRIVER" || exit 2
 	mkdir -p "$STAGE" "$WORK/w" "$STORE" || exit 2
-	cp "$BIN" "$STAGE/podbox"
-	eng_mount "$STAGE/podbox" /pb \
+	cp "$BIN" "$STAGE/podvm"
+	eng_mount "$STAGE/podvm" /pb \
 		&& eng_mount "$WORK/w" /w rw \
 		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
 fi
@@ -80,7 +80,7 @@ if [ "$NATIVE" -eq 1 ]; then
 else
 	_ver="$(eng_run 60 "$DRIVER" "" -- /pb version 2>&1)"
 fi
-printf 'podbox            %s\n' "$_ver"
+printf 'podvm            %s\n' "$_ver"
 printf 'store             a fresh directory under %s\n' "$(dirname "$WORK")"
 echo
 
@@ -103,7 +103,7 @@ else
 	b_rc=$?
 fi
 [ "$a_rc" -eq 0 ] && [ "$b_rc" -eq 0 ] || {
-	echo "SKIP: podbox probe --json exited $a_rc and $b_rc" >&2
+	echo "SKIP: podvm probe --json exited $a_rc and $b_rc" >&2
 	exit 2
 }
 jq -e --slurpfile a "$WORK/a.json" '.rung == $a[0].rung' "$WORK/b.json" >/dev/null
@@ -122,10 +122,10 @@ echo "== 2. the first --cached run measures and the second is served"
 # Natively the two processes share the shell's namespace, and one driver
 # container is the same shape.
 if [ "$NATIVE" -eq 1 ]; then
-	PODBOX_STORE="$STORE" "$BIN" probe --cached >"$WORK/c1.out" 2>"$WORK/c1.err"
-	PODBOX_STORE="$STORE" "$BIN" probe --cached >"$WORK/c2.out" 2>"$WORK/c2.err"
+	PODVM_STORE="$STORE" "$BIN" probe --cached >"$WORK/c1.out" 2>"$WORK/c1.err"
+	PODVM_STORE="$STORE" "$BIN" probe --cached >"$WORK/c2.out" 2>"$WORK/c2.err"
 else
-	eng_run 120 "$DRIVER" "" -- /bin/sh -c 'export PODBOX_STORE=/w/pstore; /pb probe --cached >/w/c1.out 2>/w/c1.err; /pb probe --cached >/w/c2.out 2>/w/c2.err'
+	eng_run 120 "$DRIVER" "" -- /bin/sh -c 'export PODVM_STORE=/w/pstore; /pb probe --cached >/w/c1.out 2>/w/c1.err; /pb probe --cached >/w/c2.out 2>/w/c2.err'
 	cp "$WORK/w/c1.out" "$WORK/c1.out" && cp "$WORK/w/c1.err" "$WORK/c1.err" \
 		&& cp "$WORK/w/c2.out" "$WORK/c2.out" && cp "$WORK/w/c2.err" "$WORK/c2.err" || {
 		echo "SKIP: the cached runs left no readings" >&2; exit 2; }
@@ -165,8 +165,8 @@ export TARGET_STAGE="$WORK/stage"
 confined_ok=0
 if [ "$NATIVE" -eq 1 ]; then
 	if "$HERE/20-enter-target.sh" --stage "$BIN" --stage "$STORE" -- \
-		/bin/sh -c 'PODBOX_STORE=/workspace/store; export PODBOX_STORE;
-		            /workspace/podbox probe --cached
+		/bin/sh -c 'PODVM_STORE=/workspace/store; export PODVM_STORE;
+		            /workspace/podvm probe --cached
 		            cat /proc/sys/kernel/random/boot_id' \
 		>"$confined_out" 2>"$WORK/confined.err"; then
 		confined_ok=1
@@ -176,7 +176,7 @@ else
 	# target image with --privileged so the confine harness can mount and
 	# pivot, and the helper rightly refuses that flag anywhere. This lane
 	# confines with a plain engine container instead. It has its own mount
-	# namespace and a real /proc, and podbox measures chroot inside it:
+	# namespace and a real /proc, and podvm measures chroot inside it:
 	# its unshare probes fail there, as every 245 row transcript shows.
 	# The inner command is 20's own, staged at the same /workspace paths;
 	# what the clause asserts (a fresh measurement, rung chroot, the boot
@@ -184,10 +184,10 @@ else
 	rm -rf "$WORK/w/cstore"
 	mkdir -p "$WORK/w/cstore" || { echo "  SKIP: the confined store could not be staged" >&2; exit 2; }
 	cp -r "$STORE/." "$WORK/w/cstore/" || { echo "  SKIP: the host cache could not be staged" >&2; exit 2; }
-	if eng_mount "$STAGE/podbox" /workspace/podbox \
+	if eng_mount "$STAGE/podvm" /workspace/podvm \
 		&& eng_mount "$WORK/w/cstore" /workspace/store rw; then
-		if eng_run 300 "$DRIVER" "" -- /bin/sh -c 'PODBOX_STORE=/workspace/store; export PODBOX_STORE;
-		            /workspace/podbox probe --cached
+		if eng_run 300 "$DRIVER" "" -- /bin/sh -c 'PODVM_STORE=/workspace/store; export PODVM_STORE;
+		            /workspace/podvm probe --cached
 		            cat /proc/sys/kernel/random/boot_id' \
 			>"$confined_out" 2>"$WORK/confined.err"; then
 			confined_ok=1
@@ -224,7 +224,7 @@ if [ "$confined_ok" -eq 1 ]; then
 		echo "  ⚠ RECORDED: equal boot ids and equal rungs ($host_rung); the"
 		echo "     cache still refused on mnt_ns, which is the key doing its job."
 	else
-		# Not a failure of podbox: it would mean this kernel gives the
+		# Not a failure of podvm: it would mean this kernel gives the
 		# container its own boot id, which would make the specification's key
 		# work here and not elsewhere. Recorded as a reading.
 		echo "  ⚠ RECORDED: the boot ids differ on this host, so the"
@@ -243,7 +243,7 @@ else
 fi
 
 {
-	printf '# podbox probe cache, TODO/probe.md T-0111\n'
+	printf '# podvm probe cache, TODO/probe.md T-0111\n'
 	printf '# taken %s on kernel %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(uname -r)"
 	printf '# ⛔ The boot id is the KERNEL S. Both readings below are on one kernel.\n'
 	printf 'host_rung         %s\n' "$host_rung"

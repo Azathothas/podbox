@@ -21,7 +21,7 @@ set -u
 # working directory. Take the checkout from that directory, not $0.
 REPO="$(pwd)"
 cd "$REPO" || exit 2
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/namespace.txt"
 WORK="$REPO/experiments/.sweep365-work"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
@@ -36,7 +36,7 @@ miss() { echo "  FAIL: $1" >>"$WORK/report"; fail=1; }
 echo "== conditions"
 echo "date              $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "host kernel       $(uname -sr)"
-echo "podbox            $($BIN version 2>/dev/null || echo MISSING)"
+echo "podvm            $($BIN version 2>/dev/null || echo MISSING)"
 echo "debian            $DEBIAN"
 } >"$WORK/report"
 
@@ -44,7 +44,7 @@ echo "debian            $DEBIAN"
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 echo "" >>"$WORK/report"
 echo "== pulls" >>"$WORK/report"

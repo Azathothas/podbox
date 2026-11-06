@@ -1,5 +1,5 @@
 #!/bin/sh
-# 326-store-contention-prove.sh: is the podbox-image suite deterministic under
+# 326-store-contention-prove.sh: is the podvm-image suite deterministic under
 # default parallelism, and is the sixteen-slot ceiling pinned by test?
 #
 # Acceptance instrument for TODO/image.md T-1310. It runs the suite N times
@@ -14,7 +14,7 @@ HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 2
 ROOT=$(CDPATH= cd -- "$HERE/.." && pwd) || exit 2
 cd "$ROOT" || exit 2
 RESULTS="$ROOT/experiments/results/store-contention-prove.txt"
-RUNS="${PODBOX_PROVE_RUNS:-10}"
+RUNS="${PODVM_PROVE_RUNS:-10}"
 
 mkdir -p "$ROOT/experiments/results" || exit 2
 : >"$RESULTS" || exit 2
@@ -34,11 +34,11 @@ say "cargo: $(cargo --version 2>/dev/null || echo missing)"
 say "runs: $RUNS"
 
 say "== compile the suite once"
-if ! timeout 1200 cargo test -p podbox-image --no-run >>"$RESULTS" 2>&1; then
+if ! timeout 1200 cargo test -p podvm-image --no-run >>"$RESULTS" 2>&1; then
     say "RESULT: could not run (compile)"
     exit 2
 fi
-say "suite tests: $(cargo test -p podbox-image -- --list 2>>"$RESULTS" | grep -c ': test' || true)"
+say "suite tests: $(cargo test -p podvm-image -- --list 2>>"$RESULTS" | grep -c ': test' || true)"
 
 red=0
 
@@ -47,7 +47,7 @@ i=1
 found=0
 while [ "$i" -le "$RUNS" ]; do
     log="$ROOT/experiments/results/.prove-326-parallel-$i.log"
-    if timeout 600 cargo test -p podbox-image >"$log" 2>&1; then
+    if timeout 600 cargo test -p podvm-image >"$log" 2>&1; then
         rc=0
     else
         rc=$?
@@ -71,7 +71,7 @@ say "clause 1: $found of $RUNS runs carry the 16-slot signature"
 say "== clause 2: the ceiling test alone, three times"
 i=1
 while [ "$i" -le 3 ]; do
-    if timeout 300 cargo test -p podbox-image the_seventeenth_concurrent_registration_is_refused_by_name >>"$RESULTS" 2>&1; then
+    if timeout 300 cargo test -p podvm-image the_seventeenth_concurrent_registration_is_refused_by_name >>"$RESULTS" 2>&1; then
         say "ceiling $i: pass"
     else
         say "ceiling $i: FAIL"
@@ -81,7 +81,7 @@ while [ "$i" -le 3 ]; do
 done
 
 say "== clause 3: one serial control"
-if timeout 900 cargo test -p podbox-image -- --test-threads=1 >>"$RESULTS" 2>&1; then
+if timeout 900 cargo test -p podvm-image -- --test-threads=1 >>"$RESULTS" 2>&1; then
     say "serial: pass"
 else
     say "serial: FAIL"
@@ -89,8 +89,8 @@ else
 fi
 
 say "== clause 4: every store test takes the suite mutex"
-tests=$(awk '/^    #\[test\]$/{t=1;next} t==1 && /    fn [a-z]/{c++;t=0} END{print c+0}' crates/podbox-image/src/store.rs)
-takes=$(grep -c "STORE_TESTS.lock()" crates/podbox-image/src/store.rs || true)
+tests=$(awk '/^    #\[test\]$/{t=1;next} t==1 && /    fn [a-z]/{c++;t=0} END{print c+0}' crates/podvm-image/src/store.rs)
+takes=$(grep -c "STORE_TESTS.lock()" crates/podvm-image/src/store.rs || true)
 say "test functions: $tests, acquisitions: $takes"
 if [ "$tests" -eq "$takes" ] && [ "$tests" -gt 0 ]; then
     say "audit: equal"

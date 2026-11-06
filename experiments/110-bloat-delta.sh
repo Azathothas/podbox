@@ -3,7 +3,7 @@
 # the dependency under test add?
 #
 # TODO/deps.md T-0910. Declaration stub with a compat exec (T-1562). The
-# measurement lives in the podbox-size binary in crates/podbox-release;
+# measurement lives in the podvm-size binary in crates/podvm-release;
 # this file stays because the total ceiling is declared here once and the
 # gate, the plant harness, and the gate workflow all read it from here.
 # (D-1 option c.)
@@ -28,14 +28,14 @@ CEILING_BYTES=8000000
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
 BIN=""
-for cand in "$REPO/target/release/podbox-size" \
-	"$REPO/target/x86_64-unknown-linux-musl/release/podbox-size" \
-	"$REPO/target/x86_64-pc-windows-msvc/debug/podbox-size" \
-	"$REPO/target/debug/podbox-size"; do
+for cand in "$REPO/target/release/podvm-size" \
+	"$REPO/target/x86_64-unknown-linux-musl/release/podvm-size" \
+	"$REPO/target/x86_64-pc-windows-msvc/debug/podvm-size" \
+	"$REPO/target/debug/podvm-size"; do
 	if [ -x "$cand" ]; then BIN="$cand"; break; fi
 done
 if [ -z "$BIN" ]; then
-	echo "110-bloat-delta: podbox-size is not built; cargo build -p podbox-release" >&2
+	echo "110-bloat-delta: podvm-size is not built; cargo build -p podvm-release" >&2
 	exit 2
 fi
 exec "$BIN" "$@"

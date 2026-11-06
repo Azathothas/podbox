@@ -1,15 +1,15 @@
 #!/usr/bin/env sh
 # run-in-base.sh - run one Linux job against this checkout, from Windows.
 #
-# ⭐ IT IS THE WINDOWS HALF OF `podbox-dev`. The tree is copied into a
-# disposable container inside the distribution `wsl-toolkit-podbox`, the job
+# ⭐ IT IS THE WINDOWS HALF OF `podvm-dev`. The tree is copied into a
+# disposable container inside the distribution `wsl-toolkit-podvm`, the job
 # runs there, and the container is removed when it exits. Nothing is mounted
 # from this machine, so nothing the job does can reach this checkout.
 #
 #   sh scripts/windows/run-in-base.sh              the complete check
 #   sh scripts/windows/run-in-base.sh JOB.sh       that script, at /in/job.sh
-#   PODBOX_IMAGE=... sh scripts/windows/run-in-base.sh
-#   PODBOX_ARTIFACTS=DIR sh scripts/windows/run-in-base.sh JOB.sh
+#   PODVM_IMAGE=... sh scripts/windows/run-in-base.sh
+#   PODVM_ARTIFACTS=DIR sh scripts/windows/run-in-base.sh JOB.sh
 #
 # ⛔ NEVER CALL wsl.exe. docs/containers.md carries the rule and the reason: a
 # payload handed to wsl.exe as an argument is expanded before the guest reads
@@ -26,7 +26,7 @@
 # ⭐ A JOB HANDS ITS EVIDENCE BACK THROUGH /out. The container is removed when
 # it exits. The host transcript remains until gc removes it. A measurement
 # that writes only into the workspace has written into a copy.
-# `PODBOX_ARTIFACTS` names a
+# `PODVM_ARTIFACTS` names a
 # directory on this machine that receives whatever the job leaves in /out.
 #
 # Exit: the job's own code, or 2 when the job could not be started.
@@ -36,10 +36,10 @@ HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 2
 ROOT=$(CDPATH= cd -- "$HERE/../.." && pwd) || exit 2
 cd "$ROOT" || exit 2
 
-IMAGE="${PODBOX_IMAGE:-docker.io/library/rust:1.98.1-bookworm}"
-INSTANCE="${PODBOX_WSL_INSTANCE:-podbox}"
-TIMEOUT="${PODBOX_JOB_TIMEOUT:-45m}"
-ARTIFACTS="${PODBOX_ARTIFACTS:-}"
+IMAGE="${PODVM_IMAGE:-docker.io/library/rust:1.98.1-bookworm}"
+INSTANCE="${PODVM_WSL_INSTANCE:-podvm}"
+TIMEOUT="${PODVM_JOB_TIMEOUT:-45m}"
+ARTIFACTS="${PODVM_ARTIFACTS:-}"
 
 case "${1:-}" in
 -h | --help)
@@ -85,15 +85,15 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 	else
 		echo 'echo "== bootstrap"'
 		# rust cc zig tools build the tree; openssh is what the
-		# podbox-ssh end-to-end test drives. The full check runs the
+		# podvm-ssh end-to-end test drives. The full check runs the
 		# whole workspace suite, so it carries both.
 		echo "./scripts/common/bootstrap-env.sh rust cc zig tools openssh || exit 1"
-		echo 'echo "== podbox-dev check"'
+		echo 'echo "== podvm-dev check"'
 		echo 'mkdir -p /out || exit 2'
-		echo 'cargo build --release -p podbox-gate || exit 1'
+		echo 'cargo build --release -p podvm-gate || exit 1'
 		echo 'mkdir -p target/release || exit 1'
-		echo 'cp target/x86_64-unknown-linux-musl/release/podbox-dev target/release/ || exit 1'
-		echo './target/release/podbox-dev check >/out/linux-check.txt 2>&1'
+		echo 'cp target/x86_64-unknown-linux-musl/release/podvm-dev target/release/ || exit 1'
+		echo './target/release/podvm-dev check >/out/linux-check.txt 2>&1'
 		echo 'rc=$?'
 		echo 'cat /out/linux-check.txt'
 		echo 'exit_step=$rc'
@@ -106,7 +106,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 	if [ -z "$USER_JOB" ] && [ -n "$ARTIFACTS" ]; then
 		echo 'if [ "$rc" -eq 0 ]; then'
 		echo '  mkdir -p /out || exit 2'
-		echo '  for binary in podbox node operator proxy shell; do'
+		echo '  for binary in podvm node operator proxy shell; do'
 		echo '    cp "target/x86_64-unknown-linux-musl/release/$binary" "/out/$binary" || exit 1'
 		echo '  done'
 		echo '  cp .dev/build-state.json /out/build-state.json || exit 1'
@@ -138,7 +138,7 @@ fi
 # ⛔ `codegraph.db` BY NAME, never the `.codegraph` directory. An exclusion of
 # the directory also matched a TRACKED corpus file under `references/`, so the
 # copy arrived one file short and the guest read the tree as dirty.
-# `podbox-plant` refuses to start on a dirty tree.
+# `podvm-plant` refuses to start on a dirty tree.
 #
 # The index sidecars and daemon state are live files, not source for a job.
 # The toolkit now names a file if its copy fails. Keep these exclusions by

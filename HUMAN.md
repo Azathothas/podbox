@@ -7,13 +7,13 @@
 ## Windows session
 
 Run the session entry point from the checkout.
-It selects the `podbox` base and waits for its probe.
+It selects the `podvm` base and waits for its probe.
 
 ```powershell
-cargo build --release -p podbox-gate
-./target/release/podbox-dev session
-./target/release/podbox-gate
-wsl-toolkit --instance podbox base status --probe
+cargo build --release -p podvm-gate
+./target/release/podvm-dev session
+./target/release/podvm-gate
+wsl-toolkit --instance podvm base status --probe
 sh scripts/windows/run-in-base.sh
 ```
 
@@ -22,10 +22,10 @@ Read each exit code. A skipped check does not prove its subject.
 
 ## Linux session
 
-Run `./target/release/podbox-dev session`.
+Run `./target/release/podvm-dev session`.
 The environment and build start while you read the task.
-Run `./target/release/podbox-dev status` before using the build.
-Run `./target/release/podbox-dev check` before commit.
+Run `./target/release/podvm-dev status` before using the build.
+Run `./target/release/podvm-dev check` before commit.
 
 ## Decisions and input
 
@@ -36,7 +36,7 @@ Task entries carry accepted choices. Do not ask for a choice that an entry settl
 For the KVM proof, supply a current Linux binary and a local licensed image:
 
 ```powershell
-py scripts/windows/kvm-guest.py --accept-host-risk --binary .dev/artifacts/podbox --image IMAGE.vhdx
+py scripts/windows/kvm-guest.py --accept-host-risk --binary .dev/artifacts/podvm --image IMAGE.vhdx
 ```
 
 The image stays outside the repository. The proof validates its pinned digest.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: is the store lock race reachable by a podbox process, or only by a
+# Question: is the store lock race reachable by a podvm process, or only by a
 # test harness that runs many threads inside one process?
 #
 # TODO/image.md T-0215. The measurement that opened it is the first clause here:
@@ -10,7 +10,7 @@
 #
 # ⛔ THE ANSWER DECIDES WHERE THE FIX GOES, so this script measures before
 # anything is changed. A race that only many threads in one process can produce
-# is a test defect and is fixed in the test. A race two podbox processes can
+# is a test defect and is fixed in the test. A race two podvm processes can
 # produce is a P0 in the product, because `in_use` is what `prune` asks before
 # it deletes the blobs a running container executes out of.
 #
@@ -27,7 +27,7 @@
 #   6. clause 3, probe_cache and pull's forker as well  removes every fork this binary makes
 #   7. the same suite on a second filesystem            changes where the locks live
 #   8. the pre-registration window widened              makes one candidate window bigger
-#   9. podbox's own spawn no longer sheds                puts one fd closure back as it was
+#   9. podvm's own spawn no longer sheds                puts one fd closure back as it was
 #  10. the hook gutted, and its control asserted red   the control's own plant, and no rate
 #  11. the test's own bare spawn given the hook       the last unshed fork in the process
 #  12. the explicit release taken back out           the fix's own plant, and no rate
@@ -43,7 +43,7 @@
 # worth re-varying on any host where this race is chased again.
 #
 # ⛔ CLAUSE 3 IS NOT THE FORK CONTROL AND CLAUSE 6 IS. `probe_cache` is a module
-# of `podbox-image`, so its tests run in the SAME process as the store tests,
+# of `podvm-image`, so its tests run in the SAME process as the store tests,
 # and `resolve` calls `measure`, which runs the probe as one freshly forked
 # child per probe. Skipping store.rs's own two forking tests therefore leaves
 # the forking that TODO/image.md T-0211 names in place.
@@ -55,12 +55,12 @@
 # `naming_the_registry_insecure_gets_past_the_policy` forks under a name that
 # says nothing about forking. ⚠ A SKIP LIST IS A CLAIM ABOUT THE CODE AND IT IS
 # CHECKED BY READING THE CODE, not by the names of the tests. The four
-# names below are every path to a fork in PODBOX-IMAGE'S TEST BINARY as of
+# names below are every path to a fork in PODVM-IMAGE'S TEST BINARY as of
 # 2026-09-12: `clone_fork` in store.rs, `Command::spawn` in store.rs, and
-# `podbox_probe::run` reached through `probe_cache::measure` from the
+# `podvm_probe::run` reached through `probe_cache::measure` from the
 # `probe_cache` tests and from `pull`.
 # ⚠ THE BINARY IS NAMED BECAUSE ANOTHER ONE FORKS TOO, and skipping a test in
-# it would change nothing here. `podbox-probe`'s own test binary spawns
+# it would change nothing here. `podvm-probe`'s own test binary spawns
 # `/bin/sh` in
 # `a_spawn_through_the_hook_sheds_a_registered_fd_and_one_without_it_does_not`,
 # in a different process, which cannot hold a descriptor on a store lock this
@@ -73,8 +73,8 @@
 # home.
 #
 #   ./153-store-lock-race.sh
-#   PODBOX_RACE_RUNS=12 ./153-store-lock-race.sh
-#   PODBOX_RACE_CLAUSES="1 2" ./153-store-lock-race.sh
+#   PODVM_RACE_RUNS=12 ./153-store-lock-race.sh
+#   PODVM_RACE_CLAUSES="1 2" ./153-store-lock-race.sh
 #
 # Exit: 0 the measurement ran and no run failed, 1 it ran and a run failed,
 #       2 it could not run.
@@ -86,9 +86,9 @@ set -uo pipefail
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
 OUT="$REPO/experiments/results/store-lock-race.txt"
-RUNS="${PODBOX_RACE_RUNS:-12}"
-CONTROL_RUNS="${PODBOX_RACE_CONTROL_RUNS:-$RUNS}"
-CLAUSES="${PODBOX_RACE_CLAUSES:-0 1 2 3 4 5 6 7}"
+RUNS="${PODVM_RACE_RUNS:-12}"
+CONTROL_RUNS="${PODVM_RACE_CONTROL_RUNS:-$RUNS}"
+CLAUSES="${PODVM_RACE_CLAUSES:-0 1 2 3 4 5 6 7}"
 WORK="$(mktemp -d)"
 
 # ⚠ A failing run's log is the evidence and it is kept. The assertion and the
@@ -105,7 +105,7 @@ FORKER_PROBE="probe_cache::"
 # `probe_cache::resolve` once it is past the transport policy, so the test that
 # gets past that policy forks, and its name carries no hint of it. The other
 # `pull` test is refused before that line and forks nothing.
-# `crates/podbox-image/src/pull.rs` is where the order is visible.
+# `crates/podvm-image/src/pull.rs` is where the order is visible.
 FORKER_PULL="naming_the_registry_insecure_gets_past_the_policy"
 
 command -v cargo >/dev/null 2>&1 || {
@@ -241,8 +241,8 @@ measure() {
 # empty world from a blind probe.
 instrument_control() {
 	say "== clause 0  the instrument's positive control"
-	say "  command          cargo test -p podbox-image the_t_0215_instrument -- --nocapture"
-	cargo test -p podbox-image the_t_0215_instrument -- --nocapture \
+	say "  command          cargo test -p podvm-image the_t_0215_instrument -- --nocapture"
+	cargo test -p podvm-image the_t_0215_instrument -- --nocapture \
 		>"$KEEP/clause0.log" 2>&1
 	rc=$?
 	say "  exit             $rc"
@@ -265,7 +265,7 @@ instrument_control() {
 # filesystem, and saying so is the honest answer.
 second_filesystem() {
 	pass="$1"
-	alt="${PODBOX_RACE_ALT_TMP:-/dev/shm}"
+	alt="${PODVM_RACE_ALT_TMP:-/dev/shm}"
 	here_fs="$(stat -f -c %T "${TMPDIR:-/tmp}" 2>/dev/null || echo -)"
 	alt_fs="$(stat -f -c %T "$alt" 2>/dev/null || echo -)"
 	if [ ! -d "$alt" ] || [ ! -w "$alt" ]; then
@@ -277,11 +277,11 @@ second_filesystem() {
 	if [ "$here_fs" = "$alt_fs" ]; then
 		say "== clause 7 pass $pass  a second filesystem"
 		say "  SKIP: ${TMPDIR:-/tmp} and $alt are both $here_fs, so this clause"
-		say "  would change nothing. PODBOX_RACE_ALT_TMP names another path."
+		say "  would change nothing. PODVM_RACE_ALT_TMP names another path."
 		say ""
 		return
 	fi
-	work="$alt/podbox-race-$$"
+	work="$alt/podvm-race-$$"
 	mkdir -p "$work" || {
 		say "== clause 7 pass $pass  a second filesystem"
 		say "  SKIP: cannot create $work"
@@ -376,7 +376,7 @@ mutate_and_measure() {
 # control that stays green with the hook gutted is measuring something else.
 plant_the_hook_control() {
 	pass="$1"
-	src="$REPO/crates/podbox-probe/src/sys.rs"
+	src="$REPO/crates/podvm-probe/src/sys.rs"
 	anchor="            shed_registered_fds();"
 	test_name="a_spawn_through_the_hook"
 	hits=$(grep -c -F -x -- "$anchor" "$src")
@@ -391,12 +391,12 @@ plant_the_hook_control() {
 	MUTATED="$src"
 	trap 'cp "$WORK/mutated.orig" "$MUTATED" 2>/dev/null' EXIT HUP INT TERM
 	awk -v a="$anchor" '{ if ($0 == a) print "            let _ = 0;"; else print }' 		"$WORK/mutated.orig" >"$src"
-	say "  mutation         crates/podbox-probe/src/sys.rs"
+	say "  mutation         crates/podvm-probe/src/sys.rs"
 	say "    replace, at:   $anchor"
 	say "    with:          let _ = 0;"
-	say "  command          cargo test -p podbox-probe $test_name"
+	say "  command          cargo test -p podvm-probe $test_name"
 	# ⛔ The code is read from the process that produced it, unpiped.
-	cargo test -p podbox-probe "$test_name" >"$WORK/plant10.log" 2>&1
+	cargo test -p podvm-probe "$test_name" >"$WORK/plant10.log" 2>&1
 	rc=$?
 	cp "$WORK/mutated.orig" "$src"
 	say "  exit             $rc"
@@ -425,7 +425,7 @@ plant_the_hook_control() {
 # the deterministic test and the racy suite are two views of one defect.
 plant_the_release() {
 	pass="$1"
-	src="$REPO/crates/podbox-image/src/store.rs"
+	src="$REPO/crates/podvm-image/src/store.rs"
 	anchor="            let _ = sys::flock(self.fd, sys::LOCK_UN);"
 	test_name="releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives"
 	hits=$(grep -c -F -x -- "$anchor" "$src")
@@ -440,7 +440,7 @@ plant_the_release() {
 	MUTATED="$src"
 	trap 'cp "$WORK/mutated.orig" "$MUTATED" 2>/dev/null' EXIT HUP INT TERM
 	grep -v -F -x -- "$anchor" "$WORK/mutated.orig" >"$src"
-	say "  mutation         crates/podbox-image/src/store.rs"
+	say "  mutation         crates/podvm-image/src/store.rs"
 	say "    delete, at:    $anchor"
 	if ! cargo test --workspace --no-run >"$WORK/plant12.log" 2>&1; then
 		say "  SKIP: the mutated tree did not build"
@@ -450,9 +450,9 @@ plant_the_release() {
 		cargo test --workspace --no-run >>"$WORK/plant12.log" 2>&1
 		return
 	fi
-	say "  command          cargo test -p podbox-image $test_name"
+	say "  command          cargo test -p podvm-image $test_name"
 	# ⛔ The code is read from the process that produced it, unpiped.
-	cargo test -p podbox-image "$test_name" >"$WORK/plant12.run" 2>&1
+	cargo test -p podvm-image "$test_name" >"$WORK/plant12.run" 2>&1
 	rc=$?
 	say "  exit             $rc"
 	if [ "$rc" -eq 0 ]; then
@@ -480,7 +480,7 @@ plant_the_release() {
 # ⚠ It measures no rate. Clause 12 is the rate; this is the diagnosis.
 capture_the_refusals() {
 	pass="$1"
-	src="$REPO/crates/podbox-image/src/store.rs"
+	src="$REPO/crates/podvm-image/src/store.rs"
 	anchor="            let _ = sys::flock(self.fd, sys::LOCK_UN);"
 	hits=$(grep -c -F -x -- "$anchor" "$src")
 	say "== clause 13 pass $pass  the capture at the refusal, with the release deleted"
@@ -493,9 +493,9 @@ capture_the_refusals() {
 	MUTATED="$src"
 	trap 'cp "$WORK/mutated.orig" "$MUTATED" 2>/dev/null' EXIT HUP INT TERM
 	grep -v -F -x -- "$anchor" "$WORK/mutated.orig" >"$src"
-	say "  mutation         crates/podbox-image/src/store.rs"
+	say "  mutation         crates/podvm-image/src/store.rs"
 	say "    delete, at:    $anchor"
-	say "  command          PODBOX_T0215_CAPTURE=1 cargo test --workspace"
+	say "  command          PODVM_T0215_CAPTURE=1 cargo test --workspace"
 	if ! cargo test --workspace --no-run >"$WORK/cap.log" 2>&1; then
 		say "  SKIP: the mutated tree did not build"
 		tail -10 "$WORK/cap.log" | sed 's/^/  /' >>"$REPORT"
@@ -508,7 +508,7 @@ capture_the_refusals() {
 	i=1
 	: >"$WORK/captures"
 	while [ "$i" -le "$CONTROL_RUNS" ]; do
-		PODBOX_T0215_CAPTURE=1 cargo test --workspace >"$WORK/cap.run.$i" 2>&1
+		PODVM_T0215_CAPTURE=1 cargo test --workspace >"$WORK/cap.run.$i" 2>&1
 		# ⛔ The code is read from the process that produced it, unpiped.
 		rc=$?
 		if [ "$rc" -ne 0 ]; then
@@ -544,7 +544,7 @@ capture_the_refusals() {
 # guard goes RED.
 plant_the_exemption() {
 	pass="$1"
-	src="$REPO/crates/podbox-image/src/store.rs"
+	src="$REPO/crates/podvm-image/src/store.rs"
 	anchor="        if !self.handed.load(std::sync::atomic::Ordering::Acquire) {"
 	test_name="a_lock_handed_to_the_payload_outlives_this_process_dropping_it"
 	hits=$(grep -c -F -x -- "$anchor" "$src")
@@ -558,7 +558,7 @@ plant_the_exemption() {
 	MUTATED="$src"
 	trap 'cp "$WORK/mutated.orig" "$MUTATED" 2>/dev/null' EXIT HUP INT TERM
 	awk -v a="$anchor" '{ if ($0 == a) print "        if true {"; else print }' 		"$WORK/mutated.orig" >"$src"
-	say "  mutation         crates/podbox-image/src/store.rs"
+	say "  mutation         crates/podvm-image/src/store.rs"
 	say "    replace, at:   $anchor"
 	say "    with:          if true {"
 	if ! cargo test --workspace --no-run >"$WORK/plant14.log" 2>&1; then
@@ -569,9 +569,9 @@ plant_the_exemption() {
 		cargo test --workspace --no-run >>"$WORK/plant14.log" 2>&1
 		return
 	fi
-	say "  command          cargo test -p podbox-image $test_name"
+	say "  command          cargo test -p podvm-image $test_name"
 	# ⛔ The code is read from the process that produced it, unpiped.
-	cargo test -p podbox-image "$test_name" >"$WORK/plant14.run" 2>&1
+	cargo test -p podvm-image "$test_name" >"$WORK/plant14.run" 2>&1
 	rc=$?
 	say "  exit             $rc"
 	if [ "$rc" -eq 0 ]; then
@@ -612,15 +612,15 @@ for c in $CLAUSES; do
 			"$CONTROL_RUNS" --skip "$FORKER_CLONE" --skip "$FORKER_SPAWN" \
 			--skip "$FORKER_PROBE" --skip "$FORKER_PULL" ;;
 		7) second_filesystem "$p" ;;
-		8) mutate_and_measure 8 "$p" "the pre-registration window widened to 200 us" 			"crates/podbox-image/src/store.rs" 			"        let fd = Lock::open(path)?;" after 			"        std::thread::sleep(std::time::Duration::from_micros(200));" ;;
-		9) mutate_and_measure 9 "$p" "podbox's own spawn no longer sheds" 			"crates/podbox-probe/src/probes.rs" 			"    match sys::shed_after_fork(&mut cmd).status() {" replace 			"    match cmd.status() {" ;;
+		8) mutate_and_measure 8 "$p" "the pre-registration window widened to 200 us" 			"crates/podvm-image/src/store.rs" 			"        let fd = Lock::open(path)?;" after 			"        std::thread::sleep(std::time::Duration::from_micros(200));" ;;
+		9) mutate_and_measure 9 "$p" "podvm's own spawn no longer sheds" 			"crates/podvm-probe/src/probes.rs" 			"    match sys::shed_after_fork(&mut cmd).status() {" replace 			"    match cmd.status() {" ;;
 		# ⚠ A plant is deterministic, so one pass is the whole of it. Every
 		# clause that measures a RATE is taken twice; this one measures none.
 		10) [ "$p" = A ] && plant_the_hook_control A ;;
 		12) [ "$p" = A ] && plant_the_release A ;;
 		13) [ "$p" = A ] && capture_the_refusals A ;;
 		14) [ "$p" = A ] && plant_the_exemption A ;;
-		11) mutate_and_measure 11 "$p" "the bare spawn in the test given the hook too" "crates/podbox-image/src/store.rs" '        let mut child = std::process::Command::new("/bin/sh")' replace '        let mut child = sys::shed_after_fork(&mut std::process::Command::new("/bin/sh"))' ;;
+		11) mutate_and_measure 11 "$p" "the bare spawn in the test given the hook too" "crates/podvm-image/src/store.rs" '        let mut child = std::process::Command::new("/bin/sh")' replace '        let mut child = sys::shed_after_fork(&mut std::process::Command::new("/bin/sh"))' ;;
 		0) [ "$p" = A ] && instrument_control ;;
 		*)
 			if [ "$p" = A ]; then
@@ -718,7 +718,7 @@ else
 	a9="${CLAUSE9_A_FAILED:-}"
 	b9="${CLAUSE9_B_FAILED:-}"
 	if [ -n "$a9" ] && [ -n "$b9" ]; then
-		say "  podbox's own spawn no longer sheds: pass A $a9 of ${CLAUSE9_RUNS:-0},"
+		say "  podvm's own spawn no longer sheds: pass A $a9 of ${CLAUSE9_RUNS:-0},"
 		say "  pass B $b9 of ${CLAUSE9_RUNS:-0}, against the subject's $c1a and $c1b"
 		say "  in this same run."
 		say "    ⭐ A FIX TAKEN BACK OUT, so it is read the other way again: a"

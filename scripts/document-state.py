@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Compat shim for the source-state port (T-1564). The page lives in the
-document-state binary in crates/podbox-release; this file only execs it
+document-state binary in crates/podvm-release; this file only execs it
 with the same arguments, so the record gate's document check and the
 py_compile gate step keep working."""
 
@@ -22,7 +22,7 @@ def main():
     for binary in CANDIDATES:
         if binary.is_file():
             os.execv(str(binary), [str(binary)] + sys.argv[1:])
-    print("document-state: the binary is not built; cargo build -p podbox-release",
+    print("document-state: the binary is not built; cargo build -p podvm-release",
           file=sys.stderr)
     return 2
 

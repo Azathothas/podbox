@@ -43,17 +43,17 @@ Approach:    Hold it. This is the property every dependency decision in
 Decision:    `crt-static` per target rather than under `[build]`. Setting it
              globally also applies it to build scripts and proc macros compiled
              for the host, which is a link failure on some hosts.
-Prove:       `cargo build --release --target x86_64-unknown-linux-musl && readelf -l target/x86_64-unknown-linux-musl/release/podbox | grep -c INTERP | grep -qx 0`
+Prove:       `cargo build --release --target x86_64-unknown-linux-musl && readelf -l target/x86_64-unknown-linux-musl/release/podvm | grep -c INTERP | grep -qx 0`
 
 **Done on the skeleton, and it stays open to regression rather than to work.**
 The `Prove` command above was run on 2026-09-08 and exits 0:
 
 ```
-$ file target/x86_64-unknown-linux-musl/release/podbox
+$ file target/x86_64-unknown-linux-musl/release/podvm
 ELF 64-bit LSB pie executable, x86-64, static-pie linked, stripped
-$ readelf -l target/x86_64-unknown-linux-musl/release/podbox | grep -c INTERP
+$ readelf -l target/x86_64-unknown-linux-musl/release/podvm | grep -c INTERP
 0
-$ stat -c%s target/x86_64-unknown-linux-musl/release/podbox
+$ stat -c%s target/x86_64-unknown-linux-musl/release/podvm
 389656
 ```
 
@@ -82,7 +82,7 @@ Premise:     Measured for the build half:
              `references/fritzw__ld-preload-open/api/comments.json`.
 Approach:    Build both objects with `scripts/build-interpose.sh`, embed both as
              byte arrays, and on first use write the one T-0706 selected into
-             the rootfs at a fixed path under a podbox-owned directory. Set
+             the rootfs at a fixed path under a podvm-owned directory. Set
              `LD_PRELOAD` to that path as the payload will see it.
              ⛔ The interposer must not depend on the rest of the tree. It is
              excluded from the workspace at `Cargo.toml:20-25` for that reason,
@@ -91,13 +91,13 @@ Approach:    Build both objects with `scripts/build-interpose.sh`, embed both as
 Decision:    Write it into the rootfs rather than keep it in the store and bind
              it in. There is no attach path on this runtime, so a bind is not
              available, and a copy per container is a few hundred kilobytes.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -r /.podbox/interpose.so' && podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'true' 2>&1 | grep -q 'is preloaded for this payload'`
+Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'test -r /.podvm/interpose.so' && podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'true' 2>&1 | grep -q 'is preloaded for this payload'`
 
 **Done 2026-09-22.** The work this entry specifies shipped under
 earlier entries and this close verifies it rather than re-implementing
 it. Both objects build through `scripts/build-interpose.sh` and embed
-as byte arrays (`crates/podbox-cli/src/interpose.rs` `GNU`/`MUSL`);
-placement writes the selected one to `/.podbox/interpose.so` through a
+as byte arrays (`crates/podvm/src/interpose.rs` `GNU`/`MUSL`);
+placement writes the selected one to `/.podvm/interpose.so` through a
 temporary file and an atomic rename; `LD_PRELOAD` merges the object
 ahead of the payload's own value. Driven green on host podman 6.1.2
 with the shipped binary: the file reads inside the payload, and the
@@ -202,7 +202,7 @@ Problem:     A single-file artefact whose inputs are not recorded cannot be
              traced back to what produced it, and the audience is automated and
              will not remember.
 Premise:     Read.
-Approach:    Record, in the binary and reported by `podbox version --verbose`:
+Approach:    Record, in the binary and reported by `podvm version --verbose`:
              the git commit, the rustc version, the target triple, the digest of
              each embedded interposer object, and the achieved mode of the build
              (whether it is static). Verify that two builds of the same commit
@@ -220,7 +220,7 @@ Prove:       `./experiments/120-reproducible-build.sh`; a runnable verdict
 
 **Done 2026-09-22.** The binary records its inputs and reports them,
 and two builds of one commit match byte for byte.
-`crates/podbox-cli/build.rs` emits the commit (with `-dirty` where the
+`crates/podvm/build.rs` emits the commit (with `-dirty` where the
 tree is modified, `unknown` where no commit is readable), the `rustc`
 version, the target triple, the hex sha256 of each embedded interposer
 object (`absent` where the placeholder went in), and whether
@@ -258,52 +258,52 @@ Premise:     ⭐ **Measured on 2026-09-09**, `experiments/results/session-startu
              | the same build warm | 0 s |
              | `bootstrap-env.sh --check` with everything present | 0 s |
              | `TODO/PROGRESS.md` plus `AGENTS.md` | **5,944 words** |
-             | dev.sh (now `podbox-dev`) before it returns | **1 s** |
+             | dev.sh (now `podvm-dev`) before it returns | **1 s** |
 
              ⚠ **The install path is not measured and is not estimated.** This
              container already has every component, and measuring what apt and
              the pinned zig download cost a genuinely fresh machine would mean
              removing them. The result file says `not measured here` rather than
              carrying a number nobody took.
-Approach:    dev.sh (now `podbox-dev`), and `AGENTS.md`'s opening line is now it.
-             1. **`dev.sh`** (now `podbox-dev`) detaches with `setsid`, runs the bootstrap and then
+Approach:    dev.sh (now `podvm-dev`), and `AGENTS.md`'s opening line is now it.
+             1. **`dev.sh`** (now `podvm-dev`) detaches with `setsid`, runs the bootstrap and then
                 the build, and returns in about a second **printing what to read
                 while it works**. ⛔ Bootstrap first: the build needs `zig` for
                 `ring`'s C and would otherwise fail in a way that reads as a code
                 error.
-             2. **`dev.sh status`** (now `podbox-dev status`) answers `running`, `ready`, `failed` with the
+             2. **`dev.sh status`** (now `podvm-dev status`) answers `running`, `ready`, `failed` with the
                 log's tail, or ⭐ **`stale`**, which is the answer that would
                 otherwise mislead: a `ready` predating the last edit is worse
                 than no answer.
-             3. **`dev.sh build`** (now `podbox-dev build`) for a source change, and it deliberately does
+             3. **`dev.sh build`** (now `podvm-dev build`) for a source change, and it deliberately does
                 **not** bootstrap. By the time a session is editing, the
                 environment is up, and an apt check per edit is the cost this
                 removes.
-             4. **`dev.sh check`** (now `podbox-dev check`) before a commit: fmt, clippy, build, tests,
+             4. **`dev.sh check`** (now `podvm-dev check`) before a commit: fmt, clippy, build, tests,
                 the gate and the marker check, cheapest first, each read from the
                 process that produced it.
 Decision:    A shell script over a `Makefile`. ⚠ `make` would have to model the
              dependency graph cargo already models, and the two would drift; the
              one thing `make` buys that cargo does not is running the bootstrap
              and the build behind a session's reading, and that is what this is.
-             ⛔ **A second `dev.sh` (now `podbox-dev`) attaches to the first rather than starting a
+             ⛔ **A second `dev.sh` (now `podvm-dev`) attaches to the first rather than starting a
              competing cargo.** Two builds on one target directory block on the
              same lock, and the second looks like a hang, which is exactly the
              failure `AGENTS.md` says costs a session.
              ⚠ The state lives in `.dev/` under the repository rather than in
              `/tmp`, so a session that loses `/tmp` between turns does not lose
              the log that says why the build failed.
-Prove:       `./target/release/podbox-dev` returns in under 5 s; `./target/release/podbox-dev wait` then reports `ready`; changing a source file makes `./target/release/podbox-dev status` report `stale` and exit 1
+Prove:       `./target/release/podvm-dev` returns in under 5 s; `./target/release/podvm-dev wait` then reports `ready`; changing a source file makes `./target/release/podvm-dev status` report `stale` and exit 1
 
 **Done 2026-09-09.** Every clause of the `Prove` was driven.
-experiments/310-session-startup.sh (now `podbox-dev startup`) takes the numbers and clause 5 is dev.sh (now `podbox-dev`)
+experiments/310-session-startup.sh (now `podvm-dev startup`) takes the numbers and clause 5 is dev.sh (now `podvm-dev`)
 returning in 1 s.
 
-**Done 2026-10-01 (the dev-driver port).** The driver is the `podbox-dev` binary in
-the gate crate (`crates/podbox-gate/src/dev.rs`): `start`, `status`, `wait`,
+**Done 2026-10-01 (the dev-driver port).** The driver is the `podvm-dev` binary in
+the gate crate (`crates/podvm-gate/src/dev.rs`): `start`, `status`, `wait`,
 `build` and `check` mirror `dev.sh`, `session` mirrors `session-start.sh`,
 and `startup` mirrors `310-session-startup.sh`. The `check` step that ran
-`./scripts/check-todo.py` runs `./target/release/podbox-gate`. Lane proof
+`./scripts/check-todo.py` runs `./target/release/podvm-gate`. Lane proof
 with the scripts still beside the tree, then the three scripts deleted in
 the same change; the red-run plant is `experiments/results/dev-port-plant.txt`.
 
@@ -325,7 +325,7 @@ Status:      done 2026-09-23
 
 Problem:     Releases are assembled by hand. `v0.1.0-beta.1` went up through
              hand-run commands, only `x86_64` ships, and no step anywhere
-             builds or runs the other six architectures podbox claims.
+             builds or runs the other six architectures podvm claims.
              `.github/workflows/gate.yml:9-13` triggers on pushes to main and
              pull requests, never on tags, and carries no release job; its
              build job at `.github/workflows/gate.yml:101-109` is `x86_64`
@@ -343,7 +343,7 @@ Premise:     Read at file and line, not measured. `.cargo/config.toml:40-55`
              is unread at the lines that decide it; read it before promising
              per-arch embeds.
              ⚠ The beta verification is the per-arch bar to reuse: the binary
-             runs `podbox 0.1.0`, both interposer digests are present, and
+             runs `podvm 0.1.0`, both interposer digests are present, and
              `crt-static` reads yes.
 Approach:    One new workflow, `.github/workflows/nightly.yml`, and nothing
              in `gate.yml` moves. On every `v*` tag it builds all seven
@@ -377,7 +377,7 @@ Prove:       `git push origin v0.1.0-beta.3` publishes a nightly pre-release
 
 **Done 2026-09-23.** One `v*` tag builds and smoke-tests all seven claimed
 archs through `.github/workflows/nightly.yml`, with the per-arch smoke in
-nightly-smoke.sh (now `podbox-smoke`) and the cross link that makes the builds possible
+nightly-smoke.sh (now `podvm-smoke`) and the cross link that makes the builds possible
 in `.cargo/config.toml`.
 
 The workflow answers version tags alone; nothing in `gate.yml` moves. A
@@ -388,7 +388,7 @@ seven assets with the run's own token, and creates the pre-release named
 nightly (re-uploading where the tag already has one, never deleting and
 remaking it). The checkout pin repeats `gate.yml`'s; the one new pin is
 `actions/upload-artifact` v5.0.0. The bootstrap line repeats the build
-job's, which is what `crates/podbox-gate/src/main.rs` check 19 holds it to.
+job's, which is what `crates/podvm-gate/src/main.rs` check 19 holds it to.
 
 The smoke asserts four things, each read from the process that produced
 it: `version` exits 0 with the version line, `version --verbose` exits 0
@@ -400,7 +400,7 @@ binary exiting 1) were driven on the host before any lane run.
 
 Checkpoint 1 measured first: plain `cargo build --release --target` linked
 2 of 7. The host `cc` refuses foreign objects (`file in wrong format` on
-rust's own self-contained crt, and on podbox's objects). The recipe is
+rust's own self-contained crt, and on podvm's objects). The recipe is
 `experiments/260-multiarch.sh` clauses 4 and 7 (`rust-lld` over
 self-contained objects), moved into `.cargo/config.toml` one target per
 section so every build uses it instead of a third copy in the next script.
@@ -425,7 +425,7 @@ powerpc64le 3248912 B  interp 0  crt-static yes
 ```
 
 Checkpoint 2 ran one arch end to end first (aarch64 under
-`qemu-aarch64-static`: `podbox 0.1.0`, rc 0, the triple named, both
+`qemu-aarch64-static`: `podvm 0.1.0`, rc 0, the triple named, both
 digests present, `crt-static: yes`), then widened: x86_64 native,
 riscv64gc, armv7, i686 and powerpc64le all read `SMOKE-OK` with agreeing
 digests. `loongarch64` does not run in this lane: `qemu-loongarch64-static`
@@ -436,9 +436,9 @@ the change, and `nightly.yml` parses under a real parser (7 legs, trigger
 `push tags v*`, publish needing the matrix).
 
 Every per-arch binary carries the x86_64 interposer pair: the crate is
-x86_64-only by design (`crates/podbox-interpose/src/lib.rs:50-61`), and
+x86_64-only by design (`crates/podvm-interpose/src/lib.rs:50-61`), and
 off-arch payloads decline naming both machines
-(`crates/podbox-cli/src/interpose.rs:238-246`). Per-arch objects belong to
+(`crates/podvm/src/interpose.rs:238-246`). Per-arch objects belong to
 the T-0704 family, not to this entry.
 
 Prove run 2026-09-23: `git push origin v0.1.0-beta.2` ran the workflow as
@@ -480,7 +480,7 @@ build input.
 Source:      issue 26, client beta testing 2026-09-22 (hash-only
              sidecars from the same release prove truncation, not
              origin); `.github/workflows/nightly.yml`,
-             nightly-smoke.sh (now `podbox-smoke`)
+             nightly-smoke.sh (now `podvm-smoke`)
 Category:    packaging
 Priority:    P2
 Effort:      M
@@ -534,7 +534,7 @@ the repository API on 2026-09-30. No close-out action remains.
 
 Source:      issue 26, client beta testing 2026-09-22 (a broken
              non-x86_64 binary publishes green);
-             nightly-smoke.sh (now `podbox-smoke`)
+             nightly-smoke.sh (now `podvm-smoke`)
 Category:    packaging
 Priority:    P2
 Effort:      M
@@ -558,14 +558,14 @@ Approach:    `pull` plus `extract` per arch against a loopback fixture
 Decision:    Loopback pull+extract per arch. The fixture shape already
              exists in the registry-fixture work (T-0206 family); reuse
              it rather than inventing a second fixture.
-Prove:       `./target/release/podbox-smoke` (or its per-arch leg) fails on a
+Prove:       `./target/release/podvm-smoke` (or its per-arch leg) fails on a
              fixture whose layer bytes are flipped and passes on the
              honest one, on the native leg; groups 1-4 run on all seven
              legs. Close issue 26 (smoke third) with a comment showing
              the failing-then-passing legs and the pull+extract
              assertions as the guard that stops recurrence.
 
-**Done 2026-09-23.** Group 5 in nightly-smoke.sh (now `podbox-smoke`): a
+**Done 2026-09-23.** Group 5 in nightly-smoke.sh (now `podvm-smoke`): a
 synthetic one-file image travels by save/load through the binary
 under test (import, save, load, extract, payload bytes read back),
 then the tarball's layer blob is flipped and the same load must
@@ -576,8 +576,8 @@ store is scratch. Group 5 runs on native legs only (the matrix's
 x86_64 leg); groups 1-4 run on all seven. `run` stays out per the
 Approach: qemu-user execution waits on T-1327's pairs.
 
-**Done 2026-10-01 (the smoke port).** The smoke is the `podbox-smoke`
-binary in the gate crate (`crates/podbox-gate/src/smoke.rs`): the six
+**Done 2026-10-01 (the smoke port).** The smoke is the `podvm-smoke`
+binary in the gate crate (`crates/podvm-gate/src/smoke.rs`): the six
 assertion groups run against the binary it is given, and `--diagnostics`
 drives the gate-diagnostics fixture. Lane proof runs the binary green
 against the retired script on the same binary, then deletes
@@ -657,7 +657,7 @@ Status:      done
 
 Problem:     Tag `v0.1.0-beta.11` built with the manifest still reading
              `0.1.0-beta.10`, so the published binary reports the wrong
-             release. The nightly smoke only asserts the `podbox *`
+             release. The nightly smoke only asserts the `podvm *`
              shape, never tag equality.
 Premise:     One workspace version feeds every crate, and the nightly
              matrix builds from the tag. Nothing between the tag push
@@ -687,7 +687,7 @@ the four helpers green
 ([the drive](../experiments/results/exercise-beta12.txt)). Beta.11
 stays published with its defect recorded; no history was rewritten.
 
-### T-1559 Port `scripts/build-state.py` to `podbox-buildstate`
+### T-1559 Port `scripts/build-state.py` to `podvm-buildstate`
 
 Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
              `scripts/build-state.py`; `experiments/393-build-freshness.py`
@@ -699,15 +699,15 @@ Status:      done
 Problem:     Build freshness is decided by a Python script. The shell
              retirement moves durable workflows into native Rust, and this
              script is `packaging` category work with no reason to stay
-             Python. Two consumers pin its interface: `podbox-dev` calls it
-             at four sites in `crates/podbox-gate/src/dev.rs`, and
+             Python. Two consumers pin its interface: `podvm-dev` calls it
+             at four sites in `crates/podvm-gate/src/dev.rs`, and
              `experiments/393-build-freshness.py` imports it as a module.
-Premise:     The record format is the contract: schema `podbox-build/1`,
+Premise:     The record format is the contract: schema `podvm-build/1`,
              sorted keys, CPython separators, one trailing newline, atomic
              replace through a `.new` sibling. The four CLI verbs keep
              their names, flags, messages, and exit codes.
-Approach:    Port the logic to `crates/podbox-buildstate`, binary
-             `podbox-buildstate`, with no dependencies. SHA-256 and the
+Approach:    Port the logic to `crates/podvm-buildstate`, binary
+             `podvm-buildstate`, with no dependencies. SHA-256 and the
              JSON writer are hand-rolled to match CPython byte for byte.
              Keep `scripts/build-state.py` as a compat shim that execs the
              binary, so the `dev.rs` call sites and the `py_compile` gate
@@ -717,15 +717,15 @@ Approach:    Port the logic to `crates/podbox-buildstate`, binary
 Decision:    The binary owns the logic; the script is a shim. The port
              must not reintroduce the unread `.dev/last-build-inputs`
              stamp: only `.dev/build-state.json` is read and written.
-Prove:       `cargo test -p podbox-buildstate` green in the lane; the
+Prove:       `cargo test -p podvm-buildstate` green in the lane; the
              retired script and the binary agree on `inputs` and `commit`
              over the same tree; `python3
              experiments/393-build-freshness.py` exits 0 against the
              binary; the plant transcript shows each stale state going red;
-             `./target/release/podbox-gate` exits 0.
+             `./target/release/podvm-gate` exits 0.
 
-**Done 2026-10-01.** The `podbox-buildstate` crate carries
-`podbox-buildstate` and `podbox-release-licenses` with no
+**Done 2026-10-01.** The `podvm-buildstate` crate carries
+`podvm-buildstate` and `podvm-release-licenses` with no
 dependencies, and both scripts stay as exec shims. Lane proof
 ([buildstate-crate-proof](../experiments/results/buildstate-crate-proof.txt)):
 unit tests 7 and 6 passed; retired script and binary agree on the
@@ -737,7 +737,7 @@ fixture rows green; clippy and fmt clean. Plant
 every stale shape goes red and every refusal exits 2. The record gate
 exits 0 on the landed tree.
 
-### T-1560 Port `scripts/release-licenses.py` to `podbox-release-licenses`
+### T-1560 Port `scripts/release-licenses.py` to `podvm-release-licenses`
 
 Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
              `scripts/release-licenses.py`; `scripts/package-ssh.sh:43`
@@ -748,13 +748,13 @@ Status:      done
 
 Problem:     The licence inventory for the locked package set is produced
              by a Python script. It is `packaging` category work and moves
-             into the `podbox-buildstate` crate beside `podbox-buildstate`.
+             into the `podvm-buildstate` crate beside `podvm-buildstate`.
              Its one live caller is `scripts/package-ssh.sh`, which runs it
              with `--output` under whichever Python it finds.
 Premise:     `inventory.json` is the contract: `json.dumps` with `indent=2`
              and insertion-ordered keys. The package set, the licence stem
              match, the traversal guard, and the exit codes stay as written.
-Approach:    Port the logic to binary `podbox-release-licenses` with no
+Approach:    Port the logic to binary `podvm-release-licenses` with no
              dependencies, including a minimal JSON reader for the `cargo
              metadata` output. Keep `scripts/release-licenses.py` as a
              compat shim that execs the binary, so `package-ssh.sh` and the
@@ -762,20 +762,20 @@ Approach:    Port the logic to binary `podbox-release-licenses` with no
 Decision:    The script keeps its path and its `--output` flag; the binary
              adds an optional `--root` that defaults to the checkout found
              by walking up from the working directory.
-Prove:       `cargo test -p podbox-buildstate` green in the lane; the
+Prove:       `cargo test -p podvm-buildstate` green in the lane; the
              retired script and the binary produce identical inventories
-             over the same lock; `./target/release/podbox-gate` exits 0.
+             over the same lock; `./target/release/podvm-gate` exits 0.
 
 **Done 2026-10-01.** `scripts/release-licenses.py` keeps its path and
-its `--output` flag and now execs `podbox-release-licenses` from the
-`podbox-buildstate` crate, which pulls in no dependencies. Lane proof
+its `--output` flag and now execs `podvm-release-licenses` from the
+`podvm-buildstate` crate, which pulls in no dependencies. Lane proof
 ([buildstate-crate-proof](../experiments/results/buildstate-crate-proof.txt),
 section 5): retired script and binary produce identical inventories
 over the same lock, and the shim reaches its binary. Plant: a
 missing `--output` and an unwritable output each exit 2. The record
 gate exits 0 on the landed tree.
 
-### T-1561 Port `scripts/verify-release.sh` to `podbox-verify`
+### T-1561 Port `scripts/verify-release.sh` to `podvm-verify`
 
 Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
              `scripts/verify-release.sh`; `TODO/packaging.md` T-1328
@@ -786,26 +786,26 @@ Status:      done
 
 Problem:     The downloader's half of the signed nightly is a shell
              script. It is `packaging` category work and moves into the
-             `podbox-release` crate. Its callers name the path, the two
+             `podvm-release` crate. Its callers name the path, the two
              asset kinds, and the three exit states.
 Premise:     The workflow identity is the contract: the nightly workflow
              at the tag being verified, keyless through OIDC. `gh` and
              `cosign` are driven directly with the same 120-second bound
              the script's `timeout` gave them. A wait past the bound is
              "could not run", never a verification failure.
-Approach:    Port the logic to binary `podbox-verify` with no
+Approach:    Port the logic to binary `podvm-verify` with no
              dependencies. Keep `scripts/verify-release.sh` as a compat
              shim that execs the binary, so the prose callers and the
              publication proof keep working.
 Decision:    The script keeps its path and its `TAG ARCH [binary|ssh]`
              shape; the binary owns the fetch, the identity, and the
              scratch cleanup on every exit path.
-Prove:       `cargo test -p podbox-release` green in the lane; a missing
+Prove:       `cargo test -p podvm-release` green in the lane; a missing
              tool and a bad kind each exit 2 through the shim;
-             `./target/release/podbox-gate` exits 0.
+             `./target/release/podvm-gate` exits 0.
 
 **Done 2026-10-01.** The downloader half of the signed nightly runs as
-binary `podbox-verify`, built from the `podbox-release` crate with no
+binary `podvm-verify`, built from the `podvm-release` crate with no
 dependencies, and `scripts/verify-release.sh` remains a shim that execs
 it. Lane proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
@@ -814,7 +814,7 @@ the shim, and the shim reaches its binary. Plant: a bad kind exits 2
 with the refusal naming the missing tool. The record gate exits 0 on
 the landed tree.
 
-### T-1563 Port `experiments/120-reproducible-build.sh` and `157` to `podbox-prove-t0211`
+### T-1563 Port `experiments/120-reproducible-build.sh` and `157` to `podvm-prove-t0211`
 
 Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
              `experiments/120-reproducible-build.sh`;
@@ -834,7 +834,7 @@ Premise:     The lane job and the mutation table are the contract: two
              release builds of one tree and one mutation at a time, each
              asserted to land before it is read. The dirty-subject refusal
              and the restore-from-copy rule move with the logic.
-Approach:    Port both proofs to binary `podbox-prove-t0211` with
+Approach:    Port both proofs to binary `podvm-prove-t0211` with
              `reproducible` and `lock-inheritance` subcommands and no
              dependencies. Keep both experiment paths as compat shims that
              exec the binary with the matching subcommand, so T-1004 and
@@ -842,12 +842,12 @@ Approach:    Port both proofs to binary `podbox-prove-t0211` with
 Decision:    One binary because both are store-lock proofs. The scripts
              keep their paths, their flags, and their exit codes; the
              binary owns the job text, the anchors, and the reports.
-Prove:       `cargo test -p podbox-release` green in the lane; the
+Prove:       `cargo test -p podvm-release` green in the lane; the
              lock-inheritance proof runs its two mutations against the
-             current tree; `./target/release/podbox-gate` exits 0.
+             current tree; `./target/release/podvm-gate` exits 0.
 
-**Done 2026-10-01.** One dependency-free binary, `podbox-prove-t0211`,
-now lives in the `podbox-release` crate and answers both store-lock
+**Done 2026-10-01.** One dependency-free binary, `podvm-prove-t0211`,
+now lives in the `podvm-release` crate and answers both store-lock
 subcommands, so the two retired experiments reach it through shims that
 exec it. Lane proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
@@ -888,12 +888,12 @@ Approach:    Port the logic to binary `release-notes` with no
 Decision:    The notes step runs the binary, not the shim. The shim stays
              for operators. The nightly diff is one new artefact and one
              repointed step, recorded here.
-Prove:       `cargo test -p podbox-release` green in the lane; a tag with
-             no gate refuses through the shim; `./target/release/podbox-gate`
+Prove:       `cargo test -p podvm-release` green in the lane; a tag with
+             no gate refuses through the shim; `./target/release/podvm-gate`
              exits 0.
 
 **Done 2026-10-01.** The nightly notes come from the dependency-free
-binary `release-notes` in the `podbox-release` crate;
+binary `release-notes` in the `podvm-release` crate;
 `scripts/release-notes.sh` stays as an exec shim for operators. Lane
 proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
@@ -901,13 +901,13 @@ section 4): a tag with no gate refuses through the shim, and the
 shim reaches its binary. Plant: notes for a tag that names no commit
 exits 2 naming the missing tool. The nightly diff lands here too, as
 the Decision requires: the x86_64 leg couriers the musl-static binary
-through its own artefact under a name outside the `dist/podbox-*`
+through its own artefact under a name outside the `dist/podvm-*`
 release glob, and the publish job runs it instead of the shim. The
 workflow parses under the gate's own reader and the gate stays green;
 a live tag run owns the end-to-end proof. The record
 gate exits 0 on the landed tree.
 
-### T-1566 Port `experiments/395-reconcile-repository.py` to `podbox-reconcile`
+### T-1566 Port `experiments/395-reconcile-repository.py` to `podvm-reconcile`
 
 Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
              `experiments/395-reconcile-repository.py`;
@@ -919,23 +919,23 @@ Status:      done
 
 Problem:     The publish-branch reconciliation is a Python script. It is
              git history and patch comparison, and it moves into the
-             `podbox-release` crate. Its verdicts distinguish a failed
+             `podvm-release` crate. Its verdicts distinguish a failed
              expectation from a machine that could not answer.
 Premise:     The pins are the contract: the retained branch name and the
              two fixed revision ranges. The `--expect-deleted` arm keeps
              the script's test: absent is the expected state, and anything
              else fails.
-Approach:    Port the logic to binary `podbox-reconcile` with no
+Approach:    Port the logic to binary `podvm-reconcile` with no
              dependencies, adding an optional `--root` that defaults to the
              checkout found by walking up. Keep the experiment path as a
              compat shim that execs the binary.
 Decision:    The script keeps its path and its flag; the binary owns the
              git calls, the pins, and the verdict lines.
-Prove:       `cargo test -p podbox-release` green in the lane; the binary
-             reads the current branch state; `./target/release/podbox-gate`
+Prove:       `cargo test -p podvm-release` green in the lane; the binary
+             reads the current branch state; `./target/release/podvm-gate`
              exits 0.
 
-**Done 2026-10-01.** `podbox-release` grew binary `podbox-reconcile`,
+**Done 2026-10-01.** `podvm-release` grew binary `podvm-reconcile`,
 which carries no dependencies and reads the branch state itself; the
 retired experiment path execs it as a shim. Lane proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
@@ -944,7 +944,7 @@ retained publish ref is absent, 0 where present) and the shim reaches
 its binary. Plant: the `--expect-deleted` arm runs over the live
 refs and prints its report. The record gate exits 0 on the landed tree.
 
-### T-1567 Port `experiments/399-publication.py` to `podbox-publish`
+### T-1567 Port `experiments/399-publication.py` to `podvm-publish`
 
 Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
              `experiments/399-publication.py`; `TODO/packaging.md` T-1314
@@ -955,26 +955,26 @@ Status:      done
 
 Problem:     The publication acceptance is a Python script. It reads exact
              commit CI and the optional release and branch acceptance, and
-             it moves into the `podbox-release` crate. Signature content
-             verification stays with `podbox-verify`; this binary never
+             it moves into the `podvm-release` crate. Signature content
+             verification stays with `podvm-verify`; this binary never
              writes to a remote.
 Premise:     The error taxonomy is the contract: a failed expectation
              prints `FAIL:` and exits 1, and a missing tool, ref, or answer
              prints `cannot run:` and exits 2. The release tag shape and
              the unique architecture matrix keep the script's tests.
-Approach:    Port the logic to binary `podbox-publish` with no
+Approach:    Port the logic to binary `podvm-publish` with no
              dependencies, including a minimal JSON reader for the `gh`
              answers. Keep the experiment path as a compat shim that execs
              the binary.
 Decision:    The script keeps its path and its flags; the binary owns the
              workflow reads, the matrix parse, the asset-set comparison,
              and the verdict line.
-Prove:       `cargo test -p podbox-release` green in the lane; a bad tag
+Prove:       `cargo test -p podvm-release` green in the lane; a bad tag
              shape fails and a missing origin refuses through the shim;
-             `./target/release/podbox-gate` exits 0.
+             `./target/release/podvm-gate` exits 0.
 
 **Done 2026-10-01.** The publication acceptance is now binary
-`podbox-publish`, a dependency-free member of the `podbox-release`
+`podvm-publish`, a dependency-free member of the `podvm-release`
 crate; the experiment path stays as an exec shim that reaches it. Lane
 proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
@@ -982,7 +982,7 @@ sections 4 and 4b): the shim reaches its binary, and a malformed tag
 through the shim exits 2 with `cannot run: required command failed:
 gh` (the remote read precedes the tag-shape check where `gh` is
 absent; the exit-1 shape on a connected host is unit-proven).
-`podbox-reconcile` beside it reads the same live branch state. The
+`podvm-reconcile` beside it reads the same live branch state. The
 record gate exits 0 on the landed tree.
 
 ### T-1605 Push a version tag and prove the nightly release-notes wiring live
@@ -1021,7 +1021,7 @@ Prove:       `git tag --list` shows the new tag on the landed commit; the
              carries release notes generated by the `release-notes`
              binary rather than by the retired shell; the run log names
              the binary path it executed;
-             `./target/release/podbox-gate` exits 0.
+             `./target/release/podvm-gate` exits 0.
 
 **Partial 2026-10-02. The tag is pushed and the nightly ran; it is red,
 and the cause is a shim, not the wiring.** `git tag --list` shows
@@ -1034,8 +1034,8 @@ The wiring under test is not reached. All six per-arch legs fail at
 `smoke and package the SSH helpers` with exit 2 and this line:
 
 ```
-release-licenses: podbox-release-licenses is not built;
-cargo build -p podbox-buildstate
+release-licenses: podvm-release-licenses is not built;
+cargo build -p podvm-buildstate
 ```
 
 That is `scripts/release-licenses.py`, the exec shim T-1560 left behind
@@ -1166,7 +1166,7 @@ question of whether that seventh wave is authorised work at all.
 ⛔ **So the owner is named here and the clearing condition is unmet until
 a wave entry exists.** `refactor/` is untracked, so its ids cannot be
 written into a `TODO/` body: the gate's cross-reference check at
-`crates/podbox-gate/src/main.rs:4007` reads every `T-` followed by four
+`crates/podvm-gate/src/main.rs:4007` reads every `T-` followed by four
 digits on a body line and raises "names T-NNNN, which is not an entry"
 for each, and it has no exemption for a plan id. The plan's own row
 number is therefore not printed here. `refactor/06-entries/T-R006.md` is

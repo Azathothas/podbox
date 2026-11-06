@@ -35,7 +35,7 @@ Approach:    Retain the landed transport and tests. Prove the selected server
 Decision:    Keep SSH encryption and user checks in a real server. Keep an
              explicit server command. Do not repeat the completed relay or
              command dispatch. T-1406 owns relay liveness and reconnect.
-Prove:       `cargo test -p podbox-ssh` and
+Prove:       `cargo test -p podvm-ssh` and
              `sh scripts/common/check-gate.sh --strict` exit 0. A tracked
              fresh-clone drive must run a real SSH command and return 42 in
              the restricted host with the compiled server prerequisites and
@@ -51,7 +51,7 @@ a wrong-key 255 inside its bound, unchanged host identity, and no
 residue (`sh experiments/382-restricted-sshd.sh` exits 0, verdict
 `RESTRICTED SSHD SERVES EXIT 42 ON THE COMPILED SHIM`,
 [the drive](../experiments/results/restricted-sshd.txt)).
-`cargo test -p podbox-ssh` and `sh scripts/common/check-gate.sh --strict`
+`cargo test -p podvm-ssh` and `sh scripts/common/check-gate.sh --strict`
 both exit 0 beside it. The notice stays in THIRD_PARTY.md; no workspace
 or release build links the shim.
 
@@ -66,7 +66,7 @@ is the remaining work in this entry.
 
 ### T-1402 Provide an interactive session without a pty
 
-Source:      captured sandssh and sandhome trees; crates/podbox-ssh/src/session.rs
+Source:      captured sandssh and sandhome trees; crates/podvm-ssh/src/session.rs
 Category:    podssh
 Priority:    P1
 Effort:      L
@@ -76,7 +76,7 @@ Problem:     A one-shot command does not prove an interactive session without a 
 Premise:     A real terminal pair is unavailable on the target host.
 Approach:    Use a server-side line discipline with echo, editing, history, shell state, and process-group signals. Test a real SSH client.
 Decision:    Refuse unsupported terminal operations. Do not claim a real pty. T-1401 owns restricted-server prerequisites.
-Prove:       `cargo test -p podbox-ssh` exits 0; `sh experiments/388-interactive-shell.sh` verifies editing and interruption without a pty device.
+Prove:       `cargo test -p podvm-ssh` exits 0; `sh experiments/388-interactive-shell.sh` verifies editing and interruption without a pty device.
 
 **Done 2026-09-28.** The session layer and shell executable are implemented.
 The current workspace test run passes the interactive, relay, and real proxy
@@ -89,7 +89,7 @@ This closure does not prove the remaining restricted-host clause in T-1401.
 
 ### T-1403 Prove concurrent sessions on one relay connection
 
-Source:      captured reverse-v1 relay specification; crates/podbox-ssh/src/mux.rs
+Source:      captured reverse-v1 relay specification; crates/podvm-ssh/src/mux.rs
 Category:    podssh
 Priority:    P1
 Effort:      L
@@ -99,7 +99,7 @@ Problem:     Relay frames must keep concurrent sessions paired and preserve byte
 Premise:     The relay is a byte shuttle. A real SSH server owns authentication.
 Approach:    Implement node and operator legs, frame parsing, session pairing, and refusal paths. Test two clients against the live relay.
 Decision:    Keep the pair protocol separate from local paths. T-1406 owns DNS and write deadlines and live reconnect.
-Prove:       `cargo test -p podbox-ssh` and `sh experiments/387-mux-two-client.sh` exit 0 with independent sessions and exit codes.
+Prove:       `cargo test -p podvm-ssh` and `sh experiments/387-mux-two-client.sh` exit 0 with independent sessions and exit codes.
 
 **Done 2026-09-28.** The relay implementation is on main. The original live
 two-client result is [saved](../experiments/results/mux-two-client.txt).
@@ -113,14 +113,14 @@ Unbounded DNS and writes and unproved reconnect remain in T-1406.
 
 ### T-1404 Add the remote and machine SSH verbs after the transport holds
 
-Source:      captured pull requests 66 and 67; crates/podbox-cli/src/remote/mod.rs and machine.rs
+Source:      captured pull requests 66 and 67; crates/podvm/src/remote/mod.rs and machine.rs
 Category:    podssh
 Priority:    P2
 Effort:      L
 Status:      done
 
 Problem:     Before this entry, main had neither SSH command dispatch path.
-Premise:     Remote uses a supplied far server. Machine uses a guest that podbox starts.
+Premise:     Remote uses a supplied far server. Machine uses a guest that podvm starts.
 Approach:    Add runnable remote serve, connect, and forward arms and the machine SSH arm. Keep helper discovery and bounded refusals explicit.
 Decision:    Share transport, but keep server placement distinct. Advertise only implemented arms.
 Prove:       `cargo test --workspace` exits 0; `sh experiments/389-remote-ssh.sh`, `sh experiments/390-machine-ssh.sh`, and `sh experiments/391-machine-bridge.sh` return their own success verdicts.
@@ -147,12 +147,12 @@ Priority:    P1
 Effort:      M
 Status:      done
 
-Problem:     The beta.9 release ships podbox without its required node, operator, and proxy helpers.
+Problem:     The beta.9 release ships podvm without its required node, operator, and proxy helpers.
 Premise:     The source build emits four SSH binaries. CLI discovery needs exact helper names.
 Approach:    Stage all four in one archive for each release target.
              Smoke usage failures and ELF linkage. Sign the archive and
              publish its checksum.
-Decision:    Keep the existing standalone podbox asset. Install helpers beside it or on PATH.
+Decision:    Keep the existing standalone podvm asset. Install helpers beside it or on PATH.
 Prove:       `sh scripts/package-ssh.sh RELEASE_DIR ARCH QEMU` exits 0; the release matrix publishes every helper archive with its digest and signature.
 
 **Done 2026-09-30.** The release matrix publishes all seven helper archives
@@ -185,7 +185,7 @@ Problem:     DNS resolution and stream writes can wait without a bound. Node red
 Premise:     node, operator, and session comments state the unbounded paths. Earlier relay proof covers simultaneous sessions only.
 Approach:    Add explicit operation deadlines without unbounded worker accumulation. Test a stalled resolver and non-reading peer. Drive reconnect with two sessions.
 Decision:    Keep the completed transport work scoped. This entry owns the remaining liveness and reconnect acceptance.
-Prove:       `cargo test -p podbox-ssh` exits 0 with the new fault tests.
+Prove:       `cargo test -p podvm-ssh` exits 0 with the new fault tests.
              A tracked drive must also end each stalled operation within
              its bound, prove reconnect pairing, and check worker cleanup.
 
@@ -193,7 +193,7 @@ Prove:       `cargo test -p podbox-ssh` exits 0 with the new fault tests.
 (`DNS_DEADLINE` 10 s); every relay-leg send carries a write deadline
 (`WRITE_DEADLINE` 10 s, kernel `SO_SNDTIMEO` with stall normalization),
 and a stalled server stdin ends its session loud instead of requeueing.
-`cargo test -p podbox-ssh` exits 0: lib 101 passed with 7 new fault
+`cargo test -p podvm-ssh` exits 0: lib 101 passed with 7 new fault
 tests (stalled resolver, non-reading peer, worker cleanup), relay
 15 passed with the new reconnect mode. The liveness the deleted drive
 script covered now lives in those tests; its saved drive

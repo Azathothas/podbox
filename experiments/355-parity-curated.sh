@@ -10,7 +10,7 @@
 #   1. every curated flag the table refuses: `run --rm <flag>` exits
 #      with the flag-error code and names status None on stderr
 #      (`--device` is not among them: it maps since T-0501, clause 5);
-#   2. every curated verb: `podbox <verb>` exits with the runtime-error
+#   2. every curated verb: `podvm <verb>` exits with the runtime-error
 #      code and prints the verb row's note;
 #   3. the promoted flags end to end against the pinned image below:
 #      `--env-file` sets variables (later `-e` wins), `--label`,
@@ -63,19 +63,19 @@ else
 	tail -15 "$WORK/build.log"
 	exit 1
 fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 [ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
-echo "podbox            $("$PB" version)" >>"$REPORT"
+echo "podvm            $("$PB" version)" >>"$REPORT"
 
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$PB" || { echo "cannot read podbox's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-FLAG=$PODBOX_EXIT_FLAG_ERROR
-RUN_ERR=$PODBOX_EXIT_RUNTIME_ERROR
+podvm_exit_codes "$PB" || { echo "cannot read podvm's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+FLAG=$PODVM_EXIT_FLAG_ERROR
+RUN_ERR=$PODVM_EXIT_RUNTIME_ERROR
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 fail=0
 refused=0
 admitted=0
@@ -111,7 +111,7 @@ for v in manifest node plugin scan secret service stack trust checkpoint config;
 	out="$WORK/verb.txt"
 	timeout 120 "$PB" "$v" >"$out" 2>&1
 	rc=$?
-	if [ "$rc" -eq "$RUN_ERR" ] && grep -q "podbox: $v: " "$out"; then
+	if [ "$rc" -eq "$RUN_ERR" ] && grep -q "podvm: $v: " "$out"; then
 		admitted=$((admitted + 1))
 	else
 		echo "FAIL: verb $v exited $rc (want $RUN_ERR with its note):" >>"$REPORT"

@@ -3,7 +3,7 @@
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
 
-`crates/podbox-probe`. `TOOL.md` section 6.1, milestone M0.
+`crates/podvm-probe`. `TOOL.md` section 6.1, milestone M0.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
 [RULES.md](RULES.md) is how an entry closes. [reference-map.md](reference-map.md) is the corpus.
@@ -53,12 +53,12 @@ Decision:    Fork per probe rather than a thread per probe. A thread cannot be
              the calling thread, which leaves the process half-transitioned.
              The alternative, running probes in-process and undoing them, loses
              because several of them have no undo.
-Prove:       `podbox probe --json | jq -e '.probes | length >= 24 and (map(select(.errno == null and .verdict != "ok")) | length == 0)'`
+Prove:       `podvm probe --json | jq -e '.probes | length >= 24 and (map(select(.errno == null and .verdict != "ok")) | length == 0)'`
 
 **Done 2026-09-08.** The `Prove` command was run and exits 0: **48 probes**, and
 no probe reports a verdict other than `ok` without an errno beside it.
-`crates/podbox-probe/src/probes.rs` is the set and
-`crates/podbox-probe/src/child.rs` is the child.
+`crates/podvm-probe/src/probes.rs` is the set and
+`crates/podvm-probe/src/child.rs` is the child.
 
 ⭐ **The fork is `clone(2)`, not `std::process::Command`**, because the minimum
 set needs `clone(CLONE_NEWNS)` and `clone(CLONE_NEWUSER)` attempted *with those
@@ -68,7 +68,7 @@ kinds of probe: a `Kind::Clone` row's verdict is the clone's own errno, and a
 namespace flags that row needs.
 
 ⭐ **The multithreaded rule is checked, not assumed.**
-`crates/podbox-probe/src/probes.rs`'s `unshare(CLONE_NEWUSER)` body reads
+`crates/podvm-probe/src/probes.rs`'s `unshare(CLONE_NEWUSER)` body reads
 `/proc/self/status`'s `Threads:` line first and reports a `skip` where it is
 above one, because the kernel refuses that call to any multithreaded caller
 with `EINVAL` whatever the policy. That is what makes the rule survive the day
@@ -81,11 +81,11 @@ and is reproducible:
 
 ```sh
 printf '#include <sys/syscall.h>\n#include <stdio.h>\nint main(void){printf("%%d\\n",SYS_move_mount);}\n' \
-  | gcc -x c - -o /tmp/nr && /tmp/nr   # against `crates/podbox-probe/src/sys.rs`
+  | gcc -x c - -o /tmp/nr && /tmp/nr   # against `crates/podvm-probe/src/sys.rs`
 ```
 
 All 46 declared numbers and all 19 flag constants matched on 2026-09-08. Two
-tests in `crates/podbox-probe/src/sys.rs` additionally cross-check the trap, the
+tests in `crates/podvm-probe/src/sys.rs` additionally cross-check the trap, the
 ABI and the negative-return window against facts the process already knows by
 another route, and the sixteen attribution numbers are exercised on every run of
 `experiments/130-probe-parity.sh`.
@@ -94,17 +94,17 @@ another route, and the sixteen attribution numbers are exercised on every run of
 out the lowest free descriptors, so with stdout closed one end of the pipe lands
 on fd 1, where `dup2(1, 1)` is a no-op that returns without closing and an
 unconditional `close` after it would shut the channel every child answers
-through. Driven on 2026-09-08 with `podbox probe 1>&- 2>err`: the evidence block
+through. Driven on 2026-09-08 with `podvm probe 1>&- 2>err`: the evidence block
 is identical to an ordinary run, two skips either way.
 
 ⚠ **The errno comes from the raw syscall, not from a libc wrapper.**
-`crates/podbox-probe/src/sys.rs` issues `syscall` directly, so the value in
+`crates/podvm-probe/src/sys.rs` issues `syscall` directly, so the value in
 `-4095..=-1` *is* `-errno` with no thread-local in between. glibc's `setuid(3)`
 runs a multi-threaded id-change dance and musl's runs another; either answer
 would be the library's rather than the kernel's.
 
 ⚠ **Four probes of the Go instrument were changed on purpose**, and the module
-header of `crates/podbox-probe/src/probes.rs` carries all four with the reason.
+header of `crates/podvm-probe/src/probes.rs` carries all four with the reason.
 The one worth naming here: the bare `mount(MS_SLAVE,/)` row is not ported,
 because in the caller's mount namespace it changes the propagation of `/` for
 the machine, permanently. The same operation is measured inside
@@ -152,11 +152,11 @@ Approach:    Implement the four rows above plus their controls. The controls
 Decision:    Carry the controls in the same probe run rather than in a separate
              self-test. A control that runs at a different time answers about a
              different machine state.
-Prove:       `./experiments/30-attribution-census.sh` exits 0 or 2, never 1, and `podbox probe --json | jq -e '.controls.pidfd_getfd == "EBADF" and (.controls.kcmp == "ESRCH" or (.controls.kcmp == null and .controls_answered == false))'`
+Prove:       `./experiments/30-attribution-census.sh` exits 0 or 2, never 1, and `podvm probe --json | jq -e '.controls.pidfd_getfd == "EBADF" and (.controls.kcmp == "ESRCH" or (.controls.kcmp == null and .controls_answered == false))'`
 
 **Done 2026-09-08.** `./experiments/30-attribution-census.sh` exits **2** (34 ok,
 0 failed, 3 skipped: the Landlock rows this kernel cannot run), and the `jq`
-above exits 0. `crates/podbox-probe/src/select.rs`'s `Selection::controls`
+above exits 0. `crates/podvm-probe/src/select.rs`'s `Selection::controls`
 evaluates the controls in the same run as the rows they qualify.
 
 ⛔ **The `Prove` line above was amended, and the amendment is the finding.** It
@@ -171,18 +171,18 @@ other, which is the point:
 | the host this repository is worked on | `errno=3 ESRCH` | `experiments/results/attribute.txt:6`, re-captured in commit `6eb941f`, and the corpus' own capture agrees |
 
 So the entry's own premise holds on the target and the `Prove` did not. ⭐ The
-rule underneath it is unchanged and is what podbox implements: **a control that
+rule underneath it is unchanged and is what podvm implements: **a control that
 cannot answer must say so rather than letting the rows beside it read as
 attributions.** `ENOSYS` is the kernel saying the control is absent, which is
-not the control answering, so podbox records it as `skip` and sets
-`controls_answered` false. `podbox probe`'s evidence block then says, in as many
+not the control answering, so podvm records it as `skip` and sets
+`controls_answered` false. `podvm probe`'s evidence block then says, in as many
 words, that the mechanism attributions beneath it are unconfirmed.
 
 ⚠ **`controls_answered` does not move the exit code**, and that is deliberate.
 Folding it into `--strict` would fail every kernel without
-`CONFIG_CHECKPOINT_RESTORE` where podbox is otherwise fully capable, and one
+`CONFIG_CHECKPOINT_RESTORE` where podvm is otherwise fully capable, and one
 exit code cannot then carry two different statements.
-`crates/podbox-probe/src/select.rs`'s `Selection::exit_code` says so at the site.
+`crates/podvm-probe/src/select.rs`'s `Selection::exit_code` says so at the site.
 
 ⚠ A control that answers the **wrong** errno is caught as well as an absent one:
 that is the subtler failure, and it is the one where the rows around it silently
@@ -219,10 +219,10 @@ Approach:    Probe the create half, the configure half and the attach half as
 Decision:    Report four verdicts rather than one `mounts: no`. The four-way
              answer is what makes the diagnostic actionable and it costs three
              extra syscalls.
-Prove:       `podbox probe --json | jq -e '.mounts | has("create") and has("configure") and has("attach") and has("use")'`
+Prove:       `podvm probe --json | jq -e '.mounts | has("create") and has("configure") and has("attach") and has("use")'`
 
 **Done 2026-09-08.** The `Prove` command was run and exits 0.
-`crates/podbox-probe/src/mounts.rs` derives the four from the attribution rows
+`crates/podvm-probe/src/mounts.rs` derives the four from the attribution rows
 that already ran, rather than issuing a second set of calls that would answer
 about a different moment.
 
@@ -262,10 +262,10 @@ Approach:    For each directory the workload needs, attempt a real write and
 Decision:    Write a real file and remove it, rather than `access(W_OK)`.
              `access` consults the capability set, which reports every bit here
              and answers the wrong question.
-Prove:       `podbox probe --json | jq -e '.writable | type == "array" and length > 0 and all(has("path") and has("blocks_free") and has("inodes_free"))'`
+Prove:       `podvm probe --json | jq -e '.writable | type == "array" and length > 0 and all(has("path") and has("blocks_free") and has("inodes_free"))'`
 
 **Done 2026-09-08.** The `Prove` command was run and exits 0.
-`crates/podbox-probe/src/writable.rs` creates a real file `O_EXCL`, writes bytes
+`crates/podvm-probe/src/writable.rs` creates a real file `O_EXCL`, writes bytes
 to it, removes it, then `statfs(2)`s the directory for blocks **and** inodes.
 
 ⭐ **The set reported is the set obtained.** Every candidate carries its own
@@ -275,7 +275,7 @@ those four are `/tmp`, `/dev/shm`, `/workspace` and `/state`, obtained rather
 than assumed. `/var/tmp`, `/run` and `$HOME` are `skip (ENOENT)` there, which is the
 absence of a directory and not a denial.
 
-⚠ The candidates are the fixed list plus `$PODBOX_STORE`, `$XDG_RUNTIME_DIR`,
+⚠ The candidates are the fixed list plus `$PODVM_STORE`, `$XDG_RUNTIME_DIR`,
 `$XDG_DATA_HOME`, `$TMPDIR`, `$HOME` and the working directory, and each row
 says which named it. A path is probed because something would use it, not
 because a specification listed it.
@@ -306,10 +306,10 @@ Approach:    Read all three, plus `/proc/self/status` for `CapEff` and
              construction, whatever its parent held.
 Decision:    Read the maps even where every probe already ran. They cost one
              `open` each and they are what the section 6.9 diagnostic quotes.
-Prove:       `podbox probe --json | jq -e '.identity.uid_map != null and .identity.setgroups != null and .identity.cap_eff != null'`
+Prove:       `podvm probe --json | jq -e '.identity.uid_map != null and .identity.setgroups != null and .identity.cap_eff != null'`
 
 **Done 2026-09-08.** The `Prove` command was run and exits 0.
-`crates/podbox-probe/src/identity.rs` reads the three files and selects the
+`crates/podvm-probe/src/identity.rs` reads the three files and selects the
 `/proc/self/status` lines **by name**, never by position.
 
 ⭐ **Two sentences in the diagnostic are the whole reason for the entry**, and
@@ -345,7 +345,7 @@ Approach:    Run **both**, in the same directory, and report the pair. A
 Decision:    Keep both rows in the reported output rather than collapsing them
              to `mknod: denied`. The pair is the evidence; the collapse throws
              away the attribution that makes it useful.
-Prove:       `podbox probe --json | jq -e '.probes | map(select(.name | startswith("mknod"))) | length == 2'`
+Prove:       `podvm probe --json | jq -e '.probes | map(select(.name | startswith("mknod"))) | length == 2'`
 
 **Done 2026-09-08.** The `Prove` command was run and exits 0. Both rows are in
 the reported output and neither is collapsed.
@@ -384,7 +384,7 @@ Approach:    Derive the rung from the probe results, never from a privilege
                 `ruri_warn_on_error(ret, expect, show, fmt, ...)` is non-fatal
                 by default and, under `ruri_flag(force_panic)`, warns and then
                 exits at the same site. **One switch converts every degradation
-                into a refusal.** podbox needs that switch because its audience
+                into a refusal.** podvm needs that switch because its audience
                 is automated and has to be able to demand strictness.
                 The floor beside it is
                 `references/RuriOSS__ruri/tree/src/unshare.c:53-54`, the single
@@ -398,7 +398,7 @@ Approach:    Derive the rung from the probe results, never from a privilege
                 `TOOL.md` section 4.1 asks for at container granularity.
 
              ⚠ `ruri`'s `show` argument is `!ruri_flag(disable_warnings)`, so a
-             flag can silence its degradation notices. podbox suppresses the
+             flag can silence its degradation notices. podvm suppresses the
              banner by config and never by default, because a silenced
              degradation is `sandlock`'s failure mode with a flag in front of
              it.
@@ -407,16 +407,16 @@ Decision:    Take `ruri`'s inversion and `udocker`'s precedence chain, and take
              rejected is a single global strictness level: it cannot express
              "this container asked for isolation and that one did not", which
              is the distinction the ladder exists for.
-Prove:       `! podbox run --network=none --rm public.ecr.aws/docker/library/alpine:3.20 true` and `podbox probe --strict` exits non-zero on any degraded rung
+Prove:       `! podvm run --network=none --rm public.ecr.aws/docker/library/alpine:3.20 true` and `podvm probe --strict` exits non-zero on any degraded rung
 
 **Done 2026-09-09.** The selection and the switch were implemented and measured
 on 2026-09-08; the first half of the `Prove` above was earned under M3 on
 2026-09-09, and the reading is below.
 
-**What holds now.** `crates/podbox-probe/src/select.rs` derives the rung from
+**What holds now.** `crates/podvm-probe/src/select.rs` derives the rung from
 the probe rows and nothing else. Measured on 2026-09-08: `namespace` unconfined
 and `chroot` inside `./experiments/20-enter-target.sh`, which is
-[T-1101](milestones.md)'s acceptance. `podbox probe --strict` exits **1** inside
+[T-1101](milestones.md)'s acceptance. `podvm probe --strict` exits **1** inside
 the reconstruction and **0** unconfined, and `Rung`'s ordering is what enforces
 that a weaker mode never satisfies a stronger request.
 
@@ -428,7 +428,7 @@ process in the sandbox, and `ptrace` is filtered here. So the third leg is
 `ptrace(PTRACE_TRACEME)`, and the reconstruction is rejected on it with the
 errno printed.
 
-⛔ **What is NOT done, and it is not out of scope.** The `podbox run` half needs
+⛔ **What is NOT done, and it is not out of scope.** The `podvm run` half needs
 `run`, which is [T-1104](milestones.md), M3. ⚠ Running it today exits 125
 because every verb but `probe` is unimplemented, so the command would *pass
 vacuously*; that is not evidence and is not recorded as any. This entry closes
@@ -436,7 +436,7 @@ when M3 lands and the first half is run against a real `run`.
 
 ⭐ **The remaining half closed 2026-09-09 by M3.** This was `partial` because
 rung selection had no caller that entered anything: it was measured and never
-acted on. `podbox run` now selects the rung for a real entry, and
+acted on. `podvm run` now selects the rung for a real entry, and
 `experiments/300-run.sh` clause 7 is the reading that matters, because it is the
 one taken somewhere the answer differs:
 
@@ -465,7 +465,7 @@ Approach:    Print the achieved mode, what it does not provide, and the probe
              verdicts that decided it:
 
              ```
-             podbox 0.1: mode=chroot (namespaces: uts-only; mounts: none; devices: shimmed;
+             podvm 0.1: mode=chroot (namespaces: uts-only; mounts: none; devices: shimmed;
              ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
              probes: clone(NEWNS)=ok mount=EPERM fsmount=ok move_mount=EPERM
                      clone(NEWUTS)=ok sethostname=ok chroot=ok ptrace=EPERM
@@ -477,17 +477,17 @@ Decision:    stderr, not stdout. A payload's stdout is data to whatever
              consumes it, and a banner on it corrupts every pipeline. The same
              split `pathshim` uses at
              `references/compforge__pathshim/tree/src/main.rs:134-138`.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 /bin/echo hi 2>banner.txt >out.txt && grep -q '^hi$' out.txt && grep -q 'mode=' banner.txt`
+Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 /bin/echo hi 2>banner.txt >out.txt && grep -q '^hi$' out.txt && grep -q 'mode=' banner.txt`
 
 **Done 2026-09-09.** The banner existed on stderr, derived, on 2026-09-08; the
 `Prove` above was earned under M3 on 2026-09-09, and the reading is below.
 
-**What holds now.** `crates/podbox-probe/src/report.rs` emits it, and
-`podbox probe` prints it on stderr while stdout carries the rung alone. Inside
+**What holds now.** `crates/podvm-probe/src/report.rs` emits it, and
+`podvm probe` prints it on stderr while stdout carries the rung alone. Inside
 the reconstruction it reads:
 
 ```
-podbox 0.1.0: mode=chroot (namespaces: uts-only; mounts: none; devices: shimmed;
+podvm 0.1.0: mode=chroot (namespaces: uts-only; mounts: none; devices: shimmed;
 ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
 probes: clone(NEWNS)=ok mount=EPERM fsmount=ok move_mount=ok
         clone(NEWUTS)=ok sethostname=ok chroot=ok ptrace=EPERM
@@ -513,8 +513,8 @@ needs `run` and `exec`, which are [T-1104](milestones.md), M3. The config switch
 that suppresses it needs the configuration surface of [cli.md](cli.md).
 
 ⭐ **The remaining half closed 2026-09-09 by M3.** The banner existed and was
-printed by `podbox probe`, which is a diagnostic nobody pipes. It now prints on
-**every `podbox run`**, on stderr, before the payload's first byte, and
+printed by `podvm probe`, which is a diagnostic nobody pipes. It now prints on
+**every `podvm run`**, on stderr, before the payload's first byte, and
 `experiments/300-run.sh` clause 1 asserts both halves: a `mode=` line **is** on
 stderr and **is not** on stdout.
 
@@ -525,7 +525,7 @@ somewhere would pass with the bug in place.
 ⚠ Inside the reconstruction the banner also carries
 `this mode does NOT provide: process, network, IPC or mount isolation`, which is
 the sentence the whole honesty argument rests on: it is printed where it is
-true, and not printed on this host where podbox reaches `namespace`.
+true, and not printed on this host where podvm reaches `namespace`.
 
 ---
 
@@ -559,14 +559,14 @@ Approach:    Three rules in the probe type, not in review:
 Decision:    Model the verdict as a three-variant enum rather than a boolean
              plus a comment. A boolean cannot carry "not measured", and every
              instance of this defect in the corpus is a boolean that had to.
-Prove:       `./experiments/30-attribution-census.sh; test $? -ne 1` and `podbox probe --json | jq -e '[.probes[].verdict] | all(. == "ok" or . == "denied" or . == "skip")'`
+Prove:       `./experiments/30-attribution-census.sh; test $? -ne 1` and `podvm probe --json | jq -e '[.probes[].verdict] | all(. == "ok" or . == "denied" or . == "skip")'`
 
 **Done 2026-09-08.** Both were run: the census exits **2**, never 1, and the
 `jq` exits 0.
 
 ⭐ **Rule 1 is enforced by the parent, not by review.** A probe child writes its
 verdict on stdout *and* sets its exit status from the operation, and
-`crates/podbox-probe/src/child.rs`'s `interpret` refuses the pair when they
+`crates/podvm-probe/src/child.rs`'s `interpret` refuses the pair when they
 disagree. A child that contradicts itself has established nothing, so that is a
 `skip`. A child that says nothing, or dies on a signal, is the same. There is no
 path by which an exit code alone becomes a verdict.
@@ -575,7 +575,7 @@ path by which an exit code alone becomes a verdict.
 state is for: the missing squash fixture, `kcmp(2)` absent from this kernel,
 `/mnt` absent (before the mount probe was corrected to read its own errno), and
 `$HOME` absent inside the reconstruction. None of them printed as a denial and
-none of them was counted as one when the rung was chosen; `podbox probe` lists
+none of them was counted as one when the rung was chosen; `podvm probe` lists
 them under a heading that says so.
 
 ⭐ **Rule 3 is the type, not a convention.** `Verdict::exit_code` and
@@ -605,7 +605,7 @@ Problem:     The probe forks 50 children, and everything downstream branches on
              ⛔ **A cache keyed wrongly is worse than no cache**, and this is the
              one component where a stale answer is the exact failure the project
              exists to prevent: a `namespace` verdict served to a process that
-             has a `chroot` is podbox telling the lie it was built to refuse.
+             has a `chroot` is podvm telling the lie it was built to refuse.
 Premise:     ⭐ **Measured, and it disagrees with the specification's key.**
              `TOOL.md` section 6.1 says to key on the boot id and re-probe when
              it changes. Read on 2026-09-08, one command in three places:
@@ -625,11 +625,11 @@ Premise:     ⭐ **Measured, and it disagrees with the specification's key.**
              to a confined process on the first `run` after a probe.
 Approach:    Key on the boot id **and** on what the probe measured about the
              confinement. ⚠ Three of the four below are already read by
-             `crates/podbox-probe/src/identity.rs`; the fourth is not and is
+             `crates/podvm-probe/src/identity.rs`; the fourth is not and is
              new work this entry carries:
              1. the boot id, which catches a reboot;
              2. `/proc/self/uid_map`, `/proc/self/gid_map` and
-                `/proc/self/setgroups`, which `crates/podbox-probe/src/identity.rs`
+                `/proc/self/setgroups`, which `crates/podvm-probe/src/identity.rs`
                 already reads and which change with the user namespace;
              3. `Seccomp` and `Seccomp_filters` from `/proc/self/status`, which
                 change when a filter is installed;
@@ -639,8 +639,8 @@ Approach:    Key on the boot id **and** on what the probe measured about the
                 It is the whole reason this entry is not a two-line change.
              Write `$store/probe.json` as the existing `--json` document plus
              that key, and re-probe when any component differs.
-             ⚠ The document is already versioned by `"podbox"`, and
-             `crates/podbox-probe/src/report.rs` is the one writer. Adding a
+             ⚠ The document is already versioned by `"podvm"`, and
+             `crates/podvm-probe/src/report.rs` is the one writer. Adding a
              second serializer for the cache is the copy-paste this project's
              `docs/conventions/code.md` forbids: the cache stores what `--json`
              prints.
@@ -654,11 +654,11 @@ Decision:    Refuse to use a cache whose key does not match, rather than
              ⛔ **Not blocked, and not startable either.** There is no `$store`
              until [T-1102](milestones.md), M1, so this lands beside the store
              and not before it.
-Prove:       `podbox probe --json > /tmp/a.json && podbox probe --json > /tmp/b.json && jq -e --slurpfile a /tmp/a.json '.rung == $a[0].rung' /tmp/b.json` and, inside `./experiments/20-enter-target.sh`, a probe run after a host run selects `chroot` rather than reading the host's cached `namespace`
+Prove:       `podvm probe --json > /tmp/a.json && podvm probe --json > /tmp/b.json && jq -e --slurpfile a /tmp/a.json '.rung == $a[0].rung' /tmp/b.json` and, inside `./experiments/20-enter-target.sh`, a probe run after a host run selects `chroot` rather than reading the host's cached `namespace`
 
 **Done 2026-09-08**, beside the store, as the entry's `Decision` said it would
-be. `crates/podbox-image/src/probe_cache.rs` holds the store I/O and the
-comparison; `crates/podbox-probe/src/identity.rs` holds the one reader of the
+be. `crates/podvm-image/src/probe_cache.rs` holds the store I/O and the
+comparison; `crates/podvm-probe/src/identity.rs` holds the one reader of the
 key. `experiments/170-probe-cache.sh` is both halves of the `Prove` and exits 0.
 
 ⭐ **The measurement that made this entry necessary reproduced, on one kernel,
@@ -672,11 +672,11 @@ setgroups, seccomp, seccomp_filters differ(s) from the cached run
 ```
 
 Equal boot ids, different rungs. A cache keyed on the boot id alone serves the
-host's `namespace` to a `chroot` process, which is the lie podbox exists to
+host's `namespace` to a `chroot` process, which is the lie podvm exists to
 refuse. `experiments/results/probe-cache.txt` is that reading.
 
 ⭐ **The cache stores what `--json` prints, verbatim**, and the key travels
-inside the document as `cache_key`. `crates/podbox-probe/src/report.rs` stays
+inside the document as `cache_key`. `crates/podvm-probe/src/report.rs` stays
 the one writer, so there is no second serializer to drift against the first.
 Five of the seven components also appear in the document's `identity` block;
 `docs/conventions/forbidden-patterns.md` forbids a value in two places **with
@@ -688,10 +688,10 @@ no check that they agree**, and that check is the test
 either side, so two `None`s can never produce a cache hit established by the
 absence of evidence.
 
-⚠ **`podbox probe` does not touch the store; `podbox probe --cached` is the hot
+⚠ **`podvm probe` does not touch the store; `podvm probe --cached` is the hot
 path.** A diagnostic that can answer from a file is not a diagnostic, so the
 plain verb always measures. `--cached` is what `run` and `exec` take at M3, and
-it is already on a real hot path: `podbox pull` uses it to get the write
+it is already on a real hot path: `podvm pull` uses it to get the write
 allowlist T-0203 ranks by free space, so the cache is not dead code waiting for
 M3. Where it serves, the evidence line on stderr says so by name, and where it
 re-measures it says which components differed.
@@ -702,7 +702,7 @@ defect this entry is about.
 
 ---
 
-### T-0110 `podbox probe` exit-code and channel contract
+### T-0110 `podvm probe` exit-code and channel contract
 
 Source:      `TOOL.md` section 5 M0; `references/compforge__pathshim/tree/README.md:65`
 Category:    probe
@@ -720,21 +720,21 @@ Premise:     Measured in the corpus, at file and line. `pathshim` prints the
              README states the contract at
              `references/compforge__pathshim/tree/README.md:65`: `bind-view`
              and 0, `passthrough` and 1, invalid input and 2.
-Approach:    `podbox probe` prints the selected rung on stdout, the evidence on
-             stderr, and exits 0. `podbox probe --strict` exits non-zero when
+Approach:    `podvm probe` prints the selected rung on stdout, the evidence on
+             stderr, and exits 0. `podvm probe --strict` exits non-zero when
              the selected rung is below `namespace`, so a caller can gate on it
              without parsing.
-             ⚠ podbox diverges from `pathshim` in one place and it is
+             ⚠ podvm diverges from `pathshim` in one place and it is
              deliberate: `pathshim`'s `run` degrades to an unmapped passthrough
              and executes the command anyway
              (`references/compforge__pathshim/tree/src/main.rs:160-172`). That
              is honest and it still lets a weaker mode satisfy the request.
-             podbox refuses instead, because a `-v` that silently became a
+             podvm refuses instead, because a `-v` that silently became a
              passthrough shows the payload the host tree.
 Decision:    Add `--json` beside the one-word stdout line rather than replacing
              it. The word is what a shell branches on; the JSON is what a
              harness diffs against `experiments/results/`.
-Prove:       `test "$(podbox probe)" = chroot && podbox probe >/dev/null; test $? -eq 0`
+Prove:       `test "$(podvm probe)" = chroot && podvm probe >/dev/null; test $? -eq 0`
 
 **Done 2026-09-08.** Run inside `./experiments/20-enter-target.sh`, where the
 selected rung is `chroot`: stdout is the single word `chroot` and the exit code
@@ -749,7 +749,7 @@ the milestone's row-for-row comparison a mechanical diff rather than a reading.
 
 ⚠ Invalid input exits **2**, adopting `pathshim`'s contract at
 `references/compforge__pathshim/tree/README.md:65`. The divergence this entry
-names is unchanged and is not yet reachable: podbox refuses rather than
+names is unchanged and is not yet reachable: podvm refuses rather than
 degrading into a passthrough, and that decision lands with `run` at M3.
 
 ---
@@ -762,7 +762,7 @@ Priority:    P1
 Effort:      M
 Status:      done 2026-09-09
 
-Problem:     ⛔ **Three of podbox's own measurements have been "cannot be
+Problem:     ⛔ **Three of podvm's own measurements have been "cannot be
              answered here" since M0**, and every session has re-reported them
              to the operator as open questions. This host's kernel has neither
              `CONFIG_SECURITY_LANDLOCK` nor `CONFIG_CHECKPOINT_RESTORE`, so
@@ -774,8 +774,8 @@ Problem:     ⛔ **Three of podbox's own measurements have been "cannot be
              LSM was present.
 Premise:     ⭐ **Measured on 2026-09-09, and the answer is yes.**
              `experiments/290-microvm.sh` boots a stock Alpine `virt` kernel
-             under QEMU with an initramfs carrying busybox and podbox and
-             nothing else, runs `podbox probe --json` inside it, and reads the
+             under QEMU with an initramfs carrying busybox and podvm and
+             nothing else, runs `podvm probe --json` inside it, and reads the
              document back off the serial console.
 
              | | this host | the VM | the target |
@@ -823,9 +823,9 @@ Prove:       `./experiments/290-microvm.sh` exits 0
 ⚠ **One line of this script was wrong in a way worth recording**, because it is
 the failure mode this project's third state exists for. `.controls.kcmp` is
 `null` on this host, and that is **correct**: the control could not answer, so
-podbox records a dash rather than a value (`AGENTS.md` absolute 3) and sets
+podvm records a dash rather than a value (`AGENTS.md` absolute 3) and sets
 `controls_answered` false. Printing a bare `null` into a result file reads like a
-defect in podbox, so the row's own errno is printed beside it and the line now
+defect in podvm, so the row's own errno is printed beside it and the line now
 says "none: the control could not answer (ENOSYS...)".
 
 ⚠ **`/dev/pts` is mounted in the initramfs deliberately.** Without it
@@ -837,7 +837,7 @@ initramfs rather than about the kernel, which is exactly the mistake
 
 ### T-0113 Two probes in one process took each other's scratch name
 
-Source:      Found on 2026-09-09 by `scripts/dev.sh check` (now `podbox-dev check`), on its first run
+Source:      Found on 2026-09-09 by `scripts/dev.sh check` (now `podvm-dev check`), on its first run
 Category:    probe
 Priority:    P1
 Effort:      S
@@ -859,8 +859,8 @@ Premise:     ⭐ **Measured on 2026-09-09**, and it surfaced as
              which is the reading to quote rather than "flake": the race needs
              two probe calls to overlap, and whether they do depends on how
              cargo schedules the suites.
-             ⛔ **It is not confined to tests.** `podbox run` calls
-             `podbox_probe::run()` for its banner while another thread may be
+             ⛔ **It is not confined to tests.** `podvm run` calls
+             `podvm_probe::run()` for its banner while another thread may be
              measuring for `$store/probe.json`, and the failure mode there is a
              container told it cannot write to `/tmp`.
 Approach:    The tag becomes `<pid>-<counter>`, with a process-wide
@@ -875,13 +875,13 @@ Decision:    Fix the name, not the test. Serialising the suite would hide a race
              ⛔ The test forks eight **threads**, not processes, because threads
              are what shares the pid and processes would pass with the defect in
              place.
-Prove:       `cargo test -p podbox-probe two_concurrent_probes_do_not_take_each_other_s_scratch_name` passes, and it fails with the tag reduced to `std::process::id()`
+Prove:       `cargo test -p podvm-probe two_concurrent_probes_do_not_take_each_other_s_scratch_name` passes, and it fails with the tag reduced to `std::process::id()`
 
 **Done 2026-09-09.** Both halves of the `Prove` were driven: green with the
 counter, and red with the tag reduced to the pid, reporting
 `a concurrent probe reported /tmp as Skip: the scratch names collided`.
 
-⭐ **`scripts/dev.sh check` found this on its first run** (now `podbox-dev check`), which is
+⭐ **`scripts/dev.sh check` found this on its first run** (now `podvm-dev check`), which is
 [T-1004](packaging.md)-adjacent evidence for that script existing:
 `cargo test --workspace` had been run many times in this session and had not
 surfaced it, and the one thing `check` does differently is run clippy over every
@@ -894,7 +894,7 @@ scheduled.
 
 Source:      issue 28, client beta testing 2026-09-22 (same key across
              a capability change serves a stale verdict);
-             `crates/podbox-probe/src/identity.rs:150`
+             `crates/podvm-probe/src/identity.rs:150`
              (`ConfinementKey`: eight components, no capability field;
              `cap_eff`/`cap_bnd` are read at `:26`-`:28` but never keyed)
 Category:    probe
@@ -903,7 +903,7 @@ Effort:      S
 Status:      done 2026-09-23
 
 Problem:     `ConfinementKey`'s own rule is "everything a probe verdict
-             depends on that podbox can read without re-running the
+             depends on that podvm can read without re-running the
              probe", but `CapEff`/`CapBnd` are read into `Identity`,
              printed by the probe, and missing from the key, while the
              chroot verdict is a live `chroot(2)` turning on
@@ -923,7 +923,7 @@ Approach:    Add `cap_eff` and `cap_bnd` to the key (and its fixed-order
 Decision:    Key the two capability sets; the seccomp-identity question
              is answered by measurement in the change (two filters, one
              count, different strictness) and keyed too if they collide.
-Prove:       `cargo test -p podbox-probe` green with a new test
+Prove:       `cargo test -p podvm-probe` green with a new test
              building two identities differing only in `cap_eff` and
              asserting different keys (plus the reporter's scenario as a
              fixture where stageable). Close issue 28 with a comment
@@ -931,7 +931,7 @@ Prove:       `cargo test -p podbox-probe` green with a new test
              recurrence.
 
 **Done 2026-09-23.** Key the two capability sets, as decided.
-`ConfinementKey` (`crates/podbox-probe/src/identity.rs`) gains `cap_eff`
+`ConfinementKey` (`crates/podvm-probe/src/identity.rs`) gains `cap_eff`
 and `cap_bnd`, read from the `Identity` the probe already carries; the
 fixed-order `components()` goes from eight to ten, so `differences()`,
 `missing()`, `is_complete()` and the document's `cache_key` block (written
@@ -949,8 +949,8 @@ in `cap_eff`/`cap_bnd` read as the same key (`a dropped capability set
 reads as the same key`), then green after the widening
 (`identity::tests::two_identities_differing_only_in_capabilities_are_different_keys`,
 lane `rust:1.98.1-bookworm` through host podman 6.1.2). Full suites green
-beside it: podbox-probe 96, podbox-image 117, podbox-cli 107,
-podbox-extract 47, 0 failed.
+beside it: podvm-probe 96, podvm-image 117, podvm 107,
+podvm-extract 47, 0 failed.
 
 On the seccomp-identity half of the Decision: no measurement in this
 change stages two same-count filters, and none is claimed. `/proc` exposes
@@ -975,7 +975,7 @@ Problem:     The ledger marks this script RUST-TEST and its own planned
              proof was ignored for a reason. Both the verdict and the
              level are wrong in the machine-readable file.
 Premise:     Its own exit-2 path does not exist. The subject is the
-             engine's own storage option rather than podbox code, so no
+             engine's own storage option rather than podvm code, so no
              Rust test can replace it.
 Approach:     Record KEEP-SHELL and the level: a deployment proof needing
              a live engine, not a unit test. Record the ignored proof so
@@ -1011,7 +1011,7 @@ verdict alone leaves the level wrong.
 
 ⭐ **The level is deployment proof, not a unit test**, under
 `docs/conventions/code.md:29`, "Use integration and deployment proof for the
-actual default path." The subject is podman's own storage option, not podbox
+actual default path." The subject is podman's own storage option, not podvm
 code, so no Rust test can replace it.
 
 The script's own header settles the level without an inference.

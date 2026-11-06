@@ -1,9 +1,9 @@
 #!/bin/sh
 # Question: under TCG with user-mode networking, does a guest built from
-# a podbox-extracted rootfs reach the host through UDP, and does the
+# a podvm-extracted rootfs reach the host through UDP, and does the
 # host reach the guest through a forwarded port?
 #
-# TODO/podvm.md T-1306 (the one promotion: guest networking).
+# TODO/machine.md T-1306 (the one promotion: guest networking).
 #
 # Clauses over pinned inputs:
 #   0. conditions: binary, kernel and modloop hashes, image digest,
@@ -31,12 +31,12 @@ set -u
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/guest-usernet.txt"
 WORK="$REPO/experiments/.sweep361-work"; rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 
 STORE="$WORK/store"
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 # shellcheck source=lib/podvm-guest.sh
 . "$HERE/lib/podvm-guest.sh"
@@ -46,8 +46,8 @@ KURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinu
 KERNEL_SHA256="6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51"
 MURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/modloop-virt"
 MODLOOP_SHA256="9a5252fa3e49f908fa7bc796a38b7ce57c9a930c91670324278a352effa5c30f"
-BOOT_TIMEOUT="${PODBOX_361_TIMEOUT:-240}"
-CURL_TIMEOUT="${PODBOX_361_CURL_TIMEOUT:-60}"
+BOOT_TIMEOUT="${PODVM_361_TIMEOUT:-240}"
+CURL_TIMEOUT="${PODVM_361_CURL_TIMEOUT:-60}"
 
 fail=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
@@ -79,7 +79,7 @@ done
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'qemu              %s\n' "$(qemu-system-x86_64 --version | head -1)"
 	printf 'image             %s\n' "$ALPINE_REF"
 	printf 'kernel            %s (sha256 %s)\n' "$KURL" "$KERNEL_SHA256"

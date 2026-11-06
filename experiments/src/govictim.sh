@@ -4,7 +4,7 @@
 # It is a fixture, not a program: nothing here executes. It exists because no
 # row of DISTRO_ROWS_M5 is a Go image and inventing a registry reference is
 # refused, so the classifier's Go arm would otherwise have no end-to-end
-# driver. What it proves is that the arm fires through `podbox run`: a
+# driver. What it proves is that the arm fires through `podvm run`: a
 # `PT_INTERP` (so it is not declined as static) and a `.note.go.buildid`
 # section (so it is declined as Go).
 #

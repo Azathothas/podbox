@@ -40,8 +40,8 @@ command -v sshd >>"$OUT" 2>&1 || exit 2
 command -v ssh-keygen >>"$OUT" 2>&1 || exit 2
 
 # Clause 1: the lane-built shell binary exists.
-if timeout 25m cargo build -p podbox-ssh --bin shell >>"$OUT" 2>&1; then
-  say "clause 1          cargo build -p podbox-ssh --bin shell exit 0"
+if timeout 25m cargo build -p podvm-ssh --bin shell >>"$OUT" 2>&1; then
+  say "clause 1          cargo build -p podvm-ssh --bin shell exit 0"
 else
   say "clause 1          cargo build FAILED"
   exit 2
@@ -145,9 +145,9 @@ else
 fi
 
 # Clause 6: state persists. A variable and a directory survive across lines.
-# Both markers are computed: the typed bytes hold `$podbox_mark` and
+# Both markers are computed: the typed bytes hold `$podvm_mark` and
 # `$(pwd)`, never the expanded `got-42` or `dir=/tmp`.
-printf 'podbox_mark=42\necho got-$podbox_mark\ncd /tmp\necho dir=$(pwd)\n' >"$work/in6.txt"
+printf 'podvm_mark=42\necho got-$podvm_mark\ncd /tmp\necho dir=$(pwd)\n' >"$work/in6.txt"
 # shellcheck disable=SC2086
 timeout 60 ssh $ssh_opts -i "$work/user_key" -l "$USER_NAME" -p 2222 localhost \
   <"$work/in6.txt" >"$work/out6.txt" 2>/dev/null

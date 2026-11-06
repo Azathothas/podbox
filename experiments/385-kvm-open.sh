@@ -45,16 +45,16 @@ mkdir -p "$ROOT/experiments/results" || exit 2
   uname -sr
   timeout 1m wsl-toolkit --version
   git -C "$ROOT" rev-parse --short HEAD
-  echo 'instance=podbox'
+  echo 'instance=podvm'
   echo
   echo '== kvm functional probe'
 } >"$OUT"
 
-timeout 5m wsl-toolkit --instance podbox base exec --script "$work/probe.sh" >"$work/probe.out" 2>&1
+timeout 5m wsl-toolkit --instance podvm base exec --script "$work/probe.sh" >"$work/probe.out" 2>&1
 rc=$?
 # The tool prints its own instance banner on stdout; that line names a
 # home directory and carries no measurement, so it stays out of the file.
-grep -av "instance podbox: distribution" "$work/probe.out" >>"$OUT" || true
+grep -av "instance podvm: distribution" "$work/probe.out" >>"$OUT" || true
 
 {
   echo

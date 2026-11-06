@@ -38,10 +38,10 @@ Private path substitutions in a published result must be stated explicitly.
 | Path | Captured source | Licence | Current state |
 | --- | --- | --- | --- |
 | `vendor/userland-execve` | io12/userland-execve-rust `02ef0e0` | MIT; LICENSE retained | Source retained. Its manifest has removed dependencies. It is not a workspace member or an enter dependency and is not linked. |
-| `crates/podbox-ssh/shims/fakepwd.c` | sandssh `4fc7f8c` | MIT; adjacent LICENSE retained | Source retained. No current workspace build compiles or links it. Restricted-server use remains proof work in T-1401. |
+| `crates/podvm-ssh/shims/fakepwd.c` | sandssh `4fc7f8c` | MIT; adjacent LICENSE retained | Source retained. No current workspace build compiles or links it. Restricted-server use remains proof work in T-1401. |
 
 Do not describe retained source as the active userland loader.
-The native loader is in `crates/podbox-enter/src/userland.rs`.
+The native loader is in `crates/podvm-enter/src/userland.rs`.
 
 ## Build dependencies
 

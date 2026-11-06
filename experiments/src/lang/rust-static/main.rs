@@ -1,4 +1,4 @@
-// The three properties podbox needs from its implementation language, probed
+// The three properties podvm needs from its implementation language, probed
 // from the language itself rather than from its documentation:
 //
 //   1. how many OS threads the runtime starts before main() runs - because

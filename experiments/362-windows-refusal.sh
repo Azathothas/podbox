@@ -17,14 +17,14 @@
 #   0. conditions: binary, /dev/kvm presence, qemu version.
 #   1. the fixture: probe JSON reads open(/dev/kvm) denied ENOENT.
 #   2. run --platform windows/amd64 without the machine tier exits 125
-#      naming windows/amd64 and the `podbox windows run` verb, with the
+#      naming windows/amd64 and the `podvm windows run` verb, with the
 #      store byte-identical after.
-#   3. run --podbox-tier=machine --platform windows/amd64 with an OCI token
+#   3. run --podvm-tier=machine --platform windows/amd64 with an OCI token
 #      and no DOS base exits 125 naming the DOS base image and the setup
 #      script that writes it, with the store untouched.
 #   4. create --platform windows/amd64 exits 125 naming windows/amd64
 #      with the store byte-identical after.
-#   5. run --podbox-tier=machine --platform windows/amd64 with a missing
+#   5. run --podvm-tier=machine --platform windows/amd64 with a missing
 #      disk path exits 125 naming the missing file: a named image is never
 #      replaced by the cache.
 #
@@ -81,22 +81,22 @@ else
 	tail -15 "$WORK/build.log"
 	exit 1
 fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 [ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
-echo "podbox            $("$PB" version)" >>"$REPORT"
+echo "podvm            $("$PB" version)" >>"$REPORT"
 
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$PB" || { echo "cannot read podbox's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-RUN_ERR=$PODBOX_EXIT_RUNTIME_ERROR
+podvm_exit_codes "$PB" || { echo "cannot read podvm's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+RUN_ERR=$PODVM_EXIT_RUNTIME_ERROR
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
-export PODBOX_DOS_BASE="$WORK/dos-base.img"
+export PODVM_STORE="$STORE"
+export PODVM_DOS_BASE="$WORK/dos-base.img"
 # The driver door needs no base here: this drive proves the refusal
 # without one, so a base leaking in from the caller would mask it.
-unset PODBOX_WINDOWS_BASE
+unset PODVM_WINDOWS_BASE
 rm -f "$WORK/dos-base.img"
 fail=0
 
@@ -138,7 +138,7 @@ snap before
 # name and routes it to its own verb, before any fetch.
 step win-run "$RUN_ERR" "$PB" run --rm --platform windows/amd64 "$ALPINE" cmd /c ver
 grep -q "windows/amd64" "$WORK/out-win-run.txt" || { echo "run refusal did not name windows/amd64" >>"$REPORT"; fail=1; }
-grep -q "podbox windows run" "$WORK/out-win-run.txt" || { echo "run refusal did not route to podbox windows run" >>"$REPORT"; fail=1; }
+grep -q "podvm windows run" "$WORK/out-win-run.txt" || { echo "run refusal did not route to podvm windows run" >>"$REPORT"; fail=1; }
 snap after-run
 if cmp -s "$WORK/snap-before.txt" "$WORK/snap-after-run.txt"; then
 	echo "clause 2          store untouched" >>"$REPORT"
@@ -149,7 +149,7 @@ fi
 # Clause 3: the machine tier sends an OCI token to the DOS flavor, and
 # the flavor without a base refuses naming the base image and the setup
 # script, not the machine legs.
-step win-machine "$RUN_ERR" "$PB" run --rm --podbox-tier=machine --platform windows/amd64 "$ALPINE" cmd /c ver
+step win-machine "$RUN_ERR" "$PB" run --rm --podvm-tier=machine --platform windows/amd64 "$ALPINE" cmd /c ver
 grep -q "DOS base image" "$WORK/out-win-machine.txt" || { echo "machine refusal did not name the DOS base image" >>"$REPORT"; fail=1; }
 grep -q "369-windows-tcg-dos" "$WORK/out-win-machine.txt" || { echo "machine refusal did not name the setup script" >>"$REPORT"; fail=1; }
 snap after-machine
@@ -171,7 +171,7 @@ fi
 
 # Clause 5: a missing disk path is refused naming the file, never
 # replaced by the cache.
-step win-disk "$RUN_ERR" "$PB" run --rm --podbox-tier=machine --platform windows/amd64 /definitely/not/here.vhdx ver
+step win-disk "$RUN_ERR" "$PB" run --rm --podvm-tier=machine --platform windows/amd64 /definitely/not/here.vhdx ver
 grep -q "not/here.vhdx is not a file" "$WORK/out-win-disk.txt" || { echo "disk refusal did not name the missing file" >>"$REPORT"; fail=1; }
 grep -q "never replaced" "$WORK/out-win-disk.txt" || { echo "disk refusal did not state the no-replacement rule" >>"$REPORT"; fail=1; }
 snap after-disk

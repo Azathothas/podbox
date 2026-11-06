@@ -3,7 +3,7 @@
 # chroot is denied and no passwd database exists, on the compiled shim?
 #
 # TODO/podssh.md T-1401 (the restricted-server remainder). The passwd shim
-# is retained source at crates/podbox-ssh/shims/fakepwd.c; this drive is
+# is retained source at crates/podvm-ssh/shims/fakepwd.c; this drive is
 # the tracked build input that compiles it, and the fresh-clone proof that
 # a dynamic server preloaded with it serves a real SSH session. glibc
 # dynamic only: a static server cannot take LD_PRELOAD, which is the dead
@@ -76,7 +76,7 @@ say "host before       $HOSTNAME_BEFORE passwd-sha $PASSWD_SUM_BEFORE"
 
 # Clause 1: the tracked build input. Fresh-clone safe: the only source is
 # the retained shim, the only tool the host gcc.
-if gcc -shared -fPIC -O2 -o "$work/fakepwd.so" crates/podbox-ssh/shims/fakepwd.c >>"$OUT" 2>&1; then
+if gcc -shared -fPIC -O2 -o "$work/fakepwd.so" crates/podvm-ssh/shims/fakepwd.c >>"$OUT" 2>&1; then
   say "clause 1          gcc built fakepwd.so from the retained shim"
 else
   say "clause 1          gcc FAILED to build the shim"

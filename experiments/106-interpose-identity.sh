@@ -8,11 +8,11 @@
 # `--strict` refuses it, and the banner names it wherever the tier loads.
 #
 # Seven clauses:
-#   A. THE CONTROL FIRST. Without `PODBOX_IDENTITY` the object changes
+#   A. THE CONTROL FIRST. Without `PODVM_IDENTITY` the object changes
 #      nothing: the victim's answers match the bare run exactly. An
 #      interposer that faked where the kernel would have granted is weaker
 #      than the bare chroot it replaces.
-#   B. THE FAKE, glibc. With `PODBOX_IDENTITY=1000:100` the setters answer 0
+#   B. THE FAKE, glibc. With `PODVM_IDENTITY=1000:100` the setters answer 0
 #      and the getters answer the record, on a dynamic glibc payload.
 #   C. THE FAKE, musl, with the musl-linked object. One libc's arm would not
 #      have tested the other object (TODO/interpose.md T-0702). C0 first:
@@ -20,8 +20,8 @@
 #      says, checked against clause A's bare lines on the same kernel.
 #      The victim cannot run on the glibc job container directly (its
 #      interpreter is the absent musl loader), so both arms run staged
-#      inside the alpine rootfs through podbox itself.
-#   D. END TO END through podbox: `--user 1000:100` makes `id -u` answer
+#      inside the alpine rootfs through podvm itself.
+#   D. END TO END through podvm: `--user 1000:100` makes `id -u` answer
 #      1000 on both libcs, the banner names the faked identity, and without
 #      the flag the same payload answers 0.
 #   E. `--strict` refuses a `--user` run, naming the flag, because the parity
@@ -33,15 +33,15 @@
 #      hand; recorded, never asserted absolutely (errnos vary by wall).
 #
 # ⛔ No `setuid` outcome is asserted against the kernel: on a machine that CAN
-# change ids the honest call succeeds, on podbox's target it fails, so the
+# change ids the honest call succeeds, on podvm's target it fails, so the
 # assertion is bare-against-loaded (A) and record-against-request (B/C/D),
 # never an absolute rc.
 #
 # Inputs pinned: the victims are built here from the included C source (host
 # `cc` for glibc, `scripts/zig-cc.sh` for musl); the two images by manifest
-# digest (the M5 alpine row and the fedora row 105 uses) for the podbox-driven
+# digest (the M5 alpine row and the fedora row 105 uses) for the podvm-driven
 # clauses D, E and F; the objects `scripts/build-interpose.sh` produces from
-# this tree; and the podbox binary under test (which is itself the static
+# this tree; and the podvm binary under test (which is itself the static
 # payload clause F drives).
 #
 # Exit: 0 every check that ran matched, 1 one did not, 2 a check could not run.
@@ -49,7 +49,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 ROOT="$(CDPATH= cd -- "$HERE/.." && pwd)"
-CRATE="$ROOT/crates/podbox-interpose"
+CRATE="$ROOT/crates/podvm-interpose"
 OUT="$ROOT/experiments/results/interpose-identity.txt"
 WORK="$(mktemp -d)"
 
@@ -58,9 +58,9 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-GNU_SO="$CRATE/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so"
-MUSL_SO="$CRATE/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so"
-BIN="${PODBOX_BIN:-$ROOT/target/x86_64-unknown-linux-musl/release/podbox}"
+GNU_SO="$CRATE/target/x86_64-unknown-linux-gnu/release/libpodvm_interpose.so"
+MUSL_SO="$CRATE/target/x86_64-unknown-linux-musl/release/libpodvm_interpose.so"
+BIN="${PODVM_BIN:-$ROOT/target/x86_64-unknown-linux-musl/release/podvm}"
 GLIBC_IMG='quay.io/fedora/fedora@sha256:e78cd1a688cd079c23864f289a89a49a3f4ad66d817864e325e1d058310ee95c'
 MUSL_IMG='public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
 
@@ -73,7 +73,7 @@ printf 'zig               %s\n' "$(zig version 2>/dev/null || echo absent)"
 printf 'cc                %s\n' "$(cc --version 2>/dev/null | head -1 || echo absent)"
 _dv="$(docker version --format '{{.Server.Version}}' 2>/dev/null)"
 printf 'docker            %s\n' "${_dv:-MISSING}"
-printf 'podbox            %s\n' "$("$BIN" version 2>/dev/null || echo MISSING)"
+printf 'podvm            %s\n' "$("$BIN" version 2>/dev/null || echo MISSING)"
 printf 'glibc image       %s\n' "$GLIBC_IMG"
 printf 'musl image        %s\n' "$MUSL_IMG"
 echo
@@ -201,7 +201,7 @@ subject() {
 	[ "$preload" = yes ] && ldarg="LD_PRELOAD=$so"
 	# shellcheck disable=SC2086
 	if [ -n "$ident" ]; then
-		timeout 120 env "PODBOX_IDENTITY=$ident" $ldarg "$vic" 2>"$WORK/diag"
+		timeout 120 env "PODVM_IDENTITY=$ident" $ldarg "$vic" 2>"$WORK/diag"
 	else
 		timeout 120 env $ldarg "$vic" 2>"$WORK/diag"
 	fi
@@ -209,7 +209,7 @@ subject() {
 }
 
 if [ "$HAVE_GLIBC_VICTIM" -eq 1 ]; then
-	echo "== A. the control: without PODBOX_IDENTITY the object changes nothing"
+	echo "== A. the control: without PODVM_IDENTITY the object changes nothing"
 	a_bare="$(subject "$GNU_SO" "$WORK/victim-glibc" '' no)"
 	printf '%s\n' "$a_bare" | sed 's/^/  bare: /'
 	a_pre="$(subject "$GNU_SO" "$WORK/victim-glibc" '' yes)"
@@ -264,7 +264,7 @@ expect_fake() {
 }
 
 if [ "$HAVE_GLIBC_VICTIM" -eq 1 ]; then
-	echo "== B. the fake, glibc: PODBOX_IDENTITY=1000:100"
+	echo "== B. the fake, glibc: PODVM_IDENTITY=1000:100"
 	b_out="$(subject "$GNU_SO" "$WORK/victim-glibc" '1000:100' yes)"
 	printf '%s\n' "$b_out" | sed 's/^/  /'
 	if expect_fake "$b_out"; then
@@ -280,10 +280,10 @@ if [ "$HAVE_MUSL_VICTIM" -eq 1 ] && [ -x "$BIN" ]; then
 	# ⚠ The musl victim cannot run on this glibc job container directly:
 	# its interpreter is the musl loader, which is absent here (a direct
 	# run dies ENOENT naming the binary rather than the loader). It runs
-	# staged inside the alpine rootfs instead, through podbox itself,
+	# staged inside the alpine rootfs instead, through podvm itself,
 	# which also preloads the musl object it places there.
-	export PODBOX_STORE="$WORK/store"
-	unset PODBOX_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
+	export PODVM_STORE="$WORK/store"
+	unset PODVM_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
 	# ⛔ `extract` does not pull: the store here is fresh, so the image is
 	# fetched first the same way `run` would fetch it.
 	"$BIN" pull "$MUSL_IMG" >/dev/null 2>"$WORK/c-pull.err" || {
@@ -332,9 +332,9 @@ elif [ "$HAVE_MUSL_VICTIM" -eq 1 ]; then
 fi
 
 if [ -x "$BIN" ]; then
-	export PODBOX_STORE="$WORK/store"
-	unset PODBOX_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
-	echo "== D. end to end: podbox run --user fakes id on both libcs"
+	export PODVM_STORE="$WORK/store"
+	unset PODVM_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
+	echo "== D. end to end: podvm run --user fakes id on both libcs"
 	d_out="$("$BIN" run --rm --user 1000:100 "$MUSL_IMG" id -u 2>"$WORK/d.err")"
 	d_rc=$?
 	d_banner="$(cat "$WORK/d.err")"
@@ -393,8 +393,8 @@ if [ -x "$BIN" ]; then
 		sed 's/^/  /' "$WORK/inspect.err"
 	}
 	if [ -n "${f_root:-}" ]; then
-		cp "$BIN" "$f_root/podbox" || fail "F: staging the static payload failed"
-		f_out="$("$BIN" run --rm --user 1000:100 "$MUSL_IMG" /podbox --version 2>&1)"
+		cp "$BIN" "$f_root/podvm" || fail "F: staging the static payload failed"
+		f_out="$("$BIN" run --rm --user 1000:100 "$MUSL_IMG" /podvm --version 2>&1)"
 		f_rc=$?
 		printf '%s\n' "$f_out" | sed 's/^/  run output: /'
 		if printf '%s\n' "$f_out" | grep -q 'interpose: declined'; then

@@ -3,7 +3,7 @@
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
 
-`crates/podbox-image`. `TOOL.md` section 6.2, milestone M1.
+`crates/podvm-image`. `TOOL.md` section 6.2, milestone M1.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
 [RULES.md](RULES.md) is how an entry closes. [reference-map.md](reference-map.md) is the corpus.
@@ -36,13 +36,13 @@ Approach:    Implement the OCI distribution endpoints actually used: token auth,
              only `http://` is a named refusal, not a downgrade.
              Every request carries a timeout and a bounded retry, per
              [RULES.md](RULES.md) section 8.
-Decision:    A blocking client. podbox has no reason to be async, and an async
+Decision:    A blocking client. podvm has no reason to be async, and an async
              runtime is a large dependency with nothing to do here. The crate
              sweep for the client and its TLS is T-0905 and T-0906, and neither
              lands without a measured size delta.
-Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox images --format '{{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | grep -qx "$(docker image inspect public.ecr.aws/docker/library/alpine:3.20 --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"`
+Prove:       `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm images --format '{{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | grep -qx "$(docker image inspect public.ecr.aws/docker/library/alpine:3.20 --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"`
 
-**Done 2026-09-08.** `crates/podbox-image/src/registry.rs`, driven by
+**Done 2026-09-08.** `crates/podvm-image/src/registry.rs`, driven by
 `experiments/150-image-acquisition.sh`, which exits 0. The `Prove` above is its
 clause 1 and the two digests are equal:
 `sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b`.
@@ -54,9 +54,9 @@ repository does not authorise another and a host-keyed cache would send it
 anyway and read the 403 as a permission problem.
 
 ⛔ **The refusal is driven, not asserted.** Clause 4 of the script runs
-`podbox pull http://registry.invalid/...` under `timeout 30`: exit 124 would be
-the hang this refusal exists to prevent, and podbox exits **2** with
-`podbox speaks HTTPS only and will not downgrade`. A registry whose token realm
+`podvm pull http://registry.invalid/...` under `timeout 30`: exit 124 would be
+the hang this refusal exists to prevent, and podvm exits **2** with
+`podvm speaks HTTPS only and will not downgrade`. A registry whose token realm
 is `http://` is refused separately and is a runtime failure rather than a usage
 one, because it is not the caller's input.
 
@@ -105,10 +105,10 @@ Approach:    Store blobs under `sha256:<hex>`, verify every blob against its
              a layer about to be extracted as root.
 Decision:    One store shared by images and containers, with a lock, rather than
              a store per container. The GC race that decides this is T-0204.
-Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox pull public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -qi 'already' && sha256sum "$(podbox inspect --format '{{.Store}}' public.ecr.aws/docker/library/alpine:3.20)"/blobs/sha256/* >/dev/null`
+Prove:       `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm pull public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -qi 'already' && sha256sum "$(podvm inspect --format '{{.Store}}' public.ecr.aws/docker/library/alpine:3.20)"/blobs/sha256/* >/dev/null`
 
-**Done 2026-09-08.** `crates/podbox-image/src/store.rs` and
-`crates/podbox-image/src/digest.rs`, driven by
+**Done 2026-09-08.** `crates/podvm-image/src/store.rs` and
+`crates/podvm-image/src/digest.rs`, driven by
 `experiments/150-image-acquisition.sh` clauses 2 and 3, which is the `Prove`
 above as a script: the second pull prints `55afa1ecc21d: Already exists` and
 fetches nothing, and all 4 stored blobs hash to the name they are stored under.
@@ -125,10 +125,10 @@ would produce a different digest.
 `digest::Verifier` hashes what reached the sink rather than what was offered,
 counts what actually arrived rather than trusting the descriptor's `size`, and
 the staged file is renamed into `blobs/` only when both matched. `read_blob`
-re-hashes on the way out, which fires when something outside podbox has edited
+re-hashes on the way out, which fires when something outside podvm has edited
 the store, and a test drives that by overwriting a stored blob.
 
-⚠ **`{{.Size}}` is the compressed bytes podbox holds, and the column says
+⚠ **`{{.Size}}` is the compressed bytes podvm holds, and the column says
 `SIZE (STORED)`.** M1 did not extract, so the uncompressed number had not been
 measured here, and printing docker's heading over a different quantity would be
 a number that was not measured.
@@ -140,16 +140,16 @@ this host, against the same image by the same digest, it is not.**
 | | bytes |
 | --- | --- |
 | `docker image inspect alpine:latest --format '{{.Size}}'` | 3,857,242 |
-| every blob podbox holds for it, summed | **3,857,242** |
-| podbox `{{.Size}}` (layers and config, no manifests) | 3,847,002 |
+| every blob podvm holds for it, summed | **3,857,242** |
+| podvm `{{.Size}}` (layers and config, no manifests) | 3,847,002 |
 | the layer's real uncompressed length, from gzip `ISIZE` | 8,697,856 |
 | `docker history` for the same layer | ~9.07 MB |
 
 docker 29.3.1 here runs the **containerd** image store
 (`io.containerd.snapshotter.v1`), and its `.Size` is the size of the content in
-the content store, which is compressed. It matches podbox's blob total **to the
-byte**; the 10,240 difference against podbox's own `{{.Size}}` is the manifest
-and index blobs, which podbox does not count as image payload.
+the content store, which is compressed. It matches podvm's blob total **to the
+byte**; the 10,240 difference against podvm's own `{{.Size}}` is the manifest
+and index blobs, which podvm does not count as image payload.
 
 ⛔ **So the divergence this entry documented does not exist on this docker, and
 the open question that asked what to do about it was asking about a claim
@@ -157,16 +157,16 @@ rather than a reading.** ⚠ It is one host and one docker: the classic (non
 containerd) image store reports the uncompressed total, and this is recorded as
 a reading from this machine rather than as docker's definition.
 
-⚠ **And "uncompressed size" is three different numbers**, which is why podbox
+⚠ **And "uncompressed size" is three different numbers**, which is why podvm
 names which one it prints. The tar STREAM length (8,697,856 here, read exactly
-from gzip's trailer) is what `podbox extract` reports and what the space
+from gzip's trailer) is what `podvm extract` reports and what the space
 precheck needs; the APPLIED filesystem size is what `docker history` shows; and
 `du` over the extracted tree is a third. Reporting any of them as "the"
 uncompressed size without saying which would be the same defect this paragraph
 was written to avoid.
 
 ⚠ **The store is one shared directory with a version discriminator**,
-`store.json`'s `podbox_store: 1`. A store a later podbox wrote is refused by
+`store.json`'s `podvm_store: 1`. A store a later podvm wrote is refused by
 name rather than parsed as though its fields meant what they mean here, and the
 index is written to a staging name inside the store and renamed over the old
 one, so a process killed mid-write leaves the previous index rather than a
@@ -210,9 +210,9 @@ Decision:    Refuse up front rather than streaming until `ENOSPC`. A partial
              full, which is the state in which cleanup is least likely to work.
 Prove:       `./experiments/140-space-precheck.sh` exits 0
 
-**Done, 2026-09-08.** `crates/podbox-image/src/space.rs`, called before any
-download from `crates/podbox-image/src/pull.rs` and before any extraction from
-`crates/podbox-extract/src/lib.rs`.
+**Done, 2026-09-08.** `crates/podvm-image/src/space.rs`, called before any
+download from `crates/podvm-image/src/pull.rs` and before any extraction from
+`crates/podvm-extract/src/lib.rs`.
 `experiments/140-space-precheck.sh` exits 0, on two real tmpfs mounts rather
 than fixtures, and the two refusals it drove are:
 
@@ -228,7 +228,7 @@ written before either refusal, which is the whole point of a precheck: a
 partial store has to be cleaned up on a filesystem that is already full.
 
 ⭐ **CLOSED, 2026-09-08, by M2.** The second call site exists:
-`crates/podbox-extract/src/lib.rs` calls the same `space::require` before the
+`crates/podvm-extract/src/lib.rs` calls the same `space::require` before the
 first layer is read. That was the only reason this was `partial`.
 
 ⛔ **It is before the layer LOOP, not inside it, and the placement is the
@@ -259,7 +259,7 @@ before.
    above names it.
 2. The `Approach` says `statvfs`. The code calls **`statfs(2)`**, which is the
    syscall behind `statvfs(3)` and is what
-   `crates/podbox-probe/src/writable.rs` already calls, so free space has one
+   `crates/podvm-probe/src/writable.rs` already calls, so free space has one
    read path in this tree rather than two.
 
 ⚠ **`f_files == 0` means inodes are not counted**, not that there are none.
@@ -308,19 +308,19 @@ Approach:    Hold a lock fd on each in-use rootfs, inherited across the exec, an
 Decision:    An inheritable lock fd rather than a pid file. A pid file is stale
              the moment a process dies unexpectedly, and the check that clears a
              stale one is the race this is closing.
-Prove:       `podbox run -d --name gc-probe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && podbox image prune -a -f 2>&1 | grep -q "is referenced by container gc-probe" && podbox inspect public.ecr.aws/docker/library/alpine:3.20 >/dev/null && podbox rm -f gc-probe`
+Prove:       `podvm run -d --name gc-probe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && podvm image prune -a -f 2>&1 | grep -q "is referenced by container gc-probe" && podvm inspect public.ecr.aws/docker/library/alpine:3.20 >/dev/null && podvm rm -f gc-probe`
 
 **Done 2026-09-09, in the two halves below.** `images`, `image ls`, `rmi`, `image rm`, `tag`,
-`image prune` and `inspect` are implemented in `crates/podbox-cli/src/images.rs`
-over `crates/podbox-image/src/store.rs`, and the lock is
-`crates/podbox-probe/src/sys.rs`'s `flock(2)` on an fd opened **without**
+`image prune` and `inspect` are implemented in `crates/podvm/src/images.rs`
+over `crates/podvm-image/src/store.rs`, and the lock is
+`crates/podvm-probe/src/sys.rs`'s `flock(2)` on an fd opened **without**
 `O_CLOEXEC`, which is the inheritance the mechanism depends on.
 `experiments/160-store-gc.sh` exits 0 and drives all five clauses.
 
 ⛔ **The half that is not done is the `Prove` above**, which holds the lock with
-`podbox run -d`. `run` is M3, [milestones.md](milestones.md) T-1104. The holder
+`podvm run -d`. `run` is M3, [milestones.md](milestones.md) T-1104. The holder
 in the script is `flock(1)` taking the same advisory lock on the same file, so
-the refusal path is driven for real; what is not yet driven is podbox holding it
+the refusal path is driven for real; what is not yet driven is podvm holding it
 across its own exec.
 
 **Reopened 2026-10-02 under T-1612.** The `Prove` clause is still unproven and
@@ -334,20 +334,20 @@ immediately before the fork that leads to the exec. One mechanism, two
 directions, two owners.
 
 ⛔ **The clause does not yet read the mechanism it proves, and that has to be
-fixed before it can close.** `podbox image prune` names its two refusals from
+fixed before it can close.** `podvm image prune` names its two refusals from
 two different sources. The line `is in use by a running container` comes from
-`Store::delete` (`crates/podbox-image/src/store.rs:830`), which is the
+`Store::delete` (`crates/podvm-image/src/store.rs:830`), which is the
 `flock(2)` hold check, and the line `is referenced by container <names>` comes
-from `podbox_supervise::referencing` (`crates/podbox-cli/src/images.rs:948`),
+from `podvm_supervise::referencing` (`crates/podvm/src/images.rs:948`),
 which is the container-record table. This `Prove` greps for
 `is referenced by container gc-probe`, so it asserts the record path and never
-touches the lock. A detached `podbox run` writes a foreground record before
+touches the lock. A detached `podvm run` writes a foreground record before
 `fg_end` flips it, and `Store::create` takes no hold
 (`store.rs:808-816` names both), so the clause as written would go green with
 the lock-inheritance mechanism removed. The clause to prove is the
 `in use by a running container` skip; `experiments/160-store-gc.sh` already
 drives that arm against an external `flock(1)` holder, and the remaining gap is
-podbox holding it across its own exec.
+podvm holding it across its own exec.
 
 What the script established:
 
@@ -363,7 +363,7 @@ What the script established:
 deleted.** Computing it the other way deletes a shared layer with the first
 image that goes, and clause 1 is that case.
 
-⚠ **A defect in the harness, not in podbox, and it is worth recording because
+⚠ **A defect in the harness, not in podvm, and it is worth recording because
 it is the mechanism working exactly as intended.**
 `flock FILE -c 'sleep N'` runs the sleep as a **child**, which inherits the
 locked fd, so killing `flock` leaves the sleeper holding the lock. The first run
@@ -372,17 +372,17 @@ process holds the fd. That inheritance is precisely what this entry buys.
 
 ⚠ **`prune -f` is accepted and does nothing**, and `--help` says so rather than
 leaving it as a flag no code reads: docker's `-f` suppresses a confirmation
-prompt, and podbox never prompts ([cli.md](cli.md) T-0806).
+prompt, and podvm never prompts ([cli.md](cli.md) T-0806).
 
 ⭐ **The remaining half closed 2026-09-09 by M3.** The lock and its GC refusal
-were driven at M1 without the exec they exist for; `podbox run` is that caller.
+were driven at M1 without the exec they exist for; `podvm run` is that caller.
 It takes the lock **before** checking whether the rootfs is extracted, so a
-concurrent `rmi` cannot delete the tree between podbox deciding it is there and
+concurrent `rmi` cannot delete the tree between podvm deciding it is there and
 entering it, and calls `Lock::hand_to_payload` immediately before the fork that
 leads to the payload's `execve`.
 
 ⚠ `--rm` drops the lock **before** removing the rootfs. Holding it while
-deleting would be podbox refusing its own request, which is the kind of deadlock
+deleting would be podvm refusing its own request, which is the kind of deadlock
 that only appears once the caller exists.
 
 ⛔ [T-0211](#t-0211-an-image-lock-outlives-its-holder-whenever-anything-forks) is
@@ -427,8 +427,8 @@ Approach:    Run it in the reconstruction and record the outcome either way.
              ⛔ A negative result is a result and gets committed: if it still
              fails, the reason is worth having, because "no path exists" would
              then be a measured claim rather than an inherited one.
-Decision:    This changes nothing about podbox's design and it changes a
-             comparative claim podbox's own documentation would otherwise
+Decision:    This changes nothing about podvm's design and it changes a
+             comparative claim podvm's own documentation would otherwise
              repeat. That is why it is P3 and not dropped.
 Prove:       `./experiments/95-podman-vfs-ignorechown.sh` exits 0 or 1, never 2, and its output is committed to `experiments/results/`
 
@@ -477,15 +477,15 @@ Premise:     ⭐ **Measured on 2026-09-08, in this repository.** The session tha
              `experiments/140-space-precheck.sh` and
              `experiments/160-store-gc.sh` compare nothing against docker and
              default to `public.ecr.aws`. `experiments/150-image-acquisition.sh`
-             cannot follow them, because its whole question is whether podbox's
+             cannot follow them, because its whole question is whether podvm's
              digest equals the one `docker image inspect` reports for the same
              tag.
-Approach:    Serve the OCI distribution endpoints podbox uses from the store
-             podbox already has, on loopback, and point both podbox and docker
+Approach:    Serve the OCI distribution endpoints podvm uses from the store
+             podvm already has, on loopback, and point both podvm and docker
              at it. The store is content-addressed and holds the manifest bytes
              verbatim, which is exactly what `GET /v2/<name>/manifests/<ref>`
              has to return, so the fixture is a reader over
-             `crates/podbox-image/src/store.rs` rather than a second store.
+             `crates/podvm-image/src/store.rs` rather than a second store.
              ⚠ Four endpoints, no more: `GET /v2/`, manifests by tag and by
              digest, and blobs. No push, no catalog, no pagination.
              ⛔ HTTPS, with a certificate the fixture generates and both clients
@@ -517,13 +517,13 @@ FAIL, the test password absent from the report. Five answers:
    85,459,246 bytes, sha256 verified every run against the release
    checksums line) plus a config, a seeded storage dir, a generated cert
    and an htpasswd file, all staged host-side. The Prove runs inside one
-   `--network=none` driver container where zot and a lane-built podbox meet
-   on container loopback. Two configs: open (podbox pull by tag and by
+   `--network=none` driver container where zot and a lane-built podvm meet
+   on container loopback. Two configs: open (podvm pull by tag and by
    digest, both inspecting to the seeded digest) and htpasswd-required
    (401 anon with a Basic challenge, 200 authed, wrong password 401, the
    shape [T-0209](#t-0209-registry-authentication-without-a-credential-ever-entering-this-tree)
-   later drives with credentials; podbox is anonymous-only until then and
-   no podbox clause touches the required config).
+   later drives with credentials; podvm is anonymous-only until then and
+   no podvm clause touches the required config).
 2. What it costs. The binary is fixture-only: downloaded per run into
    trap-removed scratch, verified, never committed, never shipped. The
    driver image is stock Debian plus curl (`experiments/180-driver.Dockerfile`,
@@ -549,13 +549,13 @@ it, everything meets on container loopback).
 
 ⛔ **CORRECTED 2026-09-09 BY MEASUREMENT, AND THE PREMISE ABOVE WAS WRONG.** The
 `Premise` says `150-image-acquisition.sh` "cannot follow them, because its whole
-question is whether podbox's digest equals the one `docker image inspect`
+question is whether podvm's digest equals the one `docker image inspect`
 reports for the same tag". That reads as though the Hub were required. It is
 not: **docker pulls from `ghcr.io` perfectly well**, checked on this host on
 2026-09-09, and its `RepoDigests[0]` for
 `ghcr.io/pkgforge-dev/archlinux:latest` is
 `sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b`,
-which is the value podbox records. The question needs a registry **both tools can
+which is the value podvm records. The question needs a registry **both tools can
 reach**, not the Hub.
 
 ⭐ **So the stated problem is gone, and it cost one line.** Every script the
@@ -593,13 +593,13 @@ Priority:    P2
 Effort:      L
 Status:      done 2026-09-22
 
-Problem:     `crates/podbox-image/src/pull.rs` fetches layers one after another.
+Problem:     `crates/podvm-image/src/pull.rs` fetches layers one after another.
              `docs/conventions/forbidden-patterns.md` names "a sequential
              awaited loop over independent IO" and what it caused: wall-time
              blowups as the data grows. alpine has one layer and hides it; a
              fifteen-layer image on a link with latency does not.
 Premise:     ⭐ **Read in this tree, at file and line.**
-             `crates/podbox-image/src/pull.rs` loops over
+             `crates/podvm-image/src/pull.rs` loops over
              `manifest.layers.iter().chain(once(&manifest.config))` and calls
              `client.blob` inside it, so every layer waits for its predecessor.
              ⚠ **Not yet measured.** The claim that this costs wall time here is
@@ -609,7 +609,7 @@ Approach:    A bounded pool of worker threads over the descriptor list, with the
              bound a named constant and not a per-machine guess. ⛔ The bound
              plus transient locks stays under sixteen concurrent `Lock`s in one
              process: every lock registers a fork-shed slot
-             (`crates/podbox-probe/src/sys.rs:702`), and
+             (`crates/podvm-probe/src/sys.rs:702`), and
              [T-1310](#t-1310-the-store-suite-exhausts-the-sixteen-fork-shed-slots-and-the-victim-varies)
              measured what exceeding it costs. Each worker
              stages, verifies and commits through the existing store functions,
@@ -630,14 +630,14 @@ Decision:    Threads over an async runtime. `TODO/deps.md` T-0906 ruled a
              a client earns a rate limit.
 Prove:       `./experiments/190-parallel-layers.sh` exits 0 and records the wall time of both shapes against a multi-layer image
 
-**Done 2026-09-22.** `crates/podbox-image/src/pull.rs` fetches through a
+**Done 2026-09-22.** `crates/podvm-image/src/pull.rs` fetches through a
 bounded pool of `FETCH_WORKERS = 4` threads over the descriptor list
 (layers plus config), `std::thread::scope` only, no new dependency. The
 bound is fixed per the Decision fork: the constraint is the registry, not
 cores. The arithmetic: 4 workers hold one staging lock each, plus
 `FETCH_LOCK_HEADROOM = 3` transients (the index lock at record time, a
 sweep on another thread, one spare) is 7 against the sixteen fork-shed
-slots (`crates/podbox-probe/src/sys.rs:702`), pinned by a `const` assert
+slots (`crates/podvm-probe/src/sys.rs:702`), pinned by a `const` assert
 that refuses the build rather than a test. Each worker builds its own
 `Client::with_policy(policy.clone())`, because `Client::blob` takes
 `&mut self`, and stages, verifies and commits through the same store
@@ -670,8 +670,8 @@ digest mismatch, zero `*.partial` files remain, the lines it did print
 are in manifest order, and no record is written. The pool binary is
 2,814,904 bytes against 2,786,224 sequential (+28,680, no new crate).
 
-Unit proof: `cargo test -p podbox-image` 117 passed, 0 failed, and
-`cargo clippy -p podbox-image --all-targets -- -D warnings` clean. Each
+Unit proof: `cargo test -p podvm-image` 117 passed, 0 failed, and
+`cargo clippy -p podvm-image --all-targets -- -D warnings` clean. Each
 guard was seen red first in the lane: the bound as a build refusal
 (`error[E0080]`, 14 workers planted), the order test carrying job 5's
 lines at slot 0 on a rotated merge, the cancel test listing the 4
@@ -688,7 +688,7 @@ to `experiments/190-parallel-layers.sh` (small layers with an
 injected delay or a shaped link) and record the ratio beside the
 loopback one. Keep the fixed bound of 4 workers unless the new
 number changes the Decision. Fix area is
-`crates/podbox-image/src/pull.rs` with
+`crates/podvm-image/src/pull.rs` with
 `experiments/190-parallel-layers.sh`. Risk if wrong is a close
 claiming a measurement the entry itself says it did not take.
 Prove is `190` exiting 0 with both shapes and both ratios in
@@ -700,7 +700,7 @@ warning-free) forwards each fetch exchange with a 2 s sleep,
 forcing `Connection: close` so every fetch pays its own setup the
 way it does across a high-RTT link. The shaped traffic runs plain
 HTTP beside the TLS fixture (`--insecure-registry` via
-`PODBOX_INSECURE_REGISTRIES`), because a byte-forwarding proxy
+`PODVM_INSECURE_REGISTRIES`), because a byte-forwarding proxy
 cannot see inside TLS; the script header records the attempt that
 proved it. The sequential shape is pull.rs at the pinned pre-pool
 commit `a0953f1` (the pool shipped, so HEAD holds no sequential
@@ -741,35 +741,35 @@ Priority:    P2
 Effort:      L
 Status:      done 2026-09-22
 
-Problem:     podbox resolves an index to `linux/amd64` and records the platform
+Problem:     podvm resolves an index to `linux/amd64` and records the platform
              it stored, but nothing can ask for another one, and the store keys
              an image by repository and tag with no variant in the key. Pulling
              `linux/arm64` would therefore either be refused or would overwrite
              the amd64 record under the same name.
 Premise:     ⭐ **Read at file and line, and the corpus names the failure.**
-             `crates/podbox-image/src/oci.rs` hard-codes `OS` and `ARCH`, and
-             `crates/podbox-image/src/store.rs`'s `put_record` retains on
+             `crates/podvm-image/src/oci.rs` hard-codes `OS` and `ARCH`, and
+             `crates/podvm-image/src/store.rs`'s `put_record` retains on
              `repository` and `tag` alone. `docs/conventions/forbidden-patterns.md`
              carries the incident: `podman run --platform linux/riscv64 alpine`
              retags the shared local `alpine:latest` to the riscv64 image, so
              the next plain `podman run alpine` fails with `Exec format error`
              and reads as an unrelated breakage.
-             ⚠ podbox records `platform` on every record today, so the
+             ⚠ podvm records `platform` on every record today, so the
              information needed to key by it is already stored and unused.
 Approach:    `--platform <os>/<arch>[/<variant>]` on `pull`, defaulting to the
              host's. The store key becomes repository, tag **and** platform.
-             `podbox images` gains the variant in its table only where more than
+             `podvm images` gains the variant in its table only where more than
              one is held, so the common output does not change.
              ⛔ A reference that resolves to two stored records and no
              `--platform` is a named refusal listing both, never a pick.
 Decision:    Key by platform rather than refusing a second variant. The refusal
-             is smaller and is the wrong shape: podbox's audience is automated,
+             is smaller and is the wrong shape: podvm's audience is automated,
              and a multi-architecture builder is exactly the caller that needs
              two variants at once.
              ⚠ Rejected: defaulting to `linux/amd64` on every host. It is what
-             the code does now and it is wrong the moment podbox runs on arm64,
+             the code does now and it is wrong the moment podvm runs on arm64,
              which is most of the machines its audience rents.
-Prove:       `podbox pull --platform linux/arm64 public.ecr.aws/docker/library/alpine:3.20 && podbox images --format '{{.Platform}} {{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | sort | uniq -c | grep -qx ' *1 linux/amd64 .*' `
+Prove:       `podvm pull --platform linux/arm64 public.ecr.aws/docker/library/alpine:3.20 && podvm images --format '{{.Platform}} {{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | sort | uniq -c | grep -qx ' *1 linux/amd64 .*' `
 
 **Done 2026-09-22.** The work this entry specifies shipped under
 [T-0212](#t-0212-the-platform-is-decided-at-run-time-and-the-store-holds-more-than-one)
@@ -780,7 +780,7 @@ tag **and** platform (`store.rs`), `find_for` resolves the ambiguity by
 name and returns the hits unfiltered where no platform matches, and
 `pull`, `images` and `extract` all take `--platform` defaulting through
 flag, environment, then the build host. Driven green on host podman
-6.1.2 with a lane-built musl binary (`podbox 0.1.0`):
+6.1.2 with a lane-built musl binary (`podvm 0.1.0`):
 `experiments/270-multiarch-image.sh` exits 0 on five clauses: no flag
 pulls the build platform, `--platform` takes the arm64 manifest out of
 the same index (2 records, 2 image IDs for one tag), the ELF machine
@@ -803,17 +803,17 @@ Priority:    P2
 Effort:      L
 Status:      done
 
-Problem:     Every request podbox makes is anonymous. A private registry answers
-             401 and podbox has nothing to answer with, so the whole class of
+Problem:     Every request podvm makes is anonymous. A private registry answers
+             401 and podvm has nothing to answer with, so the whole class of
              image an agent sandbox actually runs is unreachable.
-Premise:     Read. `crates/podbox-image/src/registry.rs` answers a `Bearer`
+Premise:     Read. `crates/podvm-image/src/registry.rs` answers a `Bearer`
              challenge with no credential, which is what the anonymous flow
              needs and is all it does. ⚠ The challenge parser, the realm
              handling and the per-scope token cache are already there and are
              the parts this entry does not have to write.
 Approach:    Read `~/.docker/config.json` and `$XDG_RUNTIME_DIR/containers/auth.json`,
              both of which the audience's machines already have, and send Basic
-             to the token realm named by the challenge. `podbox login` writes
+             to the token realm named by the challenge. `podvm login` writes
              the same file docker writes.
              ⛔ **No credential is logged, put in an error, or written into a
              result file**, and `registry.rs`'s `redact` already covers URLs.
@@ -824,17 +824,17 @@ Approach:    Read `~/.docker/config.json` and `$XDG_RUNTIME_DIR/containers/auth.
              turns a permission problem into a 404 about a repository that
              exists.
 Decision:    Read docker's and podman's files rather than inventing a third.
-             podbox answers to both names, and a runtime that needs its own
+             podvm answers to both names, and a runtime that needs its own
              credential file has not replaced either.
-             ⚠ The genuine fork, with a recommendation: whether `podbox login`
+             ⚠ The genuine fork, with a recommendation: whether `podvm login`
              writes a credential at all, given it lands in a file. Recommend
              **yes, and only through the credential helper where one is
              configured**, because refusing to write is not the same as the
              credential not existing: it just moves it to a shell history.
 Prove:       `./experiments/200-registry-auth.sh` exits 0 against the fixture of T-0206 with a required credential
 
-**Done 2026-09-22.** `crates/podbox-image/src/credentials.rs` (one read
-path, one write path), the Basic answer in `registry.rs`, and `podbox
+**Done 2026-09-22.** `crates/podvm-image/src/credentials.rs` (one read
+path, one write path), the Basic answer in `registry.rs`, and `podvm
 login` with its three parity rows. `experiments/200-registry-auth.sh`
 exits 0 twice in a row on host podman 6.1.2 against the T-0206 fixture
 in required-credential mode, all 15 driver clauses green with all
@@ -891,7 +891,7 @@ surface as a named 401 at pull (decided: an offline machine cannot
 verify, and a check that needs the network is a pull).
 
 ⚠ Lane substitution, stated once beside every number above. The
-`wsl-toolkit-podbox` base is unusable: `getpwnam(root)` and
+`wsl-toolkit-podvm` base is unusable: `getpwnam(root)` and
 `getpwnam(toolkit)` both fail, and `base ensure --probe` changed
 nothing. Every Linux step above ran instead in
 `docker.io/library/rust:1.98.1-bookworm` through host podman 6.1.2,
@@ -913,7 +913,7 @@ a pipe-less caller is told rather than hung. Implement `logout`
 (removing the registry entry) or keep the `None` row and say why
 here. Record the docker exit code for `image login` if that
 comparison is kept. Fix area is
-`crates/podbox-image/src/credentials.rs` with `crates/podbox-cli`.
+`crates/podvm-image/src/credentials.rs` with `crates/podvm`.
 Risk if wrong is an agent with a TTY stdin hanging where docker
 refuses or prompts. Prove is the TTY refusal through the shipped
 binary with its test, the `logout` arm either way, and the exit
@@ -922,7 +922,7 @@ code note.
 **Done 2026-09-26.** All three arms, the `logout` one implemented:
 
 * TTY refusal: `login` refuses where stdin is a terminal (exit 1,
-  naming the pipe; podbox never prompts), through a pure
+  naming the pipe; podvm never prompts), through a pure
   `read_password` helper so tests own both arms: the refusal
   precedes any read (a panicking reader proves it), a pipe reads
   to the trimmed password, an empty pipe refuses.
@@ -963,12 +963,12 @@ Effort:      L
 Status:      done 2026-09-09
 
 Problem:     The store takes one exclusive lock around each index
-             read-modify-write and nothing else. What happens when two podboxes
+             read-modify-write and nothing else. What happens when two podvm processes
              pull different images at once, or one prunes while another pulls,
              is not written down anywhere, so every future change to the store
              is a change to an unstated contract.
 Premise:     ⭐ **Partly measured, and the measurement is the reason this is P1
-             rather than P3.** Two concurrent `podbox pull` runs of the same
+             rather than P3.** Two concurrent `podvm pull` runs of the same
              reference into one store were driven on 2026-09-08: both exited 0,
              the index parsed, one image and four blobs resulted, and no staging
              file was left. ⚠ That is one ordering of one case. The cases NOT
@@ -976,7 +976,7 @@ Premise:     ⭐ **Partly measured, and the measurement is the reason this is P1
              process's space precheck and its first blob write, and two pulls of
              DIFFERENT images racing on the same index.
              ⚠ A second gap is read rather than measured:
-             `crates/podbox-image/src/store.rs` names a staging file after the
+             `crates/podvm-image/src/store.rs` names a staging file after the
              process id, so a process killed with SIGKILL mid-blob leaves a
              `*.partial` file that nothing ever removes.
 Approach:    Write the contract into the module header as invariants, then drive
@@ -987,7 +987,7 @@ Approach:    Write the contract into the module header as invariants, then drive
              the "sweep that heals drift the happy path let slip" that
              `docs/conventions/code.md` asks for.
              ⛔ The sweep removes only files this store's own staging directory
-             holds, resolved through `crates/podbox-image/src/contain.rs`.
+             holds, resolved through `crates/podvm-image/src/contain.rs`.
 Decision:    A stress experiment rather than a unit test. The failure is a race,
              and a race that only a mock can produce is a race the mock's author
              imagined. ⚠ The suite keeps its deterministic tests for the pieces;
@@ -995,7 +995,7 @@ Decision:    A stress experiment rather than a unit test. The failure is a race,
 Prove:       `./experiments/210-store-concurrency.sh` exits 0 with 8 concurrent workers over 3 references, and the store verifies afterwards
 
 **Done, 2026-09-09.** The contract is seven invariants in
-`crates/podbox-image/src/store.rs`'s module header, ⛔ **in the code rather than
+`crates/podvm-image/src/store.rs`'s module header, ⛔ **in the code rather than
 here**, because a contract nobody reads while changing the store is not one.
 `experiments/210-store-concurrency.sh` drives it in four clauses, against real
 concurrent processes rather than a mock.
@@ -1031,9 +1031,9 @@ overwrite each other. `cargo test` runs tests in threads and
 [T-0207](image.md)'s bounded concurrency would make it reachable in production.
 The index's own temporary file had the same shape and the same fix.
 
-⚠ **A trap this experiment paid for, recorded in it:** `timeout 900 podbox pull &`
+⚠ **A trap this experiment paid for, recorded in it:** `timeout 900 podvm pull &`
 makes `$!` the pid of **`timeout`**, so `kill -9 "$!"` kills the wrapper and
-leaves podbox running. Clause 3 then read the sweep correctly refusing to take a
+leaves podvm running. Clause 3 then read the sweep correctly refusing to take a
 live writer's file as a defect, and reported a FAIL that was the harness's.
 
 Follow-up 2026-09-23 (issue 17, client beta testing): the harness
@@ -1100,10 +1100,10 @@ Premise:     ⭐ **Measured on 2026-09-08, twice: once by accident and once on
 
              It first appeared as an intermittent failure of
              `store::tests::an_image_a_container_holds_is_refused_by_rmi_and_skipped_by_prune`
-             at `crates/podbox-image/src/store.rs:792`, the assertion
+             at `crates/podvm-image/src/store.rs:792`, the assertion
              `!s.in_use(&r).unwrap()` immediately after `drop(held)`. It did not
              reproduce in eleven consecutive runs of that test alone or of the
-             whole `podbox-image` suite, and it reproduces in the **full
+             whole `podvm-image` suite, and it reproduces in the **full
              workspace run at 2 of 6**. That difference is the diagnosis rather
              than noise: running a suite in isolation removes the other test
              threads, and the other test threads are what fork. They are named:
@@ -1142,21 +1142,21 @@ Approach:    ⛔ **CORRECTED ON 2026-09-09 BY BUILDING IT: the approach written
              unconditionally, and `flock(2)` is held on the open file
              description the duplicates share, so it lives until the last of
              them closes. The child that reproduces this defect, `clone_accepted`
-             in `crates/podbox-probe/src/child.rs:119`, one per `clone` probe,
+             in `crates/podvm-probe/src/child.rs:119`, one per `clone` probe,
              **never execs at all**, so no `FD_CLOEXEC` setting can reach it.
              The first build of this entry was red with the entry's own fix
              applied.
 
              ⭐ **Two defences, because they cover two different failures.**
              1. **The fork.** A fixed-size registry of fds that a fork must
-                shed, in `crates/podbox-probe/src/sys.rs`, drained inside
+                shed, in `crates/podvm-probe/src/sys.rs`, drained inside
                 `clone_fork` itself before it returns into the child.
                 `Store::hold` registers its fd and `Lock::drop` deregisters it.
                 ⚠ Inside `clone_fork` and not in each caller's `Ok(0)` arm, so a
                 caller who knows nothing about image locks still passes through
                 it. Exact rather than a blanket close of everything above
-                stderr: podbox knows which descriptors these are, and a range
-                close would also shut fds a caller handed podbox deliberately.
+                stderr: podvm knows which descriptors these are, and a range
+                close would also shut fds a caller handed podvm deliberately.
                 ⚠ Fixed-size and atomic because the child drains it between
                 `clone` and `execve`, where allocation is not permitted; a
                 seventeenth lock is refused by name rather than held unshed.
@@ -1174,7 +1174,7 @@ Approach:    ⛔ **CORRECTED ON 2026-09-09 BY BUILDING IT: the approach written
 Decision:    Fix the inheritance, not the test. Marking the test `#[serial]` or
              giving it its own process would hide a defect that is real outside
              the suite; the suite found something and the finding is the point.
-             ⚠ `fcntl(2)` was not in `crates/podbox-probe/src/sys.rs` and is two
+             ⚠ `fcntl(2)` was not in `crates/podvm-probe/src/sys.rs` and is two
              lines there.
              ⛔ **Neither test may wait on a duration.** Both were written with a
              sleep first and both were then intermittent for a *third* reason:
@@ -1183,10 +1183,10 @@ Decision:    Fix the inheritance, not the test. Marking the test `#[serial]` or
              That is the same shape of failure this entry exists for, so each
              test waits on a **fact**, a byte through a pipe from the forked
              child, a line of stdout from the spawned one, and not on a delay.
-Prove:       `cargo test -p podbox-image a_fork_while_the_lock_is_held_does_not_extend_it` and `cargo test -p podbox-image a_spawned_process_does_not_inherit_the_lock` both pass; the mutation half is re-proven by the retargeted `./experiments/157-lock-inheritance-prove.sh` (see the 2026-10-01 note below), and neither mutation may fail both
+Prove:       `cargo test -p podvm-image a_fork_while_the_lock_is_held_does_not_extend_it` and `cargo test -p podvm-image a_spawned_process_does_not_inherit_the_lock` both pass; the mutation half is re-proven by the retargeted `./experiments/157-lock-inheritance-prove.sh` (see the 2026-10-01 note below), and neither mutation may fail both
 
 **Done, 2026-09-12.** `./experiments/157-lock-inheritance-prove.sh` with
-`PODBOX_PROVE_RUNS=30`, recorded in
+`PODVM_PROVE_RUNS=30`, recorded in
 `experiments/results/lock-inheritance-prove.txt`. ⛔ **A pass count out of
 stated attempts, because one green run is what this entry was reopened for.**
 
@@ -1218,18 +1218,18 @@ oracles, which assert `in_use` after `drop(held)`. Remainder: retarget clause
 2 `must_red` to `the_seventeenth_concurrent_registration_is_refused_by_name`,
 which the quota arm still reddens; give clause 3 a pre-drop or fd-presence
 oracle; correct the independence claim at
-`crates/podbox-image/src/store.rs:2110-2112`.
+`crates/podvm-image/src/store.rs:2110-2112`.
 
 ### T-0212 The platform is decided at run time, and the store holds more than one
 
-Source:      Found by the operator on 2026-09-09, reading `crates/podbox-image/src/oci.rs`
+Source:      Found by the operator on 2026-09-09, reading `crates/podvm-image/src/oci.rs`
 Category:    image
 Priority:    P0
 Effort:      M
 Status:      done 2026-09-09
 
 Problem:     ⛔ **`oci::ARCH` was the constant `"amd64"`.** Every pull asked for
-             `linux/amd64` whatever machine podbox was running on, so a podbox
+             `linux/amd64` whatever machine podvm was running on, so a podvm
              built for aarch64, once [T-0911](deps.md) made that possible, would
              have fetched an amd64 rootfs and handed the payload an
              `Exec format error` with nothing to say about why.
@@ -1253,12 +1253,12 @@ Premise:     ⭐ **Measured on 2026-09-09**, `experiments/results/multiarch-imag
              [T-0202](#t-0202-a-content-addressed-store-and-digest-parity-with-docker)
              is accepted on. What differs is the image ID, which is the config
              digest under the platform-specific manifest.
-Approach:    `crates/podbox-image/src/platform.rs`, and the platform travels as
+Approach:    `crates/podvm-image/src/platform.rs`, and the platform travels as
              a value from the flag to the record.
              1. **`--platform os/arch[/variant]`**, then
-                `$PODBOX_DEFAULT_PLATFORM`, then `$DOCKER_DEFAULT_PLATFORM`,
+                `$PODVM_DEFAULT_PLATFORM`, then `$DOCKER_DEFAULT_PLATFORM`,
                 then the platform this binary was built for. ⚠ docker's variable
-                is honoured deliberately: podbox answers to `docker` on PATH and
+                is honoured deliberately: podvm answers to `docker` on PATH and
                 takes the same flags ([T-0803](cli.md)), so a caller who set it
                 for their toolchain meant it here.
              2. ⛔ **A bare word is an ARCHITECTURE**, as docker reads it:
@@ -1308,7 +1308,7 @@ new flag.
 ⛔ **CORRECTED 2026-09-22, AND THE CLAUSE-5 SENTENCE ABOVE WAS WRONG TWICE.**
 [T-0802](cli.md) measured docker's discriminator after this entry closed:
 125 is what a flag parser refuses, 1 is what the verb refuses afterwards.
-podbox's `pull` parser takes any string as `--platform`'s value and the verb
+podvm's `pull` parser takes any string as `--platform`'s value and the verb
 refuses `a/b/c/d`, which is the `images --format '{{.Nope}}'` row, so clause
 5 asserts the cli-error code 1. `experiments/270-multiarch-image.sh` carried
 the 125 expectation from before that measurement and went red on it from the
@@ -1330,7 +1330,7 @@ FIXED.** `Store::find_for` was given the platform and `Store::find_one` was not,
 and `extract` and `inspect` reach the store through the second. `find_one` took
 `.next()`, which was harmless only while a store could not hold two records for
 one tag; **this entry is what made it hold one per platform**, so the same line
-then meant `podbox extract alpine` silently unpacked whichever platform was
+then meant `podvm extract alpine` silently unpacked whichever platform was
 pulled most recently. Selected **by position**, which
 `docs/conventions/code.md` forbids and which `Store::find`'s own comment calls
 out three functions above.
@@ -1338,15 +1338,15 @@ out three functions above.
 ⭐ **`find_one_for` prefers the host's platform and refuses what survives that.**
 Preferring rather than demanding, because a store holding exactly one foreign
 platform and asked for nothing in particular is not ambiguous; ambiguity is two
-or more surviving the preference, and then podbox names them and stops.
+or more surviving the preference, and then podvm names them and stops.
 `extract` grew `--platform`; `inspect` did not, because docker's has none either
 and the refusal is now the honest answer there.
 
 | | |
 | --- | --- |
-| `podbox extract <img>` on a two-platform store | the host's, `linux/amd64` |
-| `podbox extract --platform linux/arm64 <img>` | the other one |
-| `podbox extract --platform linux/riscv64 <img>` | exit 125, `The store holds it for linux/amd64, linux/arm64` |
+| `podvm extract <img>` on a two-platform store | the host's, `linux/amd64` |
+| `podvm extract --platform linux/arm64 <img>` | the other one |
+| `podvm extract --platform linux/riscv64 <img>` | exit 125, `The store holds it for linux/amd64, linux/arm64` |
 
 ⚠ **The door sweep is the only lens that finds this.** Every test of `find_for`
 passed throughout, because `find_for` was never the door that was open.
@@ -1360,30 +1360,30 @@ Priority:    P0
 Effort:      M
 Status:      done 2026-09-09
 
-Problem:     ⛔ **podbox could not reach a local registry at all.** A registry on
+Problem:     ⛔ **podvm could not reach a local registry at all.** A registry on
              loopback speaks plain HTTP, or HTTPS with a self-signed
              certificate, and [T-0201](#t-0201-registry-client-https-only-with-no-plain-http-fallback)
              refused both with no way to say otherwise. That is most of the
-             registries a developer actually runs, and podbox answering "HTTPS
-             only" to `localhost:5000` is podbox being useless rather than
+             registries a developer actually runs, and podvm answering "HTTPS
+             only" to `localhost:5000` is podvm being useless rather than
              careful.
 Premise:     ⭐ **T-0201's finding is real and is kept.** It refused a plain-HTTP
              **fallback** because tcp/80 egress is black-holed on the runtimes
-             podbox targets, so an automatic downgrade **hangs** rather than
+             podvm targets, so an automatic downgrade **hangs** rather than
              failing. ⚠ What that never justified is refusing a registry the
              caller has explicitly named. The distinction this entry draws is
              between a **fallback** and an **instruction**.
 
              ⛔ **And the rule that forbade this did not exist.**
-             `crates/podbox-image/src/tls.rs` said "there is no skip
+             `crates/podvm-image/src/tls.rs` said "there is no skip
              verification path here... `docs/security/remote-ops.md` and the
              environment note in `AGENTS.md` both say never to disable
              verification". Checked on 2026-09-09: `remote-ops.md` says nothing
              about TLS at all, and `AGENTS.md`'s note is an instruction to
              **the agent** about this development container's intercepting
-             proxy, not a rule about what podbox may offer. A rule was cited
+             proxy, not a rule about what podvm may offer. A rule was cited
              where it was not written.
-Approach:    `crates/podbox-image/src/transport.rs`, a policy resolved once and
+Approach:    `crates/podvm-image/src/transport.rs`, a policy resolved once and
              then carried by value.
              1. **`--insecure-registry HOST`**, repeatable, docker's flag and
                 docker's meaning: for that host, do not verify, and fall back to
@@ -1392,9 +1392,9 @@ Approach:    `crates/podbox-image/src/transport.rs`, a policy resolved once and
                 per **invocation**, not per host. ⛔ It does **not** permit plain
                 HTTP: not verifying a certificate and not having one are
                 different asks, and clause 5 asserts they stay different.
-             3. `$PODBOX_INSECURE_REGISTRIES`, comma separated, and a config
-                file at `$PODBOX_CONFIG` else
-                `$XDG_CONFIG_HOME/podbox/registries.conf`, one host per line.
+             3. `$PODVM_INSECURE_REGISTRIES`, comma separated, and a config
+                file at `$PODVM_CONFIG` else
+                `$XDG_CONFIG_HOME/podvm/registries.conf`, one host per line.
                 ⛔ A bad line is refused with its **line number**, never skipped:
                 a silently ignored entry is a registry the caller believes is
                 permitted and is not.
@@ -1404,7 +1404,7 @@ Approach:    `crates/podbox-image/src/transport.rs`, a policy resolved once and
              5. The `http://` refusal moves from `Reference::parse` to `pull`,
                 because only there is the policy in scope and only there can the
                 message **name the flag that would permit it**.
-Decision:    An instruction, never a discovery. podbox does not probe a registry
+Decision:    An instruction, never a discovery. podvm does not probe a registry
              to learn that it speaks HTTP; it is told, and only then does one
              failed HTTPS connect turn into one HTTP retry.
              ⚠ **Two agents, not one with a switch.** A `ureq::Agent` carries one
@@ -1425,7 +1425,7 @@ loopback registry is never reached through a proxy now, whatever the environment
 says, because a proxy cannot reach the caller's own loopback; `NO_PROXY` is
 honoured on top of that, both spellings, matching a bare host or any parent
 domain. ⚠ `ureq` 2's `try_proxy_from_env` does not consult `NO_PROXY` at all, so
-this had to be decided in podbox rather than delegated.
+this had to be decided in podvm rather than delegated.
 
 ⚠ **A bare IPv6 address has colons and no port**, so splitting an endpoint at
 its last colon turns `::1` into the host `::`. The first `is_loopback` did
@@ -1457,7 +1457,7 @@ Premise:     ⭐ **Measured, and it reproduces the same way twice: it fails, and
 
              ```
              no-pull quay.io/fedora/fedora@sha256:e78cd1a6…ee95c
-             podbox: GET /v2/fedora/fedora/blobs/sha256:419b79a0…1d21:
+             podvm: GET /v2/fedora/fedora/blobs/sha256:419b79a0…1d21:
                reading the blob body after 2097153 byte(s):
                response body closed before all bytes were read
              ```
@@ -1466,8 +1466,8 @@ Premise:     ⭐ **Measured, and it reproduces the same way twice: it fails, and
              cutting a transfer rather than a registry ending one. The same pull,
              run again by hand with no other change, completed: `419b79a05f4b:
              Pull complete`.
-             ⚠ `crates/podbox-image/src/registry.rs:236-250` is the loop that
-             gives up; `crates/podbox-image/src/registry.rs:255-268` is the
+             ⚠ `crates/podvm-image/src/registry.rs:236-250` is the loop that
+             gives up; `crates/podvm-image/src/registry.rs:255-268` is the
              bounded retry, and it is one level too high to see this.
 Approach:    Put the retry around the whole of one blob rather than around the
              request that starts it.
@@ -1485,20 +1485,20 @@ Approach:    Put the retry around the whole of one blob rather than around the
                 attempt starts a new verifier;
              4. ⛔ **A Range request is NOT the mechanism.** Resuming at an offset
                 means trusting that the prefix already written is the prefix of
-                the blob podbox asked for, which is exactly what the digest exists
+                the blob podvm asked for, which is exactly what the digest exists
                 to establish and cannot establish until the last byte.
 Decision:    Retry the transfer, not the byte range. A truncated body is cheap to
              refetch at these sizes and a resumed one cannot be verified until it
              is whole anyway.
              ⚠ The genuine fork, with a recommendation: whether a retried blob is
              announced in the transcript. Recommend **yes, one line**, naming the
-             attempt and the byte count that arrived: podbox's audience is
+             attempt and the byte count that arrived: podvm's audience is
              automated, and a pull that quietly took three tries is a link
              degrading with nothing to show for it.
 Prove:       `./experiments/240-distro-sweep.sh` reports `no_pull 0`, and `a_restarted_staging_file_holds_only_the_second_attempt` asserts the sink half
 
 
-**Done 2026-09-09.** `crates/podbox-image/src/registry.rs`, and the retry moved
+**Done 2026-09-09.** `crates/podvm-image/src/registry.rs`, and the retry moved
 one level down rather than being added: `Client::blob` loops over the whole
 transfer, `Client::drain` is one body, and `Registry::get`'s own bounded retry
 still covers the request that starts each attempt.
@@ -1520,7 +1520,7 @@ again is the spiral `docs/conventions/forbidden-patterns.md` names.
 no way to discard what it is holding. The fetch already writes one 128 KiB chunk
 at a time, so it was adding a copy rather than a saving.
 
-⚠ **The retry is announced, one line**, naming the attempt: podbox's audience is
+⚠ **The retry is announced, one line**, naming the attempt: podvm's audience is
 automated, and a pull that quietly took three tries is a link degrading with
 nothing to show for it.
 
@@ -1546,7 +1546,7 @@ pulling every row, and the unit test for the restart.
 
 ### T-0215 Four lock tests fail in two runs of five, and the gate has never said so
 
-Source:      `crates/podbox-image/src/store.rs`; `crates/podbox-probe/src/sys.rs`
+Source:      `crates/podvm-image/src/store.rs`; `crates/podvm-probe/src/sys.rs`
 Category:    image
 Priority:    P0
 Effort:      M
@@ -1626,7 +1626,7 @@ Premise:     ⭐ **Two conditions are necessary and both are measured.** Several
 
 Approach:    ⛔ **Establish the blast radius before fixing anything.** The first
              question is not how to fix it; it is whether a single-threaded
-             podbox process can reach it at all. A race that only a test harness
+             podvm process can reach it at all. A race that only a test harness
              with many threads in one process can produce is a test defect and is
              fixed in the test; one that a launcher and a `prune` can produce is
              a P0 in the product, and the two fixes are different.
@@ -1688,7 +1688,7 @@ Decision:    ⭐ **`Lock::drop` releases the lock EXPLICITLY, with
              ⚠ The tempting fix was to serialise the lock tests, which makes the
              suite green and answers nothing. ⛔ It stayed refused, and the
              answer came from the instrument instead.
-Prove:       `cargo test -p podbox-image releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` and `cargo test -p podbox-image a_lock_handed_to_the_payload_outlives_this_process_dropping_it` both pass, and `PODBOX_RACE_CLAUSES="0 1 6 12 13 14" ./experiments/153-store-lock-race.sh` reports the subject at 0 of 30 in both passes, clause 12 red on the first guard and on the subject, and clause 14 red on the second, and the script itself exits 0. ⛔ Clauses 12 and 14 DELETE the release and the exemption in turn and assert the red, because a fix nobody has seen fail is worth as little as a check nobody has seen fail
+Prove:       `cargo test -p podvm-image releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives` and `cargo test -p podvm-image a_lock_handed_to_the_payload_outlives_this_process_dropping_it` both pass, and `PODVM_RACE_CLAUSES="0 1 6 12 13 14" ./experiments/153-store-lock-race.sh` reports the subject at 0 of 30 in both passes, clause 12 red on the first guard and on the subject, and clause 14 red on the second, and the script itself exits 0. ⛔ Clauses 12 and 14 DELETE the release and the exemption in turn and assert the red, because a fix nobody has seen fail is worth as little as a check nobody has seen fail
 
 
 **Done 2026-09-12, and the mechanism is named rather than guessed.**
@@ -1802,21 +1802,21 @@ and the failure was only ever in the safe direction by luck.
 
 ### T-1310 The store suite exhausts the sixteen fork-shed slots, and the victim varies
 
-Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podbox-image/src/store.rs:1003`; `crates/podbox-probe/src/sys.rs:702`
+Source:      `TODO/PROGRESS.md` 2026-09-21 record (inherited figures, re-taken in task 1); `crates/podvm-image/src/store.rs:1003`; `crates/podvm-probe/src/sys.rs:702`
 Category:    image
 Priority:    P1
 Effort:      S
 Status:      done
 
-Problem:     Full parallel runs of the `podbox-image` suite intermittently refuse
+Problem:     Full parallel runs of the `podvm-image` suite intermittently refuse
              with `this process already holds 16 locks, which is every slot
-             podbox has ... (T-0211)`. The victim varies with scheduling
+             podvm has ... (T-0211)`. The victim varies with scheduling
              (`two_holders_of_one_image...`, `two_staging_calls...`,
              `two_platforms...`). A serial run passes 97 of 97. The pool is
              process-wide and fixed at `FORK_CLOSE_SLOTS`
-             (`crates/podbox-probe/src/sys.rs:702`), and every
+             (`crates/podvm-probe/src/sys.rs:702`), and every
              `Lock::try_acquire` takes one slot
-             (`crates/podbox-image/src/store.rs:1003-1021`). Libtest runs the
+             (`crates/podvm-image/src/store.rs:1003-1021`). Libtest runs the
              suite in threads of one process, and each `two_*` test holds two or
              more locks at once, so parallel neighbours exhaust the pool and the
              test that asks last is refused.
@@ -1828,18 +1828,18 @@ Premise:     ⭐ **The figures above are inherited, not measured here.** They co
              rate from another lane is a reading from that lane.
              ⭐ **What was checked here, at file and line.**
              `FORK_CLOSE_SLOTS` is 16
-             (`crates/podbox-probe/src/sys.rs:702`). Every lock registers
-             (`crates/podbox-image/src/store.rs:1003-1021`), including staging
+             (`crates/podvm-probe/src/sys.rs:702`). Every lock registers
+             (`crates/podvm-image/src/store.rs:1003-1021`), including staging
              locks: a `StagedFile` holds one for its life
-             (`crates/podbox-image/src/store.rs:867-871`). So do transient sweep
+             (`crates/podvm-image/src/store.rs:867-871`). So do transient sweep
              and `in_use` probes. Every store test reaches `Store::open` through
              `scratch` or directly. A production process holds at most three at
              once by inspection: one image lock plus transient index or staging
              locks. The spawn path is asserted single-threaded
              (`nothing_on_the_spawn_path_can_spawn_a_thread`,
-             `crates/podbox-supervise/src/launcher.rs:565`). `pull` resolves the
+             `crates/podvm-supervise/src/launcher.rs:565`). `pull` resolves the
              probe before it stages anything
-             (`crates/podbox-image/src/pull.rs:93`, and [T-0211](image.md)'s
+             (`crates/podvm-image/src/pull.rs:93`, and [T-0211](image.md)'s
              premise). So no production shape on record reaches sixteen. Only
              the harness does, and its thread count scales with the machine's
              cores.
@@ -1945,7 +1945,7 @@ production-hold inspection, so candidate 1 stands as decided.
 
 Source:      issue 16, client beta testing 2026-09-22 (registry-only
              ingress strands air-gapped hosts);
-             `crates/podbox-cli/src/parity.rs` (the `save`, `load` and
+             `crates/podvm/src/parity.rs` (the `save`, `load` and
              `import` rows, each naming what is missing)
 Category:    image
 Priority:    P2
@@ -1954,7 +1954,7 @@ Status:      done 2026-09-23
 
 Problem:     `pull` is the only way into the store and nothing exports
              it: a host with no registry reachability cannot receive an
-             image, and a podbox-built store cannot be handed to another
+             image, and a podvm-built store cannot be handed to another
              host. The parity rows say it plainly (`save`: nothing
              exports the OCI blobs; `load`: only `pull` enters;
              `import`: nothing builds a record from a rootfs tar).
@@ -1971,7 +1971,7 @@ Approach:    One direction first only if both prove heavy, else both:
 Decision:    OCI layout, the store's own shape, not a new format. The
              audience is CI executors and air-gapped hosts; the unit
              closes most of that with one direction each way.
-Prove:       `podbox save` an image to a tarball on host A, `podbox
+Prove:       `podvm save` an image to a tarball on host A, `podvm
              load` it on host B with no registry reachability, `run`
              the payload there; `import` builds a runnable record from a
              rootfs tar with the digest recorded. Close issue 16
@@ -1982,8 +1982,8 @@ Prove:       `podbox save` an image to a tarball on host A, `podbox
 **Done 2026-09-23.** OCI layout, the store's own shape, as decided: one
 interchange tarball (`oci-layout`, `index.json`,
 `blobs/sha256/<hex>`), both directions, no new format and no new crate
-(`tar` was already in the graph through `podbox-extract`; the lock gains
-one edge). New module `podbox-image/src/layout.rs` beside the store it
+(`tar` was already in the graph through `podvm-extract`; the lock gains
+one edge). New module `podvm-image/src/layout.rs` beside the store it
 reuses: `save` streams the record's blobs (verified on the way out
 through `read_blob`) into the tarball on any writer; `load` streams each
 entry to a staging file while hashing, commits only the blobs whose
@@ -2010,22 +2010,22 @@ beside them (cli 110, image 121, extract 47 and 47, supervise 10,
 complete 50, probe 97) and clippy `-D warnings` is clean. Two
 adjacent fixes landed with the change and were re-proven in the same
 run: the `annotations` field `load` reads broke two `Descriptor`
-literals in `podbox-extract`'s tests.
+literals in `podvm-extract`'s tests.
 
 Driven on the shipped binary in the same lane (host A pulls
 `public.ecr.aws/docker/library/alpine:3.20`; host B is a fresh store
 that never pulls and touches no registry):
 
 ```
-$ podbox save -o /tmp/alpine.tar IMAGE
-podbox save: saved ... as 3 blobs (3.5 MiB bytes), digest sha256:c64c...
-$ podbox load -i /tmp/alpine.tar        # fresh store
+$ podvm save -o /tmp/alpine.tar IMAGE
+podvm save: saved ... as 3 blobs (3.5 MiB bytes), digest sha256:c64c...
+$ podvm load -i /tmp/alpine.tar        # fresh store
 Loaded image: public.ecr.aws/docker/library/alpine:3.20
-$ podbox run --rm IMAGE echo air-gap-ran
+$ podvm run --rm IMAGE echo air-gap-ran
 air-gap-ran
-$ tar -cf /tmp/rootfs.tar -C $ROOTFS . && podbox import /tmp/rootfs.tar reborn:v1
+$ tar -cf /tmp/rootfs.tar -C $ROOTFS . && podvm import /tmp/rootfs.tar reborn:v1
 Loaded image: docker.io/library/reborn:v1
-$ podbox run --rm reborn:v1 echo reborn-ran
+$ podvm run --rm reborn:v1 echo reborn-ran
 reborn-ran
 ```
 
@@ -2041,7 +2041,7 @@ under a hash that matches, from a registry or a tarball alike.
 ### T-1321 A store-health verb and a pull-provenance record
 
 Source:      issue 15, client beta testing 2026-09-22 (no `verify`, no
-             provenance); `crates/podbox-image/src/store.rs:430`
+             provenance); `crates/podvm-image/src/store.rs:430`
              (`read_blob` re-verifies on read; nothing sweeps);
              `experiments/210-store-concurrency.sh` (`verify()` shell
              loop, the starting shape)
@@ -2055,22 +2055,22 @@ Problem:     Digests are enforced per read but nothing answers "is the
              command hashes every blob against the index (corruption,
              partial writes and bit-rot have no one-command check), and
              pulls record no registry, tag, manifest digest, time or
-             podbox version beyond what the index implies.
+             podvm version beyond what the index implies.
 Premise:     Audited against the tree: `images`, `inspect` and `system
              info` report no health or provenance; the `verify()` loop
              in 210 is shell, not product. Filenames being digests is a
              property worth keeping, not a substitute for a verdict.
-Approach:    `podbox verify [image|all]`: hash every blob (or one
+Approach:    `podvm verify [image|all]`: hash every blob (or one
              image's), compare against index digests, one line per
              mismatch plus a summary, non-zero exit on any mismatch.
              Provenance as sidecar JSON beside the index (one line per
              manifest pulled: registry, repository, tag, manifest
-             digest, pulled-at, podbox version), never inside image
+             digest, pulled-at, podvm version), never inside image
              metadata. Out of scope: repair (verify reports; it does not
              refetch), trust policy (no new authority is introduced).
 Decision:    Product verb plus sidecar, reusing 210's loop shape and the
              existing per-read hash. No daemon, no background sweeping.
-Prove:       `podbox verify` on a store with one flipped blob byte
+Prove:       `podvm verify` on a store with one flipped blob byte
              reports exactly that blob and exits non-zero; a clean store
              exits 0; a pulled image carries one provenance line with all
              six fields. Close issue 15 with a comment showing both runs
@@ -2079,7 +2079,7 @@ Prove:       `podbox verify` on a store with one flipped blob byte
 
 **Done 2026-09-23.** Product verb plus sidecar, as decided: no daemon, no
 background sweeping, no repair, no new authority. New module
-`podbox-image/src/health.rs` beside the store it extends (`impl Store`):
+`podvm-image/src/health.rs` beside the store it extends (`impl Store`):
 `verify_blobs` streams every named blob through SHA-256 and reports one
 `{want, got}` mismatch per failure, silent where all hold; `note_pull`
 appends one JSON line per pulled manifest to `provenance.jsonl` under
@@ -2088,7 +2088,7 @@ corrupt line with its number rather than skipping it. `pull` notes
 registry, repository, tag, manifest digest, pulled-at and the workspace
 version at pull time; the version is `CARGO_PKG_VERSION` because no
 build script carries the commit into this crate, and the sidecar says
-exactly that. The CLI adds `podbox verify [image|all]`: bare or `all`
+exactly that. The CLI adds `podvm verify [image|all]`: bare or `all`
 sweeps every record, one image prints its six provenance fields then its
 blobs, one line per mismatch plus a summary, exit 125 on any mismatch.
 The parity table gains the verb and help rows as `Native`.
@@ -2104,22 +2104,22 @@ Driven on the shipped binary in the same lane, against a pulled
 `public.ecr.aws/docker/library/alpine:3.20`:
 
 ```
-$ podbox verify; echo $?
+$ podvm verify; echo $?
 OK public.ecr.aws/docker/library/alpine:3.20 (4 blobs)
 verify: 4 blobs checked, 0 mismatched
 0
 $ # one layer byte flipped behind the store's back
-$ podbox verify; echo $?
+$ podvm verify; echo $?
 MISMATCH ... sha256:25f1d6b1...: computed sha256:40459f6e...
 verify: 4 blobs checked, 1 mismatched
 125
-$ podbox verify IMAGE
+$ podvm verify IMAGE
 registry: public.ecr.aws
 repository: public.ecr.aws/docker/library/alpine
 tag: 3.20
 manifest: sha256:c64c687c...
 pulled-at: 2026-09-23T04:28:09Z
-podbox-version: 0.1.0
+podvm-version: 0.1.0
 MISMATCH ... (as above)
 ```
 
@@ -2134,9 +2134,9 @@ one-command check, and every future pull carries its own provenance.
 
 Source:      issues 19 and 20, client beta testing 2026-09-22 (`run
              --rm` deletes the shared rootfs; `rmi`/`prune` orphan
-             created containers); `crates/podbox-cli/src/run.rs`
+             created containers); `crates/podvm/src/run.rs`
              (`--rm` drops the hold, then removes unconditionally);
-             `crates/podbox-cli/src/images.rs` (`rmi` consults running
+             `crates/podvm/src/images.rs` (`rmi` consults running
              holds only)
 Category:    image
 Priority:    P1
@@ -2167,7 +2167,7 @@ Approach:    One query, three callers: does any container record
              pre-existing orphans (reported, not reclaimed).
 Decision:    Reference query, not broader holds. `create` stays
              hold-free; the query sees records, not locks.
-Prove:       The issue-19 repro ends with `podbox run --rm` leaving
+Prove:       The issue-19 repro ends with `podvm run --rm` leaving
              the rootfs present and `keeper` startable; the issue-20
              repro ends with `rmi` naming `k2` and refusing, and `prune
              -a` likewise; a truly unreferenced image still removes
@@ -2177,7 +2177,7 @@ Prove:       The issue-19 repro ends with `podbox run --rm` leaving
 
 **Done 2026-09-23.** Reference query, as decided: `create` stays
 hold-free and the query sees records, not locks. One new function,
-`podbox_supervise::referencing` (reconciled records filtered by
+`podvm_supervise::referencing` (reconciled records filtered by
 manifest digest), three callers. `run --rm` keeps the rootfs where any
 record references it, naming the containers, and removes where none
 does (an ephemeral run writes no record, so it never counts itself; a
@@ -2202,22 +2202,22 @@ podman 6.1.2), with `cargo test --workspace` exiting 0 (cli 111, image
 Driven on the shipped binary in the same lane:
 
 ```
-$ podbox create --name keeper IMAGE true
-$ podbox run --rm IMAGE false; echo rc=$?
-podbox run: --rm keeps the rootfs: it is referenced by container keeper
+$ podvm create --name keeper IMAGE true
+$ podvm run --rm IMAGE false; echo rc=$?
+podvm run: --rm keeps the rootfs: it is referenced by container keeper
 rc=1
-$ test -d $ROOTFS && podbox start keeper && echo KEEPER-STARTABLE
+$ test -d $ROOTFS && podvm start keeper && echo KEEPER-STARTABLE
 KEEPER-STARTABLE
-$ podbox create --name k2 IMAGE true
-$ podbox rmi IMAGE; echo rc=$?
-podbox rmi: ... is referenced by container k2, keeper and was not removed
+$ podvm create --name k2 IMAGE true
+$ podvm rmi IMAGE; echo rc=$?
+podvm rmi: ... is referenced by container k2, keeper and was not removed
 rc=125
-$ podbox image prune -a
+$ podvm image prune -a
 skipped: ... is referenced by container k2, keeper
 Total reclaimed space: 0 B
-$ podbox inspect IMAGE && echo IMAGE-STILL-HERE
+$ podvm inspect IMAGE && echo IMAGE-STILL-HERE
 IMAGE-STILL-HERE
-$ podbox rm keeper; podbox rm k2; podbox rmi IMAGE; echo rc=$?
+$ podvm rm keeper; podvm rm k2; podvm rmi IMAGE; echo rc=$?
 Untagged: ...
 Deleted: sha256:... (blobs)
 rc=0
@@ -2248,11 +2248,11 @@ Problem:     A blob that declares under the free space but over
              `space::require` pre-flights the declared total against
              free space only.
 Premise:     Read 2026-09-27, not measured: `Client::drain` in
-             `crates/podbox-image/src/registry.rs` reads to EOF with
+             `crates/podvm-image/src/registry.rs` reads to EOF with
              no running cap; `pull` in
-             `crates/podbox-image/src/pull.rs` never reads the fsize
-             ceiling (`podbox_probe::sys::prlimit` precedent in
-             `crates/podbox-cli/src/windows/plan.rs:88`).
+             `crates/podvm-image/src/pull.rs` never reads the fsize
+             ceiling (`podvm_probe::sys::prlimit` precedent in
+             `crates/podvm/src/windows/plan.rs:88`).
 Approach:    Cap `drain` at the declared size with reads clamped so
              the staged file never passes the cap, refusing the
              lying origin mid-stream; pre-flight each missing blob
@@ -2270,14 +2270,14 @@ Decision:    The refusal reuses `NoSpace` (exit 125, three numbers)
 Out of scope: resuming an interrupted pull with `Range`, partial
              OCI blobs, unifying the two clients into one.
 Prove:       `372` exits 0 on the lane; `cargo test -p
-             podbox-image` green; the full gate green.
+             podvm-image` green; the full gate green.
 
 **Done 2026-09-27.** `372` exits 0 on the lane: a 10 MiB soft
 ceiling refuses the debian blob (28232655 bytes) up front at
 125 naming the object, the ceiling and the room, with no
 partial left; the same bytes pull clean with no ceiling
 (`experiments/results/pull-ceiling-372.txt`). `cargo test -p
-podbox-image` is 136 passed 0 failed on the lane, including
+podvm-image` is 136 passed 0 failed on the lane, including
 the infinite-body refusal, the exact-body pass and the
 pre-flight cases. The full lane check is 10 passed 0 failed.
 The gate caught three defects in the work itself: stale
@@ -2289,9 +2289,9 @@ pre-flight is now `find`) plus `unnecessary_map_or` (now
 
 ### T-1418 A noexec store refuses before the pull
 
-Source:      issue 71; `crates/podbox-image/src/store.rs:218`;
-             `crates/podbox-image/src/space.rs:155`;
-             `crates/podbox-cli/src/lifecycle.rs:1700`;
+Source:      issue 71; `crates/podvm-image/src/store.rs:218`;
+             `crates/podvm-image/src/space.rs:155`;
+             `crates/podvm/src/lifecycle.rs:1700`;
              [T-0203](image.md)
 Category:    image
 Priority:    P1
@@ -2302,7 +2302,7 @@ Problem:     A default store on a noexec filesystem pulls and extracts
              fully, then dies at `execve` with raw `EACCES` and rc 126.
              Nothing names the fix before the wasted work.
 Premise:     Store selection checks writability and space
-             (`store.rs:218`, `space.rs:155`) and names `$PODBOX_STORE`
+             (`store.rs:218`, `space.rs:155`) and names `$PODVM_STORE`
              as the remedy (`store.rs:243`). The pre-fetch entry gate
              admits on chroot, memfd, or embedded objects
              (`lifecycle.rs:1700`), never on store exec. `is_executable`
@@ -2314,7 +2314,7 @@ Approach:    Probe exec on the store before the fetch: write a tiny
              that exits non-zero on `no`.
 Decision:    The refusal happens before any byte is fetched. A failed
              probe never reads as a broken image.
-Prove:       `cargo test -p podbox-image` exits 0. A tracked drive on a
+Prove:       `cargo test -p podvm-image` exits 0. A tracked drive on a
              noexec fixture refuses the first run before pulling with
              the one-line fix, and `doctor` reports `store_exec=no`.
 
@@ -2322,8 +2322,8 @@ Prove:       `cargo test -p podbox-image` exits 0. A tracked drive on a
 (`probe_store_exec`: write a tiny file, `chmod +x`, attempt the exec,
 so mount-level noexec is caught, not just missing bits); a failing
 store refuses before any byte is fetched, naming the path and the
-`$PODBOX_STORE` remedy, and `doctor store_exec` reports `no` with a
-non-zero exit. `cargo test -p podbox-image` exits 0 with the probe
+`$PODVM_STORE` remedy, and `doctor store_exec` reports `no` with a
+non-zero exit. `cargo test -p podvm-image` exits 0 with the probe
 tests. `sh experiments/373-store-gates.sh` exits 0 with verdict
 `STORE GATES HOLD` ([the drive](../experiments/results/store-gates.txt)):
 clause 3 refuses the first run on a noexec tmpfs before pulling and
@@ -2336,8 +2336,8 @@ before implementation.
 
 ### T-1419 Pull-missing verifies the blobs it trusts
 
-Source:      issue 83; `crates/podbox-cli/src/run.rs:1313`;
-             `crates/podbox-image/src/health.rs:91`; [T-1321](image.md);
+Source:      issue 83; `crates/podvm/src/run.rs:1313`;
+             `crates/podvm-image/src/health.rs:91`; [T-1321](image.md);
              [T-0805](cli.md)
 Category:    image
 Priority:    P1
@@ -2360,7 +2360,7 @@ Approach:    `acquire` verifies `record.blobs` presence, or catches
              the recovery path.
 Decision:    Presence means blobs on disk, not a row in the store. A
              missing blob is a named refusal, never a raw path.
-Prove:       `cargo test -p podbox-image` exits 0. A tracked drive
+Prove:       `cargo test -p podvm-image` exits 0. A tracked drive
              deletes a layer blob, shows `run` refusing with the image
              and store named, `images` and `verify` flagging it, and
              `--pull always` re-fetching clean.
@@ -2370,7 +2370,7 @@ store: `acquire` verifies every blob the record names
 (`verify_record_blobs`) and refuses by image name with the remedy
 instead of dying on an internal path, and `images` marks blob-less
 records; `--pull always` stays the recovery path.
-`cargo test -p podbox-image` exits 0.
+`cargo test -p podvm-image` exits 0.
 `sh experiments/373-store-gates.sh` exits 0 with verdict
 `STORE GATES HOLD` ([the drive](../experiments/results/store-gates.txt)):
 clause 4 deletes a layer blob and shows the `run` refusal naming the
@@ -2383,8 +2383,8 @@ re-fetch. This extends T-1321.
 
 ### T-1420 Transport errors name the host once
 
-Source:      issue 85; `crates/podbox-image/src/registry.rs:808`;
-             `crates/podbox-image/src/error.rs:104`; [T-0805](cli.md)
+Source:      issue 85; `crates/podvm-image/src/registry.rs:808`;
+             `crates/podvm-image/src/error.rs:104`; [T-0805](cli.md)
 Category:    image
 Priority:    P2
 Effort:      S
@@ -2402,14 +2402,14 @@ Approach:    Print host and cause once at default level. Keep the full
              the same line after the cause.
 Decision:    One host, one cause, plain words at default level. Detail
              is opt-in, never dropped.
-Prove:       `cargo test -p podbox-image` exits 0. A tracked drive
+Prove:       `cargo test -p podvm-image` exits 0. A tracked drive
              against a bad registry prints one host with a plain cause.
 
 **Done 2026-09-30.** Transport failures render host and cause once
 at default level (`GET /v2/...: host: dns failed: ...`): the detail
 no longer embeds the URL the renderer already prefixes, and ureq's
 capitalisation is lowered; the full chain stays on the same line
-after the cause until `-v` exists. `cargo test -p podbox-image`
+after the cause until `-v` exists. `cargo test -p podvm-image`
 exits 0 with the transport-render tests (every kind pinned
 lowercase, the host named once, the exhausted-retry arm).
 `sh experiments/373-store-gates.sh` exits 0 with verdict
@@ -2422,7 +2422,7 @@ no doubled URL, no ureq capitalisation. This refines T-0805.
 ### T-1602 The registry fixture fields are read by their consumer tests
 
 Source:      CI run 36894578988, job 110478235990, 2026-10-01;
-             `crates/podbox-image/tests/common/registry.rs` `:30`;
+             `crates/podvm-image/tests/common/registry.rs` `:30`;
              `refactor/INDEX.md` Batch 4 and `refactor/recon-c.md`
              rows 117, 118, 121, and 126
 Category:    image
@@ -2440,7 +2440,7 @@ Problem:     `cargo clippy --workspace --all-targets -- -D warnings`
              `parallel_layers`.
 Premise:     CORRECTED 2026-10-02. This entry first claimed the consumers
              did not exist yet. They do. Measured on the tree:
-             `crates/podbox-image/tests/acquisition.rs` and
+             `crates/podvm-image/tests/acquisition.rs` and
              `store_digest.rs` both exist and both read all four fields,
              `store_digest.rs` alone at six sites. The real cause is
              narrower and was missed by the original reading: the lint
@@ -2463,13 +2463,13 @@ Decision:    The dead-code rule settles the general case and this entry is
              the instance, but the instance is one test file, not a pair
              of unwritten consumers. Do not port anything; it is already
              written.
-Prove:       `cargo clippy -p podbox-image --all-targets -- -D warnings`
-             exits 0 with no dead-code error; `cargo test -p podbox-image
+Prove:       `cargo clippy -p podvm-image --all-targets -- -D warnings`
+             exits 0 with no dead-code error; `cargo test -p podvm-image
              --test parallel_layers` passes; that test asserts on
              `manifest`, `config`, `config_digest`, and `layer` and not
              only on digests; deleting one of those assertions reddens
              clippy (the plant this task owes);
-             `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0.
+             `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0.
 
 **Done 2026-10-02.** `cargo clippy --workspace --all-targets -- -D
 warnings` exits 0 on the current tree under `rustc 1.99.0`
@@ -2478,7 +2478,7 @@ warnings` exits 0 on the current tree under `rustc 1.99.0`
 them `concurrent_pulls_against_one_fixture_all_resolve_to_the_seeded_digest`,
 `the_pooled_transcript_lists_layers_in_manifest_order_and_repull_reuses`,
 and the new `a_row_holds_the_bytes_its_resolved_digest_names`.
-`./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0. No
+`./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0. No
 field was removed and no `#[allow]` or `#[expect]` was added.
 
 The approach was right and the premise was too narrow. The lint did not
@@ -2538,7 +2538,7 @@ Prove:       `grep -n "whiteout" TODO/image.md` names the fixture the
 pinned `alpine` layer, pulled with `docker pull` and unpacked from
 `docker save` at `:61-67`, with the saved reading naming `etc/shadow` as
 uid 0 and gid 42. It records that no Rust test reads such a layer:
-`crates/podbox-extract/src/drive.rs:452` and `:480` both build their tar
+`crates/podvm-extract/src/drive.rs:452` and `:480` both build their tar
 in memory. The `Premise` that the crate asserts the opposite outcome is
 refuted by the current source, and the record stands on that correction:
 both tests agree with the contract, and what is missing is the real
@@ -2563,7 +2563,7 @@ save` output at `:61-67`, reads one layer path per line out of
 is uid 0 gid 42, the section 9.1 wall`.
 
 No Rust test reads a real pinned layer. The tests that cover the wall
-build their tar in memory: `crates/podbox-extract/src/drive.rs:452`
+build their tar in memory: `crates/podvm-extract/src/drive.rs:452`
 `the_shadow_file_extracts_and_its_dropped_gid_is_recorded` calls
 `layer(&[E::Dir("etc/", 0o755), E::Owned("etc/shadow", b"root:!::\n", 0,
 42)])`, and `run` at `:131` writes that crafted layer into the store
@@ -2619,18 +2619,18 @@ Prove:       `grep -n "serve_once" TODO/image.md` names the test-private
              scope and the entry that made the fixture reachable.
 
 **Done.** The entry records `serve_once` at
-`crates/podbox-image/src/registry.rs:955` as a `fn` inside `mod tests`,
+`crates/podvm-image/src/registry.rs:955` as a `fn` inside `mod tests`,
 answering one request on a loopback listener and unreachable from any
 binary, with its two callers at `:989` and `:1014`. The `Premise` that
 T-1602 made the fixture reachable is refuted by the source history, and
-the record stands on that correction: `crates/podbox-image/tests/common/registry.rs`
+the record stands on that correction: `crates/podvm-image/tests/common/registry.rs`
 landed in commit `996cb98` on 2026-10-01 with its four consumers, and
 T-1602 owns only the fixture fields clippy reported dead. The proof is
 `grep -n "serve_once" TODO/image.md`, which names the test-private scope
 and the fixture that superseded it on 5 lines.
 
 **The state before the fixture, and where the fixture landed.**
-`crates/podbox-image/src/registry.rs:955` `serve_once` is a `fn` inside
+`crates/podvm-image/src/registry.rs:955` `serve_once` is a `fn` inside
 `mod tests` at `:949`, so it is `#[cfg(test)]` code: it answers one
 request on a loopback `TcpListener` bound to `127.0.0.1:0`, writes one
 `HTTP/1.0 200 OK` head with `Content-Length` and `Connection: close`,
@@ -2641,7 +2641,7 @@ those two tests exercise is a single reply and not a registry.
 
 ⛔ **The entry that made the fixture reachable is not T-1602 and not
 the plan's row for the fixture at `refactor/recon-c.md:244`.**
-`crates/podbox-image/tests/common/registry.rs` landed in
+`crates/podvm-image/tests/common/registry.rs` landed in
 commit `996cb98`, "Land shell-retirement port, dev-lane runner, and
 cleanup", 2026-10-01, which added the fixture and its four consumers in
 one change: `tests/acquisition.rs`, `tests/across_distributions.rs`,
@@ -2701,7 +2701,7 @@ store entry on 9 lines.
 **The clause, named, and the store work that settles it.** Clause 7 of
 `experiments/153-store-lock-race.sh` is the same suite with every lock
 on a second filesystem and nothing else changed. It moves `TMPDIR` from
-`${TMPDIR:-/tmp}` to `${PODBOX_RACE_ALT_TMP:-/dev/shm}/podbox-race-$$`
+`${TMPDIR:-/tmp}` to `${PODVM_RACE_ALT_TMP:-/dev/shm}/podvm-race-$$`
 and reads both paths with `stat -f -c %T`
 (`experiments/153-store-lock-race.sh:262-295`). It resolves because
 `scratch` in the store's tests goes through `std::env::temp_dir()`,
@@ -2723,7 +2723,7 @@ result already carried in the entry it concerns, and
 releasing explicitly with `flock(LOCK_UN)` before it closes, with
 `Lock::hand_to_payload` exempt because the payload holds a duplicate of
 that same description, and its `Prove` runs the script with
-`PODBOX_RACE_CLAUSES="0 1 6 12 13 14"`, which excludes clause 7.
+`PODVM_RACE_CLAUSES="0 1 6 12 13 14"`, which excludes clause 7.
 ⛔ **So this entry has no fate left to decide**, and nothing here
 settles the store work it cites. What it records is the condition that
 would reopen the question: a host where the race is chased again, where

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Question: does `podbox probe` select the rung the milestone says it must, in
+# Question: does `podvm probe` select the rung the milestone says it must, in
 # both environments, and do its per-probe verdicts match the reading the
 # reference instrument took on this machine, row for row?
 #
 # This is TODO/milestones.md T-1101's acceptance, as a script, so it can be
 # re-run rather than recalled:
 #
-#   1. `podbox probe` inside ./20-enter-target.sh selects `chroot`;
+#   1. `podvm probe` inside ./20-enter-target.sh selects `chroot`;
 #   2. the same binary, unconfined, selects `namespace`;
-#   3. every attribution row podbox reports equals the row of the same name in
+#   3. every attribution row podvm reports equals the row of the same name in
 #      experiments/results/attribute.txt, comparing verdict AND errno.
 #
 #   ./130-probe-parity.sh                run all three
@@ -19,7 +19,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 REF="$REPO/experiments/results/attribute.txt"
 OUT="$REPO/experiments/results/probe-parity.txt"
 # ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
@@ -45,25 +45,25 @@ ENGINE_WORK="$WORK"
 if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 [ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
 
-# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# The driver: the M5 debian row, pinned. It hosts the staged podvm binary
 # for every `$BIN` call on a non-native lane.
 DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
 STAGE="$WORK/stage"
 if [ "$NATIVE" -eq 0 ]; then
 	[ -r "$BIN" ] || {
-		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		echo "SKIP: $BIN is not readable (set PODVM_BIN to a guest build artifact)" >&2
 		exit 2
 	}
 	eng_pull "$DRIVER" || exit 2
 	mkdir -p "$STAGE" || exit 2
-	cp "$BIN" "$STAGE/podbox"
-	eng_mount "$STAGE/podbox" /pb \
+	cp "$BIN" "$STAGE/podvm"
+	eng_mount "$STAGE/podvm" /pb \
 		&& eng_mount "$WORK/w" /w rw \
 		&& eng_volmount "x130-$$" /v rw \
 		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
 fi
 
-# pb TIMEOUT ARGS... - podbox where it executes, staged in the driver
+# pb TIMEOUT ARGS... - podvm where it executes, staged in the driver
 # elsewhere. Timeouts stay per call site, as before.
 pb() {
 	_t="$1"; shift
@@ -99,7 +99,7 @@ fi
 #
 # ⛔ Compared as NAME, VERDICT and ERRNO, never as raw text. The two
 # instruments print the same row format but not the same errno-name table: the
-# Go one carries ten names and prints `(16)` for the rest, and podbox carries
+# Go one carries ten names and prints `(16)` for the rest, and podvm carries
 # more. A textual diff would report that difference as a disagreement about a
 # machine, which is the one thing this comparison must not do.
 normalise() {
@@ -114,7 +114,7 @@ normalise() {
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
-printf 'podbox            %s\n' "$(pb 60 version)"
+printf 'podvm            %s\n' "$(pb 60 version)"
 printf 'engine            %s\n' "$(engine_describe)"
 printf 'binary            %s bytes\n' "$(stat -c%s "$BIN")"
 printf 'reference rows    %s\n' "$REF"
@@ -128,7 +128,7 @@ normalise < "$REF" > "$WORK/ref.txt"
 fail=0
 
 echo "== 1. inside the reconstruction, the rung must be chroot"
-if confined_rung="$("$HERE/20-enter-target.sh" --stage "$BIN" -- /workspace/podbox probe 2>"$WORK/confined.err")"; then
+if confined_rung="$("$HERE/20-enter-target.sh" --stage "$BIN" -- /workspace/podvm probe 2>"$WORK/confined.err")"; then
 	printf '  got %s\n' "$confined_rung"
 	[ "$confined_rung" = "chroot" ] || { echo "  FAIL: expected chroot"; fail=1; }
 else
@@ -146,15 +146,15 @@ printf '  got %s\n' "$unconfined_rung"
 echo
 echo "== 3. the attribution rows, inside the reconstruction, against"
 echo "        experiments/results/attribute.txt"
-"$HERE/20-enter-target.sh" --stage "$BIN" -- /workspace/podbox probe --rows \
+"$HERE/20-enter-target.sh" --stage "$BIN" -- /workspace/podvm probe --rows \
 	2>/dev/null | normalise > "$WORK/all.txt"
-[ -s "$WORK/all.txt" ] || { echo "SKIP: podbox produced no rows inside the reconstruction" >&2; exit 2; }
+[ -s "$WORK/all.txt" ] || { echo "SKIP: podvm produced no rows inside the reconstruction" >&2; exit 2; }
 
 matched=0 differed=0 recorded=0 missing=0
 while IFS='|' read -r name want_v want_e; do
 	line="$(grep -F -m1 -- "$name|" "$WORK/all.txt")"
 	if [ -z "$line" ]; then
-		printf '  MISSING %-36s podbox reports no such row\n' "$name"
+		printf '  MISSING %-36s podvm reports no such row\n' "$name"
 		missing=$((missing + 1)); continue
 	fi
 	got_v="$(printf '%s' "$line" | cut -d'|' -f2)"
@@ -164,7 +164,7 @@ while IFS='|' read -r name want_v want_e; do
 		matched=$((matched + 1)); continue
 	fi
 	# ⭐ ONE recorded divergence, and it is narrow on purpose: the same errno,
-	# the reference calling it a denial and podbox calling it "could not run".
+	# the reference calling it a denial and podvm calling it "could not run".
 	# `kcmp(2)` is absent unless the kernel was built with
 	# CONFIG_CHECKPOINT_RESTORE, and ENOSYS is that kernel saying the control
 	# is unavailable rather than the control answering. TODO/probe.md T-0102
@@ -173,13 +173,13 @@ while IFS='|' read -r name want_v want_e; do
 	if [ "$name" = "kcmp(-1,-1,...) [control]" ] &&
 	   [ "$want_v" = "denied" ] && [ "$got_v" = "skip" ] &&
 	   [ "$want_e" = "38" ]; then
-		printf '  ⚠ RECORDED %-33s reference says denied errno=38, podbox says skip.\n' "$name"
+		printf '  ⚠ RECORDED %-33s reference says denied errno=38, podvm says skip.\n' "$name"
 		printf '             ENOSYS is the kernel saying kcmp(2) is absent, which is not\n'
 		printf '             the control answering. The reference records it as a denial;\n'
 		printf '             TODO/probe.md T-0109 rules that it is a third state.\n'
 		recorded=$((recorded + 1)); continue
 	fi
-	printf '  DIFFER  %-36s reference %s errno=%s, podbox %s errno=%s\n' \
+	printf '  DIFFER  %-36s reference %s errno=%s, podvm %s errno=%s\n' \
 		"$name" "$want_v" "${want_e:--}" "$got_v" "${got_e:--}"
 	differed=$((differed + 1))
 done < "$WORK/ref.txt"
@@ -197,7 +197,7 @@ fi
 	# ⚠ Repo-relative. This file is tracked evidence, and an absolute path in
 	# it is one machine's directory layout recorded as though it were a fact
 	# about the measurement.
-	printf '# podbox probe against %s\n' "experiments/results/attribute.txt"
+	printf '# podvm probe against %s\n' "experiments/results/attribute.txt"
 	printf '# taken %s on kernel %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(uname -r)"
 	printf '# TODO/milestones.md T-1101. Verdict and errno, never raw text.\n'
 	printf 'confined_rung     %s\n' "$confined_rung"
@@ -207,7 +207,7 @@ fi
 	printf 'rows_differed     %s\n' "$differed"
 	printf 'rows_missing      %s\n' "$missing"
 	echo
-	echo '## every row podbox reported inside the reconstruction'
+	echo '## every row podvm reported inside the reconstruction'
 	cat "$WORK/all.txt"
 } > "$OUT"
 echo "  written to $OUT"

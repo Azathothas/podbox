@@ -8,7 +8,7 @@
 #
 # The fixture is the T-0206 shape: one pinned zot binary serving a seeded
 # multi-layer repo on container loopback, with ALL outbound network blocked,
-# so the measurement spends nobody's quota. Two podbox binaries meet it
+# so the measurement spends nobody's quota. Two podvm binaries meet it
 # there: the worktree's (bounded pool) and one built with pull.rs at the
 # pinned pre-pool commit (the sequential loop this entry replaced), so the
 # wall times are two shapes of the same code rather than a model of one of
@@ -25,7 +25,7 @@
 # runs and the measured exchanges are the delayed ones.
 #
 #   ./190-parallel-layers.sh
-#   PODBOX_BIN=/path/to/podbox PODBOX_BIN_SEQ=/path/to/podbox-seq ./190-parallel-layers.sh
+#   PODVM_BIN=/path/to/podvm PODVM_BIN_SEQ=/path/to/podvm-seq ./190-parallel-layers.sh
 #
 # Exit: 0 every clause held, 1 one of them did not, 2 could not run.
 set -uo pipefail
@@ -88,7 +88,7 @@ trap cleanup EXIT INT TERM
 	printf 'image             %s:%s, %s layers of %s bytes (random, incompressible)\n' "$REPO_NAME" "$REPO_TAG" "$LAYERS" "$LAYER_BYTES"
 	printf 'network           none (container loopback only; asserted in clause iso-1)\n'
 	printf 'latency           %s ms per fetch exchange through the delay proxy (experiments/delay-proxy.c), connections forced closed\n' "$PROXY_DELAY_MS"
-	printf 'latency-link      plain HTTP to 127.0.0.1:%s via PODBOX_INSECURE_REGISTRIES: the proxy forwards bytes and cannot see inside TLS\n' "$PROXY_PORT"
+	printf 'latency-link      plain HTTP to 127.0.0.1:%s via PODVM_INSECURE_REGISTRIES: the proxy forwards bytes and cannot see inside TLS\n' "$PROXY_PORT"
 	printf 'sequential        pull.rs at %s (last pre-pool tree)\n' "$SEQ_PULL_COMMIT"
 	echo
 } >"$WORK/report"
@@ -98,11 +98,11 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 pass() { say "  ok $1"; }
 refuse() { say "  FAIL: $1"; fail=1; }
 
-# ------------------------------------------------------- the podbox binaries
+# ------------------------------------------------------- the podvm binaries
 # Two shapes of the same code: the worktree's pool and the pinned pre-pool
 # pull.rs (the sequential loop). Both are lane-built; the lane copy carries
 # the worktree change, and each job asserts which shape it holds before
-# building. The sequential file needs one build-only shim: podbox-cli at
+# building. The sequential file needs one build-only shim: podvm at
 # HEAD calls pull::pull_all (T-1331), which postdates the pinned commit, so
 # the staged file appends the worktree's own pull_all verbatim. The shim is
 # never called by this drive (single-ref pulls only); the measured loop
@@ -117,7 +117,7 @@ cd /work || exit 2
 ./scripts/common/bootstrap-env.sh rust cc zig tools || exit 2
 case "$_shape" in
 new)
-  if grep -q "FETCH_WORKERS" crates/podbox-image/src/pull.rs; then
+  if grep -q "FETCH_WORKERS" crates/podvm-image/src/pull.rs; then
     echo "190: worktree pull.rs carries the pool"
   else
     echo "190: worktree pull.rs carries no pool; refusing to measure a reverted shape" >&2
@@ -125,28 +125,28 @@ new)
   fi
   ;;
 seq)
-  sed -n '/^pub fn pull_all/,/^}/p' crates/podbox-image/src/pull.rs > /tmp/pull_all_shim.rs || exit 2
+  sed -n '/^pub fn pull_all/,/^}/p' crates/podvm-image/src/pull.rs > /tmp/pull_all_shim.rs || exit 2
   grep -q "offers no {platform} manifest under any of its" /tmp/pull_all_shim.rs || { echo "190: pull_all shim did not extract whole" >&2; exit 2; }
-  git show "$SEQ_PULL_COMMIT:crates/podbox-image/src/pull.rs" > crates/podbox-image/src/pull.rs || exit 2
-  if grep -q "FETCH_WORKERS" crates/podbox-image/src/pull.rs; then
+  git show "$SEQ_PULL_COMMIT:crates/podvm-image/src/pull.rs" > crates/podvm-image/src/pull.rs || exit 2
+  if grep -q "FETCH_WORKERS" crates/podvm-image/src/pull.rs; then
     echo "190: pinned pull.rs carries a pool; the pin is stale" >&2
     exit 2
   fi
   {
-    printf '\n// 190 build-only shim, never called by this drive (single-ref pulls\n// only): podbox-cli at HEAD needs pull::pull_all, which postdates the\n// pinned commit. The worktree text verbatim; the measured loop above\n// stays the historical sequential one.\n'
+    printf '\n// 190 build-only shim, never called by this drive (single-ref pulls\n// only): podvm at HEAD needs pull::pull_all, which postdates the\n// pinned commit. The worktree text verbatim; the measured loop above\n// stays the historical sequential one.\n'
     cat /tmp/pull_all_shim.rs
-  } >> crates/podbox-image/src/pull.rs || exit 2
+  } >> crates/podvm-image/src/pull.rs || exit 2
   echo "190: sequential shape staged with its pull_all shim"
   ;;
 esac
 cargo build --release --target x86_64-unknown-linux-musl --manifest-path "\$PWD/Cargo.toml" || exit 2
-cp "/work/target/x86_64-unknown-linux-musl/release/podbox" /out/podbox || exit 2
-echo "== podbox staged ($_shape)"
+cp "/work/target/x86_64-unknown-linux-musl/release/podvm" /out/podvm || exit 2
+echo "== podvm staged ($_shape)"
 exit 0
 JOB_EOF
 	mkdir -p "$WORK/stage-$_name" || exit 2
-	if PODBOX_ARTIFACTS="$WORK/stage-$_name" sh "$REPO/scripts/windows/run-in-base.sh" "$WORK/${_name}-job.sh" >"$WORK/${_name}.log" 2>&1; then
-		cp "$WORK/stage-$_name/podbox" "$_dest" || exit 2
+	if PODVM_ARTIFACTS="$WORK/stage-$_name" sh "$REPO/scripts/windows/run-in-base.sh" "$WORK/${_name}-job.sh" >"$WORK/${_name}.log" 2>&1; then
+		cp "$WORK/stage-$_name/podvm" "$_dest" || exit 2
 	else
 		echo "SKIP: lane build of the $_shape binary failed" >&2
 		tail -n 10 "$WORK/${_name}.log" >&2
@@ -154,18 +154,18 @@ JOB_EOF
 	fi
 }
 
-BIN_NEW="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
-BIN_SEQ="${PODBOX_BIN_SEQ:-}"
+BIN_NEW="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
+BIN_SEQ="${PODVM_BIN_SEQ:-}"
 if [ "$NATIVE" -eq 1 ]; then [ -x "$BIN_NEW" ] || BIN_NEW=""; else [ -f "$BIN_NEW" ] || BIN_NEW=""; fi
 if [ -z "$BIN_NEW" ]; then
-	say "== podbox (pool): not staged, building it in the lane"
-	lane_build pb-new new "$WORK/podbox-new" || exit 2
-	BIN_NEW="$WORK/podbox-new"
+	say "== podvm (pool): not staged, building it in the lane"
+	lane_build pb-new new "$WORK/podvm-new" || exit 2
+	BIN_NEW="$WORK/podvm-new"
 fi
 if [ -z "$BIN_SEQ" ]; then
-	say "== podbox (sequential): building the pinned pre-pool pull.rs in the lane"
-	lane_build pb-seq seq "$WORK/podbox-seq" || exit 2
-	BIN_SEQ="$WORK/podbox-seq"
+	say "== podvm (sequential): building the pinned pre-pool pull.rs in the lane"
+	lane_build pb-seq seq "$WORK/podvm-seq" || exit 2
+	BIN_SEQ="$WORK/podvm-seq"
 fi
 # The delay proxy for the latency shape: one lane cc build, no product
 # code. The job refuses where the source does not compile warning-free.
@@ -180,7 +180,7 @@ echo "== delay proxy staged"
 exit 0
 JOB_EOF
 mkdir -p "$WORK/stage-px" || exit 2
-if PODBOX_ARTIFACTS="$WORK/stage-px" sh "$REPO/scripts/windows/run-in-base.sh" "$WORK/px-job.sh" >"$WORK/px.log" 2>&1; then
+if PODVM_ARTIFACTS="$WORK/stage-px" sh "$REPO/scripts/windows/run-in-base.sh" "$WORK/px-job.sh" >"$WORK/px.log" 2>&1; then
 	cp "$WORK/stage-px/delay-proxy" "$WORK/delay-proxy" || exit 2
 else
 	echo "SKIP: lane build of the delay proxy failed" >&2
@@ -196,7 +196,7 @@ else
 	[ -f "$BIN_NEW" ] && [ "$(wc -c <"$BIN_NEW" | tr -d ' ')" != "0" ] || { echo "SKIP: pool binary missing: $BIN_NEW" >&2; exit 2; }
 	[ -f "$BIN_SEQ" ] && [ "$(wc -c <"$BIN_SEQ" | tr -d ' ')" != "0" ] || { echo "SKIP: sequential binary missing: $BIN_SEQ" >&2; exit 2; }
 fi
-say "== podbox: pool ($(wc -c <"$BIN_NEW" | tr -d ' ') bytes) and sequential ($(wc -c <"$BIN_SEQ" | tr -d ' ') bytes) staged"
+say "== podvm: pool ($(wc -c <"$BIN_NEW" | tr -d ' ') bytes) and sequential ($(wc -c <"$BIN_SEQ" | tr -d ' ') bytes) staged"
 
 # ------------------------------------------------------- the zot binary
 say "== zot pin"
@@ -324,7 +324,7 @@ pass "config written, cert carries SAN IP:127.0.0.1"
 # ------------------------------------------------------- the driver image
 say "== driver image"
 mkdir -p "$WORK/ctx" || exit 2
-_BUILD_OUT="$(eng_build 600 podbox-x190-driver "$REPO/experiments/180-driver.Dockerfile" "$WORK/ctx" --)" || { echo "SKIP: driver image did not build" >&2; exit 2; }
+_BUILD_OUT="$(eng_build 600 podvm-x190-driver "$REPO/experiments/180-driver.Dockerfile" "$WORK/ctx" --)" || { echo "SKIP: driver image did not build" >&2; exit 2; }
 DRIVER_ID="$(printf '%s' "$_BUILD_OUT" | tail -n 1)"
 pass "driver $DRIVER_ID"
 
@@ -335,7 +335,7 @@ say "== driver run (network none)"
 cut -c1-12 "$WORK/w/layer-order.txt" >"$WORK/w/order.txt" || exit 2
 cat >"$WORK/w/driver.sh" <<DRIVER_EOF
 #!/bin/sh
-# 190 inside the none-network container: zot and two podbox shapes on loopback.
+# 190 inside the none-network container: zot and two podvm shapes on loopback.
 set -u
 SEED="$SEED_MANIFEST"
 POISON="$POISON_FULL"
@@ -434,14 +434,14 @@ REF="127.0.0.1:\$PORT_OPEN/\$REPO:\$TAG"
 for run in 1 2; do
 	rm -rf /w/store-seq && mkdir -p /w/store-seq
 	t0=\$(date +%s%N)
-	SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/store-seq /pb-seq pull "\$REF" >/w/pull-seq-\$run.log 2>&1
+	SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/store-seq /pb-seq pull "\$REF" >/w/pull-seq-\$run.log 2>&1
 	rc=\$?
 	t1=\$(date +%s%N)
 	printf '  time-seq-%s %s\n' "\$run" "\$((t1 - t0))"
 	if [ "\$rc" -ne 0 ]; then
 		bad "time-seq-\$run: sequential pull exits \$rc, not 0"
 	else
-		GOT="\$(SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/store-seq /pb-seq inspect --format '{{.Digest}}' "\$REF" 2>/dev/null)"
+		GOT="\$(SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/store-seq /pb-seq inspect --format '{{.Digest}}' "\$REF" 2>/dev/null)"
 		if [ "\$GOT" = "sha256:\$SEED" ]; then
 			ok "time-seq-\$run: exits 0 and inspects to the seeded digest"
 		else
@@ -454,14 +454,14 @@ echo "-- timing: pooled shape, cold store each leg"
 for run in 1 2; do
 	rm -rf /w/store-new && mkdir -p /w/store-new
 	t0=\$(date +%s%N)
-	SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/store-new /pb pull "\$REF" >/w/pull-new-\$run.log 2>&1
+	SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/store-new /pb pull "\$REF" >/w/pull-new-\$run.log 2>&1
 	rc=\$?
 	t1=\$(date +%s%N)
 	printf '  time-new-%s %s\n' "\$run" "\$((t1 - t0))"
 	if [ "\$rc" -ne 0 ]; then
 		bad "time-new-\$run: pooled pull exits \$rc, not 0"
 	else
-		GOT="\$(SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/store-new /pb inspect --format '{{.Digest}}' "\$REF" 2>/dev/null)"
+		GOT="\$(SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/store-new /pb inspect --format '{{.Digest}}' "\$REF" 2>/dev/null)"
 		if [ "\$GOT" = "sha256:\$SEED" ]; then
 			ok "time-new-\$run: exits 0 and inspects to the seeded digest"
 		else
@@ -501,14 +501,14 @@ REF_LAT="127.0.0.1:\$LAT_PORT/\$REPO:\$TAG"
 for run in 1 2; do
 	rm -rf /w/store-lat-seq && mkdir -p /w/store-lat-seq
 	t0=\$(date +%s%N)
-	PODBOX_INSECURE_REGISTRIES="127.0.0.1:\$LAT_PORT" PODBOX_STORE=/w/store-lat-seq /pb-seq pull "\$REF_LAT" >/w/pull-lat-seq-\$run.log 2>&1
+	PODVM_INSECURE_REGISTRIES="127.0.0.1:\$LAT_PORT" PODVM_STORE=/w/store-lat-seq /pb-seq pull "\$REF_LAT" >/w/pull-lat-seq-\$run.log 2>&1
 	rc=\$?
 	t1=\$(date +%s%N)
 	printf '  time-lat-seq-%s %s\n' "\$run" "\$((t1 - t0))"
 	if [ "\$rc" -ne 0 ]; then
 		bad "time-lat-seq-\$run: sequential pull through the proxy exits \$rc, not 0"
 	else
-		GOT="\$(PODBOX_STORE=/w/store-lat-seq /pb-seq inspect --format '{{.Digest}}' "\$REF_LAT" 2>/dev/null)"
+		GOT="\$(PODVM_STORE=/w/store-lat-seq /pb-seq inspect --format '{{.Digest}}' "\$REF_LAT" 2>/dev/null)"
 		if [ "\$GOT" = "sha256:\$SEED" ]; then
 			ok "time-lat-seq-\$run: exits 0 and inspects to the seeded digest"
 		else
@@ -519,14 +519,14 @@ done
 for run in 1 2; do
 	rm -rf /w/store-lat-new && mkdir -p /w/store-lat-new
 	t0=\$(date +%s%N)
-	PODBOX_INSECURE_REGISTRIES="127.0.0.1:\$LAT_PORT" PODBOX_STORE=/w/store-lat-new /pb pull "\$REF_LAT" >/w/pull-lat-new-\$run.log 2>&1
+	PODVM_INSECURE_REGISTRIES="127.0.0.1:\$LAT_PORT" PODVM_STORE=/w/store-lat-new /pb pull "\$REF_LAT" >/w/pull-lat-new-\$run.log 2>&1
 	rc=\$?
 	t1=\$(date +%s%N)
 	printf '  time-lat-new-%s %s\n' "\$run" "\$((t1 - t0))"
 	if [ "\$rc" -ne 0 ]; then
 		bad "time-lat-new-\$run: pooled pull through the proxy exits \$rc, not 0"
 	else
-		GOT="\$(PODBOX_STORE=/w/store-lat-new /pb inspect --format '{{.Digest}}' "\$REF_LAT" 2>/dev/null)"
+		GOT="\$(PODVM_STORE=/w/store-lat-new /pb inspect --format '{{.Digest}}' "\$REF_LAT" 2>/dev/null)"
 		if [ "\$GOT" = "sha256:\$SEED" ]; then
 			ok "time-lat-new-\$run: exits 0 and inspects to the seeded digest"
 		else
@@ -549,7 +549,7 @@ else
 fi
 serve_zot
 rm -rf /w/store-fail && mkdir -p /w/store-fail
-SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/store-fail /pb pull "\$REF" >/w/pull-fail.log 2>&1
+SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/store-fail /pb pull "\$REF" >/w/pull-fail.log 2>&1
 rc=\$?
 printf '  fail-rc %s\n' "\$rc"
 if [ "\$rc" -eq 0 ]; then
@@ -573,7 +573,7 @@ if ordered /w/pull-fail.log; then
 else
 	bad "fail-4: the failure transcript left manifest order"
 fi
-if SSL_CERT_FILE=/w/server.cert PODBOX_STORE=/w/store-fail /pb inspect "\$REF" >/dev/null 2>&1; then
+if SSL_CERT_FILE=/w/server.cert PODVM_STORE=/w/store-fail /pb inspect "\$REF" >/dev/null 2>&1; then
 	bad "fail-5: the failed pull left a record behind"
 else
 	ok "fail-5: the failed pull recorded nothing"

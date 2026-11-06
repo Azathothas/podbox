@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Question: does podbox acquire the platform it was ASKED for, and can one
+# Question: does podvm acquire the platform it was ASKED for, and can one
 # store hold two architectures of one tag at the same time?
 #
 # TODO/image.md T-0212. Until 2026-09-09 `oci::ARCH` was the constant `"amd64"`,
-# so podbox built for aarch64 would still have pulled an amd64 rootfs, and the
+# so podvm built for aarch64 would still have pulled an amd64 rootfs, and the
 # store's key was (repository, tag) so a second platform DELETED the first.
 #
 # ⭐ THE REGISTRY IS ghcr.io/pkgforge-dev/archlinux AND THAT IS DELIBERATE.
@@ -18,7 +18,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/multiarch-image.txt"
 # ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
 # because an ELF built here does not execute there. The lane's scratch
@@ -29,7 +29,7 @@ Linux) NATIVE=1; WORK="$(mktemp -d)"; PSTORE="$WORK/store" ;;
 *)     NATIVE=0; WORK="$REPO/experiments/.sweep270-work"; rm -rf "$WORK"; mkdir -p "$WORK/w" || exit 2; PSTORE="/v/store" ;;
 esac
 trap 'eng_cleanup; rm -rf "$WORK"' EXIT INT TERM
-export PODBOX_STORE="$WORK/store"
+export PODVM_STORE="$WORK/store"
 
 # The engine is `experiments/lib/engine.sh`: a docker daemon where one
 # answers, else host podman. What each clause asserts is unchanged.
@@ -41,19 +41,19 @@ ENGINE_WORK="$WORK"
 if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 [ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
 
-# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# The driver: the M5 debian row, pinned. It hosts the staged podvm binary
 # for every `$BIN` call on a non-native lane.
 DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
 STAGE="$WORK/stage"
 if [ "$NATIVE" -eq 0 ]; then
 	[ -r "$BIN" ] || {
-		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		echo "SKIP: $BIN is not readable (set PODVM_BIN to a guest build artifact)" >&2
 		exit 2
 	}
 	eng_pull "$DRIVER" || exit 2
 	mkdir -p "$STAGE" || exit 2
-	cp "$BIN" "$STAGE/podbox"
-	eng_mount "$STAGE/podbox" /pb \
+	cp "$BIN" "$STAGE/podvm"
+	eng_mount "$STAGE/podvm" /pb \
 		&& eng_mount "$WORK/w" /w rw \
 		&& eng_volmount "x270-$$" /v rw \
 		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
@@ -63,7 +63,7 @@ else
 	BIN_RUN="$BIN"
 fi
 
-# pb TIMEOUT ARGS... - podbox with the sweep's store: directly where it
+# pb TIMEOUT ARGS... - podvm with the sweep's store: directly where it
 # executes, staged in the driver elsewhere. Timeouts stay per call site,
 # as before.
 pb() {
@@ -78,7 +78,7 @@ pb() {
 # ⚠ Pinned by tag rather than by digest, because the question is about an INDEX
 # and a digest names one manifest. The digest of what each clause resolved to is
 # printed, so a re-run against a moved tag is visible rather than silent.
-IMAGE="${PODBOX_MULTIARCH_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
+IMAGE="${PODVM_MULTIARCH_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
 
 if [ "$NATIVE" -eq 1 ]; then
 	[ -x "$BIN" ] || {
@@ -96,21 +96,21 @@ command -v file >/dev/null 2>&1 || { echo "SKIP: file(1) is not on PATH" >&2; ex
 . "$REPO/scripts/common/exit-codes.sh"
 # Read out of the binary; on a lane where it does not execute, the
 # generated shim runs that one call staged in the driver.
-podbox_exit_codes "$BIN_RUN" || {
-	echo "SKIP: cannot read podbox's exit-code table; is jq installed and the binary built?" >&2
+podvm_exit_codes "$BIN_RUN" || {
+	echo "SKIP: cannot read podvm's exit-code table; is jq installed and the binary built?" >&2
 	exit 2
 }
 
-export PODBOX_STORE="$WORK/store"
+export PODVM_STORE="$WORK/store"
 # ⛔ Unset, so a caller's default cannot decide what this measures.
-unset PODBOX_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
+unset PODVM_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
 
 {
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
 	printf 'host arch         %s\n' "$(uname -m)"
-	printf 'podbox            %s\n' "$(pb 60 version)"
+	printf 'podvm            %s\n' "$(pb 60 version)"
 	printf 'image             %s\n' "$IMAGE"
 	# ⛔ No absolute path here: on a non-native lane the scratch lives
 	# under the checkout, and a checkout path names the operator's home.
@@ -129,7 +129,7 @@ fail=0
 skipped=0
 
 # --------------------------------------------------------------------- 1
-echo "== 1. no --platform pulls the platform podbox was BUILT for" >>"$WORK/report"
+echo "== 1. no --platform pulls the platform podvm was BUILT for" >>"$WORK/report"
 if ! pb 900 pull "$IMAGE" >"$WORK/p1.out" 2>"$WORK/p1.err"; then
 	printf '  SKIP: the pull did not complete: %s\n' "$(tail -1 "$WORK/p1.err")" >>"$WORK/report"
 	cat "$WORK/report"
@@ -268,18 +268,18 @@ echo >>"$WORK/report"
 echo "== 5. a malformed --platform is a USAGE error, before any network" >>"$WORK/report"
 out="$(pb 120 pull --platform 'a/b/c/d' "$IMAGE" 2>&1)"
 rc=$?
-printf '  exit              %d (%s is a cli error, TODO/cli.md T-0802)\n' "$rc" "$PODBOX_EXIT_CLI_ERROR" >>"$WORK/report"
+printf '  exit              %d (%s is a cli error, TODO/cli.md T-0802)\n' "$rc" "$PODVM_EXIT_CLI_ERROR" >>"$WORK/report"
 printf '  says              %s\n' "$(printf '%s' "$out" | tr -d '\n' | cut -c1-96)" >>"$WORK/report"
-# ⛔ The flag PARSED: podbox's arg loop takes any string as the value and the
+# ⛔ The flag PARSED: podvm's arg loop takes any string as the value and the
 # verb refuses it, which is the `images --format '{{.Nope}}'` row of T-0802's
 # table (verb refuses afterwards, 1), not the `--pull=bogus` row (parser owns
 # the value domain, 125). The 125 expectation predates that measurement.
-[ "$rc" -eq "$PODBOX_EXIT_CLI_ERROR" ] || { printf '  FAIL: expected the cli-error code %s\n' "$PODBOX_EXIT_CLI_ERROR" >>"$WORK/report"; fail=1; }
+[ "$rc" -eq "$PODVM_EXIT_CLI_ERROR" ] || { printf '  FAIL: expected the cli-error code %s\n' "$PODVM_EXIT_CLI_ERROR" >>"$WORK/report"; fail=1; }
 
 out="$(pb 120 pull --platform "$IMAGE" 2>&1)"
 rc=$?
 printf '  --platform with no value: exit %d\n' "$rc" >>"$WORK/report"
-[ "$rc" -eq "$PODBOX_EXIT_CLI_ERROR" ] || { printf '  FAIL: a flag swallowing its image is not the cli-error code %s\n' "$PODBOX_EXIT_CLI_ERROR" >>"$WORK/report"; fail=1; }
+[ "$rc" -eq "$PODVM_EXIT_CLI_ERROR" ] || { printf '  FAIL: a flag swallowing its image is not the cli-error code %s\n' "$PODVM_EXIT_CLI_ERROR" >>"$WORK/report"; fail=1; }
 
 cat "$WORK/report"
 mkdir -p "$(dirname "$OUT")"

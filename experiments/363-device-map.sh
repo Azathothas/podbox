@@ -5,7 +5,7 @@
 # TODO/enter.md T-0501. `mknod` is denied and `mount` is denied, so the
 # entry opens the host path before the chroot and the interposer serves
 # the exact guest spelling as a duplicate of that descriptor. The binary
-# is `$PODBOX_BIN`, lane-built with the interposer objects embedded (the
+# is `$PODVM_BIN`, lane-built with the interposer objects embedded (the
 # serve holds only where the preload holds, which clause 6 shows).
 #
 # Clauses:
@@ -38,7 +38,7 @@ set -u
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/device-map.txt"
 WORK="$REPO/experiments/.sweep363-work"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
@@ -54,7 +54,7 @@ miss() { echo "  FAIL: $1" >>"$WORK/report"; fail=1; }
 echo "== conditions"
 echo "date              $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "host kernel       $(uname -sr)"
-echo "podbox            $($BIN version 2>/dev/null || echo MISSING)"
+echo "podvm            $($BIN version 2>/dev/null || echo MISSING)"
 echo "debian            $DEBIAN"
 echo "alpine            $ALPINE"
 } >"$WORK/report"
@@ -62,13 +62,13 @@ echo "alpine            $ALPINE"
 [ -x "$BIN" ] || { echo "binary $BIN is not executable: COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$BIN" || { echo "cannot read podbox's exit-code table: COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
-FLAG=$PODBOX_EXIT_FLAG_ERROR
-RUN_ERR=$PODBOX_EXIT_RUNTIME_ERROR
+podvm_exit_codes "$BIN" || { echo "cannot read podvm's exit-code table: COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
+FLAG=$PODVM_EXIT_FLAG_ERROR
+RUN_ERR=$PODVM_EXIT_RUNTIME_ERROR
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 echo "" >>"$WORK/report"
 echo "== pulls" >>"$WORK/report"
@@ -210,7 +210,7 @@ fi
 
 echo "" >>"$WORK/report"
 echo "== 5. the machine tier refuses --device at 125" >>"$WORK/report"
-timeout 120 "$BIN" run --podbox-tier=machine --device /dev/zero:/dev/hostzero:r \
+timeout 120 "$BIN" run --podvm-tier=machine --device /dev/zero:/dev/hostzero:r \
 	"$DEBIAN" /bin/cat /dev/hostzero >"$WORK/tier.out" 2>"$WORK/tier.err"
 rc=$?
 if [ "$rc" -eq "$FLAG" ] && grep -q "needs the chroot tier" "$WORK/tier.err"; then

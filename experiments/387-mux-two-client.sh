@@ -1,11 +1,11 @@
 #!/bin/bash
-# Question: do concurrent authenticated SSH sessions share one podbox-ssh
+# Question: do concurrent authenticated SSH sessions share one podvm-ssh
 # node connection against the live multiplexed relay?
 #
 # TODO/podssh.md T-1403 (the two-client proof) and T-1401 (the relay
 # landing over the proved transport). The relay is the live
 # tcp.ssh.relay.ajam.dev at the version /health reports; the node and all
-# operators are the lane-built podbox-ssh binaries; every SSH client is a
+# operators are the lane-built podvm-ssh binaries; every SSH client is a
 # real `ssh` against a real `sshd -i` the node spawns per session. Three
 # sessions run, two concurrent at a time: A spans the whole drive while B
 # moves bytes and a third session passes exit 42.
@@ -52,8 +52,8 @@ curl -sS -m 20 "$RELAY/health?detail=1" -o "$work/health.json" >>"$OUT" 2>&1 || 
 say "relay version     $(jq -r .version "$work/health.json" 2>/dev/null || echo unknown)"
 
 # Clause 1: the lane-built node and operator exist.
-if timeout 25m cargo build -p podbox-ssh --bins >>"$OUT" 2>&1; then
-  say "clause 1          cargo build -p podbox-ssh --bins exit 0"
+if timeout 25m cargo build -p podvm-ssh --bins >>"$OUT" 2>&1; then
+  say "clause 1          cargo build -p podvm-ssh --bins exit 0"
 else
   say "clause 1          cargo build FAILED"
   exit 2

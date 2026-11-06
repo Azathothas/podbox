@@ -18,7 +18,7 @@ operation is evidence only if the script reached and tested that operation.
 The initial target reconstruction uses `10-build-target-image.sh`,
 `20-enter-target.sh`, and `30-attribution-census.sh`. The retained research
 describes a measured floor. Probe the current host before a capability claim.
-Later scripts test podbox behavior. Their owning task gives the acceptance.
+Later scripts test podvm behavior. Their owning task gives the acceptance.
 
 | Path | Purpose |
 | --- | --- |
@@ -38,11 +38,11 @@ Later scripts test podbox behavior. Their owning task gives the acceptance.
 | `395-reconcile-repository.py` | Git refs; patch identity, range comparison, and optional deleted-branch check |
 | `396-audit-linux.sh` | Copied toolkit job; full Linux check, clean snapshot, full plants, and exported artifacts |
 | `397-exported-build.py` | Export directory; all five executable byte digests agree with the saved build record |
-| podbox-smoke --diagnostics | Both gate runners; complete failed output, lost-output mutations, JSON, and skip states |
+| podvm-smoke --diagnostics | Both gate runners; complete failed output, lost-output mutations, JSON, and skip states |
 | `399-publication.py` | Current main commit, deleted branch, release workflow, and complete asset set |
 | `400-kvm-cleanup.py` | Linux controlled processes; select the owned emulator, exclude the observer, and preserve another process |
 
-For Windows builds, set `PODBOX_ARTIFACTS` and run
+For Windows builds, set `PODVM_ARTIFACTS` and run
 `sh scripts/windows/run-in-base.sh`. This runs the full check in a copy and
 returns `linux-check.txt`, five binaries, and their build record on success.
 The explicit KVM command is:

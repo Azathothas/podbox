@@ -1,0 +1,2926 @@
+//! The lifecycle verbs: milestone M4.
+//!
+//! [`TODO/milestones.md`](../../../TODO/milestones.md) T-1105,
+//! [`TODO/supervise.md`](../../../TODO/supervise.md) T-0601 to T-0607.
+//!
+//! ⭐ **`create`, `start`, `ps`, `logs`, `stop`, `kill`, `wait`, `rm`, `cp`,
+//! and `exec` and `inspect` against a container.** Every one of them reads the
+//! container table rather than the filesystem, and every wait in them is on a
+//! condition with an upper bound.
+//!
+//! ⛔ **Nothing here sleeps and nothing polls.** T-0602: the prior art's own
+//! capture of this lifecycle contains a failed run because it decided "running"
+//! by sleeping three seconds and looking, and M4 is accepted on twenty
+//! consecutive passes precisely because one pass proves nothing about a race.
+
+use std::io::Write;
+
+use podvm_image::error::{
+    EXIT_CANNOT_INVOKE, EXIT_CLI_ERROR, EXIT_FLAG_ERROR, EXIT_NOT_FOUND, EXIT_RUNTIME_ERROR,
+};
+use podvm_image::platform::Platform;
+use podvm_image::transport::Policy;
+use podvm_supervise::table::{Container, State};
+
+use crate::format;
+
+/// docker's default grace period between `SIGTERM` and `SIGKILL`.
+const STOP_GRACE_MS: u64 = 10_000;
+/// ⛔ `podvm wait`'s bound. `TODO/RULES.md` section 8: a runtime whose audience
+/// is automated may not wait unbounded, so this is long rather than absent and
+/// reaching it is its own reported outcome.
+const WAIT_BOUND_MS: u64 = 3_600_000;
+
+pub const PS_USAGE: &str = "\
+usage: podvm ps [-a|--all] [-q|--quiet] [--format T] [--no-trunc]
+       [--filter key=value]
+
+  Fields: .ID .Names .Image .Command .CreatedAt .Status .State .Ports .Pid
+
+  --filter takes name=<substring>, matched against the name (or the id
+  prefix), and label=<key>[=<value>], which matches nothing: podvm
+  records carry no labels. Repeatable; every filter must match.
+
+  refused: .Ports is always empty and is not an oversight: the payload shares this
+    machine's network namespace, so there is nothing to publish.
+";
+
+pub const CONTAINER_INSPECT_FIELDS: &[&str] = &[
+    "Id",
+    "Name",
+    "Image",
+    "State",
+    "Status",
+    "Pid",
+    "LauncherPid",
+    "ExitCode",
+    "Created",
+    "StartedAt",
+    "FinishedAt",
+    "RootfsPath",
+    "LogPath",
+    "Rung",
+    "Complete.Fixups",
+    "Complete.Degraded",
+    "Command",
+    "Exec.Mode",
+    "Exec.Shares",
+    "Contains",
+    "Noticed",
+    "Interpose.Emulated.mknod",
+    "Interpose.Emulated.mount",
+    "Interpose.Emulated.unshare",
+    "Interpose.Emulated.clone",
+    "Interpose.Emulated.procfs",
+];
+
+fn store() -> Result<podvm_image::Store, i32> {
+    podvm_image::open_store().map_err(|e| {
+        eprintln!("podvm: {e}");
+        e.exit_code()
+    })
+}
+
+fn fail(verb: &str, e: podvm_supervise::Error) -> i32 {
+    eprintln!("podvm {verb}: {e}");
+    EXIT_RUNTIME_ERROR
+}
+
+/// `podvm create [options] <image> [command...]`, and the shared half of
+/// `podvm run -d`.
+pub fn create(args: &[String]) -> i32 {
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    match crate::run::prepare(args, &s, "create") {
+        Ok(p) => {
+            // ⭐ TODO/enter.md T-1411. The detached drive rides beside the
+            // record: the loader argv where `prepare` decided the loader
+            // family, empty everywhere else (chroot records, and the
+            // driverless memfd family, which `prepare` refused already).
+            // The libraries, the `PODVM_MAPS` table and
+            // `PODVM_GUEST_EXE` ride in `p.env`, decided beside it.
+            match podvm_supervise::create(
+                &s,
+                p.name.as_deref(),
+                &p.image,
+                &p.record.manifest_digest,
+                &p.rootfs,
+                p.argv,
+                p.env,
+                p.working_dir,
+                &p.rung,
+                p.completion.clone(),
+                p.completion_degraded,
+                detached_drive(p.userland.as_ref()),
+            ) {
+                Ok(c) => {
+                    // ⭐ T-0710: the ephemeral memo becomes the container's,
+                    // beside its record. The stored environment already carries
+                    // the constant descriptor number.
+                    let dest = podvm_supervise::table::memo_path(&s, &c.id);
+                    if let Err(e) = std::fs::rename(&p.memo_host_path, &dest) {
+                        eprintln!("podvm create: the ownership memo could not be stored: {e}");
+                        let _ = podvm_supervise::remove(&s, &c.id, true);
+                        return podvm_image::error::EXIT_RUNTIME_ERROR;
+                    }
+                    println!("{}", c.id);
+                    0
+                }
+                Err(e) => {
+                    let _ = std::fs::remove_file(&p.memo_host_path);
+                    fail("create", e)
+                }
+            }
+        }
+        Err(code) => code,
+    }
+}
+
+/// `podvm start <container>...`
+pub fn start(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("start", args) {
+        Ok(a) => a,
+        Err(member) => {
+            return crate::parity::refuse_member(
+                "start",
+                &member,
+                "usage: podvm start <container> [container...]",
+            )
+        }
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all(
+        "start",
+        args,
+        "usage: podvm start <container> [container...]",
+    ) {
+        return c;
+    }
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    let mut code = 0;
+    let mut any = false;
+    for want in args {
+        if want == "-h" || want == "--help" {
+            println!("usage: podvm start <container> [container...]");
+            return 0;
+        }
+        if want.starts_with('-') {
+            if let Err(c) = crate::parity::admit(
+                "start",
+                want,
+                "usage: podvm start <container> [container...]",
+            ) {
+                return c;
+            }
+            return crate::parity::no_arm("start", want);
+        }
+        any = true;
+        if let Err(c) = start_one(&s, "start", want) {
+            code = c;
+        }
+    }
+    if !any {
+        println!("usage: podvm start <container> [container...]");
+        return EXIT_CLI_ERROR;
+    }
+    code
+}
+
+/// Start one container: the per-name half of `start`, shared with
+/// `restart` (TODO/cli.md T-1331). `verb` names the caller in every
+/// message, because a restart's start-half failure must not read as a
+/// `start` failure.
+fn start_one(s: &podvm_image::Store, verb: &str, want: &str) -> Result<String, i32> {
+    let c = match podvm_supervise::get(s, want) {
+        Ok(c) => c,
+        Err(e) => return Err(fail(verb, e)),
+    };
+    // ⚠ The image record is needed so the LAUNCHER can hold the image lock
+    // for the container's whole life. A lock this process took would go
+    // with this process, which exits as soon as the container is up.
+    let record = match s.find_one(&c.image) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("podvm {verb}: {e}");
+            return Err(EXIT_RUNTIME_ERROR);
+        }
+    };
+    // ⭐ TODO/milestones.md T-1112. A container created before the OS gate
+    // (or by hand in the store) still names its image's OS here rather
+    // than inside the guest.
+    ensure_linux_guest(verb, &record.os, &record.architecture)?;
+    // ⭐ TODO/enter.md T-1411. This reverses T-1317's last-resort decision
+    // at this gate: the launcher now drives the userland loader family
+    // detached (`spawn_userland` in podvm-supervise, with pidfd
+    // supervision as today), so a record carrying that drive starts
+    // instead of refusing here. A record without one genuinely blocks
+    // detached operation, and the refusal names the call with the
+    // affected verbs.
+    let findings = podvm_probe::run();
+    if !podvm_probe::probes::chroot_usable(&findings) && c.userland_exec.is_empty() {
+        eprintln!(
+            "podvm {verb}: chroot(2) is denied on this machine and container {} carries \
+             no userland loader drive in its record (rung {:?}): `run -d`, `create` and \
+             `start` drive the loader family detached through \
+             podvm_enter::spawn_userland and refuse anything else at this gate; recreate \
+             it where the foreground enters userland, or run foreground \
+             (TODO/enter.md T-1411)",
+            c.name, c.rung
+        );
+        return Err(EXIT_RUNTIME_ERROR);
+    }
+    match podvm_supervise::start(s, want, &record) {
+        Ok(c) => {
+            println!("{}", c.name);
+            Ok(c.name)
+        }
+        Err(e) => Err(fail(verb, e)),
+    }
+}
+
+/// `podvm ps`
+pub fn ps(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission, so
+    // `ps -aq` reads as `-a -q` everywhere below.
+    let expanded = match crate::parity::expand("ps", args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member("ps", &member, PS_USAGE),
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all("ps", args, PS_USAGE) {
+        return c;
+    }
+    let mut all = false;
+    let mut quiet = false;
+    let mut no_trunc = false;
+    let mut template: Option<String> = None;
+    let mut filters: Vec<crate::parity::Filter> = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{PS_USAGE}");
+                return 0;
+            }
+            "-a" | "--all" => all = true,
+            "-q" | "--quiet" => quiet = true,
+            "--no-trunc" => no_trunc = true,
+            "--format" => match it.next() {
+                Some(t) => template = Some(t.clone()),
+                None => {
+                    eprintln!("podvm ps: --format needs a template");
+                    return EXIT_FLAG_ERROR;
+                }
+            },
+            other if other.starts_with("--format=") => {
+                template = Some(other["--format=".len()..].to_string())
+            }
+            "-f" | "--filter" => match it.next() {
+                Some(f) => match crate::parity::parse_filter(f) {
+                    Ok(p) => filters.push(p),
+                    Err(bad) => {
+                        eprintln!("podvm ps: {bad}");
+                        return EXIT_FLAG_ERROR;
+                    }
+                },
+                None => {
+                    eprintln!("podvm ps: --filter needs a key=value");
+                    return EXIT_FLAG_ERROR;
+                }
+            },
+            other if other.starts_with("--filter=") => {
+                match crate::parity::parse_filter(&other["--filter=".len()..]) {
+                    Ok(p) => filters.push(p),
+                    Err(bad) => {
+                        eprintln!("podvm ps: {bad}");
+                        return EXIT_FLAG_ERROR;
+                    }
+                }
+            }
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit("ps", other, PS_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm("ps", other);
+            }
+            other => {
+                eprintln!("podvm ps: unknown option {other:?}");
+                eprint!("{PS_USAGE}");
+                return EXIT_FLAG_ERROR;
+            }
+        }
+    }
+    let fields = ps_field_names();
+    // ⛔ Checked before anything is read, exactly as `images --format` is: a
+    // template validated only inside the loop over results is never checked at
+    // all when there are none, and a caller's typo then reads as "no containers".
+    if let Some(t) = &template {
+        if let Err(bad) = format::check(t, &fields) {
+            eprintln!("podvm ps: {bad}");
+            return EXIT_CLI_ERROR;
+        }
+    }
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    let list = match podvm_supervise::list(&s, all) {
+        Ok(l) => l,
+        Err(e) => return fail("ps", e),
+    };
+    // ⭐ TODO/cli.md T-1331. Caller-side predicate over the listed
+    // records: every `--filter` must match (docker ANDs them).
+    let list: Vec<_> = list
+        .into_iter()
+        .filter(|c| {
+            filters.iter().all(|f| match f.key.as_str() {
+                "name" => c.name.contains(&f.value) || c.id.starts_with(&f.value),
+                _ => false,
+            })
+        })
+        .collect();
+    if quiet {
+        for c in &list {
+            println!("{}", if no_trunc { c.id.clone() } else { c.short_id() });
+        }
+        return 0;
+    }
+    if let Some(t) = &template {
+        for c in &list {
+            match format::render(t, &ps_fields(c, no_trunc)) {
+                Ok(line) => println!("{line}"),
+                Err(bad) => {
+                    eprintln!("podvm ps: {bad}");
+                    return EXIT_CLI_ERROR;
+                }
+            }
+        }
+        return 0;
+    }
+    let mut rows = vec![vec![
+        "CONTAINER ID".to_string(),
+        "IMAGE".into(),
+        "COMMAND".into(),
+        "CREATED".into(),
+        "STATUS".into(),
+        "NAMES".into(),
+    ]];
+    for c in &list {
+        rows.push(vec![
+            if no_trunc { c.id.clone() } else { c.short_id() },
+            c.image.clone(),
+            command_of(c),
+            c.created_at.clone(),
+            c.status(),
+            c.name.clone(),
+        ]);
+    }
+    print!("{}", crate::images::table(&rows));
+    0
+}
+
+fn command_of(c: &Container) -> String {
+    let joined = c.argv.join(" ");
+    if joined.len() > 20 {
+        format!("{}...", &joined[..17])
+    } else {
+        joined
+    }
+}
+
+fn ps_field_names() -> Vec<&'static str> {
+    vec![
+        "ID",
+        "Names",
+        "Image",
+        "Command",
+        "CreatedAt",
+        "Status",
+        "State",
+        "Ports",
+        "Pid",
+    ]
+}
+
+fn ps_fields(c: &Container, no_trunc: bool) -> Vec<(&'static str, String)> {
+    vec![
+        ("ID", if no_trunc { c.id.clone() } else { c.short_id() }),
+        ("Names", c.name.clone()),
+        ("Image", c.image.clone()),
+        ("Command", c.argv.join(" ")),
+        ("CreatedAt", c.created_at.clone()),
+        ("Status", c.status()),
+        ("State", c.state.word().to_string()),
+        // ⛔ Always empty, and the usage says why rather than leaving a reader
+        // to wonder whether podvm forgot.
+        ("Ports", String::new()),
+        (
+            "Pid",
+            c.pid.map(|p| p.to_string()).unwrap_or_else(|| "0".into()),
+        ),
+    ]
+}
+
+/// `podvm logs [-f|--follow] [--tail N] <container>`
+const LOGS_USAGE: &str = "usage: podvm logs [-f|--follow] [--tail N] <container>";
+
+/// What `logs` was asked for. One parser, so the flag cannot be accepted in
+/// one position and lost in another (TODO/supervise.md T-1318).
+#[derive(Debug)]
+struct LogsArgs {
+    follow: bool,
+    tail: Option<u64>,
+    want: String,
+}
+
+fn parse_logs(args: &[String]) -> std::result::Result<LogsArgs, i32> {
+    let mut follow = false;
+    let mut tail: Option<u64> = None;
+    let mut want: Option<String> = None;
+    let mut expecting: Option<&'static str> = None;
+    for a in args {
+        if expecting.take().is_some() {
+            match parse_tail(a) {
+                Ok(n) => tail = Some(n),
+                Err(why) => {
+                    eprintln!("podvm logs: {why}");
+                    return Err(EXIT_FLAG_ERROR);
+                }
+            }
+            continue;
+        }
+        match a.as_str() {
+            "-f" | "--follow" => follow = true,
+            "--tail" => expecting = Some("--tail"),
+            "-h" | "--help" => {
+                println!("{LOGS_USAGE}");
+                return Err(0);
+            }
+            other if other.starts_with("--tail=") => match parse_tail(&other[7..]) {
+                Ok(n) => tail = Some(n),
+                Err(why) => {
+                    eprintln!("podvm logs: {why}");
+                    return Err(EXIT_FLAG_ERROR);
+                }
+            },
+            other if other.starts_with('-') => {
+                crate::parity::admit("logs", other, LOGS_USAGE)?;
+                return Err(crate::parity::no_arm("logs", other));
+            }
+            // ⚠ The first positional wins and the rest are ignored, as before:
+            // `logs` names one container.
+            other if want.is_none() => want = Some(other.to_string()),
+            _ => {}
+        }
+    }
+    if let Some(flag) = expecting {
+        eprintln!("podvm logs: {flag} needs a value");
+        return Err(EXIT_FLAG_ERROR);
+    }
+    let Some(want) = want else {
+        println!("{LOGS_USAGE}");
+        return Err(EXIT_CLI_ERROR);
+    };
+    Ok(LogsArgs { follow, tail, want })
+}
+
+/// Parse a `--tail` value: a non-negative integer, nothing else. Zero
+/// prints no lines and still exits 0; anything that is not a number is a
+/// flag error naming the value rather than a silent whole log.
+fn parse_tail(raw: &str) -> std::result::Result<u64, String> {
+    if raw.is_empty() || !raw.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(format!(
+            "--tail takes a non-negative line count, not {raw:?}"
+        ));
+    }
+    raw.parse::<u64>()
+        .map_err(|_| format!("--tail takes a non-negative line count, not {raw:?}"))
+}
+
+/// `podvm logs [-f|--follow] <container>`
+pub fn logs(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("logs", args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member("logs", &member, LOGS_USAGE),
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all("logs", args, LOGS_USAGE) {
+        return c;
+    }
+    let o = match parse_logs(args) {
+        Ok(o) => o,
+        Err(c) => return c,
+    };
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    if o.follow {
+        // ⚠ The payload's own bytes, to stdout, unaltered. `logs` is the one
+        // verb whose stdout is not podvm's, following or not.
+        let mut out = std::io::stdout().lock();
+        // ⭐ TODO/cli.md T-1337: from the tail, not from the start.
+        // A reconnect that replays the whole file is the defect
+        // `--tail` exists to remove.
+        let r = match o.tail {
+            Some(n) => podvm_supervise::follow_tail(&s, &o.want, &mut out, n),
+            None => podvm_supervise::follow(&s, &o.want, &mut out),
+        };
+        return match r {
+            Ok(()) => 0,
+            Err(e) => fail("logs", e),
+        };
+    }
+    match podvm_supervise::logs(&s, &o.want) {
+        Ok(bytes) => {
+            // ⚠ The payload's own bytes, to stdout, unaltered. `logs` is the one
+            // verb whose stdout is not podvm's.
+            // ⭐ TODO/cli.md T-1337: the tail is a slice of the same read,
+            // so no `--tail` changes the default by a byte.
+            let bytes = match o.tail {
+                Some(n) => {
+                    let start = podvm_supervise::tail_offset(&bytes, n) as usize;
+                    &bytes[start..]
+                }
+                None => &bytes[..],
+            };
+            let mut out = std::io::stdout().lock();
+            let _ = out.write_all(bytes);
+            0
+        }
+        Err(e) => fail("logs", e),
+    }
+}
+
+/// `podvm stop [-t N] <container>...`
+pub fn stop(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: `stop -t5` reads as `-t 5` before admission.
+    let expanded = match crate::parity::expand("stop", args) {
+        Ok(a) => a,
+        Err(member) => {
+            return crate::parity::refuse_member(
+                "stop",
+                &member,
+                "usage: podvm stop [-t seconds] <container> [container...]",
+            )
+        }
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all(
+        "stop",
+        args,
+        "usage: podvm stop [-t seconds] <container> [container...]",
+    ) {
+        return c;
+    }
+    let mut grace = STOP_GRACE_MS;
+    let mut names = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-h" | "--help" => {
+                println!("usage: podvm stop [-t seconds] <container> [container...]");
+                return 0;
+            }
+            "-t" | "--time" | "--timeout" => match it.next().and_then(|v| v.parse::<u64>().ok()) {
+                Some(v) => grace = v * 1000,
+                None => {
+                    eprintln!("podvm stop: -t takes a number of seconds");
+                    return EXIT_FLAG_ERROR;
+                }
+            },
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(
+                    "stop",
+                    other,
+                    "usage: podvm stop [-t seconds] <container> [container...]",
+                ) {
+                    return c;
+                }
+                return crate::parity::no_arm("stop", other);
+            }
+            other => names.push(other.to_string()),
+        }
+    }
+    if names.is_empty() {
+        println!("usage: podvm stop [-t seconds] <container> [container...]");
+        return EXIT_CLI_ERROR;
+    }
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    let mut code = 0;
+    for want in &names {
+        if let Err(c) = stop_one(&s, "stop", want, grace) {
+            code = c;
+        }
+    }
+    code
+}
+
+/// Stop one container: the per-name half of `stop`, shared with
+/// `restart` (TODO/cli.md T-1331). Returns the name on success.
+fn stop_one(s: &podvm_image::Store, verb: &str, want: &str, grace: u64) -> Result<String, i32> {
+    match podvm_supervise::stop(s, want, grace) {
+        Ok((c, killed)) => {
+            if killed {
+                // ⛔ Said, never silent. A caller that asked for a graceful
+                // stop and got a SIGKILL has to be able to tell.
+                eprintln!(
+                    "podvm {verb}: {} did not exit within {} s of SIGTERM and was killed",
+                    c.name,
+                    grace / 1000
+                );
+            }
+            println!("{}", c.name);
+            Ok(c.name)
+        }
+        Err(e) => Err(fail(verb, e)),
+    }
+}
+
+/// `podvm restart <container>...`
+const RESTART_USAGE: &str = "usage: podvm restart <container> [container...]";
+
+/// `podvm restart`: stop-then-start in one verb (TODO/cli.md T-1331).
+///
+/// A composite, not a policy: each container stops with the default
+/// grace and starts again, and a failure names which half failed, so a
+/// caller can tell a container that never stopped from one that
+/// stopped and never came back.
+pub fn restart(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission
+    // (this verb takes none today; the call keeps the rule complete).
+    let expanded = match crate::parity::expand("restart", args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member("restart", &member, RESTART_USAGE),
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all("restart", args, RESTART_USAGE) {
+        return c;
+    }
+    let mut names = Vec::new();
+    for want in args {
+        match want.as_str() {
+            "-h" | "--help" => {
+                println!("{RESTART_USAGE}");
+                return 0;
+            }
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit("restart", other, RESTART_USAGE) {
+                    return c;
+                }
+                return crate::parity::no_arm("restart", other);
+            }
+            other => names.push(other.to_string()),
+        }
+    }
+    if names.is_empty() {
+        println!("{RESTART_USAGE}");
+        return EXIT_CLI_ERROR;
+    }
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    let mut code = 0;
+    for want in &names {
+        match stop_one(&s, "restart", want, STOP_GRACE_MS) {
+            Ok(_) => match start_one(&s, "restart", want) {
+                Ok(_) => {}
+                Err(c) => {
+                    eprintln!("podvm restart: {want}: stopped, then the start half failed");
+                    code = c;
+                }
+            },
+            Err(c) => {
+                eprintln!("podvm restart: {want}: the stop half failed; not started");
+                code = c;
+            }
+        }
+    }
+    code
+}
+
+/// `podvm kill [-s SIG] <container>...`
+pub fn kill(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("kill", args) {
+        Ok(a) => a,
+        Err(member) => {
+            return crate::parity::refuse_member(
+                "kill",
+                &member,
+                "usage: podvm kill [-s SIGNAL] <container> [container...]",
+            )
+        }
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all(
+        "kill",
+        args,
+        "usage: podvm kill [-s SIGNAL] <container> [container...]",
+    ) {
+        return c;
+    }
+    let mut sig = 9;
+    let mut names = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-h" | "--help" => {
+                println!("usage: podvm kill [-s SIGNAL] <container> [container...]");
+                return 0;
+            }
+            "-s" | "--signal" => match it.next() {
+                Some(v) => match signal_number(v) {
+                    Some(n) => sig = n,
+                    None => {
+                        eprintln!("podvm kill: {v:?} is not a signal podvm knows");
+                        return EXIT_FLAG_ERROR;
+                    }
+                },
+                None => {
+                    eprintln!("podvm kill: -s needs a signal");
+                    return EXIT_FLAG_ERROR;
+                }
+            },
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(
+                    "kill",
+                    other,
+                    "usage: podvm kill [-s SIGNAL] <container> [container...]",
+                ) {
+                    return c;
+                }
+                return crate::parity::no_arm("kill", other);
+            }
+            other => names.push(other.to_string()),
+        }
+    }
+    if names.is_empty() {
+        println!("usage: podvm kill [-s SIGNAL] <container> [container...]");
+        return EXIT_CLI_ERROR;
+    }
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    let mut code = 0;
+    for want in &names {
+        match podvm_supervise::kill(&s, want, sig) {
+            Ok(c) => println!("{}", c.name),
+            Err(e) => code = fail("kill", e),
+        }
+    }
+    code
+}
+
+/// ⚠ By name or by number, and an unknown one is refused rather than defaulted:
+/// sending the wrong signal is not something a caller can notice.
+fn signal_number(v: &str) -> Option<i32> {
+    if let Ok(n) = v.parse::<i32>() {
+        return (n > 0 && n < 65).then_some(n);
+    }
+    let name = v.trim_start_matches("SIG").to_ascii_uppercase();
+    Some(match name.as_str() {
+        "HUP" => 1,
+        "INT" => 2,
+        "QUIT" => 3,
+        "KILL" => 9,
+        "USR1" => 10,
+        "USR2" => 12,
+        "TERM" => 15,
+        "CONT" => 18,
+        "STOP" => 19,
+        _ => return None,
+    })
+}
+
+/// `podvm wait <container>...`
+pub fn wait(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("wait", args) {
+        Ok(a) => a,
+        Err(member) => {
+            return crate::parity::refuse_member(
+                "wait",
+                &member,
+                "usage: podvm wait <container> [container...]",
+            )
+        }
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) =
+        crate::parity::admit_all("wait", args, "usage: podvm wait <container> [container...]")
+    {
+        return c;
+    }
+    if args.is_empty() || args[0] == "-h" || args[0] == "--help" {
+        println!("usage: podvm wait <container> [container...]");
+        return if args.is_empty() { EXIT_CLI_ERROR } else { 0 };
+    }
+    for want in args {
+        if want.starts_with('-') {
+            if let Err(c) =
+                crate::parity::admit("wait", want, "usage: podvm wait <container> [container...]")
+            {
+                return c;
+            }
+            return crate::parity::no_arm("wait", want);
+        }
+    }
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    let mut code = 0;
+    for want in args {
+        match podvm_supervise::wait(&s, want, WAIT_BOUND_MS) {
+            Ok((_, Some(n))) => println!("{n}"),
+            Ok((c, None)) => {
+                // ⛔ THE BOUND, OR AN UNWATCHED EXIT, AND NEVER A NUMBER. A `0`
+                // printed here for a container podvm did not see end is the
+                // lie this whole crate is arranged to refuse.
+                eprintln!(
+                    "podvm wait: {} has no exit code podvm measured: it is {} \
+                     (TODO/supervise.md T-0604)",
+                    c.name,
+                    c.status()
+                );
+                code = EXIT_RUNTIME_ERROR;
+            }
+            Err(e) => code = fail("wait", e),
+        }
+    }
+    code
+}
+
+/// `podvm rm [-f] <container>...`
+pub fn rm(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("rm", args) {
+        Ok(a) => a,
+        Err(member) => {
+            return crate::parity::refuse_member(
+                "rm",
+                &member,
+                "usage: podvm rm [-f|--force] <container> [container...]",
+            )
+        }
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all(
+        "rm",
+        args,
+        "usage: podvm rm [-f|--force] <container> [container...]",
+    ) {
+        return c;
+    }
+    let mut force = false;
+    let mut names = Vec::new();
+    for a in args {
+        match a.as_str() {
+            "-h" | "--help" => {
+                println!("usage: podvm rm [-f|--force] <container> [container...]");
+                return 0;
+            }
+            "-f" | "--force" => force = true,
+            "-v" | "--volumes" => {}
+            other if other.starts_with('-') => {
+                if let Err(c) = crate::parity::admit(
+                    "rm",
+                    other,
+                    "usage: podvm rm [-f|--force] <container> [container...]",
+                ) {
+                    return c;
+                }
+                return crate::parity::no_arm("rm", other);
+            }
+            other => names.push(other.to_string()),
+        }
+    }
+    if names.is_empty() {
+        println!("usage: podvm rm [-f|--force] <container> [container...]");
+        return EXIT_CLI_ERROR;
+    }
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    let mut code = 0;
+    for want in &names {
+        match podvm_supervise::remove(&s, want, force) {
+            Ok(c) => println!("{}", c.name),
+            Err(e) => code = fail("rm", e),
+        }
+    }
+    code
+}
+
+/// `podvm cp <src> <dest>`, where one side is `<name>:<path>` and the
+/// name is a container or, failing that, an image.
+const CP_USAGE: &str = "\
+usage: podvm cp [-r|--recursive] <container|image>:<path> <dest>
+       podvm cp [-r|--recursive] <src> <container|image>:<path>
+
+  -r, --recursive  copy a directory tree. A file copies with or without
+                   it; a directory without it is refused naming the flag.
+
+  The name before the colon is a container first (as before), then an
+  image, whose rootfs is extracted if needed. A directory copies its
+  contents into DEST: created where missing, and it must be a directory
+  where present. Symlinks are replicated as symlinks, never followed,
+  and every rootfs-side path passes the same containment gate as a
+  single file; special files are refused by name rather than recreated
+  (TODO/cli.md T-1323).
+";
+
+/// What `cp` was asked for.
+struct CpArgs {
+    recursive: bool,
+    a: String,
+    b: String,
+}
+
+fn parse_cp(args: &[String]) -> std::result::Result<CpArgs, i32> {
+    let mut recursive = false;
+    let mut positionals: Vec<String> = Vec::new();
+    for a in args {
+        match a.as_str() {
+            "-h" | "--help" => {
+                print!("{CP_USAGE}");
+                return Err(0);
+            }
+            "-r" | "--recursive" => recursive = true,
+            other if other.starts_with('-') => {
+                crate::parity::admit("cp", other, CP_USAGE)?;
+                return Err(crate::parity::no_arm("cp", other));
+            }
+            other => positionals.push(other.to_string()),
+        }
+    }
+    if positionals.len() != 2 {
+        eprintln!("podvm cp: takes exactly two paths, one of them <name>:<path>");
+        return Err(EXIT_CLI_ERROR);
+    }
+    let mut it = positionals.into_iter();
+    Ok(CpArgs {
+        recursive,
+        a: it.next().expect("checked"),
+        b: it.next().expect("checked"),
+    })
+}
+
+/// `podvm cp <src> <dest>`, where one side is `<container>:<path>`.
+pub fn cp(args: &[String]) -> i32 {
+    // ⭐ TODO/cli.md T-1330: bundled shorts expand before admission.
+    let expanded = match crate::parity::expand("cp", args) {
+        Ok(a) => a,
+        Err(member) => return crate::parity::refuse_member("cp", &member, CP_USAGE),
+    };
+    let args: &[String] = &expanded;
+    if let Some(c) = crate::parity::admit_all("cp", args, CP_USAGE) {
+        return c;
+    }
+    let o = match parse_cp(args) {
+        Ok(o) => o,
+        Err(c) => return c,
+    };
+    let s = match store() {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    let (a, b) = (o.a.as_str(), o.b.as_str());
+    let (from_named, to_named) = (named(a), named(b));
+    match (from_named, to_named) {
+        (true, true) => {
+            eprintln!("podvm cp: copying between two named filesystems is not implemented");
+            EXIT_RUNTIME_ERROR
+        }
+        (false, false) => {
+            eprintln!("podvm cp: one of the two paths has to be <name>:<path>");
+            EXIT_CLI_ERROR
+        }
+        (true, false) => copy_named(&s, a, std::path::Path::new(b), true, o.recursive),
+        (false, true) => copy_named(&s, b, std::path::Path::new(a), false, o.recursive),
+    }
+}
+
+/// A side addresses a named filesystem: a container (`split`, no slashes)
+/// or an image reference (slashes, tags and all).
+fn named(arg: &str) -> bool {
+    split(arg).is_some() || split_image(arg).is_some()
+}
+
+/// Copy through a name that is a container first and an image second.
+/// Container-first keeps every existing invocation resolving exactly as
+/// before; the image half splits on the LAST colon, because a tag carries
+/// one (`alpine:3.20:/etc/hosts`).
+fn copy_named(
+    s: &podvm_image::Store,
+    arg: &str,
+    outside: &std::path::Path,
+    out_of: bool,
+    recursive: bool,
+) -> i32 {
+    if let Some((name, inside)) = split(arg) {
+        if let Ok(c) = podvm_supervise::get(s, &name) {
+            return copy_one(
+                std::path::Path::new(&c.rootfs),
+                &inside,
+                outside,
+                out_of,
+                recursive,
+            );
+        }
+    }
+    let (image, inside) = match arg.rsplit_once(':') {
+        Some((image, inside)) if !image.is_empty() && !inside.is_empty() => (image, inside),
+        _ => ("", ""),
+    };
+    let record = match s.find_one(image) {
+        Ok(r) => r,
+        Err(image_err) => {
+            match split(arg) {
+                Some((name, _)) => match podvm_supervise::get(s, &name) {
+                    Ok(_) => {}
+                    Err(container_err) => eprintln!("podvm cp: {container_err}"),
+                },
+                None => eprintln!("podvm cp: one of the two paths has to be <name>:<path>"),
+            }
+            eprintln!("podvm cp: {image_err}");
+            return EXIT_RUNTIME_ERROR;
+        }
+    };
+    // ⚠ The image lock for the whole copy: the rootfs below must not be
+    // deleted between the extraction check and the last byte, which is
+    // T-0204's hold and T-1322's query answering together.
+    let _held = match s.hold(&record) {
+        Ok(h) => h,
+        Err(e) => {
+            eprintln!("podvm cp: {e}");
+            return podvm_image::error::EXIT_RUNTIME_ERROR;
+        }
+    };
+    if !podvm_extract::is_extracted(s, &record.manifest_digest) {
+        if let Err(c) = crate::run::extract_now("cp", s, &record) {
+            return c;
+        }
+    }
+    let (rootfs, _) = podvm_extract::paths(s, &record.manifest_digest);
+    copy_one(&rootfs, inside, outside, out_of, recursive)
+}
+
+/// `name:/path` where the name is not a Windows drive letter or a bare path.
+fn split(arg: &str) -> Option<(String, String)> {
+    let (name, path) = arg.split_once(':')?;
+    if name.is_empty() || path.is_empty() || name.contains('/') {
+        return None;
+    }
+    Some((name.to_string(), path.to_string()))
+}
+
+/// `reference:path` where the reference may carry a registry, a tag, or
+/// both. Slashes allowed, unlike a container name: this is the image half
+/// of addressing, and `copy_named` tries the container half first.
+fn split_image(arg: &str) -> Option<(String, String)> {
+    let (image, path) = arg.rsplit_once(':')?;
+    if image.is_empty() || path.is_empty() {
+        return None;
+    }
+    Some((image.to_string(), path.to_string()))
+}
+
+fn copy_one(
+    root: &std::path::Path,
+    inside: &str,
+    outside: &std::path::Path,
+    out_of: bool,
+    recursive: bool,
+) -> i32 {
+    let joined = root.join(inside.trim_start_matches('/'));
+    // ⚠ Stat BEFORE gating: a symlink source is gated on its own path
+    // (its parent), never resolved. `within` resolves, so gating a link
+    // that points outside would refuse a replication that escapes
+    // nothing: distro rootfses are full of such links (`/etc/mtab
+    // -> /proc/self/mounts`, TODO/extract.md T-0305).
+    let src_side: &std::path::Path = if out_of { &joined } else { outside };
+    let src_is_link = is_link(src_side);
+    // ⛔ THE SAME CONTAINMENT GATE every other path in this tree takes. A
+    // path of `../../etc/shadow` is a request to touch outside the rootfs,
+    // and `cp` is the verb most likely to be handed one.
+    let target = if src_is_link && out_of {
+        match joined.parent() {
+            Some(parent) => match podvm_image::contain::within(root, parent) {
+                Ok(_) => joined.clone(),
+                Err(e) => {
+                    eprintln!("podvm cp: {e}");
+                    return EXIT_RUNTIME_ERROR;
+                }
+            },
+            None => {
+                eprintln!("podvm cp: {} has no parent to gate", joined.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+    } else {
+        match podvm_image::contain::within(root, &joined) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("podvm cp: {e}");
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+    };
+    let (src, dst) = if out_of {
+        (target, outside.to_path_buf())
+    } else {
+        (outside.to_path_buf(), target)
+    };
+    // ⛔ Never write through a pre-existing symlink: the path is gated but
+    // the write would land where the link points.
+    if is_link(&dst) {
+        eprintln!(
+            "podvm cp: {} is a symlink; writing through one is refused",
+            dst.display()
+        );
+        return EXIT_RUNTIME_ERROR;
+    }
+    if !out_of {
+        if let Err(msg) = clear_of_symlinks(root, &dst) {
+            eprintln!("podvm cp: {msg}");
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    // ⚠ Stat the SOURCE side: a missing destination directory on the way
+    // in must still read as a directory copy. (`src_is_link` above already
+    // decided the gate; this match decides the copy shape.)
+    match std::fs::symlink_metadata(&src).map(|m| m.file_type()) {
+        Ok(t) if t.is_symlink() => {
+            return replicate_link(&src, &dst);
+        }
+        Ok(t) if t.is_dir() => {
+            if !recursive {
+                eprintln!(
+                    "podvm cp: {} is a directory; pass -r to copy it",
+                    src.display()
+                );
+                return EXIT_FLAG_ERROR;
+            }
+            return copy_tree(&src, &dst, root, out_of);
+        }
+        Ok(t) if !t.is_file() => {
+            eprintln!(
+                "podvm cp: {} is not a file or directory; special files are refused",
+                src.display()
+            );
+            return EXIT_RUNTIME_ERROR;
+        }
+        _ => {}
+    }
+    if let Some(parent) = dst.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    match std::fs::copy(&src, &dst) {
+        Ok(n) => {
+            eprintln!(
+                "podvm cp: {} bytes {} -> {}",
+                n,
+                src.display(),
+                dst.display()
+            );
+            0
+        }
+        Err(e) => {
+            eprintln!("podvm cp: {}: {e}", src.display());
+            EXIT_RUNTIME_ERROR
+        }
+    }
+}
+
+/// Whether the path itself is a symlink (never followed).
+fn is_link(path: &std::path::Path) -> bool {
+    std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink())
+}
+
+/// Replicate one symlink as a symlink: the target bytes are copied, never
+/// resolved, so an absolute target escapes nothing. The caller gates the
+/// link's own path; the target is opaque here by design.
+fn replicate_link(src: &std::path::Path, dst: &std::path::Path) -> i32 {
+    let target = match std::fs::read_link(src) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("podvm cp: {}: {e}", src.display());
+            return EXIT_RUNTIME_ERROR;
+        }
+    };
+    if let Some(parent) = dst.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            eprintln!("podvm cp: {}: {e}", parent.display());
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    match std::os::unix::fs::symlink(&target, dst) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            if dst.is_dir() && !is_link(dst) {
+                eprintln!("podvm cp: {} exists and is a directory", dst.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+            if let Err(e) = std::fs::remove_file(dst) {
+                eprintln!("podvm cp: {}: {e}", dst.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+            if let Err(e) = std::os::unix::fs::symlink(&target, dst) {
+                eprintln!("podvm cp: {}: {e}", dst.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+        Err(e) => {
+            eprintln!("podvm cp: {}: {e}", dst.display());
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    eprintln!(
+        "podvm cp: symlink {} -> {}",
+        dst.display(),
+        target.display()
+    );
+    0
+}
+
+/// Every component of `path` below `base`, checked without following: a
+/// write through a pre-existing symlink would land where the link points,
+/// so the first symlink refuses the copy by name. `base` itself was gated
+/// by the caller and is not re-checked.
+fn clear_of_symlinks(
+    base: &std::path::Path,
+    path: &std::path::Path,
+) -> std::result::Result<(), String> {
+    let mut probe = base.to_path_buf();
+    let rel = path
+        .strip_prefix(base)
+        .map_err(|_| format!("{} escapes {}", path.display(), base.display()))?;
+    for component in rel.components() {
+        probe.push(component);
+        if is_link(&probe) {
+            return Err(format!(
+                "{} is a symlink; writing through one is refused",
+                probe.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Copy a directory tree without following anything. Every rootfs-side
+/// path passes `contain::within`: destinations on the way in, sources on
+/// the way out: except a symlink source, which is gated on its own path
+/// (its parent) and replicated verbatim, never resolved, per T-0305's
+/// rule. Two passes: the first validates the whole tree, so a special
+/// file or a destination through a pre-existing symlink refuses before a
+/// byte lands and no half-made tree is left behind (TODO/cli.md T-1323).
+fn copy_tree(
+    src: &std::path::Path,
+    dst: &std::path::Path,
+    root: &std::path::Path,
+    out_of: bool,
+) -> i32 {
+    let gate = |p: &std::path::Path| podvm_image::contain::within(root, p);
+    // The destination side's base for the write-through check: the rootfs
+    // on the way in, the fresh-or-merging top on the way out. A write
+    // through a pre-existing link would land where the link points, so
+    // the first such destination refuses the copy by name.
+    let dst_base: &std::path::Path = if out_of { dst } else { root };
+    // Pass one: walk without following, gating and collecting. A special
+    // file anywhere, or a destination through a pre-existing symlink,
+    // refuses the whole copy by name.
+    let mut files: Vec<(std::path::PathBuf, std::path::PathBuf)> = Vec::new();
+    let mut links: Vec<(std::path::PathBuf, std::path::PathBuf)> = Vec::new();
+    let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+    let mut stack = vec![src.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(e) => e,
+            Err(e) => {
+                // ⭐ T-0414: the listing is required (a tree copy walks
+                // it), so the refusal names the operation and the path
+                // with the kernel's errno, never a missing file.
+                eprintln!("podvm cp: cannot list {}: {e}", dir.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+        };
+        for entry in entries {
+            let entry = match entry {
+                Ok(e) => e,
+                Err(e) => {
+                    eprintln!("podvm cp: {e}");
+                    return EXIT_RUNTIME_ERROR;
+                }
+            };
+            let src_path = entry.path();
+            let rel = match src_path.strip_prefix(src) {
+                Ok(r) => r,
+                Err(_) => {
+                    eprintln!("podvm cp: {} escapes {}", src_path.display(), src.display());
+                    return EXIT_RUNTIME_ERROR;
+                }
+            };
+            let dst_path = dst.join(rel);
+            // ⛔ Never follow: metadata, not metadata-through.
+            let kind = match std::fs::symlink_metadata(&src_path) {
+                Ok(m) => m.file_type(),
+                Err(e) => {
+                    eprintln!("podvm cp: {}: {e}", src_path.display());
+                    return EXIT_RUNTIME_ERROR;
+                }
+            };
+            if kind.is_symlink() {
+                // ⚠ Gated on its own path, never resolved: the target bytes
+                // are opaque, and an absolute target escapes nothing.
+                let own = if out_of {
+                    match src_path.parent() {
+                        Some(parent) => parent,
+                        None => {
+                            eprintln!("podvm cp: {} has no parent to gate", src_path.display());
+                            return EXIT_RUNTIME_ERROR;
+                        }
+                    }
+                } else {
+                    &dst_path
+                };
+                if let Err(e) = gate(own) {
+                    eprintln!("podvm cp: {e}");
+                    return EXIT_RUNTIME_ERROR;
+                }
+                if let Err(msg) = clear_of_symlinks(dst_base, &dst_path) {
+                    eprintln!("podvm cp: {msg}");
+                    return EXIT_RUNTIME_ERROR;
+                }
+                links.push((src_path, dst_path));
+                continue;
+            }
+            let gated = if out_of { &src_path } else { &dst_path };
+            if let Err(e) = gate(gated) {
+                eprintln!("podvm cp: {e}");
+                return EXIT_RUNTIME_ERROR;
+            }
+            if let Err(msg) = clear_of_symlinks(dst_base, &dst_path) {
+                eprintln!("podvm cp: {msg}");
+                return EXIT_RUNTIME_ERROR;
+            }
+            if kind.is_dir() {
+                dirs.push(dst_path);
+                stack.push(src_path);
+                continue;
+            }
+            if !kind.is_file() {
+                eprintln!(
+                    "podvm cp: {} is not a file or directory; special files are refused",
+                    src_path.display()
+                );
+                return EXIT_RUNTIME_ERROR;
+            }
+            files.push((src_path, dst_path));
+        }
+    }
+    // Pass two: the tree is validated, so only I/O can still fail, and
+    // each such error names its file. A refusal in pass one leaves no
+    // half-made tree behind.
+    if is_link(dst) {
+        eprintln!(
+            "podvm cp: {} is a symlink; writing through one is refused",
+            dst.display()
+        );
+        return EXIT_RUNTIME_ERROR;
+    }
+    if dst.is_file() {
+        eprintln!("podvm cp: {} exists and is not a directory", dst.display());
+        return EXIT_RUNTIME_ERROR;
+    }
+    if let Err(e) = std::fs::create_dir_all(dst) {
+        eprintln!("podvm cp: {}: {e}", dst.display());
+        return EXIT_RUNTIME_ERROR;
+    }
+    for dir in &dirs {
+        if let Err(e) = std::fs::create_dir_all(dir) {
+            eprintln!("podvm cp: {}: {e}", dir.display());
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    let mut bytes = 0u64;
+    for (from, to) in &files {
+        if let Some(parent) = to.parent() {
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                eprintln!("podvm cp: {}: {e}", parent.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+        match std::fs::copy(from, to) {
+            Ok(n) => bytes += n,
+            Err(e) => {
+                eprintln!("podvm cp: {}: {e}", from.display());
+                return EXIT_RUNTIME_ERROR;
+            }
+        }
+    }
+    for (from, to) in &links {
+        if replicate_link(from, to) != 0 {
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    eprintln!(
+        "podvm cp: {} files ({bytes} bytes), {} symlinks {} -> {}",
+        files.len(),
+        links.len(),
+        src.display(),
+        dst.display()
+    );
+    0
+}
+
+/// `podvm inspect` against a container rather than an image.
+///
+/// ⚠ Tried after the image lookup fails, so a name that is both is an image, as
+/// docker resolves it.
+pub fn inspect_container(want: &str, template: Option<&str>) -> Option<i32> {
+    let s = podvm_image::open_store().ok()?;
+    let c = podvm_supervise::get(&s, want).ok()?;
+    let fields = container_fields(&s, &c);
+    match template {
+        Some(t) => match format::render(t, &fields) {
+            Ok(line) => {
+                println!("{line}");
+                Some(0)
+            }
+            Err(bad) => {
+                eprintln!("podvm inspect: {bad}");
+                Some(EXIT_CLI_ERROR)
+            }
+        },
+        None => {
+            println!("{}", container_json(&s, &c));
+            Some(0)
+        }
+    }
+}
+
+fn container_fields(s: &podvm_image::Store, c: &Container) -> Vec<(&'static str, String)> {
+    // T-0708: the emulation tally beside the container record. A dash where
+    // the tier never ran (no memo file); counts where it did, zero included.
+    let memo = podvm_supervise::table::memo_path(s, &c.id);
+    let em = memo
+        .exists()
+        .then(|| podvm_supervise::table::emulated_counts(&memo));
+    let count = |f: fn(&podvm_supervise::table::EmulatedCounts) -> u64| {
+        em.as_ref()
+            .map(f)
+            .map(|x| x.to_string())
+            .unwrap_or_else(|| "-".into())
+    };
+    let mknod = count(|e| e.mknod);
+    let mount = count(|e| e.mount);
+    let unshare = count(|e| e.unshare);
+    let clone = count(|e| e.clone);
+    // T-0413: the served /proc answers beside the four older stories.
+    let procfs = count(|e| e.procfs);
+    vec![
+        ("Id", c.id.clone()),
+        ("Name", c.name.clone()),
+        ("Image", c.image.clone()),
+        ("State", c.state.word().to_string()),
+        ("Status", c.status()),
+        (
+            "Pid",
+            c.pid.map(|p| p.to_string()).unwrap_or_else(|| "0".into()),
+        ),
+        (
+            "LauncherPid",
+            c.launcher_pid
+                .map(|p| p.to_string())
+                .unwrap_or_else(|| "0".into()),
+        ),
+        // ⛔ A dash where there is no code, never a zero. AGENTS.md
+        // absolute 3, and `wait` refuses for the same reason.
+        (
+            "ExitCode",
+            c.exit_code
+                .map(|p| p.to_string())
+                .unwrap_or_else(|| "-".into()),
+        ),
+        ("Created", c.created_at.clone()),
+        (
+            "StartedAt",
+            c.started_at.clone().unwrap_or_else(|| "-".into()),
+        ),
+        (
+            "FinishedAt",
+            c.finished_at.clone().unwrap_or_else(|| "-".into()),
+        ),
+        ("RootfsPath", c.rootfs.clone()),
+        (
+            "LogPath",
+            podvm_supervise::table::log_path(s, &c.id)
+                .display()
+                .to_string(),
+        ),
+        ("Rung", c.rung.clone()),
+        // ⭐ T-0804 rule 3. The mode a caller reads includes the shims, or the
+        // report says devices exist when they do not.
+        ("Complete.Fixups", c.completion_note()),
+        ("Complete.Degraded", c.completion_degraded.to_string()),
+        ("Command", c.argv.join(" ")),
+        ("Exec.Mode", crate::images::EXEC_MODE.to_string()),
+        ("Exec.Shares", crate::images::EXEC_SHARES.to_string()),
+        // ⛔ SAID, NOT IMPLIED. TODO/supervise.md T-0601: a pidfd addresses one
+        // process. podvm has no PID namespace, so a grandchild that reparents
+        // is outside its reach, and a caller reads this rather than assuming
+        // docker's containment.
+        (
+            "Contains",
+            "the payload process only; podvm has no PID namespace, so a grandchild \
+             that reparents is outside its reach"
+                .to_string(),
+        ),
+        ("Noticed", c.noticed.clone().unwrap_or_else(|| "-".into())),
+        // T-0708: how many times the preloaded tier emulated an operation
+        // rather than running the kernel's answer. A dash where the tier
+        // never ran; `inspect --format` reads these names, `ps` does not.
+        // T-0413 adds the served /proc answers behind the same memo.
+        ("Interpose.Emulated.mknod", mknod),
+        ("Interpose.Emulated.mount", mount),
+        ("Interpose.Emulated.unshare", unshare),
+        ("Interpose.Emulated.clone", clone),
+        ("Interpose.Emulated.procfs", procfs),
+    ]
+}
+
+fn container_json(s: &podvm_image::Store, c: &Container) -> String {
+    let fields = container_fields(s, c);
+    let mut o = serde_json::Map::new();
+    for (k, v) in &fields {
+        // ⚠ The nested pair is nested here too, so a caller reading the
+        // document and one reading `--format` do not find two shapes.
+        if let Some(rest) = k.strip_prefix("Exec.") {
+            let e = o
+                .entry("Exec".to_string())
+                .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
+            if let Some(m) = e.as_object_mut() {
+                m.insert(rest.to_string(), serde_json::Value::String(v.clone()));
+            }
+            continue;
+        }
+        o.insert(k.to_string(), serde_json::Value::String(v.clone()));
+    }
+    serde_json::Value::Array(vec![serde_json::Value::Object(o)]).to_string()
+}
+
+/// The image `run -d` and `create` need, and everything derived from it.
+pub struct Prepared {
+    pub record: podvm_image::Record,
+    pub image: String,
+    pub rootfs: String,
+    pub argv: Vec<String>,
+    pub env: Vec<String>,
+    pub working_dir: String,
+    pub name: Option<String>,
+    pub rung: String,
+    pub detach: bool,
+    pub rm: bool,
+    /// ⭐ T-0710: the host memo file this entry hands the payload, beside the
+    /// container record once the container exists. For `prepare` itself this is
+    /// an ephemeral file under staging; `create` and `run -d` move it to
+    /// `containers/<id>/ownership.memo`, foreground `run` deletes it on exit.
+    /// The environment already carries `PODVM_MEMO_FD` for it.
+    pub memo_host_path: std::path::PathBuf,
+    /// ⭐ TODO/packaging.md T-1003. The forced launch rung `prepare` admitted,
+    /// driven by foreground `run` and by nothing else. None is the default
+    /// chroot-by-path entry.
+    pub ladder: Option<podvm_enter::ladder::Mode>,
+    /// The probe rows the entry was decided under. `run` feeds them to the
+    /// ladder; `create` and `run -d` carry them unused, because neither
+    /// drives a rung.
+    pub findings: podvm_probe::Findings,
+    /// ⭐ T-0804 rule 3: `inspect` reports the TRUE mode per container, and a
+    /// shimmed `/dev/null` is part of that mode. One line per fixup that
+    /// changed a byte or failed, carried into the container record.
+    pub completion: Vec<String>,
+    pub completion_degraded: usize,
+    /// ⭐ TODO/enter.md T-1317. The no-chroot entry foreground `run` takes
+    /// where chroot is denied. None is the chroot sequence, as before.
+    pub userland: Option<Userland>,
+}
+
+/// Resolve a container reference to the rootfs `exec` re-enters.
+///
+/// ⚠ A container name first, then an image reference, because `podvm exec` on a
+/// running container is the common case and an image of the same name is the
+/// unusual one.
+pub fn rootfs_of(s: &podvm_image::Store, want: &str) -> Option<(String, State)> {
+    let c = podvm_supervise::get(s, want).ok()?;
+    Some((c.rootfs, c.state))
+}
+
+/// TODO/milestones.md T-1112. Refuse a guest that is not Linux by name,
+/// with the missing leg, on every entry path.
+///
+/// podvm runs Linux guests only: the chroot tier shares the host kernel
+/// and the machine tier boots Linux images, so a request naming another OS
+/// is refused here, before anything is fetched or entered, rather than
+/// pulled and failed inside.
+pub fn ensure_linux_guest(verb: &str, os: &str, arch: &str) -> Result<(), i32> {
+    if os == podvm_image::platform::OS {
+        return Ok(());
+    }
+    // ⭐ TODO/milestones.md T-1112. A guest that is not Linux is not an OCI
+    // rootfs: it is a disk image an emulator boots, so it has a verb of its
+    // own and this path cannot run it. The refusal names that verb rather
+    // than claiming no support exists, because since T-1112 one does.
+    if let Some(verb_name) = guest_verb(os) {
+        eprintln!(
+            "podvm {verb}: {os}/{arch} is not an OCI rootfs, so nothing on \
+             this path pulls or enters it. A disposable {os} guest is its own \
+             verb: `{verb_name} --image <disk> -- <command>` \
+             (TODO/milestones.md T-1112)"
+        );
+        return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
+    }
+    eprintln!(
+        "podvm {verb}: {os}/{arch} is not a Linux guest. podvm runs Linux \
+         guests only: the chroot tier shares the host kernel and the machine \
+         tier boots Linux images. No {os} guest support exists \
+         (TODO/milestones.md T-1112), so there is nothing to pull or enter \
+         for this platform"
+    );
+    Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+}
+
+/// Where a non-Linux guest lives, if podvm has one: the command a caller
+/// who asked for it here should have used. `None` is a refusal.
+///
+/// ⛔ Separate from [`ensure_linux_guest`] so the routing is a value the
+/// tests pin, rather than a sentence buried in an `eprintln!`.
+pub fn guest_verb(os: &str) -> Option<&'static str> {
+    match os {
+        "windows" => Some("podvm windows run"),
+        _ => None,
+    }
+}
+
+// TODO/enter.md T-1411. T-1317's strict chroot gate stood here: `create`
+// kept it because a record promised a launcher entry and the launcher
+// chrooted. The launcher now drives the userland loader family
+// detached, so no gate keeps it: `create` and `run -d` take the
+// two-tier `ensure_entry_possible` gate and the record carries the
+// loader drive, and `start` checks the record instead of the probe.
+
+/// The pure half of [`ensure_entry_possible`]: anything could run where
+/// chroot holds, the static family needs the kernel's memfd, and the
+/// loader family needs an interposer object in this binary. Tests pin
+/// the table; the wrapper below reads the machine.
+fn entry_possible(chroot_ok: bool, memfd_ok: bool, objects: bool) -> bool {
+    chroot_ok || memfd_ok || objects
+}
+
+/// TODO/enter.md T-1317. The pre-fetch tier of the entry gate: refuse only
+/// where nothing could run.
+///
+/// The exact rung needs the payload, which is post-extract, so this gate
+/// admits where chroot holds, where the kernel takes a memfd (the static
+/// no-chroot family may run), or where this binary embeds an interposer
+/// object (the loader no-chroot family may run). Refusal names all three
+/// misses at 125, fetching nothing.
+///
+/// ⭐ TODO/image.md T-1418. Past that tier, the store itself must execute
+/// what it creates: a default store on a `noexec` filesystem pulls and
+/// extracts fully, then dies at `execve` with raw `EACCES`. The probe runs
+/// here, before any byte is fetched, and refuses with the path and the
+/// `$PODVM_STORE` remedy. A probe that cannot run names its path and
+/// never reads as "no".
+pub fn ensure_entry_possible(
+    verb: &str,
+    findings: &podvm_probe::Findings,
+    store_root: &std::path::Path,
+) -> Result<(), i32> {
+    if entry_possible(
+        podvm_probe::probes::chroot_usable(findings),
+        podvm_enter::memfd::kernel_takes_memfd(),
+        crate::interpose::object(crate::interpose::Libc::Gnu).is_some()
+            || crate::interpose::object(crate::interpose::Libc::Musl).is_some(),
+    ) {
+        return ensure_store_exec(verb, store_root);
+    }
+    eprintln!(
+        "podvm {verb}: chroot(2) is denied on this machine, and no no-chroot \
+         family can run either: the kernel takes no memfd, and this podvm \
+         binary embeds no interposer object for the loader family (see \
+         `podvm probe`, and ./scripts/build-interpose.sh builds them) \
+         (TODO/enter.md T-1317)"
+    );
+    Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+}
+
+/// TODO/image.md T-1418. Probe whether files created under the store
+/// execute, before any byte is fetched.
+///
+/// `ok` runs the entry on; `ok == false` refuses at 125 with the probe's
+/// own detail, which names the directory and the `$PODVM_STORE` remedy;
+/// a probe error refuses naming the path, never as "no".
+///
+/// ⚠ Unix only: the probe executes a script, and the chroot entry it
+/// guards does not exist off unix either, so the gate below refuses there
+/// instead with its own sentence.
+pub fn ensure_store_exec(verb: &str, store_root: &std::path::Path) -> Result<(), i32> {
+    #[cfg(not(unix))]
+    {
+        let _ = (verb, store_root);
+        return Ok(());
+    }
+    #[cfg(unix)]
+    {
+        match podvm_image::exec_probe::probe_store_exec(store_root) {
+            Ok(probe) if probe.ok => Ok(()),
+            Ok(probe) => {
+                eprintln!("podvm {verb}: {}", probe.detail);
+                Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+            }
+            Err(e) => {
+                eprintln!("podvm {verb}: the store exec probe could not run: {e}");
+                Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+            }
+        }
+    }
+}
+
+/// TODO/cli.md T-1414. The no-chroot refusal code follows the payload
+/// status on every rung, exactly as the chroot path emits from the child:
+/// `Absent` is 127, found-but-not-invocable is 126 (the errno split
+/// T-0802 pins: ENOENT against EPERM, ENOEXEC, EACCES, EISDIR and
+/// ETXTBSY), and a genuine podvm failure stays 125.
+///
+/// ⚠ Matched on `ladder::resolve_payload`'s own sentences rather than
+/// re-derived: the resolution kinds are rendered there into strings, so
+/// re-walking the symlinks here would be the second copy
+/// `docs/conventions/code.md` refuses. The three shapes are pinned by
+/// `resolve_codes_follow_the_payload_status` below, so a rewording there
+/// fails here instead of silently returning 125.
+fn resolve_code(msg: &str) -> i32 {
+    if msg.contains("names no file in the image") {
+        EXIT_NOT_FOUND
+    } else if msg.contains("escapes the image") || msg.contains("too many levels of symlinks") {
+        EXIT_CANNOT_INVOKE
+    } else {
+        EXIT_RUNTIME_ERROR
+    }
+}
+
+/// A no-chroot entry this run takes, decided post-extract and pre-fixup.
+#[derive(Debug, Clone)]
+pub struct Userland {
+    /// Which family runs the payload.
+    pub family: podvm_enter::userland::Family,
+    /// The exact argv the child execs (the loader family: loader, payload
+    /// by host path, then the payload's own arguments).
+    pub loader_argv: Vec<String>,
+    /// The image's library directories by host path (the loader family).
+    pub lib_dirs: Vec<String>,
+    /// The rung account lines for the banner.
+    pub banner: String,
+}
+
+/// TODO/enter.md T-1317. The exact rung, post-extract and pre-fixup: the
+/// rootfs exists and nothing has been written into it yet.
+///
+/// `None` is the chroot sequence, as before. Where chroot is denied the
+/// loader family runs a dynamic payload the tier reaches (loader present,
+/// libraries present, native image) and the memfd family runs a static
+/// one; where neither runs the refusal names every tried rung with its
+/// missing leg: the last resort, never the whole answer. The refusal code
+/// follows the payload status on every rung (T-1414): 127 where the
+/// payload resolved to nothing, 126 where it was found but not invocable,
+/// 125 for a genuine podvm-side failure.
+///
+/// Read-only: classification, resolution and ELF reads only. Placement
+/// (`place`) and fixups run after this decides, so a refusal writes
+/// nothing into the image.
+#[allow(clippy::too_many_arguments)]
+pub fn decide_entry(
+    verb: &str,
+    rootfs: &str,
+    argv: &[String],
+    env: &[String],
+    support_native: bool,
+    findings: &podvm_probe::Findings,
+) -> Result<Option<Userland>, i32> {
+    if podvm_probe::probes::chroot_usable(findings) {
+        return Ok(None);
+    }
+    let argv0 = argv.first().map(String::as_str).unwrap_or("");
+    let path_dirs = podvm_enter::Plan::path_from(env);
+    let no_chroot = |code: i32, family_note: String| {
+        eprintln!(
+            "podvm {verb}: chroot(2) is denied on this machine, and no \
+             no-chroot family runs this payload: {family_note}. The probe's \
+             chroot leg reports the denial (see `podvm probe`) \
+             (TODO/enter.md T-1317)"
+        );
+        Err(code)
+    };
+    // ⭐ T-1413 and T-1414. Resolved once, up front: the path rides the
+    // script refusal below, the resolution sentences decide the refusal
+    // code (127 absent, 126 found-but-not-invocable), and the loader arm
+    // reuses the same path rather than resolving twice.
+    let resolved = match podvm_enter::ladder::resolve_payload(rootfs, argv0, &path_dirs) {
+        Ok(p) => p,
+        Err(e) => {
+            let code = resolve_code(&e.to_string());
+            return no_chroot(code, format!("{argv0} resolves to nothing runnable: {e}"));
+        }
+    };
+    // The payload bytes decide the family. Read-only: classification and
+    // ELF reads only, so a refusal writes nothing into the image.
+    let bytes = match podvm_enter::ladder::payload_bytes(rootfs, argv0, &path_dirs) {
+        Ok(b) => b,
+        Err(e) => {
+            let msg = e.to_string();
+            // ⚠ T-0802's errno split: a directory is found-but-not-
+            // invocable (EISDIR is a 126), while an unreadable file or an
+            // over-ceiling one is a genuine podvm-side failure (125).
+            let code = if msg.contains("Is a directory") {
+                EXIT_CANNOT_INVOKE
+            } else {
+                EXIT_RUNTIME_ERROR
+            };
+            return no_chroot(
+                code,
+                format!("{argv0} resolved but its bytes could not be read: {e}"),
+            );
+        }
+    };
+    let interp = match podvm_enter::memfd::eligible(&bytes) {
+        Ok(()) => None,
+        Err(podvm_enter::memfd::MemfdRefusal::RoutePastScript) => {
+            // ⭐ T-1413. The refusal names the exact payload path and its
+            // `#!` line, resolved and read above: an anonymous refusal is
+            // a defect in the message. Longer term the interpreter routes
+            // inside the rootfs where the T-1407 map table covers it.
+            let refusal = podvm_enter::memfd::script_refusal(&resolved, &bytes);
+            return no_chroot(EXIT_CANNOT_INVOKE, refusal.message());
+        }
+        Err(podvm_enter::memfd::MemfdRefusal::NotElf(why)) => {
+            return no_chroot(
+                EXIT_CANNOT_INVOKE,
+                format!("the payload is not an ELF file: {why}"),
+            );
+        }
+        Err(podvm_enter::memfd::MemfdRefusal::HasInterp(interp)) => Some(interp),
+    };
+    if interp.is_none() {
+        // Static: the memfd family, where the kernel takes one.
+        if !support_native {
+            return no_chroot(
+                EXIT_RUNTIME_ERROR,
+                "the payload is statically linked but the image is foreign: \
+                 binfmt resolution without a chroot is refused (T-0506)"
+                    .to_string(),
+            );
+        }
+        if !podvm_enter::memfd::kernel_takes_memfd() {
+            return no_chroot(
+                EXIT_RUNTIME_ERROR,
+                "the payload is statically linked but the kernel takes no \
+                 memfd on this machine"
+                    .to_string(),
+            );
+        }
+        return Ok(Some(Userland {
+            family: podvm_enter::userland::Family::Memfd,
+            loader_argv: Vec::new(),
+            lib_dirs: Vec::new(),
+            banner: "entering without chroot on the memfd family: the payload \
+             runs from a staged memfd with the host's root and its working \
+             directory inside the image; absolute paths resolve on the host \
+             because the static payload makes raw syscalls past the interposer, \
+             so no path is rewritten, and it reads /proc/self/exe as the staged \
+             memfd path, so a self-locating runtime cannot resolve itself here \
+             (TODO/enter.md T-1317, T-1409)"
+                .to_string(),
+        }));
+    }
+    // Dynamic: the loader family, where the tier reaches the payload.
+    let interp = interp.unwrap_or_default();
+    if !support_native {
+        return no_chroot(
+            EXIT_RUNTIME_ERROR,
+            "the payload is dynamically linked but the image is foreign: binfmt \
+             resolution without a chroot is refused (T-0506)"
+                .to_string(),
+        );
+    }
+    // ⭐ Resolved once above and reused here: the invocation keeps the
+    // invoked name where it names something openable. Measured on the lane
+    // (probe-3): alpine's `/bin/sh` points at the absolute `/bin/busybox`,
+    // which dangles on the host side, so the resolved file is what opens
+    // and `loader_argv_for` below carries the invoked name as the applet.
+    // A relative link (debian's `/bin/sh`) opens as invoked.
+    let payload_host = podvm_enter::userland::invocation_path(rootfs, argv0, &path_dirs, &resolved);
+    let plan = match podvm_enter::userland::loader_plan(rootfs, &interp, &payload_host) {
+        Ok(p) => p,
+        Err(why) => {
+            // ⚠ Found, but the loader cannot run it: 126, never 125.
+            return no_chroot(EXIT_CANNOT_INVOKE, why);
+        }
+    };
+    match crate::interpose::classify(rootfs, argv0, &path_dirs) {
+        crate::interpose::Reach::Declined(why) => {
+            // ⚠ Found, but the tier cannot virtualize it (Go markers, an
+            // unknown libc, an unreadable ELF): without the interposer no
+            // path is rewritten, so 126, never a silent host run.
+            return no_chroot(
+                EXIT_CANNOT_INVOKE,
+                format!("the loader family declines the payload: {why}"),
+            );
+        }
+        crate::interpose::Reach::Preload { .. } => {}
+    }
+    // The loader consumes argv[0] (its own path) and argv[1] (the program):
+    // the payload sees its own arguments with argv[0] as the host path.
+    // That path is what was executed, and the banner says so. Where the
+    // payload resolved to busybox through another name, the invoked name
+    // rides beside the opened file so the applet selection survives.
+    let (loader_argv, applet) = podvm_enter::userland::loader_argv_for(
+        &plan.loader_host,
+        &plan.payload_host,
+        argv0,
+        argv.get(1..).unwrap_or(&[]),
+    );
+    Ok(Some(Userland {
+        family: podvm_enter::userland::Family::Loader,
+        loader_argv,
+        lib_dirs: plan.lib_dirs,
+        banner: format!(
+            "entering without chroot on the loader family: {} runs {} with the \
+             image's libraries; absolute guest paths anchor inside the rootfs \
+             through PODVM_MAPS, and host pass-through happens only under \
+             --unsafe-host-paths, and argv[0] keeps the invoked name{}; \
+             a grandchild that execs an absolute path runs it on the host past \
+             the loader mapping and fails 127 where the host holds no such file \
+             (TODO/enter.md T-1317, T-1407, T-1411)",
+            plan.loader_host,
+            plan.payload_host,
+            if applet {
+                format!(
+                    "; the invoked name {argv0:?} rides as the applet the resolved \
+                     busybox file selects"
+                )
+            } else {
+                String::new()
+            },
+        ),
+    }))
+}
+
+/// The interposer's opt-in beside [`podvm_enter::ladder::GUEST_EXE_VAR`].
+///
+/// TODO/enter.md T-1409. Duplicate by value of the interposer's
+/// `procfs::GUEST_EXE_FORCE_VAR`: this crate takes no dependency on that
+/// object, and the spelling plus the exact value `"1"` is the contract
+/// between the two. Set only on loader-family userland entries alongside
+/// `PODVM_GUEST_EXE`, so the payload reads its own path from
+/// `/proc/self/exe` rather than the loader's.
+pub const GUEST_EXE_FORCE_VAR: &str = "PODVM_GUEST_EXE_FORCE";
+/// The exact value the interposer answers to. Anything else leaves the
+/// host answer in place.
+pub const GUEST_EXE_FORCE_ON: &str = "1";
+
+/// What [`userland_env`] decided: the environment the payload starts with,
+/// one banner account, and the decided opt-out `--strict` classifies on.
+/// The anchoring and the exe-force are banner facts only: the banner names
+/// them, and no second value carries them beside it.
+#[derive(Debug)]
+pub struct UserlandEnv {
+    pub env: Vec<String>,
+    pub banner: String,
+    /// The decided `--unsafe-host-paths` opt-out, which `--strict` refuses
+    /// as safety-relevant (TODO/cli.md T-1415). The call sites feed this
+    /// decided value to the gate rather than re-reading their own flag.
+    pub unsafe_paths: bool,
+}
+
+/// The environment a userland entry starts with, in one place.
+///
+/// TODO/enter.md T-1407 (the root-anchoring `PODVM_MAPS` table) and T-1409
+/// (the `PODVM_GUEST_EXE_FORCE` opt-in). One path for `run` and both `exec`
+/// entries, so the table, the scrub, and the banner cannot drift between
+/// them (`docs/conventions/code.md`).
+///
+/// A caller-supplied `PODVM_MAPS` is scrubbed first, the way
+/// `PODVM_GUEST_EXE` is: without that a nested `podvm run` inherits the
+/// outer payload's table. Unless `--unsafe-host-paths` opts into the
+/// pass-through, the built table anchors guest `/` inside `rootfs`, and a
+/// rootfs the table cannot spell refuses at 125 rather than rewriting
+/// nothing (an empty table on this rung is a silent host write).
+/// `PODVM_GUEST_EXE_FORCE=1` rides only the loader family beside an
+/// already-set `PODVM_GUEST_EXE`; the memfd family never sees it.
+pub fn userland_env(
+    verb: &str,
+    rootfs: &str,
+    env: Vec<String>,
+    family: podvm_enter::userland::Family,
+    unsafe_paths: bool,
+) -> Result<UserlandEnv, i32> {
+    use podvm_enter::userland::MAPS_VAR;
+    let mut out: Vec<String> = env
+        .into_iter()
+        .filter(|e| e.split('=').next().unwrap_or("") != MAPS_VAR)
+        .collect();
+    let mut banner = String::new();
+    if unsafe_paths {
+        banner.push_str(
+            "podvm: userland: running with --unsafe-host-paths: absolute guest \
+             paths resolve on the host with no PODVM_MAPS anchoring, and a \
+             write lands on the host tree (TODO/enter.md T-1407)\n",
+        );
+    } else {
+        match podvm_enter::userland::userland_maps_table(rootfs) {
+            Ok(table) => {
+                out.push(format!("{MAPS_VAR}={table}"));
+                banner.push_str(&format!(
+                    "podvm: userland: absolute guest paths anchor inside {rootfs} \
+                     through {MAPS_VAR}={table} (TODO/enter.md T-1407)\n"
+                ));
+            }
+            Err(why) => {
+                eprintln!("podvm {verb}: userland: {why}");
+                return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
+            }
+        }
+    }
+    if family == podvm_enter::userland::Family::Loader
+        && out
+            .iter()
+            .any(|e| e.split('=').next().unwrap_or("") == podvm_enter::ladder::GUEST_EXE_VAR)
+    {
+        out.retain(|e| e.split('=').next().unwrap_or("") != GUEST_EXE_FORCE_VAR);
+        out.push(format!("{GUEST_EXE_FORCE_VAR}={GUEST_EXE_FORCE_ON}"));
+        banner.push_str(
+            "podvm: userland: /proc/self/exe answers the payload's own path \
+             from PODVM_GUEST_EXE rather than the loader's \
+             (TODO/enter.md T-1409)\n",
+        );
+    }
+    Ok(UserlandEnv {
+        env: out,
+        banner,
+        unsafe_paths,
+    })
+}
+/// What a userland drive did: the exit code, and whether the payload
+/// ran. A decision-time refusal (unreadable bytes, unstaged memfd)
+/// never entered, so the caller skips the post-run cleanup its own
+/// `--rm` would do; a payload that ran, however it ended, takes the
+/// normal path out.
+pub struct UserlandOutcome {
+    pub code: i32,
+    pub entered: bool,
+}
+
+/// Drive a decided userland entry, on either verb.
+///
+/// TODO/enter.md T-1410. One path for `run` and both `exec` entries, so
+/// the two verbs cannot diverge on the rung they share: the loader argv
+/// execs directly, the memfd family stages post-fixup bytes first (and
+/// refuses where the fixups changed what the decision read, rather than
+/// entering something unjudged). Messages name the calling verb.
+pub fn enter_userland(
+    verb: &str,
+    root: &podvm_enter::RootDir,
+    plan: &podvm_enter::Plan,
+    userland: &Userland,
+    rootfs: &str,
+    err: &mut dyn Write,
+) -> UserlandOutcome {
+    let failed = |code: i32| UserlandOutcome {
+        code,
+        entered: false,
+    };
+    let active = podvm_probe::select::Rung::Userland.word();
+    let (exec_argv, fd) = match userland.family {
+        podvm_enter::userland::Family::Loader => (userland.loader_argv.clone(), None),
+        podvm_enter::userland::Family::Memfd => {
+            let argv0 = plan.argv.first().cloned().unwrap_or_default();
+            let bytes = match podvm_enter::ladder::payload_bytes(rootfs, &argv0, &plan.path_dirs) {
+                Ok(b) => b,
+                Err(e) => {
+                    let _ = writeln!(err, "podvm {verb}: {e}");
+                    return failed(e.exit_code());
+                }
+            };
+            if podvm_enter::memfd::eligible(&bytes).is_err() {
+                // Fixups changed what the decision read: loud, never
+                // silent, and the fixups stay (they are the image's now,
+                // not this run's).
+                let _ = writeln!(
+                    err,
+                    "podvm {verb}: the payload the memfd family was decided \
+                     on no longer stages: refusing rather than entering \
+                     something unjudged (TODO/enter.md T-1317)"
+                );
+                return failed(podvm_image::error::EXIT_RUNTIME_ERROR);
+            }
+            match podvm_enter::memfd::stage(&bytes) {
+                Ok(f) => (plan.argv.clone(), Some(f)),
+                Err(e) => {
+                    let _ = writeln!(err, "podvm {verb}: {e}");
+                    return failed(e.exit_code());
+                }
+            }
+        }
+    };
+    match podvm_enter::run_userland(root, plan, exec_argv, active, fd, err) {
+        Ok(c) => UserlandOutcome {
+            code: c,
+            entered: true,
+        },
+        Err(e) => {
+            let _ = writeln!(err, "podvm {verb}: {e}");
+            UserlandOutcome {
+                code: e.exit_code(),
+                entered: true,
+            }
+        }
+    }
+}
+
+/// TODO/enter.md T-1411. The detached drive a record carries: the loader
+/// argv where the loader family was decided, nothing everywhere else.
+///
+/// One function for `create` and `run -d`, so the two verbs cannot
+/// disagree about which family has a detached driver
+/// (`docs/conventions/code.md`).
+pub fn detached_drive(userland: Option<&Userland>) -> Vec<String> {
+    userland
+        .filter(|u| u.family == podvm_enter::userland::Family::Loader)
+        .map(|u| u.loader_argv.clone())
+        .unwrap_or_default()
+}
+
+/// TODO/enter.md T-1411. The detached refusal, naming the blocking call.
+///
+/// T-1317's last resort survives only for entries with no detached
+/// driver: the memfd family and anything the foreground cannot run. The
+/// loader family drives detached through `spawn_userland` since T-1411
+/// reversed that decision in writing, so this names the loader only in
+/// the sentence that says it runs. `create` records the loader drive
+/// beside the refusal for the rest, because a record promises a launcher
+/// entry and only the loader family has one without a chroot.
+pub fn detached_userland_refusal(verb: &str, family: &str) -> String {
+    format!(
+        "podvm {verb}: chroot(2) is denied and the {family} family has no detached \
+         driver: the launcher enters detached payloads through \
+         podvm_enter::spawn_selected (the chroot sequence and its namespace variant) \
+         and, where the record carries the loader drive, \
+         podvm_enter::spawn_userland. `run -d` and `start` refuse this {family} entry \
+         here and `create` records no drive for it; run foreground \
+         (TODO/enter.md T-1317, T-1411)"
+    )
+}
+
+/// Shared by `run` and `create`: everything a container needs before it exists.
+#[allow(clippy::too_many_arguments)]
+pub fn platform_and_policy(
+    verb: &str,
+    platform: Option<&str>,
+    insecure: &[String],
+    tls_verify: Option<bool>,
+) -> Result<(Platform, Policy), i32> {
+    let p = Platform::wanted(platform).map_err(|e| {
+        eprintln!("podvm {verb}: {e}");
+        e.exit_code()
+    })?;
+    let pol = Policy::resolve(insecure, tls_verify).map_err(|e| {
+        eprintln!("podvm {verb}: {e}");
+        e.exit_code()
+    })?;
+    Ok((p, pol))
+}
+
+/// Resolve `--user` into the environment, for T-0711.
+///
+/// ⭐ One call for `run`, `create` and both `exec` paths: the value is the
+/// resolved `UID:GID`, the caller's own spelling under the same name loses,
+/// and a name means the image's own files. `None` changes nothing.
+pub fn apply_user(
+    verb: &str,
+    rootfs: &str,
+    user: Option<&String>,
+    env: &mut Vec<String>,
+) -> Result<(), i32> {
+    let Some(spec) = user else {
+        return Ok(());
+    };
+    let (uid, gid) = resolve_user(verb, rootfs, spec)?;
+    env.retain(|e| e.split('=').next().unwrap_or("") != crate::interpose::IDENTITY_VAR);
+    env.push(format!("{}={uid}:{gid}", crate::interpose::IDENTITY_VAR));
+    Ok(())
+}
+
+/// Resolve `--user UID[:GID]` against the image, for T-0711.
+///
+/// Either side is a decimal id or a name from the image's own files: the
+/// missing group means the user's own, as docker resolves it. Anything else
+/// is the caller's mistake and refuses as a flag error, naming what was
+/// asked for rather than running as somebody unintended.
+pub fn resolve_user(verb: &str, rootfs: &str, spec: &str) -> Result<(u32, u32), i32> {
+    fn num(s: &str) -> Option<u32> {
+        if s.is_empty() || s.len() > 10 || !s.bytes().all(|c| c.is_ascii_digit()) {
+            return None;
+        }
+        s.parse().ok()
+    }
+    /// The `UID` and primary `GID` for `want` in the image's own passwd
+    /// file: fields 2 and 3 past the name. A name that is not there is
+    /// `None`, not zero.
+    fn passwd(rootfs: &str, want: &str) -> Option<(u32, u32)> {
+        let text = std::fs::read_to_string(format!("{rootfs}/etc/passwd")).ok()?;
+        for line in text.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let mut fields = line.split(':');
+            if fields.next() != Some(want) {
+                continue;
+            }
+            fields.next()?;
+            let uid: u32 = fields.next()?.trim().parse().ok()?;
+            let gid: u32 = fields.next()?.trim().parse().ok()?;
+            return Some((uid, gid));
+        }
+        None
+    }
+    /// The id for `want` in the image's own group file: field 2 past the
+    /// name. A name that is not there is `None`, not zero.
+    fn lookup(rootfs: &str, want: &str) -> Option<u32> {
+        let text = std::fs::read_to_string(format!("{rootfs}/etc/group")).ok()?;
+        for line in text.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let mut fields = line.split(':');
+            if fields.next() != Some(want) {
+                continue;
+            }
+            fields.next()?;
+            return fields.next()?.trim().parse().ok();
+        }
+        None
+    }
+    let (user, group) = match spec.split_once(':') {
+        Some((u, g)) => (u, Some(g)),
+        None => (spec, None),
+    };
+    // ⭐ A bare name means that user's own primary group from the image's
+    // passwd file, not the uid repeated: the two agree on most images and
+    // differ exactly where inventing one would run as somebody unintended.
+    let (uid, primary) = match num(user) {
+        Some(u) => (Some(u), None),
+        None => match passwd(rootfs, user) {
+            Some((u, g)) => (Some(u), Some(g)),
+            None => (None, None),
+        },
+    };
+    let gid = match group {
+        Some(g) => num(g).or_else(|| lookup(rootfs, g)),
+        None => primary.or(uid),
+    };
+    match (uid, gid, group) {
+        (Some(u), _, None) => Ok((u, gid.unwrap_or(u))),
+        (Some(u), Some(g), _) => Ok((u, g)),
+        _ => {
+            eprintln!(
+                "podvm {verb}: --user takes uid[:gid] with decimal ids or names \
+                 from the image's own passwd and group files, not {spec:?}"
+            );
+            Err(podvm_image::error::EXIT_FLAG_ERROR)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// TODO/enter.md T-1407. The maps table is set on a userland run, a
+    /// caller-supplied value is scrubbed first, and the banner names the
+    /// anchoring; `--unsafe-host-paths` opts out and the banner names the
+    /// opt-in instead.
+    #[test]
+    fn userland_env_anchors_paths_or_names_the_opt_out() {
+        use podvm_enter::userland::{Family, MAPS_VAR};
+        let env = vec![format!("{MAPS_VAR}=/:evil"), "PATH=/bin".to_string()];
+        let ue = userland_env("run", "/store/rootfs", env, Family::Loader, false).unwrap();
+        assert_eq!(
+            ue.env
+                .iter()
+                .filter(|e| e.starts_with("PODVM_MAPS="))
+                .count(),
+            1,
+            "{:?}",
+            ue.env
+        );
+        assert!(
+            ue.env.iter().any(|e| e == "PODVM_MAPS=/:/store/rootfs"),
+            "{:?}",
+            ue.env
+        );
+        assert!(!ue.unsafe_paths);
+        assert!(ue.banner.contains("PODVM_MAPS"), "{}", ue.banner);
+        let ue = userland_env(
+            "run",
+            "/store/rootfs",
+            vec!["PATH=/bin".to_string()],
+            Family::Memfd,
+            true,
+        )
+        .unwrap();
+        assert!(
+            !ue.env.iter().any(|e| e.starts_with("PODVM_MAPS=")),
+            "{:?}",
+            ue.env
+        );
+        assert!(ue.unsafe_paths);
+        assert!(ue.banner.contains("--unsafe-host-paths"), "{}", ue.banner);
+        // A rootfs the table cannot spell refuses rather than rewriting
+        // nothing: an empty table on this rung is a silent host write.
+        assert_eq!(
+            userland_env("run", "relative", vec![], Family::Loader, false).unwrap_err(),
+            podvm_image::error::EXIT_RUNTIME_ERROR
+        );
+    }
+
+    /// TODO/enter.md T-1409. `PODVM_GUEST_EXE_FORCE=1` rides only the
+    /// loader family beside an already-set `PODVM_GUEST_EXE`, exact `"1"`,
+    /// named once on the banner; a stale value is scrubbed first and the
+    /// memfd family never sees it.
+    #[test]
+    fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
+        use podvm_enter::userland::Family;
+        let exe = format!("{}=/bin/prog", podvm_enter::ladder::GUEST_EXE_VAR);
+        let ue = userland_env(
+            "run",
+            "/store/rootfs",
+            vec![exe.clone(), "PODVM_GUEST_EXE_FORCE=0".to_string()],
+            Family::Loader,
+            false,
+        )
+        .unwrap();
+        assert_eq!(
+            ue.env
+                .iter()
+                .filter(|e| e.starts_with("PODVM_GUEST_EXE_FORCE="))
+                .count(),
+            1,
+            "{:?}",
+            ue.env
+        );
+        assert!(
+            ue.env.iter().any(|e| e == "PODVM_GUEST_EXE_FORCE=1"),
+            "{:?}",
+            ue.env
+        );
+        assert!(ue.banner.contains("PODVM_GUEST_EXE"), "{}", ue.banner);
+        // No guest exe set: no force, even on the loader family.
+        let ue = userland_env("run", "/store/rootfs", vec![], Family::Loader, false).unwrap();
+        assert!(
+            !ue.env
+                .iter()
+                .any(|e| e.starts_with("PODVM_GUEST_EXE_FORCE=")),
+            "{:?}",
+            ue.env
+        );
+        // The memfd family never carries it, guest exe or not.
+        let ue = userland_env("run", "/store/rootfs", vec![exe], Family::Memfd, false).unwrap();
+        assert!(
+            !ue.env
+                .iter()
+                .any(|e| e.starts_with("PODVM_GUEST_EXE_FORCE=")),
+            "{:?}",
+            ue.env
+        );
+    }
+
+    /// TODO/image.md T-1418. The store-exec gate passes where a created
+    /// file executes and refuses naming the path where the probe cannot
+    /// run. The `no` verdict itself is the image crate's to prove; what
+    /// this pins is that the gate calls it and maps its answers.
+    #[test]
+    #[cfg(unix)]
+    fn store_exec_passes_where_a_created_file_executes() {
+        let d = std::env::temp_dir().join(format!("podvm-storexec-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        assert!(ensure_store_exec("run", &d).is_ok());
+        assert_eq!(
+            ensure_store_exec("run", &d.join("absent")),
+            Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+        );
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// TODO/enter.md T-1411. The detached refusal names the blocking
+    /// call and every affected verb, so a caller learns what would lift
+    /// it rather than just what failed. The loader drive is named beside
+    /// it, because that family runs instead of refusing.
+    #[test]
+    fn the_detached_refusal_names_the_blocking_call_and_the_verbs() {
+        let s = detached_userland_refusal("start", "memfd");
+        assert!(s.contains("spawn_selected"), "{s}");
+        assert!(s.contains("spawn_userland"), "{s}");
+        assert!(s.contains("memfd"), "{s}");
+        for v in ["run -d", "create", "start"] {
+            assert!(s.contains(v), "{s}");
+        }
+    }
+
+    #[test]
+    fn lifecycle_usage_strings_are_plain_ascii() {
+        // TODO/cli.md T-1336: `ps`, `logs`, `restart` and `cp` usages
+        // print on every `--help`; a glyph there is unrenderable bytes
+        // in an automated caller's stream.
+        let text = [PS_USAGE, LOGS_USAGE, RESTART_USAGE, CP_USAGE].concat();
+        let bad = text.bytes().filter(|b| *b > 0x7F).count();
+        assert_eq!(bad, 0, "lifecycle usage carries {bad} non-ASCII bytes");
+    }
+
+    #[test]
+    fn a_container_path_is_split_from_a_plain_one() {
+        assert_eq!(
+            split("web:/etc/hosts"),
+            Some(("web".into(), "/etc/hosts".into()))
+        );
+        assert_eq!(split("/etc/hosts"), None);
+        // ⚠ A path with a colon in it is not a container reference.
+        assert_eq!(split("/tmp/a:b"), None);
+        assert_eq!(split("web:"), None);
+    }
+
+    #[test]
+    fn a_signal_is_taken_by_name_or_number_and_never_defaulted() {
+        assert_eq!(signal_number("TERM"), Some(15));
+        assert_eq!(signal_number("SIGKILL"), Some(9));
+        assert_eq!(signal_number("9"), Some(9));
+        // ⛔ Refused rather than defaulted: sending the wrong signal is not
+        // something a caller can notice afterwards.
+        assert_eq!(signal_number("NOPE"), None);
+        assert_eq!(signal_number("0"), None);
+        assert_eq!(signal_number("999"), None);
+    }
+
+    /// ⛔ Every declared field is built and every built field is declared.
+    #[test]
+    fn the_declared_container_fields_are_the_built_ones() {
+        let d = std::env::temp_dir().join(format!("podvm-lc-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let s = podvm_image::Store::open(&d).unwrap();
+        let c = Container {
+            id: "a".repeat(64),
+            name: "n".into(),
+            image: "img".into(),
+            manifest_digest: "sha256:0".into(),
+            rootfs: "/tmp".into(),
+            argv: vec!["true".into()],
+            env: Vec::new(),
+            working_dir: "/".into(),
+            created_at: "now".into(),
+            started_at: None,
+            finished_at: None,
+            state: State::Created,
+            pid: None,
+            launcher_pid: None,
+            exit_code: None,
+            noticed: None,
+            rung: "chroot".into(),
+            userland_exec: Vec::new(),
+            completion: vec!["created dev/null (dev-shim, T-0401)".into()],
+            completion_degraded: 1,
+        };
+        let built: Vec<&str> = container_fields(&s, &c).iter().map(|(k, _)| *k).collect();
+        assert_eq!(built, CONTAINER_INSPECT_FIELDS);
+        // ⛔ And a container with no exit code renders a dash, never a zero.
+        let f = container_fields(&s, &c);
+        assert_eq!(
+            f.iter().find(|(k, _)| *k == "ExitCode").unwrap().1,
+            "-".to_string()
+        );
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// ⛔ A bare name means the passwd file's primary group, not the uid
+    /// repeated: the plant is a user whose gid differs from its uid, and
+    /// the old `(u, u)` answer fails it (TODO/interpose.md T-0711).
+    #[test]
+    fn a_bare_user_name_takes_its_primary_group_from_the_image() {
+        let d = std::env::temp_dir().join(format!("podvm-user-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("etc")).unwrap();
+        std::fs::write(
+            d.join("etc/passwd"),
+            "root:x:0:0:root:/root:/bin/sh\napp:x:1000:100:app::/bin/sh\n",
+        )
+        .unwrap();
+        std::fs::write(
+            d.join("etc/group"),
+            "root:x:0:\napp:x:100:app:\nwheel:x:10:app\n",
+        )
+        .unwrap();
+        let root = d.to_string_lossy().to_string();
+        assert_eq!(resolve_user("run", &root, "app"), Ok((1000, 100)));
+        assert_eq!(resolve_user("run", &root, "1000"), Ok((1000, 1000)));
+        assert_eq!(resolve_user("run", &root, "app:wheel"), Ok((1000, 10)));
+        assert_eq!(resolve_user("run", &root, "1000:100"), Ok((1000, 100)));
+        assert!(resolve_user("run", &root, "nobody").is_err());
+        assert!(resolve_user("run", &root, "app:nogroup").is_err());
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn the_ps_fields_are_the_ones_the_template_check_allows() {
+        let c = Container {
+            id: "b".repeat(64),
+            name: "n".into(),
+            image: "img".into(),
+            manifest_digest: "sha256:0".into(),
+            rootfs: "/tmp".into(),
+            argv: vec!["sleep".into(), "1".into()],
+            env: Vec::new(),
+            working_dir: "/".into(),
+            created_at: "now".into(),
+            started_at: None,
+            finished_at: None,
+            state: State::Running,
+            pid: Some(7),
+            launcher_pid: Some(6),
+            exit_code: None,
+            noticed: None,
+            rung: "chroot".into(),
+            userland_exec: Vec::new(),
+            completion: vec!["created dev/null (dev-shim, T-0401)".into()],
+            completion_degraded: 1,
+        };
+        let built: Vec<&str> = ps_fields(&c, false).iter().map(|(k, _)| *k).collect();
+        assert_eq!(built, ps_field_names());
+        assert!(format::check("{{.Status}}", &ps_field_names()).is_ok());
+        assert!(format::check("{{.Nope}}", &ps_field_names()).is_err());
+    }
+
+    /// TODO/milestones.md T-1112. A guest that is not Linux is refused by
+    /// name with the missing leg, on every entry path, rather than pulled
+    /// and failed inside.
+    #[test]
+    fn a_non_linux_guest_is_refused_by_name() {
+        assert_eq!(
+            ensure_linux_guest("run", "windows", "amd64"),
+            Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+        );
+        assert_eq!(
+            ensure_linux_guest("exec", "darwin", "arm64"),
+            Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+        );
+        assert!(ensure_linux_guest("run", "linux", "amd64").is_ok());
+        assert!(ensure_linux_guest("start", "linux", "arm64").is_ok());
+    }
+
+    /// ⭐ TODO/milestones.md T-1112. The guest arm exists now, and it does not
+    /// live on the OCI path: a Windows guest is routed to its own verb by
+    /// name, so a caller who asked here is told where it is rather than that
+    /// it does not exist. An OS with no driver is still refused outright.
+    #[test]
+    fn a_guest_that_is_not_linux_is_routed_to_its_own_verb_when_one_exists() {
+        assert_eq!(guest_verb("windows"), Some("podvm windows run"));
+        assert_eq!(guest_verb("darwin"), None);
+        assert_eq!(guest_verb("freebsd"), None);
+        // and the route is what the OCI path refuses with
+        assert_eq!(
+            ensure_linux_guest("run", "windows", "amd64"),
+            Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+        );
+    }
+
+    /// TODO/enter.md T-1411. The detached drive a record carries: the
+    /// loader argv where the loader family was decided, nothing everywhere
+    /// else, so `create` and `run -d` cannot disagree about which family
+    /// has a detached driver.
+    #[test]
+    fn the_record_carries_the_loader_drive_and_nothing_else() {
+        let loader = Userland {
+            family: podvm_enter::userland::Family::Loader,
+            loader_argv: vec!["/r/lib/ld.so".to_string(), "/r/bin/sh".to_string()],
+            lib_dirs: vec!["/r/lib".to_string()],
+            banner: String::new(),
+        };
+        assert_eq!(
+            detached_drive(Some(&loader)),
+            vec!["/r/lib/ld.so".to_string(), "/r/bin/sh".to_string()]
+        );
+        let memfd = Userland {
+            family: podvm_enter::userland::Family::Memfd,
+            ..loader.clone()
+        };
+        assert!(detached_drive(Some(&memfd)).is_empty());
+        assert!(detached_drive(None).is_empty());
+    }
+
+    /// TODO/enter.md T-1317. The pre-fetch tier's truth table: chroot, the
+    /// kernel's memfd, or an interposer object each admit; only all three
+    /// missing refuse. The wrapper reads the machine; this pins the
+    /// decision it feeds.
+    #[test]
+    fn entry_is_possible_where_any_family_may_run() {
+        assert!(entry_possible(true, false, false));
+        assert!(entry_possible(false, true, false));
+        assert!(entry_possible(false, false, true));
+        assert!(entry_possible(true, true, true));
+        assert!(!entry_possible(false, false, false));
+    }
+
+    /// TODO/enter.md T-1317. The exact rung, decided pre-fixup: a usable
+    /// chroot decides chroot without reading the payload; a static
+    /// payload on a native image with a memfd kernel decides the memfd
+    /// family; a script and a foreign image refuse naming why.
+    #[test]
+    fn the_rung_decision_names_its_family_or_its_refusal() {
+        fn findings(
+            rows: Vec<(&'static str, podvm_probe::verdict::Outcome)>,
+        ) -> podvm_probe::Findings {
+            podvm_probe::Findings {
+                rows,
+                identity: podvm_probe::identity::Identity::default(),
+                writable: Vec::new(),
+                self_exe: String::new(),
+            }
+        }
+        let chroot = "chroot(/tmp)";
+        let ok = findings(vec![(chroot, podvm_probe::verdict::Outcome::ok())]);
+        let denied = findings(vec![(
+            chroot,
+            podvm_probe::verdict::Outcome::denied(podvm_probe::sys::Errno(1)),
+        )]);
+        // Chroot usable: the payload is never read.
+        assert!(decide_entry("run", "/nowhere", &[], &[], true, &ok)
+            .unwrap()
+            .is_none());
+        // Static payload, native, memfd kernel: the memfd family.
+        let d = std::env::temp_dir().join(format!("podvm-decide-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("bin")).unwrap();
+        std::fs::write(d.join("bin/prog"), static_pie()).unwrap();
+        let root = d.to_string_lossy().to_string();
+        let argv = ["prog".to_string()];
+        let env = ["PATH=/bin".to_string()];
+        if podvm_enter::memfd::kernel_takes_memfd() {
+            let u = decide_entry("run", &root, &argv, &env, true, &denied)
+                .unwrap()
+                .expect("a static payload decides a family");
+            assert_eq!(u.family, podvm_enter::userland::Family::Memfd);
+        }
+        // A script refuses naming the interpreter problem, at 126: found,
+        // but not invocable on this rung. The message names the resolved
+        // file and its `#!` line (T-1413).
+        std::fs::write(d.join("bin/tool.sh"), b"#!/bin/sh\necho hi\n").unwrap();
+        let argv = ["tool.sh".to_string()];
+        let e = decide_entry("run", &root, &argv, &env, true, &denied).unwrap_err();
+        assert_eq!(e, podvm_image::error::EXIT_CANNOT_INVOKE);
+        // A name nothing resolves is 127, wherever the rung would run it.
+        let argv = ["no-such-prog".to_string()];
+        let e = decide_entry("run", &root, &argv, &env, true, &denied).unwrap_err();
+        assert_eq!(e, podvm_image::error::EXIT_NOT_FOUND);
+        // A foreign image refuses naming binfmt, at 125: podvm-side.
+        let argv = ["prog".to_string()];
+        let e = decide_entry("run", &root, &argv, &env, false, &denied).unwrap_err();
+        assert_eq!(e, podvm_image::error::EXIT_RUNTIME_ERROR);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// TODO/cli.md T-1414. The refusal code follows the payload status:
+    /// `ladder::resolve_payload`'s absent sentence is 127, its escape and
+    /// loop sentences are 126, and anything else stays 125. Pinned here so
+    /// a rewording there fails here instead of silently returning 125.
+    #[test]
+    fn resolve_codes_follow_the_payload_status() {
+        assert_eq!(
+            resolve_code("prog names no file in the image"),
+            podvm_image::error::EXIT_NOT_FOUND
+        );
+        assert_eq!(
+            resolve_code("/x escapes the image"),
+            podvm_image::error::EXIT_CANNOT_INVOKE
+        );
+        assert_eq!(
+            resolve_code("/x has too many levels of symlinks"),
+            podvm_image::error::EXIT_CANNOT_INVOKE
+        );
+        assert_eq!(
+            resolve_code("something else went wrong"),
+            podvm_image::error::EXIT_RUNTIME_ERROR
+        );
+    }
+
+    /// A 64-bit little-endian static PIE: the smallest bytes the memfd
+    /// family decides on. Mirrors `podvm-enter/src/memfd.rs`'s own
+    /// builder, which this crate cannot reach across its test gate.
+    fn static_pie() -> Vec<u8> {
+        let mut b = vec![0u8; 64 + 56];
+        b[0..4].copy_from_slice(b"\x7fELF");
+        b[4] = 2;
+        b[5] = 1;
+        b[32..40].copy_from_slice(&64u64.to_le_bytes());
+        b[54..56].copy_from_slice(&56u16.to_le_bytes());
+        b[56..58].copy_from_slice(&1u16.to_le_bytes());
+        b[64..68].copy_from_slice(&1u32.to_le_bytes());
+        b
+    }
+
+    /// TODO/supervise.md T-1318. `-f`/`--follow` selects following; anything
+    /// else behaves as before.
+    #[test]
+    fn logs_follow_is_a_parsed_flag() {
+        let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let o = parse_logs(&v(&["-f", "c1"])).unwrap();
+        assert!(o.follow);
+        assert_eq!(o.want, "c1");
+        let o = parse_logs(&v(&["--follow", "c1"])).unwrap();
+        assert!(o.follow);
+        assert_eq!(o.want, "c1");
+        let o = parse_logs(&v(&["c1"])).unwrap();
+        assert!(!o.follow);
+        assert_eq!(o.want, "c1");
+        assert!(parse_logs(&v(&[])).is_err());
+    }
+
+    /// TODO/cli.md T-1337. `--tail` takes a count in both spellings and
+    /// in any position; anything else is a flag error naming the value.
+    #[test]
+    fn logs_tail_takes_a_count_in_both_spellings() {
+        let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let o = parse_logs(&v(&["--tail", "5", "c1"])).unwrap();
+        assert_eq!(o.tail, Some(5));
+        let o = parse_logs(&v(&["c1", "--tail=0"])).unwrap();
+        assert_eq!(o.tail, Some(0));
+        let o = parse_logs(&v(&["-f", "--tail", "3", "c1"])).unwrap();
+        assert!(o.follow);
+        assert_eq!(o.tail, Some(3));
+        let o = parse_logs(&v(&["c1"])).unwrap();
+        assert_eq!(o.tail, None);
+        for bad in ["--tail=x", "--tail=-1", "--tail=", "--tail", "--tail=5x"] {
+            assert_eq!(
+                parse_logs(&v(&[bad, "c1"])).unwrap_err(),
+                EXIT_FLAG_ERROR,
+                "{bad} was not refused"
+            );
+        }
+    }
+
+    /// TODO/cli.md T-1323. `cp` parses its flag and two positionals.
+    #[test]
+    fn cp_parses_recursive_and_two_paths() {
+        let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let o = parse_cp(&v(&["-r", "img:/a", "/b"])).unwrap();
+        assert!(o.recursive);
+        assert_eq!(o.a, "img:/a");
+        assert_eq!(o.b, "/b");
+        let o = parse_cp(&v(&["/b", "c:/a"])).unwrap();
+        assert!(!o.recursive);
+        assert!(parse_cp(&v(&["only"])).is_err());
+        assert!(parse_cp(&v(&["a", "b", "c"])).is_err());
+    }
+
+    /// TODO/cli.md T-1323. A clean tree round-trips through `copy_tree`
+    /// with bytes intact, in both directions.
+    #[test]
+    fn copy_tree_round_trips_a_clean_tree() {
+        let base = std::env::temp_dir().join(format!("podvm-cp-{}", std::process::id()));
+        let src = base.join("src");
+        let dst = base.join("dst");
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(src.join("sub")).unwrap();
+        std::fs::write(src.join("a"), b"aaa").unwrap();
+        std::fs::write(src.join("sub").join("b"), b"bbb").unwrap();
+        assert_eq!(copy_tree(&src, &dst, &src, true), 0);
+        assert_eq!(std::fs::read(dst.join("a")).unwrap(), b"aaa");
+        assert_eq!(std::fs::read(dst.join("sub").join("b")).unwrap(), b"bbb");
+        let back = base.join("back");
+        // ⚠ The inward root must exist, as a rootfs always does: the gate
+        // resolves the root before it resolves anything under it.
+        std::fs::create_dir_all(&back).unwrap();
+        assert_eq!(copy_tree(&dst, &back, &back, false), 0);
+        assert_eq!(std::fs::read(back.join("sub").join("b")).unwrap(), b"bbb");
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// TODO/cli.md T-1323. A symlink replicates as a symlink, verbatim
+    /// and unresolved: the target bytes are copied, so an absolute target
+    /// escapes nothing and no shadow bytes land. T-0305's rule, applied
+    /// to `cp`: distro rootfses are full of legitimate absolute links.
+    #[test]
+    fn copy_tree_replicates_a_symlink_without_resolving_it() {
+        let base = std::env::temp_dir().join(format!("podvm-cp-link-{}", std::process::id()));
+        let src = base.join("src");
+        let dst = base.join("dst");
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(src.join("good"), b"good").unwrap();
+        std::os::unix::fs::symlink("/etc/shadow", src.join("evil")).unwrap();
+        assert_eq!(copy_tree(&src, &dst, &src, true), 0);
+        assert_eq!(std::fs::read(dst.join("good")).unwrap(), b"good");
+        let meta = std::fs::symlink_metadata(dst.join("evil")).unwrap();
+        assert!(meta.file_type().is_symlink(), "evil replicates as a link");
+        assert_eq!(
+            std::fs::read_link(dst.join("evil")).unwrap(),
+            std::path::PathBuf::from("/etc/shadow")
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// TODO/cli.md T-1323. A destination through a pre-existing symlink
+    /// refuses the whole copy before a byte lands: the write would land
+    /// where the link points, not where it is named.
+    #[test]
+    fn copy_tree_refuses_a_destination_through_a_planted_symlink() {
+        let base = std::env::temp_dir().join(format!("podvm-cp-plant-{}", std::process::id()));
+        let src = base.join("src");
+        let back = base.join("back");
+        let planted = base.join("planted");
+        let _ = std::fs::remove_dir_all(&base);
+        // The source names sub/link/inner as real directories and files.
+        std::fs::create_dir_all(src.join("sub").join("link")).unwrap();
+        std::fs::write(src.join("sub").join("link").join("inner"), b"inner").unwrap();
+        std::fs::write(src.join("top"), b"top").unwrap();
+        // The destination already has sub/link as a symlink elsewhere.
+        std::fs::create_dir_all(back.join("sub")).unwrap();
+        std::fs::create_dir_all(&planted).unwrap();
+        std::os::unix::fs::symlink(&planted, back.join("sub").join("link")).unwrap();
+        assert_ne!(copy_tree(&src, &back, &back, false), 0);
+        assert!(
+            !planted.join("inner").exists(),
+            "nothing lands through the link"
+        );
+        assert!(
+            !back.join("top").exists(),
+            "a refused copy writes nothing else either"
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// TODO/cli.md T-1323. A single symlink out of a rootfs replicates
+    /// rather than refuses, even with an absolute target: the gate covers
+    /// the link's own path and the target stays opaque.
+    #[test]
+    fn copy_one_replicates_a_symlink_with_an_absolute_target() {
+        let base = std::env::temp_dir().join(format!("podvm-cp-one-link-{}", std::process::id()));
+        let root = base.join("rootfs");
+        let out = base.join("out");
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(root.join("etc")).unwrap();
+        std::fs::create_dir_all(&out).unwrap();
+        std::os::unix::fs::symlink("/proc/self/mounts", root.join("etc").join("mtab")).unwrap();
+        assert_eq!(
+            copy_one(&root, "/etc/mtab", &out.join("mtab"), true, false),
+            0
+        );
+        let got = out.join("mtab");
+        assert!(std::fs::symlink_metadata(&got)
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        assert_eq!(
+            std::fs::read_link(&got).unwrap(),
+            std::path::PathBuf::from("/proc/self/mounts")
+        );
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// TODO/cli.md T-1323. An `image:path` of `../../x` never leaves the
+    /// rootfs: the same gate as a single file.
+    #[test]
+    fn copy_one_refuses_an_escape() {
+        let base = std::env::temp_dir().join(format!("podvm-cp-escape-{}", std::process::id()));
+        let root = base.join("rootfs");
+        let out = base.join("out");
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&root).unwrap();
+        assert_ne!(copy_one(&root, "../../evil", &out, true, false), 0);
+        assert!(!base.join("evil").exists());
+        let _ = std::fs::remove_dir_all(&base);
+    }
+}

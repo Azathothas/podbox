@@ -1,34 +1,34 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/podbox-cli",
-    "crates/podbox-probe",
-    "crates/podbox-image",
-    "crates/podbox-extract",
-    "crates/podbox-complete",
-    "crates/podbox-enter",
-    "crates/podbox-gate",
-    "crates/podbox-buildstate",
-    "crates/podbox-release",
-    "crates/podbox-podvm",
-    "crates/podbox-supervise",
-    "crates/podbox-windows",
-    "crates/podbox-ssh",
+    "crates/podvm",
+    "crates/podvm-probe",
+    "crates/podvm-image",
+    "crates/podvm-extract",
+    "crates/podvm-complete",
+    "crates/podvm-enter",
+    "crates/podvm-gate",
+    "crates/podvm-buildstate",
+    "crates/podvm-release",
+    "crates/podvm-measure",
+    "crates/podvm-supervise",
+    "crates/podvm-windows",
+    "crates/podvm-ssh",
 ]
 
-# ⛔ podbox-interpose is NOT a workspace member. It is a cdylib that runs inside
+# ⛔ podvm-interpose is NOT a workspace member. It is a cdylib that runs inside
 # other people's processes, it must not depend on the rest of the tree
 # (TOOL.md section 4.3, section 6.7), and it is built separately and embedded in the launcher
 # as a byte array. A member would share this workspace's dependency unification
 # and feature resolution, which is the coupling it exists to avoid.
-exclude = ["crates/podbox-interpose"]
+exclude = ["crates/podvm-interpose"]
 
 [workspace.package]
 version = "0.1.0-beta.13"
 edition = "2021"
 rust-version = "1.85"
 license = "0BSD"
-repository = "https://github.com/Azathothas/podbox"
+repository = "https://github.com/PodUtils/podvm"
 
 [workspace.dependencies]
 # ⭐ THE SWEEP RAN. `TOOL.md` section 3.5 is a policy and not a shopping list,
@@ -68,15 +68,15 @@ rustls-pemfile = "2"
 # ⚠ `1`, not `0.26`, and the reason is measured rather than a preference.
 # `webpki-roots 0.26.11` is a compatibility SHIM that itself depends on
 # `webpki-roots 1.0.9`; `ureq 2.12` pins the 0.26 line, so the graph carries
-# the shim whichever version podbox names. Naming `0.26` here would put podbox
+# the shim whichever version podvm names. Naming `0.26` here would put podvm
 # behind the shim as well and hide which crate actually holds the roots. Read
 # out of `cargo metadata`'s resolve graph on 2026-09-08:
-#     podbox-image  -> webpki-roots 1.0.9
+#     podvm-image  -> webpki-roots 1.0.9
 #     ureq 2.12.1   -> webpki-roots 0.26.11 -> webpki-roots 1.0.9
 webpki-roots = "1"
 
 # ⭐ T-0911, `experiments/results/bloat-syscalls-multiarch.txt`. THE SYSCALL
-# TABLE AND THE KERNEL STRUCTS, PER ARCHITECTURE, so podbox is not a
+# TABLE AND THE KERNEL STRUCTS, PER ARCHITECTURE, so podvm is not a
 # single-architecture runtime because of a table somebody typed.
 # ⚠ This reverses part of T-0901, which ruled `libc` and `rustix` out at a
 # measured delta of zero on the grounds that the probe set is hand-declared.

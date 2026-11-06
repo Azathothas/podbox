@@ -4,7 +4,7 @@
 # banner stating no hardware isolation, and does refusal stay where no
 # accelerator at all holds?
 #
-# TODO/podvm.md T-1301 (TCG split).
+# TODO/machine.md T-1301 (TCG split).
 #
 # Clauses:
 #   0. conditions: binary, qemu (installed here where missing), kernel.
@@ -12,7 +12,8 @@
 #      accel leg listing tcg, kvm and tun denied. T-1301's Prove core.
 #   2. evidence text: the `profile: tcg` line with the
 #      no-hardware-isolation sentence and the tun shape.
-#   3. entry arms: `run --podbox-tier=machine` and `podvm run` print the
+#   3. entry arms: `run --podvm-tier=machine` under the binary's own name
+#      and under `podman` print the
 #      TCG holds message at 125 (no guest driver yet); the mem ceiling
 #      still refuses first.
 #   4. refusal arm: with qemu hidden from PATH the tier refuses naming
@@ -70,16 +71,16 @@ else
 	tail -15 "$WORK/build.log"
 	exit 1
 fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 [ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
-echo "podbox            $("$PB" version)" >>"$REPORT"
-ln -sf "$PB" "$WORK/podvm" || exit 2
-PVM="$WORK/podvm"
+echo "podvm            $("$PB" version)" >>"$REPORT"
+ln -sf "$PB" "$WORK/podman" || exit 2
+PVM="$WORK/podman"
 
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$PB" || { echo "cannot read podbox's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-RUN_ERR=$PODBOX_EXIT_RUNTIME_ERROR
+podvm_exit_codes "$PB" || { echo "cannot read podvm's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+RUN_ERR=$PODVM_EXIT_RUNTIME_ERROR
 
 echo "== qemu"
 if command -v qemu-system-x86_64 >/dev/null 2>&1; then
@@ -103,7 +104,7 @@ done
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 fail=0
 
 step() {
@@ -158,12 +159,12 @@ grep -q "not hardware isolation" "$WORK/out-evidence.txt" || { echo "evidence mi
 grep -q "user-mode networking" "$WORK/out-evidence.txt" || { echo "evidence missing the tun shape" >>"$REPORT"; fail=1; }
 
 # Clause 3: the entry prints the TCG holds message at 125, under both names.
-step tier-run "$RUN_ERR" "$PB" run --podbox-tier=machine never-pulled-357:tag /bin/true
+step tier-run "$RUN_ERR" "$PB" run --podvm-tier=machine never-pulled-357:tag /bin/true
 grep -q "the machine tier runs TCG" "$WORK/out-tier-run.txt" || { echo "run missing the TCG message" >>"$REPORT"; fail=1; }
 grep -q "not hardware" "$WORK/out-tier-run.txt" || { echo "run missing the boundary sentence" >>"$REPORT"; fail=1; }
-step tier-pvm "$RUN_ERR" "$PVM" run never-pulled-357:tag /bin/true
-grep -q "the machine tier runs TCG" "$WORK/out-tier-pvm.txt" || { echo "podvm missing the TCG message" >>"$REPORT"; fail=1; }
-grep -q "invoked as \`podvm\`" "$WORK/out-tier-pvm.txt" || { echo "podvm run missing its name note" >>"$REPORT"; fail=1; }
+step tier-pvm "$RUN_ERR" "$PVM" run --podvm-tier=machine never-pulled-357:tag /bin/true
+grep -q "the machine tier runs TCG" "$WORK/out-tier-pvm.txt" || { echo "podman missing the TCG message" >>"$REPORT"; fail=1; }
+grep -q "invoked as \`podman\`" "$WORK/out-tier-pvm.txt" || { echo "podman run missing its name note" >>"$REPORT"; fail=1; }
 
 # Clause 4: with qemu hidden the tier refuses naming the emulator. A
 # fresh store rides along: the probe caches its findings per store
@@ -172,7 +173,7 @@ grep -q "invoked as \`podvm\`" "$WORK/out-tier-pvm.txt" || { echo "podvm run mis
 # empty PATH directory, not surgery on the real one: qemu may exist
 # under several directories, and removing one line still resolves it.
 mkdir -p "$WORK/store-noemu" "$WORK/empty-path" || exit 2
-step tier-noemu "$RUN_ERR" env PATH="$WORK/empty-path" PODBOX_STORE="$WORK/store-noemu" "$PB" run --podbox-tier=machine never-pulled-357:tag /bin/true
+step tier-noemu "$RUN_ERR" env PATH="$WORK/empty-path" PODVM_STORE="$WORK/store-noemu" "$PB" run --podvm-tier=machine never-pulled-357:tag /bin/true
 grep -q "machine tier refused" "$WORK/out-tier-noemu.txt" || { echo "hidden-qemu run did not refuse the tier" >>"$REPORT"; fail=1; }
 grep -q "no qemu-system-x86_64 on PATH" "$WORK/out-tier-noemu.txt" || { echo "hidden-qemu refusal did not name the emulator" >>"$REPORT"; fail=1; }
 
@@ -182,7 +183,7 @@ if [ -f "$REPO/experiments/results/podvm-initramfs.txt" ]; then
 	cp "$REPO/experiments/results/podvm-initramfs.txt" "$BAK" || exit 2
 fi
 echo "== boot arm (146 with this binary)"
-if PODBOX_BIN="$PB" timeout 1800 sh "$REPO/experiments/146-podvm-initramfs.sh" >>"$REPORT" 2>&1; then
+if PODVM_BIN="$PB" timeout 1800 sh "$REPO/experiments/146-podvm-initramfs.sh" >>"$REPORT" 2>&1; then
 	echo "boot              VMR-GUEST-READY through TCG" >>"$REPORT"
 else
 	echo "boot              FAILED" >>"$REPORT"; fail=1

@@ -3,7 +3,7 @@
 Use the shell that owns the operation.
 Do not pass a path found in PowerShell to another shell for removal.
 Set the working directory explicitly for each command.
-On Windows, use wsl-toolkit with instance podbox. Do not call the WSL executable.
+On Windows, use wsl-toolkit with instance podvm. Do not call the WSL executable.
 
 ## Arguments and files
 

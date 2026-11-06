@@ -1,4 +1,4 @@
-# Dependency updates for podbox.
+# Dependency updates for podvm.
 #
 # ⛔ THIS FILE EXISTS BECAUSE ITS ABSENCE WAS A REAL DEFECT. The workflows here
 # pin every action to a commit, which is the right practice and also turns an

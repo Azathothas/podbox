@@ -10,7 +10,7 @@
 # ⛔ WHAT IS SHARED IS THE MECHANICS, NOT THE ENGINE. `125-across-distributions.sh`
 # drives each row with `docker run`, because its subject is what a DISTRIBUTION
 # does and docker is the instrument. `240-distro-sweep.sh` drives each row with
-# `podbox run`, because its subject is podbox. The pinning, the `no-pull` row,
+# `podvm run`, because its subject is podvm. The pinning, the `no-pull` row,
 # the exit-2-when-nothing-ran rule and the reference qualification are the same
 # in both and live here.
 #

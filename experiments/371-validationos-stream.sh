@@ -46,7 +46,7 @@ cd "$REPO" || exit 2
 WORK="$REPO/experiments/.sweep371-work"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 REPORT="$WORK/out-371.txt"
-OUT="${PODBOX_VOS_OUT:-$WORK/ValidationOS.vhdx}"
+OUT="${PODVM_VOS_OUT:-$WORK/ValidationOS.vhdx}"
 fail=0
 
 # Pre-flight: the extent must fit the ceiling and the disk, or this lane

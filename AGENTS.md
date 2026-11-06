@@ -1,6 +1,6 @@
 # AGENTS.md
 
-podbox runs Linux payloads where namespaces, mounts, devices, or ownership
+podvm runs Linux payloads where namespaces, mounts, devices, or ownership
 changes can be denied. It also has a machine tier and SSH transport.
 It measures operations and reports the mechanism it enters.
 
@@ -9,11 +9,11 @@ It measures operations and reports the mechanism it enters.
 Run this first from the repository root:
 
 ```sh
-cargo build --release -p podbox-gate
-./target/release/podbox-dev session
+cargo build --release -p podvm-gate
+./target/release/podvm-dev session
 ```
 
-The script selects the host procedure. On Windows, the instance is `podbox`.
+The script selects the host procedure. On Windows, the instance is `podvm`.
 Read these files in order:
 
 1. [TODO/PROGRESS.md](TODO/PROGRESS.md): current state and the only work order.
@@ -24,10 +24,10 @@ Read these files in order:
 Run the record gate before edits. Read each process exit code.
 
 ```sh
-./target/release/podbox-gate                 # Windows
+./target/release/podvm-gate                 # Windows
 sh scripts/dev-lane.sh run JOB.sh --artifacts DIR  # Windows: full Linux proof
-./target/release/podbox-gate                  # Linux
-./target/release/podbox-dev status      # Linux: build state
+./target/release/podvm-gate                  # Linux
+./target/release/podvm-dev status      # Linux: build state
 ```
 
 The record gate reports status consistency. It does not prove that a feature
@@ -61,7 +61,7 @@ Read each named page in full. Read the union when two rows apply.
 | Implement a task | Its `TODO/` entry; [Gate](docs/methodology/gate.md); [Code](docs/conventions/code.md); [Patterns](docs/conventions/forbidden-patterns.md) |
 | Author work or fix a defect | [Authoring](docs/methodology/authoring.md); [TODO rules](TODO/RULES.md); affected source |
 | Take a measurement | [Experiments](docs/methodology/experiments.md); a related experiment |
-| Add a check | [Gate](docs/methodology/gate.md); `./target/release/podbox-plant` |
+| Add a check | [Gate](docs/methodology/gate.md); `./target/release/podvm-plant` |
 | Study another repository | [References](docs/methodology/references.md); [Reference map](TODO/reference-map.md) |
 | Change carried source | [Vendoring](docs/methodology/vendoring.md); [Third-party notice](THIRD_PARTY.md) |
 | Edit a document | [Prose](docs/conventions/prose.md); [Document roles](docs/conventions/docs.md) |
@@ -78,11 +78,11 @@ Read each named page in full. Read the union when two rows apply.
 - Work on `main`. Use the configured `origin` for authorized publication.
 - Every other repository is read-only. Fix carried source in this tree.
 - Use CodeGraph before a source search. Prose can be searched directly.
-- On Windows, use `wsl-toolkit --instance podbox`. Do not call `wsl.exe`.
+- On Windows, use `wsl-toolkit --instance podvm`. Do not call `wsl.exe`.
 - Read the linked rule and current source. A previous record is a claim to verify.
 - Run a task's proof before completion. Record partial work with its remaining clauses.
 - Change the task, index, and progress record with the implementation.
-- Use `./target/release/podbox-count` to derive counts. Do not edit counts by hand.
+- Use `./target/release/podvm-count` to derive counts. Do not edit counts by hand.
 - Give each experiment a unique number. Keep its script and result.
 - Record an unknown value as a dash. Label an estimate each time it appears.
 - Read exit codes without a pipe. Bound network and process waits.

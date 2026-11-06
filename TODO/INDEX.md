@@ -11,13 +11,13 @@ work order and is the only place that has one. This file carries the list, defin
 [reference-map.md](reference-map.md) is the corpus and its licence
 determinations.
 
-`crates/podbox-gate/src/main.rs` checks this file against the entries: a status that
+`crates/podvm-gate/src/main.rs` checks this file against the entries: a status that
 disagrees, a row with no entry, an entry with no row, a count that does not add
 up, a missing field, a `Prove` that is not a command, a reference that does not
 resolve, a dead link, and a cited path or line that does not exist.
 
 ```sh
-./target/release/podbox-gate
+./target/release/podvm-gate
 ```
 
 ## Priority
@@ -41,18 +41,18 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 | category | crate | specification |
 | --- | --- | --- |
-| [probe](probe.md) | `crates/podbox-probe` | `TOOL.md` section 6.1 |
-| [image](image.md) | `crates/podbox-image` | `TOOL.md` section 6.2 |
-| [extract](extract.md) | `crates/podbox-extract` | `TOOL.md` section 6.3 |
-| [complete](complete.md) | `crates/podbox-complete` | `TOOL.md` section 6.4 |
-| [enter](enter.md) | `crates/podbox-enter` | `TOOL.md` section 6.5 |
-| [supervise](supervise.md) | `crates/podbox-supervise` | `TOOL.md` section 6.6 |
-| [interpose](interpose.md) | `crates/podbox-interpose` | `TOOL.md` section 6.7 |
-| [cli](cli.md) | `crates/podbox-cli` | `TOOL.md` section 6.8, section 6.9 |
+| [probe](probe.md) | `crates/podvm-probe` | `TOOL.md` section 6.1 |
+| [image](image.md) | `crates/podvm-image` | `TOOL.md` section 6.2 |
+| [extract](extract.md) | `crates/podvm-extract` | `TOOL.md` section 6.3 |
+| [complete](complete.md) | `crates/podvm-complete` | `TOOL.md` section 6.4 |
+| [enter](enter.md) | `crates/podvm-enter` | `TOOL.md` section 6.5 |
+| [supervise](supervise.md) | `crates/podvm-supervise` | `TOOL.md` section 6.6 |
+| [interpose](interpose.md) | `crates/podvm-interpose` | `TOOL.md` section 6.7 |
+| [cli](cli.md) | `crates/podvm` | `TOOL.md` section 6.8, section 6.9 |
 | [deps](deps.md) | the whole tree | `TOOL.md` section 3.5 |
 | [packaging](packaging.md) | the artefact | `TOOL.md` section 3.4, section 5 M7 |
 | [milestones](milestones.md) | the gates | `TOOL.md` section 5 |
-| [podvm](podvm.md) | the machine tier | `https://github.com/talaria0101/vm-research`, its podvm-spec document |
+| [machine](machine.md) | the machine tier | `https://github.com/talaria0101/vm-research`, its podvm-spec document |
 | [gate](gate.md) | `scripts/` | `docs/methodology/gate.md` |
 | [podssh](podssh.md) | proposed SSH crate | the SSH work in pull requests 66 and 67 |
 
@@ -69,7 +69,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-0107](probe.md) | P0 | probe | done | Mode selection, and one switch that turns every degradation into a refusal |
 | [T-0108](probe.md) | P0 | probe | done | The mode banner |
 | [T-0109](probe.md) | P0 | probe | done | A verdict is the operation's, and "could not run" never reads as "denied" |
-| [T-0110](probe.md) | P1 | probe | done | `podbox probe` exit-code and channel contract |
+| [T-0110](probe.md) | P1 | probe | done | `podvm probe` exit-code and channel contract |
 | [T-0111](probe.md) | P2 | probe | done | Cache the probe result, and key it on what actually decides it |
 | [T-0112](probe.md) | P1 | probe | done | A virtual machine answers the two questions this host's kernel cannot |
 | [T-0113](probe.md) | P1 | probe | done | Two probes in one process took each other's scratch name |
@@ -106,9 +106,9 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-0409](complete.md) | P2 | complete | done | Ownership failures from `dpkg`, `rpm` and `xbps` are warnings |
 | [T-0410](complete.md) | P0 | complete | done | Supply `/etc/nsswitch.conf`, or the supplied `/etc/passwd` is a no-op |
 | [T-0411](complete.md) | P1 | complete | done | A payload whose package sources are `http://`, on a runtime where tcp/80 hangs |
-| [T-0412](complete.md) | P1 | complete | done | A fixup that has to run INSIDE the rootfs, and podbox runs it from outside |
+| [T-0412](complete.md) | P1 | complete | done | A fixup that has to run INSIDE the rootfs, and podvm runs it from outside |
 | [T-0413](complete.md) | P1 | complete | done | No `/proc` inside a chroot, and the shell feature that quietly stops working |
-| [T-0414](complete.md) | P1 | complete | done | Two walls only one instance of the class has shown, and podbox has probed neither |
+| [T-0414](complete.md) | P1 | complete | done | Two walls only one instance of the class has shown, and podvm has probed neither |
 | [T-0415](complete.md) | P1 | complete | done | A device stand-in is checked by type, because an absent one becomes a growing file |
 | [T-0501](enter.md) | P0 | enter | done | Open every descriptor before the root changes |
 | [T-0502](enter.md) | P0 | enter | done | Resolve the program inside the new root, in the process that changed it |
@@ -134,7 +134,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-0708](interpose.md) | P2 | interpose | done | Intercept the operations the runtime cannot provide |
 | [T-0709](interpose.md) | P0 | interpose | done | Select the interposer by `DT_NEEDED`, and refuse on the version predicate |
 | [T-0710](interpose.md) | P1 | interpose | done | The ownership memo lives where the payload can edit it, and answers by linear scan |
-| [T-0711](interpose.md) | P1 | interpose | done | The identity calls, and podbox's honesty rules point the other way from fakeroot's |
+| [T-0711](interpose.md) | P1 | interpose | done | The identity calls, and podvm's honesty rules point the other way from fakeroot's |
 | [T-0712](interpose.md) | P2 | interpose | done | A reach matrix holds its arguments constant, or it measures two things |
 | [T-0801](cli.md) | P0 | cli | done | The verb and flag parity table |
 | [T-0802](cli.md) | P0 | cli | done | docker's exit codes, unaltered |
@@ -142,7 +142,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-0804](cli.md) | P0 | cli | done | The honesty rules, and one switch that makes every degradation fatal |
 | [T-0805](cli.md) | P1 | cli | done | Diagnostics that name the operation, the errno, the mechanism and the remedy |
 | [T-0806](cli.md) | P0 | cli | done | Never prompt, never wait unbounded, and check space before every large write |
-| [T-0807](cli.md) | P2 | cli | done | `podbox images --format` refuses a template no verb can answer, before it looks at the store |
+| [T-0807](cli.md) | P2 | cli | done | `podvm images --format` refuses a template no verb can answer, before it looks at the store |
 | [T-0808](cli.md) | P1 | cli | done | Drive every row of the parity table through the shipped binary |
 | [T-0809](cli.md) | P1 | cli | done | The spawn that fails with the wrong reason, and the one field that fixes it |
 | [T-0810](cli.md) | P1 | cli | done | `create` fails storing the memo: the container directory is never made |
@@ -157,7 +157,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-0909](deps.md) | P1 | deps | done | Vendor the memfd and userland-exec rungs, and fix the fork's regression here |
 | [T-0910](deps.md) | P0 | deps | done | The `cargo bloat` baseline, committed, and checked at the gate |
 | [T-0911](deps.md) | P0 | deps | done | The syscall table and the kernel structs come from a crate, per architecture |
-| [T-0912](deps.md) | P2 | deps | done | The powerpc gate is the crate's and it is stale, so podbox can clear it |
+| [T-0912](deps.md) | P2 | deps | done | The powerpc gate is the crate's and it is stale, so podvm can clear it |
 | [T-1001](packaging.md) | P0 | packaging | **done** | A single static binary with no `PT_INTERP` |
 | [T-1002](packaging.md) | P1 | packaging | done | Embed the interposer as bytes and place it inside the rootfs |
 | [T-1003](packaging.md) | P2 | packaging | done | The launch ladder, and a single file with an embedded rootfs |
@@ -189,19 +189,19 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1211](gate.md) | P1 | gate | done | Convert the distribution and probe engine scripts to `experiments/lib/engine.sh` |
 | [T-1212](gate.md) | P1 | gate | done | Convert the image, registry and CLI engine scripts to `experiments/lib/engine.sh` |
 | [T-1213](gate.md) | P1 | gate | done | Convert the target-image pair and its probe consumer to `experiments/lib/engine.sh` |
-| [T-1301](podvm.md) | P0 | podvm | done | The machine tier is probed leg by leg, and a present file is not a working one |
-| [T-1302](podvm.md) | P1 | podvm | done | One binary, one parity table, and a VM-only flag that cannot collide |
-| [T-1303](podvm.md) | P1 | podvm | done | The image is a rootfs directory, and an initramfs with no console is a silent machine |
-| [T-1304](podvm.md) | P1 | podvm | done | The exec protocol is a serial pair with a nonce, and every wait is bounded |
-| [T-1305](podvm.md) | P2 | podvm | done | The fleet and the fork, and the file-size ceiling that bounds both |
-| [T-1306](podvm.md) | P1 | podvm | done | The non-goals are refusals the code makes, not notes in a document |
-| [T-1307](podvm.md) | P2 | podvm | done | The five Rust VM tools, ruled one by one, so nobody surveys them again |
-| [T-1308](podvm.md) | P1 | podvm | done | One TCG number is a claim about one benchmark, and the range is 3x to 21x |
+| [T-1301](machine.md) | P0 | machine | done | The machine tier is probed leg by leg, and a present file is not a working one |
+| [T-1302](machine.md) | P1 | machine | done | One binary, one parity table, and a VM-only flag that cannot collide |
+| [T-1303](machine.md) | P1 | machine | done | The image is a rootfs directory, and an initramfs with no console is a silent machine |
+| [T-1304](machine.md) | P1 | machine | done | The exec protocol is a serial pair with a nonce, and every wait is bounded |
+| [T-1305](machine.md) | P2 | machine | done | The fleet and the fork, and the file-size ceiling that bounds both |
+| [T-1306](machine.md) | P1 | machine | done | The non-goals are refusals the code makes, not notes in a document |
+| [T-1307](machine.md) | P2 | machine | done | The five Rust VM tools, ruled one by one, so nobody surveys them again |
+| [T-1308](machine.md) | P1 | machine | done | One TCG number is a claim about one benchmark, and the range is 3x to 21x |
 | [T-1309](interpose.md) | P1 | interpose | done | libdnf repodata downloads fail under the preloaded interposer |
 | [T-1310](image.md) | P1 | image | done | The store suite exhausts the sixteen fork-shed slots, and the victim varies |
 | [T-1311](interpose.md) | P1 | interpose | done | The interposed `fchmodat` drops the `flags` argument |
 | [T-1312](interpose.md) | P1 | interpose | done | The glibc interposer needs newer symbols than the payload provides |
-| [T-1313](podvm.md) | P1 | podvm | done | Every experiment fetch carries its own ceiling, and a stalled origin proves it |
+| [T-1313](machine.md) | P1 | machine | done | Every experiment fetch carries its own ceiling, and a stalled origin proves it |
 | [T-1314](packaging.md) | P1 | packaging | done | Nightly releases: one tag builds and tests every supported arch |
 | [T-1315](extract.md) | P1 | extract | done | Extract re-verifies the blob digest against the manifest |
 | [T-1316](deps.md) | P2 | deps | done | The committed lock matches the manifests, so a clean build leaves a clean tree |
@@ -220,7 +220,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1329](packaging.md) | P2 | packaging | done | The per-arch smoke pulls and extracts, not just versions |
 | [T-1330](cli.md) | P2 | cli | done | Bundled short flags parse as docker reads them |
 | [T-1331](cli.md) | P2 | cli | done | `--filter`, `restart` and `pull -a/-q` answer the docker idiom |
-| [T-1332](cli.md) | P1 | cli | done | `podbox man` generates the manual from the binary, pager-aware |
+| [T-1332](cli.md) | P1 | cli | done | `podvm man` generates the manual from the binary, pager-aware |
 | [T-1333](probe.md) | P1 | probe | done | The probe cache key carries the capability set |
 | [T-1334](packaging.md) | P1 | packaging | done | The release carries its build commit's gate state and its reproducibility boundary |
 | [T-1335](supervise.md) | P3 | supervise | done | The launcher forwards its own shutdown signals to the payload |
@@ -264,23 +264,23 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1421](supervise.md) | P1 | supervise | done | A foreground run leaves a container record |
 | [T-1422](gate.md) | P2 | gate | done | Plant the kept-session check where the OS execs batch files |
 | [T-1423](packaging.md) | P1 | packaging | done | The release tag names the workspace version |
-| [T-1559](packaging.md) | P2 | packaging | done | Port `scripts/build-state.py` to `podbox-buildstate` |
-| [T-1560](packaging.md) | P2 | packaging | done | Port `scripts/release-licenses.py` to `podbox-release-licenses` |
-| [T-1561](packaging.md) | P2 | packaging | done | Port `scripts/verify-release.sh` to `podbox-verify` |
-| [T-1562](deps.md) | P0 | deps | done | Port `experiments/110-bloat-delta.sh` to `podbox-size` |
-| [T-1563](packaging.md) | P1 | packaging | done | Port `experiments/120-reproducible-build.sh` and `157` to `podbox-prove-t0211` |
+| [T-1559](packaging.md) | P2 | packaging | done | Port `scripts/build-state.py` to `podvm-buildstate` |
+| [T-1560](packaging.md) | P2 | packaging | done | Port `scripts/release-licenses.py` to `podvm-release-licenses` |
+| [T-1561](packaging.md) | P2 | packaging | done | Port `scripts/verify-release.sh` to `podvm-verify` |
+| [T-1562](deps.md) | P0 | deps | done | Port `experiments/110-bloat-delta.sh` to `podvm-size` |
+| [T-1563](packaging.md) | P1 | packaging | done | Port `experiments/120-reproducible-build.sh` and `157` to `podvm-prove-t0211` |
 | [T-1564](complete.md) | P2 | complete | done | Port `scripts/document-state.py` to `document-state` |
 | [T-1565](packaging.md) | P2 | packaging | done | Port `scripts/release-notes.sh` to `release-notes` |
-| [T-1566](packaging.md) | P2 | packaging | done | Port `experiments/395-reconcile-repository.py` to `podbox-reconcile` |
-| [T-1567](packaging.md) | P2 | packaging | done | Port `experiments/399-publication.py` to `podbox-publish` |
-| [T-1568](podvm.md) | P2 | podvm | done | Port `experiments/145-podvm-parity.sh` to `podbox-podvm` |
-| [T-1569](podvm.md) | P2 | podvm | done | Port `experiments/154-tcg-workload-spread.sh` to `podbox-podvm-workload` |
+| [T-1566](packaging.md) | P2 | packaging | done | Port `experiments/395-reconcile-repository.py` to `podvm-reconcile` |
+| [T-1567](packaging.md) | P2 | packaging | done | Port `experiments/399-publication.py` to `podvm-publish` |
+| [T-1568](machine.md) | P2 | machine | done | Port `experiments/145-podvm-parity.sh` to `podvm-parity` |
+| [T-1569](machine.md) | P2 | machine | done | Port `experiments/154-tcg-workload-spread.sh` to `podvm-workload` |
 | [T-1601](interpose.md) | P0 | interpose | done | Unblock the static build under Rust 1.99 `invalid_runtime_symbol_definitions` |
 | [T-1602](image.md) | P0 | image | done | The registry fixture fields are read by their consumer tests |
 | [T-1603](gate.md) | P0 | gate | done | Remove `check-no-secrets` and add a pinned trufflehog scan workflow |
 | [T-1604](enter.md) | P1 | enter | partial | Fix the detached-stdio serial mutex and the 1-of-3 detached start failure |
 | [T-1605](packaging.md) | P1 | packaging | partial | Push a version tag and prove the nightly release-notes wiring live |
-| [T-1606](podvm.md) | P2 | podvm | done | Repoint all 47 `references/` citations before deleting the corpus |
+| [T-1606](machine.md) | P2 | machine | done | Repoint all 47 `references/` citations before deleting the corpus |
 | [T-1607](gate.md) | P1 | gate | partial | File the 21 unbatched plan tasks as a later queue |
 | [T-1608](gate.md) | P2 | gate | done | Reword the Batch 3 Done paragraphs so one-home passes |
 | [T-1609](gate.md) | P0 | gate | done | Build the KVM watchdog that makes an unattended guest run safe |
@@ -295,7 +295,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1623](milestones.md) | P3 | milestones | done | Record the 29 KEEP-SHELL rows as the retained set, re-derived from the ledger |
 | [T-1624](deps.md) | P2 | deps | done | Record the 265-row parity figure and the four stale values the tree carries |
 | [T-1625](image.md) | P1 | image | done | Record that `70-whiteout-contract.sh` check B needs a fixture, and where it goes |
-| [T-1626](podvm.md) | P1 | podvm | done | Record that `149` clause 6 has no Rust arm and stays shell pending the guest fixture |
+| [T-1626](machine.md) | P1 | machine | done | Record that `149` clause 6 has no Rust arm and stays shell pending the guest fixture |
 | [T-1627](gate.md) | P1 | gate | done | Record `80-interposer-abi.sh` check B and `170` clause 3 as staying shell |
 | [T-1628](interpose.md) | P1 | interpose | done | Record `162-tar-symlink-modes.sh` as retained, DELETE refuted by VC-2 |
 | [T-1629](probe.md) | P2 | probe | done | Record `95-podman-vfs-ignorechown.sh` as KEEP-SHELL, a deployment proof under VC-3 and VC-6 |
@@ -329,8 +329,8 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 262 items: 11 open, 9 partial, 0 blocked, 242 done.
 
-Counted from the rows above by `./target/release/podbox-count` and asserted
-independently by `./target/release/podbox-gate`, which is the gate. A number here
+Counted from the rows above by `./target/release/podvm-count` and asserted
+independently by `./target/release/podvm-gate`, which is the gate. A number here
 that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |

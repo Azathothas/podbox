@@ -66,7 +66,7 @@ jobs:
 
       # One path: the same script a session runs in a fresh container, with
       # only the components this job needs. The component list is what
-      # podbox-gate check 19 holds this job to.
+      # podvm-gate check 19 holds this job to.
       - name: bootstrap
         run: ./scripts/common/bootstrap-env.sh rust bloat cc zig tools
 
@@ -74,20 +74,20 @@ jobs:
         run: rustup target add ${{ matrix.triple }}
 
       # Before the binary, because the two objects are an input to it.
-      # crates/podbox-cli/build.rs embeds them; a binary built first embeds
-      # two empty placeholders and this job passes with a podbox that
+      # crates/podvm/build.rs embeds them; a binary built first embeds
+      # two empty placeholders and this job passes with a podvm that
       # interposes nothing. The pair is the x86_64 one on every arch: the
       # interposer is x86_64-only by design (TODO/interpose.md T-1327),
       # and on other archs the tier declines by name on the machine
-      # mismatch. The builder is the podbox-interpose-build binary, built
+      # mismatch. The builder is the podvm-interpose-build binary, built
       # for the runner.
       - name: interposer, one object per libc
         run: |
           rustup target add x86_64-unknown-linux-musl
-          cargo build --release -p podbox-gate --bin podbox-interpose-build
+          cargo build --release -p podvm-gate --bin podvm-interpose-build
           mkdir -p target/release
-          cp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/
-          ./target/release/podbox-interpose-build
+          cp target/x86_64-unknown-linux-musl/release/podvm-interpose-build target/release/
+          ./target/release/podvm-interpose-build
 
       - name: build
         run: cargo build --release --target ${{ matrix.triple }}
@@ -105,25 +105,25 @@ jobs:
       # and no PT_INTERP. TODO/packaging.md T-1329 extends it with a
       # loopback pull plus extract asserting payload bytes, so a binary
       # broken for its actual job cannot publish green. The smoke is the
-      # podbox-smoke binary, built for the runner (it drives the per-arch
+      # podvm-smoke binary, built for the runner (it drives the per-arch
       # binary, it is not one).
       - name: smoke
         run: |
           rustup target add x86_64-unknown-linux-musl
-          cargo build --release -p podbox-gate --bin podbox-smoke
+          cargo build --release -p podvm-gate --bin podvm-smoke
           mkdir -p target/release
-          cp target/x86_64-unknown-linux-musl/release/podbox-smoke target/release/
-          ./target/release/podbox-smoke target/${{ matrix.triple }}/release/podbox ${{ matrix.triple }} ${{ matrix.qemu }}
+          cp target/x86_64-unknown-linux-musl/release/podvm-smoke target/release/
+          ./target/release/podvm-smoke target/${{ matrix.triple }}/release/podvm ${{ matrix.triple }} ${{ matrix.qemu }}
 
       - name: stage the asset
         run: |
           mkdir -p dist
-          cp target/${{ matrix.triple }}/release/podbox dist/podbox-${{ matrix.arch }}
-          (cd dist && sha256sum podbox-${{ matrix.arch }} > podbox-${{ matrix.arch }}.sha256)
+          cp target/${{ matrix.triple }}/release/podvm dist/podvm-${{ matrix.arch }}
+          (cd dist && sha256sum podvm-${{ matrix.arch }} > podvm-${{ matrix.arch }}.sha256)
           # TODO/packaging.md T-1565. The publish job has no Rust toolchain,
           # so the x86_64 leg couriers the musl-static release-notes binary
           # to it through its own artefact. The name stays outside the
-          # dist/podbox-* release glob, so the published asset set is
+          # dist/podvm-* release glob, so the published asset set is
           # unchanged and the signing loop skips it.
           if [ "${{ matrix.arch }}" = "x86_64" ]; then
             cp target/${{ matrix.triple }}/release/release-notes dist/release-notes-x86_64
@@ -134,7 +134,7 @@ jobs:
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: podbox-nightly-${{ matrix.arch }}
+          name: podvm-nightly-${{ matrix.arch }}
           path: dist/
           if-no-files-found: error
           retention-days: 1
@@ -163,8 +163,8 @@ jobs:
       - name: lay out the release files
         run: |
           cd dist
-          for d in podbox-nightly-*/; do mv "$d"* . && rmdir "$d"; done
-          ls -l podbox-*
+          for d in podvm-nightly-*/; do mv "$d"* . && rmdir "$d"; done
+          ls -l podvm-*
 
       # Keyless signing at publish, TODO/packaging.md T-1328. No
       # long-lived key to guard and rotate: the publish job's own OIDC
@@ -176,13 +176,13 @@ jobs:
       - name: sign the artefacts
         run: |
           cd dist
-          for bin in podbox-*; do
+          for bin in podvm-*; do
             case "$bin" in
               *.sigstore | *.sha256) continue ;;
             esac
             cosign sign-blob --yes --bundle "$bin.sigstore" "$bin"
           done
-          ls -l podbox-*
+          ls -l podvm-*
 
       # An existing release for this tag is re-uploaded rather than remade:
       # deleting and recreating a release to publish is a wider action than
@@ -209,7 +209,7 @@ jobs:
         run: |
           tag="${{ github.ref_name }}"
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" --clobber dist/podbox-*
+            gh release upload "$tag" --clobber dist/podvm-*
           else
-            gh release create "$tag" --title nightly --prerelease --notes-file release-notes.txt dist/podbox-*
+            gh release create "$tag" --title nightly --prerelease --notes-file release-notes.txt dist/podvm-*
           fi

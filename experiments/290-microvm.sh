@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Question: this host's kernel has neither CONFIG_SECURITY_LANDLOCK nor
-# CONFIG_CHECKPOINT_RESTORE, so three of podbox's own measurements have been
+# CONFIG_CHECKPOINT_RESTORE, so three of podvm's own measurements have been
 # recorded as "cannot be answered here" since M0. Can a virtual machine answer
 # them instead?
 #
 # ⭐ IT CAN, AND THAT CLOSES TWO STANDING QUESTIONS. This boots a stock distro
-# kernel under QEMU with an initramfs carrying nothing but busybox and podbox,
-# runs `podbox probe --json` as pid 1's child, and reads the answers back.
+# kernel under QEMU with an initramfs carrying nothing but busybox and podvm,
+# runs `podvm probe --json` as pid 1's child, and reads the answers back.
 #
 #   TODO/probe.md T-0102       the kcmp(2) control of the bogus-argument
 #                              discriminator, which answers ENOSYS here and
@@ -15,7 +15,7 @@
 #                              SKIP here and makes 30-attribution-census.sh
 #                              exit 2
 #   M0's acceptance            move_mount(-> /tmp/mm-probe), which attaches on
-#                              this host and is EPERM on the target, so podbox's
+#                              this host and is EPERM on the target, so podvm's
 #                              chroot rung was selected without the LSM ever
 #                              having been present
 #
@@ -37,7 +37,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/microvm.txt"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT INT TERM
@@ -45,11 +45,11 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 # ⚠ Pinned. A different Alpine release is a different kernel and therefore a
 # different reading, and `docs/methodology/experiments.md` requires a pinned
 # input rather than "whatever latest is today".
-ALPINE_REL="${PODBOX_MVM_ALPINE:-v3.21}"
+ALPINE_REL="${PODVM_MVM_ALPINE:-v3.21}"
 BASE="https://dl-cdn.alpinelinux.org/alpine/$ALPINE_REL/releases/x86_64/netboot"
 # ⚠ A bound on the whole boot. RULES.md section 8: TCG is slow and "slow" must
 # still have a number, or a hung VM costs the session.
-BOOT_TIMEOUT="${PODBOX_MVM_TIMEOUT:-600}"
+BOOT_TIMEOUT="${PODVM_MVM_TIMEOUT:-600}"
 
 [ -x "$BIN" ] || {
 	echo "SKIP: $BIN is not an executable. Build it:" >&2
@@ -81,7 +81,7 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 	printf '/dev/kvm          %s\n' "$([ -e /dev/kvm ] && echo present || echo 'absent, so this runs under TCG')"
 	printf 'qemu              %s\n' "$(qemu-system-x86_64 --version | head -1)"
 	printf 'alpine netboot    %s\n' "$ALPINE_REL"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	echo
 } >"$WORK/report"
 
@@ -103,7 +103,7 @@ done
 ROOT="$WORK/root"
 mkdir -p "$ROOT"/{bin,proc,sys,dev,tmp,mnt,run,var/tmp}
 cp "$BUSYBOX" "$ROOT/bin/busybox"
-cp "$BIN" "$ROOT/podbox"
+cp "$BIN" "$ROOT/podvm"
 cat >"$ROOT/init" <<'INIT'
 #!/bin/busybox sh
 /bin/busybox --install -s /bin
@@ -116,16 +116,16 @@ mount -t securityfs none /sys/kernel/security 2>/dev/null
 # node with nothing behind it. Without this `open(/dev/ptmx)` answers ENOENT and
 # that is a statement about this initramfs, not about the kernel.
 mkdir -p /dev/pts && mount -t devpts none /dev/pts 2>/dev/null
-echo "PODBOX-MVM-BEGIN"
+echo "PODVM-MVM-BEGIN"
 echo "mvm-kernel $(uname -r)"
 echo "mvm-lsm $(cat /sys/kernel/security/lsm 2>/dev/null || echo none)"
-/podbox probe --json >/tmp/probe.json 2>/tmp/probe.err
+/podvm probe --json >/tmp/probe.json 2>/tmp/probe.err
 echo "mvm-probe-rc $?"
-echo "PODBOX-JSON-BEGIN"
+echo "PODVM-JSON-BEGIN"
 cat /tmp/probe.json
 echo ""
-echo "PODBOX-JSON-END"
-echo "PODBOX-MVM-END"
+echo "PODVM-JSON-END"
+echo "PODVM-MVM-END"
 poweroff -f
 INIT
 chmod +x "$ROOT/init"
@@ -141,10 +141,10 @@ timeout "$BOOT_TIMEOUT" qemu-system-x86_64 \
 qemu_rc=$?
 elapsed=$(($(date +%s) - started))
 
-say "== 1. the VM booted and podbox ran inside it"
+say "== 1. the VM booted and podvm ran inside it"
 say "  qemu exit         $qemu_rc"
 say "  wall clock        ${elapsed}s, under TCG"
-if ! grep -q PODBOX-MVM-END "$WORK/console"; then
+if ! grep -q PODVM-MVM-END "$WORK/console"; then
 	say "  SKIP: the VM did not reach the end of its init. Console tail:"
 	tail -5 "$WORK/console" | sed 's/^/    /' >>"$WORK/report"
 	cat "$WORK/report"
@@ -157,7 +157,7 @@ say "  guest LSMs        $(sed -n 's/^mvm-lsm //p' "$WORK/console" | tr -d '\r')
 # ⛔ The JSON is carved out of a serial console, so it is validated before
 # anything is read from it. A `jq` over a truncated document answers `null` for
 # every question, which reads exactly like a measured absence.
-sed -n '/PODBOX-JSON-BEGIN/,/PODBOX-JSON-END/p' "$WORK/console" |
+sed -n '/PODVM-JSON-BEGIN/,/PODVM-JSON-END/p' "$WORK/console" |
 	sed '1d;$d' | tr -d '\r' >"$WORK/probe.json"
 if ! jq -e . "$WORK/probe.json" >/dev/null 2>&1; then
 	say "  FAIL: the probe document did not survive the serial console intact"
@@ -174,7 +174,7 @@ reason() { jq -r --arg n "$1" '.probes[] | select(.name==$n) | .reason // ""' "$
 say ""
 say "== 2. TODO/probe.md T-0102: the kcmp(2) control ANSWERS here"
 # ⚠ `.controls.kcmp` is `null` on this host and that is CORRECT rather than a
-# bug: the control could not answer, so podbox records a dash instead of a
+# bug: the control could not answer, so podvm records a dash instead of a
 # value (AGENTS.md absolute 3) and sets `controls_answered` false. Printing
 # a bare `null` reads like a defect, so the row's own errno is printed beside it.
 "$BIN" probe --json >"$WORK/host.json" 2>/dev/null
@@ -208,7 +208,7 @@ say "== 4. move_mount, the row M0's acceptance could never exercise"
 mm="$(verdict 'move_mount(-> /tmp/mm-probe)')"
 say "  in the VM         $mm"
 say "  on this host      $(jq -r '.probes[] | select(.name=="move_mount(-> /tmp/mm-probe)") | .verdict' "$WORK/host.json")"
-say "  on the target     EPERM, which is why podbox selects the chroot rung there"
+say "  on the target     EPERM, which is why podvm selects the chroot rung there"
 [ -n "$mm" ] || { say "  FAIL: the row is missing from the VM's document"; fail=1; }
 
 # --------------------------------------------------------------------- 5

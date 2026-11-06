@@ -3,7 +3,7 @@
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
 
-`crates/podbox-cli`. `TOOL.md` section 6.8 and section 6.9.
+`crates/podvm`. `TOOL.md` section 6.8 and section 6.9.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
 [RULES.md](RULES.md) is how an entry closes. [reference-map.md](reference-map.md) is the corpus.
@@ -33,7 +33,7 @@ Premise:     Read. `TOOL.md` section 6.8 is the table, in full, with a status pe
              **Stub** (accepted, no-op, listed in the banner), **None** (fails
              with a named reason).
 Approach:    Implement the table as data, not as a match arm per flag, so that
-             `podbox system info` can print it and a test can assert every row
+             `podvm system info` can print it and a test can assert every row
              is reachable. A flag with no row is a bug in the table, and the
              parser says so rather than ignoring it.
              ⭐ The posture to copy is `dockless`'s, at
@@ -51,10 +51,10 @@ Approach:    Implement the table as data, not as a match arm per flag, so that
 Decision:    A table plus a generated parser, over a hand-written one. The table
              is what section 6.8 already is, and generating from it makes "the flag
              exists and is unlisted" impossible.
-Prove:       `./experiments/320-cli-contract.sh` clauses 1 to 3, whose first clause is `podbox system info --format '{{json .Parity}}' | jq -e 'length >= 60 and all(.status | IN("Native","Degraded","Stub","None"))'`
+Prove:       `./experiments/320-cli-contract.sh` clauses 1 to 3, whose first clause is `podvm system info --format '{{json .Parity}}' | jq -e 'length >= 60 and all(.status | IN("Native","Degraded","Stub","None"))'`
 
-**Done, 2026-09-09.** `crates/podbox-cli/src/parity.rs` is the table,
-`crates/podbox-cli/src/system.rs` is `podbox system info`, and
+**Done, 2026-09-09.** `crates/podvm/src/parity.rs` is the table,
+`crates/podvm/src/system.rs` is `podvm system info`, and
 `experiments/320-cli-contract.sh` drives all three of the contracts below
 against the shipped binary.
 
@@ -85,9 +85,9 @@ every one of those parsers, so the sentence above holds since 2026-09-21 and
 
 ⭐ **The refusal carries the row's own reason**, so a caller that reads the
 table and then runs the verb gets the same sentence back from the same place:
-`podbox run --name c1` exits 2 with "`--name` is in the parity table with status
-None: a name identifies a container, and podbox has none until M4", and
-`podbox ps` exits 125 with that verb's row. Clause 3 asserts the message a verb
+`podvm run --name c1` exits 2 with "`--name` is in the parity table with status
+None: a name identifies a container, and podvm has none until M4", and
+`podvm ps` exits 125 with that verb's row. Clause 3 asserts the message a verb
 prints is byte-for-byte the note the table published.
 
 ⛔ **`--format` grew exactly one function, `json`.** `{{json .Parity}}` is
@@ -99,7 +99,7 @@ alternative, guessing from the value's first byte, makes a string that happens
 to begin with `[` come out unquoted, which is a wrong answer that parses.
 
 ⚠ **A `None` row is not a placeholder.** It is the sentence a caller gets
-instead of a flag being ignored, so deleting one makes podbox quieter and less
+instead of a flag being ignored, so deleting one makes podvm quieter and less
 honest rather than smaller. A test asserts every one of them carries a reason
 longer than a milestone number, which caught eleven rows whose whole note was
 "the lifecycle is M4".
@@ -110,12 +110,12 @@ served by another verb's parser and nothing said so, in either direction.**
 written in rather than passed. Two consequences, and each is the class this
 entry exists to make impossible:
 
-- ⛔ `podbox create --no-steps` was **accepted and acted on** while
-  `podbox system info` listed `--no-steps` under `run` and `exec` only. The
+- ⛔ `podvm create --no-steps` was **accepted and acted on** while
+  `podvm system info` listed `--no-steps` under `run` and `exec` only. The
   table under-described the binary, which is "the flag exists and is unlisted"
   arriving through the door the entry did not enumerate.
-- ⛔ `podbox create --no-such-flag` answered **`podbox run: unknown option`**
-  and printed `usage: podbox run`, naming a verb the caller had not typed, and
+- ⛔ `podvm create --no-such-flag` answered **`podvm run: unknown option`**
+  and printed `usage: podvm run`, naming a verb the caller had not typed, and
   then sent them to "every flag this verb takes" -- a row set that does not
   exist.
 
@@ -126,11 +126,11 @@ the borrowing out loud. ⚠ Threading the verb was not cosmetic: `admit` looks t
 flag up, so naming the caller's verb without `rows_of` would have made `create`
 refuse every flag it accepts. Six functions in `run.rs` took the verb --
 `parse`, `prepare`, `acquire`, `extract_now` and `config_of` among them --
-because each wrote `podbox run:` into a message `create` and `exec` can reach.
+because each wrote `podvm run:` into a message `create` and `exec` can reach.
 
 Prove: `a_verb_served_by_another_parser_resolves_that_verbs_rows_and_says_so`
-asserts both halves, and driven: `podbox create --no-such-flag` now names
-`create`, `podbox create --no-steps` is still accepted, and the table is 141
+asserts both halves, and driven: `podvm create --no-such-flag` now names
+`create`, `podvm create --no-steps` is still accepted, and the table is 141
 rows as before, because the fix added none.
 
 **Partial, 2026-09-25.** Issue 60 reopens this entry on its own
@@ -142,7 +142,7 @@ flags (`--read-only`, `--mount`, `--env-file`, `--label`,
 2026-09-25 (`experiments/results/triage-353.txt` clauses
 `60-read-only`, `60-mount`, `60-env-file`, `60-manifest`,
 `60-service`): each flag answers `unknown option` with no reason
-at 125, each verb exits 1 on the neither-podbox-nor-docker arm
+at 125, each verb exits 1 on the neither-podvm-nor-docker arm
 with the usage text claiming every other docker verb is named in
 the table, which is not true while these are missing. Add a
 `None` row with the fitting reason for each refused flag (the
@@ -155,7 +155,7 @@ beside the rows. Keep the parser answering `unknown option` only
 as the backstop, never as the documented answer. The `--device`
 and `--log-driver` rows ride here too (issues 55 and 56, filed
 apart because entries name them). Fix area is
-`crates/podbox-cli/src/parity.rs` with the `run` and `exec`
+`crates/podvm/src/parity.rs` with the `run` and `exec`
 parsers for promoted flags. Risk if wrong is an operator
 trusting an enumerable table that omits the docker surface they
 script against. Prove is the curated flag list from the issue
@@ -163,7 +163,7 @@ driven row by row through the shipped binary with every refusal
 naming its reason, beside the T-1325 check extension below.
 
 **Done, 2026-09-25.** Every one of the issue's 46 flags and 10
-verbs has a row, in `crates/podbox-cli/src/parity.rs` (220 rows,
+verbs has a row, in `crates/podvm/src/parity.rs` (220 rows,
 69 verbs). `--env-file` is Native with a parser arm and a reader
 (`run.rs read_env_file`: `KEY=VALUE` lines loaded at the flag's
 position, `#` comments and blanks ignored, one matching quote pair
@@ -189,7 +189,7 @@ refused at 125 naming the value, `create` inheriting all of it.
 Report in `experiments/results/parity-curated.txt`. In-suite:
 `issue_60_curated_surface_stays_covered`,
 `env_file_loads_and_stubs_parse`,
-`log_driver_takes_json_file_and_nothing_else`, podbox-cli 139
+`log_driver_takes_json_file_and_nothing_else`, podvm 139
 passed, 0 failed. Guards are check 27's curated arm and the
 in-suite test beside it.
 
@@ -219,20 +219,20 @@ Approach:    Return the payload's status verbatim from `run`, `start` in the
              That rule is what T-0409 depends on.
 Decision:    Match docker rather than define a clearer scheme. Parity is the
              product.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'exit 42'; test $? -eq 42 && podbox run --rm public.ecr.aws/docker/library/alpine:3.20 /nonexistent; test $? -eq 127`
+Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'exit 42'; test $? -eq 42 && podvm run --rm public.ecr.aws/docker/library/alpine:3.20 /nonexistent; test $? -eq 127`
 
 
 **Done 2026-09-09, and the entry's own description of docker's convention was
 incomplete.** `experiments/330-exit-codes.sh` runs the same case through both
 binaries on one host and compares the numbers, which is the only way this can be
-asserted: docker's contract is not written anywhere podbox can read, it is what
+asserted: docker's contract is not written anywhere podvm can read, it is what
 the binary does.
 
 ⭐ **THE DISCRIMINATOR IS NOT THE ONE THE ENTRY DESCRIBES, AND IT IS THE
 FINDING.** docker exits **125** for anything its FLAG PARSER refuses and **1**
 for anything the verb refuses afterwards. Measured on docker 29.3.1:
 
-| case | docker | what podbox did before |
+| case | docker | what podvm did before |
 | --- | --- | --- |
 | `run --badflag`, `--pull=bogus`, `--memory=notasize` | **125** | 2 |
 | `images --format '{{.Nope}}'`, `run` with no image | **1** | 2 |
@@ -245,7 +245,7 @@ for anything the verb refuses afterwards. Measured on docker 29.3.1:
 
 Four of those eight were wrong. ⛔ The 126/127 one is the one that costs a
 caller most: every `execve` failure was folded into "not found", so
-`podbox run alpine /etc/passwd` said 127 where docker says 126, and a script
+`podvm run alpine /etc/passwd` said 127 where docker says 126, and a script
 branching on 127 retries with another path. The split is on the **errno**:
 `EPERM`, `ENOEXEC`, `EACCES`, `EISDIR` and `ETXTBSY` are 126; `ENOENT` and
 anything about resolving the path are 127.
@@ -255,15 +255,15 @@ anything about resolving the path are 127.
 which `prune` reports as exit 0 naming `skipped:`; `store.remove`
 (`Held::Refuse`) errors `in use`, which `rmi` reports as 125. The script
 (`experiments/160-store-gc.sh:138-139`), the source
-(`crates/podbox-cli/src/images.rs:961-986`), and
+(`crates/podvm/src/images.rs:961-986`), and
 `experiments/results/store-gc.txt` (one `skipped:` line) agree. Pinned by
 `rmi_refuses_a_held_image` and `prune_skips_a_held_image` in
-`crates/podbox-cli/src/images.rs`.
+`crates/podvm/src/images.rs`.
 
-⭐ **The codes now live in ONE file**, `crates/podbox-probe/src/exit.rs`, and
-are served as data by `podbox system info --format '{{json .ExitCodes}}'`.
-⛔ They had been written out in **three**: `podbox-image::error`,
-`podbox-cli::main` and `podbox-enter`, and two of the copies had already
+⭐ **The codes now live in ONE file**, `crates/podvm-probe/src/exit.rs`, and
+are served as data by `podvm system info --format '{{json .ExitCodes}}'`.
+⛔ They had been written out in **three**: `podvm-image::error`,
+`podvm::main` and `podvm-enter`, and two of the copies had already
 diverged -- `main.rs` still carried the old usage code while `error.rs` carried
 the corrected one, so two verbs of one binary disagreed about what a flag error
 is. `scripts/common/exit-codes.sh` is how a shell script reads the table, and
@@ -278,7 +278,7 @@ Prove, run 2026-09-09:
 
 ```
 $ ./experiments/330-exit-codes.sh
-  15 cases, podbox and docker agree on every one
+  15 cases, podvm and docker agree on every one
   exit 0
 ```
 
@@ -292,25 +292,25 @@ Priority:    P1
 Effort:      S
 Status:      done 2026-09-09
 
-Problem:     An agent runs `docker`. If podbox is only reachable as `podbox`,
+Problem:     An agent runs `docker`. If podvm is only reachable as `podvm`,
              it has replaced nothing on the machines it is for.
 Premise:     Read. On the studied runtime `docker` on PATH is already a podman
              alias with no daemon, so the name is available and currently
              resolves to something that does not work.
-Approach:    Multicall on `argv[0]`: `docker`, `podman` and `podbox` all enter
+Approach:    Multicall on `argv[0]`: `docker`, `podman` and `podvm` all enter
              the same parser, and the banner names which. Install the two extra
              names as symlinks, never as copies, so one binary is one artefact.
              ⚠ Check what is already on PATH before replacing it, and refuse to
              overwrite a real docker client without an explicit flag. A machine
-             with a working daemon is a machine where podbox is the wrong tool.
+             with a working daemon is a machine where podvm is the wrong tool.
 Decision:    Symlinks over a wrapper script. A shell wrapper is a second
              artefact, it breaks the memfd rung (T-1001), and it is the exact
              thing `references/qaidvoid__onelf` records as skipping that rung.
              ⭐ **RULED by the operator on 2026-09-08, and no longer open:**
-             podbox **refuses** to take the `docker` name where a working
+             podvm **refuses** to take the `docker` name where a working
              docker daemon is reachable, unless an explicit flag says otherwise,
              and says why in one line. A machine with a working daemon is a
-             machine where podbox is the wrong tool.
+             machine where podvm is the wrong tool.
              The alternative considered and rejected is deferring to the real
              daemon transparently by exec'ing it: it costs an exec on every
              call and it hides which tool ran, which is the class of thing
@@ -318,29 +318,29 @@ Decision:    Symlinks over a wrapper script. A shell wrapper is a second
              ⚠ The check is on a **reachable daemon**, not on a `docker` binary
              being present: on the target runtime `docker` on PATH is a podman
              alias with no daemon behind it, so a binary check would refuse on
-             exactly the machines podbox is for.
+             exactly the machines podvm is for.
 Prove:       `./experiments/320-cli-contract.sh` clauses 4 and 5: both names run the payload and say which tool ran, and the `docker` name is refused where a daemon answers unless `--force`
 
-**Done, 2026-09-09.** `crates/podbox-cli/src/names.rs`, the banner line in `run`
-and `exec`, `podbox system install-names`, and clauses 4 and 5 of
+**Done, 2026-09-09.** `crates/podvm/src/names.rs`, the banner line in `run`
+and `exec`, `podvm system install-names`, and clauses 4 and 5 of
 `experiments/320-cli-contract.sh`.
 
 ⭐ **Multicall on `argv[0]`, and the banner names which name was used.** Taking
 the name is the product requirement; taking it silently is what `TOOL.md`
 section 4.1 forbids, so every `run` and `exec` reached as `docker` or `podman`
-carries one extra line saying this is podbox and where the differences are
+carries one extra line saying this is podvm and where the differences are
 listed.
 
 ⛔ **The daemon check is on a REACHABLE DAEMON and it is a real request.** The
 socket named by `$DOCKER_HOST`, or `/var/run/docker.sock`, is connected to and
 asked `/_ping` under a two-second timeout, so a stale socket file with nothing
-behind it reads as absent, which is the state the machines podbox is for are
+behind it reads as absent, which is the state the machines podvm is for are
 actually in. ⚠ A `$DOCKER_HOST` that is not a `unix://` socket is a THIRD state:
-podbox says the guard itself is degraded and continues, which is the half of
+podvm says the guard itself is degraded and continues, which is the half of
 `dockless`'s posture worth keeping.
 
 ⭐ **The ruling is about the `docker` name only.** On this machine, where a
-daemon answers, `podbox system install-names` installs `podman`, refuses
+daemon answers, `podvm system install-names` installs `podman`, refuses
 `docker` with the reason, and exits 125; `--force` installs it. ⚠ Clause 5 reads
 which state the machine is in first and asserts the other half where it can, so
 a machine with no daemon reports the refusal half as unmeasured rather than as a
@@ -384,10 +384,10 @@ Approach:    Four rules, enforced in the output path rather than in review:
              one flag rather than checking the banner.
 Decision:    Suppressible by config, never by default. `ruri` allows
              `--disable-warnings` to silence its degradation notices, which is
-             the `sandlock` failure mode with a flag in front of it; podbox's
+             the `sandlock` failure mode with a flag in front of it; podvm's
              equivalent is a config file a machine's operator sets once, and it
              cannot be set from the command line of a single run.
-Prove:       `! podbox run --rm --network=none public.ecr.aws/docker/library/alpine:3.20 true && ! podbox run --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true && ! podbox run --strict --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true`
+Prove:       `! podvm run --rm --network=none public.ecr.aws/docker/library/alpine:3.20 true && ! podvm run --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true && ! podvm run --strict --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true`
 
 
 **Done 2026-09-09.** All four rules, and the third and fourth needed a defect
@@ -398,7 +398,7 @@ fixed rather than a switch added.
    file a machine's operator sets once is the Decision: `ruri`'s
    `--disable-warnings` is the `sandlock` failure with a flag in front of it.
    ⚠ Whether a machine has suppressed it is itself reported, by
-   `podbox system info --format '{{.Banner}}'`, because a silent banner nobody
+   `podvm system info --format '{{.Banner}}'`, because a silent banner nobody
    can tell from an absent one is the same shape again. ⛔ A `--strict` refusal
    prints whether or not the banner is quiet: the switch silences a notice,
    never a refusal.
@@ -412,24 +412,24 @@ fixed rather than a switch added.
    `/dev/null` that is a regular file is part of the mode, and a report that
    left it out would say devices exist when they do not.
 4. ⛔ **THE FOURTH RULE WAS BEING BROKEN, AND BY THE BANNER ITSELF.** The banner
-   printed `mode=` **the rung the PROBE selected**, and `podbox_enter` performs
+   printed `mode=` **the rung the PROBE selected**, and `podvm_enter` performs
    a plain `chroot` on every machine. On this host, where the probe selects
-   `namespace`, every `podbox run` printed
+   `namespace`, every `podvm run` printed
 
    ```
-   podbox 0.1.0: mode=namespace (namespaces: as configured; mounts: full; ...)
+   podvm 0.1.0: mode=namespace (namespaces: as configured; mounts: full; ...)
    ```
 
    for a payload that had no namespace and no mounts at all. It now reads the
    rung the entry sequence IMPLEMENTS, from one constant
-   (`podbox_enter::ENTERED_RUNG`), and prints the machine's own answer beside
+   (`podvm_enter::ENTERED_RUNG`), and prints the machine's own answer beside
    it rather than dropping it:
 
    ```
-   podbox 0.1.0: mode=chroot (namespaces: uts-only; mounts: none; devices: real;
+   podvm 0.1.0: mode=chroot (namespaces: uts-only; mounts: none; devices: real;
    ownership: real; network: host-shared; pids: host-shared)
    this mode does NOT provide: process, network, IPC or mount isolation
-   ⚠ this machine would permit `namespace`; podbox's entry sequence is `chroot`
+   ⚠ this machine would permit `namespace`; podvm's entry sequence is `chroot`
      and creates no namespace and mounts nothing
    ```
 
@@ -438,8 +438,8 @@ the first one it finds:
 
 - **the flags this invocation passed**, against the parity table's own status.
   A `Degraded` or `Stub` row is a difference this run actually incurs;
-- **the rung podbox entered with**, against `Selection::STRICT_FLOOR` -- the same
-  constant `podbox probe --strict` gates on, not a second spelling of it;
+- **the rung podvm entered with**, against `Selection::STRICT_FLOOR` -- the same
+  constant `podvm probe --strict` gates on, not a second spelling of it;
 - **the completion layer's report**, one row per fixup marked degraded.
 
 ⛔ A `None` row was already fatal without `--strict`, and has been since T-0801
@@ -447,24 +447,24 @@ made the table binding, so the switch is about the two statuses that otherwise
 let a run proceed.
 
 ⚠ **THE `Prove` ABOVE CANNOT PASS AND ITS SECOND CLAUSE IS THE REASON.** It
-expects `podbox run --rm --memory=1g ... true` to exit **0** and the same run
+expects `podvm run --rm --memory=1g ... true` to exit **0** and the same run
 under `--strict` to fail. T-0801 landed after this entry was written and made
 every `None` flag a refusal in the parser, so `--memory=1g` exits 125 with or
 without `--strict` -- the entry's own rule 2, enforced earlier than it expected.
 The rewrite, run 2026-09-09:
 
 ```
-$ podbox run --rm public.ecr.aws/docker/library/alpine:3.20 true; echo $?
+$ podvm run --rm public.ecr.aws/docker/library/alpine:3.20 true; echo $?
   0, and the banner carries `mode=chroot` and the two lines above
-$ podbox run --strict --rm public.ecr.aws/docker/library/alpine:3.20 true; echo $?
-  podbox run: --strict, and this run is degraded in 2 way(s). podbox refuses
+$ podvm run --strict --rm public.ecr.aws/docker/library/alpine:3.20 true; echo $?
+  podvm run: --strict, and this run is degraded in 2 way(s). podvm refuses
   rather than running and letting the payload discover them:
     - the selected rung is `chroot` and not `namespace`, so the payload shares
       this machine's process table, network, IPC and mount namespaces
     - rewrote etc/mtab (T-0405): ...
   125
-$ podbox run --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true; echo $?
-  podbox run: -m, --memory is in the parity table with status None: resource
+$ podvm run --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true; echo $?
+  podvm run: -m, --memory is in the parity table with status None: resource
   limits need a cgroup this runtime does not grant
   125
 ```
@@ -500,20 +500,20 @@ Approach:    Every failure carries four parts: the operation, the errno, the
 Decision:    Quote the actual `uid_map` contents rather than saying "an unmapped
              id". The map is one read (T-0105) and it is what turns a confusing
              errno into an explanation a reader can act on.
-Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox extract public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -A2 'gid 42' | grep -q 'gid_map'`
+Prove:       `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -A2 'gid 42' | grep -q 'gid_map'`
 
-**Done 2026-09-21.** `crates/podbox-cli/src/diagnose.rs` carries TOOL.md
+**Done 2026-09-21.** `crates/podvm/src/diagnose.rs` carries TOOL.md
 section 8 as data: 22 rows from observation to operation, errno, mechanism
 and remedy. `ownership_note` renders the chown row with live measurements:
 the first dropped entry from the sidecar, the map contents T-0105 reads,
 and the sidecar path as the remedy. `report_dropped` prints the counts line
 and the note. Both `extract` and `run` call it, so one extraction reads one
 way on both verbs. The sidecar remembers the first dropped entry and
-`Extracted` carries it (`crates/podbox-extract/src/sidecar.rs`,
-`crates/podbox-extract/src/lib.rs`).
+`Extracted` carries it (`crates/podvm-extract/src/sidecar.rs`,
+`crates/podvm-extract/src/lib.rs`).
 
 The entry first named `pull` alone in Prove. Pull performs no extraction
-(`crates/podbox-image/src/pull.rs:17`), so no pull output can name a dropped
+(`crates/podvm-image/src/pull.rs:17`), so no pull output can name a dropped
 id. Three routes were checked: a pull path that extracts somewhere unseen
 (refuted by the pull handler, which prints the probe source and returns), a
 predictive diagnostic inside pull (refuted, since pull cannot know dropped
@@ -523,8 +523,8 @@ Run 2026-09-21 in a disposable container on host podman 6.1.2 with guest
 maps `0 1000 1; 1 100000 65536`: pull exits 0, extract exits 0 over 517
 entries with 1 dropped, and the note names etc/shadow (uid 0, gid 42) with
 EINVAL beside the `/proc/self/gid_map` contents. The unit job exits 0: 71
-passed in podbox-cli with 5 new diagnose tests, 46 passed in
-podbox-extract. Clippy passes with `-D warnings`. The spawn row in the table
+passed in podvm with 5 new diagnose tests, 46 passed in
+podvm-extract. Clippy passes with `-D warnings`. The spawn row in the table
 stays unwired until T-0809.
 
 ---
@@ -538,7 +538,7 @@ Effort:      S
 Status:      done
 
 Problem:     A prompt with no terminal behind it is a hang, and a hang is total.
-             The three ways a long autonomous run dies are the three ways podbox
+             The three ways a long autonomous run dies are the three ways podvm
              can make its caller die.
 Premise:     Read, and one instance is in the corpus at file and line.
              `references/89luca89__lilipod/tree/pkg/utils/utils.go:194-214`
@@ -556,19 +556,19 @@ Approach:    Three properties, tested rather than reviewed:
              3. `statvfs` for blocks and inodes before every large write, with
                 the destination named in the error (T-0203).
 
-             ⚠ Where podbox needs a tool it does not have, it says so **at the
+             ⚠ Where podvm needs a tool it does not have, it says so **at the
              point of use** and not at startup, so every verb that does not need
              it still works.
 Decision:    Check at the point of use rather than up front. lilipod's shape
              makes `pull` fail on a machine where `pull` would have worked, and
              `pull` is the verb an agent reaches for first.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 true </dev/null && timeout 30 podbox pull public.ecr.aws/docker/library/alpine:3.20 </dev/null; test $? -ne 124`
+Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 true </dev/null && timeout 30 podvm pull public.ecr.aws/docker/library/alpine:3.20 </dev/null; test $? -ne 124`
 
 
 **Done 2026-09-09.** All three properties, and each is asserted rather than
 reviewed.
 
-1. **No code path reads stdin.** podbox never opens or reads fd 0: the payload
+1. **No code path reads stdin.** podvm never opens or reads fd 0: the payload
    inherits the caller's, which is what makes `-i` a `Stub` rather than a
    feature. ⚠ `experiments/330-exit-codes.sh` runs every case with stdin
    redirected from `/dev/null` under a `timeout`, so a read that blocked would
@@ -584,8 +584,8 @@ reviewed.
    into a rootfs that may be on a small tmpfs, so `space::require` runs before
    the first of them with the destination named in the error.
 
-⚠ **Where podbox needs a tool it does not have, it says so at the point of use.**
-The keyring half of [T-0406](complete.md) is the instance: podbox cannot run
+⚠ **Where podvm needs a tool it does not have, it says so at the point of use.**
+The keyring half of [T-0406](complete.md) is the instance: podvm cannot run
 `pacman-key` from outside the chroot, so the fixup reports the state and names
 the two commands, rather than refusing the run. That is the Decision's own
 shape, against `lilipod`'s at
@@ -595,15 +595,15 @@ before every subcommand including `pull`.
 Prove, run 2026-09-09:
 
 ```
-$ podbox run --rm public.ecr.aws/docker/library/alpine:3.20 true </dev/null; echo $?
+$ podvm run --rm public.ecr.aws/docker/library/alpine:3.20 true </dev/null; echo $?
   0
-$ timeout 30 podbox pull public.ecr.aws/docker/library/alpine:3.20 </dev/null; echo $?
+$ timeout 30 podvm pull public.ecr.aws/docker/library/alpine:3.20 </dev/null; echo $?
   0, and never 124
 ```
 
 ---
 
-### T-0807 `podbox images --format` refuses a template no verb can answer, before it looks at the store
+### T-0807 `podvm images --format` refuses a template no verb can answer, before it looks at the store
 
 Source:      Found by driving the CLI cold against an empty store
 Category:    cli
@@ -613,7 +613,7 @@ Status:      done 2026-09-08
 
 Problem:     A `--format` template was validated inside the loop over records.
              An empty store means zero iterations, so an invalid template was
-             never seen: `podbox images --format '{{.Nope}}'` printed nothing
+             never seen: `podvm images --format '{{.Nope}}'` printed nothing
              and exited 0, and a caller's typo read as an empty result set.
 Premise:     ⭐ **Measured by running it**, not by reading it, on 2026-09-08.
              Three templates exited 0 against an empty store where all three are
@@ -622,15 +622,15 @@ Premise:     ⭐ **Measured by running it**, not by reading it, on 2026-09-08.
              `table` prefix, which rendered the word `table` beside the values.
 Approach:    One walk over the template, shared by a `check` that has no record
              in hand and a `render` that does, in
-             `crates/podbox-cli/src/format.rs`. Both verbs call `check` before
+             `crates/podvm/src/format.rs`. Both verbs call `check` before
              the store is opened, against a named list of their own fields.
              ⛔ The field-name list and the field builder are two places holding
              one value, so a test asserts they agree, which is the remedy
              `docs/conventions/forbidden-patterns.md` names for exactly that row.
 Decision:    Refuse `table` rather than rendering it as literal text. It selects
-             a column layout in docker and podbox does not have one, so printing
-             it is output shaped like something podbox does not do.
-Prove:       `podbox images --format '{{.Nope}}' >/dev/null 2>&1; test $? -eq 2`
+             a column layout in docker and podvm does not have one, so printing
+             it is output shaped like something podvm does not do.
+Prove:       `podvm images --format '{{.Nope}}' >/dev/null 2>&1; test $? -eq 2`
 
 **Done 2026-09-08.** Driven against an empty store: the unknown field, the
 unterminated brace, the `table` prefix and a pipeline all exit 2 and name what
@@ -654,8 +654,8 @@ Problem:     ⛔ **The table is 141 rows and nothing asserts the binary agrees
              a unit test that walks the table and calls the PARSER, which is
              the same code that reads the table, so the two cannot disagree
              even when the binary is wrong.
-Premise:     Found by hand on 2026-09-10 and not by any check: `podbox create
-             --no-steps` was accepted and acted on while `podbox system info`
+Premise:     Found by hand on 2026-09-10 and not by any check: `podvm create
+             --no-steps` was accepted and acted on while `podvm system info`
              listed `--no-steps` under `run` and `exec` only. ⚠ The unit test
              could not have caught it, because it asks the table which flags a
              verb has and then asks the parser about those; a flag the parser
@@ -688,21 +688,21 @@ Decision:    Admit-first everywhere, in the same change as the driver. Every
              Approach clause 3 closed structurally rather than by enumeration:
              with the pre-pass there is no second list to compare.
 Prove:       `./experiments/325-parity-drive.sh`, which exits 0 only when every
-             row of `podbox system info --format '{{json .Parity}}'` was driven
+             row of `podvm system info --format '{{json .Parity}}'` was driven
              or reported as unreachable here, and prints the count of each.
 
 **Done, 2026-09-21.** The driver is green against the shipped binary: 160
 rows, 199 driven, 0 mismatches, 0 unreachable here
 (`experiments/results/parity-drive.txt`, with the conditions at its head).
 Both figures are historical readings; the table holds 265 rows
-(`crates/podbox-cli/src/parity.rs:232`).
+(`crates/podvm/src/parity.rs:232`).
 The 153-row figure this record carried went stale at T-1302, which added
 5 rows (the two tier rows, the two qemu-arg rows and `podvm`) without
-re-driving, and T-1305 added 2 more (the two `--podbox-mem` rows) with the
+re-driving, and T-1305 added 2 more (the two `--podvm-mem` rows) with the
 re-drive above: 153 plus 5 plus 2 is the 160 the binary publishes.
 `run -i` and `exec -i` both ran a self-pulled `alpine:3.20` payload with the
 banner naming `-i`. Release build, `clippy --workspace --all-targets` with
-`-D warnings`, and `cargo test -p podbox-cli -p podbox-probe -p podbox-extract`
+`-D warnings`, and `cargo test -p podvm -p podvm-probe -p podvm-extract`
 (73, 65 and 46 passed) were all green in the same run. The first drive found
 4 mismatches and all 4 were the driver's: group subverbs probed as top-level
 verbs, and `exec` driven with the run-only `--pull`. Both fixed in the
@@ -734,7 +734,7 @@ Priority:    P1
 Effort:      M
 Status:      done 2026-09-21
 
-Problem:     A payload inside podbox spawns a child, the spawn fails, and the
+Problem:     A payload inside podvm spawns a child, the spawn fails, and the
              message says the operation is not permitted. ⛔ **That one string
              covers at least two different refused calls**, and reading it as the
              wrong one has cost whole architectures.
@@ -751,25 +751,25 @@ Premise:     ⭐ **Measured, with the matrix committed, by somebody else.** Go's
              mistake.
              ⭐ The remedy is one field and it changes nothing else. Dropping the
              credential entirely is not required and has other effects.
-Approach:    podbox does not spawn this way: it is Rust and it declares its own
-             syscalls. ⛔ **The payload does, and podbox is what the payload's
+Approach:    podvm does not spawn this way: it is Rust and it declares its own
+             syscalls. ⛔ **The payload does, and podvm is what the payload's
              operator reads.** So this is a diagnostic row and not a code change:
              T-0805's four-part message gains an entry mapping the observed
              string plus a denied `setgroups` leg to the mechanism and the
              one-field remedy.
              ⚠ The discriminator is already probed: [probe.md](probe.md)
-             separates a refused clone from a refused `setgroups`, so podbox can
+             separates a refused clone from a refused `setgroups`, so podvm can
              say which wall the payload met rather than repeating the payload's
              own ambiguous string.
-Decision:    Diagnose, never patch. ⛔ podbox does not rewrite a payload's
+Decision:    Diagnose, never patch. ⛔ podvm does not rewrite a payload's
              process attributes: that is a behaviour change inside somebody
              else's program, which is a larger thing than
              [complete.md](complete.md) T-0407's trust change, and it is not this
              tool's to make. It names the wall and the remedy.
-Prove:       `./experiments/151-spawn-ambiguity.sh` asserts podbox distinguishes a refused clone from a refused `setgroups` behind one identical payload message, and that the diagnostic names the field
+Prove:       `./experiments/151-spawn-ambiguity.sh` asserts podvm distinguishes a refused clone from a refused `setgroups` behind one identical payload message, and that the diagnostic names the field
 
 **Done 2026-09-21.** The probe evidence names the wall per context
-(`crates/podbox-probe/src/report.rs`): both legs with what this machine
+(`crates/podvm-probe/src/report.rs`): both legs with what this machine
 measured, the payload shape that tells them apart, and
 `Credential{NoSetGroups: true}` where setgroups met the denial. It prints
 only where a leg is denied. Five unit tests pin the leg matrix, including
@@ -796,14 +796,14 @@ Priority:    P1
 Effort:      S
 Status:      done 2026-09-22
 
-Problem:     `podbox create --name e1 <image> ...` fails with `the ownership
+Problem:     `podvm create --name e1 <image> ...` fails with `the ownership
              memo could not be stored: No such file or directory`, so no
              container with a record can be created and `inspect` has nothing
              to read. `run --detach` shares the rename and fails the same way.
-Premise:     Read at file and line. `crates/podbox-cli/src/lifecycle.rs`
+Premise:     Read at file and line. `crates/podvm/src/lifecycle.rs`
              `create` renames the ephemeral memo into
              `supervise::table::memo_path` beside the new record, and
-             `crates/podbox-cli/src/run.rs` (detach) does the same. Neither
+             `crates/podvm/src/run.rs` (detach) does the same. Neither
              the rename's parent (`table::dir`, a pure join) nor
              `supervise::create` (a table-JSON write only) makes the
              directory. Foreground `run` never renames, which is why every
@@ -817,10 +817,10 @@ Decision:    A failed directory fails the creation loudly, beside the
              rename's own failure. A container with a record and no memo
              answers `stat` with the real uid and contradicts every
              foreground run, which is the inconsistency T-0710 refuses.
-Prove:       `podbox create --name e1 public.ecr.aws/docker/library/alpine:3.20 true && podbox rm e1`
+Prove:       `podvm create --name e1 public.ecr.aws/docker/library/alpine:3.20 true && podvm rm e1`
 
 **Done 2026-09-22.** `supervise::create` ensures `containers/<id>/` after the
-table write (`crates/podbox-supervise/src/lib.rs`). Both memo renames ride it
+table write (`crates/podvm-supervise/src/lib.rs`). Both memo renames ride it
 with no change (`lifecycle.rs` `create`, `run.rs` detach). A directory the
 kernel refuses fails the creation loudly. `creating_a_container_makes_its_directory`
 creates a container, asserts the directory, and renames a file beside the
@@ -841,14 +841,14 @@ without a directory behind it.
 
 Source:      issue 21, client beta testing 2026-09-22 (container
              inspect emits the record plus a spurious `[]`);
-             `crates/podbox-cli/src/images.rs` (the `find_one`, then
+             `crates/podvm/src/images.rs` (the `find_one`, then
              `inspect_container`, then unconditional array print)
 Category:    cli
 Priority:    P1
 Effort:      S
 Status:      done 2026-09-23
 
-Problem:     `podbox inspect <container>` prints two JSON documents: the
+Problem:     `podvm inspect <container>` prints two JSON documents: the
              container record (printed inside `inspect_container`) and a
              trailing `[]` (the empty image `records` vec, printed
              unconditionally after). An automated caller parsing stdout
@@ -867,14 +867,14 @@ Approach:    Do not print the trailing image array where the reference
              inspect.
 Decision:    Skip the second print on the container path: the smaller
              diff, and the image path keeps its exact bytes.
-Prove:       `podbox inspect <container>` piped to `python3 -c
+Prove:       `podvm inspect <container>` piped to `python3 -c
              'json.load(sys.stdin)'` and to `jq` both succeed with one
              document; image inspect output is byte-identical before and
              after. Close issue 21 with a comment showing the parse and
              the single-print path as the guard that stops recurrence.
 
 **Done 2026-09-23.** Skip the second print on the container path, as
-decided. `inspect` (`crates/podbox-cli/src/images.rs`) tracks whether any
+decided. `inspect` (`crates/podvm/src/images.rs`) tracks whether any
 reference resolved to a container; where the image `records` vec is empty
 and a container document is already on stdout, the trailing array print is
 skipped and the verb returns the container's code. The image path is byte
@@ -885,11 +885,11 @@ Driven on the shipped binary in the lane (`rust:1.98.1-bookworm` through
 host podman 6.1.2), against `public.ecr.aws/docker/library/alpine:3.20`:
 
 ```
-$ podbox create --name green1 ... true && podbox inspect green1
+$ podvm create --name green1 ... true && podvm inspect green1
 [{"Command":"true",...,"Name":"green1",...}]
-$ podbox inspect green1 | python3 -c 'json.load(sys.stdin)' && echo PARSES
+$ podvm inspect green1 | python3 -c 'json.load(sys.stdin)' && echo PARSES
 ONE-DOCUMENT len=1
-$ podbox inspect public.ecr.aws/docker/library/alpine:3.20
+$ podvm inspect public.ecr.aws/docker/library/alpine:3.20
 [{"Architecture":"amd64",...}]      # one array, 14 keys, as before
 ```
 
@@ -914,7 +914,7 @@ fresh store.)
 
 Source:      issues 14 and 16, client beta testing 2026-09-22 (`cp`
              gated on container records; no recursive copy);
-             `crates/podbox-cli/src/parity.rs` (the `cp` row: one file
+             `crates/podvm/src/parity.rs` (the `cp` row: one file
              at a time, gated through the containment check)
 Category:    cli
 Priority:    P2
@@ -931,7 +931,7 @@ Problem:     `cp` only addresses `container:path`, and `run` leaves no
 Premise:     Measured by the reporter: `cp alpine:latest:/etc/os-release`
              refuses ("no such container"), `create`+`cp` works only
              where `start` works, and raw store writes omit every
-             check. The containment machinery (`podbox-extract` safety
+             check. The containment machinery (`podvm-extract` safety
              module) and the extract walker already exist to make both
              halves safe.
 Approach:    Accept `image:path` (the extracted rootfs in the store) as
@@ -943,11 +943,11 @@ Approach:    Accept `image:path` (the extracted rootfs in the store) as
              surgery (never an answer).
 Decision:    Extend `cp`, do not add verbs. One verb, one checker, two
              new addressings.
-Prove:       `podbox cp image:/etc/os-release` on a host where
-             payloads cannot launch retrieves bytes, and `podbox cp` of
+Prove:       `podvm cp image:/etc/os-release` on a host where
+             payloads cannot launch retrieves bytes, and `podvm cp` of
              a directory tree round-trips with containment intact (a
              hostile symlink inside the tree refuses rather than
-             escapes); `podbox cp --help` documents both. Close issues 14
+             escapes); `podvm cp --help` documents both. Close issues 14
              and 16 (cp half) with comments showing the commands and the
              shared containment check as the guard that stops recurrence.
 
@@ -982,7 +982,7 @@ write-through-symlink refusal on every destination.
 ### T-1330 Bundled short flags parse as docker reads them
 
 Source:      issue 27, client beta testing 2026-09-22 (`ps -aq`,
-             `run -it` refused); `crates/podbox-cli/src/parity.rs`
+             `run -it` refused); `crates/podvm/src/parity.rs`
              (the `-a`/`-q` and `-i`/`-t` rows, never mentioning
              bundling)
 Category:    cli
@@ -1038,7 +1038,7 @@ single expansion path plus check 26's mirror.
 
 Source:      issue 27, client beta testing 2026-09-22 (three refused
              idioms with no entry);
-             `crates/podbox-cli/src/parity.rs` (the `None` rows for
+             `crates/podvm/src/parity.rs` (the `None` rows for
              `--filter`, `restart`, `pull -a`)
 Category:    cli
 Priority:    P2
@@ -1097,10 +1097,10 @@ moved. The guard is the three moved table rows plus the prove script.
 
 ---
 
-### T-1332 `podbox man` generates the manual from the binary, pager-aware
+### T-1332 `podvm man` generates the manual from the binary, pager-aware
 
 Source:      operator order 2026-09-23 (drift-free human/AI manual;
-             docs need not carry help text); `crates/podbox-cli/src`
+             docs need not carry help text); `crates/podvm/src`
              (per-verb usage strings, the parity table as data)
 Category:    cli
 Priority:    P1
@@ -1112,7 +1112,7 @@ Problem:     Help text lives in docs or not at all, so every new flag is
              the day somebody copied it. Nothing generates a readable
              manual from the binary for humans (`less`) and agents
              (plain text) alike.
-Premise:     Audited: no `man` surface exists in `crates/podbox-cli/src`
+Premise:     Audited: no `man` surface exists in `crates/podvm/src`
              (only shell completion in `complete.rs`); per-verb usage
              strings and the parity table already carry the content a
              generator needs.
@@ -1122,7 +1122,7 @@ Approach:    A `man` verb rendering every verb, flag and parity note
              `wsl-toolkit man --no-pager`: version header, command list
              with one-line summaries, a Global section, then a COMMAND
              REFERENCE with one section per command carrying its
-             synopsis and flags. `podbox man [verb]` pages through
+             synopsis and flags. `podvm man [verb]` pages through
              `$PAGER` (`less` where present), `--no-pager` (and non-tty
              stdout) prints without paging. Progress and diagnostics
              stay on stderr; stdout carries the answer alone. New verbs
@@ -1136,14 +1136,14 @@ Approach:    A `man` verb rendering every verb, flag and parity note
 Decision:    Generated plain text, pager-aware, no troff. The audience
              is a tired reader and an agent: both read text, neither
              needs typesetting.
-Prove:       A script diffs `podbox man` output against every `--help`
+Prove:       A script diffs `podvm man` output against every `--help`
              output plus the parity rows and fails on any verb or flag
-             the manual lacks; `podbox man --no-pager` and piped `podbox
+             the manual lacks; `podvm man --no-pager` and piped `podvm
              man` print identical bytes with no pager spawned. The
              completeness script is the drift guard that stops
              recurrence.
 
-**Done, 2026-09-23.** New `man` verb in `crates/podbox-cli/src/man.rs`:
+**Done, 2026-09-23.** New `man` verb in `crates/podvm/src/man.rs`:
 version header, command list with one-line summaries (the first
 sentence of each implemented verb row's note), a Global section whose
 exit-code numbers render from the exit-code constants, then a command
@@ -1177,7 +1177,7 @@ bytes and rc 0, which the stdout fallback also produces, so the
 test cannot tell non-spawning from a silent fallback. Capture the
 bogus-PAGER run's stderr separately and assert it empty, keeping
 the byte-identity assertion beside it. Fix area is the T-1332
-prove script with `crates/podbox-cli/src/man.rs`. Risk if wrong
+prove script with `crates/podvm/src/man.rs`. Risk if wrong
 is a regression that silently falls back to stdout and still
 passes. Prove is the extended bogus-PAGER run with stderr
 asserted empty.
@@ -1189,7 +1189,7 @@ right, the isolation was what was missing. Lane drive
 empty stderr (`PIPED-STDERR-EMPTY`, so no spawn was attempted)
 beside byte-identical stdout to `--no-pager` (both 39,238 bytes,
 `BYTES-IDENTICAL`); under a pty (`script`) the same bogus pager
-is loud on the terminal (`podbox man:
+is loud on the terminal (`podvm man:
 /bogus-that-does-not-exist could not start (No such file or
 directory (os error 2)), printing without a pager`,
 `TTY-FALLBACK-LOUD`), which is what makes the empty stderr above
@@ -1203,7 +1203,7 @@ silences the fallback now fails the pty assertion.
 
 Source:      operator order 2026-09-23 (no place for either in a CLI
              tool, let alone without a terminal or pty);
-             `crates/podbox-cli/src` (usage strings, error messages and
+             `crates/podvm/src` (usage strings, error messages and
              parity notes carry marker glyphs on dozens of paths:
              `complete.rs:103`, `exec.rs:252`, `main.rs:372`,
              `names.rs:259`, `parity.rs:103`, `run.rs:26`, and the
@@ -1222,7 +1222,7 @@ Problem:     The binary's user-facing text carries ⛔/⚠/⭐ glyphs on
              automated caller's stream, and they force every downstream
              parser to handle codepoints that carry no meaning.
 Premise:     Measured on this tree: non-ASCII bytes outside comments
-             across `crates/podbox-cli/src` (usage blocks, emitted
+             across `crates/podvm/src` (usage blocks, emitted
              errors, table notes); comments and doc-comments that are
              never printed are not in scope and stay.
 Approach:    Scrub every printed string to ASCII, replacing each glyph
@@ -1241,9 +1241,9 @@ Prove:       `./experiments/352-ascii-output.sh` exits 0, with the
              glyph fails before it ships.
 
 **Done 2026-09-23.** Words, not glyphs, as decided: every printed
-string across `crates/podbox-cli/src`, `crates/podbox-probe/src`,
-`crates/podbox-image/src/tls.rs`, `crates/podbox-enter/src/abi.rs`
-and `crates/podbox-complete/src` carries bytes `0x00`-`0x7F` only.
+string across `crates/podvm/src`, `crates/podvm-probe/src`,
+`crates/podvm-image/src/tls.rs`, `crates/podvm-enter/src/abi.rs`
+and `crates/podvm-complete/src` carries bytes `0x00`-`0x7F` only.
 U+26D4 reads `refused:`, U+26A0 reads `note:`, U+2B50 is deleted;
 source comments stay as they are. Twenty-two files, 84 insertions
 and 82 deletions, nothing reworded.
@@ -1257,10 +1257,10 @@ the run: 69 `ASCII-OK` lines, zero failures, verdict `fail=0`.
 
 Ten unit tests hold the constants the script drives (usage per
 module, every parity note, the whole manual through the stub):
-`cargo test -p podbox-cli ascii`, 10 passed. Clippy `-D warnings`
+`cargo test -p podvm ascii`, 10 passed. Clippy `-D warnings`
 clean in the same lane run. The gate guard is check 28 in
-`crates/podbox-gate/src/main.rs` (any non-ASCII byte in a printed string
-fails, comments exempt) with its plant case in `podbox-plant`:
+`crates/podvm-gate/src/main.rs` (any non-ASCII byte in a printed string
+fails, comments exempt) with its plant case in `podvm-plant`:
 a glyph planted in `run.rs` goes red naming `U+26D4` and T-1336.
 The guard is the check plus the 352 experiment: a new glyph fails
 the gate before it ships and fails the binary drive beside it.
@@ -1278,7 +1278,7 @@ Priority:    P2
 Effort:      M
 Status:      done
 
-Problem:     Three operator gaps found while driving beta.7. `podbox
+Problem:     Three operator gaps found while driving beta.7. `podvm
              probe` prints the measurement half (legs, verdicts,
              refusals) and never the setup half: a QEMU too old for
              migration, firmware present or absent, helper tools
@@ -1297,10 +1297,10 @@ Premise:     Read on the lane-built binary 2026-09-25
              already documents that `logs` has no `--tail`.
 Approach:    Three small parity additions, each with its row and its
              Prove through the shipped binary, and no spec change
-             beyond one row each. `podbox doctor` (or `probe --fix`)
+             beyond one row each. `podvm doctor` (or `probe --fix`)
              reuses the machine legs with the T-1301 checks and prints
              one fix line per missing piece, with the third-state
-             exits (0 ok, 1 problem, 2 could not run). `podbox system
+             exits (0 ok, 1 problem, 2 could not run). `podvm system
              df` (with image du rows) reports stored, extracted and
              reclaimable bytes with the container gate applied, and
              never exits non-zero for accounting alone. `logs --tail
@@ -1312,10 +1312,10 @@ Decision:    One entry, three verbs in order doctor, df, tail, each
              (check lines with fix lines) and none of its content.
 Out of scope: a log stream split (T-0605), a network check needing
              a registry, any new exit-code meaning.
-Prove:       `podbox doctor` on a kvm-less host exits 1 naming the
-             missing legs with one fix line each; `podbox system df`
-             sums to the store's own accounting; `podbox logs --tail 5`
-             prints the last five lines and `podbox logs` prints all
+Prove:       `podvm doctor` on a kvm-less host exits 1 naming the
+             missing legs with one fix line each; `podvm system df`
+             sums to the store's own accounting; `podvm logs --tail 5`
+             prints the last five lines and `podvm logs` prints all
              lines byte-identical to before.
 
 **Done, 2026-09-26.** Three verbs in commit order tail, df,
@@ -1323,7 +1323,7 @@ doctor. Tail landed first: `logs --tail N`
 (`--tail=N`, both in any position) prints the last N lines of the
 same captured file, byte-identical default untouched, and `-f
 --tail N` prints the tail then follows from the chained offset
-instead of replaying the file. `podbox-supervise::tail_offset`
+instead of replaying the file. `podvm-supervise::tail_offset`
 (pure, unit-pinned) with `follow_from` chaining the read length
 past the printed slice, so no line is lost or repeated. A
 non-count is a flag error at 125 naming the value. Prove through
@@ -1333,7 +1333,7 @@ plain logs byte-identical to a wide tail, `--tail 0` empty at
 exit 0, non-count refused, `-f --tail 3` following to the end.
 Doctor and df stay open below.
 
-**Df, 2026-09-26.** The second verb landed: `podbox system df`
+**Df, 2026-09-26.** The second verb landed: `podvm system df`
 prints one row per image (repository, tag with `<none>` where
 none, twelve-digit IMAGE ID, stored blob bytes beside extracted
 rootfs bytes), the image and container counts, stored and
@@ -1350,7 +1350,7 @@ Only a gate failure (unopenable store, unanswerable lock, failed
 listing) exits non-zero. Parity: `df` Native row with its `-h`
 row, the `system` note no longer claims df missing (check 27
 would refuse the stale claim), `rows_of` maps `system df`, the
-`podbox-gate` mirror maps it too, `man` routes its help.
+`podvm-gate` mirror maps it too, `man` routes its help.
 Prove through the shipped binary (`experiments/364-qol.sh`
 df clauses, exit 0, `experiments/results/qol.txt`): debian rows
 26.9 MiB stored beside 74.6 MiB rootfs, totals present with the
@@ -1390,7 +1390,7 @@ no `tree/src/bin/` directory. The tree was read at one pass
 so only the shape travels, none of the content.
 
 **Doctor, 2026-09-26.** The first verb landed last:
-`podbox doctor` prints every machine leg as a check line, one
+`podvm doctor` prints every machine leg as a check line, one
 fix line per failed required leg, and the profile. Required
 legs fail with fixes (install QEMU where the emulator or its
 accelerator list does not answer; the failing call named with
@@ -1406,7 +1406,7 @@ Exits 0, 1, 2 in that precedence. No firmware, helper-tool or
 image-presence checks: the tier boots `-kernel` directly and
 the runtime consumes no helpers, so each would check what
 nothing reads. The leg names and the leg renderer are public
-from `podbox-probe::machine` rather than copied, so the
+from `podvm-probe::machine` rather than copied, so the
 wording cannot drift. Top-level parity row with its `-h` row.
 Prove through the shipped binary (`experiments/364-qol.sh`
 doctor clauses, exit 0, `experiments/results/qol.txt`): exit
@@ -1423,8 +1423,8 @@ closes below.
 
 ### T-1414 The no-chroot path returns 127 and 126
 
-Source:      issue 75; `crates/podbox-cli/src/lifecycle.rs:1746`;
-             `crates/podbox-probe/src/exit.rs:86`;
+Source:      issue 75; `crates/podvm/src/lifecycle.rs:1746`;
+             `crates/podvm-probe/src/exit.rs:86`;
              `experiments/330-exit-codes.sh`
 Category:    cli
 Priority:    P1
@@ -1432,14 +1432,14 @@ Effort:      S
 Status:      done
 
 Problem:     A missing command returns 125 on the userland rung. The
-             contract reserves 125 for podbox failing and 127 for not
+             contract reserves 125 for podvm failing and 127 for not
              found. Scripts branching on 127 misread the result.
 Premise:     `decide_entry` (`lifecycle.rs:1746`) returns 125
              unconditionally, including the unresolvable-payload arms
              (`lifecycle.rs:1774`, `lifecycle.rs:1831`). `EXIT_NOT_FOUND`
              exists with its case row (`exit.rs:86`) and the chroot path
              emits it from the child. Nothing in
-             `crates/podbox-cli/src` references `EXIT_NOT_FOUND` or
+             `crates/podvm/src` references `EXIT_NOT_FOUND` or
              `EXIT_CANNOT_INVOKE` (measured by grep: zero hits), so the
              userland path cannot produce 127 or 126 by construction.
              `330` covers not-found only through the absolute-path
@@ -1449,16 +1449,16 @@ Approach:    Map `ResolveKind::Absent` to 127 and found-but-not-invocable
              `330` per rung.
 Decision:    The exit code follows the payload status on every rung. The
              rung never changes the code's meaning.
-Prove:       `cargo test -p podbox-cli` exits 0.
+Prove:       `cargo test -p podvm` exits 0.
              `sh experiments/330-exit-codes.sh` exits 0 with the userland
-             missing, not-invocable, and podbox-failure clauses.
+             missing, not-invocable, and podvm-failure clauses.
 
 **Done 2026-09-30.** The `no_chroot` arms map `ResolveKind::Absent`
 to 127 and found-but-not-invocable to 126 (the T-0802 errno split);
-genuine podbox failures stay 125. `cargo test -p podbox-cli` exits 0
+genuine podvm failures stay 125. `cargo test -p podvm` exits 0
 with the remapped arms pinned. The trio is driven two ways: the new
 330 section 7 runs the bare-name userland missing, not-invocable, and
-podbox-failure clauses (shape-probed green in-lane), and 356 clauses
+podvm-failure clauses (shape-probed green in-lane), and 356 clauses
 7, 10, and 13 witness 127, 126, and 125 through the same exit-code
 table on the fixture ([the drive](../experiments/results/no-chroot-rung.txt)).
 Amendment in writing: full `330` exits 2 SKIP in this lane (no engine;
@@ -1476,7 +1476,7 @@ whose proof ran on the chroot rung only.
 
 ### T-1415 Strict classifies degradations on the userland rung
 
-Source:      issue 76; `crates/podbox-cli/src/complete.rs:122`;
+Source:      issue 76; `crates/podvm/src/complete.rs:122`;
              [T-0804](cli.md)
 Category:    cli
 Priority:    P1
@@ -1499,7 +1499,7 @@ Approach:    Classify degradations. Safety-relevant ones (no path
              class.
 Decision:    Kind decides, count no longer does. The current behavior
              stays available under `--strict=all`.
-Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive runs
+Prove:       `cargo test -p podvm` exits 0. A tracked drive runs
              `--strict public.ecr.aws/docker/library/alpine:3.20 echo hi`
              clean on a chroot-denying fixture, still refuses a
              path-virtualization defect, and `--strict=all` still refuses
@@ -1509,7 +1509,7 @@ Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive runs
 safety-relevant degradations (no path virtualization, host and libc
 mixing, escape) still refuse, dev-shim substitutions warn, and
 `--strict=all` preserves the old count-based behavior with the class
-named on the refusal line. `cargo test -p podbox-cli` exits 0 with
+named on the refusal line. `cargo test -p podvm` exits 0 with
 the class-aware tests. `sh experiments/356-no-chroot-rung.sh` exits 0
 ([the drive](../experiments/results/no-chroot-rung.txt)): `--strict`
 runs the alpine payload clean on the fixture, refuses the
@@ -1524,8 +1524,8 @@ the userland rung.
 ### T-1416 Quiet runs and a verbose banner
 
 Source:      issues 77 and 79;
-             `crates/podbox-cli/src/complete.rs:57`;
-             `crates/podbox-cli/src/run.rs:1212`; [T-0804](cli.md)
+             `crates/podvm/src/complete.rs:57`;
+             `crates/podvm/src/run.rs:1212`; [T-0804](cli.md)
 Category:    cli
 Priority:    P2
 Effort:      S
@@ -1552,7 +1552,7 @@ Decision:    Ruled 2026-09-30 by the operator: the issue 79 shape.
              payload stderr stay untouched, so no safety information is
              lost. Issues 77 and 79 both close here. This reverses the
              T-0804 command-line rule in writing.
-Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive shows
+Prove:       `cargo test -p podvm` exits 0. A tracked drive shows
              empty stderr on success, the banner under `-v`, silence
              under `-q`, and a refused run printing at default level.
 
@@ -1562,7 +1562,7 @@ quiet by default (empty stderr on success), the banner prints under
 payload stderr are untouched. `--verbose` is long-only: `-v` stays
 docker's `--volume` refusal, and reclaiming it would turn a volume
 refusal into a banner switch, so the parity rows say so in writing.
-`cargo test -p podbox-cli` exits 0 with the rewritten banner tests.
+`cargo test -p podvm` exits 0 with the rewritten banner tests.
 `sh experiments/356-no-chroot-rung.sh` exits 0
 ([the drive](../experiments/results/no-chroot-rung.txt)): clause 14
 shows empty payload stdout with no banner line on either stream at
@@ -1580,15 +1580,15 @@ source before implementation.
 
 ### T-1417 Inspect carries the OCI config
 
-Source:      issue 82; `crates/podbox-cli/src/images.rs:1728`;
-             `crates/podbox-image/src/oci.rs:141`;
-             `crates/podbox-image/src/store.rs:127`; [T-1319](cli.md)
+Source:      issue 82; `crates/podvm/src/images.rs:1728`;
+             `crates/podvm-image/src/oci.rs:141`;
+             `crates/podvm-image/src/store.rs:127`; [T-1319](cli.md)
 Category:    cli
 Priority:    P2
 Effort:      M
 Status:      done
 
-Problem:     `inspect` returns only podbox's record. Image defaults
+Problem:     `inspect` returns only podvm's record. Image defaults
              already applied at runtime, such as `Env`, are unreadable.
              The docker `inspect` contract breaks for `Config.Env`,
              `Cmd`, `Entrypoint`, `WorkingDir`, and `User`.
@@ -1601,9 +1601,9 @@ Premise:     `INSPECT_FIELDS` is a closed enum with no `Config` branch
 Approach:    Read the config blob through the stored digest. Emit
              `Config` with docker key names, null-safe where the image
              omits a field. Keep the one-document contract from T-1319.
-Decision:    `inspect` reports what the image declares and what podbox
+Decision:    `inspect` reports what the image declares and what podvm
              applied, side by side. It never merges the two silently.
-Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive matches
+Prove:       `cargo test -p podvm` exits 0. A tracked drive matches
              `.Config.Env` against the manifest and shows `Cmd`,
              `Entrypoint`, `WorkingDir`, and `User` present.
 
@@ -1611,7 +1611,7 @@ Prove:       `cargo test -p podbox-cli` exits 0. A tracked drive matches
 stored digest and emits a `Config` object with docker key names,
 null-safe where the image omits a field, in both `--format` and the
 JSON document, keeping the T-1319 one-document contract: declared and
-applied side by side, never merged silently. `cargo test -p podbox-cli`
+applied side by side, never merged silently. `cargo test -p podvm`
 exits 0 with the field-agreement and template tests.
 `sh experiments/373-store-gates.sh` exits 0 with verdict
 `STORE GATES HOLD` ([the drive](../experiments/results/store-gates.txt)):
@@ -1652,7 +1652,7 @@ Prove:       `grep -n "85-completion-symlink-escape" TODO/cli.md` names
 **Done 2026-10-02.** Recorded the converted state of
 `experiments/85-completion-symlink-escape.sh` and the condition that
 clears its deletion. The six doors the script plants are carried by two
-tests in `crates/podbox-complete/src/write.rs`:
+tests in `crates/podvm-complete/src/write.rs`:
 `a_write_replaces_an_out_link_with_a_regular_file` (`write.rs:752`) for
 clauses A to E, and
 `a_write_follows_a_directory_link_that_stays_inside` (`write.rs:779`)
@@ -1674,7 +1674,7 @@ doors, five out of the rootfs and one legitimate internal link
 (`:28`), D `/etc/ssl/certs` (`:29`), F `/etc/apt -> /var/aptreal` (`:30`).
 
 The converted tests are the two in
-`crates/podbox-complete/src/write.rs` `mod tests` that name the script's
+`crates/podvm-complete/src/write.rs` `mod tests` that name the script's
 clauses. `a_write_replaces_an_out_link_with_a_regular_file`
 (`write.rs:752`) carries clauses A through E: the out-link is replaced by
 a regular file inside the rootfs, so a later reader does not follow it
@@ -1687,7 +1687,7 @@ that stays inside is followed and the drop-in lands at its target
 **The deletion condition, and what clears it.** The script is deletable
 when the plan's library-test row lands. That row sits at
 `refactor/recon-c.md:110`, and it reads
-`Write the two library tests into crates/podbox-complete/src/write.rs mod
+`Write the two library tests into crates/podvm-complete/src/write.rs mod
 tests (:640)`. Its id is a plan id, not a tracked entry: no `TODO/*.md`
 carries a heading for it. The only place that id appears in the tracked
 tree is the two doc comments in `write.rs` (`:748`, `:775`) that name the
@@ -1698,7 +1698,7 @@ tests it owns. The plan's own row for this record is
 wording.** The two tests are present and committed, so the library half of
 the plan's row is done. The plan's conversion for this script is wider.
 `refactor/01-audit/group-4.md:290` asks for a reachability
-integration test in `crates/podbox-cli/tests/`, to drive the four doors
+integration test in `crates/podvm/tests/`, to drive the four doors
 through the shipped binary. The plan names a target file for it at
 `group-4.md:294`. That file was never written: the directory git tracks
 holds `curated_refusals.rs`, `detached_stdio.rs`, `qol.rs`, and
@@ -1711,7 +1711,7 @@ So the script is **partly converted**, and the deletion is blocked by
 more than the plan's row states. The library doors are answered at
 `write.rs`; the shipped-binary reach that the script's own header at
 `:10-15` calls necessary is not, and that header's reason is that a
-containment check right in the library and unreached by `podbox run` is
+containment check right in the library and unreached by `podvm run` is
 a check nobody has (`group-4.md:272-278`). Deleting the script now drops
 the only drive of the reach path. The deletion clears when the plan's
 library-test row and its reachability half land as tracked entries. Until
@@ -1722,9 +1722,9 @@ then this row is the record, and no entry deletes the script.
 ### T-1649 A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out
 
 Source:      issue 92; issue 114 section 3.3 and section 6 item 7;
-             `crates/podbox-cli/src/lifecycle.rs:1879`;
-             `crates/podbox-enter/src/memfd.rs:199`;
-             `crates/podbox-cli/src/run.rs:1236`
+             `crates/podvm/src/lifecycle.rs:1879`;
+             `crates/podvm-enter/src/memfd.rs:199`;
+             `crates/podvm/src/run.rs:1236`
 Category:    cli
 Priority:    P2
 Effort:      S
@@ -1748,11 +1748,11 @@ Approach:    Where the refused script is the image's own Entrypoint and
              top-level `#!` payload, resolve the interpreter inside the
              rootfs and run it on the loader family with the script path
              as its argument. T-1646 does the same for a child.
-Decision:    docker's argv rule stays: podbox does not drop the image
+Decision:    docker's argv rule stays: podvm does not drop the image
              Entrypoint on its own. The refusal names the remedy. Where
              the interpreter resolves inside the rootfs, the script runs
              and no refusal prints.
-Prove:       `cargo test -p podbox-cli` exits 0 with a test: the script
+Prove:       `cargo test -p podvm` exits 0 with a test: the script
              refusal for an image Entrypoint plus a caller command
              contains `--entrypoint` and the caller's first word.
              `sh experiments/356-no-chroot-rung.sh` exits 0 with clause 13
@@ -1765,11 +1765,11 @@ Prove:       `cargo test -p podbox-cli` exits 0 with a test: the script
 release 0.1.0-beta.12 on the errand host:
 
 ```text
-$ podbox run node:alpine node -e 'console.log(1)'
-podbox run: ... the payload .../rootfs/usr/local/bin/docker-entrypoint.sh
+$ podvm run node:alpine node -e 'console.log(1)'
+podvm run: ... the payload .../rootfs/usr/local/bin/docker-entrypoint.sh
 is a #! script (#!/bin/sh), whose interpreter path resolves on the host
 root without a chroot (TODO/enter.md T-1413)                  [exit 126]
-$ podbox run --entrypoint node node:alpine -e 'console.log(1)'
+$ podvm run --entrypoint node node:alpine -e 'console.log(1)'
 ... node is 149234536 bytes, over the 134217728-byte ceiling  [exit 125]
 on a noexec mount, a #! script run from a memfd fd:
 $ /state/home/noexec-test/t.sh
@@ -1783,9 +1783,9 @@ HI
 ### T-1650 `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run
 
 Source:      issue 93; issue 114 section 3.7 and section 6 item 8;
-             `crates/podbox-cli/src/complete.rs:251`;
-             `crates/podbox-cli/src/complete.rs:296`;
-             `crates/podbox-cli/src/lifecycle.rs:1984`; [T-1415](cli.md)
+             `crates/podvm/src/complete.rs:251`;
+             `crates/podvm/src/complete.rs:296`;
+             `crates/podvm/src/lifecycle.rs:1984`; [T-1415](cli.md)
 Category:    cli
 Priority:    P1
 Effort:      M
@@ -1807,7 +1807,7 @@ Approach:    Add a third kind, capability, for the gaps of the selected
              (T-1643), a static payload cannot be reached (T-1648). A gap
              leaves the list in the change that fixes it. `--strict`
              refuses on a capability gap the payload will hit: a shell
-             given `-c` or a script runs children. Where podbox cannot
+             given `-c` or a script runs children. Where podvm cannot
              tell, it warns. The refusal names the gap and a rung that
              runs the command, once T-1651 or T-1652 provides one.
              `--strict=all` keeps its rule for substitutions.
@@ -1815,7 +1815,7 @@ Decision:    T-1415 stays: the userland rung alone is a warning where no
              better rung exists. A gap that decides whether the command
              can run at all is safety-relevant, and `--strict` refuses
              it.
-Prove:       `cargo test -p podbox-cli` exits 0 with `classify_strict`
+Prove:       `cargo test -p podvm` exits 0 with `classify_strict`
              tests for the capability kind. `sh experiments/356-no-chroot-rung.sh`
              exits 0 with a strict clause on the fixture: `run --strict`
              of `sh -c '/bin/ls /'` exits 125 naming the exec gap, or 0
@@ -1826,11 +1826,11 @@ Prove:       `cargo test -p podbox-cli` exits 0 with `classify_strict`
 0.1.0-beta.12 on the errand host with the exit codes read unpiped:
 
 ```text
-$ podbox run --strict alpine:3.20 /bin/sh -c '/bin/ls /'
-podbox run: --strict warning [substitution]: unchanged dev/random ...
+$ podvm run --strict alpine:3.20 /bin/sh -c '/bin/ls /'
+podvm run: --strict warning [substitution]: unchanged dev/random ...
 sh: /bin/ls: not found
 [exit 127]                       # strict did not refuse the run
-$ podbox run --strict=all alpine:3.20 /bin/echo hi
+$ podvm run --strict=all alpine:3.20 /bin/echo hi
 ... --strict=all refused ... [substitution] unchanged dev/zero ...
 [exit 125]                       # refuses a run that would have worked
 ```

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Does the freshness check reject changed inputs and outputs? T-1349, driver
-moved to the podbox-buildstate binary in T-1559. The fixture, the verdicts,
+moved to the podvm-buildstate binary in T-1559. The fixture, the verdicts,
 and the exit codes are unchanged; only the driver changed, from a module
 import to the shipped CLI, so this run proves the binary, not a shim."""
 
@@ -15,18 +15,18 @@ from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parent.parent
 CANDIDATES = (
-    ROOT / "target" / "release" / "podbox-buildstate",
-    ROOT / "target" / "x86_64-unknown-linux-musl" / "release" / "podbox-buildstate",
-    ROOT / "target" / "debug" / "podbox-buildstate",
+    ROOT / "target" / "release" / "podvm-buildstate",
+    ROOT / "target" / "x86_64-unknown-linux-musl" / "release" / "podvm-buildstate",
+    ROOT / "target" / "debug" / "podvm-buildstate",
 )
-OUTPUT_NAMES = ("podbox", "node", "operator", "proxy", "shell")
+OUTPUT_NAMES = ("podvm", "node", "operator", "proxy", "shell")
 
 
 def binary():
     for candidate in CANDIDATES:
         if candidate.is_file():
             return candidate
-    print("SKIP: podbox-buildstate is not built; cargo build -p podbox-buildstate",
+    print("SKIP: podvm-buildstate is not built; cargo build -p podvm-buildstate",
           file=sys.stderr)
     raise SystemExit(2)
 
@@ -43,19 +43,19 @@ def main():
     print(f"host: {platform.system()} {platform.machine()}; Python {platform.python_version()}")
     print("inputs: fixed fixture-v1/fixture-v2 bytes; saved timestamps restored")
     print("scope: source and output classification; no runtime execution")
-    with tempfile.TemporaryDirectory(prefix="podbox-freshness-") as directory:
+    with tempfile.TemporaryDirectory(prefix="podvm-freshness-") as directory:
         root = Path(directory)
         files = (
-            "crates/podbox-cli/src/main.rs", "crates/podbox-cli/Cargo.toml",
-            "crates/podbox-ssh/shims/fakepwd.c", "scripts/build-interpose.sh",
+            "crates/podvm/src/main.rs", "crates/podvm/Cargo.toml",
+            "crates/podvm-ssh/shims/fakepwd.c", "scripts/build-interpose.sh",
             "vendor/userland-execve/Cargo.toml", "Cargo.lock",
-            "crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so",
+            "crates/podvm-interpose/target/x86_64-unknown-linux-gnu/release/libpodvm_interpose.so",
         )
         for name in files:
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b"fixture-v1\n")
-        exe = root / "podbox"
+        exe = root / "podvm"
         exe.write_bytes(b"fixture-output\n")
         for name in OUTPUT_NAMES[1:]:
             (root / name).write_bytes(b"fixture-output\n")
@@ -63,7 +63,7 @@ def main():
                      "--target", "fixture-target", "--binary", str(exe))
         assert record.returncode == 0, record.stderr
         saved = json.loads((root / ".dev" / "build-state.json").read_text(encoding="utf-8"))
-        assert saved["schema"] == "podbox-build/1", saved
+        assert saved["schema"] == "podvm-build/1", saved
         assert set(saved["outputs"]) == set(OUTPUT_NAMES), saved["outputs"]
         state = run(binary_path, "status", "--root", str(root),
                     "--target", "fixture-target", "--binary", str(exe))

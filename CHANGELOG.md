@@ -6,6 +6,42 @@ Earlier repository change records are retained in
 [the captured changelog](docs/history/CHANGELOG.md-before-2026-09-30.txt).
 They describe their recorded revision, not the current build.
 
+## Unreleased
+
+### Breaking: podbox is podvm, 2026-11-06
+
+Record: the owner's ruling of 2026-11-05, a clean break with no
+compatibility with the released binaries; commit `rename: podbox is podvm`.
+Deployed: not deployed; no release carries it yet.
+
+- The binary is `podvm`, not `podbox`, and there is no `podbox` alias.
+  The crates are `podvm` (was `podbox-cli`), `podvm-probe`, `podvm-image`,
+  `podvm-extract`, `podvm-complete`, `podvm-enter`, `podvm-gate`,
+  `podvm-buildstate`, `podvm-release`, `podvm-supervise`, `podvm-windows`,
+  `podvm-ssh`, `podvm-interpose`, and `podvm-measure` (was `podbox-podvm`,
+  bins `podvm-parity` and `podvm-workload`). The tool binaries follow:
+  `podvm-gate`, `podvm-dev`, `podvm-count`, `podvm-plant`, `podvm-smoke`,
+  `podvm-verify` and the rest.
+- Every `PODBOX_*` variable is `PODVM_*`, with no fallback to the old
+  name. `PODBOX_LANE_INSTANCE` and `PODBOX_WSL_INSTANCE` are both
+  `PODVM_WSL_INSTANCE`.
+- Every own flag `--podbox-*` is `--podvm-*`: `--podvm-tier`,
+  `--podvm-qemu-arg`, `--podvm-mem`, `--podvm-timeout` and the rest.
+- The name the binary is invoked under no longer selects the machine tier.
+  `podvm` was an argv0 alias that defaulted to it; it is now the binary's
+  own name and takes the ladder like every other name. Only
+  `--podvm-tier=machine` selects the machine tier. `system install-names`
+  installs `docker` and `podman` only.
+- State and guest paths move with the name: `/.podbox/` is `/.podvm/`, the
+  store, configuration and runtime directories are under `podvm`, not
+  `podbox`. Nothing migrates existing state.
+- The WSL instance is `podvm` (`wsl-toolkit --instance podvm`,
+  `wsl-toolkit-podvm`), not `podbox`.
+- Releases up to `v0.1.0-beta.13` keep their `podbox-*` asset names and
+  their signing identity, the nightly workflow of `Azathothas/podbox`;
+  `podvm-verify` checks each tag against the identity it was published
+  under.
+
 ## 0.1.0-beta.13
 
 - The static build compiles under Rust 1.99: the `open` family's fixed

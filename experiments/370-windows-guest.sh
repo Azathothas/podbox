@@ -1,14 +1,14 @@
 #!/bin/sh
-# Question: on a lane that has an emulator but no KVM, does `podbox windows`
+# Question: on a lane that has an emulator but no KVM, does `podvm windows`
 # refuse where it must, reach the guest driver where the entry says it should,
 # and does the acquisition path bound and verify itself without a network
 # dependency in the test?
 #
 # TODO/milestones.md T-1112. ⚠ Clauses 7 and 8 need a guest image and each
-# is skipped, out loud, where none is configured: podbox ships no Windows
+# is skipped, out loud, where none is configured: podvm ships no Windows
 # image and no DOS base, fetches no licensed image itself, and redistributes
-# none, so a lane without `PODBOX_WINDOWS_IMAGE` (a Validation OS disk)
-# or `PODBOX_DOS_BASE` (FreeDOS base from 369) cannot boot that guest and
+# none, so a lane without `PODVM_WINDOWS_IMAGE` (a Validation OS disk)
+# or `PODVM_DOS_BASE` (FreeDOS base from 369) cannot boot that guest and
 # must say so rather than pass.
 #
 # Clauses:
@@ -23,10 +23,10 @@
 #      .part behind. ⛔ This is the bound that a declared length cannot see.
 #   5. `windows doctor` exits 0 naming the accelerator where a profile
 #      holds, and refuses at 125 naming the leg where none does.
-#   6. `run --podbox-tier=machine --platform windows/amd64` reaches the guest
-#      driver - the refusal names `podbox windows setup`, not the OCI path's
+#   6. `run --podvm-tier=machine --platform windows/amd64` reaches the guest
+#      driver - the refusal names `podvm windows setup`, not the OCI path's
 #      "not a Linux guest" - and the store is byte-identical after.
-#   7. given PODBOX_WINDOWS_IMAGE: setup provisions once and run returns the
+#   7. given PODVM_WINDOWS_IMAGE: setup provisions once and run returns the
 #      guest's own exit code, both measured in seconds.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not run.
@@ -37,7 +37,7 @@ cd "$REPO" || exit 2
 WORK="$REPO/experiments/.sweep370-work"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 REPORT="$WORK/out-370.txt"
-BIN="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+BIN="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 PORT=8731
 
 {
@@ -50,7 +50,7 @@ if command -v qemu-system-x86_64 >/dev/null 2>&1; then
 else
 	echo "qemu              absent"
 fi
-echo "image             ${PODBOX_WINDOWS_IMAGE:-unset}"
+echo "image             ${PODVM_WINDOWS_IMAGE:-unset}"
 } >"$REPORT"
 
 # --- bootstrap, the same three steps 362 takes -------------------------------
@@ -59,7 +59,7 @@ if [ -x "$BIN" ]; then echo "binary            present"; else echo "binary      
 } >>"$REPORT" 2>&1
 
 STORE="$WORK/store"
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 mkdir -p "$STORE"
 
 say() { printf '%s\n' "$*" >>"$REPORT"; }
@@ -69,7 +69,7 @@ bad() { say "$1"; echo "370: $1" >&2; fail=1; }
 # --- 1. the crate's own tests ------------------------------------------------
 say ""
 say "== crate-tests"
-if cargo test -p podbox-windows --lib \
+if cargo test -p podvm-windows --lib \
 	>"$WORK/tests.txt" 2>&1; then
 	say "result            pass"
 	say "count             $(sed -n 's/^test result: ok\. \([0-9]*\) passed.*/\1/p' "$WORK/tests.txt" | tail -1)"
@@ -144,7 +144,7 @@ fi
 say ""
 say "== run-routing"
 BEFORE="$(find "$STORE" -type f | sort | xargs -r sha256sum | sha256sum)"
-"$BIN" run --rm --podbox-tier=machine --platform windows/amd64 \
+"$BIN" run --rm --podvm-tier=machine --platform windows/amd64 \
 	"$WORK/no-such-image.vhdx" -- cmd /c ver >"$WORK/route.txt" 2>&1
 say "exit              $?"
 sed -n '1,4p' "$WORK/route.txt" | sed 's/^/  /' >>"$REPORT"
@@ -159,14 +159,14 @@ if [ "$BEFORE" = "$AFTER" ]; then say "store             untouched"; else bad "s
 # --- 7. the guest, where an image is configured ------------------------------
 say ""
 say "== guest"
-if [ -z "${PODBOX_WINDOWS_IMAGE:-}" ]; then
-	say "skipped           PODBOX_WINDOWS_IMAGE is unset: podbox ships no Windows"
+if [ -z "${PODVM_WINDOWS_IMAGE:-}" ]; then
+	say "skipped           PODVM_WINDOWS_IMAGE is unset: podvm ships no Windows"
 	say "                  image and clause 7 is the only one that needs one"
 else
 T0="$(date +%s)"
-"$BIN" windows setup --image "$PODBOX_WINDOWS_IMAGE" --podbox-timeout 240 >>"$REPORT" 2>&1
+"$BIN" windows setup --image "$PODVM_WINDOWS_IMAGE" --podvm-timeout 240 >>"$REPORT" 2>&1
 say "setup exit        $? in $(( $(date +%s) - T0 ))s"
-PROV="$(dirname "$PODBOX_WINDOWS_IMAGE")/$(basename "$PODBOX_WINDOWS_IMAGE" | sed 's/\.[^.]*$//').podbox.qcow2"
+PROV="$(dirname "$PODVM_WINDOWS_IMAGE")/$(basename "$PODVM_WINDOWS_IMAGE" | sed 's/\.[^.]*$//').podvm.qcow2"
 if [ -e "$PROV" ]; then say "provisioned       $PROV"; else say "provisioned       ABSENT"; fi
 T0="$(date +%s)"
 "$BIN" windows run --image "$PROV" -- ver >"$WORK/guest.txt" 2>&1
@@ -182,8 +182,8 @@ fi
 # --- 8. the DOS flavor, where a DOS base is configured -----------------------
 say ""
 say "== dos-guest"
-if [ -z "${PODBOX_DOS_BASE:-}" ] || [ ! -f "${PODBOX_DOS_BASE:-}" ]; then
-	say "skipped           PODBOX_DOS_BASE is unset or absent: clause 8 needs"
+if [ -z "${PODVM_DOS_BASE:-}" ] || [ ! -f "${PODVM_DOS_BASE:-}" ]; then
+	say "skipped           PODVM_DOS_BASE is unset or absent: clause 8 needs"
 	say "                  the FreeDOS base 369-windows-tcg-dos.sh writes"
 else
 T0="$(date +%s)"

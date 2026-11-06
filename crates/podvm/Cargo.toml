@@ -1,0 +1,39 @@
+[package]
+name = "podvm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# ⛔ It only COPIES what `scripts/build-interpose.sh` left behind and never
+# invokes cargo. `build.rs` carries the reason and the measurement behind it.
+build = "build.rs"
+
+[build-dependencies]
+# The interposer digests `version --verbose` reports (T-1004). Same version
+# the workspace already locks, so no new dependency enters the tree.
+sha2.workspace = true
+
+[[bin]]
+name = "podvm"
+path = "src/main.rs"
+
+[dependencies]
+podvm-probe = { path = "../podvm-probe" }
+podvm-image = { path = "../podvm-image" }
+serde_json.workspace = true
+podvm-extract = { path = "../podvm-extract" }
+podvm-complete = { path = "../podvm-complete" }
+podvm-enter = { path = "../podvm-enter" }
+podvm-supervise = { path = "../podvm-supervise" }
+# ⭐ TODO/milestones.md T-1112. The disposable Windows guest. Its own crate
+# because the whole guest side is `cmd.exe` and a FAT mailbox and none of it
+# shares a line with the OCI path.
+podvm-windows = { path = "../podvm-windows" }
+
+# ⚠ TODO/deps.md T-0911's rule and the same case as the line above: the
+# acquisition path in `windows/setup.rs` needs an HTTP client, and `ureq` is
+# already in the resolve graph at exactly this version because `podvm-image`
+# pulls OCI blobs with it. Reusing the workspace's lock rather than adding a
+# second HTTP stack, and adding no crate that was not already being built.
+ureq.workspace = true

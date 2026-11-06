@@ -35,18 +35,18 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/negative-tests.txt"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
-IMAGE="${PODBOX_NEG_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
+IMAGE="${PODVM_NEG_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
 # ⭐ An image the completion layer must run a COMMAND inside, which alpine is
 # not: `--strict`'s fourth reason counts T-0412's steps, and against an image
 # with none that branch has never been seen to refuse. openSUSE is the row the
 # hash-indexed CApath was found on, so it is the one that has a step.
 # ⚠ Not a quota-bearing registry: the distribution's own.
-STEP_IMAGE="${PODBOX_NEG_STEP_IMAGE:-registry.opensuse.org/opensuse/leap:15.6}"
+STEP_IMAGE="${PODVM_NEG_STEP_IMAGE:-registry.opensuse.org/opensuse/leap:15.6}"
 
 [ -x "$BIN" ] || {
 	echo "SKIP: $BIN is not an executable. ./scripts/dev.sh build" >&2
@@ -58,12 +58,12 @@ command -v jq >/dev/null 2>&1 || {
 }
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$BIN" || {
-	echo "SKIP: cannot read podbox's exit-code table" >&2
+podvm_exit_codes "$BIN" || {
+	echo "SKIP: cannot read podvm's exit-code table" >&2
 	exit 2
 }
 
-export PODBOX_STORE="$WORK/store"
+export PODVM_STORE="$WORK/store"
 fail=0
 skipped=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
@@ -72,10 +72,10 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'image             %s\n' "$IMAGE"
-	printf 'flag-error code   %s\n' "$PODBOX_EXIT_FLAG_ERROR"
-	printf 'cli-error code    %s\n' "$PODBOX_EXIT_CLI_ERROR"
+	printf 'flag-error code   %s\n' "$PODVM_EXIT_FLAG_ERROR"
+	printf 'cli-error code    %s\n' "$PODVM_EXIT_CLI_ERROR"
 	echo
 } >"$WORK/report"
 
@@ -106,7 +106,7 @@ timeout 600 "$BIN" pull "$IMAGE" >"$WORK/pull.log" 2>&1 || {
 
 # ⛔ ONE PLACE runs a refusal, so every clause asserts the same two things and
 # the report cannot show an assertion that was not made.
-#   refuses <name> <want-code> <needle> -- <podbox args...>
+#   refuses <name> <want-code> <needle> -- <podvm args...>
 refuses() {
 	local name="$1" want="$2" needle="$3"
 	shift 3
@@ -134,10 +134,10 @@ say "== 1. TOOL.md section 9's three"
 # ⭐ `--network=none` must FAIL with a named reason. ⚠ The reason comes out of
 # the parity table rather than being written here: T-0801 made the table
 # binding, so the row's own note is what a caller reads.
-refuses "run --network=none" "$PODBOX_EXIT_FLAG_ERROR" \
+refuses "run --network=none" "$PODVM_EXIT_FLAG_ERROR" \
 	"no network namespace to select" -- run --network=none "$IMAGE" true
 # ⭐ `-v ...:ro` must be REJECTED, not honoured as a copy.
-refuses "run -v host:/mapped:ro" "$PODBOX_EXIT_FLAG_ERROR" \
+refuses "run -v host:/mapped:ro" "$PODVM_EXIT_FLAG_ERROR" \
 	"a copy pretending to be a mount" -- run -v "$WORK:/mapped:ro" "$IMAGE" true
 # ⭐ The third, a Go payload under `interpose` declined rather than silently
 # unvirtualized (TODO/interpose.md T-0706 owns the refusal; T-1110 drives it
@@ -153,7 +153,7 @@ GROOT="$("$BIN" inspect --format '{{.RootfsPath}}' "$IMAGE" 2>/dev/null)" || gov
 if [ "$govictim_ok" -eq 1 ] && [ -n "${GROOT:-}" ] \
 && sh "$REPO/experiments/src/govictim.sh" >"$GROOT/go-victim" \
 && chmod 755 "$GROOT/go-victim"; then
-	refuses "go payload declined" "$PODBOX_EXIT_CANNOT_INVOKE" \
+	refuses "go payload declined" "$PODVM_EXIT_CANNOT_INVOKE" \
 		"interpose: declined" -- run "$IMAGE" /go-victim
 	# ⛔ The decline must name the CLASS, not just the tier: any unreadable
 	# file declines, so the row-3 reason is asserted separately, or the
@@ -178,7 +178,7 @@ rc=$?
 say "  run --strict                       rc=$rc"
 printf '%s' "$out" | grep -F -- "--strict, and this run is degraded" | head -1 \
 	| sed 's/^/      /' | cut -c1-120 >>"$WORK/report"
-if [ "$rc" = "$PODBOX_EXIT_RUNTIME_ERROR" ]; then
+if [ "$rc" = "$PODVM_EXIT_RUNTIME_ERROR" ]; then
 	printf '%s' "$out" | grep -q -- "--strict, and this run is degraded" || {
 		say "  FAIL: it refused without naming --strict as the reason"
 		fail=1
@@ -205,7 +205,7 @@ say "  the same run without --strict      rc=$rc (must be 0)"
 [ "$rc" -eq 0 ] || { say "  FAIL: the run does not work without --strict"; fail=1; }
 
 # ⛔ AND THE FOURTH REASON, which the image above cannot produce. `--strict`
-# counts T-0412's steps BEFORE any of them runs, because podbox executing a
+# counts T-0412's steps BEFORE any of them runs, because podvm executing a
 # command inside somebody else's image is exactly the difference from docker
 # that switch exists to refuse. ⚠ Against an image with no steps that branch is
 # never taken, so it was shipped unexercised until this clause existed.
@@ -216,10 +216,10 @@ if [ -z "${SSL_CERT_FILE:-}${CURL_CA_BUNDLE:-}${REQUESTS_CA_BUNDLE:-}" ]; then
 	say "  SKIP: without an announced CA bundle T-0412 proposes no step, so"
 	say "    reason 4 has nothing to fire on. That is the environment, not a pass."
 	skipped=1
-elif [ "$rc" = "$PODBOX_EXIT_RUNTIME_ERROR" ]; then
-	step="$(printf '%s' "$out" | grep -c '^  - podbox would run ')"
+elif [ "$rc" = "$PODVM_EXIT_RUNTIME_ERROR" ]; then
+	step="$(printf '%s' "$out" | grep -c '^  - podvm would run ')"
 	say "  --strict against an image with a step  rc=$rc, step reasons $step"
-	printf '%s' "$out" | grep -F -- '- podbox would run ' | head -1 \
+	printf '%s' "$out" | grep -F -- '- podvm would run ' | head -1 \
 		| sed 's/^/      /' | cut -c1-120 >>"$WORK/report"
 	[ "$step" -ge 1 ] || {
 		say "  FAIL: it refused and named no step, so reason 4 did not fire"
@@ -238,7 +238,7 @@ fi
 # --------------------------------------------------------------------- 3
 say ""
 say "== 3. -t is a NAMED refusal where /dev/ptmx is unusable (T-0503)"
-# ⚠ Conditional on this machine, and which arm ran is recorded. A pty podbox
+# ⚠ Conditional on this machine, and which arm ran is recorded. A pty podvm
 # could not measure is not one it may promise, and a pty it CAN allocate is not
 # a refusal to assert.
 usable="$(timeout 120 "$BIN" probe --json 2>/dev/null | jq -r '.ptmx.usable // false')"
@@ -251,33 +251,33 @@ if [ "$usable" = "true" ]; then
 	say "  ⚠ the refusal arm could not be measured here: this machine has a pty"
 	skipped=1
 else
-	refuses "run -t" "$PODBOX_EXIT_RUNTIME_ERROR" \
+	refuses "run -t" "$PODVM_EXIT_RUNTIME_ERROR" \
 		"cannot allocate a pty" -- run -t --rm "$IMAGE" true
 fi
 
 # --------------------------------------------------------------------- 4
 say ""
 say "== 4. the table decides, and an unlisted flag cannot be quietly accepted"
-refuses "an unlisted flag" "$PODBOX_EXIT_FLAG_ERROR" \
+refuses "an unlisted flag" "$PODVM_EXIT_FLAG_ERROR" \
 	"no row in the parity table" -- run --no-such-flag "$IMAGE" true
-refuses "a None flag names its status" "$PODBOX_EXIT_FLAG_ERROR" \
+refuses "a None flag names its status" "$PODVM_EXIT_FLAG_ERROR" \
 	"status None" -- run --privileged "$IMAGE" true
-refuses "a None VERB names its reason" "$PODBOX_EXIT_RUNTIME_ERROR" \
+refuses "a None VERB names its reason" "$PODVM_EXIT_RUNTIME_ERROR" \
 	"cgroup this runtime does not grant" -- stats
 
 # --------------------------------------------------------------------- 5
 say ""
-say "== 5. podbox speaks HTTPS only, and never downgrades (T-0201)"
+say "== 5. podvm speaks HTTPS only, and never downgrades (T-0201)"
 # ⛔ Under a timeout, because the failure this refusal prevents is a HANG: on
-# the runtimes podbox targets tcp/80 is black-holed, so a fallback does not fail,
+# the runtimes podvm targets tcp/80 is black-holed, so a fallback does not fail,
 # it waits. A clause with no bound would pass by hanging.
 out="$(timeout 30 "$BIN" pull "http://registry.invalid/library/x:latest" 2>&1 >/dev/null)"
 rc=$?
 say "  pull http://...                      rc=$rc (124 would be the hang)"
 [ "$rc" != 124 ] || { say "  FAIL: it hung, which is what this refusal exists to prevent"; fail=1; }
-[ "$rc" = "$PODBOX_EXIT_CLI_ERROR" ] || { say "  FAIL: wanted $PODBOX_EXIT_CLI_ERROR"; fail=1; }
+[ "$rc" = "$PODVM_EXIT_CLI_ERROR" ] || { say "  FAIL: wanted $PODVM_EXIT_CLI_ERROR"; fail=1; }
 printf '%s' "$out" | grep -q 'HTTPS only' || {
-	say "  FAIL: it refused without saying podbox is HTTPS only"
+	say "  FAIL: it refused without saying podvm is HTTPS only"
 	fail=1
 }
 printf '      %s\n' "$(printf '%s' "$out" | grep -o 'HTTPS only[^.]*' | head -1 | cut -c1-110)" \
@@ -285,7 +285,7 @@ printf '      %s\n' "$(printf '%s' "$out" | grep -o 'HTTPS only[^.]*' | head -1 
 
 # --------------------------------------------------------------------- 6
 say ""
-say "== 6. a container podbox did not see end has NO exit code (T-0604)"
+say "== 6. a container podvm did not see end has NO exit code (T-0604)"
 # ⛔ `wait` refuses rather than printing a guess. A runtime that invents an exit
 # code is lying in the one field an automated caller reads first.
 cid="$(timeout 300 "$BIN" run -d --name "neg-$$" "$IMAGE" sleep 30 2>/dev/null)"
@@ -304,7 +304,7 @@ else
 		say "  after SIGKILL of the launcher      state=$state exitcode=$code wait rc=$rc"
 		[ "$state" = dead ] || { say "  FAIL: it does not read dead"; fail=1; }
 		[ "$code" = "-" ] || { say "  FAIL: it invented an exit code: $code"; fail=1; }
-		[ "$rc" = "$PODBOX_EXIT_RUNTIME_ERROR" ] || {
+		[ "$rc" = "$PODVM_EXIT_RUNTIME_ERROR" ] || {
 			say "  FAIL: wait exited $rc rather than refusing"
 			fail=1
 		}

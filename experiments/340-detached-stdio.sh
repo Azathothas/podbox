@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: does `podbox run -d` RETURN before its payload ends, when the caller
+# Question: does `podvm run -d` RETURN before its payload ends, when the caller
 # reads its stdout the way every script does?
 #
 # TODO/supervise.md T-0608. ⛔ REPRODUCE BEFORE CHANGING ANYTHING, which is what
@@ -7,7 +7,7 @@
 # written-down candidates said.
 #
 # ⭐ THE CALLER'S OWN STDOUT IS THE INSTRUMENT, and it is why `id="$(...)"` here
-# is not incidental style. `podbox run -d` prints a container id, so every
+# is not incidental style. `podvm run -d` prints a container id, so every
 # caller captures it, and command substitution reads that pipe TO EOF. A
 # `clone`d launcher that never execs keeps every descriptor its parent had,
 # including that pipe, for the container's whole life: the id is written, the
@@ -28,7 +28,7 @@
 # runs did not share. It reproduces on an idle machine too, in one iteration;
 # the load stays because a scheduler under pressure is where a handoff bug would
 # hide, and a measurement that removed the condition it was told about would be
-# answering a different question. `PODBOX_LOAD_CMD` replaces the burners.
+# answering a different question. `PODVM_LOAD_CMD` replaces the burners.
 #
 #   ./340-detached-stdio.sh [iterations]
 #
@@ -38,7 +38,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/detached-stdio.txt"
 WORK="$(mktemp -d)"
 
@@ -51,7 +51,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-IMAGE="${PODBOX_RUN_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
+IMAGE="${PODVM_RUN_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
 N="${1:-40}"
 # ⚠ Long enough that a blocking `run -d` is unmistakable and short enough that a
 # reproduction does not cost the session: the failure is a WAIT, so the payload's
@@ -66,7 +66,7 @@ PROMPT_SECONDS=5
 	exit 2
 }
 
-export PODBOX_STORE="$WORK/store"
+export PODVM_STORE="$WORK/store"
 fail=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
 
@@ -75,14 +75,14 @@ cpus="$(nproc 2>/dev/null || echo 1)"
 	echo "== conditions"
 	printf 'date               %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel        %s\n' "$(uname -r)"
-	printf 'podbox             %s\n' "$("$BIN" version)"
-	printf 'rung podbox enters %s\n' "$("$BIN" system info --format '{{.EnteredRung}}')"
+	printf 'podvm             %s\n' "$("$BIN" version)"
+	printf 'rung podvm enters %s\n' "$("$BIN" system info --format '{{.EnteredRung}}')"
 	printf 'image              %s\n' "$IMAGE"
 	printf 'payload            /bin/sleep %s\n' "$PAYLOAD_SECONDS"
 	printf 'prompt bound       %s s\n' "$PROMPT_SECONDS"
 	printf 'iterations asked   %s\n' "$N"
 	printf 'cpus               %s\n' "$cpus"
-	printf 'load               %s\n' "${PODBOX_LOAD_CMD:-$cpus busy-loop shells}"
+	printf 'load               %s\n' "${PODVM_LOAD_CMD:-$cpus busy-loop shells}"
 	echo
 } >"$WORK/report"
 
@@ -98,8 +98,8 @@ fi
 timeout 1800 "$BIN" extract "$IMAGE" >/dev/null 2>&1
 
 # ------------------------------------------------------------------- the load
-if [ -n "${PODBOX_LOAD_CMD:-}" ]; then
-	sh -c "$PODBOX_LOAD_CMD" >"$WORK/load.log" 2>&1 &
+if [ -n "${PODVM_LOAD_CMD:-}" ]; then
+	sh -c "$PODVM_LOAD_CMD" >"$WORK/load.log" 2>&1 &
 	BURNERS="$!"
 else
 	i=1
@@ -112,7 +112,7 @@ else
 fi
 
 say "== the loop: capture the id the way a script does, then read the record"
-say "  ⛔ id=\"\$(podbox run -d ...)\": command substitution reads to EOF, so a"
+say "  ⛔ id=\"\$(podvm run -d ...)\": command substitution reads to EOF, so a"
 say "     launcher holding the caller's stdout blocks it for the whole life of"
 say "     the container. That is the defect, and this is the instrument."
 
@@ -152,9 +152,9 @@ while [ "$i" -le "$N" ]; do
 	state="${row%% *}"
 	if [ "$state" != running ]; then
 		say "  ⛔ iteration $i: [$row] for a payload that runs ${PAYLOAD_SECONDS}s"
-		say "     podbox run -d said, on stderr:"
+		say "     podvm run -d said, on stderr:"
 		sed -n '1,6p' "$WORK/e.$i" | cut -c1-110 | sed 's/^/       /' >>"$WORK/report"
-		say "     podbox logs $name:"
+		say "     podvm logs $name:"
 		timeout 60 "$BIN" logs "$name" 2>&1 | sed -n '1,6p' | cut -c1-110 |
 			sed 's/^/       /' >>"$WORK/report"
 		fail=1
@@ -193,13 +193,13 @@ fi
 
 cat "$WORK/report"
 {
-	printf '# T-0608: does `podbox run -d` return before its payload ends?\n'
+	printf '# T-0608: does `podvm run -d` return before its payload ends?\n'
 	printf '# TODO/supervise.md T-0608. Taken %s on kernel %s\n' \
 		"$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(uname -r)"
 	printf '# ⛔ the caller captures the id with $( ), which reads to EOF\n'
 	printf 'iterations         %s\n' "$N"
 	printf 'cpus               %s\n' "$cpus"
-	printf 'load               %s\n' "${PODBOX_LOAD_CMD:-busy-loop shells, one per cpu}"
+	printf 'load               %s\n' "${PODVM_LOAD_CMD:-busy-loop shells, one per cpu}"
 	printf 'payload_seconds    %s\n' "$PAYLOAD_SECONDS"
 	printf 'prompt_bound_s     %s\n' "$PROMPT_SECONDS"
 	printf 'prompt_and_running %s\n' "$passed"

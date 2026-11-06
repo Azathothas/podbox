@@ -37,7 +37,7 @@ for helper in node operator proxy shell; do
     cp "$binary" "$WORK/package/$helper" || exit 1
 done
 cp "$ROOT/LICENSE" "$WORK/package/LICENSE" || exit 1
-cp "$ROOT/crates/podbox-ssh/shims/LICENSE" "$WORK/package/SSH-SHIM-LICENSE" || exit 1
+cp "$ROOT/crates/podvm-ssh/shims/LICENSE" "$WORK/package/SSH-SHIM-LICENSE" || exit 1
 # Host python is `python` or `py`, never bare `python3` (a Store stub, exit 49, on Windows).
 PYBIN="$(command -v python || command -v py || command -v python3)" || exit 2
 "$PYBIN" "$ROOT/scripts/release-licenses.py" --output "$WORK/package/dependency-licenses" || exit "$?"
@@ -46,7 +46,7 @@ tar --sort=name --mtime="@$epoch" --owner=0 --group=0 --numeric-owner \
     -cf "$WORK/package.tar" -C "$WORK/package" . || exit 1
 gzip -n "$WORK/package.tar" || exit 1
 mkdir -p "$ROOT/dist" || exit 2
-asset="$ROOT/dist/podbox-ssh-$ARCH.tar.gz"
+asset="$ROOT/dist/podvm-ssh-$ARCH.tar.gz"
 cp "$WORK/package.tar.gz" "$asset" || exit 1
-(cd "$ROOT/dist" && sha256sum "podbox-ssh-$ARCH.tar.gz" >"podbox-ssh-$ARCH.tar.gz.sha256") || exit 1
+(cd "$ROOT/dist" && sha256sum "podvm-ssh-$ARCH.tar.gz" >"podvm-ssh-$ARCH.tar.gz.sha256") || exit 1
 echo "SSH-PACKAGE-OK $ARCH: node operator proxy shell and retained notices"

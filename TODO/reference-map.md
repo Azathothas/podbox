@@ -58,11 +58,11 @@ against the upstream at the recorded commit without this tree.
 | `references/Azathothas__sandbox-insights` | `bcf415c` | 0BSD | `LICENSE`, which carries the full Zero-Clause BSD text. ⚠ the repository API says `NOASSERTION` and is **wrong**: its classifier does not match the `Zero-Clause BSD` heading | vendor and patch; mechanism only so far |
 | `references/talaria0101__vm-research` | `7697b9b` | ⛔ **none stated** | no licence file in the tree; the repository API `.license` is null | ⛔ **read only; copy nothing.** Tracked by operator ruling, 2026-09-11 |
 | `references/Azathothas__memfd-ng` | `5da5803` | 0BSD | no licence file in the tree; the repository API | vendor and patch. The operator's own crate; [deps.md](deps.md) T-0909 |
-| `references/hust-open-atom-club__Vex` | `ebee4c7` | MIT | `LICENSE`, and the repository API | read; shape only. [podvm.md](podvm.md) T-1307 |
-| `references/cubic-vm__cubic` | `4f21a70` | MIT OR Apache-2.0 | `Cargo.toml`, `LICENSE-MIT`, `LICENSE-APACHE`; two texts, selected by the manifest. ⚠ the repository API says Apache-2.0 alone | read; kept as an exhibit. [podvm.md](podvm.md) T-1307 |
-| `references/Obirvalger__vml` | `688496c` | MIT | `LICENSE`, and the repository API | read; shape only. [podvm.md](podvm.md) T-1307 |
-| `references/gevico__tcg-rs` | `88c020b` | MIT | `LICENSE`, and the repository API | read; filed for later. [podvm.md](podvm.md) T-1307 |
-| `references/qemu-rs__qemu-rs` | `4854135` | ⛔ **GPL-2.0-or-later** | `Cargo.toml:7`, inherited by both member crates. ⚠ the repository API says `MIT` and is **wrong** | ⛔ **read only; copy nothing.** Copyleft, and podbox is 0BSD |
+| `references/hust-open-atom-club__Vex` | `ebee4c7` | MIT | `LICENSE`, and the repository API | read; shape only. [machine.md](machine.md) T-1307 |
+| `references/cubic-vm__cubic` | `4f21a70` | MIT OR Apache-2.0 | `Cargo.toml`, `LICENSE-MIT`, `LICENSE-APACHE`; two texts, selected by the manifest. ⚠ the repository API says Apache-2.0 alone | read; kept as an exhibit. [machine.md](machine.md) T-1307 |
+| `references/Obirvalger__vml` | `688496c` | MIT | `LICENSE`, and the repository API | read; shape only. [machine.md](machine.md) T-1307 |
+| `references/gevico__tcg-rs` | `88c020b` | MIT | `LICENSE`, and the repository API | read; filed for later. [machine.md](machine.md) T-1307 |
+| `references/qemu-rs__qemu-rs` | `4854135` | ⛔ **GPL-2.0-or-later** | `Cargo.toml:7`, inherited by both member crates. ⚠ the repository API says `MIT` and is **wrong** | ⛔ **read only; copy nothing.** Copyleft, and podvm is 0BSD |
 | `references/carlbomsdata__winquick` | `095dd47` | Apache-2.0 | `LICENSE`, and the repository API | vendor with notice; shape only. [milestones.md](milestones.md) T-1112 |
 | `references/talaria0101__sandssh` | `4fc7f8c` | MIT | `LICENSE`, and the repository API | read; one-pair relay and SSH server evidence for [podssh.md](podssh.md) |
 | `references/talaria0101__dropssh` | `0aafa21` | MIT | `LICENSE`, and the repository API | read; concurrent relay and server evidence for [podssh.md](podssh.md) |
@@ -88,7 +88,7 @@ against the upstream at the recorded commit without this tree.
 
 The zot fixture is Apache-2.0 and runs as a separate process.
 Its pinned acquisition and licence are recorded in T-0206 and T-0209.
-It is not embedded in podbox.
+It is not embedded in podvm.
 
 ## Read depth and use
 

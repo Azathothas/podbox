@@ -71,13 +71,13 @@ else
 	tail -15 "$WORK/build.log"
 	exit 1
 fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 [ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
-echo "podbox            $("$PB" version)" >>"$REPORT"
+echo "podvm            $("$PB" version)" >>"$REPORT"
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 fail=0
 
 # Clause 1: the entry's Prove, unchanged by the split.
@@ -136,7 +136,7 @@ fi
 
 # Clause 5: the lifecycle loop still passes twenty of twenty, on the
 # just-built binary over the just-pulled image (230 pulls its own).
-if PODBOX_BIN="$PB" PODBOX_RUN_IMAGE="$ALPINE" timeout 1500 ./experiments/230-lifecycle-loop.sh 20 >>"$WORK/loop.log" 2>&1; then
+if PODVM_BIN="$PB" PODVM_RUN_IMAGE="$ALPINE" timeout 1500 ./experiments/230-lifecycle-loop.sh 20 >>"$WORK/loop.log" 2>&1; then
 	echo "clause 5          loop 20 of 20" >>"$REPORT"
 else
 	echo "clause 5          LOOP FAILED" | tee -a "$REPORT"

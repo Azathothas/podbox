@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: does a tarball carrying symlinks unpack under podbox with the
+# Question: does a tarball carrying symlinks unpack under podvm with the
 # same result as the engine control?
 #
 # TODO/interpose.md T-1311. The interposed `fchmodat` used to declare and
@@ -8,7 +8,7 @@
 # This drives the minimal repro through the shipped binary with the plain
 # driver beside it: same image, same commands, back to back.
 #
-#   PODBOX_BIN=/path/to/podbox ./162-tar-symlink-modes.sh
+#   PODVM_BIN=/path/to/podvm ./162-tar-symlink-modes.sh
 #
 # Exit: 0 the unpack ran and matched on both sides; 1 it ran and a side
 #       failed, naming it; 2 nothing ran.
@@ -16,7 +16,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="${OUT:-$REPO/experiments/results/tar-symlink-modes.txt}"
 
 # ⭐ Every input pinned. The digest is the row 240 and 152 drive.
@@ -36,7 +36,7 @@ ENGINE_REPO="$REPO"
 ENGINE_WORK="$WORK"
 if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 
-[ -r "$BIN" ] || { echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2; exit 2; }
+[ -r "$BIN" ] || { echo "SKIP: $BIN is not readable (set PODVM_BIN to a guest build artifact)" >&2; exit 2; }
 
 {
 echo "== conditions"
@@ -44,11 +44,11 @@ printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
 printf 'engine            %s\n' "$(engine_describe)"
 if [ "$NATIVE" -eq 1 ]; then
-  printf 'podbox            %s\n' "$("$BIN" version 2>&1)"
+  printf 'podvm            %s\n' "$("$BIN" version 2>&1)"
 else
-  printf 'podbox            %s (staged, not executed on this lane)\n' "$BIN"
+  printf 'podvm            %s (staged, not executed on this lane)\n' "$BIN"
 fi
-printf 'podbox sha256     %s\n' "$(sha256sum "$BIN" | cut -d' ' -f1)"
+printf 'podvm sha256     %s\n' "$(sha256sum "$BIN" | cut -d' ' -f1)"
 printf 'driver            %s\n' "$DRIVER"
 } | tee "$OUT"
 
@@ -77,24 +77,24 @@ chmod +x "$WORK/subject.sh"
 
 # ------------------------------------------------------------------ the driver
 if [ "$NATIVE" -eq 0 ]; then
-  [ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine on a lane where the podbox binary does not execute" >&2; exit 2; }
+  [ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine on a lane where the podvm binary does not execute" >&2; exit 2; }
   mkdir -p "$WORK/w" "$WORK/stage"
-  cp "$BIN" "$WORK/stage/podbox"
+  cp "$BIN" "$WORK/stage/podvm"
   eng_pull "$DRIVER" || exit 2
-  eng_mount "$WORK/stage/podbox" /pb \
+  eng_mount "$WORK/stage/podvm" /pb \
     && eng_mount "$WORK/w" /w rw \
     && eng_mount "$WORK/subject.sh" /subj/subject.sh \
     || { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
   cat >"$WORK/side-driver.sh" <<SIDEDRIVER_EOF
 #!/bin/sh
-# One side per call: "treat" runs the subject under podbox, "ctl" runs it
+# One side per call: "treat" runs the subject under podvm, "ctl" runs it
 # straight in the driver. Readings to /w/\$1/.
 set -u
 side="\$1"
 d="/w/\$side"
 mkdir -p "\$d" || exit 6
 if [ "\$side" = "treat" ]; then
-  export PODBOX_STORE=/tmp/ostore
+  export PODVM_STORE=/tmp/ostore
   rm -rf /tmp/ostore
   /pb pull "$DRIVER" >"\$d/pull.log" 2>&1 || exit 3
   /pb run --rm "$DRIVER" /bin/sh -c "\$(cat /subj/subject.sh)" >"\$d/out" 2>"\$d/err"
@@ -119,7 +119,7 @@ SIDEDRIVER_EOF
       || { echo "driver files missing for side $side" | tee -a "$OUT"; exit 1; }
   done
 else
-  export PODBOX_STORE="${PODBOX_SWEEP_STORE:-$WORK/store}"
+  export PODVM_STORE="${PODVM_SWEEP_STORE:-$WORK/store}"
   "$BIN" pull "$BASE" >"$WORK/pull.log" 2>&1 || { echo "no-pull (base image)" | tee -a "$OUT"; tail -3 "$WORK/pull.log" | tee -a "$OUT"; exit 2; }
   "$BIN" run --rm "$BASE" /bin/sh -c "$(cat "$WORK/subject.sh")" >"$WORK/treat-out" 2>"$WORK/treat-err"
   echo "$?" >"$WORK/treat-rc"
@@ -132,7 +132,7 @@ fi
   echo "--- treatment stdout"
   cat "$WORK/treat-out" | cut -c1-160
   echo "--- treatment stderr (tar errors, if any)"
-  grep -v 'podbox: complete:' "$WORK/treat-err" | tail -6 | cut -c1-200
+  grep -v 'podvm: complete:' "$WORK/treat-err" | tail -6 | cut -c1-200
   echo "--- control stdout"
   cat "$WORK/ctl-out" | cut -c1-160
   echo "--- control stderr"
@@ -158,7 +158,7 @@ for side in treat ctl; do
 done
 
 if [ "$fail" -eq 0 ]; then
-  printf 'tar-symlink-modes: every row green under podbox and in the control.\n' | tee -a "$OUT"
+  printf 'tar-symlink-modes: every row green under podvm and in the control.\n' | tee -a "$OUT"
   exit 0
 fi
 printf 'tar-symlink-modes: FAILED (see rows above).\n' | tee -a "$OUT"

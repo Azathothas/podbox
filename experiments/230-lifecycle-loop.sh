@@ -22,12 +22,12 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/lifecycle-loop.txt"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
-IMAGE="${PODBOX_RUN_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
+IMAGE="${PODVM_RUN_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
 N="${1:-20}"
 
 [ -x "$BIN" ] || {
@@ -36,7 +36,7 @@ N="${1:-20}"
 	exit 2
 }
 
-export PODBOX_STORE="$WORK/store"
+export PODVM_STORE="$WORK/store"
 fail=0
 skipped=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
@@ -45,7 +45,7 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'image             %s\n' "$IMAGE"
 	printf 'iterations asked  %s\n' "$N"
 	echo
@@ -76,7 +76,7 @@ while [ "$i" -le "$N" ]; do
 		step="start"
 	fi
 	if [ -z "$step" ]; then
-		# ⭐ ps shows it RUNNING, read out of podbox's own table and never
+		# ⭐ ps shows it RUNNING, read out of podvm's own table and never
 		# from /proc. This is the assertion the prior art made with a sleep.
 		status="$(timeout 60 "$BIN" ps --format '{{.Names}} {{.Status}}' 2>/dev/null | grep "^$name ")"
 		case "$status" in
@@ -121,7 +121,7 @@ say "  consecutive passes: $passed of $N"
 say ""
 say '== T-0604: a launcher that is killed leaves `dead`, not a made-up code'
 # ⛔ The half nothing else drives. A launcher killed with SIGKILL cannot write
-# an exit code, and the only honest answer afterwards is that podbox was not
+# an exit code, and the only honest answer afterwards is that podvm was not
 # watching. A runtime that reported 0 here would be lying in the field a caller
 # reads first.
 if [ "$fail" -ne 0 ]; then
@@ -151,7 +151,7 @@ else
 		*) say "  FAIL: a killed launcher did not leave the container dead"; fail=1 ;;
 		esac
 		[ "$code" = "-" ] || {
-			say "  FAIL: podbox reported an exit code it never measured"
+			say "  FAIL: podvm reported an exit code it never measured"
 			fail=1
 		}
 		[ -n "$noticed" ] && [ "$noticed" != "-" ] || {
@@ -161,7 +161,7 @@ else
 		# ⛔ And `wait` refuses rather than printing a number.
 		wrc=0
 		timeout 60 "$BIN" wait deadprobe >/dev/null 2>&1 || wrc=$?
-		say "  podbox wait on it:          rc=$wrc (want non-zero)"
+		say "  podvm wait on it:          rc=$wrc (want non-zero)"
 		[ "$wrc" -ne 0 ] || { say "  FAIL: wait invented an exit code"; fail=1; }
 		# ⚠ The payload itself is still running: the launcher was killed, not it.
 		# Cleaned up here so the loop leaves nothing behind.
@@ -207,7 +207,7 @@ else
 	# the launcher reaped it.
 	timeout 60 "$BIN" wait logprobe >/dev/null 2>&1
 	got="$(timeout 60 "$BIN" logs logprobe 2>/dev/null | tr '\n' ' ')"
-	say "  podbox logs logprobe: [$got]"
+	say "  podvm logs logprobe: [$got]"
 	case "$got" in
 	*out*err*) ;;
 	*) say "  FAIL: the log did not carry both streams"; fail=1 ;;

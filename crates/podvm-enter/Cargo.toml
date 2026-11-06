@@ -1,0 +1,10 @@
+[package]
+name = "podvm-enter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+podvm-probe = { path = "../podvm-probe" }

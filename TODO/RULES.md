@@ -45,9 +45,9 @@ The next prompt belongs in chat only.
 
 ## 4. Counts
 
-Use `./target/release/podbox-count` to set a status and derive the counts.
+Use `./target/release/podvm-count` to set a status and derive the counts.
 Do not edit count tables by hand.
-Run `./target/release/podbox-gate` to check the result independently.
+Run `./target/release/podvm-gate` to check the result independently.
 
 ## 5. Entry closure
 
@@ -85,7 +85,7 @@ A resource option accepted by an engine does not prove enforcement.
 ### Post-task cleanup, after every task
 
 Save each job's output under `experiments/results/` before collection.
-Then collect that job: `wsl-toolkit --instance podbox gc --job <id> --apply`.
+Then collect that job: `wsl-toolkit --instance podvm gc --job <id> --apply`.
 The report and cleanup record are committed together.
 This order lets the record gate reject retained job resources at commit.
 
@@ -93,7 +93,7 @@ Remove only scratch that this session owns. Verify its resolved path first.
 Keep any input needed for a pending proof outside temporary scratch.
 Do not remove the base, shared image cache, or another session's files.
 
-At session end, inspect `wsl-toolkit --instance podbox gc --json`.
+At session end, inspect `wsl-toolkit --instance podvm gc --json`.
 Use `gc --apply` only when every listed resource belongs to this session.
 Otherwise collect each owned job by id.
 Check 29 holds the procedure and rejects retained lane resources.
@@ -119,8 +119,8 @@ Do not invent a finding to satisfy a review quota.
 
 | Decision | Authority |
 | --- | --- |
-| Build compatibility is not a goal. Users take a published binary. Take whatever toolchain feature unlocks the tasks, nightly included. An agent fixes a toolchain rejection instead of asking the operator to pin. | Operator, 2026-10-02, over the `invalid_runtime_symbol_definitions` question on `crates/podbox-interpose/src/lib.rs` |
-| Dead code is a fault of the reader until proven otherwise. It is missing or unlooked-for use 99 times in 100. Make it needed, or find where it is needed and prove it is not needed there. Never delete a field to quiet a lint. | Operator, 2026-10-02, over `crates/podbox-image/tests/common/registry.rs` |
+| Build compatibility is not a goal. Users take a published binary. Take whatever toolchain feature unlocks the tasks, nightly included. An agent fixes a toolchain rejection instead of asking the operator to pin. | Operator, 2026-10-02, over the `invalid_runtime_symbol_definitions` question on `crates/podvm-interpose/src/lib.rs` |
+| Dead code is a fault of the reader until proven otherwise. It is missing or unlooked-for use 99 times in 100. Make it needed, or find where it is needed and prove it is not needed there. Never delete a field to quiet a lint. | Operator, 2026-10-02, over `crates/podvm-image/tests/common/registry.rs` |
 | No deferrals. Work that needs a human becomes a tracked task with a named clearing condition, not a note in an untracked file. Batch for a later queue if needed, but finish it. | Operator, 2026-10-02 |
 | Read and write on this repository is authorized, including tags and releases. See section 2. | Operator, 2026-10-02 |
 | Rust; static musl release by default | captured TOOL.md section 3; T-1002 |
@@ -129,10 +129,10 @@ Do not invent a finding to satisfy a review quota.
 | No tool attribution in commits or releases | git.md section 1 |
 | No upstream writes | vendoring.md |
 | Refuse the docker name beside a reachable daemon unless explicitly selected | T-0803 |
-| Windows route is wsl-toolkit, instance podbox | containers.md |
+| Windows route is wsl-toolkit, instance podvm | containers.md |
 | An unattended KVM guest run is permitted on this host, conditional on a watchdog outside the guest that removes an emulator outliving its bound. Reverses the 2026-09-30 operator-present rule. No other host is covered. | Operator, 2026-10-02; T-1609, T-1350, T-1112 |
-| Everything the KVM proof needs is installed into `wsl-toolkit-podbox`. The Windows host qemu is never touched, used, or invoked, even where a host binary would answer the question. | Operator, 2026-10-02; T-1610 |
-| ReactOS is descoped, not deferred. Proving podbox against a beta operating system is proving against a moving target, and it is low priority. T-1112 closes on its KVM leg. | Operator, 2026-10-02; T-1112 |
+| Everything the KVM proof needs is installed into `wsl-toolkit-podvm`. The Windows host qemu is never touched, used, or invoked, even where a host binary would answer the question. | Operator, 2026-10-02; T-1610 |
+| ReactOS is descoped, not deferred. Proving podvm against a beta operating system is proving against a moving target, and it is low priority. T-1112 closes on its KVM leg. | Operator, 2026-10-02; T-1112 |
 | Work unattended to completion. Use subagents and swarms where they help; do not stop to ask about anything already settled in section 11 or section 2. Take the work order, finish it, and leave the record green. | Operator, 2026-10-02 |
 | ⭐ **KVM and Windows-guest work is deferred, not cancelled.** T-1641, T-1112 and T-1350 are set aside and no session may start a KVM guest until the operator lifts this. It overrides the "no deferrals" rule above for exactly these three entries and nothing else. **Clearing condition:** the operator says the KVM work resumes. Nothing else clears it, no amount of elapsed time clears it, and a green record does not clear it. Until then each entry stays `partial` and names its remaining acceptance, which is recorded and not lost. | Operator, 2026-10-02 |
 
@@ -141,7 +141,7 @@ Do not invent a finding to satisfy a review quota.
 Subagents are the normal way to take this project, not an exception.
 Nothing in this section is optional and nothing in it needs an operator.
 
-**One writer for the record.** `podbox-count` rewrites the whole Counts
+**One writer for the record.** `podvm-count` rewrites the whole Counts
 block of `TODO/INDEX.md` from every row, and `check_tree` then reads the
 whole tree. Two agents editing `TODO/INDEX.md` are both green and the
 merge is wrong. The same is true of any file whose whole content one
@@ -151,8 +151,8 @@ file per batch and let the others read.
 
 **Dispatch on disjoint files.** Take the open rows from
 `TODO/INDEX.md` and group them by the files their Approach names. T-1601
-through T-1604 touch `crates/podbox-interpose/`, `crates/podbox-image/`,
-`scripts/common/` plus a workflow, and `crates/podbox-cli/tests/`
+through T-1604 touch `crates/podvm-interpose/`, `crates/podvm-image/`,
+`scripts/common/` plus a workflow, and `crates/podvm/tests/`
 respectively, so four agents run fully parallel. T-1608 and T-1611 both
 edit the Batch 3 Done paragraphs and both Prove on `check-one-home`, so
 they serialise behind one writer, T-1608 first.
@@ -164,10 +164,10 @@ it makes is a claim until something reads the artefact.
 
 **Proof is the parent's job.** A subagent may run a gate or a check to
 answer a question. Closing an entry, writing its Done paragraph, and
-running `podbox-count` belong to one writer at the end. Two agents
+running `podvm-count` belong to one writer at the end. Two agents
 closing two entries at once is how a count line and a row disagree.
 
-**Never `git add -A` while a tool is writing the tree.** `podbox-plant`
+**Never `git add -A` while a tool is writing the tree.** `podvm-plant`
 and the `--script` family plant defects into tracked files and restore
 them at the end. Staging during that window commits a defect. Stage
 explicit paths. This happened once on 2026-10-02 and `246b462` reverted

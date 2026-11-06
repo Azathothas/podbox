@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: which libc entry points must `podbox-interpose` define, and can
+# Question: which libc entry points must `podvm-interpose` define, and can
 # that question be answered by a command rather than by a list somebody
 # maintains?
 #
@@ -21,7 +21,7 @@
 #      and a grep of the source undercounts them.
 #   D. ⭐ the completeness test. For a pinned rootfs, enumerate the path-taking
 #      libc symbols its own binaries import, and subtract what the interposer
-#      defines. The remainder is the gap, named. This is the check podbox
+#      defines. The remainder is the gap, named. This is the check podvm
 #      keeps; A, B and C are what establish that it is worth keeping.
 #
 # Inputs pinned: this host's toolchain and libc, the pathmap tree at the commit
@@ -87,7 +87,7 @@ case "$(uname -s)" in
   *)     NATIVE=0 ;;
 esac
 
-# The path-taking libc surface podbox cares about. ⚠ Every name here takes a
+# The path-taking libc surface podvm cares about. ⚠ Every name here takes a
 # PATH. `fstat`, `fexecve` and `fdopendir` take a descriptor and are therefore
 # absent on purpose: there is nothing in them to rewrite.
 PATH_TAKING='open open64 openat openat64 openat2 creat creat64
@@ -289,7 +289,7 @@ echo
 echo "== D. the completeness test, against a pinned rootfs"
 if [ "$HAVE_ENGINE" -eq 0 ]; then
   echo "  COULD NOT RUN: no engine (a docker daemon or host podman)."
-  echo "  D is the check podbox keeps; A, B and C stand without it."
+  echo "  D is the check podvm keeps; A, B and C stand without it."
   [ "$rc" -eq 0 ] && exit 2
   exit "$rc"
 fi
@@ -298,7 +298,7 @@ eng_pull "$ROOTFS" >/dev/null 2>&1 || {
 # ⛔ READ THE ROOTFS FROM OUTSIDE, with this host's readelf. A reader run inside
 # the image measures whatever that image happens to ship, and most images ship
 # no readelf at all, so the answer becomes a property of the image's package
-# list rather than of its binaries. It is also the wrong position: podbox
+# list rather than of its binaries. It is also the wrong position: podvm
 # extracts a rootfs and inspects it from outside, which is what this reproduces.
 # A created container is not needed for that: one bounded run streams the
 # four directories to stdout and the host unpacks them, so no container

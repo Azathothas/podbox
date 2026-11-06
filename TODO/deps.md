@@ -49,7 +49,7 @@ Priority:    P1
 Effort:      M
 Status:      done 2026-09-08
 
-Problem:     Roughly every syscall podbox makes is a raw one, and `unsafe` is
+Problem:     Roughly every syscall podvm makes is a raw one, and `unsafe` is
              unavoidable. The question is whether a crate is saving enough of it
              to pay for itself.
 Premise:     Read. `rustix` with its `linux_raw` backend is the starting point.
@@ -80,10 +80,10 @@ names two candidates: `experiments/results/bloat-syscalls-libc.txt` and
 the entry predicted for the other reason.** Neither crate moves a static musl
 binary measurably: `libc` on this target is mostly declarations against a libc
 already linked, and `rustix`'s `linux_raw` backend emits the same instruction
-`crates/podbox-probe/src/sys.rs` emits. ⚠ Both readings passed the instrument's
+`crates/podvm-probe/src/sys.rs` emits. ⚠ Both readings passed the instrument's
 scaffold control, so a zero here is a reading and not an unmeasured run.
 
-**Ruling: hand-declare, and neither crate lands.** `crates/podbox-probe/src/sys.rs`
+**Ruling: hand-declare, and neither crate lands.** `crates/podvm-probe/src/sys.rs`
 is 330 lines including its documentation and its tests, and it already covers
 the half the entry expected to stay hand-written anyway: the new mount API,
 `seccomp`, `landlock_create_ruleset`, `kcmp` and `pidfd_getfd`. The 46 numbers
@@ -105,7 +105,7 @@ Priority:    P2
 Effort:      S
 Status:      done 2026-09-08
 
-Problem:     podbox installs short filters. A crate that generalizes filter
+Problem:     podvm installs short filters. A crate that generalizes filter
              construction may be larger than the filters.
 Premise:     Read, with a size reference in the corpus:
              `references/Azathothas__container-research/tree/verification/confine/main.go`
@@ -122,8 +122,8 @@ Prove:       `./experiments/110-bloat-delta.sh seccomp` exits 0 and writes `expe
 **Done 2026-09-08.** `experiments/results/bloat-seccomp.txt`: `seccompiler` 0.5
 costs **+8,192 bytes** and 2 crates.
 
-**Ruling: hand-emit, and it does not land.** The filter podbox installs is one
-BPF instruction, already emitted in `crates/podbox-probe/src/probes.rs` as four
+**Ruling: hand-emit, and it does not land.** The filter podvm installs is one
+BPF instruction, already emitted in `crates/podvm-probe/src/probes.rs` as four
 fields of a `#[repr(C)]` struct, and the reference emits a real one in about
 sixty lines. 8 KB for sixty lines fails the third row of this file's own
 vendor-and-registry table: the dependency is bigger than the code it replaces.
@@ -145,7 +145,7 @@ Effort:      S
 Status:      done 2026-09-08
 
 Problem:     Three syscalls. A crate for three syscalls needs an argument.
-             ⚠ podbox does not currently **install** a Landlock ruleset; it
+             ⚠ podvm does not currently **install** a Landlock ruleset; it
              probes for one that is already there. This entry is the sweep for
              the day it does.
 Premise:     Read, with a size reference:
@@ -154,10 +154,10 @@ Premise:     Read, with a size reference:
              ⭐ The corpus also carries a design ruling that bears on it:
              `references/multikernel__sandlock` PR #29 dropped path strings from
              its notification policy surface on the reasoning that "path-based
-             access control belongs in static Landlock rules". Where podbox ever
+             access control belongs in static Landlock rules". Where podvm ever
              needs path policy, Landlock is where it goes, not the notifier.
 Approach:    Hand-declare, measure, compare against the `landlock` crate.
-Decision:    Recommendation: hand-declare. Three syscalls, and podbox needs the
+Decision:    Recommendation: hand-declare. Three syscalls, and podvm needs the
              ABI-version probe more than the ruleset builder.
 Prove:       `./experiments/110-bloat-delta.sh landlock` exits 0 and writes `experiments/results/bloat-landlock.txt`
 
@@ -167,9 +167,9 @@ control answered) and **13 crates**.
 
 **Ruling: hand-declare, and it does not land.** Zero bytes is not the whole
 price: thirteen crates is thirteen more things to audit, pin and rebuild for a
-mechanism podbox uses one syscall of. What podbox needs today is the ABI probe,
+mechanism podvm uses one syscall of. What podvm needs today is the ABI probe,
 and that is `landlock_create_ruleset(NULL, 0, 1)`, already one row of
-`crates/podbox-probe/src/probes.rs`. Revisit if podbox ever installs a ruleset,
+`crates/podvm-probe/src/probes.rs`. Revisit if podvm ever installs a ruleset,
 which needs a kernel that has Landlock at all.
 
 ---
@@ -183,9 +183,9 @@ Effort:      M
 Status:      done 2026-09-08
 
 Problem:     ⚠ The heaviest candidate in the list by far. `oci-client` and
-             `oci-spec` cover a much larger surface than the endpoints podbox
+             `oci-spec` cover a much larger surface than the endpoints podvm
              uses.
-Premise:     Read. podbox needs token auth, manifest by tag and digest, manifest
+Premise:     Read. podvm needs token auth, manifest by tag and digest, manifest
              lists for one platform, and blob fetch: T-0201's list.
 Approach:    Write the minimal client against that list, measure it, then
              measure the same build with `oci-client` and `oci-spec` and compare.
@@ -233,7 +233,7 @@ Premise:     Read. ⛔ Non-negotiable that it is pure Rust: the alternative pull
              drags a C toolchain.
 Approach:    `rustls` plus `webpki-roots`, measured. Also measure the root store
              question separately: bundling roots costs binary size, and reading
-             the host bundle costs a file that may not exist. podbox needs the
+             the host bundle costs a file that may not exist. podvm needs the
              host bundle anyway for T-0407, so measure "host bundle with
              `webpki-roots` as the fallback" against "roots bundled".
 Decision:    Recommendation: `rustls`. There is no pure-Rust alternative with a
@@ -243,7 +243,7 @@ Decision:    Recommendation: `rustls`. There is no pure-Rust alternative with a
              TLS-interception on a build host. That is a red line in
              `TOOL.md` section 11.1 and it is the one that turns a build problem into a
              shipped vulnerability.
-Prove:       `./experiments/110-bloat-delta.sh tls` exits 0 and `readelf -d target/x86_64-unknown-linux-musl/release/podbox | grep -c NEEDED | grep -qx 0`
+Prove:       `./experiments/110-bloat-delta.sh tls` exits 0 and `readelf -d target/x86_64-unknown-linux-musl/release/podvm | grep -c NEEDED | grep -qx 0`
 
 **Done 2026-09-08, and it lands.** Three arms, because the entry asks for the
 root-store question to be measured separately:
@@ -305,11 +305,11 @@ Effort:      S
 Status:      done 2026-09-08
 
 Problem:     An async runtime is a large dependency with nothing to do here.
-Premise:     Read. podbox has no reason to be async: it fetches blobs
+Premise:     Read. podvm has no reason to be async: it fetches blobs
              sequentially and its concurrency is one child per container, held
              by a pidfd.
 Approach:    Measure `ureq` against a hand-rolled client over `rustls`. Count
-             what podbox actually needs: `GET` and `HEAD`, redirects, chunked
+             what podvm actually needs: `GET` and `HEAD`, redirects, chunked
              bodies, a `Range` header for resumption, and bearer tokens.
 Decision:    Recommendation: `ureq`, blocking. The hand-rolled path has to
              re-implement chunked transfer encoding and redirects, which is more
@@ -332,12 +332,12 @@ ways a suite finds slowly. The scaffold exercised exactly the surface the entry
 lists: `GET`, `HEAD`, a redirect budget, a `Range` header and a bearer token.
 
 ⚠ **69 crates is the real price and it is not the bytes.** It is 69 things to
-pin, audit and rebuild. The entry's premise that podbox has no reason to be
+pin, audit and rebuild. The entry's premise that podvm has no reason to be
 async holds and is what keeps that number from being far larger.
 
 ⭐ **One duplicate found while landing it, and the pin records it.** `ureq 2.12`
 depends on `webpki-roots 0.26.11`, which is a compatibility shim over
-`webpki-roots 1.0.9`. Naming `0.26` in `Cargo.toml` would have put podbox behind
+`webpki-roots 1.0.9`. Naming `0.26` in `Cargo.toml` would have put podvm behind
 the shim too; naming `1` shares the crate that actually holds the roots. The
 resolve graph is quoted at the pin.
 
@@ -367,7 +367,7 @@ Decision:    Recommendation: `tar` plus `flate2` with `rust_backend`, and a
              measurement before zstd. `TOOL.md` section 6.3 rules out shelling out and
              a hand-written tar reader is the one piece of this list that is
              genuinely small, so the measurement may still say write it.
-Prove:       `./experiments/110-bloat-delta.sh archive` exits 0 and `cargo tree -e normal -p podbox-extract | grep -c ' cc ' | grep -qx 0`
+Prove:       `./experiments/110-bloat-delta.sh archive` exits 0 and `cargo tree -e normal -p podvm-extract | grep -c ' cc ' | grep -qx 0`
 
 **Done 2026-09-08, and all three land.**
 
@@ -392,10 +392,10 @@ it is a feature removed to save nothing.
 ⚠ The scaffold used the entry-level API only, which is what [T-0301](extract.md)
 requires: a header, a path and a reader, with no implicit filesystem action.
 `unpack()` was never called and never will be, because path safety, whiteouts
-and the ownership sidecar are podbox's decisions.
+and the ownership sidecar are podvm's decisions.
 
-⚠ The `Prove`'s second half names `podbox-extract`, and the measurement was
-taken with the scaffold in `podbox-image`, which is where every arm of this
+⚠ The `Prove`'s second half names `podvm-extract`, and the measurement was
+taken with the scaffold in `podvm-image`, which is where every arm of this
 sweep put it so the arms are comparable. The `cc` check was read from the
 workspace graph instead and is the same answer: no `cc` anywhere.
 
@@ -410,9 +410,9 @@ Effort:      M
 Status:      done 2026-09-08
 
 Problem:     Four small questions with one large answer among them. ⚠ `clap` is
-             large for what podbox needs from it.
+             large for what podvm needs from it.
 Premise:     Read. `sha2`, `serde_json`, `clap` and `goblin` are the starting
-             points. podbox's parser has a table (T-0801) rather than a grammar,
+             points. podvm's parser has a table (T-0801) rather than a grammar,
              and its ELF needs are `PT_INTERP` presence plus a Go build-marker
              check (T-0706), which is a header walk.
 Approach:    Measure each separately, because they are independent decisions
@@ -421,7 +421,7 @@ Approach:    Measure each separately, because they are independent decisions
              section 6.8 table. For `goblin`, measure it against a program-header walk.
 Decision:    Recommendation: `sha2` and `serde_json` yes, `clap` and `goblin`
              measured first and probably no. `clap`'s help generation is the
-             part podbox would use least, because docker's help text is the
+             part podvm would use least, because docker's help text is the
              text to match rather than generate.
 Prove:       `./experiments/110-bloat-delta.sh cli-json-elf` exits 0 and writes `experiments/results/bloat-cli-json-elf.txt`
 
@@ -439,16 +439,16 @@ bundle. `experiments/results/bloat-digest.txt`, `bloat-json.txt`,
 
 ⭐ **`clap` is the finding the entry predicted and the number is worse than
 expected.** 159,744 bytes is nineteen times `sha2` and five times `serde_json`,
-for a parser podbox drives from a **table** ([T-0801](cli.md)) rather than a
+for a parser podvm drives from a **table** ([T-0801](cli.md)) rather than a
 grammar. The measurement was taken with `default-features = false` and only
 `std`, `help`, `usage` and `error-context` enabled, so it is the small clap and
-not the large one. ⚠ Its help generation is the part podbox would use least:
+not the large one. ⚠ Its help generation is the part podvm would use least:
 docker's help text is text to **match**, not to generate.
 
-**`goblin` costs the same as `serde_json` and replaces far less.** podbox's ELF
+**`goblin` costs the same as `serde_json` and replaces far less.** podvm's ELF
 needs are `PT_INTERP` presence and a Go build-marker check
 ([T-0706](interpose.md)), which are program-header walks of a few dozen lines
-each. The scaffold confirmed it: `interp=None sections=25` on podbox's own
+each. The scaffold confirmed it: `interp=None sections=25` on podvm's own
 static-pie binary is one field and one count, from a crate that parses the whole
 format.
 
@@ -462,7 +462,7 @@ Priority:    P1
 Effort:      M
 Status:      done 2026-09-22
 
-Problem:     These sit on a seam podbox will move, and one of them is a fork
+Problem:     These sit on a seam podvm will move, and one of them is a fork
              maintained because the original is not. A registry dependency on an
              unmaintained crate is a blocker waiting to happen, and "blocked on
              upstream" is not an outcome this methodology has a place for.
@@ -495,7 +495,7 @@ Premise:     ⭐ **Read at file and line, and it corrects the specification in t
 Approach:    Vendor `io12/userland-execve-rust` whole: 512 lines across six
              files, MIT, licence file present. Do **not** vendor either
              `memfd-exec` until its licence resolves; `memfd_create` plus
-             `fexecve` is three syscalls and podbox declares them itself, with
+             `fexecve` is three syscalls and podvm declares them itself, with
              the `is_exe` probe and the `MFD_CLOEXEC` flag both taken as
              mechanisms rather than as code.
              ⚠ Carry the stack-size costing from
@@ -504,9 +504,9 @@ Approach:    Vendor `io12/userland-execve-rust` whole: 512 lines across six
              it, fixed by raising it to 10 MB, because GCC normally raises its
              own stack with `setrlimit()` and a synthetic stack does not honour
              that. M5 builds a C toolchain project in ten distributions, so this
-             is on podbox's path. Its issue #5 is open: non-PIE ELF binaries
+             is on podvm's path. Its issue #5 is open: non-PIE ELF binaries
              cannot be loaded by that rung at all.
-Decision:    Vendor `userland-execve` and write podbox's own three-syscall memfd
+Decision:    Vendor `userland-execve` and write podvm's own three-syscall memfd
              path, rather than vendoring `memfd-exec` once its licence resolves.
              The fork's value is two mechanisms and a ladder, all of which are
              smaller re-implemented than carried, and carrying it would import a
@@ -521,7 +521,7 @@ Status note: **open.** The `blocked` label came off on 2026-09-11, and it never
              ⚠ What remains is all doable now: vendor
              `io12/userland-execve-rust` under
              [`../docs/methodology/vendoring.md`](../docs/methodology/vendoring.md),
-             and write podbox's own `memfd_create` plus `fexecve` path with the
+             and write podvm's own `memfd_create` plus `fexecve` path with the
              `is_exe` probe and `MFD_CLOEXEC` taken as mechanisms rather than as
              code. ⚠ Carry the 10 MB synthetic-stack figure from the tracker:
              M5 builds a C toolchain in ten distributions and `cc1plus`
@@ -535,12 +535,12 @@ Prove:       `test -f vendor/userland-execve/LICENSE && grep -q '^license = "MIT
 hold on this tree, and `110-bloat-delta.sh memfd` exits 0 with
 `experiments/results/bloat-memfd.txt` committed. Five answers:
 
-1. What it replaces. `crates/podbox-enter/src/memfd.rs`: `MFD_CLOEXEC` as
+1. What it replaces. `crates/podvm-enter/src/memfd.rs`: `MFD_CLOEXEC` as
    the unconditional base, `MFD_ALLOW_SEALING` with an `EINVAL` fallback to
    the base, the `has_shebang` router predicate, the `is_executable` probe
    (mode bits plus `faccessat` `X_OK`), and `memfd_create`, with four unit
    tests watched fail before the implementation and pass after. Beside it,
-   `faccessat` joins the `*at` wrappers in `crates/podbox-probe/src/sys.rs`
+   `faccessat` joins the `*at` wrappers in `crates/podvm-probe/src/sys.rs`
    with `SYS_FACCESSAT` and `X_OK`. The `fexecve` call itself is not here:
    it takes the argv and env arrays, and it belongs to the ladder that owns
    them ([T-1003](packaging.md)). Vendored whole beside it:
@@ -560,7 +560,7 @@ hold on this tree, and `110-bloat-delta.sh memfd` exits 0 with
    the control answering. That is the same ruling shape as [T-0901](#t-0901-sweep-syscalls).
    No new third-party crate: the path uses only the taken `syscalls` and
    `linux-raw-sys` pins.
-3. Does it pull C. No. The path issues raw syscalls through podbox's own
+3. Does it pull C. No. The path issues raw syscalls through podvm's own
    trap. The vendored tree names `goblin` 0.8 and `nix` 0.27 in its
    `Cargo.toml`; the pins are carried, never built. Wiring it ([T-1003](packaging.md))
    first patches both out: `goblin` is refused by [T-0908](#t-0908-sweep-digests-json-argument-parsing-elf)
@@ -568,13 +568,13 @@ hold on this tree, and `110-bloat-delta.sh memfd` exits 0 with
    here replaces `nix`.
 4. Maintained and licence. `io12/userland-execve-rust` is MIT with the
    licence file present ([reference-map.md](reference-map.md) row). Niche
-   and on a seam podbox will move, so it vendors. `memfd-ng` 0.1.1 is 0BSD
+   and on a seam podvm will move, so it vendors. `memfd-ng` 0.1.1 is 0BSD
    and the operator's own; read at source, it sets `MFD_CLOEXEC`
    unconditionally (`tree/src/sys.rs:141-149`) and carries the tmpfs
    fallback this entry takes as mechanisms, not code. Neither `memfd-exec`
    tree is vendored, per the `Decision`.
 5. Vendor or registry. Vendor `userland-execve` whole, and the three-syscall
-   memfd path is podbox's own. Registry: nothing new.
+   memfd path is podvm's own. Registry: nothing new.
 
 ⚠ The 10 MB synthetic-stack figure rides in the vendored file
 (`vendor/userland-execve/src/stack.rs:152`) unchanged, with the tracker's
@@ -615,7 +615,7 @@ Approach:    `experiments/110-bloat-delta.sh <area>` takes the current binary
 Decision:    A ceiling on the total, not on the delta. A delta ceiling permits
              an unbounded number of small dependencies, which is how a binary
              gets large without any single decision being wrong.
-Prove:       `./experiments/110-bloat-delta.sh baseline` exits 0, `./target/release/podbox-gate` exits 0, and `./target/release/podbox-plant` reports cases 17a, 17b and 17c caught
+Prove:       `./experiments/110-bloat-delta.sh baseline` exits 0, `./target/release/podvm-gate` exits 0, and `./target/release/podvm-plant` reports cases 17a, 17b and 17c caught
 
 **Done 2026-09-08.** The `Prove` commands were run and exit 0. The reading is
 `experiments/results/bloat-baseline.txt`: **496,184 bytes and zero third-party
@@ -627,7 +627,7 @@ whole of the difference and it took no dependency, which is the measurement
 it lives is not. It was a bare literal in the gate workflow with nothing behind
 it, and the same number was quoted in this entry's own `Prove`. It now lives in
 `CEILING_BYTES` in `experiments/110-bloat-delta.sh`, the workflow calls that
-script, and check 17 of `crates/podbox-gate/src/main.rs` refuses a tree where any other
+script, and check 17 of `crates/podvm-gate/src/main.rs` refuses a tree where any other
 file this project wrote names the number. ⭐ That check fired on the first run,
 against the sentence you are reading, which is why neither it nor the `Prove`
 above spells the number out: under the check they were the second and third
@@ -644,20 +644,20 @@ breakdown was not taken, because a skip is not a pass.
 
 ### T-0911 The syscall table and the kernel structs come from a crate, per architecture
 
-Source:      Found by the operator on 2026-09-09, reading `crates/podbox-probe/src/sys.rs`
+Source:      Found by the operator on 2026-09-09, reading `crates/podvm-probe/src/sys.rs`
 Category:    deps
 Priority:    P0
 Effort:      M
 Status:      done 2026-09-09
 
-Problem:     ⛔ **podbox was a single-architecture runtime because of a table
-             somebody typed.** `crates/podbox-probe/src/sys.rs` declared 46
+Problem:     ⛔ **podvm was a single-architecture runtime because of a table
+             somebody typed.** `crates/podvm-probe/src/sys.rs` declared 46
              x86_64 syscall numbers and a `#[repr(C)] struct stat` by hand, and
              opened with a `compile_error!` for every other architecture. The
              `compile_error!` was the right call given the table, a wrong
              number is a verdict reported for a syscall nobody named, but the
              table was the wrong thing to have. docker and podman run every
-             architecture Linux ships; podbox refused to compile for seven of
+             architecture Linux ships; podvm refused to compile for seven of
              them.
 Premise:     ⭐ **Measured on 2026-09-09, and the premise it overturns is
              [T-0901](#t-0901-sweep-syscalls)'s.** T-0901 ruled `libc` and
@@ -716,12 +716,12 @@ Decision:    Take the crates. ⚠ **`syscalls` 0.8.1 gates powerpc, s390x and mi
              of `experiments/260-multiarch.sh` compiles powerpc64 inline
              assembly on stable rustc 1.98.1 and it succeeds. So
              `powerpc64le-unknown-linux-musl` does not build, for a reason that
-             is not a rustc limit and is not podbox's code.
+             is not a rustc limit and is not podvm's code.
              ⛔ It is **not closed as somebody else's problem**
              (`AGENTS.md` absolute 5). It stays named in clause 2 of that
              script, which goes **red** the day it starts building, and either of
              two things clears it: a `syscalls` release dropping the gate, or
-             podbox taking the numbers from `linux-raw-sys`, which carries
+             podvm taking the numbers from `linux-raw-sys`, which carries
              `__NR_*` for every architecture with no gate at all, and carrying
              its own six-line trap for those two. The second is entirely within
              this tree and is why the first is not a dependency on anyone.
@@ -734,12 +734,12 @@ Prove:       `./experiments/260-multiarch.sh` exits 0, and `cargo check --worksp
 **Done 2026-09-09.** `experiments/260-multiarch.sh` exits 0 and
 `experiments/results/multiarch.txt` is its reading.
 
-⭐ **podbox does not merely compile for aarch64, it runs there**, and clause 4
-drives `podbox probe` under `qemu-aarch64` and reads back a rung, an identity
+⭐ **podvm does not merely compile for aarch64, it runs there**, and clause 4
+drives `podvm probe` under `qemu-aarch64` and reads back a rung, an identity
 block and free-space rows. ⛔ **And clause 4 is a warning rather than a win.**
 A probe run under `qemu-user` measures **QEMU**: it answers `EINVAL` to
 `clone(CLONE_NEWNS)`, `ENOSYS` to `fsmount`, and reports `Seccomp: 0` whatever
-the host is under. The rung it prints is the emulator's and podbox may not
+the host is under. The rung it prints is the emulator's and podvm may not
 report it as the machine's. That is the same mistake as the reconstruction's
 `/dev` answering out of the mount table the question doubts, and it matters more
 here: a foreign-architecture container runs its payload under exactly this
@@ -763,7 +763,7 @@ is the full 40 hex characters.
 onwards, as bearing on the `powerpc64le` blocker. It bears on a DIFFERENT
 blocker, and saying which is the finding.**
 
-| axis | what stops podbox | what the workflow is about |
+| axis | what stops podvm | what the workflow is about |
 | --- | --- | --- |
 | **compile** | `syscalls` 0.8.1 gates powerpc, s390x and mips behind `asm_experimental_arch`, so `cargo check --target powerpc64le-unknown-linux-musl` dies with `error[E0554]: #![feature] may not be used on the stable release channel` | nothing |
 | **run** | nothing yet, because nothing builds | `docker/setup-qemu-action` ships nine emulators and `qemu-ppc`/`qemu-ppc64` are not among them, so a big-endian PowerPC image has no interpreter unless one is registered by hand |
@@ -772,23 +772,23 @@ blocker, and saying which is the finding.**
 Clause 3 of `experiments/260-multiarch.sh` asks rustc directly rather than
 believing the cfg, and `experiments/results/multiarch.txt` records the answer:
 powerpc64 inline assembly **compiles on stable rustc 1.98.1**. So the gate is
-the crate's and it is stale, which means podbox can clear it without waiting for
+the crate's and it is stale, which means podvm can clear it without waiting for
 anybody: take the numbers from `linux-raw-sys` and carry its own trap for these
 two architectures. [T-0912](deps.md) is that work.
 
 ⭐ **What the workflow does contribute is the runtime half, and it corroborates
-podbox's design rather than changing it.** It registers `qemu-ppc` through
+podvm's design rather than changing it.** It registers `qemu-ppc` through
 `multiarch/qemu-user-static --reset -p yes`, asserts the registration took by
 reading `/proc/sys/fs/binfmt_misc/<handler>` back, and checks the `F` flag,
 because without it the kernel opens the interpreter inside the container's own
-filesystem. ⚠ That is the same three things `crates/podbox-probe/src/binfmt.rs`
+filesystem. ⚠ That is the same three things `crates/podvm-probe/src/binfmt.rs`
 reads and the same reason `experiments/260-multiarch.sh` reads its magic back
-before proceeding. podbox's answer on a machine with no such registration is
+before proceeding. podvm's answer on a machine with no such registration is
 already the right one: refuse by name, with the ELF machine it looked for.
 
 ---
 
-### T-0912 The powerpc gate is the crate's and it is stale, so podbox can clear it
+### T-0912 The powerpc gate is the crate's and it is stale, so podvm can clear it
 
 Source:      Measured by `experiments/260-multiarch.sh` clause 3 on 2026-09-09, and raised again by the operator on the same day
 Category:    deps
@@ -814,11 +814,11 @@ Premise:     ⭐ **Measured, and the measurement is why this is an entry rather
              for big-endian PowerPC is absent from `docker/setup-qemu-action`,
              which [T-0911](deps.md) now records.
 Approach:    Take the syscall numbers for powerpc64, s390x and mips from
-             `linux-raw-sys`, which podbox already depends on for the kernel
-             structs, and carry podbox's own trap for those architectures in
-             `crates/podbox-probe/src/sys.rs` beside the ones it already has.
+             `linux-raw-sys`, which podvm already depends on for the kernel
+             structs, and carry podvm's own trap for those architectures in
+             `crates/podvm-probe/src/sys.rs` beside the ones it already has.
              ⛔ Not a fork of `syscalls` and not a patch to it in this tree: the
-             numbers are already available from a crate podbox takes, and one
+             numbers are already available from a crate podvm takes, and one
              more source of them is one more place for them to disagree.
              ⚠ Then flip clause 2's expectation in the same change, because a
              clause asserting a blocker that has been cleared is a check that
@@ -833,28 +833,28 @@ Prove:       `./experiments/260-multiarch.sh` reports 7 architectures checking t
 and the reading is EIGHT.**
 
 ⭐ **What was in the way was a CRATE-LEVEL attribute, which is why no `#[cfg]`
-inside podbox could route around it.** `syscalls` 0.8.1 carries
+inside podvm could route around it.** `syscalls` 0.8.1 carries
 `#![feature(asm_experimental_arch)]` for `mips`, `mips64`, `s390x`, `powerpc`
 and `powerpc64`, so the whole crate refuses to compile for those targets on
-stable however podbox uses it. The dependency is therefore **target-gated in
-`crates/podbox-probe/Cargo.toml`**, with the cfg list copied from the crate's
+stable however podvm uses it. The dependency is therefore **target-gated in
+`crates/podvm-probe/Cargo.toml`**, with the cfg list copied from the crate's
 own: a superset would drop `syscalls` where it works, a subset would leave the
 build broken where it does not.
 
-On those five, `crates/podbox-probe/src/sys.rs` takes every number from
-`linux-raw-sys`, which podbox already depends on for the kernel structs. ⚠ Both
+On those five, `crates/podvm-probe/src/sys.rs` takes every number from
+`linux-raw-sys`, which podvm already depends on for the kernel structs. ⚠ Both
 spellings are on one line -- `nr!(openat, __NR_openat)` -- so a reader can check
 the pair and a rename cannot silently take a different number on one
 architecture.
 
-⭐ **The trap is podbox's own for two of the five, and one of them is
+⭐ **The trap is podvm's own for two of the five, and one of them is
 EXECUTED.** `experiments/260-multiarch.sh` clause 7 builds for
 `powerpc64le-unknown-linux-musl` and runs the result under
 `qemu-ppc64le-static`:
 
 ```
   binary          ELF 64-bit LSB executable, 64-bit PowerPC ...
-  version         podbox 0.1.0             rc=0
+  version         podvm 0.1.0             rc=0
   reads its own   ELF machine 0x15   (0x15 is PowerPC64)
   probe --json parses and carries a rung: rc=0
 ```
@@ -890,7 +890,7 @@ $ ./experiments/260-multiarch.sh
     ok  s390x-unknown-linux-gnu
   == 2. the architectures that do NOT build, and exactly why
     none.
-  == 7. podbox's OWN syscall trap, executed rather than only compiled
+  == 7. podvm's OWN syscall trap, executed rather than only compiled
     reads its own ELF machine 0x15
   exit 2, because binfmt_misc is not mounted on this host and clause 5
   therefore could not run. ⛔ Not a failure: it is the third state.
@@ -902,18 +902,18 @@ $ ./experiments/260-multiarch.sh
 
 Source:      issue 11, client beta testing 2026-09-22 (every fresh build
              dirties `Cargo.lock` and the binary self-reports `-dirty`);
-             `Cargo.lock`, `crates/podbox-cli/Cargo.toml`,
-             `crates/podbox-image/Cargo.toml`
+             `Cargo.lock`, `crates/podvm/Cargo.toml`,
+             `crates/podvm-image/Cargo.toml`
 Category:    deps
 Priority:    P2
 Effort:      S
 Status:      done 2026-09-23
 
 Problem:     The committed lock is stale against the committed manifests
-             (`podbox-cli` declares `sha2` under `[build-dependencies]`
-             (T-1004), `podbox-image` declares `base64`, neither in the
+             (`podvm` declares `sha2` under `[build-dependencies]`
+             (T-1004), `podvm-image` declares `base64`, neither in the
              lock's lists; last lock commit 2026-09-11), and this
-             session's T-1315 adds a third stale edge (`podbox-extract`
+             session's T-1315 adds a third stale edge (`podvm-extract`
              declares `sha2`), so the first build on a pristine clone
              rewrites the lock, `build.rs` sees a dirty tree, and the
              binary records `-dirty`. Every released beta asset carries
@@ -929,16 +929,16 @@ Approach:    Refresh the lock (`cargo check`, then commit the lock) in
 Decision:    Lock refresh only. The `-dirty` semantics question is real
              but widens the unit past one file.
 Prove:       Clone pristine, `cargo build --release`, `git status
-             --porcelain` prints nothing and `podbox version --verbose`
+             --porcelain` prints nothing and `podvm version --verbose`
              reports the bare commit. Close issue 11 with a comment
              showing the clean-tree build and the lock diff as the guard
              (a stale lock can no longer hide: any future manifest edit
              without its lock shows the same way).
 
 **Done 2026-09-23.** Lock refresh only, as decided: three missing edges,
-no manifest edits, no version moves (`podbox-image` -> `base64`,
-`podbox-cli` -> `sha2` as a `[build-dependencies]` entry,
-`podbox-extract` -> `sha2`, the last new with this session's T-1315).
+no manifest edits, no version moves (`podvm-image` -> `base64`,
+`podvm` -> `sha2` as a `[build-dependencies]` entry,
+`podvm-extract` -> `sha2`, the last new with this session's T-1315).
 The entry premise stands corrected in place on those two points; the
 `webpki-roots` the report implied was missing was already listed, so no
 edge was added for it. The refresh ran through `cargo metadata --offline`
@@ -947,12 +947,12 @@ lines are dependency edges, not versions). Proved at the lock commit
 (`fd9ee37`) in the lane
 (`rust:1.98.1-bookworm` through host podman 6.1.2): pristine clone,
 `cargo build --release`, `git status --porcelain` prints nothing, and
-`podbox version --verbose` reports the bare commit with no `-dirty`
+`podvm version --verbose` reports the bare commit with no `-dirty`
 suffix. The guard that stops recurrence is the same mechanism that
 reported the defect: a future manifest edit without its lock dirties the
 tree on the next build and the binary self-reports `-dirty` again.
 
-### T-1562 Port `experiments/110-bloat-delta.sh` to `podbox-size`
+### T-1562 Port `experiments/110-bloat-delta.sh` to `podvm-size`
 
 Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:52`;
              `experiments/110-bloat-delta.sh`; `TODO/deps.md` T-0910
@@ -963,7 +963,7 @@ Status:      done
 
 Problem:     The artefact measurement is shell. It is the `deps`
              category's ceiling instrument, and it moves into the
-             `podbox-release` crate. Three readers pin its path: the gate
+             `podvm-release` crate. Three readers pin its path: the gate
              workflow runs it, the record gate reads the ceiling out of
              it, and the plant harness reads the digits. The waves cannot
              move the readers without the file.
@@ -972,23 +972,23 @@ Premise:     The ceiling keeps its one home in the shell stub
              the gate refuses the digits anywhere else (D-1 option c). The
              scaffold control, the zero-delta refusal, and the shipping
              profile stay as written.
-Approach:    Port the measurement to binary `podbox-size` with no
+Approach:    Port the measurement to binary `podvm-size` with no
              dependencies. Keep the experiment path as a declaration stub
              that execs the binary, so the gate job, the gate check, and
              the plant harness move nothing.
 Decision:    The stub declares; the binary measures. The `ci` area keeps
              its meaning: measured, never asserted; the ceiling is the
              gate.
-Prove:       `cargo test -p podbox-release` green in the lane; the gate's
+Prove:       `cargo test -p podvm-release` green in the lane; the gate's
              `ci` area still runs through the stub;
-             `./target/release/podbox-gate` exits 0.
+             `./target/release/podvm-gate` exits 0.
 
-**Done 2026-10-01.** Binary `podbox-size` measures in the
-`podbox-release` crate, which it needs no dependencies for; the
+**Done 2026-10-01.** Binary `podvm-size` measures in the
+`podvm-release` crate, which it needs no dependencies for; the
 experiment path stays as a declaration stub that execs the binary (D-1
 option c, D-2 hoist honoured: the stub never moves). Lane proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
-section 9): the workspace release build exits 0 and `podbox-size ci`
+section 9): the workspace release build exits 0 and `podvm-size ci`
 through the stub exits 0 with `total_bytes 3277880` under the declared
 ceiling. The record gate exits 0 on the landed tree.
 
@@ -1020,7 +1020,7 @@ Prove:       `grep -n "265" TODO/deps.md` names the parity figure once
 other values named as dated readings beside it: 220 from `TODO/cli.md:166`,
 164 from `experiments/results/parity-drive.txt:7`, and 160 from
 `TODO/cli.md:694`. The value is re-derived on this tree rather than copied:
-`TABLE` runs from `crates/podbox-cli/src/parity.rs:232` to `:537` and holds
+`TABLE` runs from `crates/podvm/src/parity.rs:232` to `:537` and holds
 265 `Row {` literals inside that range. A fourth figure, 267, is recorded as
 a whole-file artefact, because `pub struct Row` at `:58` and `impl Row` at
 `:65` both match the same grep; the whole-file count is 267. The Prove grep
@@ -1030,7 +1030,7 @@ entry or the record it wrote.
 **Recorded 2026-10-02.** One figure answers one question: how many rows
 `TABLE` holds. The source reads **265**, and the plan carries the same
 figure with the same range (`refactor/06-entries/PLAN.md:190`). Measured
-on this tree: `TABLE` opens at `crates/podbox-cli/src/parity.rs:232`
+on this tree: `TABLE` opens at `crates/podvm/src/parity.rs:232`
 and closes at `:537`, and 265 `Row {` literals lie between them.
 
 The three other values are readings, not sources, and each says when it
@@ -1038,7 +1038,7 @@ was taken:
 
 | Value | Where | What it is |
 | --- | --- | --- |
-| 265 | `crates/podbox-cli/src/parity.rs:232-537` | the source count, current |
+| 265 | `crates/podvm/src/parity.rs:232-537` | the source count, current |
 | 220 | `TODO/cli.md:166` | T-0801's 2026-09-25 reading |
 | 164 | `experiments/results/parity-drive.txt:7` | the 2026-09-22 drive |
 | 160 | `TODO/cli.md:694` | T-0808's 2026-09-21 reading |
@@ -1084,8 +1084,8 @@ plant harness is 4, not 13 and not 3: the derivation below prints T-1207,
 T-1338, T-1341 and T-1343, all in `TODO/gate.md`. The historical 13 keeps
 its 12 + 1 + 0 breakdown, and 3 is recorded as a file count that the two
 documents giving one put at 2. The reason the figure moved is recorded:
-the harness was ported to binary `podbox-plant`
-(`crates/podbox-gate/src/plant.rs:3`), so the plan's own command now reads
+the harness was ported to binary `podvm-plant`
+(`crates/podvm-gate/src/plant.rs:3`), so the plan's own command now reads
 a finished repair set as an absence. The Prove grep
 `grep -n "plant.sh" TODO/deps.md` matches, and each of its lines is either
 this entry or the record it wrote.
@@ -1101,9 +1101,9 @@ grep -rn 'scripts/plant.sh' TODO/*.md | grep -c 'Prove'   ->  0
 ```
 
 The reason is not that the record lost the lines. The old plant harness
-was ported to the binary `podbox-plant`
-(`crates/podbox-gate/src/plant.rs:3`), and every mention of the retired
-harness under `TODO/` carries the correction `(now \`podbox-plant\`)` or is
+was ported to the binary `podvm-plant`
+(`crates/podvm-gate/src/plant.rs:3`), and every mention of the retired
+harness under `TODO/` carries the correction `(now \`podvm-plant\`)` or is
 itself the new spelling. Outside this entry, no line under `TODO/`
 names the retired harness without that correction, and none leaves a
 bare backticked citation. The repair set the plan asked for has
@@ -1117,7 +1117,7 @@ awk '/^### T-[0-9]+/ { id = $2; p = 0; next }
      /^[A-Z][A-Za-z-]*:/ { p = ($0 ~ /^Prove:/); next }
      /^$/ { p = 0; next }
      /^\*\*/ { p = 0; next }
-     p && ($0 ~ /podbox-plant/ || $0 ~ /plant\.sh/) { print id " " FILENAME }' \
+     p && ($0 ~ /podvm-plant/ || $0 ~ /plant\.sh/) { print id " " FILENAME }' \
     TODO/*.md
 ```
 

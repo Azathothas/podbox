@@ -123,6 +123,9 @@ $skippedParse = 0
 # check that fails on a correct tree gets switched off within a week.
 # ⭐ The PROSE rules still apply to templates. Only link resolution is exempt,
 # because only that one is position-dependent.
+# ⚠ docs/history/ is exempt from link resolution too: its pages are frozen
+# records of their recorded revision, and the rename of 2026-11-06 moved
+# paths they link to. They are never edited to follow the tree.
 function Test-LinkExempt([string]$Rel) {
     return ($Rel -like 'docs/templates/*' -or $Rel -like 'bootstrap/prompts/*')
 }
@@ -163,6 +166,8 @@ foreach ($rel in $files) {
     $dir = (Split-Path -Parent $rel).Replace([char]92, '/')
     if (-not $dir) { $dir = '.' }
     $linkCheck = -not (Test-LinkExempt $rel)
+    # docs/history/: links still count toward the orphan pass, never resolved.
+    $historyLink = $rel -like 'docs/history/*'
 
     # -- links ---------------------------------------------------------------
     foreach ($t in (Get-LinkTarget $text)) {
@@ -176,7 +181,7 @@ foreach ($rel in $files) {
         # is a real disagreement about what the number means.
         $bare = ($target -split '#')[0]
         if (-not $linkCheck) { continue }
-        $script:nlinks++
+        if (-not $historyLink) { $script:nlinks++ }
         if (-not $bare) { continue }
         # Normalise to a repo-relative path so a link from a subdirectory and
         # one from the root name the same file.
@@ -199,7 +204,7 @@ foreach ($rel in $files) {
         }
         $norm = $parts -join '/'
         [void]$linked.Add($norm)
-        if (-not (Test-Path -LiteralPath (Join-Path $root $norm))) {
+        if (-not $historyLink -and -not (Test-Path -LiteralPath (Join-Path $root $norm))) {
             Add-Problem ($rel + ':' + $t.Line + ' broken link -> ' + $target)
         }
     }

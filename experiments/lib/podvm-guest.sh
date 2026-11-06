@@ -8,7 +8,7 @@
 # raw archive carrying dev/, dev/console 5:1 and the guest's /init. Archives
 # concatenate, and the kernel's unpacker reads past the base archive's
 # TRAILER where `cpio -t` stops, which is why the node is asserted in the
-# appended archive and the boot proves the full assembly (TODO/podvm.md
+# appended archive and the boot proves the full assembly (TODO/machine.md
 # T-1303). The /init content is the caller's: a throwaway prints a marker
 # and powers off, a long-running one execs a shell (T-1304).
 #

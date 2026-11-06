@@ -3,7 +3,7 @@
 # own status, while a wrong status, a deadline and a forged marker each
 # report distinctly?
 #
-# TODO/podvm.md T-1304 (the exec protocol; the image wrapping is T-1303's
+# TODO/machine.md T-1304 (the exec protocol; the image wrapping is T-1303's
 # 146, whose assembly this reuses from experiments/lib/podvm-guest.sh).
 #
 # The wire, ruled in the entry: every marker carries a per-command 128-bit
@@ -13,7 +13,7 @@
 # Clauses over pinned inputs:
 #   0. the conditions: binary, kernel hash, image digest, guest tools,
 #      deadlines;
-#   1. the assembly: the pinned image through podbox, the lib's base plus
+#   1. the assembly: the pinned image through podvm, the lib's base plus
 #      an /init that prints VMR-GUEST-READY and execs a shell;
 #   2. readiness: the marker, then a nonce round-trip. Feeding the console
 #      before the shell listens is lossy, so the driver retries until the
@@ -26,7 +26,7 @@
 #
 # Runs on Linux, native or in a job container: qemu, cpio and python3 come
 # from the guest package manager and are recorded in the conditions. On a
-# Windows host run it inside the base with PODBOX_BIN set to a guest build
+# Windows host run it inside the base with PODVM_BIN set to a guest build
 # artifact.
 #
 # ⚠ `set -u` and no `pipefail`: this script also runs under `sh` in a
@@ -39,21 +39,21 @@ set -u
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/podvm-exec.txt"
 WORK="$REPO/experiments/.sweep147-work"; rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
 STORE="$WORK/store"
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 # ⭐ Every input pinned, as in 146.
 ALPINE_REF='public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764'
 KURL="https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt"
 KERNEL_SHA256="6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51"
-BOOT_DEADLINE="${PODBOX_147_BOOT:-120}"
-CMD_DEADLINE="${PODBOX_147_CMD:-20}"
-CURL_TIMEOUT="${PODBOX_147_CURL_TIMEOUT:-60}"
+BOOT_DEADLINE="${PODVM_147_BOOT:-120}"
+CMD_DEADLINE="${PODVM_147_CMD:-20}"
+CURL_TIMEOUT="${PODVM_147_CURL_TIMEOUT:-60}"
 
 fail=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
@@ -76,7 +76,7 @@ done
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'qemu              %s\n' "$(qemu-system-x86_64 --version | head -1)"
 	printf 'image             %s\n' "$ALPINE_REF"
 	printf 'kernel            %s (sha256 %s)\n' "$KURL" "$KERNEL_SHA256"

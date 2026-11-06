@@ -43,11 +43,11 @@ Approach:    Produced: `docs/` copied verbatim; `LICENSE` (0BSD), `README.md`,
              reference map and per-category entries; the two count scripts, the
              reader wired as a gate; and CI that runs it.
 Decision:    The corpus is **tracked in the tree** rather than on a side branch,
-             because `crates/podbox-gate/src/main.rs` resolves every cited path and line
+             because `crates/podvm-gate/src/main.rs` resolves every cited path and line
              and cannot do so into a branch it is not on.
              [reference-map.md](reference-map.md) records the choice and what a
              clone pays for it.
-Prove:       `./target/release/podbox-gate && cargo build --release --target x86_64-unknown-linux-musl && readelf -l target/x86_64-unknown-linux-musl/release/podbox | grep -c INTERP | grep -qx 0`
+Prove:       `./target/release/podvm-gate && cargo build --release --target x86_64-unknown-linux-musl && readelf -l target/x86_64-unknown-linux-musl/release/podvm | grep -c INTERP | grep -qx 0`
 
 **Done. The `Prove` command was run on 2026-09-08 and exits 0.** The output is
 in [PROGRESS.md](PROGRESS.md)'s baseline block.
@@ -69,13 +69,13 @@ Status:      done 2026-09-08
 Problem:     Everything downstream branches on the probe, and it is the
              component the prior art most consistently gets wrong.
 Premise:     Read. The work is [probe.md](probe.md) T-0101 through T-0110.
-Approach:    `podbox probe` prints the mode it would select, the evidence, and
+Approach:    `podvm probe` prints the mode it would select, the evidence, and
              exits 0. Nothing else is implemented at this milestone.
 Decision:    The probe before the store, before extraction, before `run`.
              Reversing it means every later component carries an assumption
              about the machine that the probe would have replaced with a
              measurement.
-Prove:       `./experiments/130-probe-parity.sh` exits 0. It runs the three clauses of the acceptance in one command: `chroot` inside `./experiments/20-enter-target.sh --stage ./target/x86_64-unknown-linux-musl/release/podbox`, `namespace` unconfined, and every attribution row against `experiments/results/attribute.txt`
+Prove:       `./experiments/130-probe-parity.sh` exits 0. It runs the three clauses of the acceptance in one command: `chroot` inside `./experiments/20-enter-target.sh --stage ./target/x86_64-unknown-linux-musl/release/podvm`, `namespace` unconfined, and every attribution row against `experiments/results/attribute.txt`
 
 **Done 2026-09-08.** `./experiments/130-probe-parity.sh` exits 0. Its transcript
 is `experiments/results/probe-parity.txt`:
@@ -98,7 +98,7 @@ script that took it. `experiments/130-probe-parity.sh` is that script.
 probe.**
 
 1. `experiments/20-enter-target.sh` named `$REPO/verification/{confine,probe,cprobe}`
-   for its harness sources, and this tree has no `verification/`: podbox tracks
+   for its harness sources, and this tree has no `verification/`: podvm tracks
    that repository under `references/`. Every invocation had been failing at
    `cd`, so the reconstruction had never run here. It now resolves
    `HARNESS_SRC` to
@@ -111,10 +111,10 @@ probe.**
    exits 2 on this host: the three Landlock rows cannot run here and are
    reported as skipped rather than passed.
 
-⭐ **The one recorded divergence is the reference being wrong, not podbox.** The
+⭐ **The one recorded divergence is the reference being wrong, not podvm.** The
 Go instrument records `kcmp(-1,-1,...) [control] FAIL errno=38 ENOSYS`. `ENOSYS`
 is this kernel saying `kcmp(2)` was not built in, which is the control being
-absent rather than the control answering; podbox reports it as `skip`.
+absent rather than the control answering; podvm reports it as `skip`.
 [T-0109](probe.md) is exactly that rule and [T-0102](probe.md) carries the
 reading from both hosts. The parity script allows that one substitution, only
 for that row, only when the errno numbers agree, and prints it in full on every
@@ -141,36 +141,36 @@ Status:      done 2026-09-08
 Problem:     No extraction is possible without a store, and no store is
              trustworthy without digest parity.
 Premise:     Read. The work is [image.md](image.md) T-0201 through T-0204.
-Approach:    `podbox pull`, `images`, `rmi`, `tag`, and a content-addressed
+Approach:    `podvm pull`, `images`, `rmi`, `tag`, and a content-addressed
              store. No extraction yet.
 Decision:    Do not gold-plate it. The registry plane is ordinary HTTPS and file
              I/O and it works here, and it is the least interesting part of the
              problem.
-Prove:       `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox images --format '{{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | grep -qx "$(docker image inspect public.ecr.aws/docker/library/alpine:3.20 --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"`
+Prove:       `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm images --format '{{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | grep -qx "$(docker image inspect public.ecr.aws/docker/library/alpine:3.20 --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"`
 
 **Done 2026-09-08**, against a script rather than a recollection:
 `experiments/150-image-acquisition.sh` exits 0 and carries the `Prove` above as
 its clause 1.
 
 ```
-podbox  sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+podvm  sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 docker  sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 ```
 
-`podbox pull`, `images`, `image ls`, `rmi`, `image rm`, `tag`, `image prune` and
+`podvm pull`, `images`, `image ls`, `rmi`, `image rm`, `tag`, `image prune` and
 `inspect` are implemented. [image.md](image.md) T-0201 and T-0202 are `done`;
 T-0203 and T-0204 are `partial`, each with exactly one half left and each naming
 the milestone it lands in: T-0203's second call site is before an extraction
 that does not exist until M2, and T-0204's `Prove` holds its lock with
-`podbox run -d`, which is M3.
+`podvm run -d`, which is M3.
 
 ⚠ **A moving tag is a race, and the script handles it rather than ignoring it.**
-`alpine:latest` can be republished between podbox's pull and docker's, and the
-two digests would then differ for a reason that is not podbox's. Clause 1
+`alpine:latest` can be republished between podvm's pull and docker's, and the
+two digests would then differ for a reason that is not podvm's. Clause 1
 re-pulls both once on a mismatch and reports which of the two it was; it did not
 have to on this run.
 
-⭐ **The sweep stopped being inert.** `crates/podbox-image` is the first member
+⭐ **The sweep stopped being inert.** `crates/podvm-image` is the first member
 to take a `[workspace.dependencies]` pin, and the artefact moved from 496,184 to
 **2,130,672 bytes**, a delta of **+1,634,488** against
 `experiments/results/bloat-baseline.txt`, with 5,869,328 bytes of headroom under
@@ -200,10 +200,10 @@ Approach:    The four acceptance criteria, in order, and each is a separate
              failure mode rather than a variation of one.
 Decision:    In-process extraction at entry level. Shelling out to `tar` is what
              makes this wall reach five tools instead of one.
-Prove:       `./experiments/70-whiteout-contract.sh` exits 0; `./experiments/220-extract-path-safety.sh` exits 0; `podbox pull public.ecr.aws/docker/library/alpine:3.20 && podbox extract public.ecr.aws/docker/library/alpine:3.20 && test -f "$(podbox inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/etc/shadow"`; `podbox pull ghcr.io/void-linux/void-musl:latest && podbox extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podbox inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`; then, when M3 lands, the same two images under `podbox run --rm`
+Prove:       `./experiments/70-whiteout-contract.sh` exits 0; `./experiments/220-extract-path-safety.sh` exits 0; `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 && test -f "$(podvm inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/etc/shadow"`; `podvm pull ghcr.io/void-linux/void-musl:latest && podvm extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podvm inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`; then, when M3 lands, the same two images under `podvm run --rm`
 
 **Done 2026-09-09.** Every clause below ran and matched: the first four with
-`crates/podbox-extract` and the `extract` verb on 2026-09-08, the last two
+`crates/podvm-extract` and the `extract` verb on 2026-09-08, the last two
 under `run --rm` on 2026-09-09. [extract.md](extract.md) T-0301
 to T-0307 are all `done`.
 
@@ -218,13 +218,13 @@ to T-0307 are all `done`.
 
 | clause, from inside the container | reading |
 | --- | --- |
-| `podbox run --rm alpine:latest sh -c 'test -f /etc/shadow'` | exit 0, `shadow-present` |
-| `podbox run --rm voidlinux/voidlinux-musl:latest sh -c 'test -L /var/cache/xbps'` | not a link |
+| `podvm run --rm alpine:latest sh -c 'test -f /etc/shadow'` | exit 0, `shadow-present` |
+| `podvm run --rm voidlinux/voidlinux-musl:latest sh -c 'test -L /var/cache/xbps'` | not a link |
 
 ⭐ **And running from inside showed the ownership wall for the first time.**
 `ls -ln /etc/shadow` inside the container reports **gid 0**, not the 42 the image
 declares. That is [extract.md](extract.md) T-0302 working exactly as designed
-and now visible from the payload's own side: podbox could not apply the id, it
+and now visible from the payload's own side: podvm could not apply the id, it
 did not pretend to, and `.meta.jsonl` beside the rootfs carries what the image
 meant. ⚠ A caller who needs the real gid needs M6's interposer, and until then
 the sidecar is the honest answer rather than the convenient one.
@@ -233,7 +233,7 @@ the sidecar is the honest answer rather than the convenient one.
 is why the `Prove` has the shape it has.
 
 ⛔ **THIS ENTRY COULD NOT CLOSE UNTIL M3, AND THAT WAS KNOWN BEFORE M2 STARTED.**
-The `Prove` as authored ran `podbox run --rm`, which is [T-1104](milestones.md).
+The `Prove` as authored ran `podvm run --rm`, which is [T-1104](milestones.md).
 M2 can implement and drive extraction and cannot enter the tree it produced, in
 exactly the way [T-0107](probe.md), [T-0108](probe.md) and [T-0204](image.md)
 were `partial` then. What was left was one line: re-running the two image
@@ -249,7 +249,7 @@ milestone needs:
    the chain and reads as a failure. `AGENTS.md` absolute 4 makes "could
    not run" a state of its own precisely so it never reads as "ran and did not
    match";
-2. ⛔ **the composite status names no clause.** `podbox` exits 125 on a runtime
+2. ⛔ **the composite status names no clause.** `podvm` exits 125 on a runtime
    failure and 2 on invalid input, an experiment exits 2 for "could not run",
    and the chain reports one number for all six. A reader cannot tell which
    link produced it, which is the same defect `AGENTS.md` absolute 8
@@ -295,12 +295,12 @@ inside the reconstruction:
 | stdout | `hi`, and nothing else |
 | exit | 0 |
 | rung selected inside the reconstruction | **`chroot`** |
-| the same podbox on this host | `namespace` |
+| the same podvm on this host | `namespace` |
 | the banner | `this mode does NOT provide: process, network, IPC or mount isolation` |
 
 ⭐ **The rung differing between the two is the point.** Every other clause runs
-on this host, where `mount(2)` succeeds and podbox selects `namespace`; the
-reconstruction is where it is `EPERM` and podbox has to fall to the rung this
+on this host, where `mount(2)` succeeds and podvm selects `namespace`; the
+reconstruction is where it is `EPERM` and podvm has to fall to the rung this
 milestone is named for. A run that selected `namespace` in both would have
 proven nothing about `chroot`.
 
@@ -316,7 +316,7 @@ here, and [T-0801](cli.md) and [T-0803](cli.md) are clauses 1 to 5 of
 `experiments/320-cli-contract.sh`. [T-0802](cli.md)'s exit codes are clause 2.
 
 ⚠ **[T-0506](enter.md) stays `partial` and is NOT this milestone's blocker.**
-Its `run` half is clause 5 above; its remaining half is that a `podbox probe`
+Its `run` half is clause 5 above; its remaining half is that a `podvm probe`
 run inside a foreign-architecture container measures the emulator and does not
 yet say so, which is a probe question rather than a `run` one.
 
@@ -349,7 +349,7 @@ Prove:       `./experiments/230-lifecycle-loop.sh 20` exits 0
 Running state is launcher state: one detached supervisor per container holds the
 payload's pidfd, holds the container's lock, owns a control socket, and is the
 only thing that writes `running` or `exited` into
-`crates/podbox-supervise/src/table.rs`. Nothing reads `/proc` to decide
+`crates/podvm-supervise/src/table.rs`. Nothing reads `/proc` to decide
 membership and nothing sleeps to decide readiness.
 
 ⭐ **The acceptance failed three times first, and that is the milestone
@@ -440,11 +440,11 @@ subject, so every CAfile [T-0407](complete.md) writes is invisible to both.
 [T-0412](complete.md) writes one PEM per root into it and asks the caller to run
 `openssl rehash`, and both rows went to 42 in the same change.
 
-⚠ **`voidlinux-musl` had read `host` and it was podbox's after all.** docker
+⚠ **`voidlinux-musl` had read `host` and it was podvm's after all.** docker
 failed on the same image with the same `SSL_connect returned 1`, which is a true
 reading and a misleading one: docker has no CA fixup at all on this
-TLS-intercepting machine, so it fails there for a reason podbox had already
-solved for every CAfile. ⛔ The control tells "podbox is missing a fixup" from
+TLS-intercepting machine, so it fails there for a reason podvm had already
+solved for every CAfile. ⛔ The control tells "podvm is missing a fixup" from
 "this machine cannot do it either"; it does not tell either from "both, for
 different reasons".
 
@@ -496,8 +496,8 @@ Approach:    Both halves in one object: path virtualization, and ownership
              virtualization that clears the wall stopping the most tools.
 Decision:    Both, or the milestone is not done. ⭐ No project in the corpus does
              both halves in one interposer while also speaking docker's CLI.
-             That gap is what podbox is.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'touch /tmp/f && chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` and `podbox run --rm -e 'PODBOX_MAPS=/mapped:/etc' public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
+             That gap is what podvm is.
+Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'touch /tmp/f && chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` and `podvm run --rm -e 'PODVM_MAPS=/mapped:/etc' public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
 
 **Done 2026-09-22.** The work is T-0701 through T-0708, all closed, and
 this close drives both halves end to end on host podman 6.1.2 with the
@@ -507,8 +507,8 @@ in the corpus does both halves in one interposer while also speaking
 docker's CLI, which is the gap this milestone names.
 
 ⛔ **The `Prove` above is amended: its second half passed `-v`, which
-podbox refuses.** The refusal names a copy pretending to be a mount.
-Maps travel through `PODBOX_MAPS`, which is what the amended half
+podvm refuses.** The refusal names a copy pretending to be a mount.
+Maps travel through `PODVM_MAPS`, which is what the amended half
 drives; the first half gains the `touch` its `chown` needs.
 
 ---
@@ -530,19 +530,19 @@ Approach:    A single static binary, optionally one file with an embedded
 Decision:    Keep T-1001 and this entry separate. T-1001 is the property of the
              skeleton and is measurable now; this is the property of the shipped
              artefact and is not.
-Prove:       `readelf -l target/x86_64-unknown-linux-musl/release/podbox | grep -c INTERP | grep -qx 0 && ./experiments/20-enter-target.sh --stage ./target/x86_64-unknown-linux-musl/release/podbox -- /workspace/podbox version`
+Prove:       `readelf -l target/x86_64-unknown-linux-musl/release/podvm | grep -c INTERP | grep -qx 0 && ./experiments/20-enter-target.sh --stage ./target/x86_64-unknown-linux-musl/release/podvm -- /workspace/podvm version`
 
 **Done 2026-09-21.** Both halves, on the shipped artefact with both
 interposers embedded. `readelf -l` reports no `PT_INTERP` (`INTERP count:
 0`, 3,367,792 bytes, static-pie), and the staged binary runs
-`/workspace/podbox version` as `podbox 0.1.0`, exit 0, inside the N+F+M
+`/workspace/podvm version` as `podvm 0.1.0`, exit 0, inside the N+F+M
 reconstruction on host podman.
 
 Half 1 ran in a Linux job on this tree at `362aba4` (musl release build
-with the embedded objects). Half 2 staged `.dev/artifacts-build/podbox`,
+with the embedded objects). Half 2 staged `.dev/artifacts-build/podvm`,
 built earlier today: only `TODO/` and `scripts/` moved since, none of them
 a build input, so the bytes are the same build the job measured (both
-3,367,792, both `podbox 0.1.0`).
+3,367,792, both `podvm 0.1.0`).
 
 ⚠ The embedded-rootfs half stays with [T-1003](packaging.md), which is open.
 The `Prove` as written is satisfied.
@@ -680,12 +680,12 @@ Premise:     Measured, and each is a row the acceptance has to cover:
 Approach:    A sweep in `experiments/240-distro-sweep.sh`'s shape, over
              `scripts/common/distro-matrix.sh`'s rows, asking one question per
              row: does a payload that needs virtualized ownership succeed, and
-             does podbox pick the right object without being told?
-             1. per row: extract, let podbox select and place the object, run a
+             does podvm pick the right object without being told?
+             1. per row: extract, let podvm select and place the object, run a
                 payload that `chown`s and reads back;
              2. per row: assert the SELECTION, not just the outcome -- a musl
                 row must have been given the musl object, which
-                `podbox system abi` can be asked about directly;
+                `podvm system abi` can be asked about directly;
              3. the three refusals above, each driven deliberately;
              4. the Go clause, asserting a named decline.
              ⛔ The docker control is what makes a failure attributable, as it
@@ -705,7 +705,7 @@ run: 10 rows, 10 ran, 10 virtualized, 20 declined, 0 host_not_runtime, with
 per-row transcripts in `experiments/results/sweep245/`. Every row preloads
 the object of its own libc (asserted on bytes, not inferred), every static
 and Go victim is declined by name, and both cross-libc refusals fire
-through `podbox system abi`. The version refusal has no matrix row old
+through `podvm system abi`. The version refusal has no matrix row old
 enough and stays unit-covered, stated in the script rather than invented
 for. Clause 1 of `250` is green (`go payload declined rc=126`, naming Go
 build markers); the script's other clauses are untouched, and clause 2
@@ -735,19 +735,19 @@ Status:      done
 Problem:     M5 drives package managers across ten distributions and M6 drives
              the interposer. ⛔ **Neither drives a payload that a consumer
              actually wanted and could not otherwise have**, which is the only
-             evidence that says podbox is worth running rather than correct.
+             evidence that says podvm is worth running rather than correct.
              ⭐ **This is M8**, and it sits after M7 on purpose: it drives the
              SHIPPED binary, so it is the last gate rather than an early one.
 Premise:     ⭐ **Somebody already did this by hand, on a runtime of this class,
-             and the answer they arrived at is what podbox is.** Every route with
+             and the answer they arrived at is what podvm is.** Every route with
              a namespace, a mount or a `ptrace` in it failed: a portable
              launcher wanted a pty, `bwrap` wanted `mount`, `proot` wanted
              `ptrace`, and the user-namespace route wanted `unshare`. The
              working solution was a plain `chroot` over a hand-assembled rootfs
              with regular-file device stand-ins, a host CA bundle and
              ownership-neutral extraction.
-             ⭐ **podbox already ships every one of those pieces.**
-             `crates/podbox-complete/src/devices.rs:50` fills `/dev/urandom`
+             ⭐ **podvm already ships every one of those pieces.**
+             `crates/podvm-complete/src/devices.rs:50` fills `/dev/urandom`
              with `FILLED_BYTES`, one MiB read once from the host's
              `getrandom(2)`. [complete.md](complete.md) T-0407 is the CA bundle,
              [extract.md](extract.md) is the ownership sidecar, and
@@ -756,7 +756,7 @@ Premise:     ⭐ **Somebody already did this by hand, on a runtime of this class
              is worth keeping.** That experiment wrote **4 KiB copied from the
              host's `/dev/urandom`**, reached by failure after an *empty* file
              made `std::random_device` in gcc-7.3's libstdc++ throw during the
-             first download. podbox's is larger and comes from `getrandom(2)`,
+             first download. podvm's is larger and comes from `getrandom(2)`,
              which is the better source. ⛔ An `LD_PRELOAD` entropy shim was
              tried there and did **not** work: libstdc++ opens the file through
              `syscall()` and no libc interposer sees that. The file is the fix,
@@ -768,7 +768,7 @@ Premise:     ⭐ **Somebody already did this by hand, on a runtime of this class
              is decisive for this payload: a pipe-era build tool works and a
              pty-era one cannot, on any runtime with no `/dev/ptmx`.
 Approach:    Drive the whole pipeline through the shipped binary and record what
-             podbox needed that the hand-built rootfs needed: fetch over TLS,
+             podvm needed that the hand-built rootfs needed: fetch over TLS,
              evaluate, build locally, and run the artefact.
              ⛔ **Unpatched, or a named decline.** The value of this acceptance is
              that it either runs with no hand patching or it says exactly which
@@ -794,7 +794,7 @@ Approach:    Drive the whole pipeline through the shipped binary and record what
                 namespaces are refused, and succeed where the kernel grants
                 them. On that host the payload's own message is `setgroups
                 failed: Operation not permitted`, and [cli.md](cli.md) T-0809
-                is what makes podbox's version of it unambiguous;
+                is what makes podvm's version of it unambiguous;
              7. ⚠ the **procfs row**: six of the package set's fixup hooks use
                 bash process substitution in live code
                 (`audit-blas.sh`, `audit-tmpdir.sh`, `canonicalize-jars.sh`,
@@ -806,10 +806,10 @@ Approach:    Drive the whole pipeline through the shipped binary and record what
                 general procfs piece; this pipeline does not need it.
 Decision:    ⭐ **Pin the known-good pair.** The acceptance pins the build tool
              and the package set to the last pair whose whole pipeline runs with
-             no pty, because that measures **podbox** against a target known to
+             no pty, because that measures **podvm** against a target known to
              be reachable. Tracking the current pair measures the wall instead,
              fails by design until T-0503 has an answer, and tells a reader
-             nothing about whether podbox regressed.
+             nothing about whether podvm regressed.
              ⚠ **Rejected:** tracking the current pair. It is the more honest
              test of the environment and the less useful test of this tool, and
              the wall it would measure is already T-0503's subject.
@@ -866,7 +866,7 @@ Decision:    Keep this entry partial until the ReactOS acceptance passes.
              scope. They do not prove the current failed KVM repetition.
              REVISED 2026-10-02. The operator descoped ReactOS: it is low
              priority and ReactOS is itself a beta operating system, so
-             proving podbox against it is proving against a moving
+             proving podvm against it is proving against a moving
              target. The clause is dropped rather than deferred, because
              "deferred" means it will be picked up later and this will not
              be. What still owns this entry is the KVM leg: one guarded
@@ -890,7 +890,7 @@ arguments. The audit found its unpublished driver reused number 386 and
 named private input paths. Experiment 392 replaces that driver with
 explicit inputs and owned scratch. Its current proof is in PROGRESS.
 
-Source defect found 2026-09-30: `podbox_windows::run` piped the emulator's
+Source defect found 2026-09-30: `podvm_windows::run` piped the emulator's
 stdout and stderr and did not read them before exit. An emulator that
 writes more than one pipe buffer blocks, and the run reports a guest that
 did not power off. The streams now go to null and to `emulator.log` in the
@@ -981,7 +981,7 @@ one names a host tool, a device, or an OS facility a Rust binary cannot provide.
 | `353-open-issue-triage.sh` | KEEP-SHELL | a `wsl-toolkit` lane that bootstraps a toolchain before it can build, and 22 open issues measured against a beta binary on that lane | `refactor/01-audit/group-4.md:984` |
 | `357-tcg-profile.sh` | KEEP-SHELL | a kvm-less machine with `qemu-system-x86_64` installed at run time, a real initramfs boot under TCG, and a Windows job wrapper; clause 5 alone is a QEMU boot | `refactor/01-audit/group-10.md:746` |
 | `361-guest-usernet.sh` | KEEP-SHELL | `qemu-system-x86_64` with `-netdev user,hostfwd=udp::`, and the forwarding is the subject | `refactor/01-audit/group-7.md:1027` |
-| `367-qemu-user-aarch64.sh` | KEEP-SHELL | a live `binfmt_misc` registration for aarch64, which is machine-wide state podbox reads and never writes | `refactor/01-audit/group-7.md:1316` |
+| `367-qemu-user-aarch64.sh` | KEEP-SHELL | a live `binfmt_misc` registration for aarch64, which is machine-wide state podvm reads and never writes | `refactor/01-audit/group-7.md:1316` |
 | `369-windows-tcg-dos.sh` | KEEP-SHELL | `qemu-system-x86_64` in TCG mode against a real 32 MiB FreeDOS image, with a deadline enforced through a QMP mailbox and the base sha256 compared before and after | `refactor/01-audit/group-4.md:1061` |
 | `371-validationos-stream.sh` | KEEP-SHELL | `curl` with byte-range support against an anonymous third-party origin, an `RLIMIT_FSIZE` ceiling, and `qemu-img` | `refactor/01-audit/group-2.md:701` |
 | `382-restricted-sshd.sh` | KEEP-SHELL | a real `sshd` and a real `ssh` client; clause 3 exists because a static `sshd` cannot take `LD_PRELOAD` | `refactor/01-audit/group-4.md:1140` |
@@ -989,10 +989,10 @@ one names a host tool, a device, or an OS facility a Rust binary cannot provide.
 | `385-kvm-open.sh` | KEEP-SHELL | `wsl-toolkit` and `/dev/kvm` inside that tool's base | `refactor/01-audit/group-10.md:806` |
 | `387-mux-two-client.sh` | KEEP-SHELL | a third-party hosted relay over the network, with a real `ssh` client and a real `sshd` per session; the Rust test is the fake, and this is the acceptance gate against the real relay | `refactor/01-audit/group-2.md:809` |
 | `391-machine-bridge.sh` | KEEP-SHELL | a C file that must link static against musl, built with `zig cc -target x86_64-linux-musl -static` | `refactor/01-audit/group-9.md:842` |
-| `392-kvm-guest.sh` | KEEP-SHELL | `wsl-toolkit --instance podbox base exec`, nested-KVM QEMU on `/dev/kvm`, an OVMF pflash pair, a licensed operator disk, and a QMP socket | `refactor/01-audit/group-8.md:1185` |
+| `392-kvm-guest.sh` | KEEP-SHELL | `wsl-toolkit --instance podvm base exec`, nested-KVM QEMU on `/dev/kvm`, an OVMF pflash pair, a licensed operator disk, and a QMP socket | `refactor/01-audit/group-8.md:1185` |
 | `396-audit-linux.sh` | KEEP-SHELL | a Windows job input that requires `PWD=/work` and a copied container checkout | `refactor/01-audit/group-2.md:988` |
 | `400-kvm-cleanup.py` | KEEP-SHELL | `ps -eo pid,args` and `awk` against argv[0] being the emulator name, and the shell matcher is what the real KVM path calls | `refactor/01-audit/group-5.md:1032` |
-| `95-podman-vfs-ignorechown.sh` | KEEP-SHELL (VC-3) | a rootful podman machine, podman's own storage option, and a seccomp-filtered `podman unshare` load; the subject is podman's option, not podbox | VC-3, `refactor/06-entries/PLAN.md:22-27`; reason at `refactor/01-audit/group-4.md:498` |
+| `95-podman-vfs-ignorechown.sh` | KEEP-SHELL (VC-3) | a rootful podman machine, podman's own storage option, and a seccomp-filtered `podman unshare` load; the subject is podman's option, not podvm | VC-3, `refactor/06-entries/PLAN.md:22-27`; reason at `refactor/01-audit/group-4.md:498` |
 | `targetfs.sh` | KEEP-SHELL | the container's pid 1, calling `mount(2)` and `pivot_root(2)` before any confinement is applied, so nothing here is reachable from inside | `refactor/01-audit/group-3.md:1158` |
 | `162-tar-symlink-modes.sh` | KEEP-SHELL (VC-2) | a deployment proof over a real engine on a pinned image digest; DELETE is refuted because `TODO/interpose.md:1479` is the `Prove` of T-1311 and names this script | VC-2, `refactor/06-entries/PLAN.md:168-170`; reason recorded in [T-1628](interpose.md) |
 | `gnu-link-stub.sh` | KEEP-SHELL | `rustc`'s `-C linker=` takes a PROGRAM and the object must be the first argument on the link line, which a Rust program cannot express | `refactor/01-audit/group-1.md:953` |

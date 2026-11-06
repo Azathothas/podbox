@@ -1,14 +1,14 @@
 #!/bin/sh
 # Question: does each forced launch rung enter with its word in
-# PODBOX_ACTIVE_MODE where its fixture holds, and refuse naming its
+# PODVM_ACTIVE_MODE where its fixture holds, and refuse naming its
 # reason where it does not?
 #
 # TODO/packaging.md T-1003 (rundir and cache, FUSE, tmpfs).
 #
 # Clauses (each flips from refusal to entry as its rung lands):
 #   1. forced rundir over alpine enters with ACTIVE_MODE=rundir.
-#   2. forced cache without PODBOX_CACHE refuses naming the opt-in;
-#      with PODBOX_CACHE=1 over alpine enters with ACTIVE_MODE=cache.
+#   2. forced cache without PODVM_CACHE refuses naming the opt-in;
+#      with PODVM_CACHE=1 over alpine enters with ACTIVE_MODE=cache.
 #   3. forced tmpfs attempts entry: where a mount attaches it enters
 #      with ACTIVE_MODE=tmpfs, payload bytes and exit 0; where the
 #      attach verdict is down it refuses naming the mount. Either arm
@@ -72,18 +72,18 @@ else
 	tail -15 "$WORK/build.log"
 	exit 1
 fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 [ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
-echo "podbox            $("$PB" version)" >>"$REPORT"
+echo "podvm            $("$PB" version)" >>"$REPORT"
 
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$PB" || { echo "cannot read podbox's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-RUN_ERR=$PODBOX_EXIT_RUNTIME_ERROR
+podvm_exit_codes "$PB" || { echo "cannot read podvm's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+RUN_ERR=$PODVM_EXIT_RUNTIME_ERROR
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 fail=0
 
 step() {
@@ -109,7 +109,7 @@ if ! timeout 600 "$PB" pull "$ALPINE" >>"$REPORT" 2>&1; then
 fi
 
 # Clause 1: forced rundir enters with the rung word.
-step forced-rundir 0 env PODBOX_MODE=rundir "$PB" run --rm "$ALPINE" sh -c 'echo $PODBOX_ACTIVE_MODE'
+step forced-rundir 0 env PODVM_MODE=rundir "$PB" run --rm "$ALPINE" sh -c 'echo $PODVM_ACTIVE_MODE'
 grep -q "^rundir$" "$WORK/out-forced-rundir.txt" || { echo "rundir run did not report rundir" >>"$REPORT"; fail=1; }
 if ls "$STORE/runs" >/dev/null 2>&1 && [ -n "$(ls -A "$STORE/runs" 2>/dev/null)" ]; then
 	echo "rundir staging    LEAKED files" >>"$REPORT"; fail=1
@@ -118,9 +118,9 @@ else
 fi
 
 # Clause 2: cache needs the opt-in; with it, it enters.
-step forced-cache-noopt "$RUN_ERR" env PODBOX_MODE=cache "$PB" run --rm "$ALPINE" true
-grep -q "PODBOX_CACHE=1" "$WORK/out-forced-cache-noopt.txt" || { echo "cache refusal did not name the opt-in" >>"$REPORT"; fail=1; }
-step forced-cache 0 env PODBOX_MODE=cache PODBOX_CACHE=1 "$PB" run --rm "$ALPINE" sh -c 'echo $PODBOX_ACTIVE_MODE'
+step forced-cache-noopt "$RUN_ERR" env PODVM_MODE=cache "$PB" run --rm "$ALPINE" true
+grep -q "PODVM_CACHE=1" "$WORK/out-forced-cache-noopt.txt" || { echo "cache refusal did not name the opt-in" >>"$REPORT"; fail=1; }
+step forced-cache 0 env PODVM_MODE=cache PODVM_CACHE=1 "$PB" run --rm "$ALPINE" sh -c 'echo $PODVM_ACTIVE_MODE'
 grep -q "^cache$" "$WORK/out-forced-cache.txt" || { echo "cache run did not report cache" >>"$REPORT"; fail=1; }
 if [ -d "$STORE/cache" ] && [ -n "$(ls -A "$STORE/cache" 2>/dev/null)" ]; then
 	echo "cache staging    persistent" >>"$REPORT"
@@ -136,13 +136,13 @@ fi
 # 2026-09-30), so the refusal arm is the live one here and entry stays
 # unproved until a mount-granting host runs this script.
 out="$WORK/out-forced-tmpfs.txt"
-timeout 120 env PODBOX_MODE=tmpfs "$PB" run --rm "$ALPINE" sh -c 'echo $PODBOX_ACTIVE_MODE; cat /etc/alpine-release' >"$out" 2>&1
+timeout 120 env PODVM_MODE=tmpfs "$PB" run --rm "$ALPINE" sh -c 'echo $PODVM_ACTIVE_MODE; cat /etc/alpine-release' >"$out" 2>&1
 rc=$?
 echo "step forced-tmpfs exit $rc"
 {
 echo ""
 echo "== forced-tmpfs"
-echo "command           env PODBOX_MODE=tmpfs $PB run --rm $ALPINE sh -c 'echo \$PODBOX_ACTIVE_MODE; cat /etc/alpine-release'"
+echo "command           env PODVM_MODE=tmpfs $PB run --rm $ALPINE sh -c 'echo \$PODVM_ACTIVE_MODE; cat /etc/alpine-release'"
 echo "exit              $rc"
 echo "output:"
 sed 's/^/  /' "$out"
@@ -171,13 +171,13 @@ fi
 # the refusal arm is the live one here and entry stays unproved until
 # a host with the node and a granted mount runs this script.
 out="$WORK/out-forced-fuse.txt"
-timeout 120 env PODBOX_MODE=fuse "$PB" run --rm "$ALPINE" sh -c 'echo $PODBOX_ACTIVE_MODE; cat /etc/alpine-release' >"$out" 2>&1
+timeout 120 env PODVM_MODE=fuse "$PB" run --rm "$ALPINE" sh -c 'echo $PODVM_ACTIVE_MODE; cat /etc/alpine-release' >"$out" 2>&1
 rc=$?
 echo "step forced-fuse exit $rc"
 {
 echo ""
 echo "== forced-fuse"
-echo "command           env PODBOX_MODE=fuse $PB run --rm $ALPINE sh -c 'echo \$PODBOX_ACTIVE_MODE; cat /etc/alpine-release'"
+echo "command           env PODVM_MODE=fuse $PB run --rm $ALPINE sh -c 'echo \$PODVM_ACTIVE_MODE; cat /etc/alpine-release'"
 echo "exit              $rc"
 echo "output:"
 sed 's/^/  /' "$out"
@@ -217,11 +217,11 @@ else
 	echo "static import     FAILED" | tee -a "$REPORT"
 	exit 1
 fi
-step forced-memfd 0 env PODBOX_MODE=memfd "$PB" run --rm static-hello:1 /hello
+step forced-memfd 0 env PODVM_MODE=memfd "$PB" run --rm static-hello:1 /hello
 grep -q "static-hi" "$WORK/out-forced-memfd.txt" || { echo "forced memfd payload stdout missing" >>"$REPORT"; fail=1; }
 
 # Clause 6: an unknown word refuses with the rung list.
-step bogus-word "$RUN_ERR" env PODBOX_MODE=memfd2 "$PB" run --rm "$ALPINE" true
+step bogus-word "$RUN_ERR" env PODVM_MODE=memfd2 "$PB" run --rm "$ALPINE" true
 grep -q "memfd, fuse, tmpfs, rundir, cache" "$WORK/out-bogus-word.txt" || { echo "unknown word did not list the rungs" >>"$REPORT"; fail=1; }
 
 # Clause 7: the packed rootfs without a registry. `save` writes the
@@ -235,18 +235,18 @@ STORE2="$WORK/store2"
 mkdir -p "$STORE2" || exit 2
 step pack-save 0 "$PB" save -o "$WORK/pack.tar" "$ALPINE"
 [ -s "$WORK/pack.tar" ] || { echo "pack.tar empty or missing" >>"$REPORT"; fail=1; }
-step pack-load 0 env PODBOX_STORE="$STORE2" "$PB" load -i "$WORK/pack.tar"
+step pack-load 0 env PODVM_STORE="$STORE2" "$PB" load -i "$WORK/pack.tar"
 name=$(sed -n 's/^Loaded image: //p' "$WORK/out-pack-load.txt" | head -1)
 [ -n "$name" ] || { echo "load printed no image name" >>"$REPORT"; fail=1; }
 echo "loaded as         $name" >>"$REPORT"
 out="$WORK/out-pack-run.txt"
-timeout 120 env PODBOX_STORE="$STORE2" PODBOX_MODE=rundir "$PB" run --rm "$name" sh -c 'echo $PODBOX_ACTIVE_MODE; cat /etc/alpine-release' >"$out" 2>&1
+timeout 120 env PODVM_STORE="$STORE2" PODVM_MODE=rundir "$PB" run --rm "$name" sh -c 'echo $PODVM_ACTIVE_MODE; cat /etc/alpine-release' >"$out" 2>&1
 rc=$?
 echo "step pack-run exit $rc"
 {
 echo ""
 echo "== pack-run"
-echo "command           env PODBOX_STORE=<fresh> PODBOX_MODE=rundir $PB run --rm $name sh -c 'echo \$PODBOX_ACTIVE_MODE; cat /etc/alpine-release'"
+echo "command           env PODVM_STORE=<fresh> PODVM_MODE=rundir $PB run --rm $name sh -c 'echo \$PODVM_ACTIVE_MODE; cat /etc/alpine-release'"
 echo "exit              $rc"
 echo "output:"
 sed 's/^/  /' "$out"
@@ -269,13 +269,13 @@ layer=$(ls -S "$WORK/corrupt"/blobs/sha256/* | head -1)
 printf '\377' | dd of="$layer" bs=1 count=1 conv=notrunc 2>/dev/null || { echo "byte flip FAILED" >>"$REPORT"; fail=1; }
 (cd "$WORK/corrupt" && tar -cf "$WORK/pack-corrupt.tar" oci-layout index.json blobs/sha256/*) || { echo "corrupt repack FAILED" >>"$REPORT"; fail=1; }
 out="$WORK/out-pack-corrupt.txt"
-timeout 120 env PODBOX_STORE="$STORE2" "$PB" load -i "$WORK/pack-corrupt.tar" >"$out" 2>&1
+timeout 120 env PODVM_STORE="$STORE2" "$PB" load -i "$WORK/pack-corrupt.tar" >"$out" 2>&1
 rc=$?
 echo "step pack-corrupt exit $rc"
 {
 echo ""
 echo "== pack-corrupt"
-echo "command           env PODBOX_STORE=<fresh> $PB load -i <flipped pack>"
+echo "command           env PODVM_STORE=<fresh> $PB load -i <flipped pack>"
 echo "exit              $rc"
 echo "output:"
 sed 's/^/  /' "$out"

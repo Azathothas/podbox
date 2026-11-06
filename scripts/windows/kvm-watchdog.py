@@ -46,7 +46,7 @@ import time
 from pathlib import Path
 
 TOOL = "wsl-toolkit"
-INSTANCE = "podbox"
+INSTANCE = "podvm"
 
 # Above the driver's own 4200 s subprocess timeout in
 # `scripts/windows/kvm-guest.py`, so the driver is always the first thing
@@ -57,9 +57,9 @@ DEFAULT_BOUND_SECONDS = 4800
 
 # The guest-side ownership rule, restated rather than reused: the guest
 # names its scratch under $HOME, and only this path can be this run's.
-GUEST_SCRATCH = re.compile(r"/home/[^/\s]+/podbox-kvm\.[A-Za-z0-9]+")
+GUEST_SCRATCH = re.compile(r"/home/[^/\s]+/podvm-kvm\.[A-Za-z0-9]+")
 
-RUN_PODBOX = "podbox-kvm-watchdog.sh"
+RUN_PODVM = "podvm-kvm-watchdog.sh"
 
 
 def state_dir():
@@ -67,7 +67,7 @@ def state_dir():
 
 
 def arm_file():
-    return state_dir() / "podbox-kvm-watchdog.json"
+    return state_dir() / "podvm-kvm-watchdog.json"
 
 
 def tool():
@@ -90,7 +90,7 @@ def base_exec(command, timeout=120):
 
 
 def owned_emulators():
-    """Emulators belonging to a podbox KVM scratch, by scratch path.
+    """Emulators belonging to a podvm KVM scratch, by scratch path.
 
     Selection is on the scratch directory the emulator was launched with,
     read from each process's own argument vector, and the executable is
@@ -102,7 +102,7 @@ def owned_emulators():
     found nothing while reporting that nothing was wrong. `/proc/PID/exe`
     is the kernel's own answer to what the process is executing and cannot
     be set by the process itself, so it is the honest signal. The scratch
-    is matched by the proof's own `podbox-kvm.` pattern rather than one
+    is matched by the proof's own `podvm-kvm.` pattern rather than one
     run's `$KVM/`, because the watchdog outlives any single run.
     """
     script = (
@@ -117,7 +117,7 @@ def owned_emulators():
         # Reading the NUL-separated vector with the shell's own quoting
         # needs no escape at all.
         "  c=$(cat $d/cmdline 2>/dev/null) || continue; "
-        "  case $c in *podbox-kvm.*) echo $p ;; esac; "
+        "  case $c in *podvm-kvm.*) echo $p ;; esac; "
         "done"
     )
     _, text = base_exec(script)
@@ -130,7 +130,7 @@ def owned_emulators():
 
 
 def scratch_dirs():
-    _, text = base_exec("ls -d /home/*/podbox-kvm.* 2>/dev/null || true")
+    _, text = base_exec("ls -d /home/*/podvm-kvm.* 2>/dev/null || true")
     found = []
     for line in text.splitlines():
         candidate = line.strip()
@@ -169,8 +169,8 @@ def wait_for(session, bound):
 
     `--instance` is load-bearing, not decoration. Omitted, the global
     `wsl-toolkit wait` resolves the instance by `auto`, and this machine
-    has seven: acc, base, muse, nobase, pg-toolkit, podbox,
-    podbox-migrate. Measured on a live session: without `--instance` the
+    has seven: acc, base, muse, nobase, pg-toolkit, podvm,
+    podvm-migrate. Measured on a live session: without `--instance` the
     wait answered `no such job` with rc 2 in 0 s, collapsing the whole
     bound; with it, rc 124 after the real timeout elapsed. A watchdog
     whose bound never starts is the one defect this tool exists to prevent.
@@ -233,21 +233,21 @@ def arm(session, bound):
         json.dumps({"session": session, "bound_seconds": bound, "armed_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}, indent=2),
         encoding="utf-8",
     )
-    print(f"{RUN_PODBOX}: armed for {session} bound {bound}s")
+    print(f"{RUN_PODVM}: armed for {session} bound {bound}s")
     return 0
 
 
 def unarm(session):
     path = arm_file()
     if not path.is_file():
-        print(f"{RUN_PODBOX}: nothing armed")
+        print(f"{RUN_PODVM}: nothing armed")
         return 0
     record = json.loads(path.read_text(encoding="utf-8"))
     if record.get("session") != session:
-        print(f"{RUN_PODBOX}: armed for {record.get('session')}, not {session}; left alone")
+        print(f"{RUN_PODVM}: armed for {record.get('session')}, not {session}; left alone")
         return 0
     path.unlink()
-    print(f"{RUN_PODBOX}: disarmed {session}")
+    print(f"{RUN_PODVM}: disarmed {session}")
     return 0
 
 
@@ -311,7 +311,7 @@ def selftest():
     print(f"ok   control stayed quiet, found {report['emulators_found']}")
 
     print("== fault: a lingering emulator is removed")
-    with tempfile.TemporaryDirectory(prefix="podbox-kvm-watchdog-selftest-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="podvm-kvm-watchdog-selftest-") as tmp:
         script = Path(tmp) / "linger.sh"
         # The fixture links the real qemu binary under a scratch path and
         # runs it on a real disk, so `/proc/PID/exe` and
@@ -328,7 +328,7 @@ def selftest():
         # widen the base's package set to test the guard.
         script.write_text(
             "#!/usr/bin/env sh\n"
-            "d=/home/toolkit/podbox-kvm.selftest\n"
+            "d=/home/toolkit/podvm-kvm.selftest\n"
             "mkdir -p \"$d\"\n"
             "truncate -s 64M \"$d/base.img\" || exit 2\n"
             "ln -sf /usr/bin/qemu-system-x86_64 \"$d/qemu-system-x86_64\"\n"
@@ -393,14 +393,14 @@ def selftest():
                     failures.append(f"cleanup left emulators running: {survivors}")
                 else:
                     print(f"ok   cleanup removed {len(leftovers)} fixture process(es)")
-            base_exec("rm -rf /home/*/podbox-kvm.selftest 2>/dev/null || true")
+            base_exec("rm -rf /home/*/podvm-kvm.selftest 2>/dev/null || true")
 
     print("== isolation: an emulator that is not ours is left alone")
     # The arm that makes the fault arm safe. Without it, "removes the
     # emulator" could be satisfied by "removes every emulator", which on a
     # shared base would kill someone else's guest. Measured here: the guard
     # sees nothing and fires nothing while an unrelated qemu runs.
-    with tempfile.TemporaryDirectory(prefix="podbox-kvm-watchdog-foreign-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="podvm-kvm-watchdog-foreign-") as tmp:
         foreign = Path(tmp) / "foreign.sh"
         foreign.write_text(
             "#!/usr/bin/env sh\n"
@@ -467,9 +467,9 @@ def selftest():
     if failures:
         for line in failures:
             print(f"FAIL {line}")
-        print(f"verdict {RUN_PODBOX.upper()}-FAIL")
+        print(f"verdict {RUN_PODVM.upper()}-FAIL")
         return 1
-    print(f"verdict {RUN_PODBOX.upper()}-OK")
+    print(f"verdict {RUN_PODVM.upper()}-OK")
     return 0
 
 
@@ -509,10 +509,10 @@ def main():
         print(json.dumps(report, indent=2))
         return 3 if report["fired"] else 0
     except subprocess.TimeoutExpired:
-        print(f"{RUN_PODBOX}: could not run: the base did not answer in time", file=sys.stderr)
+        print(f"{RUN_PODVM}: could not run: the base did not answer in time", file=sys.stderr)
         return 2
     except (OSError, RuntimeError, json.JSONDecodeError) as error:
-        print(f"{RUN_PODBOX}: could not run: {error}", file=sys.stderr)
+        print(f"{RUN_PODVM}: could not run: {error}", file=sys.stderr)
         return 2
 
 

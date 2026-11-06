@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: behind one identical Go spawn failure, does podbox name the
+# Question: behind one identical Go spawn failure, does podvm name the
 # refused call instead of repeating the payload's ambiguous string?
 #
 # TODO/cli.md T-0809 (wall 2 of the sandbox-insights walls document).
@@ -7,7 +7,7 @@
 # Two Go payloads spawn /bin/true: one with namespace clone flags and no
 # credential, one with a credential and no clone flags. Where the kernel
 # refuses the call, both fail with the byte-identical string
-# `fork/exec /bin/true: operation not permitted`. `podbox probe` measures
+# `fork/exec /bin/true: operation not permitted`. `podvm probe` measures
 # both legs itself, so its evidence names the refused call per context
 # instead of echoing the string.
 #
@@ -19,7 +19,7 @@ set -u
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/spawn-ambiguity.txt"
 WORK="$REPO/experiments/.sweep151-work"; rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 trap 'rm -rf "$WORK"' EXIT INT TERM
@@ -40,7 +40,7 @@ command -v unshare >/dev/null 2>&1 || { echo "SKIP: unshare is not on PATH" >&2;
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'go                %s\n' "$(go version)"
 	printf 'setgroups here    %s\n' "$(cat /proc/self/setgroups 2>/dev/null || echo UNREADABLE)"
 	printf 'setgroups unshared %s\n' "$(unshare -Ur cat /proc/self/setgroups 2>/dev/null || echo UNUSABLE)"
@@ -110,9 +110,9 @@ if grep -q "clone(CLONE_NEWNS) here: denied" "$WORK/probe-plain.err"; then
 	[ "$rc_a" -ne 0 ] || { say "  FAIL: the clone payload ran where clone is denied"; fail=1; }
 	[ "$out_a" = "$AMBIGUOUS" ] || { say "  FAIL: not the ambiguous string"; fail=1; }
 	if grep -q "meets the clone denial" "$WORK/probe-plain.err"; then
-		say "  podbox attributes the string to the clone: yes"
+		say "  podvm attributes the string to the clone: yes"
 	else
-		say "  FAIL: podbox does not attribute the string to the clone"
+		say "  FAIL: podvm does not attribute the string to the clone"
 		fail=1
 	fi
 else
@@ -138,9 +138,9 @@ if [ "$sg_u" = "deny" ]; then
 	fi
 	timeout 120 unshare -Ur "$BIN" probe >"$WORK/probe-unshare.out" 2>"$WORK/probe-unshare.err" || true
 	if grep -q "meets the setgroups denial" "$WORK/probe-unshare.err" && grep -q "Credential{NoSetGroups: true}" "$WORK/probe-unshare.err"; then
-		say "  podbox attributes the string to setgroups and names the field: yes"
+		say "  podvm attributes the string to setgroups and names the field: yes"
 	else
-		say "  FAIL: podbox does not attribute the string to setgroups"
+		say "  FAIL: podvm does not attribute the string to setgroups"
 		fail=1
 	fi
 else

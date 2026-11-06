@@ -55,16 +55,16 @@ done
 HERE=$(CDPATH= cd -- "$(dirname -- "$_self")" && pwd) || exit 2
 ROOT=$(CDPATH= cd -- "$HERE/.." && pwd) || exit 2
 
-INSTANCE="${PODBOX_LANE_INSTANCE:-podbox}"
-IMAGE="${PODBOX_LANE_IMAGE:-docker.io/library/rust:1.98.1-bookworm}"
-TIMEOUT="${PODBOX_LANE_TIMEOUT:-45m}"
+INSTANCE="${PODVM_WSL_INSTANCE:-podvm}"
+IMAGE="${PODVM_LANE_IMAGE:-docker.io/library/rust:1.98.1-bookworm}"
+TIMEOUT="${PODVM_LANE_TIMEOUT:-45m}"
 # Workspace ceiling, bytes. The tool defaults to 1.0 GiB and this tree copies
 # 343.6 MiB today; 5 GiB is headroom for corpus growth, not a license to bloat
 # the copy. If a run ever approaches it, shrink the workspace, not the ceiling.
-MAX_BYTES="${PODBOX_LANE_MAX_BYTES:-5368709120}"
+MAX_BYTES="${PODVM_LANE_MAX_BYTES:-5368709120}"
 # The tool itself, overridable for shims. Every invocation below goes through
 # it; the prose keeps the real name so the next reader knows what it is.
-TOOL="${PODBOX_LANE_TOOL:-wsl-toolkit}"
+TOOL="${PODVM_LANE_TOOL:-wsl-toolkit}"
 
 CMD="${1:-}"
 [ $# -gt 0 ] && shift

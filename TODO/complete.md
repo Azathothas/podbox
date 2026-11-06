@@ -3,7 +3,7 @@
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
 
-`crates/podbox-complete`. `TOOL.md` section 6.4, milestone M5.
+`crates/podvm-complete`. `TOOL.md` section 6.4, milestone M5.
 
 [INDEX.md](INDEX.md) is the list and the counts. [PROGRESS.md](PROGRESS.md) is the work order.
 [RULES.md](RULES.md) is how an entry closes. [reference-map.md](reference-map.md) is the corpus.
@@ -46,17 +46,17 @@ Approach note: T-0708's `mknod` interception makes the same substitution from
 Decision:    A regular file, not a fifo. A fifo blocks a writer with no reader,
              which turns a redirection into a hang, and a hang is the failure
              mode [RULES.md](RULES.md) section 8 exists to prevent.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo x >/dev/null && test ! -s /dev/null'`
+Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo x >/dev/null && test ! -s /dev/null'`
 
 
-**Done 2026-09-09.** `crates/podbox-complete/src/devices.rs`, and the shape
+**Done 2026-09-09.** `crates/podvm-complete/src/devices.rs`, and the shape
 changed while it was being built.
 
 ⭐ **`mknod` IS TRIED FIRST and the shim is the fallback.** The entry assumed
 the wall; the code asks the kernel. Probed by calling it rather than inferred
 from a capability bit, because this runtime hands a process every capability and
 denies the operation anyway. On this host `mknodat` SUCCEEDS, so
-`podbox run --rm alpine ls -l /dev` reads
+`podvm run --rm alpine ls -l /dev` reads
 
 ```
 crw-rw-rw-  1 root root 1, 3 null
@@ -66,7 +66,7 @@ crw-rw-rw-  1 root root 1, 9 urandom
 ```
 
 and the four rows are `dev-node`, not `dev-shim`, and are **not** degraded.
-⛔ A shim reported on a machine that did not need one is a degradation podbox
+⛔ A shim reported on a machine that did not need one is a degradation podvm
 invented, which is the same class of wrong as hiding one. Where `mknod` is
 refused the errno it refused with is in the banner beside each shim.
 
@@ -93,7 +93,7 @@ report the host's answer as the code's.
 Prove, run 2026-09-09:
 
 ```
-$ podbox run --rm public.ecr.aws/docker/library/alpine:3.20 \
+$ podvm run --rm public.ecr.aws/docker/library/alpine:3.20 \
     sh -c 'echo x >/dev/null && test ! -s /dev/null'
   exit 0
 ```
@@ -123,32 +123,32 @@ Decision:    Always, not "if empty". An image with a wrong resolver is
              indistinguishable from one with a right one without resolving
              something, and resolving something is a network round trip on every
              container start.
-Prove:       `podbox run --rm quay.io/rockylinux/rockylinux:9 cat /etc/resolv.conf | diff -q - /etc/resolv.conf`
+Prove:       `podvm run --rm quay.io/rockylinux/rockylinux:9 cat /etc/resolv.conf | diff -q - /etc/resolv.conf`
 
 
-**Done 2026-09-09.** `crates/podbox-complete/src/net.rs`, and unconditionally,
+**Done 2026-09-09.** `crates/podvm-complete/src/net.rs`, and unconditionally,
 as the Decision says: an image with a wrong resolver is indistinguishable from
 one with a right one without resolving something.
 
 ⚠ **The write is NOT a degradation and the skip is.** What the payload reads is
 this machine's resolver byte for byte, which is what docker's payload reads too;
-the difference -- podbox writes the file where docker mounts one over it -- is a
+the difference -- podvm writes the file where docker mounts one over it -- is a
 property of having no mount namespace and is stated on the banner's rung line.
-Where this machine has no readable resolver, podbox leaves the image's alone,
+Where this machine has no readable resolver, podvm leaves the image's alone,
 says so, and marks THAT degraded, because the payload is then left with a
 resolver that may name a host it cannot reach.
 
-⛔ Where `/etc/resolv.conf` is a symlink podbox **replaces the link** rather
+⛔ Where `/etc/resolv.conf` is a symlink podvm **replaces the link** rather
 than writing through it, and the fixup line names the target it replaced.
 That is [T-0405](#t-0405-etcmtab-is-a-symlink-and-writing-through-it-escapes-the-rootfs)'s
 mechanism, applied here because this file has the identical shape.
 
-⚠ **The `Prove` above cannot run as written.** It pipes `podbox run` into
-`diff`, and the payload's stdout is not the only thing on it: podbox's banner is
-on stderr, but `podbox run` also prints the pull transcript. What was run:
+⚠ **The `Prove` above cannot run as written.** It pipes `podvm run` into
+`diff`, and the payload's stdout is not the only thing on it: podvm's banner is
+on stderr, but `podvm run` also prints the pull transcript. What was run:
 
 ```
-$ podbox run --rm public.ecr.aws/debian/debian:bookworm-slim \
+$ podvm run --rm public.ecr.aws/debian/debian:bookworm-slim \
     cat /etc/resolv.conf 2>/dev/null | diff -q - /etc/resolv.conf
   (no output: identical)
 ```
@@ -172,10 +172,10 @@ Approach:    Write `127.0.0.1 localhost <container-name>` plus `::1 localhost`,
 Decision:    Write the file rather than intercept the resolver. The interposer
              does not reach static payloads, and `/etc/hosts` is read by the
              libc of whatever is running.
-Prove:       `podbox run --rm --name hostprobe --add-host foo:10.0.0.1 public.ecr.aws/docker/library/alpine:3.20 sh -c 'getent hosts foo && getent hosts hostprobe'`
+Prove:       `podvm run --rm --name hostprobe --add-host foo:10.0.0.1 public.ecr.aws/docker/library/alpine:3.20 sh -c 'getent hosts foo && getent hosts hostprobe'`
 
 
-**Done 2026-09-09.** `crates/podbox-complete/src/net.rs`, `hosts`.
+**Done 2026-09-09.** `crates/podvm-complete/src/net.rs`, `hosts`.
 `127.0.0.1 localhost <container-name>`, `::1 localhost ip6-localhost
 ip6-loopback`, and one line per `--add-host`.
 
@@ -233,17 +233,17 @@ Approach:    Synthesize both files in the rootfs if absent, with at least `root`
 Decision:    Synthesize into the rootfs rather than interpose `getpwuid`.
              Interposition does not reach a static or Go payload, and this is
              the fixup that decides whether M5 passes.
-Prove:       `podbox run --rm public.ecr.aws/docker/library/alpine:3.20 python3 -c 'import pwd; print(pwd.getpwuid(0).pw_name)' | grep -qx root && podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'useradd -r svc && grep -q ^svc: /etc/passwd'`
+Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 python3 -c 'import pwd; print(pwd.getpwuid(0).pw_name)' | grep -qx root && podvm run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'useradd -r svc && grep -q ^svc: /etc/passwd'`
 
 
-**Done 2026-09-09.** `crates/podbox-complete/src/identity.rs`, and it lands
+**Done 2026-09-09.** `crates/podvm-complete/src/identity.rs`, and it lands
 with [T-0410](#t-0410-supply-etcnsswitchconf-or-the-supplied-etcpasswd-is-a-no-op)
 as the entry says it must.
 
 ⛔ **Synthesized only where the file is ABSENT.** An image's own `/etc/passwd`
 is the image's, and tracker #141's fix is that the payload's later writes to it
-PERSIST. What podbox does to a file the image ships is narrower and is the half
-that actually unblocks an install: where the mode has no owner write bit, podbox
+PERSIST. What podvm does to a file the image ships is narrower and is the half
+that actually unblocks an install: where the mode has no owner write bit, podvm
 sets it and **changes not one byte of the content**, because a `/etc/passwd`
 that `useradd` cannot write is where a package that deploys a service user
 stops.
@@ -262,7 +262,7 @@ instead, on all ten rows of `experiments/240-distro-sweep.sh`, is `getent passwd
 0`, which goes through NSS on glibc and is therefore also T-0410's question:
 
 ```
-$ podbox run --rm <each of the ten rows> sh -c 'getent passwd 0 | cut -d: -f1'
+$ podvm run --rm <each of the ten rows> sh -c 'getent passwd 0 | cut -d: -f1'
   root, on every row that has getent
 ```
 
@@ -298,11 +298,11 @@ Decision:    `O_NOFOLLOW` plus unlink-then-create for every completion write,
 Prove:       `./experiments/85-completion-symlink-escape.sh` exits 0
 
 
-**Done 2026-09-09.** `crates/podbox-complete/src/write.rs` is the mechanism and
+**Done 2026-09-09.** `crates/podvm-complete/src/write.rs` is the mechanism and
 the Decision's shape: **one door**, and no special case for `mtab`.
 
 Every completion write resolves each component through
-`podbox_extract::safety::open_parent` -- `openat2(RESOLVE_BENEATH |
+`podvm_extract::safety::open_parent` -- `openat2(RESOLVE_BENEATH |
 RESOLVE_NO_SYMLINKS)` where the kernel has it, an `O_NOFOLLOW` walk where it
 does not -- opens the final component `O_NOFOLLOW`, and **unlinks before it
 creates**. ⛔ Unlink-then-create rather than truncate: truncating an existing
@@ -356,15 +356,15 @@ Approach:    Comment out `DownloadUser` in `/etc/pacman.conf`. Initialize the
 Decision:    Edit `pacman.conf` rather than create the `alpm` user. Creating it
              does not help: the id still has no mapping, so the `chown` still
              returns `EINVAL`.
-Prove:       `podbox run --rm ghcr.io/pkgforge-dev/archlinux:latest sh -c 'pacman -Sy --noconfirm gcc >/dev/null && gcc --version'`
+Prove:       `podvm run --rm ghcr.io/pkgforge-dev/archlinux:latest sh -c 'pacman -Sy --noconfirm gcc >/dev/null && gcc --version'`
 
 
-**Done 2026-09-09.** `crates/podbox-complete/src/pkg.rs`, and the two halves
+**Done 2026-09-09.** `crates/podvm-complete/src/pkg.rs`, and the two halves
 landed differently because only one of them can be done from outside the chroot.
 
 ⭐ **`DownloadUser` is commented out**, matched on the line's FIRST WORD rather
 than as a substring, so `#DownloadUser` is not counted or commented twice and
-`DownloadUserAgent` is left alone. The comment podbox inserts names this entry,
+`DownloadUserAgent` is left alone. The comment podvm inserts names this entry,
 so a reader inside the container can see who did it. ⛔ Creating the `alpm` user
 is not the fix and is not attempted: the id still has no mapping, so the `chown`
 still returns `EINVAL`.
@@ -374,10 +374,10 @@ warning: it is what makes `/etc/mtab` load-bearing
 ([T-0405](#t-0405-etcmtab-is-a-symlink-and-writing-through-it-escapes-the-rootfs)),
 and Arch ships it commented out.
 
-⭐ **The keyring half is a STEP, closed by [T-0412](#t-0412-a-fixup-that-has-to-run-inside-the-rootfs-and-podbox-runs-it-from-outside)
+⭐ **The keyring half is a STEP, closed by [T-0412](#t-0412-a-fixup-that-has-to-run-inside-the-rootfs-and-podvm-runs-it-from-outside)
 on 2026-09-09.** `pacman-key --init` and `--populate` run `gpg` INSIDE the
 rootfs, and the completion layer runs on the host before the chroot, so this was
-a reading for one session: podbox reported whether
+a reading for one session: podvm reported whether
 `/etc/pacman.d/gnupg/trustdb.gpg` was there and printed the two commands a reader
 would have to type. It now emits them as two `Step`s, named on the banner with
 their argv before either runs, and runs them. ⛔ Where `--no-steps` refuses them,
@@ -418,14 +418,14 @@ Approach:    Set `APT::Sandbox::User=root` in a drop-in under
 Decision:    A drop-in file rather than editing `apt.conf`, so the fixup is
              visible, removable and idempotent, and an image that already sets
              the key is not clobbered.
-Prove:       `podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gcc >/dev/null && gcc --version'`
+Prove:       `podvm run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gcc >/dev/null && gcc --version'`
 
 
-**Done 2026-09-09.** `crates/podbox-complete/src/pkg.rs`, and the entry named
+**Done 2026-09-09.** `crates/podvm-complete/src/pkg.rs`, and the entry named
 two failures where the measurement found **three**.
 
 1. **`APT::Sandbox::User "root"`**, in a drop-in at
-   `/etc/apt/apt.conf.d/99podbox`, as the Decision says: visible, removable,
+   `/etc/apt/apt.conf.d/99podvm`, as the Decision says: visible, removable,
    idempotent, and it does not clobber an image that already sets the key.
 2. **The https rewrite is [T-0411](#t-0411-a-payload-whose-package-sources-are-http-on-a-runtime-where-tcp80-hangs)'s**
    and is applied to every distribution rather than to apt alone.
@@ -461,7 +461,7 @@ refusal and the scheme rewrite does not happen.
 Prove, run 2026-09-09 through `experiments/240-distro-sweep.sh`:
 
 ```
-$ podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c \
+$ podvm run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c \
     'apt-get update -qq && apt-get install -y -qq gcc && gcc --version'
   gcc (Debian 12.2.0-14+deb12u1) 12.2.0
   exit 0
@@ -487,11 +487,11 @@ Approach:    Edit the service definitions under
 Decision:    Edit the source of the generated file. The alternative, disabling
              the refresh, changes what the payload's package manager does in a
              way the payload can observe and did not ask for.
-Prove:       `podbox run --rm registry.opensuse.org/opensuse/leap:15.6 sh -c 'zypper -n refresh && zypper -n install gcc >/dev/null && gcc --version'`
+Prove:       `podvm run --rm registry.opensuse.org/opensuse/leap:15.6 sh -c 'zypper -n refresh && zypper -n install gcc >/dev/null && gcc --version'`
 
 **Done 2026-09-21.** The `Prove` run, against the pinned digest of the same
 distribution, on host podman through the sweep driver with a musl binary of
-this tree (`podbox 0.1.0`): `opensuse-leap glibc zypper 0 0 42`, `podbox run`
+this tree (`podvm 0.1.0`): `opensuse-leap glibc zypper 0 0 42`, `podvm run`
 exit 0 (`experiments/results/sweep/opensuse-leap.out`,
 `experiments/results/sweep-t0408.txt`).
 
@@ -499,10 +499,10 @@ The fixup took the Skipped branch, correctly: the pristine image ships no
 `/usr/share/zypp/local/service/` and an empty `/etc/zypp/services.d/`
 (measured read-only on host podman 2026-09-21), so `repos.d` is not
 regenerated and editing it in place holds
-(`crates/podbox-complete/src/pkg.rs:810-851`). The absent `zypper-index`
+(`crates/podvm-complete/src/pkg.rs:810-851`). The absent `zypper-index`
 banner line is the design, not missing evidence: the banner prints one line
 per fixup that changed something
-(`crates/podbox-complete/src/lib.rs:244-252`). The scheme fixup (T-0411)
+(`crates/podvm-complete/src/lib.rs:244-252`). The scheme fixup (T-0411)
 rewrote fourteen `repos.d` entries `http://` to `https://`, `zypper refresh`
 and `install gcc glibc-devel` exited 0, and the built program ran (`42`).
 
@@ -534,19 +534,19 @@ Approach:    Where the interposer is active (T-0704) the `chown` succeeds and is
              not translate the package manager's exit status: report the
              warnings in the banner's fixup log and let the payload's own exit
              code stand.
-             ⛔ podbox never rewrites a payload's exit code. The exit code is the
+             ⛔ podvm never rewrites a payload's exit code. The exit code is the
              payload's answer, and a runtime that improves it is lying in the one
              field an automated caller reads first.
 Decision:    Report, do not suppress and do not translate. Suppressing hides a
              real failure of the same shape; translating breaks `docker run`
              parity on exit codes, which is T-0802.
-Prove:       `podbox run --rm ghcr.io/void-linux/void-musl:latest sh -c 'xbps-install -Sy gcc >/dev/null 2>&1; gcc --version'`
+Prove:       `podvm run --rm ghcr.io/void-linux/void-musl:latest sh -c 'xbps-install -Sy gcc >/dev/null 2>&1; gcc --version'`
 
 
 **Done 2026-09-09.** ⛔ **A rule rather than a code path, and it is enforced in
 two places that cannot disagree.**
 
-1. `podbox_complete` never touches an exit code at all: `complete()` returns a
+1. `podvm_complete` never touches an exit code at all: `complete()` returns a
    report, and the caller prints it. A fixup that failed is a `Failed` row and a
    banner line, and the payload's status is whatever the payload said.
 2. [T-0802](cli.md) is the other half, and it is measured rather than reviewed:
@@ -556,7 +556,7 @@ two places that cannot disagree.**
 
 ⚠ Where the interposer is active ([T-0704](interpose.md)) the `chown` succeeds
 and there is nothing to downgrade. Where it is not, the package manager's
-warnings are the package manager's and podbox neither suppresses nor translates
+warnings are the package manager's and podvm neither suppresses nor translates
 them.
 
 ⭐ The premise held: on all ten rows of `experiments/240-distro-sweep.sh` no
@@ -564,7 +564,7 @@ install hit a fatal ownership wall, with extraction ownership-neutral
 ([T-0302](extract.md)).
 
 
-**Done 2026-09-09.** `crates/podbox-complete/src/pkg.rs`, and the reading is
+**Done 2026-09-09.** `crates/podvm-complete/src/pkg.rs`, and the reading is
 that this rootfs regenerates or it does not, rather than that it always does.
 
 The RIS index is looked for at `/usr/share/zypp/local/service` and
@@ -630,13 +630,13 @@ Approach:    Probe the rootfs rather than assuming, in this order:
              Every write follows T-0404's rule that the payload's own later
              writes persist.
 Decision:    Edit rather than replace. A rootfs whose `nsswitch.conf` names
-             `sss` or `systemd` may be doing so for a reason podbox cannot see,
+             `sss` or `systemd` may be doing so for a reason podvm cannot see,
              and prepending `files` restores the supplied file without removing
              what was there.
-Prove:       `./experiments/90-nsswitch-contract.sh` exits 0 and `podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'id podboxsupplied'`
+Prove:       `./experiments/90-nsswitch-contract.sh` exits 0 and `podvm run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'id podvmsupplied'`
 
 
-**Done 2026-09-09.** `crates/podbox-complete/src/identity.rs`, `nsswitch`, and
+**Done 2026-09-09.** `crates/podvm-complete/src/identity.rs`, `nsswitch`, and
 all four cases the Approach lists are arms of one `match`:
 
 1. no `nsswitch.conf` and no glibc: musl, and nothing is written;
@@ -647,10 +647,10 @@ all four cases the Approach lists are arms of one `match`:
 
 ⭐ **"Names `files`" is not enough; it has to be FIRST**, and the entry's own
 rule 3 said "does not name files". `passwd: sss files` asks the directory
-service before the file podbox supplied, and a directory that answers for a
+service before the file podvm supplied, and a directory that answers for a
 different user is a wrong answer rather than a missing one. Where `files`
 appears later it is MOVED to the front rather than duplicated: glibc tolerates
-the duplicate and a line carrying it twice is one no reader can tell podbox from
+the duplicate and a line carrying it twice is one no reader can tell podvm from
 the image on.
 
 ⭐ **The unit test is the measurement.** `experiments/125-across-distributions.sh`
@@ -670,7 +670,7 @@ Prove, run 2026-09-09:
 ```
 $ ./experiments/90-nsswitch-contract.sh
   exit 0
-$ podbox run --rm <each of the ten rows of 240-distro-sweep.sh> \
+$ podvm run --rm <each of the ten rows of 240-distro-sweep.sh> \
     sh -c 'getent passwd 0 | cut -d: -f1'
   root, on every row that ships getent
 ```
@@ -686,29 +686,29 @@ Effort:      M
 Status:      done
 
 Problem:     ⛔ **The registry half is fixed and the payload half is not.**
-             [T-0213](image.md) settles how **podbox** reaches a registry over
+             [T-0213](image.md) settles how **podvm** reaches a registry over
              plain HTTP. It says nothing about the package sources **inside an
              image**, and many base images ship `http://` ones: debian's
              `deb http://deb.debian.org`, alpine's `http://dl-cdn.alpinelinux.org`,
-             archlinux's mirrorlist. ⚠ On the runtimes podbox targets tcp/80
+             archlinux's mirrorlist. ⚠ On the runtimes podvm targets tcp/80
              egress is black-holed, so `apt-get update` inside a container does
              not fail, it **hangs** until its own timeout, and an agent reads
-             that as podbox being slow.
+             that as podvm being slow.
 Premise:     ⭐ **Read, and it is the same reading T-0201 rests on.**
              `TOOL.md` section 6.4 describes the M5 fixups as **protocol**
              fixups rather than mirror fixups, which is exactly this: the
              distribution's own mirrors are reachable, and the scheme is not.
              ⚠ **NOT MEASURED HERE YET**, and it cannot be until M3: measuring
              it means running `apt-get update` inside a container, and there is
-             no `podbox run`. The reading that exists is the host's, and the
+             no `podvm run`. The reading that exists is the host's, and the
              host is not the target.
 Approach:    In the completion layer, beside the other section 6.4 fixups.
              1. **Rewrite the scheme, never the host.** `http://deb.debian.org`
                 becomes `https://deb.debian.org`; the mirror the image chose is
-                the mirror podbox uses. ⛔ Substituting a mirror is a supply
+                the mirror podvm uses. ⛔ Substituting a mirror is a supply
                 chain change made on the payload's behalf, and it is not
-                podbox's to make.
-             2. ⛔ **Say so, per file, in the banner.** podbox edited a file the
+                podvm's to make.
+             2. ⛔ **Say so, per file, in the banner.** podvm edited a file the
                 payload will read, and [T-0804](cli.md)'s honesty rules have no
                 exception for a helpful edit.
              3. **`--no-source-fixup` turns it off**, for a payload whose mirror
@@ -724,18 +724,18 @@ Decision:    Rewrite in the extracted rootfs at `run` time rather than at
              would make one container's fixup another's, and `--no-source-fixup`
              would then depend on which container extracted first.
              ⛔ **This is not the same decision as [T-0213](image.md)'s.** There
-             the caller names a registry and podbox obeys. Here podbox is
+             the caller names a registry and podvm obeys. Here podvm is
              changing a file inside somebody else's image, so the default is the
              conservative one and the disclosure is per file.
-Prove:       `podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update' ` completes rather than hanging, the banner names each file rewritten, and `--no-source-fixup` leaves every source file byte-identical to the extracted tree
+Prove:       `podvm run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update' ` completes rather than hanging, the banner names each file rewritten, and `--no-source-fixup` leaves every source file byte-identical to the extracted tree
 
-**Done 2026-09-09.** `crates/podbox-complete/src/sources.rs`, and all four
+**Done 2026-09-09.** `crates/podvm-complete/src/sources.rs`, and all four
 rules of the Approach are enforced:
 
 1. ⛔ **the scheme and nothing else.** `http://deb.debian.org` becomes
    `https://deb.debian.org`; the host, the port, the path, the suite and every
    option around it are the image's. Substituting a mirror is a supply chain
-   change made on the payload's behalf and it is not podbox's to make;
+   change made on the payload's behalf and it is not podvm's to make;
 2. **per file, on the banner**, with the hosts it rewrote named;
 3. `--no-source-fixup` turns it off **and undoes** a rewrite an earlier run
    made. ⭐ That second half is not decoration: the rootfs is shared between
@@ -753,13 +753,13 @@ rules of the Approach are enforced:
 `https://` there is a refused connection rather than a fix.
 
 ⚠ **A URL inside a comment is rewritten too.** Debian's `.sources` carries a
-commented snapshot URL and podbox changes its scheme with the rest. It is
+commented snapshot URL and podvm changes its scheme with the rest. It is
 disclosed with the file and it cannot break anything the package manager reads;
 recognising comments across five file formats is more code and more ways to be
 wrong than the change is worth.
 
 ⛔ **THE PREMISE DOES NOT HOLD ON THIS HOST AND THAT IS RECORDED RATHER THAN
-GLOSSED.** The entry says tcp/80 egress is black-holed on the runtimes podbox
+GLOSSED.** The entry says tcp/80 egress is black-holed on the runtimes podvm
 targets. Measured here on 2026-09-09:
 
 ```
@@ -777,16 +777,16 @@ mirror which does not answer over HTTPS is left alone, and that
 Prove, run 2026-09-09:
 
 ```
-$ podbox run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update -qq'
+$ podvm run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update -qq'
   exit 0, and the banner names the file:
-  podbox: complete: rewrote etc/apt/sources.list.d/debian.sources
+  podvm: complete: rewrote etc/apt/sources.list.d/debian.sources
     (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org,
     deb.debian.org. ⛔ The scheme only
 ```
 
 ---
 
-### T-0412 A fixup that has to run INSIDE the rootfs, and podbox runs it from outside
+### T-0412 A fixup that has to run INSIDE the rootfs, and podvm runs it from outside
 
 Source:      Measured by `experiments/240-distro-sweep.sh` on 2026-09-09, and
              the same shape appears in [T-0406](complete.md)'s keyring half
@@ -803,14 +803,14 @@ Problem:     ⛔ **The completion layer runs on the host, before the chroot, so
                 inside the rootfs. [T-0406](complete.md) reports the keyring's
                 state and names the two commands, and that is all it can do.
              2. ⭐ **openSUSE is the one that fails the M5 acceptance because of
-                it.** `libzypp` does not read any of the CAfile paths podbox
+                it.** `libzypp` does not read any of the CAfile paths podvm
                 writes: it hands libcurl a `CURLOPT_CAPATH` of `/etc/ssl/certs`,
                 which on openSUSE is a symlink to `/var/lib/ca-certificates/pem`
                 and is a **hash-indexed directory**. OpenSSL looks a certificate
                 up there by the SHA-1 of its canonical DER subject, so a file
                 dropped in under any other name is invisible.
 Premise:     ⭐ **Measured, and the diagnosis is complete rather than a
-             suspicion.** Inside podbox, on the openSUSE row:
+             suspicion.** Inside podvm, on the openSUSE row:
 
              ```
              curl --cacert /etc/ssl/ca-bundle.pem https://download.opensuse.org/  -> 200
@@ -819,24 +819,24 @@ Premise:     ⭐ **Measured, and the diagnosis is complete rather than a
              zypper refresh                                                        -> 4
              ```
 
-             So the bundle podbox installed verifies, and the tool does not read
+             So the bundle podvm installed verifies, and the tool does not read
              it. ⚠ `update-ca-certificates` is what regenerates the hash
              directory, and running it by hand inside the container exited **1**
              on this image, so this entry is not "call one command" either.
-             ⛔ **It is podbox's, not the machine's.** The sweep's docker control
+             ⛔ **It is podvm's, not the machine's.** The sweep's docker control
              ran the same subject on the same image and SUCCEEDED, which is what
              separates this row from `voidlinux-musl`, where docker failed
              identically and the row therefore reads `host`.
 Approach:    Give the completion layer a second kind of output beside a fixup: a
              **step**, which is an argv the caller runs INSIDE the rootfs before
-             the payload, through `podbox_enter::run`, bounded and disclosed.
-             1. `podbox_complete::Report` carries `steps: Vec<Step>`, each with
+             the payload, through `podvm_enter::run`, bounded and disclosed.
+             1. `podvm_complete::Report` carries `steps: Vec<Step>`, each with
                 an id, an argv, the entry that asked for it and why;
              2. the CLI runs each one before the payload, with a bound and with
                 its output on stderr under the banner. ⛔ A step that fails is a
                 `Failed` row and never a failed run: the payload may not need it;
              3. ⛔ **Every step is named on the banner before it runs**, because
-                podbox is about to execute a command inside somebody else's image
+                podvm is about to execute a command inside somebody else's image
                 that the caller did not write;
              4. `--no-steps` refuses them all, and then the fixup log says which
                 ones did not run.
@@ -847,7 +847,7 @@ Approach:    Give the completion layer a second kind of output beside a fixup: a
              `Done`**: `update-ca-certificates` cannot be the step, because it
              needs `/dev/fd` and a chroot has no `/proc`.
 Decision:    A step list the CALLER runs, rather than the completion layer
-             calling `podbox_enter` itself. The completion layer is a library
+             calling `podvm_enter` itself. The completion layer is a library
              that writes files and returns a report; a library that forks and
              chroots is one no test can drive, and the banner has to name the
              command before it runs, which only the caller can order correctly.
@@ -856,14 +856,14 @@ Decision:    A step list the CALLER runs, rather than the completion layer
 Prove:       `./experiments/240-distro-sweep.sh opensuse-leap` reports `built_and_ran 1`, and the banner names the step before it runs
 
 
-**Done 2026-09-09.** `crates/podbox-complete/src/lib.rs` carries the `Step`,
-`crates/podbox-complete/src/pkg.rs` produces them, `podbox_enter::Child::wait_bounded`
-runs one under a bound and `crates/podbox-cli/src/complete.rs` orders them.
-⭐ **openSUSE installs a C toolchain under podbox now, and the M5 sweep is 10 of
+**Done 2026-09-09.** `crates/podvm-complete/src/lib.rs` carries the `Step`,
+`crates/podvm-complete/src/pkg.rs` produces them, `podvm_enter::Child::wait_bounded`
+runs one under a bound and `crates/podvm/src/complete.rs` orders them.
+⭐ **openSUSE installs a C toolchain under podvm now, and the M5 sweep is 10 of
 10.**
 
 ⛔ **`update-ca-certificates` CANNOT be the step, and the `Approach` above said
-it could.** Measured on 2026-09-09 inside podbox on
+it could.** Measured on 2026-09-09 inside podvm on
 `registry.opensuse.org/opensuse/leap:15.6`, unpiped:
 
 ```
@@ -877,13 +877,13 @@ opens `/dev/fd/N`, which is `/proc/self/fd/N`, and `/proc` is not mounted inside
 a chroot** -- the same shape as `/etc/mtab -> /proc/self/mounts` in
 [T-0405](#t-0405-etcmtab-is-a-symlink-and-writing-through-it-escapes-the-rootfs).
 The hook loop is where every certificate is actually extracted, so the command
-exits 1 having done nothing. ⚠ podbox cannot fix it: `/dev/fd` has no substitute
-without `/proc`, and mounting one would be the mount `podbox_enter::ENTERED_RUNG`
-says podbox does not perform.
+exits 1 having done nothing. ⚠ podvm cannot fix it: `/dev/fd` has no substitute
+without `/proc`, and mounting one would be the mount `podvm_enter::ENTERED_RUNG`
+says podvm does not perform.
 
 ⭐ **What works is `openssl rehash`, and the fixup is in two halves.**
 
-1. **the write**, from the host: one PEM per root, `podbox-host-ca-NNN.pem`, into
+1. **the write**, from the host: one PEM per root, `podvm-host-ca-NNN.pem`, into
    every hash-indexed CApath the image already has. ⛔ **Only the roots the image
    does NOT already carry**: 22 of this machine's 152 announced roots on
    openSUSE, and writing all 152 made `openssl rehash` print a `skipping
@@ -896,7 +896,7 @@ three is refused with `skipping three.pem, it does not contain exactly one
 certificate or CRL` and NOTHING in the directory is linked.
 
 ⛔ **The step is asked for only where the LINKS are missing**, checked by reading
-the hash symlinks rather than by "podbox wrote something this run": the rootfs is
+the hash symlinks rather than by "podvm wrote something this run": the rootfs is
 content-addressed and shared between containers ([T-0204](image.md)), so a second
 container must not pay for a rehash the first already did, and a payload that
 deleted the links must get them back.
@@ -905,20 +905,20 @@ Four rules the mechanism carries, each of them the reason a step is not just a
 `system()`:
 
 - ⛔ **Every step is named on the banner before it runs**, with its argv, its id
-  and the entry that asked for it. podbox is about to execute a command inside
+  and the entry that asked for it. podvm is about to execute a command inside
   somebody else's image that the caller did not write;
 - ⛔ **An argv and never a shell line**, so nothing is word-split and no filename
   inside the image can become an argument. The program is *found* in the rootfs
   by the completion layer, so a step announced on the banner cannot turn out not
   to be there;
 - ⛔ **Bounded**, at 300 s, on a pidfd through `ppoll`, and `SIGKILL`ed on the
-  bound. `TODO/RULES.md` section 8 makes that podbox's requirement and not only
+  bound. `TODO/RULES.md` section 8 makes that podvm's requirement and not only
   the agent's;
 - ⛔ **A step that fails is a `Failed` row and never a failed run**, and its
-  stdout goes to podbox's STDERR: the payload owns stdout ([T-1104](milestones.md)).
+  stdout goes to podvm's STDERR: the payload owns stdout ([T-1104](milestones.md)).
 
 ⭐ **`--strict` refuses a run that would take a step, and it refuses BEFORE any
-of them runs.** podbox executing a command the caller did not write is exactly
+of them runs.** podvm executing a command the caller did not write is exactly
 the difference `--strict` exists to refuse, and acting and then declining to have
 acted is worse than either. `--no-steps` refuses them without refusing the run,
 and then each fixup says what the caller gave up.
@@ -930,10 +930,10 @@ $ ./experiments/240-distro-sweep.sh opensuse-leap
   opensuse-leap  glibc  zypper  install 0  build 0  ran 42
   rows 1, ran 1, built_and_ran 1
   and on stderr, before it ran:
-  podbox: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs`
+  podvm: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs`
     (ca-hash-dir, T-0412): /etc/ssl/certs is a hash-indexed CApath and OpenSSL
     looks a certificate up there by the hash of its subject …
-  podbox: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` exited 0
+  podvm: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` exited 0
 ```
 
 ---
@@ -947,8 +947,8 @@ Effort:      M
 Status:      done 2026-09-26
 
 Problem:     A chroot has no `/proc` unless something mounts one, and `mount` is
-             refused on every runtime podbox targets. podbox already knows this
-             in one place: `crates/podbox-complete/src/net.rs` says so while
+             refused on every runtime podvm targets. podvm already knows this
+             in one place: `crates/podvm-complete/src/net.rs` says so while
              resolving a symlink. ⛔ **Nothing tells the payload**, and the
              failure it produces does not name `/proc`.
 Premise:     ⭐ **Measured by somebody driving a real payload to completion.**
@@ -989,7 +989,7 @@ Decision:    Taken 2026-09-22: no static fixture ships. Part 2 measured
              meets either. ⛔ Never mount, and never claim to have mounted.
 Prove:       `./experiments/155-proc-absence.sh` asserts the banner names the missing procfs, and that a payload using process substitution fails with a message naming `/proc` rather than the script line
 
-**Done 2026-09-22.** Part 1 in `crates/podbox-probe`: the chroot
+**Done 2026-09-22.** Part 1 in `crates/podvm-probe`: the chroot
 `must_never_claim` names `a /proc filesystem`, and `entry_banner` adds one
 sentence for the entered chroot rung naming process substitution and
 `/proc/self` paths as the casualty with `/dev/fd` as the error's name.
@@ -1016,7 +1016,7 @@ descriptors, `/proc/self/exe` from the staged fd or a host
 passthrough where present, and mount-table readers from a generated
 fixture built from the real topology (the TOOL section 10 half it
 allows). Count and banner it as T-0708 does. Never mount and never
-claim to have mounted. Fix area is `crates/podbox-complete`, the
+claim to have mounted. Fix area is `crates/podvm-complete`, the
 interposer map with the `/proc` exclusion in T-0707, and the probe
 banner. Risk if wrong is a fixture that looks like procfs and
 answers wrongly where it looks right, which is worse than absent:
@@ -1026,7 +1026,7 @@ beside the current failure arm where emulation cannot apply, each
 naming what answered.
 
 **Done 2026-09-26.** One honest emulation, exact or refused, in
-`crates/podbox-interpose/src/procfs.rs` with the entry points in
+`crates/podvm-interpose/src/procfs.rs` with the entry points in
 `lib.rs` (`open`, `open64`, `openat`, `openat64`, `readlink`,
 `readlinkat` try the real call first and answer only on `ENOENT`):
 
@@ -1048,7 +1048,7 @@ naming what answered.
 * `readlink` of those leaves synthesizes `pipe:[ino]`/`socket:[ino]`
   from the live inode, truncated the way the kernel truncates.
 * `/proc/self/exe`: the caller-resolved guest path
-  (`PODBOX_GUEST_EXE`, set beside the exec by `run`/`create`/`exec`
+  (`PODVM_GUEST_EXE`, set beside the exec by `run`/`create`/`exec`
   from the rootfs host path through `enter::ladder::guest_exe`, stale
   values scrubbed). The real answer always wins where one exists, so
   the variable can ride no-chroot entries without poisoning them.
@@ -1070,7 +1070,7 @@ fixture, pipe shape, standard stream) green on the lane beside the
 interpose unit tests, recorded below.
 
 Recorded 2026-09-26, `experiments/results/proc-absence.txt`
-(`rust:1.98.1-bookworm` job in `wsl-toolkit-podbox`, kernel
+(`rust:1.98.1-bookworm` job in `wsl-toolkit-podvm`, kernel
 `7.2.0-WSL2-STABLE`, lane-built musl debug `0.1.0-beta.7`):
 
 * 4a: payload exit 0, `process substitution succeeded through the
@@ -1079,22 +1079,22 @@ Recorded 2026-09-26, `experiments/results/proc-absence.txt`
 * 4b: payload exit 1, `live-interface read fails as it must`,
   `banner names the missing procfs beside the failure`.
 * 4c: payload exit 0, `exe answers /usr/bin/bash`.
-* 4d: payload exit 0, `fixture names the podbox root: podbox /
+* 4d: payload exit 0, `fixture names the podvm root: podvm /
   ext4 rw 0 0`.
 * 4e: payload exit 0, `fd 0 readlinks as pipe:[610717]`.
 * 4f: payload exit 0, `cat /dev/stdin printed hi`.
 * Units: interpose suite 37 passed 0 failed; the ten exact-name
-  tests green (`podbox-complete` link arms and fd-link arms,
-  `podbox-enter` guest-exe and nobody resolve, `podbox-cli`
-  guest-exe push and container fields, `podbox-probe` chroot
-  banner, `podbox-supervise` tally scan); workspace 564 passed 0
+  tests green (`podvm-complete` link arms and fd-link arms,
+  `podvm-enter` guest-exe and nobody resolve, `podvm`
+  guest-exe push and container fields, `podvm-probe` chroot
+  banner, `podvm-supervise` tally scan); workspace 564 passed 0
   failed; clippy workspace and interpose clean with `-D warnings`;
   `cargo fmt --check` clean both manifests.
 
 
 ---
 
-### T-0414 Two walls only one instance of the class has shown, and podbox has probed neither
+### T-0414 Two walls only one instance of the class has shown, and podvm has probed neither
 
 Source:      `references/talaria0101__nix-experiment/tree/notes/seccomp-probe-output.txt`
              and `references/talaria0101__nix-experiment/tree/REPORT.md`
@@ -1105,7 +1105,7 @@ Status:      done 2026-09-26
 
 Problem:     [probe.md](probe.md) asks what the runtime permits, and its question
              list came from two instances of the target class. **A third
-             instance shows two denials neither of the others has**, and podbox
+             instance shows two denials neither of the others has**, and podvm
              asks about neither, so on that host it would fail with a message
              pointing somewhere else.
 Premise:     **Measured on that host, by a probe whose output is committed.**
@@ -1113,7 +1113,7 @@ Premise:     **Measured on that host, by a probe whose output is committed.**
                 be listed, while opening an entry **by name** works. A real
                 launcher died on exactly this: it ran
                 `find / -mindepth 1 -maxdepth 1` to collect its bind sources and
-                bailed with `find: /: Permission denied`. podbox enumerates
+                bailed with `find: /: Permission denied`. podvm enumerates
                 paths in several places and a failure there would read as a
                 missing file rather than a listing denial.
              2. **`/dev/ptmx` does not exist and devpts can never be
@@ -1134,7 +1134,7 @@ Approach:    Three probe legs, each a separate verdict, in the census's own
              Each leg reports the operation's own errno from the child that
              made the call, and "could not run" stays distinct from "denied".
 Decision:    Not taken. The remedy for the listing denial is a design
-             question, not a probe question: podbox either avoids enumerating a
+             question, not a probe question: podvm either avoids enumerating a
              directory it was handed, or names the denial. The probe comes first
              because the remedy depends on how widely it bites.
 Prove:       `./experiments/155-proc-absence.sh` gains a root-listing clause and a `/dev/ptmx` clause, each printing its own errno, and exits 2 rather than 1 where a leg could not run
@@ -1157,7 +1157,7 @@ enumerating a handed directory, or name the denial) is not taken here;
 the probe the Approach puts first is what landed.
 
 **Partial, 2026-09-25.** Issue 33 reopens this entry on the remedy:
-audit `podbox-complete` and `podbox-enter` for listings of handed
+audit `podvm-complete` and `podvm-enter` for listings of handed
 paths, replace them with by-name opens where possible, default the
 rootfs under the writable store path, and refuse by name where a
 listing is required. Measured on the lane 2026-09-25
@@ -1165,7 +1165,7 @@ listing is required. Measured on the lane 2026-09-25
 `readdir(/)` ok with 22 entries, `open(/bin)` ok, `creat(/)` ok,
 ptmx stat and open ok, so the legs read correctly where nothing is
 denied; the enumeration-free path stays the work. Fix area is the
-Census legs in `crates/podbox-probe/src/probes.rs` and every call
+Census legs in `crates/podvm-probe/src/probes.rs` and every call
 site that enumerates. Risk if wrong is a failure that reads as a
 missing file rather than a listing denial. Prove is `155` extended
 with a payload that lists `/` on an `EACCES` host and still runs
@@ -1173,7 +1173,7 @@ with a payload that lists `/` on an `EACCES` host and still runs
 test for the enumeration-free path.
 
 **Done 2026-09-26.** The audit, site by site, for listings of handed
-paths in `podbox-complete` and `podbox-enter`:
+paths in `podvm-complete` and `podvm-enter`:
 
 * `enter/src/abi.rs` `resolve_in`: already enumeration-free. The walk
   opens each component by name (`symlink_metadata` per element, no
@@ -1207,19 +1207,19 @@ paths in `podbox-complete` and `podbox-enter`:
 * Rootfs placement: every rootfs lives under the writable store
   (`extract` under the store digest path, `stage_rundir`/`stage_cache`/
   `stage_tmpfs` under `runs/`, `cache/`, `tmpfs/`; `lifecycle.rs`
-  `podbox_extract::paths`). No rootfs is ever assembled at `/`:
+  `podvm_extract::paths`). No rootfs is ever assembled at `/`:
   recorded with the file and line, no change.
 
-Prove is the new unit test green beside the `podbox-enter` suite, and
+Prove is the new unit test green beside the `podvm-enter` suite, and
 `155` clause 5 green on the lane, recorded below.
 
 Recorded 2026-09-26, `experiments/results/proc-absence.txt` (same
 lane and binary as T-0413 above):
 
 * 5: `cp exit: 125`, `refusal names the listing and EACCES:
-  podbox cp: cannot list /tmp/pb155-nolist: Permission denied (os
+  podvm cp: cannot list /tmp/pb155-nolist: Permission denied (os
   error 13)`.
-* Units: `podbox-enter` 77 passed 0 failed with
+* Units: `podvm-enter` 77 passed 0 failed with
   `resolve_past_a_denied_listing` green (worker proves the `EACCES`
   fixture bites, then resolves `bin/prog` by name as uid/gid 65534);
   workspace 564 passed 0 failed.
@@ -1235,7 +1235,7 @@ Priority:    P1
 Effort:      S
 Status:      done 2026-09-26
 
-Problem:     `crates/podbox-complete/src/devices.rs` writes regular-file
+Problem:     `crates/podvm-complete/src/devices.rs` writes regular-file
              stand-ins where `mknod` is refused. **Nothing checks afterwards
              what those paths actually are**, and the failure mode when one is
              missing is silent and unbounded.
@@ -1245,7 +1245,7 @@ Premise:     **If `/dev/null` is absent, a shell redirection creates a growing
              64 MiB temporary filesystem that presents as unrelated hangs and
              lost output rather than as a full disk.
              **This project has already paid for the same class of defect from
-             the other direction.** `crates/podbox-supervise/src/lib.rs` records
+             the other direction.** `crates/podvm-supervise/src/lib.rs` records
              that reading `/dev/urandom` to EOF has no end and allocated 13 GB
              before the kill. A file that should be a device and a device that
              should be a file are the same mistake twice.
@@ -1254,7 +1254,7 @@ Premise:     **If `/dev/null` is absent, a shell redirection creates a growing
              experiment's header asserts that redirection to `/dev/null` fails
              because the node cannot exist; its committed log shows the failure
              branch never fired, so the redirection succeeded. Whether the
-             image ships one is the image's business, so podbox must look rather
+             image ships one is the image's business, so podvm must look rather
              than assume in either direction.
 Approach:    Check the shape before writing, not after. `run` reads each
              device path's type first: a directory becomes a named `Failed`
@@ -1264,7 +1264,7 @@ Approach:    Check the shape before writing, not after. `run` reads each
              it to a target outside the rootfs; `mknod` on any other
              existing shape answers `EEXIST` without changing it. No other
              fixup writes under `dev/`, measured by reading every writer
-             in `crates/podbox-complete/src`, so an audit after the run
+             in `crates/podvm-complete/src`, so an audit after the run
              would only re-confirm this check. A directory refuses the run
              through `--strict`, which names every degraded row. The run
              itself never fails on a fixup, which `complete()` states as
@@ -1277,15 +1277,15 @@ Decision:    Replace loudly, refuse narrowly. A symlink or fifo at a
              directory becomes a named `Failed` row, and `--strict`
              refuses the run on it. No new hard refusal: one fixup
              refusing would contradict the layer's own rule.
-Prove:       `cargo test -p podbox-complete devices` green: a directory
+Prove:       `cargo test -p podvm-complete devices` green: a directory
              reads back as a named `Failed` row, a symlink reads back
              replaced with its target named, a fifo reads back replaced
              and named. The `--strict` refusal of degraded rows is pinned
-             in `crates/podbox-cli/src/complete.rs`
+             in `crates/podvm/src/complete.rs`
              `strict_names_every_reason_at_once`.
 
 **Done 2026-09-22.** `run` reads each device path's shape before the
-`mknod` attempt (`crates/podbox-complete/src/devices.rs`). A directory
+`mknod` attempt (`crates/podvm-complete/src/devices.rs`). A directory
 becomes a named `Failed` row and stays a directory. A symlink is
 removed so the attempt cannot follow it outside the rootfs, then
 becomes the shim with its target named. A fifo, socket or
@@ -1296,7 +1296,7 @@ in the lane check, and the full lane check is green. The unlink-failure
 refusal arm carries no test: a link the fixup just stated barely fails
 removal, and the arm shares the directory row's shape. The `--strict`
 refusal of degraded rows is pinned in
-`crates/podbox-cli/src/complete.rs`. Regression: 240 exits 0 with 10
+`crates/podvm/src/complete.rs`. Regression: 240 exits 0 with 10
 rows run and 10 built and ran; every device row reads identical, and
 the only transcript diffs are the date, installer progress noise, and
 five T-0411 mirror rows that a re-drive restored (the mirror probe
@@ -1313,29 +1313,29 @@ stays future work only as a drive, and no claim about it rides here.
 
 **Partial, 2026-09-25.** Issue 49 reopens this entry on its own
 two gaps: the unlink-failure refusal arm
-(`crates/podbox-complete/src/devices.rs:129`,
+(`crates/podvm-complete/src/devices.rs:129`,
 `remove_file(...).is_err()`) carries no test, and the planted live
 image stays future work. Add a unit test that drives the
 unlink-failure arm with the link stated and then unremovable. Add
 the planted live-image arm, or drop the claim from the Done. Point
 the Prove at a clause that exists. Fix area is
-`crates/podbox-complete/src/devices.rs`. Risk if wrong is refusal
+`crates/podvm-complete/src/devices.rs`. Risk if wrong is refusal
 wiring that regresses with the suite still green. Prove is the new
 unit test green beside the devices suite, and the live-image arm or
 the dropped claim.
 
 **Done 2026-09-26.** The unlink arm is extracted as
-`displace_link` (`crates/podbox-complete/src/devices.rs`) with no
+`displace_link` (`crates/podvm-complete/src/devices.rs`) with no
 behaviour change on the wired path, and two unit tests pin both its
 arms: the unremovable link reads back the named refusal (path, target,
 `mknod` risk, `--strict`), the removable link reads back displaced with
 its outside target untouched. The live-image claim is dropped from the
 Done above: no claim about a planted image rides here. Prove is
-`cargo test -p podbox-complete devices` green on the lane beside the
-full `podbox-complete` suite, recorded below.
+`cargo test -p podvm-complete devices` green on the lane beside the
+full `podvm-complete` suite, recorded below.
 
 Recorded 2026-09-26 (same lane and binary as T-0413 above):
-`podbox-complete` 51 passed 0 failed, including
+`podvm-complete` 51 passed 0 failed, including
 `an_unremovable_link_is_a_named_refusal`,
 `a_removable_link_is_displaced_and_named`,
 `absent_fd_spellings_are_staged_as_conventional_links`,
@@ -1370,7 +1370,7 @@ Premise:     Read against the shipped beta.3 asset and this tree: every
              cited line is still as reported.
 Approach:    Move `build-interpose.sh` before `cargo build` with one line
              on what a binary without embedded objects can and cannot do
-             (pointing at `podbox system info`); a three-case rung table
+             (pointing at `podvm system info`); a three-case rung table
              keyed on probe output; regenerate the Status paragraph from
              `TODO/PROGRESS.md` (or point there); replace the auth line
              with the actual unsupported scope (`logout`, credential
@@ -1389,7 +1389,7 @@ Prove:       `grep` finds none of the four old sentences, and a reader
 
 **Done, 2026-09-23.** Four edits in place: `build-interpose.sh`
 moves before `cargo build` with the line on what a binary without
-embedded objects can and cannot do (pointing at `podbox system
+embedded objects can and cannot do (pointing at `podvm system
 info`); a three-case rung table keyed on `probe` output (namespace
 host, chroot-capable host, chroot-denied host); the Status paragraph
 regenerated from `TODO/PROGRESS.md` (M0 through M8 implemented); the
@@ -1415,7 +1415,7 @@ Status:      done
 Problem:     The source-state page is generated by a Python script, and
              the record gate runs it on every check. It is `complete`
              category documentation work and moves into the
-             `podbox-release` crate. The page is byte-identical, including
+             `podvm-release` crate. The page is byte-identical, including
              the regenerate line that names the shim path.
 Premise:     The snapshot is the contract: workspace members and version,
              the three mechanism enumerations, the SSH helper table, and
@@ -1429,12 +1429,12 @@ Approach:    Port the renderer to binary `document-state` with no
              step move nothing.
 Decision:    The script keeps its path and its `--write` flag; the binary
              owns the parse and the render.
-Prove:       `cargo test -p podbox-release` green in the lane; the binary
+Prove:       `cargo test -p podvm-release` green in the lane; the binary
              and the retired script render identical pages;
-             `./target/release/podbox-gate` exits 0.
+             `./target/release/podvm-gate` exits 0.
 
 **Done 2026-10-01.** The state page is rendered by `document-state`, a
-dependency-free binary in the `podbox-release` crate, and the retired
+dependency-free binary in the `podvm-release` crate, and the retired
 script remains an exec shim. Lane proof
 ([release-crate-proof](../experiments/results/release-crate-proof.txt),
 section 3): retired script and binary render identical pages, and the

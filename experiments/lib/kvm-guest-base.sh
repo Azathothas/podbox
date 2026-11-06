@@ -2,14 +2,14 @@
 # T-1112 KVM guest run, executed in the wsl-toolkit base (the KVM host).
 set -u
 
-: "${PODBOX_BIN_SRC:?the host driver supplies the binary}"
-KVM=$(mktemp -d "$HOME/podbox-kvm.XXXXXXXX") || exit 2
+: "${PODVM_BIN_SRC:?the host driver supplies the binary}"
+KVM=$(mktemp -d "$HOME/podvm-kvm.XXXXXXXX") || exit 2
 cleanup() {
   stop_owned_emulators
   rm -rf "${KVM:?}"
 }
 trap cleanup EXIT HUP INT TERM
-PODBOX="$KVM/podbox"
+PODVM="$KVM/podvm"
 : "${IMG_HOST:?the host driver supplies the image}"
 VHDX_LEN=910163968
 VHDX_SHA256="063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f"
@@ -45,13 +45,13 @@ if [ "${avail_mib:-0}" -lt 6144 ]; then
 fi
 
 mkdir -p "$KVM" || { miss "cannot create $KVM"; printf 'verdict KVM-GUEST-FAIL\n'; exit 1; }
-cp "$PODBOX_BIN_SRC" "$PODBOX" && chmod +x "$PODBOX" \
-  || { miss "cannot stage the podbox binary"; printf 'verdict KVM-GUEST-FAIL\n'; exit 1; }
-[ -x "$PODBOX" ] || { miss "staged binary not executable"; printf 'verdict KVM-GUEST-FAIL\n'; exit 1; }
-export PODBOX_STORE="$KVM/store"
+cp "$PODVM_BIN_SRC" "$PODVM" && chmod +x "$PODVM" \
+  || { miss "cannot stage the podvm binary"; printf 'verdict KVM-GUEST-FAIL\n'; exit 1; }
+[ -x "$PODVM" ] || { miss "staged binary not executable"; printf 'verdict KVM-GUEST-FAIL\n'; exit 1; }
+export PODVM_STORE="$KVM/store"
 export XDG_RUNTIME_DIR="$KVM/runtime"
-export PODBOX_OVMF_CODE="$CODE" PODBOX_OVMF_VARS="$VARS"
-mkdir -m 700 -p "$PODBOX_STORE" "$XDG_RUNTIME_DIR" || exit 1
+export PODVM_OVMF_CODE="$CODE" PODVM_OVMF_VARS="$VARS"
+mkdir -m 700 -p "$PODVM_STORE" "$XDG_RUNTIME_DIR" || exit 1
 
 say "== conditions"
 date -u +%Y-%m-%dT%H:%M:%SZ
@@ -59,8 +59,8 @@ uname -sr
 qemu-system-x86_64 --version | head -n 1
 qemu-system-x86_64 -accel help 2>/dev/null | tr '\n' ' '
 echo
-"$PODBOX" --version 2>/dev/null || "$PODBOX" version 2>/dev/null || echo "podbox binary answers"
-sha256sum "$PODBOX" | awk '{print "binary SHA256: " $1}'
+"$PODVM" --version 2>/dev/null || "$PODVM" version 2>/dev/null || echo "podvm binary answers"
+sha256sum "$PODVM" | awk '{print "binary SHA256: " $1}'
 free -m | head -n 2
 ls -l /dev/kvm /dev/net/tun
 echo
@@ -84,7 +84,7 @@ fi
 
 say "== doctor"
 if [ "$fail" -eq 0 ]; then
-  if timeout 120 "$PODBOX" windows doctor >"$KVM/doctor.txt" 2>&1; then
+  if timeout 120 "$PODVM" windows doctor >"$KVM/doctor.txt" 2>&1; then
     cat "$KVM/doctor.txt"
     if grep -qi "accelerator: kvm" "$KVM/doctor.txt"; then
       ok "doctor names the kvm accelerator"
@@ -99,14 +99,14 @@ else
 fi
 
 say "== setup"
-PROV="$KVM/base.podbox.qcow2"
+PROV="$KVM/base.podvm.qcow2"
 # A re-drive provisions again from the verified base rather than
 # reusing the last run's image: the provision is part of the proof.
 rm -f "$PROV"
 if [ "$fail" -eq 0 ]; then
   # Provision waits once before typing and once for shutdown. The outer
   # bound includes both waits and the QMP connection deadline.
-  if timeout 1500 "$PODBOX" windows setup --image "$KVM/base.vhdx" --podbox-timeout 600 >"$KVM/setup.txt" 2>&1; then
+  if timeout 1500 "$PODVM" windows setup --image "$KVM/base.vhdx" --podvm-timeout 600 >"$KVM/setup.txt" 2>&1; then
     tail -n 4 "$KVM/setup.txt"
     [ -f "$PROV" ] && ok "provisioned image beside the base" || miss "provisioned image absent"
   else
@@ -120,13 +120,13 @@ fi
 say "== run ver with the emulator command line watched"
 if [ "$fail" -eq 0 ]; then
   (while :; do
-    for d in "$XDG_RUNTIME_DIR"/podbox-windows-*-run; do
+    for d in "$XDG_RUNTIME_DIR"/podvm-windows-*-run; do
       [ -f "$d/serial.log" ] && cp "$d/serial.log" "$KVM/ver-serial.log" 2>/dev/null
     done
     sleep 2
   done) &
   watchpid=$!
-  timeout 600 "$PODBOX" windows run --image "$PROV" --podbox-timeout 540 -- ver >"$KVM/ver.txt" 2>"$KVM/ver.err" &
+  timeout 600 "$PODVM" windows run --image "$PROV" --podvm-timeout 540 -- ver >"$KVM/ver.txt" 2>"$KVM/ver.err" &
   runpid=$!
   qemu_cmd=""
   waited=0
@@ -170,11 +170,11 @@ if [ "$fail" -eq 0 ]; then
   # already succeeded. Its copy also opens with the console clear and mode
   # set escape bytes the raw capture does not carry.
   (n=0; while [ "$n" -lt 55 ]; do sleep 10; n=$((n + 1));
-    for d in "$XDG_RUNTIME_DIR"/podbox-windows-*-run; do
+    for d in "$XDG_RUNTIME_DIR"/podvm-windows-*-run; do
       [ -f "$d/serial.log" ] && cp "$d/serial.log" "$KVM/serial-watch.log" 2>/dev/null
     done; done) &
   watchpid=$!
-  timeout 650 "$PODBOX" windows run --image "$PROV" --podbox-timeout 540 -- ver '>nul' '&' cmd /c exit 42 >"$KVM/e42.txt" 2>"$KVM/e42.err"
+  timeout 650 "$PODVM" windows run --image "$PROV" --podvm-timeout 540 -- ver '>nul' '&' cmd /c exit 42 >"$KVM/e42.txt" 2>"$KVM/e42.err"
   ecode=$?
   kill "$watchpid" 2>/dev/null || true
   wait "$watchpid" 2>/dev/null || true
@@ -189,28 +189,28 @@ else
   say "skipped: an earlier step already failed"
 fi
 
-say "== the podbox run seam"
+say "== the podvm run seam"
 if [ "$fail" -eq 0 ]; then
   # The command status is read before any test. A status read inside a
   # then list is the status of the test itself, so it would always be 0.
-  timeout 600 "$PODBOX" run --podbox-tier=machine --platform windows/amd64 "$PROV" cmd /c ver >"$KVM/seam.txt" 2>"$KVM/seam.err"
+  timeout 600 "$PODVM" run --podvm-tier=machine --platform windows/amd64 "$PROV" cmd /c ver >"$KVM/seam.txt" 2>"$KVM/seam.err"
   scode=$?
   tr -d '\r' <"$KVM/seam.txt"
   if [ "$scode" -eq 0 ]; then
     if grep -q "Microsoft Windows" "$KVM/seam.txt"; then
-      ok "podbox run reached the disk guest with exit $scode"
+      ok "podvm run reached the disk guest with exit $scode"
     else
       miss "seam run missed the version string"
     fi
   else
-    miss "podbox run seam failed with exit $scode"; tail -n 5 "$KVM/seam.err"
+    miss "podvm run seam failed with exit $scode"; tail -n 5 "$KVM/seam.err"
   fi
 else
   say "skipped: an earlier step already failed"
 fi
 
 say "== residue"
-left=$(ls -d "$XDG_RUNTIME_DIR"/podbox-windows-*-run 2>/dev/null || true)
+left=$(ls -d "$XDG_RUNTIME_DIR"/podvm-windows-*-run 2>/dev/null || true)
 if [ -z "$left" ]; then
   ok "no per-run scratch directory remains"
 else

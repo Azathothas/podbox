@@ -6,7 +6,7 @@
 # `run.repeat` ~1.9 s, `run.late` ~0.08 s) with the cause unisolated.
 # Three candidates before testing:
 #   A. `run --rm` deletes the unreferenced rootfs (the `--rm` arm in
-#      `crates/podbox-cli/src/run.rs`), so each keeper-less run re-pays
+#      `crates/podvm/src/run.rs`), so each keeper-less run re-pays
 #      full extraction plus first-time fixups. Refutes to: every
 #      keeper-less run stays slow, with the rootfs absent afterwards.
 #   B. Kernel page-cache warming of the probe storm (one disposable
@@ -65,13 +65,13 @@ else
 	tail -15 "$WORK/build.log"
 	exit 1
 fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 [ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
-echo "podbox            $($PB version 2>&1)" >>"$REPORT"
+echo "podvm            $($PB version 2>&1)" >>"$REPORT"
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 # rootfs_present: the store holds an extracted tree (run.rs `--rm` arm
 # removes it where no container record references the digest).

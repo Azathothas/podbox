@@ -2,17 +2,17 @@
 # run-via-host-podman.sh - host-podman substitute for run-in-base.sh.
 #
 # ⭐ USE ONLY WHILE the wsl-toolkit base is unusable. run-in-base.sh is the
-# Windows half of podbox-dev; this script does the same job through the
+# Windows half of podvm-dev; this script does the same job through the
 # host's own podman machine instead: the tree is copied into a disposable
 # container (nothing is mounted, so nothing the job does reaches this
 # checkout), the job runs there, the container is removed when it exits.
 #
 #   sh scripts/windows/run-via-host-podman.sh              the complete check
 #   sh scripts/windows/run-via-host-podman.sh JOB.sh       that script, inside /work
-#   PODBOX_IMAGE=... sh scripts/windows/run-via-host-podman.sh
-#   PODBOX_ARTIFACTS=DIR sh scripts/windows/run-via-host-podman.sh JOB.sh
+#   PODVM_IMAGE=... sh scripts/windows/run-via-host-podman.sh
+#   PODVM_ARTIFACTS=DIR sh scripts/windows/run-via-host-podman.sh JOB.sh
 #
-# A job hands its evidence back through /out, named by PODBOX_ARTIFACTS,
+# A job hands its evidence back through /out, named by PODVM_ARTIFACTS,
 # because the container is removed when it exits.
 #
 # Exit: the job's own code, or 2 when the job could not be started.
@@ -22,9 +22,9 @@ HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 2
 ROOT=$(CDPATH= cd -- "$HERE/../.." && pwd) || exit 2
 cd "$ROOT" || exit 2
 
-IMAGE="${PODBOX_IMAGE:-docker.io/library/rust:1.98.1-bookworm}"
-TIMEOUT="${PODBOX_JOB_TIMEOUT:-45m}"
-ARTIFACTS="${PODBOX_ARTIFACTS:-}"
+IMAGE="${PODVM_IMAGE:-docker.io/library/rust:1.98.1-bookworm}"
+TIMEOUT="${PODVM_JOB_TIMEOUT:-45m}"
+ARTIFACTS="${PODVM_ARTIFACTS:-}"
 
 case "${1:-}" in
 -h | --help)
@@ -77,7 +77,7 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-name="podbox-job-$$-$(date +%s)"
+name="podvm-job-$$-$(date +%s)"
 CID="$(eng create --name "$name" "$IMAGE" sleep 3600)" || {
 	echo "run-via-host-podman: could not create the job container." >&2
 	CID=""
@@ -116,12 +116,12 @@ eng exec -w /work "$CID" tar -xf /work.tar || exit 2
 	echo "sh scripts/common/restore-modes.sh || exit 2"
 	if [ -n "$USER_JOB" ]; then
 		echo 'echo "== the job"'
-		echo "sh /work/.podbox-job.sh"
+		echo "sh /work/.podvm-job.sh"
 	else
 		echo 'echo "== bootstrap"'
 		echo "./scripts/common/bootstrap-env.sh rust cc zig tools || exit 1"
-		echo 'echo "== podbox-dev check"'
-		echo "podbox-dev check"
+		echo 'echo "== podvm-dev check"'
+		echo "podvm-dev check"
 	fi
 	echo "rc=\$?"
 	echo 'echo "== rc=$rc"'
@@ -134,7 +134,7 @@ tr -d "\015" <"$work/wrapper.sh" >"$work/wrapper.lf.sh" || exit 2
 eng cp "$(winpath "$work/wrapper.lf.sh")" "$CID:/work/wrapper.sh" || exit 2
 if [ -n "$USER_JOB" ]; then
 	tr -d "\015" <"$USER_JOB" >"$work/job.lf.sh" || exit 2
-	eng cp "$(winpath "$work/job.lf.sh")" "$CID:/work/.podbox-job.sh" || exit 2
+	eng cp "$(winpath "$work/job.lf.sh")" "$CID:/work/.podvm-job.sh" || exit 2
 fi
 
 if [ -n "$ARTIFACTS" ]; then

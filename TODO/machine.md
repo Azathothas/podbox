@@ -1,0 +1,1208 @@
+# machine
+
+Record semantics: [task rules](RULES.md#5-entry-closure).
+
+
+The machine tier. The chroot tier runs a payload on the host kernel; this tier runs one on
+a kernel of its own, and it answers to the same verbs, flags and exit codes.
+
+⛔ **It is a mode of podvm and not a second product.** One binary, one parity
+table, one set of exit codes. A second product means two parity tables, and a
+flag that means one thing in one and another thing in the other is the defect
+[cli.md](cli.md) T-0803 already rules on for the `docker` name.
+
+⭐ **Read this first, because it is the finding that shapes every entry here.**
+Two restricted runtimes were studied and **they do not have the same walls**:
+
+| | the runtime the machine tier was specified against | the runtime podvm was specified against |
+| --- | --- | --- |
+| `clone`/`clone3` with `NEWUSER`, `NEWNS`, `NEWPID`, `NEWNET` | work | `EPERM` |
+| the new mount API, `fsopen` and `fsmount` | work | refused before entry |
+| `move_mount` | `EPERM` | `EPERM` |
+| `chroot(2)` | available | ⭐ available, and it is the whole solution there |
+| `/dev/kvm` | absent and uncreatable | absent |
+| `/dev/ptmx` | not stated | absent, and no `devpts` can be mounted |
+
+⛔ **So neither set of walls may be compiled in.** A mode that assumes the
+namespace gap is open is wrong on the runtime that refuses `unshare`, and a mode
+that assumes it is closed gives up a tier it could have offered. Every entry
+below probes. `AGENTS.md`'s routing row already says this about `TOOL.md`'s
+floor, and the machine tier is where it costs the most to forget.
+
+Sources, none of which is in the corpus. Each is read at the URL and the licence
+determination is in [reference-map.md](reference-map.md):
+
+- `https://github.com/talaria0101/vm-research`, and its podvm-spec document,
+  which is the specification these entries derive from;
+- `https://github.com/talaria0101/sandbox-insights`, the four walls and the mode
+  ladder;
+- `https://github.com/talaria0101/nix-experiment`, a real payload driven to
+  completion on the second runtime, which is the acceptance
+  [T-1111](milestones.md) drives through podvm.
+
+---
+
+### T-1301 The machine tier is probed leg by leg, and a present file is not a working one
+
+Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec document, sections 0 and 3; [probe.md](probe.md) T-0103
+Category:    machine
+Priority:    P0
+Effort:      M
+Status:      done
+
+Problem:     podvm reports a rung and never claims a stronger one than it
+             achieved. The machine tier has no probe at all, so the machine tier today
+             could only assert it. ⛔ **Every way to get this wrong produces a
+             false report rather than an error**, which is the class
+             [`../docs/methodology/reviews.md`](../docs/methodology/reviews.md)
+             exists for.
+Premise:     ⭐ **podvm already holds the discipline and two of the legs.**
+             [T-0103](probe.md) probes creation and attachment separately and is
+             done; [T-0102](probe.md) separates a filtered syscall from an
+             executed one with a bogus argument; [T-0109](probe.md) keeps
+             "could not run" distinct from "denied". The machine tier adds legs
+             and reuses all three rules.
+             ⚠ The specification measures `/dev/kvm` ABSENT and uncreatable on
+             its own target, and the emulator therefore runs under TCG. ⛔ A
+             boundary under TCG is the emulator process and not hardware, so the
+             banner may never say hardware isolation.
+Approach:    Add a `machine` group to `podvm probe`, with one leg per fact and
+             a verdict per leg:
+             1. an emulator binary that runs and answers its own version;
+             2. `/dev/kvm` OPENED, not stat-ed. A node that exists and returns
+                `EACCES` on open is not acceleration.
+             3. `RLIMIT_FSIZE`, read with `getrlimit`, because it bounds the
+                memory image and a guest over it dies with `SIGXFSZ`;
+             4. `/dev/net/tun`, opened the same way;
+             5. the writable space for an image, blocks and inodes both, per
+                [RULES.md](RULES.md) section 8;
+             6. ⭐ **ask the emulator which accelerator it will actually use**,
+                rather than deciding from leg 2. `qemu-system-x86_64 -accel
+                help` lists what this build supports, and an accelerator a
+                build was compiled without is as absent as a missing node.
+                ⚠ **`references/cubic-vm__cubic` reached this independently**,
+                which is what makes it worth copying: its pull request #538 is
+                `feat: ask qemu which accelerator works on the host` and its
+                issue #6 is `Only use KVM if available`. That project has no
+                connection to this one and no restricted host to defend
+                against, and it still ended up probing rather than assuming.
+             ⛔ Never infer a leg from another leg. The specification records a
+             runtime where the host drivers are listed in `/proc/misc` and the
+             device nodes are absent and uncreatable, so the driver's presence
+             says nothing about the caller's access.
+Decision:    The tier is refused when any leg is missing, and the refusal names
+             the leg. ⛔ Not a reduced machine tier: the ladder in
+             [`../docs/architecture.md`](../docs/architecture.md) says a weaker
+             mode never satisfies a stronger request, and a machine tier with no
+             acceleration and no network is two different products depending on
+             which leg failed.
+Prove:       `experiments/357-tcg-profile.sh` exits 0 (report in
+             `experiments/results/tcg-profile.txt`): `tiers.machine.refusal`
+             null with `profile` `tcg` on a kvm-less host whose emulator
+             lists tcg, the TCG holds message at 125 under both names,
+             refusal naming the emulator with qemu hidden, and 146
+             re-driven with the same binary booting to VMR-GUEST-READY.
+
+**Done 2026-09-21.** Six legs in `Group::Machine`
+(`crates/podvm-probe/src/probes.rs`, `MACHINE_LEGS`), one verdict per
+leg, read back through `crates/podvm-probe/src/machine.rs`, which refuses
+the tier naming every missing leg. `report::document` carries
+`tiers.machine.legs` with a null verdict where a row is absent, so a
+document written before the legs existed cannot read as a measured tier;
+the stderr evidence lists the legs with the same refusal. The Prove exits
+0 against a lane-built binary: 6 legs, no null verdict.
+
+| leg | verdict on the lane |
+| --- | --- |
+| `qemu-system-x86_64 --version` | skip, no emulator on PATH (ENOENT) |
+| `open(/dev/kvm, O_RDWR)` | denied ENOENT |
+| `prlimit(RLIMIT_FSIZE)` | ok, `cur=infinity max=infinity` |
+| `open(/dev/net/tun, O_RDWR)` | denied ENOENT |
+| `image space (statfs .)` | ok, blocks and inodes free named |
+| `qemu-system-x86_64 -accel help` | skip, no emulator on PATH (ENOENT) |
+
+The review caught a wrong constant before it shipped: `RLIMIT_FSIZE` was
+written as 7, which is `RLIMIT_NOFILE`, and the leg reported the
+descriptor ceiling as a file size. The kernel's own headers settle it
+(`RLIMIT_FSIZE` 1, `RLIMIT_NOFILE` 7, measured in the lane), the constant
+is 1, and the re-drive above ran on the fixed code. Every non-ok leg on
+that machine carries its errno, so T-0101's invariant holds.
+
+**Partial, 2026-09-25.** Issue 35 reopens this entry: six legs and
+a refuse-where-any-missing rule ship, so on hosts without
+`/dev/kvm` or `/dev/net/tun` the whole machine tier is refused even
+where QEMU TCG is present. Split the legs into required (emulator
+present, `tcg` in the accelerator list, space, fsize), accelerated
+(`kvm`) and networked (`tun`): TCG with user-mode networking runs
+with a banner stating no hardware isolation and no tun, and refusal
+stays only where no accelerator at all or no space holds. The
+Premise already states a TCG boundary is the emulator process, not
+hardware, and the reference refuses TCG as a different product, so
+the banner must never claim hardware isolation under TCG. Measured
+on the lane 2026-09-25
+(`experiments/results/triage-353.txt` clauses `35-tier-machine`
+and `35-podvm`): refusal names the missing legs at 125 on a host
+whose only gap is the emulator and the two nodes; the `podvm`
+subverb spelling is refused by name per T-1302 (the name is
+`argv[0]`, not a verb). Fix area is `MACHINE_LEGS` in
+`crates/podvm-probe/src/probes.rs` with the `machine.rs`
+assessor. Risk if wrong is emulated execution claimed as hardware
+isolated. Prove is `tiers.machine.refusal` null for the TCG
+profile on a kvm-less but tcg-capable host, with the initramfs
+boot and its ready marker through TCG.
+
+**Done, 2026-09-25.** The legs split into required, accelerated and
+networked without adding or renaming a row: `machine.rs` establishes
+`full` where every leg holds and the emulator lists `kvm`, `tcg`
+where the emulator, its `tcg` accelerator, the file-size bound and
+image space hold without kvm or tun, and no profile elsewhere. The
+accelerator list is read word-wise from the accel leg's own reason,
+and kvm needs the list entry and the opened node together: neither
+half infers the other. `tiers.machine` carries `profile`
+(`full`, `tcg`, null) beside `refusal`, which is null where a
+profile holds and otherwise names the legs blocking every profile
+with the kvm leg beside them; the evidence prints the TCG boundary
+(the emulator process, never hardware isolation) and the tun shape
+(real tun, or user-mode networking) on every TCG run. `enter_machine`
+prints the TCG holds message at 125 under both names, still 125
+where the tier holds without a guest driver, and the unchanged
+refusal where no profile holds. Three designs were weighed before
+testing (a separate tcg_refusal key; a required-only weakening; the
+profile split): the first fails the Prove as written (it demands
+`refusal` null), the second drops the accelerated and networked
+distinction the entry requires, so the split shipped. Prove is
+`experiments/357-tcg-profile.sh` (exit 0,
+`experiments/results/tcg-profile.txt`) on the lane with qemu
+7.2.22 installed, kvm and tun absent:
+
+```
+$ podvm probe --json | jq -e '.tiers.machine.refusal == null'
+0
+$ jq -r '.tiers.machine.profile' probe.json
+tcg
+$ podvm run --podvm-tier=machine never-pulled-357:tag /bin/true; echo $?
+podvm run: the machine tier runs TCG on this machine: the emulator
+process is the boundary, not hardware isolation. /dev/net/tun is
+missing, so guests use user-mode networking. [...]
+125
+$ podvm run never-pulled-357:tag /bin/true; echo $?
+podvm: invoked as `podvm`. [...]
+podvm run: the machine tier runs TCG on this machine: [...]
+125
+$ PATH=<empty> PODVM_STORE=<fresh> podvm run --podvm-tier=machine [...]; echo $?
+podvm run: machine tier refused: qemu-system-x86_64 --version=skip:
+no qemu-system-x86_64 on PATH [...] open(/dev/kvm, O_RDWR)=ENOENT [...]
+125
+```
+
+and 146 re-driven inside with the same binary boots to
+`VMR-GUEST-READY` under TCG (clause 5 green). Unit guards: the
+`machine.rs` profile matrix (full, kvm-denied, tun-denied,
+accel-without-tcg, node-without-listing, skipped emulator, absent
+row, word-wise list parsing), the report document and evidence
+tests, `tier.rs` still 125 on any machine; lane suites green beside
+the drive (podvm 143, podvm-probe 101 passed, 0 failed). Two
+limits ride named, not silent: 145 and 148 assert the refusal text
+and run on qemu-less lanes, so a qemu host would need their TCG
+arms; and a kvm node opening under an emulator that does not list
+kvm is TCG, never full.
+
+---
+
+### T-1302 One binary, one parity table, and a VM-only flag that cannot collide
+
+Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec document; [cli.md](cli.md) T-0803, T-0808
+Category:    machine
+Priority:    P1
+Effort:      M
+Status:      done
+
+Problem:     `podvm` has to feel like `podman` and `docker`, because its audience
+             is automated and an agent reaches for the verbs it knows. ⛔ A
+             second binary is a second parity table, and
+             [cli.md](cli.md) T-0808 already drives 141 rows through the shipped
+             binary because a flag accepted and unlisted is invisible from the
+             table's side.
+Premise:     podvm already answers to more than one name:
+             [cli.md](cli.md) T-0803 rules that podvm refuses the `docker` name
+             where a working daemon is reachable unless a flag says otherwise.
+             The mechanism for a third name therefore exists and is ruled on.
+Approach:    `podvm` is `podvm` invoked under that name, or `podvm` with the
+             machine tier selected explicitly. The verbs do not change: `run`,
+             `exec`, `ps`, `rm`, `images`, `logs`, `stop`.
+             ⛔ **A flag that only the machine tier has carries a prefix that
+             neither `docker` nor `podman` uses**, so a flag cannot mean one
+             thing here and another there. A flag both tiers share keeps
+             docker's spelling and docker's meaning.
+             ⚠ `--memory` is the trap in this shape and it is worth naming: the
+             machine tier can enforce it, and the chroot tier cannot. A flag
+             that is enforced in one tier and accepted in the other is the
+             silent degradation the honesty rules forbid, so the tier that
+             cannot enforce it says so.
+Decision:    ⭐ **Taken on 2026-09-12: BOTH, and the flag is the primitive.**
+             `--podvm-tier=machine` selects the tier, and `podvm` is a third
+             name in `crates/podvm/src/names.rs`'s `ALIASES` whose only
+             effect is to change that flag's DEFAULT. There is one
+             implementation and one parity table; the table lists the flag, and
+             the name is an entry point to it rather than a second code path,
+             which is what [cli.md](cli.md) T-0808 needs.
+             ⛔ **The collision rule, because `podvm --podvm-tier=chroot` is
+             otherwise undefined: the explicit flag wins over `argv[0]`, and
+             podvm states the tier it selected whenever the two disagree.**
+             The tier is not cosmetic. This entry's own `Approach` names
+             `--memory` as enforced by the machine tier and not by the chroot
+             tier, so a caller who cannot tell which tier ran cannot tell
+             whether a limit was honoured.
+             ⚠ **Neither shape alone survives this entry's own `Prove`**, which
+             asks that `podvm --help` AND `podvm --help` list one set of verbs
+             and that the parity experiment drive every row **from the flag**.
+             A name with no flag has nothing to drive; a flag with no name
+             leaves `podvm --help` unanswerable. (Superseded at the rename, 2026-11-06.)
+             ⚠ **T-0803's refusal rule does not extend here.** That ruling is
+             about taking another tool's name where that tool works: `docker` is
+             refused where a daemon answers. `podvm` is podvm's own name, so
+             there is no foreign daemon to check for and no refusal to make.
+             The banner obligation is the tier, not the name.
+             ⚠ **The prefix is fixed by this decision** so an implementer does
+             not reopen it: `--podvm-` is a prefix neither docker nor podman
+             uses, which is the rule the `Approach` above already states.
+             ⛔ **One thing IS settled, and it is about the escape hatch rather
+             than the tier flag.** A machine tier needs a way to pass an
+             argument straight to the emulator, and
+             `references/cubic-vm__cubic` ships the defect that shape invites:
+             its open issue #448 records that the passthrough **splits its
+             string on a single space**, so any argument whose value contains a
+             space is torn into pieces and the emulator rejects the result. The
+             report names the splitting line in that project's own source, and
+             the user-visible effect is that quoting on the command line does
+             not survive.
+             ⭐ **podvm takes the repeatable-flag shape**: one token per
+             occurrence, repeated as many times as needed, and no splitting of
+             anything. ⚠ **Rejected:** splitting on whitespace with a shell word
+             splitter, which is what that report suggests as its first option.
+             It is friendlier to type and it puts a quoting parser between the
+             caller and the emulator, so a mis-parse becomes podvm's bug in a
+             place podvm cannot test exhaustively. ⛔ docker and podman both
+             take the repeatable form for this class of flag, and
+             [cli.md](cli.md) is the parity rule that settles ties.
+Prove:       `podvm --help` and `podvm --help` list one set of verbs, and `./experiments/145-podvm-parity.sh` drives every row from the flag rather than from the table
+
+**Done 2026-09-21.** One flag and one name, in one implementation
+(`crates/podvm/src/tier.rs`): `--podvm-tier=machine|chroot` on `run`
+and `exec` (which also serves `create`), and `podvm` as a third entry in
+`ALIASES` whose only effect is to default that flag to machine. The
+explicit flag wins over `argv[0]`, and `podvm --podvm-tier=chroot` states
+the override and runs the chroot tier. The machine tier assesses T-1301's
+legs before anything is pulled and refuses naming every missing one;
+where it holds, podvm says the guest driver arrives with T-1303/T-1304
+rather than running something else. `--podvm-qemu-arg` is repeatable,
+one token per occurrence, never split, machine-tier-only and refused
+elsewhere. `podvm --help` and `podvm --help` print one text. Superseded at the rename of 2026-11-06: `podvm` is now the binary's own name, the argv0 default is gone, and only `--podvm-tier` selects the tier; `podvm-parity` drives the help parity over `podvm`, `docker` and `podman`.
+`experiments/145-podvm-parity.sh` exits 0 on a lane-built binary: 19
+driven, 0 mismatches (`experiments/results/podvm-parity.txt`).
+
+Decisions taken inside the ruled shape: the flag takes exactly
+`machine|chroot`, because those are the two tiers this binary knows; the
+qemu arguments are parsed, tier-gated and carried for T-1303's driver, and
+the collection contract (no splitting) is pinned by a parser unit test
+rather than by a drive. The 325 driver needed no change: a bare new flag
+reaches a message without a refusal marker, which clause 1 counts as
+driven.
+
+---
+
+### T-1303 The image is a rootfs directory, and an initramfs with no console is a silent machine
+
+Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec document, sections 1 and 2
+Category:    machine
+Priority:    P1
+Effort:      L
+Status:      done
+
+Problem:     podvm's image path ends in an extracted rootfs on disk
+             ([extract.md](extract.md)), and the machine tier needs that same
+             rootfs wrapped so a kernel can start in it. The wrapping is where
+             the specification records the expensive failures.
+Premise:     ⭐ **Three measured traps, each of which produces a machine that
+             looks broken rather than one that reports a problem.**
+             1. A guest with no console device is a PID 1 that runs and says
+                nothing. The specification records an initramfs that shipped an
+                empty `/dev`, and the fix is a second raw cpio archive appended
+                after the base one, carrying the console node.
+             2. A module that the guest needs may not load with the tool the
+                guest has: busybox `insmod` fails on an unresolved dependency
+                and says nothing, so the module tree ships and `modprobe` loads
+                it.
+             3. The machine profile decides whether userspace output arrives at
+                all. One profile delivers kernel messages to the serial port and
+                drops userspace writes to it.
+             ⚠ Every one of these is a reading of somebody else's measurement on
+             somebody else's host. ⛔ Reproduce the MECHANISM here and expect the
+             numbers to differ, per `AGENTS.md`'s "verify, do not accept".
+Approach:    Reuse [extract.md](extract.md)'s output as the image. Build the
+             initramfs from it with the console node appended, and keep the
+             assembly in one script under `experiments/` so the measurement
+             ships with it.
+             ⛔ The ownership rule does not change: extraction stays
+             ownership-neutral and the intended metadata stays in the sidecar,
+             because the wall that forces it is the kernel's mapping check and
+             not a property of the destination.
+Decision:    A rootfs directory, not a disk image. ⚠ A disk image needs a
+             filesystem the host can make, and the runtimes studied refuse
+             `mount`, so the host cannot populate one it cannot attach.
+Prove:       `./experiments/146-podvm-initramfs.sh` asserts the guest prints its ready marker and that the console node is present in the unpacked archive
+
+**Done 2026-09-21.** `experiments/146-podvm-initramfs.sh` exits 0 on a
+lane-built binary: the pinned Alpine image pulls and extracts through
+podvm, the rootfs archives as newc cpio, an appended raw archive carries
+`dev/`, `dev/console` 5:1 and the `/init` override, and the pinned kernel
+boots the assembly under TCG to `VMR-GUEST-READY`
+(`experiments/results/podvm-initramfs.txt`).
+
+| clause | verdict on the lane |
+| --- | --- |
+| pull + extract `alpine@sha256:3e9b4b…` | ok, guest-executable `/bin/sh` |
+| base archive | ok, 8,365,568 bytes |
+| appended archive | ok, 8,366,168 bytes assembled |
+| console node | ok, `dev/console` in the appended archive |
+| boot `vmlinuz-virt` (sha256 `6b58e5d7…`), qemu 7.2.22 TCG | ok, marker printed; qemu rc 124, the halt the spec records |
+
+Three findings on the way, each in the script now. The reference pin for
+the kernel is stale: its tree names 6.12.94 and the mirror serves
+6.12.110, so the pin here is measured, not inherited. A host `-x` test
+lies about absolute symlinks: the image's `sh` points at `/bin/busybox`,
+which the guest resolves inside the rootfs and the host resolves outside
+it, so the check resolves the link as the guest does. `cpio -t` stops at
+the base archive's TRAILER while the kernel's unpacker keeps going, so
+the node is listed in the appended archive and the boot proves the full
+assembly. The newc writer is this script's own: no host mknod, no
+privilege.
+
+---
+
+### T-1304 The exec protocol is a serial pair with a nonce, and every wait is bounded
+
+Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec document, section 4
+Category:    machine
+Priority:    P1
+Effort:      L
+Status:      done
+
+Problem:     `podvm exec` hands a command to a process. The machine tier has no
+             process to hand it to: the command crosses a serial line into a
+             shell that may not be listening yet.
+Premise:     ⭐ **The readiness handshake is the part that cannot be skipped.**
+             The specification records that feeding the console before it is up
+             is lossy, so the driver retries a newline plus a nonce until the
+             guest echoes that nonce back. ⛔ A driver that assumes the guest is
+             ready after a fixed sleep is the unbounded wait
+             [RULES.md](RULES.md) section 8 forbids, wearing a timer.
+             ⚠ Two more, both measured there: the parent must hold both ends of
+             the serial pair open before the emulator starts, because the
+             emulator opens an existing pipe and blocks otherwise; and a guest
+             compiler must be invoked by absolute path, because it resolves its
+             own helpers from `argv[0]`.
+             ⚠ A guest that powers off on one machine profile halts instead of
+             exiting, so the driver treats the halt message plus its own
+             completion marker as completion and then kills the emulator.
+Approach:    One shot per command: a begin marker, the command, an end marker
+             carrying the status, matched line-anchored. The status crosses the
+             line as text and is then the process's own exit code, which is what
+             [cli.md](cli.md)'s exit-code contract requires.
+             ⛔ Every read has a deadline and the deadline is reported, per
+             [RULES.md](RULES.md) section 8. A machine that stopped answering and
+             a command that is still running are different states.
+Decision:    ⭐ **Taken 2026-09-21: a per-command 128-bit nonce in every
+             marker, matched line-anchored and exact.** `VMR-BEGIN-<nonce>`
+             opens, `VMR-END-<nonce> <status>` closes, and the driver takes
+             the first exact line. The nonce comes from the host's entropy
+             per command and is never reused. What this defeats is the stated
+             threat: a payload printing a marker-SHAPED line, which a fixed
+             marker cannot tell from the real one. What it does not defeat is
+             a guest that reads the nonce off its own stdin and forges the
+             exact line: the nonce crosses the same serial line as the
+             command, so a hostile guest is outside this model, and the entry
+             says so rather than implying otherwise.
+             ⚠ **Rejected:** fixed markers (the shape a payload collides
+             with by accident) and bare sequence numbers (the same shape
+             with arithmetic).
+Prove:       `./experiments/147-podvm-exec.sh` asserts a zero status, a non-zero status and a deadline are each reported distinctly, and that a payload printing a marker-shaped line does not end the command
+
+**Done 2026-09-21.** `experiments/147-podvm-exec.sh` exits 0 on a
+lane-built binary: the guest boots, the shell answers the handshake,
+`true` reports 0, `exit 3` reports 3, a marker-shaped line with the
+wrong nonce is ignored with the real 7 reported, and `sleep 30` past
+an 8 s deadline reports DEADLINE, which is no status
+(`experiments/results/podvm-exec.txt`). The assembly moves to
+`experiments/lib/podvm-guest.sh`, shared with 146; 146 re-driven on
+the refactored tree exits 0 with evidence identical bar the date line,
+so the committed `podvm-initramfs.txt` is that re-drive.
+
+Five findings on the way, each in the script now. The serial speaks
+CRLF, so the reader strips it once (`tr -d '\r'`) and no anchored
+match has to know. `tr` block-buffers a file target, so the reader
+runs unbuffered (`stdbuf -o0`). The pipe backend opens existing fifos
+and blocks otherwise, so the parent holds both ends O_RDWR before qemu
+starts. `od` reads to EOF and urandom has none, so the nonce reader
+takes `-N16`: without it the first handshake hung unboundedly, which
+is the shell form of the urandom trap
+`crates/podvm-complete/src/devices.rs:218` records. A bare `exit 3`
+ends the very shell that must print the end marker, so the command
+runs in a subshell and the reporter outlives it. The end-marker
+pattern accepts the exact line and rejects six forgery shapes,
+checked host-side against the same pattern text. The kernel pin stays
+measured: the mirror serves 6.12.110 and the reference names 6.12.94.
+
+Residual, not in this change: `curl -fsSL` in 146 and 147 carries no
+`--max-time`, so a stalled mirror is the one network wait without a
+ceiling. It predates this entry (146 introduced it) and changing 146
+would invalidate T-1303's evidence, so it needs its own entry.
+
+---
+
+### T-1305 The fleet and the fork, and the file-size ceiling that bounds both
+
+Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec document, sections 3 and 5
+Category:    machine
+Priority:    P2
+Effort:      L
+Status:      done
+
+Problem:     The machine tier's value over the chroot tier is that a guest can be
+             copied, restarted and thrown away. Neither copying nor restarting
+             is free, and the ceiling that bounds them is not the one a reader
+             expects.
+Premise:     ⚠ **`RLIMIT_FSIZE` bounds a single file, and a guest's memory image
+             is a single file.** The specification measures a 500 MiB per-file
+             ceiling on its target and a guest above it dying from `SIGXFSZ`.
+             ⛔ That is a different resource from the writable allowance
+             [RULES.md](RULES.md) section 8 already covers, and checking one does
+             not check the other: a machine with terabytes free still kills a
+             guest whose memory image crosses the per-file limit.
+             ⚠ Every figure in the specification is that host's. Reproduce the
+             mechanism and re-measure.
+Approach:    Read `RLIMIT_FSIZE` in the probe ([T-1301](#t-1301-the-machine-tier-is-probed-leg-by-leg-and-a-present-file-is-not-a-working-one)),
+             and refuse a guest whose configured memory would cross it, before it
+             starts, naming the number. Fork is a quiesce, a copy of the memory
+             image and a restore into a second guest.
+Decision:    Ruled 2026-09-21 under the operator steer that podvm works on
+             every environment with as many features and fallbacks as it can
+             honestly carry. The fleet IS podvm's job, spelled with the verbs
+             it already has: `run`, `ps`, `stop`, `rm`, `images` and `logs`
+             over machine-tier guests. No new fleet verb: `docker` has none,
+             so one here is the extension this file's opening rule forbids,
+             and a second verb family is a second parity table
+             [cli.md](cli.md) T-0808 would have to drive. Fork (quiesce, copy
+             the memory image, restore into a second guest) is NOT this
+             entry: no guest driver ships yet (T-1302's holds-branch still
+             refuses), so there is nothing to fork; it stays future work for
+             when the driver lands. What this entry ships is the bound both
+             fleet operations share: `--podvm-mem` (machine-tier only,
+             `--podvm-`-prefixed per T-1302, refused elsewhere), judged
+             against `RLIMIT_FSIZE` BEFORE the legs, so an over-ceiling guest
+             is refused naming both numbers on every machine. The `--memory`
+             trap T-1302 names closes per tier: chroot keeps refusing
+             `-m`/`--memory` (no cgroup to enforce with), machine enforces
+             `--podvm-mem` against the file ceiling, and neither tier
+             accepts a limit it silently drops.
+             ⚠ Rejected: a `fleet`/`fork` verb family (a second table), and
+             no fleet ruling at all (the Problem this entry states would stay
+             open silently).
+Prove:       `./experiments/148-podvm-fleet.sh` asserts a guest over the file-size ceiling is refused BEFORE it starts, with the ceiling in the message
+
+**Done 2026-09-21.** `--podvm-mem` on `run` and `exec` (`create` rides
+`run`'s parser through `parity::rows_of`): bytes with an optional K/M/G/T
+suffix (`tier::parse_mem`, zero and overflow refused), machine-tier-only
+and refused elsewhere as needs-machine, judged in `enter_machine` BEFORE
+the legs against `prlimit(RLIMIT_FSIZE)` with both numbers in the refusal
+at exit 125. `experiments/148-podvm-fleet.sh` exits 0 on a lane-built
+binary: 10 driven, 0 mismatches
+(`experiments/results/podvm-fleet.txt`). The lane's natural ceiling is
+infinity (conditions print `(-1, -1)`, python's infinity), so the script
+lowers the limit to 1 GiB in the driven child only (python3 setrlimit +
+exec, asserted on take): 4 GiB refused naming ceiling 1073741824 and guest
+4294967296, 1 MiB passes through to the legs verdict with no ceiling
+language, three not-a-size spellings are flag errors, and `exec` mirrors
+`run`. Unit tests pin the spelling matrix, the ceiling comparison
+(including infinity never refusing), and both parsers in both spellings;
+`every_flag_the_table_admits_is_handled_by_this_parser` holds for the two
+new rows on both verbs. 145 re-driven green unchanged (19 driven, 0
+mismatches); 325 re-driven green at 160 rows, 199 driven, 0 mismatches,
+which also retires the staleness T-1302 left in T-0808's record below.
+
+---
+
+### T-1306 The non-goals are refusals the code makes, not notes in a document
+
+Source:      `https://github.com/talaria0101/vm-research`, its podvm-spec document, section 7
+Category:    machine
+Priority:    P1
+Effort:      M
+Status:      done 2026-09-26
+
+Problem:     The specification lists designs that were tried and do not work on
+             its target: a TCP listener of any kind, anything KVM-accelerated, a
+             runc-style OCI container, a user-mode Linux guest, an identity
+             switch through `uid_map`, and a guest file over the size ceiling.
+             ⛔ **A list of non-goals in a document is a list the next session
+             re-discovers.** podvm's own rule is that a limit stated as a fact
+             is inherited as a fact, so each of these has to be a probe result
+             and a named refusal rather than a sentence.
+Premise:     ⭐ **This is the entry that keeps the mode honest on a runtime that
+             is not the one it was specified against.** Each non-goal above is
+             blocked by a MECHANISM on that host, and every mechanism is
+             something [probe.md](probe.md) can ask about. A mechanism that is
+             open on another runtime turns a non-goal back into a goal, and a
+             hard-coded refusal would hide that.
+             ⚠ The specification itself records the contract moving under it: a
+             network rule that denied a port early in a session and permitted it
+             later. ⛔ So a refusal is re-probed per run and never cached across
+             one.
+Approach:    One probe leg per non-goal, and a refusal that names the leg, the
+             errno and the remedy where there is one. The four-part diagnostic
+             [cli.md](cli.md) T-0805 defines is the shape, and this reuses it
+             rather than inventing a second one.
+Decision:    A non-goal is a measured verdict with a date, never a constant.
+             ⛔ Where the mechanism is genuinely unavailable the refusal says
+             which leg failed, so a reader can tell "this runtime refuses it"
+             from "podvm does not implement it".
+             Ruled 2026-09-22 on the one fork the Approach leaves open: ONE
+             new leg, five cited. Only the TCP bind had no measurement; the
+             other five mechanisms already have probe rows (the kvm open, the
+             UTS and user namespace rows, ptrace, setuid/setgroups, the fsize
+             bound), and a second row measuring the same denial is the
+             value-in-two-places drift the forbidden patterns refuse. The
+             per-non-goal verdict lives in the new assessment, not in new
+             legs. Cross-run staleness is bounded by the probe cache key
+             (T-0111), like every other verdict in the document.
+Prove:       `./experiments/149-podvm-non-goals.sh` asserts each refusal names its leg and its errno, and that a leg the host permits turns the refusal off
+
+**Done 2026-09-22.** One new census row (`bind(127.0.0.1:0)+listen`:
+socket, bind port 0, listen once, close; the family in native order for
+the big-endian targets) plus `nongoals::assess`: six stances over cited
+rows, refused with leg, errno and remedy, open with no refusal language,
+unestablished where the rows cannot say. The document carries
+`non_goals[]` and the stderr evidence a block beside the machine one.
+`experiments/149-podvm-non-goals.sh` exits 0 on a lane-built binary: 14
+driven, 0 mismatches (`experiments/results/podvm-non-goals.txt`). Lane
+stances: tcp open, kvm refused naming
+`open(/dev/kvm, O_RDWR)=ENOENT`, runc refused naming its errno, uml,
+uid_map and file open (ptrace permitted, setuid works as root, no finite
+ceiling there). Five assessment unit tests and two report tests; 81 of 81
+probe tests green in the lane.
+
+**Partial, 2026-09-25.** Issue 36 reopens this entry: each non-goal
+is a refusal the code makes, and none is implemented. Promote one
+non-goal instead of banking all six as permanent refusals. Smallest
+is guest networking through the user-mode hostfwd the TCP remedy
+already names, or the TCG path from T-1301 that makes the kvm
+refusal conditional. Fix area is the machine and non-goal
+assessment with `149-podvm-non-goals.sh`. Risk if wrong is a new
+implementation that weakens the honesty rules: the banner states
+what is emulated. Prove is `149` extended with a positive arm
+where the promoted goal runs (a guest reaching the host through
+UDP hostfwd, for example) with the remaining refusals unchanged.
+
+**Done 2026-09-26.** The promoted goal is guest user-mode
+networking: the kvm node stays refused, and its remedy (TCG
+instead of KVM) is now executable. `experiments/361-guest-usernet.sh`
+builds a TCG guest from the podvm-extracted alpine rootfs with a
+pinned kernel and modloop, loads the `failover`, `net_failover`
+and `virtio_net` module chain the netboot kernel keeps out of the
+image, brings up the first non-loopback interface, and crosses
+datagrams both ways: the guest token reaches a host listener, and
+a host reply forwarded into the guest prints on the guest
+console. `149-podvm-non-goals.sh` gains the positive arm (clause
+6 runs 361 for its exit code); its stance clauses are unchanged,
+and the kvm node still refuses naming ENOENT beside them.
+
+Driven on the lane (`rust:1.98.1-bookworm` job container, kernel
+`7.2.0-WSL2-STABLE`, qemu 7.2.22 installed where absent):
+149 exits 0 with 15 driven 0 mismatches
+(`experiments/results/podvm-non-goals.txt`), 361 exits 0
+(`experiments/results/guest-usernet.txt`): both applets and both
+pins hold, three modules staged, `HOST-GOT: VMR-NET-PROBE` on the
+host and the reply on the guest console. The full `podvm-probe`
+suite is green on the same drive (107 passed, 0 failed). Three
+findings paid for on the way, each in the script: the netboot
+kernel carries no NIC driver (virtio_pci binds, no interface);
+unsquashfs `-l` prints a `squashfs-root/` prefix its extractor
+refuses (measured: 0 files); the module chain resolves link by
+link (failover, then net_failover, then virtio_net). No product
+code changed: the kvm remedy already names TCG, the TCG banner
+already states user-mode networking, and the assessment already
+turns a non-goal off where its mechanism works. What is new is
+the measured capability with a standing arm that re-proves it.
+
+---
+
+### T-1307 The five Rust VM tools, ruled one by one, so nobody surveys them again
+
+Source:      [reference-map.md](reference-map.md); the sweep at
+             [`../docs/history/2026-09-11-reference-sweep.md`](../docs/history/2026-09-11-reference-sweep.md)
+Category:    machine
+Priority:    P2
+Effort:      S
+Status:      done
+
+Problem:     Five Rust projects were named as candidate microVM managers for the
+             machine tier. **A candidate list nobody rules on is a list the
+             next session surveys again.** Each needs one verdict, with the
+             reason recorded, so the survey is paid for once.
+Premise:     **Read on 2026-09-11, and not one of the five is a microVM
+             manager for a capability-denied host.**
+             `references/hust-open-atom-club__Vex` is a Docker-like command line
+             that saves, shares and launches named `qemu-system-*`
+             configurations. It composes command lines and boots nothing itself.
+             `references/cubic-vm__cubic` boots official distribution cloud
+             images with `cloud-init`, and it **accelerates every machine with
+             KVM, Hypervisor or WHPX** - the one facility the target denies.
+             `references/Obirvalger__vml` presents machines as directories with
+             a `vml.toml` and requires `kvm` plus `rsync`, `socat` and
+             `cloud-localds`.
+             `references/gevico__tcg-rs` is a Rust reimplementation of QEMU's
+             TCG: a RISC-V guest translated to x86-64 host code, with 816 tests
+             and a differential test against QEMU. RISC-V guest only, so it
+             cannot carry an x86-64 payload today.
+             `references/qemu-rs__qemu-rs` is **not a manager at all**: it is a
+             Rust binding to QEMU's TCG **plugin** C API. And
+             `references/qemu-rs__qemu-rs/tree/Cargo.toml:7` declares
+             `GPL-2.0-or-later`, which `TOOL.md` section 3.3 already settles
+             against for this tree.
+             Correction 2026-09-22, read against the tree: the `cubic`
+             sentence above overstates. `tree/src/qemu/qemu_accelerator.rs:47-64`
+             defaults to one accelerator per host OS (kvm, hvf, whpx, nvmm,
+             else tcg), and `tree/src/actions/start_instance_action.rs:177-193`
+             falls back to software tcg on `Accel::Off`, arch mismatch, or a
+             failed probe. Unaccelerated machines exist there; the verdict
+             below stands unchanged.
+Approach:    One row per tool in [reference-map.md](reference-map.md), which is
+             written, plus the two mechanisms that survive the reading:
+             1. **ask the emulator which accelerator works, never assume
+                one.** `cubic` reached this independently: its pull request #538
+                is `feat: ask qemu which accelerator works on the host` and its
+                issue #6 is `Only use KVM if available`. T-1301 is where podvm
+                does it;
+             2. the named-configuration shape from `Vex`, which is what a
+                machine-tier profile is, and which T-1303 already carries.
+             Take no code from any of the five. Four permit it and the fifth
+             does not, and none of the four has a line podvm needs.
+Decision:    `Vex` **confirms** and `vml` **confirms**: independent evidence
+             for the parity rule and for the machine-as-a-directory shape, no
+             new work. `cubic` is an **anti-pattern exhibit**, kept for T-1302's
+             defect. `tcg-rs` is **filed** here, below. `qemu-rs` is
+             **refused**, and the licence alone settles it.
+             **`tcg-rs` is filed rather than refused**, and the reason is
+             worth keeping: the target permits RWX `mmap`/`mprotect`, which is
+             exactly what a translator's code buffer needs, so a pure-Rust TCG
+             could in principle run where QEMU runs and would remove the QEMU
+             dependency entirely. It is a RISC-V guest today, so it is years
+             from useful here. Revisit only when it carries an x86-64 guest.
+Prove:       `./target/release/podvm-gate` resolves every row, and each of the five names its verdict and the tree line that settles its licence
+
+**Done 2026-09-22.** Every row of [reference-map.md](reference-map.md)
+names its verdict and the tree line that settles it, and
+`./scripts/check-todo.py` (now `podvm-gate`) resolves every row green. `Vex` **confirms**
+(`tree/src/commands/exec.rs:39` builds the qemu command line and spawns
+it: a composer, not a manager). `vml` **confirms**
+(`tree/README.md:20-26` names kvm, rsync, socat and cloud-localds).
+`cubic` is the **anti-pattern exhibit** (T-1302's space-splitting defect;
+the acceleration premise above is corrected underneath it).
+`tcg-rs` is **filed** (`tree/README.md:6-8`: a Rust TCG with a RISC-V
+guest only). `qemu-rs` is **refused** (`tree/Cargo.toml:7` declares
+`GPL-2.0-or-later`, and it binds the plugin API rather than managing
+anything). No row moved and no verdict changed; the one overstatement
+found on the way is corrected above with its lines.
+
+---
+
+### T-1308 One TCG number is a claim about one benchmark, and the range is 3x to 21x
+
+Source:      `references/talaria0101__vm-research/tree/experiments/logs/66-tcg-benchmarks.log`
+             and `references/talaria0101__vm-research/tree/experiments/logs/72-bench-matrix.log`;
+             `references/talaria0101__sandbox-insights/tree/experiments/logs/55-tcg-exec-and-bench.log`;
+             `references/Azathothas__sandbox-insights/tree/docs/open-questions.md`
+Category:    machine
+Priority:    P1
+Effort:      M
+Status:      done
+
+Problem:     [T-1301](machine.md) selects the machine tier and the selection is a
+             cost decision, so podvm will have to tell an operator what the
+             tier costs. **Every source that states one number states a
+             different one**, and a reader who takes any of them as "the TCG
+             tax" will be wrong by up to seven times.
+Premise:     **Measured, four times, on one host class, and the spread is
+             real.** Every checksum matched on every platform in both trees, so
+             none of these measures a different computation.
+             md5 of 16 MiB: host 0.026 s against guest 0.07 to 0.08 s, which is
+             about **3x**.
+             A tight integer loop of 30 M iterations: host 854.1 Mops/s against
+             guest 274.7 Mops/s, which is **3.1x**.
+             A dependent double chain: host 708.8 Mops/s against guest
+             78.4 Mops/s, which is **9.0x**.
+             xorshift32 with double accumulation and FNV mixing, 30 M
+             iterations: host 721.4 to 754.8 Mops/s against guest 31.4 to
+             35.3 Mops/s, which is about **21x**.
+             **A document in that corpus states "20-25x" as its decision-table
+             speed row and repeats it in its recommendation**, from the last
+             measurement alone. Both of its own numbers are right and they
+             measure different things.
+             Two of the four trees already say so. One writes that any
+             single-number multiplier is "a claim about a benchmark and a
+             moment, not about emulation". The other files it as an open
+             question and names the closure test.
+Approach:    Adopt that closure test rather than inventing one: integer,
+             syscall, memory-bandwidth and I/O workloads, reported
+             as a distribution rather than a point, with same-day native and
+             chroot controls taken on the same host in the same run.
+             Compilation is a named gap, not a fifth row: the guest
+             carries no toolchain and has no network to fetch one, so no
+             compiler runs inside it. Carrying a static compiler into the
+             extras archive is future work; until then the spread rests on
+             the four classes one binary can cover on all three platforms.
+             Every row prints a checksum and the run is refused if two
+             platforms disagree, because a platform that computed something else
+             must say so rather than look fast.
+             podvm quotes the **range and the workload**, never a single
+             figure: the four-part diagnostic [cli.md](cli.md) T-0805 defines
+             has room for it.
+Decision:    **podvm never prints a bare multiplier.** Where the machine tier
+             is selected the banner names the workload class and the measured
+             range for it, or it names nothing. **Rejected:** carrying the
+             "20-25x" figure as a default, which is a real measurement of
+             somebody else's benchmark on somebody else's host and would be read
+             here as a property of emulation.
+Prove:       `./experiments/154-tcg-workload-spread.sh` prints one row per workload class with its checksum and its ratio, and exits 1 if any two platforms disagree on a checksum
+**Done 2026-09-22.** `experiments/154-tcg-workload-spread.sh` exits 0
+             on a lane-built binary: 14 driven, 0 mismatches
+             (`experiments/results/tcg-workload-spread.txt`). One static
+             binary per class runs on all three platforms, medians of three
+             runs: int host 0.153 s, chroot 0.155 s (1.0x), guest 1.136 s
+             (7.4x); syscall host 0.267 s, chroot 0.270 s (1.0x), guest
+             3.060 s (11.5x); memory host 1.094 s, chroot 1.118 s (1.0x),
+             guest 1.588 s (1.5x); file I/O host 0.087 s, chroot 0.092 s
+             (1.1x), guest 0.453 s (5.2x). Every checksum agrees on every
+             platform, so no platform computes a different thing. The chroot
+             tier costs nothing measurable here (1.0 to 1.1x on all four
+             classes). The TCG spread runs 1.5x (memory) to 11.5x
+             (syscall): syscall-heavy payloads pay most, and no single
+             multiplier describes the tier. That confirms the Decision: the
+             banner names the class and its range, never a bare figure.
+             Conditions: lane base `rust:1.98.1-bookworm`, host kernel
+             7.2.0-WSL2-STABLE, qemu 7.2.22 with
+             `-M pc,acpi=off -m 256 -accel tcg,thread=multi`, gcc 12.2.0
+             with `-O2 -static`, the pinned image and kernel above. The
+             guest file-I/O leg runs against initramfs (RAM): no disk
+             device passes to qemu, so that row compares filesystems, not
+             disks. Two notes stay open: an `io error=` line counts as a
+             run in section 2 while section 4 still refuses it
+             (report-internal only, the exit stays 1), and the conditions
+             block does not repeat the qemu flags or CFLAGS (both pinned
+             in the script). The results file was recovered from the kept
+             job transcript: the run left no `PODVM_ARTIFACTS`, so the raw
+             per-run logs stayed in the guest job directory. A measurement
+             job always names `PODVM_ARTIFACTS`.
+
+**Partial, 2026-09-25.** Issue 53 reopens this entry on its own
+two notes: an `io error=` line counts as a run in section 2 while
+section 4 still refuses it (report-internal only, the exit stays
+1), and the conditions block does not repeat the qemu flags or
+CFLAGS. Make section 2 count an `io error=` line the way section
+4 does, or say in both why not, and repeat the flags in the
+conditions block. Fix area is the measurement script with
+`experiments/results`. Risk if wrong is a reader adding two
+numbers that should agree and getting a total that does not.
+Prove is the re-driven `154` with both tallies agreeing and the
+flags in the conditions.
+
+**Done 2026-09-26.** `experiments/154-tcg-workload-spread.sh`
+exits 0 on the lane (`rust:1.98.1-bookworm` job container in
+`wsl-toolkit-podvm`, host kernel `7.2.0-WSL2-STABLE`, lane-built
+musl release binary): 14 driven, 0 mismatches
+(`experiments/results/tcg-workload-spread.txt`). Section 1 now
+counts `^workload=` lines requiring 3, exactly like sections 2
+and 4, so an `io error=` line beside a zero exit can no longer
+pass one tally and fail the other; the tallies agree by
+construction. The conditions block prints the pinned
+`QEMU_FLAGS` (`-M pc,acpi=off -m 256 -nographic -no-reboot
+-accel tcg,thread=multi`) and `BENCH_CFLAGS` (`-O2 -static`)
+beside the invocations that use them, so a re-drive that
+changes a flag cannot silently compare against this report.
+Rows: int host 0.155 s chroot 0.148 s (1.0x) guest 1.168 s
+(7.5x); sys host 0.288 s chroot 0.257 s (0.9x) guest 3.093 s
+(10.7x); mem host 1.131 s chroot 1.106 s (1.0x) guest 1.557 s
+(1.4x); io host 0.094 s chroot 0.095 s (1.0x) guest 0.457 s
+(4.9x). Every checksum agrees on every platform. The chroot
+tier still costs nothing measurable (1.0x or better on three
+classes, 1.0x on the fourth). The TCG spread on this run is
+1.4x (memory) to 10.7x (syscall), confirming the Decision
+again: no single multiplier describes the tier.
+
+---
+
+### T-1313 Every experiment fetch carries its own ceiling, and a stalled origin proves it
+
+Source:      `TODO/machine.md` T-1304 residual; `experiments/146-podvm-initramfs.sh:153`,
+             `experiments/147-podvm-exec.sh:119`, `experiments/152-nix-acceptance.sh:94`
+Category:    machine
+Priority:    P1
+Effort:      M
+Status:      done
+
+Problem:     Three experiment fetches wait on the network with no ceiling:
+             the kernel fetch in 146 and 147 (`curl -fsSL`, no `--max-time`,
+             no `timeout` wrapper) and the nix tarball fetch in 152. A
+             stalled mirror turns any of the three into a hang no clause
+             names. [RULES.md](RULES.md) section 8 gives every
+             network-touching command a timeout, and podvm inherits that as
+             a product requirement; the project's own scripts are not exempt.
+Premise:     Every OTHER wait in 146/147 is already bounded (146 boots under
+             `timeout BOOT_TIMEOUT`, 147 carries boot, command and handshake
+             deadlines), and the tree already bounds fetches both ways:
+             `timeout 300 curl` in `experiments/290-microvm.sh:91` and
+             `--max-time 60` in `scripts/common/mine-repo.sh:416`. The fix is
+             one flag per fetch, not a new mechanism.
+             `experiments/280-insecure-registry.sh:287,291` needs no change:
+             loopback health polls inside retry loops, where the loop is the
+             bound.
+Approach:    `--max-time` on all three fetches, default 60, env-overridable
+             per script (`PODVM_146_CURL_TIMEOUT` and kin, following the
+             `BOOT_TIMEOUT` pattern already in 146/147) for a slow mirror.
+             A stalled-origin clause in 146 proves the bound bites: a
+             localhost server that accepts and never answers, fetched with a
+             2 s ceiling, must exit 28 inside 10 s. A bound nobody drove red
+             is a comment, not a ceiling. Changing 146 re-drives T-1303's
+             evidence and changing 152 re-drives T-1111's, so all three
+             scripts re-drive green in the same change.
+Decision:    Recommendation: `curl --max-time`, not the `timeout` wrapper.
+             The ceiling travels with the transfer rather than with the
+             process, and 146 already gates on `curl`. Ruled out: leaving
+             152 out because its re-drive is heavy (that leaves the heaviest
+             fetch unbounded, which is the one that most needs the ceiling).
+Prove:       `./experiments/146-podvm-initramfs.sh` exits 0 on a lane-built binary with the stalled-origin clause green
+**Done 2026-09-22.** `--max-time` on all three fetches, default 60,
+             env-overridable per script (`PODVM_146_CURL_TIMEOUT`,
+             `PODVM_147_CURL_TIMEOUT`, `PODVM_NIX_CURL_TIMEOUT`),
+             with the ceiling in each conditions block. 146 gains clause 6:
+             a localhost python server that accepts and never answers,
+             fetched with a 2 s ceiling under `timeout 10`, exits 28. All
+             three re-drive green in this change: 146 exits 0 on a
+             lane-built binary with clause 6 green
+             (`experiments/results/podvm-initramfs.txt`), 147 exits 0 on a
+             lane-built binary with every status distinct
+             (`experiments/results/podvm-exec.txt`), and 152 exits 0 on the
+             Windows host against host podman 6.1.2 with all seven rows
+             green (`experiments/results/nix-acceptance.txt`). T-1303's and
+             T-1111's evidence stand re-driven. Two findings belong to the
+             driving, not the code: two `run-in-base.sh` jobs from one
+             checkout stage through one job file, so both drove 146 while
+             one was asked for 147 (recorded as the eighth trap in
+             [`../docs/containers.md`](../docs/containers.md); 147 was
+             re-run alone), and a measurement job always names
+             `PODVM_ARTIFACTS` (146's binary rode home that way and drove
+             152 on the host). One pre-existing wart, untouched: the
+             subject prints `/bin/sh: 18: echo: echo: I/O error` where
+             `grep -qm1` closes the pipe early; every row stays green.
+
+### T-1568 Port `experiments/145-podvm-parity.sh` to `podvm-parity`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:55`;
+             `experiments/145-podvm-parity.sh`; `TODO/machine.md` T-1302
+Category:    machine
+Priority:    P2
+Effort:      M
+Status:      done
+
+Problem:     The help parity proof is shell. The pure half asserts that
+             `podvm --help` and `podvm --help` list one set of verbs, and
+             that half becomes a unit test; the live-payload rows stay
+             driven, by the binary the same way the script drove them.
+             Nothing here pulls an image.
+Premise:     The exit codes are data, read out of the binary like the
+             script reads them out of the exit-codes helper: a case the
+             table does not carry is a failure to read it, never a guess.
+             The name routes on the basename of argv[0], so a copy named
+             `podvm` drives exactly like the script's symlink, portably.
+Approach:    Port the proof to binary `podvm-parity` with no
+             dependencies, parsing the parity and exit-code answers
+             in-process instead of `jq`. Keep the experiment path as a
+             compat shim that execs the binary, so T-1302 keeps its path.
+Decision:    The script keeps its path and its exit codes; the binary
+             owns the clauses, the copy it stages, and the report.
+Prove:       `cargo test -p podvm-measure` green in the lane; the proof
+             drives the shipped binary; `./target/release/podvm-gate`
+             exits 0.
+
+**Done 2026-10-01.** The `podvm-measure` crate carries `podvm-parity`
+and `podvm-workload` with no dependencies, and both experiment
+paths stay as exec shims. Lane proof
+([podvm-crate-proof](../experiments/results/podvm-crate-proof.txt)):
+unit tests 3 and 4 passed; retired script and shim both exit 1 over
+the same CLI with identical counts (14 driven, 5 mismatches);
+verdicts agree retired-vs-binary; both shims reach their binaries;
+clippy and fmt clean. Plant
+([transcript](../experiments/results/podvm-crate-plant.txt)): unknown
+flags exit 2, an unreadable exit-code table exits 2, the median unit
+proof holds. Qualification: chroot rows intermittently report short
+counts with rc 0 while checksums agree where runs complete, and the
+guest half never reaches its done marker in the lane; both behaviours
+are environmental and identical retired-vs-binary, and stay owned by
+T-1302 and T-1308. The record gate exits 0 on the landed tree.
+
+### T-1569 Port `experiments/154-tcg-workload-spread.sh` to `podvm-workload`
+
+Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:55`;
+             `experiments/154-tcg-workload-spread.sh`; `TODO/machine.md` T-1308
+Category:    machine
+Priority:    P2
+Effort:      S
+Status:      done
+
+Problem:     The workload spread measurement is shell. One payload binary
+             per class runs on three platforms, so equal checksums are the
+             control that every platform computed the same thing. It moves
+             into the `podvm-measure` crate beside `podvm-parity`.
+Premise:     The pins are the contract: the image ref, the kernel URL and
+             hash, the qemu flags, and the payload flags print in the
+             conditions. The guest assembly is ported, not shelled out
+             to: the base is a `find`/`cpio` pipeline driven without a
+             shell, and the extras archive is a byte-exact newc writer. A
+             median of fewer than three runs is a wrong number, not an
+             approximation.
+Approach:    Port the measurement to binary `podvm-workload` with
+             no dependencies. Keep the experiment path as a compat shim
+             that execs the binary, so T-1308 keeps its path.
+Decision:    The script keeps its path, its pins, and its exit codes; the
+             binary owns the runs, the assembly, and the rows.
+Prove:       `cargo test -p podvm-measure` green in the lane;
+             `./target/release/podvm-gate` exits 0.
+
+**Done 2026-10-01.** Alongside `podvm-parity`, the dependency-free
+`podvm-workload` binary joined the `podvm-measure` crate, and
+T-1308 keeps its path through an exec shim. Lane proof
+([podvm-crate-proof](../experiments/results/podvm-crate-proof.txt),
+section 5, rows in
+[tcg-workload-spread](../experiments/results/tcg-workload-spread.txt)):
+the workload drives to a verdict (exit 1, 6 driven, 6 mismatches)
+with the pins printed in the conditions; host and chroot checksums
+agree where runs complete. Qualification: chroot int and sys rows run
+short intermittently with rc 0, and the guest half never reaches its
+done marker in the lane; both are environmental, identical
+retired-vs-binary, and stay owned by T-1308. The record gate exits 0
+on the landed tree.
+
+### T-1606 Repoint all 47 `references/` citations before deleting the corpus
+
+Source:      End-state point 3; `refactor/DEFERRALS.md` section 3;
+             `TODO/reference-map.md`; `crates/podvm-gate/src/main.rs`
+             `check_tree`
+Category:    machine
+Priority:    P2
+Effort:      L
+Status:      done
+
+Problem:     `references/` is 46 repositories and 168 MB of other
+             people's source, tracked in this repository and cited 47
+             times from `TODO/reference-map.md` and the live documents.
+             The end state calls for deleting it. Deleting it today turns
+             the record gate red, because `check_tree` reads every cited
+             path and line and fails when one does not resolve.
+Premise:     The corpus is evidence, not dead weight: every citation is a
+             recorded source and licence decision, and the gate validates
+             that each cited line still exists. Removing the corpus
+             without repointing would delete the evidence and the
+             validation together, and the gate would catch the loss only
+             as an unresolved link rather than as a missing decision.
+Approach:     Keep `references/` for now and repoint first. Each of the
+             47 citations moves to podvm's own source or is dropped
+             with a recorded reason, and the gate stays green through the
+             move rather than after it. File the repoint as its own
+             reviewable batch, then delete the corpus as a separate
+             change once the gate is green without it. Do not delete
+             first and fix citations after: that is a red tree in the
+             middle.
+Decision:    Repoint then delete, on the operator's answer of
+             2026-10-02 that `references/` stays and the repoint is filed
+             as work. The corpus is retained deliberately until this
+             entry closes, and its retention is a decision with a
+             clearing condition rather than an omission.
+Prove:       `grep -rn "references/" TODO/ docs/` returns no citation
+             that `check_tree` resolves outside the corpus, or every
+             remaining hit is recorded with its reason; `./target/release/podvm-gate`
+             exits 0 with `references/` still tracked; after the
+             deletion lands, the gate exits 0 with the corpus absent and
+             `git status` shows no tracked file referencing it.
+
+**Done 2026-11-06, under a new ruling.** The operator ruled on
+2026-11-06 that the corpus leaves the live tree and that each reference is
+tracked in a GitHub issue with the label `reference` instead. That replaces
+the repoint above: the citations stay as written and are checked against a
+manifest. The 46 issues are #132 to #192; `references/README.md` maps each
+tree to its issue and records the state of its upstream.
+
+`references/MANIFEST.tsv` lists the 7,974 files of the 46 trees with their
+line counts, read from the blobs of commit `452d792`, and counted as
+`count_lines_bytes` counts them. `crates/podvm-gate/src/main.rs` resolves
+each `references/` citation against it: the `path:line` citations of
+`check_tree` and of the TODO pass (`corpus_cite_problem`), the bare names
+(`corpus_names`), and the trees of the reference map. An empty or missing
+manifest is its own problem. Plant 6 now expects "and the map does not name
+it", and the new plant 6b cites a corpus path the manifest does not list and
+turns the gate red with "MANIFEST.tsv lists no such file".
+
+The two bindings above are cleared. The template notice is now a tracked
+file, `docs/notices/Azathothas__TEMPLATE-LICENSE.txt`, which
+`THIRD_PARTY.md` links. The 155 mechanism citations resolve through the
+manifest, so no podvm-side finding has to be written before the deletion.
+Three experiments read corpus files at run time
+(`experiments/20-enter-target.sh`, `experiments/80-interposer-abi.sh`,
+`experiments/100-interpose-symbols.sh`); each now reads them from commit
+`452d792` when the tree is absent. `.gitattributes`, `.gitignore` and
+`.github/dependabot.yml` drop their corpus rules, and
+`docs/methodology/references.md` states the new method.
+
+Proof: with `references/` holding only `MANIFEST.tsv` and `README.md`,
+`./target/release/podvm-gate` exits 0 at `corpus=46`, and `podvm-plant`
+reports plants 6 and 6b caught. The last clause of the Prove, "no tracked
+file referencing it", is superseded by the ruling: the citations into
+`references/` stay by design.
+
+**Partial 2026-10-02, and the entry's "47" was the wrong number twice.**
+The reference map is repointed; the rest of the corpus is not freed, and
+the clause cannot be met as written.
+
+`grep -rn "references/" TODO/ docs/` returns 198 hits outside
+`docs/history/`, and 156 of them are in superseded records that
+`docs/methodology/history.md` requires be kept verbatim. Of the rest,
+about 155 are `path:line` citations into third-party **source**, spread
+across seventeen `TODO/*.md` files, and they resolve through
+`check_document_state`. Repointing those is not a rewrite: each one
+records a mechanism podvm adopted, and the honest move is to write the
+finding into podvm's own record first and cite that. That is roughly an
+order of magnitude larger than what this entry scoped, and it is the
+work the entry should have been scoped to.
+
+What was done. `TODO/reference-map.md` now states each licence
+determination as a self-contained sentence with the file it was read
+from, so the decision no longer needs the captured bytes; the orphan
+pg-toolkit row, which sat in a stray one-row table after a blank line,
+is merged into the main table, which is what `corpus=46` checks. Each
+of the nine captures with no top-level licence file now says so instead
+of implying one was read. `git status --porcelain references/` is empty:
+no file under the corpus was touched, and the corpus stays tracked.
+`./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0 at
+`corpus=46`.
+
+**Two corrections to the entry's premise, both measured on disk.** `ls
+-d references/*/` is 46, not 47; the map held 46 rows plus one orphan,
+and a markdown accident rather than a 47th citation. And none of them
+ever cited a line of source: every one resolved to `tree/LICENSE`,
+`tree/COPYING`, a manifest line, or the repository API capture, which
+are licence determinations and carry no mechanism. So the instruction to
+move each citation to podvm's own source has no answer for any of the
+47, because nothing in `crates/` carries "fakeroot is GPL-3.0".
+
+**The corpus cannot be deleted while the notice stays.** `THIRD_PARTY.md`
+links `references/Azathothas__TEMPLATE/tree/LICENSE` as the retained
+0BSD notice, and a licence obligation needs the notice as a file. That
+citation is recorded, with its clearing condition, as the one binding
+the corpus by licence rather than by evidence. The clearing condition
+for the whole entry is therefore not "the 47 are moved": it is all the
+`path:line` mechanism citations given a recorded podvm-side finding,
+plus a licence decision on the template notice.
+
+An attempt worth recording, because it cost a gate run: stripping the
+`references/` prefix from the map's Tree cells turned the gate to 49
+problems. The corpus registry at `crates/podvm-gate/src/main.rs` reads
+that column to find every on-disk tree, so the path is load-bearing
+infrastructure and not decoration.
+
+### T-1626 Record that `149` clause 6 has no Rust arm and stays shell pending the guest fixture
+
+Source:      `refactor/recon-c.md:173`;
+             `refactor/06-entries/PLAN.md:124`
+Category:    machine
+Priority:    P1
+Effort:      S
+Status:      done
+
+Problem:     Clause 6 of this script shells to another script under a
+             1500-second bound. No Rust arm exists, so the script is not
+             deletable and the tree does not say why.
+Premise:     The other clauses of `149` are converted and their tests are
+             named in the source. This clause is the exception and it is
+             the one a reader counts when deciding whether the script is
+             finished.
+Approach:     Record the clause, its bound, and the guest fixture it
+             waits on. Name the entry that owns the fixture.
+Decision:     Record against the current guest entries rather than
+             opening a new one, so the gap has one owner.
+Prove:       `grep -n "149-podvm-non-goals" TODO/machine.md` names clause
+             6 and the entry that clears it.
+
+**Done 2026-10-02.** The entry records that clause 6 of
+`experiments/149-podvm-non-goals.sh:183-193` has no Rust arm while clauses
+0 through 5 are converted and tested at
+`crates/podvm-probe/src/nongoals.rs:252-318` and
+`crates/podvm-probe/src/report.rs:1068` and `:1087`. Clause 6 runs
+`experiments/361-guest-usernet.sh` under `timeout 1500` and owns that exit
+code alone, so the `149` script is not deletable. The fixture is a booting
+guest with UDP forwarding (`experiments/361-guest-usernet.sh:293-299`), no
+Rust test builds one, and T-1306 owns it: its Done record at line 606
+built 361 and the ledger keeps 149 at SPLIT and 361 at KEEP-SHELL
+(`refactor/06-entries/verdict-ledger.tsv:15` and `:65`). One correction to
+the cited source: `refactor/06-entries/PLAN.md:124` names
+`crates/podvm-supervise/src/nongoals.rs` <!-- known-absent -->, a path
+never on disk. The
+proof is `grep -n "149-podvm-non-goals" TODO/machine.md`, now returning 9
+matching lines.
+
+**Recorded 2026-10-02.** Clause 6 of
+`experiments/149-podvm-non-goals.sh:183-193` has no Rust arm and the
+script is not deletable. The clause tests `[ -x
+"$REPO/experiments/361-guest-usernet.sh" ]`, then runs that script
+under `timeout 1500` with `PODVM_BIN` exported, writes its output to
+`$WORK/361.log`, and appends the whole of it to the report on failure.
+It owns the exit code and nothing else, so a red 361 reads here as a
+missed promotion rather than a stance regression, which is what the
+clause's own comment says. Clauses 0 through 5 are the converted
+half: they read `podvm probe --json` and its stderr evidence, and
+their tests are
+`crates/podvm-probe/src/nongoals.rs:252-318` (five tests, `mod tests`
+at `:227`) and `crates/podvm-probe/src/report.rs:1068` and `:1087`.
+The audit calls the clause a claim about a different script
+(`refactor/01-audit/group-9.md:117`), and the ledger keeps 149 at
+SPLIT and 361 at KEEP-SHELL
+(`refactor/06-entries/verdict-ledger.tsv:15` and `:65`).
+
+The fixture clause 6 waits on is a booting guest, and no Rust test in
+the tree builds one. `experiments/361-guest-usernet.sh` pulls the
+pinned alpine image through the binary, fetches the netboot kernel and
+its modloop against their pins, assembles the base and extras
+archives, and drives `qemu-system-x86_64` with
+`-netdev user,id=u0,hostfwd=udp::$HPORT-:$GPORT`
+(`experiments/361-guest-usernet.sh:293-299`) so a token crosses guest
+to host and a reply is forwarded back. The only Rust in this tree that
+starts an emulator is `crates/podvm-measure/src/workload.rs:740`, and
+it runs TCG with a serial console and no forwarding, so it cannot
+stand in for the fixture.
+
+⛔ **T-1306 owns the fixture, and it is the entry that clears it.** Its
+Done record at line 606 above is what built 361 and what carries its
+pins, its result file and its conditions. The clause is removed only
+when that entry's guest path has a Rust arm, which is new work and
+not this entry's. The one thing that would remove the clause sooner is
+a Rust guest-networking fixture, and
+`refactor/06-entries/PLAN.md:154` states the shape such work takes: a
+Rust fixture first, as its own wave-0-adjacent entry.
+
+⚠ **One correction to the source above.** The plan's row for the
+`149` script at `refactor/06-entries/PLAN.md:124` cites
+`crates/podvm-supervise/src/nongoals.rs` <!-- known-absent --> with
+a line range. That path was never on disk.
+`crates/podvm-supervise/src/` holds `launcher.rs`, `lib.rs` and
+`table.rs` and no non-goals module. The tests are in
+`crates/podvm-probe/src/nongoals.rs`, and the six row names they
+assert are hard-coded at `experiments/149-podvm-non-goals.sh:95-100`.
+

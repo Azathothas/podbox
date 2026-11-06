@@ -10,9 +10,9 @@
 #
 # ⭐ WHAT THIS DRIVES. Both waiters block SIGINT/SIGTERM and read them
 # from a signalfd beside the payload's pidfd in one `ppoll`: the
-# foreground waiter (`podbox-enter` `wait_forwarding`, naming each
+# foreground waiter (`podvm-enter` `wait_forwarding`, naming each
 # forward and a signaled end on stderr) and the setsid'd launcher
-# (`podbox-supervise` `serve`, silent, the signaled exit in the table
+# (`podvm-supervise` `serve`, silent, the signaled exit in the table
 # record). A payload that traps or ignores the signal is waited on, not
 # killed: killing it would be `stop`'s decision made inside `run`.
 #
@@ -23,13 +23,13 @@
 # reset an ignore that was inherited. Every foreground leg below runs
 # through `env --default-signal=INT,QUIT`, which resets the bequeathed
 # ignore to default before exec, the way a real terminal does. That is a
-# property of the harness, not of podbox: no line of podbox resets a
+# property of the harness, not of podvm: no line of podvm resets a
 # caller-bequeathed ignore, and whether a foreground `run` should is
 # recorded in T-1335 as follow-up work, not expanded here.
 #
-# ⚠ THE PAYLOAD IS READY WHEN ITS ARGV IS VISIBLE. Killing podbox during
+# ⚠ THE PAYLOAD IS READY WHEN ITS ARGV IS VISIBLE. Killing podvm during
 # extraction tests nothing, because there is no payload yet. A substring
-# match also matches podbox's own argv (`podbox run IMG sleep 30`) from
+# match also matches podvm's own argv (`podvm run IMG sleep 30`) from
 # the instant it starts, so the waiter matches a full command line that
 # IS `sleep 30`, which is the payload's exact argv and nothing else, with
 # a pre-clean so a stale orphan cannot satisfy it either.
@@ -45,15 +45,15 @@
 #
 # The Windows wrapper runs this input at /in/job.sh with cwd /work.
 # A native run resolves the checkout from this file's path. Supply a
-# built binary through PODBOX_BIN, or use the default release path.
+# built binary through PODVM_BIN, or use the default release path.
 set -u
 case "$0" in
   /in/job.sh) REPO="$(pwd)" ;;
   *) HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
      REPO="$(CDPATH= cd -- "$HERE/.." && pwd)" ;;
 esac
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
-export PODBOX_STORE="${PODBOX_STORE:-/tmp/pb-351-store}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
+export PODVM_STORE="${PODVM_STORE:-/tmp/pb-351-store}"
 # ⚠ OUT is /out-absolute where the lane mounts artifacts, else the
 # checkout's results dir natively. A results file that lands only in the
 # lane workspace dies with the container; /out is what `--artifacts`
@@ -68,7 +68,7 @@ mkdir -p "$(dirname -- "$OUT")" || exit 2
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
-IMAGE="${PODBOX_RUN_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
+IMAGE="${PODVM_RUN_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
 
 fail=0
 say() { printf '%s\n' "$*" | tee -a "$OUT"; }
@@ -94,7 +94,7 @@ timeout 120 "$BIN" pull "$IMAGE" >>"$OUT" 2>&1 || { say "PULL-FAILED"; exit 2; }
 
 # The payload is ready when a process whose FULL command line IS
 # `sleep 30` exists: the payload's exact argv and nothing else (a
-# substring would also match podbox's own `run` argv from start).
+# substring would also match podvm's own `run` argv from start).
 wait_payload() {
   n=0
   while [ "$n" -lt 30 ]; do

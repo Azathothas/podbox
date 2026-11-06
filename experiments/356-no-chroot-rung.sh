@@ -22,31 +22,31 @@
 #   2. fixture probe: chroot denied, ptmx unusable.
 #   3. T-0503: run -t names ptmx beside the chroot sentence at 125.
 #   4. T-1317 loader family (glibc): debian runs at 0 with the banner
-#      naming the rung and PODBOX_ACTIVE_MODE userland on payload stdout.
+#      naming the rung and PODVM_ACTIVE_MODE userland on payload stdout.
 #   4b. T-1317 loader family (musl): alpine runs at 0 the same way,
 #      through `sh` keeping the invoked name (busybox applet dispatch).
 #   5. T-1317 memfd family: the static hello runs at 0 the same way.
 #   6. strict arm: --strict refuses the userland run at 125.
 #   7. refusal arm: an unresolvable payload refuses at 125 naming
 #      chroot and the family, with the rootfs byte-identical after.
-#   8. forced ladder: PODBOX_MODE=memfd enters the static hello without
-#      chroot at 0; PODBOX_MODE=memfd over dynamic alpine refuses
-#      naming the unforced loader family; PODBOX_MODE=fuse refuses
+#   8. forced ladder: PODVM_MODE=memfd enters the static hello without
+#      chroot at 0; PODVM_MODE=memfd over dynamic alpine refuses
+#      naming the unforced loader family; PODVM_MODE=fuse refuses
 #      naming the force.
 #   9. detached (T-1411): one container through run -d, ps, logs,
 #      stop and rm over the fixture, plus create and start on a second
 #      one. The launcher drives the userland loader family with pidfd
 #      supervision as today; the record carries the loader argv with the
-#      libraries, the PODBOX_MAPS table and PODBOX_GUEST_EXE inside it.
+#      libraries, the PODVM_MAPS table and PODVM_GUEST_EXE inside it.
 #      Detached payloads stay builtin-only (no grandchild exec, clause
 #      17): `while :` keeps the container up for ps and stop.
 #   10. workdir (T-1412): -w to a missing directory refuses naming
 #      the path and the image at 125, on the fixture and sane; -w /tmp
 #      prints exactly /tmp (the //tmp read-back is fixed, T-1411).
-#   11. maps (T-1407): the banner names the PODBOX_MAPS anchoring; a
+#   11. maps (T-1407): the banner names the PODVM_MAPS anchoring; a
 #      caller table is scrubbed; --unsafe-host-paths opts out; an
 #      absolute-path read sees the image; a /tmp write stays off host.
-#   12. exe-force (T-1409): the loader banner names PODBOX_GUEST_EXE.
+#   12. exe-force (T-1409): the loader banner names PODVM_GUEST_EXE.
 #   13. script (T-1413): an imported script refuses at 126 naming the
 #      resolved path and its #! line.
 #   14. quiet (T-1416): default runs silent; --verbose prints; -q
@@ -121,21 +121,21 @@ else
 	tail -15 "$WORK/build.log"
 	exit 1
 fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 [ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
-echo "podbox            $("$PB" version)" >>"$REPORT"
+echo "podvm            $("$PB" version)" >>"$REPORT"
 
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$PB" || { echo "cannot read podbox's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-FLAG=$PODBOX_EXIT_FLAG_ERROR
-RUN_ERR=$PODBOX_EXIT_RUNTIME_ERROR
-NOTFOUND=$PODBOX_EXIT_NOT_FOUND
-NOINVOKE=$PODBOX_EXIT_CANNOT_INVOKE
+podvm_exit_codes "$PB" || { echo "cannot read podvm's exit-code table: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+FLAG=$PODVM_EXIT_FLAG_ERROR
+RUN_ERR=$PODVM_EXIT_RUNTIME_ERROR
+NOTFOUND=$PODVM_EXIT_NOT_FOUND
+NOINVOKE=$PODVM_EXIT_CANNOT_INVOKE
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 fail=0
 
 step() {
@@ -231,7 +231,7 @@ mkdir -p "$WORK/emptydir" || exit 2
 cat >"$WORK/wrap.sh" <<'EOF'
 #!/bin/sh
 # Inside user+mount namespaces: hide the pty multiplexer, deny chroot,
-# run podbox. /dev/ptmx is a symlink, so the hide covers /dev/pts
+# run podvm. /dev/ptmx is a symlink, so the hide covers /dev/pts
 # itself: open answers ENOENT there.
 mount -t tmpfs tmpfs /dev/pts || exit 2
 MNT="$1"; shift
@@ -257,7 +257,7 @@ grep -q "chroot(2) is denied" "$WORK/out-fx-tty.txt" || { echo "-t refusal maske
 # Clause 4 (T-1317 loader, glibc): debian runs without chroot at 0.
 # ⭐ The banner prints under --verbose since T-1416 made runs quiet by
 # default; the payload's own line stays on stdout either way.
-step fx-debian 0 $FX "$PB" run --rm --verbose "$DEBIAN" sh -c 'echo $PODBOX_ACTIVE_MODE'
+step fx-debian 0 $FX "$PB" run --rm --verbose "$DEBIAN" sh -c 'echo $PODVM_ACTIVE_MODE'
 grep -q "^userland$" "$WORK/out-fx-debian.txt" || { echo "loader run did not report userland" >>"$REPORT"; fail=1; }
 grep -q "loader family" "$WORK/out-fx-debian.txt" || { echo "loader banner missing the family" >>"$REPORT"; fail=1; }
 grep -q "grandchild" "$WORK/out-fx-debian.txt" || { echo "loader banner missing the grandchild limit" >>"$REPORT"; fail=1; }
@@ -265,7 +265,7 @@ grep -q "grandchild" "$WORK/out-fx-debian.txt" || { echo "loader banner missing 
 # Clause 4b (T-1317 loader, musl): alpine runs without chroot at 0
 # through the invoked name. Busybox dispatches on argv[0]'s basename,
 # so `sh` must stay `sh` and not become the resolved `busybox` file.
-step fx-alpine 0 $FX "$PB" run --rm --verbose "$ALPINE" sh -c 'echo $PODBOX_ACTIVE_MODE'
+step fx-alpine 0 $FX "$PB" run --rm --verbose "$ALPINE" sh -c 'echo $PODVM_ACTIVE_MODE'
 grep -q "^userland$" "$WORK/out-fx-alpine.txt" || { echo "musl loader run did not report userland" >>"$REPORT"; fail=1; }
 grep -q "loader family" "$WORK/out-fx-alpine.txt" || { echo "musl loader banner missing the family" >>"$REPORT"; fail=1; }
 
@@ -308,12 +308,12 @@ fi
 # Clause 8 (forced ladder): memfd enters the static payload without
 # chroot; memfd forced over a dynamic payload refuses naming the
 # unforced loader family; fuse refuses naming the force.
-step fx-forced-hello 0 env PODBOX_MODE=memfd $FX "$PB" run --rm "$HELLO" /hello
+step fx-forced-hello 0 env PODVM_MODE=memfd $FX "$PB" run --rm "$HELLO" /hello
 grep -q "static-hi" "$WORK/out-fx-forced-hello.txt" || { echo "forced memfd payload stdout missing" >>"$REPORT"; fail=1; }
-step fx-forced-memfd "$RUN_ERR" env PODBOX_MODE=memfd $FX "$PB" run --rm "$ALPINE" echo forced-hi
-grep -q "without PODBOX_MODE" "$WORK/out-fx-forced-memfd.txt" || { echo "forced memfd over dynamic did not name the unforced family" >>"$REPORT"; fail=1; }
-step fx-forced-fuse "$RUN_ERR" env PODBOX_MODE=fuse $FX "$PB" run --rm "$ALPINE" true
-grep -q "PODBOX_MODE=fuse" "$WORK/out-fx-forced-fuse.txt" || { echo "forced fuse refusal unnamed" >>"$REPORT"; fail=1; }
+step fx-forced-memfd "$RUN_ERR" env PODVM_MODE=memfd $FX "$PB" run --rm "$ALPINE" echo forced-hi
+grep -q "without PODVM_MODE" "$WORK/out-fx-forced-memfd.txt" || { echo "forced memfd over dynamic did not name the unforced family" >>"$REPORT"; fail=1; }
+step fx-forced-fuse "$RUN_ERR" env PODVM_MODE=fuse $FX "$PB" run --rm "$ALPINE" true
+grep -q "PODVM_MODE=fuse" "$WORK/out-fx-forced-fuse.txt" || { echo "forced fuse refusal unnamed" >>"$REPORT"; fail=1; }
 
 # Clause 9 (T-1411 detached): one container through run -d, ps,
 # logs, stop and rm over the fixture, plus create and start on a
@@ -352,7 +352,7 @@ grep -qx "//tmp" "$WORK/out-fx-workdir-tmp.txt" && { echo "-w /tmp printed the d
 step sane-workdir "$RUN_ERR" "$PB" run --rm -w /no/such/dir "$ALPINE" true
 grep -q "/no/such/dir" "$WORK/out-sane-workdir.txt" || { echo "sane-host workdir refusal did not name the path" >>"$REPORT"; fail=1; }
 
-# Clause 11 (T-1407 maps): the banner names the PODBOX_MAPS anchoring;
+# Clause 11 (T-1407 maps): the banner names the PODVM_MAPS anchoring;
 # a caller-supplied table is scrubbed; `--unsafe-host-paths` opts out;
 # an absolute-path read sees the image and a /tmp write never lands on
 # the host.
@@ -361,10 +361,10 @@ grep -q "/no/such/dir" "$WORK/out-sane-workdir.txt" || { echo "sane-host workdir
 # `echo`, redirects): grandchild exec of an external binary is a
 # separate probe below, and must not gate the anchored-read leg.
 step fx-maps 0 $FX "$PB" run --rm --verbose "$ALPINE" sh -c 'read rel < /etc/alpine-release && echo "release=$rel"'
-grep -q "PODBOX_MAPS" "$WORK/out-fx-maps.txt" || { echo "maps banner missing" >>"$REPORT"; fail=1; }
+grep -q "PODVM_MAPS" "$WORK/out-fx-maps.txt" || { echo "maps banner missing" >>"$REPORT"; fail=1; }
 grep -q "^release=3\.20" "$WORK/out-fx-maps.txt" || { echo "anchored read did not see the image release" >>"$REPORT"; fail=1; }
-step fx-maps-scrub 0 $FX "$PB" run --rm -e PODBOX_MAPS=/:evil "$ALPINE" sh -c 'echo "maps=$PODBOX_MAPS"'
-grep -q "evil" "$WORK/out-fx-maps-scrub.txt" && { echo "caller PODBOX_MAPS leaked through" >>"$REPORT"; fail=1; }
+step fx-maps-scrub 0 $FX "$PB" run --rm -e PODVM_MAPS=/:evil "$ALPINE" sh -c 'echo "maps=$PODVM_MAPS"'
+grep -q "evil" "$WORK/out-fx-maps-scrub.txt" && { echo "caller PODVM_MAPS leaked through" >>"$REPORT"; fail=1; }
 grep -q "^maps=/:" "$WORK/out-fx-maps-scrub.txt" || { echo "scrubbed run lost the built table" >>"$REPORT"; fail=1; }
 step fx-tmpwrite 0 $FX "$PB" run --rm "$ALPINE" sh -c 'echo probe > /tmp/ul356-probe && echo wrote-tmp'
 grep -q "wrote-tmp" "$WORK/out-fx-tmpwrite.txt" || { echo "tmp write payload output missing" >>"$REPORT"; fail=1; }
@@ -382,11 +382,11 @@ grep -q "not found" "$WORK/out-fx-grandchild.txt" || { echo "grandchild limit di
 step sane-grandchild 0 "$PB" run --rm "$ALPINE" sh -c '/bin/busybox echo grandchild-ok'
 grep -q "grandchild-ok" "$WORK/out-sane-grandchild.txt" || { echo "chroot control did not run the grandchild" >>"$REPORT"; fail=1; }
 
-# Clause 12 (T-1409 exe-force): beside a caller PODBOX_GUEST_EXE the
+# Clause 12 (T-1409 exe-force): beside a caller PODVM_GUEST_EXE the
 # loader run answers the exe-force banner line. The exact-"1" value,
 # the stale-value scrub and the memfd exclusion are unit-guarded.
-step fx-exeforce 0 $FX "$PB" run --rm --verbose -e PODBOX_GUEST_EXE=/bin/echo "$DEBIAN" echo exeforce-hi
-grep -q "PODBOX_GUEST_EXE" "$WORK/out-fx-exeforce.txt" || { echo "exe-force banner missing" >>"$REPORT"; fail=1; }
+step fx-exeforce 0 $FX "$PB" run --rm --verbose -e PODVM_GUEST_EXE=/bin/echo "$DEBIAN" echo exeforce-hi
+grep -q "PODVM_GUEST_EXE" "$WORK/out-fx-exeforce.txt" || { echo "exe-force banner missing" >>"$REPORT"; fail=1; }
 grep -q "exeforce-hi" "$WORK/out-fx-exeforce.txt" || { echo "exe-force payload stdout missing" >>"$REPORT"; fail=1; }
 
 # Clause 13 (T-1413 script): an imported script refuses at 126 naming
@@ -403,7 +403,7 @@ grep -q "#!/bin/sh" "$WORK/out-fx-script.txt" || { echo "script refusal did not 
 # show it too), so the clause asserts banner-silence, not total
 # silence: total silence is the extract side's to prove.
 quiet_banner() {
-	grep -q "mode=userland\|podbox: userland:\|podbox: interpose:\|podbox: complete:\|entering without chroot" "$1" \
+	grep -q "mode=userland\|podvm: userland:\|podvm: interpose:\|podvm: complete:\|entering without chroot" "$1" \
 		&& { echo "$2 carries banner lines" >>"$REPORT"; fail=1; }
 }
 step fx-quiet 0 $FX "$PB" run --rm "$ALPINE" true
@@ -455,7 +455,7 @@ grep -q "ul356rm" "$WORK/out-sane-ps2.txt" && { echo "--rm left its record behin
 # exe. `readlink /proc/self/exe` as a first-level payload on the debian
 # image over the fixture prints the guest path, never the loader's host
 # path: readlink is dynamic, so the interposer answers from
-# PODBOX_GUEST_EXE even where the real call succeeds, with no extra -e.
+# PODVM_GUEST_EXE even where the real call succeeds, with no extra -e.
 # (A python proof was considered; bookworm-slim holds no python3. The
 # readlink shape is the exact code the entry changed, so it proves the
 # mechanism directly.)
@@ -473,14 +473,14 @@ grep -q "ul356rm" "$WORK/out-sane-ps2.txt" && { echo "--rm left its record behin
 # go's answer as the boundary rather than as a regression.
 step fx-exe-readlink 0 $FX "$PB" run --rm "$DEBIAN" readlink /proc/self/exe
 # The answer line is exactly the guest path. An earlier whole-file grep
-# for "rootfs" false-fired on podbox's own extraction diagnostics (lane
+# for "rootfs" false-fired on podvm's own extraction diagnostics (lane
 # job 947e9e1e6ad11d71: the answer was /usr/bin/readlink while stderr
 # carried store/rootfs/ lines), so the assertion matches the full line:
 # a leaked loader host path would BE the answer and fail this match.
 grep -qx "/usr/bin/readlink" "$WORK/out-fx-exe-readlink.txt" || { echo "readlink did not answer exactly the guest path" >>"$REPORT"; fail=1; }
 step fx-go-limit 2 $FX "$PB" run --rm "$GOLANG" go version
 # want is the payload's own 2 (T-0802: passed through unchanged), not 127:
-# the limit is that go fails naming GOROOT, not that podbox refuses it.
+# the limit is that go fails naming GOROOT, not that podvm refuses it.
 grep -q "GOROOT" "$WORK/out-fx-go-limit.txt" || { echo "go limit did not name GOROOT" >>"$REPORT"; fail=1; }
 
 # Clause 19 (T-1408 gcc): the loader symlink resolves inside the rootfs

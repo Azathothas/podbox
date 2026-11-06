@@ -18,8 +18,8 @@ It records earlier tool behavior and is not a current instruction.
 Run the session entry point from the repository root:
 
 ```sh
-cargo build --release -p podbox-gate
-./target/release/podbox-dev session
+cargo build --release -p podvm-gate
+./target/release/podvm-dev session
 ```
 
 It detects the host and selects one lane. Do not select a lane from memory.
@@ -28,24 +28,24 @@ take longer than a warm one.
 
 | Host | Work location |
 | --- | --- |
-| Linux host | The checkout. `podbox-dev` starts the environment and build. |
+| Linux host | The checkout. `podvm-dev` starts the environment and build. |
 | Linux container | The checkout. Setup runs again because the container can be new. |
-| Windows | Record checks run on the host. Linux builds and tests run in a job container in `wsl-toolkit-podbox`. |
+| Windows | Record checks run on the host. Linux builds and tests run in a job container in `wsl-toolkit-podvm`. |
 
 Use `sh scripts/common/check-gate.sh --fast` for an early host check.
 Use `--strict` for the final host gate, including the platform twins.
 Use `sh scripts/windows/run-in-base.sh` for the full Linux check.
-`podbox-dev status` reports the native Linux background build. It does
+`podvm-dev status` reports the native Linux background build. It does
 not report Windows base status.
 
 ## Windows base
 
-The instance name is `podbox`. The distribution name is
-`wsl-toolkit-podbox`. Every manual command must name the instance.
+The instance name is `podvm`. The distribution name is
+`wsl-toolkit-podvm`. Every manual command must name the instance.
 
 ```powershell
-wsl-toolkit --instance podbox base status --probe
-wsl-toolkit --instance podbox base ensure --probe
+wsl-toolkit --instance podvm base status --probe
+wsl-toolkit --instance podvm base ensure --probe
 ```
 
 `base ensure` needs a working host container engine when it creates the
@@ -61,7 +61,7 @@ a limit claim on another host. An explicit `base grant --mode rw` can give a
 directory write access; the automount setting does not cover that grant.
 
 Never call `wsl.exe` from this project. A direct call can alter another
-distribution. Use `wsl-toolkit --instance podbox` for this base.
+distribution. Use `wsl-toolkit --instance podvm` for this base.
 
 ## Run a Linux job from Windows
 
@@ -88,7 +88,7 @@ The wrapper excludes `codegraph.db`, its sidecars, `daemon.log`,
 `daemon.pid`, `target`, `.dev`, and `.tmp`. It keeps `.git` and
 `references/`: checks read the index and cited source lines. Do not
 exclude every log file; tracked reference logs are evidence. The corpus is
-retained until [T-1606](../TODO/podvm.md) closes, and the reference map
+retained until [T-1606](../TODO/machine.md) closes, and the reference map
 names what each capture decided rather than citing its lines, so dropping
 the corpus is a later change to this policy and not to the evidence.
 
@@ -98,14 +98,14 @@ directory after the run. The host job directory keeps the transcript until
 directories after two successful jobs and one caller path probe, and none
 after job-specific collection.
 
-A job writes artifacts into `/out`. Set `PODBOX_ARTIFACTS` to copy them
+A job writes artifacts into `/out`. Set `PODVM_ARTIFACTS` to copy them
 back to a host directory. A file written only in `/work` stays in the
 copied workspace and is not an output for the host.
-The default check exports its transcript, podbox, the four SSH helpers,
+The default check exports its transcript, podvm, the four SSH helpers,
 and the build record when artifacts are requested.
 
 ```powershell
-$env:PODBOX_ARTIFACTS = 'artifacts'
+$env:PODVM_ARTIFACTS = 'artifacts'
 sh scripts/windows/run-in-base.sh JOB.sh
 ```
 
@@ -117,15 +117,15 @@ version, host, exits, mode check, separate payloads, and cleanup result.
 ## Inspect and collect jobs
 
 ```powershell
-wsl-toolkit --instance podbox resources
-wsl-toolkit --instance podbox gc --json
-wsl-toolkit --instance podbox gc --job JOB_ID --apply
+wsl-toolkit --instance podvm resources
+wsl-toolkit --instance podvm gc --json
+wsl-toolkit --instance podvm gc --job JOB_ID --apply
 ```
 
 `gc` reports what it would remove until `--apply` is present. Collect a
 job only after its evidence is saved. Use its ID to leave other jobs alone.
 The report includes containers, guest directories, host directories, and
-ended base sessions. `crates/podbox-gate/src/main.rs` check 29 reads the JSON
+ended base sessions. `crates/podvm-gate/src/main.rs` check 29 reads the JSON
 report and refuses a kept item. A running job stays live unless a caller
 stops it. `wait ID --timeout D` stops the wait after D; it does not stop
 the job.

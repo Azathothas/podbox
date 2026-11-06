@@ -10,9 +10,9 @@
 # that clears a stale one is the race this closes.
 #
 # ⚠ WHAT THIS SCRIPT CANNOT YET DO. T-0204's Prove holds the lock with
-# `podbox run -d`, and `run` is M3 (TODO/milestones.md T-1104). The holder here
+# `podvm run -d`, and `run` is M3 (TODO/milestones.md T-1104). The holder here
 # is `flock(1)`, which takes the same advisory lock on the same file, so the
-# refusal path is driven for real; what is not yet driven is podbox itself
+# refusal path is driven for real; what is not yet driven is podvm itself
 # holding it across its own exec. The entry stays `partial` for that half.
 #
 #   ./160-store-gc.sh
@@ -22,14 +22,14 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/store-gc.txt"
-REFERENCE="${PODBOX_TEST_IMAGE:-public.ecr.aws/docker/library/alpine:latest}"
+REFERENCE="${PODVM_TEST_IMAGE:-public.ecr.aws/docker/library/alpine:latest}"
 WORK="$(mktemp -d)"
 STORE="$WORK/store"
 HOLDER=""
 trap '[ -n "$HOLDER" ] && kill "$HOLDER" 2>/dev/null; rm -rf "$WORK"' EXIT INT TERM
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 [ -x "$BIN" ] || {
 	echo "SKIP: $BIN is not an executable. Build it:" >&2
@@ -38,7 +38,7 @@ export PODBOX_STORE="$STORE"
 }
 command -v flock >/dev/null 2>&1 || {
 	echo "SKIP: flock(1) is not on PATH, and it is what stands in for the" >&2
-	echo "      running container this clause needs (podbox run is M3)." >&2
+	echo "      running container this clause needs (podvm run is M3)." >&2
 	exit 2
 }
 
@@ -49,19 +49,19 @@ command -v flock >/dev/null 2>&1 || {
 # on 2026-09-08 after this session's own runs, which turns a re-run of a check
 # about disk space into a check about somebody else's quota.
 # `experiments/150-image-acquisition.sh` stays on `alpine:latest` because it
-# must ask docker about the same tag. `PODBOX_TEST_IMAGE` overrides this.
+# must ask docker about the same tag. `PODVM_TEST_IMAGE` overrides this.
 echo "== conditions"
 printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 printf 'host kernel       %s\n' "$(uname -r)"
-printf 'podbox            %s\n' "$("$BIN" version)"
+printf 'podvm            %s\n' "$("$BIN" version)"
 printf 'reference         %s\n' "$REFERENCE"
-printf 'holder            flock(1), standing in for podbox run -d (M3)\n'
+printf 'holder            flock(1), standing in for podvm run -d (M3)\n'
 echo
 
 fail=0
 
 if ! timeout 600 "$BIN" pull "$REFERENCE" >"$WORK/pull.out" 2>"$WORK/pull.err"; then
-	echo "SKIP: podbox pull failed; the registry may be unreachable" >&2
+	echo "SKIP: podvm pull failed; the registry may be unreachable" >&2
 	sed 's/^/    /' "$WORK/pull.err" >&2
 	exit 2
 fi
@@ -70,13 +70,13 @@ hex="${digest#sha256:}"
 LOCKFILE="$STORE/locks/$hex.lock"
 
 echo "== 1. a second tag shares the first tag's blobs"
-"$BIN" tag "$REFERENCE" podbox-gc-probe:v1 || { echo "  FAIL: tag"; fail=1; }
+"$BIN" tag "$REFERENCE" podvm-gc-probe:v1 || { echo "  FAIL: tag"; fail=1; }
 before="$(find "$STORE/blobs" -type f | wc -l)"
 printf '  blobs after tagging   %s\n' "$before"
 
 echo
 echo "== 2. removing one of the two names frees nothing"
-"$BIN" rmi podbox-gc-probe:v1 >"$WORK/rmi.out" 2>&1
+"$BIN" rmi podvm-gc-probe:v1 >"$WORK/rmi.out" 2>&1
 rmi_rc=$?
 sed 's/^/    /' "$WORK/rmi.out"
 after_one="$(find "$STORE/blobs" -type f | wc -l)"
@@ -91,8 +91,8 @@ fi
 
 echo
 echo "== 3. an image something holds is refused by rmi and skipped by prune"
-# ⛔ The holder takes the SAME advisory lock podbox's own `hold` takes, on the
-# same path. `flock -x` blocks a shared holder too, and podbox asks for the
+# ⛔ The holder takes the SAME advisory lock podvm's own `hold` takes, on the
+# same path. `flock -x` blocks a shared holder too, and podvm asks for the
 # exclusive lock to test, so either shape answers.
 mkdir -p "$(dirname "$LOCKFILE")"
 # ⛔ ONE PROCESS, and `exec` is why. `flock FILE -c 'sleep N'` spawns the sleep
@@ -100,7 +100,7 @@ mkdir -p "$(dirname "$LOCKFILE")"
 # holding the lock and clause 4 below fails with the image still "in use".
 # Measured here on 2026-09-08, and it is the inheritance T-0204 depends on
 # working exactly as intended, arriving as a defect in the harness rather than
-# in podbox. `exec` replaces the subshell with the sleeper, so `$!` is the one
+# in podvm. `exec` replaces the subshell with the sleeper, so `$!` is the one
 # process holding fd 9 and killing it releases the lock.
 ( exec 9>"$LOCKFILE"; flock -x 9 || exit 1; exec sleep 25 ) &
 HOLDER=$!
@@ -176,12 +176,12 @@ outside="$WORK/outside"
 mkdir -p "$outside"
 echo "do not delete me" > "$outside/canary"
 canary_clause="ran"
-if PODBOX_STORE="$STORE2" timeout 600 "$BIN" pull "$REFERENCE" \
+if PODVM_STORE="$STORE2" timeout 600 "$BIN" pull "$REFERENCE" \
 	>"$WORK/pull2.out" 2>"$WORK/pull2.err"; then
 	victim="$(find "$STORE2/blobs/sha256" -type f | head -1)"
 	rm -f "$victim"
 	ln -s "$outside/canary" "$victim"
-	PODBOX_STORE="$STORE2" "$BIN" image prune -af >"$WORK/prune2.out" 2>&1
+	PODVM_STORE="$STORE2" "$BIN" image prune -af >"$WORK/prune2.out" 2>&1
 	prune2_rc=$?
 	printf '  prune exit %s\n' "$prune2_rc"
 	sed 's/^/    /' "$WORK/prune2.out"
@@ -210,9 +210,9 @@ else
 fi
 
 {
-	printf '# podbox store GC under a holder, TODO/image.md T-0204\n'
+	printf '# podvm store GC under a holder, TODO/image.md T-0204\n'
 	printf '# taken %s on kernel %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(uname -r)"
-	printf '# ⚠ The holder is flock(1). podbox run -d is M3 and is the other half.\n'
+	printf '# ⚠ The holder is flock(1). podvm run -d is M3 and is the other half.\n'
 	printf 'reference         %s\n' "$REFERENCE"
 	printf 'blobs_after_tag   %s\n' "$before"
 	printf 'blobs_after_one   %s\n' "$after_one"

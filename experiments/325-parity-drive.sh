@@ -18,7 +18,7 @@
 #
 # Runs on Linux, native or in a job container: the binary executes
 # directly, and nothing here needs a container engine. On a Windows host
-# run it inside the base with PODBOX_BIN set to a guest build artifact.
+# run it inside the base with PODVM_BIN set to a guest build artifact.
 #
 # A step that exits 0 having done nothing it was asked to do verifies its
 # own effect: a row the binary never saw is reported as unreachable, never
@@ -33,7 +33,7 @@ set -u
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/parity-drive.txt"
 WORK="$REPO/experiments/.sweep325-work"; rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 trap 'rm -rf "$WORK"' EXIT INT TERM
@@ -56,15 +56,15 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq is not on PATH" >&2; exit 2; }
 
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$BIN" || { echo "SKIP: cannot read podbox's exit-code table" >&2; exit 2; }
+podvm_exit_codes "$BIN" || { echo "SKIP: cannot read podvm's exit-code table" >&2; exit 2; }
 
-export PODBOX_STORE="$WORK/store"
+export PODVM_STORE="$WORK/store"
 
 {
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'jq                %s\n' "$(jq --version)"
 	echo
 } >"$WORK/report"
@@ -85,7 +85,7 @@ say "== 0. the table is data: $rows rows"
 # One line per row: verb, all spellings, status. The note travels by a
 # separate lookup, so no prose crosses a field separator. This lane's jq
 # ends every raw-output line with CRLF and the shell strips only the
-# trailing one, so the transport bytes go before podbox ever sees a verb.
+# trailing one, so the transport bytes go before podvm ever sees a verb.
 jq -r '.[] | [.verb, (.flag // "-"), .status] | @tsv' "$WORK/parity.json" \
 	| tr -d '\r' >"$WORK/rows.tsv" || exit 2
 
@@ -156,7 +156,7 @@ while IFS="$TAB" read -r verb flag status; do
 			'.[] | select(.verb == $v and .flag == $f) | .note' \
 			"$WORK/parity.json" | tr -d '\r')"
 		ok=yes
-		[ "$rc" -eq "$PODBOX_EXIT_FLAG_ERROR" ] || ok=no
+		[ "$rc" -eq "$PODVM_EXIT_FLAG_ERROR" ] || ok=no
 		printf '%s' "$out" | grep -qF "$note" || ok=no
 		if [ "$ok" = yes ]; then pass; else miss "$verb $first refuses without its own note (rc=$rc)"; fi
 		continue
@@ -198,15 +198,15 @@ say "== 2. every verb and group path, probed with a flag no row names"
 verbs="$(jq -r '[.[] | select(.flag != null) | .verb] | unique | .[]' "$WORK/parity.json" | tr -d '\r')"
 for v in $verbs create; do
 	# The path the caller types: a group subverb is probed under its
-	# group, never as a top-level verb podbox does not dispatch.
+	# group, never as a top-level verb podvm does not dispatch.
 	p="$(verb_path "$v")"
 	# shellcheck disable=SC2086
 	set -- $p
 	out="$(pb 60 "$@" --no-such-flag 2>&1)"; rc=$?
 	ok=yes
-	[ "$rc" -eq "$PODBOX_EXIT_FLAG_ERROR" ] || ok=no
+	[ "$rc" -eq "$PODVM_EXIT_FLAG_ERROR" ] || ok=no
 	printf '%s' "$out" | grep -q "no row in the parity table" || ok=no
-	printf '%s' "$out" | grep -q "podbox $p:" || ok=no
+	printf '%s' "$out" | grep -q "podvm $p:" || ok=no
 	if [ "$ok" = yes ]; then pass; else miss "$p unlisted refusal (rc=$rc)"; fi
 done
 # Alias paths the table never names as verbs: probed with a flag no row
@@ -217,9 +217,9 @@ for p in "image ls" "image list" "image rm" "image remove"; do
 	set -- $p
 	out="$(pb 60 "$@" --no-such-flag 2>&1)"; rc=$?
 	ok=yes
-	[ "$rc" -eq "$PODBOX_EXIT_FLAG_ERROR" ] || ok=no
+	[ "$rc" -eq "$PODVM_EXIT_FLAG_ERROR" ] || ok=no
 	printf '%s' "$out" | grep -q "no row in the parity table" || ok=no
-	printf '%s' "$out" | grep -q "podbox $p:" || ok=no
+	printf '%s' "$out" | grep -q "podvm $p:" || ok=no
 	if [ "$ok" = yes ]; then pass; else miss "$p unlisted refusal (rc=$rc)"; fi
 done
 for v in $(jq -r '[.[] | select(.flag == null) | .verb] | unique | .[]' "$WORK/parity.json" | tr -d '\r'); do
@@ -233,7 +233,7 @@ for v in $(jq -r '[.[] | select(.flag == null) | .verb] | unique | .[]' "$WORK/p
 		note="$(jq -r --arg v "$v" '.[] | select(.verb == $v and .flag == null) | .note' \
 			"$WORK/parity.json" | tr -d '\r')"
 		ok=yes
-		[ "$rc" -eq "$PODBOX_EXIT_FLAG_ERROR" ] || ok=no
+		[ "$rc" -eq "$PODVM_EXIT_FLAG_ERROR" ] || ok=no
 		printf '%s' "$out" | grep -qF "$note" || ok=no
 		if [ "$ok" = yes ]; then pass; else miss "$v bare verb (rc=$rc)"; fi
 	else

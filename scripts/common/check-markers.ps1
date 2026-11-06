@@ -52,7 +52,7 @@
 # -- THE EXEMPTIONS ----------------------------------------------------------
 #
 # ⛔ references/ IS EXEMPT. It is the immutable third-party research corpus.
-# Applying podbox's prose alphabet there would require modifying evidence.
+# Applying podvm's prose alphabet there would require modifying evidence.
 #
 # ⛔ LICENSES/*.txt IS EXEMPT. Canonical SPDX texts, two of which carry
 # typographic quotes and a copyright sign, and four of which must never have

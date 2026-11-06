@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Question: does podbox return DOCKER's exit code, case by case, on this host?
+# Question: does podvm return DOCKER's exit code, case by case, on this host?
 #
 # TODO/cli.md T-0802. An automated caller reads the exit code before it reads
 # anything else, so a runtime that returns its own codes breaks every script
 # that branches on docker's.
 #
 # ⭐ WHY THIS IS A MEASUREMENT AND NOT A UNIT TEST. docker's contract is not
-# written down anywhere podbox can read: it is what the binary does. Every row
+# written down anywhere podvm can read: it is what the binary does. Every row
 # below runs the SAME case through both binaries on the SAME host and compares
 # the two numbers, so the assertion is against docker rather than against a
 # number somebody remembered.
@@ -22,8 +22,8 @@
 # AGENTS.md absolute 8. Every case below redirects to /dev/null and reads
 # `$?` from the command itself.
 #
-# ⚠ podbox's own side of the table is DATA, not a number written here:
-# `podbox system info --format '{{json .ExitCodes}}'` is `podbox_probe::exit`,
+# ⚠ podvm's own side of the table is DATA, not a number written here:
+# `podvm system info --format '{{json .ExitCodes}}'` is `podvm_probe::exit`,
 # and the clause that asserts it agrees with what the binary does is what stops
 # the table from being a description of the code rather than the code's source.
 #
@@ -44,7 +44,7 @@ fi
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/exit-codes.txt"
 # ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
 # because an ELF built here does not execute there. The lane's scratch
@@ -58,7 +58,7 @@ trap 'eng_cleanup; rm -rf "$WORK"' EXIT INT TERM
 
 # ⚠ The same tag for both binaries, fully qualified, so a difference between
 # them is a difference between the binaries and not between two images.
-IMAGE="${PODBOX_EXIT_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
+IMAGE="${PODVM_EXIT_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
 
 # The engine is `experiments/lib/engine.sh`: a docker daemon where one
 # answers, else host podman. What each case asserts is unchanged.
@@ -70,25 +70,25 @@ ENGINE_WORK="$WORK"
 if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 [ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
 
-# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# The driver: the M5 debian row, pinned. It hosts the staged podvm binary
 # for every `$BIN` call on a non-native lane.
 DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
 STAGE="$WORK/stage"
 if [ "$NATIVE" -eq 0 ]; then
 	[ -r "$BIN" ] || {
-		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		echo "SKIP: $BIN is not readable (set PODVM_BIN to a guest build artifact)" >&2
 		exit 2
 	}
 	eng_pull "$DRIVER" || exit 2
 	mkdir -p "$STAGE" || exit 2
-	cp "$BIN" "$STAGE/podbox"
-	eng_mount "$STAGE/podbox" /pb \
+	cp "$BIN" "$STAGE/podvm"
+	eng_mount "$STAGE/podvm" /pb \
 		&& eng_mount "$WORK/w" /w rw \
 		&& eng_volmount "x330-$$" /v rw \
 		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
 fi
 
-# pb TIMEOUT ARGS... - podbox with the sweep's store: directly where it
+# pb TIMEOUT ARGS... - podvm with the sweep's store: directly where it
 # executes, staged in the driver elsewhere. Timeouts stay per call site,
 # as before.
 pb() {
@@ -102,7 +102,7 @@ pb() {
 
 if [ "$NATIVE" -eq 1 ]; then
 	[ -x "$BIN" ] || {
-		echo "SKIP: $BIN is not an executable. podbox-dev build" >&2
+		echo "SKIP: $BIN is not an executable. podvm-dev build" >&2
 		exit 2
 	}
 fi
@@ -111,7 +111,7 @@ command -v jq >/dev/null 2>&1 || {
 	exit 2
 }
 
-export PODBOX_STORE="$WORK/store"
+export PODVM_STORE="$WORK/store"
 fail=0
 skipped=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
@@ -128,7 +128,7 @@ have_docker=0
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$(pb 60 version)"
+	printf 'podvm            %s\n' "$(pb 60 version)"
 	printf 'engine            %s\n' "$(engine_describe)"
 	if [ "$have_docker" -eq 1 ]; then
 		printf 'docker            %s\n' "$(docker version --format '{{.Server.Version}}' 2>/dev/null)"
@@ -140,11 +140,11 @@ have_docker=0
 } >"$WORK/report"
 
 # --------------------------------------------------------------------- 0
-say "== 0. podbox's table, as data"
+say "== 0. podvm's table, as data"
 pb 60 system info --format '{{json .ExitCodes}}' >"$WORK/codes.json" 2>"$WORK/e0"
 rc=$?
 if [ "$rc" -ne 0 ]; then
-	say "  FAIL: podbox system info --format '{{json .ExitCodes}}' exited $rc"
+	say "  FAIL: podvm system info --format '{{json .ExitCodes}}' exited $rc"
 	sed 's/^/    /' "$WORK/e0" >>"$WORK/report"
 	fail=1
 	cat "$WORK/report"
@@ -153,7 +153,7 @@ fi
 # ⛔ The `tr` strips this lane's carriage returns: its jq ends every
 # raw-output line with CRLF, and those bytes would otherwise land in the
 # committed evidence. Measured 2026-09-21 in 320's clause 3, where the
-# same bytes reached podbox as part of a verb and read as "no such
+# same bytes reached podvm as part of a verb and read as "no such
 # command". Single-value `jq` reads need none of it: the shell's command
 # substitution strips the one trailing line ending.
 jq -r '.[] | "  \(.case)  \(.code)"' "$WORK/codes.json" | tr -d '\r' >>"$WORK/report"
@@ -174,7 +174,7 @@ pb 600 pull "$IMAGE" >/dev/null 2>&1
 
 # ⛔ ONE PLACE runs a case, so the two binaries are driven identically and the
 # report cannot show a comparison that was not made.
-#   run_case <name> <expected-from-the-table> <podbox args...> -- <docker args...>
+#   run_case <name> <expected-from-the-table> <podvm args...> -- <docker args...>
 run_case() {
 	local name="$1" want="$2"
 	shift 2
@@ -196,12 +196,12 @@ run_case() {
 		drc="-"
 	fi
 	local verdict="ok"
-	[ "$prc" = "$want" ] || { verdict="PODBOX DISAGREES WITH ITS OWN TABLE"; fail=1; }
+	[ "$prc" = "$want" ] || { verdict="PODVM DISAGREES WITH ITS OWN TABLE"; fail=1; }
 	if [ "$drc" != "-" ] && [ "$prc" != "$drc" ]; then
-		verdict="PODBOX AND DOCKER DISAGREE"
+		verdict="PODVM AND DOCKER DISAGREE"
 		fail=1
 	fi
-	printf '  %-26s want %-4s podbox %-4s docker %-4s %s\n' \
+	printf '  %-26s want %-4s podvm %-4s docker %-4s %s\n' \
 		"$name" "$want" "$prc" "$drc" "$verdict" >>"$WORK/report"
 }
 
@@ -213,7 +213,7 @@ run_case "run --pull=bogus" "$FLAG_ERROR" \
 	run --pull=bogus "$IMAGE" true -- run --pull=bogus "$IMAGE" true
 run_case "images --badflag" "$FLAG_ERROR" images --badflag -- images --badflag
 run_case "pull --badflag" "$FLAG_ERROR" pull --badflag "$IMAGE" -- pull --badflag "$IMAGE"
-# ⚠ A flag podbox lists as None has no docker equivalent -- docker HAS --memory  -- 
+# ⚠ A flag podvm lists as None has no docker equivalent -- docker HAS --memory  -- 
 # so the two numbers agreeing is the point: a caller's script branches the same
 # way either way.
 run_case "run --memory=1g" "$FLAG_ERROR" \
@@ -245,7 +245,7 @@ say "== 4. the bare name, with NO arguments at all"
 #
 # ⛔ NOT through `run_case`: passing it an empty string as the argument list runs
 # `docker ""`, which is an EMPTY VERB and exits 1. On 2026-09-09 that harness
-# mistake was reported as "podbox and docker disagree" when the two agree, which
+# mistake was reported as "podvm and docker disagree" when the two agree, which
 # is a defect in this script and not a reading about either binary.
 pb 60 >/dev/null 2>&1
 prc=$?
@@ -255,7 +255,7 @@ if [ "$have_docker" -eq 1 ]; then
 else
 	drc="-"
 fi
-printf '  %-26s want %-4s podbox %-4s docker %-4s %s\n' \
+printf '  %-26s want %-4s podvm %-4s docker %-4s %s\n' \
 	"no arguments at all" 0 "$prc" "$drc" \
 	"$( { [ "$prc" = 0 ] && { [ "$drc" = "-" ] || [ "$drc" = "$prc" ]; }; } && echo ok || echo DISAGREE)" \
 	>>"$WORK/report"
@@ -297,13 +297,13 @@ fi
 if [ "$have_docker" -eq 0 ]; then
 	say ""
 	say "  ⚠ docker is not running here, so every `docker` column reads `-`."
-	say "    podbox was still checked against its own table, which is half the"
+	say "    podvm was still checked against its own table, which is half the"
 	say "    question and is recorded as half rather than as a pass."
 	skipped=1
 fi
 
 say ""
-say "== 7. the userland rung follows the payload status (T-1414, podbox-vs-table only)"
+say "== 7. the userland rung follows the payload status (T-1414, podvm-vs-table only)"
 # Missing is 127, found-but-not-invocable is 126, a missing workdir is
 # 125: the code follows the payload status on every rung, and docker
 # has no userland rung to compare against, so there is no docker half.
@@ -342,8 +342,8 @@ if [ -n "$ux7_kind" ]; then
 		ux7 "$@" >/dev/null 2>&1
 		local rc=$?
 		local verdict="ok"
-		[ "$rc" = "$want" ] || { verdict="PODBOX DISAGREES WITH ITS OWN TABLE"; fail=1; }
-		printf '  %-26s want %-4s podbox %-4s docker %-4s %s\n' \
+		[ "$rc" = "$want" ] || { verdict="PODVM DISAGREES WITH ITS OWN TABLE"; fail=1; }
+		printf '  %-26s want %-4s podvm %-4s docker %-4s %s\n' \
 			"$name" "$want" "$rc" "-" "$verdict" >>"$WORK/report"
 	}
 	ux7_case "userland missing payload" "$NOT_FOUND" \

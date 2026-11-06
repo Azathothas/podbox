@@ -2,10 +2,10 @@
 # Question: is every non-goal a refusal the code makes, naming its leg and
 # its errno, with a leg the host permits turning the refusal off?
 #
-# TODO/podvm.md T-1306 (the non-goals; the mechanisms come from the spec
+# TODO/machine.md T-1306 (the non-goals; the mechanisms come from the spec
 # sections the entry cites, E-75 through E-34).
 #
-# Clauses over the shipped binary itself, read out of `podbox probe --json`
+# Clauses over the shipped binary itself, read out of `podvm probe --json`
 # with the stderr evidence beside it:
 #   0. the document carries all six non-goal rows with a stance each, or
 #      nothing below can be driven;
@@ -27,7 +27,7 @@
 #
 # Runs on Linux, native or in a job container: the binary executes
 # directly, and nothing here pulls an image. On a Windows host run it
-# inside the base with PODBOX_BIN set to a guest build artifact.
+# inside the base with PODVM_BIN set to a guest build artifact.
 #
 # ⚠ `set -u` and no `pipefail`: this script also runs under `sh` in a
 # Linux job container, where `sh` is dash. No `read -t`, no coproc, no
@@ -39,13 +39,13 @@ set -u
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/podvm-non-goals.txt"
 WORK="$REPO/experiments/.sweep149-work"; rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
 STORE="$WORK/store"
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 fail=0
 fails=0
@@ -65,7 +65,7 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq is not on PATH" >&2; exit 2; }
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'jq                %s\n' "$(jq --version)"
 	echo
 } >"$WORK/report"
@@ -75,7 +75,7 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq is not on PATH" >&2; exit 2; }
 # The bare run beside it captured the stderr evidence: `--json` keeps
 # stdout pure JSON and prints no evidence, so the block is read there.
 timeout 120 "$BIN" probe --json >"$WORK/doc.json" 2>/dev/null
-[ "$?" -eq 0 ] || { echo "SKIP: podbox probe --json did not run" >&2; exit 2; }
+[ "$?" -eq 0 ] || { echo "SKIP: podvm probe --json did not run" >&2; exit 2; }
 timeout 120 "$BIN" probe >"$WORK/rung.txt" 2>"$WORK/evidence.txt"
 jq -e '.non_goals' "$WORK/doc.json" >/dev/null 2>&1 || {
 	echo "SKIP: the document carries no non_goals section" >&2; exit 2;
@@ -175,13 +175,13 @@ fi
 
 say ""
 say "== 6. the promoted goal runs: datagrams cross under TCG user-mode networking"
-# TODO/podvm.md T-1306. The kvm node stays refused above; what is
+# TODO/machine.md T-1306. The kvm node stays refused above; what is
 # promoted is the remedy: guests reach the host without KVM. The 361
 # drive owns the guest, the pins and the verdict; this clause owns
 # only its exit code, so a red 361 reads here as a missed promotion
 # rather than as a stance regression.
 if [ -x "$REPO/experiments/361-guest-usernet.sh" ]; then
-	if PODBOX_BIN="$BIN" timeout 1500 sh "$REPO/experiments/361-guest-usernet.sh" >"$WORK/361.log" 2>&1; then
+	if PODVM_BIN="$BIN" timeout 1500 sh "$REPO/experiments/361-guest-usernet.sh" >"$WORK/361.log" 2>&1; then
 		pass "361 guest networking green"
 	else
 		miss "361 guest networking red"

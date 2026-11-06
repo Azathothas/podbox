@@ -14,7 +14,7 @@
 #
 # The Windows wrapper runs this input at /in/job.sh with cwd /work.
 # A native run resolves the checkout from this file's path. Supply a
-# built binary through PODBOX_BIN, or use the default release path.
+# built binary through PODVM_BIN, or use the default release path.
 #
 # ⚠ `set -u` and no `pipefail`: this script also runs under `sh` in a
 # Linux job container, where `sh` is dash. Dash has no `pipefail`, and
@@ -31,7 +31,7 @@ case "$0" in
   *) HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
      REPO="$(CDPATH= cd -- "$HERE/.." && pwd)" ;;
 esac
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 # ⚠ OUT is /out-absolute where the lane mounts artifacts, else the
 # checkout's results dir natively. A results file that lands only in the
 # lane workspace dies with the container; /out is what `--artifacts`
@@ -90,7 +90,7 @@ while IFS= read -r verb; do
   check_file "help-$verb" "$WORK/help-one.txt"
 done <"$WORK/verbs.txt"
 
-say "== podbox man, both pagings"
+say "== podvm man, both pagings"
 "$BIN" man --no-pager >"$WORK/man-nopager.txt" 2>"$WORK/man-nopager-err.txt" || { say "MAN-FAILED"; exit 1; }
 check_file "man-no-pager-stdout" "$WORK/man-nopager.txt"
 check_file "man-no-pager-stderr" "$WORK/man-nopager-err.txt"

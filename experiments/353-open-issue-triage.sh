@@ -5,7 +5,7 @@
 # TODO triage entry T-1337 (authored beside this script): the 2026-09-25
 # triage of open issues 29-38 and 49-60 plus dependabot PR 9. Each clause
 # below names its issue, runs the cited command with an isolated
-# PODBOX_STORE, and prints the output with the exit code read from the
+# PODVM_STORE, and prints the output with the exit code read from the
 # process that produced it, never through a pipe.
 #
 # The binary is lane-built here (cargo build, debug): the issues were
@@ -56,17 +56,17 @@ else
 	tail -15 "$WORK/build.log"
 	exit 1
 fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podbox"
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
 [ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
-echo "podbox            $($PB version 2>&1)" >>"$REPORT"
-echo "podbox verbose    $($PB version --verbose 2>&1 | tr '\n' ' ')" >>"$REPORT"
+echo "podvm            $($PB version 2>&1)" >>"$REPORT"
+echo "podvm verbose    $($PB version --verbose 2>&1 | tr '\n' ' ')" >>"$REPORT"
 
 run_case() {
 	name="$1"; shift
 	store="$WORK/store-$name"
 	mkdir -p "$store" || exit 1
 	out="$WORK/out-$name.txt"
-	PODBOX_STORE="$store" timeout 120 "$@" >"$out" 2>&1
+	PODVM_STORE="$store" timeout 120 "$@" >"$out" 2>&1
 	rc=$?
 	echo "clause $name exit $rc"
 	{
@@ -90,13 +90,13 @@ run_case "29-platform" "$PB" run --platform windows/amd64 "$ALPINE" cmd /c ver
 run_case "30-probe-chroot" "$PB" probe --json
 cp "$WORK/out-30-probe-chroot.txt" "$PROBE_JSON" 2>/dev/null || true
 run_case "30-run" "$PB" run --rm "$ALPINE" echo hi
-PODBOX_MODE=memfd run_case "30-memfd" "$PB" run --rm "$ALPINE" echo hi
+PODVM_MODE=memfd run_case "30-memfd" "$PB" run --rm "$ALPINE" echo hi
 run_case "30-create" "$PB" create --name triage30 "$ALPINE" true
 run_case "30-start-missing" "$PB" start triage30
 
 # Issue 31: ladder rungs report through the gate on this lane.
-PODBOX_MODE=rundir run_case "31-rundir" "$PB" run --rm "$ALPINE" echo hi
-PODBOX_MODE=bogus run_case "31-bogus" "$PB" run --rm "$ALPINE" echo hi
+PODVM_MODE=rundir run_case "31-rundir" "$PB" run --rm "$ALPINE" echo hi
+PODVM_MODE=bogus run_case "31-bogus" "$PB" run --rm "$ALPINE" echo hi
 run_case "31-verbose" "$PB" version --verbose
 
 # Issues 32/33/34/35/36: probe legs read back from the saved JSON.
@@ -128,7 +128,7 @@ EOF
 } || echo "python3 probe parse failed" >>"$REPORT"
 
 # Issue 35: machine tier entry spellings.
-run_case "35-tier-machine" "$PB" run --podbox-tier=machine --rm "$ALPINE" echo hi
+run_case "35-tier-machine" "$PB" run --podvm-tier=machine --rm "$ALPINE" echo hi
 run_case "35-podvm" "$PB" podvm triage35 run --rm "$ALPINE" echo hi
 
 # Issue 37a: parity rows for logs base and -f.

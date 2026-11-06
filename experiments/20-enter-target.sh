@@ -5,8 +5,8 @@
 #
 #   ./20-enter-target.sh                     interactive shell inside the reconstruction
 #   ./20-enter-target.sh -- id               run one command inside it
-#   ./20-enter-target.sh --stage ./podbox \
-#       -- /workspace/podbox probe           stage your own binary and run it
+#   ./20-enter-target.sh --stage ./podvm \
+#       -- /workspace/podvm probe           stage your own binary and run it
 #   ./20-enter-target.sh --raw -- sh         the container without the confinement,
 #                                            for setting fixtures up
 #
@@ -85,7 +85,7 @@ IID="${IID#sha256:}"
 # ⛔ The harness sources live in the CORPUS, not at the top of this tree. This
 # script arrived seeded from `Azathothas/container-research`, where they sit at
 # `verification/`, and the three `$REPO/verification/...` paths it carried do
-# not exist here: podbox tracks that repository under `references/` instead.
+# not exist here: podvm tracks that repository under `references/` instead.
 # Every invocation therefore failed with `cd: no such file or directory`, which
 # is a citation that does not resolve wearing a shell error message.
 # `HARNESS_SRC` names the one place they are, and the check below says so
@@ -158,7 +158,7 @@ chmod 0755 "$STAGE/.harness/enter.sh"
 # survives between runs, and `cp -a src/store dest/store` NESTS when
 # `dest/store` already exists: the second run produces `dest/store/store` and
 # leaves the first run's `dest/store` in place. Measured on 2026-09-08 while
-# staging a podbox store twice for TODO/probe.md T-0111: the second run read
+# staging a podvm store twice for TODO/probe.md T-0111: the second run read
 # the FIRST run's cache file, served it, and the clause passed for a reason
 # that had nothing to do with what it was testing. A file destination
 # overwrites and hid this for as long as only files were staged.

@@ -113,6 +113,9 @@ list_files() {
 # check that fails on a correct tree gets switched off within a week.
 # ⭐ The PROSE rules still apply to templates. Only link resolution is exempt,
 # because only that one is position-dependent.
+# ⚠ docs/history/ is exempt from link resolution too: its pages are frozen
+# records of their recorded revision, and the rename of 2026-11-06 moved
+# paths they link to. They are never edited to follow the tree.
 
 WORK="${TMPDIR:-/tmp}/.checkdocs.$$"
 mkdir -p "$WORK" || { printf '%s: cannot write to %s\n' "$SELF" "$WORK" >&2; exit 2; }
@@ -237,7 +240,7 @@ TAB=$(printf '\t')
 while IFS="$TAB" read -r kind a b c d e; do
   case "${kind:-}" in
     LINK)
-      case "$a" in docs/templates/*|bootstrap/prompts/*) continue ;; esac
+      case "$a" in docs/templates/*|bootstrap/prompts/*|docs/history/*) continue ;; esac
       case "$c" in http://*|https://*|mailto:*|'') continue ;; esac
       NLINKS=$((NLINKS + 1))
       target=${c%%#*}

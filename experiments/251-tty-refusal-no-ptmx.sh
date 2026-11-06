@@ -26,11 +26,11 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/tty-refusal-no-ptmx.txt"
 SELF="$HERE/251-tty-refusal-no-ptmx.sh"
 
-IMAGE="${PODBOX_NEG_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
+IMAGE="${PODVM_NEG_IMAGE:-public.ecr.aws/docker/library/alpine:3.20}"
 
 INNER=0
 [ "${1:-}" = "--inner" ] && INNER=1
@@ -49,15 +49,15 @@ command -v timeout >/dev/null 2>&1 || {
 }
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$BIN" || {
-	echo "SKIP: cannot read podbox's exit-code table" >&2
+podvm_exit_codes "$BIN" || {
+	echo "SKIP: cannot read podvm's exit-code table" >&2
 	exit 2
 }
 
-WORK="${PODBOX_TTY_WORK:-$(mktemp -d)}"
-export PODBOX_TTY_WORK="$WORK"
+WORK="${PODVM_TTY_WORK:-$(mktemp -d)}"
+export PODVM_TTY_WORK="$WORK"
 export WORK
-export PODBOX_STORE="$WORK/store"
+export PODVM_STORE="$WORK/store"
 # Only the outer half owns the scratch. The inner half runs in a child
 # process and shares the path; a trap there would clear the report
 # before the outer half reads it.
@@ -192,8 +192,8 @@ inner() {
 	fi
 	out="$(timeout 300 "$BIN" run -t --rm "$IMAGE" true 2>&1 >/dev/null)"
 	rc=$?
-	say "  run -t --rm $IMAGE true   rc=$rc (want $PODBOX_EXIT_RUNTIME_ERROR)"
-	if [ "$rc" != "$PODBOX_EXIT_RUNTIME_ERROR" ]; then
+	say "  run -t --rm $IMAGE true   rc=$rc (want $PODVM_EXIT_RUNTIME_ERROR)"
+	if [ "$rc" != "$PODVM_EXIT_RUNTIME_ERROR" ]; then
 		say "  FAIL: wrong code."
 		say "    GOT: $(printf '%s' "$out" | head -2 | tr '\n' ' ' | cut -c1-118)"
 		printf '1' >"$WORK/focused"
@@ -236,11 +236,11 @@ fi
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$("$BIN" version)"
+	printf 'podvm            %s\n' "$("$BIN" version)"
 	printf 'image             %s\n' "$IMAGE"
-	printf 'flag-error code   %s\n' "$PODBOX_EXIT_FLAG_ERROR"
-	printf 'cli-error code    %s\n' "$PODBOX_EXIT_CLI_ERROR"
-	printf 'runtime-error     %s\n' "$PODBOX_EXIT_RUNTIME_ERROR"
+	printf 'flag-error code   %s\n' "$PODVM_EXIT_FLAG_ERROR"
+	printf 'cli-error code    %s\n' "$PODVM_EXIT_CLI_ERROR"
+	printf 'runtime-error     %s\n' "$PODVM_EXIT_RUNTIME_ERROR"
 	pre="$(probe_usable)"
 	printf 'ptmx usable here  %s\n' "$pre"
 	echo

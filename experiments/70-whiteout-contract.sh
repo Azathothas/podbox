@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Question: what does the OCI layer contract actually require of podbox's
+# Question: what does the OCI layer contract actually require of podvm's
 # extractor (TOOL.md section 6.3), measured against real images rather than read off a
 # specification?
 #
-# Four facts, each one a requirement on `podbox-extract`:
+# Four facts, each one a requirement on `podvm-extract`:
 #
 #   A. member names carry no `./` prefix, so a path glob anchored on a slash
 #      cannot see a whiteout at the root of a layer
@@ -143,7 +143,7 @@ printf '  udocker glob:    %s\n' "$(printf '%s' "$udocker" | tr '\n' ' ')"
 missed="$(comm -23 <(printf '%s\n' "$oracle") <(printf '%s\n' "$udocker"))"
 if [ -n "$missed" ]; then
   printf '  MISSED by the glob: %s\n' "$(printf '%s' "$missed" | tr '\n' ' ')"
-  pass "D: a slash-anchored glob misses a layer-root whiteout. podbox matches on the basename."
+  pass "D: a slash-anchored glob misses a layer-root whiteout. podvm matches on the basename."
 else
   fail "D: the glob caught every whiteout. Re-read the fixture and the tar version."
 fi

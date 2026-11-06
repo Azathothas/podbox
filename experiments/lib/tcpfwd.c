@@ -4,7 +4,7 @@
  * but on a podman lane those registries publish on the host, reachable
  * only as host.containers.internal. The driver's /etc/hosts pins
  * localhost to 127.0.0.1 and cannot be rewritten unprivileged, so each
- * podbox call runs beside forwards that listen on driver loopback and
+ * podvm call runs beside forwards that listen on driver loopback and
  * dial out: `tcpfwd LISTEN_PORT TARGET_HOST TARGET_PORT`.
  *
  * One process per forward, forked per connection, select(2) both ways
@@ -14,7 +14,7 @@
  *
  * Exit: 0 on a clean kill (it runs until the container exits), 2 on usage
  * or a listen failure. A failed downstream connect drops that connection
- * with nothing printed: the caller reads podbox's error, not this one's.
+ * with nothing printed: the caller reads podvm's error, not this one's.
  */
 #include <arpa/inet.h>
 #include <errno.h>

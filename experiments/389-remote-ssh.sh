@@ -1,5 +1,5 @@
 #!/bin/bash
-# Question: do the `podbox remote ssh` verbs drive real commands with real
+# Question: do the `podvm remote ssh` verbs drive real commands with real
 # exit codes on both placements, and does every help and error path answer?
 #
 # TODO/podssh.md T-1404 (the remote dispatch). The loopback sshd proves the
@@ -50,18 +50,18 @@ command -v ssh-keygen >>"$OUT" 2>&1 || exit 2
 command -v curl >>"$OUT" 2>&1 || exit 2
 command -v jq >>"$OUT" 2>&1 || exit 2
 
-# Clause 1: the lane-built podbox and ssh helper binaries exist.
-if timeout 25m cargo build -p podbox-cli -p podbox-ssh --bins >>"$OUT" 2>&1; then
-  say "clause 1          cargo build -p podbox-cli -p podbox-ssh --bins exit 0"
+# Clause 1: the lane-built podvm and ssh helper binaries exist.
+if timeout 25m cargo build -p podvm -p podvm-ssh --bins >>"$OUT" 2>&1; then
+  say "clause 1          cargo build -p podvm -p podvm-ssh --bins exit 0"
 else
   say "clause 1          cargo build FAILED"
   exit 2
 fi
-PODBOX_BIN=$(ls -d target/*/debug/podbox 2>/dev/null | head -n 1)
+PODVM_BIN=$(ls -d target/*/debug/podvm 2>/dev/null | head -n 1)
 PROXY_BIN=$(ls -d target/*/debug/proxy 2>/dev/null | head -n 1)
 OPERATOR_BIN=$(ls -d target/*/debug/operator 2>/dev/null | head -n 1)
 NODE_BIN=$(ls -d target/*/debug/node 2>/dev/null | head -n 1)
-if [ -z "${PODBOX_BIN:-}" ] || [ -z "${PROXY_BIN:-}" ] \
+if [ -z "${PODVM_BIN:-}" ] || [ -z "${PROXY_BIN:-}" ] \
     || [ -z "${OPERATOR_BIN:-}" ] || [ -z "${NODE_BIN:-}" ]; then
   say "clause 1          a binary is missing"
   exit 2
@@ -69,8 +69,8 @@ fi
 # The group resolves its helpers beside the binary first: run the drive
 # from a directory holding all four, so the sibling arm is the one proved.
 mkdir -p "$work/bin"
-cp "$PODBOX_BIN" "$PROXY_BIN" "$OPERATOR_BIN" "$NODE_BIN" "$work/bin/"
-PODBOX="$work/bin/podbox"
+cp "$PODVM_BIN" "$PROXY_BIN" "$OPERATOR_BIN" "$NODE_BIN" "$work/bin/"
+PODVM="$work/bin/podvm"
 
 # Clause 2: every help path prints usage with 0, and the bare old spelling
 # answers with the group instead of "unknown command".
@@ -78,48 +78,48 @@ for path in "remote" "remote -h" "remote ssh" "remote ssh -h" \
     "remote ssh serve -h" "remote ssh connect -h" "remote ssh forward -h" \
     "machine" "machine ssh -h"; do
   # shellcheck disable=SC2086
-  if timeout 60 $PODBOX $path >"$work/help.out" 2>&1; then
+  if timeout 60 $PODVM $path >"$work/help.out" 2>&1; then
     code=0
   else
     code=$?
   fi
   if [ "$code" -eq 0 ] && grep -q "^usage:" "$work/help.out"; then
-    say "clause 2          podbox $path: usage with 0"
+    say "clause 2          podvm $path: usage with 0"
   else
-    say "clause 2          podbox $path FAILED (exit $code)"
+    say "clause 2          podvm $path FAILED (exit $code)"
     fail=1
   fi
 done
-timeout 60 $PODBOX ssh >"$work/ssh.out" 2>"$work/ssh.err"
+timeout 60 $PODVM ssh >"$work/ssh.out" 2>"$work/ssh.err"
 scode=$?
-if [ "$scode" -eq 125 ] && grep -q "podbox remote ssh" "$work/ssh.err"; then
-  say "clause 2          podbox ssh refused with 125 naming remote ssh"
+if [ "$scode" -eq 125 ] && grep -q "podvm remote ssh" "$work/ssh.err"; then
+  say "clause 2          podvm ssh refused with 125 naming remote ssh"
 else
-  say "clause 2          podbox ssh FAILED (exit $scode)"
+  say "clause 2          podvm ssh FAILED (exit $scode)"
   fail=1
 fi
-timeout 60 $PODBOX remote relay >"$work/relay.out" 2>"$work/relay.err"
+timeout 60 $PODVM remote relay >"$work/relay.out" 2>"$work/relay.err"
 rcode=$?
 if [ "$rcode" -eq 125 ] && grep -q "no such member" "$work/relay.err"; then
-  say "clause 2          podbox remote relay refused with 125 naming the member"
+  say "clause 2          podvm remote relay refused with 125 naming the member"
 else
-  say "clause 2          podbox remote relay FAILED (exit $rcode)"
+  say "clause 2          podvm remote relay FAILED (exit $rcode)"
   fail=1
 fi
-timeout 60 $PODBOX remote --bogus >"$work/flag.out" 2>"$work/flag.err"
+timeout 60 $PODVM remote --bogus >"$work/flag.out" 2>"$work/flag.err"
 fcode=$?
 if [ "$fcode" -eq 125 ] && grep -q "parity table" "$work/flag.err"; then
-  say "clause 2          podbox remote --bogus refused with 125 by the table"
+  say "clause 2          podvm remote --bogus refused with 125 by the table"
 else
-  say "clause 2          podbox remote --bogus FAILED (exit $fcode)"
+  say "clause 2          podvm remote --bogus FAILED (exit $fcode)"
   fail=1
 fi
-timeout 60 $PODBOX remote ssh --bogus >"$work/sshdash.out" 2>"$work/sshdash.err"
+timeout 60 $PODVM remote ssh --bogus >"$work/sshdash.out" 2>"$work/sshdash.err"
 sdcode=$?
 if [ "$sdcode" -eq 125 ] && grep -q "is not a flag" "$work/sshdash.err"; then
-  say "clause 2          podbox remote ssh --bogus refused with 125 as a flag, not a command"
+  say "clause 2          podvm remote ssh --bogus refused with 125 as a flag, not a command"
 else
-  say "clause 2          podbox remote ssh --bogus FAILED (exit $sdcode)"
+  say "clause 2          podvm remote ssh --bogus FAILED (exit $sdcode)"
   fail=1
 fi
 
@@ -164,7 +164,7 @@ ssh_opts="-o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/de
 MARK="forward-marker-$((RANDOM * RANDOM))"
 # shellcheck disable=SC2086
 out=$(timeout 60 ssh $ssh_opts -i "$work/user_key" -l "$USER_NAME" \
-  -o ProxyCommand="$PODBOX remote ssh forward tcp 127.0.0.1 2223" localhost \
+  -o ProxyCommand="$PODVM remote ssh forward tcp 127.0.0.1 2223" localhost \
   "echo $MARK" 2>"$work/fwd.err")
 fcode=$?
 if [ "$fcode" -eq 0 ] && [ "$out" = "$MARK" ]; then
@@ -175,7 +175,7 @@ else
 fi
 # shellcheck disable=SC2086
 timeout 60 ssh $ssh_opts -i "$work/user_key" -l "$USER_NAME" \
-  -o ProxyCommand="$PODBOX remote ssh forward tcp 127.0.0.1 2223" localhost \
+  -o ProxyCommand="$PODVM remote ssh forward tcp 127.0.0.1 2223" localhost \
   "exit 42" 2>/dev/null
 f42=$?
 if [ "$f42" -eq 42 ]; then
@@ -184,7 +184,7 @@ else
   say "clause 3          forward exit code FAILED: got $f42"
   fail=1
 fi
-timeout 60 $PODBOX remote ssh forward >"$work/fwdempty.out" 2>"$work/fwdempty.err"
+timeout 60 $PODVM remote ssh forward >"$work/fwdempty.out" 2>"$work/fwdempty.err"
 fecode=$?
 if [ "$fecode" -eq 125 ] && grep -q "needs a target" "$work/fwdempty.err"; then
   say "clause 3          forward with no target refused with 125 naming the target"
@@ -194,7 +194,7 @@ else
 fi
 # shellcheck disable=SC2086
 timeout 60 ssh $ssh_opts -i "$work/user_key" -l "$USER_NAME" \
-  -o ProxyCommand="$PODBOX remote ssh forward tcp 127.0.0.1 1" localhost \
+  -o ProxyCommand="$PODVM remote ssh forward tcp 127.0.0.1 1" localhost \
   "echo unreachable" 2>/dev/null
 fref=$?
 if [ "$fref" -ne 0 ]; then
@@ -227,7 +227,7 @@ if [ -z "${NAME:-}" ] || [ -z "${NODE_TOKEN:-}" ] || [ -z "${CONNECT_TOKEN:-}" ]
 fi
 say "clause 4          pair minted (name withheld: see counts below)"
 export PODSSH_RUNTIME="$RT" PODSSH_AUTHORIZED_KEYS="$work/authorized_keys"
-"$PODBOX" remote ssh serve --relay "$WSS" --name "$NAME" --node-token "$NODE_TOKEN" \
+"$PODVM" remote ssh serve --relay "$WSS" --name "$NAME" --node-token "$NODE_TOKEN" \
   >"$work/serve.log" 2>&1 &
 SERVE_PID=$!
 poll=0
@@ -244,7 +244,7 @@ if [ "${online:-?}" != "true" ]; then
   fail=1
 else
   say "clause 4          serve registered (status online)"
-  CONNECT_PROXY="$PODBOX remote ssh connect --relay $WSS --name $NAME --connect-token $CONNECT_TOKEN"
+  CONNECT_PROXY="$PODVM remote ssh connect --relay $WSS --name $NAME --connect-token $CONNECT_TOKEN"
   # One session carries both proofs: the marker out and the status back.
   # The marker is computed (the expanded MARK2 never occurs in the typed
   # bytes), and the exit code rides the same session, so one dial proves
@@ -285,7 +285,7 @@ SERVE_PID=""
 
 # Clause 5: the parity table carries the new rows, and no token reached
 # the committed log.
-if "$PODBOX" system info --format '{{json .Parity}}' 2>/dev/null | grep -q '"remote ssh"'; then
+if "$PODVM" system info --format '{{json .Parity}}' 2>/dev/null | grep -q '"remote ssh"'; then
   say "clause 5          parity carries the remote ssh rows"
 else
   say "clause 5          parity misses the remote ssh rows"

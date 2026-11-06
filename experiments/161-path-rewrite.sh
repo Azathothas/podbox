@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Question: does podbox's own interposer rewrite mapped paths across the
+# Question: does podvm's own interposer rewrite mapped paths across the
 # entry-point set, and stay neutral where nothing is mapped?
 #
 # TODO/interpose.md T-0703. Per libc (glibc debian-slim, musl alpine), pinned
@@ -36,7 +36,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 GLIBC_IMG="public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a"
 MUSL_IMG="public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc"
 MAPS="/mapped:/etc,/vbin:/bin"
@@ -58,8 +58,8 @@ command -v nm >/dev/null 2>&1 || { echo "SKIP: no nm" >&2; exit 2; }
 command -v zig >/dev/null 2>&1 || { echo "SKIP: no zig for the musl test program" >&2; exit 2; }
 command -v readelf >/dev/null 2>&1 || { echo "SKIP: no readelf for the gap clause" >&2; exit 2; }
 
-export PODBOX_STORE="$WORK/store"
-unset PODBOX_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
+export PODVM_STORE="$WORK/store"
+unset PODVM_DEFAULT_PLATFORM DOCKER_DEFAULT_PLATFORM
 
 fail=0
 failc() { printf 'FAIL %s\n' "$1"; fail=1; }
@@ -187,7 +187,7 @@ int main(void) {
     T(mf2 >= 0, "memo setup creat");
     if (mf2 >= 0) close(mf2);
     /* The child runs as uid 65534 and must be able to append the memo. */
-    T(chmod("/.podbox", 0777) == 0, "memo dir writable");
+    T(chmod("/.podvm", 0777) == 0, "memo dir writable");
     pid_t p = fork();
     if (p == 0) {
         if (setgid(65534) != 0 || setuid(65534) != 0) _exit(77);
@@ -204,7 +204,7 @@ int main(void) {
         T(stat("/tmp/t161-memo2", &mst2) == 0 && mst2.st_gid == 42,
           "memo reports the intended owner");
         struct stat mst3;
-        T(stat("/.podbox/ownership.memo", &mst3) == 0 && mst3.st_size >= 32,
+        T(stat("/.podvm/ownership.memo", &mst3) == 0 && mst3.st_size >= 32,
           "memo file grew");
     }
     unlink("/tmp/t161-memo2");
@@ -237,32 +237,32 @@ per_image() {
 	cp "$TPROG" "$ROOT/t161" || { failc "$TAG: staging the test program failed"; return; }
 	# data files, made from inside so no host writes into the store
 	"$BIN" run "$IMG" sh -c 'echo DIRFD-OK > /tmp/t161-dirfd && echo UT > /tmp/t161-ut && echo x > /tmp/t161-a' >/dev/null 2>&1
-	mapped="$("$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" cat /mapped/passwd 2>/dev/null)"
+	mapped="$("$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" cat /mapped/passwd 2>/dev/null)"
 	real="$("$BIN" run "$IMG" cat /etc/passwd 2>/dev/null)"
 	if [ -n "$mapped" ] && [ "$mapped" = "$real" ]; then pass "$TAG A: mapped read equals the real file"
 	else failc "$TAG A: mapped read differs"; fi
 	if "$BIN" run "$IMG" cat /mapped/passwd >/dev/null 2>&1; then
 		failc "$TAG A2: the unmapped control read a file that is not there"
 	else pass "$TAG A2: unmapped control fails"; fi
-	a="$("$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" stat -c '%s %u' /mapped/passwd 2>/dev/null)"
+	a="$("$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" stat -c '%s %u' /mapped/passwd 2>/dev/null)"
 	b="$("$BIN" run "$IMG" stat -c '%s %u' /etc/passwd 2>/dev/null)"
 	if [ -n "$a" ] && [ "$a" = "$b" ]; then pass "$TAG B: stat parity"
 	else failc "$TAG B: stat differs ($a vs $b)"; fi
-	c="$("$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" sh -c 'cd /mapped && cat passwd' 2>/dev/null)"
+	c="$("$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" sh -c 'cd /mapped && cat passwd' 2>/dev/null)"
 	if [ "$c" = "$real" ]; then pass "$TAG C: chdir into mapped, relative read"
 	else failc "$TAG C: chdir/read differs"; fi
-	d="$("$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" sh -c 'exec /vbin/echo mapped-exec' 2>/dev/null)"
+	d="$("$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" sh -c 'exec /vbin/echo mapped-exec' 2>/dev/null)"
 	if [ "$d" = "mapped-exec" ]; then pass "$TAG D: exec of a mapped path"
 	else failc "$TAG D: mapped exec gave [$d]"; fi
-	e="$("$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" sh -c 'ln -s /mapped/passwd /tmp/l161 && cat /tmp/l161' 2>/dev/null)"
+	e="$("$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" sh -c 'ln -s /mapped/passwd /tmp/l161 && cat /tmp/l161' 2>/dev/null)"
 	if [ "$e" = "$real" ]; then pass "$TAG E: symlink target rule"
 	else failc "$TAG E: symlink read differs"; fi
-	f="$("$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" sh -c 'ln /mapped/passwd /tmp/h161 && cat /tmp/h161 && mv /tmp/h161 /tmp/h161b && cat /tmp/h161b && mkdir /tmp/d161 && rmdir /tmp/d161 && echo links-ok' 2>/dev/null)"
+	f="$("$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" sh -c 'ln /mapped/passwd /tmp/h161 && cat /tmp/h161 && mv /tmp/h161 /tmp/h161b && cat /tmp/h161b && mkdir /tmp/d161 && rmdir /tmp/d161 && echo links-ok' 2>/dev/null)"
 	if [ "$f" = "$real
 $real
 links-ok" ]; then pass "$TAG E2: link, rename, mkdir, rmdir"
 	else failc "$TAG E2: link family differs"; fi
-	g="$("$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" sh -c 'echo /mapped/pass*' 2>/dev/null)"
+	g="$("$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" sh -c 'echo /mapped/pass*' 2>/dev/null)"
 	# ⭐ Either answer proves the expansion fired: a library glob prints the
 	# real path it matched, while a shell matching internally prints the
 	# virtual directory with the real name, which is the reverse T-0705 owns.
@@ -280,16 +280,16 @@ links-ok" ]; then pass "$TAG E2: link, rename, mkdir, rmdir"
 	elif [ "$hit" -eq 1 ]; then pass "$TAG F: glob expands through the map"
 	else failc "$TAG F: glob gave [$g]"; fi
 	if "$BIN" run "$IMG" sh -c 'command -v tar && command -v find' >/dev/null 2>&1; then
-		if "$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" sh -c 'tar -cf /tmp/t161.tar -C /etc passwd && tar -tf /tmp/t161.tar | grep -q passwd' >/dev/null 2>&1; then
+		if "$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" sh -c 'tar -cf /tmp/t161.tar -C /etc passwd && tar -tf /tmp/t161.tar | grep -q passwd' >/dev/null 2>&1; then
 			pass "$TAG G: tar works under a map"
 		else failc "$TAG G: tar broke under a map"; fi
-		if "$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" sh -c 'find /etc -name passwd | grep -q passwd' >/dev/null 2>&1; then
+		if "$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" sh -c 'find /etc -name passwd | grep -q passwd' >/dev/null 2>&1; then
 			pass "$TAG G2: find works under a map"
 		else failc "$TAG G2: find broke under a map"; fi
 	else
 		echo "SKIP $TAG G/G2: the image ships no tar or find to drive"
 	fi
-	if "$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" /t161 >"$WORK/cprog.$TAG" 2>&1; then
+	if "$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" /t161 >"$WORK/cprog.$TAG" 2>&1; then
 		pass "$TAG H: C program green"
 		sed 's/^/  /' "$WORK/cprog.$TAG"
 	else
@@ -303,7 +303,7 @@ links-ok" ]; then pass "$TAG E2: link, rename, mkdir, rmdir"
 	j="$("$BIN" run "$IMG" sh -c 'touch /tmp/ou161 && chown 0:42 /tmp/ou161 && stat -c %u:%g /tmp/ou161' 2>/dev/null)"
 	if [ "$j" = "0:42" ]; then pass "$TAG J: unmapped chown reaches the file"
 	else failc "$TAG J: unmapped chown gave [$j], want 0:42"; fi
-	k="$("$BIN" run -e "PODBOX_MAPS=$MAPS" "$IMG" sh -c 'chown 0:43 /mapped/passwd && stat -c %u:%g /mapped/passwd' 2>/dev/null)"
+	k="$("$BIN" run -e "PODVM_MAPS=$MAPS" "$IMG" sh -c 'chown 0:43 /mapped/passwd && stat -c %u:%g /mapped/passwd' 2>/dev/null)"
 	if [ "$k" = "0:43" ]; then pass "$TAG J2: mapped chown reaches the real file"
 	else failc "$TAG J2: mapped chown gave [$k], want 0:43"; fi
 }
@@ -313,7 +313,7 @@ links-ok" ]; then pass "$TAG E2: link, rename, mkdir, rmdir"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
 	printf 'host arch         %s\n' "$(uname -m)"
-	printf 'podbox            %s\n' "$("$BIN" version 2>/dev/null || echo unversioned)"
+	printf 'podvm            %s\n' "$("$BIN" version 2>/dev/null || echo unversioned)"
 	printf 'glibc image       %s\n' "$GLIBC_IMG"
 	printf 'musl image        %s\n' "$MUSL_IMG"
 	printf 'maps              %s\n' "$MAPS"
@@ -329,7 +329,7 @@ links-ok" ]; then pass "$TAG E2: link, rename, mkdir, rmdir"
 	PATH_TAKING="$(sed -n "/^PATH_TAKING='/,/^$/p" "$REPO/experiments/100-interpose-symbols.sh" | sed -e "1s/^PATH_TAKING='//" | tr '\n' ' ')"
 	[ -n "$PATH_TAKING" ] || { failc "I: could not read PATH_TAKING from 100-"; }
 	# The pinned debian rootfs, read from OUTSIDE with this host's readelf, as
-	# 100- check D does -- but extracted by podbox, so no docker is needed.
+	# 100- check D does -- but extracted by podvm, so no docker is needed.
 	GAPROOT="$WORK/gaproot"
 	mkdir -p "$GAPROOT"
 	"$BIN" extract "$GLIBC_IMG" >/dev/null 2>&1
@@ -343,7 +343,7 @@ links-ok" ]; then pass "$TAG E2: link, rename, mkdir, rmdir"
 	# Both objects, one demand.
 	gap_missing=""
 	for obj in gnu musl; do
-		nm -D --defined-only "$REPO/crates/podbox-interpose/target/x86_64-unknown-linux-$obj/release/libpodbox_interpose.so" 2>/dev/null | awk '$2=="T"{print $3}' | sort -u > "$WORK/defined.$obj"
+		nm -D --defined-only "$REPO/crates/podvm-interpose/target/x86_64-unknown-linux-$obj/release/libpodvm_interpose.so" 2>/dev/null | awk '$2=="T"{print $3}' | sort -u > "$WORK/defined.$obj"
 	done
 	[ -s "$WORK/defined.gnu" ] && [ -s "$WORK/defined.musl" ] || {
 		failc "I: objects not built; run scripts/build-interpose.sh"; }
@@ -370,7 +370,7 @@ links-ok" ]; then pass "$TAG E2: link, rename, mkdir, rmdir"
 	echo
 	echo "== J. the entry's count: 60 or more defined text symbols per object"
 	for obj in gnu musl; do
-		n="$(nm -D --defined-only "$REPO/crates/podbox-interpose/target/x86_64-unknown-linux-$obj/release/libpodbox_interpose.so" 2>/dev/null | grep -c ' T ')"
+		n="$(nm -D --defined-only "$REPO/crates/podvm-interpose/target/x86_64-unknown-linux-$obj/release/libpodvm_interpose.so" 2>/dev/null | grep -c ' T ')"
 		if [ "$n" -ge 60 ]; then pass "J: $obj defines $n (>= 60)"
 		else failc "J: $obj defines $n (< 60)"; fi
 	done

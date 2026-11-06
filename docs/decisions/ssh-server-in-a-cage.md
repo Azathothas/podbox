@@ -14,7 +14,7 @@ The reference used a dynamic Dropbear build, a passwd shim, and an
 `initgroups` tolerance patch. Static binaries cannot use the preload shim.
 A change to the patch must retain the uid and gid checks.
 
-podbox accepts an explicit server and configuration.
+podvm accepts an explicit server and configuration.
 Read the current helper's usage before invocation.
 The transport does not create a PTY or add host privileges.
 The interactive session layer provides line handling where its proof applies;

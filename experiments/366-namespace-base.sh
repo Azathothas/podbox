@@ -22,7 +22,7 @@
 # not run (no binary, no pull, no unshare).
 set -u
 
-BIN="${PB_BIN:-/workspaces/pb365/podbox}"
+BIN="${PB_BIN:-/workspaces/pb365/podvm}"
 WORK="${PB_WORK:-/tmp/pb365-work}"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 
@@ -37,7 +37,7 @@ echo "== conditions"
 echo "date              $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "host kernel       $(uname -sr)"
 echo "id                $(id -u):$(id -g)"
-echo "podbox            $($BIN version 2>/dev/null || echo MISSING)"
+echo "podvm            $($BIN version 2>/dev/null || echo MISSING)"
 echo "alpine            $ALPINE"
 } >"$WORK/report"
 
@@ -47,7 +47,7 @@ unshare -m true >/dev/null 2>&1 || { echo "unshare is refused: COULD NOT RUN" >>
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 echo "" >>"$WORK/report"
 echo "== pulls" >>"$WORK/report"

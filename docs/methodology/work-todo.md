@@ -1,6 +1,6 @@
 # Work model
 
-podbox uses one task model.
+podvm uses one task model.
 [authoring](authoring.md) defines entry fields.
 [TODO rules](../../TODO/RULES.md) define project procedure.
 
@@ -21,7 +21,7 @@ Keep the title when a premise changes.
 Correct current text in place and retain required earlier evidence in history.
 Do not treat a task's captured Problem as a claim of current source absence.
 
-Set status through podbox-count and run the independent record gate.
+Set status through podvm-count and run the independent record gate.
 The task, index, progress, and implementation belong in the same change.
 Do not create a second work order in another page or kickoff prompt.
 

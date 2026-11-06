@@ -40,7 +40,7 @@ logs/
 # experiment logs of the reference corpus; measured on 2026-11-06, they had
 # also hidden three result logs of sweep163. A citation into one of them
 # resolves on one disk and not in a fresh clone, which is the defect
-# podbox-gate exists to catch.
+# podvm-gate exists to catch.
 !experiments/results/**/*.log
 
 # -- coverage and test output -----------------------------------------------
@@ -64,11 +64,11 @@ CLAUDE.local.md
 # builds into its own target directory, which the rooted rule above does not
 # reach. Measured on 2026-09-08: 23 build artefacts were committed before this
 # line existed.
-/crates/podbox-interpose/target/
+/crates/podvm-interpose/target/
 **/*.rs.bk
 *.pdb
 
-# Cargo.lock IS committed: podbox ships a binary and the lock is what makes a
+# Cargo.lock IS committed: podvm ships a binary and the lock is what makes a
 # build reproducible.
 
 # -- experiment scratch ------------------------------------------------------
@@ -122,12 +122,12 @@ __pycache__/
 *.pyc
 *.pyo
 
-# podbox-dev state: the background build log and its stamp.
+# podvm-dev state: the background build log and its stamp.
 .dev/
 dist/
 
 # ⭐ The CodeGraph index. It is one machine's SQLite database, 230 MiB on the
-# tree it was built over, and `podbox-dev session` rebuilds it. The
+# tree it was built over, and `podvm-dev session` rebuilds it. The
 # directory carries its own ignore file; this line keeps the directory itself
 # out of `git status`, which is what an agent reads to decide the tree is clean.
 #
@@ -140,7 +140,7 @@ dist/
 
 # ⚠ The staged payload that `scripts/windows/run-in-base.sh` writes beside the
 # checkout and removes on exit. A cancelled run leaves one behind.
-.podbox-job.sh
+.podvm-job.sh
 
 # ⛔ `refactor/` is untracked working material, not the record. Its audit
 # files cite scripts and experiments that no longer exist, and the record

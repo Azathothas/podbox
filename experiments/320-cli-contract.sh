@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Question: can a caller find out what this podbox will and will not do WITHOUT
-# running anything, and does podbox answer to the names an agent already types?
+# Question: can a caller find out what this podvm will and will not do WITHOUT
+# running anything, and does podvm answer to the names an agent already types?
 #
 # TODO/cli.md T-0801 (the verb and flag parity table, as data) and T-0803
 # (answering to `docker` and `podman` on PATH).
@@ -8,7 +8,7 @@
 # ⭐ WHY THIS IS A MEASUREMENT AND NOT A UNIT TEST. Both entries are about the
 # surface a CALLER sees, and both of their failure modes are invisible from
 # inside the process: a flag accepted and silently lost still parses, and a
-# binary that answers to `docker` still runs when it is spawned as `podbox`.
+# binary that answers to `docker` still runs when it is spawned as `podvm`.
 # Every clause below drives the shipped binary through the surface an agent uses.
 #
 # ⚠ A BACKTICK INSIDE DOUBLE QUOTES IS COMMAND SUBSTITUTION, and this script
@@ -20,7 +20,7 @@
 #
 #   1. the table is DATA, one row per verb and per flag, with a status from a
 #      closed set of four words and a reason on every row;
-#   2. a flag podbox cannot honour is refused UP FRONT with that reason, never
+#   2. a flag podvm cannot honour is refused UP FRONT with that reason, never
 #      accepted and lost, and a flag nobody listed cannot be quietly accepted;
 #   3. `docker` and `podman` on PATH reach the same parser, and say they did.
 #
@@ -31,7 +31,7 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/cli-contract.txt"
 # ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
 # because an ELF built here does not execute there. The lane's scratch
@@ -43,7 +43,7 @@ Linux) NATIVE=1; WORK="$(mktemp -d)"; PSTORE="$WORK/store" ;;
 esac
 trap 'eng_cleanup; rm -rf "$WORK"' EXIT INT TERM
 
-IMAGE="${PODBOX_RUN_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
+IMAGE="${PODVM_RUN_IMAGE:-ghcr.io/pkgforge-dev/archlinux:latest}"
 
 # The engine is `experiments/lib/engine.sh`: a docker daemon where one
 # answers, else host podman. What each clause asserts is unchanged.
@@ -55,25 +55,25 @@ ENGINE_WORK="$WORK"
 if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 [ "$HAVE_ENGINE" -eq 1 ] || { echo "SKIP: no engine (a docker daemon or host podman)" >&2; exit 2; }
 
-# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# The driver: the M5 debian row, pinned. It hosts the staged podvm binary
 # for every `$BIN` call on a non-native lane.
 DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
 STAGE="$WORK/stage"
 if [ "$NATIVE" -eq 0 ]; then
 	[ -r "$BIN" ] || {
-		echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+		echo "SKIP: $BIN is not readable (set PODVM_BIN to a guest build artifact)" >&2
 		exit 2
 	}
 	eng_pull "$DRIVER" || exit 2
 	mkdir -p "$STAGE" || exit 2
-	cp "$BIN" "$STAGE/podbox"
+	cp "$BIN" "$STAGE/podvm"
 	# ⭐ The same staged file at three driver paths: /pb for pb(), and
 	# /docker + /podman for the argv[0] multicall in clause 4. A shell
 	# execs a PATH-resolved name with argv[0] set to the word as typed,
 	# so symlinks beside them answer to each name.
-	eng_mount "$STAGE/podbox" /pb \
-		&& eng_mount "$STAGE/podbox" /docker \
-		&& eng_mount "$STAGE/podbox" /podman \
+	eng_mount "$STAGE/podvm" /pb \
+		&& eng_mount "$STAGE/podvm" /docker \
+		&& eng_mount "$STAGE/podvm" /podman \
 		&& eng_mount "$WORK/w" /w rw \
 		&& eng_volmount "x320-$$" /v rw \
 		|| { echo "SKIP: the driver inputs could not be staged" >&2; exit 2; }
@@ -83,7 +83,7 @@ else
 	BIN_RUN="$BIN"
 fi
 
-# pb TIMEOUT ARGS... - podbox with the sweep's store: directly where it
+# pb TIMEOUT ARGS... - podvm with the sweep's store: directly where it
 # executes, staged in the driver elsewhere. Timeouts stay per call site,
 # as before.
 pb() {
@@ -114,12 +114,12 @@ command -v jq >/dev/null 2>&1 || {
 . "$REPO/scripts/common/exit-codes.sh"
 # Read out of the binary; on a lane where it does not execute, the
 # generated shim runs that one call staged in the driver.
-podbox_exit_codes "$BIN_RUN" || {
-	echo "SKIP: cannot read podbox's exit-code table; is jq installed and the binary built?" >&2
+podvm_exit_codes "$BIN_RUN" || {
+	echo "SKIP: cannot read podvm's exit-code table; is jq installed and the binary built?" >&2
 	exit 2
 }
 
-export PODBOX_STORE="$WORK/store"
+export PODVM_STORE="$WORK/store"
 fail=0
 skipped=0
 say() { printf '%s\n' "$*" >>"$WORK/report"; }
@@ -128,7 +128,7 @@ say() { printf '%s\n' "$*" >>"$WORK/report"; }
 	echo "== conditions"
 	printf 'date              %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	printf 'host kernel       %s\n' "$(uname -r)"
-	printf 'podbox            %s\n' "$(pb 60 version)"
+	printf 'podvm            %s\n' "$(pb 60 version)"
 	printf 'engine            %s\n' "$(engine_describe)"
 	printf 'jq                %s\n' "$(jq --version)"
 	echo
@@ -176,7 +176,7 @@ err="$(pb 300 run "$noneflag" "$IMAGE" /bin/true 2>&1 >/dev/null)"
 rc=$?
 say "  run $noneflag        rc=$rc"
 say "    $(printf '%s' "$err" | head -1 | cut -c1-96)"
-[ "$rc" -eq "$PODBOX_EXIT_FLAG_ERROR" ] || { say "  FAIL: a None flag was not a flag error"; fail=1; }
+[ "$rc" -eq "$PODVM_EXIT_FLAG_ERROR" ] || { say "  FAIL: a None flag was not a flag error"; fail=1; }
 printf '%s' "$err" | grep -q 'status None' || {
 	say "  FAIL: the refusal does not name the table's status"
 	fail=1
@@ -187,13 +187,13 @@ err="$(pb 300 run --no-such-flag "$IMAGE" /bin/true 2>&1 >/dev/null)"
 rc=$?
 say "  run --no-such-flag rc=$rc"
 say "    $(printf '%s' "$err" | head -1 | cut -c1-96)"
-[ "$rc" -eq "$PODBOX_EXIT_FLAG_ERROR" ] || { say "  FAIL: an unlisted flag was not a flag error"; fail=1; }
+[ "$rc" -eq "$PODVM_EXIT_FLAG_ERROR" ] || { say "  FAIL: an unlisted flag was not a flag error"; fail=1; }
 printf '%s' "$err" | grep -q 'no row in the parity table' || {
 	say "  FAIL: the refusal does not say the table has no row"
 	fail=1
 }
 # ⚠ And a Stub is ACCEPTED, because a stub is a difference the table states and
-# not a refusal. `-i` is the one podbox has.
+# not a refusal. `-i` is the one podvm has.
 pb 900 run -i --pull always "$IMAGE" /bin/true >/dev/null 2>&1
 rc=$?
 say "  run -i (a Stub)   rc=$rc"
@@ -209,7 +209,7 @@ say "== 3. every verb the table calls None says so with docker's 125"
 # second declaration of the same thing the table already carries.
 # ⛔ Without the `tr`, every verb but the last arrives with a carriage
 # return: this lane's jq ends every raw-output line with CRLF, and the
-# shell's command substitution only strips the trailing one. podbox
+# shell's command substitution only strips the trailing one. podvm
 # answers `restart\r` with "no such command" and exit 1. Measured
 # 2026-09-21: five false FAILs and a report file carrying ^M bytes.
 for verb in $(jq -r '[.[] | select(.flag == null and .status == "None") | .verb] | .[0:6] | .[]' "$WORK/parity.json" | tr -d '\r'); do
@@ -225,7 +225,7 @@ done
 
 # --------------------------------------------------------------------- 4
 say ""
-say '== 4. T-0803: podbox answers to `docker` and `podman` on PATH'
+say '== 4. T-0803: podvm answers to `docker` and `podman` on PATH'
 # ⭐ Multicall on argv[0]. The link is made by hand here, exactly as T-0803's
 # Prove writes it, so this clause measures the BINARY and not the installer.
 # On a non-native lane the names resolve inside the driver instead: the
@@ -249,7 +249,7 @@ for name in docker podman; do
 		rc=$?
 	else
 		out="$(eng_run 900 "$DRIVER" "" -- /bin/sh -c \
-			'PODBOX_STORE=/v/store PATH=/v/bin:$PATH "$0" run --rm "$1" /bin/echo hi' \
+			'PODVM_STORE=/v/store PATH=/v/bin:$PATH "$0" run --rm "$1" /bin/echo hi' \
 			"$name" "$IMAGE" 2>"$WORK/e4-$name")"
 		rc=$?
 	fi
@@ -260,7 +260,7 @@ for name in docker podman; do
 	# ⛔ TOOL.md section 4.1: taking the name is the requirement, taking it
 	# silently is what the honesty rules forbid.
 	[ -n "$said" ] || {
-		say "  FAIL: podbox took the $name name without saying which tool ran"
+		say "  FAIL: podvm took the $name name without saying which tool ran"
 		fail=1
 	}
 done
@@ -276,7 +276,7 @@ if command -v docker >/dev/null 2>&1 && timeout 30 docker info >/dev/null 2>&1; 
 	daemon=reachable
 fi
 say "  a docker daemon here: $daemon"
-# install-names writes where podbox runs: the checkout on a native lane,
+# install-names writes where podvm runs: the checkout on a native lane,
 # the shared scratch on a non-native one, read back host-side below.
 if [ "$NATIVE" -eq 1 ]; then
 	NAMES="$WORK/names"; FORCED="$WORK/forced"
@@ -291,7 +291,7 @@ say "  install-names     rc=$rc"
 if [ "$daemon" = reachable ]; then
 	say "    $(printf '%s' "$err" | head -1 | cut -c1-96)"
 	[ "$rc" -eq 125 ] || { say "  FAIL: the docker name was not refused"; fail=1; }
-	printf '%s' "$err" | grep -q 'podbox is the wrong tool' || {
+	printf '%s' "$err" | grep -q 'podvm is the wrong tool' || {
 		say "  FAIL: the refusal does not say why"
 		fail=1
 	}
@@ -304,7 +304,7 @@ if [ "$daemon" = reachable ]; then
 	say "  install-names --force rc=$rc, docker link: $([ -L "$FORCED/docker" ] && echo made || echo absent)"
 	[ -L "$FORCED/docker" ] || { say "  FAIL: --force did not install it"; fail=1; }
 else
-	# ⚠ THIS is the state the machines podbox is for are in, and the ruling
+	# ⚠ THIS is the state the machines podvm is for are in, and the ruling
 	# means the name IS taken there.
 	[ "$rc" -eq 0 ] || { say "  FAIL: no daemon here, so both names should install"; fail=1; }
 	[ -L "$NAMES/docker" ] || { say "  FAIL: the docker name was not taken"; fail=1; }

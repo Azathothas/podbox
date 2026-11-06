@@ -5,7 +5,7 @@
 Capture the commit before you remove Git metadata.
 Read the license before you copy source.
 A repository is read-only unless the operator explicitly names it as a write target.
-For podbox, other repositories remain read-only.
+For podvm, other repositories remain read-only.
 
 Use the repository fetcher for a remote capture:
 
@@ -25,8 +25,8 @@ Do not delegate reference reading to another agent.
 
 1. Read the project shape and the problem it solves.
 2. Inspect the construction at exact files and lines.
-3. Inspect the failure and resource paths that matter to podbox.
-4. Compare each candidate mechanism with podbox's existing implementation.
+3. Inspect the failure and resource paths that matter to podvm.
+4. Compare each candidate mechanism with podvm's existing implementation.
 
 Use the existing code index without changing the source repository.
 Confirm returned source against the captured commit.
@@ -67,13 +67,13 @@ upstream permalink at the commit read, and add its facts to the issue.
 
 State what the study did not establish before recommendations.
 Give each transferred mechanism a source, reason, and task.
-Check whether podbox already implements it.
+Check whether podvm already implements it.
 Use one of these outcomes:
 
 | Outcome | Meaning |
 | --- | --- |
-| adopt | A named mechanism enters a named podbox task |
-| confirms | Podbox already uses the mechanism |
+| adopt | A named mechanism enters a named podvm task |
+| confirms | Podvm already uses the mechanism |
 | defect example | A specific implementation shows a reproducible failure |
 | filed elsewhere | An existing task owns the work |
 | refused | The constraints or license prevent the proposed use |
@@ -89,5 +89,5 @@ Run a separate [experiment](experiments.md) for a measured claim.
 Keep the script, conditions, result, and meaningful exit code.
 State untested platforms and limits.
 
-Transfer a mechanism that meets podbox's constraints.
+Transfer a mechanism that meets podvm's constraints.
 Do not copy another project's architecture without a matching need.

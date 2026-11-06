@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Question: across the distribution matrix, does a payload that needs
-# virtualized ownership succeed, and does podbox pick the right object
+# virtualized ownership succeed, and does podvm pick the right object
 # without being told?
 #
 # TODO/milestones.md T-1110, M6's acceptance. Method in
 # `scripts/common/distro-matrix.sh` (T-1203's mechanics) and subject shape in
 # `experiments/240-distro-sweep.sh`: one subject for every row, transcripts
-# per row, no-pull counted apart, docker control where podbox fails.
+# per row, no-pull counted apart, docker control where podvm fails.
 #
 # Per row, one question each for T-0712's two columns, with the argument held
 # constant (that entry's rule: the lchown target is gid 42, unmapped, on
@@ -21,7 +21,7 @@
 # Then the selection, asserted rather than inferred: the placed object's
 # bytes are compared against the two built objects, so a musl row carrying
 # the glibc object reads as what it is. Then the two cross-libc refusals,
-# driven deliberately through `podbox system abi`. The third refusal, a new
+# driven deliberately through `podvm system abi`. The third refusal, a new
 # build host against an old libc, has no matrix row old enough to fire it;
 # the unit test owns it (`abi.rs`) and this records that instead of
 # inventing a row for it.
@@ -33,7 +33,7 @@
 # answers, else host podman. Fetches happen before any timed clause, every
 # run is bounded and `--rm`, mounts are read-only from declared roots, and
 # `--privileged` and `--cap-add` are refused outright. On a lane where the
-# Linux podbox binary does not execute, every `$BIN` call runs staged inside
+# Linux podvm binary does not execute, every `$BIN` call runs staged inside
 # a driver container (the M5 debian row) with the store on shared scratch,
 # under `--cap-drop=CHOWN` so a cleared chown still measures the interposer
 # rather than the kernel; what each row asserts is unchanged.
@@ -44,12 +44,12 @@ set -uo pipefail
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 TRANSCRIPTS="${TRANSCRIPTS:-$REPO/experiments/results/sweep245}"
 OUT="${OUT:-$REPO/experiments/results/interpose-sweep.txt}"
 
 ONLY="${1:-}"
-ROW_TIMEOUT="${PODBOX_ROW_TIMEOUT:-600}"
+ROW_TIMEOUT="${PODVM_ROW_TIMEOUT:-600}"
 
 # ⭐ Native execution on a Linux lane; staged inside the driver elsewhere,
 # because an ELF built here does not execute there.
@@ -76,19 +76,19 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 export ENGINE_REPO ENGINE_WORK
 ENGINE_REPO="$REPO"
 ENGINE_WORK="$WORK"
-# ⭐ Soft: a Linux lane without an engine still drives podbox natively and
+# ⭐ Soft: a Linux lane without an engine still drives podvm natively and
 # only loses the control. Anywhere else the driver IS the lane, so no
 # engine means nothing can run.
 if engine_pick; then HAVE_ENGINE=1; else HAVE_ENGINE=0; fi
 [ "$NATIVE" -eq 1 ] || [ "$HAVE_ENGINE" -eq 1 ] || {
-  echo "SKIP: no engine (a docker daemon or host podman) on a lane where the podbox binary does not execute" >&2
+  echo "SKIP: no engine (a docker daemon or host podman) on a lane where the podvm binary does not execute" >&2
   exit 2
 }
 
-# The driver: the M5 debian row, pinned. It hosts the staged podbox binary
+# The driver: the M5 debian row, pinned. It hosts the staged podvm binary
 # for every `$BIN` call on a non-native lane.
 DRIVER='public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a'
-# ⭐ The wall, rebuilt around podbox. The driver is rootful, so a payload
+# ⭐ The wall, rebuilt around podvm. The driver is rootful, so a payload
 # chown would succeed natively and every row would clear for no reason;
 # without CHOWN the interposer is the only way 0:42 reads back.
 DRIVER_CAPS='--cap-drop=CHOWN'
@@ -111,7 +111,7 @@ abi_check() { # WORD OBJPATH LIBCPATH ERRFILE -> 0 admitted
   if [ "$NATIVE" -eq 1 ]; then
     "$BIN" system abi "$2" "$3" >/dev/null 2>"$4"
   else
-    eng_mount "$STAGE/podbox" /pb && eng_mount "$STAGE/$1.so" /obj && eng_mount "$3" /lc || {
+    eng_mount "$STAGE/podvm" /pb && eng_mount "$STAGE/$1.so" /obj && eng_mount "$3" /lc || {
       echo "STAGE MOUNT FAILED" >"$4"
       eng_clear
       return 1
@@ -126,8 +126,8 @@ abi_check() { # WORD OBJPATH LIBCPATH ERRFILE -> 0 admitted
 # The two interpose objects the selection is compared against. Environment
 # overrides point at guest build artifacts on lanes where the tree never
 # built them itself; the defaults are what a Linux lane builds in place.
-GNU_SO="${GNU_SO:-$REPO/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so}"
-MUSL_SO="${MUSL_SO:-$REPO/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so}"
+GNU_SO="${GNU_SO:-$REPO/crates/podvm-interpose/target/x86_64-unknown-linux-gnu/release/libpodvm_interpose.so}"
+MUSL_SO="${MUSL_SO:-$REPO/crates/podvm-interpose/target/x86_64-unknown-linux-musl/release/libpodvm_interpose.so}"
 
 # ⭐ Readability, not executability, is what is asked on a non-native lane:
 # the binary runs staged inside the driver there.
@@ -137,14 +137,14 @@ case "$(uname -s)" in
 	exit 2
 } ;;
   *) [ -r "$BIN" ] || {
-	echo "SKIP: $BIN is not readable (set PODBOX_BIN to a guest build artifact)" >&2
+	echo "SKIP: $BIN is not readable (set PODVM_BIN to a guest build artifact)" >&2
 	exit 2
 } ;;
 esac
 # shellcheck source=../scripts/common/distro-matrix.sh
 . "$REPO/scripts/common/distro-matrix.sh"
 
-export PODBOX_STORE="${PODBOX_SWEEP_STORE:-$WORK/store}"
+export PODVM_STORE="${PODVM_SWEEP_STORE:-$WORK/store}"
 mkdir -p "$TRANSCRIPTS"
 
 
@@ -158,16 +158,16 @@ if [ "$NATIVE" -eq 1 ]; then
 else
   eng_pull "$DRIVER" || exit 2
   mkdir -p "$STAGE"
-  cp "$BIN" "$STAGE/podbox"
-  eng_mount "$STAGE/podbox" /pb || exit 2
+  cp "$BIN" "$STAGE/podvm"
+  eng_mount "$STAGE/podvm" /pb || exit 2
   _ver="$(eng_run 60 "$DRIVER" "" -- /pb version 2>&1)"
   eng_clear
 fi
-printf 'podbox            %s\n' "$_ver"
+printf 'podvm            %s\n' "$_ver"
 printf 'rows              %s\n' "$(distro_count_rows "$DISTRO_ROWS_M5")"
 printf 'row timeout       %s s\n' "$ROW_TIMEOUT"
 printf 'control           %s\n' \
-	"$([ "$HAVE_ENGINE" -eq 1 ] && echo "$ENGINE_NAME, on any row podbox fails" || echo 'ABSENT: no engine, so a failure cannot be attributed')"
+	"$([ "$HAVE_ENGINE" -eq 1 ] && echo "$ENGINE_NAME, on any row podvm fails" || echo 'ABSENT: no engine, so a failure cannot be attributed')"
 echo
 
 # ------------------------------------------------------------------ victims
@@ -200,7 +200,7 @@ fi
 SUBJECT
 chmod +x "$WORK/subject.sh"
 
-# ⭐ The row's whole podbox sequence in one driver call. The driver
+# ⭐ The row's whole podvm sequence in one driver call. The driver
 # cannot receive the subject as argv (it arrives through two shells), so
 # both scripts travel as staged files and the row driver reads them
 # inside. Stdout carries only stage failures; every reading lands in
@@ -209,7 +209,7 @@ cat >"$WORK/row-driver.sh" <<'ROWDRIVER_EOF'
 #!/bin/sh
 # row-driver.sh PINNED NAME ROW_TIMEOUT - one matrix row in the driver.
 set -u
-export PODBOX_STORE=/w/store
+export PODVM_STORE=/w/store
 pinned="$1"
 name="$2"
 to="$3"
@@ -219,17 +219,17 @@ mkdir -p "$d" || exit 6
 /pb extract "$pinned" >/dev/null 2>&1 || exit 4
 root="$(/pb inspect --format '{{.RootfsPath}}' "$pinned" 2>/dev/null)" || exit 5
 [ -n "$root" ] || exit 5
-cp /pb "$root/podbox-static" && cp /govictim "$root/go-victim" \
-  && chmod 755 "$root/podbox-static" "$root/go-victim" || exit 6
+cp /pb "$root/podvm-static" && cp /govictim "$root/go-victim" \
+  && chmod 755 "$root/podvm-static" "$root/go-victim" || exit 6
 timeout "$to" /pb run "$pinned" /bin/sh -c "$(cat /subj/subject.sh)" \
   >"$d/out" 2>"$d/err"
 echo "$?" >"$d/rowrc"
-timeout "$to" /pb run "$pinned" /podbox-static --version >"$d/sout" 2>&1
+timeout "$to" /pb run "$pinned" /podvm-static --version >"$d/sout" 2>&1
 echo "$?" >"$d/src"
 timeout "$to" /pb run "$pinned" /go-victim >"$d/gout" 2>&1
 echo "$?" >"$d/grc"
-if [ -f "$root/.podbox/interpose.so" ]; then
-  sha256sum "$root/.podbox/interpose.so" | cut -d' ' -f1 >"$d/selsha"
+if [ -f "$root/.podvm/interpose.so" ]; then
+  sha256sum "$root/.podvm/interpose.so" | cut -d' ' -f1 >"$d/selsha"
 else
   echo absent >"$d/selsha"
 fi
@@ -253,10 +253,10 @@ echo
 # the shared scratch the driver writes its readings to, read-write.
 if [ "$NATIVE" -eq 0 ]; then
 	mkdir -p "$WORK/w" "$STAGE"
-	cp "$BIN" "$STAGE/podbox"
+	cp "$BIN" "$STAGE/podvm"
 	[ -f "$GNU_SO" ] && cp "$GNU_SO" "$STAGE/gnu.so"
 	[ -f "$MUSL_SO" ] && cp "$MUSL_SO" "$STAGE/musl.so"
-	eng_mount "$STAGE/podbox" /pb \
+	eng_mount "$STAGE/podvm" /pb \
 		&& eng_mount "$WORK/w" /w rw \
 		&& eng_mount "$WORK/go-victim" /govictim \
 		&& eng_mount "$WORK/row-driver.sh" /drv/row.sh \
@@ -270,7 +270,7 @@ while IFS='|' read -r ref name libc digest; do
 	pinned="$(distro_pinned "$ref" "$digest")"
 	t="$TRANSCRIPTS/$name.out"
 
-	# ⭐ Non-native lane: one driver call runs the row's whole podbox
+	# ⭐ Non-native lane: one driver call runs the row's whole podvm
 	# sequence (pull, extract, inspect, victims, three runs, selection
 	# hash) and normalizes every reading to the same names the native
 	# path writes, so the transcript and every check below are shared.
@@ -333,22 +333,22 @@ while IFS='|' read -r ref name libc digest; do
 			nopull=$((nopull + 1))
 			continue
 		}
-		cp "$STATIC_VICTIM" "$ROOT/podbox-static" 2>/dev/null || true
+		cp "$STATIC_VICTIM" "$ROOT/podvm-static" 2>/dev/null || true
 		cp "$WORK/go-victim" "$ROOT/go-victim" 2>/dev/null || true
-		chmod 755 "$ROOT/podbox-static" "$ROOT/go-victim" 2>/dev/null || true
+		chmod 755 "$ROOT/podvm-static" "$ROOT/go-victim" 2>/dev/null || true
 	
 		# ⭐ THE SUBJECT TRAVELS AS ONE ARGV ELEMENT, not as a file (240's rule:
-		# podbox cannot bind-mount, so `-v` is not available).
+		# podvm cannot bind-mount, so `-v` is not available).
 		timeout "$ROW_TIMEOUT" "$BIN" run "$pinned" /bin/sh -c "$(cat "$WORK/subject.sh")" \
 			>"$WORK/out.$name" 2>"$WORK/err.$name"
 		row_rc=$?
 	fi
 	{
-		printf '# %s\n# pinned %s\n# podbox run exit %s\n' "$name" "$pinned" "$row_rc"
+		printf '# %s\n# pinned %s\n# podvm run exit %s\n' "$name" "$pinned" "$row_rc"
 		echo "--- stdout"
 		cat "$WORK/out.$name"
 		echo "--- stderr, without the completion layer"
-		grep -v 'podbox: complete:' "$WORK/err.$name" | tail -8 | cut -c1-200
+		grep -v 'podvm: complete:' "$WORK/err.$name" | tail -8 | cut -c1-200
 	} >"$t"
 
 	get() { sed -n "s/^$1=//p" "$WORK/out.$name" | head -1; }
@@ -378,7 +378,7 @@ while IFS='|' read -r ref name libc digest; do
 
 	# The static victim: declined by name, and still runs.
 	if [ "$NATIVE" -eq 1 ]; then
-		sout="$(timeout "$ROW_TIMEOUT" "$BIN" run "$pinned" /podbox-static --version 2>&1)"
+		sout="$(timeout "$ROW_TIMEOUT" "$BIN" run "$pinned" /podvm-static --version 2>&1)"
 		src=$?
 	fi
 	if printf '%s' "$sout" | grep -q 'interpose: declined' && [ "$src" -eq 0 ]; then
@@ -424,9 +424,9 @@ while IFS='|' read -r ref name libc digest; do
 	done
 	if [ "$objects_built" -eq 1 ]; then
 		if [ "$NATIVE" -eq 1 ]; then
-			if [ -f "$ROOT/.podbox/interpose.so" ]; then
+			if [ -f "$ROOT/.podvm/interpose.so" ]; then
 				for obj in gnu musl; do
-					if cmp -s "$ROOT/.podbox/interpose.so" "$(objfile "$obj")"; then
+					if cmp -s "$ROOT/.podvm/interpose.so" "$(objfile "$obj")"; then
 						sel="$obj"
 					fi
 				done
@@ -464,21 +464,21 @@ while IFS='|' read -r ref name libc digest; do
 	fi
 	# ⛔ A row the payload did not clear fails here unless the engine fails it
 	# too, which is the control that attributes the failure (240's rule).
-	# Without an engine the failure counts as the host's: podbox cannot prove
+	# Without an engine the failure counts as the host's: podvm cannot prove
 	# otherwise, and a failure it cannot attribute is not one it owns.
 	# The subject travels as a staged file here rather than as argv: the
 	# helper can bind-mount, so the two shells the argv form crosses are gone.
 	# ⛔ A row the payload did not clear fails here unless the engine fails it
 	# too, which is the control that attributes the failure (240's rule).
-	# Without an engine the failure counts as the host's: podbox cannot prove
+	# Without an engine the failure counts as the host's: podvm cannot prove
 	# otherwise, and a failure it cannot attribute is not one it owns.
 	# The subject travels as a staged file here rather than as argv: the
 	# helper can bind-mount, so the two shells the argv form crosses are gone.
 	# ⭐ Static-declined rows skip the control. The tier declined by name
 	# and the wall blocks the native chown, so a wall-less control would
-	# succeed and blame podbox for a correct decline; the decline above
+	# succeed and blame podvm for a correct decline; the decline above
 	# already attributes it. Dynamic rows keep the control: there the
-	# engine succeeding where podbox failed names the owner.
+	# engine succeeding where podvm failed names the owner.
 	if [ "$cleared" != "yes" ]; then
 		if [ "$seen" != "yes" ]; then
 			printf '%-14s   static decline under the wall: recorded as the host.\n' "$name"
@@ -490,7 +490,7 @@ while IFS='|' read -r ref name libc digest; do
 			if eng_run "$ROW_TIMEOUT" "$pinned" "" -- /bin/sh /subj.sh \
 				>"$WORK/dout.$name" 2>/dev/null \
 			&& grep -q '^CLEARED=yes' "$WORK/dout.$name"; then
-				printf '%-14s   ⛔ podbox failed and %s SUCCEEDED on the same image.\n' "$name" "$ENGINE_NAME"
+				printf '%-14s   ⛔ podvm failed and %s SUCCEEDED on the same image.\n' "$name" "$ENGINE_NAME"
 				broken=$((broken + 1))
 			else
 				printf '%-14s   ⚠ the host: %s failed here too.\n' "$name" "$ENGINE_NAME"

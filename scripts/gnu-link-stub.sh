@@ -13,17 +13,17 @@
 #
 # Usage (from `scripts/build-interpose.sh`, which builds the stub first):
 #   RUSTFLAGS="-C linker=$ROOT/scripts/gnu-link-stub.sh"
-#   PODBOX_DL_STUB=$CRATE/target/dl-stub/libdl-stub.so
+#   PODVM_DL_STUB=$CRATE/target/dl-stub/libdl-stub.so
 #
 # Exit: whatever `cc` exits, or 2 when the stub is not named or not a file.
 set -u
 
-[ -n "${PODBOX_DL_STUB:-}" ] || {
-	echo "gnu-link-stub.sh: PODBOX_DL_STUB is not set" >&2
+[ -n "${PODVM_DL_STUB:-}" ] || {
+	echo "gnu-link-stub.sh: PODVM_DL_STUB is not set" >&2
 	exit 2
 }
-[ -f "$PODBOX_DL_STUB" ] || {
-	echo "gnu-link-stub.sh: no stub at $PODBOX_DL_STUB" >&2
+[ -f "$PODVM_DL_STUB" ] || {
+	echo "gnu-link-stub.sh: no stub at $PODVM_DL_STUB" >&2
 	exit 2
 }
-exec "${CC:-cc}" "$PODBOX_DL_STUB" "$@"
+exec "${CC:-cc}" "$PODVM_DL_STUB" "$@"

@@ -7,9 +7,9 @@
 # exits 2 on a host with no musl. That question has an answer (check B below,
 # measured), and the answer makes it the wrong question: the object that may be
 # loaded is decided by two ELF facts a reader can take without running
-# anything, so podbox selects rather than tries.
+# anything, so podvm selects rather than tries.
 #
-# Five checks. ⭐ A to D measure the FACTS; E measures podbox's own reader
+# Five checks. ⭐ A to D measure the FACTS; E measures podvm's own reader
 # against them, so the entry that reads ELF is asserted here rather than trusted:
 #
 #   A. the SONAME discriminator. musl's libc has no SONAME and an object linked
@@ -25,7 +25,7 @@
 #      `.symtab` finds no symbols at all and concludes the payload's libc
 #      defines nothing, which refuses every artefact and reads exactly like a
 #      check that works.
-#   E. ⭐ `podbox system abi <object> <libc>`, which is TODO/interpose.md
+#   E. ⭐ `podvm system abi <object> <libc>`, which is TODO/interpose.md
 #      T-0709's reader, over the same situations A to C put to the loader. Its
 #      answer must be the loader's, with nothing run and nothing loaded, and on
 #      C's own situation it must name the same version the loader named.
@@ -33,8 +33,8 @@
 # Inputs pinned: the two images by manifest digest below, this host's own
 # toolchain, and `references/VHSgunzo__pathmap/tree/path-mapping.c` at the
 # commit `TODO/reference-map.md` records. pathmap is the subject because it is
-# the mechanism podbox adopts and because it builds against either libc with no
-# unwinder, which podbox's own Rust cdylib does not (check A2 of 60-).
+# the mechanism podvm adopts and because it builds against either libc with no
+# unwinder, which podvm's own Rust cdylib does not (check A2 of 60-).
 #
 # The engine is `experiments/lib/engine.sh`: a docker daemon where one
 # answers, else host podman. Every container call carries a timeout, runs
@@ -190,7 +190,7 @@ fi
 echo
 
 echo "== A. the SONAME discriminator, taken with no run"
-# ⭐ THIS IS THE MECHANISM podbox selects on. Both facts are one readelf away.
+# ⭐ THIS IS THE MECHANISM podvm selects on. Both facts are one readelf away.
 printf '  glibc libc SONAME   %s\n' \
   "$(readelf -dW /lib/x86_64-linux-gnu/libc.so.6 2>/dev/null | awk -F'[][]' '/SONAME/{print $2}')"
 if [ -e /lib/x86_64-linux-musl/libc.so ]; then
@@ -357,13 +357,13 @@ else
 fi
 echo
 
-echo "== E. podbox's own reader, against the same four situations"
+echo "== E. podvm's own reader, against the same four situations"
 # ⭐ A, B, C and D measure the FACTS. This check measures the IMPLEMENTATION:
-# `podbox system abi <object> <libc>` is TODO/interpose.md T-0709's reader, and
+# `podvm system abi <object> <libc>` is TODO/interpose.md T-0709's reader, and
 # what is asserted here is that its prediction is the loader's own answer above.
 # ⛔ Its exit codes are 0 admitted, 1 refused, 2 unreadable, so a file it could
 # not read never reads as a refusal.
-BIN="${PODBOX_BIN:-$ROOT/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$ROOT/target/x86_64-unknown-linux-musl/release/podvm}"
 # ⭐ A Linux binary executes on a Linux lane and is staged inside the glibc
 # payload elsewhere (`105-interpose-ownership.sh` check F is the shape), so
 # what is asked here is readability, not executability.
@@ -373,7 +373,7 @@ case "$(uname -s)" in
   *)     [ -r "$BIN" ] && BIN_OK=1 ;;
 esac
 if [ -z "$BIN_OK" ]; then
-  cannot "$BIN is not usable on this lane (set PODBOX_BIN to a guest build artifact)"
+  cannot "$BIN is not usable on this lane (set PODVM_BIN to a guest build artifact)"
 else
   # The payloads' own libc files, taken out of the pinned images rather than
   # named: a created (never started) container, copied out, removed.
@@ -447,7 +447,7 @@ echo
 echo "== verdict"
 if [ "$rc" -eq 0 ]; then
   echo "  every check that ran matched."
-  echo "  podbox selects the interposer by DT_NEEDED and refuses on the version"
+  echo "  podvm selects the interposer by DT_NEEDED and refuses on the version"
   echo "  predicate, both read from ELF. TODO/interpose.md T-0702 carries this,"
   echo "  and T-0709 is the reader check E drives."
 else

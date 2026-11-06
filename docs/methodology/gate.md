@@ -8,13 +8,13 @@ Each part detects a different defect class.
 On Linux:
 
 ```sh
-./target/release/podbox-dev check
+./target/release/podvm-dev check
 ```
 
 On Windows:
 
 ```sh
-./target/release/podbox-gate
+./target/release/podvm-gate
 sh scripts/common/check-gate.sh --strict
 sh scripts/windows/run-in-base.sh
 ```
@@ -51,7 +51,7 @@ The plant must change its subject.
 It must report the check's own failure message.
 It must restore the tree.
 It must pass on the clean control.
-Run the full `./target/release/podbox-plant` suite after a check change.
+Run the full `./target/release/podvm-plant` suite after a check change.
 
 ## Reviews
 

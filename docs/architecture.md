@@ -1,6 +1,6 @@
 # Architecture
 
-podbox has a rootfs execution path and a machine execution path.
+podvm has a rootfs execution path and a machine execution path.
 The CLI selects the path from arguments and runtime probes.
 [The generated state](runtime-state.md) lists the source-defined mechanisms.
 
@@ -19,7 +19,7 @@ The sidecar does not change the kernel's ownership checks.
 
 ## Selection and entry
 
-`crates/podbox-probe/src/select.rs` defines runtime rungs.
+`crates/podvm-probe/src/select.rs` defines runtime rungs.
 Selection reports available mechanisms. Entry reports the mechanism it actually enters.
 
 | Path | Behavior |
@@ -37,17 +37,17 @@ A stronger request cannot silently receive a weaker result.
 
 ## Launch modes
 
-`PODBOX_MODE` requests a foreground rootfs launch mode.
+`PODVM_MODE` requests a foreground rootfs launch mode.
 The launch code validates the request before staging or acquisition.
 Detached run, create, exec, and machine entry reject modes they do not drive.
-`crates/podbox-cli/src/ladder.rs` owns this validation.
+`crates/podvm/src/ladder.rs` owns this validation.
 
 The modes can stage an executable in memfd, use a temporary rootfs,
 reuse a cache, or enter by path. These modes describe storage and launch.
 They do not add an isolation claim.
 
 The vendored userland loader is not linked into the runtime.
-The current userland entry lives in `crates/podbox-enter/src/userland.rs`.
+The current userland entry lives in `crates/podvm-enter/src/userland.rs`.
 [THIRD_PARTY](../THIRD_PARTY.md) records the carried loader's actual patch state.
 
 ## Interposer
@@ -63,9 +63,8 @@ The runtime checks payload and object architecture before use.
 
 ## Machine execution
 
-`--podbox-tier=machine` selects a guest rather than rootfs entry.
-The `podvm` executable name selects that tier by default.
-An explicit tier flag takes precedence over the executable name.
+`--podvm-tier=machine` selects a guest rather than rootfs entry.
+With no flag the ladder selects, under every name the binary answers to.
 
 The Linux guest path uses kernel and initramfs inputs, serial execution,
 bounded waits, and a per-run guest.
@@ -75,9 +74,9 @@ The machine probe selects KVM, TCG, or a named refusal from measured host operat
 
 ## SSH
 
-The `podbox-ssh` crate owns transport, TLS, WebSocket frames, multiplexing,
+The `podvm-ssh` crate owns transport, TLS, WebSocket frames, multiplexing,
 server supervision, and the interactive session without a pty.
-Remote dispatch calls the helper executables beside podbox or on PATH.
+Remote dispatch calls the helper executables beside podvm or on PATH.
 The remote relay path uses the multiplexed protocol.
 Local forwarding uses the transport appropriate to its fixed endpoint.
 

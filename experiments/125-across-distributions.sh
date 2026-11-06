@@ -6,7 +6,7 @@
 # runs on every row and does the right thing on none of them, which a
 # single-host smoke test reports as success. That shape needs a matrix to see.
 #
-# The subject here answers the question `podbox-complete` depends on
+# The subject here answers the question `podvm-complete` depends on
 # (TODO/complete.md T-0410): does a rootfs read a supplied `/etc/passwd`, and
 # what decides it. Every row gets the same bytes:
 #
@@ -109,7 +109,7 @@ fi
 
 cat > "$OUT/passwd" <<'EOF'
 root:x:0:0:root:/root:/bin/sh
-podboxsupplied:x:1000:1000:supplied by podbox-complete:/workspace:/bin/sh
+podvmsupplied:x:1000:1000:supplied by podvm-complete:/workspace:/bin/sh
 EOF
 
 # ⚠ The subject copies itself out of the read-only mount before running.

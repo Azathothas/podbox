@@ -39,12 +39,12 @@ Premise:     ⭐ **Measured on this tree.** Two defect classes the gate could no
              file's own citations are among the things counted, so writing the
              number down changes it. Measured while writing this entry, twice:
              `todo_links` moved from 261 to 262 because recording 261 added a
-             link. `./scripts/check-todo.py` (now `podbox-gate`) prints the reading on every run,
+             link. `./scripts/check-todo.py` (now `podvm-gate`) prints the reading on every run,
              and no document copies it.
              What is fixed rather than measured, and safe to state: bare path
              citations were an **unchecked class** before this entry, and
              `tree_citations` counted **1**.
-Approach:    Checks 11 to 15 of `crates/podbox-gate/src/main.rs`. Citations and links are
+Approach:    Checks 11 to 15 of `crates/podvm-gate/src/main.rs`. Citations and links are
              resolved across every tracked file this project wrote, against
              `git ls-files` rather than the filesystem. `references/` and the
              verbatim methodology copy are excluded because their text is
@@ -59,10 +59,10 @@ Decision:    Resolve against git, not the disk. A check that agrees with
              whoever ran it last and disagrees with a fresh clone puts the
              disagreement where the one person who could fix it is the one being
              told nothing is wrong.
-Prove:       `./target/release/podbox-gate && ./target/release/podbox-plant`
+Prove:       `./target/release/podvm-gate && ./target/release/podvm-plant`
 
-**Done.** `./scripts/check-todo.py` (now `podbox-gate`) exits 0 and prints a coverage line; the two
-plants for these checks, cases 11 and 14 in scripts/plant.sh (now `podbox-plant`), both go red.
+**Done.** `./scripts/check-todo.py` (now `podvm-gate`) exits 0 and prints a coverage line; the two
+plants for these checks, cases 11 and 14 in scripts/plant.sh (now `podvm-plant`), both go red.
 
 ---
 
@@ -80,7 +80,7 @@ Problem:     A check that quietly matches nothing exits 0 exactly like a check
              the tree by hand. That verification lived in a transcript, so it
              was worth nothing to the next session.
 Premise:     ⭐ **Measured, and it found a real one on its first run.**
-             scripts/plant.sh (now `podbox-plant`) plants a defect per case and asserts each makes
+             scripts/plant.sh (now `podvm-plant`) plants a defect per case and asserts each makes
              the gate red **with that defect's own message**, and that the
              message was not already there. On its first run, over the fifteen
              cases it then had, case 6 landed its mutation and the gate
@@ -97,7 +97,7 @@ Premise:     ⭐ **Measured, and it found a real one on its first run.**
              the tree. Listing passing cases without naming the check that has
              none is the same vacuity this entry exists to remove.
              ⚠ The counts here are not held by anything and will move again.
-             `./scripts/plant.sh` (now `podbox-plant`) prints the current pair on every run, and it
+             `./scripts/plant.sh` (now `podvm-plant`) prints the current pair on every run, and it
              is the answer; this line is a reading from one day.
              ⭐ **A second case rotted and guard 1 caught that too.** Case 3
              named `Status:      open` literally and stopped landing the moment
@@ -122,10 +122,10 @@ Approach:    Four guards, each because the harness shape without it reports
 Decision:    Assert the message, not the exit code. A gate already red for
              another reason exits 1 either way, so a case watching only the exit
              code passes vacuously the moment anything else breaks.
-Prove:       `./target/release/podbox-plant`
+Prove:       `./target/release/podvm-plant`
 
 **Done.** Exit 0: 20 plants caught, 0 missed; 3 controls quiet, 0 fired.
-⚠ The pair moves whenever a check lands. `./scripts/plant.sh` (now `podbox-plant`) prints it, and
+⚠ The pair moves whenever a check lands. `./scripts/plant.sh` (now `podvm-plant`) prints it, and
 that is the answer; this line is a reading from the day it was taken.
 
 ---
@@ -145,7 +145,7 @@ Problem:     Every number in `experiments/results/` was taken on one machine
 Premise:     ⭐ **Measured here, and it is why this entry exists.**
              `experiments/results/nsswitch-contract.txt` check B reads three
              pinned images: two name `files` and one ships no `nsswitch.conf`
-             at all. Same question, three different answers, and podbox's
+             at all. Same question, three different answers, and podvm's
              behaviour has to be right on all three.
              ⭐ **And the runner has now taken the reading.** All eleven rows
              pulled and ran, four musl and seven glibc, alpine 3.10 through
@@ -228,7 +228,7 @@ Problem:     Check 17 reads `experiments/results/bloat-baseline.txt` and asserts
              ceiling exists to hold.
 Premise:     ⭐ **Measured on 2026-09-08.** M1 moved the artefact from 496,184 to
              2,130,672 bytes, and `experiments/results/bloat-image.txt` records
-             it. scripts/check-todo.py (now `podbox-gate`) went green throughout, because the file
+             it. scripts/check-todo.py (now `podvm-gate`) went green throughout, because the file
              it reads did not change. ⚠ The ceiling is still enforced at BUILD
              time by `experiments/110-bloat-delta.sh`, which exits 1 over it, so
              nothing is currently unprotected: what is missing is the half that
@@ -238,7 +238,7 @@ Approach:    Read every `experiments/results/bloat-*.txt` rather than the
              baseline alone, and assert each `total_bytes` is under the ceiling.
              ⛔ Still no build: the check reads committed evidence, so it keeps
              working on a fresh clone with no cargo, which is
-             `crates/podbox-gate/src/main.rs`'s own constraint.
+             `crates/podvm-gate/src/main.rs`'s own constraint.
              ⚠ The baseline keeps its own separate assertion, because a missing
              baseline means there is no "before" and `TODO/deps.md` T-0910 rules
              that a dependency without one has not landed.
@@ -247,7 +247,7 @@ Decision:    Every reading, not "the newest by date". A date inside a file is a
              somebody forgot to delete would then silently outrank a real one.
              Asserting all of them needs no ordering and fails on the same file
              either way.
-Prove:       `./target/release/podbox-plant` reports case 17d caught, planting a `total_bytes` over the ceiling into `experiments/results/bloat-image.txt`
+Prove:       `./target/release/podvm-plant` reports case 17d caught, planting a `total_bytes` over the ceiling into `experiments/results/bloat-image.txt`
 
 **Done 2026-09-09.** Check 17 now reads every tracked
 `experiments/results/bloat-*.txt` and asserts each `total_bytes` under the
@@ -263,7 +263,7 @@ not a pass, and it is equally not a size to hold.
 ⚠ The `Prove` above said "19 caught" when it was authored. The harness is at 21,
 because three cases have been added since for other checks, so the count is not
 quoted: `AGENTS.md`'s rule that a value lives in one file applies to this
-one too, and its home is scripts/plant.sh's own verdict line (now `podbox-plant`).
+one too, and its home is scripts/plant.sh's own verdict line (now `podvm-plant`).
 
 ---
 
@@ -304,7 +304,7 @@ Premise:     ⭐ **Measured on 2026-09-08**, by matching every
              ⚠ The renumbering is an append, not a gap fill, and the new numbers
              keep `experiments/README.md`'s "order they run": M2 is `220-`, M4
              `230-`, M5 `240-`, M6 `250-`.
-Approach:    A check in `crates/podbox-gate/src/main.rs` that collects the leading number
+Approach:    A check in `crates/podvm-gate/src/main.rs` that collects the leading number
              of every `experiments/<n>-*.sh` named anywhere this project wrote,
              plus every such file on disk, and fails when one number carries two
              names. ⛔ It reads text and the filesystem listing only, so it keeps
@@ -321,17 +321,17 @@ Decision:    Enforce uniqueness rather than dropping the rule. The rule exists
              already written down, and `experiments/README.md` says so; a rule
              worth writing and not worth checking is the kind that stops being
              believed.
-Prove:       `./target/release/podbox-plant` exits 0 with cases 18a and 18b caught, each planting a duplicate experiment number
+Prove:       `./target/release/podvm-plant` exits 0 with cases 18a and 18b caught, each planting a duplicate experiment number
 
-**Done, 2026-09-08.** Check 18 of scripts/check-todo.py (now `podbox-gate`), and cases 18a and
-18b of scripts/plant.sh (now `podbox-plant`), in this change. `./scripts/plant.sh` (now `podbox-plant`) exits 0 with
+**Done, 2026-09-08.** Check 18 of scripts/check-todo.py (now `podvm-gate`), and cases 18a and
+18b of scripts/plant.sh (now `podvm-plant`), in this change. `./scripts/plant.sh` (now `podvm-plant`) exits 0 with
 **20 caught, 0 missed, 3 controls quiet**.
 
 ⭐ **The check was written before the renumbering and run against the tree that
 still carried all four collisions.** It reported exactly the four this entry
 records and named the same `file:line` on each. A hand sweep and a check that
 agree independently is the check having been tested against a real defect as
-well as a planted one, which is the half scripts/plant.sh (now `podbox-plant`) cannot supply.
+well as a planted one, which is the half scripts/plant.sh (now `podvm-plant`) cannot supply.
 
 ⚠ **Two cases, not one, because the halves fail apart.** A number can be
 claimed by a document promising a script (all four real collisions were this
@@ -339,7 +339,7 @@ shape) or by a second file arriving on disk. A case for one leaves the other
 unseen, which is this harness's own founding defect.
 
 ⛔ **The planted number is read out of the listing at run time and never
-written into scripts/plant.sh (now `podbox-plant`).** The gate reads that file like any other, so
+written into scripts/plant.sh (now `podvm-plant`).** The gate reads that file like any other, so
 a literal taken number there would put a second name on it and redden the clean
 tree, exactly as two literal citations did on 2026-09-08 and as `CEILING_NUM`
 would. The same trap, a third time, in the same file.
@@ -360,7 +360,7 @@ Effort:      M
 Status:      done 2026-09-09
 
 Problem:     `.cargo/config.toml` points `CC_<target>` at `scripts/zig-cc.sh`
-             for every architecture podbox builds for, and
+             for every architecture podvm builds for, and
              `.github/workflows/gate.yml` carried a second, hand-written
              declaration of the same requirement as a `bootstrap-env.sh`
              component list. The two drifted, and nothing could see it.
@@ -373,7 +373,7 @@ Premise:     ⭐ **Measured on 2026-09-09** by reading the workflow logs of ever
              | consecutive red runs after it | **9**, `702cc02` through `563df15` |
              | jobs red in each | `build` and `lint`; `todo` green throughout |
              | what both died on | `zig-cc.sh: zig is not on PATH`, inside `ring`'s build script, exit 101 |
-             | what a local `./scripts/dev.sh check` (now `podbox-dev check`) said | green, on every one of them |
+             | what a local `./scripts/dev.sh check` (now `podvm-dev check`) said | green, on every one of them |
 
              ⛔ **The break was a merge, not a commit.** M1 landed `rustls` and
              its `ring`, which compiles C behind a build script, and
@@ -386,7 +386,7 @@ Premise:     ⭐ **Measured on 2026-09-09** by reading the workflow logs of ever
              machine that disagrees is the runner, and the only signal is a log
              nobody was reading.
 Approach:    Add `zig` to the two jobs, then hold the invariant rather than the
-             value. Check 19 of `crates/podbox-gate/src/main.rs` derives the required
+             value. Check 19 of `crates/podvm-gate/src/main.rs` derives the required
              component set in two hops and hard-codes it in neither:
              `.cargo/config.toml` names the wrapper program, and the wrapper
              names the `bootstrap-env.sh` component that installs it. Every job
@@ -405,10 +405,10 @@ Decision:    Derive, do not list. A second list of components here would be the
              read each and mean that a toolchain added to `.cargo/config.toml`
              is required of CI the moment it is added, with nothing in the gate
              to update.
-Prove:       `./target/release/podbox-plant` exits 0 with cases 19a and 19b caught, and the gate workflow is green on `main`
+Prove:       `./target/release/podvm-plant` exits 0 with cases 19a and 19b caught, and the gate workflow is green on `main`
 
-**Done, 2026-09-09.** Check 19 of scripts/check-todo.py (now `podbox-gate`), cases 19a and 19b of
-scripts/plant.sh (now `podbox-plant`), and `zig` in both cargo-running jobs of
+**Done, 2026-09-09.** Check 19 of scripts/check-todo.py (now `podvm-gate`), cases 19a and 19b of
+scripts/plant.sh (now `podvm-plant`), and `zig` in both cargo-running jobs of
 `.github/workflows/gate.yml`, in this change.
 
 ⭐ **The check was run against the tree that carried the defect.** With `zig`
@@ -423,7 +423,7 @@ misses. An arm nothing exercises is an arm that has stopped working, which is
 [T-1202](gate.md)'s finding in a second place.
 
 ⛔ **The planted component is read out of `.cargo/config.toml`'s wrapper at run
-time and never written into scripts/plant.sh (now `podbox-plant`).** Naming it there would be a
+time and never written into scripts/plant.sh (now `podvm-plant`).** Naming it there would be a
 third declaration of the value this check exists to keep in one place, which is
 the trap `CEILING_NUM` and `TAKEN_EXP` were each written to avoid.
 
@@ -437,8 +437,8 @@ Priority:    P1
 Effort:      L
 Status:      done
 
-Problem:     ⛔ **`crates/podbox-interpose` is excluded from the workspace, and
-             every step of `./target/release/podbox-dev check` is scoped to the
+Problem:     ⛔ **`crates/podvm-interpose` is excluded from the workspace, and
+             every step of `./target/release/podvm-dev check` is scoped to the
              workspace.** `cargo fmt --all`, `cargo clippy --workspace
              --all-targets -- -D warnings` and `cargo test --workspace` all
              stop at the exclusion, so the object that is loaded into other
@@ -458,13 +458,13 @@ Premise:     The exclusion is right and is not what this entry proposes to
              bytes and are held to no ceiling at all, while they are embedded
              in the binary that IS held to one.
              ⛔ **CORRECTED 2026-09-21 BY READING THE TREE: the `Problem` above no
-             longer holds as written.** dev.sh check (now `podbox-dev check`) runs fmt, clippy
+             longer holds as written.** dev.sh check (now `podvm-dev check`) runs fmt, clippy
              with `-D warnings`, the interpose build and the interpose tests
              against the excluded crate, so Approach item 1 has landed in
              substance. What has not landed is item 2 (exported-symbol count
              against the version script at the gate), item 3 (per-libc size in
              T-0910's baseline) and item 4 (third-state reporting). The
-             Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check` (now `podbox-dev check`),
+             Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check` (now `podvm-dev check`),
              each with its plant in the same change. The Decision below
              carries it; what is open is the implementation, now landed
              under the Prove.
@@ -477,8 +477,8 @@ Premise:     The exclusion is right and is not what this entry proposes to
              a changed map against a stale object is a real staleness the
              gate comparison catches, not a hypothetical one.
 Approach:    A second scope, not a second gate:
-             1. `dev.sh check` (now `podbox-dev check`) runs the same four steps against
-                `crates/podbox-interpose` with its own target and linker, which
+             1. `dev.sh check` (now `podvm-dev check`) runs the same four steps against
+                `crates/podvm-interpose` with its own target and linker, which
                 `scripts/build-interpose.sh` already knows how to select;
              2. the object's exported-symbol count is checked against
                 `interpose.map` at the gate rather than only in
@@ -491,26 +491,26 @@ Approach:    A second scope, not a second gate:
              4. ⚠ a step that cannot run -- no `zig`, no gnu target installed
                 -- reports the third state and does not read as a failure,
                 which is the rule the rest of the harness already follows.
-Decision:    Not taken on the shape. ⚠ Whether this belongs in `dev.sh check` (now `podbox-dev check`)
-             or in a `dev.sh check --all` (now `podbox-dev check --all`) matters: check is what a change
+Decision:    Not taken on the shape. ⚠ Whether this belongs in `dev.sh check` (now `podvm-dev check`)
+             or in a `dev.sh check --all` (now `podvm-dev check --all`) matters: check is what a change
              passes before it is committed and it is currently about 30 s, and
              a second toolchain invocation on every commit is a cost the
              operator should rule on rather than inherit.
-             Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check` (now `podbox-dev check`),
+             Ruled 2026-09-22: items 2 through 4 belong in `dev.sh check` (now `podvm-dev check`),
              each with its plant in the same change. The per-commit toolchain
              cost is accepted; the entry stays open until all three land.
-Prove:       `./target/release/podbox-interpose-build` exits 1 naming the export
+Prove:       `./target/release/podvm-interpose-build` exits 1 naming the export
              mismatch on a blinded comparison and on a bogus map global;
              `./experiments/110-bloat-delta.sh interpose` writes
              `experiments/results/bloat-interpose.txt` with both sizes under
-             the declared ceiling; a full `./target/release/podbox-dev check` with the
+             the declared ceiling; a full `./target/release/podvm-dev check` with the
              interpose build forced to SKIP reads SKIP and stays green;
-             `./target/release/podbox-plant` exits 0 with the four new cases caught.
+             `./target/release/podvm-plant` exits 0 with the four new cases caught.
              The committed clippy-and-fmt plant spelling is superseded:
              item 1 landed in substance without it, recorded above.
 
-**Done 2026-09-23.** Items 2 through 4 run in `dev.sh check` (now `podbox-dev check`), each
-with its plant in the same change, and the full `plant.sh` (now `podbox-plant`) run on the
+**Done 2026-09-23.** Items 2 through 4 run in `dev.sh check` (now `podvm-dev check`), each
+with its plant in the same change, and the full `plant.sh` (now `podvm-plant`) run on the
 committed tree reads 31 caught, 0 missed, 3 controls quiet. Every run
 below is taken.
 
@@ -533,19 +533,19 @@ Item 3 runs at link time under the ceiling declared once in
 335320, gnu 315432, binary total 3503032, the total under the binary
 ceiling and each object under the interpose ceiling). Check 23
 plants mirror the proven 17b/17c shapes.
-Item 4 runs in `dev.sh check` (now `podbox-dev check`): each step's own status, 0 passing, 2
+Item 4 runs in `dev.sh check` (now `podvm-dev check`): each step's own status, 0 passing, 2
 reading SKIP with the step named, anything else FAILED; skips never
 fail the run and a run that passed nothing is red. Plant through the
 real gate with the interpose build forced to SKIP: 9 passed, 0
 failed, 1 skipped, exit 0. Check 25 holds the arm with its plant
 case, proven red with its own message on a trial run.
-Full `dev.sh check` (now `podbox-dev check`) green in the lane: 10 passed, 0 failed, 0
+Full `dev.sh check` (now `podvm-dev check`) green in the lane: 10 passed, 0 failed, 0
 skipped (fmt, clippy, interpose build, release build, 495 workspace
 tests, 25 interpose tests, gate, markers).
 
 **Done 2026-10-01 (the interpose-build port).** The builder is the
-`podbox-interpose-build` binary in the gate crate
-(`crates/podbox-gate/src/interpose_build.rs`), keeping the 112-name
+`podvm-interpose-build` binary in the gate crate
+(`crates/podvm-gate/src/interpose_build.rs`), keeping the 112-name
 export check against `interpose.map` for both targets and the stat/statx
 offset check. `scripts/build-interpose.sh` stays as a declaration stub:
 it keeps the `INTERPOSE_CEILING_BYTES=` line the gate reads and names
@@ -566,7 +566,7 @@ Status:      done
 
 Problem:     [RULES.md](RULES.md) section 5 says an entry closes in place with
              its `Prove` command actually run and the output recorded underneath.
-             **Nothing asserts it.** `crates/podbox-gate/src/main.rs` checks the counts,
+             **Nothing asserts it.** `crates/podvm-gate/src/main.rs` checks the counts,
              the rows, the fields and every citation, and it does not check the
              one thing that makes a closed entry mean anything.
 Premise:     **Measured by the closure-records instrument (deleted
@@ -604,7 +604,7 @@ Approach:    Fix the rule first, then check it. Give section 5 the one stated
                 `Prove` field;
              2. that content opens with the bold `Done` marker, which is the
                 shape section 5 will state;
-             3. the plant, in scripts/plant.sh (now `podbox-plant`): delete the record from one
+             3. the plant, in scripts/plant.sh (now `podvm-plant`): delete the record from one
                 closed entry and assert the gate goes red naming that entry.
              A check with no plant is not a check, and [T-1202](gate.md)
              is the rule that says so.
@@ -626,19 +626,19 @@ Decision:    ⭐ **Taken on 2026-09-12: one shape, and it is the bold `Done`
              A date on the `Status` line is **not** part of this. 21 closed
              entries carry `done` with no date and 66 carry one; section 5 asks
              for neither, so making it a rule here would invent one.
-Prove:       `./target/release/podbox-gate` reports a `closure_records` coverage count equal to the number of closed entries, and the plant for it goes red naming the entry whose record was removed
+Prove:       `./target/release/podvm-gate` reports a `closure_records` coverage count equal to the number of closed entries, and the plant for it goes red naming the entry whose record was removed
 
-**Done 2026-09-21.** Check 22 in scripts/check-todo.py (now `podbox-gate`) (every `done` entry
+**Done 2026-09-21.** Check 22 in scripts/check-todo.py (now `podvm-gate`) (every `done` entry
 opens its record with `**Done` on the first unindented line after `Prove`),
-its plant case in scripts/plant.sh (now `podbox-plant`), the RULES.md section 5 shape sentence,
+its plant case in scripts/plant.sh (now `podvm-plant`), the RULES.md section 5 shape sentence,
 and five records converted (T-0204, T-1103, T-0107, T-0108, T-0505).
 
 The check found five prose records, not the four this entry names: T-0505
 (`enter.md`) kept its `**Done` paragraph after a `Prove`-rewrite note, so the
 first unindented line after `Prove` was the note. All five open with `**Done`
-now, with their content preserved. `check-todo.py` (now `podbox-gate`) reports
+now, with their content preserved. `check-todo.py` (now `podvm-gate`) reports
 `closure_records=101` against 101 `done` entries. The plant run on the
-committed tree: 27 caught, 0 missed, 3 controls quiet, full `dev.sh check` (now `podbox-dev check`)
+committed tree: 27 caught, 0 missed, 3 controls quiet, full `dev.sh check` (now `podvm-dev check`)
 green alongside.
 
 ---
@@ -717,14 +717,14 @@ Approach:    ⛔ **The rule before the sweep, and the check before the edits.** 
                 equivalent**, and it is not a distribution. Its `Prove` needs a
                 Go payload rather than that image, and the entry says why the
                 payload is a Go one. Decide that there and not here;
-             3. the check, in `crates/podbox-gate/src/main.rs`: a `Prove` line may name
+             3. the check, in `crates/podvm-gate/src/main.rs`: a `Prove` line may name
                 no unqualified image reference and no `docker.io/` reference;
                 ⚠ **and `README.md`'s quick start names `alpine:latest` twice**,
                 which is the same reference and not a `Prove` line. It is a
                 reader's own quota rather than the acceptance's, so it is not
                 this entry's defect; it is written down here so the next sweep
                 does not find it and think nobody looked;
-             4. the plant, in scripts/plant.sh (now `podbox-plant`): put `alpine:latest` into one
+             4. the plant, in scripts/plant.sh (now `podvm-plant`): put `alpine:latest` into one
                 `Prove` line and assert the gate goes red naming that entry.
              ⛔ A check with no plant is not a check, and [T-1202](gate.md) is
              the rule that says so.
@@ -765,7 +765,7 @@ Decision:    ⭐ **Taken on 2026-09-12: the sweep is one entry and not 41
              ⛔ **The rejected option: leave the lines and let the check warn.**
              A warning nobody has to clear is a comment, and the gate here is an
              assertion or it is decoration.
-Prove:       `./target/release/podbox-gate` exits 0 with the new check in place, and `./target/release/podbox-plant` reddens it by name
+Prove:       `./target/release/podvm-gate` exits 0 with the new check in place, and `./target/release/podvm-plant` reddens it by name
 
 **Done 2026-09-19.** The mapping, the sweep and the check, in two changes.
 The sweep moved 41 violating `Prove` lines to their `DISTRO_ROWS_M5` rows in
@@ -774,23 +774,23 @@ to its row, reworded the two history notes in [T-0702 and
 T-0706](interpose.md) to name the defect without the literal so their
 `Prove` lines stay fully checked, and stated the mapping and the corrected
 count in this entry. The check and its plant landed together, per
-[T-1202](gate.md): check 21 in `crates/podbox-gate/src/main.rs` with cases 21a and
-21b in scripts/plant.sh (now `podbox-plant`), one per arm because the two spellings fail apart.
+[T-1202](gate.md): check 21 in `crates/podvm-gate/src/main.rs` with cases 21a and
+21b in scripts/plant.sh (now `podvm-plant`), one per arm because the two spellings fail apart.
 
 ```
-$ py scripts/check-todo.py; echo EXIT:$?  # historical 2026-09 run; the gate is now `podbox-gate`
+$ py scripts/check-todo.py; echo EXIT:$?  # historical 2026-09 run; the gate is now `podvm-gate`
 check-todo: 136 rows, 136 entries, 38 open, 3 partial, 0 blocked, 95 done
 check-todo: coverage bare_citations=1327 ci_components=3 corpus=41 counts=5 crossrefs=478 entries=136 exit_codes=5 experiment_numbers=471 fields=1360 prove_registry=136 rows=136 size_ceiling=232 todo_citations=101 todo_links=559 tree_citations=64 tree_links=342
 check-todo: ok
 EXIT:0
-$ sh scripts/plant.sh; echo EXIT:$?  # historical 2026-09 run; plants are now `podbox-plant`
+$ sh scripts/plant.sh; echo EXIT:$?  # historical 2026-09 run; plants are now `podvm-plant`
   plants   26 caught, 0 missed
   controls 3 quiet, 0 fired
   every check that was planted against went red with its own message.
 EXIT:0
 ```
 
-⚠ `plant.sh` (now `podbox-plant`) ran under a `python3` shim on PATH pointing at the real
+⚠ `plant.sh` (now `podvm-plant`) ran under a `python3` shim on PATH pointing at the real
 interpreter, because this host's `python3` is a Microsoft Store stub that
 exits without running anything. The shim lived for the one command and was
 removed afterwards.
@@ -870,9 +870,9 @@ died on a duplicate destination. Fixed in the script: the loop takes the
 first match in sorted order that the host can read and that resolves
 inside the checkout, or skips honestly; the mount-failure path clears its
 mounts, as the file's own comment already promised. The green run prints
-both genuine DT_NEEDED refusals through `podbox system abi`.
+both genuine DT_NEEDED refusals through `podvm system abi`.
 
-Second, archlinux extracts nowhere on this lane: `podbox extract` stops
+Second, archlinux extracts nowhere on this lane: `podvm extract` stops
 on `usr/share/terminfo/l/lft-pc850` against `L/LFT-PC850`, a case-only
 collision the Windows-backed shared store cannot hold. Extracting the
 same pinned image with a container-local store succeeds (4 layers, 33164
@@ -981,8 +981,8 @@ Prove:       `./experiments/150-image-acquisition.sh`, `./experiments/270-multia
              one SKIP (transcript at `TODO/gate.md:1037`), and
              `experiments/results/` carries the runs.
 **Done 2026-09-23.** Every half the entry named now measures on the
-base lane (`wsl-toolkit-podbox`, dockerd 29.8.1, kernel
-7.2.0-WSL2-STABLE). `150` exits 0: podbox and docker agree on the
+base lane (`wsl-toolkit-podvm`, dockerd 29.8.1, kernel
+7.2.0-WSL2-STABLE). `150` exits 0: podvm and docker agree on the
 index digest `b2507f19…`, confirming the 2026-09-21 mismatch was
 podman's child-digest reporting. `270` exits 0: T-0212's owner fixed
 the clause-5a expectation the next day (it reads the cli-error code
@@ -992,20 +992,20 @@ seven clauses green after the native-lane repair below. `320` and
 29.8.1 (every 330 comparison cell ok). `300` carries zero FAILs and
 one SKIP: clause 7 runs (chroot inside, namespace outside) and the
 riscv64 refusal half is unmeasurable where binfmt executes it. The
-binary is the shipped `podbox 0.1.0`. `experiments/results/`
+binary is the shipped `podvm 0.1.0`. `experiments/results/`
 carries all six runs.
 
 ```
 $ sh experiments/150-image-acquisition.sh; echo EXIT:$?
-  == 1. podbox's digest against docker's, for the same tag
-  podbox  sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+  == 1. podvm's digest against docker's, for the same tag
+  podvm  sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
   docker  sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
   == 2. a second pull fetches nothing
   == 3. every stored blob hashes to the name it is stored under
   == 4. a plain-HTTP registry is refused rather than downgraded
 EXIT:0
 $ sh experiments/270-multiarch-image.sh; echo EXIT:$?
-  == 1. no --platform pulls the platform podbox was BUILT for
+  == 1. no --platform pulls the platform podvm was BUILT for
   == 2. --platform takes a DIFFERENT manifest out of the same index
   == 3. the extracted rootfs really is that architecture
   == 4. an index that offers nothing for the ask says what it does offer
@@ -1033,8 +1033,8 @@ $ sh experiments/280-insecure-registry.sh; echo EXIT:$?
     announced the http fallback 6
     a normal pull says it       0 time(s)
   == 7. the environment and the config file reach the same place
-    $PODBOX_INSECURE_REGISTRIES exit 0
-    $PODBOX_CONFIG file         exit 0
+    $PODVM_INSECURE_REGISTRIES exit 0
+    $PODVM_CONFIG file         exit 0
     a URL where a host belongs: exit 1, registries.conf:2
 EXIT:0
 $ sh experiments/300-run.sh; echo EXIT:$?
@@ -1076,7 +1076,7 @@ EXIT:0
              so every clause exited 127 on `exec: /pb: not found`; the
              script re-stages them after the fixture block. Second, `280`'s
              `pb()` handed its wrapper to `eng_pbrun`, which execs `/pb`
-             with the words it is given, so podbox refused `/bin/sh` as a
+             with the words it is given, so podvm refused `/bin/sh` as a
              command; the wrapper now takes the store, the config and the
              insecure list as positional words through `eng_run`.
              `eng_serve` ids captured in `$( )` never reach `eng_cleanup`
@@ -1096,7 +1096,7 @@ EXIT:0
              measured five verbs as `restart\r` and failed them with "no
              such command". Python reads the table's values clean, the
              jq behaviour is measured at the command line, and the loop
-             strips the transport bytes before podbox ever sees them. All
+             strips the transport bytes before podvm ever sees them. All
              six verbs answer 125 with their rows after it.
              Fourth, `280`'s TLS fixture never reached a native lane:
              `eng_serve` mounts only what `eng_mount` staged, and only the
@@ -1144,8 +1144,8 @@ Prove:       `./experiments/10-build-target-image.sh`,
              with the conditions block naming the driver, and
              `experiments/results/probe-parity.txt` carries the run.
 **Done 2026-09-23.** Both clearing conditions hold on the native
-base lane (`wsl-toolkit-podbox`, kernel 7.2.0-WSL2-STABLE):
-unconfined podbox selects `namespace`, and `130 --refresh`
+base lane (`wsl-toolkit-podvm`, kernel 7.2.0-WSL2-STABLE):
+unconfined podvm selects `namespace`, and `130 --refresh`
 re-captured `attribute.txt` (with `census.txt`) on the same machine,
 after which `130` exits 0 with 16 matched and 0 differed. `10`
 stands on its recorded host-podman build (image id
@@ -1154,7 +1154,7 @@ block names the full id); no base rebuild belongs to it (the
 podman-path build's apt hangs on port 80 while the docker path
 fetches: measured 2026-09-23, three runs, and the Dockerfile is a
 pinned input). `20` exits 0 natively (N+F+M, `/bin/id` answers
-uid 0). The binary is the shipped `podbox 0.1.0` (3503032 bytes).
+uid 0). The binary is the shipped `podvm 0.1.0` (3503032 bytes).
 The observation on bare payload names stands.
 
 ```
@@ -1225,7 +1225,7 @@ EXIT:0
 Source:      issues 25 and 23, client beta testing 2026-09-22 (T-0604's
              Prove names refused `--filter`; three parity notes stale);
              `TODO/supervise.md`,
-             `crates/podbox-cli/src/parity.rs`
+             `crates/podvm/src/parity.rs`
 Category:    gate
 Priority:    P1
 Effort:      M
@@ -1246,8 +1246,8 @@ Premise:     Measured by the reporter on the beta.3 asset and confirmed
              on this tree: the T-0604 line still carries `--filter`, all
              three notes read as reported. `parity::TABLE` is data, so
              both checks are cheap.
-Approach:    Two checks in `check-todo.py` (now `podbox-gate`, or beside it), each with its
-             plant in the same change: extract `podbox <verb> <flags>`
+Approach:    Two checks in `check-todo.py` (now `podvm-gate`, or beside it), each with its
+             plant in the same change: extract `podvm <verb> <flags>`
              tokens from each `Prove:` line and admit them against the
              table the way `admit` does at runtime; assert the three
              named notes (and, by shape, every note naming a milestone or
@@ -1258,7 +1258,7 @@ Approach:    Two checks in `check-todo.py` (now `podbox-gate`, or beside it), ea
              existentials, reviews own the rest).
 Decision:    Checks with plants, fixes beside them. A recorded acceptance
              that never ran is the exact failure the gate exists to catch.
-Prove:       `./target/release/podbox-plant` breaks each new check on purpose and asserts red
+Prove:       `./target/release/podvm-plant` breaks each new check on purpose and asserts red
              with that defect's message; T-0604's rewritten line runs
              green verbatim; `system info --format '{{json .Parity}}`
              carries the three corrected notes. Close issues 25 and 23
@@ -1266,8 +1266,8 @@ Prove:       `./target/release/podbox-plant` breaks each new check on purpose an
              the guards that stop recurrence.
 
 **Done, 2026-09-23.** Checks 26 (done Prove commands admit) and 27
-(milestone-blame and missing-verb notes) in `crates/podbox-gate/src/main.rs`,
-six plant cases plus one control in scripts/plant.sh (now `podbox-plant`), in the same
+(milestone-blame and missing-verb notes) in `crates/podvm-gate/src/main.rs`,
+six plant cases plus one control in scripts/plant.sh (now `podvm-plant`), in the same
 change. The sweep paid at once: besides T-0604's `--filter` it found
 T-0804's `--network`/`--memory` (asserted success, red at runtime),
 T-0501's `--device` (its own Done says not implemented), T-0107's
@@ -1281,7 +1281,7 @@ script invocation; T-0504's `! ... --rootfs` stands, exempt by the
 documented `!` rule (it asserts refusal, and the spelling is the
 trigger). Lane prove [`pb-w25-prove`](../docs/history/lane-proofs-2026-09-23/pb-w25-prove.txt), verdict `fail=0`:
 every rewritten line green verbatim, 159 exits 0, the three notes in
-`system info`, crate units and clippy clean. `plant.sh` (now `podbox-plant`) green after
+`system info`, crate units and clippy clean. `plant.sh` (now `podvm-plant`) green after
 the commit. The guards are the two checks themselves.
 
 **Partial, 2026-09-25.** Issue 60 extends check 27: assert a
@@ -1289,15 +1289,15 @@ curated docker flag list covered, so a new parser flag cannot
 land without a row and a missing row cannot pass as a refusal.
 The check extension with its plant lands in the same change as
 the T-0801 rows above, per the gate rule that a check and its
-plant arrive together. Fix area is `crates/podbox-gate/src/main.rs` check
-27 with scripts/plant.sh (now `podbox-plant`). Risk if wrong is a green gate over
-an omission the table exists to prevent. Prove is `plant.sh` (now `podbox-plant`)
+plant arrive together. Fix area is `crates/podvm-gate/src/main.rs` check
+27 with scripts/plant.sh (now `podvm-plant`). Risk if wrong is a green gate over
+an omission the table exists to prevent. Prove is `plant.sh` (now `podvm-plant`)
 green with the new plant case red-first.
 
 **Done, 2026-09-25.** Check 27 carries the curated arm:
 `CURATED_RUN_FLAGS` (the issue's 46) must each resolve under
 `run` and `CURATED_VERBS` (its 10) must each have a verb row,
-whatever their status. Prove: `./target/release/podbox-plant` on the lane
+whatever their status. Prove: `./target/release/podvm-plant` on the lane
 exits 0 with 40 caught, 0 missed, 4 controls quiet, 0 fired,
 including `27c a curated flag with no parity row red, and it
 named it` (the plant deletes the `--read-only` row and the gate
@@ -1351,7 +1351,7 @@ builds non-ASCII. Lane prove [`pb-w26-prove`](../docs/history/lane-proofs-2026-0
 positives; dash and bash both exit 0 with byte-identical output
 (378 files, 5683 markers); a planted `U+00E9` fails under both,
 named. The fixed check caught three live em dashes in
-`crates/podbox-cli/src/lifecycle.rs` from this session's own T-1323
+`crates/podvm/src/lifecycle.rs` from this session's own T-1323
 work, scrubbed in the same change. Finding, out of scope:
 `scripts/doctor/doctor.sh:650-652` builds the same way for display
 (a warning glyph, no gate comparison), so it mis-renders rather than
@@ -1365,18 +1365,18 @@ drive: any new `$(printf)` non-ASCII breaks dash first.
 
 Source:      issue 57, 2026-09-25 (claims scattered across
              single-purpose experiments); `experiments/190-parallel-layers.sh`
-             with `TODO/image.md` T-0207, `TODO/podvm.md` T-1308,
+             with `TODO/image.md` T-0207, `TODO/machine.md` T-1308,
              `TODO/deps.md` T-0910, `TODO/packaging.md` T-1001
 Category:    gate
 Priority:    P2
 Effort:      L
 Status:      done
 
-Problem:     podbox's performance claims live in single-purpose
+Problem:     podvm's performance claims live in single-purpose
              experiments, each on one host and one shape: the pull
              pool ratio (T-0207), the TCG guest overhead (T-1308),
              binary size and bloat (T-0910, T-1001). Nothing answers
-             how fast podbox is here, against what budget, and
+             how fast podvm is here, against what budget, and
              whether today's commit regressed it.
 Premise:     Read: the cited experiments each name one host and one
              shape, and no harness aggregates them. Seed numbers on
@@ -1416,7 +1416,7 @@ Prove:       `./experiments/360-perf-harness.sh` exits 0 on the
              regression past tolerance and reports could-not-run as
              its own state.
 
-**Done 2026-09-26.** One harness answers how fast podbox is here:
+**Done 2026-09-26.** One harness answers how fast podvm is here:
 `experiments/360-perf-harness.sh` (shape `lane` or `kvm`) emits
 ten-column TSV rows (commit, host, kernel, arch, shape, metric,
 cond, value, unit, state) for cold pull by tag and digest, probe
@@ -1455,12 +1455,12 @@ unit guard `load_stages_inside_the_store` fails where the
 staging path leaves the store root, and the re-driven `load`
 row is green on both shapes. The run curve (first ~1.6 s,
 repeat ~2 s, late ~0.08 s, on both shapes) is recorded under
-order-named metrics with its cause isolated in T-1340. scripts/plant.sh (now `podbox-plant`) case 30 inflates the `run.repeat`
+order-named metrics with its cause isolated in T-1340. scripts/plant.sh (now `podvm-plant`) case 30 inflates the `run.repeat`
 row past its ceiling and the gate goes red naming the
 regression.
 
 **D-6 verdict 2026-10-01 (the 360 subject stays shell).** The perf
-harness is not trivially separable, so no seventh `podbox-perf` binary
+harness is not trivially separable, so no seventh `podvm-perf` binary
 lands in this crate. The writer pulls two pinned images, downloads a
 guest kernel, assembles a marker initramfs, boots it under TCG or KVM
 with console polling, and times every verb with peak RSS: that needs an
@@ -1513,9 +1513,9 @@ debug binary, kernel `7.2.0-WSL2-STABLE`):
 `experiments/368-run-decay.sh` exits 0
 (`experiments/results/run-decay-368.txt`), 11 of 11 predictions
 held with 16-to-69-fold separation. The `--rm` arm in
-`crates/podbox-cli/src/run.rs:754-784` deletes the extracted
+`crates/podvm/src/run.rs:754-784` deletes the extracted
 rootfs where `referencing()`
-(`crates/podbox-supervise/src/lib.rs:305-311`) answers empty, so
+(`crates/podvm-supervise/src/lib.rs:305-311`) answers empty, so
 each keeper-less ephemeral run re-pays full extraction (a1
 1.746 s with the tree present; a2 4.776 s and a3 4.778 s
 re-extracting; rootfs absent after each). `create` re-extracts
@@ -1528,8 +1528,8 @@ The warm probe storm alone costs 0.059 s, which bounds every
 flat per-run cost below 0.1 s and refutes a seconds-level
 per-run mechanism. Verdicts: deletion confirmed; page-cache
 warming and one-time steps (rehash `if !linked` at
-`crates/podbox-complete/src/pkg.rs:780`, CA marker at
-`crates/podbox-complete/src/pkg.rs:429`) plausible for the
+`crates/podvm-complete/src/pkg.rs:780`, CA marker at
+`crates/podvm-complete/src/pkg.rs:429`) plausible for the
 ~1.6 s first-run premium, unsettled between them; the settler
 is a cache-drop run with keeper, which needs privilege the lane
 lacks. The 360 rows reread through this: `run.repeat` stays
@@ -1575,8 +1575,8 @@ Decision:    `first`, `repeat` and `late` keep their definitions
              (`run.repeat`) does not move.
 Out of scope: redefining the old rows, moving any old ceiling.
 Prove:       `360` exits 0 on the lane and on kvm with `run.kept`
-             ok under its ceiling, `check-todo.py` (now `podbox-gate`) check 30 green,
-             and `plant.sh` (now `podbox-plant`) case 30 still goes red naming
+             ok under its ceiling, `check-todo.py` (now `podvm-gate`) check 30 green,
+             and `plant.sh` (now `podvm-plant`) case 30 still goes red naming
              `run.repeat`.
 
 **Done 2026-09-27.** `run.kept` measured beside `start` in 360
@@ -1592,8 +1592,8 @@ keep their definitions and their history.
 
 ### T-1343 The Windows lane uses toolkit 6 job inputs and checks every retained job
 
-Source:      podbox issue 68; the installed `wsl-toolkit 6.0.0` manual;
-             `scripts/windows/run-in-base.sh`; scripts/check-todo.py (now `podbox-gate`)
+Source:      podvm issue 68; the installed `wsl-toolkit 6.0.0` manual;
+             `scripts/windows/run-in-base.sh`; scripts/check-todo.py (now `podvm-gate`)
 Category:    gate
 Priority:    P1
 Effort:      M
@@ -1616,7 +1616,7 @@ Decision:    Keep CRLF removal for input bytes. Keep job records until their
              result is saved, then collect each by id. Do not remove a base
              that the next session needs.
 Prove:       `sh experiments/384-windows-lane-v6.sh` and
-             `./target/release/podbox-gate` exit 0; `./target/release/podbox-plant`
+             `./target/release/podvm-gate` exit 0; `./target/release/podvm-plant`
              reports case 29b red with a kept session.
 
 **Done 2026-09-28.** Two simultaneous wrapper jobs read their own input,
@@ -1669,7 +1669,7 @@ no binary and named the correct `/work` binary path.
 ### T-1345 The Windows job wrapper runs a Bash caller with Bash
 
 Source:      the live plant run on 2026-09-28;
-             `scripts/windows/run-in-base.sh`; scripts/plant.sh (now `podbox-plant`)
+             `scripts/windows/run-in-base.sh`; scripts/plant.sh (now `podvm-plant`)
 Category:    gate
 Priority:    P1
 Effort:      S
@@ -1686,7 +1686,7 @@ Approach:    Read the first line in the job container. Use Bash for either
 Decision:    Select the interpreter from an explicit first line. Do not
              infer it from a file name. Keep POSIX jobs usable in images
              without Bash.
-Prove:       `sh scripts/windows/run-in-base.sh ./target/release/podbox-plant` exits 0
+Prove:       `sh scripts/windows/run-in-base.sh ./target/release/podvm-plant` exits 0
              and reports every plant caught, with no missed case.
 
 **Done 2026-09-28.** The first wrapper run failed with exit 2 at
@@ -1697,7 +1697,7 @@ The repeat result is recorded in [PROGRESS.md](PROGRESS.md).
 
 ### T-1346 The plant script finds the checkout from a Windows job input
 
-Source:      the live plant run on 2026-09-28; scripts/plant.sh (now `podbox-plant`);
+Source:      the live plant run on 2026-09-28; scripts/plant.sh (now `podvm-plant`);
              `scripts/windows/run-in-base.sh`
 Category:    gate
 Priority:    P1
@@ -1713,18 +1713,18 @@ Approach:    For the exact input path, use the working directory as the
              Drive the full plant suite through the Windows wrapper.
 Decision:    Do not infer a checkout from an arbitrary input directory.
              Keep the native path for direct Linux use.
-Prove:       `sh scripts/windows/run-in-base.sh ./target/release/podbox-plant` exits 0
+Prove:       `sh scripts/windows/run-in-base.sh ./target/release/podvm-plant` exits 0
              with every plant caught and no missed case.
 
 **Done 2026-09-28.** The first Bash run reached the path guard and
-returned 2 for `//scripts/check-todo.py` (now `podbox-gate`). The repeat result is in
+returned 2 for `//scripts/check-todo.py` (now `podvm-gate`). The repeat result is in
 [PROGRESS.md](PROGRESS.md).
 
 ----
 
 ### T-1347 Check parity notes against the milestone entries
 
-Source:      the full plant run on 2026-09-28; scripts/check-todo.py (now `podbox-gate`);
+Source:      the full plant run on 2026-09-28; scripts/check-todo.py (now `podvm-gate`);
              [milestones.md](milestones.md)
 Category:    gate
 Priority:    P1
@@ -1742,7 +1742,7 @@ Approach:    Take shipped milestone numbers from done entries in that
              Run case 27a and the full plant suite.
 Decision:    The milestone entry is the status source. The progress page
              carries the current work order and need not repeat that set.
-Prove:       `sh scripts/windows/run-in-base.sh ./target/release/podbox-plant` exits 0
+Prove:       `sh scripts/windows/run-in-base.sh ./target/release/podvm-plant` exits 0
              with case 27a caught and no missed plant.
 
 **Done 2026-09-28.** The first full run caught 42 plants and missed
@@ -1763,7 +1763,7 @@ Problem:     Current pages disagree with manifests, mechanisms, and command disp
 Premise:     The earlier record gate checked links and counts but not these source facts.
 Approach:    Generate the build surface. Correct the live pages. Add a mismatch check and plant.
 Decision:    Source and measured proof take precedence over an earlier page.
-Prove:       `python3 scripts/document-state.py` and `./target/release/podbox-plant` exit 0; a changed snapshot fails with its own message.
+Prove:       `python3 scripts/document-state.py` and `./target/release/podvm-plant` exit 0; a changed snapshot fails with its own message.
 
 **Done 2026-09-30.** The source-state generator and check 31 are implemented.
 The full Linux gate passed. Plant 31 produced its own mismatch message.
@@ -1808,7 +1808,7 @@ Problem:     The unpublished KVM driver reuses an experiment number and private 
 Premise:     The KVM host is the toolkit base. The Windows checkout is read-only there.
 Approach:    Use explicit binary and image inputs, pinned image bytes, and owned scratch. Export the complete build on request.
 Decision:    Preserve the base and supplied image. Save proof before collecting its session.
-Prove:       `sh experiments/392-kvm-guest.sh --accept-host-risk --unattended --binary BINARY --image IMAGE` exits 0; the default wrapper exports podbox and four helpers; no owned job or scratch remains.
+Prove:       `sh experiments/392-kvm-guest.sh --accept-host-risk --unattended --binary BINARY --image IMAGE` exits 0; the default wrapper exports podvm and four helpers; no owned job or scratch remains.
 
 **Partial 2026-09-30.** Explicit inputs, unique experiment numbering,
 owned runtime scratch, emulator cleanup, and artifact export are implemented.
@@ -1829,18 +1829,18 @@ The operator's 2026-10-02 authorisation was used: every attempt ran
 `experiments/392-kvm-guest.sh --accept-host-risk --unattended`, so the
 T-1609 watchdog held each session and the run never needed a person in
 the room. The binary was built in the lane on `rustc 1.99.0`, musl
-static, podbox 0.1.0-beta.12, SHA256
+static, podvm 0.1.0-beta.12, SHA256
 `e5d1d918a230a45fc06be6a78189a57e3d4bc132a7070f1072e28b542d8ce4aa`,
 against the pinned 910163968-byte ValidationOS disk whose SHA256 matches
 the recorded digest. All three attempts are saved:
 [the first](../experiments/results/kvm-guest-2026-10-02.txt) and
 [the third](../experiments/results/kvm-guest-2026-10-02-third.txt).
 
-- Attempt 1 failed before the guest: `podbox windows: qemu-img is not on
+- Attempt 1 failed before the guest: `podvm windows: qemu-img is not on
   this machine`, exit 125. T-1610 had installed `qemu-system-x86`,
   `qemu-system-x86-firmware` and `edk2-ovmf`, and `qemu-img` ships in a
   **separate** Arch package the base did not have. `qemu-img 11.1.1-4` is
-  now installed in `wsl-toolkit-podbox`; T-1610's Prove clause names
+  now installed in `wsl-toolkit-podvm`; T-1610's Prove clause names
   three packages and this fourth one is not among them.
 - Attempts 2 and 3 got further and then failed at a step no earlier run
   reached. `windows setup` completes, printing `INSTALLED D:`: the
@@ -1849,7 +1849,7 @@ the recorded digest. All three attempts are saved:
   off. The `run ver` step then hangs. The serial log stops at
   `BdsDxe: starting Boot0002 "UEFI QEMU NVMe Ctrl wqroot 1"`, which is
   firmware handing off to the Windows boot manager, and
-  `podbox windows: the guest did not power off within 540s, so it was
+  `podvm windows: the guest did not power off within 540s, so it was
   stopped` follows with exit 125.
 
 What this rules out, measured rather than assumed: the accelerator is
@@ -1914,7 +1914,7 @@ Premise:     The audit's twin failure starts with successful doctor fields.
 Approach:    Print the complete failed output before cleanup. Test a message
              after line twelve. Keep exit 2 as skipped on both runners.
 Decision:    Preserve machine JSON. Do not make a missing diagnostic a pass.
-Prove:       `./target/release/podbox-smoke --diagnostics --powershell` exits 0
+Prove:       `./target/release/podvm-smoke --diagnostics --powershell` exits 0
              with both runners, lost-output mutations, clean controls,
              JSON verdicts, and skipped twin checks.
 
@@ -1923,9 +1923,9 @@ restores truncation and loses that message. Clean controls and JSON verdicts
 pass. Both runners report an unavailable twin as skipped.
 [The proof](../experiments/results/gate-diagnostics.txt) records both platforms.
 
-**Done 2026-10-01 (the smoke port).** The drive is the `podbox-smoke`
+**Done 2026-10-01 (the smoke port).** The drive is the `podvm-smoke`
 binary's `--diagnostics` verb in the gate crate
-(`crates/podbox-gate/src/smoke.rs`), with `--powershell` for the Windows
+(`crates/podvm-gate/src/smoke.rs`), with `--powershell` for the Windows
 runner. Lane proof runs the drive green beside the retired script, then
 deletes experiments/398-gate-diagnostics.py in the same change; the
 red-run plant is `experiments/results/smoke-port-plant.txt`.
@@ -1934,7 +1934,7 @@ red-run plant is `experiments/results/smoke-port-plant.txt`.
 
 ### T-1422 Plant the kept-session check where the OS execs batch files
 
-Source:      this session's plant run; scripts/plant.sh (now `podbox-plant`)
+Source:      this session's plant run; scripts/plant.sh (now `podvm-plant`)
 Category:    gate
 Priority:    P2
 Effort:      S
@@ -1942,18 +1942,18 @@ Status:      done
 
 Problem:     Plant case 29b misses on Windows. Its mockbin vehicle is an
              extensionless script, and Windows `CreateProcess` rejects it
-             with WinError 193, so `check-todo.py` (now `podbox-gate`) records "the lane-job
+             with WinError 193, so `check-todo.py` (now `podvm-gate`) records "the lane-job
              ledger could not be read" and never names `plant-session`.
              The gate check itself works: it named every real kept job
              this session.
-Premise:     `check-todo.py` (now `podbox-gate`) invokes `wsl-toolkit` through `subprocess`
+Premise:     `check-todo.py` (now `podvm-gate`) invokes `wsl-toolkit` through `subprocess`
              with no shell, so the mock must resolve to a vehicle the OS
              can exec. `shutil.which` prefers the runnable form per OS.
 Approach:    Ship a `.bat` twin of the mock beside the extensionless one
              and leave the assertion (red, names `plant-session`, base
              quiet) unchanged.
 Decision:    Both vehicles stay. The plant asserts the gate, not the OS.
-Prove:       `./target/release/podbox-plant` exits 0 with 44 caught, 0 missed,
+Prove:       `./target/release/podvm-plant` exits 0 with 44 caught, 0 missed,
              and 4 quiet controls.
 
 **Done 2026-09-30.** Both mocks ship; `which` takes the `.bat` on
@@ -1991,7 +1991,7 @@ Approach:    Remove the check and replace it with a real scanner. Call
              check nothing runs: `.github/workflows/gate.yml:89`;
              `scripts/common/check-gate.sh:112` and `:123`;
              `scripts/common/check-gate.ps1:111` and `:118`;
-             `crates/podbox-gate/src/smoke.rs:44`;
+             `crates/podvm-gate/src/smoke.rs:44`;
              `scripts/common/check-twins.sh:303` and `:304`. Delete
              the shell check and its PowerShell twin, which exist only
              to be twins of each other; both names are gone from the
@@ -2002,8 +2002,8 @@ Approach:    Remove the check and replace it with a real scanner. Call
              repository, scanning the working tree and the history.
              Update `docs/security/secrets.md`, which currently names the
              shell script as the review mechanism. Update the comments
-             at `crates/podbox-ssh/src/mux.rs:1151` and
-             `crates/podbox-ssh/tests/mux_two_client.rs:1290`, which
+             at `crates/podvm-ssh/src/mux.rs:1151` and
+             `crates/podvm-ssh/tests/mux_two_client.rs:1290`, which
              cite the check as the reason for their placeholder shapes,
              and `experiments/270-multiarch-image.sh:117`.
 Decision:    Scanner, not pattern. GitHub Actions runs its own scoped
@@ -2013,7 +2013,7 @@ Decision:    Scanner, not pattern. GitHub Actions runs its own scoped
              weight: check-twins.sh asserts on the pair, so leaving them
              means either a failing twins check or a check comparing
              nothing.
-Prove:       `./target/release/podbox-gate` exits 0; `sh scripts/common/check-twins.sh`
+Prove:       `./target/release/podvm-gate` exits 0; `sh scripts/common/check-twins.sh`
              exits 0 with no `check-no-secrets` pair; `grep -rn check-no-secrets .`
              outside `references/` and `experiments/results/` returns
              nothing; the new workflow appears in a CI run on the landed
@@ -2029,7 +2029,7 @@ twin are deleted, every call site is unwired, and
 returns nothing; `sh scripts/common/check-twins.sh` exits 0 with every
 remaining pair agreeing; `sh scripts/common/check-docs.sh` exits 0 at 84
 files and 1130 relative links; and
-`./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0. The
+`./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0. The
 deletion and the workflow landed in one commit, so the repository never
 sat without secrets scanning between them.
 
@@ -2069,11 +2069,11 @@ could not meet, and the plant clause below is the one thing still owed:
 nothing here drives a planted key into the job red.
 
 **The plant is not delivered and cannot be delivered by this harness.**
-`crates/podbox-gate/src/plant.rs` has no case for the secrets check and
+`crates/podvm-gate/src/plant.rs` has no case for the secrets check and
 needed none: it never referenced the script, and every one of its 31
 cases plants into files the gate's own checks read. Proving a planted
 key reds the workflow needs a GitHub Actions runner, which
-`podbox-plant` does not provide. That is a gap in the proof, named here
+`podvm-plant` does not provide. That is a gap in the proof, named here
 rather than papered over, and it is the honest successor to the plant
 the deleted check used to carry.
 
@@ -2129,11 +2129,11 @@ Decision:     Queue, not deferral. The operator's 2026-10-02 answer is
 Prove:       `sh scripts/common/check-twins.sh` exits 0; `grep -cE
              "T-155[0-9]|T-157[0-9]|T-1[6-9][0-9][0-9]" TODO/INDEX.md`
              shows every planned row now has an index row or a recorded
-             decision naming where it went; `./target/release/podbox-gate`
+             decision naming where it went; `./target/release/podvm-gate`
              exits 0 with no row naming an id that is not an entry.
 
 **Done 2026-10-02.** `sh scripts/common/check-twins.sh` exits 0 with every
-remaining pair agreeing, and `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe`
+remaining pair agreeing, and `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe`
 exits 0 with no row naming an id that is not an entry, at 249 rows.
 The entry's own greps are measured and agree with what it claims:
 `T-155x`, `T-157x` and `T-1[6-9]xx` together are 36 rows; the plan's own
@@ -2171,7 +2171,7 @@ half of this work and it is not done.
 
 Source:      `sh scripts/common/check-one-home.sh`, run on this tree
              2026-10-02 and on `main` at `b9ed3ac` by stash, both red;
-             `TODO/packaging.md` `:749` and `TODO/podvm.md` `:984`
+             `TODO/packaging.md` `:749` and `TODO/machine.md` `:984`
 Category:    gate
 Priority:    P2
 Effort:      S
@@ -2206,13 +2206,13 @@ Decision:     Recorded here rather than fixed in this session. The two
              that session's call, and the operator's rule is that
              corrections go in place by the agent that owns the work.
 Prove:       `sh scripts/common/check-one-home.sh` exits 0;
-             `./target/release/podbox-gate` exits 0; a CI run on the
+             `./target/release/podvm-gate` exits 0; a CI run on the
              landed commit reports the maintained repository checks step
              green rather than skipped.
 
 **Done 2026-10-02.** `sh scripts/common/check-one-home.sh` exits 0:
 `one fact one home: 59 documents, no sentence of 12+ words in two of
-them`. `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0.
+them`. `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0.
 
 Nine Batch 3 `Done` paragraphs opened with one sentence each and it
 read like the same paragraph nine times, across four files rather than
@@ -2223,7 +2223,7 @@ Each opening now leads with what is specific to its own entry: the
 script that keeps its path and its flag, the downloader half of the
 signed nightly, the two store-lock subcommands, the notes the nightly
 publishes, the branch state the binary reads itself, the second member
-of the podvm crate, the measurement crate that needs no dependencies,
+of the podvm-measure crate, the measurement crate that needs no dependencies,
 the rendered state page, and the licence inventory's `--output` flag.
 The body from `Lane proof` onward is untouched in every case, so each
 record still describes what shipped and nothing moved to
@@ -2288,12 +2288,12 @@ Decision:     Watchdog outside the guest, keyed on the scratch path.
              single-emulator preconditions; the watchdog does not
              replace them, it bounds the failure they cannot prevent.
 Prove:       `py scripts/windows/kvm-watchdog.py selftest` exits 0 and
-             ends `verdict PODBOX-KVM-WATCHDOG.SH-OK`, on three
+             ends `verdict PODVM-KVM-WATCHDOG.SH-OK`, on three
              consecutive runs saved in the result file;
              `py scripts/windows/kvm-guest.py --unattended --accept-host-risk
              --binary B --image I` starts a guarded run and names the
              watchdog pid;
-             `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0
+             `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0
              on this host.
 
 **Done 2026-10-02, corrected 2026-10-02.** The first version of this
@@ -2302,14 +2302,14 @@ ran over it and found the following false, each now fixed and each
 measured rather than asserted:
 
 - "the watchdog watches the proof". Nothing invoked it. The arm file
-  `podbox-kvm-watchdog.json` had no reader anywhere in the tree, and
+  `podvm-kvm-watchdog.json` had no reader anywhere in the tree, and
   `scripts/windows/kvm-guest.py` never mentioned the watchdog. The
   driver now runs the proof detached and holds a watchdog process on its
   session, and `--unattended` refuses unless the watchdog answers a
   probe first, so the flag cannot become a promise nothing keeps.
 - "the time bound". `wait` and `stop` were called without `--instance`.
   Omitted, the instance resolves by `auto` and this machine has seven:
-  acc, base, muse, nobase, pg-toolkit, podbox, podbox-migrate. Measured
+  acc, base, muse, nobase, pg-toolkit, podvm, podvm-migrate. Measured
   on a live session: without it, `rc 2` and `no such job` in 0 s; with
   it, `rc 124` after the real timeout. The 4800 s bound never began.
   The bound is now measured working in
@@ -2319,7 +2319,7 @@ measured rather than asserted:
 - "green on three consecutive runs". The result file held one run. All
   three runs are now saved, and the isolation arm in each now proves
   its fixture started.
-- `./target/release/podbox-gate` as the gate command. No such binary
+- `./target/release/podvm-gate` as the gate command. No such binary
   exists on this host; `target/release/` holds only lock and fingerprint
   directories. The command that runs here is the debug one.
 
@@ -2331,7 +2331,7 @@ Two further defects were found in the same pass and fixed:
   emulators running. Both now use `[q]emu-system`, and the arm fails if
   its fixture never started.
 - `sweep` deleted the proof's own evidence. It ran `rm -rf` over every
-  `podbox-kvm.*` directory whether or not the bound had expired, taking
+  `podvm-kvm.*` directory whether or not the bound had expired, taking
   `ver.txt`, `setup.txt`, `doctor.txt`, `e42.txt`, `seam.txt` and the
   serial logs from a run that had succeeded. It now removes scratch only
   when the wait timed out, and iterates the validated list rather than a
@@ -2341,7 +2341,7 @@ Two further defects were found in the same pass and fixed:
 `scripts/windows/kvm-watchdog.py` watches the proof
 from the Windows side, where the session id is visible and where nothing
 the guest does can take the guard down with it. It selects an emulator
-through `/proc/PID/exe` and matches the proof's `podbox-kvm.` scratch on
+through `/proc/PID/exe` and matches the proof's `podvm-kvm.` scratch on
 the process's own command vector, so it removes exactly the emulator this
 run started.
 
@@ -2351,7 +2351,7 @@ three consecutive runs, three arms each:
 
 - control: nothing running, the guard stays quiet and fires nothing;
 - fault: a real `qemu-system-x86_64` launched on a real disk under a
-  `podbox-kvm.` scratch is detected, and TERM then KILL removes it with no
+  `podvm-kvm.` scratch is detected, and TERM then KILL removes it with no
   survivor and no scratch left;
 - isolation: an unrelated `qemu-system-x86_64` running under a scratch
   that is not the proof's is neither selected nor removed, and is still
@@ -2392,7 +2392,7 @@ selftest could not see a guest until that was fixed.
 ### T-1610 Repair the base's stale podman state and settle which qemu the proof uses
 
 Source:      Measured on the base 2026-10-02 via `wsl-toolkit --instance
-             podbox base exec`; `experiments/lib/kvm-guest-base.sh` `:16`
+             podvm base exec`; `experiments/lib/kvm-guest-base.sh` `:16`
              and `:59`
 Category:    gate
 Priority:    P0
@@ -2429,7 +2429,7 @@ Premise:     A second defect blocks every container run in the base,
              names `/tmp/wsl-toolkit-run-1000/containers` and
              `/tmp/wsl-toolkit-run-1000/libpod/tmp`. Both exist.
 Approach:     Clear the stale podman state first, with the route the
-             toolkit documents for it: `wsl-toolkit --instance podbox
+             toolkit documents for it: `wsl-toolkit --instance podvm
              base ensure --repair`, which `base --help` says "may clear
              engine run state a reboot invalidated" and which refuses
              without the flag rather than repairing by default. That is
@@ -2456,12 +2456,12 @@ Decision:     Measure before installing. The earlier report of this
              the documented flag first: it is required either way and it
              is the toolkit's own path.
 Prove:       `pacman -Q qemu-system-x86 qemu-system-x86-firmware edk2-ovmf`
-             inside `wsl-toolkit --instance podbox base exec` answers the
+             inside `wsl-toolkit --instance podvm base exec` answers the
              three pinned versions; `ls /usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd`
              and `OVMF_VARS.4m.fd` resolve; `/dev/kvm` opens O_RDWR as the
              `toolkit` account and `KVM_GET_API_VERSION` returns 12;
              `podman run --rm hello-world` succeeds;
-             `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0
+             `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0
              on this host.
 
 **Done 2026-10-02.** The base runs a container and the proof's
@@ -2471,7 +2471,7 @@ prerequisites are installed in it
 Repair first. `podman` answered `current system boot ID differs from
 cached boot ID; an unhandled reboot has occurred` and named
 `/tmp/wsl-toolkit-run-1000/containers` and
-`/tmp/wsl-toolkit-run-1000/libpod/tmp`. `wsl-toolkit --instance podbox
+`/tmp/wsl-toolkit-run-1000/libpod/tmp`. `wsl-toolkit --instance podvm
 base ensure --repair` is the documented route and it worked: the engine
 answers 6.1.2, `base ensure` reports `usable: true`, and `podman images`
 lists the cached images. The stale state is cleared. Two corrections
@@ -2514,7 +2514,7 @@ here because measuring found them:
   does not read it as a defect it should "fix" the other way.
 - Nothing about this needs the Windows host. A qemu exists there under
   scoop, and the operator's standing rule is that it is never touched;
-  this entry installed everything into `wsl-toolkit-podbox` instead.
+  this entry installed everything into `wsl-toolkit-podvm` instead.
 
 Acceleration is proven by driving it, not by stat-ing the node, which is
 the distinction `experiments/385-kvm-open.sh` exists to make: the node
@@ -2541,18 +2541,18 @@ Status:      done
 
 Problem:     The source-discovery pages still describe the world before
              the Batch 3 port. `docs/code-map.md:5` lists ten crates
-             and `crates/` holds fourteen: `podbox-buildstate`,
-             `podbox-release`, and `podbox-podvm` are absent, and so is
-             `podbox-gate`, which supplies `podbox-dev`, `podbox-count`,
-             `podbox-plant`, and `podbox-smoke`.
+             and `crates/` holds fourteen: `podvm-buildstate`,
+             `podvm-release`, and `podvm-measure` are absent, and so is
+             `podvm-gate`, which supplies `podvm-dev`, `podvm-count`,
+             `podvm-plant`, and `podvm-smoke`.
              `docs/code-map.md:23` and `docs/agent-tooling.md:31` both
              give `scripts/build-state.py` and `scripts/document-state.py`
              as the owners of behaviour that moved to
-             `crates/podbox-buildstate` and the `document-state` binary;
+             `crates/podvm-buildstate` and the `document-state` binary;
              each file is an exec shim and says so in its own header.
              `README.md:103` and `scripts/README.md:21` still name
              `verify-release.sh` as the verifier where the logic is now
-             `podbox-verify`. `docs/limits.md:33` points T-1405 at
+             `podvm-verify`. `docs/limits.md:33` points T-1405 at
              release packaging for helpers that beta.10 already ships.
 Premise:     Every claim above was read in the source, not inferred.
              `docs/runtime-state.md:14` and `Cargo.toml:3` already list
@@ -2573,36 +2573,36 @@ Decision:     Fix the hand-written maps. The generated page was right
              correction belongs. `docs/limits.md` is a limits page, so a
              closed gap stated as a live limit is the specific kind of
              drift that misleads a reader choosing a path.
-Prove:       `grep -c "podbox-buildstate\|podbox-release\|podbox-podvm\|podbox-gate" docs/code-map.md`
+Prove:       `grep -c "podvm-buildstate\|podvm-release\|podvm-measure\|podvm-gate" docs/code-map.md`
              is 4 or more; `grep -n "exec shim\|compat shim" docs/code-map.md docs/agent-tooling.md`
              names each shim row; `grep -n "beta.9" docs/limits.md` returns
              nothing; `sh scripts/common/check-docs.sh` exits 0;
              `sh scripts/common/check-one-home.sh` exits 0;
-             `./target/release/podbox-gate` exits 0.
+             `./target/release/podvm-gate` exits 0.
 
 **Done 2026-10-02, and one Prove clause is discharged as unsatisfiable.**
-`grep -c "podbox-buildstate\|podbox-release\|podbox-podvm\|podbox-gate"
+`grep -c "podvm-buildstate\|podvm-release\|podvm-measure\|podvm-gate"
 docs/code-map.md` returns 8, at or above the 4 the clause asks for.
 `grep -n "exec shim\|compat shim" docs/code-map.md docs/agent-tooling.md`
 names four rows across the two maps. `sh scripts/common/check-docs.sh`
 exits 0 at 84 files and 1133 relative links, `sh scripts/common/check-one-home.sh`
-exits 0, and `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe`
+exits 0, and `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe`
 exits 0.
 
 The four missing crates are rows now, each with its owners read from
-`crates/*/Cargo.toml`: `podbox-gate` for the gate and the count, plant
-and dev binaries, `podbox-buildstate` for build freshness and the
-licence inventory, `podbox-release` for its seven binaries, and
-`podbox-podvm` for the guest driver and the spread measurement. Both
+`crates/*/Cargo.toml`: `podvm-gate` for the gate and the count, plant
+and dev binaries, `podvm-buildstate` for build freshness and the
+licence inventory, `podvm-release` for its seven binaries, and
+`podvm-measure` for the guest driver and the spread measurement. Both
 maps mark `scripts/build-state.py` and `scripts/document-state.py` as
 exec shims and name the binary that owns the logic; `README.md` names
-`podbox-verify` as the verifier and identifies the documented commands
+`podvm-verify` as the verifier and identifies the documented commands
 as a shim; `scripts/README.md` says the same. The shim rows stay,
 because the paths are real and `README.md` invokes them.
 
 ⚠ **`grep -n "beta.9" docs/limits.md` cannot return nothing without
 deleting a true sentence, so this clause is discharged rather than met.**
-The line is `The standalone beta.9 assets contain podbox only.` It
+The line is `The standalone beta.9 assets contain podvm only.` It
 describes what beta.9 shipped, not a gap, and deleting it would make the
 page false. What the clause meant is fixed in place: the sentence after
 it no longer describes an open work item, and now says the helper gap
@@ -2644,7 +2644,7 @@ Approach:     Decide, for each, whether it is work or a limit. Two are
 Decision:     One entry owns the decision for all four, because the work
              is the decision and each needs a human's judgement about
              scope, not an implementation.
-Prove:       `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0;
+Prove:       `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0;
              `grep -rn -e "still open" -e "future work" -e "remains open"
              TODO/ docs/limits.md` returns no sentence whose owning index
              row is `done`; each of the four below names a reopened entry
@@ -2653,9 +2653,9 @@ Prove:       `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0;
 **Done 2026-10-02.** All four decided and executed, and the grep the
 clause names returns 18 lines, every one read in context against the row
 that owns it: none is pending work under a `done` row. The two that were
-the substance of this entry are gone. `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe`
+the substance of this entry are gone. `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe`
 exits 0 at 249 rows, 26 open, 6 partial, 0 blocked, 217 done, after
-`podbox-count.exe` recomputed the table.
+`podvm-count.exe` recomputed the table.
 
 What each of the other sixteen is, since a later session will read the
 same list: two are an Out of scope clause and two more are a second Out
@@ -2676,7 +2676,7 @@ work remains under a row saying nothing does, and that is the defect
 this entry was filed for.
 
 One finding that widened the first decision, measured in source.
-`podbox image prune` names its two refusals from two different places:
+`podvm image prune` names its two refusals from two different places:
 `is in use by a running container` comes from the `flock(2)` hold check
 in the store, and `is referenced by container <names>` comes from the
 container-record table in the CLI. T-0204's Prove clause greps for the
@@ -2686,7 +2686,7 @@ removed. That is recorded on T-0204 itself, where the work now lives.
 
 **The four, with what each one needs.**
 
-1. `TODO/image.md:311` gives T-0204 a Prove clause requiring `podbox run
+1. `TODO/image.md:311` gives T-0204 a Prove clause requiring `podvm run
    -d --name gc-probe` to hold a lock across an exec, and `:320` says
    plainly that this half is not done. The entry is `done`. The mechanism
    is lock inheritance across exec, which is T-0211's subject and T-0211
@@ -2713,12 +2713,12 @@ removed. That is recorded on T-0204 itself, where the work now lives.
    shed path; this clause drives `Lock::hand_to_payload`, which T-0211
    itself calls immediately before the exec's fork. One mechanism, two
    directions, two owners. ⛔ **The clause also does not read the mechanism
-   it proves**, which the reopen had to record: `podbox image prune` names
+   it proves**, which the reopen had to record: `podvm image prune` names
    its two refusals from two sources. `is in use by a running container`
    comes from `Store::delete`
-   (`crates/podbox-image/src/store.rs:830`), the `flock(2)` hold check;
+   (`crates/podvm-image/src/store.rs:830`), the `flock(2)` hold check;
    `is referenced by container <names>` comes from
-   `podbox_supervise::referencing` (`crates/podbox-cli/src/images.rs:948`),
+   `podvm_supervise::referencing` (`crates/podvm/src/images.rs:948`),
    the container-record table. The `Prove` greps for the second, so it
    asserts the record path and never touches the lock, and it would stay
    green with the inheritance removed. That correction is the entry's
@@ -2734,9 +2734,9 @@ removed. That is recorded on T-0204 itself, where the work now lives.
    declines to repair it, and clearing it is a change to the host's WSL
    configuration rather than to this tree. A row here would have no
    implementable clause. The page now says so beside the existing
-   sentence, names what clears it, and records that podbox itself refuses
+   sentence, names what clears it, and records that podvm itself refuses
    `--memory` and `--cpus` on its parity table, so the silent acceptance is
-   the engine's and not podbox's.
+   the engine's and not podvm's.
 4. **Dropped and reclassified, and T-1003 stays `done`.** The live-entry
    prover is a limit: `experiments/358-ladder-rungs.sh` already drives both
    entry arms wherever the host grants `/dev/fuse` and `mount(2)`, and this
@@ -2760,8 +2760,8 @@ returns clean, so each is judged here against its owning row.
 | `interpose.md:261`, `interpose.md:918` | T-0702, T-0709 `done` | "**was** still open until 2026-09-18" and "**was** still open until 2026-09-18, not the reader". Past tense with the closing date, describing a question the entry answered. |
 | `interpose.md:1472` | T-1311 `done` | An **Out of scope** clause naming T-1309, which is `done`. Not this entry's work. |
 | `packaging.md:504`, `:629` | T-1328, T-1334 `done` | Two **Out of scope** clauses: SBOM generation, and pinned-glibc-header interposer builds. Both say out of scope in the entry that owns them. |
-| `podvm.md:498` | T-1305 `done` | Fork capability **blocked on T-1302**, a tracked entry, and deferred for a named reason: no guest driver ships yet. It has an owner. |
-| `podvm.md:762` | T-1308 `done` | The guest carries no toolchain and has no network, so the gap is stated as **"a named gap, not a fifth row"** and the spread rests on four classes. Named, not pending. |
+| `machine.md:498` | T-1305 `done` | Fork capability **blocked on T-1302**, a tracked entry, and deferred for a named reason: no guest driver ships yet. It has an owner. |
+| `machine.md:762` | T-1308 `done` | The guest carries no toolchain and has no network, so the gap is stated as **"a named gap, not a fifth row"** and the spread rests on four classes. Named, not pending. |
 | `image.md:1182` | T-0211 `partial` | Reads an fd as **still open** in the Linux sense; not the English sense the grep catches. |
 | `gate.md:2411`, `:2423`, `:2446` | this entry | The `Problem`, the `Prove`, and the clause being decided. |
 
@@ -2805,7 +2805,7 @@ Approach:     File the 17 as 17 rows, one per plan id, in the category
              the plan's priority and its own proof. One entry holding a
              queue was tried first and the record gate refused it: a
              `TODO/` line naming a task id that is not an entry is an
-             error, at `crates/podbox-gate/src/main.rs:4007`, and a
+             error, at `crates/podvm-gate/src/main.rs:4007`, and a
              prose queue raises it once per id per line. The first
              attempt reported 61 such errors on a single-entry version
              of this queue, which is the measurement behind the
@@ -2837,7 +2837,7 @@ Decision:     Queue, not deferral, per `TODO/RULES.md` section 11: work
              record gate is the defect this repository's rules are
              written to catch, and a later session reading the Approach
              alone would try the queue shape again.
-Prove:       `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0
+Prove:       `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0
              with no row naming an id that is not an entry;
              `grep -cE "T-155[0-9]|T-157[0-9]|T-1[6-9][0-9][0-9]"
              TODO/INDEX.md` returns 37, re-derived 2026-10-02 after this
@@ -2850,7 +2850,7 @@ Prove:       `./target/x86_64-pc-windows-msvc/debug/podbox-gate.exe` exits 0
              `grep -cE "T-1(55[9]|56[0-9])" TODO/INDEX.md` returns 11
              and each of those rows reads `done`;
              `sh scripts/common/check-twins.sh` exits 0;
-             `./target/x86_64-pc-windows-msvc/debug/podbox-count.exe`
+             `./target/x86_64-pc-windows-msvc/debug/podvm-count.exe`
              reports the same counts `TODO/INDEX.md` carries.
 
 **Done 2026-10-02.** All 21 unbatched plan rows are in the record as
@@ -2888,7 +2888,7 @@ and 50 name no batch. The 21 above are the plan's named set. The other
 batch prose covers under a description rather than an id. Their ids are
 deliberately not written here: a `TODO/` line naming an id that is not an
 entry is an error, and the check at
-`crates/podbox-gate/src/main.rs:4007` does not honour the `known-absent`
+`crates/podvm-gate/src/main.rs:4007` does not honour the `known-absent`
 token, so the only way to write them down is to file them.
 ⚠ **Eight of the 29 are already done and are not outstanding work.**
 Measured on this tree: the scripts for the deletion rows naming the
@@ -2906,7 +2906,7 @@ closing `Done` paragraphs carry the measured result. The other two sit
 on entries a sibling task owns, T-1602 and T-1606. Both files stay
 unreadable to a fresh clone, but no pending work depends on them, and
 the record gate has never checked them: `CITE_PREFIXES` at
-`crates/podbox-gate/src/main.rs:195` lists `references`, `crates`,
+`crates/podvm-gate/src/main.rs:195` lists `references`, `crates`,
 `experiments`, `scripts`, `docs` and `TODO`, and `find_bares` at `:497`
 matches only after one of those prefixes, so `refactor/` is not a
 citation the gate resolves. The honest repair is to repoint each
@@ -3049,11 +3049,11 @@ probe confined and read the boot id from inside the driver.
 `grep -n "80-interposer-abi" TODO/gate.md` returns 9 lines and
 `grep -n "170-probe-cache" TODO/gate.md` returns 7, both exit 0 and each
 counting this paragraph twice. The
-record also corrects the `Premise` twice: `crates/podbox-enter/src/abi.rs`
+record also corrects the `Premise` twice: `crates/podvm-enter/src/abi.rs`
 holds 15 `#[test]` functions and not seven, and the plan's "check E has no
 test" clause is stale because
 `abi_reports_unreadable_refused_and_arity` at
-`crates/podbox-cli/src/system.rs:709` already asserts the three exit codes.
+`crates/podvm/src/system.rs:709` already asserts the three exit codes.
 
 **Both stay shell, and what each one needs is the host, not a fixture.**
 The two clauses are named at `refactor/06-entries/PLAN.md:119` and
@@ -3071,7 +3071,7 @@ exist in a unit test.
    `std::process::Command` can set an environment variable, which is not
    the subject. The subject is what glibc and musl each *admit*, which is
    an answer only a loader gives.
-   ✅ Verified on this tree: `grep -n "LD_PRELOAD" crates/podbox-enter/src/abi.rs`
+   ✅ Verified on this tree: `grep -n "LD_PRELOAD" crates/podvm-enter/src/abi.rs`
    exits 1. The module holding the ABI predicates names no preload, no
    `statx`, and no `struct stat`, so no test there drives an arm.
 2. **`experiments/170-probe-cache.sh` clause 3 needs an engine.** Its
@@ -3085,7 +3085,7 @@ exist in a unit test.
    A unit test has no confined process, so it has nothing to compare.
 
 ⚠ **The `Premise` says seven relevant tests and the tree holds fifteen,
-and the direction of the error matters.** `crates/podbox-enter/src/abi.rs`
+and the direction of the error matters.** `crates/podvm-enter/src/abi.rs`
 carries 15 `#[test]` functions, counted with `grep -c "#\[test\]"`, and
 `:1168-1170` marks the first of them as check A of
 `experiments/results/interposer-abi.txt` in a predicate form. The plan
@@ -3095,7 +3095,7 @@ says, and the module holds fifteen tests rather than seven.
 
 ⚠ **The plan's "check E has no test" clause is stale, and the record must
 say so rather than repeat it.** `PLAN.md:123` writes that
-`crates/podbox-cli/src/system.rs:603` "holds 7 tests and none names
+`crates/podvm/src/system.rs:603` "holds 7 tests and none names
 `abi`". Measured on this tree 2026-10-02: `mod tests` opens at `:604`,
 `grep -c "#\[test\]"` over the file returns 8, and
 `abi_reports_unreadable_refused_and_arity` at `:709` names `abi` and
@@ -3314,7 +3314,7 @@ that id exists in `TODO/INDEX.md`, so it cannot be cited as an entry.
 exits 1, and the plan id the table carries is not a tracked id. So the entry
 that changes this line is named by the plan and is absent from the
 record, and no new id may be written here because the check at
-`crates/podbox-gate/src/main.rs:4007` reads a bare plan id as a reference
+`crates/podvm-gate/src/main.rs:4007` reads a bare plan id as a reference
 to a non-entry.
 
 **The two remaining consumers of the line are shims, and the glob will
@@ -3357,7 +3357,7 @@ four still names a script, `scripts/package-ssh.sh` at `:133`, so the
 silent breakage is real but narrower than the `Problem` states and the
 record says so. It also records that every line number the plan gives is
 stale, `nightly.yml:84`, `:103`, `:112` and `:179` holding a step name, a
-comment, a `rustup target add` and a `podbox-*` loop today, a drift of 29
+comment, a `rustup target add` and a `podvm-*` loop today, a drift of 29
 lines. `grep -n "nightly" TODO/gate.md` returns 15 lines, exit 0, three
 of which are the mentions in this paragraph.
 
@@ -3366,14 +3366,14 @@ of which are the mentions in this paragraph.
 
 | subject | line | what runs there | what the port leaves |
 | --- | --- | --- | --- |
-| interpose build | `:90` | `./target/release/podbox-interpose-build` | already a binary; `scripts/build-interpose.sh` is what wave 4 replaces |
-| per-arch smoke | `:116` | `./target/release/podbox-smoke <triple> <qemu>` | already a binary; its tracked source is `crates/podbox-gate/src/smoke.rs` |
+| interpose build | `:90` | `./target/release/podvm-interpose-build` | already a binary; `scripts/build-interpose.sh` is what wave 4 replaces |
+| per-arch smoke | `:116` | `./target/release/podvm-smoke <triple> <qemu>` | already a binary; its tracked source is `crates/podvm-gate/src/smoke.rs` |
 | SSH packaging | `:133` | `sh scripts/package-ssh.sh <release> <arch> <qemu>` | a shell script still; the plan's repoint lands in the wave-5 release packaging work |
 | release notes | `:204` | `./dist/release-notes-x86_64 "$ref_name" > release-notes.txt` | already a binary, couriered from the x86_64 leg at `:129` |
 
 Two of the four are already ported on this tree, which the plan does not
-know: `podbox-interpose-build` and `podbox-smoke` are built by
-`cargo build -p podbox-gate --bin` at `:87` and `:113` and copied into
+know: `podvm-interpose-build` and `podvm-smoke` are built by
+`cargo build -p podvm-gate --bin` at `:87` and `:113` and copied into
 `target/release/` at `:89` and `:115`. ⚠ **Only two of the four still
 name a script.** `scripts/package-ssh.sh` at `:133` is the one live
 shell path among the four; the other three are binary calls. So the
@@ -3386,7 +3386,7 @@ gives `nightly.yml:84`, `:103`, `:112`, and `:179`
 (`refactor/06-entries/T-R004.md:191-194`, and the same four at
 `refactor/review-final-1.md:57`). Those lines today hold: the step name
 `interposer, one object per libc` (`:84`), a comment (`:103`), a
-`rustup target add` (`:112`), and a `for bin in podbox-*` loop (`:179`).
+`rustup target add` (`:112`), and a `for bin in podvm-*` loop (`:179`).
 The four lines the plan names were correct against the tree it
 measured. Verified here by running `sed -n '84p;103p;112p;179p'`, so a
 later reader knows the drift is 29 lines and not a different step.
@@ -3434,8 +3434,8 @@ Prove:       `grep -n "check-todo.py" TODO/gate.md` names the Python
 commit `996cb98` deleted the file, while the tracked replacement landed in
 the same commit at `gate.yml:61-62`. The `Decision` is recorded as
 satisfied by a plant other than the plan expected: the anchor at
-`crates/podbox-image/src/store.rs:1083` is still current and the plant
-landed as `podbox-prove-t0211`, whose binary carries it as
+`crates/podvm-image/src/store.rs:1083` is still current and the plant
+landed as `podvm-prove-t0211`, whose binary carries it as
 `FORK_PATTERN` and tests the match at `prove_t0211.rs:604`, leaving
 `experiments/157-lock-inheritance-prove.sh` a 28-line exec shim. The
 record leaves the rule behind it as one sentence: a plant that encodes a
@@ -3451,7 +3451,7 @@ the only gate it touches. That file does not exist on this tree:
 Commit `996cb98` deleted it. So the plan's wave-0 entry, read literally,
 cannot close, exactly as the entry's `Problem` states. ✅ The tracked
 replacement landed in the same commit: `gate.yml:61-62` runs
-`./target/release/podbox-gate`, and `crates/podbox-gate/src/main.rs`
+`./target/release/podvm-gate`, and `crates/podvm-gate/src/main.rs`
 holds the check the deleted Python held.
 
 ⛔ **The ordering constraint the `Decision` names is already satisfied,
@@ -3460,15 +3460,15 @@ plan's clause at `refactor/06-entries/PLAN.md:140` is that "a plant
 encoding the current source must land first, or wave 1's plant passes
 vacuously", and its subject is `157`: the sed the plan quotes sits at
 `PLAN.md:140` and was to be re-anchored to
-`crates/podbox-image/src/store.rs:1083`. Two facts close it:
+`crates/podvm-image/src/store.rs:1083`. Two facts close it:
 
 1. The anchor the plan names is still current. `store.rs:1083` reads
    `if !sys::close_in_children(fd) {` on this tree, inside
    `Lock::try_acquire`, which is what `PLAN.md:140` quotes.
-2. The plant landed, as `podbox-prove-t0211`. `T-1563` is `done` in
+2. The plant landed, as `podvm-prove-t0211`. `T-1563` is `done` in
    `TODO/INDEX.md:271` and its binary carries the anchor as a literal,
    `const FORK_PATTERN` at
-   `crates/podbox-release/src/prove_t0211.rs:28`, with a unit test
+   `crates/podvm-release/src/prove_t0211.rs:28`, with a unit test
    asserting the pattern still matches at `:604`.
    `experiments/157-lock-inheritance-prove.sh` is now a 28-line exec
    shim over that binary, and its own header at `:5-6` states the rule
@@ -3493,7 +3493,7 @@ the commit that changes the anchor, in the same change, or it stops
 detecting anything. The proof of that rule on this tree is
 `prove_t0211.rs:604`, a test asserting `FORK_PATTERN` still matches.
 ⛔ The rule has no tracked entry of its own, and this one is the record
-of it: the check at `crates/podbox-gate/src/main.rs:4007` reads a bare
+of it: the check at `crates/podvm-gate/src/main.rs:4007` reads a bare
 plan id as a reference to a non-entry, so the constraint lives in prose
 here rather than in a row a later session would be pointed at by a grep.
 
@@ -3541,9 +3541,9 @@ Approach records the arithmetic that found them.
 Source:      KVM diagnosis 2026-10-02, run against the saved results
              `experiments/results/kvm-guest-2026-10-02.txt` and
              `-third.txt` and against the live failing run;
-             `crates/podbox-windows/src/lib.rs` `:239-249`, `:310-338`,
-             `:418-433`; `crates/podbox-windows/src/plan.rs` `:195-207`;
-             `crates/podbox-windows/src/agent.rs` `:91`;
+             `crates/podvm-windows/src/lib.rs` `:239-249`, `:310-338`,
+             `:418-433`; `crates/podvm-windows/src/plan.rs` `:195-207`;
+             `crates/podvm-windows/src/agent.rs` `:91`;
              `experiments/lib/kvm-guest-base.sh` `:182-189`
 Category:    windows
 Priority:    P0
@@ -3598,10 +3598,10 @@ Decision:     Fix the kill discipline first. It is the one defect with a
              image chain is a correctness and portability defect rather
              than a stability one, and the seam step is a reporting
              defect. A corrected KVM run needs all three in place.
-Prove:       `podbox windows setup` produces a standalone provisioned
+Prove:       `podvm windows setup` produces a standalone provisioned
              base whose backing pointer is gone, read with `qemu-img
              info`, and leaves the vendor image byte-identical by digest
-             before and after; `podbox windows run --podbox-timeout N`
+             before and after; `podvm windows run --podvm-timeout N`
              over a command that cannot answer leaves no `qemu-system-*`
              process behind in the base, and its Timeout message names
              whether the stop was confirmed rather than asserting it; a
@@ -3626,7 +3626,7 @@ emulator orphan is confirmed by the live observation, and the seam
 wrapper is confirmed by reading the file, where the 2026-09-30 third
 result shows the seam printing nothing while the verdict came only from
 an earlier `FAIL`. A fourth possibility is left open: `os_boot` sleeps
-the whole `--podbox-timeout` before typing, so a 600 s setup waited
+the whole `--podvm-timeout` before typing, so a 600 s setup waited
 about 10.5 minutes for one boot, and "waited because the guest booted and
 the typed scan missed" is not distinguishable from "waited for another
 reason" without timing the phases.
@@ -3648,14 +3648,14 @@ useful to the next reader than a silent rewrite would be.
 | Claim | Verdict | Evidence |
 | --- | --- | --- |
 | `overlay_argv` passes no read-only backing | refuted | `plan.rs:195-207` passes `-F` and `-b` |
-| `setup` writes into the pinned VHDX | refuted | every write in `podbox-windows` targets `mailbox`, `root`, or `monitor`; `base` reaches only `overlay_argv`'s `-b`, and there is no `qemu-img commit`, `map`, or `convert` in the crate |
+| `setup` writes into the pinned VHDX | refuted | every write in `podvm-windows` targets `mailbox`, `root`, or `monitor`; `base` reaches only `overlay_argv`'s `-b`, and there is no `qemu-img commit`, `map`, or `convert` in the crate |
 | `lib.rs` discards the reaped child's exit status | confirmed | `lib.rs:241`, `:244` |
 | nothing verifies the emulator died | confirmed | `lib.rs:239-243`, `:337-338` |
 | the kill is ungrouped and its result discarded | confirmed | `lib.rs:223-227` sets only stdio; `:240` and `:337` are `let _ =` |
 | the orphan is unselectable by the proof and the watchdog | refuted | `experiments/lib/kvm-owned.sh:5-6` selects on `ps -eo pid,args` text and `scripts/windows/kvm-watchdog.py:108-121` on `/proc/PID/exe` plus `cmdline`; neither reads the parent |
 | the seam step swallows a non-zero exit and leaves `fail` untouched | refuted | `experiments/lib/kvm-guest-base.sh:191` calls `miss`, and `miss` sets `fail=1` at `:21` |
 | `scode=$?` is dead | confirmed | `experiments/lib/kvm-guest-base.sh:183`: `$?` inside `then` is the status of the `if` test, so `scode` is always 0 |
-| the seam step is silently skipped after an earlier failure | confirmed | `experiments/lib/kvm-guest-base.sh:181` and [the 2026-09-30 third result](../experiments/results/kvm-guest-2026-09-30-third.txt) lines 49-50, where `== the podbox run seam` is followed directly by `== residue` |
+| the seam step is silently skipped after an earlier failure | confirmed | `experiments/lib/kvm-guest-base.sh:181` and [the 2026-09-30 third result](../experiments/results/kvm-guest-2026-09-30-third.txt) lines 49-50, where `== the podvm run seam` is followed directly by `== residue` |
 | the orphan ran 8m43s with `commandline` and `parent` NULL in `/proc` | not verifiable | appears only in prose in this entry and in `TODO/RESUME.md:75-78`; no result file under `experiments/results/` records it |
 
 The orphan survives for a reason the record did not name. The selectors
@@ -3680,8 +3680,8 @@ file it is backed by. The correction is a scratch overlay committed into
 a *separate* standalone file.
 
 **Partial 2026-10-02.** All three fixes are implemented and the record
-gate, `cargo fmt`, `cargo clippy -p podbox-windows --all-targets`,
-`cargo check -p podbox-windows --all-targets` and the four prose
+gate, `cargo fmt`, `cargo clippy -p podvm-windows --all-targets`,
+`cargo check -p podvm-windows --all-targets` and the four prose
 checks exit 0. The Prove clause's live half did not run and the entry
 stays open on it.
 
@@ -3712,15 +3712,15 @@ because it invokes `scripts/zig-cc.sh` through a Windows process
 spawner (`os error 193`), and it reported that failure as pre-existing
 on the clean tree. Both observations were real and the conclusion was
 not: `docs/containers.md:33` says Linux builds run in a job container
-in `wsl-toolkit-podbox`, and `scripts/dev-lane.sh` is the one lane
+in `wsl-toolkit-podvm`, and `scripts/dev-lane.sh` is the one lane
 runner. Building on the Windows host is what produced the error. Run
 through the lane on 2026-10-02, the same build finishes in 55 s on
 `rustc 1.99.0` with zig 0.16.0 at `/usr/local/bin/zig` and produces
-`target/x86_64-unknown-linux-musl/release/podbox`, 3277880 bytes, exit
+`target/x86_64-unknown-linux-musl/release/podvm`, 3277880 bytes, exit
 0. So the blocker was the lane this session skipped, not the toolchain.
 
 The image is present and correct at
-`/c/Users/AjamX/podbox-images/ValidationOS.vhdx`, 910163968 bytes, the
+`/c/Users/AjamX/podvm-images/ValidationOS.vhdx`, 910163968 bytes, the
 pinned length. The binaries under `.dev/artifacts*` are from 2026-09-30
 and predate every change here, so a run with any of them would prove
 nothing; the run needs the binary this lane builds.

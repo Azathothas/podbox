@@ -1,6 +1,6 @@
 # Hosted sessions
 
-Use podbox-dev session to identify the actual machine and lane.
+Use podvm-dev session to identify the actual machine and lane.
 Do not assume the clone has full history or the default branch.
 Check the current branch, source state, and available disk space.
 

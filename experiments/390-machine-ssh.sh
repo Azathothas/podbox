@@ -1,6 +1,6 @@
 #!/bin/bash
-# Question: does `podbox machine ssh` open a real SSH session in a Linux
-# guest podbox boots, run a real command there, and report its exit code?
+# Question: does `podvm machine ssh` open a real SSH session in a Linux
+# guest podvm boots, run a real command there, and report its exit code?
 #
 # TODO/podssh.md T-1404 (the machine arm). A static dropbear built from a
 # pinned commit serves on the guest's serial line through an owned static
@@ -14,7 +14,7 @@
 # The guest is the 147-pinned Alpine rootfs plus kernel, assembled with
 # the podvm-guest library, with dropbear, the bridge, a dropbearkey-native
 # host key (the pinned server exits 1 with no banner on an ssh-keygen key
-# even on a socket: diag8) and the authorized key baked in. The lane-built podbox boots it with QEMU,
+# even on a socket: diag8) and the authorized key baked in. The lane-built podvm boots it with QEMU,
 # speaks real SSH over the serial socket through the lane-built proxy,
 # and exits with the guest's code. Help paths print usage with 0, error
 # paths refuse with 125, the short timeout run proves the wait is
@@ -42,7 +42,7 @@ fail=0
 # workdir leaves with the run either way.
 trap 'cp "$OUT" /out/ 2>/dev/null || true; rm -rf "$work"' EXIT HUP INT TERM
 STORE="$work/store"
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 DBSRC="$work/dropbear-src"
 
 # ⭐ Every input pinned, as in 146/147.
@@ -76,44 +76,44 @@ done
 . "$LIB"
 
 say "== 1. the lane-built binaries and the help paths"
-if timeout 25m cargo build -p podbox-cli -p podbox-ssh --bins >>"$OUT" 2>&1; then
-  ok "cargo build -p podbox-cli -p podbox-ssh --bins exit 0"
+if timeout 25m cargo build -p podvm -p podvm-ssh --bins >>"$OUT" 2>&1; then
+  ok "cargo build -p podvm -p podvm-ssh --bins exit 0"
 else
   say "  cargo build FAILED"
   exit 2
 fi
-PODBOX_BIN=$(ls -d target/*/debug/podbox 2>/dev/null | head -n 1)
+PODVM_BIN=$(ls -d target/*/debug/podvm 2>/dev/null | head -n 1)
 PROXY_BIN=$(ls -d target/*/debug/proxy 2>/dev/null | head -n 1)
-if [ -z "${PODBOX_BIN:-}" ] || [ -z "${PROXY_BIN:-}" ]; then
-  say "  podbox or proxy binary missing"
+if [ -z "${PODVM_BIN:-}" ] || [ -z "${PROXY_BIN:-}" ]; then
+  say "  podvm or proxy binary missing"
   exit 2
 fi
 mkdir -p "$work/bin"
-cp "$PODBOX_BIN" "$PROXY_BIN" "$work/bin/"
-PODBOX="$work/bin/podbox"
+cp "$PODVM_BIN" "$PROXY_BIN" "$work/bin/"
+PODVM="$work/bin/podvm"
 export PATH="$work/bin:$PATH"
-ok "podbox learns its version: $("$PODBOX" version)"
+ok "podvm learns its version: $("$PODVM" version)"
 for path in "machine" "machine -h" "machine ssh -h"; do
   # shellcheck disable=SC2086
-  if timeout 60 $PODBOX $path >"$work/help.out" 2>&1; then
+  if timeout 60 $PODVM $path >"$work/help.out" 2>&1; then
     code=0
   else
     code=$?
   fi
   if [ "$code" -eq 0 ] && grep -q "^usage:" "$work/help.out"; then
-    ok "podbox $path: usage with 0"
+    ok "podvm $path: usage with 0"
   else
-    miss "podbox $path (exit $code)"
+    miss "podvm $path (exit $code)"
   fi
 done
-timeout 60 $PODBOX machine ssh >"$work/noflags.out" 2>"$work/noflags.err"
+timeout 60 $PODVM machine ssh >"$work/noflags.out" 2>"$work/noflags.err"
 ncode=$?
 if [ "$ncode" -eq 125 ] && grep -q "\-\-kernel" "$work/noflags.err"; then
   ok "machine ssh with no flags refused with 125 naming --kernel"
 else
   miss "machine ssh no-flags FAILED (exit $ncode)"
 fi
-timeout 60 $PODBOX machine ssh --kernel "$work/no-such-kernel" \
+timeout 60 $PODVM machine ssh --kernel "$work/no-such-kernel" \
   --initramfs "$work/no-such-initramfs" --user-key "$work/no-such-key" \
   >"$work/missing.out" 2>"$work/missing.err"
 mcode=$?
@@ -122,14 +122,14 @@ if [ "$mcode" -eq 125 ] && grep -q "is not a file" "$work/missing.err"; then
 else
   miss "machine ssh missing-file FAILED (exit $mcode)"
 fi
-timeout 60 $PODBOX machine ssh --podbox-timeout 0 >"$work/t0.out" 2>"$work/t0.err"
+timeout 60 $PODVM machine ssh --podvm-timeout 0 >"$work/t0.out" 2>"$work/t0.err"
 tcode=$?
 if [ "$tcode" -eq 125 ] && grep -q "positive count" "$work/t0.err"; then
-  ok "machine ssh --podbox-timeout 0 refused with 125"
+  ok "machine ssh --podvm-timeout 0 refused with 125"
 else
   miss "machine ssh timeout-0 FAILED (exit $tcode)"
 fi
-timeout 60 $PODBOX machine ssh --bogus >"$work/bogus.out" 2>"$work/bogus.err"
+timeout 60 $PODVM machine ssh --bogus >"$work/bogus.out" 2>"$work/bogus.err"
 bcode=$?
 if [ "$bcode" -eq 125 ] && grep -q "not a flag" "$work/bogus.err"; then
   ok "machine ssh --bogus refused with 125"
@@ -232,10 +232,10 @@ say "== 4. the guest assembly"
 if [ "$fail" -ne 0 ]; then
   say "  skipped past clause 3"
 else
-"$PODBOX" pull "$ALPINE_REF" >"$work/pull.log" 2>&1 || miss "the pull failed"
+"$PODVM" pull "$ALPINE_REF" >"$work/pull.log" 2>&1 || miss "the pull failed"
 ROOTFS=""
 if [ "$fail" -eq 0 ]; then
-  ROOTFS="$("$PODBOX" extract "$ALPINE_REF" 2>"$work/extract.log")"
+  ROOTFS="$("$PODVM" extract "$ALPINE_REF" 2>"$work/extract.log")"
   [ -n "$ROOTFS" ] && [ -d "$ROOTFS" ] || miss "extract printed no rootfs directory"
 fi
 if [ "$fail" -eq 0 ]; then
@@ -328,7 +328,7 @@ fi
 fi
 
 say ""
-say "== 5. one SSH command in the guest podbox boots"
+say "== 5. one SSH command in the guest podvm boots"
 if [ "$fail" -ne 0 ]; then
   say "  skipped past clause 4"
 else
@@ -338,7 +338,7 @@ else
 # purpose: reading the guest's cmdline back says which kernel answered.
 # One boot carries all three (an inetd-mode server answers once), and the
 # exit-code passthrough takes a second boot by the same rule.
-out=$(timeout 500 "$PODBOX" machine ssh --kernel "$work/vmlinuz-virt" \
+out=$(timeout 500 "$PODVM" machine ssh --kernel "$work/vmlinuz-virt" \
   --initramfs "$work/full.cpio" --user-key "$work/user_key" \
   -- "echo guest-\$((40+2)); grep -q panic=-1 /proc/cmdline && echo PLACED; id -u" 2>"$work/ssh.err")
 code=$?
@@ -350,7 +350,7 @@ fi
 if [ "$fail" -eq 0 ]; then
   # The exit-code passthrough needs its own boot: an inetd-mode server
   # answers one connection, so one boot carries one status.
-  timeout 500 "$PODBOX" machine ssh --kernel "$work/vmlinuz-virt" \
+  timeout 500 "$PODVM" machine ssh --kernel "$work/vmlinuz-virt" \
     --initramfs "$work/full.cpio" --user-key "$work/user_key" \
     -- exit 42 2>/dev/null
   c42=$?
@@ -373,27 +373,27 @@ else
 # seconds used to be that bound; the fixed path completes a healthy
 # run inside it, which proved the bound stale rather than the wait
 # unbounded.
-timeout 60 "$PODBOX" machine ssh --kernel "$work/vmlinuz-virt" \
+timeout 60 "$PODVM" machine ssh --kernel "$work/vmlinuz-virt" \
   --initramfs "$work/full.cpio" --user-key "$work/user_key" \
-  --podbox-timeout 1 -- echo too-late 2>"$work/bound.err"
+  --podvm-timeout 1 -- echo too-late 2>"$work/bound.err"
 bound=$?
 if [ "$bound" -eq 125 ] && grep -Eq "before the deadline|did not answer in time" "$work/bound.err"; then
   ok "the 1 s run stopped with 125, not a hang"
 else
   miss "the bounded run FAILED (exit $bound): $(head -1 "$work/bound.err" 2>/dev/null)"
 fi
-leftovers=$(ls -d "${TMPDIR:-/tmp}"/podbox-machine-ssh-* 2>/dev/null || true)
+leftovers=$(ls -d "${TMPDIR:-/tmp}"/podvm-machine-ssh-* 2>/dev/null || true)
 if [ -z "$leftovers" ]; then
   ok "no per-run directory remains"
 else
   miss "per-run residue: $leftovers"
 fi
-if pgrep -f 'podbox-machine-ss[h]' >/dev/null 2>&1; then
+if pgrep -f 'podvm-machine-ss[h]' >/dev/null 2>&1; then
   miss "a run process remains"
 else
   ok "no run process remains"
 fi
-if "$PODBOX" system info --format '{{json .Parity}}' 2>/dev/null | grep -q '"machine ssh"'; then
+if "$PODVM" system info --format '{{json .Parity}}' 2>/dev/null | grep -q '"machine ssh"'; then
   ok "parity carries the machine ssh rows"
 else
   miss "parity misses the machine ssh rows"

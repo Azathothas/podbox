@@ -27,7 +27,7 @@ sh scripts/package-ssh.sh "$WORK" x86_64 >"$WORK/invalid.txt" 2>&1
 rc=$?
 [ "$rc" -eq 1 ] && grep -q 'invalid ELF: node' "$WORK/invalid.txt" || exit 1
 echo 'ok: invalid node bytes rejected with their own message'
-tar -tzf dist/podbox-ssh-x86_64.tar.gz >"$WORK/members.txt" || exit 1
+tar -tzf dist/podvm-ssh-x86_64.tar.gz >"$WORK/members.txt" || exit 1
 for helper in node operator proxy shell; do
     grep -qx "./$helper" "$WORK/members.txt" || exit 1
 done

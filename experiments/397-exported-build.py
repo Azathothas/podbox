@@ -17,13 +17,13 @@ def main():
     options = parser.parse_args()
     lines = ["== conditions", datetime.now(timezone.utc).isoformat(),
              f"host={platform.system()} python={platform.python_version()}",
-             "Inputs: five exports and podbox-build/1 record from the default Windows job.",
+             "Inputs: five exports and podvm-build/1 record from the default Windows job.",
              "Scope: output integrity; this does not compare source or toolchain conditions."]
     code = 0
     try:
         record = json.loads((options.directory / "build-state.json").read_text(encoding="utf-8"))
-        names = {"podbox", "node", "operator", "proxy", "shell"}
-        if not isinstance(record, dict) or record.get("schema") != "podbox-build/1" or set(record.get("outputs", {})) != names:
+        names = {"podvm", "node", "operator", "proxy", "shell"}
+        if not isinstance(record, dict) or record.get("schema") != "podvm-build/1" or set(record.get("outputs", {})) != names:
             raise ValueError("build record schema or executable set differs")
         lines.append("recorded input digest=" + record["inputs"])
         for name in sorted(names):

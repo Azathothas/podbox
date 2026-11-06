@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # build-interpose.sh - declaration stub (T-1557). The build lives in the
-# podbox-interpose-build binary in the gate crate; this file stays because
+# podvm-interpose-build binary in the gate crate; this file stays because
 # the per-object byte ceiling is declared here once and the gate reads it
 # from here (TODO/gate.md T-1207 item 3, D-1 option c).
 #
@@ -23,19 +23,19 @@ ROOT="$(CDPATH= cd -- "$HERE/.." && pwd)"
 # `scripts/verify-release.sh` use, so one search serves every compat shim.
 # The triples are the ones the release matrix builds, read rather than guessed.
 BIN=""
-for cand in "$ROOT/target/release/podbox-interpose-build" \
-	"$ROOT/target/x86_64-unknown-linux-musl/release/podbox-interpose-build" \
-	"$ROOT/target/aarch64-unknown-linux-musl/release/podbox-interpose-build" \
-	"$ROOT/target/riscv64gc-unknown-linux-musl/release/podbox-interpose-build" \
-	"$ROOT/target/loongarch64-unknown-linux-musl/release/podbox-interpose-build" \
-	"$ROOT/target/powerpc64le-unknown-linux-musl/release/podbox-interpose-build" \
-	"$ROOT/target/armv7-unknown-linux-musleabihf/release/podbox-interpose-build" \
-	"$ROOT/target/i686-unknown-linux-musl/release/podbox-interpose-build" \
-	"$ROOT/target/debug/podbox-interpose-build"; do
+for cand in "$ROOT/target/release/podvm-interpose-build" \
+	"$ROOT/target/x86_64-unknown-linux-musl/release/podvm-interpose-build" \
+	"$ROOT/target/aarch64-unknown-linux-musl/release/podvm-interpose-build" \
+	"$ROOT/target/riscv64gc-unknown-linux-musl/release/podvm-interpose-build" \
+	"$ROOT/target/loongarch64-unknown-linux-musl/release/podvm-interpose-build" \
+	"$ROOT/target/powerpc64le-unknown-linux-musl/release/podvm-interpose-build" \
+	"$ROOT/target/armv7-unknown-linux-musleabihf/release/podvm-interpose-build" \
+	"$ROOT/target/i686-unknown-linux-musl/release/podvm-interpose-build" \
+	"$ROOT/target/debug/podvm-interpose-build"; do
 	if [ -x "$cand" ]; then BIN="$cand"; break; fi
 done
 if [ -z "$BIN" ]; then
-	echo "build-interpose.sh: podbox-interpose-build is not built in target/release/ or in any target/<triple>/release/; cargo build --release -p podbox-gate --bin podbox-interpose-build" >&2
+	echo "build-interpose.sh: podvm-interpose-build is not built in target/release/ or in any target/<triple>/release/; cargo build --release -p podvm-gate --bin podvm-interpose-build" >&2
 	exit 2
 fi
 exec "$BIN" "$@"

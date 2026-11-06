@@ -34,7 +34,7 @@ set -u
 
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO="$(CDPATH= cd -- "$HERE/.." && pwd)"
-BIN="${PODBOX_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podbox}"
+BIN="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 OUT="$REPO/experiments/results/qol.txt"
 WORK="$REPO/experiments/.sweep364-work"
 rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
@@ -49,19 +49,19 @@ miss() { echo "  FAIL: $1" >>"$WORK/report"; fail=1; }
 echo "== conditions"
 echo "date              $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "host kernel       $(uname -sr)"
-echo "podbox            $($BIN version 2>/dev/null || echo MISSING)"
+echo "podvm            $($BIN version 2>/dev/null || echo MISSING)"
 echo "debian            $DEBIAN"
 } >"$WORK/report"
 
 [ -x "$BIN" ] || { echo "binary $BIN is not executable: COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
 # shellcheck source=../scripts/common/exit-codes.sh
 . "$REPO/scripts/common/exit-codes.sh"
-podbox_exit_codes "$BIN" || { echo "cannot read podbox's exit-code table: COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
-FLAG=$PODBOX_EXIT_FLAG_ERROR
+podvm_exit_codes "$BIN" || { echo "cannot read podvm's exit-code table: COULD NOT RUN" >>"$WORK/report"; cp "$WORK/report" "$OUT"; exit 2; }
+FLAG=$PODVM_EXIT_FLAG_ERROR
 
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
-export PODBOX_STORE="$STORE"
+export PODVM_STORE="$STORE"
 
 echo "" >>"$WORK/report"
 echo "== pulls" >>"$WORK/report"
@@ -229,7 +229,7 @@ else
 fi
 timeout 120 "$BIN" system df --help >"$WORK/dfhelp.out" 2>"$WORK/dfhelp.err"
 rc=$?
-if [ "$rc" -eq 0 ] && grep -q "podbox system df" "$WORK/dfhelp.out"; then
+if [ "$rc" -eq 0 ] && grep -q "podvm system df" "$WORK/dfhelp.out"; then
 	pass "system df --help prints usage at 0"
 else
 	miss "system df --help rc=$rc"
@@ -283,7 +283,7 @@ else
 fi
 timeout 120 "$BIN" doctor --help >"$WORK/doctorhelp.out" 2>"$WORK/doctorhelp.err"
 rc=$?
-if [ "$rc" -eq 0 ] && grep -q "podbox doctor" "$WORK/doctorhelp.out"; then
+if [ "$rc" -eq 0 ] && grep -q "podvm doctor" "$WORK/doctorhelp.out"; then
 	pass "doctor --help prints usage at 0"
 else
 	miss "doctor --help rc=$rc"

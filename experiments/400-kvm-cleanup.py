@@ -20,7 +20,7 @@ def main():
     if sys.platform != 'linux':
         print('cannot run: the process selector requires Linux ps')
         return 2
-    with tempfile.TemporaryDirectory(prefix='podbox-kvm-owned-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='podvm-kvm-owned-') as temporary:
         scratch = Path(temporary)
         script = scratch / 'select.sh'
         helper = (ROOT / 'experiments/lib/kvm-owned.sh').read_text(encoding='utf-8')

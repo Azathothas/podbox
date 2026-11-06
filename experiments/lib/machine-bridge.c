@@ -2,7 +2,7 @@
  *
  * Usage: machine-bridge TTY_PATH PROG [ARGS ...]
  *
- * The podbox machine arm boots a Linux guest whose only channel is its
+ * The podvm machine arm boots a Linux guest whose only channel is its
  * first serial port, and speaks real SSH over it. The SSH server is
  * dropbear in inetd mode, but dropbear's inetd path calls getpeername on
  * its standard input and exits where that is not a socket (measured in

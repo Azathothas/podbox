@@ -4,7 +4,7 @@
 # job after job-specific collection?
 #
 # The image digest fixes the job input. The caller path check expects exit 2
-# because this small image has no podbox binary; its error must name /work.
+# because this small image has no podvm binary; its error must name /work.
 # The report prints the host, version, image, commit, and each result.
 # Exit 0 matched, 1 did not, 2 could not run.
 set -u
@@ -23,9 +23,9 @@ fi
 work=$(mktemp -d) || exit 2
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 
-timeout 3m wsl-toolkit --instance podbox gc --json >"$work/initial.json" 2>"$work/initial.err" || exit 2
+timeout 3m wsl-toolkit --instance podvm gc --json >"$work/initial.json" 2>"$work/initial.err" || exit 2
 jq -e '[.containers[]?, .guest_dirs[]?, .host_dirs[]?, .sessions[]?] | length == 0' "$work/initial.json" >/dev/null || {
-  echo 'windows-lane-v6: clean the podbox job ledger before this drive' >&2
+  echo 'windows-lane-v6: clean the podvm job ledger before this drive' >&2
   exit 2
 }
 
@@ -40,19 +40,19 @@ mkdir -p "$ROOT/experiments/results" || exit 2
   timeout 3m wsl-toolkit --version
   git -C "$ROOT" rev-parse --short HEAD
   printf 'image=%s\n' "$IMAGE"
-  echo 'instance=podbox'
+  echo 'instance=podvm'
   echo
   echo '== concurrent jobs and caller path'
 } >"$OUT"
 
 cd "$ROOT" || exit 2
-PODBOX_IMAGE="$IMAGE" PODBOX_JOB_TIMEOUT=10m timeout 12m sh scripts/windows/run-in-base.sh "$work/one.sh" >"$work/one.log" 2>&1 &
+PODVM_IMAGE="$IMAGE" PODVM_JOB_TIMEOUT=10m timeout 12m sh scripts/windows/run-in-base.sh "$work/one.sh" >"$work/one.log" 2>&1 &
 one_pid=$!
-PODBOX_IMAGE="$IMAGE" PODBOX_JOB_TIMEOUT=10m timeout 12m sh scripts/windows/run-in-base.sh "$work/two.sh" >"$work/two.log" 2>&1 &
+PODVM_IMAGE="$IMAGE" PODVM_JOB_TIMEOUT=10m timeout 12m sh scripts/windows/run-in-base.sh "$work/two.sh" >"$work/two.log" 2>&1 &
 two_pid=$!
 wait "$one_pid"; one_rc=$?
 wait "$two_pid"; two_rc=$?
-PODBOX_IMAGE="$IMAGE" PODBOX_JOB_TIMEOUT=10m timeout 12m sh scripts/windows/run-in-base.sh experiments/352-ascii-output.sh >"$work/caller.log" 2>&1
+PODVM_IMAGE="$IMAGE" PODVM_JOB_TIMEOUT=10m timeout 12m sh scripts/windows/run-in-base.sh experiments/352-ascii-output.sh >"$work/caller.log" 2>&1
 caller_rc=$?
 
 failed=0
@@ -61,11 +61,11 @@ failed=0
 [ "$caller_rc" -eq 2 ] || failed=1
 grep -qx 'job=one' "$work/one.log" || failed=1
 grep -qx 'job=two' "$work/two.log" || failed=1
-grep -Fxq 'NO-BINARY: /work/target/x86_64-unknown-linux-musl/release/podbox' "$work/caller.log" || failed=1
+grep -Fxq 'NO-BINARY: /work/target/x86_64-unknown-linux-musl/release/podvm' "$work/caller.log" || failed=1
 if grep -qx 'job=two' "$work/one.log" || grep -qx 'job=one' "$work/two.log"; then failed=1; fi
-[ ! -e "$ROOT/.podbox-job.sh" ] || failed=1
+[ ! -e "$ROOT/.podvm-job.sh" ] || failed=1
 
-timeout 3m wsl-toolkit --instance podbox gc --json >"$work/before-gc.json" 2>"$work/gc.err"
+timeout 3m wsl-toolkit --instance podvm gc --json >"$work/before-gc.json" 2>"$work/gc.err"
 gc_rc=$?
 [ "$gc_rc" -eq 0 ] || failed=1
 one_id=$(sed -n 's/^  job \([0-9a-f]*\).*/\1/p' "$work/one.log" | sed -n '1p')
@@ -75,15 +75,15 @@ caller_id=$(sed -n 's/^  job \([0-9a-f]*\).*/\1/p' "$work/caller.log" | sed -n '
   [ "$one_id" != "$two_id" ] && [ "$one_id" != "$caller_id" ] &&
   [ "$two_id" != "$caller_id" ] || failed=1
 if [ -n "$one_id" ]; then
-  timeout 3m wsl-toolkit --instance podbox gc --job "$one_id" --apply >"$work/gc-one.log" 2>&1 || failed=1
+  timeout 3m wsl-toolkit --instance podvm gc --job "$one_id" --apply >"$work/gc-one.log" 2>&1 || failed=1
 fi
 if [ -n "$two_id" ]; then
-  timeout 3m wsl-toolkit --instance podbox gc --job "$two_id" --apply >"$work/gc-two.log" 2>&1 || failed=1
+  timeout 3m wsl-toolkit --instance podvm gc --job "$two_id" --apply >"$work/gc-two.log" 2>&1 || failed=1
 fi
 if [ -n "$caller_id" ]; then
-  timeout 3m wsl-toolkit --instance podbox gc --job "$caller_id" --apply >"$work/gc-caller.log" 2>&1 || failed=1
+  timeout 3m wsl-toolkit --instance podvm gc --job "$caller_id" --apply >"$work/gc-caller.log" 2>&1 || failed=1
 fi
-timeout 3m wsl-toolkit --instance podbox gc --json >"$work/after-gc.json" 2>>"$work/gc.err"
+timeout 3m wsl-toolkit --instance podvm gc --json >"$work/after-gc.json" 2>>"$work/gc.err"
 after_gc_rc=$?
 [ "$after_gc_rc" -eq 0 ] || failed=1
 if [ "$after_gc_rc" -eq 0 ]; then
@@ -94,7 +94,7 @@ fi
   printf 'one_exit=%s\n' "$one_rc"
   printf 'two_exit=%s\n' "$two_rc"
   printf 'caller_path_exit=%s\n' "$caller_rc"
-  printf 'caller_path=%s\n' "$(if grep -Fxq 'NO-BINARY: /work/target/x86_64-unknown-linux-musl/release/podbox' "$work/caller.log"; then echo matched; else echo mismatch; fi)"
+  printf 'caller_path=%s\n' "$(if grep -Fxq 'NO-BINARY: /work/target/x86_64-unknown-linux-musl/release/podvm' "$work/caller.log"; then echo matched; else echo mismatch; fi)"
   printf 'one_payload=%s\n' "$(grep -c '^job=one$' "$work/one.log")"
   printf 'two_payload=%s\n' "$(grep -c '^job=two$' "$work/two.log")"
   printf 'gc_exit=%s\n' "$gc_rc"
