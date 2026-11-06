@@ -1166,7 +1166,7 @@ question of whether that seventh wave is authorised work at all.
 ⛔ **So the owner is named here and the clearing condition is unmet until
 a wave entry exists.** `refactor/` is untracked, so its ids cannot be
 written into a `TODO/` body: the gate's cross-reference check at
-`crates/podvm-gate/src/main.rs:4007` reads every `T-` followed by four
+`crates/podvm-gate/src/gate/run.rs:266` reads every `T-` followed by four
 digits on a body line and raises "names T-NNNN, which is not an entry"
 for each, and it has no exemption for a plan id. The plan's own row
 number is therefore not printed here. `refactor/06-entries/T-R006.md` is

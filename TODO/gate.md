@@ -2805,7 +2805,7 @@ Approach:     File the 17 as 17 rows, one per plan id, in the category
              the plan's priority and its own proof. One entry holding a
              queue was tried first and the record gate refused it: a
              `TODO/` line naming a task id that is not an entry is an
-             error, at `crates/podvm-gate/src/main.rs:4007`, and a
+             error, at `crates/podvm-gate/src/gate/run.rs:266`, and a
              prose queue raises it once per id per line. The first
              attempt reported 61 such errors on a single-entry version
              of this queue, which is the measurement behind the
@@ -2888,7 +2888,7 @@ and 50 name no batch. The 21 above are the plan's named set. The other
 batch prose covers under a description rather than an id. Their ids are
 deliberately not written here: a `TODO/` line naming an id that is not an
 entry is an error, and the check at
-`crates/podvm-gate/src/main.rs:4007` does not honour the `known-absent`
+`crates/podvm-gate/src/gate/run.rs:266` does not honour the `known-absent`
 token, so the only way to write them down is to file them.
 ⚠ **Eight of the 29 are already done and are not outstanding work.**
 Measured on this tree: the scripts for the deletion rows naming the
@@ -3314,7 +3314,7 @@ that id exists in `TODO/INDEX.md`, so it cannot be cited as an entry.
 exits 1, and the plan id the table carries is not a tracked id. So the entry
 that changes this line is named by the plan and is absent from the
 record, and no new id may be written here because the check at
-`crates/podvm-gate/src/main.rs:4007` reads a bare plan id as a reference
+`crates/podvm-gate/src/gate/run.rs:266` reads a bare plan id as a reference
 to a non-entry.
 
 **The two remaining consumers of the line are shims, and the glob will
@@ -3493,7 +3493,7 @@ the commit that changes the anchor, in the same change, or it stops
 detecting anything. The proof of that rule on this tree is
 `prove_t0211.rs:604`, a test asserting `FORK_PATTERN` still matches.
 ⛔ The rule has no tracked entry of its own, and this one is the record
-of it: the check at `crates/podvm-gate/src/main.rs:4007` reads a bare
+of it: the check at `crates/podvm-gate/src/gate/run.rs:266` reads a bare
 plan id as a reference to a non-entry, so the constraint lives in prose
 here rather than in a row a later session would be pointed at by a grep.
 

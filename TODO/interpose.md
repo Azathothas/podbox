@@ -1890,7 +1890,7 @@ Prove:       `grep -n "interpose.map" TODO/interpose.md` names the
              targets.
 
 **Done.** No `rlib`, and the decision rests on the existing export check at
-`crates/podvm-gate/src/interpose_build.rs:501-517`, inside the per-target
+`crates/podvm-gate/src/interpose_build/build.rs:186-202`, inside the per-target
 loop at `:790-797`. It compares `declared_exports` against `exported_symbols`
 for equality at `:508`, and the map declares 112 names. Check B, the
 `struct stat` and `struct statx` offsets at `:601-700`, needs `cc` and joins
@@ -1907,7 +1907,7 @@ for a test target to name. A `tests/*.rs` in that crate fails with
 obvious repair and it is the wrong one here.
 
 **The export check is already written, and it stands as the check.** It lives in
-`crates/podvm-gate/src/interpose_build.rs:501-517`, inside the per-target
+`crates/podvm-gate/src/interpose_build/build.rs:186-202`, inside the per-target
 loop at `:790-797`, so it runs once for every target `TARGETS` names. The
 comparison is `declared_exports(&krate.join(MAP))` at `:501` against
 `exported_symbols(&so, root)` at `:506`. `declared_exports` parses
