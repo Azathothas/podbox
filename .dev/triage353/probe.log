@@ -1,0 +1,47 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 12432 entries, 966.1 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/787708fc5fcf9428/work
+  workspace: 430 files carry the executable bit from the git index, and 347 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 430 executable file(s) in the index, all already executable.
+== the job
+== toolchain
+/usr/local/cargo/bin/cargo
+info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+info: latest update on 2026-09-03 for version 1.98.1 (48a229cea 2026-09-01)
+info: downloading 6 components
+warn: the missing active toolchain `stable-x86_64-unknown-linux-gnu` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
+cargo 1.98.1 (797e8a9bc 2026-08-05)
+rustc 1.98.1 (48a229cea 2026-09-01)
+== target dir
+ls: cannot access '/work/target': No such file or directory
+== disk
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sdd       1007G  185G  772G  20% /work
+/dev/sdd       67108864 2620288 64488576    4% /work
+== registry reachability
+HTTP/2 200 
+content-type: application/gzip
+x-amz-replication-status: COMPLETED
+x-amz-version-id: eXd95XTfCtcVD4xXsKPJTYSaakwPLXE4
+curl-exit=0
+== fetch test
+  Downloaded windows_x86_64_msvc v0.52.6
+  Downloaded windows_aarch64_msvc v0.52.6
+  Downloaded libc v0.2.189
+  Downloaded windows_i686_msvc v0.52.6
+  Downloaded windows_i686_gnu v0.52.6
+  Downloaded ring v0.17.14
+  Downloaded windows-sys v0.52.0
+  Downloaded linux-raw-sys v0.12.1
+fetch-exit=0
+== rc=0
+  the stopped container and its job directory are kept: wtk-787708fc5fcf9428
+  container wtk-787708fc5fcf9428 is kept with its job directory. Remove it with: wsl-toolkit gc --job 787708fc5fcf9428 --apply
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 39.439s
+  the complete output is kept: wsl-toolkit logs 787708fc5fcf9428

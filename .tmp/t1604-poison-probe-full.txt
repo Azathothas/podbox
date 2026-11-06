@@ -1,0 +1,33 @@
+
+running 5 tests
+test neighbour_of_the_poisoning_guard_reports_itself ... NEIGHBOUR-RAN (poisoning shape)
+ok
+test neighbour_of_the_tolerant_guard_reports_itself ... NEIGHBOUR-RAN (tolerant shape)
+ok
+test plant_panics_while_holding_the_poisoning_guard ... 
+thread 'plant_panics_while_holding_the_poisoning_guard' (848252) panicked at t1604-poison-probe.rs:20:5:
+plant: deliberate failure while holding POISONING
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test plant_panics_while_holding_the_tolerant_guard ... 
+thread 'plant_panics_while_holding_the_tolerant_guard' (846032) panicked at t1604-poison-probe.rs:33:5:
+plant: deliberate failure while holding TOLERANT
+FAILED
+test the_cascade_and_the_fix_in_one_process ... 
+thread 'the_cascade_and_the_fix_in_one_process' (842316) panicked at t1604-poison-probe.rs:50:35:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+CAASCADE: unwrap() after the panic is_err = true
+
+thread 'the_cascade_and_the_fix_in_one_process' (842316) panicked at t1604-poison-probe.rs:63:9:
+fix probe
+FIX: unwrap_or_else(into_inner) after the panic RETURNED A GUARD
+ok
+
+failures:
+
+failures:
+    plant_panics_while_holding_the_poisoning_guard
+    plant_panics_while_holding_the_tolerant_guard
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

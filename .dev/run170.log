@@ -1,0 +1,59 @@
+engine            podman (host machine)
+Trying to pull public.ecr.aws/debian/debian@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a...
+Getting image source signatures
+Copying blob sha256:a8ac7f6c67abc236e4c745052c404112b8fab6fe8ac3a329d1ef3b867ad67c71
+Copying config sha256:160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+Writing manifest to image destination
+160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+== conditions
+date              2026-09-19T10:39:03Z
+host kernel       3.6.9-b4195d69.x86_64
+podbox            podbox 0.1.0
+store             a fresh directory under /c/Users/AjamX/Downloads/podbox/experiments
+
+== 1. two runs on one machine agree on the rung
+  both runs report supervise
+
+== 2. the first --cached run measures and the second is served
+    podbox probe: measured now, because /w/pstore/probe.json does not exist yet
+    podbox probe: measured now, because the confinement changed: mnt_ns differ(s) from the cached run
+  ok      the first run measured
+  FAIL: the second run did not use the cache it had just written
+
+== 3. the cache is REFUSED inside the reconstruction
+  host      rung=supervise  boot_id=0e7bb870-96b3-43c5-8e9c-b8187c862ee9
+  confined  rung=chroot     boot_id=
+  measured now, because this process cannot read boot_id, mnt_ns, uid_map, gid_map, setgroups, seccomp, seccomp_filters of its own confinement, so no cached answer can be validated against it
+  ok      the confined run measured its own answer
+  ⚠ RECORDED: the boot ids differ on this host, so the
+     specification's key would have caught this one case.
+  ok      the refusal names the mount namespace as a differing component
+
+  written to /c/Users/AjamX/Downloads/podbox/experiments/results/probe-cache.txt
+
+== against the committed reading
+  ⚠ CHANGED: /c/Users/AjamX/Downloads/podbox/experiments/results/probe-cache.txt differs from the committed reading in more than its date.
+    @@ -0,0 +1,24 @@
+    +# podbox probe cache, TODO/probe.md T-0111
+    +# ⛔ The boot id is the KERNEL S. Both readings below are on one kernel.
+    +host_rung         supervise
+    +host_boot_id      0e7bb870-96b3-43c5-8e9c-b8187c862ee9
+    +confined_rung     chroot
+    +confined_boot_id  
+    +boot_ids_equal    no
+    +cache_served_host no   (no is the pass)
+    +
+    +## why the confined run refused the cache
+    +  measured now, because this process cannot read boot_id, mnt_ns, uid_map, gid_map, setgroups, seccomp, seccomp_filters of its own confinement, so no cached answer can be validated against it
+    +
+    +## the key the host wrote
+    +  {
+    +    "boot_id": "0e7bb870-96b3-43c5-8e9c-b8187c862ee9",
+    +    "complete": true,
+    +    "gid_map": "0 0 4294967295",
+    +    "interpreter": "none",
+    +    "mnt_ns": "mnt:[4026532623]",
+    +    "seccomp": "2",
+    +    "seccomp_filters": "1",
+    +    "setgroups": "allow",
+  That is a finding. Read it before committing it.

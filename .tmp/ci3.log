@@ -1,0 +1,1000 @@
+TODO index and citations	every check can fail	﻿2026-10-01T16:36:10.0112182Z ##[group]Run ./target/release/podbox-plant
+TODO index and citations	every check can fail	2026-10-01T16:36:10.0112541Z ^[[36;1m./target/release/podbox-plant^[[0m
+TODO index and citations	every check can fail	2026-10-01T16:36:10.0147839Z shell: /usr/bin/bash -e {0}
+TODO index and citations	every check can fail	2026-10-01T16:36:10.0148227Z ##[endgroup]
+TODO index and citations	every check can fail	2026-10-01T16:36:10.1737461Z == baseline: the gate on the clean tree
+TODO index and citations	every check can fail	2026-10-01T16:36:10.9251898Z   exit 0
+TODO index and citations	every check can fail	2026-10-01T16:36:10.9252120Z 
+TODO index and citations	every check can fail	2026-10-01T16:36:10.9255892Z == plants
+TODO index and citations	every check can fail	2026-10-01T16:36:16.3817850Z   ok   1 row without an entry             red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:36:21.8367821Z   ok   2 entry without a row              red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:36:27.3076413Z   ok   3 status disagreement              red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:36:32.7635491Z   ok   4 count block is stale             red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:36:38.2190298Z   ok   5 a missing field                  red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:36:43.6766592Z   ok   6 a corpus tree the map lost       red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:36:49.1353694Z   ok   7 a citation past end of file      red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:36:54.5931672Z   ok   8 a TODO link to nothing           red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:00.0486866Z   ok   9 a T-NNNN naming nothing          red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:05.5054605Z   ok   10 PROGRESS count is stale         red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:10.9624190Z   ok   11 a tree citation past EOF        red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:16.4193405Z   ok   12 a link out of README            red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:21.8770338Z   ok   13 a tenth dangling link           red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:27.3350319Z   ok   14 a bare path naming nothing      red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:32.8419151Z   ok   15 tracked experiment scratch      red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:38.2996223Z   ok   17a the ceiling in a second file   red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:43.7572160Z   ok   17b a baseline over the ceiling    red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:49.2176550Z   ok   17c a baseline with no total       red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:37:54.6746034Z   ok   17d a shipped reading over the ceiling red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:00.1326061Z   ok   18a a Prove at a taken number      red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:05.6912758Z   ok   18b a second script on disk        red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:11.1484149Z   ok   19a a build job without its toolchain red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:16.6060054Z   ok   19b the same, reached by a script  red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:22.0635087Z   ok   20 a second exit-code declaration  red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:27.5201123Z   ok   21a an unqualified image in a Prove line red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:32.9784445Z   ok   21b a docker.io image in a Prove line red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:38.4387308Z   ok   22 a closed entry with no recorded run red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:43.8967423Z   ok   23a an interpose object over the ceiling red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:49.3552396Z   ok   23b an interpose reading with no sizes red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:38:54.8122462Z   ok   24 the export comparison removed   red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:00.2714931Z   ok   25 the SKIP arm retargeted         red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:05.7287226Z   ok   26a a done Prove naming a refused flag red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:11.1867485Z   ok   26b a done Prove naming an unlisted flag red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:16.6448987Z   ok   26c a done Prove running a refused verb red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:22.1049056Z   ok   26d a done Prove running an unknown verb red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:27.5637428Z   ok   26e a done Prove with a bad cluster member red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:33.0259762Z   ok   27a a parity note leaning on a shipped milestone red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:38.4854217Z   ok   27b a parity note missing a present verb red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:43.9445718Z   ok   27c a curated flag with no parity row red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:49.4036308Z   ok   28 a glyph in a printed string     red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:54.8612260Z   ok   29 a dropped cleanup procedure     red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:39:55.6632054Z   ok   29b a kept lane session            red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:40:01.1205907Z   ok   30 a perf reading over its ceiling red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:40:01.1206471Z 
+TODO index and citations	every check can fail	2026-10-01T16:40:06.5764037Z   ok   31 source state differs            red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:40:31.4542355Z   ok   32a images                         red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:40:41.6285088Z   ok   32b system                         red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:40:51.9024114Z   ok   32c parity                         red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:40:59.9700777Z   ok   32d write                          red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:41:05.0764315Z   MISS 32e memo                           red for another reason, not this one
+TODO index and citations	every check can fail	2026-10-01T16:41:05.0765009Z          error: invalid definition of the runtime `open` symbol used by the standard library
+TODO index and citations	every check can fail	2026-10-01T16:41:05.0765630Z              --> src/lib.rs:2144:9
+TODO index and citations	every check can fail	2026-10-01T16:41:05.0765914Z               |
+TODO index and citations	every check can fail	2026-10-01T16:41:10.1822376Z   MISS 32f identity                       red for another reason, not this one
+TODO index and citations	every check can fail	2026-10-01T16:41:10.1823236Z          error: invalid definition of the runtime `open` symbol used by the standard library
+TODO index and citations	every check can fail	2026-10-01T16:41:10.1824201Z              --> src/lib.rs:2144:9
+TODO index and citations	every check can fail	2026-10-01T16:41:10.1824676Z               |
+TODO index and citations	every check can fail	2026-10-01T16:41:16.0905879Z   ok   32g exit                           red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:41:25.5612599Z   ok   33a curated_refusals               red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:41:35.0331444Z   ok   33b detached_stdio                 red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:41:44.5057096Z   ok   33c qol                            red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:41:53.9745089Z   ok   33d store_gates                    red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:42:00.0818725Z   ok   33e tty_refusal                    red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:42:06.9425013Z   ok   33f acquisition                    red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:42:14.3543993Z   ok   33g across_distributions           red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:42:21.8227916Z   ok   33h common mod                     red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:42:29.0874703Z   ok   33i common registry                red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:42:36.5025543Z   ok   33j parallel_layers                red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:42:43.3677715Z   ok   33k registry_fixture               red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:42:50.5353662Z   ok   33l space_precheck                 red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:42:57.3453995Z   ok   33m store_digest                   red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:43:02.9039755Z   ok   33n namespace                      red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:43:08.5112119Z   ok   33o namespace_base                 red, and it named it
+TODO index and citations	every check can fail	2026-10-01T16:43:08.5112537Z 
+TODO index and citations	every check can fail	2026-10-01T16:43:08.5112711Z == not planted against
+TODO index and citations	every check can fail	2026-10-01T16:43:08.5113288Z   16 coverage floor    no case. Planting it means making a check examine
+TODO index and citations	every check can fail	2026-10-01T16:43:08.5114164Z                        nothing, which requires editing the gate's own
+TODO index and citations	every check can fail	2026-10-01T16:43:08.5114866Z                        matchers rather than the tree. Every other check's
+TODO index and citations	every check can fail	2026-10-01T16:43:08.5115450Z                        counter is asserted non-zero on every run instead,
+TODO index and citations	every check can fail	2026-10-01T16:43:08.5115856Z                        and a zero is reported as a failure.
+TODO index and citations	every check can fail	2026-10-01T16:43:08.5116120Z 
+TODO index and citations	every check can fail	2026-10-01T16:43:08.5116220Z == controls
+TODO index and citations	every check can fail	2026-10-01T16:43:09.3179158Z   ok   an ordinary prose edit             quiet, as a control must be
+TODO index and citations	every check can fail	2026-10-01T16:43:10.1241605Z   ok   a citation that does resolve       quiet, as a control must be
+TODO index and citations	every check can fail	2026-10-01T16:43:10.9304829Z   ok   a forward reference to a result    quiet, as a control must be
+TODO index and citations	every check can fail	2026-10-01T16:43:11.7369658Z   ok   a payload-side flag after the image quiet, as a control must be
+TODO index and citations	every check can fail	2026-10-01T16:43:11.7370128Z 
+TODO index and citations	every check can fail	2026-10-01T16:43:11.7370228Z == verdict
+TODO index and citations	every check can fail	2026-10-01T16:43:11.7371090Z   plants   64 caught, 2 missed
+TODO index and citations	every check can fail	2026-10-01T16:43:11.7371533Z   controls 4 quiet, 0 fired
+TODO index and citations	every check can fail	2026-10-01T16:43:11.7372255Z   see the MISS and FIRE lines above.
+TODO index and citations	every check can fail	2026-10-01T16:43:11.7979839Z ##[error]Process completed with exit code 1.
+fmt, clippy, shell	clippy	﻿2026-10-01T16:35:45.9364254Z ##[group]Run cargo clippy --workspace --all-targets -- -D warnings
+fmt, clippy, shell	clippy	2026-10-01T16:35:45.9364762Z ^[[36;1mcargo clippy --workspace --all-targets -- -D warnings^[[0m
+fmt, clippy, shell	clippy	2026-10-01T16:35:45.9432149Z shell: /usr/bin/bash -e {0}
+fmt, clippy, shell	clippy	2026-10-01T16:35:45.9432424Z ##[endgroup]
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.0321530Z     Updating crates.io index
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.4923130Z  Downloading crates ...
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.6953209Z   Downloaded cc v1.4.5
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7030882Z   Downloaded filetime v0.2.29
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7056078Z   Downloaded crypto-common v0.2.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7093863Z   Downloaded find-msvc-tools v0.1.12
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7128795Z   Downloaded digest v0.11.3
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7199636Z   Downloaded displaydoc v0.2.7
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7258649Z   Downloaded flate2 v1.1.10
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7315600Z   Downloaded hybrid-array v0.4.15
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7406954Z   Downloaded ruzstd v0.9.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7473301Z   Downloaded smallvec v1.16.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7587698Z   Downloaded zlib-rs v0.6.7
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7653917Z   Downloaded adler2 v2.0.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7666686Z   Downloaded cpufeatures v0.3.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7683460Z   Downloaded cfg-if v1.0.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7696798Z   Downloaded base64 v0.22.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7736480Z   Downloaded block-buffer v0.12.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7749746Z   Downloaded getrandom v0.2.17
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7780235Z   Downloaded base64 v0.23.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7821037Z   Downloaded crc32fast v1.5.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7841954Z   Downloaded icu_locale_core v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7921310Z   Downloaded icu_normalizer_data v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7946781Z   Downloaded idna_adapter v1.2.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.7957418Z   Downloaded icu_collections v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8032338Z   Downloaded icu_provider v2.3.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8059413Z   Downloaded icu_properties v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8096607Z   Downloaded icu_properties_data v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8223157Z   Downloaded idna v1.1.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8263441Z   Downloaded form_urlencoded v1.2.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8273349Z   Downloaded rustls-pemfile v2.2.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8304427Z   Downloaded syn v3.0.5
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8428904Z   Downloaded itoa v1.0.18
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8445998Z   Downloaded memchr v2.8.3
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8513307Z   Downloaded proc-macro2 v1.0.107
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8545451Z   Downloaded miniz_oxide v0.9.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8571254Z   Downloaded rustls-pki-types v1.15.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8599011Z   Downloaded sha2 v0.11.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8645906Z   Downloaded once_cell v1.21.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8678127Z   Downloaded shlex v2.0.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8695499Z   Downloaded simd-adler32 v0.3.10
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8716425Z   Downloaded serde v1.0.229
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8752589Z   Downloaded yoke v0.8.3
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8772733Z   Downloaded zeroize v1.9.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8822130Z   Downloaded rustls-webpki v0.103.15
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8852004Z   Downloaded zmij v1.0.23
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8872237Z   Downloaded twox-hash v2.1.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8889556Z   Downloaded typenum v1.20.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8925934Z   Downloaded webpki-roots v1.0.9
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8958629Z   Downloaded litemap v0.8.3
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8982374Z   Downloaded percent-encoding v2.3.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.8991717Z   Downloaded potential_utf v0.1.6
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9002204Z   Downloaded quote v1.0.47
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9030545Z   Downloaded stable_deref_trait v1.2.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9039520Z   Downloaded synstructure v0.13.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9049786Z   Downloaded tinystr v0.8.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9070678Z   Downloaded tar v0.4.46
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9100808Z   Downloaded untrusted v0.9.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9119485Z   Downloaded writeable v0.6.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9140435Z   Downloaded yoke-derive v0.8.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9152401Z   Downloaded zerofrom v0.1.8
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9161931Z   Downloaded utf8_iter v1.0.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9172530Z   Downloaded unicode-ident v1.0.24
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9200381Z   Downloaded url v2.5.8
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9226920Z   Downloaded zerofrom-derive v0.1.7
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9237913Z   Downloaded ureq v2.12.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9293540Z   Downloaded zerovec-derive v0.11.6
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9311110Z   Downloaded log v0.4.34
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9336589Z   Downloaded serde_core v1.0.229
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9364749Z   Downloaded serde_derive v1.0.229
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9396225Z   Downloaded zerovec v0.11.8
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9458514Z   Downloaded serde_json v1.0.151
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9535594Z   Downloaded syn v2.0.119
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9646278Z   Downloaded subtle v2.6.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9658448Z   Downloaded webpki-roots v0.26.11
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9671292Z   Downloaded icu_normalizer v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9773435Z   Downloaded zerotrie v0.2.5
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9814658Z   Downloaded syscalls v0.8.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:46.9866802Z   Downloaded rustls v0.23.45
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.0006520Z   Downloaded ring v0.17.14
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.0475531Z   Downloaded libc v0.2.189
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.0934099Z   Downloaded linux-raw-sys v0.12.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.2022703Z    Compiling proc-macro2 v1.0.107
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.2023271Z    Compiling unicode-ident v1.0.24
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.2025369Z     Checking cfg-if v1.0.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.2025759Z    Compiling quote v1.0.47
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.2263198Z    Compiling syscalls v0.8.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.2576761Z     Checking linux-raw-sys v0.12.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.3682240Z    Compiling libc v0.2.189
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.4782621Z    Compiling find-msvc-tools v0.1.12
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.5789989Z    Compiling shlex v2.0.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.6752502Z    Compiling cc v1.4.5
+fmt, clippy, shell	clippy	2026-10-01T16:35:47.7112393Z     Checking podbox-probe v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-probe)
+fmt, clippy, shell	clippy	2026-10-01T16:35:48.1612158Z     Checking zeroize v1.9.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:48.2332493Z     Checking rustls-pki-types v1.15.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:48.3372567Z    Compiling syn v2.0.119
+fmt, clippy, shell	clippy	2026-10-01T16:35:48.4060325Z     Checking getrandom v0.2.17
+fmt, clippy, shell	clippy	2026-10-01T16:35:48.4342058Z     Checking untrusted v0.9.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:48.4702024Z    Compiling serde_core v1.0.229
+fmt, clippy, shell	clippy	2026-10-01T16:35:48.4752603Z    Compiling syn v3.0.5
+fmt, clippy, shell	clippy	2026-10-01T16:35:48.6782096Z    Compiling rustls v0.23.45
+fmt, clippy, shell	clippy	2026-10-01T16:35:48.7669758Z    Compiling zmij v1.0.23
+fmt, clippy, shell	clippy	2026-10-01T16:35:49.4572059Z    Compiling ring v0.17.14
+fmt, clippy, shell	clippy	2026-10-01T16:35:50.6462688Z    Compiling synstructure v0.13.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:51.2157480Z     Checking webpki-roots v1.0.9
+fmt, clippy, shell	clippy	2026-10-01T16:35:51.2889047Z     Checking subtle v2.6.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:51.3601899Z    Compiling serde_json v1.0.151
+fmt, clippy, shell	clippy	2026-10-01T16:35:51.4512074Z     Checking log v0.4.34
+fmt, clippy, shell	clippy	2026-10-01T16:35:51.5311864Z     Checking once_cell v1.21.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:51.7751904Z     Checking memchr v2.8.3
+fmt, clippy, shell	clippy	2026-10-01T16:35:51.8366383Z     Checking itoa v1.0.18
+fmt, clippy, shell	clippy	2026-10-01T16:35:51.8471987Z    Compiling zerofrom-derive v0.1.7
+fmt, clippy, shell	clippy	2026-10-01T16:35:51.9091416Z    Compiling yoke-derive v0.8.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:52.6362235Z     Checking rustls-pemfile v2.2.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:52.6957481Z     Checking stable_deref_trait v1.2.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:52.7272156Z     Checking base64 v0.23.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:52.7863258Z     Checking zerofrom v0.1.8
+fmt, clippy, shell	clippy	2026-10-01T16:35:52.8053872Z    Compiling zerovec-derive v0.11.6
+fmt, clippy, shell	clippy	2026-10-01T16:35:52.8465663Z     Checking yoke v0.8.3
+fmt, clippy, shell	clippy	2026-10-01T16:35:52.9323166Z    Compiling displaydoc v0.2.7
+fmt, clippy, shell	clippy	2026-10-01T16:35:52.9534497Z     Checking litemap v0.8.3
+fmt, clippy, shell	clippy	2026-10-01T16:35:53.0622479Z     Checking writeable v0.6.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:53.1798638Z     Checking typenum v1.20.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:53.7286026Z     Checking zerotrie v0.2.5
+fmt, clippy, shell	clippy	2026-10-01T16:35:53.8932078Z     Checking utf8_iter v1.0.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:53.8983802Z    Compiling icu_properties_data v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:53.9441983Z    Compiling icu_normalizer_data v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:53.9745859Z     Checking zerovec v0.11.8
+fmt, clippy, shell	clippy	2026-10-01T16:35:53.9932094Z     Checking hybrid-array v0.4.15
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.1471844Z     Checking smallvec v1.16.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.2321388Z     Checking rustls-webpki v0.103.15
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.2672080Z    Compiling crc32fast v1.5.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.3847979Z     Checking tinystr v0.8.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.4086544Z     Checking potential_utf v0.1.6
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.4332780Z     Checking crypto-common v0.2.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.4567872Z     Checking icu_collections v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.4912307Z     Checking icu_locale_core v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.6872031Z     Checking block-buffer v0.12.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.7712061Z     Checking percent-encoding v2.3.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.8322116Z     Checking cpufeatures v0.3.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.8552107Z     Checking simd-adler32 v0.3.10
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.9301942Z     Checking adler2 v2.0.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.9629181Z     Checking miniz_oxide v0.9.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:54.9652119Z     Checking digest v0.11.3
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.0394737Z     Checking sha2 v0.11.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.0562374Z     Checking icu_provider v2.3.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.2041883Z     Checking icu_properties v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.2652120Z     Checking icu_normalizer v2.3.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.4922047Z     Checking form_urlencoded v1.2.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.5542082Z    Compiling serde v1.0.229
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.6132261Z     Checking flate2 v1.1.10
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.7561917Z    Compiling serde_derive v1.0.229
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.8529500Z     Checking webpki-roots v0.26.11
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.8774727Z     Checking filetime v0.2.29
+fmt, clippy, shell	clippy	2026-10-01T16:35:55.9370074Z     Checking base64 v0.22.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:56.0983816Z     Checking tar v0.4.46
+fmt, clippy, shell	clippy	2026-10-01T16:35:56.1096286Z     Checking idna_adapter v1.2.2
+fmt, clippy, shell	clippy	2026-10-01T16:35:56.1572031Z     Checking idna v1.1.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:56.3111880Z     Checking url v2.5.8
+fmt, clippy, shell	clippy	2026-10-01T16:35:56.6379968Z     Checking twox-hash v2.1.4
+fmt, clippy, shell	clippy	2026-10-01T16:35:56.6871985Z     Checking ruzstd v0.9.0
+fmt, clippy, shell	clippy	2026-10-01T16:35:56.8662456Z     Checking ureq v2.12.1
+fmt, clippy, shell	clippy	2026-10-01T16:35:57.1652555Z     Checking podbox-ssh v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-ssh)
+fmt, clippy, shell	clippy	2026-10-01T16:35:57.2032531Z     Checking podbox-enter v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-enter)
+fmt, clippy, shell	clippy	2026-10-01T16:35:57.6112426Z     Checking podbox-windows v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-windows)
+fmt, clippy, shell	clippy	2026-10-01T16:35:59.5031394Z    Compiling podbox-cli v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-cli)
+fmt, clippy, shell	clippy	2026-10-01T16:35:59.6152356Z     Checking podbox-gate v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-gate)
+fmt, clippy, shell	clippy	2026-10-01T16:35:59.6684648Z     Checking podbox-image v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-image)
+fmt, clippy, shell	clippy	2026-10-01T16:35:59.9357659Z     Checking podbox-podvm v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-podvm)
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.2258343Z     Checking podbox-release v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-release)
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.3712320Z     Checking podbox-buildstate v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-buildstate)
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.6224149Z     Checking podbox-extract v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-extract)
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.7244908Z     Checking podbox-supervise v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-supervise)
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.8143319Z warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /home/runner/work/podbox/podbox/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.8173067Z warning: podbox-cli@0.1.0-beta.12: no musl interposer at /home/runner/work/podbox/podbox/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.8382217Z     Checking podbox-complete v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-complete)
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.8862166Z error: fields `manifest`, `manifest_digest`, `config`, and `layer` are never read
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.8891768Z   --> crates/podbox-image/tests/common/registry.rs:30:9
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.8921489Z    |
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.8951523Z 25 | pub struct Fixture {
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.8981597Z    |            ------- fields in this struct
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.8991774Z ...
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9032760Z 30 |     pub manifest: Vec<u8>,
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9071629Z    |         ^^^^^^^^
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9101822Z 31 |     /// `sha256:<hex>` of the manifest bytes, as served and as computed.
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9131606Z 32 |     pub manifest_digest: String,
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9161508Z    |         ^^^^^^^^^^^^^^^
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9191558Z 33 |     pub config: Vec<u8>,
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9221519Z    |         ^^^^^^
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9251557Z 34 |     pub config_digest: String,
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9281506Z 35 |     pub layer: Vec<u8>,
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9311506Z    |         ^^^^^
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9341527Z    |
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9362006Z    = note: `-D dead-code` implied by `-D warnings`
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9367840Z    = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9368576Z 
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9369267Z error: could not compile `podbox-image` (test "acquisition") due to 1 previous error
+fmt, clippy, shell	clippy	2026-10-01T16:36:00.9370245Z warning: build failed, waiting for other jobs to finish...
+fmt, clippy, shell	clippy	2026-10-01T16:36:01.1356609Z ##[error]Process completed with exit code 101.
+static build, no PT_INTERP	interposer, one object per libc	﻿2026-10-01T16:35:51.7865304Z ##[group]Run cargo build --release -p podbox-gate --bin podbox-interpose-build
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:51.7865947Z ^[[36;1mcargo build --release -p podbox-gate --bin podbox-interpose-build^[[0m
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:51.7866366Z ^[[36;1mmkdir -p target/release^[[0m
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:51.7866846Z ^[[36;1mcp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/^[[0m
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:51.7867354Z ^[[36;1m./target/release/podbox-interpose-build^[[0m
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:51.7933023Z shell: /usr/bin/bash -e {0}
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:51.7933600Z ##[endgroup]
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:51.8600668Z     Updating crates.io index
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:51.9995286Z    Compiling podbox-gate v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-gate)
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.1801873Z     Finished `release` profile [optimized] target(s) in 3.35s
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.2387032Z == x86_64-unknown-linux-musl
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.2438550Z    linker: scripts/zig-cc.sh (zig 0.16.0)
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.3072956Z    Compiling podbox-interpose v0.1.0 (/home/runner/work/podbox/podbox/crates/podbox-interpose)
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5287533Z error: invalid definition of the runtime `open` symbol used by the standard library
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5288559Z     --> src/lib.rs:2144:9
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5289145Z      |
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5289764Z 2144 |         pub unsafe extern "C" fn $name($path: *const c_char, $flags: c_int, mode: c_uint) -> c_int {
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5290772Z      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5291300Z ...
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5291683Z 2233 | open_fixed!(open, next_open, path, flags);
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5292293Z      | ----------------------------------------- in this macro invocation
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5292832Z      |
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5293649Z      = note: expected `unsafe extern "C" fn(*const i8, i32, ...) -> i32` (for the current target)
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5294472Z              found    `unsafe extern "C" fn(*const i8, i32, u32) -> i32`
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5295993Z      = help: either fix the signature or remove any attributes like `#[unsafe(no_mangle)]`, `#[unsafe(export_name = "open")]`, or `#[link_name = "open"]`
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5297105Z      = note: `#[deny(invalid_runtime_symbol_definitions)]` on by default
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5298109Z      = note: this error originates in the macro `open_fixed` (in Nightly builds, run with -Z macro-backtrace for more info)
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5298862Z 
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5372404Z error: could not compile `podbox-interpose` (lib) due to 1 previous error
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5386332Z FAIL x86_64-unknown-linux-musl
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.5767487Z == x86_64-unknown-linux-gnu
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.6870144Z    stub: /home/runner/work/podbox/podbox/target/release/../../crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.7314863Z    Compiling podbox-interpose v0.1.0 (/home/runner/work/podbox/podbox/crates/podbox-interpose)
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9446689Z error: invalid definition of the runtime `open` symbol used by the standard library
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9447562Z     --> src/lib.rs:2144:9
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9447921Z      |
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9448524Z 2144 |         pub unsafe extern "C" fn $name($path: *const c_char, $flags: c_int, mode: c_uint) -> c_int {
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9449402Z      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9449968Z ...
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9450362Z 2233 | open_fixed!(open, next_open, path, flags);
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9450960Z      | ----------------------------------------- in this macro invocation
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9451477Z      |
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9452038Z      = note: expected `unsafe extern "C" fn(*const i8, i32, ...) -> i32` (for the current target)
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9452834Z              found    `unsafe extern "C" fn(*const i8, i32, u32) -> i32`
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9454224Z      = help: either fix the signature or remove any attributes like `#[unsafe(no_mangle)]`, `#[unsafe(export_name = "open")]`, or `#[link_name = "open"]`
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9455734Z      = note: `#[deny(invalid_runtime_symbol_definitions)]` on by default
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9456709Z      = note: this error originates in the macro `open_fixed` (in Nightly builds, run with -Z macro-backtrace for more info)
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9457415Z 
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9528037Z error: could not compile `podbox-interpose` (lib) due to 1 previous error
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9543712Z FAIL x86_64-unknown-linux-gnu
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:35:55.9544309Z == B. struct stat offsets, by offsetof and under both libcs
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:36:21.8887572Z   glibc  sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:36:21.8888798Z   musl   sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:36:21.8889722Z   B: both libcs agree on BOTH structs, and with the offsets src/lib.rs carries
+static build, no PT_INTERP	interposer, one object per libc	2026-10-01T16:36:21.8979978Z ##[error]Process completed with exit code 1.
+workspace and interposer tests	workspace tests	﻿2026-10-01T16:35:41.2117912Z ##[group]Run cargo test --workspace
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.2118288Z ^[[36;1mcargo test --workspace^[[0m
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.2186415Z shell: /usr/bin/bash -e {0}
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.2186716Z ##[endgroup]
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.2841407Z     Updating crates.io index
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.4499708Z  Downloading crates ...
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.5684541Z   Downloaded syscalls v0.8.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.5910082Z   Downloaded block-buffer v0.12.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.5923235Z   Downloaded zmij v1.0.23
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.5943751Z   Downloaded quote v1.0.47
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.5970502Z   Downloaded twox-hash v2.1.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.5993030Z   Downloaded litemap v0.8.3
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6016062Z   Downloaded percent-encoding v2.3.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6064936Z   Downloaded stable_deref_trait v1.2.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6073077Z   Downloaded subtle v2.6.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6084699Z   Downloaded log v0.4.34
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6110191Z   Downloaded serde_derive v1.0.229
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6141406Z   Downloaded utf8_iter v1.0.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6151774Z   Downloaded adler2 v2.0.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6163977Z   Downloaded filetime v0.2.29
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6181634Z   Downloaded tinystr v0.8.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6202805Z   Downloaded icu_locale_core v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6273753Z   Downloaded potential_utf v0.1.6
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6285273Z   Downloaded unicode-ident v1.0.24
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6312827Z   Downloaded form_urlencoded v1.2.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6320544Z   Downloaded ureq v2.12.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6373869Z   Downloaded cc v1.4.5
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6404326Z   Downloaded idna v1.1.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6438604Z   Downloaded serde_json v1.0.151
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6512546Z   Downloaded miniz_oxide v0.9.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6538580Z   Downloaded webpki-roots v1.0.9
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6568467Z   Downloaded yoke-derive v0.8.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6579781Z   Downloaded rustls-pki-types v1.15.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6605445Z   Downloaded webpki-roots v0.26.11
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6617923Z   Downloaded hybrid-array v0.4.15
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6639902Z   Downloaded simd-adler32 v0.3.10
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6658568Z   Downloaded displaydoc v0.2.7
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6679322Z   Downloaded icu_provider v2.3.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6706085Z   Downloaded serde v1.0.229
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6740508Z   Downloaded tar v0.4.46
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6769686Z   Downloaded base64 v0.22.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6811762Z   Downloaded untrusted v0.9.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6828593Z   Downloaded syn v2.0.119
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6933832Z   Downloaded zlib-rs v0.6.7
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6988493Z   Downloaded zerofrom v0.1.8
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.6998224Z   Downloaded writeable v0.6.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7018902Z   Downloaded smallvec v1.16.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7031968Z   Downloaded once_cell v1.21.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7058142Z   Downloaded serde_core v1.0.229
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7085117Z   Downloaded zeroize v1.9.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7100195Z   Downloaded cfg-if v1.0.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7113432Z   Downloaded itoa v1.0.18
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7127343Z   Downloaded synstructure v0.13.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7379422Z   Downloaded zerovec v0.11.8
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7441739Z   Downloaded shlex v2.0.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7519097Z   Downloaded crc32fast v1.5.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7540807Z   Downloaded yoke v0.8.3
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7559143Z   Downloaded cpufeatures v0.3.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7654458Z   Downloaded crypto-common v0.2.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7663797Z   Downloaded idna_adapter v1.2.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7664613Z   Downloaded find-msvc-tools v0.1.12
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7665405Z   Downloaded rustls-pemfile v2.2.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7666135Z   Downloaded digest v0.11.3
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7680722Z   Downloaded proc-macro2 v1.0.107
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7710761Z   Downloaded zerofrom-derive v0.1.7
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7720553Z   Downloaded zerovec-derive v0.11.6
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7738268Z   Downloaded getrandom v0.2.17
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7767267Z   Downloaded rustls-webpki v0.103.15
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7797584Z   Downloaded sha2 v0.11.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7836270Z   Downloaded flate2 v1.1.10
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7887667Z   Downloaded url v2.5.8
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7912917Z   Downloaded icu_normalizer_data v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7933923Z   Downloaded icu_properties v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.7965700Z   Downloaded ruzstd v0.9.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.8021053Z   Downloaded typenum v1.20.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.8055807Z   Downloaded icu_collections v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.8118483Z   Downloaded libc v0.2.189
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.8554339Z   Downloaded zerotrie v0.2.5
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.8594379Z   Downloaded icu_normalizer v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.8690762Z   Downloaded base64 v0.23.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.8730061Z   Downloaded memchr v2.8.3
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.8785985Z   Downloaded icu_properties_data v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.8895918Z   Downloaded syn v3.0.5
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.9001912Z   Downloaded rustls v0.23.45
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.9123153Z   Downloaded ring v0.17.14
+workspace and interposer tests	workspace tests	2026-10-01T16:35:41.9541997Z   Downloaded linux-raw-sys v0.12.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.0722245Z    Compiling syscalls v0.8.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.0725686Z    Compiling cfg-if v1.0.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.0726473Z    Compiling linux-raw-sys v0.12.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.0727170Z    Compiling proc-macro2 v1.0.107
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.1133692Z    Compiling unicode-ident v1.0.24
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.1894550Z    Compiling quote v1.0.47
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.3596059Z    Compiling libc v0.2.189
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.3945407Z    Compiling find-msvc-tools v0.1.12
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.5961948Z    Compiling podbox-probe v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-probe)
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.6053878Z    Compiling shlex v2.0.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:42.9323673Z    Compiling cc v1.4.5
+workspace and interposer tests	workspace tests	2026-10-01T16:35:43.0774040Z    Compiling zeroize v1.9.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:43.1880379Z    Compiling rustls-pki-types v1.15.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:43.5983587Z    Compiling getrandom v0.2.17
+workspace and interposer tests	workspace tests	2026-10-01T16:35:43.6113662Z    Compiling serde_core v1.0.229
+workspace and interposer tests	workspace tests	2026-10-01T16:35:43.7023486Z    Compiling untrusted v0.9.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:43.7483765Z    Compiling syn v2.0.119
+workspace and interposer tests	workspace tests	2026-10-01T16:35:43.8314580Z    Compiling rustls v0.23.45
+workspace and interposer tests	workspace tests	2026-10-01T16:35:43.9076373Z    Compiling zmij v1.0.23
+workspace and interposer tests	workspace tests	2026-10-01T16:35:44.0822360Z    Compiling webpki-roots v1.0.9
+workspace and interposer tests	workspace tests	2026-10-01T16:35:44.1493791Z    Compiling syn v3.0.5
+workspace and interposer tests	workspace tests	2026-10-01T16:35:44.7533642Z    Compiling ring v0.17.14
+workspace and interposer tests	workspace tests	2026-10-01T16:35:46.2899129Z    Compiling synstructure v0.13.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:46.9203511Z    Compiling once_cell v1.21.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:47.0503446Z    Compiling log v0.4.34
+workspace and interposer tests	workspace tests	2026-10-01T16:35:47.1592174Z    Compiling serde_json v1.0.151
+workspace and interposer tests	workspace tests	2026-10-01T16:35:47.2483622Z    Compiling subtle v2.6.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:47.4643960Z    Compiling memchr v2.8.3
+workspace and interposer tests	workspace tests	2026-10-01T16:35:47.6223991Z    Compiling itoa v1.0.18
+workspace and interposer tests	workspace tests	2026-10-01T16:35:47.6455086Z    Compiling zerofrom-derive v0.1.7
+workspace and interposer tests	workspace tests	2026-10-01T16:35:47.7463768Z    Compiling rustls-pemfile v2.2.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:48.0703740Z    Compiling base64 v0.23.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:48.4283161Z    Compiling yoke-derive v0.8.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:48.6833701Z    Compiling zerofrom v0.1.8
+workspace and interposer tests	workspace tests	2026-10-01T16:35:48.7513691Z    Compiling stable_deref_trait v1.2.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:48.7783689Z    Compiling zerovec-derive v0.11.6
+workspace and interposer tests	workspace tests	2026-10-01T16:35:49.0306270Z    Compiling displaydoc v0.2.7
+workspace and interposer tests	workspace tests	2026-10-01T16:35:49.4023800Z    Compiling yoke v0.8.3
+workspace and interposer tests	workspace tests	2026-10-01T16:35:49.5411092Z    Compiling typenum v1.20.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:49.8214245Z    Compiling writeable v0.6.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:49.9923649Z    Compiling rustls-webpki v0.103.15
+workspace and interposer tests	workspace tests	2026-10-01T16:35:49.9973609Z    Compiling zerovec v0.11.8
+workspace and interposer tests	workspace tests	2026-10-01T16:35:50.3965412Z    Compiling litemap v0.8.3
+workspace and interposer tests	workspace tests	2026-10-01T16:35:50.5154040Z    Compiling tinystr v0.8.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:50.6393636Z    Compiling icu_locale_core v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:50.8844097Z    Compiling potential_utf v0.1.6
+workspace and interposer tests	workspace tests	2026-10-01T16:35:50.9660139Z    Compiling hybrid-array v0.4.15
+workspace and interposer tests	workspace tests	2026-10-01T16:35:51.0754092Z    Compiling zerotrie v0.2.5
+workspace and interposer tests	workspace tests	2026-10-01T16:35:51.2876998Z    Compiling icu_normalizer_data v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:51.3790108Z    Compiling utf8_iter v1.0.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:51.4577028Z    Compiling icu_properties_data v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:51.4833989Z    Compiling icu_provider v2.3.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:51.5623632Z    Compiling icu_collections v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:51.8544147Z    Compiling crypto-common v0.2.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:51.8613978Z    Compiling block-buffer v0.12.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:51.9413685Z    Compiling smallvec v1.16.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:52.0703889Z    Compiling icu_normalizer v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:52.0833523Z    Compiling icu_properties v2.3.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:52.6174162Z    Compiling digest v0.11.3
+workspace and interposer tests	workspace tests	2026-10-01T16:35:52.7044012Z    Compiling cpufeatures v0.3.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:52.7289219Z    Compiling crc32fast v1.5.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:52.9110408Z    Compiling sha2 v0.11.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:52.9633621Z    Compiling percent-encoding v2.3.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:53.0663453Z    Compiling simd-adler32 v0.3.10
+workspace and interposer tests	workspace tests	2026-10-01T16:35:53.1993571Z    Compiling idna_adapter v1.2.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:53.2593665Z    Compiling adler2 v2.0.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:53.3193695Z    Compiling miniz_oxide v0.9.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:53.4963600Z    Compiling idna v1.1.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:53.7733552Z    Compiling form_urlencoded v1.2.2
+workspace and interposer tests	workspace tests	2026-10-01T16:35:53.9873698Z    Compiling serde v1.0.229
+workspace and interposer tests	workspace tests	2026-10-01T16:35:54.0123626Z    Compiling flate2 v1.1.10
+workspace and interposer tests	workspace tests	2026-10-01T16:35:54.2053755Z    Compiling url v2.5.8
+workspace and interposer tests	workspace tests	2026-10-01T16:35:54.2484607Z    Compiling serde_derive v1.0.229
+workspace and interposer tests	workspace tests	2026-10-01T16:35:54.3913603Z    Compiling webpki-roots v0.26.11
+workspace and interposer tests	workspace tests	2026-10-01T16:35:54.4158476Z    Compiling filetime v0.2.29
+workspace and interposer tests	workspace tests	2026-10-01T16:35:54.5293604Z    Compiling base64 v0.22.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:54.8293697Z    Compiling ureq v2.12.1
+workspace and interposer tests	workspace tests	2026-10-01T16:35:55.0383741Z    Compiling tar v0.4.46
+workspace and interposer tests	workspace tests	2026-10-01T16:35:56.1154934Z    Compiling podbox-ssh v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-ssh)
+workspace and interposer tests	workspace tests	2026-10-01T16:35:56.4733896Z    Compiling twox-hash v2.1.4
+workspace and interposer tests	workspace tests	2026-10-01T16:35:57.4693544Z    Compiling ruzstd v0.9.0
+workspace and interposer tests	workspace tests	2026-10-01T16:35:57.9500581Z    Compiling podbox-enter v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-enter)
+workspace and interposer tests	workspace tests	2026-10-01T16:35:58.8234359Z    Compiling podbox-image v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-image)
+workspace and interposer tests	workspace tests	2026-10-01T16:35:59.1645942Z    Compiling podbox-windows v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-windows)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:00.5572862Z    Compiling podbox-extract v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-extract)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:01.1804294Z    Compiling podbox-complete v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-complete)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:01.3123855Z    Compiling podbox-cli v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-cli)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:01.5983913Z    Compiling podbox-supervise v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-supervise)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:03.2794373Z warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /home/runner/work/podbox/podbox/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:03.2818944Z warning: podbox-cli@0.1.0-beta.12: no musl interposer at /home/runner/work/podbox/podbox/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9197390Z warning: fields `manifest`, `config`, `config_digest`, and `layer` are never read
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9223471Z   --> crates/podbox-image/tests/common/registry.rs:30:9
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9243204Z    |
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9243609Z 25 | pub struct Fixture {
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9283430Z    |            ------- fields in this struct
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9293274Z ...
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9303536Z 30 |     pub manifest: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9304239Z    |         ^^^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9304819Z ...
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9305385Z 33 |     pub config: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9306023Z    |         ^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9306771Z 34 |     pub config_digest: String,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9307925Z    |         ^^^^^^^^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9308542Z 35 |     pub layer: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9309147Z    |         ^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9309679Z    |
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9310342Z    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+workspace and interposer tests	workspace tests	2026-10-01T16:36:05.9311039Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.4983760Z warning: `podbox-image` (test "parallel_layers") generated 1 warning
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5703570Z warning: fields `config` and `layer` are never read
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5730561Z   --> crates/podbox-image/tests/common/registry.rs:33:9
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5752993Z    |
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5783135Z 25 | pub struct Fixture {
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5783664Z    |            ------- fields in this struct
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5814714Z ...
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5815077Z 33 |     pub config: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5815492Z    |         ^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5815862Z 34 |     pub config_digest: String,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5816353Z 35 |     pub layer: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5816754Z    |         ^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5817084Z    |
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5817596Z    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+workspace and interposer tests	workspace tests	2026-10-01T16:36:07.5818100Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8331114Z warning: fields `manifest`, `config`, `config_digest`, `layer`, and `layer_digest` are never read
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8332384Z   --> crates/podbox-image/tests/common/registry.rs:30:9
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8363228Z    |
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8383149Z 25 | pub struct Fixture {
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8393218Z    |            ------- fields in this struct
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8423108Z ...
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8453129Z 30 |     pub manifest: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8471245Z    |         ^^^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8472060Z ...
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8472954Z 33 |     pub config: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8473609Z    |         ^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8474154Z 34 |     pub config_digest: String,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8475262Z    |         ^^^^^^^^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8475851Z 35 |     pub layer: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8476405Z    |         ^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8476984Z 36 |     pub layer_digest: String,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8477599Z    |         ^^^^^^^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8478127Z    |
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8478773Z    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+workspace and interposer tests	workspace tests	2026-10-01T16:36:08.8479448Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.0900508Z warning: `podbox-image` (test "store_digest") generated 1 warning
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9661282Z warning: fields `manifest`, `manifest_digest`, `config`, and `layer` are never read
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9673186Z   --> crates/podbox-image/tests/common/registry.rs:30:9
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9703174Z    |
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9733114Z 25 | pub struct Fixture {
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9742952Z    |            ------- fields in this struct
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9803025Z ...
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9823254Z 30 |     pub manifest: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9853037Z    |         ^^^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9853749Z 31 |     /// `sha256:<hex>` of the manifest bytes, as served and as computed.
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9854451Z 32 |     pub manifest_digest: String,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9854913Z    |         ^^^^^^^^^^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9855343Z 33 |     pub config: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9855747Z    |         ^^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9856117Z 34 |     pub config_digest: String,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9856580Z 35 |     pub layer: Vec<u8>,
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9856981Z    |         ^^^^^
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9857292Z    |
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9857754Z    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+workspace and interposer tests	workspace tests	2026-10-01T16:36:09.9858261Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:10.2938821Z warning: `podbox-image` (test "across_distributions") generated 1 warning
+workspace and interposer tests	workspace tests	2026-10-01T16:36:11.3873790Z warning: `podbox-image` (test "acquisition") generated 1 warning
+workspace and interposer tests	workspace tests	2026-10-01T16:36:13.8695014Z    Compiling podbox-release v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-release)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:14.8103742Z    Compiling podbox-gate v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-gate)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:16.2214700Z    Compiling podbox-buildstate v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-buildstate)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:16.2722206Z    Compiling podbox-podvm v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-podvm)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.8445775Z     Finished `test` profile [unoptimized + debuginfo] target(s) in 36.59s
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.8636668Z      Running unittests src/main.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox_buildstate-fce590291097edb9)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.8645140Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.8645420Z running 7 tests
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.8655906Z test common::tests::json_escapes_match_cpython ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.8656482Z test common::tests::sha256_matches_nist_vectors ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.8656926Z test tests::objects_sort_keys_with_python_separators ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.8660132Z test tests::record_json_matches_python_key_order ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.8660865Z test tests::record_round_trips_through_the_reader ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.8667358Z test tests::walk_skips_target_and_pycache_parts ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9449953Z test tests::status_names_every_state_on_a_fixture ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9450431Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9450745Z test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9451373Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9453735Z      Running unittests src/licenses.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox_release_licenses-129ce609dd3e881f)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9459441Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9459599Z running 6 tests
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9462931Z test common::tests::json_escapes_match_cpython ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9463889Z test tests::identifier_matches_the_script_character_class ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9464797Z test common::tests::sha256_matches_nist_vectors ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9465695Z test tests::inventory_renders_like_cpython_indent_two ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9466879Z test tests::licence_stems_match_case_insensitively ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9467349Z test tests::parser_reads_metadata_shapes ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9467749Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9468184Z test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9468778Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9469159Z      Running unittests src/main.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox-7f18be063156a124)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9478342Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9478491Z running 249 tests
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9483921Z test complete::tests::strict_passes_a_run_with_no_degradation ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9485456Z test complete::tests::strict_all_names_every_reason_at_once ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9487746Z test complete::tests::strict_classifies_safety_against_substitution ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9489161Z test complete::tests::strict_refuses_a_run_whose_only_difference_is_a_step ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9490016Z test complete::tests::without_strict_nothing_is_refused ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9492828Z test diagnose::tests::an_unreadable_map_reports_itself_as_unreadable ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9493750Z test diagnose::tests::both_dropped_ids_still_read_beside_the_example ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9495665Z test diagnose::tests::every_row_carries_all_four_parts ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9498438Z test complete::tests::the_banner_is_quiet_by_default_and_loud_under_verbose ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9499262Z test diagnose::tests::no_example_means_no_note ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9500036Z test diagnose::tests::the_note_names_the_entry_the_errno_the_map_and_the_remedy ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9501429Z test doctor::tests::doctor_help_and_bad_flag_need_no_probe ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9502136Z test doctor::tests::doctor_usage_is_plain_ascii ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9511749Z test doctor::tests::health_agrees_with_the_problem_list ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9513075Z test exec::tests::a_flag_needing_a_value_does_not_swallow_the_image ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9515416Z test exec::tests::every_flag_the_table_admits_is_handled_by_this_parser ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9516751Z test doctor::tests::store_exec_row_reports_yes_on_a_writable_directory ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9517893Z test exec::tests::exec_has_no_default_command ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9523716Z test exec::tests::exec_usage_is_plain_ascii ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9535648Z test exec::tests::the_banner_says_what_inspect_reports ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9536615Z test exec::tests::quiet_and_verbose_parse ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9537279Z test exec::tests::parsing_stops_at_the_image_name ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9538810Z test exec::tests::the_mem_flag_parses_to_bytes_in_both_forms ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9540779Z test exec::tests::the_tier_flag_takes_two_values_and_qemu_args_collect_whole ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9541938Z test format::tests::a_dotted_name_is_one_name_and_an_unregistered_one_is_still_refused ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9543262Z test format::tests::a_template_feature_podbox_does_not_have_is_refused_rather_than_guessed ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9544270Z test format::tests::an_unknown_field_is_refused_and_lists_the_known_ones ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9545238Z test format::tests::literal_text_and_several_fields_survive_together ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9546748Z test format::tests::the_acceptance_template_renders_the_digest_and_nothing_else ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9549235Z test format::tests::the_escapes_docker_expands_are_expanded ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9550137Z test format::tests::the_one_function_podbox_answers_is_json ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9551111Z test format::tests::whitespace_inside_the_braces_is_the_go_spelling_and_is_accepted ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9553820Z test images::tests::a_pipe_stdin_reads_to_the_trimmed_password ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9554835Z test images::tests::a_template_naming_a_field_no_verb_has_is_refused_without_any_record ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9556887Z test images::tests::a_terminal_stdin_refuses_before_any_read ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9558682Z test images::tests::an_image_with_no_creation_timestamp_prints_a_dash_and_not_a_guess ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9559954Z test images::tests::login_accepts_the_equals_forms ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9560756Z test images::tests::every_image_usage_is_plain_ascii ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9561507Z test images::tests::login_help_needs_nothing_else ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9563245Z test images::tests::login_names_no_server_where_none_is_given ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9565604Z test images::tests::login_takes_a_user_a_stdin_flag_and_a_server ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9567058Z test images::tests::login_with_a_dangling_user_flag_is_a_flag_refusal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9571350Z test images::tests::login_with_an_empty_user_is_a_flag_refusal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9572384Z test images::tests::login_with_an_unlisted_flag_is_a_flag_refusal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9576234Z test images::tests::login_with_two_servers_is_a_verb_refusal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9577042Z test images::tests::config_renders_docker_names_null_safe ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9577784Z test images::tests::login_without_a_user_is_a_flag_refusal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9579506Z test images::tests::login_without_password_stdin_is_a_flag_refusal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9580318Z test images::tests::logout_takes_one_server_or_help ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9581114Z test images::tests::missing_blobs_lists_blobs_with_no_file ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9581917Z test images::tests::save_load_import_parse_their_flags ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9583299Z test images::tests::the_table_pads_every_column_to_its_widest_cell ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9588724Z test images::tests::verify_parses_one_image_all_or_nothing ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9590022Z test interpose::tests::a_binary_without_objects_declines_naming_the_libc ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9590930Z test interpose::tests::a_caller_preload_survives_behind_podboxs ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9607787Z test interpose::tests::a_link_loop_is_refused ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9610762Z test images::tests::the_field_names_are_the_names_the_builder_produces ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9611887Z test interpose::tests::a_missing_payload_is_declined ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9616398Z test interpose::tests::a_reachable_payload_without_a_memo_is_refused_not_declined ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9619595Z test interpose::tests::a_payload_escaping_the_image_is_refused ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9620839Z test interpose::tests::a_script_is_declined_with_the_readers_reason ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9621943Z test interpose::tests::a_static_payload_is_declined_by_name ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9623191Z test interpose::tests::an_unknown_interpreter_is_declined ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9624307Z test interpose::tests::an_unparsable_object_is_refused_as_unparsable ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9625389Z test interpose::tests::another_architecture_is_declined ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9626371Z test interpose::tests::each_embedded_object_names_its_own_libc ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9627428Z test interpose::tests::go_markers_outrank_a_present_interpreter ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9643516Z test interpose::tests::placement_writes_the_object_where_the_payload_sees_it ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9750511Z test images::tests::prune_skips_a_held_image ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9770566Z test interpose::tests::the_carried_line_names_the_state_it_is_in ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9776310Z test interpose::tests::the_decline_line_carries_the_channel ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9777429Z test interpose::tests::the_memo_descriptor_parses_as_decimal_or_not_at_all ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9783328Z test interpose::tests::the_two_embedded_objects_are_not_the_same_bytes ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9784452Z test ladder::tests::a_forced_cache_is_admitted_only_where_asked ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9785444Z test ladder::tests::a_forced_fuse_over_a_missing_payload_names_it ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9786487Z test ladder::tests::a_forced_fuse_rung_without_chroot_names_the_denial ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9787660Z test images::tests::rmi_refuses_a_held_image ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9799828Z test ladder::tests::a_forced_memfd_over_a_script_refuses_naming_both ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9800769Z test ladder::tests::a_forced_memfd_over_a_missing_payload_names_it ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9809433Z test ladder::tests::a_forced_rundir_over_a_missing_payload_names_it ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9810438Z test ladder::tests::a_forced_rundir_stages_the_tree_whole ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9821597Z test ladder::tests::a_forced_tmpfs_over_a_missing_payload_names_it ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9823093Z test ladder::tests::fuse_is_up_only_where_the_open_row_answered_ok ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9824032Z test ladder::tests::an_unknown_request_refuses_with_the_list ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9824985Z test ladder::tests::no_request_means_the_default_entry ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9829284Z test ladder::tests::the_directory_rungs_need_their_stage_base ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9830409Z test ladder::tests::the_ladder_is_foreground_run_or_a_named_refusal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9831471Z test ladder::tests::tmpfs_is_up_only_where_a_mount_attached ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9837044Z test lifecycle::tests::a_bare_user_name_takes_its_primary_group_from_the_image ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9838221Z test lifecycle::tests::a_container_path_is_split_from_a_plain_one ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9839380Z test lifecycle::tests::a_guest_that_is_not_linux_is_routed_to_its_own_verb_when_one_exists ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9840534Z test lifecycle::tests::a_non_linux_guest_is_refused_by_name ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9845868Z test lifecycle::tests::a_signal_is_taken_by_name_or_number_and_never_defaulted ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9858303Z test lifecycle::tests::copy_one_refuses_an_escape ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9861571Z test lifecycle::tests::copy_one_replicates_a_symlink_with_an_absolute_target ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9863133Z test lifecycle::tests::copy_tree_refuses_a_destination_through_a_planted_symlink ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9874901Z test lifecycle::tests::copy_tree_replicates_a_symlink_without_resolving_it ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9886677Z test lifecycle::tests::cp_parses_recursive_and_two_paths ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9907733Z test lifecycle::tests::entry_is_possible_where_any_family_may_run ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9909043Z test lifecycle::tests::copy_tree_round_trips_a_clean_tree ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9910027Z test lifecycle::tests::logs_follow_is_a_parsed_flag ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9910995Z test lifecycle::tests::logs_tail_takes_a_count_in_both_spellings ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9912069Z test lifecycle::tests::resolve_codes_follow_the_payload_status ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9913282Z test lifecycle::tests::lifecycle_usage_strings_are_plain_ascii ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9914126Z test lifecycle::tests::the_declared_container_fields_are_the_built_ones ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9925710Z test lifecycle::tests::store_exec_passes_where_a_created_file_executes ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9927685Z test lifecycle::tests::the_detached_refusal_names_the_blocking_call_and_the_verbs ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9929909Z test lifecycle::tests::the_record_carries_the_loader_drive_and_nothing_else ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9936098Z test lifecycle::tests::the_ps_fields_are_the_ones_the_template_check_allows ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9945152Z test lifecycle::tests::the_rung_decision_names_its_family_or_its_refusal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9948109Z test lifecycle::tests::userland_env_anchors_paths_or_names_the_opt_out ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9949351Z test lifecycle::tests::userland_env_forces_the_guest_exe_only_beside_the_loader ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9963748Z test machine::ssh::tests::a_named_input_that_is_not_a_file_is_refused_never_replaced ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9966305Z test machine::ssh::tests::bad_sizes_and_timeouts_are_flag_errors ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9968115Z test machine::ssh::tests::an_empty_command_leaves_the_argv_at_the_hostname ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9969448Z test machine::ssh::tests::bytes_round_up_to_whole_mib_without_overflow ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9971206Z test machine::ssh::tests::bare_words_without_a_separator_are_the_command ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9973102Z test machine::ssh::tests::help_prints_and_exits_zero ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9975502Z test interpose::tests::resolve_finds_a_real_elf_along_path_dirs ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9976721Z test machine::ssh::tests::run_phase_refusals_say_different_things ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9978523Z test machine::ssh::tests::minimal_flags_carry_the_documented_defaults ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9983640Z test machine::ssh::tests::shell_quoting_survives_spaces_and_quotes ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9984575Z test machine::ssh::tests::missing_required_inputs_are_flag_errors ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9985476Z test machine::ssh::tests::the_accelerator_follows_the_node_openability ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9994378Z test machine::ssh::tests::the_parsed_arm_carries_everything ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9995193Z test machine::ssh::tests::the_dir_guard_removes_the_directory_on_drop ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9996651Z test machine::ssh::tests::the_kvm_pair_is_kvm_with_host_cpu ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:17.9997437Z test machine::ssh::tests::the_qemu_argv_carries_the_proved_machine_line ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0001913Z test machine::ssh::tests::the_serial_wait_accepts_a_bound_socket ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0004348Z test machine::ssh::tests::the_ssh_argv_is_batchmode_with_the_proxy_command ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0005528Z test machine::tests::an_unknown_member_is_a_runtime_error ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0011126Z test machine::tests::an_unlisted_flag_is_a_flag_error ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0011982Z test interpose::tests::an_absolute_link_resolves_under_the_rootfs ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0013192Z test machine::tests::bare_and_help_print_usage_and_exit_zero ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0014113Z test machine::tests::ssh_help_prints_its_usage_and_exits_zero ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0014973Z test machine::tests::ssh_without_its_guest_flags_is_a_flag_error ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0023584Z test machine::ssh::tests::the_serial_wait_fails_fast_where_the_emulator_died ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0028310Z test man::tests::group_help_paths_match_rows_of ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0031334Z test man::tests::no_unimplemented_verb_gets_a_reference_section ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0032284Z test man::tests::one_verb_renders_only_its_section ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0035697Z test man::tests::summary_is_the_first_sentence ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0036401Z test man::tests::aliases_render_no_reference_section ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0037130Z test man::tests::the_manual_names_its_sources ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0037864Z test man::tests::the_whole_manual_is_plain_ascii ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0038704Z test names::tests::every_alias_is_in_the_parity_table ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0039524Z test names::tests::install_names_usage_is_plain_ascii ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0048411Z test names::tests::the_alias_note_names_the_name_that_was_used ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0049785Z test parity::tests::a_flag_is_found_under_every_spelling_the_parser_accepts ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0050909Z test man::tests::every_implemented_verb_renders_a_section ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0052040Z test parity::tests::a_verb_served_by_another_parser_resolves_that_verbs_rows_and_says_so ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0054177Z test parity::tests::admit_all_refuses_before_any_arm_runs ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0055039Z test parity::tests::cluster_expands_docker_clusters ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0055908Z test parity::tests::every_cluster_value_has_a_table_row ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0056930Z test parity::tests::every_flag_row_names_a_verb_the_table_also_has_a_row_for ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0057991Z test parity::tests::every_parity_note_is_plain_ascii ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0058903Z test parity::tests::every_unimplemented_row_says_why ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0070675Z test parity::tests::every_refused_flag_row_refuses_its_first_spelling ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0074800Z test parity::tests::every_verb_refuses_an_unlisted_flag ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0082995Z test parity::tests::filter_parses_name_and_label_and_nothing_else ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0084358Z test parity::tests::group_subverbs_resolve_the_rows_their_flags_live_under ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0094804Z test parity::tests::issue_60_curated_surface_stays_covered ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0097383Z test parity::tests::no_verb_carries_the_same_flag_twice ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0098370Z test parity::tests::ssh_flag_rows_match_their_parsers_in_both_directions ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0103887Z test parity::tests::the_table_is_at_least_sixty_rows_and_uses_only_the_four_statuses ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0114185Z test remote::connect::tests::a_flag_without_its_value_and_an_unknown_flag_are_flag_errors ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0115571Z test remote::connect::tests::a_leading_separator_is_dropped_and_partial_sets_pass ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0120839Z test remote::connect::tests::every_listed_flag_has_an_arm ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0124431Z test names::tests::the_daemon_check_answers_one_of_three_states ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0126277Z test remote::connect::tests::flags_pass_through_verbatim_in_order ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0130496Z test remote::connect::tests::help_prints_and_exits_zero ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0131658Z test remote::forward::tests::a_later_help_word_belongs_to_the_target ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0135273Z test remote::connect::tests::values_are_never_validated_here ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0138062Z test remote::forward::tests::forward_refuses_where_no_proxy_resolves ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0140987Z test remote::forward::tests::help_as_the_first_word_prints_and_exits_zero ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0143131Z test remote::forward::tests::a_leading_separator_is_dropped_and_the_target_passes_through ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0144535Z test remote::forward::tests::no_target_is_a_flag_error ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0145805Z test remote::serve::tests::a_flag_without_its_value_and_an_unknown_flag_are_flag_errors ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0147630Z test remote::serve::tests::a_leading_separator_is_dropped_and_partial_sets_pass ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0148985Z test remote::serve::tests::every_listed_flag_has_an_arm ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0150029Z test remote::serve::tests::flags_pass_through_verbatim_in_order ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0151194Z test remote::serve::tests::help_prints_and_exits_zero ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0153009Z test remote::serve::tests::the_connect_side_flags_do_not_belong_here ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0155692Z test remote::serve::tests::values_with_spaces_pass_through_whole ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0164519Z test remote::tests::a_dash_word_after_ssh_is_a_flag_refusal_not_a_command ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0167403Z test remote::tests::a_signaled_child_maps_to_128_plus_the_signal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0168794Z test remote::tests::an_unknown_member_names_itself_and_is_a_runtime_error ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0170479Z test remote::tests::an_unlisted_flag_is_a_flag_error ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0173359Z test remote::tests::bare_and_help_print_usage_and_exit_zero ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0180015Z test remote::tests::resolution_prefers_the_sibling_then_path_then_the_refusal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0182873Z test run::tests::a_flag_needing_a_value_does_not_swallow_the_image ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0188445Z test parity::tests::the_json_carries_every_row_and_the_status_word ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0190590Z test run::tests::an_unknown_pull_mode_is_invalid_input_and_not_a_silent_default ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0194122Z test run::tests::both_spellings_of_every_valued_flag_reach_the_same_place ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0198303Z test run::tests::device_collects_in_both_spellings_and_refuses_shapes ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0205210Z test run::tests::env_file_loads_and_stubs_parse ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0232980Z test run::tests::every_flag_the_table_admits_is_handled_by_this_parser ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0237758Z test run::tests::every_usage_string_is_plain_ascii ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0240738Z test run::tests::log_driver_takes_json_file_and_nothing_else ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0242932Z test run::tests::no_image_is_a_cli_error ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0244392Z test run::tests::parsing_stops_at_the_image_name ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0248659Z test run::tests::push_guest_exe_sets_scrubs_and_skips ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0251017Z test run::tests::quiet_and_verbose_parse ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0253015Z test run::tests::strict_all_parses_and_anything_else_is_a_flag_error ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0254599Z test run::tests::the_mem_flag_parses_to_bytes_in_both_forms ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0256738Z test run::tests::the_tier_flag_takes_two_values_and_qemu_args_collect_whole ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0258062Z test run::tests::unsafe_host_paths_parses_and_defaults_off ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0473530Z test system::tests::abi_reports_unreadable_refused_and_arity ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0474999Z test system::tests::df_help_and_bad_flag_need_no_store ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0476273Z test system::tests::short_id_is_twelve_hex ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0477811Z test system::tests::system_usage_is_plain_ascii ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0524988Z test system::tests::the_acceptance_template_renders_the_whole_table ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0562333Z test system::tests::the_declared_fields_are_the_built_ones ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0598281Z test remote::tests::a_child_true_reports_zero_and_a_child_false_reports_its_code ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0605856Z test system::tests::the_entered_rung_is_namespace_where_selected ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0606742Z podbox: ssh: the verb is `podbox remote ssh`. The remote group has:
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0607616Z   podbox remote ssh        reach another machine over a relay
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0608307Z test tests::the_old_ssh_spelling_is_a_runtime_refusal ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0608993Z   podbox machine ssh       a shell in a guest podbox itself runs
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0610006Z   podbox local <verb>      act on THIS machine: planned, not a command yet (see docs/decisions/remote-verb.md)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0611343Z test tier::tests::an_explicit_machine_needs_no_note_under_either_name ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0612230Z test tier::tests::podvm_defaults_to_machine_and_podbox_to_the_ladder ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0613375Z test tier::tests::podvm_with_chroot_states_the_override_and_podbox_does_not ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0625484Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0636764Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0646999Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0668092Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0681920Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0688721Z test system::tests::the_entered_rung_is_userland_where_chroot_is_denied ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0690610Z test tier::tests::the_ceiling_comparison_refuses_only_over ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0692912Z test tier::tests::the_flag_spells_two_tiers_and_nothing_else ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0696258Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0697184Z test tier::tests::the_mem_spelling_takes_bytes_and_suffixes_and_nothing_else ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0705495Z test version::tests::info_matches_the_binary ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0706544Z test version::tests::unknown_is_stated_never_blank ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0707503Z test version::tests::verbose_names_every_recorded_input ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0708707Z test version::tests::version_documents_are_plain_ascii ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0710460Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0711583Z test windows::args::tests::a_flag_without_its_value_is_refused_rather_than_read_off_the_end ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0713890Z test windows::args::tests::a_sha256_that_is_not_a_digest_is_refused ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0715339Z test windows::args::tests::a_zero_memory_or_cpu_or_ceiling_or_timeout_is_refused ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0717988Z test windows::args::tests::help_prints_and_exits_zero ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0728167Z test windows::args::tests::no_subcommand_and_an_unknown_flag_are_flag_errors ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0729162Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0730285Z test windows::args::tests::the_command_is_everything_after_the_flags ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0736728Z test windows::args::tests::the_guest_flag_names_dos_or_windows_and_nothing_else ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0738019Z test windows::dos::tests::the_cmd_prefix_drops_and_an_empty_line_is_ver ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0740702Z test windows::plan::tests::a_bare_name_is_looked_up_on_path_and_a_path_is_checked_as_one ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0742908Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0743821Z test windows::plan::tests::an_absent_candidate_list_names_its_last_path ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0745377Z test windows::plan::tests::the_emulator_default_is_a_name_and_the_override_is_a_path ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0750126Z test windows::plan::tests::the_firmware_pair_is_two_paths_and_the_environment_wins ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0758291Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0759048Z test windows::setup::tests::a_hung_origin_fails_on_the_read_timeout ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0766456Z test windows::setup::tests::the_provisioned_image_is_beside_the_vendor_one_and_named_for_it ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0769889Z test windows::tests::a_flag_no_subcommand_reads_is_refused_naming_the_flag ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0772222Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0775785Z test windows::tests::a_named_image_that_is_missing_is_refused_and_never_replaced_by_the_cache ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0777352Z test windows::tests::a_non_amd64_arch_is_refused_naming_the_arch ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0779621Z test windows::tests::a_registry_token_is_not_a_disk_and_a_disk_shape_is ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0782000Z test windows::tests::a_timeout_names_seconds_or_falls_back_to_the_default ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0784965Z test windows::tests::only_a_foreground_machine_tier_windows_run_reaches_the_driver ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0787084Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0796627Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0807340Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0817902Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0827575Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0837331Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0846974Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0856506Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0866108Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0875518Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0884828Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0894173Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0903564Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0912812Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0921766Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0931503Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0940967Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0950245Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0959650Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0970224Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0980104Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0989939Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.0999298Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1000486Z test run::tests::a_foreground_record_lands_exited_with_logs ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1009221Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1018635Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1028281Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1037649Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1047155Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1056465Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1065712Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1075065Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1084213Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1093318Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1102328Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1111431Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1120599Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1130190Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1139440Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1149208Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1158466Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1167820Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1177107Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1186708Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1196009Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1205530Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1214720Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1223930Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1233051Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	workspace tests	2026-10-01T16:36:18.1242104Z test tier::tests::refusing_a_tier_is_a_runtime_error_on_any_machine ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.0008317Z test machine::ssh::tests::the_serial_wait_deadline_is_a_runtime_error ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.0009002Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.0009487Z test result: ok. 249 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.05s
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.0010202Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.0018509Z      Running tests/curated_refusals.rs (target/x86_64-unknown-linux-musl/debug/deps/curated_refusals-0ece6a2c4f0da9cf)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.0025526Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.0025682Z running 6 tests
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.0537106Z test create_inherits_run_refusals ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.1554918Z test device_shape_refusals_name_the_shape ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.2574995Z test env_file_refusals_name_the_file ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:19.3596078Z test log_driver_refuses_anything_but_json_file ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:21.3880694Z test refused_run_flags_exit_125_naming_status_none ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:21.8956624Z test unimplemented_verbs_exit_125_with_their_note ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:36:21.8957270Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:21.8957784Z test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.89s
+workspace and interposer tests	workspace tests	2026-10-01T16:36:21.8958538Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:21.8959266Z      Running tests/detached_stdio.rs (target/x86_64-unknown-linux-musl/debug/deps/detached_stdio-b0664526df9a3706)
+workspace and interposer tests	workspace tests	2026-10-01T16:36:21.8966380Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:36:21.8966718Z running 3 tests
+workspace and interposer tests	workspace tests	2026-10-01T16:36:21.9481737Z test detached_run_without_an_image_is_a_cli_error ... ok
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0947735Z test detached_start_returns_before_the_payload_ends ... FAILED
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0948985Z test run_help_names_the_detach_flag ... FAILED
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0949434Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0949579Z failures:
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0949769Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0950163Z ---- detached_start_returns_before_the_payload_ends stdout ----
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0950924Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0951803Z thread 'detached_start_returns_before_the_payload_ends' (5333) panicked at crates/podbox-cli/tests/detached_stdio.rs:292:5:
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0953530Z assertion `left == right` failed: only 1 of 3 detached starts ran
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0954310Z   left: 1
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0954720Z  right: 3
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0955262Z note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0955709Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0955882Z ---- run_help_names_the_detach_flag stdout ----
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0956470Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0956934Z thread 'run_help_names_the_detach_flag' (5334) panicked at crates/podbox-cli/tests/detached_stdio.rs:138:32:
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0957786Z called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0958157Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0958162Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0958268Z failures:
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0958583Z     detached_start_returns_before_the_payload_ends
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0959021Z     run_help_names_the_detach_flag
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0959264Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0959642Z test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 48.20s
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0960166Z 
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.0960454Z error: test failed, to rerun pass `-p podbox-cli --test detached_stdio`
+workspace and interposer tests	workspace tests	2026-10-01T16:37:10.1012342Z ##[error]Process completed with exit code 101.

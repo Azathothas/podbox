@@ -1,0 +1,30 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11413 entries, 333.4 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/ebeb8a82ecc16da6/work
+  workspace: 410 files carry the executable bit from the git index, and 304 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 410 executable file(s) in the index, all already executable.
+== the job
+== baseline dynamic entries
+000000000001447e T gettid
+   105: 000000000001447e    13 FUNC    GLOBAL DEFAULT   15 gettid
+== localize-symbol again, verbose stat
+-rwxr-xr-x 1 root root 308248 Sep 21 12:39 /tmp/p.so
+-rwxr-xr-x 1 root root 308248 Sep 21 12:39 /tmp/p1.so
+000000000001447e T gettid
+== try keep-global inverted: globalize then check --help
+     --localize-hidden             Turn all ELF hidden symbols into locals
+  -L --localize-symbol <name>      Force symbol <name> to be marked as a local
+     --globalize-symbol <name>     Force symbol <name> to be marked as a global
+  -G --keep-global-symbol <name>   Localize all symbols except <name>
+     --localize-symbols <file>     -L for all symbols listed in <file>
+     --globalize-symbols <file>    --globalize-symbol for all in <file>
+JOB_DONE
+== rc=0
+  the stopped container and its job directory are kept: wtk-ebeb8a82ecc16da6
+  container wtk-ebeb8a82ecc16da6 is kept with its job directory. Remove it with: wsl-toolkit gc --job ebeb8a82ecc16da6 --apply
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 34.522s
+  the complete output is kept: wsl-toolkit logs ebeb8a82ecc16da6

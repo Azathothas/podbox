@@ -1,0 +1,13 @@
+   Compiling podbox-cli v0.1.0-beta.12 (/work/crates/podbox-cli)
+warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.12: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.48s
+     Running tests/detached_stdio.rs (target/x86_64-unknown-linux-musl/debug/deps/detached_stdio-ce124c5ffad9e00b)
+
+running 3 tests
+test run_help_names_the_detach_flag ... ok
+test detached_start_returns_before_the_payload_ends ... ok
+test detached_run_without_an_image_is_a_cli_error ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 48.01s
+

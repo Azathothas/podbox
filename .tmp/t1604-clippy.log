@@ -1,0 +1,64 @@
+   Compiling ring v0.17.14
+    Checking podbox-enter v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-enter)
+    Checking podbox-windows v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-windows)
+   Compiling podbox-cli v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-cli)
+warning: ring@0.17.14: Compiler family detection failed due to error: ToolExecError: command `"C:\\Users\\AjamX\\Downloads\\podbox\\scripts/zig-cc.sh" "-E" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\build\\ring-f4e402cd1332d501\\out\\15948678515760397207detect_compiler_family.c"` failed to start: %1 is not a valid Win32 application. (os error 193)
+warning: ring@0.17.14: Compiler family detection failed due to error: ToolExecError: command `"C:\\Users\\AjamX\\Downloads\\podbox\\scripts/zig-cc.sh" "-E" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\build\\ring-f4e402cd1332d501\\out\\4224647261286465063detect_compiler_family.c"` failed to start: %1 is not a valid Win32 application. (os error 193)
+warning: ring@0.17.14: Compiler family detection failed due to error: ToolExecError: command `"C:\\Users\\AjamX\\Downloads\\podbox\\scripts/zig-cc.sh" "-E" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\build\\ring-f4e402cd1332d501\\out\\16901366189414917117detect_compiler_family.c"` failed to start: %1 is not a valid Win32 application. (os error 193)
+warning: ring@0.17.14: Compiler family detection failed due to error: ToolExecError: command `"C:\\Users\\AjamX\\Downloads\\podbox\\scripts/zig-cc.sh" "-E" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\build\\ring-f4e402cd1332d501\\out\\645119139359992213detect_compiler_family.c"` failed to start: %1 is not a valid Win32 application. (os error 193)
+error: failed to run custom build command for `ring v0.17.14`
+
+Caused by:
+  process didn't exit successfully: `C:\Users\AjamX\Downloads\podbox\target\debug\build\ring-130aac07261174ea\build-script-build` (exit code: 1)
+  --- stdout
+  cargo:rerun-if-env-changed=CARGO_MANIFEST_DIR
+  cargo:rerun-if-env-changed=CARGO_PKG_NAME
+  cargo:rerun-if-env-changed=CARGO_PKG_VERSION_MAJOR
+  cargo:rerun-if-env-changed=CARGO_PKG_VERSION_MINOR
+  cargo:rerun-if-env-changed=CARGO_PKG_VERSION_PATCH
+  cargo:rerun-if-env-changed=CARGO_PKG_VERSION_PRE
+  cargo:rerun-if-env-changed=CARGO_MANIFEST_LINKS
+  cargo:rerun-if-env-changed=RING_PREGENERATE_ASM
+  cargo:rerun-if-env-changed=OUT_DIR
+  cargo:rerun-if-env-changed=CARGO_CFG_TARGET_ARCH
+  cargo:rerun-if-env-changed=CARGO_CFG_TARGET_OS
+  cargo:rerun-if-env-changed=CARGO_CFG_TARGET_ENV
+  cargo:rerun-if-env-changed=CARGO_CFG_TARGET_ENDIAN
+  cargo:rerun-if-env-changed=CC_x86_64-unknown-linux-musl
+  CC_x86_64-unknown-linux-musl = None
+  cargo:rerun-if-env-changed=CC_x86_64_unknown_linux_musl
+  CC_x86_64_unknown_linux_musl = Some(C:\Users\AjamX\Downloads\podbox\scripts/zig-cc.sh)
+  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+  cargo:warning=Compiler family detection failed due to error: ToolExecError: command `"C:\\Users\\AjamX\\Downloads\\podbox\\scripts/zig-cc.sh" "-E" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\build\\ring-f4e402cd1332d501\\out\\15948678515760397207detect_compiler_family.c"` failed to start: %1 is not a valid Win32 application. (os error 193)
+  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+  CRATE_CC_NO_DEFAULTS = None
+  cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+  cargo:warning=Compiler family detection failed due to error: ToolExecError: command `"C:\\Users\\AjamX\\Downloads\\podbox\\scripts/zig-cc.sh" "-E" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\build\\ring-f4e402cd1332d501\\out\\4224647261286465063detect_compiler_family.c"` failed to start: %1 is not a valid Win32 application. (os error 193)
+  cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+  CRATE_CC_NO_DEFAULTS = None
+  cargo:rerun-if-env-changed=CFLAGS
+  CFLAGS = None
+  cargo:rerun-if-env-changed=TARGET_CFLAGS
+  TARGET_CFLAGS = None
+  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_musl
+  CFLAGS_x86_64_unknown_linux_musl = None
+  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-musl
+  CFLAGS_x86_64-unknown-linux-musl = None
+  cargo:rerun-if-env-changed=CFLAGS
+  CFLAGS = None
+  cargo:rerun-if-env-changed=TARGET_CFLAGS
+  TARGET_CFLAGS = None
+  cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_musl
+  CFLAGS_x86_64_unknown_linux_musl = None
+  cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-musl
+  CFLAGS_x86_64-unknown-linux-musl = None
+  cargo:warning=Compiler family detection failed due to error: ToolExecError: command `"C:\\Users\\AjamX\\Downloads\\podbox\\scripts/zig-cc.sh" "-E" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\build\\ring-f4e402cd1332d501\\out\\16901366189414917117detect_compiler_family.c"` failed to start: %1 is not a valid Win32 application. (os error 193)
+  cargo:warning=Compiler family detection failed due to error: ToolExecError: command `"C:\\Users\\AjamX\\Downloads\\podbox\\scripts/zig-cc.sh" "-E" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\build\\ring-f4e402cd1332d501\\out\\645119139359992213detect_compiler_family.c"` failed to start: %1 is not a valid Win32 application. (os error 193)
+
+  --- stderr
+
+
+  error occurred in cc-rs: command `"C:\\Users\\AjamX\\Downloads\\podbox\\scripts/zig-cc.sh" "-O0" "-ffunction-sections" "-fdata-sections" "-fPIC" "-g" "-gdwarf-4" "-fno-omit-frame-pointer" "-m64" "--target=x86_64-unknown-linux-musl" "-I" "C:\\Users\\AjamX\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\ring-0.17.14\\include" "-I" "C:\\Users\\AjamX\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\ring-0.17.14\\pregenerated" "-Wall" "-Wextra" "-fvisibility=hidden" "-std=c1x" "-Wall" "-Wbad-function-cast" "-Wcast-align" "-Wcast-qual" "-Wconversion" "-Wmissing-field-initializers" "-Wmissing-include-dirs" "-Wnested-externs" "-Wredundant-decls" "-Wshadow" "-Wsign-compare" "-Wsign-conversion" "-Wstrict-prototypes" "-Wundef" "-Wuninitialized" "-g3" "-DNDEBUG" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\build\\ring-f4e402cd1332d501\\out\\73090ba2100ad232-curve25519.o" "-c" "C:\\Users\\AjamX\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\ring-0.17.14\\crypto/curve25519/curve25519.c"` failed to start: %1 is not a valid Win32 application. (os error 193)
+
+
+warning: build failed, waiting for other jobs to finish...

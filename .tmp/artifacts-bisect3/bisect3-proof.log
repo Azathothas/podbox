@@ -1,0 +1,17 @@
+    Updating crates.io index
+   Compiling podbox-buildstate v0.1.0-beta.12 (/work/crates/podbox-buildstate)
+    Finished `release` profile [optimized] target(s) in 6.90s
+== empty file set under scratch/crates
+/tmp/tmp.M6mHT2405g/crates
+/tmp/tmp.M6mHT2405g/crates/a
+/tmp/tmp.M6mHT2405g/node
+/tmp/tmp.M6mHT2405g/operator
+/tmp/tmp.M6mHT2405g/podbox
+/tmp/tmp.M6mHT2405g/proxy
+/tmp/tmp.M6mHT2405g/shell
+  binary inputs: [e617f9d50ed65f3b878c1c02dd9f0dd166832d1c9efca1c0f5fd804b6e31ab70]
+  script inputs: [628234c2c0a643f02463558f593b6d4e460426043b7694865816bcce890f8835]
+  hand empty-set: [628234c2c0a643f02463558f593b6d4e460426043b7694865816bcce890f8835]
+  FAIL: inputs differ on the empty set
+
+verdict BISECT3-FAIL

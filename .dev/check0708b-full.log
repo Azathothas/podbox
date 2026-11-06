@@ -1,0 +1,231 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 417 executable file(s) in the index, all already executable.
+== the job
+== disk, before anything is written
+  873119 MB and 65214442 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 2 installed, 0 failed
+everything requested is present.
+== cargo fmt --all -- --check
+== cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check
+Diff in /work/crates/podbox-interpose/src/lib.rs:1480:
+         return -1;
+     }
+     // Mount flags fit 32 bits (every `MS_*` is one), so the cast keeps them.
+-    if unsafe {
+-        crate::emulate::tally_mount(flags as u32, s as *const u8, sn, t as *const u8, tn)
+-    } {
++    if unsafe { crate::emulate::tally_mount(flags as u32, s as *const u8, sn, t as *const u8, tn) }
++    {
+         return 0;
+     }
+     let Some(f) = next_mount() else {
+Diff in /work/crates/podbox-interpose/src/lib.rs:1561:
+     if (flags as u32) & crate::emulate::CLONE_NEWNET != 0 {
+         say_newnet(b"clone", flags as u32);
+     }
+-    if crate::emulate::tally(
+-        crate::emulate::OP_CLONE,
+-        flags as u32,
+-        stripped as u32,
+-        0,
+-    ) {
++    if crate::emulate::tally(crate::emulate::OP_CLONE, flags as u32, stripped as u32, 0) {
+         return unsafe { f(func, stack, stripped, arg, ptid, tls, ctid) };
+     }
+     // The tally did not land: the caller's own flags go through, so
+   FAILED: cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check
+== cargo clippy --workspace --all-targets -- -D warnings
+== RUSTFLAGS='-C target-feature=-crt-static' cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
+== ./scripts/build-interpose.sh
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+-rwxr-xr-x 2 root root 337496 Sep 22 02:43 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+-rwxr-xr-x 2 root root 317608 Sep 22 02:43 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+== cargo build --release --target x86_64-unknown-linux-musl
+== cargo test --workspace
+
+running 84 tests
+test complete::tests::strict_refuses_a_run_whose_only_difference_is_a_step ... ok
+test complete::tests::strict_passes_a_run_with_no_degradation ... ok
+test diagnose::tests::every_row_carries_all_four_parts ... ok
+test complete::tests::without_strict_nothing_is_refused ... ok
+test diagnose::tests::no_example_means_no_note ... ok
+test diagnose::tests::both_dropped_ids_still_read_beside_the_example ... ok
+test complete::tests::strict_names_every_reason_at_once ... ok
+test diagnose::tests::an_unreadable_map_reports_itself_as_unreadable ... ok
+test diagnose::tests::the_note_names_the_entry_the_errno_the_map_and_the_remedy ... ok
+test exec::tests::a_flag_needing_a_value_does_not_swallow_the_image ... ok
+test exec::tests::parsing_stops_at_the_image_name ... ok
+test exec::tests::the_banner_says_what_inspect_reports ... ok
+test exec::tests::the_mem_flag_parses_to_bytes_in_both_forms ... ok
+test exec::tests::the_tier_flag_takes_two_values_and_qemu_args_collect_whole ... ok
+test format::tests::a_template_feature_podbox_does_not_have_is_refused_rather_than_guessed ... ok
+test exec::tests::every_flag_the_table_admits_is_handled_by_this_parser ... ok
+test format::tests::the_acceptance_template_renders_the_digest_and_nothing_else ... ok
+test format::tests::a_dotted_name_is_one_name_and_an_unregistered_one_is_still_refused ... ok
+test format::tests::an_unknown_field_is_refused_and_lists_the_known_ones ... ok
+test complete::tests::the_banner_is_never_quiet_by_default ... ok
+test format::tests::the_escapes_docker_expands_are_expanded ... ok
+test exec::tests::exec_has_no_default_command ... ok
+test format::tests::the_one_function_podbox_answers_is_json ... ok
+test format::tests::whitespace_inside_the_braces_is_the_go_spelling_and_is_accepted ... ok
+test format::tests::literal_text_and_several_fields_survive_together ... ok
+test images::tests::a_template_naming_a_field_no_verb_has_is_refused_without_any_record ... ok
+test images::tests::the_table_pads_every_column_to_its_widest_cell ... ok
+test interpose::tests::a_binary_without_objects_declines_naming_the_libc ... ok
+test interpose::tests::a_caller_preload_survives_behind_podboxs ... ok
+test interpose::tests::a_reachable_payload_without_a_memo_is_refused_not_declined ... ok
+test interpose::tests::a_missing_payload_is_declined ... ok
+test images::tests::an_image_with_no_creation_timestamp_prints_a_dash_and_not_a_guess ... ok
+test interpose::tests::a_static_payload_is_declined_by_name ... ok
+test interpose::tests::another_architecture_is_declined ... ok
+test interpose::tests::an_unparsable_object_is_refused_as_unparsable ... ok
+test interpose::tests::an_unknown_interpreter_is_declined ... ok
+test interpose::tests::go_markers_outrank_a_present_interpreter ... ok
+test interpose::tests::the_memo_descriptor_parses_as_decimal_or_not_at_all ... ok
+test interpose::tests::the_two_embedded_objects_are_not_the_same_bytes ... ok
+test lifecycle::tests::a_container_path_is_split_from_a_plain_one ... ok
+test interpose::tests::the_carried_line_names_the_state_it_is_in ... ok
+test lifecycle::tests::a_signal_is_taken_by_name_or_number_and_never_defaulted ... ok
+test interpose::tests::the_decline_line_carries_the_channel ... ok
+test names::tests::every_alias_is_in_the_parity_table ... ok
+test names::tests::the_alias_note_names_the_name_that_was_used ... ok
+test lifecycle::tests::the_ps_fields_are_the_ones_the_template_check_allows ... ok
+test names::tests::the_daemon_check_answers_one_of_three_states ... ok
+test parity::tests::a_flag_is_found_under_every_spelling_the_parser_accepts ... ok
+test parity::tests::a_verb_served_by_another_parser_resolves_that_verbs_rows_and_says_so ... ok
+test parity::tests::admit_all_refuses_before_any_arm_runs ... ok
+test parity::tests::every_flag_row_names_a_verb_the_table_also_has_a_row_for ... ok
+test parity::tests::every_unimplemented_row_says_why ... ok
+test parity::tests::group_subverbs_resolve_the_rows_their_flags_live_under ... ok
+test parity::tests::the_table_is_at_least_sixty_rows_and_uses_only_the_four_statuses ... ok
+test parity::tests::no_verb_carries_the_same_flag_twice ... ok
+test run::tests::an_unknown_pull_mode_is_invalid_input_and_not_a_silent_default ... ok
+test run::tests::a_flag_needing_a_value_does_not_swallow_the_image ... ok
+test run::tests::no_image_is_a_cli_error ... ok
+test run::tests::parsing_stops_at_the_image_name ... ok
+test run::tests::both_spellings_of_every_valued_flag_reach_the_same_place ... ok
+test run::tests::the_mem_flag_parses_to_bytes_in_both_forms ... ok
+test run::tests::the_tier_flag_takes_two_values_and_qemu_args_collect_whole ... ok
+test tier::tests::podvm_defaults_to_machine_and_podbox_to_the_ladder ... ok
+test tier::tests::podvm_with_chroot_states_the_override_and_podbox_does_not ... ok
+test tier::tests::an_explicit_machine_needs_no_note_under_either_name ... ok
+test tier::tests::the_flag_spells_two_tiers_and_nothing_else ... ok
+test tier::tests::the_ceiling_comparison_refuses_only_over ... ok
+test tier::tests::the_mem_spelling_takes_bytes_and_suffixes_and_nothing_else ... ok
+test interpose::tests::each_embedded_object_names_its_own_libc ... ok
+test run::tests::every_flag_the_table_admits_is_handled_by_this_parser ... ok
+test interpose::tests::a_link_loop_is_refused ... ok
+test lifecycle::tests::the_declared_container_fields_are_the_built_ones ... FAILED
+test interpose::tests::a_script_is_declined_with_the_readers_reason ... ok
+test interpose::tests::a_payload_escaping_the_image_is_refused ... ok
+test lifecycle::tests::a_bare_user_name_takes_its_primary_group_from_the_image ... ok
+test interpose::tests::placement_writes_the_object_where_the_payload_sees_it ... ok
+test images::tests::the_field_names_are_the_names_the_builder_produces ... ok
+test system::tests::the_declared_fields_are_the_built_ones ... ok
+test system::tests::the_entered_rung_is_the_sequence_and_not_the_selection ... ok
+test system::tests::the_acceptance_template_renders_the_whole_table ... ok
+test parity::tests::the_json_carries_every_row_and_the_status_word ... ok
+test interpose::tests::an_absolute_link_resolves_under_the_rootfs ... ok
+test interpose::tests::resolve_finds_a_real_elf_along_path_dirs ... ok
+test tier::tests::refusing_a_tier_is_a_runtime_error_on_any_machine ... ok
+
+failures:
+
+---- lifecycle::tests::the_declared_container_fields_are_the_built_ones stdout ----
+
+thread 'lifecycle::tests::the_declared_container_fields_are_the_built_ones' (7449) panicked at crates/podbox-cli/src/lifecycle.rs:1065:9:
+assertion `left == right` failed
+  left: ["Id", "Name", "Image", "State", "Status", "Pid", "LauncherPid", "ExitCode", "Created", "StartedAt", "FinishedAt", "RootfsPath", "LogPath", "Rung", "Complete.Fixups", "Complete.Degraded", "Command", "Exec.Mode", "Exec.Shares", "Contains", "Noticed", "Interpose.Emulated.mknod", "Interpose.Emulated.mount", "Interpose.Emulated.unshare", "Interpose.Emulated.clone"]
+ right: ["Id", "Name", "Image", "State", "Status", "Pid", "LauncherPid", "ExitCode", "Created", "StartedAt", "FinishedAt", "RootfsPath", "LogPath", "Rung", "Complete.Fixups", "Complete.Degraded", "Command", "Exec.Mode", "Exec.Shares", "Contains", "Noticed"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    lifecycle::tests::the_declared_container_fields_are_the_built_ones
+
+test result: FAILED. 83 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+   FAILED: cargo test --workspace
+== RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu
+
+running 25 tests
+test emulate::tests::chains_slice_without_copying_and_pad_only_the_tail ... ok
+test emulate::tests::stripping_keeps_everything_but_namespaces ... ok
+test emulate::tests::chunk_math_rounds_up_and_empties_take_none ... ok
+test emulate::tests::the_strip_set_is_the_eight_namespace_flags ... ok
+test identity::tests::anything_else_is_not_an_identity ... ok
+test emulate::tests::the_header_is_a_fixed_32_byte_record ... ok
+test identity::tests::uid_alone_means_its_own_group ... ok
+test identity::tests::uid_and_gid_parse ... ok
+test map::tests::absolutize_copies_absolute_paths_and_joins_the_cwd ... ok
+test map::tests::an_absent_variable_is_an_empty_table ... ok
+test map::tests::machinery_paths_never_rewrite ... ok
+test map::tests::builtins_hold_without_any_user_list ... ok
+test map::tests::malformed_pairs_are_skipped_not_fatal ... ok
+test map::tests::pairs_parse_and_match_at_a_boundary ... ok
+test map::tests::results_naming_machinery_stay_real ... ok
+test map::tests::the_longest_prefix_wins_whatever_the_order ... ok
+test map::tests::the_memo_directory_is_never_rewritten ... ok
+test map::tests::unrewrite_maps_real_prefixes_back_to_virtual ... ok
+test map::tests::unrewrite_never_maps_the_memo_directory ... ok
+test map::tests::user_exclusions_add_prefixes_at_a_boundary ... ok
+test memo::tests::a_decimal_fd_parses_and_anything_else_does_not ... ok
+test memo::tests::the_record_is_32_bytes_with_dev_ino_uid_gid_set ... ok
+test tests::versioned_lookup_falls_back_to_dlsym ... ok
+test tests::fchmodat_forwards_flags ... ok
+test tests::realpath_null_resolved_matches_libc ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+== ./scripts/check-todo.py
+check-todo: 141 rows, 141 entries, 17 open, 3 partial, 2 blocked, 119 done
+check-todo: coverage bare_citations=1445 ci_components=3 closure_records=119 corpus=41 counts=5 crossrefs=620 entries=141 exit_codes=5 experiment_numbers=528 fields=1410 prove_registry=141 rows=141 size_ceiling=249 todo_citations=132 todo_links=618 tree_citations=64 tree_links=342
+check-todo: ok
+== ./scripts/common/check-gate.sh --fast
+
+  ✅ ok    check-docs
+  ✅ ok    check-markers
+  ✅ ok    check-one-home
+  ✅ ok    check-placeholders
+  ✅ ok    check-control-bytes
+  ✅ ok    check-changelog
+  ✅ ok    check-attribution
+  ✅ ok    check-no-secrets
+  ✅ ok    check-no-secrets --public
+  SKIP  check-remote-items  (check-remote-items: gh not found)
+  SKIP  check-twins  (--fast)
+  note  pwsh absent; the PowerShell halves were not exercised
+
+11 checks: 9 passed, 0 failed, 2 skipped
+⚠ A SKIP IS NOT A PASS. Those checks did not run and nothing about
+their subject was verified. Pass --strict to make a skip a failure.
+✅ nothing failed.
+⚠ That is part (a) of the gate only. Driving the real thing and the
+deep reviews are the other two, and each is blind to what this catches.
+docs/methodology/gate.md.
+== rc=1

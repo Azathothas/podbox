@@ -1,0 +1,52 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11415 entries, 333.4 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/82fcf7434e845d44/work
+  workspace: 410 files carry the executable bit from the git index, and 304 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 410 executable file(s) in the index, all already executable.
+== the job
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 2.22s-rwxr-xr-x 2 root root 308256 Sep 21 13:19 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 libdl.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+nix-2.2.2-x86_64-linux/store/7gx4kiv5m0i7d7qkixq2cwzbr10lvxwc-glibc-2.27/lib/ld-linux-x86-64.so.2
+nix-2.2.2-x86_64-linux/store/7gx4kiv5m0i7d7qkixq2cwzbr10lvxwc-glibc-2.27/lib/libc.so.6
+glibc dir: /tmp/nixfull/nix-2.2.2-x86_64-linux/store/7gx4kiv5m0i7d7qkixq2cwzbr10lvxwc-glibc-2.27/lib
+Mcrt1.o
+Scrt1.o
+audit
+crt1.o
+crti.o
+crtn.o
+gconv
+gcrt1.o
+ld-2.27.so
+ld-linux-x86-64.so.2
+
+/tmp/probe.c: In function 'main':
+/tmp/probe.c:2:30: warning: implicit declaration of function 'syscall' [-Wimplicit-function-declaration]
+    2 | int main(void){ return (int)(syscall(186) > 0 ? 0 : 1); }
+      |                              ^~~~~~~== versions the probe needs (host-built, modern)
+GLIBC_2.2.5
+GLIBC_2.34
+== load OUR object under glibc 2.27
+probe_rc=1
+== control without preload
+
+/tmp/probe: /tmp/nixfull/nix-2.2.2-x86_64-linux/store/7gx4kiv5m0i7d7qkixq2cwzbr10lvxwc-glibc-2.27/lib/libc.so.6: version `GLIBC_2.34' not found (required by /tmp/probe)control_rc=1
+JOB_DONE
+
+/tmp/probe: /tmp/nixfull/nix-2.2.2-x86_64-linux/store/7gx4kiv5m0i7d7qkixq2cwzbr10lvxwc-glibc-2.27/lib/libc.so.6: version `GLIBC_2.34' not found (required by /tmp/probe)== rc=0
+
+  the stopped container and its job directory are kept: wtk-82fcf7434e845d44
+  container wtk-82fcf7434e845d44 is kept with its job directory. Remove it with: wsl-toolkit gc --job 82fcf7434e845d44 --apply
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 30.297s
+  the complete output is kept: wsl-toolkit logs 82fcf7434e845d44

@@ -1,0 +1,17 @@
+== pull
+3.20: Pulling from docker/library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for public.ecr.aws/docker/library/alpine:3.20
+podbox: probed this machine rather than using the cache: /tmp/pbstore/probe.json does not exist yet
+pull rc=0
+== extract
+25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+podbox: 1 layers, 517 entries, 0 removed by whiteouts, 7.7 MiB uncompressed
+podbox: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /tmp/pbstore/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+podbox: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1; 1 100000 65536)
+  extract without ownership and record the intended ids; intended metadata recorded in /tmp/pbstore/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+/tmp/pbstore/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs
+extract rc=0

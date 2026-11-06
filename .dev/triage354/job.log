@@ -1,0 +1,125 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 12438 entries, 966.3 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/6bcf95c0720ab6eb/work
+  workspace: 431 files carry the executable bit from the git index, and 347 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 431 executable file(s) in the index, all already executable.
+== the job
+== bootstrap the lane toolchain
+== build the debug binary
+step pull exit 127
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podboxstep run-rm exit 127
+
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podboxstep create exit 127
+step start exit 127
+step exec exit 127
+step ps exit 127
+step logs exit 127
+step stop exit 127
+step wait-stopped exit 127
+step rm exit 127
+step ps-empty exit 127
+== conditions
+date              2026-09-25T11:22:57Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+image input       public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+bootstrap         ok
+build             ok
+
+== pull
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox pull public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step pull: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+== run-rm
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox run --rm public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo same-store-hi
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step run-rm: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+== create
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox create --name lc354 public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sleep 60
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step create: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+== start
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox start lc354
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step start: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+== exec
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox exec lc354 echo exec-hi
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step exec: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+== ps
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox ps
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step ps: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+== logs
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox logs lc354
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step logs: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+== stop
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox stop lc354
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step stop: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+== wait-stopped
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox wait lc354
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step wait-stopped: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+== rm
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox rm lc354
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step rm: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+== ps-empty
+command           0 /work/target/x86_64-unknown-linux-musl/debug/podbox ps -a
+exit              127
+output:
+  timeout: failed to run command '0': No such file or directory
+step ps-empty: wanted exit /work/target/x86_64-unknown-linux-musl/debug/podbox, got 127
+
+verdict           LOOP FAILED
+== rc=1
+
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podbox
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podbox
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podbox
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podbox
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podbox
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podbox
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podbox
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podbox
+/work/.podbox-job.sh: 73: [: Illegal number: /work/target/x86_64-unknown-linux-musl/debug/podbox
+exit 1 is the payload's own, passed through unchanged
+  the stopped container and its job directory are kept: wtk-6bcf95c0720ab6eb
+  container wtk-6bcf95c0720ab6eb is kept with its job directory. Remove it with: wsl-toolkit gc --job 6bcf95c0720ab6eb --apply
+  docker.io/library/rust:1.98.1-bookworm exited 1 in 1m34.038s
+  the complete output is kept: wsl-toolkit logs 6bcf95c0720ab6eb

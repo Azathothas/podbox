@@ -1,0 +1,27 @@
+    Updating crates.io index
+   Compiling podbox-buildstate v0.1.0-beta.12 (/work/crates/podbox-buildstate)
+    Finished `release` profile [optimized] target(s) in 5.91s
+== ground truth: every entry under the scratch root
+/tmp/tmp.rgey9yQKhs/crates
+/tmp/tmp.rgey9yQKhs/crates/a
+/tmp/tmp.rgey9yQKhs/crates/a/f.rs
+/tmp/tmp.rgey9yQKhs/node
+/tmp/tmp.rgey9yQKhs/operator
+/tmp/tmp.rgey9yQKhs/podbox
+/tmp/tmp.rgey9yQKhs/proxy
+/tmp/tmp.rgey9yQKhs/shell
+== hidden entries, if any
+== symlinks, if any
+
+== script side values+conditions as JSON
+VALUES {"crates/a/f.rs": "4f3c4b86106a55dff43a3a9f5e1bc1154787bdda9f7514fe1f285de41a6cf180"}
+CONDS {"AR": "", "CARGO_ENCODED_RUSTFLAGS": "", "CC": "", "RUSTFLAGS": "", "TARGETS": "", "build_commit": "script-placeholder", "target": "t"}
+
+== reimplemented binary walk+render over hashlib
+VALUES {"crates/a/f.rs": "4f3c4b86106a55dff43a3a9f5e1bc1154787bdda9f7514fe1f285de41a6cf180"}
+
+== the two digests again
+  binary inputs: [ad4ee374579d08076f43bbef3241c46f63dfae25078d380e87ad88d3ab92ac60]
+  script inputs: [d23b023c11e48590f53f58cb0a9c30ada00c8cc41439a5f882d21c79a75b4526]
+
+verdict BISECT2-OK

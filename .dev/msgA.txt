@@ -1,0 +1,10 @@
+gate: close T-1213, its clearing conditions hold (T-1213)
+
+2026-09-23T01:52:07Z - T-1213
+
+Native base lane: unconfined podbox selects namespace, and 130
+--refresh re-captured attribute.txt on the same machine, after which
+130 exits 0 with 16 matched and 0 differed. 10 stands on its recorded
+host-podman build (image 9ed4f5c81452, loaded byte-identical); 20
+exits 0 natively. attribute.txt, census.txt and probe-parity.txt
+committed with the entry record and the counts.

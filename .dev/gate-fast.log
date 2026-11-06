@@ -1,0 +1,20 @@
+
+  ✅ ok    check-docs
+  ✅ ok    check-markers
+  ✅ ok    check-one-home
+  ✅ ok    check-placeholders
+  ✅ ok    check-control-bytes
+  ✅ ok    check-changelog
+  ✅ ok    check-attribution
+  ✅ ok    check-no-secrets
+  ✅ ok    check-no-secrets --public
+  ✅ ok    check-remote-items
+  SKIP  check-twins  (--fast)
+
+11 checks: 10 passed, 0 failed, 1 skipped
+⚠ A SKIP IS NOT A PASS. Those checks did not run and nothing about
+their subject was verified. Pass --strict to make a skip a failure.
+✅ nothing failed.
+⚠ That is part (a) of the gate only. Driving the real thing and the
+deep reviews are the other two, and each is blind to what this catches.
+docs/methodology/gate.md.

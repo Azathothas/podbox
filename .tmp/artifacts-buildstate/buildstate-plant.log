@@ -1,0 +1,26 @@
+== plant transcript: podbox-buildstate refuses planted defects
+date 2026-10-01T15:13:05Z
+-- record then status: ready
+ready
+rc=0 (want 0 ready)
+-- planted: output byte flipped
+stale: binary bytes changed
+rc=1 (want 1 stale: binary bytes changed)
+-- planted: input byte flipped, timestamp restored
+stale: build inputs changed
+rc=1 (want 1 stale: build inputs changed)
+-- planted: record schema rewritten
+stale: build record schema differs
+rc=1 (want 1 stale: build record schema differs)
+-- planted: record corrupted
+stale: unreadable build record
+rc=1 (want 1 stale: unreadable build record)
+-- planted: binary removed
+absent
+rc=2 (want 2 absent)
+-- planted: licences with no output flag, and an unwritable output
+release-licenses: cannot produce inventory: --output DIR is required
+rc=2 (want 2)
+release-licenses: cannot produce inventory: cannot create /proc/cannot-write-here/adler2-2.0.1: No such file or directory (os error 2)
+rc=2 (want 2)
+verdict BUILDSTATE-PLANT-OK

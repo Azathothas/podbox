@@ -1,0 +1,3 @@
+check-todo: 214 rows, 214 entries, 0 open, 3 partial, 0 blocked, 211 done
+check-todo: coverage ascii_output=50129 bare_citations=1574 ci_components=5 closure_records=211 corpus=46 counts=5 crossrefs=683 devcheck_third_state=1 document_state=1 entries=214 exit_codes=5 experiment_numbers=654 fields=2140 interpose_exports=1 interpose_sizes=399 parity_notes=321 perf_budget=75 post_task_cleanup=8 prove_flags=211 prove_registry=214 rows=214 size_ceiling=417 todo_citations=195 todo_links=686 tree_citations=78 tree_links=303
+check-todo: ok

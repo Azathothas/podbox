@@ -1,0 +1,11 @@
+triage: file client issues 10-28 as T-1315 to T-1336 (triage)
+
+2026-09-23T02:47:09Z - triage
+
+Nineteen client-filed issues triaged against the beta.5 tree, every
+premise confirmed live before authoring: 22 new entries T-1315 to
+T-1336 across ten files plus a T-0210 follow-up for issue 17, with
+the operator-ordered `man` verb (T-1332, wsl-toolkit shape) and the
+ASCII-only CLI scrub (T-1336). Each entry carries its issue's closing
+task (fix commit, proof, recurrence guard). Signing identity ruled
+keyless Sigstore. Counts now 165 items, 23 open.

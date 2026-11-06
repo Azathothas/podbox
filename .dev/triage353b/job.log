@@ -1,0 +1,19 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 12433 entries, 966.1 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/8ea4a608ebd867f9/work
+  workspace: 430 files carry the executable bit from the git index, and 347 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 430 executable file(s) in the index, all already executable.
+== the job
+== bootstrap the lane toolchain (zig, cc, musl target)
+bootstrap         FAILED
+timeout: failed to run command './scripts/common/bootstrap-env.sh': No such file or directory
+== rc=2
+exit 2 is the payload's own, passed through unchanged
+  the stopped container and its job directory are kept: wtk-8ea4a608ebd867f9
+  container wtk-8ea4a608ebd867f9 is kept with its job directory. Remove it with: wsl-toolkit gc --job 8ea4a608ebd867f9 --apply
+  docker.io/library/rust:1.98.1-bookworm exited 2 in 25.846s
+  the complete output is kept: wsl-toolkit logs 8ea4a608ebd867f9

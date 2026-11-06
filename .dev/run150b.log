@@ -1,0 +1,77 @@
+engine            podman (host machine)
+Trying to pull public.ecr.aws/debian/debian@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a...
+Getting image source signatures
+Copying blob sha256:a8ac7f6c67abc236e4c745052c404112b8fab6fe8ac3a329d1ef3b867ad67c71
+Copying config sha256:160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+Writing manifest to image destination
+160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+== conditions
+date              2026-09-19T12:23:21Z
+host kernel       3.6.9-b4195d69.x86_64
+podbox            podbox 0.1.0
+binary            3343216 bytes
+engine            podman version 5.8.6
+reference         ghcr.io/pkgforge-dev/archlinux:latest
+store             a fresh directory under /c/Users/AjamX/Downloads/podbox/experiments
+
+== 1. podbox's digest against docker's, for the same tag
+    latest: Pulling from pkgforge-dev/archlinux
+    fccd9a525e0c: Pull complete
+    8f1a3f638556: Pull complete
+    f9b891f38f9e: Pull complete
+    2dacb2369e13: Pull complete
+    Digest: sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+    Status: Downloaded newer image for ghcr.io/pkgforge-dev/archlinux:latest
+  podbox  sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+  podman  sha256:9bef8f23f6fb578d4c8e309d14fe1714ffdea2e967a5e4652dad65abf69d75d9
+  ⚠ they differ. Re-pulling both, to tell a moved tag from a wrong digest
+  podbox  sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+  podman  sha256:9bef8f23f6fb578d4c8e309d14fe1714ffdea2e967a5e4652dad65abf69d75d9
+  FAIL: the digests disagree on a second round, so this is not a race
+
+== 2. a second pull fetches nothing
+    latest: Pulling from pkgforge-dev/archlinux
+    fccd9a525e0c: Already exists
+    8f1a3f638556: Already exists
+    f9b891f38f9e: Already exists
+    2dacb2369e13: Already exists
+    Digest: sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+    Status: Image is up to date for ghcr.io/pkgforge-dev/archlinux:latest
+  ok      every layer was already present
+
+== 3. every stored blob hashes to the name it is stored under
+  7 blob(s), 0 mismatched
+
+== 4. a plain-HTTP registry is refused rather than downgraded
+  exit 1
+    podbox: "http://registry.invalid/library/archlinux:latest" names http://, and registry.invalid is not configured as an insecure registry. podbox does not downgrade a connection on its own: tcp/80 is black-holed on the runtimes podbox targets, so an automatic fallback hangs rather than failing (T-0201). Permit it deliberately with `--insecure-registry registry.invalid`, with $PODBOX_INSECURE_REGISTRIES, or with a line in the registries config file: podbox speaks HTTPS only and will not downgrade. tcp/80 egress is broken on the runtime podbox targets, so a plain-HTTP fallback hangs instead of failing (TODO/image.md T-0201)
+  ok      refused by name
+
+  written to /c/Users/AjamX/Downloads/podbox/experiments/results/image-acquisition.txt
+
+== against the committed reading
+  ⚠ CHANGED: /c/Users/AjamX/Downloads/podbox/experiments/results/image-acquisition.txt differs from the committed reading in more than its date.
+    @@ -0,0 +1,23 @@
+    +# podbox image acquisition against the engine, TODO/milestones.md T-1102
+    +# TODO/image.md T-0201 and T-0202 carry clauses 2 to 4.
+    +reference         ghcr.io/pkgforge-dev/archlinux:latest
+    +podbox_digest     sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+    +engine_digest     sha256:9bef8f23f6fb578d4c8e309d14fe1714ffdea2e967a5e4652dad65abf69d75d9
+    +digests_match     no
+    +tag_moved         no
+    +blobs_stored      7
+    +blobs_mismatched  0
+    +second_pull_fetched 0
+    +http_refused_rc   1
+    +
+    +## the second pull, verbatim
+    +  latest: Pulling from pkgforge-dev/archlinux
+    +  fccd9a525e0c: Already exists
+    +  8f1a3f638556: Already exists
+    +  f9b891f38f9e: Already exists
+    +  2dacb2369e13: Already exists
+    +  Digest: sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+    +  Status: Image is up to date for ghcr.io/pkgforge-dev/archlinux:latest
+    +
+    +## the http:// refusal, verbatim
+  That is a finding. Read it before committing it.

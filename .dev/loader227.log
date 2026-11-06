@@ -1,0 +1,24 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11414 entries, 333.4 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/2881194abf9f3201/work
+  workspace: 410 files carry the executable bit from the git index, and 304 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 410 executable file(s) in the index, all already executable.
+== the job
+== x86_64-unknown-linux-musl
+SKIP x86_64-unknown-linux-musl: no zig, and the default linker produces a GLIBC object
+      ./scripts/common/bootstrap-env.sh zig== x86_64-unknown-linux-gnu
+
+/usr/bin/ld: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so: version node not found for symbol dlsym@GLIBC_2.2.5
+/usr/bin/ld: failed to set dynamic section sizes: bad value
+collect2: error: ld returned 1 exit status
+FAIL x86_64-unknown-linux-gnu: the libdl stub did not build== rc=2
+
+exit 2 is the payload's own, passed through unchanged
+  the stopped container and its job directory are kept: wtk-2881194abf9f3201
+  container wtk-2881194abf9f3201 is kept with its job directory. Remove it with: wsl-toolkit gc --job 2881194abf9f3201 --apply
+  docker.io/library/rust:1.98.1-bookworm exited 2 in 24.336s
+  the complete output is kept: wsl-toolkit logs 2881194abf9f3201

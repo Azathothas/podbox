@@ -1,0 +1,125 @@
+== conditions
+date              2026-09-18T16:31:15Z
+host kernel       7.2.0-WSL2-STABLE
+host arch         x86_64
+podbox            podbox 0.1.0
+glibc image       public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+musl image        public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+maps              /mapped:/etc,/vbin:/bin
+
+== glibc: public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+FAIL glibc A: mapped read differs
+ok   glibc A2: unmapped control fails
+FAIL glibc B: stat differs ( vs 839 0)
+FAIL glibc C: chdir/read differs
+FAIL glibc D: mapped exec gave []
+FAIL glibc E: symlink read differs
+FAIL glibc E2: link family differs
+FAIL glibc F: glob gave [/mapped/pass*]
+ok   glibc G: tar works under a map
+ok   glibc G2: find works under a map
+FAIL glibc H: C program red
+  podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation
+  ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox run: interpose: declined for "/t161": /lib64/ld-linux-x86-64.so.2 names no C library podbox can find in the image
+  podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+  FAIL openat-cwd mapped: Success
+  ok   open tmp dir
+  ok   openat-dirfd forwards
+  ok   openat-dirfd content
+  FAIL fstatat mapped: No such file or directory
+  FAIL fstatat==real: Success
+  FAIL faccessat mapped: No such file or directory
+  FAIL eaccess mapped: No such file or directory
+  FAIL access mapped: No such file or directory
+  ok   open creat
+  ok   open mode bits exact
+  ok   openat creat
+  ok   openat mode bits exact
+  FAIL linkat mapped: No such file or directory
+  ok   symlinkat mapped target
+  ok   readlinkat link
+  FAIL symlink target rewritten: Success
+  ok   utimensat passthrough
+  FAIL getxattr parity: Success
+  FAIL nftw mapped walks: No such file or directory
+  ok   nftw real walks
+  FAIL nftw counts equal: Success
+  FAIL ftw mapped walks: No such file or directory
+  ok   ftw count equals nftw count
+  FAIL scandir mapped: Success
+  FAIL glob mapped, real path: Success
+  FAIL statfs parity: No such file or directory
+  ok   mkstemp template
+  ok   renameat passthrough
+  15 FAILURES
+ok   glibc J: unmapped chown memo intact
+FAIL glibc J2: mapped chown gave [], want 0:43
+
+== musl: public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+ok   musl A: mapped read equals the real file
+ok   musl A2: unmapped control fails
+ok   musl B: stat parity
+ok   musl C: chdir into mapped, relative read
+ok   musl D: exec of a mapped path
+ok   musl E: symlink target rule
+ok   musl E2: link, rename, mkdir, rmdir
+FAIL musl F: glob gave [/mapped/passwd]
+ok   musl G: tar works under a map
+ok   musl G2: find works under a map
+FAIL musl H: C program red
+  podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  ownership: real; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+          clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  this mode does NOT provide: process, network, IPC or mount isolation
+  ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  podbox run: interpose: declined for "/t161": /t161 is statically linked (no PT_INTERP), so no loader reads LD_PRELOAD for it
+  podbox: complete: 0 fixup(s) applied to this image's rootfs, 4 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+  FAIL openat-cwd mapped: No error information
+  ok   open tmp dir
+  ok   openat-dirfd forwards
+  ok   openat-dirfd content
+  FAIL fstatat mapped: No such file or directory
+  FAIL fstatat==real: No error information
+  FAIL faccessat mapped: No such file or directory
+  FAIL eaccess mapped: No such file or directory
+  FAIL access mapped: No such file or directory
+  ok   open creat
+  ok   open mode bits exact
+  ok   openat creat
+  ok   openat mode bits exact
+  FAIL linkat mapped: No such file or directory
+  ok   symlinkat mapped target
+  ok   readlinkat link
+  FAIL symlink target rewritten: No error information
+  ok   utimensat passthrough
+  FAIL getxattr parity: No error information
+  FAIL nftw mapped walks: No such file or directory
+  ok   nftw real walks
+  FAIL nftw counts equal: No error information
+  FAIL ftw mapped walks: No such file or directory
+  ok   ftw count equals nftw count
+  FAIL scandir mapped: No error information
+  FAIL glob mapped, real path: No error information
+  FAIL statfs parity: No such file or directory
+  ok   mkstemp template
+  ok   renameat passthrough
+  15 FAILURES
+ok   musl J: unmapped chown memo intact
+ok   musl J2: mapped chown memos the real file
+
+== I. the gap: what the rootfs reaches that the objects do not define
+  reached but not defined: execl execlp execle dlopen mount umount2
+ok   I: every gap name is owned
+
+== J. the entry's count: 60 or more defined text symbols per object
+ok   J: gnu defines 88 (>= 60)
+ok   J: musl defines 88 (>= 60)
+
+== verdict
+FAILED

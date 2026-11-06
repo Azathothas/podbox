@@ -1,0 +1,17 @@
+job cwd: /work
+
+== tool probes with cwd=/work
+  rustc: rustc 1.99.0 (b940084d7 2026-09-28)
+  cargo: cargo 1.99.0 (5f94df478 2026-08-27)
+  zig: 0.16.0
+  which rustc: /usr/local/cargo/bin/rustc
+  rustup toolchains: stable-x86_64-unknown-linux-gnu (active)
+1.98.1-x86_64-unknown-linux-gnu (default)
+
+== tool probes with cwd=/tmp/tmp.SjvI5F9EE7
+  rustc: rustc 1.98.1 (48a229cea 2026-09-01)
+  cargo: cargo 1.98.1 (797e8a9bc 2026-08-05)
+  zig: 0.16.0
+  which rustc: /usr/local/cargo/bin/rustc
+
+verdict BISECT4-OK

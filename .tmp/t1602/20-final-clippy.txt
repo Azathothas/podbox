@@ -1,0 +1,6 @@
+   Compiling ring v0.17.14
+   Compiling rustls v0.23.45
+    Checking rustls-webpki v0.103.15
+    Checking ureq v2.12.1
+    Checking podbox-image v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-image)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 23.10s

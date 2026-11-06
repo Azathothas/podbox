@@ -1,0 +1,6 @@
+record: the beta.5 nightly with fourteen assets (T-1314)
+
+2026-09-23T02:19:26Z - v0.1.0-beta.5 at the T-1212 close-out commit ran
+the nightly as 35809485405, conclusion success: all seven legs green
+with the publish job completing, and the pre-release named nightly
+carries fourteen assets, verified back through the release API.

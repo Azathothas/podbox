@@ -1,0 +1,112 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11427 entries, 334.3 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/bbf1d31abfea598b/work
+  workspace: 426 files carry the executable bit from the git index, and 319 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 426 executable file(s) in the index, all already executable.
+== the job
+== bootstrap
+== disk, before anything is written
+  975731 MB and 67029492 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 2 installed, 0 failed
+everything requested is present.
+== build-interpose on the unmodified tree
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 4.88s-rwxr-xr-x 2 root root 335320 Sep 23 00:42 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 2.60s-rwxr-xr-x 2 root root 315432 Sep 23 00:42 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+BUILD_RC=0
+== sizes and exports per object
+-- x86_64-unknown-linux-musl
+  size_bytes 335320
+  declared 112
+  exported_T 112
+  rust_eh_personality 0
+  exports_match=yes
+-- x86_64-unknown-linux-gnu
+  size_bytes 315432
+  declared 112
+  exported_T 112
+  rust_eh_personality 0
+  exports_match=yes
+== plant: drop the version script from the link, rebuild
+113:  if ( cd "$CRATE" && RUSTFLAGS="-C target-feature=-crt-static $link" \
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 2.36s-rwxr-xr-x 2 root root 335320 Sep 23 00:42 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 2.35s-rwxr-xr-x 2 root root 315432 Sep 23 00:42 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+PLANT_BUILD_RC=0
+-- x86_64-unknown-linux-musl after plant
+  exported_T 112
+  rust_eh_personality 0
+-- x86_64-unknown-linux-gnu after plant
+  exported_T 112
+  rust_eh_personality 0
+== restore and rebuild green
+RESTORE_DIFF_EMPTY_ABOVE rc=0
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 2.47s-rwxr-xr-x 2 root root 335320 Sep 23 00:42 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 2.38s-rwxr-xr-x 2 root root 315432 Sep 23 00:42 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+RESTORE_BUILD_RC=0
+== rc=0
+
+  the stopped container and its job directory are kept: wtk-bbf1d31abfea598b
+  container wtk-bbf1d31abfea598b is kept with its job directory. Remove it with: wsl-toolkit gc --job bbf1d31abfea598b --apply
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 3m21.662s
+  the complete output is kept: wsl-toolkit logs bbf1d31abfea598b

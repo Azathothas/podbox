@@ -1,0 +1,94 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11414 entries, 333.4 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/7ce24c1893bec6ec/work
+  workspace: 410 files carry the executable bit from the git index, and 304 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 410 executable file(s) in the index, all already executable.
+== the job
+== disk, before anything is written
+  885510 MB and 65515491 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 2 installed, 0 failed
+everything requested is present.
+== build-interpose (with the T-1312 ceiling)
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 5.23s-rwxr-xr-x 2 root root 328416 Sep 21 13:05 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.6)
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 2.55s-rwxr-xr-x 2 root root 308256 Sep 21 13:05 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 libdl.so.6 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.6 is needed
+== x86_64-unknown-linux-gnu newest need
+GLIBC_2.3
+GLIBC_2.3.4
+GLIBC_2.14
+== x86_64-unknown-linux-gnu UND dlsym/gettid versions
+0000000000000000      DF *UND*	0000000000000000 (GLIBC_2.2.5) dlsym
+== x86_64-unknown-linux-gnu dynamic gettid definition
+gettid not dynamic (local, as intended)
+== x86_64-unknown-linux-gnu UND gettid must be gone (resolved inside the object)
+gettid UND absent
+== x86_64-unknown-linux-gnu export set equals interpose.map
+exports agree both ways
+== x86_64-unknown-linux-musl newest need
+== x86_64-unknown-linux-musl UND dlsym/gettid versions
+0000000000000000      DF *UND*	0000000000000000 dlsym
+== x86_64-unknown-linux-musl dynamic gettid definition
+gettid not dynamic (local, as intended)
+== x86_64-unknown-linux-musl UND gettid must be gone (resolved inside the object)
+gettid UND absent
+== x86_64-unknown-linux-musl export set equals interpose.map
+exports agree both ways
+== fmt
+== clippy
+
+    Checking podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.27s== unit
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.41s
+     Running unittests src/lib.rs (crates/podbox-interpose/target/x86_64-unknown-linux-gnu/debug/deps/podbox_interpose-0829c78b6c1db3c6)
+running 12 tests
+test identity::tests::uid_alone_means_its_own_group ... ok
+test identity::tests::anything_else_is_not_an_identity ... ok
+test identity::tests::uid_and_gid_parse ... ok
+test map::tests::an_absent_variable_is_an_empty_table ... ok
+test map::tests::absolutize_copies_absolute_paths_and_joins_the_cwd ... ok
+test map::tests::malformed_pairs_are_skipped_not_fatal ... ok
+test map::tests::pairs_parse_and_match_at_a_boundary ... ok
+test map::tests::the_longest_prefix_wins_whatever_the_order ... ok
+test memo::tests::a_decimal_fd_parses_and_anything_else_does_not ... ok
+test map::tests::the_memo_directory_is_never_rewritten ... ok
+test memo::tests::the_record_is_32_bytes_with_dev_ino_uid_gid_set ... ok
+test tests::fchmodat_forwards_flags ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+JOB_DONE
+== rc=0
+
+  the stopped container and its job directory are kept: wtk-7ce24c1893bec6ec
+  container wtk-7ce24c1893bec6ec is kept with its job directory. Remove it with: wsl-toolkit gc --job 7ce24c1893bec6ec --apply
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 50.566s
+  the complete output is kept: wsl-toolkit logs 7ce24c1893bec6ec

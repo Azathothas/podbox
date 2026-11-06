@@ -1,0 +1,6 @@
+milestones: close the M6 interposer milestone (T-1107)
+
+T-0701 through T-0708 are all closed; this drives both milestone halves
+end to end on host podman with the shipped binary. The entry Prove is
+amended: its second half passed -v, which podbox refuses, so maps
+travel through PODBOX_MAPS.

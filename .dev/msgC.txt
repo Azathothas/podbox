@@ -1,0 +1,10 @@
+record: rewrite PROGRESS, three lane traps, one precise sentence
+
+2026-09-23T02:18:41Z - session record
+
+PROGRESS rewritten for the closed session: both entries done, counts
+143 with nothing blocked, the base lane proved native with its kept
+packages named. docs/containers.md carries three measured 2026-09-23
+traps (guest path conversion, the podman-vs-docker port-80 split, the
+stale dockerd pid). gate.md corrects the port-80 sentence in place:
+the podman path black-holes SYNs while the docker path fetches.

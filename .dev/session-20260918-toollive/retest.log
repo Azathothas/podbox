@@ -1,0 +1,23 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 9928 entries, 190.3 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/971226696f27ffdb/work
+  workspace: 400 files carry the executable bit from the git index, and 260 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 400 executable file(s) in the index, all already executable.
+== the job
+bootstrap_exit=0
+== run 1: default parallelism
+run1_exit=0
+test result: ok. 97 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.64s
+== run 2: one thread
+run2_exit=0
+test result: ok. 97 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.51s
+== done
+== rc=0
+  the stopped container and its job directory are kept: wtk-971226696f27ffdb
+  container wtk-971226696f27ffdb is kept with its job directory. Remove it with: wsl-toolkit gc --job 971226696f27ffdb --apply
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 53.477s
+  the complete output is kept: wsl-toolkit logs 971226696f27ffdb

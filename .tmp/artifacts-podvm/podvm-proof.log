@@ -1,0 +1,57 @@
+== conditions
+2026-10-01T15:39:05Z
+Linux 7.2.0-WSL2-STABLE
+cargo 1.99.0 (5f94df478 2026-08-27)
+rustc 1.99.0 (b940084d7 2026-09-28)
+
+== 1. unit tests for the crate
+  cargo test -p podbox-podvm exits 0
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+== 2. release binaries build
+  cargo build --release -p podbox-podvm exits 0
+
+== 3. the CLI the proofs drive
+  podbox CLI built
+
+== 3b. guest tools for the workload clauses
+  guest tools install rc=0
+
+== 4. podvm parity: retired script beside the binary, same CLI
+  retired exits 1, shim exits 1 (both drive the same CLI)
+  retired: == counts: 14 driven, 5 mismatches
+  binary:  == counts: 14 driven, 5 mismatches
+  verdicts agree retired-vs-binary
+
+== 4b. both shims reach their binaries (the binary's message proves it)
+  podvm shim reaches its binary
+  workload shim reaches its binary
+
+== 5. workload spread (bounded guest boot)
+  workload exits 1 (0 measured, 1 a row disagreed, 2 honest skip)
+== counts: 6 driven, 6 mismatches
+  workload drove to a verdict
+
+== 6. clippy and fmt for the new crate
+  clippy clean
+  fmt clean
+
+  plant transcript saved
+== plant transcript: the podvm binaries refuse planted defects
+date 2026-10-01T15:41:21Z
+-- planted: podvm with an unknown flag
+podbox-podvm: unexpected argument: --frobnicate
+rc=2 (want 2)
+-- planted: podvm against a binary that cannot answer
+SKIP: cannot read podbox's exit-code table
+== conditions
+(want exit 2: the table did not print)
+rc=2 (want 2)
+-- planted: workload with an unknown flag, and without its tools
+podbox-podvm-workload: unexpected argument: --frobnicate
+rc=2 (want 2)
+-- planted: workload medians need exactly three runs (unit proof)
+verdict PODVM-PLANT-OK
+
+verdict PODVM-PROOF-OK

@@ -1,0 +1,4 @@
+interpose: never rewrite the machinery paths (T-0707)
+
+2026-09-22T02:21:33Z - A mapping that covers /proc moves the interposer's own reads, and the failure names nothing.
+The built-in /proc tree is not rewritten in either match direction, with a user list on top that only adds.

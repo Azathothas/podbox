@@ -1,0 +1,55 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 417 executable file(s) in the index, all already executable.
+== the job
+== disk, before anything is written
+  828613 MB and 64431809 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 2 installed, 0 failed
+everything requested is present.
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+-rwxr-xr-x 2 root root 335320 Sep 22 04:56 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+-rwxr-xr-x 2 root root 315432 Sep 22 04:56 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+dev.sh: /work/target/x86_64-unknown-linux-musl/release/podbox
+== floating tag:
+FLOAT_RC=125
+podbox run: --strict, and this run is degraded in 6 way(s). podbox refuses rather than running and letting the
+  - the selected rung is `chroot` and not `namespace`, so the payload shares this machine's process table, net
+  - created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until t
+  - created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. â
+  - created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read 
+  - created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read
+  - rewrote etc/mtab (T-0405): it was a symlink to /proc/self/mounts, and /proc is not mounted inside a chroot
+== pinned digest:
+PINNED_RC=125
+podbox run: --strict, and this run is degraded in 5 way(s). podbox refuses rather than running and letting the
+  - the selected rung is `chroot` and not `namespace`, so the payload shares this machine's process table, net
+  - unchanged dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until
+  - unchanged dev/zero (T-0401): already a 1048576 byte shim
+  - unchanged dev/random (T-0401): already a 1048576 byte shim
+  - unchanged dev/urandom (T-0401): already a 1048576 byte shim
+== triage job done
+== rc=0

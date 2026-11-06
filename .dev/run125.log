@@ -1,0 +1,32 @@
+== conditions
+date              2026-09-19T10:38:59Z
+host kernel       3.6.9-b4195d69.x86_64
+host libc         ldd (cygwin) 3.6.9
+cc                guest-built static probe
+rows              11
+transcripts       experiments/results/across/
+
+engine            podman (host machine)
+engine            podman version 5.8.6
+
+ROW                  LIBC     PULLED   NSSWITCH               SUPPLIED /etc/passwd
+----------------------------------------------------------------------------------------
+alpine-3.22          musl     yes      present-no-passwd-line seen
+alpine-3.20          musl     yes      present-no-passwd-line seen
+alpine-3.10          musl     yes      absent                 seen
+voidlinux-musl       musl     yes      files                  seen
+debian-11            glibc    yes      files                  seen
+debian-12            glibc    yes      files                  seen
+ubuntu-20.04         glibc    yes      files                  seen
+rockylinux-8         glibc    yes      sss files systemd      seen
+opensuse-leap-15.6   glibc    yes      compat                 probe-crashed-rc136
+fedora-42            glibc    yes      files systemd          seen
+archlinux-latest     glibc    yes      files systemd          seen
+
+== rows
+  ran 11, no-pull 0, harness-failed 0
+  transcripts in experiments/results/across/
+
+== verdict
+  11 row(s) produced a reading. The table above is the measurement;
+  a difference between rows is a difference between distributions.

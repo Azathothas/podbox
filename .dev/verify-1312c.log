@@ -1,0 +1,60 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11413 entries, 333.4 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/121391bd7eeacc02/work
+  workspace: 410 files carry the executable bit from the git index, and 304 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 410 executable file(s) in the index, all already executable.
+== the job
+== disk, before anything is written
+  882345 MB and 65551543 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 2 installed, 0 failed
+everything requested is present.
+== build-interpose (with the T-1312 ceiling)
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+error: unknown token in expression
+  |
+note: instantiated into assembly here
+ --> <inline asm>:7:6
+  |
+7 | movl $186, %eax
+  |      ^
+
+warning: gettid changed binding to STB_WEAK
+
+warning: `podbox-interpose` (lib) generated 1 warning
+error: could not compile `podbox-interpose` (lib) due to 1 previous error; 1 warning emitted
+FAIL x86_64-unknown-linux-musl== x86_64-unknown-linux-gnu
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+error: unknown token in expression
+   |
+note: instantiated into assembly here
+  --> <inline asm>:10:6
+   |
+10 | movl $186, %eax
+   |      ^
+
+warning: gettid changed binding to STB_WEAK
+== rc=2
+
+warning: `podbox-interpose` (lib) generated 1 warning
+error: could not compile `podbox-interpose` (lib) due to 1 previous error; 1 warning emitted
+FAIL x86_64-unknown-linux-gnu
+exit 2 is the payload's own, passed through unchanged
+  the stopped container and its job directory are kept: wtk-121391bd7eeacc02
+  container wtk-121391bd7eeacc02 is kept with its job directory. Remove it with: wsl-toolkit gc --job 121391bd7eeacc02 --apply
+  docker.io/library/rust:1.98.1-bookworm exited 2 in 42.235s
+  the complete output is kept: wsl-toolkit logs 121391bd7eeacc02

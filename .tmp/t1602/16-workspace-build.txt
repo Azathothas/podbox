@@ -1,0 +1,32 @@
+   Compiling twox-hash v2.1.4
+   Compiling ring v0.17.14
+   Compiling podbox-probe v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-probe)
+   Compiling podbox-release v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-release)
+   Compiling podbox-buildstate v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-buildstate)
+   Compiling podbox-enter v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-enter)
+   Compiling podbox-gate v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-gate)
+   Compiling podbox-windows v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-windows)
+   Compiling podbox-cli v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-cli)
+   Compiling ruzstd v0.9.0
+error: linker `zigcc-win.cmd` not found
+  |
+  = note: program not found
+
+error: could not compile `podbox-gate` (bin "podbox-count" test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `podbox-probe` (test "namespace") due to 1 previous error
+error: could not compile `podbox-release` (bin "podbox-size" test) due to 1 previous error
+error: could not compile `podbox-release` (bin "podbox-verify" test) due to 1 previous error
+error: could not compile `podbox-gate` (bin "podbox-smoke" test) due to 1 previous error
+warning: podbox-cli@0.1.0-beta.12: no gnu interposer at C:\Users\AjamX\Downloads\podbox\crates/podbox-interpose/target\x86_64-unknown-linux-gnu\release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.12: no musl interposer at C:\Users\AjamX\Downloads\podbox\crates/podbox-interpose/target\x86_64-unknown-linux-musl\release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+error: could not compile `podbox-probe` (test "namespace_base") due to 1 previous error
+error: could not compile `podbox-release` (bin "podbox-verify") due to 1 previous error
+error: could not compile `podbox-release` (bin "document-state") due to 1 previous error
+error: could not compile `podbox-gate` (bin "podbox-plant") due to 1 previous error
+error: could not compile `podbox-release` (bin "podbox-size") due to 1 previous error
+error: could not compile `podbox-release` (bin "podbox-publish") due to 1 previous error
+error: could not compile `podbox-buildstate` (bin "podbox-buildstate") due to 1 previous error
+error: could not compile `podbox-windows` (lib test) due to 1 previous error
+error: could not compile `podbox-enter` (lib test) due to 1 previous error
+error: could not compile `podbox-probe` (lib test) due to 1 previous error

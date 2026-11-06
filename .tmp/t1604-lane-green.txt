@@ -1,0 +1,25 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  job ccb8f1bc66c8aeb4. Follow it with: wsl-toolkit logs ccb8f1bc66c8aeb4 --follow. Stop it with: wsl-toolkit stop ccb8f1bc66c8aeb4
+  workspace: 12624 entries, 346.5 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/ccb8f1bc66c8aeb4/work
+  workspace: 444 files carry the executable bit from the git index, and 344 files from a shebang
+{
+  "label": "docker.io/library/rust:1.98.1-bookworm",
+  "image": "docker.io/library/rust:1.98.1-bookworm",
+  "id": "ccb8f1bc66c8aeb4",
+  "exit": 0,
+  "duration_ns": 154992237500,
+  "started": "2026-10-02T03:56:48.2596548Z",
+  "stdout": "== the machine\nLinux 7.2.0-WSL2-STABLE\n0\nroot\n/work\n== the toolset\n== disk, before anything is written\n  975424 MB and 67017770 inodes available under /work\n\n== components\n\n  ok       rust: 1.99.0, musl target present\n  ok       cc: gcc 12\n  installed tools: jq\n  installed openssh: openssh-server\n  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig\n\n== 2 already present, 3 installed, 0 failed\neverything requested is present.\nrustc 1.99.0 (b940084d7 2026-09-28)\ncargo 1.99.0 (5f94df478 2026-08-27)\n== disk, before anything is written\n/dev/sde       1007G  4.4G  952G   1% /work\n== the job\n== disk, before anything is written\n  974131 MB and 66992234 inodes available under /work\n\n== components\n\n  ok       rust: 1.99.0, musl target present\n  ok       cc: gcc 12\n  ok       tools: jq, binutils, file, xz all present\n  ok       zig: 0.16.0\n\n== 4 already present, 0 installed, 0 failed\neverything requested is present.\n== T-1604 detached_stdio, run twice\nrun 1 exit 0\nrun 2 exit 0\n\n== run 1: every test line and result\nrunning 3 tests\ntest detached_run_without_an_image_is_a_cli_error ... ok\ntest detached_start_returns_before_the_payload_ends ... ok\ntest run_help_names_the_detach_flag ... ok\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 46.86s\n\n== run 2: every test line and result\nrunning 3 tests\ntest run_help_names_the_detach_flag ... ok\ntest detached_start_returns_before_the_payload_ends ... ok\ntest detached_run_without_an_image_is_a_cli_error ... ok\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 48.01s\n\nruns reporting a nonzero pass count: 1 and 1\n\nT-1604 LANE-GREEN\n== rc=0\n",
+  "artifacts": 2,
+  "artifacts_attempted": 2,
+  "timed_out": false,
+  "unreached": false,
+  "transcript": "C:\\Users\\AjamX\\AppData\\Local\\wsl-toolkit\\instances\\podbox\\jobs\\ccb8f1bc66c8aeb4",
+  "effective_exit": 0,
+  "stdout_bytes": 1683,
+  "stderr_bytes": 0,
+  "container_lifecycle": "ephemeral",
+  "platform": "linux/amd64"
+}
+dev-lane: 2 passing suite(s) in evidence.
+dev-lane: green (job rc=0).

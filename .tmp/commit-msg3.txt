@@ -1,0 +1,6 @@
+Save the measured summary beside the record
+
+The 2026-10-02 unattended session: what each of the ten rows became, the
+two commits and the tag, the measurements with their conditions, the
+three defects this session found that are not its own work, and the four
+things it could not do.

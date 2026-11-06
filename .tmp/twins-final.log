@@ -1,0 +1,34 @@
+  ok     schema: agent-doctor/1
+  ok     host keys match
+  ok     repo keys match
+  ok     summary keys match
+  ok     probe keys match
+  ok     top-level keys match
+  ok     host.os = windows
+  ok     host.wsl = false
+  ok     host.container = false
+  ok     host.arch = x86_64
+  ok     host.distro = windows
+  ok     host.distro_version = 10.0.26200.9457
+  ok     repo.is_git = true
+  ok     repo.dirty = true
+  ok     repo.commits = 248
+  ok     repo.remote_looks_like_template = false
+  ok     repo.has_codegraph = true
+  ok     repo.ecosystems = [rust]
+  ok     tool object shape: found,group,id,path,version
+  ok     both probe the same 86 tools
+  ok     cli flags match: fast group json net text
+
+  twin pairs, same tree:
+  ok     check-docs: both say {"schema":"check-docs/1","problems":0,"files":84,"links":1095,"shell_blocks":17}, exit 0
+  ok     check-placeholders: both say {"schema":"check-placeholders/1","categories":0,"files_scanned":699}, exit 0
+  ok     check-control-bytes: both say {"schema":"check-control-bytes/1","problems":0,"files":627}, exit 0
+  ok     check-markers: both say {"schema":"check-markers/1","problems":2,"files":627,"markers":5249,"ceiling":30,"worst_density":30}, exit 1
+  ok     check-one-home: both say {"schema":"check-one-home/1","problems":1,"files":59,"min_words":12}, exit 1
+  ok     check-changelog: both say {"schema":"check-changelog/1","problems":0,"entries":0}, exit 0
+  ok     check-attribution: both say {"schema":"check-attribution/1","problems":0,"commits":248,"hook_installed":1,"hook_executable":true,"shallow":false}, exit 0
+  ok     mine-repo --selftest: both say {"schema":"mine-repo-selftest/1","cases":4,"failed":0}, exit 0
+  ok     check-remote-items: both say {"schema":"check-remote-items/1","problems":0,"needs_human":1,"open_prs":0}, exit 0
+
+✅ every twin pair agrees on this tree.

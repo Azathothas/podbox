@@ -1,0 +1,33 @@
+== conditions
+date              2026-09-21T18:24:34Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+jq                jq-1.6
+
+== 0. six rows with a stance each
+  ok: row tcp listener carries stance open
+  ok: row kvm acceleration carries stance refused
+  ok: row runc-style oci carries stance refused
+  ok: row user-mode linux guest carries stance open
+  ok: row uid_map identity switch carries stance open
+  ok: row guest file over the ceiling carries stance open
+
+== 1. every refusal names its errno
+  ok: refused kvm acceleration names an errno
+  ok: refused runc-style oci names an errno
+
+== 2. every open row carries no refusal language
+  ok: open tcp listener carries no refusal language
+  ok: open user-mode linux guest carries no refusal language
+  ok: open uid_map identity switch carries no refusal language
+  ok: open guest file over the ceiling carries no refusal language
+
+== 3. every unestablished row names why it cannot say
+
+== 4. kvm acceleration is refused on this lane naming ENOENT
+  ok: kvm acceleration refused naming open(/dev/kvm, O_RDWR)=ENOENT
+
+== 5. the stderr evidence carries the block
+  ok: the evidence carries the non-goals block
+
+== counts: 14 driven, 0 mismatches

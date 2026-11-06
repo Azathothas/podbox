@@ -1,0 +1,16 @@
+interpose: count the emulated operations in inspect (T-0708)
+
+Payloads calling mknod, mount, unshare or clone with namespace flags met
+errors the runtime already understands, and most stopped instead of
+adapting. Each now runs as a counted emulation: a regular file, a tally
+chain plus success, success plus a memo, stripped flags before the real
+call. inspect carries the tally and the banner states the tier.
+
+Ten rows drove green on host podman 6.1.2 with the shipped binary, and
+240 exits 0 at 10 of 10 built and ran with the T-0705 and T-0707 drives
+green beside it. The lane check is green with the interpose suite at 25
+of 25.
+
+This change also corrects one line in the T-0810 record to cite the
+verbatim Prove run, and carries the re-driven sweep transcripts, whose
+only intended diff is the new banner line.

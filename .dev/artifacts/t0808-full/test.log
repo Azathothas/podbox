@@ -1,0 +1,503 @@
+   Compiling stable_deref_trait v1.2.1
+   Compiling cfg-if v1.0.4
+   Compiling writeable v0.6.4
+   Compiling litemap v0.8.3
+   Compiling zeroize v1.9.0
+   Compiling utf8_iter v1.0.4
+   Compiling smallvec v1.16.0
+   Compiling typenum v1.20.1
+   Compiling untrusted v0.9.0
+   Compiling linux-raw-sys v0.12.1
+   Compiling libc v0.2.189
+   Compiling icu_properties_data v2.3.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling syscalls v0.8.1
+   Compiling simd-adler32 v0.3.10
+   Compiling percent-encoding v2.3.2
+   Compiling adler2 v2.0.1
+   Compiling zerofrom v0.1.8
+   Compiling serde_core v1.0.229
+   Compiling log v0.4.34
+   Compiling crc32fast v1.5.1
+   Compiling once_cell v1.21.4
+   Compiling subtle v2.6.1
+   Compiling zmij v1.0.23
+   Compiling memchr v2.8.3
+   Compiling yoke v0.8.3
+   Compiling rustls-pki-types v1.15.1
+   Compiling form_urlencoded v1.2.2
+   Compiling itoa v1.0.18
+   Compiling miniz_oxide v0.9.1
+   Compiling base64 v0.22.1
+   Compiling cpufeatures v0.3.1
+   Compiling twox-hash v2.1.4
+   Compiling podbox-cli v0.1.0 (/work/crates/podbox-cli)
+   Compiling ruzstd v0.9.0
+   Compiling zerovec v0.11.8
+   Compiling zerotrie v0.2.5
+   Compiling podbox-probe v0.1.0 (/work/crates/podbox-probe)
+warning: podbox-cli@0.1.0: no gnu interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0: no musl interposer at /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+   Compiling webpki-roots v1.0.9
+   Compiling rustls-pemfile v2.2.0
+   Compiling webpki-roots v0.26.11
+   Compiling flate2 v1.1.10
+   Compiling hybrid-array v0.4.15
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.3.0
+   Compiling getrandom v0.2.17
+   Compiling filetime v0.2.29
+   Compiling icu_locale_core v2.3.0
+   Compiling ring v0.17.14
+   Compiling tar v0.4.46
+   Compiling podbox-enter v0.1.0 (/work/crates/podbox-enter)
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling icu_provider v2.3.1
+   Compiling digest v0.11.3
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling sha2 v0.11.0
+   Compiling rustls-webpki v0.103.15
+   Compiling serde_json v1.0.151
+   Compiling serde v1.0.229
+   Compiling rustls v0.23.44
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling ureq v2.12.1
+   Compiling podbox-image v0.1.0 (/work/crates/podbox-image)
+   Compiling podbox-extract v0.1.0 (/work/crates/podbox-extract)
+   Compiling podbox-supervise v0.1.0 (/work/crates/podbox-supervise)
+   Compiling podbox-complete v0.1.0 (/work/crates/podbox-complete)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.35s
+     Running unittests src/main.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox-6c229e2c9e2c3385)
+
+running 73 tests
+test complete::tests::strict_refuses_a_run_whose_only_difference_is_a_step ... ok
+test complete::tests::without_strict_nothing_is_refused ... ok
+test complete::tests::strict_names_every_reason_at_once ... ok
+test complete::tests::strict_passes_a_run_with_no_degradation ... ok
+test diagnose::tests::no_example_means_no_note ... ok
+test diagnose::tests::both_dropped_ids_still_read_beside_the_example ... ok
+test diagnose::tests::an_unreadable_map_reports_itself_as_unreadable ... ok
+test diagnose::tests::every_row_carries_all_four_parts ... ok
+test diagnose::tests::the_note_names_the_entry_the_errno_the_map_and_the_remedy ... ok
+test exec::tests::a_flag_needing_a_value_does_not_swallow_the_image ... ok
+test exec::tests::exec_has_no_default_command ... ok
+test exec::tests::the_banner_says_what_inspect_reports ... ok
+test exec::tests::parsing_stops_at_the_image_name ... ok
+test format::tests::a_dotted_name_is_one_name_and_an_unregistered_one_is_still_refused ... ok
+test exec::tests::every_flag_the_table_admits_is_handled_by_this_parser ... ok
+test format::tests::a_template_feature_podbox_does_not_have_is_refused_rather_than_guessed ... ok
+test format::tests::an_unknown_field_is_refused_and_lists_the_known_ones ... ok
+test format::tests::literal_text_and_several_fields_survive_together ... ok
+test format::tests::the_acceptance_template_renders_the_digest_and_nothing_else ... ok
+test format::tests::the_escapes_docker_expands_are_expanded ... ok
+test complete::tests::the_banner_is_never_quiet_by_default ... ok
+test format::tests::the_one_function_podbox_answers_is_json ... ok
+test format::tests::whitespace_inside_the_braces_is_the_go_spelling_and_is_accepted ... ok
+test images::tests::a_template_naming_a_field_no_verb_has_is_refused_without_any_record ... ok
+test images::tests::the_table_pads_every_column_to_its_widest_cell ... ok
+test interpose::tests::a_binary_without_objects_declines_naming_the_libc ... ok
+test interpose::tests::a_caller_preload_survives_behind_podboxs ... ok
+test interpose::tests::a_reachable_payload_without_a_memo_is_refused_not_declined ... ok
+test images::tests::the_field_names_are_the_names_the_builder_produces ... ok
+test images::tests::an_image_with_no_creation_timestamp_prints_a_dash_and_not_a_guess ... ok
+test interpose::tests::a_missing_payload_is_declined ... ok
+test interpose::tests::a_static_payload_is_declined_by_name ... ok
+test interpose::tests::a_link_loop_is_refused ... ok
+test interpose::tests::a_payload_escaping_the_image_is_refused ... ok
+test interpose::tests::an_unknown_interpreter_is_declined ... ok
+test interpose::tests::a_script_is_declined_with_the_readers_reason ... ok
+test interpose::tests::another_architecture_is_declined ... ok
+test interpose::tests::an_unparsable_object_is_refused_as_unparsable ... ok
+test interpose::tests::go_markers_outrank_a_present_interpreter ... ok
+test interpose::tests::each_embedded_object_names_its_own_libc ... ok
+test interpose::tests::the_carried_line_names_the_state_it_is_in ... ok
+test interpose::tests::the_memo_descriptor_parses_as_decimal_or_not_at_all ... ok
+test interpose::tests::the_decline_line_carries_the_channel ... ok
+test interpose::tests::the_two_embedded_objects_are_not_the_same_bytes ... ok
+test lifecycle::tests::a_container_path_is_split_from_a_plain_one ... ok
+test lifecycle::tests::a_signal_is_taken_by_name_or_number_and_never_defaulted ... ok
+test lifecycle::tests::the_ps_fields_are_the_ones_the_template_check_allows ... ok
+test interpose::tests::placement_writes_the_object_where_the_payload_sees_it ... ok
+test names::tests::every_alias_is_in_the_parity_table ... ok
+test lifecycle::tests::a_bare_user_name_takes_its_primary_group_from_the_image ... ok
+test names::tests::the_alias_note_names_the_name_that_was_used ... ok
+test lifecycle::tests::the_declared_container_fields_are_the_built_ones ... ok
+test names::tests::the_daemon_check_answers_one_of_three_states ... ok
+test parity::tests::a_verb_served_by_another_parser_resolves_that_verbs_rows_and_says_so ... ok
+test parity::tests::a_flag_is_found_under_every_spelling_the_parser_accepts ... ok
+test parity::tests::admit_all_refuses_before_any_arm_runs ... ok
+test parity::tests::every_flag_row_names_a_verb_the_table_also_has_a_row_for ... ok
+test parity::tests::every_unimplemented_row_says_why ... ok
+test parity::tests::group_subverbs_resolve_the_rows_their_flags_live_under ... ok
+test parity::tests::no_verb_carries_the_same_flag_twice ... ok
+test parity::tests::the_table_is_at_least_sixty_rows_and_uses_only_the_four_statuses ... ok
+test run::tests::a_flag_needing_a_value_does_not_swallow_the_image ... ok
+test run::tests::an_unknown_pull_mode_is_invalid_input_and_not_a_silent_default ... ok
+test run::tests::no_image_is_a_cli_error ... ok
+test run::tests::both_spellings_of_every_valued_flag_reach_the_same_place ... ok
+test run::tests::parsing_stops_at_the_image_name ... ok
+test run::tests::every_flag_the_table_admits_is_handled_by_this_parser ... ok
+test parity::tests::the_json_carries_every_row_and_the_status_word ... ok
+test system::tests::the_acceptance_template_renders_the_whole_table ... ok
+test system::tests::the_declared_fields_are_the_built_ones ... ok
+test system::tests::the_entered_rung_is_the_sequence_and_not_the_selection ... ok
+test interpose::tests::an_absolute_link_resolves_under_the_rootfs ... ok
+test interpose::tests::resolve_finds_a_real_elf_along_path_dirs ... ok
+
+test result: ok. 73 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox_extract-098a44c053e4fc74)
+
+running 46 tests
+test apply::tests::an_already_matching_owner_records_no_reason ... ok
+test apply::tests::extracting_as_a_non_root_id_records_that_id ... ok
+test apply::tests::shadow_keeps_its_uid_and_reports_the_dropped_gid ... ok
+test drive::a_dotdot_path_is_refused ... ok
+test drive::a_hard_link_out_of_the_destination_is_refused ... ok
+test layer::tests::a_plain_tar_layer_is_its_own_size_and_is_not_an_estimate ... ok
+test drive::a_refusal_fails_the_extraction_rather_than_skipping_the_entry ... ok
+test drive::a_later_layer_may_replace_a_file_with_a_symlink ... ok
+test drive::a_mode_the_extractor_cannot_write_through_is_still_the_final_mode ... ok
+test drive::a_layer_may_delete_a_path_and_recreate_it_in_the_same_layer ... ok
+test layer::tests::an_unknown_compression_is_refused_and_names_itself ... ok
+test drive::a_read_only_directory_in_one_layer_can_be_written_into_by_the_next ... ok
+test drive::a_hard_link_within_the_destination_is_materialised ... ok
+test drive::a_relative_escaping_symlink_is_refused_too ... ok
+test layer::tests::an_unreadable_gzip_blob_estimates_rather_than_returning_zero ... ok
+test layer::tests::parameters_do_not_change_the_compression ... ok
+test layer::tests::the_media_types_a_registry_actually_serves ... ok
+test safety::tests::a_target_that_still_escapes_after_rebasing_is_refused ... ok
+test safety::tests::absolute_and_dotdot_are_refused_lexically ... ok
+test safety::tests::absolute_symlink_target_is_rebased_not_refused ... ok
+test drive::re_permissioning_widens_the_owner_and_leaves_group_and_other_alone ... ok
+test safety::tests::ordinary_layer_paths_survive ... ok
+test drive::a_whiteout_at_the_layer_root_removes_its_target ... ok
+test drive::an_absolute_path_is_refused ... ok
+test drive::an_entry_traversing_a_symlink_the_same_layer_made_is_refused ... ok
+test drive::a_tree_left_by_a_kill_does_not_read_as_extracted ... ok
+test safety::tests::relative_symlink_target_resolves_from_its_own_directory ... ok
+test drive::an_absolute_symlink_is_created_and_points_where_the_image_said ... ok
+test drive::the_sidecar_does_not_claim_an_ownership_the_kernel_did_not_apply ... ok
+test drive::the_shadow_file_extracts_and_its_dropped_gid_is_recorded ... ok
+test safety::tests::the_walk_and_openat2_refuse_the_same_traversal ... ok
+test safety::tests::this_host_has_openat2_so_the_walk_needs_forcing_to_be_exercised ... ok
+test sidecar::tests::a_path_carrying_a_quote_stays_valid_json ... ok
+test sidecar::tests::a_widened_mode_is_recorded_beside_the_image_s_own ... ok
+test drive::every_extracted_entry_has_a_sidecar_row ... ok
+test sidecar::tests::the_shadow_line_is_what_the_acceptance_greps_for ... ok
+test tests::short_is_twelve_hex_digits_like_docker_prints ... ok
+test whiteout::tests::a_bare_marker_removes_nothing ... ok
+test drive::an_opaque_marker_empties_its_directory_and_keeps_it ... ok
+test whiteout::tests::a_root_level_whiteout_is_found_and_a_glob_would_miss_it ... ok
+test whiteout::tests::an_ordinary_name_that_merely_contains_wh_is_normal ... ok
+test whiteout::tests::opaque_is_its_own_kind_and_is_not_a_removal_of_a_file_called_wh_opq ... ok
+test whiteout::tests::prefixed_and_bare_reach_the_same_answer ... ok
+test tests::the_sidecar_sits_beside_the_rootfs_not_inside_it ... ok
+test drive::a_refused_extraction_leaves_nothing_that_reads_as_extracted ... ok
+test drive::a_successful_extraction_reports_as_extracted ... ok
+
+test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox_probe-c78203c0ff4aca56)
+
+running 65 tests
+test binfmt::tests::reading_the_registrations_is_never_a_panic ... ok
+test binfmt::tests::the_elf_machine_numbers_are_the_specifications ... ok
+test child::tests::a_child_that_says_nothing_is_a_skip_and_not_a_denial ... ok
+test child::tests::a_child_whose_status_contradicts_its_line_establishes_nothing ... ok
+test child::tests::a_clean_exit_decodes_as_exited_zero ... ok
+test child::tests::an_agreeing_child_is_taken_at_its_word ... ok
+test exit::tests::a_sigkilled_payload_is_137 ... ok
+test exit::tests::the_two_names_for_125_are_one_number ... ok
+test exit::tests::every_code_has_a_row_and_every_row_parses ... ok
+test identity::tests::a_full_map_and_a_multi_range_map_are_not ... ok
+test identity::tests::a_key_with_a_hole_in_it_never_matches_another_with_the_same_hole ... ok
+test identity::tests::a_single_range_of_one_id_is_recognised ... ok
+test interp::tests::detect_answers_with_its_evidence_either_way ... ok
+test identity::tests::the_confinement_key_reads_the_mount_namespace_this_process_is_in ... ok
+test interp::tests::the_two_states_never_key_alike ... ok
+test interp::tests::an_explicit_qemu_invocation_is_seen_through_its_environment ... ok
+test identity::tests::this_process_can_read_its_own_maps ... ok
+test identity::tests::two_keys_differing_only_in_the_mount_namespace_report_that_component ... ok
+test json::tests::a_nested_document_closes_every_brace ... ok
+test json::tests::a_reason_carrying_quotes_and_control_bytes_survives ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test json::tests::an_unknown_value_is_null_rather_than_zero ... ok
+error: Unrecognized option: 'probe-child'test mounts::tests::a_machine_that_cannot_create_reports_none ... 
+ok
+error: Unrecognized option: 'probe-child'
+test mounts::tests::a_missing_row_is_a_skip_rather_than_a_denial ... ok
+test mounts::tests::creatable_but_unattachable_is_not_reported_as_no_mounts ... ok
+test probes::tests::every_row_name_is_unique ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test probes::tests::the_attribution_block_is_the_reference_order ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test probes::tests::the_propagation_change_is_only_ever_probed_inside_a_mount_namespace ... ok
+error: Unrecognized option: 'probe-child'
+test probes::tests::the_set_is_at_least_the_size_its_acceptance_names ... ok
+test report::tests::a_denied_clone_names_the_clone_and_clears_setgroups ... ok
+error: Unrecognized option: 'probe-child'
+test report::tests::a_denied_setgroups_names_the_field_and_clears_the_clone ... error: Unrecognized option: 'probe-child'
+ok
+test report::tests::an_unmeasured_leg_is_never_attributed ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test report::tests::two_clear_legs_mean_no_spawn_note ... ok
+test report::tests::two_denied_legs_name_both_and_tell_them_apart_by_shape ... error: okUnrecognized option: 'probe-child'
+
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test select::tests::a_control_that_cannot_answer_is_reported_apart_from_the_rung ... ok
+test select::tests::a_control_answering_the_wrong_errno_is_caught_as_well_as_a_missing_one ... ok
+test select::tests::a_listener_without_ptrace_does_not_reach_supervise ... ok
+test select::tests::a_weaker_rung_never_satisfies_the_strict_floor ... ok
+error: Unrecognized option: 'probe-child'
+test select::tests::an_unconfined_host_selects_namespace ... ok
+test select::tests::the_banner_cell_names_the_errno_rather_than_the_word_denied ... ok
+error: Unrecognized option: 'probe-child'
+test select::tests::the_banner_reports_what_the_rung_provides_and_not_what_the_machine_permits ... ok
+test select::tests::the_chroot_rung_says_what_it_must_never_claim ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test select::tests::the_target_shape_selects_chroot ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test sys::tests::a_char_device_reads_as_one_and_its_numbers_come_back ... ok
+error: Unrecognized option: 'probe-child'
+test sys::tests::a_directory_is_not_mistaken_for_a_device ... error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test sys::tests::a_negative_return_decodes_as_the_errno_and_not_as_a_value ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test sys::tests::a_path_with_an_interior_nul_is_refused_rather_than_truncated ... ok
+test sys::tests::an_unknown_errno_names_its_number_rather_than_guessing_a_name ... ok
+error: Unrecognized option: 'probe-child'
+test sys::tests::the_stat_buffer_is_the_size_the_kernel_writes ... error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+ok
+test sys::tests::the_trap_and_the_abi_agree_with_what_this_process_already_knows ... ok
+test tests::a_probe_name_that_does_not_exist_exits_two ... ok
+error: Unrecognized option: 'probe-child'
+test verdict::tests::a_denial_round_trips_with_its_errno ... ok
+test verdict::tests::a_denial_without_an_errno_is_refused_rather_than_believed ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test verdict::tests::a_reason_carrying_a_newline_stays_one_line ... ok
+test sys::tests::a_spawn_through_the_hook_sheds_a_registered_fd_and_one_without_it_does_not ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test verdict::tests::a_skip_keeps_its_reason_and_its_spaces ... error: Unrecognized option: 'probe-child'
+ok
+error: Unrecognized option: 'probe-child'
+test verdict::tests::an_unknown_protocol_version_is_refused ... ok
+test verdict::tests::the_row_format_matches_the_reference_harness ... ok
+error: Unrecognized option: 'probe-child'
+test writable::tests::a_directory_that_does_not_exist_is_a_skip_and_not_a_denial ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test writable::tests::the_candidate_list_has_no_duplicates ... ok
+test writable::tests::tmp_is_writable_here_and_reports_blocks_and_inodes ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test writable::tests::two_concurrent_probes_do_not_take_each_other_s_scratch_name ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test report::tests::the_cache_key_agrees_with_the_identity_block_it_is_derived_from ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test report::tests::the_document_carries_a_complete_cache_key_on_this_machine ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test tests::every_child_probe_runs_and_answers_in_a_child ... ok
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+error: Unrecognized option: 'probe-child'
+test report::tests::two_documents_from_one_machine_agree_on_the_rung_and_the_key ... ok
+
+test result: ok. 65 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+   Doc-tests podbox_extract
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests podbox_probe
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

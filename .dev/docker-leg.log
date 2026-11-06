@@ -1,0 +1,54 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+SKIP: cannot read podbox's exit-code table; is jq installed and the binary b270-muSKIP: no git
+SKIP: cannot read podbox's exit-code table; is jq installed and the binary built?
+SKIP: cannot read podbox's exit-code table; is jq installed and the binary built?
+SKIP: jq is not on PATH. ./scripts/common/bootstrap-env.sh tools
+SKIP: jq is not on PATH. ./scripts/common/bootstrap-env.sh tools
+rge-dev/archlinux:latest
+store             a fresh directory under /tmp
+
+== 1. podbox's digest against docker's, for the same tag
+    latest: Pulling from pkgforge-dev/archlinux
+    fccd9a525e0c: Pull complete
+    8f1a3f638556: Pull complete
+    f9b891f38f9e: Pull complete
+    2dacb2369e13: Pull complete
+    Digest: sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+    Status: Downloaded newer image for ghcr.io/pkgforge-dev/archlinux:latest
+  podbox  sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+  docker  sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+
+== 2. a second pull fetches nothing
+    latest: Pulling from pkgforge-dev/archlinux
+    fccd9a525e0c: Already exists
+    8f1a3f638556: Already exists
+    f9b891f38f9e: Already exists
+    2dacb2369e13: Already exists
+    Digest: sha256:b2507f1964270cab3cc190aa8df858521f6a7e45e969146a012877891d5dfc9b
+    Status: Image is up to date for ghcr.io/pkgforge-dev/archlinux:latest
+  ok      every layer was already present
+
+== 3. every stored blob hashes to the name it is stored under
+  7 blob(s), 0 mismatched
+
+== 4. a plain-HTTP registry is refused rather than downgraded
+  exit 1
+    podbox: "http://registry.invalid/library/archlinux:latest" names http://, and registry.invalid is not configured as an insecure registry. podbox does not downgrade a connection on its own: tcp/80 is black-holed on the runtimes podbox targets, so an automatic fallback hangs rather than failing (T-0201). Permit it deliberately with `--insecure-registry registry.invalid`, with $PODBOX_INSECURE_REGISTRIES, or with a line in the registries config file: podbox speaks HTTPS only and will not downgrade. tcp/80 egress is broken on the runtime podbox targets, so a plain-HTTP fallback hangs instead of failing (TODO/image.md T-0201)
+  ok      refused by name
+
+  written to /root/pb-wk/experiments/results/image-acquisition.txt
+
+== against the committed reading
+150-image-acquisition EXIT=0
+########## 280-insecure-registry ##########
+engine            docker (daemon)
+280-insecure-registry EXIT=2
+########## 300-run ##########
+engine            docker (daemon)
+300-run EXIT=2
+########## 320-cli-contract ##########
+engine            docker (daemon)
+320-cli-contract EXIT=2
+########## 330-exit-codes ##########
+engine            docker (daemon)
+330-exit-codes EXIT=2

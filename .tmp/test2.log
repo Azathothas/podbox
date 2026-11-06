@@ -1,0 +1,98 @@
+   Compiling podbox-buildstate v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-buildstate)
+   Compiling podbox-podvm v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-podvm)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.00s
+     Running unittests src\main.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_buildstate-07f9be21437d308c.exe)
+
+running 7 tests
+test common::tests::json_escapes_match_cpython ... ok
+test tests::objects_sort_keys_with_python_separators ... ok
+test common::tests::sha256_matches_nist_vectors ... ok
+test tests::record_json_matches_python_key_order ... ok
+test tests::record_round_trips_through_the_reader ... ok
+test tests::walk_skips_target_and_pycache_parts ... ok
+test tests::status_names_every_state_on_a_fixture ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+
+     Running unittests src\licenses.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_release_licenses-2c7bea5d54fa6621.exe)
+
+running 6 tests
+test common::tests::json_escapes_match_cpython ... ok
+test common::tests::sha256_matches_nist_vectors ... ok
+test tests::identifier_matches_the_script_character_class ... ok
+test tests::parser_reads_metadata_shapes ... ok
+test tests::inventory_renders_like_cpython_indent_two ... ok
+test tests::licence_stems_match_case_insensitively ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\main.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_podvm-0fbbea3e3de89ba9.exe)
+
+running 3 tests
+test tests::exit_codes_and_parity_parse ... ok
+test tests::help_words_split_like_the_script_greps ... ok
+test tests::table_rows_match_verb_and_flag_prefix ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\workload.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_podvm_workload-1510288db962f76d.exe)
+
+running 4 tests
+test tests::extras_archive_matches_the_lib_shape ... ok
+test tests::medians_need_exactly_three_runs ... ok
+test tests::ratios_print_one_decimal_or_a_dash ... ok
+test tests::checksums_deduplicate_per_class ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\document_state.rs (target\x86_64-pc-windows-msvc\debug\deps\document_state-173560dcf578ce36.exe)
+
+running 3 tests
+test tests::enumerations_match_the_script_expressions ... ok
+test tests::lock_versions_keep_registry_sources_only ... ok
+test tests::members_version_and_deps_read_the_manifest_shape ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\prove_t0211.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_prove_t0211-1fff7b2a743a730d.exe)
+
+running 2 tests
+test tests::mutation_anchors_match_the_current_source_shape ... ok
+test tests::subjects_name_the_two_t0211_tests ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\publish.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_publish-35bac867473e0804.exe)
+
+running 3 tests
+test tests::recipe_arches_read_one_per_line_and_unique ... ok
+test tests::release_tags_match_the_script_expression ... ok
+test tests::reader_and_shapes_cover_gh_answers ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\reconcile.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_reconcile-5694b6cc4e7b0e55.exe)
+
+running 1 test
+test tests::publish_pin_names_the_retained_branch ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\size.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_size-af34efd5af479751.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\verify.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_verify-9ba886c0fa93bfca.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\notes.rs (target\x86_64-pc-windows-msvc\debug\deps\release_notes-99f6f6524d718107.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

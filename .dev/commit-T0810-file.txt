@@ -1,0 +1,3 @@
+cli: file the create memo-directory defect (T-0810)
+
+2026-09-22T02:59:52Z - create and run --detach rename the memo beside a record whose directory nothing makes. Filed open with its red proof; the fix belongs to its own change.

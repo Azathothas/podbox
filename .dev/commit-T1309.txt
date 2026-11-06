@@ -1,0 +1,11 @@
+interpose: forward multi-version symbols to their defaults (T-1309)
+
+2026-09-22T00:37:32Z - T-1309
+
+An unversioned dlsym(RTLD_NEXT, "realpath") returns the GLIBC_2.2.5
+compat, which answers EINVAL where resolved is NULL, and librepo
+always passes NULL. Seven wrapped names carry such pairs; all seven
+now resolve to their defaults through a runtime-resolved dlvsym with
+a dlsym fallback, musl unchanged. The guard fires red on the planted
+code on the rocky payload libc and green after; 240 reads 10 rows,
+10 built and ran with the shipped binary.

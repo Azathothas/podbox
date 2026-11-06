@@ -1,0 +1,15 @@
+complete: name what a device shim displaced (T-0415)
+
+An image shipping a directory, symlink or fifo where a device node
+belongs got a silent outcome: the directory failed inside an unnamed
+row, and the replacements read exactly like fresh shims. The fixup now
+reads each path's shape before asking the kernel. Directories become
+named Failed rows, links come out before the mknod attempt so no node
+can land outside the rootfs, and every replacement names what it
+displaced. The clean paths read byte-identical rows.
+
+Three unit tests pin the directory, symlink and fifo shapes with the
+devices suite at 47 of 47, and the full lane check is green. The 240
+sweep exits 0 at 10 of 10 built and ran with every device row
+identical; one row's mirror-dependent lines dropped out and returned
+on a re-drive, which is the live mirror probe answering per run.

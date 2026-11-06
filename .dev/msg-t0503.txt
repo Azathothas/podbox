@@ -1,0 +1,7 @@
+enter: share one pty-usability predicate for -t (T-0503)
+
+run and both exec paths each carried their own copy of the ptmx check;
+a door sweep found the third copy. One shared predicate in podbox-probe
+answers it now, with a five-case unit test pinning denied, skipped,
+absent and stat-without-open as refusals. Driven on host podman with
+the shipped binary: ptmx usable, run -t exits 0.

@@ -1,0 +1,28 @@
+== conditions
+date              2026-09-21T16:03:30Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
+image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
+boot deadline     120 s
+command deadline  20 s
+
+== 1. the assembly
+  ok: assembly: 8366168 bytes
+/work/experiments/.sweep147-work/vmlinuz-virt: OK
+
+== 2. boot and readiness
+  FAIL: deadline (120 s) waiting for the ready marker
+  qemu's last lines:
+  guest's last lines:
+[    1.246523] Write protecting the kernel read-only data: 24576k
+[    1.247510] Freeing unused kernel image (rodata/data gap) memory: 976K
+[    1.248029] rodata_test: all tests were successful
+[    1.248234] Run /init as init process
+VMR-GUEST-READY
+/bin/sh: can't access tty; job control turned off
+~ # [6n[    1.918260] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x26beefdf923, max_idle_ns: 440795259316 ns
+[    1.919033] clocksource: Switched to clocksource tsc
+
+147 acceptance: FAILED

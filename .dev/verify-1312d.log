@@ -1,0 +1,66 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11413 entries, 333.4 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/ae4c2f489d640128/work
+  workspace: 410 files carry the executable bit from the git index, and 304 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 410 executable file(s) in the index, all already executable.
+== the job
+== disk, before anything is written
+  880736 MB and 65518857 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 2 installed, 0 failed
+everything requested is present.
+== build-interpose (with the T-1312 ceiling)
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+warning: gettid changed binding to STB_WEAK
+
+warning: `podbox-interpose` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 4.37s-rwxr-xr-x 2 root root 328416 Sep 21 12:43 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+== x86_64-unknown-linux-gnu
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+warning: gettid changed binding to STB_WEAK
+
+warning: `podbox-interpose` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 2.29s-rwxr-xr-x 2 root root 308224 Sep 21 12:43 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+== x86_64-unknown-linux-gnu newest need
+GLIBC_2.3
+GLIBC_2.3.4
+GLIBC_2.14
+== x86_64-unknown-linux-gnu UND dlsym/gettid versions
+0000000000000000      DF *UND*	0000000000000000 (GLIBC_2.2.5) dlsym
+== x86_64-unknown-linux-gnu dynamic gettid definition
+gettid not dynamic (local, as intended)
+== x86_64-unknown-linux-gnu UND gettid must be gone (resolved inside the object)
+gettid UND absent
+== x86_64-unknown-linux-gnu export set equals interpose.map
+FAIL: export set differs
+interposes
+list
+== rc=2
+
+exit 2 is the payload's own, passed through unchanged
+  the stopped container and its job directory are kept: wtk-ae4c2f489d640128
+  container wtk-ae4c2f489d640128 is kept with its job directory. Remove it with: wsl-toolkit gc --job ae4c2f489d640128 --apply
+  docker.io/library/rust:1.98.1-bookworm exited 2 in 46.308s
+  the complete output is kept: wsl-toolkit logs ae4c2f489d640128

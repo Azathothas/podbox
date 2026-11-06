@@ -1,0 +1,62 @@
+engine            podman (host machine)
+== conditions
+date              2026-09-19T11:15:59Z
+host kernel       3.6.9-b4195d69.x86_64
+Trying to pull public.ecr.aws/debian/debian@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a...
+Getting image source signatures
+Copying blob sha256:a8ac7f6c67abc236e4c745052c404112b8fab6fe8ac3a329d1ef3b867ad67c71
+Copying config sha256:160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+Writing manifest to image destination
+160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+podbox            podbox 0.1.0
+rung podbox enters chroot
+rung this machine  supervise   (permits, and podbox does not use it)
+rows              10
+row timeout       1200 s
+store             $PODBOX_STORE (a fresh one per run unless set)
+transcripts       experiments/results/sweep/
+control           podman, on any row podbox fails
+
+ROW            LIBC     PM            INSTALL   BUILD   RAN
+--------------------------------------------------------------------------
+alpine         musl     apk           0         0       42
+debian         glibc    apt-get       0         0       42
+ubuntu         glibc    apt-get       0         0       42
+archlinux      glibc    pacman        0         0       42
+almalinux      glibc    dnf           1         127     no-compiler
+almalinux        ⚠ the host: podman failed here too (BUILT_AND_RAN=-).
+                    AlmaLinux 9 - AppStream 4.4 kB/s | 4.2 kB 00:00 Error: Failed to download metadata for repo 'appstream': Yum r
+rocky          glibc    dnf           1         127     no-compiler
+rocky            ⛔ podbox failed and podman SUCCEEDED on the same image.
+                    Rocky Linux 9 - BaseOS 4.1 kB/s | 4.3 kB 00:01 Error: Failed to download metadata for repo 'baseos': Yum repo 
+rocky-minimal  glibc    microdnf      1         127     no-compiler
+rocky-minimal    ⛔ podbox failed and podman SUCCEEDED on the same image.
+                     (microdnf:114): GLib-CRITICAL **: 11:41:25.292: g_str_has_prefix: assertion 'str != NULL' failed error: canno
+fedora         glibc    dnf           0         0       42
+opensuse-leap  glibc    zypper        0         0       42
+voidlinux-musl musl     xbps-install  0         0       42
+
+== rows
+  ran 10, no-pull 0, harness-failed 0
+
+== verdict
+  10 row(s) produced a reading. The table above is the measurement;
+  a difference between rows is a difference between distributions.
+  ⚠ 1 row(s) failed under podbox AND under podman on the same image,
+    so what they measure is this machine rather than either runtime.
+    Their transcripts carry both outputs.
+  transcripts in experiments/results/sweep/
+
+written to experiments/results/distro-sweep.txt
+  ⚠ CHANGED: /c/Users/AjamX/Downloads/podbox/experiments/results/distro-sweep.txt differs from the committed reading in more than its date.
+    @@ -0,0 +1,9 @@
+    +# M5 acceptance: a C toolchain through each distribution own package manager
+    +# TODO/milestones.md T-1106. Taken 2026-09-19T11:45:29Z on kernel 3.6.9-b4195d69.x86_64
+    +# ⛔ no docker.io: ghcr.io, public.ecr.aws and the distributions own registries
+    +rows              10
+    +ran               10
+    +no_pull           0
+    +harness_failed    0
+    +built_and_ran     7
+    +host_not_runtime  1
+  That is a finding. Read it before committing it.

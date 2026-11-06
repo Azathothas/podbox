@@ -1,0 +1,2 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+wsl-toolkit: no transcript for job "wtk-a98b928fd9f3d1ee". wsl-toolkit logs lists what is still here

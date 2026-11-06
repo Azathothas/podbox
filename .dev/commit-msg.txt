@@ -1,0 +1,18 @@
+2026-09-25T11:29:10Z - triage: twenty-two open issues recorded, three entries opened
+
+Twenty-two open issues (29-38, 49-60) each reproduce or are confirmed
+against the tree, with the command, output and exit on record. The
+refusal arms hold; what is missing is new or follow-up work, so twenty
+entries reopen as partial with the decision underneath each, and three
+open new (T-1337 doctor/df/tail, T-1338 perf harness and gate, T-1339
+namespace rung). No issue closes here: each closes with its fix commit,
+drive output and guard.
+
+experiments/353-open-issue-triage.sh drives 37 clauses with isolated
+stores on the lane, exit 0, report committed. 354 drives the full
+lifecycle in one store, exit 0: the 353 cross-clause 125s are the
+one-store-per-clause shape, not product findings. Four citation
+corrections ride in the entries (winquick 0.5.0, exec deliberately
+ungated, onelf tree/ infix, Continue dispatch lines). README rung
+table and the logs parity note fixed in place. Dependabot PR 9
+merged on green CI. Actions audit: nothing deprecated.

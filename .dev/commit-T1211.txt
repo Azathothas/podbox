@@ -1,0 +1,8 @@
+gate: close T-1211, its clearing conditions hold (T-1211)
+
+2026-09-22T00:47:35Z - T-1211
+
+T-1309 fixed and proven: both libdnf rows read 42 and the sweep
+exits 0 with 10 rows, 10 ran, 10 built and ran. The other three
+scripts carry no run or preload path, so their recorded runs stand.
+Host-side change: no source moves, so no lane run belongs to it.

@@ -1,0 +1,33 @@
+Read CI's own log: the tag fired, and three findings own the reds
+
+The v0.1.0-beta.13 tag fired the nightly. Run 36974640619 confirms
+T-1601: the static-build job's interposer, build, no-PT_INTERP and size
+steps are green, and the fmt and clippy job is green. The same run
+reports T-1604's one-of-three detached start in full, and the stderr
+this batch added is what named it: the start exits 126 in five seconds
+with chroot denied and no glibc interposer in the binary, because the
+CI job that runs the workspace tests does not build the interposer
+objects. The refusal is correct for the tier; the assertion is not
+conditional on the tier. T-1604 stays partial on that.
+
+The nightly fails all six legs at the licence-inventory shim with
+"podbox-release-licenses is not built", which is the shim's own error
+shape and not a build failure: it searched two fixed layouts while each
+leg builds into its own target/<triple>/release/. The shim now covers
+the seven triples from the nightly's matrix, checked against it rather
+than kept in step by hand. T-1605 stays partial: the tag fired, the
+publish path has still not executed.
+
+The secrets workflow's first run scanned 375 MB in 19 s and reported
+verified_secrets 0 with 122 unverified, 119 of them Dockerhub shapes
+inside references/ and every verification answered 429 upstream. The
+scope is narrowed to verified, with the measured numbers in the
+workflow rather than a quiet change.
+
+T-1641 files three defects the KVM diagnosis found and no entry owned:
+setup writes into the vendor's backing image with no read-only
+overlay, a run that reaches its timeout orphans an emulator nothing can
+select, and the proof's seam step swallows a non-zero exit so it never
+records a miss. T-1350 records the three guarded runs and the fact that
+qemu-img was absent from the base, which T-1610's Prove clause does not
+name. The generated state page is regenerated for the version bump.

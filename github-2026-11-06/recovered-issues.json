@@ -1,0 +1,1283 @@
+[
+ {
+  "number": 10,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "extract does not re-verify blob digests: a tampered store blob extracts cleanly (invariant gap, not a threat-model bypass)",
+  "body": "### What you did, what happened, what you expected\n\nWhat I did: pulled `alpine:latest` with the shipped beta (`podbox-v0.1.0-beta.1-x86_64-unknown-linux-musl`, sha256 `42e34c3a...51cf2`), then flipped one byte inside the stored layer blob's file-content region in the store, then ran `podbox extract alpine:latest` after removing the existing rootfs. Also drove the same scenario in-process against podbox-extract's own public API (uncompressed tar layer, one-byte content flip).\n\nWhat happened: extraction succeeded and the payload-visible file carried the tampered bytes. The manifest still named the original digest.\n\nWhat I expected: per SECURITY.md \"Invariants\", \"A blob is accepted only when its computed digest matches the manifest\". That invariant does not hold on the extract path.\n\nScope statement up front: this is not a threat-model bypass. SECURITY.md explicitly makes the store the operator's authority and puts post-compromise protection out of scope. The finding is that a stated invariant is not enforced on one path, and the read-side re-verification that store.rs already has (`read_blob`) is not used by extract.\n\n### How to reproduce it\n\nBinary repro (beta asset, any Linux host):\n\n```sh\npodbox pull alpine:latest\npodbox extract alpine:latest          # first extract is fine\n# remove the extracted rootfs but keep the store\nrm -rf \"$HOME/.local/share/podbox/rootfs/sha256_d56c381f961d307a21b3ca004cf1e3910f106644aefb1f43e654c8a56c4fd395\"\n# tamper: flip one byte inside the layer blob's content\nLAYER=\"$HOME/.local/share/podbox/blobs/sha256/e2de96513ba9eb53b431787ec8a65cdde380ac4772a3e4c4b714dcfde2a102b5\"\nprintf 'X' | dd of=\"$LAYER\" bs=1 seek=514 conv=notrunc   # offset inside a file's data block\npodbox extract alpine:latest && echo \"EXTRACTED TAMPERED BYTES\"\n```\n\nIn-process repro (deterministic, uses the crate's own store scaffolding, uncompressed tar so gzip CRC cannot be the thing that catches it): I built a one-entry tar, committed it through `Store::put_bytes` (verified on the way in), flipped the byte at offset 514 in the stored blob, and called `podbox_extract::extract` with a manifest naming the ORIGINAL digest.\n\nResult: `EXTRACTED OK: entries=1 good.txt=\"heLlo\"` where the honest content was `\"hello\"`.\n\n### Code path\n\n- `crates/podbox-extract/src/lib.rs`, `extract_layers()`: opens each layer with `layer::open(blob, c)`.\n- `crates/podbox-extract/src/layer.rs`, `open()`: plain `File::open` + decompressor. No digest recomputation.\n- `crates/podbox-image/src/store.rs`, `read_blob()` DOES re-verify on the way out, but extract never calls it; it goes through `store.blob_path()` and reads the file directly.\n- Net effect: gzip layers are protected only by gzip's own CRC (my corrupted-blob test was caught as \"corrupt deflate stream\" because the flip landed mid-stream), zstd by ruzstd's frame checks, and uncompressed tar layers by nothing at all.\n\n### Suggested fixes (pick one, or scope it explicitly)\n\n1. Hash each blob while streaming it into the decompressor in `extract_layers` and compare against the manifest digest before applying entries. One pass, no extra I/O.\n2. Or call `Store::read_blob` on the extract path and accept the double read.\n3. Or amend SECURITY.md's invariant to say digest parity is enforced at pull time only, so the document stops claiming more than the code does.\n\nMeasured 2026-09-22 on the v0.1.0-beta.1 asset and on a rebuild of commit 1430040. Environment: Linux 6.18.39 x86_64, uid 0 with empty capability bounding set (podbox's own target class of host), rustc 1.98.1.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-22T19:10:40Z",
+  "closed_at": "2026-09-25T08:22:36Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1315"
+  ],
+  "todo_status": {
+   "T-1315": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T08:22:36Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 11,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "committed Cargo.lock is stale vs the manifests: every fresh build dirties the tree, so the binary self-reports -dirty (explains the beta asset)",
+  "body": "### What you did, what happened, what you expected\n\nWhat I did: cloned the repo at the release commit `8d9dbd70`, ran `scripts/build-interpose.sh`, then `cargo build --release --target x86_64-unknown-linux-musl`, then `podbox version --verbose`.\n\nWhat happened: the binary reports `commit: 8d9dbd70...-dirty`, and `git status` shows `M Cargo.lock`, on a tree that was pristine (`git status --porcelain` printed nothing) before the build.\n\nWhat I expected: a build of a clean checkout should leave the tree clean and the recorded commit should be `8d9dbd70...` without `-dirty`.\n\nThis is the explanation for why the released beta asset announces `-dirty`: the release notes say the binary \"reports that commit with `-dirty` for the lane copy, and the crate sources are identical to it\", but no lane copy is needed to produce the suffix. Any fresh build produces it.\n\n### How to reproduce it\n\n```sh\ngit clone https://github.com/Azathothas/podbox && cd podbox\ngit checkout 8d9dbd70b94b4fd703dea051f0c686eb21f9a0b4\ngit status --porcelain | wc -l        # 0\n./scripts/build-interpose.sh          # optional; the lock rewrite is the point\ncargo build --release                 # or --target x86_64-unknown-linux-musl\ngit status --porcelain                #  M Cargo.lock\n./target/x86_64-unknown-linux-musl/release/podbox version --verbose | head -2\n# commit: 8d9dbd70...-dirty\n```\n\n### Mechanism\n\nThe committed `Cargo.lock` is stale against the committed manifests:\n\n- `crates/podbox-cli/Cargo.toml` declares `sha2.workspace = true`, but the committed lock's `podbox-cli` dependency list has no `sha2`.\n- `crates/podbox-image/Cargo.toml` declares `base64.workspace = true`, but the committed lock's `podbox-image` list has no `base64`.\n\nCargo resolves the graph on the first build and rewrites the lock, which modifies a tracked file, which `build.rs`'s `git status --porcelain` sees, so the binary records `-dirty`. Verified end to end on a pristine clone.\n\nSide effect worth caring about: `experiments/120-reproducible-build.sh` compares two builds' hashes in the lane, where the second build starts from an already-rewritten lock; on a fresh clone the lock rewrite is exactly the kind of input drift that measurement exists to catch. T-1004's own text says \"where they do not, name what differed rather than dropping the claim\".\n\n### Fix\n\n`cargo update -p podbox-cli -p podbox-image --workspace` (or just `cargo check` then commit) the lock so it matches the manifests, in its own change. Also worth deciding whether `build.rs` should record dirtiness from tracked-file changes that cargo itself caused; today the field cannot distinguish \"hand-edited source\" from \"cargo rewrote the lock\".\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-22T19:11:00Z",
+  "closed_at": "2026-09-25T08:22:40Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1316"
+  ],
+  "todo_status": {
+   "T-1316": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T08:22:40Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 12,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "no entry path exists when chroot(2) itself is denied: probe says interpose is permitted but every rung, including forced memfd, dies at chroot EPERM",
+  "body": "### What you did, what happened, what you expected\n\nWhat I did: ran the shipped beta on a host where `chroot(2)` itself is denied (uid 0 but empty capability bounding set, seccomp-filtered). Ran `podbox probe`, then `podbox run alpine:latest /bin/echo hi`, then `PODBOX_MODE=memfd podbox run` with a static payload placed in the rootfs.\n\nWhat happened: probe selects `interpose` (\"this machine would permit `interpose`\"), but every entry path dies at `chroot(\".\")` with EPERM, exit 125, including the forced memfd rung, which never uses a path but still chroots first. `podbox start` on a created container fails the same way. Net: on exactly the class of host the README names first (\"restricted environments where uid 0 is present but namespaces, mounts, device creation, and ownership changes may be denied\"), a host that additionally denies chroot cannot launch any payload at all.\n\nWhat I expected: either the ladder to have a rung that reaches the payload without `chroot(2)` (the interposer's own mechanism makes one possible), or the parity/probe layer to refuse `run` up front naming \"chroot denied\" instead of a launch failure after fixups have already run, or a documented statement that chroot-denied hosts are out of scope. Today the README's promise (\"probes the host before choosing an execution rung\") stops one rung short of where this class of host actually is.\n\n### How to reproduce it\n\nOn any host with chroot denied (no CAP_SYS_CHROOT and seccomp filtering it, or a user namespace without it mapped):\n\n```sh\npodbox probe\n#   ... chroot=EPERM\n#   \"this machine would permit `interpose`\"\npodbox pull alpine:latest\npodbox run alpine:latest /bin/echo hi\n#   podbox run: the payload could not be started: chroot(\".\") failed with EPERM (1)\n#   exit 125, after fixups, interpose placement, and the banner have all run\nPODBOX_MODE=memfd podbox run alpine:latest /hello    # static binary copied into the rootfs\n#   \"entering on the memfd rung at PODBOX_MODE's request\"\n#   podbox run: the payload could not be started: chroot(\".\") failed with EPERM (1)\n```\n\nThe entry sequence in `crates/podbox-enter/src/lib.rs` is fchdir/chroot/chdir by design (T-0502), and the ladder rungs (memfd, fuse, tmpfs, rundir, cache) change WHERE the payload bytes come from, not whether a chroot happens. The interposer is already placed into the rootfs and the identity memo machinery exists, but nothing can execute the payload because the runtime refuses to change root.\n\n### What I am actually asking for\n\nOne of:\n\n1. A no-chroot rung (probe-driven like the others): without CAP_SYS_CHROOT, skip the chroot and run the payload against the rootfs with the interposer providing path/ownership virtualization. It is strictly weaker than today's chroot rung and the existing honesty machinery (banner, `--strict`, parity table) is exactly the right place to say so. The refused-rung table in `podbox probe` already has all the legs needed to gate it.\n2. Or an explicit refusal for `run`/`start`/`create` when the entered rung's syscall is denied, naming it up front (before completion fixups mutate the rootfs), instead of a 125 after the work.\n3. Or a line in README/SECURITY.md: hosts that deny chroot(2) are unsupported. That is a defensible scoping decision, but it should be written down, because the probe result on such a host currently reads as if interpose tier will carry it.\n\nEnvironment: Linux 6.18.39 x86_64, uid 0, CapEff 0000000000000000, NoNewPrivs 1, seccomp 2, openat2 present, rustc 1.98.1 (the project's own pinned toolchain). Full `podbox probe` output available on request.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-22T19:11:26Z",
+  "closed_at": "2026-09-25T08:22:44Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1317"
+  ],
+  "todo_status": {
+   "T-1317": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T08:22:44Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 13,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "release integrity: beta.1's build commit failed the repo's own gate, and the released bytes do not reproduce outside the lane while the notes read as if they do",
+  "body": "### The problem\n\nTwo release-integrity gaps on `v0.1.0-beta.1`, both about the release not carrying the evidence the project elsewhere insists on.\n\n**1. The tagged commit failed the repo's own gate.** The tag points at `53b082b`, and the parent `8d9dbd7` is the commit the binary was built from. CI on `8d9dbd7` (run 35755156697, push to main) failed the \"TODO index and citations\" check:\n\n```\ncheck-todo: 1 problem(s)\n  TODO/packaging.md:113: (T-1003) closes without a recorded run: the first\n  unindented line after Prove does not open with `**Done`. TODO/gate.md T-1208.\n```\n\n`main` and the tag's own check runs show green because the fix landed in `53b082b`/`1b8946f` minutes later, but the release's build commit shipped with the repo's own consistency gate red. Given this project's discipline (\"a count that disagrees with the rows cannot reach a commit\"), the beta's binary should have been rebuilt from a commit the gate passed, or the release notes should say the gate state of the commit they name.\n\n**2. Non-reproducing build, stated as reproducible.** The release says the crate sources are identical to the build commit, and T-1004 is closed as \"two builds of one commit match byte for byte\". Both are true in the lane. But:\n\n- Building `8d9dbd7` on a different host (same rustc 1.98.1, same zig 0.16.0 with matching sha256) gives `3df62208d2991f0154c93f69739dcfc821bdaeac4cb886f03f74924b89533cf0`, not the released `42e34c3ae634f2c3e8ea083152aa6350f6be734b03e5ea04362cecc775a51cf2`.\n- Two of my builds on one host are byte-identical to each other, so the tree is deterministic; the cross-host difference is the embedded glibc interposer object: my rebuild reports `interpose-gnu: 7751e26e...`, the released asset reports `96f50922...`, while `interpose-musl` matches exactly (`895b3b07...`). The gnu object embeds the build host's glibc version symbols (`objdump`-derived version gates in `interpose.map`), so it is host-sensitive by construction.\n- The released binary also self-reports `-dirty` (see issue #11: the committed lock is stale, so any fresh build dirties the tree), which the release notes paper over as \"the lane copy\".\n\nNone of this is dishonest in intent; T-1004's wording (\"verify that two builds of the same commit on the same toolchain produce the same bytes\") is technically met. But a reader who downloads the beta and wants to verify the supply chain has no path that ends in the released bytes, and the project's own standard is that claims carry their conditions.\n\n### What you have in mind\n\n- Release notes (or `version --verbose`) should state the gate state of the build commit.\n- State the reproducibility boundary in one line: \"byte-identical within one host/toolchain; cross-host builds differ in the embedded glibc interposer object (digest reported in `version --verbose`)\". The `interpose-musl` object being stable cross-host while glibc is not is itself worth one sentence in T-1004.\n- Consider building the interposer objects against pinned/floating upstream glibc headers rather than the build host's, if cross-host reproducibility is ever wanted for real.\n\n### What you tried instead\n\nChecked whether the difference was my tree (it was not: pristine clone, same commit, `git status` clean before build), toolchain (matched the pinned zig sha256 and rustc), and the lock-rewrite issue (#11), which explains only the `-dirty` suffix, not the byte difference.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-22T19:11:54Z",
+  "closed_at": "2026-09-25T08:22:48Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1334"
+  ],
+  "todo_status": {
+   "T-1334": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T08:22:48Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 14,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "podbox cp cannot touch an image's extracted rootfs, so restricted hosts (and any pre-start workflow) have no checked way to stage or retrieve files",
+  "body": "### The problem\n\n`podbox cp` only works against container records, and `podbox run` leaves no record, so on a host where the payload cannot launch (see issue #12) there is no way to move files in or out of an extracted rootfs except by hand-editing the store directory. That is the workflow gap, but the sharper finding is the reverse: the only interface that reaches the rootfs with containment checks is gated on a successfully started container, which is the one thing restricted hosts cannot always provide.\n\nThe README names CI executors and HPC nodes as target users. Both routinely need to stage files into an image and pull results out, before or without any long-running container.\n\n### What you have in mind\n\nThree options, in increasing scope:\n\n1. Let `podbox cp` accept `image:path` (the extracted rootfs in the store) as well as `container:path`, reusing the existing containment-checked path unchanged.\n2. A `podbox stage <image> <src...>` / `podbox unstage` pair (no docker parity debt; it is podbox's own verb like `probe` and `extract`).\n3. Document the store-layout workaround in docs/ so nobody reads `podbox cp`'s refusal as \"no files in or out, ever\".\n\nThe containment machinery (`podbox-extract`'s `safety` module) is already there to make option 1 safe; nothing new has to be trusted.\n\n### What you tried instead\n\n`podbox cp alpine:latest:/etc/os-release /tmp/x` (refused: \"no such container: alpine\"), `create` + `cp` (works but only where `start` works, which it does not on chroot-denied hosts), and raw writes into `$store/rootfs/<digest>/rootfs` (works, but bypasses every check the project built and requires knowing the digest).\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-22T19:12:19Z",
+  "closed_at": "2026-09-23T05:10:55Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1323"
+  ],
+  "todo_status": {
+   "T-1323": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-23T05:10:55Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 15,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "no store-health verb (verify) and no pull provenance: digests are enforced per-read but nothing sweeps the store or records where bytes came from",
+  "body": "### The problem\n\n`podbox images`/`pull`/`extract` verify digests, but nothing today helps an operator answer \"is the store healthy, and how did the digests get there?\" Two concrete gaps seen while reviewing and testing:\n\n1. **No `podbox verify`.** `Store::read_blob` re-verifies on read, but a sweep command that hashes every blob in the store and diffs against the index would catch store corruption, partial writes, or bit-rot in one command. `experiments/210-store-concurrency.sh` has exactly this loop in its `verify()` shell function, so the logic is already written; it is just not a product verb. `podbox system info` reports store location; there is no store-health surface at all.\n2. **No provenance record for pulled blobs.** Pull writes blobs and an index entry, but no record of which registry, tag, manifest digest, and time a blob came from beyond what the index implies. The corpus standard this repo holds itself to (pinned inputs, recorded provenance, `docs/methodology/experiments.md`) argues for the same on the store: one JSON line per manifest pulled (`registry, repository, tag, manifest digest, pulled-at, podbox version`).\n\n### What you have in mind\n\n- `podbox verify [image|all]`: hash every blob (or one image's blobs), compare against index digests, print one line per mismatch and a summary, exit non-zero on any mismatch. The `verify()` function in experiments/210 is the starting shape.\n- Store provenance as sidecar JSON next to the index (not inside image metadata), so scripts can answer \"where did this rootfs come from and when\" without parsing registry URLs out of nothing.\n\n### What you tried instead\n\n`podbox images`, `podbox inspect`, and `podbox system info`: none report store health or pull provenance. Shell `sha256sum` over `blobs/sha256/*` works for a manual audit (filenames are the digests, which is a nice property worth keeping) but nothing consumes the result.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-22T19:12:42Z",
+  "closed_at": "2026-09-25T08:22:52Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1321"
+  ],
+  "todo_status": {
+   "T-1321": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T08:22:53Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 16,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "four parity-table gaps have no TODO entries: save/load/import, logs -f, cp directories, launcher signal forwarding",
+  "body": "### The problem\n\nFour workflow features are named as unimplemented in the parity table but have no TODO entry tracking them, so they can silently stay missing across milestones. Checked against `TODO/INDEX.md` on 2026-09-22 (commit 1430040), each has no entry anywhere in TODO/:\n\n1. **`docker save` / `load` / `import`**. The parity rows say it plainly: `save`: \"the store holds OCI blobs and nothing exports them yet\"; `load`: \"`pull` is the only way into the store\"; `import`: nothing builds a record from a rootfs tar. For the named audience (CI executors, HPC nodes, air-gapped hosts) registry-only image ingress is a real limit: a host with no registry reachability cannot receive an image at all, and there is no way to hand a podbox-built store to another host. Even one direction (an `OCI-layout` directory or tarball in/out) would close most of it, and the store is already content-addressed, so `save` is close to a tar of `blobs/` + index + manifest.\n\n2. **`logs -f`**. The `logs` row says \"`-f` is not implemented (T-0605)\". T-0605 covers capture-at-spawn; following (a tail loop or inotify on the container's log file, bounded like the rest of the lifecycle verbs) has no entry. Automated callers polling `logs` in a loop is the current workaround.\n\n3. **`cp` of directories**. \"one file at a time, either way\". A recursive option with the same containment checks (the extract safety module already has the walker) has no entry.\n\n4. **Signal forwarding to the payload on launcher shutdown**. `stop`/`kill` reach the payload by pidfd, and the `stop` row honestly says reparented grandchildren are out of reach. But the inverse case, the launcher itself receiving SIGINT/SIGTERM (Ctrl-C on a foreground `podbox run`) and forwarding to the payload before exiting, has no entry either way. If the design is \"the payload dies with the launcher via PR_SET_PDEATHSIG\" (T-0603 exists), then one parity-table sentence naming that mechanism would close the question; if not, it needs an entry.\n\nNone of these four is a complaint about honesty; the parity table is admirably exact about each one. The gap is bookkeeping: RULES.md says nothing closes as \"out of scope\", but these are not recorded as open either, so no future session will find them in the work order.\n\n### What you have in mind\n\nFour entries (or one entry with four halves) in TODO/cli.md / TODO/image.md, P2-P3, each naming the parity row it would upgrade and the acceptance command shape. The point is that the TODO index is the only work order, and these four are only visible in code comments today.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-22T19:13:04Z",
+  "closed_at": "2026-09-25T08:22:57Z",
+  "comments": null,
+  "comment_count": 3,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1318",
+   "T-1320",
+   "T-1323",
+   "T-1335"
+  ],
+  "todo_status": {
+   "T-1318": "done",
+   "T-1320": "done",
+   "T-1323": "done",
+   "T-1335": "done"
+  },
+  "todo_note": "T-1318/T-1320/T-1335 cite issue 16 as Source; T-1323 by content (cp directories)",
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T08:22:57Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 17,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "experiments/210 misclassifies registry HTTP 429 as a store-contract failure, and its prune check cannot distinguish a chroot-denied host from a deleted rootfs",
+  "body": "### What you did, what happened, what you expected\n\nWhat I did: ran `experiments/210-store-concurrency.sh` twice on a restricted host (uid 0, chroot denied, kernel 6.18.39), then re-ran a modified copy that preserved its work directory so the failing worker's output could be read.\n\nWhat happened: exit 1 with `FAIL: a worker exited non-zero for a reason that is not the network`. The failing worker's actual output was `HTTP 429: TOOMANYREQUESTS: Rate exceeded` from `public.ecr.aws`. The harness's network-failure grep covers `connect|resolve|timed out|tls|certificate`, so a rate-limit (an HTTP-level refusal, not a connection failure) reads as a contract failure.\n\nWhat I expected: a 429 from the registry to read as SKIP (quota), same as a connect failure. The script's own comment says \"A network failure is not a contract failure, and the two must not be collapsed\"; a rate limit is on the network side of that line.\n\nSecond, same family: check 2's FAIL lines (`the payload died while a prune ran`, `prune did not name what it skipped`) are also environmental on a chroot-denied host: the holder payload exits 125 because `chroot(\".\")` is denied, which looks identical to prune having deleted its rootfs. The script cannot currently distinguish \"holder died because prune removed its rootfs\" from \"holder died because it could not start at all on this host\".\n\nReproducibility: 125 appeared once in check 1's eight workers on each of three runs (position varied: w4, w3, w2), consistent with one worker hitting the rate limit each time, not with a store race (which would not show an HTTP 429 in the failing worker's transcript).\n\n### How to reproduce it\n\n```sh\n./experiments/210-store-concurrency.sh      # on a host behind an ECR rate limit\n# exit 1, \"FAIL: a worker exited non-zero for a reason that is not the network\"\n# keep the work dir (the script rm -rf's it on EXIT) and read the failing w*.out:\n#   podbox: GET https://public.ecr.aws/v2/docker/library/alpine/manifests/3.19:\n#           HTTP 429: TOOMANYREQUESTS: Rate exceeded\n```\n\n### Suggested fix\n\nAdd `429|TOOMANYREQUESTS|rate` to the network-failure pattern in check 1, and have check 2 classify a holder that died with exit 125 before prune ran (its banner is in the log) as SKIP on hosts that cannot launch payloads, rather than FAIL. Both changes make the harness honest about what it measured, which is the script's own stated standard.\n\nEnvironment: Linux 6.18.39, podbox 0.1.0 built from 1430040, 3 runs, one 429 each in checks 1; check 2 FAILed all 3 runs for the chroot reason above.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-22T19:13:28Z",
+  "closed_at": "2026-09-25T08:28:05Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-0210"
+  ],
+  "todo_status": {
+   "T-0210": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T08:28:05Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 18,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "README quick start omits build-interpose.sh, so the first-run binary declines every dynamic payload; and no doc maps probe output to expected run behavior",
+  "body": "### The problem\n\nThe README's quick start cannot produce a binary that can run payloads on a glibc host, and nothing on the page says so:\n\n```sh\n./scripts/common/bootstrap-env.sh rust bloat cc zig tools\ncargo build --release --target x86_64-unknown-linux-musl\n./target/x86_64-unknown-linux-musl/release/podbox probe\n./target/x86_64-unknown-linux-musl/release/podbox pull alpine:latest\n./target/x86_64-unknown-linux-musl/release/podbox run alpine:latest /bin/echo hello\n```\n\nThe interposer section below it says the interposer \"builds once per libc\" via `./scripts/build-interpose.sh`, but does not say that WITHOUT that step, `cargo build` embeds two empty placeholder objects and every `run` of a dynamically linked payload will decline with \"interpose: declined\" (honestly named, but still a decline a first-time user cannot distinguish from breakage). On the rung most hosts select, the interposer is not optional; the quick start treats it as an aside.\n\nSecond gap in the same page: the rung ladder (\"would permit interpose\" vs \"enters chroot\") and `PODBOX_MODE` are the two things a new user is most likely to misread (my own first run printed a 20-line banner and then failed to start the payload; the reason was my host, not podbox, but the README gave me no way to know that). One paragraph naming the three common cases (namespace host, chroot-capable host, chroot-denied host) and what `run` does on each would prevent it.\n\n### What you have in mind\n\n- Quick start step order: `build-interpose.sh` before `cargo build`, with one line on what a binary without embedded objects can and cannot do (`podbox system info` already prints \"interposer: ...\" and is the natural place to point).\n- A three-line \"which rung will I get\" table under Status, keyed on the probe's own output, so the reader can map their probe result to expected `run` behavior before their first payload.\n\n### What you tried instead\n\nFollowed the quick start verbatim on a fresh machine, hit \"interpose: declined for ... statically linked\" for a static payload (correct) and chroot EPERM for the default payload (my host's refusal, correctly reported by the banner, but unexplained by the README).\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-22T19:13:48Z",
+  "closed_at": "2026-09-23T05:14:20Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1324"
+  ],
+  "todo_status": {
+   "T-1324": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-23T05:14:20Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 29,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "[T-1112] Deferred: Windows guest refused by name instead of implemented",
+  "body": "## Summary\nT-1112 is partial, not done. It closes on the refusal arm of a dual-arm Prove. No guest path exists. This issue tells the implementer to study winquick first, try it, then implement the same shape on podbox's machine tier.\n\n## Study winquick first (required before code)\nSource: https://github.com/carlbomsdata/winquick, v0.5.1, Apache-2.0. Read in this order, then try the build below.\n\n1. docs/architecture.md: two disks and no network. QEMU runs as a child process, never linked (GPLv2 boundary). Root disk is a disposable qcow2 overlay. Mailbox disk carries the command in and the results out. No SSH, no WinRM, no ports, no shared folders.\n2. src/platform.rs: host decides guest. macOS arm64 goes qemu-system-aarch64 -M virt -accel hvf -cpu host to Windows ARM64. Windows x64 goes qemu-system-x86_64 -M q35 -accel whpx -cpu Nehalem to Windows x64. Linux goes -accel kvm with host CPU. Test the_accelerator_is_never_tcg asserts hvf, kvm, or whpx only. Software emulation is not the product.\n3. src/qemu.rs boot_command: NVMe root plus NVMe mailbox (raw, writethrough) plus workspace plus artifacts plus capability disks, ramfb with display none, rtc localtime, no-reboot, serial log, QMP socket, optional -incoming for prepared state. NVMe because Validation OS has stornvme inbox; virtio-blk would need a driver before the guest can read its boot disk.\n4. src/mailbox.rs plus guest/agent.cmd: 64 MiB MBR FAT32 image. Host writes WQMARK.TXT plus WQCMD.CMD plus WQGO.TXT with a nonce. Guest cmd.exe agent (AutoRun hook, WQ_ACTIVE guard) probes drives for the marker, remounts by volume GUID, runs the command in a child cmd.exe with stdin from NUL and stdout plus stderr redirected, writes WQOUT.TXT plus WQERR.TXT plus WQCODE.TXT with nonce, dismounts to flush, waits for the next command. WQCODE appearing is completion. No streaming by design; output arrives at shutdown.\n5. Image pipeline in docs/architecture.md: user supplies Microsoft Validation OS ISO (about 2.4 GB, Microsoft licence, never redistributed). Setup converts VHDX to raw, adds wqagent.cmd plus AutoRun hive key with ntfscp plus hivexsh without mounting, writes base.qcow2 read-only. Prepared guest freezes booted RAM plus disk plus vars plus mailbox plus ready.json fingerprint. Warm path clones four files (APFS clone, about 4 ms), writes command, restores with -incoming, runs, kills, deletes. Cold path boots in about 11 s once. Failure layers fall back from resume to rebuild to cold boot.\n6. Host support in README plus docs: macOS Apple Silicon HVF is the only supported host (100 runs cmd ver p50 310 ms). Windows WHPX boots but cold-boots every run (resumed guest waits 212 s for a 20 s timer, needs patched QEMU for migration blocker). Linux KVM builds and doctor reports correctly, but no Windows guest has been booted on physical Linux hardware, so guest execution is unverified.\n\n## Try it (measured here, 2026-09-25)\nBuilt from a clean clone on Linux x86_64 in 16.8 s with cargo build --release. Ran the built binary:\n\nwinquick doctor reports: cpu x86_64 kvm ok, os linux, qemu-system-x86_64 present at /usr/bin/qemu-system-x86_64 version 10.2.3 but too old (needs 11.0 or newer for NVMe migration, else every run boots cold), ntfscp plus ntfscat plus hivexsh missing (setup only), no Windows runtime (needs winquick setup with Microsoft ISO plus accept terms), UEFI firmware present at /usr/share/qemu/edk2-x86_64-code.fd, session none running, free space ok. /dev/kvm and /dev/net/tun are absent on this host. Exit 0 with 5 problems listed.\n\nSo the Linux path exists in the tree but is not runnable here: no accelerator, old QEMU, no helper tools, no licensed image. This is the exact constrained host podbox targets, and it is why a TCG shortcut is tempting and wrong: winquick rejects TCG as a different product (too slow to be interesting), and its Linux guest path is already the unverified one.\n\n## What podbox actually does\nCommit e4852f8 closes T-1112 with lifecycle::ensure_linux_guest at crates/podbox-cli/src/lifecycle.rs:1558, called from run.rs prepare for the requested platform and the stored record, from exec.rs for both checks, and from the start path. Linux passes, anything else exits 125 naming os and arch and the missing leg. Verified on beta 0.1.0-beta.7 (podbox-x86_64, sha ed6a6401):\n\npodbox run --platform windows/amd64 any/image:tag cmd /c ver\npodbox run: windows/amd64 is not a Linux guest. podbox runs Linux guests only: the chroot tier shares the host kernel and the machine tier boots Linux images. No windows guest support exists (TODO/milestones.md T-1112), so there is nothing to pull or enter for this platform\nexit 125, no registry contacted, no store mutation.\n\nUnit test a_non_linux_guest_is_refused_by_name watches fail then green. No QEMU Windows driver exists. The Prove has allowed either arm since 3c1211a, so the close is green per spec and partial per this issue.\n\n## How to reopen properly\n1. Reopen T-1112 as partial. Keep the title. Add the decision underneath, never edit the Premise line (RULES section 5).\n2. First target is Linux KVM Windows guest following winquick, not TCG: qemu-system-x86_64 -M q35 -accel kvm -cpu host, NVMe root overlay plus FAT mailbox plus workspace disk, cmd.exe agent via AutoRun, qcow2 backing chain with prepared state via migration, -nic none, base image read-only with per-run overlay discarded by Drop guard, streams plus exit code passed through with CRLF to LF as the only transform.\n3. Prerequisites in order: QEMU 11 or newer plus qemu-img on PATH (T-1301 leg 1 plus leg 6), KVM opened not stated (T-1301 leg 2), UEFI code plus vars present (check edk2 names plus distro alt names as winquick does), NTFS plus hive helpers or a mount-free writer for setup, licensed image fetch with accept-terms gate (never redistributed, never committed, gitignore backstop), RLIMIT_FSIZE plus space checks (T-1301 legs 3 and 5) before a guest starts.\n4. Keep pull allowed per T-0212 (fetch bytes stays allowed, enter refuses until the driver lands).\n5. Prove update: winquick run equivalent through podbox returns the guest ver string plus exit code on a KVM host with the image installed, or exits 125 naming the exact missing leg (no KVM, QEMU too old, no runtime, over ceiling) with nothing fetched or mutated. Add a fixture that denies KVM the way T-1317 does for chroot, so the refusal arm stays driven where KVM is absent.\n\n## Triage\nRepro: one run command above with an isolated PODBOX_STORE. Fix area: new podvm windows driver beside T-1303 plus T-1304, machine legs in crates/podbox-probe, lifecycle gate kept as the last resort. Risk if wrong: slow TCG guest claimed as equivalent, or licensed image redistributed. Cost of refusal today: correct on this host, incomplete as a closed entry.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-25T09:44:03Z",
+  "closed_at": "2026-09-27T03:08:38Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1112"
+  ],
+  "todo_status": {
+   "T-1112": "partial"
+  },
+  "todo_note": "title prefix [T-1112]; that entry is still partial",
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-27T03:08:38Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed, but its task T-1112 is still partial; TODO history cites it by number"
+ },
+ {
+  "number": 30,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "[T-1317] Deferred: chroot-denied hosts refused up front, no no-chroot rung",
+  "body": "## Summary\nT-1317 is partial, not done. Up-front refusal is the correct last resort and the wrong whole answer. On any host where chroot(2) is EPERM, run plus create plus start exit 125 naming chroot before any fixup. No execution path remains, including forced memfd.\n\n## Expected\nTODO/enter.md T-1317 Problem: probe selects interpose then every entry path dies at chroot EPERM after work. The hosts in the README first paragraph are the audience. Expected per operator brief: a no-chroot rung that still runs the payload, or an automatic machine-tier bridge where T-1301 legs hold. References: TODO/packaging.md T-1003 ladder, TODO/deps.md T-0909 vendored userland-exec, references/VHSgunzo__userland-execve, references/qaidvoid__onelf ladder order.\n\n## Actual\nOne helper lifecycle::ensure_chroot_usable at crates/podbox-cli/src/lifecycle.rs:1579 gates run.rs prepare, exec, create, and start. Message names chroot(2) denied with the probe leg and the T-1317 reference. Approach explicitly lists a no-chroot rung as out of scope with the ladder rewrite untouched. Decision picks up-front refusal.\n\nVerified on beta 0.1.0-beta.7 in this sandbox (probe chroot EPERM, rung interpose, isolated store):\n- pull plus extract alpine:3.20 work (517 entries, sidecar with gid 42).\n- run --rm echo hi exits 125 chroot denied, stdout empty.\n- PODBOX_MODE=memfd with a static payload exits 125 with the same chroot message. Every ladder rung still enters through chroot, so the force changes nothing.\n- create exits 125 with the same message, no record, ps empty, start reports no such container.\n- strict run exits 125 at the same gate.\nPrior close comment on issue 12 confirms the same on a second host shape (uid 966, empty caps, seccomp 2) and sharpens the memfd note: dynamic payloads refuse before chroot on linkage, static payloads enter the rung then die at chroot.\n\nGreen per spec, partial per operator intent. The hosts that need podbox most get zero entering verbs.\n\n## How to reopen properly\n1. Reopen T-1317 as partial. Keep the title. Note the decision underneath per RULES section 5.\n2. Implement one no-chroot entry: userland-exec plus interposer without chroot for dynamic payloads, or memfd exec without chroot for static payloads, or automatic machine-tier bridge where T-1301 legs hold. Keep the honesty split: banner names the entered rung and what it does not isolate.\n3. Keep the up-front gate as the last resort after all rungs fail, with the tried rungs named.\n4. Prove update: on a chroot-denied fixture, run --rm alpine echo hi exits 0 with hi on stdout and the banner naming the entered rung, plus the current refusal test as the strict arm where no rung can run. Assert no rootfs mutation on the refusal path as the existing lane drive does (93 files verified).\n\n## Triage\nRepro: probe shows chroot EPERM, then run plus create as above with an isolated store. Area: crates/podbox-enter entry sequence, crates/podbox-cli lifecycle gate, T-1003 ladder. Risk: weaker isolation must be bannered, never silent. Related closed issue 12 holds the first measurements; this issue holds the missing rung.\n\n\n## Target host: this denied sandbox is the product, not an edge case\nREADME Which rung a host gets says chroot denied leads to refusal with the machine tier unaffected. On the exact host podbox is made for, that leaves zero runnable paths. Measured on beta.7 with an isolated store:\n\n- probe: rung interpose, chroot(/tmp) denied EPERM, ptmx stat plus open denied ENOENT, supervise legs ok plus EPERM plus EPERM, machine legs qemu 10.2.3 ok plus kvm ENOENT plus fsize ok plus tun ENOENT plus space ok plus accel tcg present.\n- run --rm alpine echo hi exits 125 chroot denied, stdout empty.\n- run --podbox-tier=machine --rm alpine echo hi exits 125 machine tier refused naming kvm plus tun.\n- podvm name run --rm alpine echo hi exits 125 with the podvm machine-tier line plus the same kvm plus tun refusal.\n\nSo the chroot family refuses and the machine family refuses on the same host the README calls the audience. The unaffected clause is currently false here. Acceptance for the reopen must name this shape: one of the two families runs on chroot EPERM plus kvm ENOENT plus tun ENOENT plus ptmx ENOENT, with the banner naming the entered rung and what it does not isolate. Refusal stays only where neither family can run, with both refusals named.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-25T09:44:15Z",
+  "closed_at": "2026-09-25T13:35:00Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1317"
+  ],
+  "todo_status": {
+   "T-1317": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T13:35:01Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 31,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "[T-1003] Partial: launch ladder sketched rungs and missing embedded rootfs",
+  "body": "## Summary\nT-1003 is partial, not done. Its own build-notes table says rundir and cache are sketched and refused as not implemented, FUSE and tmpfs are sketched and probe-fed only, and the single-file embedded-rootfs byte store is out of scope. Only the env-var pair plus memfd is rung-complete.\n\n## Expected\nTODO/packaging.md T-1003 Problem: a runtime that starts only from a filesystem cannot start where writable paths are full (64 MiB tmp). Premise copies the onelf order: memfd, FUSE, ephemeral tmpfs, private rundir, persistent cache, each forced mode refusing by name rather than falling through (references/qaidvoid__onelf crates/onelf-rt/src/main.rs:128 plus 216-218 plus 235-237 plus 255-257 plus 261-273). Plus ONELF_MODE versus ONELF_ACTIVE_MODE split for nesting, plus one file with an embedded rootfs.\n\n## Actual\nDone 2026-09-22 wires PODBOX_MODE request plus PODBOX_ACTIVE_MODE result, memfd stage plus exec through execveat AT_EMPTY_PATH, Availability fed from probe (FUSE from the open row, tmpfs from attach, rundir plus cache down until wired), scrub at Plan::env_for plus spawn. Table at TODO/packaging.md lines 193-208 plus line 231 at commit 3ac5a72: FUSE plus tmpfs sketched, rundir plus cache sketched and refused, byte store out of scope as a named follow-up. Driven by 163-ladder-drive.sh on a chroot-capable lane: forced memfd over debian busybox-static enters with ACTIVE_MODE=memfd, default reports chroot, unknown word plus exec scope plus dynamic payload refuse at 125.\n\nOn a chroot-denied host every rung refuses at the T-1317 gate first, so the ladder changes where payload bytes come from, not whether entry happens. PODBOX_MODE=rundir here exits 125 at the chroot gate, not at the rung message; the rung message is observable only where chroot holds. Version --verbose shows the 7-line inputs correctly (commit 4f087d0, both interposer digests, crt-static yes).\n\n## How to reopen properly\n1. Reopen T-1003 as partial. Keep the table as the work list.\n2. Wire rundir (private run directory under the writable store) and cache (persistent, opt-in via PODBOX_CACHE=1), then FUSE where open(/dev/fuse) holds and tmpfs where attach holds, each with probe-fed Availability plus unit tests as memfd has.\n3. Build the byte store: one file with an embedded rootfs, keeping the nesting scrub already in place.\n4. Prove: extend 163-ladder-drive.sh to drive each rung forced plus default order, with refusal arms naming reason at 125.\n\n## Triage\nRepro: read the table plus run PODBOX_MODE=rundir on a chroot-capable host. Area: crates/podbox-enter ladder plus memfd plus abi, crates/podbox-cli ladder plus run plus exec plus lifecycle. References: onelf ladder, VHSgunzo sharun plus ulexec for the static-from-nowhere half only. Related issue 30 holds the chroot mask.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-25T09:44:26Z",
+  "closed_at": "2026-09-25T15:21:42Z",
+  "comments": null,
+  "comment_count": 1,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1003"
+  ],
+  "todo_status": {
+   "T-1003": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T15:21:42Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 32,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "[T-0413] Partial: no proc fixture, banner only",
+  "body": "## Summary\nT-0413 is partial, not done. The banner half shipped. The fixture half was measured out and nothing ships. Payloads needing /proc still fail by design.\n\n## Expected\nTODO/complete.md T-0413 Problem: a chroot has no /proc unless something mounts one, mount is refused everywhere podbox targets, nothing tells the payload, and the failure names the script line not /proc. Premise measured in the nix-experiment report section 5.3: bash process substitution through /dev/fd/N into /proc/self/fd fails, plus a static binary reading /proc/self/exe fails as a corrupt install. Expected per operator brief: an honest workaround that still runs payloads, or a scoped emulation with a tally as T-0708 does for mknod plus mount plus unshare plus clone. References: talaria0101 nix-experiment report, TODO/enter.md, TOOL.md section 10 (static fixture only for readers, fail loudly for live interfaces).\n\n## Actual\nDecision 2026-09-22: no static fixture ships. /proc/self/fd entries are per-process kernel state, so a static directory answers wrongly where it looks right. Chroot must_never_claim names a /proc filesystem, entry_banner adds one sentence naming process substitution plus /proc/self paths with /dev/fd as the error name. Run plus both exec paths plus probe share one constant. Three unit tests pin the banner. Lane drive in 155-proc-absence.sh clause 4: debian row with cat <(echo hi) must fail at payload exit 1, bash naming /dev/fd beside the banner naming /proc. That is a named failure, not a run.\n\nVerified here as far as this host allows: the banner path is not reachable because no run reaches a payload (chroot denied), but the adjacent probe rows read correctly (readdir root denied EACCES, by-name open ok). Green per TOOL section 10, partial per operator intent. It keeps the nix acceptance pinned to the pipe-era tool pair (T-1112 plus T-1111 pin 2.2.2 with 22.05) because proc-era tools cannot run.\n\n## How to reopen properly\n1. Reopen T-0413 as partial. Keep the title and the measured-out note underneath per RULES section 5.\n2. Implement one honest emulation: interposer answers for /proc/self/fd/N from tracked descriptors, /proc/self/exe from the staged fd or a host passthrough where present, mount-table readers from a generated fixture built from the real topology (TOOL section 10 allows this half). Count and banner it as T-0708 does.\n3. Prove: extend 155-proc-absence.sh with a payload using process substitution that succeeds through emulation, plus the current failure arm where emulation cannot apply, each naming what answered.\n4. Keep never mount and never claim to have mounted.\n\n## Triage\nRepro: on a chroot-capable host run the clause 4 payload. Area: crates/podbox-complete, crates/podbox-interpose map plus /proc exclusion in T-0707, probe banner. Risk: a fixture that looks like proc but answers wrong is worse than absent, so emulation must be exact or refused.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-25T09:44:39Z",
+  "closed_at": "2026-09-26T04:23:54Z",
+  "comments": null,
+  "comment_count": 1,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-0413"
+  ],
+  "todo_status": {
+   "T-0413": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-26T04:23:54Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 33,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "[T-0414] Partial: probe legs landed, enumeration remedy not taken",
+  "body": "## Summary\nT-0414 is partial, not done. The three probe legs shipped. The remedy the Decision leaves open was explicitly not taken.\n\n## Expected\nTODO/complete.md T-0414 Problem: the probe asks what the runtime permits, a third host shows two denials the other two do not, and podbox asks about neither, so it fails pointing elsewhere. Premise measured on that host: readdir(/) answers EACCES while open by name works (a launcher died on find / -mindepth 1), /dev/ptmx absent with devpts never mountable (T-0503 subject), mkdir plus creat at / top denied so a rootfs must live inside a writable path. Approach: three legs each with its own verdict (list root, open entry by name, create at top) plus the ptmx stat-plus-open pair, each with its own errno, could-not-run distinct from denied.\n\nExpected also: code that avoids the wall (no enumeration of handed directories, fallback to by-name open, rootfs under a writable store path by default) or a named denial at the call site.\n\n## Actual\nDone 2026-09-22: readdir(/), open(/bin) by name, and creat(/) plus the ptmx pair joined the Census set in the outer environment before chroot, with a structural unit test pinning names plus order plus group plus flags. Driven by 155-proc-absence.sh exit 0 with every row printing name plus verdict plus errno. The entry states the remedy is not taken here and the probe-first half is what landed.\n\nVerified on beta 0.1.0-beta.7: probe shows readdir(/) denied EACCES, open(/bin) ok, creat(/) denied EACCES, ptmx stat plus open denied ENOENT. Legs exist and read correctly. No enumeration-avoidance change rode with the close.\n\n## How to reopen properly\n1. Reopen T-0414 as partial. Keep the title and the open-remedy note as the task.\n2. Audit podbox-complete plus podbox-enter for listings of handed paths, replace with by-name opens where possible, default the rootfs under the writable store path, and refuse by name where a listing is required.\n3. Prove: extend 155-proc-absence.sh with a payload that lists / on an EACCES host and still runs (or refuses naming readdir EACCES with the remedy), plus a unit test for the enumeration-free path.\n\n## Triage\nRepro: probe --json rows for readdir plus open plus creat plus ptmx. Area: crates/podbox-probe probes.rs Census plus call sites that enumerate. References: talaria0101 nix-experiment seccomp-probe-output plus report, T-0503 for the ptmx leg.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-25T09:44:53Z",
+  "closed_at": "2026-09-26T04:23:55Z",
+  "comments": null,
+  "comment_count": 1,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-0414"
+  ],
+  "todo_status": {
+   "T-0414": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-26T04:23:56Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 34,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "[T-0606] Deferred: supervise tier refused whole, no degraded fallback",
+  "body": "## Summary\nT-0606 is partial, not done. The tier refusal shipped. No degraded supervision exists. Where process_vm_readv or ptrace is EPERM the tier is gone entirely.\n\n## Expected\nTODO/supervise.md T-0606 Problem: supervise is the only rung whose failure is silent by default. Its listener keeps working after the channel dies, and per-syscall Continue reports success for mediation never performed. Premise traced in multikernel sandlock at notif.rs:1015-1034 through process_vm_readv, read_child_mem, chroot dispatch read_path None, and cow dispatch Continue at eight sites, with dry-run printing no changes while files change. Issue 27 plus PRs 28, 29, 33, 35 settle PTR lays SEIZE plus INTERRUPT before Continue, and ptrace is filtered here. Expected per operator brief: degraded supervision that still tracks lifecycle (pidfd plus waitid as T-0601 already does, plus a poll fallback) with the banner stating mediation is off, rather than no tier. References: references/multikernel__sandlock, TOOL.md 4.1 plus 6.6, TODO/probe.md T-0109 third state.\n\n## Actual\nProbe Group::Supervise with SUPERVISE_LEGS (seccomp NEW_LISTENER, live process_vm_readv at own memory, ptrace TRACEME) plus a machine-style assessor that refuses the tier naming every missing leg. Selection enters the tier only where all three read ok, else a named Rejection with fall through. The never-fall-back half is an audit: no notify mediation exists in the tree (podbox-supervise is lifecycle in launcher.rs plus table.rs), so there is nothing per-call to remove and the pre-entry refusal enforces the Decision.\n\nVerified on beta 0.1.0-beta.7: tiers.supervise reads ok plus EPERM plus EPERM with both missing legs named. No fallback supervision runs. Lifecycle verbs needing entry refuse earlier at the chroot gate on this host, so the split cannot be observed here beyond ps from the table and logs --help showing -f.\n\nGreen per spec, partial per operator intent. It removes lifecycle supervision where only mediation is missing.\n\n## How to reopen properly\n1. Reopen T-0606 as partial. Keep the title and add the fallback design underneath.\n2. Split mediation (notify) from supervision (pidfd plus waitid plus launcher state as T-0601 plus T-0602 plus T-0604): refuse mediation where legs are missing, keep supervision with a banner stating no syscall mediation.\n3. Prove: extend the probe Prove with supervision available where pidfd plus waitid hold even when notify legs are denied, plus lifecycle loop 230 still 20 of 20 on such a host.\n\n## Triage\nRepro: probe --json tiers.supervise. Area: crates/podbox-probe probes.rs plus supervise.rs plus report selection. Risk if wrong: silent Continue-style false success. Guard: the banner must state mediation off wherever the fallback runs.\n\n\n## Target host note\nOn the target sandbox supervise legs read ok plus EPERM plus EPERM. Mediation is correctly refused there, but pidfd plus waitid supervision must remain for the chroot or machine family that issue 30 plus issue 35 make runnable. Refusing all supervision on this shape removes lifecycle tracking where only mediation is missing.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-25T09:45:08Z",
+  "closed_at": "2026-09-25T15:42:23Z",
+  "comments": null,
+  "comment_count": 1,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-0606"
+  ],
+  "todo_status": {
+   "T-0606": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T15:42:23Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 35,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "[T-1301] Deferred: machine tier needs all legs, no TCG without KVM and tun",
+  "body": "## Summary\nT-1301 is partial, not done. Six machine legs plus a refuse-where-any-missing rule shipped. On hosts without /dev/kvm or /dev/net/tun the whole machine tier is refused even though QEMU TCG is present.\n\n## Expected\nTODO/podvm.md T-1301 Problem: podbox reports a rung never stronger than achieved, the machine tier had no probe. Approach adds one leg per fact: emulator version, /dev/kvm OPENED not stated, RLIMIT_FSIZE via getrlimit, /dev/net/tun opened the same way, writable space blocks plus inodes, and asking the emulator which accelerator it will use via qemu -accel help (cubic-vm cubic PR 538 plus issue 6 reached this independently). Never infer one leg from another. Expected per operator brief: TCG runs without KVM (slower but identical output) and without tun (user-mode networking, unix sockets, FIFOs as the non-goals already hint). Refuse only where no accelerator at all or no space. References: talaria0101 vm-research podvm-spec sections 0 plus 3, cubic-vm cubic PR 538.\n\n## Actual\nSix legs in Group::Machine plus machine.rs refusing the tier naming every missing leg, report carrying tiers.machine.legs with null where a row is absent. Prove asserts length plus no null verdict.\n\nVerified on beta 0.1.0-beta.7: qemu-system-x86_64 --version ok 10.2.3, open kvm denied ENOENT, RLIMIT_FSIZE ok 1e9, open tun denied ENOENT, space ok, accel help ok with tcg plus mshv plus kvm. Refusal names both missing legs. No guest runs. Decision cites the architecture ladder (a weaker mode never satisfies a stronger request) for refusing a reduced tier. Note the tension with winquick: winquick explicitly refuses TCG as a different product, so a podbox TCG guest must be bannered as emulation with no hardware isolation, not claimed as equivalent.\n\n## How to reopen properly\n1. Reopen T-1301 as partial. Keep the title and add the TCG-without-KVM design underneath.\n2. Split legs into required (emulator present, accelerator list includes tcg, space, fsize) versus accelerated (kvm) versus networked (tun): TCG plus user net runs with a banner stating no hardware isolation and no tun. The Premise already states a TCG boundary is the emulator process, not hardware.\n3. Prove: on a kvm-less but tcg-capable host, tiers.machine.refusal is null for the TCG profile, plus 146-initramfs boots with its ready marker via TCG.\n\n## Triage\nRepro: probe --json tiers.machine. Area: crates/podbox-probe probes.rs MACHINE_LEGS plus machine.rs assessor. Risk: must never claim hardware isolation under TCG. Related issue 29 holds the Windows driver that needs this split first.\n\n\n## Target host: machine tier is the unaffected half and it refuses here\nREADME says the machine tier never chroots and is unaffected by chroot denial. Measured on the target sandbox it is affected by its own legs. Probe machine refusal is open kvm ENOENT plus open tun ENOENT. Both entry spellings refuse at 125:\n\n- run --podbox-tier=machine --rm alpine echo hi: machine tier refused naming kvm plus tun.\n- podvm name run --rm alpine echo hi: podvm machine-tier line plus the same refusal.\n\nQEMU 10.2.3 is present with accel tcg plus mshv plus kvm listed, firmware exists at /usr/share/qemu/edk2-x86_64-code.fd, space is free, fsize ceiling is 1e9. The missing pieces are the device nodes, not the emulator. The TCG plus user-net split in this issue is what makes the unaffected clause true on this host: required legs are emulator plus tcg in accel list plus space plus fsize, accelerated kvm and networked tun become conditional with bannered fallbacks. Prove must drive the podvm spelling above on this shape, not only probe JSON.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-25T09:45:18Z",
+  "closed_at": "2026-09-25T14:29:36Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1301"
+  ],
+  "todo_status": {
+   "T-1301": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T14:29:36Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 36,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "[T-1306] Deferred: non-goals as refusals, none implemented",
+  "body": "## Summary\nT-1306 is partial, not done. Each non-goal became a refusal the code makes. All six stances refuse: tcp listener, kvm acceleration, runc-style oci, user-mode linux guest, uid_map switch, guest file over ceiling.\n\n## Expected\nTODO/podvm.md T-1306 Source is vm-research podvm-spec. Non-goals should be code refusals not notes, each naming its leg plus errno, with a permitted leg turning the refusal off. That half is done. Expected per operator brief: promote at least the cheapest non-goal to an implementation instead of banking all six as permanent refusals.\n\n## Actual\n149-podvm-non-goals.sh asserts each refusal names its leg plus errno, with a permitted leg turning it off. Verified on beta 0.1.0-beta.7: probe non_goals shows all six refused with detail plus remedy (tcp EACCES uses UDP hostfwd, kvm ENOENT runs TCG, runc EPERM runs chroot, UML ptrace EPERM runs qemu TCG, uid switch outside plus memo inside, over-ceiling sized under ceiling). The code makes the refusals. Nothing implements any of them.\n\nGreen per spec and per TOOL.md section 10 (network isolation, resource limits, live proc, and no security in chroot are out of scope and bannered). Partial per operator intent.\n\n## How to reopen properly\n1. Reopen T-1306 as partial. Keep the title and the stances table.\n2. Promote one non-goal: smallest is guest networking through user-mode hostfwd already named in the remedy, or the TCG path from T-1301 that makes the kvm refusal conditional.\n3. Prove: extend 149 with a positive arm where the promoted goal runs (for example a guest reaching the host through UDP hostfwd) plus the remaining refusals unchanged.\n\n## Triage\nRepro: probe --json non_goals. Area: crates/podbox-probe machine plus non-goals, 149 script. Risk: a new implementation must not weaken the honesty rules; the banner must state what is emulated.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-25T09:45:31Z",
+  "closed_at": "2026-09-26T02:44:19Z",
+  "comments": null,
+  "comment_count": 1,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1306"
+  ],
+  "todo_status": {
+   "T-1306": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-26T02:44:19Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 37,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "[CLI] Beta.7 on chroot-denied host: stale logs note plus refusal ordering masks ptmx",
+  "body": "## Summary\nGrouped beta.7 CLI finding on a chroot-denied host (probe rung interpose, chroot EPERM, ptmx ENOENT, supervise 1 of 3 ok, machine 4 of 6 ok with kvm plus tun missing). Two defects.\n\n## 1. Stale parity note for the logs base row\nsystem info parity carries 176 rows. The logs base row still reads: the payload stdout and stderr, interleaved into one file opened before the chroot, with -f not implemented (T-0605). The -f row beside it reads Native and follows the log file with a bounded poll (T-1318). logs --help shows [-f|--follow]. T-1318 shipped file-follow (follow_once, 100 ms poll, 200 ms final drain, no thread). The base note was not updated when -f landed. T-1325 fixed three other stale notes (inspect, system prune, run restart) and missed this one.\n\nRepro:\npodbox system info --format '{{json .Parity}}' shows both logs rows.\npodbox logs --help shows -f.\nFix: update the base note to capture at spawn with -f following (T-1318), keep Degraded status. Extend the T-1325 check so no base note names a flag its own table lists as Native.\n\n## 2. Refusal ordering: the chroot gate masks the named ptmx refusal\nOn this host both chroot and ptmx are denied. run --rm -t exits 125 naming chroot(2) denied (T-1317 gate in lifecycle::ensure_chroot_usable first), never naming ptmx. T-0503 promises -t is refused by name where /dev/ptmx is unusable. The chroot check fires first, so the ptmx arm is unreachable wherever chroot is denied, which is exactly the constrained hosts T-0503 is for. The --network and -v arms name their own reason only where chroot holds.\n\nRepro with an isolated store on beta.7 x86_64 sha ed6a6401:\npodbox probe --json shows ptmx ENOENT plus chroot EPERM.\npodbox run --rm -t public.ecr.aws/docker/library/alpine:3.20 true exits 125 chroot denied with no ptmx line.\nFix options: check the flag-specific refusal before the generic chroot gate where the flag alone decides (ptmx before chroot for -t), or append masked reasons to the chroot message. Keep exit 125 and one line per the honesty rules.\nArea: crates/podbox-cli run.rs prepare order, lifecycle gate versus ptmx_usable predicate, T-1317 gate.\n\n## Drive notes (beta.7, isolated stores, exits read without a pipe)\nversion plus version --verbose ok (7 lines, commit 4f087d0, both interposer digests, crt-static yes). pull alpine:3.20 ok with digest plus already handling. pull http exits 1 HTTPS-only, not 124. extract ok 517 entries plus sidecar with gid 42. inspect image is one document, --format Digest ok, bad field exits 1 with the field list. images plus tag plus rmi untag ok. save 3.5 MiB ok, load back ok with Loaded image line, verify 4 blobs ok with provenance lines for one image. verify catches a one-byte blob flip with MISMATCH at exit 125 and heals after restore. cp image file 189 bytes ok. ps -aq bundled plus filter ok. man --no-pager ok. run plus create plus start plus strict plus PODBOX_MODE=memfd all exit 125 at the chroot gate here. run --platform windows/amd64 exits 125 Linux-only with nothing fetched. cache_key now carries cap_eff plus cap_bnd. markers ok under this repo. verify-release without cosign exits 2 could-not-run by design, not 0. Related task issues: T-1317, T-0503 ordering half, T-1003 ladder, T-1112 gate, T-1325 parity check. Previous closed issues 10, 11, 24, 28 rechecked here and hold; 19 plus 20 plus 21 need a chroot-capable lane for lifecycle coverage and are not re-proved on this host.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-25T09:46:12Z",
+  "closed_at": "2026-09-25T13:35:03Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-0503"
+  ],
+  "todo_status": {
+   "T-0503": "done"
+  },
+  "todo_note": "T-0503 cites issue 37 (ptmx refusal ordering)",
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-25T13:35:04Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 38,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "[QOL] Doctor checklist, disk usage, and log tail are missing",
+  "body": "## Summary\nThree quality of life gaps found while driving beta.7 on a chroot-denied host and while studying winquick. Each has a prior pattern in this tracker (issues 16 and 27 grouped CLI gaps the same way). None has a TODO entry.\n\n## 1. No doctor checklist\nwinquick doctor checks CPU plus OS plus QEMU version plus helpers (ntfscp, ntfscat, hivexsh) plus UEFI firmware plus runtime plus prepared guest plus capabilities plus session plus disk, and prints fix lines. podbox probe prints legs plus verdicts plus refusals, which is the measurement half. It does not print the setup half: QEMU too old for migration (10.2 versus 11.0 here), firmware present or absent with distro alt names, helper tools present, image installed, disk free against the file-size ceiling. On this host the operator must join probe plus doctor-less clues by hand.\n\nAsk: podbox doctor (or probe --fix) that reuses the machine legs plus T-1301 checks and prints one fix line per missing piece, with the same third-state exits (0 ok, 1 problem, 2 could not run). Model: winquick doctor output plus podbox probe JSON. Reference: winquick src facts plus doctor path tried here.\n\n## 2. No system df\nParity lists df as not implemented under system. Operators on 64 MiB tmp plus small stores need per-image plus per-container usage in one command. verify sweeps blobs, images lists sizes, but nothing sums reclaimable bytes. The prune path (issues 19 plus 20, T-1322 gating) is safer with a dry-run size beside it.\n\nAsk: podbox system df (plus image du rows) reporting stored bytes, extracted rootfs bytes, reclaimable bytes with the container gate applied, exiting non-zero never for accounting alone.\n\n## 3. logs has -f but no tail or since\nlogs --help shows only [-f|--follow]. Docker callers use --tail N plus --since plus --until to avoid pulling full logs in a loop (issue 16 named the polling loop). Follow without tail replays from the start on every reconnect.\n\nAsk: logs --tail N (plus --since as a second step) over the same captured file T-0605 owns, bounded like -f, with byte-identical default output unchanged.\n\n## Repro\nAll on beta.7 x86_64 sha ed6a6401 with an isolated store: system --help shows no doctor and no df, logs --help shows no tail, probe --json shows the legs a doctor would consume. winquick doctor output from the trial is the model to copy for shape, not for content.\n\n## Triage\nArea: crates/podbox-cli system plus logs verbs, probe machine legs, docs. Each is a small parity addition with a Prove through the shipped binary. No spec change beyond one parity row each.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-25T09:58:07Z",
+  "closed_at": "2026-09-26T10:14:25Z",
+  "comments": null,
+  "comment_count": 1,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1337"
+  ],
+  "todo_status": {
+   "T-1337": "done"
+  },
+  "todo_note": null,
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-26T10:14:25Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 63,
+  "kind": "pr",
+  "github_status": 404,
+  "title": "T-1112: portable DOS guest under TCG on the machine tier",
+  "body": "Foreground run --podbox-tier=machine --platform windows/amd64 now boots\nFreeDOS 1.4 under TCG where the machine profile holds, with no KVM and\nno licensed image. The entry was blocked on a KVM host with a licensed\nimage, which no reachable machine is and which the constrained target\ncannot assume anyway. The driver keeps the winquick shape where DOS\nallows it and states where it does not.\n\nWhat runs: qemu as a child process, qcow2 overlay on a pristine base\ndiscarded per run, 64 MiB sparse FAT32 mailbox with protocol v1 (WQMARK,\nWQCMD plus a BAT copy DOS call answers, WQGO with the run token, WQOUT,\nWQCODE last), -nic none, one boot one command, QMP quit, bounded waits.\nver exits 0 with FreeCom 0.86 on stdout. dir /zzz exits 1. pause exits\n125 with DEADLINE and no status. The banner names TCG as the emulator\nprocess and FreeDOS as DOS batch, portable, not Windows 11.\n\nProvenance: experiments/363-windows-tcg-dos.sh exits 0 (ver 0 plus\nversion, cmd /c ver 0, non-zero 1, deadline 125, base identical, store\nuntouched, create plus no-tier plus arm64 refuse by name).\nexperiments/362-windows-refusal.sh re-driven exit 0 for the doors the\ndriver does not serve. Suite 153 passed isolated. Release file 3830712\nbytes under the script ceiling with no PT_INTERP. Gate green.\n\nLimits: boot key sleeps calibrated on qemu 10.2.3 TCG (18 plus 8 plus\n16 s in a 42 s bound). DOS stderr stays on VGA. One line over the\nmapped key set. Genuine Windows on KVM plus ReactOS still owe it.\n\n---\n\nRequested by Ajam via errand.\nConversation: https://discord.com/channels/1313385177703256064/1553246188164354129\nTranscript: https://talaria.qaidvoid.dev/?session=bays48ll5qxd\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-26T05:23:13Z",
+  "closed_at": "2026-09-27T02:07:37Z",
+  "comments": null,
+  "comment_count": 2,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1112"
+  ],
+  "todo_status": {
+   "T-1112": "partial"
+  },
+  "todo_note": "PR answering T-1112 (FreeDOS guest under TCG); cited as \"PR 63\" in docs/history",
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "head_ref_force_pushed",
+    "2026-09-26T10:50:42Z",
+    null,
+    "talaria0101"
+   ],
+   [
+    "head_ref_force_pushed",
+    "2026-09-26T12:20:58Z",
+    null,
+    "talaria0101"
+   ],
+   [
+    "closed",
+    "2026-09-27T02:07:37Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "drop",
+  "recommend_reason": "pull request, an alternative T-1112 effort recorded in docs/history; nothing open rests on it"
+ },
+ {
+  "number": 65,
+  "kind": "issue",
+  "github_status": 404,
+  "title": "FR: streaming and chunked acquisition for lanes with a file-size ceiling (T-1112 follow-up)",
+  "body": "## FR: streaming and chunked acquisition for lanes with a file-size ceiling\n\nFollow-up of T-1112 (PR 63). Recorded as an entry proposal, not\nimplemented in this pass.\n\n### Problem\n\nA lane with a hard `RLIMIT_FSIZE` cannot land any file at or over\nthe cap. Measured on the T-1112 lane: hard cap 1000000000 bytes,\nunraiseable (EPERM even as uid 0), so the 2460880896-byte\nValidationOS ISO dies with SIGXFSZ at ~954 MB. The same wall\nstands in front of every other large acquisition on such lanes:\nOCI layer blobs pulled whole, base-image downloads, and any\nprovisioned disk whose data crosses the cap. A whole-file\ndownload followed by a verify is the shape that breaks; the\nfailure (SIGXFSZ mid-transfer) is loud but late, after the\nbandwidth is already spent.\n\n### Proven pattern (PR 63, experiments 365)\n\nRange-walk the origin, fetch only the bytes that matter, verify\nas they arrive, never write a file the ceiling forbids:\n\n- `fetch.rs` policy already owns two of the three bounds\n  (declared length before the transfer, arriving bytes during\n  it) plus digest and per-pid partial cleanup, tested with no\n  network.\n- 365 adds the third trick: parse the container on-origin\n  (UDF walk by range request) and fetch one contiguous extent\n  (abs LBA 1010, 910163968 bytes) instead of the 2.46 GB ISO.\n- What is still missing is a native switch for it: today the\n  range walk is a script around the fetch, not a mode of it.\n\n### Proposal\n\n1. `--stream` (name bikesheddable) on `podbox windows fetch`\n   and on the image pull path: stream the body through the\n   hasher to the destination with the running ceiling enforced,\n   resume an interrupted transfer with `Range` instead of\n   restarting it, and refuse up front where the declared length\n   or the remaining room cannot hold the object.\n2. Unify both pull paths on the `fetch.rs` policy: declared\n   check, running check against `min(--max-bytes, RLIMIT_FSIZE,\n   free space)`, digest pin, per-pid partials, nothing left\n   behind on refusal. `podbox-image` blob writes need the same\n   three bounds `fetch.rs` already has.\n3. Pre-flight as a verdict, not a crash: read the ceiling and\n   the free space before the first byte (365 does this after\n   review caught its absence) and exit 2 where the lane cannot\n   hold the object, so a small lane says so instead of dying\n   at 95 percent.\n4. Selective fetch where the container allows it: UDF extents\n   (measured), and later OCI cross-repo mounts / partial blobs\n   where the registry speaks ranges.\n\n### Acceptance\n\n- 365 re-driven green on a lane with a sub-object ceiling.\n- A pull of a blob larger than the lane's ceiling either\n  streams it under the ceiling or refuses up front naming the\n  three numbers (object, ceiling, room); no partial survives\n  either way.\n- No new dependency: `ureq` range headers plus the existing\n  policy code.\n\n### Risks if wrong\n\nResume by `Range` assumes the origin honors ranges; a liar\nthat ignores `Range` and restarts the body must be detected\n(comitted byte count jumps backwards) rather than appended\nto. Digest stays mandatory on resumed transfers for the same\nreason.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-26T12:27:49Z",
+  "closed_at": "2026-09-27T03:08:40Z",
+  "comments": null,
+  "comment_count": 1,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1342",
+   "T-1112"
+  ],
+  "todo_status": {
+   "T-1342": "done",
+   "T-1112": "partial"
+  },
+  "todo_note": "T-1342 Source cites issue 65 (pull ceiling); title calls it a T-1112 follow-up",
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "closed",
+    "2026-09-27T03:08:40Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "repost-closed-for-record",
+  "recommend_reason": "closed and its task(s) done; TODO entries cite it as Source / \"Close issue N\""
+ },
+ {
+  "number": 67,
+  "kind": "pr",
+  "github_status": 404,
+  "title": "podssh: `podbox remote ssh`, a relay failover chain, and a server probe",
+  "body": "Builds on the podssh that was in flight and carries it further. The\ntransport, the rendezvous and the interop came from that work; this adds the\nfailure handling, the verb decision, the two measurements that changed the\nshape of the thing, and a working session through the operator's own relay.\n\n**Handoff for the next session: `docs/decisions/podssh-handoff.md`.** Read\nthat first. The useful half of it is the list of what is NOT proved and what\nis blocked on whom; it is summarised at the bottom of this description too.\n\n---\n\n## Proved against `tcp.ssh.relay.ajam.dev`, 2026-09-27\n\nSelf-service tokens: `POST /v1/mint` with an empty body returns\n`{token, expires, scope}`, the token is `ephm1.<exp>.forward.<mac>` and dies\nat `expires`, never later than 72h after minting. The one used here was\nminted in this session and expires 2026-09-30. **No token is in this tree**,\nin any file, and `.gitignore` names the patterns that keep it that way.\n\nThe upgrade answers 101 with `X-Relay-Road: vpc`, `X-Relay-Target:\nrailway.new:22` and a `Sec-WebSocket-Accept` that matches, and the first\nbinary frame is `SSH-2.0-Go`. Through it: a full pubkey ssh session to a live\nephemeral VM, **exit 0**, `id -un` = root on Ubuntu 26.04.1; and an `scp`\nupload, **exit 0**, content read back byte for byte.\n\n### Using it found a real gap\n\n`forward` reached one host:port through the egress proxy and took **no\nrelay**, so a `wss://` transport could not be handed to it at all. That is\nexactly the shape the operator's relay is: it dials the target **itself** and\nis addressed as `wss://host/connect/<host>/<port>`, so there is nobody to\npair with and `--name` has no meaning. A relay is one of two shapes and\nconflating them left the second unreachable:\n\n- a **rendezvous**: two named peers dial it and it pairs them. `connect` and\n  `serve`, and sandssh's relay and `podssh relay`.\n- a **forward**: the relay dials the target and the client only reaches the\n  relay. `forward` with a relay.\n\nThey differ in exactly which hop is last, and they are one verb with different\narguments. `Chain` owns the failover so `connect` and `forward` make the same\ndecision about the same list, and each refusal is reported by name rather\nthan collapsing to \"every relay failed\".\n\nThe token travels in a **header**, not a query, which is the relay's own\npreference as well as being right: a query string is written to every access\nlog on the way. The spec parser takes `?header=Name:Value` and validates the\nname as an RFC 7230 token and the value against a newline, because a token is\noperator-supplied text that lands in a request line and a newline there\nsmuggles a second header in.\n\n## `podbox remote ssh`, not `podbox ssh`\n\n`remote` is a **namespace**, not a synonym. `remote fetch`, `remote download`\nand `remote wget` are all \"reach a machine that is not this one\" and each\nwould otherwise want its own top-level verb. `local` is the counterpart so\nthe axis is visible, and `machine ssh` is podman parity and a **different\naxis**, so it stays separate. `podbox ssh` is refused with the group named\nand exit 125, because an agent that typed it is asking a real question and\n\"unknown command\" costs it a guess. The reasoning is in\n`docs/decisions/remote-verb.md` and the e2e asserts both halves of the rename.\n\n## A relay failover chain, because a shared public relay refuses in bursts\n\nMeasured 2026-09-27: in one window all three built-in public relays answered\n502, 400 and 503 at once, and a later attempt in the same minute succeeded. A\nclient that names one relay is down for the length of that window however\nhealthy the code is. The chain tries N relays and reports every refusal by\nname, so a bad relay costs one hop rather than the session.\n\nEach hop gets its own full slice rather than a share of one global clock,\nbecause a shared clock lets the first hop's latency starve every hop after\nit. A wrong token is **not** retried down the list, because it cannot change.\n\nThe egress list is **ordered by measured first-byte latency**: 0.67s, 0.76s\nand 4.34s to the same banner. The slowest was first in the first version of\nthe list, which is a latency bug rather than a style question: a client that\nwalks the list pays the first entry's latency before it reaches a good one,\nand a ConnectTimeout was consumed before a fast relay was tried.\n\n## The ssh server is probed, not assumed\n\n`sshd -i -t` exiting 0 is not evidence that `sshd -i` runs, and the difference\nproduced the most misleading error this tool can emit. Measured 2026-09-27 in\nthe reference cage, in order:\n\n1. `sshd -i -t -f <config>` exits **0**\n2. `sshd -i` at runtime: `Privilege separation user nobody does not exist`\n3. with a `nobody` entry: `Missing privilege separation directory: /var/chroot/ssh`\n4. with `ChrootDirectory` moved: no effect, a different hardcoded path\n5. with `UsePrivilegeSeparation no`: deprecated and **ignored** since OpenSSH 8.4\n\nSo no configuration makes a modern `sshd` run where chroot is denied, and a\ndefault that picks it there fails with an error from the **far end**, which\nreads as a podssh bug and is not one. `detect` now starts each candidate on a\nthrowaway socketpair and reports what it said.\n\nThe probe is the smallest thing that is true and says so: a server that exits\ninside the window is a failure and its first line is the diagnosis, a server\nstill running is a pass, and it does **not** establish that the server speaks\nssh. Two stronger versions were written and both were wrong in a way a reader\nwould not have predicted. CPU time from `/proc` called `yes` healthy, because\nwith its stdout on a full socketpair it blocks in `write()` and burns nothing.\nA \"did it consume a byte\" check refused `cat`, which is a working byte pipe\nand is exactly what `--server cat` is for. A third hung the test binary on\n`exec yes` and had to be killed with SIGTERM, so every operation on the probe\nsocket is non-blocking now.\n\n## What a cage CAN run, proved rather than asserted\n\n**dropbear, built dynamically** so the passwd shim reaches it, and tolerating\na denied `setgroups(2)`. A static dropbear carries its own libc, so it cannot\nsee that `root` exists and logs `Login attempt for nonexistent user` for a\nuser that is there. A full pubkey session over a rendezvous, in a cage with\n**no pty, no bind, no chroot, no /var, no /etc/passwd, no UDP and no working\nresolver**: ssh exit 0. That meets \"no chroot tricks, and if we do, seamless\"\nby not chrooting at all.\n\nThe measurement, and what was **not** proved, are in\n`docs/decisions/ssh-server-in-a-cage.md`.\n\n## The e2e suite picks a server that runs\n\nIt hardcoded `sshd -i` in four places, and every one of those cases failed on\nthe reference cage while the transport was fine. Seven red results on a\nmachine where nothing was broken is \"could not run must never read as denied\"\nwearing a different hat. `SSHD_CMD` is now chosen by what can start, and the\nchoice is printed with its reason.\n\n## Experiments renumbered to 380-383\n\nMain moved to `v0.1.0-beta.8` while this branch was open and took 369-372 for\nthe Windows lane drives. The gate's rule is that an experiment number is\nnever reused, because a citation of it has to keep meaning what it meant, so\nthe four podssh drives are now 380-383 and every citation follows,\nself-references included. The INDEX and PROGRESS counts are re-derived by\n`scripts/todo-count.py` rather than by hand.\n\n## Proof\n\n- `crates/podbox-ssh/tests/e2e.sh`: **13 passed, 0 failed, 0 skipped**, in\n  the reference cage. Four transports each against a byte pipe **and** against\n  a real ssh client through a real `dropbear -i`; both verb checks; the three\n  sandssh interop directions with the sandssh tree unchanged.\n- The ajam relay: a full pubkey ssh session to a live ephemeral VM, exit 0,\n  and an scp upload, exit 0, content verified.\n- `cargo test -p podbox-ssh`: 53 unit tests.\n- `scripts/check-todo.py`: green, 175 rows, 3 open, 1 partial.\n- fmt and clippy clean on the touched crates.\n\n## A builder and a CI for the ssh server a cage can run\n\n`scripts/build-dropbear.sh` builds the server this tool actually uses, and\n`.github/workflows/dropbear.yml` builds it on every run, asserts the three\nproperties that fail silently, and then **proves a real session** through the\nartefact. A binary that compiles and cannot log anyone in is the failure this\nexists to prevent, and `sshd -t` is exactly the check that cannot see it.\n\nTwo measured facts shape the build rather than a preference:\n\n- **Dynamically linked, required not chosen.** A static dropbear carries its\n  own libc, so `LD_PRELOAD` cannot reach it, its passwd lookups fail against a\n  cage with no `/etc/passwd`, and it logs `Login attempt for nonexistent user`\n  for a user that is there.\n- **setgroups tolerant, setgid still fatal.** A seccomp-filtered cage denies\n  `setgroups(2)`, so `initgroups()` always fails and dropbear exits on every\n  login. `setgid` stays fatal because it is the call that changes the group\n  and its failure is a real privilege problem; a denied `initgroups` leaves a\n  session with correct uid and gid and no supplementary groups.\n\nThe pin is a **commit**, because upstream has no version tag: the first\nversion cloned `--branch 2026.94` and got `Remote branch 2026.94 not found`,\nthe version living in the source rather than in a ref. `BUILDINFO` records the\ncommit the build actually got, so a reader never has to trust the constant.\n\n**Four defects, all found by running it, and three are the same mistake in\ndifferent clothes.** `strings | grep -q` under `set -o pipefail` reports\n\"absent\" for a string that IS there: `grep -q` exits on the first match,\n`strings` takes a SIGPIPE, and the pipeline returns 141. Measured: MATCH\nwithout pipefail, NOMATCH with it, `rc=141` between. The assertion that used it\nfailed a correct build three times before the cause was found. The other two:\nan assertion that read the setgid exit string backwards, and an `awk` with a\nsticky flag that scanned to end-of-file and found a `dropbear_exit` belonging\nto a different failure. A fourth, `set -u` making every unset optional\nvariable an error, was found only by a clean run, which is the argument for\nrunning one.\n\nA clean from-scratch build is in this branch's history: clone the pinned\ncommit, apply the patch, build, every assertion green, and then a full pubkey\nsession through the resulting binary, exit 0, uid 0.\n\n## Docs that were run, and what running them found\n\n`docs/decisions/podssh-getting-started.md` is a walk from nothing to a\nsession. Every command in it was executed and **three defects in `podssh\nconfig` are the evidence**, because a guide written from reading a tool\ndocuments the tool as imagined:\n\n- it took positional arguments, which the verb does not, and failed with\n  `--name is required` on a name it had just been given;\n- it emitted a **bare `podssh`** in the ProxyCommand, which works in the\n  terminal that generated the stanza and fails for every `ssh`, `scp` and\n  `rsync` that reads it, because `ssh` runs a ProxyCommand through a login\n  shell whose PATH is not the operator's. The code's own comment claimed an\n  absolute path was the point and was not doing it;\n- the stanza had **no trailing newline**, so it ran into whatever the reader\n  appended and `ssh` reported a key verification failure on a line that was\n  half a comment.\n\nAnd one design gap rather than a typo: `config` generated `connect` for a\n**forward** relay, which has nobody to pair with, so the stanza failed with\n`--target is required`, naming a flag the reader never typed and no hint that\nthe verb was wrong. The generator now reads the relay's shape from its URL.\n\nProved: a stanza this generator produced, for the operator's relay, carries a\nreal pubkey session to a live ephemeral VM. `ssh -F <stanza> vm 'id -un'`\nreturns `root` and exits 0.\n\nThe guide also carries the two shell traps that cost time here, because both\nproduce a wrong answer rather than an error: `tr -d '\\n'` before the sed that\nextracts a token from pretty-printed JSON (without it the substitution passes\nthe whole body through: 159 characters beginning `{` instead of a 92-character\ntoken), and the fact that `probe` prints JSON and nothing else, with `--json`\nbeing the default rather than a switch.\n\n---\n\n## Handoff, condensed\n\n**Read `docs/decisions/podssh-handoff.md` first.** The rest of this is the\nshort form.\n\n**Not proved, and a later session must not assume it:**\n\n- **No pty anywhere.** The cage has no `/dev/ptmx` and neither host can create\n  one, so a full-screen TUI cannot run. The transport carries a one-shot\n  command today; **T-1402 and T-1403** are the userspace line discipline that\n  is what makes an operator's session feel native, and they are the first\n  thing to pick up.\n- **TURN is not wired in.** The crate has no TURN client. A TCP allocation\n  needs a credential no account here can mint, and `exec://` is the documented\n  route once one exists. The catalog records the endpoints so a later session\n  does not rediscover them.\n- **The three deep review passes on this branch have not been run.** The work\n  is committed and tested, not reviewed. That is the first item on the\n  handoff page, and the three questions are in `TODO/RULES.md` section 10.\n\n**Settled, and not to be relitigated:** the verb is `podbox remote ssh`\n(`docs/decisions/remote-verb.md`); the ssh server a cage can run is dropbear\nbuilt dynamically (`docs/decisions/ssh-server-in-a-cage.md`); relay ordering\nis by measured latency, not discovery order; a relay token travels in a\nheader, not a query; and no token is committed anywhere, arriving in\n`PODSSH_RELAY_TOKEN` instead, with the operator's relay tried **last** so a\nsession an uncredentialed relay can serve never waits for a credential that\nmay be absent.\n\n**Blocked on a person:** nothing any more. The relay's tokens are self-service,\nso the one thing that was blocked, a forward token, is now minted on demand.\n\nRecorded in `TODO/podssh.md` T-1401 and T-1404.\n",
+  "labels": [],
+  "state": "closed",
+  "created_at": "2026-09-27T05:22:32Z",
+  "closed_at": "2026-09-28T14:09:32Z",
+  "comments": null,
+  "comment_count": 1,
+  "author": "talaria0101",
+  "recovery_sources": [
+   "gh api repos/PodUtils/podvm/issues/events (issue object embedded in its \"closed\" event)"
+  ],
+  "confidence": "exact",
+  "todo_tasks": [
+   "T-1401",
+   "T-1402",
+   "T-1403",
+   "T-1404",
+   "T-1405",
+   "T-1406"
+  ],
+  "todo_status": {
+   "T-1401": "done",
+   "T-1402": "done",
+   "T-1403": "done",
+   "T-1404": "done",
+   "T-1405": "done",
+   "T-1406": "partial"
+  },
+  "todo_note": "TODO/podssh.md and TODO/INDEX.md:57 cite \"pull requests 66 and 67\"",
+  "comments_note": "comment text not recoverable (the repo comment listing omits hidden issues); only the count survives",
+  "events": [
+   [
+    "renamed",
+    "2026-09-27T05:23:54Z",
+    null,
+    "talaria0101"
+   ],
+   [
+    "closed",
+    "2026-09-28T14:09:32Z",
+    null,
+    "Azathothas"
+   ]
+  ],
+  "recommend": "drop",
+  "recommend_reason": "pull request, cannot be re-created as one; its head is captured in docs/history/references and TODO/podssh.md"
+ },
+ {
+  "number": 95,
+  "kind": "issue",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": "open (inferred)",
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [
+   "cross-references in bodies of surviving #87, #89, #109, #114"
+  ],
+  "confidence": "reconstructed",
+  "todo_tasks": [
+   "T-1407",
+   "T-1408",
+   "T-1410"
+  ],
+  "todo_status": {
+   "T-1407": "done",
+   "T-1408": "done",
+   "T-1410": "done"
+  },
+  "todo_note": "no TODO entry cites it; nearest done entries by content. Open siblings #86-#94 also have no TODO entry",
+  "reconstructed_summary": "Child-side consequence of #87/#89: a dynamic grandchild exec'd by the payload resolves PT_INTERP in the kernel, re-enters through the HOST loader and escapes the image; absolute in-image symlink targets and \"..\" are also not resolved in-root. Fix proposed: openat2(RESOLVE_IN_ROOT) in-root resolution (#109 calls it \"already proven in #94/#95\") and loader substitution that covers children.",
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "repost-open",
+  "recommend_reason": "open finding with no TODO entry, siblings #86-#94 still open; body must be rebuilt from cross-references"
+ },
+ {
+  "number": 96,
+  "kind": "issue",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": "open (inferred)",
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [
+   "cross-references in bodies of surviving #87, #114"
+  ],
+  "confidence": "reconstructed",
+  "todo_tasks": [
+   "T-1408"
+  ],
+  "todo_status": {
+   "T-1408": "done"
+  },
+  "todo_note": "no TODO entry cites it; T-1408 (loader symlink inside the rootfs) is the closest done entry",
+  "reconstructed_summary": "Corrected mechanism for the glibc-refusal class of #87: the absolute lib64/ld-linux-x86-64.so.2 symlink is resolved on the host and decides which libc a payload gets (gcc:13 / node:20 / golang:1.22). Fix: image-relative loader substitution.",
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "repost-open",
+  "recommend_reason": "open finding with no TODO entry, siblings #86-#94 still open; body must be rebuilt from cross-references"
+ },
+ {
+  "number": 97,
+  "kind": "issue",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": "open (inferred)",
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [
+   "cross-references in body of surviving #114"
+  ],
+  "confidence": "reconstructed",
+  "todo_tasks": [
+   "T-0708"
+  ],
+  "todo_status": {
+   "T-0708": "done"
+  },
+  "todo_note": "no TODO entry cites it; ABI-union class (#88 maps to T-0708)",
+  "reconstructed_summary": "The libc ABI union is incomplete (ld-linux-x86-64.so.2 __tls_get_addr, libdl.so.2 dlsym), so glibc payloads are refused; the caller passes only libgcc_s.so.1 instead of the full NEEDED closure. Sibling of #87/#96.",
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "repost-open",
+  "recommend_reason": "open finding with no TODO entry, siblings #86-#94 still open; body must be rebuilt from cross-references"
+ },
+ {
+  "number": 98,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 99,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 100,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 101,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 102,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 103,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 104,
+  "kind": "issue",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": "open (inferred)",
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [
+   "\"issue #104\" in body of surviving #114"
+  ],
+  "confidence": "reconstructed",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": "no TODO entry covers volumes / -v",
+  "reconstructed_summary": "No -v / volumes on the constrained host: no /dev/fuse and no mount, so no overlay; #114 names a two-root view model (copy regular executables, symlink data back) as the workaround.",
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "repost-open",
+  "recommend_reason": "open finding with no TODO entry, siblings #86-#94 still open; body must be rebuilt from cross-references"
+ },
+ {
+  "number": 105,
+  "kind": "issue",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": "open (inferred)",
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [
+   "cross-references in bodies of surviving #86, #114"
+  ],
+  "confidence": "reconstructed",
+  "todo_tasks": [
+   "T-1407"
+  ],
+  "todo_status": {
+   "T-1407": "done"
+  },
+  "todo_note": "no TODO entry cites it; same absolutize defect as open #86; T-1407 is the closest done entry",
+  "reconstructed_summary": "Relative-path double prefix when the cwd is already inside the rootfs: map.rs absolutize joins the real getcwd and prepare/rewrite prefix again, giving <rootfs><rootfs>/...; same line as #86 (fix absolutize with unrewrite, or make rewrite idempotent).",
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "repost-open",
+  "recommend_reason": "open finding with no TODO entry, siblings #86-#94 still open; body must be rebuilt from cross-references"
+ },
+ {
+  "number": 106,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 107,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 108,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T16:20:57Z (#94) and 2026-09-30T17:11:13Z (#109)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 110,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T17:11:13Z (#109) and 2026-09-30T17:20:45Z (#114)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 111,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T17:11:13Z (#109) and 2026-09-30T17:20:45Z (#114)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 112,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T17:11:13Z (#109) and 2026-09-30T17:20:45Z (#114)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 113,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T17:11:13Z (#109) and 2026-09-30T17:20:45Z (#114)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ },
+ {
+  "number": 115,
+  "kind": "unknown",
+  "github_status": 404,
+  "title": null,
+  "body": null,
+  "labels": [],
+  "state": null,
+  "created_at": "between 2026-09-30T17:20:45Z (#114) and 2026-10-09T18:34:07Z (#116)",
+  "closed_at": null,
+  "comments": null,
+  "comment_count": null,
+  "author": null,
+  "recovery_sources": [],
+  "confidence": "none",
+  "todo_tasks": [],
+  "todo_status": {},
+  "todo_note": null,
+  "state_note": "no closed/labeled event in the repo issue-events feed, which still serves events for the other hidden numbers, so it was most likely open and unlabelled when hidden",
+  "recommend": "drop",
+  "recommend_reason": "nothing recoverable beyond the number; ask the author if the account is reinstated"
+ }
+]

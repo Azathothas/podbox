@@ -1,0 +1,39 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11415 entries, 333.4 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/20be88a516a43392/work
+  workspace: 410 files carry the executable bit from the git index, and 304 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 410 executable file(s) in the index, all already executable.
+== the job
+== stub defines
+stub not built yet
+== rebuild stub verbosely
+COLLECT_GCC_OPTIONS='-shared' '-nostdlib' '-o' '/work/crates/podbox-interpose/target/dl-stub/libdl-stub.so' '-v' '-mtune=generic' '-march=x86-64' '-dumpdir' '/work/crates/podbox-interpose/target/dl-stub/libdl-stub.so.'
+ /usr/lib/gcc/x86_64-linux-gnu/12/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/12/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/12/lto-wrapper -plugin-opt=-fresolution=/tmp/cctK8F7p.res --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -shared -o /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so -L/usr/lib/gcc/x86_64-linux-gnu/12 -L/usr/lib/gcc/x86_64-linux-gnu/12/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/12/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/12/../../.. --version-script=/work/crates/podbox-interpose/dl-stub.map -soname libdl.so.2 /tmp/ccIkbNzp.o
+COLLECT_GCC_OPTIONS='-shared' '-nostdlib' '-o' '/work/crates/podbox-interpose/target/dl-stub/libdl-stub.so' '-v' '-mtune=generic' '-march=x86-64' '-dumpdir' '/work/crates/podbox-interpose/target/dl-stub/libdl-stub.so.'
+== stub defines now
+     2: 0000000000001000     1 FUNC    GLOBAL DEFAULT    7 dlsym@@GLIBC_2.2.5
+     3: 0000000000001000     1 FUNC    GLOBAL DEFAULT    7 dlsym
+== full gnu link order (positions of stub, -lc, objects)
+build_rc=0
+--no-as-needed
+libdl-stub.so
+== link line positions (character offsets)
+no cc line found; tail:
+info: latest update on 2026-09-03 for version 1.98.1 (48a229cea 2026-09-01)
+info: downloading 6 components
+warn: the missing active toolchain `stable-x86_64-unknown-linux-gnu` has been auto-installed
+warn: this might cause rustup commands to take longer time to finish than expected
+info: you may opt out with `RUSTUP_AUTO_INSTALL=0` or `rustup set auto-install disable`
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+     Running `/usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name podbox_interpose --edition=2021 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type cdylib --emit=dep-info,link -C opt-level=z -C panic=abort -C lto -C codegen-units=1 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=289f07b1c9d32e5c --out-dir /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/deps --target x86_64-unknown-linux-gnu -C strip=symbols -L dependency=/work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/deps -L dependency=/work/crates/podbox-interpose/target/release/deps -C target-feature=-crt-static -C link-arg=-Wl,--no-as-needed -C link-arg=/work/crates/podbox-interpose/target/dl-stub/libdl-stub.so -C link-arg=-Wl,--as-needed -C link-arg=-Wl,--version-script=/work/crates/podbox-interpose/interpose.map`
+    Finished `release` profile [optimized] target(s) in 2.47s
+JOB_DONE
+== rc=0
+  the stopped container and its job directory are kept: wtk-20be88a516a43392
+  container wtk-20be88a516a43392 is kept with its job directory. Remove it with: wsl-toolkit gc --job 20be88a516a43392 --apply
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 27.473s
+  the complete output is kept: wsl-toolkit logs 20be88a516a43392

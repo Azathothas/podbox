@@ -1,0 +1,7 @@
+record: unpark T-1112, work it next (operator ruling)
+
+2026-09-23T02:25:46Z - T-1112
+
+The operator rules the parked entry unparked: T-1112 stays P3 and is
+the next schedulable work. Recorded in the entry's Decision and in
+the PROGRESS state, work order and questions table. No count moves.

@@ -1,0 +1,40 @@
+engine            podman (host machine)
+== conditions
+date              2026-09-19T09:18:54Z
+host kernel       3.6.9-b4195d69.x86_64
+Trying to pull public.ecr.aws/debian/debian@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a...
+Getting image source signatures
+Copying blob sha256:a8ac7f6c67abc236e4c745052c404112b8fab6fe8ac3a329d1ef3b867ad67c71
+Copying config sha256:160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+Writing manifest to image destination
+160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+podbox            podbox 0.1.0
+rows              10
+row timeout       600 s
+control           podman, on any row podbox fails
+
+ROW            LIBC     SEEN   CLEARED   STATIC   GO       SELECT
+--------------------------------------------------------------------------
+alpine         musl     yes    yes       declined declined placed-musl
+
+== the two cross-libc refusals, driven deliberately
+  ok   gnu object refused into a musl rootfs: refused: /obj names libgcc_s.so.1, libc.so.6, ld-linux-x86-64.so.2 in DT_NEEDED, so it was built against glibc, and this
+  SKIP musl object against glibc libc: no libc.so.6 extracted
+  (the build-host-newer-than-target refusal is unit-covered in abi.rs;
+   no matrix row is old enough to fire it, and inventing one is refused)
+
+== verdict: the five words T-1110 asks for
+rows 10
+ran 1
+virtualized 1
+declined 2
+host_not_runtime 0
+written to .dev/sweep-smoke.txt
+  new: /c/Users/AjamX/Downloads/podbox/.dev/sweep-smoke.txt is not tracked yet, so there is nothing to compare against
+
+== rows
+  ran 1, no-pull 0, harness-failed 0
+
+== verdict
+  1 row(s) produced a reading. The table above is the measurement;
+  a difference between rows is a difference between distributions.

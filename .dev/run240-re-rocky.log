@@ -1,0 +1,35 @@
+engine            podman (host machine)
+== conditions
+date              2026-09-19T11:46:53Z
+host kernel       3.6.9-b4195d69.x86_64
+Trying to pull public.ecr.aws/debian/debian@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a...
+Getting image source signatures
+Copying blob sha256:a8ac7f6c67abc236e4c745052c404112b8fab6fe8ac3a329d1ef3b867ad67c71
+Copying config sha256:160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+Writing manifest to image destination
+160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+podbox            podbox 0.1.0
+rung podbox enters chroot
+rung this machine  supervise   (permits, and podbox does not use it)
+rows              10
+row timeout       1200 s
+store             $PODBOX_STORE (a fresh one per run unless set)
+transcripts       experiments/results/sweep/
+control           podman, on any row podbox fails
+
+ROW            LIBC     PM            INSTALL   BUILD   RAN
+--------------------------------------------------------------------------
+rocky          glibc    dnf           1         127     no-compiler
+rocky            ⛔ podbox failed and podman SUCCEEDED on the same image.
+                    Rocky Linux 9 - BaseOS 1.5 kB/s | 4.3 kB 00:02 Error: Failed to download metadata for repo 'baseos': Yum repo 
+
+== rows
+  ran 1, no-pull 0, harness-failed 0
+
+== verdict
+  1 row(s) produced a reading. The table above is the measurement;
+  a difference between rows is a difference between distributions.
+  transcripts in experiments/results/sweep/
+
+written to .dev/sweep240-re.txt
+  new: /c/Users/AjamX/Downloads/podbox/.dev/sweep240-re.txt is not tracked yet, so there is nothing to compare against

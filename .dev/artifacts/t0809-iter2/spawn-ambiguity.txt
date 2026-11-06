@@ -1,0 +1,20 @@
+== conditions
+date              2026-09-21T09:09:57Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+go                go version go1.19.8 linux/amd64
+setgroups here    allow
+setgroups unshared deny
+
+== A. the clone leg, in this context
+  spawn-clone rc=1 out=[fork/exec /bin/true: operation not permitted]
+  podbox attributes the string to the clone: yes
+
+== B. the setgroups leg, under unshare
+  setgroups under unshare: deny
+  spawn-cred rc=1 out=[fork/exec /bin/true: operation not permitted]
+  one string behind both refusals: yes
+  podbox attributes the string to setgroups and names the field: yes
+
+== C. control: the credential payload where setgroups is allowed
+  spawn-cred rc=0 (0 proves the failure is the denial, not the binary)

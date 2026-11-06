@@ -1,0 +1,42 @@
+    Updating crates.io index
+   Compiling podbox-buildstate v0.1.0-beta.12 (/work/crates/podbox-buildstate)
+    Finished `release` profile [optimized] target(s) in 8.95s
+cargo build rc=0 (want 0)
+scratch: /tmp/tmp.hINLZTSP1h
+tmpdir: unset
+resolved: /tmp/tmp.hINLZTSP1h
+
+== conditions both sides hash
+  env RUSTFLAGS=[unset]
+  env CARGO_ENCODED_RUSTFLAGS=[unset]
+  env CC=[unset]
+  env AR=[unset]
+  env TARGETS=[unset]
+  no CARGO_TARGET_/CC_/AR_ keys
+  rustc: rustc 1.99.0 (b940084d7 2026-09-28)
+  cargo: cargo 1.99.0 (5f94df478 2026-08-27)
+  zig: 0.16.0
+  git rev-parse in scratch rc=0 below:
+fatal: not a git repository (or any of the parent directories): .git
+  rev-parse rc=128
+
+== the two digests on the scratch root
+  binary inputs: [ad4ee374579d08076f43bbef3241c46f63dfae25078d380e87ad88d3ab92ac60]
+  script inputs: [d23b023c11e48590f53f58cb0a9c30ada00c8cc41439a5f882d21c79a75b4526]
+  FAIL: inputs differ on scratch
+
+== self reads on the scratch root
+  binary record rc=0
+ready
+  binary status of binary record rc=0 (want 0)
+  script record rc=0
+ready
+  script status of script record rc=0 (want 0)
+
+== cross reads on the scratch root
+stale: build inputs changed
+  script status of binary record rc=1 (want 0)
+stale: build inputs changed
+  binary status of script record rc=1 (want 0)
+
+verdict BISECT-FAIL

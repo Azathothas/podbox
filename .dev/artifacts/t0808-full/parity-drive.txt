@@ -1,0 +1,18 @@
+== conditions
+date              2026-09-21T10:06:35Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+jq                jq-1.6
+
+== 0. the table is data: 153 rows
+
+== 1. every row with a flag, driven
+
+== 2. every verb and group path, probed with a flag no row names
+  bare system install-names skipped: it writes links (covered by its flag drives)
+
+== 3. Stub rows that need a running payload
+  run -i runs and the banner names it: yes
+  exec -i runs and the banner names it: yes
+
+== counts: 153 rows, 192 driven, 0 mismatches, 0 unreachable here

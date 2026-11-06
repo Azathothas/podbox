@@ -1,0 +1,1318 @@
+fmt, clippy, shell	UNKNOWN STEP	﻿2026-10-01T12:17:19.1352878Z Current runner version: '2.337.0'
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1370236Z ##[group]Runner Image Provisioner
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1370779Z Hosted Compute Agent
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1371191Z Version: 20260901.588
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1371624Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1372086Z Build Date: 2026-09-01T19:56:44Z
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1372536Z Worker ID: {c06ce24f-5038-4ffe-af86-a5ca21cbd811}
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1372990Z Azure Region: westus3
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1373363Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1374242Z ##[group]Operating System
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1374608Z Ubuntu
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1374977Z 24.04.5
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1375292Z LTS
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1375604Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1376014Z ##[group]Runner Image
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1376372Z Image: ubuntu-24.04
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1376747Z Version: 20260927.320.1
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1377512Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1378462Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1379132Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1380087Z ##[group]GITHUB_TOKEN Permissions
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1381399Z Contents: read
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1381867Z Metadata: read
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1382201Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1383490Z Secret source: Actions
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1384092Z Cache mode: write
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1384633Z Prepare workflow directory
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1619819Z Prepare all required actions
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.1660383Z Getting action download info
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.4626084Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6175267Z Complete job name: fmt, clippy, shell
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6727054Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6727598Z with:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6727851Z   repository: Azathothas/podbox
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6730164Z   token: ***
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6730406Z   ssh-strict: true
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6730656Z   ssh-user: git
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6730910Z   persist-credentials: true
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6731189Z   clean: true
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6731446Z   sparse-checkout-cone-mode: true
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6731741Z   fetch-depth: 1
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6731988Z   fetch-tags: false
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6732244Z   show-progress: true
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6732498Z   lfs: false
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6732735Z   submodules: false
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6732988Z   set-safe-directory: true
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6733274Z   allow-unsafe-pr-checkout: false
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.6733644Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7456966Z Syncing repository: Azathothas/podbox
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7459121Z ##[group]Getting Git version info
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7459879Z Working directory is '/home/runner/work/podbox/podbox'
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7460832Z [command]/usr/bin/git version
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7531875Z git version 2.55.0
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7551263Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7560970Z Temporarily overriding HOME='/home/runner/work/_temp/6f415695-931b-4e83-bf8e-88fb65419d3c' before making global git config changes
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7562617Z Adding repository directory to the temporary git global config as a safe directory
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7565688Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/podbox/podbox
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7632225Z Deleting the contents of '/home/runner/work/podbox/podbox'
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7633544Z ##[group]Determining repository object format
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7634661Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7635589Z ##[group]Initializing the repository
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7636367Z [command]/usr/bin/git init /home/runner/work/podbox/podbox
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7798368Z hint: Using 'master' as the name for the initial branch. This default branch name
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7800520Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7801967Z hint: to use in all of your new repositories, which will suppress this warning,
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7802466Z hint: call:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7802792Z hint:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7803123Z hint: 	git config --global init.defaultBranch <name>
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7803472Z hint:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7803798Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7804318Z hint: 'development'. The just-created branch can be renamed via this command:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7804731Z hint:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7804970Z hint: 	git branch -m <name>
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7805236Z hint:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7805590Z hint: Disable this message with "git config set advice.defaultBranchName false"
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7806135Z Initialized empty Git repository in /home/runner/work/podbox/podbox/.git/
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7808336Z [command]/usr/bin/git remote add origin https://github.com/Azathothas/podbox
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7868244Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7869040Z ##[group]Disabling automatic garbage collection
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7871283Z [command]/usr/bin/git config --local gc.auto 0
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7910224Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7910937Z ##[group]Setting up auth
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7915193Z Removing SSH command configuration
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7919648Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.7950187Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8257040Z Removing HTTP extra header
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8261871Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8291687Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8475273Z Removing includeIf entries pointing to credentials config files
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8475908Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8514933Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8706641Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-9fb8dfd7-fd79-4e43-a9a5-608738a56e14.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8743485Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/podbox/podbox/.git.path /home/runner/work/_temp/git-credentials-9fb8dfd7-fd79-4e43-a9a5-608738a56e14.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8775745Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-9fb8dfd7-fd79-4e43-a9a5-608738a56e14.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8811567Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-9fb8dfd7-fd79-4e43-a9a5-608738a56e14.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8843854Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-9fb8dfd7-fd79-4e43-a9a5-608738a56e14.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8872816Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8873487Z ##[group]Fetching the repository
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:19.8878371Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +803d48c348eef0c0cc401d25660d928bb295e1b3:refs/remotes/origin/main
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3382918Z From https://github.com/Azathothas/podbox
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3384345Z  * [new ref]         803d48c348eef0c0cc401d25660d928bb295e1b3 -> origin/main
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3388361Z [command]/usr/bin/git branch --list --remote origin/main
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3415932Z   origin/main
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3422192Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3447723Z 803d48c348eef0c0cc401d25660d928bb295e1b3
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3451621Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3452710Z ##[group]Determining the checkout info
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3453841Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3454959Z [command]/usr/bin/git sparse-checkout disable
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3574181Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3608267Z ##[group]Checking out the ref
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.3610250Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.9682658Z Switched to a new branch 'main'
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.9689574Z branch 'main' set up to track 'origin/main'.
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.9718800Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.9762703Z [command]/usr/bin/git log -1 --format=%H
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.9788798Z 803d48c348eef0c0cc401d25660d928bb295e1b3
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.9956360Z ##[group]Run ./scripts/common/bootstrap-env.sh rust cc zig tools
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:22.9956746Z ^[[36;1m./scripts/common/bootstrap-env.sh rust cc zig tools^[[0m
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:23.0215896Z shell: /usr/bin/bash -e {0}
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:23.0216101Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:23.0496533Z == disk, before anything is written
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:23.0497054Z   87922 MB and 18419380 inodes available under /home/runner/work/podbox/podbox
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:23.0514976Z 
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:23.0515077Z == components
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7303927Z 
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7304730Z   ok       rust: 1.98.1, musl target present
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7305004Z   ok       cc: gcc 13
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7305253Z   ok       tools: jq, binutils, file, xz all present
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7305613Z   installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7305845Z 
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7305946Z == 3 already present, 1 installed, 0 failed
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7306357Z everything requested is present.
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7340690Z ##[group]Run rustup component add rustfmt clippy
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7340929Z ^[[36;1mrustup component add rustfmt clippy^[[0m
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7399356Z shell: /usr/bin/bash -e {0}
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.7399515Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.8148431Z info: component rustfmt is up to date
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.8148950Z info: component clippy is up to date
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.8206464Z ##[group]Run cargo fmt --all -- --check
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.8206711Z ^[[36;1mcargo fmt --all -- --check^[[0m
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.8206943Z ^[[36;1mcargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check^[[0m
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.8263630Z shell: /usr/bin/bash -e {0}
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:35.8263812Z ##[endgroup]
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.0975022Z Diff in /home/runner/work/podbox/podbox/crates/podbox-cli/src/images.rs:2399:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.0975440Z      /// crate has no `tempfile` dependency and the store tests' `scratch`
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.0975718Z      /// helper is `#[cfg(test)]`-private to `podbox-image`.
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.0979184Z      fn scratch_store(name: &str) -> std::path::PathBuf {
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.0979463Z -        static SEQUENCE: std::sync::atomic::AtomicU64 =
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.0979698Z -            std::sync::atomic::AtomicU64::new(0);
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.0979992Z +        static SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.0980287Z          let n = SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.0980520Z          let root = std::env::temp_dir().join(format!(
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.0980725Z              "podbox-cli-test-{}-{}-{}",
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.1849207Z Diff in /home/runner/work/podbox/podbox/crates/podbox-complete/src/write.rs:782:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.1849808Z          std::os::unix::fs::symlink("/var/aptreal", format!("{root}/etc/apt")).unwrap();
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.1850147Z  
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.1850343Z          let r = Root::open(&root).unwrap();
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.1850686Z -        r.write("etc/apt/apt.conf.d/99podbox", b"APT{}\n", 0o644).unwrap();
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.1851441Z +        r.write("etc/apt/apt.conf.d/99podbox", b"APT{}\n", 0o644)
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.1851862Z +            .unwrap();
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.1852060Z          assert_eq!(
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.1852382Z              std::fs::read(format!("{root}/var/aptreal/apt.conf.d/99podbox")).unwrap(),
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.1852775Z              b"APT{}\n"
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.5687084Z ##[error]Process completed with exit code 1.
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.5793589Z Post job cleanup.
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6329204Z [command]/usr/bin/git version
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6362038Z git version 2.55.0
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6392552Z Temporarily overriding HOME='/home/runner/work/_temp/b3941857-2717-4ce2-8a83-cc096b6c3243' before making global git config changes
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6393111Z Adding repository directory to the temporary git global config as a safe directory
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6396327Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/podbox/podbox
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6464521Z Removing SSH command configuration
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6471039Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6504330Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6721308Z Removing HTTP extra header
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6726611Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6760441Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6979583Z Removing includeIf entries pointing to credentials config files
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.6985687Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7050365Z includeif.gitdir:/home/runner/work/podbox/podbox/.git.path
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7050801Z includeif.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7051150Z includeif.gitdir:/github/workspace/.git.path
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7051354Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7057502Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/podbox/podbox/.git.path
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7081228Z /home/runner/work/_temp/git-credentials-9fb8dfd7-fd79-4e43-a9a5-608738a56e14.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7089205Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/podbox/podbox/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-9fb8dfd7\-fd79\-4e43\-a9a5\-608738a56e14\.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7159653Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7181825Z /home/runner/work/_temp/git-credentials-9fb8dfd7-fd79-4e43-a9a5-608738a56e14.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7187889Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-9fb8dfd7\-fd79\-4e43\-a9a5\-608738a56e14\.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7258975Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7280297Z /github/runner_temp/git-credentials-9fb8dfd7-fd79-4e43-a9a5-608738a56e14.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7284887Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-9fb8dfd7\-fd79\-4e43\-a9a5\-608738a56e14\.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7359053Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7379945Z /github/runner_temp/git-credentials-9fb8dfd7-fd79-4e43-a9a5-608738a56e14.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7384488Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-9fb8dfd7\-fd79\-4e43\-a9a5\-608738a56e14\.config
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7459744Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7652286Z Removing credentials config '/home/runner/work/_temp/git-credentials-9fb8dfd7-fd79-4e43-a9a5-608738a56e14.config'
+fmt, clippy, shell	UNKNOWN STEP	2026-10-01T12:17:37.7777108Z Cleaning up orphan processes
+TODO index and citations	UNKNOWN STEP	﻿2026-10-01T12:17:54.8455030Z Current runner version: '2.337.0'
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8482709Z ##[group]Runner Image Provisioner
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8483569Z Hosted Compute Agent
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8484135Z Version: 20260901.588
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8484819Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8485547Z Build Date: 2026-09-01T19:56:44Z
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8486332Z Worker ID: {84701ccb-11d6-407f-8c44-d8743970aad4}
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8487044Z Azure Region: eastus2
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8487644Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8489182Z ##[group]Operating System
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8489816Z Ubuntu
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8490706Z 24.04.5
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8491299Z LTS
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8491855Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8492513Z ##[group]Runner Image
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8493148Z Image: ubuntu-24.04
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8493753Z Version: 20260927.320.1
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8494984Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8496662Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8497656Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8499336Z ##[group]GITHUB_TOKEN Permissions
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8502190Z Contents: read
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8502957Z Metadata: read
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8503520Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8505648Z Secret source: Actions
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8506758Z Cache mode: write
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8507725Z Prepare workflow directory
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8857140Z Prepare all required actions
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:54.8909275Z Getting action download info
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.1450355Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.3687850Z Complete job name: TODO index and citations
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4548961Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4550427Z with:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4550891Z   fetch-depth: 0
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4551391Z   repository: Azathothas/podbox
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4555245Z   token: ***
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4555682Z   ssh-strict: true
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4556411Z   ssh-user: git
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4556953Z   persist-credentials: true
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4557442Z   clean: true
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4557900Z   sparse-checkout-cone-mode: true
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4558430Z   fetch-tags: false
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4558872Z   show-progress: true
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4559329Z   lfs: false
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4559748Z   submodules: false
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4560354Z   set-safe-directory: true
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4560870Z   allow-unsafe-pr-checkout: false
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.4561745Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5606123Z Syncing repository: Azathothas/podbox
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5608902Z ##[group]Getting Git version info
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5610302Z Working directory is '/home/runner/work/podbox/podbox'
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5612163Z [command]/usr/bin/git version
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5714150Z git version 2.55.0
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5740422Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5759480Z Temporarily overriding HOME='/home/runner/work/_temp/303615ed-bdf6-4899-8c30-80eef046d41d' before making global git config changes
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5761944Z Adding repository directory to the temporary git global config as a safe directory
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5768037Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/podbox/podbox
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5830944Z Deleting the contents of '/home/runner/work/podbox/podbox'
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5848939Z ##[group]Determining repository object format
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5858696Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5859810Z ##[group]Initializing the repository
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.5861187Z [command]/usr/bin/git init /home/runner/work/podbox/podbox
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6009671Z hint: Using 'master' as the name for the initial branch. This default branch name
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6012289Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6014550Z hint: to use in all of your new repositories, which will suppress this warning,
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6016145Z hint: call:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6017075Z hint:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6018088Z hint: 	git config --global init.defaultBranch <name>
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6019258Z hint:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6020655Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6022538Z hint: 'development'. The just-created branch can be renamed via this command:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6023979Z hint:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6024826Z hint: 	git branch -m <name>
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6025816Z hint:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6027048Z hint: Disable this message with "git config set advice.defaultBranchName false"
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6029073Z Initialized empty Git repository in /home/runner/work/podbox/podbox/.git/
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6032732Z [command]/usr/bin/git remote add origin https://github.com/Azathothas/podbox
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6095500Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6096969Z ##[group]Disabling automatic garbage collection
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6100382Z [command]/usr/bin/git config --local gc.auto 0
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6142236Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6143605Z ##[group]Setting up auth
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6144598Z Removing SSH command configuration
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6149915Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6192670Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6638068Z Removing HTTP extra header
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6644580Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6683653Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6917358Z Removing includeIf entries pointing to credentials config files
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6923661Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.6963318Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.7233957Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-d63500e4-c692-4b99-abd6-b9ead89eea1b.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.7280992Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/podbox/podbox/.git.path /home/runner/work/_temp/git-credentials-d63500e4-c692-4b99-abd6-b9ead89eea1b.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.7317956Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-d63500e4-c692-4b99-abd6-b9ead89eea1b.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.7358723Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-d63500e4-c692-4b99-abd6-b9ead89eea1b.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.7395731Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-d63500e4-c692-4b99-abd6-b9ead89eea1b.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.7431933Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.7432906Z ##[group]Fetching the repository
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:55.7439469Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4269287Z From https://github.com/Azathothas/podbox
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4278164Z  * [new branch]      main           -> origin/main
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4279883Z  * [new tag]         v0.1.0-beta.1  -> v0.1.0-beta.1
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4288590Z  * [new tag]         v0.1.0-beta.10 -> v0.1.0-beta.10
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4290482Z  * [new tag]         v0.1.0-beta.11 -> v0.1.0-beta.11
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4291541Z  * [new tag]         v0.1.0-beta.12 -> v0.1.0-beta.12
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4292556Z  * [new tag]         v0.1.0-beta.2  -> v0.1.0-beta.2
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4293629Z  * [new tag]         v0.1.0-beta.3  -> v0.1.0-beta.3
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4294727Z  * [new tag]         v0.1.0-beta.4  -> v0.1.0-beta.4
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4295756Z  * [new tag]         v0.1.0-beta.5  -> v0.1.0-beta.5
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4296781Z  * [new tag]         v0.1.0-beta.6  -> v0.1.0-beta.6
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4297821Z  * [new tag]         v0.1.0-beta.7  -> v0.1.0-beta.7
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4299079Z  * [new tag]         v0.1.0-beta.8  -> v0.1.0-beta.8
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4300538Z  * [new tag]         v0.1.0-beta.9  -> v0.1.0-beta.9
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4303453Z [command]/usr/bin/git branch --list --remote origin/main
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4313706Z   origin/main
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4324277Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4353428Z 803d48c348eef0c0cc401d25660d928bb295e1b3
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4358858Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4361057Z ##[group]Determining the checkout info
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4363821Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4365822Z [command]/usr/bin/git sparse-checkout disable
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4448463Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4494749Z ##[group]Checking out the ref
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:57.4498831Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.2774244Z Switched to a new branch 'main'
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.2780170Z branch 'main' set up to track 'origin/main'.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.2824853Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.2877266Z [command]/usr/bin/git log -1 --format=%H
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.2908912Z 803d48c348eef0c0cc401d25660d928bb295e1b3
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.3132501Z ##[group]Run ./scripts/common/bootstrap-env.sh rust bloat cc zig tools
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.3133202Z ^[[36;1m./scripts/common/bootstrap-env.sh rust bloat cc zig tools^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.3436488Z shell: /usr/bin/bash -e {0}
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.3436965Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.3665587Z == disk, before anything is written
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.3666438Z   87919 MB and 18419390 inodes available under /home/runner/work/podbox/podbox
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.3688325Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:17:58.3688666Z == components
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2175454Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2175988Z   ok       rust: 1.98.1, musl target present
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2176580Z   ok       cc: gcc 13
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2177025Z   ok       tools: jq, binutils, file, xz all present
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2177549Z   installed bloat: cargo-bloat
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2178119Z   installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2178576Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2178909Z == 3 already present, 2 installed, 0 failed
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2180401Z everything requested is present.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2222605Z ##[group]Run cargo build --release -p podbox-gate
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2223079Z ^[[36;1mcargo build --release -p podbox-gate^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2223392Z ^[[36;1mmkdir -p target/release^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2223795Z ^[[36;1mcp target/x86_64-unknown-linux-musl/release/podbox-gate target/release/^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2224346Z ^[[36;1mcp target/x86_64-unknown-linux-musl/release/podbox-count target/release/^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2224889Z ^[[36;1mcp target/x86_64-unknown-linux-musl/release/podbox-plant target/release/^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2225418Z ^[[36;1mcp target/x86_64-unknown-linux-musl/release/podbox-dev target/release/^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2225944Z ^[[36;1mcp target/x86_64-unknown-linux-musl/release/podbox-smoke target/release/^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2226545Z ^[[36;1mcp target/x86_64-unknown-linux-musl/release/podbox-interpose-build target/release/^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2227206Z ^[[36;1mcp target/x86_64-unknown-linux-musl/release/podbox-libc-interpose target/release/^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2293752Z shell: /usr/bin/bash -e {0}
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.2294248Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.3418444Z     Updating crates.io index
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:21.7925101Z    Compiling podbox-gate v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-gate)
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:34.6598181Z     Finished `release` profile [optimized] target(s) in 13.39s
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:34.6988290Z ##[group]Run ./target/release/podbox-gate
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:34.6988737Z ^[[36;1m./target/release/podbox-gate^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:34.7053471Z shell: /usr/bin/bash -e {0}
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:34.7053746Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.6374165Z check-todo: 203 rows, 203 entries, 0 open, 3 partial, 0 blocked, 200 done
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.6379397Z check-todo: coverage ascii_output=50129 bare_citations=1519 ci_components=5 closure_records=200 corpus=46 counts=5 crossrefs=657 devcheck_third_state=1 document_state=1 entries=203 exit_codes=5 experiment_numbers=633 fields=2030 interpose_exports=1 interpose_sizes=384 parity_notes=321 perf_budget=75 post_task_cleanup=4 prove_flags=200 prove_registry=203 rows=203 size_ceiling=402 todo_citations=183 todo_links=658 tree_citations=78 tree_links=300
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.6385084Z check-todo: ok
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.6435374Z ##[group]Run ./target/release/podbox-count
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.6435806Z ^[[36;1m./target/release/podbox-count^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.6436086Z ^[[36;1mgit diff --exit-code -- TODO/^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.6499592Z shell: /usr/bin/bash -e {0}
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.6499870Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.6603945Z todo-count: wrote 203 items: 0 open, 3 partial, 0 blocked, 200 done
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.8808617Z ##[group]Run ./target/release/podbox-plant
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.8809233Z ^[[36;1m./target/release/podbox-plant^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.8901180Z shell: /usr/bin/bash -e {0}
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:35.8901623Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:36.0548202Z == baseline: the gate on the clean tree
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:37.0069647Z   exit 0
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:37.0069932Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:37.0074738Z == plants
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:42.6729407Z   ok   1 row without an entry             red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:48.3366959Z   ok   2 entry without a row              red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:53.9993206Z   ok   3 status disagreement              red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:18:59.6115507Z   ok   4 count block is stale             red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:19:05.2256868Z   ok   5 a missing field                  red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:19:10.8893965Z   ok   6 a corpus tree the map lost       red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:19:16.4513332Z   ok   7 a citation past end of file      red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:19:22.0651747Z   ok   8 a TODO link to nothing           red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:19:27.6728303Z   ok   9 a T-NNNN naming nothing          red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:19:33.2847304Z   ok   10 PROGRESS count is stale         red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:19:38.8992980Z   ok   11 a tree citation past EOF        red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:19:44.5123375Z   ok   12 a link out of README            red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:19:50.1227272Z   ok   13 a tenth dangling link           red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:19:55.7377962Z   ok   14 a bare path naming nothing      red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:01.4073667Z   ok   15 tracked experiment scratch      red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:07.0192440Z   ok   17a the ceiling in a second file   red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:12.6306866Z   ok   17b a baseline over the ceiling    red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:18.2409276Z   ok   17c a baseline with no total       red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:23.8529734Z   ok   17d a shipped reading over the ceiling red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:29.4631376Z   ok   18a a Prove at a taken number      red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:35.1752158Z   ok   18b a second script on disk        red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:40.7859939Z   ok   19a a build job without its toolchain red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:46.3957567Z   ok   19b the same, reached by a script  red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:52.0053945Z   ok   20 a second exit-code declaration  red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:20:57.6178479Z   ok   21a an unqualified image in a Prove line red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:03.2771595Z   ok   21b a docker.io image in a Prove line red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:08.8848583Z   ok   22 a closed entry with no recorded run red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:14.4987473Z   ok   23a an interpose object over the ceiling red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:20.1098573Z   ok   23b an interpose reading with no sizes red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:25.7214092Z   ok   24 the export comparison removed   red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:31.3362992Z   ok   25 the SKIP arm retargeted         red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:36.9518046Z   ok   26a a done Prove naming a refused flag red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:42.5689630Z   ok   26b a done Prove naming an unlisted flag red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:48.1823837Z   ok   26c a done Prove running a refused verb red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:53.7958412Z   ok   26d a done Prove running an unknown verb red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:21:59.4082762Z   ok   26e a done Prove with a bad cluster member red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:22:05.0209701Z   ok   27a a parity note leaning on a shipped milestone red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:22:10.6340622Z   ok   27b a parity note missing a present verb red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:22:16.2466436Z   ok   27c a curated flag with no parity row red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:22:21.8602484Z   ok   28 a glyph in a printed string     red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:22:27.4737618Z   ok   29 a dropped cleanup procedure     red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:22:28.4265272Z   ok   29b a kept lane session            red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:22:34.0404217Z   ok   30 a perf reading over its ceiling red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:22:34.0404969Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:22:39.7039796Z   ok   31 source state differs            red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:23:11.6335686Z   ok   32a images                         red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:23:19.1038788Z   ok   32b system                         red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:23:26.7261477Z   ok   32c parity                         red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:23:34.0933285Z   ok   32d write                          red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:23:39.9084704Z   ok   32e memo                           red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:23:45.2726511Z   ok   32f identity                       red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:23:51.8929714Z   ok   32g exit                           red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:24:00.8223600Z   ok   33a curated_refusals               red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:24:07.9903401Z   ok   33b detached_stdio                 red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:24:15.1117074Z   ok   33c qol                            red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:24:22.2833089Z   ok   33d store_gates                    red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:24:27.6442963Z   ok   33e tty_refusal                    red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:24:33.3076195Z   ok   33f acquisition                    red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:24:39.7693471Z   ok   33g across_distributions           red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:24:46.1807620Z   ok   33h common mod                     red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:24:52.3444623Z   ok   33i common registry                red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:24:58.8589846Z   ok   33j parallel_layers                red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:04.4704048Z   ok   33k registry_fixture               red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:10.4825137Z   ok   33l space_precheck                 red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:16.0959294Z   ok   33m store_digest                   red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:21.3055220Z   ok   33n namespace                      red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:26.6680874Z   ok   33o namespace_base                 red, and it named it
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:26.6682158Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:26.6682337Z == not planted against
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:26.6683036Z   16 coverage floor    no case. Planting it means making a check examine
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:26.6683970Z                        nothing, which requires editing the gate's own
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:26.6684831Z                        matchers rather than the tree. Every other check's
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:26.6685805Z                        counter is asserted non-zero on every run instead,
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:26.6686715Z                        and a zero is reported as a failure.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:26.6687251Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:26.6687445Z == controls
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:27.6289182Z   ok   an ordinary prose edit             quiet, as a control must be
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:28.6392428Z   ok   a citation that does resolve       quiet, as a control must be
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:29.6500383Z   ok   a forward reference to a result    quiet, as a control must be
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.6612803Z   ok   a payload-side flag after the image quiet, as a control must be
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.6613622Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.6613821Z == verdict
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.6614272Z   plants   66 caught, 0 missed
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.6614880Z   controls 4 quiet, 0 fired
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.6615680Z   every check that was planted against went red with its own message.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.7305176Z ##[group]Run set -eu
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.7305482Z ^[[36;1mset -eu^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.7306046Z ^[[36;1mfor check in check-docs check-markers check-one-home check-placeholders check-control-bytes check-changelog check-attribution; do^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.7306687Z ^[[36;1m  sh "scripts/common/$check.sh"^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.7306949Z ^[[36;1mdone^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.7307206Z ^[[36;1msh scripts/common/check-no-secrets.sh --public^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.7307565Z ^[[36;1msh scripts/common/mine-repo.sh --selftest^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.7307889Z ^[[36;1msh scripts/common/check-twins.sh^[[0m
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.7372777Z shell: /usr/bin/bash -e {0}
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:30.7373055Z ##[endgroup]
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:31.0044925Z docs ok: 84 files, 1049 relative links, 16 shell blocks. Links and prose clean.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:34.4231091Z markers ok: 603 files, 5290 markers, densest 30 per 100 non-blank lines (docs/history/2026-09-11-reference-sweep.md), ceiling 30
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:34.6739560Z one fact one home: 59 documents, no sentence of 12+ words in two of them
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:34.7709126Z no placeholders survived in 673 files (dotfiles is exempt; docs/templates is IN SCOPE because bootstrap/ has gone)
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:36.0699312Z no literal control bytes in 603 text files (tracked plus untracked-not-ignored)
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:36.0854874Z changelog ok: 0 entries, in order, each dated with a record and a deploy line
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:36.1654057Z no tool credited in 234 commit(s)
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:36.1654626Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:36.1656166Z ⚠ the commit-msg hook is not installed here, so this can only report
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:36.1657366Z   after the fact. Install it once, per checkout:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:36.1658305Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:36.1658588Z     git config core.hooksPath .githooks
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0089901Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0090817Z == an absolute home path ==
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0091594Z scripts/dev-lane.sh:205:export HOME="${LANE_HOME:-/home/toolkit}"
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0092232Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0092795Z ⛔ 1 category/categories matched.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0093171Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0093497Z If any of it is a real credential, IN THIS ORDER:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0094617Z   1. ROTATE IT. Now, before anything else. It is compromised from the
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0095508Z      moment it was written, and removing the file does not change that.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0096104Z   2. Tell the operator. They own the account.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0096515Z   3. Remove it from the tree, and add the ignore rule.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0097025Z   4. A history rewrite is the operator's call and the operator's action.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0097513Z      It is tidying after the fix, not the fix.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0098052Z 
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0098286Z If it is a false positive, narrow the pattern in this script rather than
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0098813Z switching the check off. See docs/security/secrets.md.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0111639Z ##[error]Process completed with exit code 1.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.0288330Z Post job cleanup.
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1281314Z [command]/usr/bin/git version
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1328701Z git version 2.55.0
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1384235Z Temporarily overriding HOME='/home/runner/work/_temp/b6d5020c-a30b-4c30-a877-8f3e0ee2045f' before making global git config changes
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1385833Z Adding repository directory to the temporary git global config as a safe directory
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1391634Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/podbox/podbox
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1448681Z Removing SSH command configuration
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1449650Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1501689Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1802344Z Removing HTTP extra header
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1809389Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.1866392Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2177582Z Removing includeIf entries pointing to credentials config files
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2195294Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2271585Z includeif.gitdir:/home/runner/work/podbox/podbox/.git.path
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2273816Z includeif.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2275819Z includeif.gitdir:/github/workspace/.git.path
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2277287Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2284659Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/podbox/podbox/.git.path
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2338570Z /home/runner/work/_temp/git-credentials-d63500e4-c692-4b99-abd6-b9ead89eea1b.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2352545Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/podbox/podbox/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-d63500e4\-c692\-4b99\-abd6\-b9ead89eea1b\.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2405020Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2443358Z /home/runner/work/_temp/git-credentials-d63500e4-c692-4b99-abd6-b9ead89eea1b.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2453903Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-d63500e4\-c692\-4b99\-abd6\-b9ead89eea1b\.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2514287Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2551347Z /github/runner_temp/git-credentials-d63500e4-c692-4b99-abd6-b9ead89eea1b.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2560640Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-d63500e4\-c692\-4b99\-abd6\-b9ead89eea1b\.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2612247Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2651857Z /github/runner_temp/git-credentials-d63500e4-c692-4b99-abd6-b9ead89eea1b.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2658869Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-d63500e4\-c692\-4b99\-abd6\-b9ead89eea1b\.config
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.2712693Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.3018563Z Removing credentials config '/home/runner/work/_temp/git-credentials-d63500e4-c692-4b99-abd6-b9ead89eea1b.config'
+TODO index and citations	UNKNOWN STEP	2026-10-01T12:25:37.3195231Z Cleaning up orphan processes
+workspace and interposer tests	UNKNOWN STEP	﻿2026-10-01T12:17:19.6835945Z Current runner version: '2.337.0'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6858714Z ##[group]Runner Image Provisioner
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6859423Z Hosted Compute Agent
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6859987Z Version: 20260901.588
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6860531Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6861102Z Build Date: 2026-09-01T19:56:44Z
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6861735Z Worker ID: {06f52fb6-48f6-444a-a2c6-f8abd4400cab}
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6862318Z Azure Region: westus3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6862882Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6864083Z ##[group]Operating System
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6864583Z Ubuntu
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6865095Z 24.04.5
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6865551Z LTS
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6866002Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6866499Z ##[group]Runner Image
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6867234Z Image: ubuntu-24.04
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6867753Z Version: 20260927.320.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6868785Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6870065Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6870833Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6871779Z ##[group]GITHUB_TOKEN Permissions
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6873336Z Contents: read
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6874288Z Metadata: read
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6874743Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6876488Z Secret source: Actions
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6877498Z Cache mode: write
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.6878325Z Prepare workflow directory
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.7134970Z Prepare all required actions
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:19.7173838Z Getting action download info
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.0200248Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.3426232Z Complete job name: workspace and interposer tests
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4119534Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4120389Z with:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4120795Z   repository: Azathothas/podbox
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4123945Z   token: ***
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4124326Z   ssh-strict: true
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4124714Z   ssh-user: git
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4125104Z   persist-credentials: true
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4125524Z   clean: true
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4125933Z   sparse-checkout-cone-mode: true
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4126385Z   fetch-depth: 1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4126765Z   fetch-tags: false
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4127323Z   show-progress: true
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4127722Z   lfs: false
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4128100Z   submodules: false
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4128497Z   set-safe-directory: true
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4128928Z   allow-unsafe-pr-checkout: false
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4129547Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4915639Z Syncing repository: Azathothas/podbox
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4918034Z ##[group]Getting Git version info
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4919090Z Working directory is '/home/runner/work/podbox/podbox'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4920529Z [command]/usr/bin/git version
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4972892Z git version 2.55.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.4988405Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5002841Z Temporarily overriding HOME='/home/runner/work/_temp/62a3e1bd-f2cf-485e-92cd-4f49ca01a396' before making global git config changes
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5008132Z Adding repository directory to the temporary git global config as a safe directory
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5010064Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/podbox/podbox
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5050348Z Deleting the contents of '/home/runner/work/podbox/podbox'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5053324Z ##[group]Determining repository object format
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5054523Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5055176Z ##[group]Initializing the repository
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5058521Z [command]/usr/bin/git init /home/runner/work/podbox/podbox
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5160003Z hint: Using 'master' as the name for the initial branch. This default branch name
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5161721Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5163418Z hint: to use in all of your new repositories, which will suppress this warning,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5164892Z hint: call:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5165686Z hint:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5166650Z hint: 	git config --global init.defaultBranch <name>
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5167963Z hint:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5169028Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5170556Z hint: 'development'. The just-created branch can be renamed via this command:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5171730Z hint:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5172497Z hint: 	git branch -m <name>
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5173377Z hint:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5174369Z hint: Disable this message with "git config set advice.defaultBranchName false"
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5175314Z Initialized empty Git repository in /home/runner/work/podbox/podbox/.git/
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5189204Z [command]/usr/bin/git remote add origin https://github.com/Azathothas/podbox
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5238718Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5239424Z ##[group]Disabling automatic garbage collection
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5240037Z [command]/usr/bin/git config --local gc.auto 0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5264842Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5266344Z ##[group]Setting up auth
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5267520Z Removing SSH command configuration
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5270161Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5298654Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5605854Z Removing HTTP extra header
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5610533Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5640706Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5824806Z Removing includeIf entries pointing to credentials config files
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5827947Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.5856552Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.6050453Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-9b3ff0b6-4dc5-4f6e-9536-c23085527611.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.6083440Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/podbox/podbox/.git.path /home/runner/work/_temp/git-credentials-9b3ff0b6-4dc5-4f6e-9536-c23085527611.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.6114384Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-9b3ff0b6-4dc5-4f6e-9536-c23085527611.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.6147459Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-9b3ff0b6-4dc5-4f6e-9536-c23085527611.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.6184074Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-9b3ff0b6-4dc5-4f6e-9536-c23085527611.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.6204377Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.6205040Z ##[group]Fetching the repository
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:20.6209504Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +803d48c348eef0c0cc401d25660d928bb295e1b3:refs/remotes/origin/main
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2584225Z From https://github.com/Azathothas/podbox
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2585701Z  * [new ref]         803d48c348eef0c0cc401d25660d928bb295e1b3 -> origin/main
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2591605Z [command]/usr/bin/git branch --list --remote origin/main
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2617207Z   origin/main
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2623253Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2645745Z 803d48c348eef0c0cc401d25660d928bb295e1b3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2649135Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2649798Z ##[group]Determining the checkout info
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2650473Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2652500Z [command]/usr/bin/git sparse-checkout disable
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2699354Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2728074Z ##[group]Checking out the ref
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.2731071Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9160846Z Switched to a new branch 'main'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9163958Z branch 'main' set up to track 'origin/main'.
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9201098Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9267619Z [command]/usr/bin/git log -1 --format=%H
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9275845Z 803d48c348eef0c0cc401d25660d928bb295e1b3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9458606Z ##[group]Run ./scripts/common/bootstrap-env.sh rust cc zig tools openssh
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9459103Z ^[[36;1m./scripts/common/bootstrap-env.sh rust cc zig tools openssh^[[0m
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9678412Z shell: /usr/bin/bash -e {0}
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9678654Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9852571Z == disk, before anything is written
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9853133Z   87922 MB and 18419380 inodes available under /home/runner/work/podbox/podbox
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9871617Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:23.9871745Z == components
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5081981Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5082421Z   ok       rust: 1.98.1, musl target present
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5082772Z   ok       cc: gcc 13
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5083033Z   ok       tools: jq, binutils, file, xz all present
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5083315Z   ok       openssh: client and server present
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5083736Z   installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5084092Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5084320Z == 4 already present, 1 installed, 0 failed
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5084730Z everything requested is present.
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5594647Z ##[group]Run cargo test --workspace
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5594971Z ^[[36;1mcargo test --workspace^[[0m
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5650435Z shell: /usr/bin/bash -e {0}
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.5650665Z ##[endgroup]
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:35.9738767Z     Updating crates.io index
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.7848414Z  Downloading crates ...
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8118134Z   Downloaded block-buffer v0.12.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8728497Z   Downloaded adler2 v2.0.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8728884Z   Downloaded base64 v0.22.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8756340Z   Downloaded base64 v0.23.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8789355Z   Downloaded cc v1.4.5
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8837583Z   Downloaded simd-adler32 v0.3.10
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8847605Z   Downloaded cpufeatures v0.3.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8847974Z   Downloaded digest v0.11.3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8860775Z   Downloaded icu_properties_data v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8951434Z   Downloaded once_cell v1.21.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.8971660Z   Downloaded serde v1.0.229
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9000029Z   Downloaded url v2.5.8
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9020713Z   Downloaded flate2 v1.1.10
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9061525Z   Downloaded zerotrie v0.2.5
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9093874Z   Downloaded tar v0.4.46
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9118771Z   Downloaded ureq v2.12.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9159251Z   Downloaded litemap v0.8.3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9179188Z   Downloaded proc-macro2 v1.0.107
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9204625Z   Downloaded icu_normalizer_data v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9221902Z   Downloaded crypto-common v0.2.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9231124Z   Downloaded idna_adapter v1.2.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9238450Z   Downloaded hybrid-array v0.4.15
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9256408Z   Downloaded percent-encoding v2.3.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9263648Z   Downloaded rustls-pemfile v2.2.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9285694Z   Downloaded ruzstd v0.9.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9332648Z   Downloaded unicode-ident v1.0.24
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9354717Z   Downloaded yoke v0.8.3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9374064Z   Downloaded syn v2.0.119
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9460154Z   Downloaded syn v3.0.5
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9547549Z   Downloaded rustls-pki-types v1.15.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9572403Z   Downloaded stable_deref_trait v1.2.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9579777Z   Downloaded yoke-derive v0.8.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9588744Z   Downloaded libc v0.2.189
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9954205Z   Downloaded miniz_oxide v0.9.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:36.9983151Z   Downloaded zlib-rs v0.6.7
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0042411Z   Downloaded cfg-if v1.0.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0055892Z   Downloaded serde_core v1.0.229
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0086293Z   Downloaded icu_collections v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0137922Z   Downloaded synstructure v0.13.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0146537Z   Downloaded subtle v2.6.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0156155Z   Downloaded icu_provider v2.3.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0178078Z   Downloaded shlex v2.0.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0192118Z   Downloaded itoa v1.0.18
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0206212Z   Downloaded serde_derive v1.0.229
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0232374Z   Downloaded zerofrom v0.1.8
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0249508Z   Downloaded displaydoc v0.2.7
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0261987Z   Downloaded smallvec v1.16.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0273109Z   Downloaded filetime v0.2.29
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0287662Z   Downloaded find-msvc-tools v0.1.12
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0300698Z   Downloaded writeable v0.6.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0317795Z   Downloaded potential_utf v0.1.6
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0326835Z   Downloaded sha2 v0.11.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0414706Z   Downloaded utf8_iter v1.0.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0437660Z   Downloaded webpki-roots v0.26.11
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0438040Z   Downloaded zerovec v0.11.8
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0438371Z   Downloaded zerovec-derive v0.11.6
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0443927Z   Downloaded crc32fast v1.5.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0461421Z   Downloaded syscalls v0.8.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0505175Z   Downloaded tinystr v0.8.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0522595Z   Downloaded twox-hash v2.1.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0541901Z   Downloaded zerofrom-derive v0.1.7
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0550507Z   Downloaded getrandom v0.2.17
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0575413Z   Downloaded log v0.4.34
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0595874Z   Downloaded serde_json v1.0.151
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0656192Z   Downloaded icu_locale_core v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0714509Z   Downloaded icu_properties v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0740554Z   Downloaded idna v1.1.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0769386Z   Downloaded quote v1.0.47
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0791762Z   Downloaded untrusted v0.9.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0805957Z   Downloaded form_urlencoded v1.2.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0812794Z   Downloaded zeroize v1.9.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0825415Z   Downloaded rustls-webpki v0.103.15
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0850817Z   Downloaded zmij v1.0.23
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0865504Z   Downloaded memchr v2.8.3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.0911195Z   Downloaded rustls v0.23.45
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.1008379Z   Downloaded typenum v1.20.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.1037256Z   Downloaded webpki-roots v1.0.9
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.1064247Z   Downloaded icu_normalizer v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.1143747Z   Downloaded ring v0.17.14
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.1496024Z   Downloaded linux-raw-sys v0.12.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.7919078Z    Compiling syscalls v0.8.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.7919483Z    Compiling cfg-if v1.0.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.7919849Z    Compiling proc-macro2 v1.0.107
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.7920199Z    Compiling linux-raw-sys v0.12.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:37.8803185Z    Compiling unicode-ident v1.0.24
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:38.0564622Z    Compiling quote v1.0.47
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:38.0608042Z    Compiling libc v0.2.189
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:38.4049628Z    Compiling shlex v2.0.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:38.4077841Z    Compiling find-msvc-tools v0.1.12
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:38.5351964Z    Compiling cc v1.4.5
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:38.6770493Z    Compiling podbox-probe v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-probe)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:39.3845763Z    Compiling zeroize v1.9.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:39.4927081Z    Compiling rustls-pki-types v1.15.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:39.5038959Z    Compiling getrandom v0.2.17
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:39.5989914Z    Compiling untrusted v0.9.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:39.6508525Z    Compiling serde_core v1.0.229
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:39.8379266Z    Compiling syn v2.0.119
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:39.8457454Z    Compiling zmij v1.0.23
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:40.0077915Z    Compiling rustls v0.23.45
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:40.1887971Z    Compiling ring v0.17.14
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:40.6301798Z    Compiling webpki-roots v1.0.9
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:40.6827959Z    Compiling syn v3.0.5
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:41.7906652Z    Compiling synstructure v0.13.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:42.2666583Z    Compiling subtle v2.6.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:42.3309367Z    Compiling log v0.4.34
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:42.4267928Z    Compiling serde_json v1.0.151
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:42.5197934Z    Compiling once_cell v1.21.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:42.7701223Z    Compiling itoa v1.0.18
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:42.8588139Z    Compiling memchr v2.8.3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:42.8808084Z    Compiling zerofrom-derive v0.1.7
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:43.4227619Z    Compiling rustls-pemfile v2.2.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:43.5192615Z    Compiling base64 v0.23.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:43.8367937Z    Compiling zerofrom v0.1.8
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:43.8695078Z    Compiling yoke-derive v0.8.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:43.8959299Z    Compiling stable_deref_trait v1.2.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:43.9218013Z    Compiling zerovec-derive v0.11.6
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:44.4008498Z    Compiling rustls-webpki v0.103.15
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:44.6838080Z    Compiling yoke v0.8.3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:44.9476035Z    Compiling zerovec v0.11.8
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.1104647Z    Compiling displaydoc v0.2.7
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.3008056Z    Compiling writeable v0.6.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.3738289Z    Compiling litemap v0.8.3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.4537977Z    Compiling typenum v1.20.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.5268279Z    Compiling potential_utf v0.1.6
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.5991129Z    Compiling icu_normalizer_data v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.6848486Z    Compiling utf8_iter v1.0.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.7468274Z    Compiling icu_properties_data v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.8654563Z    Compiling tinystr v0.8.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.8828271Z    Compiling zerotrie v0.2.5
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:45.9787978Z    Compiling icu_locale_core v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:46.0828841Z    Compiling icu_collections v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:46.1338191Z    Compiling hybrid-array v0.4.15
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:46.5447431Z    Compiling crypto-common v0.2.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:46.5472836Z    Compiling block-buffer v0.12.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:46.6011350Z    Compiling smallvec v1.16.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:46.7128071Z    Compiling icu_provider v2.3.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:46.9104507Z    Compiling icu_normalizer v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:46.9485587Z    Compiling icu_properties v2.3.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:47.3911462Z    Compiling digest v0.11.3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:47.4533667Z    Compiling crc32fast v1.5.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:47.4913297Z    Compiling cpufeatures v0.3.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:47.5227647Z    Compiling sha2 v0.11.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:47.6368188Z    Compiling adler2 v2.0.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:47.6918122Z    Compiling simd-adler32 v0.3.10
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:47.8018161Z    Compiling idna_adapter v1.2.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:47.8528079Z    Compiling percent-encoding v2.3.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:47.9506752Z    Compiling form_urlencoded v1.2.2
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:48.0292446Z    Compiling idna v1.1.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:48.0417963Z    Compiling miniz_oxide v0.9.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:48.4268156Z    Compiling serde v1.0.229
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:48.5839851Z    Compiling flate2 v1.1.10
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:48.6197803Z    Compiling url v2.5.8
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:48.6577837Z    Compiling serde_derive v1.0.229
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:48.8957831Z    Compiling webpki-roots v0.26.11
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:48.9177971Z    Compiling filetime v0.2.29
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:49.0197650Z    Compiling base64 v0.22.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:49.2338310Z    Compiling ureq v2.12.1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:49.2865283Z    Compiling tar v0.4.46
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:50.1193165Z    Compiling podbox-ssh v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-ssh)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:50.5799228Z    Compiling twox-hash v2.1.4
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:50.6378288Z    Compiling ruzstd v0.9.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:51.5891690Z    Compiling podbox-enter v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-enter)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:52.2634446Z    Compiling podbox-image v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-image)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:52.7608227Z    Compiling podbox-windows v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-windows)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:53.4692340Z    Compiling podbox-cli v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-cli)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:54.0589436Z    Compiling podbox-extract v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-extract)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:54.0924120Z    Compiling podbox-supervise v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-supervise)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:54.4958616Z    Compiling podbox-complete v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-complete)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8718252Z warning: fields `manifest`, `manifest_digest`, `config`, and `layer` are never read
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8737479Z   --> crates/podbox-image/tests/common/registry.rs:30:9
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8767321Z    |
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8797251Z 25 | pub struct Fixture {
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8797624Z    |            ------- fields in this struct
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8827254Z ...
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8867566Z 30 |     pub manifest: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8887318Z    |         ^^^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8917452Z 31 |     /// `sha256:<hex>` of the manifest bytes, as served and as computed.
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8927305Z 32 |     pub manifest_digest: String,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8947356Z    |         ^^^^^^^^^^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8977291Z 33 |     pub config: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.8987269Z    |         ^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.9037456Z 34 |     pub config_digest: String,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.9037820Z 35 |     pub layer: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.9067372Z    |         ^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.9097376Z    |
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.9127488Z    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.9127862Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.9129390Z warning: podbox-cli@0.1.0-beta.12: no gnu interposer at /home/runner/work/podbox/podbox/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:55.9131869Z warning: podbox-cli@0.1.0-beta.12: no musl interposer at /home/runner/work/podbox/podbox/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:57.6117913Z warning: `podbox-image` (test "acquisition") generated 1 warning
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4247968Z warning: fields `manifest`, `config`, `config_digest`, and `layer` are never read
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4277498Z   --> crates/podbox-image/tests/common/registry.rs:30:9
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4277917Z    |
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4278201Z 25 | pub struct Fixture {
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4307379Z    |            ------- fields in this struct
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4307798Z ...
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4308063Z 30 |     pub manifest: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4308379Z    |         ^^^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4308641Z ...
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4308880Z 33 |     pub config: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4309152Z    |         ^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4309396Z 34 |     pub config_digest: String,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4309698Z    |         ^^^^^^^^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4309963Z 35 |     pub layer: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4310222Z    |         ^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4310453Z    |
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4310786Z    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:17:58.4311099Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.1208172Z warning: `podbox-image` (test "parallel_layers") generated 1 warning
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2148083Z warning: fields `config` and `layer` are never read
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2177893Z   --> crates/podbox-image/tests/common/registry.rs:33:9
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2207725Z    |
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2237651Z 25 | pub struct Fixture {
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2267767Z    |            ------- fields in this struct
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2297483Z ...
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2327479Z 33 |     pub config: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2337426Z    |         ^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2357617Z 34 |     pub config_digest: String,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2358053Z 35 |     pub layer: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2358532Z    |         ^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2358942Z    |
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2359433Z    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:00.2359863Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:01.8588406Z warning: `podbox-image` (test "store_digest") generated 1 warning
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0678000Z warning: fields `manifest`, `config`, `config_digest`, `layer`, and `layer_digest` are never read
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0699526Z   --> crates/podbox-image/tests/common/registry.rs:30:9
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0727305Z    |
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0767506Z 25 | pub struct Fixture {
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0787529Z    |            ------- fields in this struct
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0827208Z ...
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0857238Z 30 |     pub manifest: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0887221Z    |         ^^^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0917197Z ...
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0947240Z 33 |     pub config: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0961242Z    |         ^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0987278Z 34 |     pub config_digest: String,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0987630Z    |         ^^^^^^^^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0987940Z 35 |     pub layer: Vec<u8>,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0988220Z    |         ^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0988478Z 36 |     pub layer_digest: String,
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0988779Z    |         ^^^^^^^^^^^^
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0989054Z    |
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0989391Z    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:03.0989718Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:04.7126398Z warning: `podbox-image` (test "across_distributions") generated 1 warning
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:10.2980509Z    Compiling podbox-gate v0.1.0-beta.12 (/home/runner/work/podbox/podbox/crates/podbox-gate)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0006129Z     Finished `test` profile [unoptimized + debuginfo] target(s) in 36.28s
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0204131Z      Running unittests src/main.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox-d4a541b9f851ef90)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0215637Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0215781Z running 249 tests
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0225539Z test complete::tests::strict_all_names_every_reason_at_once ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0227827Z test complete::tests::strict_passes_a_run_with_no_degradation ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0228464Z test complete::tests::strict_classifies_safety_against_substitution ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0229251Z test complete::tests::strict_refuses_a_run_whose_only_difference_is_a_step ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0229943Z test complete::tests::without_strict_nothing_is_refused ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0231092Z test diagnose::tests::an_unreadable_map_reports_itself_as_unreadable ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0231968Z test complete::tests::the_banner_is_quiet_by_default_and_loud_under_verbose ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0234192Z test diagnose::tests::both_dropped_ids_still_read_beside_the_example ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0234674Z test diagnose::tests::every_row_carries_all_four_parts ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0235185Z test diagnose::tests::no_example_means_no_note ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0235755Z test diagnose::tests::the_note_names_the_entry_the_errno_the_map_and_the_remedy ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0236368Z test doctor::tests::doctor_help_and_bad_flag_need_no_probe ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0237018Z test doctor::tests::doctor_usage_is_plain_ascii ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0237951Z test doctor::tests::health_agrees_with_the_problem_list ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0248022Z test exec::tests::a_flag_needing_a_value_does_not_swallow_the_image ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0248495Z test exec::tests::exec_has_no_default_command ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0248780Z test exec::tests::exec_usage_is_plain_ascii ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0249071Z test exec::tests::parsing_stops_at_the_image_name ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0249608Z test exec::tests::quiet_and_verbose_parse ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0249908Z test exec::tests::the_banner_says_what_inspect_reports ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0250274Z test exec::tests::every_flag_the_table_admits_is_handled_by_this_parser ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0250674Z test exec::tests::the_tier_flag_takes_two_values_and_qemu_args_collect_whole ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0251043Z test exec::tests::the_mem_flag_parses_to_bytes_in_both_forms ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0251447Z test format::tests::a_template_feature_podbox_does_not_have_is_refused_rather_than_guessed ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0253057Z test format::tests::a_dotted_name_is_one_name_and_an_unregistered_one_is_still_refused ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0253818Z test format::tests::an_unknown_field_is_refused_and_lists_the_known_ones ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0254504Z test doctor::tests::store_exec_row_reports_yes_on_a_writable_directory ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0255162Z test format::tests::literal_text_and_several_fields_survive_together ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0255826Z test format::tests::the_escapes_docker_expands_are_expanded ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0256417Z test format::tests::the_one_function_podbox_answers_is_json ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0258334Z test images::tests::a_template_naming_a_field_no_verb_has_is_refused_without_any_record ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0259172Z test format::tests::the_acceptance_template_renders_the_digest_and_nothing_else ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0262301Z test images::tests::a_pipe_stdin_reads_to_the_trimmed_password ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0263024Z test format::tests::whitespace_inside_the_braces_is_the_go_spelling_and_is_accepted ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0263717Z test images::tests::a_terminal_stdin_refuses_before_any_read ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0267603Z test images::tests::every_image_usage_is_plain_ascii ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0268326Z test images::tests::login_accepts_the_equals_forms ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0269399Z test images::tests::an_image_with_no_creation_timestamp_prints_a_dash_and_not_a_guess ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0270045Z test images::tests::login_help_needs_nothing_else ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0270571Z test images::tests::login_names_no_server_where_none_is_given ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0271144Z test images::tests::config_renders_docker_names_null_safe ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0271736Z test images::tests::login_takes_a_user_a_stdin_flag_and_a_server ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0277913Z test images::tests::login_with_a_dangling_user_flag_is_a_flag_refusal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0278588Z test images::tests::login_with_an_empty_user_is_a_flag_refusal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0285677Z test images::tests::login_with_an_unlisted_flag_is_a_flag_refusal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0286290Z test images::tests::login_with_two_servers_is_a_verb_refusal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0286830Z test images::tests::login_without_a_user_is_a_flag_refusal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0288055Z test images::tests::login_without_password_stdin_is_a_flag_refusal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0288656Z test images::tests::logout_takes_one_server_or_help ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0289154Z test images::tests::save_load_import_parse_their_flags ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0289713Z test images::tests::missing_blobs_lists_blobs_with_no_file ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0290286Z test images::tests::the_table_pads_every_column_to_its_widest_cell ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0290893Z test images::tests::the_field_names_are_the_names_the_builder_produces ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0291355Z test images::tests::verify_parses_one_image_all_or_nothing ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0291730Z test interpose::tests::a_binary_without_objects_declines_naming_the_libc ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0296344Z test interpose::tests::a_caller_preload_survives_behind_podboxs ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0302654Z test interpose::tests::a_link_loop_is_refused ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0304416Z test interpose::tests::a_missing_payload_is_declined ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0305604Z test interpose::tests::a_payload_escaping_the_image_is_refused ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0306495Z test interpose::tests::a_reachable_payload_without_a_memo_is_refused_not_declined ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0308963Z test interpose::tests::a_script_is_declined_with_the_readers_reason ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0309596Z test interpose::tests::a_static_payload_is_declined_by_name ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0310630Z test interpose::tests::an_unknown_interpreter_is_declined ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0311643Z test interpose::tests::an_unparsable_object_is_refused_as_unparsable ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0312616Z test interpose::tests::another_architecture_is_declined ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0313785Z test interpose::tests::each_embedded_object_names_its_own_libc ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0315935Z test interpose::tests::go_markers_outrank_a_present_interpreter ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.0512421Z test interpose::tests::an_absolute_link_resolves_under_the_rootfs ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1263206Z test interpose::tests::placement_writes_the_object_where_the_payload_sees_it ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1263924Z test interpose::tests::resolve_finds_a_real_elf_along_path_dirs ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1265272Z test interpose::tests::the_carried_line_names_the_state_it_is_in ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1267826Z test interpose::tests::the_decline_line_carries_the_channel ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1276078Z test interpose::tests::the_memo_descriptor_parses_as_decimal_or_not_at_all ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1277906Z test interpose::tests::the_two_embedded_objects_are_not_the_same_bytes ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1278531Z test ladder::tests::a_forced_cache_is_admitted_only_where_asked ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1279119Z test ladder::tests::a_forced_fuse_rung_without_chroot_names_the_denial ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1279559Z test ladder::tests::a_forced_fuse_over_a_missing_payload_names_it ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1365590Z test ladder::tests::a_forced_memfd_over_a_missing_payload_names_it ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1369750Z test ladder::tests::a_forced_memfd_over_a_script_refuses_naming_both ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1373537Z test ladder::tests::a_forced_rundir_over_a_missing_payload_names_it ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1382144Z test ladder::tests::a_forced_tmpfs_over_a_missing_payload_names_it ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1383966Z test images::tests::rmi_refuses_a_held_image ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1384467Z test ladder::tests::an_unknown_request_refuses_with_the_list ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1385013Z test images::tests::prune_skips_a_held_image ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1385497Z test ladder::tests::no_request_means_the_default_entry ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1385997Z test ladder::tests::a_forced_rundir_stages_the_tree_whole ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1386572Z test ladder::tests::fuse_is_up_only_where_the_open_row_answered_ok ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1387421Z test ladder::tests::the_ladder_is_foreground_run_or_a_named_refusal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1388261Z test ladder::tests::tmpfs_is_up_only_where_a_mount_attached ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1389016Z test lifecycle::tests::a_container_path_is_split_from_a_plain_one ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1389831Z test ladder::tests::the_directory_rungs_need_their_stage_base ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1390469Z test lifecycle::tests::a_bare_user_name_takes_its_primary_group_from_the_image ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1391258Z test lifecycle::tests::a_guest_that_is_not_linux_is_routed_to_its_own_verb_when_one_exists ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1392005Z test lifecycle::tests::a_signal_is_taken_by_name_or_number_and_never_defaulted ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1392697Z test lifecycle::tests::a_non_linux_guest_is_refused_by_name ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1393259Z test lifecycle::tests::copy_one_refuses_an_escape ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1394129Z test lifecycle::tests::copy_one_replicates_a_symlink_with_an_absolute_target ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1398955Z test lifecycle::tests::cp_parses_recursive_and_two_paths ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1400827Z test lifecycle::tests::copy_tree_refuses_a_destination_through_a_planted_symlink ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1403062Z test lifecycle::tests::entry_is_possible_where_any_family_may_run ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1403873Z test lifecycle::tests::copy_tree_replicates_a_symlink_without_resolving_it ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1404624Z test lifecycle::tests::logs_follow_is_a_parsed_flag ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1405319Z test lifecycle::tests::logs_tail_takes_a_count_in_both_spellings ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1406012Z test lifecycle::tests::lifecycle_usage_strings_are_plain_ascii ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1408622Z test lifecycle::tests::resolve_codes_follow_the_payload_status ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1409725Z test lifecycle::tests::the_detached_refusal_names_the_blocking_call_and_the_verbs ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1411173Z test lifecycle::tests::the_ps_fields_are_the_ones_the_template_check_allows ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1412185Z test lifecycle::tests::the_record_carries_the_loader_drive_and_nothing_else ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1413042Z test lifecycle::tests::copy_tree_round_trips_a_clean_tree ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1414748Z test lifecycle::tests::userland_env_anchors_paths_or_names_the_opt_out ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1416578Z test lifecycle::tests::userland_env_forces_the_guest_exe_only_beside_the_loader ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1423096Z test lifecycle::tests::the_rung_decision_names_its_family_or_its_refusal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1426757Z test machine::ssh::tests::a_named_input_that_is_not_a_file_is_refused_never_replaced ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1431272Z test lifecycle::tests::the_declared_container_fields_are_the_built_ones ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1432184Z test lifecycle::tests::store_exec_passes_where_a_created_file_executes ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1433222Z test machine::ssh::tests::an_empty_command_leaves_the_argv_at_the_hostname ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1433908Z test machine::ssh::tests::bad_sizes_and_timeouts_are_flag_errors ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1434543Z test machine::ssh::tests::bare_words_without_a_separator_are_the_command ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1435409Z test machine::ssh::tests::bytes_round_up_to_whole_mib_without_overflow ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1436042Z test machine::ssh::tests::help_prints_and_exits_zero ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1436607Z test machine::ssh::tests::minimal_flags_carry_the_documented_defaults ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1437460Z test machine::ssh::tests::missing_required_inputs_are_flag_errors ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1438081Z test machine::ssh::tests::run_phase_refusals_say_different_things ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1438691Z test machine::ssh::tests::shell_quoting_survives_spaces_and_quotes ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1439319Z test machine::ssh::tests::the_accelerator_follows_the_node_openability ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1439970Z test machine::ssh::tests::the_dir_guard_removes_the_directory_on_drop ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1442488Z test machine::ssh::tests::the_kvm_pair_is_kvm_with_host_cpu ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1443089Z test machine::ssh::tests::the_parsed_arm_carries_everything ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1443703Z test machine::ssh::tests::the_qemu_argv_carries_the_proved_machine_line ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1444375Z test machine::ssh::tests::the_ssh_argv_is_batchmode_with_the_proxy_command ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1446459Z test machine::tests::an_unknown_member_is_a_runtime_error ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1454120Z test machine::tests::an_unlisted_flag_is_a_flag_error ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1454888Z test machine::ssh::tests::the_serial_wait_accepts_a_bound_socket ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1455568Z test machine::tests::bare_and_help_print_usage_and_exit_zero ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1456234Z test machine::tests::ssh_help_prints_its_usage_and_exits_zero ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1457238Z test machine::ssh::tests::the_serial_wait_fails_fast_where_the_emulator_died ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1457897Z test machine::tests::ssh_without_its_guest_flags_is_a_flag_error ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1459567Z test man::tests::group_help_paths_match_rows_of ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1461690Z test man::tests::no_unimplemented_verb_gets_a_reference_section ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1465159Z test man::tests::one_verb_renders_only_its_section ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1466822Z test man::tests::summary_is_the_first_sentence ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1468247Z test man::tests::aliases_render_no_reference_section ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1473480Z test man::tests::the_manual_names_its_sources ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1475962Z test man::tests::the_whole_manual_is_plain_ascii ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1476588Z test names::tests::every_alias_is_in_the_parity_table ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1477244Z test names::tests::install_names_usage_is_plain_ascii ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1477767Z test names::tests::the_alias_note_names_the_name_that_was_used ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1478928Z test man::tests::every_implemented_verb_renders_a_section ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1479860Z test parity::tests::a_flag_is_found_under_every_spelling_the_parser_accepts ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1481678Z test parity::tests::a_verb_served_by_another_parser_resolves_that_verbs_rows_and_says_so ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1482309Z test parity::tests::admit_all_refuses_before_any_arm_runs ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1484235Z test parity::tests::every_cluster_value_has_a_table_row ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1485350Z test parity::tests::cluster_expands_docker_clusters ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1487621Z test parity::tests::every_flag_row_names_a_verb_the_table_also_has_a_row_for ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1490823Z test parity::tests::every_parity_note_is_plain_ascii ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1492693Z test parity::tests::every_unimplemented_row_says_why ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1497742Z test parity::tests::every_refused_flag_row_refuses_its_first_spelling ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1499400Z test names::tests::the_daemon_check_answers_one_of_three_states ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1501905Z test parity::tests::filter_parses_name_and_label_and_nothing_else ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1503727Z test parity::tests::group_subverbs_resolve_the_rows_their_flags_live_under ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1504868Z test parity::tests::every_verb_refuses_an_unlisted_flag ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1505741Z test parity::tests::ssh_flag_rows_match_their_parsers_in_both_directions ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1511831Z test parity::tests::no_verb_carries_the_same_flag_twice ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1513307Z test parity::tests::the_table_is_at_least_sixty_rows_and_uses_only_the_four_statuses ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1514722Z test parity::tests::issue_60_curated_surface_stays_covered ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1517277Z test remote::connect::tests::a_flag_without_its_value_and_an_unknown_flag_are_flag_errors ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1518059Z test remote::connect::tests::a_leading_separator_is_dropped_and_partial_sets_pass ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1518891Z test remote::connect::tests::every_listed_flag_has_an_arm ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1519566Z test remote::connect::tests::flags_pass_through_verbatim_in_order ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1520243Z test remote::connect::tests::help_prints_and_exits_zero ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1522934Z test remote::connect::tests::values_are_never_validated_here ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1527214Z test remote::forward::tests::a_later_help_word_belongs_to_the_target ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1528206Z test remote::forward::tests::a_leading_separator_is_dropped_and_the_target_passes_through ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1529188Z test remote::forward::tests::forward_refuses_where_no_proxy_resolves ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1529881Z test remote::forward::tests::help_as_the_first_word_prints_and_exits_zero ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1530477Z test remote::forward::tests::no_target_is_a_flag_error ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1531154Z test remote::serve::tests::a_flag_without_its_value_and_an_unknown_flag_are_flag_errors ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1531869Z test remote::serve::tests::a_leading_separator_is_dropped_and_partial_sets_pass ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1532514Z test remote::serve::tests::every_listed_flag_has_an_arm ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1533287Z test remote::serve::tests::flags_pass_through_verbatim_in_order ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1533873Z test remote::serve::tests::help_prints_and_exits_zero ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1535455Z test remote::serve::tests::the_connect_side_flags_do_not_belong_here ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1536103Z test remote::serve::tests::values_with_spaces_pass_through_whole ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1541356Z test remote::tests::a_dash_word_after_ssh_is_a_flag_refusal_not_a_command ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1542467Z test remote::tests::a_signaled_child_maps_to_128_plus_the_signal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1543392Z test remote::tests::an_unknown_member_names_itself_and_is_a_runtime_error ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1544116Z test remote::tests::an_unlisted_flag_is_a_flag_error ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1545816Z test remote::tests::bare_and_help_print_usage_and_exit_zero ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1552195Z test remote::tests::resolution_prefers_the_sibling_then_path_then_the_refusal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1555696Z test run::tests::a_flag_needing_a_value_does_not_swallow_the_image ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1557209Z test remote::tests::a_child_true_reports_zero_and_a_child_false_reports_its_code ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1559684Z test run::tests::an_unknown_pull_mode_is_invalid_input_and_not_a_silent_default ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1563515Z test run::tests::both_spellings_of_every_valued_flag_reach_the_same_place ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1568649Z test run::tests::device_collects_in_both_spellings_and_refuses_shapes ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1576418Z test run::tests::env_file_loads_and_stubs_parse ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1577071Z test parity::tests::the_json_carries_every_row_and_the_status_word ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1581620Z test run::tests::every_usage_string_is_plain_ascii ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1585860Z test run::tests::log_driver_takes_json_file_and_nothing_else ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1589323Z test run::tests::no_image_is_a_cli_error ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1591538Z test run::tests::parsing_stops_at_the_image_name ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1596220Z test run::tests::push_guest_exe_sets_scrubs_and_skips ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1598783Z test run::tests::quiet_and_verbose_parse ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1600877Z test run::tests::strict_all_parses_and_anything_else_is_a_flag_error ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1603303Z test run::tests::the_mem_flag_parses_to_bytes_in_both_forms ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1606656Z test run::tests::the_tier_flag_takes_two_values_and_qemu_args_collect_whole ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1608685Z test run::tests::unsafe_host_paths_parses_and_defaults_off ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1610739Z test run::tests::every_flag_the_table_admits_is_handled_by_this_parser ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1611987Z test system::tests::df_help_and_bad_flag_need_no_store ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1613119Z test system::tests::short_id_is_twelve_hex ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1614440Z test system::tests::system_usage_is_plain_ascii ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1661832Z test system::tests::the_acceptance_template_renders_the_whole_table ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1695424Z test system::tests::the_declared_fields_are_the_built_ones ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1725770Z test system::tests::the_entered_rung_is_namespace_where_selected ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1798258Z test system::tests::the_entered_rung_is_userland_where_chroot_is_denied ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1798858Z podbox: ssh: the verb is `podbox remote ssh`. The remote group has:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1799309Z   podbox remote ssh        reach another machine over a relay
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1799745Z   podbox machine ssh       a shell in a guest podbox itself runs
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1800436Z   podbox local <verb>      act on THIS machine: planned, not a command yet (see docs/decisions/remote-verb.md)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1801199Z test tests::the_old_ssh_spelling_is_a_runtime_refusal ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1801760Z test tier::tests::an_explicit_machine_needs_no_note_under_either_name ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1802290Z test tier::tests::podvm_defaults_to_machine_and_podbox_to_the_ladder ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1803585Z test tier::tests::podvm_with_chroot_states_the_override_and_podbox_does_not ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1817895Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1825841Z test system::tests::abi_reports_unreadable_refused_and_arity ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1827275Z test tier::tests::the_ceiling_comparison_refuses_only_over ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1828775Z test tier::tests::the_flag_spells_two_tiers_and_nothing_else ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1830541Z test tier::tests::the_mem_spelling_takes_bytes_and_suffixes_and_nothing_else ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1831104Z test version::tests::info_matches_the_binary ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1831505Z test version::tests::unknown_is_stated_never_blank ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1831964Z test version::tests::verbose_names_every_recorded_input ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1832799Z test version::tests::version_documents_are_plain_ascii ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1833298Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1833985Z test windows::args::tests::a_flag_without_its_value_is_refused_rather_than_read_off_the_end ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1837297Z test windows::args::tests::a_sha256_that_is_not_a_digest_is_refused ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1838273Z test windows::args::tests::a_zero_memory_or_cpu_or_ceiling_or_timeout_is_refused ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1839491Z test windows::args::tests::help_prints_and_exits_zero ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1840474Z test windows::args::tests::no_subcommand_and_an_unknown_flag_are_flag_errors ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1841475Z test windows::args::tests::the_command_is_everything_after_the_flags ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1842395Z test windows::args::tests::the_guest_flag_names_dos_or_windows_and_nothing_else ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1843306Z test windows::dos::tests::the_cmd_prefix_drops_and_an_empty_line_is_ver ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1847446Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1848312Z test windows::plan::tests::a_bare_name_is_looked_up_on_path_and_a_path_is_checked_as_one ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1849223Z test windows::plan::tests::an_absent_candidate_list_names_its_last_path ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1850706Z test windows::plan::tests::the_emulator_default_is_a_name_and_the_override_is_a_path ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1855156Z test windows::plan::tests::the_firmware_pair_is_two_paths_and_the_environment_wins ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1861259Z test windows::setup::tests::a_hung_origin_fails_on_the_read_timeout ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1862071Z test windows::setup::tests::the_provisioned_image_is_beside_the_vendor_one_and_named_for_it ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1862674Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1865786Z test windows::tests::a_flag_no_subcommand_reads_is_refused_naming_the_flag ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1870264Z test windows::tests::a_named_image_that_is_missing_is_refused_and_never_replaced_by_the_cache ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1871234Z test windows::tests::a_non_amd64_arch_is_refused_naming_the_arch ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1873645Z test windows::tests::a_registry_token_is_not_a_disk_and_a_disk_shape_is ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1881514Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1882089Z test windows::tests::a_timeout_names_seconds_or_falls_back_to_the_default ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1883519Z test windows::tests::only_a_foreground_machine_tier_windows_run_reaches_the_driver ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1888828Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1897636Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1905755Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1914168Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1922077Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1930510Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1938551Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1945989Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1953731Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1961671Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1969611Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1977272Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1984829Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.1992451Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2000064Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2008028Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2015586Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2023102Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2030840Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2038457Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2045958Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2053593Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2061176Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2068952Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2076451Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2084451Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2092256Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2100081Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2108094Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2115630Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2123244Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2130845Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2138833Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2146329Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2154148Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2161684Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2169366Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2177183Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2184390Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2192033Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2200007Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2207645Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2215197Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2222797Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2230481Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2238517Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2245983Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2253566Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2261203Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2269170Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2273801Z test run::tests::a_foreground_record_lands_exited_with_logs ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2278943Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2286501Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2294147Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2301634Z error: Unrecognized option: 'probe-child'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:12.2309083Z test tier::tests::refusing_a_tier_is_a_runtime_error_on_any_machine ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.1459363Z test machine::ssh::tests::the_serial_wait_deadline_is_a_runtime_error ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.1459691Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.1459946Z test result: ok. 249 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.12s
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.1460263Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.1469153Z      Running tests/curated_refusals.rs (target/x86_64-unknown-linux-musl/debug/deps/curated_refusals-51ac55004fce327f)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.1474327Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.1474454Z running 6 tests
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.1985259Z test create_inherits_run_refusals ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.2999670Z test device_shape_refusals_name_the_shape ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.4014778Z test env_file_refusals_name_the_file ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:13.5030694Z test log_driver_refuses_anything_but_json_file ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:15.5263267Z test refused_run_flags_exit_125_naming_status_none ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:16.0324995Z test unimplemented_verbs_exit_125_with_their_note ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:16.0325238Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:16.0325451Z test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.88s
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:16.0325721Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:16.0326622Z      Running tests/detached_stdio.rs (target/x86_64-unknown-linux-musl/debug/deps/detached_stdio-6e4541c625bb790c)
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:16.0333271Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:16.0333424Z running 3 tests
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:18:16.0844344Z test detached_run_without_an_image_is_a_cli_error ... ok
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2123367Z test detached_start_returns_before_the_payload_ends ... FAILED
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2123874Z test run_help_names_the_detach_flag ... FAILED
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2124095Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2124166Z failures:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2124264Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2124409Z ---- detached_start_returns_before_the_payload_ends stdout ----
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2124625Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2125087Z thread 'detached_start_returns_before_the_payload_ends' (9255) panicked at crates/podbox-cli/tests/detached_stdio.rs:292:5:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2125868Z assertion `left == right` failed: only 1 of 3 detached starts ran
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2126139Z   left: 1
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2126290Z  right: 3
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2126539Z note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2126762Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2127056Z ---- run_help_names_the_detach_flag stdout ----
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2127245Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2127478Z thread 'run_help_names_the_detach_flag' (9256) panicked at crates/podbox-cli/tests/detached_stdio.rs:138:32:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2127926Z called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2128130Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2128415Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2128483Z failures:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2128690Z     detached_start_returns_before_the_payload_ends
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2128946Z     run_help_names_the_detach_flag
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2129078Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2129286Z test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 44.18s
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2129552Z 
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2129750Z error: test failed, to rerun pass `-p podbox-cli --test detached_stdio`
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2191474Z ##[error]Process completed with exit code 101.
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2325524Z Post job cleanup.
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.2989247Z [command]/usr/bin/git version
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3025224Z git version 2.55.0
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3062287Z Temporarily overriding HOME='/home/runner/work/_temp/4d84b0f4-e2b5-4765-aaf8-0d4566d75ca4' before making global git config changes
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3063341Z Adding repository directory to the temporary git global config as a safe directory
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3065962Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/podbox/podbox
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3093642Z Removing SSH command configuration
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3098214Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3127289Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3342789Z Removing HTTP extra header
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3347955Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3380904Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3601412Z Removing includeIf entries pointing to credentials config files
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3608580Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3644706Z includeif.gitdir:/home/runner/work/podbox/podbox/.git.path
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3645553Z includeif.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3646298Z includeif.gitdir:/github/workspace/.git.path
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3647056Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3651294Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/podbox/podbox/.git.path
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3675018Z /home/runner/work/_temp/git-credentials-9b3ff0b6-4dc5-4f6e-9536-c23085527611.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3683114Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/podbox/podbox/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-9b3ff0b6\-4dc5\-4f6e\-9536\-c23085527611\.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3717040Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3739976Z /home/runner/work/_temp/git-credentials-9b3ff0b6-4dc5-4f6e-9536-c23085527611.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3746242Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/podbox/podbox/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-9b3ff0b6\-4dc5\-4f6e\-9536\-c23085527611\.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3782688Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3802344Z /github/runner_temp/git-credentials-9b3ff0b6-4dc5-4f6e-9536-c23085527611.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3808471Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-9b3ff0b6\-4dc5\-4f6e\-9536\-c23085527611\.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3839584Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3862869Z /github/runner_temp/git-credentials-9b3ff0b6-4dc5-4f6e-9536-c23085527611.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3867895Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-9b3ff0b6\-4dc5\-4f6e\-9536\-c23085527611\.config
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.3899817Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.4099534Z Removing credentials config '/home/runner/work/_temp/git-credentials-9b3ff0b6-4dc5-4f6e-9536-c23085527611.config'
+workspace and interposer tests	UNKNOWN STEP	2026-10-01T12:19:00.4233919Z Cleaning up orphan processes

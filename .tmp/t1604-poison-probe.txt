@@ -1,0 +1,15 @@
+
+running 1 test
+
+thread 'the_cascade_and_the_fix_in_one_process' (845928) panicked at t1604-poison-probe.rs:51:9:
+cascade probe
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+CAASCADE: unwrap() after the panic is_err = true
+
+thread 'the_cascade_and_the_fix_in_one_process' (845928) panicked at t1604-poison-probe.rs:63:9:
+fix probe
+FIX: unwrap_or_else(into_inner) after the panic RETURNED A GUARD
+test the_cascade_and_the_fix_in_one_process ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+

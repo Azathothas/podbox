@@ -1,0 +1,12 @@
+gate: close T-1212, its halves measure under dockerd (T-1212)
+
+2026-09-23T02:12:47Z - T-1212
+
+Base lane with dockerd 29.8.1: 150 exits 0 (podbox and docker agree
+on the index digest, confirming the podman child-digest premise);
+270 exits 0 (T-0212's cli-error fix holds); 280 exits 0 with all seven
+clauses after hoisting the TLS certs mount above the native split;
+320 and 330 exit 0 with daemon halves against docker 29.8.1; 300 has
+zero FAILs with clause 7 green and the riscv64 refusal half skipped
+where binfmt executes it. Six results files committed with the entry
+record and the counts.

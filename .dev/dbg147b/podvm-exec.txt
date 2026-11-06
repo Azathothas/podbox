@@ -1,0 +1,27 @@
+== conditions
+date              2026-09-21T16:08:59Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
+image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
+boot deadline     120 s
+command deadline  20 s
+
+== 1. the assembly
+  ok: assembly: 8366168 bytes
+/work/experiments/.sweep147-work/vmlinuz-virt: OK
+
+== 2. boot and readiness
+  FAIL: deadline (120 s) waiting for the ready marker
+  qemu's last lines:
+  guest's last lines:
+[    0.943869] PCI: CLS 0 bytes, default 64
+[    0.945683] platform rtc_cmos: registered platform RTC device (no PNP device found)
+[    0.949079] Initialise system trusted keyrings
+[    0.957484] Unpacking initramfs...
+[    0.973086] workingset: timestamp_bits=40 max_order=16 bucket_order=0
+[    0.975659] Key type asymmetric registered
+[    0.975798] Asymmetric key parser 'x509' registered
+[    0.976200] Block layer SCSI generic (bs
+147 acceptance: FAILED

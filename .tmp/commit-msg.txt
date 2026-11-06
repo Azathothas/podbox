@@ -1,0 +1,28 @@
+Clear the CI remainder and file the unbatched plan rows
+
+T-1601 allows the deny-by-default invalid_runtime_symbol_definitions
+lint at both open_fixed! arms and puts unknown_lints at the crate root,
+so the static build compiles under Rust 1.99 and the allow stays a no-op
+on older toolchains. T-1602 makes the registry fixture's four unread
+fields asserted on in every target that compiles it, as bytes rather
+than only as digests, which also showed the lint fired on four targets
+and not the one this entry named. T-1603 deletes the secret-shape check
+and its PowerShell twin, unwires every call site, and replaces them
+with a pinned trufflehog workflow over the working tree and the whole
+history. T-1604 makes the detached-stdio mutex poison-tolerant and
+carries each start's stderr into the count assertion; it stays partial
+on the one-of-three failure, which did not reproduce.
+
+T-1608 rewrites nine Batch 3 closure openings that read as one
+paragraph repeated. T-1611 names the four crates the port added and
+marks each retired script as a shim. T-1612 gives the unowned work an
+owner: T-0204 and T-1406 reopened to partial, two limits recorded as
+limits. T-1607 files the plan's named 21 rows and finds the gap is 50,
+not 21; it stays partial on the other 29. T-1606 repoints the reference
+map so each licence determination stands without the captured bytes;
+it stays partial because the path:line mechanism citations still bind
+the corpus, as does the template notice.
+
+T-1350 records three guarded KVM runs under the T-1609 watchdog.
+setup completes; run ver hangs after the firmware handoff. qemu-img was
+missing from the base and T-1610's Prove clause does not name it.

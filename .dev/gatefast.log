@@ -1,0 +1,37 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11454 entries, 333.5 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/606b32ca2c9e82db/work
+  workspace: 411 files carry the executable bit from the git index, and 304 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 411 executable file(s) in the index, all already executable.
+== the job
+
+  ✅ ok    check-docs
+  ✅ ok    check-markers
+  ✅ ok    check-one-home
+  ✅ ok    check-placeholders
+  ✅ ok    check-control-bytes
+  ✅ ok    check-changelog
+  ✅ ok    check-attribution
+  ✅ ok    check-no-secrets
+  ✅ ok    check-no-secrets --public
+  SKIP  check-remote-items  (check-remote-items: gh not found)
+  SKIP  check-twins  (--fast)
+  note  pwsh absent; the PowerShell halves were not exercised
+
+11 checks: 9 passed, 0 failed, 2 skipped
+⚠ A SKIP IS NOT A PASS. Those checks did not run and nothing about
+their subject was verified. Pass --strict to make a skip a failure.
+✅ nothing failed.
+⚠ That is part (a) of the gate only. Driving the real thing and the
+deep reviews are the other two, and each is blind to what this catches.
+docs/methodology/gate.md.
+JOB_DONE
+== rc=0
+  the stopped container and its job directory are kept: wtk-606b32ca2c9e82db
+  container wtk-606b32ca2c9e82db is kept with its job directory. Remove it with: wsl-toolkit gc --job 606b32ca2c9e82db --apply
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 7.349s
+  the complete output is kept: wsl-toolkit logs 606b32ca2c9e82db

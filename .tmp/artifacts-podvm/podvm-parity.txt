@@ -1,0 +1,8 @@
+== conditions
+date              2026-10-01T15:41:21Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            
+json              parsed in-process; no jq needed
+
+
+== counts: 0 driven, 0 mismatches

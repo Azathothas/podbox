@@ -1,0 +1,24 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  job a4a6d1756663dc92. Follow it with: wsl-toolkit logs a4a6d1756663dc92 --follow. Stop it with: wsl-toolkit stop a4a6d1756663dc92
+  workspace: 12626 entries, 346.5 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/a4a6d1756663dc92/work
+  workspace: 445 files carry the executable bit from the git index, and 344 files from a shebang
+{
+  "label": "docker.io/library/rust:1.98.1-bookworm",
+  "image": "docker.io/library/rust:1.98.1-bookworm",
+  "id": "a4a6d1756663dc92",
+  "exit": 0,
+  "duration_ns": 112395185000,
+  "started": "2026-10-02T03:47:22.3482727Z",
+  "stdout": "== the machine\nLinux 7.2.0-WSL2-STABLE\n0\nroot\n/work\n== the toolset\n== disk, before anything is written\n  975424 MB and 67017768 inodes available under /work\n\n== components\n\n  ok       rust: 1.99.0, musl target present\n  ok       cc: gcc 12\n  installed tools: jq\n  installed openssh: openssh-server\n  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig\n\n== 2 already present, 3 installed, 0 failed\neverything requested is present.\nrustc 1.99.0 (b940084d7 2026-09-28)\ncargo 1.99.0 (5f94df478 2026-08-27)\n== disk, before anything is written\n/dev/sde       1007G  4.4G  952G   1% /work\n== the job\n== conditions\ndate: 2026-10-02T03:48:24Z\nhead: 2fe6e67\nrustc: rustc 1.99.0 (b940084d7 2026-09-28)\ncargo: cargo 1.99.0 (5f94df478 2026-08-27)\nhost target: x86_64-unknown-linux-gnu\n== bootstrap (no docker; the lane has no NET_ADMIN)\nbootstrap rc=0\n== musl release build (the interposer objects embed through build.rs)\nbuild ok\nfile: /out/podbox: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), static-pie linked, BuildID[sha1]=e534a757a13fd5758e5303778b060dcbce4a0477, stripped\nsha256: e5d1d918a230a45fc06be6a78189a57e3d4bc132a7070f1072e28b542d8ce4aa\nversion: podbox 0.1.0-beta.12\nRESULT: /out/podbox ready\n== rc=0\n",
+  "artifacts": 2,
+  "artifacts_attempted": 2,
+  "timed_out": false,
+  "unreached": false,
+  "transcript": "C:\\Users\\AjamX\\AppData\\Local\\wsl-toolkit\\instances\\podbox\\jobs\\a4a6d1756663dc92",
+  "effective_exit": 0,
+  "stdout_bytes": 1227,
+  "stderr_bytes": 0,
+  "container_lifecycle": "ephemeral",
+  "platform": "linux/amd64"
+}
+dev-lane: green (job rc=0).

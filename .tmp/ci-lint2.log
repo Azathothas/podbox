@@ -1,0 +1,34 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  job 853f1fabab66abeb. Follow it with: wsl-toolkit logs 853f1fabab66abeb --follow. Stop it with: wsl-toolkit stop 853f1fabab66abeb
+  workspace: 12626 entries, 346.6 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/853f1fabab66abeb/work
+  workspace: 444 files carry the executable bit from the git index, and 344 files from a shebang
+2m00s silent | elapsed 3m22s | out 35 lines 931 B | err 0 lines 0 B | container running | cpu 1550.1% mem 0 B
+the command writes into a pipe rather than a terminal, so a program that block-buffers off a terminal holds its lines and they arrive late, carrying the time they were received. stdbuf -oL in the command asks for line buffering where the image has it
+after 2m00s of silence: nothing can be concluded from what is measurable here. because: the distribution's disk could not be read twice, so there is no second signal
+4m00s silent | elapsed 5m22s | out 35 lines 931 B | err 0 lines 0 B | container running | cpu 997.1% mem 0 B
+6m00s silent | elapsed 7m22s | out 35 lines 931 B | err 0 lines 0 B | container running | cpu 740.0% mem 0 B
+after 6m00s of silence: nothing can be concluded from what is measurable here. because: the distribution's disk could not be read twice, so there is no second signal
+to bound a run like this, pass --timeout: the distribution is terminated and the answer is 124. To see what is registered right now, from another shell: wsl-toolkit distro list
+output resumed after 7m22s of silence
+exit 1 is the payload's own, passed through unchanged
+{
+  "label": "docker.io/library/rust:1.98.1-bookworm",
+  "image": "docker.io/library/rust:1.98.1-bookworm",
+  "id": "853f1fabab66abeb",
+  "exit": 1,
+  "duration_ns": 530559691100,
+  "started": "2026-10-02T06:14:27.6719122Z",
+  "stdout": "== the machine\nLinux 7.2.0-WSL2-STABLE\n0\nroot\n/work\n== the toolset\n== disk, before anything is written\n  975413 MB and 67017748 inodes available under /work\n\n== components\n\n  ok       rust: 1.99.0, musl target present\n  ok       cc: gcc 12\n  installed tools: jq\n  installed openssh: openssh-server\n  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig\n\n== 2 already present, 3 installed, 0 failed\neverything requested is present.\nrustc 1.99.0 (b940084d7 2026-09-28)\ncargo 1.99.0 (5f94df478 2026-08-27)\n== disk, before anything is written\n/dev/sde       1007G  4.4G  952G   1% /work\n== the job\n== conditions\nrustc 1.99.0 (b940084d7 2026-09-28)\ncargo 1.99.0 (5f94df478 2026-08-27)\n2fe6e67\n== bootstrap rc=0\n== fmt rc=0\n== fmt-interpose rc=0\n== clippy rc=0\n== interpose-build rc=0\n== interpose-objects rc=2\nbuild-interpose.sh: /work/target/release/podbox-interpose-build is not built. cargo build --release -p podbox-gate\n== test rc=0\n== verdict rc_all=1\n== rc=1\n",
+  "artifacts": 7,
+  "artifacts_attempted": 7,
+  "timed_out": false,
+  "unreached": false,
+  "transcript": "C:\\Users\\AjamX\\AppData\\Local\\wsl-toolkit\\instances\\podbox\\jobs\\853f1fabab66abeb",
+  "effective_exit": 1,
+  "stdout_bytes": 972,
+  "stderr_bytes": 0,
+  "container_lifecycle": "ephemeral",
+  "platform": "linux/amd64"
+}
+dev-lane: 38 passing suite(s) in evidence.
+dev-lane: FAILED (job rc=1).

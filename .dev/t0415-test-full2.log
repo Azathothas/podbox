@@ -1,0 +1,33 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 417 executable file(s) in the index, all already executable.
+== the job
+== disk, before anything is written
+  841616 MB and 64674553 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 2 installed, 0 failed
+everything requested is present.
+assertion `left == right` failed: Fixup { entry: "T-0401", id: "dev-shim", path: "dev/null", action: Created, detail: "mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF It replaced a symlink to /tmp/podbox-dev-symshape-3267/outside.", degraded: true }
+  left: Created
+ right: Rewrote
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    devices::tests::a_symlink_at_a_device_path_is_replaced_and_named
+
+test result: FAILED. 46 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `-p podbox-complete --lib`
+== rc=0

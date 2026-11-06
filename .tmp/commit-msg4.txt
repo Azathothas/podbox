@@ -1,0 +1,14 @@
+Read the final CI run and hand the record on
+
+Run 36975394409 is green on the static build, fmt, clippy, the shell and
+Python steps, and the record gate. Only workspace and interposer tests
+is red, on the detached-stdio assertion T-1604 owns, and that entry now
+carries the exit CI named. The secrets run 36975394456 is green on both
+the working tree and the whole history, so T-1603's scan clause is met
+and only its plant is owed.
+
+RESUME.md is rewritten for the next session: what is green, the one red
+row and what makes it red, T-1641 as the next action with its three
+defects, and the four notes that save time next session, including the
+wrapper that resolves target/release and the fact that the serial log
+is not a hang location.

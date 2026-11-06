@@ -1,0 +1,19 @@
+Diff in \\?\C:\Users\AjamX\Downloads\podbox\crates\podbox-image\tests\parallel_layers.rs:167:
+             &published_manifest_digest,
+             &published_manifest,
+         );
+-        one_fetch_landed_the_published_bytes(
+-            &store,
+-            &published_config_digest,
+-            &published_config,
+-        );
+-        one_fetch_landed_the_published_bytes(
+-            &store,
+-            &published_layer_digest,
+-            &published_layer,
+-        );
++        one_fetch_landed_the_published_bytes(&store, &published_config_digest, &published_config);
++        one_fetch_landed_the_published_bytes(&store, &published_layer_digest, &published_layer);
+         cleanup(store.root());
+     }
+     fx.shutdown();

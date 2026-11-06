@@ -1,0 +1,6 @@
+check-todo: 2 problem(s)
+  TODO/PROGRESS.md: the count line is not the rows. Expected exactly:
+    139 entries: 29 open, 3 partial, 3 blocked, 104 done.
+  TODO/interpose.md:1128: names `experiments/152-nix-acceptance.sh`, and git tracks no such file or directory. A citation that resolves on one disk and not in a fresh clone is the defect this check exists for.
+check-todo: 139 rows, 139 entries, 29 open, 3 partial, 3 blocked, 104 done
+check-todo: coverage bare_citations=1390 ci_components=3 closure_records=104 corpus=41 counts=5 crossrefs=558 entries=139 exit_codes=5 experiment_numbers=499 fields=1390 prove_registry=139 rows=139 size_ceiling=237 todo_citations=123 todo_links=596 tree_citations=64 tree_links=342

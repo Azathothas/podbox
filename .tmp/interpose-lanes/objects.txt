@@ -1,0 +1,29 @@
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 6.43s
+   350184 /work/target/x86_64-unknown-linux-musl/release/../../../crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+   ok: exports 112 names, exactly what interpose.map declares
+   ok: rust_eh_personality is not exported
+   ok: 350184 bytes, under the interpose ceiling of 500000
+== x86_64-unknown-linux-gnu
+   stub: /work/target/x86_64-unknown-linux-musl/release/../../../crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 3.29s
+   330264 /work/target/x86_64-unknown-linux-musl/release/../../../crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+   ok: exports 112 names, exactly what interpose.map declares
+   ok: rust_eh_personality is not exported
+   ok: 330264 bytes, under the interpose ceiling of 500000
+== B. struct stat offsets, by offsetof and under both libcs
+  glibc  sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|
+  musl   sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|
+  B: both libcs agree on BOTH structs, and with the offsets src/lib.rs carries

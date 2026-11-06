@@ -1,0 +1,29 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  job 86472d014f3413b3. Follow it with: wsl-toolkit logs 86472d014f3413b3 --follow. Stop it with: wsl-toolkit stop 86472d014f3413b3
+  workspace: 12410 entries, 345.3 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/86472d014f3413b3/work
+  workspace: 445 files carry the executable bit from the git index, and 343 files from a shebang
+2m00s silent | elapsed 3m24s | out 24 lines 605 B | err 0 lines 0 B | container running | cpu 8901.1% mem 0 B
+the command writes into a pipe rather than a terminal, so a program that block-buffers off a terminal holds its lines and they arrive late, carrying the time they were received. stdbuf -oL in the command asks for line buffering where the image has it
+after 2m00s of silence: nothing can be concluded from what is measurable here. because: the distribution's disk could not be read twice, so there is no second signal
+output resumed after 2m16s of silence
+{
+  "label": "docker.io/library/rust:1.98.1-bookworm",
+  "image": "docker.io/library/rust:1.98.1-bookworm",
+  "id": "86472d014f3413b3",
+  "exit": 0,
+  "duration_ns": 227496940700,
+  "started": "2026-10-01T15:37:35.3140733Z",
+  "stdout": "== the machine\nLinux 7.2.0-WSL2-STABLE\n0\nroot\n/work\n== the toolset\n== disk, before anything is written\n  975634 MB and 67024147 inodes available under /work\n\n== components\n\n  ok       rust: 1.99.0, musl target present\n  ok       cc: gcc 12\n  installed tools: jq\n  installed openssh: openssh-server\n  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig\n\n== 2 already present, 3 installed, 0 failed\neverything requested is present.\nrustc 1.99.0 (b940084d7 2026-09-28)\ncargo 1.99.0 (5f94df478 2026-08-27)\n== disk, before anything is written\n/dev/sdd       1007G  4.2G  952G   1% /work\n== the job\n== rc=0\n",
+  "artifacts": 14,
+  "artifacts_attempted": 14,
+  "timed_out": false,
+  "unreached": false,
+  "transcript": "C:\\Users\\AjamX\\AppData\\Local\\wsl-toolkit\\instances\\podbox\\jobs\\86472d014f3413b3",
+  "effective_exit": 0,
+  "stdout_bytes": 613,
+  "stderr_bytes": 0,
+  "container_lifecycle": "ephemeral",
+  "platform": "linux/amd64"
+}
+dev-lane: 2 passing suite(s) in evidence.
+dev-lane: green (job rc=0).

@@ -1,0 +1,3 @@
+check-todo: 139 rows, 139 entries, 29 open, 3 partial, 3 blocked, 104 done
+check-todo: coverage bare_citations=1390 ci_components=3 closure_records=104 corpus=41 counts=5 crossrefs=559 entries=139 exit_codes=5 experiment_numbers=498 fields=1390 prove_registry=139 rows=139 size_ceiling=237 todo_citations=123 todo_links=596 tree_citations=64 tree_links=342
+check-todo: ok

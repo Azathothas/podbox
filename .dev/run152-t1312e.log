@@ -1,0 +1,57 @@
+engine            podman (host machine)
+== conditions
+date              2026-09-21T13:34:56Z
+host kernel       3.6.9-b4195d69.x86_64
+engine            podman version 6.1.2
+podbox            .dev/artifacts-t1312e/podbox (staged, not executed on this lane)
+nix tarball       https://nixos.org/releases/nix/nix-2.2.2/nix-2.2.2-x86_64-linux.tar.bz2 (23607712 bytes)
+nixpkgs           tag 22.05
+base              public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+run timeout       3600 s
+Trying to pull public.ecr.aws/debian/debian@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a...
+Getting image source signatures
+Copying blob sha256:a8ac7f6c67abc236e4c745052c404112b8fab6fe8ac3a329d1ef3b867ad67c71
+Copying config sha256:160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+Writing manifest to image destination
+160466e67bb85a4099d9d9c2356b4a6a64747b281a22c142efbd4539db1b8525
+--- the pull
+a8ac7f6c67ab: Pull complete
+Digest: sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+Status: Downloaded newer image for public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a
+podbox: probed this machine rather than using the cache: /tmp/ostore/probe.json does not exist yet
+--- podbox run exit 0
+--- stdout (verdicts and artefact)
+ROW=REGISTER ok closure registered
+ROW=FETCH ok "/nix/store/di36mqc6y19ivaa4qjrb2l82c6dqg7m3-source"
+ROW=EVAL FAIL error: file 'nixpkgs' was not found in the Nix search path (add it using $NIX_PATH or -I), at (string):1:13
+ROW=BUILD FAIL error: file 'nixpkgs' was not found in the Nix search path (add it using $NIX_PATH or -I), at (string):1:13
+ROW=RUN FAIL no artefact (build failed)
+ROW=NEGATIVE FAIL unnamed: error: file 'nixpkgs' was not found in the Nix search path (add it using $NIX_PATH or -I), at (string):1:13
+ROW=PROCHOOKS FAIL 0 hooks: 
+--- the completion layer said
+podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than di
+podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. ⛔ It ENDS: a read past 10
+podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getra
+podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getr
+podbox: complete: rewrote etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 54 bytes
+podbox: complete: created etc/hosts (hosts, T-0403): localhost
+podbox: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+podbox: complete: created etc/apt/apt.conf.d/99podbox (apt-sandbox, T-0407): APT::Sandbox::User root. The _apt user is not mapped on this runtime
+podbox: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at 
+podbox: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. ⛔ The sc
+podbox: complete: 10 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. ⛔ These are edits podbox made insi
+--- the last of stderr
+        clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+this mode does NOT provide: process, network, IPC or mount isolation
+⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+podbox: interpose: /.podbox/interpose.so (glibc object) is preloaded for this payload. ⛔ podbox WROTE that file into the image's own rootfs and the payload can see it
+/bin/sh: 18: echo: echo: I/O error
+row REGISTER  ok   closure registered
+row FETCH     ok   "/nix/store/di36mqc6y19ivaa4qjrb2l82c6dqg7m3-source"
+row EVAL      FAIL error: file 'nixpkgs' was not found in the Nix search path (add it using $NIX_PATH or -I), at (string):1:13
+row BUILD     FAIL error: file 'nixpkgs' was not found in the Nix search path (add it using $NIX_PATH or -I), at (string):1:13
+row RUN       FAIL no artefact (build failed)
+row NEGATIVE  FAIL unnamed: error: file 'nixpkgs' was not found in the Nix search path (add it using $NIX_PATH or -I), at (string):1:13
+row PROCHOOKS FAIL 0 hooks: 
+M8 acceptance: FAILED row(s): EVAL BUILD RUN NEGATIVE PROCHOOKS
+transcript: experiments/results/nix-acceptance-transcript.txt

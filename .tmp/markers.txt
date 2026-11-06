@@ -1,0 +1,1 @@
+markers ok: 628 files, 5259 markers, densest 30 per 100 non-blank lines (docs/history/2026-09-11-reference-sweep.md), ceiling 30

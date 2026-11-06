@@ -1,0 +1,107 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+SKIP: no git
+SKIP: no git
+gistry ##########
+engine            docker (daemon)
+== conditions
+date              2026-09-23T02:00:43Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+engine            29.8.1 (fixtures: docker)
+proxy in env      no (clause 3 is only meaningful when yes)
+
+== 1. the default refuses an explicit http:// and NAMES the flag
+  exit              1 (want 1, the cli-error code)
+  names the flag    1
+
+== 2. the default refuses a certificate nothing trusts
+  exit              125 (125 is a runtime failure)
+  says              invalid peer certificate: UnknownIssuer
+
+== 3. --insecure-registry pulls the whole image over plain HTTP
+  exit              0
+  layers pulled     4
+
+== 4. and it changed NOTHING for any other registry
+  a DIFFERENT registry over http://: exit 1
+
+== 5. --tls-verify=false reaches the self-signed registry
+  exit              0
+  layers pulled     4
+  --tls-verify=false with an http:// reference: exit 1
+
+== 6. every downgrade is announced on stderr
+  announced insecure          7
+  announced the http fallback 6
+  a normal pull says it       0 time(s)
+
+== 7. the environment and the config file reach the same place
+  $PODBOX_INSECURE_REGISTRIES exit 0
+  $PODBOX_CONFIG file         exit 0
+  a URL where a host belongs: exit 1, registries.conf:2
+
+written to experiments/results/insecure-registry.txt
+280-insecure-registry EXIT=0
+########## 300-run ##########
+engine            docker (daemon)
+== conditions
+date              2026-09-23T02:01:37Z
+host kernel       7.2.0-WSL2-STABLE
+host arch         x86_64
+podbox            podbox 0.1.0
+engine            29.8.1
+image             ghcr.io/pkgforge-dev/archlinux:latest
+
+== 1. T-1104's own acceptance: a command runs and says so on stdout
+  stdout            [hi]
+  exit              0
+  stderr carries a mode= line: 1
+
+== 2. T-0802: the exit code is the payload's, unaltered
+  /bin/true                    0 (want 0)
+  /bin/false                   1 (want 1)
+  sh -c 'exit 42'              42 (want 42)
+  sh -c 'kill -9 $$'           137 (want 137 = 128+9)
+  /no/such/binary              127 (want 127)
+
+== 3. it is really a chroot into the image, not the host
+  /etc/os-release   Arch Linux
+  the host's is     Arch Linux
+  ⚠ the image and the host report the same distribution, so this clause
+    cannot distinguish them. It asserts only that the file was readable.
+
+== 4. -e, -w and --entrypoint
+  -e GREETING=hello  [hello]
+  -w /etc            [/etc]
+  --entrypoint       [ep]
+  a bare name        [onpath]
+
+== 5. T-0506: a foreign image is run through an interpreter, or REFUSED
+  arm64 image, uname -m inside it: [aarch64] rc=0
+  the host is                      x86_64
+  disclosed: Running it through the registered interpreter /usr/bin/qemu-aarch64-static
+  riscv64, nothing registered: rc=0
+    
+  FAIL: expected exit 125
+  FAIL: the refusal does not say podbox cannot execute it
+
+== 6. --pull never on a platform the store does not hold
+  exit              125
+  says              podbox run: the store holds ghcr.io/pkgforge-dev/archlinux:latest for linux/amd64, linux/arm64, 
+
+== 7. T-1104's own acceptance: inside the reconstruction
+  SKIP: container-research/target:1 is not built.
+        ./experiments/10-build-target-image.sh
+  ⚠ clause 7 did not run, so the chroot rung is unmeasured here
+
+== 8. T-0505: exec is a fresh chroot, and every channel says so
+  stdout            [marker]
+  exit              0
+  says              this is a fresh-chroot re-entry
+  {{.Exec.Shares}}  [filesystem]   {{.Exec.Mode}}  [fresh-chroot]
+  exec with no command: rc=1  (want 1, the cli-error code)
+  against an empty store: rc=125
+    never pulls: `podbox run ghcr.io/pkgforge-dev/archlinux:latest ...` is w
+
+written to experiments/results/run.txt
+300-run EXIT=1

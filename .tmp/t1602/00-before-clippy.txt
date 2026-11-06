@@ -1,0 +1,85 @@
+    Checking ring v0.17.14
+   Compiling rustls v0.23.45
+    Checking rustls-webpki v0.103.15
+    Checking ureq v2.12.1
+    Checking podbox-image v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-image)
+error: fields `manifest`, `config`, `config_digest`, and `layer` are never read
+  --> crates\podbox-image\tests\common\registry.rs:30:9
+   |
+25 | pub struct Fixture {
+   |            ------- fields in this struct
+...
+30 |     pub manifest: Vec<u8>,
+   |         ^^^^^^^^
+...
+33 |     pub config: Vec<u8>,
+   |         ^^^^^^
+34 |     pub config_digest: String,
+   |         ^^^^^^^^^^^^^
+35 |     pub layer: Vec<u8>,
+   |         ^^^^^
+   |
+   = note: `-D dead-code` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: fields `manifest`, `config`, `config_digest`, `layer`, and `layer_digest` are never read
+  --> crates\podbox-image\tests\common\registry.rs:30:9
+   |
+25 | pub struct Fixture {
+   |            ------- fields in this struct
+...
+30 |     pub manifest: Vec<u8>,
+   |         ^^^^^^^^
+...
+33 |     pub config: Vec<u8>,
+   |         ^^^^^^
+34 |     pub config_digest: String,
+   |         ^^^^^^^^^^^^^
+35 |     pub layer: Vec<u8>,
+   |         ^^^^^
+36 |     pub layer_digest: String,
+   |         ^^^^^^^^^^^^
+   |
+   = note: `-D dead-code` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: fields `manifest`, `manifest_digest`, `config`, and `layer` are never read
+  --> crates\podbox-image\tests\common\registry.rs:30:9
+   |
+25 | pub struct Fixture {
+   |            ------- fields in this struct
+...
+30 |     pub manifest: Vec<u8>,
+   |         ^^^^^^^^
+31 |     /// `sha256:<hex>` of the manifest bytes, as served and as computed.
+32 |     pub manifest_digest: String,
+   |         ^^^^^^^^^^^^^^^
+33 |     pub config: Vec<u8>,
+   |         ^^^^^^
+34 |     pub config_digest: String,
+35 |     pub layer: Vec<u8>,
+   |         ^^^^^
+   |
+   = note: `-D dead-code` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: could not compile `podbox-image` (test "parallel_layers") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `podbox-image` (test "across_distributions") due to 1 previous error
+error: fields `config` and `layer` are never read
+  --> crates\podbox-image\tests\common\registry.rs:33:9
+   |
+25 | pub struct Fixture {
+   |            ------- fields in this struct
+...
+33 |     pub config: Vec<u8>,
+   |         ^^^^^^
+34 |     pub config_digest: String,
+35 |     pub layer: Vec<u8>,
+   |         ^^^^^
+   |
+   = note: `-D dead-code` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: could not compile `podbox-image` (test "acquisition") due to 1 previous error
+error: could not compile `podbox-image` (test "store_digest") due to 1 previous error

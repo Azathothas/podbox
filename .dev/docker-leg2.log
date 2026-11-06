@@ -1,0 +1,226 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+SKIP: no git
+Unable to find image 'public.ecr.aws/docker/library/registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373' locally
+public.ecr.aws/docker/library/registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373: Pulling from docker/library/registry
+6d464ea18732: Pulling fs layer
+8e82f80af0de: Pulling fs layer
+bbbdd6c6894b: Pulling fs layer
+44cf07d57ee4: Pulling fs layer
+3493bf46cdec: Pulling fs layer
+bbbdd6c6894b: Download complete
+6d464ea18732: Download complete
+8e82f80af0de: Download complete
+44cf07d57ee4: Download complete
+44cf07d57ee4: Pull complete
+bbbdd6c6894b: Pull complete
+8e82f80af0de: Pull complete
+3493bf46cdec: Download complete
+6d464ea18732: Pull complete
+3493bf46cdec: Pull complete
+32a76c78501f: Download complete
+b537bf6d1146: Download complete
+Digest: sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
+Status: Downloaded newer image for public.ecr.aws/docker/library/registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
+SKIP: no git
+SKIP: no git
+SKIP: no git
+SKIP: no git
+a USAGE error, before any network
+  exit              1 (1 is a cli error, TODO/cli.md T-0802)
+  says              podbox: "a/b/c/d" has 4 fields. A platform is os/arch or os/arch/variant, for example linux/arm6
+  --platform with no value: exit 1
+
+written to experiments/results/multiarch-image.txt
+270-multiarch-image EXIT=0
+########## 280-insecure-registry ##########
+engine            docker (daemon)
+== conditions
+date              2026-09-23T01:55:17Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+engine            29.8.1 (fixtures: docker)
+proxy in env      no (clause 3 is only meaningful when yes)
+
+== 1. the default refuses an explicit http:// and NAMES the flag
+  exit              1 (want 1, the cli-error code)
+  names the flag    1
+
+== 2. the default refuses a certificate nothing trusts
+  exit              125 (125 is a runtime failure)
+  says              
+
+== 3. --insecure-registry pulls the whole image over plain HTTP
+  exit              0
+  layers pulled     4
+
+== 4. and it changed NOTHING for any other registry
+  a DIFFERENT registry over http://: exit 1
+
+== 5. --tls-verify=false reaches the self-signed registry
+  SKIP: the fixture image is not in the TLS registry
+
+== 6. every downgrade is announced on stderr
+  announced insecure          7
+  announced the http fallback 6
+  a normal pull says it       0 time(s)
+
+== 7. the environment and the config file reach the same place
+  $PODBOX_INSECURE_REGISTRIES exit 0
+  $PODBOX_CONFIG file         exit 0
+  a URL where a host belongs: exit 1, registries.conf:2
+
+written to experiments/results/insecure-registry.txt
+280-insecure-registry EXIT=2
+########## 300-run ##########
+engine            docker (daemon)
+== conditions
+date              2026-09-23T01:56:41Z
+host kernel       7.2.0-WSL2-STABLE
+host arch         x86_64
+podbox            podbox 0.1.0
+engine            29.8.1
+image             ghcr.io/pkgforge-dev/archlinux:latest
+
+== 1. T-1104's own acceptance: a command runs and says so on stdout
+  stdout            [hi]
+  exit              0
+  stderr carries a mode= line: 1
+
+== 2. T-0802: the exit code is the payload's, unaltered
+  /bin/true                    0 (want 0)
+  /bin/false                   1 (want 1)
+  sh -c 'exit 42'              42 (want 42)
+  sh -c 'kill -9 $$'           137 (want 137 = 128+9)
+  /no/such/binary              127 (want 127)
+
+== 3. it is really a chroot into the image, not the host
+  /etc/os-release   Arch Linux
+  the host's is     Arch Linux
+  ⚠ the image and the host report the same distribution, so this clause
+    cannot distinguish them. It asserts only that the file was readable.
+
+== 4. -e, -w and --entrypoint
+  -e GREETING=hello  [hello]
+  -w /etc            [/etc]
+  --entrypoint       [ep]
+  a bare name        [onpath]
+
+== 5. T-0506: a foreign image is run through an interpreter, or REFUSED
+  SKIP: qemu-aarch64-static is absent; ./scripts/common/bootstrap-env.sh
+
+== 6. --pull never on a platform the store does not hold
+  exit              125
+  says              podbox run: the store holds ghcr.io/pkgforge-dev/archlinux:latest for linux/amd64, and linux/ppc
+
+== 7. T-1104's own acceptance: inside the reconstruction
+  SKIP: container-research/target:1 is not built.
+        ./experiments/10-build-target-image.sh
+  ⚠ clause 7 did not run, so the chroot rung is unmeasured here
+
+== 8. T-0505: exec is a fresh chroot, and every channel says so
+  stdout            [marker]
+  exit              0
+  says              this is a fresh-chroot re-entry
+  {{.Exec.Shares}}  [filesystem]   {{.Exec.Mode}}  [fresh-chroot]
+  exec with no command: rc=1  (want 1, the cli-error code)
+  against an empty store: rc=125
+    never pulls: `podbox run ghcr.io/pkgforge-dev/archlinux:latest ...` is w
+
+written to experiments/results/run.txt
+300-run EXIT=2
+########## 320-cli-contract ##########
+engine            docker (daemon)
+== conditions
+date              2026-09-23T01:57:25Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+engine            29.8.1
+jq                jq-1.8.2
+
+== 1. T-0801's own acceptance: the table is data
+  exit              0
+  rows              164
+  of which verbs    57
+  statuses          Degraded Native None Stub
+  length >= 60 and every status one of the four: rc=0
+  rows with no note 0
+
+== 2. the table DECIDES, rather than describing what a parser does
+  run -v        rc=125
+    podbox run: -v, --volume is in the parity table with status None: podbox cannot mount(2) on this
+  run --no-such-flag rc=125
+    podbox run: unknown option "--no-such-flag". It has no row in the parity table; `podbox system i
+  run -i (a Stub)   rc=0
+
+== 3. every verb the table calls None says so with docker's 125
+  restart  rc=125  message is the table's row: yes
+  top      rc=125  message is the table's row: yes
+  attach   rc=125  message is the table's row: yes
+  pause    rc=125  message is the table's row: yes
+  unpause  rc=125  message is the table's row: yes
+  stats    rc=125  message is the table's row: yes
+
+== 4. T-0803: podbox answers to `docker` and `podman` on PATH
+  docker  stdout [hi] rc=0  banner says: invoked as `docker`
+  podman  stdout [hi] rc=0  banner says: invoked as `podman`
+
+== 5. T-0803's ruling: the docker name is refused where a daemon answers
+  a docker daemon here: reachable
+  install-names     rc=125
+    podbox system install-names: a docker daemon is reachable (/var/run/docker.sock answered /_ping)
+  install-names --force rc=0, docker link: made
+  every installed name is a symlink: yes
+
+written to experiments/results/cli-contract.txt
+320-cli-contract EXIT=0
+########## 330-exit-codes ##########
+engine            docker (daemon)
+== conditions
+date              2026-09-23T01:57:47Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+engine            29.8.1
+docker            29.8.1
+image             public.ecr.aws/docker/library/alpine:3.20
+
+== 0. podbox's table, as data
+  flag-error  125
+  cli-error  1
+  runtime-error  125
+  cannot-invoke  126
+  not-found  127
+  no-arguments  0
+  read from the table: flag=125 cli=1 notfound=127 invoke=126 runtime=125
+
+== 1. the flag parser refused it: docker's 125
+  run --badflag              want 125  podbox 125  docker 125  ok
+  run --pull=bogus           want 125  podbox 125  docker 125  ok
+  images --badflag           want 125  podbox 125  docker 125  ok
+  pull --badflag             want 125  podbox 125  docker 125  ok
+  run --memory=1g            want 125  podbox 125  docker 125  ok
+
+== 2. the verb refused it after the flags parsed: docker's 1
+  run, no image              want 1    podbox 1    docker 1    ok
+  images --format bad        want 1    podbox 1    docker 1    ok
+  rmi no-such-image          want 1    podbox 1    docker 1    ok
+  a verb neither has         want 1    podbox 1    docker 1    ok
+
+== 3. the payload's own answer
+  payload exit 42            want 42   podbox 42   docker 42   ok
+  command not found          want 127  podbox 127  docker 127  ok
+  command not invocable      want 126  podbox 126  docker 126  ok
+  payload exit 0             want 0    podbox 0    docker 0    ok
+
+== 4. the bare name, with NO arguments at all
+  no arguments at all        want 0    podbox 0    docker 0    ok
+
+== 5. ⛔ a fixup NEVER changes the payload's exit code
+  with fixups        7
+  --no-source-fixup  7
+
+== 6. --strict refuses rather than running, and with the runtime code
+  run --strict       125 (want 125 on a machine below the namespace rung)
+  StrictOk           true
+
+written to experiments/results/exit-codes.txt
+330-exit-codes EXIT=0

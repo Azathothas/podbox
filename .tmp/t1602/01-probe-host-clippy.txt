@@ -1,0 +1,44 @@
+    Checking podbox-probe v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-probe)
+error[E0433]: cannot find `unix` in `os`
+  --> crates\podbox-probe\src\child.rs:20:14
+   |
+20 | use std::os::unix::ffi::OsStrExt;
+   |              ^^^^ could not find `unix` in `os`
+
+error[E0433]: cannot find `unix` in `os`
+   --> crates\podbox-probe\src\sys.rs:813:18
+    |
+813 |     use std::os::unix::process::CommandExt;
+    |                  ^^^^ could not find `unix` in `os`
+
+error[E0599]: no method named `as_bytes` found for struct `std::ffi::OsString` in the current scope
+  --> crates\podbox-probe\src\child.rs:71:39
+   |
+71 |                 s.extend_from_slice(k.as_bytes());
+   |                                       ^^^^^^^^
+   |
+help: there is a method `as_encoded_bytes` with a similar name
+   |
+71 |                 s.extend_from_slice(k.as_encoded_bytes());
+   |                                          ++++++++
+
+error[E0599]: no method named `as_bytes` found for struct `std::ffi::OsString` in the current scope
+  --> crates\podbox-probe\src\child.rs:73:39
+   |
+73 |                 s.extend_from_slice(v.as_bytes());
+   |                                       ^^^^^^^^
+   |
+help: there is a method `as_encoded_bytes` with a similar name
+   |
+73 |                 s.extend_from_slice(v.as_encoded_bytes());
+   |                                          ++++++++
+
+error[E0599]: no method named `pre_exec` found for mutable reference `&mut std::process::Command` in the current scope
+   --> crates\podbox-probe\src\sys.rs:815:13
+    |
+815 |         cmd.pre_exec(|| {
+    |         ----^^^^^^^^ method not found in `&mut std::process::Command`
+
+Some errors have detailed explanations: E0433, E0599.
+For more information about an error, try `rustc --explain E0433`.
+error: could not compile `podbox-probe` (lib) due to 5 previous errors

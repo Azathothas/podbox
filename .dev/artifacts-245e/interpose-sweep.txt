@@ -1,0 +1,9 @@
+# M6 acceptance: virtualized ownership across the matrix
+# TODO/milestones.md T-1110. Taken 2026-09-18T18:16:31Z on kernel 7.2.0-WSL2-STABLE
+rows              10
+ran               10
+virtualized       10
+declined          20
+host_not_runtime  0
+no-pull           0
+broken            0

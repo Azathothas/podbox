@@ -1,0 +1,36 @@
+docs: reconcile containers and tooling with the live ToolKit programs
+
+2026-09-18T13:02:32Z - containers reconciliation and text-tool proof
+
+docs/containers.md claimed wsl-toolkit ships as two products with a
+launcher. Upstream deleted the PowerShell product and its launcher, and the
+binary on this host answers as one product. Its manual is generated from
+the commands it holds. The retired wording moves verbatim to
+docs/history/upstream-tool-shape.md. The page now links the three agent
+skills. It names the version and manual commands instead of any flag. The
+pointer-file sentence is corrected too: no such file exists in the tree,
+and the 843-line manual names no pointer mechanism. The page states the
+real default instead (PODBOX_WSL_INSTANCE, --instance podbox).
+
+docs/agent-tooling.md drops the two-products row and the write-file row.
+It gains wsl-toolkit-agents and text-tool with their skills. It states
+the read-the-skill rule. docs/hosted-sessions.md corrects the hook path
+to .githooks, which is where the hook lives and what core.hooksPath
+reports.
+
+experiments/350-tool-live.sh drives both programs. text-tool:
+write, append, edit, --expect refusal, eol, with byte evidence.
+wsl-toolkit: version, help, man, doctor, ready. base status --probe
+reads usable true after `base ensure --repair` cleared the stale boot-id
+run state. ready --smoke ran a container as uid 0 on
+7.2.0-WSL2-STABLE. The saved results redact the home prefix to ~ for
+the public no-secrets gate.
+
+Finding, not caused by this change: the first full Linux gate run
+failed 5 store tests on 16-lock-slot exhaustion. The same tree passes
+the podbox-image suite 97 of 97 twice in isolation, and a second full
+run exits 0. No Rust file is touched here. This is evidence for the
+T-1204 rate question in TODO/PROGRESS.md.
+
+Host gate green (check-todo ok, check-gate --fast 10 passed 1 skipped,
+check-twins exit 0). Linux dev.sh check green on re-run.

@@ -1,0 +1,3 @@
+   Compiling podbox-image v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-image)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.01s
+  Executable tests\registry_fixture.rs (target\x86_64-unknown-linux-musl\debug\deps\registry_fixture-65ce5bb1c4e2bd1b)

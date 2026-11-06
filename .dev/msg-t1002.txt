@@ -1,0 +1,7 @@
+packaging: verify the embed-and-place entry and close it (T-1002)
+
+The embed, atomic placement and LD_PRELOAD merge this entry specifies
+all shipped under earlier entries. This change verifies each against
+the tree and drives the adapted Prove green on host podman with the
+shipped binary. The entry Prove is amended: its /proc/self/environ
+reading cannot work where /proc is unmounted.

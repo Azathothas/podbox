@@ -1,0 +1,8 @@
+HOME=/root
+LD_PRELOAD=/.podbox/interpose.so
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PODBOX_MEMO_FD=17
+PWD=/
+SHLVL=0
+_=/usr/bin/env
+container=oci

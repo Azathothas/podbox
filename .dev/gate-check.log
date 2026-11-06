@@ -1,0 +1,5 @@
+check-todo: 2 problem(s)
+  TODO/interpose.md:1122: (T-1309) Prove names an unqualified image reference `rocky`, which resolves through the engine's shortname aliases to Docker Hub. Every Prove reference is a row of DISTRO_ROWS_M5 in `scripts/common/distro-matrix.sh`, named by its fully qualified reference. TODO/gate.md T-1209.
+  TODO/interpose.md:1123: (T-1309) Prove names an unqualified image reference `rocky-minimal`, which resolves through the engine's shortname aliases to Docker Hub. Every Prove reference is a row of DISTRO_ROWS_M5 in `scripts/common/distro-matrix.sh`, named by its fully qualified reference. TODO/gate.md T-1209.
+check-todo: 137 rows, 137 entries, 37 open, 3 partial, 1 blocked, 96 done
+check-todo: coverage bare_citations=1342 ci_components=3 corpus=41 counts=5 crossrefs=485 entries=137 exit_codes=5 experiment_numbers=480 fields=1370 prove_registry=137 rows=137 size_ceiling=232 todo_citations=101 todo_links=562 tree_citations=64 tree_links=342

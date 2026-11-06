@@ -1,0 +1,12 @@
+Diff in \\?\C:\Users\AjamX\Downloads\podbox\crates\podbox-buildstate\src\licenses.rs:600:
+         assert!(parse_json("[1, {\"a\": true}, null]").is_some());
+         assert!(parse_json("{\"a\": }").is_none());
+         assert!(parse_json("{\"a\": 1} trailing").is_none());
+-        assert_eq!(parse_json("\"a\\u00e9\"").unwrap().as_str(), Some("a\u{e9}"));
++        assert_eq!(
++            parse_json("\"a\\u00e9\"").unwrap().as_str(),
++            Some("a\u{e9}")
++        );
+         match parse_json("{\"n\": 3, \"b\": false}").unwrap() {
+             Json::Object(pairs) => {
+                 assert!(matches!(pairs[0].1, Json::Number(ref n) if n == "3"));

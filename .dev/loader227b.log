@@ -1,0 +1,30 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11415 entries, 333.4 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/f229abe02656c141/work
+  workspace: 410 files carry the executable bit from the git index, and 304 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 410 executable file(s) in the index, all already executable.
+== the job
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 2.19s-rwxr-xr-x 2 root root 308256 Sep 21 13:17 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 libdl.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+nix-2.2.2-x86_64-linux/store/7gx4kiv5m0i7d7qkixq2cwzbr10lvxwc-glibc-2.27/lib/ld-linux-x86-64.so.2
+nix-2.2.2-x86_64-linux/store/7gx4kiv5m0i7d7qkixq2cwzbr10lvxwc-glibc-2.27/lib/libc.so.6
+
+tar: */glibc-2.27/lib/*: Not found in archive
+tar: Exiting with failure status due to previous errors== rc=2
+
+exit 2 is the payload's own, passed through unchanged
+  the stopped container and its job directory are kept: wtk-f229abe02656c141
+  container wtk-f229abe02656c141 is kept with its job directory. Remove it with: wsl-toolkit gc --job f229abe02656c141 --apply
+  docker.io/library/rust:1.98.1-bookworm exited 2 in 38.471s
+  the complete output is kept: wsl-toolkit logs f229abe02656c141

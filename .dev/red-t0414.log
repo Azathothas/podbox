@@ -1,0 +1,80 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11998 entries, 335.8 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/71a48bf95a371f73/work
+  workspace: 419 files carry the executable bit from the git index, and 306 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 419 executable file(s) in the index, all already executable.
+== the job
+== disk, before anything is written
+  796676 MB and 63855085 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 2 installed, 0 failed
+everything requested is present.
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded syscalls v0.8.1
+  Downloaded linux-raw-sys v0.12.1
+   Compiling syscalls v0.8.1
+   Compiling linux-raw-sys v0.12.1
+   Compiling podbox-probe v0.1.0 (/work/crates/podbox-probe)
+warning: function `p_list_root` is never used
+   --> crates/podbox-probe/src/probes.rs:779:4
+    |
+779 | fn p_list_root() -> Outcome {
+    |    ^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `p_open_by_name` is never used
+   --> crates/podbox-probe/src/probes.rs:797:4
+    |
+797 | fn p_open_by_name() -> Outcome {
+    |    ^^^^^^^^^^^^^^
+
+warning: function `p_creat_toplevel` is never used
+   --> crates/podbox-probe/src/probes.rs:810:4
+    |
+810 | fn p_creat_toplevel() -> Outcome {
+    |    ^^^^^^^^^^^^^^^^
+
+warning: `podbox-probe` (lib test) generated 3 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.14s
+     Running unittests src/lib.rs (target/x86_64-unknown-linux-musl/debug/deps/podbox_probe-c78203c0ff4aca56)
+running 1 test
+
+error: test failed, to rerun pass `-p podbox-probe --lib`test probes::tests::the_root_listing_block_is_three_outer_legs_in_order ... FAILED
+
+failures:
+
+---- probes::tests::the_root_listing_block_is_three_outer_legs_in_order stdout ----
+
+thread 'probes::tests::the_root_listing_block_is_three_outer_legs_in_order' (569) panicked at crates/podbox-probe/src/probes.rs:1468:9:
+assertion `left == right` failed: root-listing legs missing from PROBES
+  left: 0
+ right: 3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    probes::tests::the_root_listing_block_is_three_outer_legs_in_order
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 82 filtered out; finished in 0.00s
+
+== cargo test exited 101 (non-zero is the RED this job exists for)
+== rc=101
+
+exit 101 is the payload's own, passed through unchanged
+  the stopped container and its job directory are kept: wtk-71a48bf95a371f73
+  container wtk-71a48bf95a371f73 is kept with its job directory. Remove it with: wsl-toolkit gc --job 71a48bf95a371f73 --apply
+  docker.io/library/rust:1.98.1-bookworm exited 101 in 1m12.208s
+  the complete output is kept: wsl-toolkit logs 71a48bf95a371f73

@@ -1,0 +1,4 @@
+HOME=/root
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PODBOX_MEMO_FD=17
+container=oci

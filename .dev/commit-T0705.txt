@@ -1,0 +1,4 @@
+interpose: read results back in virtual names (T-0705)
+
+2026-09-22T01:57:41Z - A payload that opens a mapped path and then calls getcwd or realpath gets the real path back and notices the virtualization.
+Six result paths now read back through the reverse map, with ERANGE past the buffer instead of a silent real path, which would leak the mapping.

@@ -1,0 +1,15 @@
+== disk, before anything is written
+  973178 MB and 66992190 inodes available under /work
+
+== components
+
+  ok       rust: 1.99.0, musl target present
+  ok       cc: gcc 12
+  ok       tools: jq, binutils, file, xz all present
+  ok       zig: 0.16.0
+
+== 4 already present, 0 installed, 0 failed
+everything requested is present.
+    Updating crates.io index
+   Compiling podbox-gate v0.1.0-beta.12 (/work/crates/podbox-gate)
+    Finished `release` profile [optimized] target(s) in 6.29s

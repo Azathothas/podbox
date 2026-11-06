@@ -1,0 +1,9 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+== reconstruction conditions
+date              2026-09-23T01:43:57Z
+host kernel       7.2.0-WSL2-STABLE
+engine            podman version 6.1.2
+image             9ed4f5c81452e9fdbef2d091faec59df44778376e5a392c58cd345db5497c4d4
+harness sources   /mnt/c/Users/AjamX/Downloads/podbox/references/Azathothas__container-research/tree/verification
+engine: PRIVILEGED fixture run (--privileged seccomp=unconfined): 9ed4f5c81452e9fdbef2d091faec59df44778376e5a392c58cd345db5497c4d4
+target: N+F+M (landlock write-allowlist active)

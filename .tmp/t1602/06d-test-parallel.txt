@@ -1,0 +1,74 @@
+   Compiling stable_deref_trait v1.2.1
+   Compiling cfg-if v1.0.4
+   Compiling litemap v0.8.3
+   Compiling writeable v0.6.4
+   Compiling zeroize v1.9.0
+   Compiling utf8_iter v1.0.4
+   Compiling typenum v1.20.1
+   Compiling smallvec v1.16.0
+   Compiling untrusted v0.9.0
+   Compiling libc v0.2.189
+   Compiling icu_properties_data v2.3.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling crc32fast v1.5.1
+   Compiling serde_core v1.0.229
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling percent-encoding v2.3.2
+   Compiling ring v0.17.14
+   Compiling zerofrom v0.1.8
+   Compiling zmij v1.0.23
+   Compiling syscalls v0.8.1
+   Compiling once_cell v1.21.4
+   Compiling subtle v2.6.1
+   Compiling log v0.4.34
+   Compiling serde v1.0.229
+   Compiling miniz_oxide v0.9.1
+   Compiling form_urlencoded v1.2.2
+   Compiling serde_json v1.0.151
+   Compiling linux-raw-sys v0.12.1
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling yoke v0.8.3
+   Compiling base64 v0.22.1
+   Compiling cpufeatures v0.3.1
+   Compiling base64 v0.23.1
+   Compiling rustls-pki-types v1.15.1
+   Compiling zerovec v0.11.8
+   Compiling zerotrie v0.2.5
+   Compiling podbox-probe v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-probe)
+   Compiling hybrid-array v0.4.15
+   Compiling flate2 v1.1.10
+   Compiling webpki-roots v1.0.9
+   Compiling rustls-pemfile v2.2.0
+   Compiling webpki-roots v0.26.11
+   Compiling getrandom v0.2.17
+   Compiling filetime v0.2.29
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling tar v0.4.46
+   Compiling icu_collections v2.3.0
+   Compiling icu_locale_core v2.3.0
+   Compiling digest v0.11.3
+   Compiling sha2 v0.11.0
+   Compiling icu_provider v2.3.1
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v2.12.1
+   Compiling podbox-image v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-image)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 30.76s
+     Running tests\parallel_layers.rs (target\x86_64-unknown-linux-musl\debug\deps\parallel_layers-609cec55b0e25d76)
+error: test failed, to rerun pass `-p podbox-image --test parallel_layers`
+
+Caused by:
+  could not execute process `C:\Users\AjamX\Downloads\podbox\target\x86_64-unknown-linux-musl\debug\deps\parallel_layers-609cec55b0e25d76` (never executed)
+
+Caused by:
+  %1 is not a valid Win32 application. (os error 193)

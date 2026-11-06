@@ -1,0 +1,342 @@
+   Compiling ring v0.17.14
+   Compiling podbox-probe v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-probe)
+   Compiling podbox-enter v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-enter)
+   Compiling podbox-release v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-release)
+   Compiling podbox-gate v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-gate)
+   Compiling podbox-windows v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-windows)
+   Compiling podbox-cli v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-cli)
+warning: podbox-cli@0.1.0-beta.12: no gnu interposer at C:\Users\AjamX\Downloads\podbox\crates/podbox-interpose/target\x86_64-unknown-linux-gnu\release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+warning: podbox-cli@0.1.0-beta.12: no musl interposer at C:\Users\AjamX\Downloads\podbox\crates/podbox-interpose/target\x86_64-unknown-linux-musl\release/libpodbox_interpose.so. Run ./scripts/build-interpose.sh; until then podbox declines to interpose and says so (TODO/interpose.md T-0702)
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustc1o3qdY\\symbols.o" "<6 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustc1o3qdY\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_dev-c547831a9aade72f" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-gate` (bin "podbox-dev" test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustc0v0Zfx\\symbols.o" "<6 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustc0v0Zfx\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_verify-bf229b558624e321" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-release` (bin "podbox-verify" test) due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcrpdEJa\\symbols.o" "<6 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcrpdEJa\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_plant-108957d5d6364481" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcpcYqun\\symbols.o" "<6 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcpcYqun\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_size-6375dbe2744ba519" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcxlKrHJ\\symbols.o" "<6 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcxlKrHJ\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_smoke-1792ffde71e0ef7c" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-gate` (bin "podbox-plant" test) due to 1 previous error
+error: could not compile `podbox-release` (bin "podbox-size" test) due to 1 previous error
+error: could not compile `podbox-gate` (bin "podbox-smoke" test) due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcqmybpZ\\symbols.o" "<6 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcqmybpZ\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_libc_interpose-5876805a5c334edf" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-gate` (bin "podbox-libc-interpose" test) due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustc4dlILv\\symbols.o" "<26 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustc4dlILv\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_reconcile-338be1543107bb13" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcE82XV5\\symbols.o" "<27 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*}.rlib" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps/{libpodbox_probe-0ade92b43137ba55,liblinux_raw_sys-dbfbc34c1783c8b2,libsyscalls-e5775ccc7fc8a424}.rlib" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcE82XV5\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\namespace-d60a34d75bfda6e0" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-release` (bin "podbox-reconcile" test) due to 1 previous error
+error: could not compile `podbox-probe` (test "namespace") due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcV6d0NE\\symbols.o" "<6 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcV6d0NE\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_interpose_build-789099830a341b0a" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\Users\AjamX\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-unknown-linux-musl\lib\self-contained\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-gate` (bin "podbox-interpose-build" test) due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustchze6t9\\symbols.o" "<45 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*}.rlib" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps/{libpodbox_probe-0ade92b43137ba55,liblinux_raw_sys-dbfbc34c1783c8b2,libsyscalls-e5775ccc7fc8a424}.rlib" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustchze6t9\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\namespace_base-48c86deb020c0a4b" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-probe` (test "namespace_base") due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcl6sdNy\\symbols.o" "<34 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*}.rlib" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps/{libpodbox_probe-0ade92b43137ba55,liblinux_raw_sys-dbfbc34c1783c8b2,libsyscalls-e5775ccc7fc8a424}.rlib" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcl6sdNy\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\tty_refusal-389c9c068f349966" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-enter` (test "tty_refusal") due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 126
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcPDN0bh\\symbols.o" "<194 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*}.rlib" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps/{liblinux_raw_sys-dbfbc34c1783c8b2,libsyscalls-e5775ccc7fc8a424}.rlib" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcPDN0bh\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_probe-8d148f71e4f04715" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: C:\Users\AjamX\Downloads\podbox\scripts\zig-cc.sh: line 131: /c/ProgramData/scoop/shims/zig: Argument list too long
+          
+
+error: could not compile `podbox-probe` (lib test) due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcRLbXkK\\symbols.o" "<70 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcRLbXkK\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_publish-4e459ad7387b62f9" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-release` (bin "podbox-publish" test) due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustc8meNWr\\symbols.o" "<100 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustc8meNWr\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\document_state-f29c2a86d9c82690" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-release` (bin "document-state") due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcykLUhX\\symbols.o" "<76 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*,libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcykLUhX\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_gate-48b6cdf8e1c8fac6" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-gate` (bin "podbox-gate" test) due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcECX5EB\\symbols.o" "<102 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcECX5EB\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_count-b8135151552175c5" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-gate` (bin "podbox-count") due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustc1tQLfd\\symbols.o" "<131 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*}.rlib" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps/{libpodbox_probe-0ade92b43137ba55,liblinux_raw_sys-dbfbc34c1783c8b2,libsyscalls-e5775ccc7fc8a424,libsha2-3abe10c3dbbfaa99,libcpufeatures-5f7408a5b1101f77,libcfg_if-3058f179ba31aaee,libdigest-9b286290f3f9128a,libcrypto_common-d32cb720ea102dcf,libblock_buffer-c2943433b0841bfe,libhybrid_array-cf170da7fc92f275,libtypenum-ac3a3baaedc9f34a}.rlib" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustc1tQLfd\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_windows-56f8de6f8cb6327c" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-windows` (lib test) due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcHpbCpN\\symbols.o" "<129 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcHpbCpN\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_publish-dba1068c2a52c67f" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-release` (bin "podbox-publish") due to 1 previous error
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcYo3EIR\\symbols.o" "<174 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*}.rlib" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps/{libpodbox_probe-0ade92b43137ba55,liblinux_raw_sys-dbfbc34c1783c8b2,libsyscalls-e5775ccc7fc8a424}.rlib" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcYo3EIR\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\podbox_enter-5f9f3e0fdc2c624a" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-enter` (lib test) due to 1 previous error

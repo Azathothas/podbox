@@ -1,0 +1,80 @@
+== conditions
+2026-10-01T13:57:34Z
+Linux 7.2.0-WSL2-STABLE
+cargo 1.99.0 (5f94df478 2026-08-27)
+rustc 1.99.0 (b940084d7 2026-09-28)
+
+== 1. unit tests for the crate
+  cargo test -p podbox-buildstate exits 0
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+== 2. release binaries build
+  cargo build --release -p podbox-buildstate exits 0
+  binaries: /work/target/x86_64-unknown-linux-musl/release/podbox-buildstate /work/target/x86_64-unknown-linux-musl/release/podbox-release-licenses
+
+== 3. agreement: retired script against the binary, same tree, same env
+  inputs digests agree: 8e93effd451addce8ea5c8807595ef51783c608cb988ab269beb4b953c29348f
+  commit agrees: 803d48c348eef0c0cc401d25660d928bb295e1b3-dirty
+
+== 4. cross-read: each writer's record reads ready under the other
+  FAIL: python on binary record: [stale: build inputs changed] rc=1
+  FAIL: binary on python record: [stale: build inputs changed] rc=1
+
+== 5. licences: identical inventories over the same lock
+  FAIL: python licences rc=2
+  the script's own output then:
+release-licenses: cannot produce inventory: Command '['cargo', 'metadata', '--locked', '--format-version', '1', '--manifest-path', 'Cargo.toml']' returned non-zero exit status 101.
+  FAIL: inventories differ
+
+== 6. freshness fixture through the binary (T-1349's proof, re-driven)
+  393 exits 0 against the binary
+ok: unchanged fixture is ready
+ok: changed bytes with the same timestamp: crates/podbox-cli/src/main.rs
+ok: changed bytes with the same timestamp: crates/podbox-cli/Cargo.toml
+ok: changed bytes with the same timestamp: crates/podbox-ssh/shims/fakepwd.c
+ok: changed bytes with the same timestamp: scripts/build-interpose.sh
+ok: changed bytes with the same timestamp: vendor/userland-execve/Cargo.toml
+ok: changed bytes with the same timestamp: Cargo.lock
+ok: changed bytes with the same timestamp: crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+ok: changed output bytes are stale
+ok: changed helper bytes are stale: node
+ok: changed helper bytes are stale: operator
+ok: changed helper bytes are stale: proxy
+ok: changed helper bytes are stale: shell
+ok: missing output is absent
+verdict BUILD-FRESHNESS-OK
+
+== 7. clippy and fmt for the new crate
+  clippy clean
+  fmt clean
+
+  plant transcript saved
+== plant transcript: podbox-buildstate refuses planted defects
+date 2026-10-01T13:57:46Z
+-- record then status: ready
+ready
+rc=0 (want 0 ready)
+-- planted: output byte flipped
+stale: binary bytes changed
+rc=1 (want 1 stale: binary bytes changed)
+-- planted: input byte flipped, timestamp restored
+stale: build inputs changed
+rc=1 (want 1 stale: build inputs changed)
+-- planted: record schema rewritten
+stale: build record schema differs
+rc=1 (want 1 stale: build record schema differs)
+-- planted: record corrupted
+stale: unreadable build record
+rc=1 (want 1 stale: unreadable build record)
+-- planted: binary removed
+absent
+rc=2 (want 2 absent)
+-- planted: licences with no output flag, and an unwritable output
+release-licenses: cannot produce inventory: --output DIR is required
+rc=2 (want 2)
+release-licenses: cannot produce inventory: cannot create /proc/cannot-write-here/adler2-2.0.1: No such file or directory (os error 2)
+rc=2 (want 2)
+verdict BUILDSTATE-PLANT-OK
+
+verdict BUILDSTATE-PROOF-FAIL

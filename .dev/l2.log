@@ -1,0 +1,426 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11428 entries, 334.3 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/6cdcda462237ebff/work
+  workspace: 426 files carry the executable bit from the git index, and 319 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 426 executable file(s) in the index, all already executable.
+== the job
+== bootstrap
+== disk, before anything is written
+  974084 MB and 66995914 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed bloat: cargo-bloat
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 3 installed, 0 failed
+everything requested is present.
+== build-interpose WITH the new asserts
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 4.50s-rwxr-xr-x 2 root root 335320 Sep 23 00:51 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+   ok: exports 112 names, exactly what interpose.map declares
+   ok: rust_eh_personality is not exported
+   ok: 335320 bytes, under the interpose ceiling of 500000
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `release` profile [optimized] target(s) in 2.37s-rwxr-xr-x 2 root root 315432 Sep 23 00:51 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+   ok: exports 112 names, exactly what interpose.map declares
+   ok: rust_eh_personality is not exported
+   ok: 315432 bytes, under the interpose ceiling of 500000
+BUILD_RC=0 (want 0)
+== P1 guard mutation: blind the comparison, expect FAIL naming exports
+200:      /dev/null | sort >"$declared_names"
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+
+    Finished `release` profile [optimized] target(s) in 0.00s-rwxr-xr-x 2 root root 335320 Sep 23 00:51 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+
+FAIL x86_64-unknown-linux-musl: exports differ from interpose.map (declared 0, exported 112)
+      0a1,112
+      > __fxstat
+      > __fxstatat
+      > __fxstatat64
+      > __lxstat
+      > __lxstat64
+      > __xmknod
+      > __xstat
+      > __xstat64
+      > access
+      > canonicalize_file_name
+      > chdir
+      > chmod
+      > chown
+      > clone
+      > creat
+      > creat64
+      > eaccess
+      > euidaccess
+      > execv
+      > execve
+      > execveat
+      > execvp
+      > execvpe
+      > faccessat
+      > fchmodat
+      > fchown
+      > fchownat
+      > fopen
+      > fopen64
+      > freopen
+      > freopen64
+      > fstat
+      > fstat64
+      > fstatat
+      > fstatat64
+      > ftw
+      > ftw64
+      > get_current_dir_name
+      > getcwd
+      > getegid
+      > geteuid
+      > getgid
+      > getgroups
+      > getresgid
+      > getresuid
+      > getuid
+      > getxattr
+      > glob
+      > glob64
+      > lchown
+      > lgetxattr
+      > link
+      > linkat
+      > listxattr
+      > llistxattr
+      > lremovexattr
+      > lsetxattr
+      > lstat
+      > lstat64
+      > mkdir
+      > mkdirat
+      > mkdtemp
+      > mknod
+      > mkostemp
+      > mkstemp
+      > mount
+      > nftw
+      > nftw64
+      > open
+      > open64
+      > openat
+      > openat2
+      > openat64
+      > opendir
+      > posix_spawn
+      > posix_spawnp
+      > readlink
+      > readlinkat
+      > realpath
+      > remove
+      > removexattr
+      > rename
+      > renameat
+      > renameat2
+      > rmdir
+      > scandir
+      > setegid
+      > seteuid
+      > setgid
+      > setgroups
+      > setregid
+      > setresgid
+      > setresuid
+      > setreuid
+      > setuid
+      > setxattr
+      > stat
+      > stat64
+      > statfs
+      > statvfs
+      > statx
+      > symlink
+      > symlinkat
+      > tmpfile
+      > tmpfile64
+      > truncate
+      > unlink
+      > unlinkat
+      > unshare
+      > utime
+      > utimensat
+      > utimes   ok: rust_eh_personality is not exported
+   ok: 335320 bytes, under the interpose ceiling of 500000
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+
+    Finished `release` profile [optimized] target(s) in 0.00s-rwxr-xr-x 2 root root 315432 Sep 23 00:51 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+
+FAIL x86_64-unknown-linux-gnu: exports differ from interpose.map (declared 0, exported 112)
+      0a1,112
+      > __fxstat
+      > __fxstatat
+      > __fxstatat64
+      > __lxstat
+      > __lxstat64
+      > __xmknod
+      > __xstat
+      > __xstat64
+      > access
+      > canonicalize_file_name
+      > chdir
+      > chmod
+      > chown
+      > clone
+      > creat
+      > creat64
+      > eaccess
+      > euidaccess
+      > execv
+      > execve
+      > execveat
+      > execvp
+      > execvpe
+      > faccessat
+      > fchmodat
+      > fchown
+      > fchownat
+      > fopen
+      > fopen64
+      > freopen
+      > freopen64
+      > fstat
+      > fstat64
+      > fstatat
+      > fstatat64
+      > ftw
+      > ftw64
+      > get_current_dir_name
+      > getcwd
+      > getegid
+      > geteuid
+      > getgid
+      > getgroups
+      > getresgid
+      > getresuid
+      > getuid
+      > getxattr
+      > glob
+      > glob64
+      > lchown
+      > lgetxattr
+      > link
+      > linkat
+      > listxattr
+      > llistxattr
+      > lremovexattr
+      > lsetxattr
+      > lstat
+      > lstat64
+      > mkdir
+      > mkdirat
+      > mkdtemp
+      > mknod
+      > mkostemp
+      > mkstemp
+      > mount
+      > nftw
+      > nftw64
+      > open
+      > open64
+      > openat
+      > openat2
+      > openat64
+      > opendir
+      > posix_spawn
+      > posix_spawnp
+      > readlink
+      > readlinkat
+      > realpath
+      > remove
+      > removexattr
+      > rename
+      > renameat
+      > renameat2
+      > rmdir
+      > scandir
+      > setegid
+      > seteuid
+      > setgid
+      > setgroups
+      > setregid
+      > setresgid
+      > setresuid
+      > setreuid
+      > setuid
+      > setxattr
+      > stat
+      > stat64
+      > statfs
+      > statvfs
+      > statx
+      > symlink
+      > symlinkat
+      > tmpfile
+      > tmpfile64
+      > truncate
+      > unlink
+      > unlinkat
+      > unshare
+      > utime
+      > utimensat
+      > utimes   ok: rust_eh_personality is not exported
+   ok: 315432 bytes, under the interpose ceiling of 500000
+P1_RC=1 (want 1)
+== P2 subject mutation: bogus global in the map, expect red
+17:    podbox_plant_bogus;
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+
+    Finished `release` profile [optimized] target(s) in 0.00s-rwxr-xr-x 2 root root 335320 Sep 23 00:51 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+
+FAIL x86_64-unknown-linux-musl: exports differ from interpose.map (declared 113, exported 112)
+      75d74
+      < podbox_plant_bogus   ok: rust_eh_personality is not exported
+   ok: 335320 bytes, under the interpose ceiling of 500000
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+
+    Finished `release` profile [optimized] target(s) in 0.00s-rwxr-xr-x 2 root root 315432 Sep 23 00:51 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+
+FAIL x86_64-unknown-linux-gnu: exports differ from interpose.map (declared 113, exported 112)
+      75d74
+      < podbox_plant_bogus   ok: rust_eh_personality is not exported
+   ok: 315432 bytes, under the interpose ceiling of 500000
+P2_RC=1 (want non-zero; record which message)
+== restore build green
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+
+    Finished `release` profile [optimized] target(s) in 0.00s-rwxr-xr-x 2 root root 335320 Sep 23 00:51 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+   ok: exports 112 names, exactly what interpose.map declares
+   ok: rust_eh_personality is not exported
+   ok: 335320 bytes, under the interpose ceiling of 500000
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+
+    Finished `release` profile [optimized] target(s) in 0.00s-rwxr-xr-x 2 root root 315432 Sep 23 00:51 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+   ok: exports 112 names, exactly what interpose.map declares
+   ok: rust_eh_personality is not exported
+   ok: 315432 bytes, under the interpose ceiling of 500000
+RESTORE_RC=0 (want 0)
+ M scripts/build-interpose.sh
+DIRTY_ABOVE_WOULD_BE_BAD (want empty)
+== committed reading: the interposer pair sizes
+== conditions
+date              2026-09-23T00:51:28Z
+host kernel       7.2.0-WSL2-STABLE
+rustc             rustc 1.98.1 (48a229cea 2026-09-01)
+cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
+target            x86_64-unknown-linux-musl
+area              interpose
+ceiling           8000000 bytes, declared in this script and nowhere else
+
+== the total, from the shipping profile
+   Compiling podbox-complete v0.1.0 (/work/crates/podbox-complete)
+    Finished `release` profile [optimized] target(s) in 32.98s
+  /work/target/x86_64-unknown-linux-musl/release/podbox
+  total_bytes 3503032
+  headroom    4496968
+  PT_INTERP   0
+  scaffold    (said nothing)
+
+== the interposer pair, per libc
+  musl 335320
+  gnu  315432
+
+== what is in it
+   File  .text    Size            Crate Name
+   0.7%   2.8% 48.8KiB           podbox podbox::main
+   0.5%   1.9% 33.3KiB           rustls <rustls::msgs::handshake::HandshakeMessagePayload>::read_version
+   0.4%   1.5% 26.2KiB  podbox_complete podbox_complete::complete
+   0.3%   1.1% 18.3KiB   podbox_extract podbox_extract::extract
+   0.3%   1.0% 17.1KiB        [Unknown] _ZN9libunwind10CFI_ParserINS_17LocalAddressSpaceEE20parseFDEInstructionsINS_16Registers_x86_64EEEbRS1_RKNS2_8FDE_InfoERKNS2_8CIE_InfoENT_23link_hardened_reg_arg_tEiPNS2_10PrologInfoE
+   0.3%   1.0% 16.9KiB              std <std::backtrace_rs::symbolize::gimli::Cache>::with_global::<std::backtrace_rs::symbolize::gimli::resolve::{closure#1}>
+   0.2%   1.0% 16.6KiB           rustls <webpki::verify_cert::ChainOptions<webpki::verify_cert::KeyUsage>>::build_chain_inner
+   0.2%   0.9% 15.5KiB           podbox podbox::run::prepare
+   0.2%   0.9% 14.7KiB     podbox_image podbox_image::pull::pull
+   0.2%   0.8% 14.3KiB  podbox_complete podbox_complete::pkg::apply
+   0.2%   0.7% 12.0KiB     podbox_image <podbox_image::registry::Client>::get
+   0.2%   0.7% 11.8KiB             ring ring_core_0_17_14__chacha20_poly1305_seal_avx2
+   0.2%   0.7% 11.6KiB              std <std::backtrace_rs::symbolize::gimli::Context>::new
+   0.2%   0.7% 11.3KiB podbox_supervise <&mut serde_json::de::Deserializer<serde_json::read::SliceRead> as serde_core::de::Deserializer>::deserialize_seq::<<alloc::vec::Vec<_> as serde_core::de::Deserialize>::deserialize::VecVisitor<podbox_supervise::table::Container>>
+   0.2%   0.6% 11.1KiB           podbox podbox::exec::exec
+   0.2%   0.6% 10.9KiB   podbox_extract <ruzstd::decoding::block_decoder::BlockDecoder>::decode_block_content::<&mut &mut std::io::buffered::bufreader::BufReader<std::fs::File>>
+   0.2%   0.6% 10.2KiB             sha2 sha2::sha256::compress256
+   0.1%   0.6%  9.8KiB           rustls rustls::client::hs::emit_client_hello_for_retry
+   0.1%   0.5%  9.5KiB             ring ring_core_0_17_14__chacha20_poly1305_open_avx2
+   0.1%   0.5%  9.4KiB             ureq <rustls::conn::ConnectionCommon<rustls::client::client_conn::ClientConnectionData>>::complete_io::<alloc::boxed::Box<dyn ureq::stream::ReadWrite>>
+  20.7%  80.4%  1.4MiB                  And 4985 smaller methods. Use -n N to show more.
+  25.7% 100.0%  1.7MiB                  .text section size, the file size is 6.5MiB
+
+== the dependency tree
+  third-party crates in the normal dependency graph: 97
+
+== the delta
+  3006848 bytes against 496184 in bloat-baseline.txt
+
+written to /work/experiments/results/bloat-interpose.txt
+
+== against the committed reading
+  new: experiments/results/bloat-interpose.txt is not tracked yet, so there is nothing to compare against
+BLOAT_RC=0
+total 4
+-rw-r--r-- 1 root root 3244 Sep 23 00:52 bloat-interpose.txt
+== rc=0
+
+  the stopped container and its job directory are kept: wtk-6cdcda462237ebff
+  container wtk-6cdcda462237ebff is kept with its job directory. Remove it with: wsl-toolkit gc --job 6cdcda462237ebff --apply
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 2m26.13s
+  the complete output is kept: wsl-toolkit logs 6cdcda462237ebff

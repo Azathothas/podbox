@@ -1,0 +1,26 @@
+== conditions
+date              2026-10-01T14:50:48Z
+host kernel       Linux 7.2.0-WSL2-STABLE
+nproc             20
+cargo             cargo 1.99.0 (5f94df478 2026-08-27)
+commit            803d48c
+attempts          2 per test
+
+== clause 1  each test alone, 2 attempts each
+  a_fork_while_the_lock_is_held_does_not_extend_it
+    passed           2 of 2
+  a_spawned_process_does_not_inherit_the_lock
+    passed           2 of 2
+
+== clause 2  the fork defence removed from Lock::try_acquire
+  a_fork_while_the_lock_is_held_does_not_extend_it exited 0  (want non-zero)
+  a_spawned_process_does_not_inherit_the_lock exited 0  (want 0)
+  ⛔ the mutation did not redden its own test
+
+== clause 3  O_CLOEXEC removed from Lock::open
+  a_spawned_process_does_not_inherit_the_lock exited 0  (want non-zero)
+  a_fork_while_the_lock_is_held_does_not_extend_it exited 0  (want 0)
+  ⛔ the mutation did not redden its own test
+
+== the tree afterwards
+  crates/podbox-image/src/store.rs is back as it was

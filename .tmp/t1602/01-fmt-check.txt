@@ -1,0 +1,25 @@
+Diff in \\?\C:\Users\AjamX\Downloads\podbox\crates\podbox-image\tests\parallel_layers.rs:104:
+         stored == published,
+         "the fetch stored bytes that are not the published ones for {want}, \
+          differing at {:?}",
+-        stored
+-            .iter()
+-            .zip(published)
+-            .position(|(a, b)| a != b)
++        stored.iter().zip(published).position(|(a, b)| a != b)
+     );
+ }
+ 
+Diff in \\?\C:\Users\AjamX\Downloads\podbox\crates\podbox-image\tests\parallel_layers.rs:167:
+             &published_config_digest,
+             &published_config,
+         );
+-        concurrent_fetch_stored_the_published_bytes(&store, &published_layer_digest, &published_layer);
++        concurrent_fetch_stored_the_published_bytes(
++            &store,
++            &published_layer_digest,
++            &published_layer,
++        );
+         cleanup(store.root());
+     }
+     fx.shutdown();

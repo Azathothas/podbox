@@ -1,0 +1,83 @@
+   Compiling stable_deref_trait v1.2.1
+   Compiling cfg-if v1.0.4
+   Compiling writeable v0.6.4
+   Compiling litemap v0.8.3
+   Compiling zeroize v1.9.0
+   Compiling utf8_iter v1.0.4
+   Compiling typenum v1.20.1
+   Compiling smallvec v1.16.0
+   Compiling untrusted v0.9.0
+   Compiling adler2 v2.0.1
+   Compiling libc v0.2.189
+   Compiling icu_normalizer_data v2.3.0
+   Compiling icu_properties_data v2.3.0
+   Compiling crc32fast v1.5.1
+   Compiling serde_core v1.0.229
+   Compiling percent-encoding v2.3.2
+   Compiling ring v0.17.14
+   Compiling simd-adler32 v0.3.10
+   Compiling zerofrom v0.1.8
+   Compiling zmij v1.0.23
+   Compiling syscalls v0.8.1
+   Compiling once_cell v1.21.4
+   Compiling rustls-pki-types v1.15.1
+   Compiling log v0.4.34
+   Compiling subtle v2.6.1
+   Compiling serde_json v1.0.151
+   Compiling serde v1.0.229
+   Compiling memchr v2.8.3
+   Compiling yoke v0.8.3
+   Compiling miniz_oxide v0.9.1
+   Compiling form_urlencoded v1.2.2
+   Compiling linux-raw-sys v0.12.1
+   Compiling cpufeatures v0.3.1
+   Compiling itoa v1.0.18
+   Compiling base64 v0.22.1
+   Compiling base64 v0.23.1
+   Compiling webpki-roots v1.0.9
+   Compiling rustls-pemfile v2.2.0
+   Compiling zerovec v0.11.8
+   Compiling zerotrie v0.2.5
+   Compiling webpki-roots v0.26.11
+   Compiling podbox-probe v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-probe)
+   Compiling hybrid-array v0.4.15
+   Compiling flate2 v1.1.10
+   Compiling getrandom v0.2.17
+   Compiling filetime v0.2.29
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.6
+   Compiling tar v0.4.46
+   Compiling icu_collections v2.3.0
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling icu_locale_core v2.3.0
+   Compiling digest v0.11.3
+   Compiling sha2 v0.11.0
+   Compiling icu_provider v2.3.1
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling idna_adapter v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v2.12.1
+   Compiling podbox-image v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-image)
+error: linking with `zigcc-win.cmd` failed: exit code: 1
+  |
+  = note: "zigcc-win.cmd" "-m64" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crti.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtbeginS.o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcEgTGZ8\\symbols.o" "<84 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libtest-*,libgetopts-*,librustc_std_workspace_std-*}.rlib" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps/{libpodbox_image-42a3742711726b03,librustls_pemfile-e1a57eb988c88255,libureq-80477eb2b855d323,libwebpki_roots-04f9807fd4da6d83,libwebpki_roots-c6b3fdcea5274285,libonce_cell-3cb17f16e39644a6,libflate2-701988eeadb5cdd3,libminiz_oxide-8e8fe5cb24866b53,libsimd_adler32-1eaa8f47e4288ef6,libcrc32fast-b7872d13b4ff49d6,libbase64-35865c0412a59737,liburl-dd0642be30749e73,libidna-d0abc4993643320b,libidna_adapter-bcdb5c8df555b301,libicu_properties-b9630283ae32e043,libicu_properties_data-d0267d9e8d81bef8,libicu_normalizer-8ee3e18a1637215b,libsmallvec-57b422567e51bf45,libicu_normalizer_data-7465ca7b0318868c,libicu_collections-19328c6057570c21,libutf8_iter-c27f2d3390361029,libpotential_utf-0d5ac0004532c75f,libicu_provider-b6406e9d531596dd,libicu_locale_core-00059cff87ca8305,libtinystr-42fadd60aaa510ba,liblitemap-9f5a81e9e97f98a6,libwriteable-6d93e6ff2572c8db,libzerovec-7671293b6b564db4,libzerotrie-290c372d9a45d1ce,libyoke-bd9f0707bb203b15,libstable_deref_trait-7253cac9c1e98778,libzerofrom-39b66ea3b69cd167,libform_urlencoded-3325d3b07fe5fb2c,libpercent_encoding-4c2f8b66ae43740a,libtar-21504e13da26a314,libfiletime-d2fe4f22bee8f253,libserde_json-3ab79fed6e228dfb,libmemchr-7104e54fc01a73df,libitoa-03f31321968ff811,libzmij-569e5ab229217eb1,librustls-40b01509f47dc017,libsubtle-93823616c69dec21,libwebpki-2fbdce3e53083d24,libring-c89cfdfaea7ab5ef,libgetrandom-4a7f037829e80d5c,liblibc-6bf46daa4e327006,libuntrusted-42074a44e873e014,librustls_pki_types-8fb0ab59266e4752,libzeroize-2edd4465bcd9d035,liblog-1c6ada7bd0c7b200,libserde-049b40189046e13d,libserde_core-e6d2b7b2d5dbcd74,libpodbox_probe-85383d1227ee48df,liblinux_raw_sys-032e4c8518995ca8,libsyscalls-cbaf3d60aebc7ef9,libsha2-96d406d8f7977ffc,libcpufeatures-0790d1ff5d7baaa2,libcfg_if-50b3f0f569dab618,libdigest-25cf9c948a9156ca,libcrypto_common-1a99c4cd085a475b,libblock_buffer-1ddb7ebf4845f985,libhybrid_array-84250e6f98133b14,libtypenum-c5950a9ea2a4fba0,libbase64-abe78888557607fc}.rlib" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*}.rlib" "-lunwind" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/liblibc-*.rlib" "-lc" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib/{librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\rustcEgTGZ8\\raw-dylibs" "-Wl,-Bdynamic" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-nostartfiles" "-L" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\build\\ring-5ba1a9263bb01ba7\\out" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained" "-L" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib" "-o" "C:\\Users\\AjamX\\Downloads\\podbox\\target\\x86_64-unknown-linux-musl\\debug\\deps\\parallel_layers-82d5a088155494d7" "-Wl,--gc-sections" "-static-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs" "-nostartfiles" "-static" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtendS.o" "<sysroot>\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\crtn.o"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: ld.lld: error: duplicate symbol: _start
+          >>> defined at crt1.c
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(.text+0x0)
+          >>> defined at rcrt1.c
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text+0x0)
+          
+          ld.lld: error: duplicate symbol: _start_c
+          >>> defined at crt1.c:16 (C:\ProgramData\scoop\apps\zig\0.16.0\lib\libc\musl\crt/crt1.c:16)
+          >>>            C:\Users\AjamX\AppData\Local\zig\o\a982889692e4e481c8b022a6302a6055\crt1.o:(_start_c)
+          >>> defined at dlstart.c:22 (../src_musl/crt/../ldso/dlstart.c:22)
+          >>>            C:\\Users\\AjamX\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc\\lib\\rustlib\\x86_64-unknown-linux-musl\\lib\\self-contained\\rcrt1.o:(.text._start_c+0x0)
+          
+
+error: could not compile `podbox-image` (test "parallel_layers") due to 1 previous error

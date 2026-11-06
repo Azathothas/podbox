@@ -1,0 +1,5 @@
+error: unexpected argument '--no-run' found
+
+Usage: cargo.exe check --package [<SPEC>] --test [<NAME>]
+
+For more information, try '--help'.

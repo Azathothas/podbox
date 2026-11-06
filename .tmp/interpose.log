@@ -1,0 +1,24 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  job 4330b251953d0ce7. Follow it with: wsl-toolkit logs 4330b251953d0ce7 --follow. Stop it with: wsl-toolkit stop 4330b251953d0ce7
+  workspace: 12627 entries, 346.6 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/4330b251953d0ce7/work
+  workspace: 444 files carry the executable bit from the git index, and 344 files from a shebang
+{
+  "label": "docker.io/library/rust:1.98.1-bookworm",
+  "image": "docker.io/library/rust:1.98.1-bookworm",
+  "id": "4330b251953d0ce7",
+  "exit": 0,
+  "duration_ns": 102028142000,
+  "started": "2026-10-02T06:24:11.5227897Z",
+  "stdout": "== the machine\nLinux 7.2.0-WSL2-STABLE\n0\nroot\n/work\n== the toolset\n== disk, before anything is written\n  974471 MB and 67017727 inodes available under /work\n\n== components\n\n  ok       rust: 1.99.0, musl target present\n  ok       cc: gcc 12\n  installed tools: jq\n  installed openssh: openssh-server\n  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig\n\n== 2 already present, 3 installed, 0 failed\neverything requested is present.\nrustc 1.99.0 (b940084d7 2026-09-28)\ncargo 1.99.0 (5f94df478 2026-08-27)\n== disk, before anything is written\n/dev/sde       1007G  5.3G  951G   1% /work\n== the job\n== bootstrap rc=0\n== rustc rustc 1.99.0 (b940084d7 2026-09-28)\n== the interpose builder\nbuilder rc=0\nbuilder: target/x86_64-unknown-linux-musl/release/podbox-interpose-build\n== the two objects\nobjects rc=0\n== x86_64-unknown-linux-musl\n   linker: scripts/zig-cc.sh (zig 0.16.0)\n   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)\n    Finished `release` profile [optimized] target(s) in 6.43s\n   350184 /work/target/x86_64-unknown-linux-musl/release/../../../crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so\n   DT_NEEDED: libc.so\n   ok: it names libc.so, so it is musl-linked\n   ok: no versioned needs\n   ok: gettid is not dynamically exported\n   ok: exports 112 names, exactly what interpose.map declares\n   ok: rust_eh_personality is not exported\n   ok: 350184 bytes, under the interpose ceiling of 500000\n== x86_64-unknown-linux-gnu\n   stub: /work/target/x86_64-unknown-linux-musl/release/../../../crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)\n   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)\n    Finished `release` profile [optimized] target(s) in 3.29s\n   330264 /work/target/x86_64-unknown-linux-musl/release/../../../crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so\n   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2\n   ok: it names libc.so.6, so it is glibc-linked\n   ok: newest need GLIBC_2.14, within GLIBC_2.27\n   ok: gettid is not dynamically exported\n   ok: libdl.so.2 is needed\n   ok: exports 112 names, exactly what interpose.map declares\n   ok: rust_eh_personality is not exported\n   ok: 330264 bytes, under the interpose ceiling of 500000\n== B. struct stat offsets, by offsetof and under both libcs\n  glibc  sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|\n  musl   sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|\n  B: both libcs agree on BOTH structs, and with the offsets src/lib.rs carries\n330264 crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so\n350184 crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so\nRESULT: both objects built and inside the 500000-byte ceiling\n== rc=0\n",
+  "artifacts": 2,
+  "artifacts_attempted": 2,
+  "timed_out": false,
+  "unreached": false,
+  "transcript": "C:\\Users\\AjamX\\AppData\\Local\\wsl-toolkit\\instances\\podbox\\jobs\\4330b251953d0ce7",
+  "effective_exit": 0,
+  "stdout_bytes": 2961,
+  "stderr_bytes": 0,
+  "container_lifecycle": "ephemeral",
+  "platform": "linux/amd64"
+}
+dev-lane: green (job rc=0).

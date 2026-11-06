@@ -1,0 +1,27 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  workspace: 11350 entries, 327.4 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/b9457f23e38cf46d/work
+  workspace: 405 files carry the executable bit from the git index, and 303 files from a shebang
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 405 executable file(s) in the index, all already executable.
+== the job
+cc (Debian 12.2.0-14+deb12u1) 12.2.0
+/usr/bin/ld: /tmp/ccrIpOo7.o: in function `main':
+nsswitch-q.c:(.text+0x13): warning: Using 'getpwnam' in statically linked applications requires at runtime the shared libraries from the glibc version used for linking
+/usr/bin/ld: /tmp/cce29QD5.o: in function `main':
+across-probe.c:(.text+0x13): warning: Using 'getpwnam' in statically linked applications requires at runtime the shared libraries from the glibc version used for linking/out/q-static:     ELF 64-bit LSB executable, x86-64, version 1 (GNU/Linux), statically linked, BuildID[sha1]=6f6712dd2e282dc62259bb74e2580413e486a965, for GNU/Linux 3.2.0, not stripped
+/out/across-probe: ELF 64-bit LSB executable, x86-64, version 1 (GNU/Linux), statically linked, BuildID[sha1]=8e4faabaddb01ec61866b9e4f7ef8ad39baed24e, for GNU/Linux 3.2.0, not stripped
+total 1864
+drwxr-xr-x 2 root root   4096 Sep 19 10:37 .
+drwxr-xr-x 1 root root   4096 Sep 19 10:37 ..
+-rwxr-xr-x 1 root root 949384 Sep 19 10:37 across-probe
+-rwxr-xr-x 1 root root 949424 Sep 19 10:37 q-static
+== rc=0
+
+  the stopped container and its job directory are kept: wtk-b9457f23e38cf46d
+  container wtk-b9457f23e38cf46d is kept with its job directory. Remove it with: wsl-toolkit gc --job b9457f23e38cf46d --apply
+  docker.io/library/rust:1.98.1-bookworm exited 0 in 6.28s
+  the complete output is kept: wsl-toolkit logs b9457f23e38cf46d

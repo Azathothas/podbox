@@ -1,0 +1,104 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+== the machine
+Linux 7.2.0-WSL2-STABLE
+0
+/work
+== restore the executable bit that NTFS could not carry
+restore-modes: 417 executable file(s) in the index, all already executable.
+== bootstrap
+== disk, before anything is written
+  824664 MB and 64347108 inodes available under /work
+
+== components
+
+  ok       rust: 1.98.1, musl target present
+  ok       cc: gcc 12
+  installed tools: jq
+  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig
+
+== 2 already present, 2 installed, 0 failed
+everything requested is present.
+== dev.sh check
+== cargo fmt --all -- --check
+== cargo fmt --manifest-path crates/podbox-interpose/Cargo.toml -- --check
+== cargo clippy --workspace --all-targets -- -D warnings
+   FAILED: cargo clippy --workspace --all-targets -- -D warnings
+== RUSTFLAGS='-C target-feature=-crt-static' cargo clippy --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
+== ./scripts/build-interpose.sh
+== x86_64-unknown-linux-musl
+   linker: scripts/zig-cc.sh (zig 0.16.0)
+-rwxr-xr-x 2 root root 335320 Sep 22 05:15 /work/crates/podbox-interpose/target/x86_64-unknown-linux-musl/release/libpodbox_interpose.so
+   DT_NEEDED: libc.so 
+   ok: it names libc.so, so it is musl-linked
+   ok: no versioned needs
+   ok: gettid is not dynamically exported
+== x86_64-unknown-linux-gnu
+   stub: /work/crates/podbox-interpose/target/dl-stub/libdl-stub.so (SONAME libdl.so.2)
+-rwxr-xr-x 2 root root 315432 Sep 22 05:15 /work/crates/podbox-interpose/target/x86_64-unknown-linux-gnu/release/libpodbox_interpose.so
+   DT_NEEDED: libdl.so.2 libgcc_s.so.1 libc.so.6 ld-linux-x86-64.so.2 
+   ok: it names libc.so.6, so it is glibc-linked
+   ok: newest need GLIBC_2.14, within GLIBC_2.27
+   ok: gettid is not dynamically exported
+   ok: libdl.so.2 is needed
+== cargo build --release --target x86_64-unknown-linux-musl
+   FAILED: cargo build --release --target x86_64-unknown-linux-musl
+== cargo test --workspace
+   FAILED: cargo test --workspace
+== RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podbox-interpose/Cargo.toml --target x86_64-unknown-linux-gnu
+
+running 25 tests
+test emulate::tests::chains_stage_as_full_records_with_tally_words ... ok
+test emulate::tests::chunk_math_rounds_up_and_empties_take_none ... ok
+test emulate::tests::the_header_is_a_fixed_32_byte_record ... ok
+test identity::tests::anything_else_is_not_an_identity ... ok
+test emulate::tests::stripping_keeps_everything_but_namespaces ... ok
+test identity::tests::uid_alone_means_its_own_group ... ok
+test emulate::tests::the_strip_set_is_the_eight_namespace_flags ... ok
+test identity::tests::uid_and_gid_parse ... ok
+test map::tests::absolutize_copies_absolute_paths_and_joins_the_cwd ... ok
+test map::tests::an_absent_variable_is_an_empty_table ... ok
+test map::tests::builtins_hold_without_any_user_list ... ok
+test map::tests::machinery_paths_never_rewrite ... ok
+test map::tests::malformed_pairs_are_skipped_not_fatal ... ok
+test map::tests::pairs_parse_and_match_at_a_boundary ... ok
+test map::tests::the_longest_prefix_wins_whatever_the_order ... ok
+test map::tests::the_memo_directory_is_never_rewritten ... ok
+test map::tests::unrewrite_never_maps_the_memo_directory ... ok
+test memo::tests::a_decimal_fd_parses_and_anything_else_does_not ... ok
+test map::tests::user_exclusions_add_prefixes_at_a_boundary ... ok
+test memo::tests::the_record_is_32_bytes_with_dev_ino_uid_gid_set ... ok
+test map::tests::unrewrite_maps_real_prefixes_back_to_virtual ... ok
+test map::tests::results_naming_machinery_stay_real ... ok
+test tests::versioned_lookup_falls_back_to_dlsym ... ok
+test tests::realpath_null_resolved_matches_libc ... ok
+test tests::fchmodat_forwards_flags ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+== ./scripts/check-todo.py
+check-todo: 142 rows, 142 entries, 14 open, 3 partial, 2 blocked, 123 done
+check-todo: coverage bare_citations=1455 ci_components=3 closure_records=123 corpus=41 counts=5 crossrefs=644 entries=142 exit_codes=5 experiment_numbers=527 fields=1420 prove_registry=142 rows=142 size_ceiling=250 todo_citations=132 todo_links=622 tree_citations=64 tree_links=342
+check-todo: ok
+== ./scripts/common/check-gate.sh --fast
+
+  ✅ ok    check-docs
+  ✅ ok    check-markers
+  ✅ ok    check-one-home
+  ✅ ok    check-placeholders
+  ✅ ok    check-control-bytes
+  ✅ ok    check-changelog
+  ✅ ok    check-attribution
+  ✅ ok    check-no-secrets
+  ✅ ok    check-no-secrets --public
+  SKIP  check-remote-items  (check-remote-items: gh not found)
+  SKIP  check-twins  (--fast)
+  note  pwsh absent; the PowerShell halves were not exercised
+
+11 checks: 9 passed, 0 failed, 2 skipped
+⚠ A SKIP IS NOT A PASS. Those checks did not run and nothing about
+their subject was verified. Pass --strict to make a skip a failure.
+✅ nothing failed.
+⚠ That is part (a) of the gate only. Driving the real thing and the
+deep reviews are the other two, and each is blind to what this catches.
+docs/methodology/gate.md.
+== rc=1

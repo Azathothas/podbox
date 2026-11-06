@@ -1,0 +1,41 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+SKIP: no git
+     podman (host machine)
+== conditions
+date              2026-09-23T01:39:19Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+engine            podman version 6.1.2
+binary            3503032 bytes
+reference rows    /root/pb-wk/experiments/results/attribute.txt
+
+== 1. inside the reconstruction, the rung must be chroot
+  got chroot
+
+== 2. unconfined, the rung must be namespace
+  got namespace
+
+== 3. the attribution rows, inside the reconstruction, against
+        experiments/results/attribute.txt
+  ok      mount(2) bogus target                denied errno=1
+  ok      umount2(2) bogus target              denied errno=1
+  ok      pivot_root(2) bogus paths            denied errno=1
+  ok      process_vm_readv(bogus pid)          denied errno=1
+  ok      pidfd_getfd(-1,-1) [control]         denied errno=9
+  DIFFER  kcmp(-1,-1,...) [control]            reference denied errno=38, podbox denied errno=3
+  ok      fsopen(tmpfs)                        ok errno=-
+  ok      fsmount(tmpfs)                       ok errno=-
+  ok      open_tree(/tmp, CLONE)               ok errno=-
+  ok      move_mount(-> bogus dest)            denied errno=2
+  DIFFER  move_mount(-> /tmp/mm-probe)         reference ok errno=-, podbox denied errno=1
+  ok      openat(detached tmpfs, O_DIRECTORY)  ok errno=-
+  ok      seccomp(NEW_LISTENER)                ok errno=-
+  ok      open /proc/self/mem O_RDONLY         ok errno=-
+  DIFFER  open /proc/self/mem O_RDWR           reference ok errno=-, podbox denied errno=13
+  DIFFER  landlock_create_ruleset(VERSION)     reference denied errno=38, podbox ok errno=-
+
+  12 matched, 0 recorded divergence, 4 differed, 0 missing
+  written to /root/pb-wk/experiments/results/probe-parity.txt
+
+== against the committed reading
+EXIT=1

@@ -1,0 +1,24 @@
+   Compiling podbox-interpose v0.1.0 (/work/crates/podbox-interpose)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.39s
+     Running unittests src/lib.rs (crates/podbox-interpose/target/x86_64-unknown-linux-gnu/debug/deps/podbox_interpose-0829c78b6c1db3c6)
+
+running 16 tests
+test identity::tests::anything_else_is_not_an_identity ... ok
+test identity::tests::uid_alone_means_its_own_group ... ok
+test identity::tests::uid_and_gid_parse ... ok
+test map::tests::absolutize_copies_absolute_paths_and_joins_the_cwd ... ok
+test map::tests::an_absent_variable_is_an_empty_table ... ok
+test map::tests::malformed_pairs_are_skipped_not_fatal ... ok
+test map::tests::pairs_parse_and_match_at_a_boundary ... ok
+test map::tests::the_longest_prefix_wins_whatever_the_order ... ok
+test map::tests::the_memo_directory_is_never_rewritten ... ok
+test map::tests::unrewrite_maps_real_prefixes_back_to_virtual ... ok
+test map::tests::unrewrite_never_maps_the_memo_directory ... ok
+test memo::tests::a_decimal_fd_parses_and_anything_else_does_not ... ok
+test memo::tests::the_record_is_32_bytes_with_dev_ino_uid_gid_set ... ok
+test tests::versioned_lookup_falls_back_to_dlsym ... ok
+test tests::fchmodat_forwards_flags ... ok
+test tests::realpath_null_resolved_matches_libc ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

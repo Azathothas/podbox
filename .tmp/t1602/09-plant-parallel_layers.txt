@@ -1,0 +1,17 @@
+    Checking podbox-image v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-image)
+error: unused variable: `published_layer`
+   --> crates\podbox-image\tests\parallel_layers.rs:135:9
+    |
+135 |     let published_layer = fx.layer.clone();
+    |         ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_published_layer`
+    |
+    = note: `-D unused-variables` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_variables)]`
+
+error: unused variable: `published_layer_digest`
+   --> crates\podbox-image\tests\parallel_layers.rs:136:9
+    |
+136 |     let published_layer_digest = fx.layer_digest.clone();
+    |         ^^^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_published_layer_digest`
+
+error: could not compile `podbox-image` (test "parallel_layers") due to 2 previous errors

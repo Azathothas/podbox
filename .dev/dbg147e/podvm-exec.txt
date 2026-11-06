@@ -1,0 +1,31 @@
+== conditions
+date              2026-09-21T16:41:42Z
+host kernel       7.2.0-WSL2-STABLE
+podbox            podbox 0.1.0
+qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
+image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
+boot deadline     120 s
+command deadline  20 s
+
+== 1. the assembly
+  ok: assembly: 8366168 bytes
+/work/experiments/.sweep147-work/vmlinuz-virt: OK
+
+== 2. boot and readiness
+  ok: the guest booted
+  ok: the shell answers: readiness is a round-trip, not a sleep
+
+== 3. a zero status comes back zero
+  ok: true reported 0
+
+== 4. a non-zero status comes back with its number
+  ok: exit 3 reported 3
+
+== 5. a marker-shaped line with the wrong nonce does not end the command
+  ok: the forged line was ignored and the real status 7 reported
+
+== 6. an overlong command reports a deadline
+  ok: sleep 30 past an 8 s deadline reported DEADLINE, which is no status
+
+147 acceptance: statuses cross the line, and only the line

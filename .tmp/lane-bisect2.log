@@ -1,0 +1,24 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  job ef6737f55ce9e617. Follow it with: wsl-toolkit logs ef6737f55ce9e617 --follow. Stop it with: wsl-toolkit stop ef6737f55ce9e617
+  workspace: 12410 entries, 345.3 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/ef6737f55ce9e617/work
+  workspace: 445 files carry the executable bit from the git index, and 343 files from a shebang
+{
+  "label": "docker.io/library/rust:1.98.1-bookworm",
+  "image": "docker.io/library/rust:1.98.1-bookworm",
+  "id": "ef6737f55ce9e617",
+  "exit": 0,
+  "duration_ns": 73505110700,
+  "started": "2026-10-01T14:15:36.8827143Z",
+  "stdout": "== the machine\nLinux 7.2.0-WSL2-STABLE\n0\nroot\n/work\n== the toolset\n== disk, before anything is written\n  975634 MB and 67024147 inodes available under /work\n\n== components\n\n  ok       rust: 1.99.0, musl target present\n  ok       cc: gcc 12\n  installed tools: jq\n  installed openssh: openssh-server\n  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig\n\n== 2 already present, 3 installed, 0 failed\neverything requested is present.\nrustc 1.99.0 (b940084d7 2026-09-28)\ncargo 1.99.0 (5f94df478 2026-08-27)\n== disk, before anything is written\n/dev/sdd       1007G  4.2G  952G   1% /work\n== the job\n== rc=0\n",
+  "artifacts": 2,
+  "artifacts_attempted": 2,
+  "timed_out": false,
+  "unreached": false,
+  "transcript": "C:\\Users\\AjamX\\AppData\\Local\\wsl-toolkit\\instances\\podbox\\jobs\\ef6737f55ce9e617",
+  "effective_exit": 0,
+  "stdout_bytes": 613,
+  "stderr_bytes": 0,
+  "container_lifecycle": "ephemeral",
+  "platform": "linux/amd64"
+}
+dev-lane: green (job rc=0).

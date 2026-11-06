@@ -1,0 +1,27 @@
+   Compiling podbox-buildstate v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-buildstate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.63s
+     Running unittests src\main.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_buildstate-07f9be21437d308c.exe)
+
+running 7 tests
+test common::tests::json_escapes_match_cpython ... ok
+test tests::objects_sort_keys_with_python_separators ... ok
+test common::tests::sha256_matches_nist_vectors ... ok
+test tests::record_json_matches_python_key_order ... ok
+test tests::record_round_trips_through_the_reader ... ok
+test tests::walk_skips_target_and_pycache_parts ... ok
+test tests::status_names_every_state_on_a_fixture ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+
+     Running unittests src\licenses.rs (target\x86_64-pc-windows-msvc\debug\deps\podbox_release_licenses-2c7bea5d54fa6621.exe)
+
+running 6 tests
+test common::tests::json_escapes_match_cpython ... ok
+test tests::identifier_matches_the_script_character_class ... ok
+test tests::inventory_renders_like_cpython_indent_two ... ok
+test common::tests::sha256_matches_nist_vectors ... ok
+test tests::licence_stems_match_case_insensitively ... ok
+test tests::parser_reads_metadata_shapes ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,35 @@
+== conditions
+date              2026-09-18T15:40:03Z
+host kernel       7.2.0-WSL2-STABLE
+host arch         x86_64
+podbox            podbox 0.1.0
+image             public.ecr.aws/docker/library/alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+payload B         /work/target/x86_64-unknown-linux-musl/release/podbox (the binary under test)
+payload B file      /work/target/x86_64-unknown-linux-musl/release/podbox: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), static-pie linked, BuildID[sha1]=ae59557d895cb64f3812903043c7e27ae3c0101c, stripped
+== A. T-0702: the object is inside the rootfs and in environ
+ok   A: /.podbox/interpose.so is a file and names LD_PRELOAD
+== B. T-0706 row 2: a static payload is declined by name, and runs
+  run output: podbox 0.1.0: mode=chroot (namespaces: none; mounts: none; devices: shimmed;
+  run output: ownership: real; network: host-shared; pids: host-shared)
+  run output: probes: clone(NEWNS)=EPERM mount=EPERM fsmount=skip(EPERM) move_mount=skip(EPERM)
+  run output:         clone(NEWUTS)=EPERM sethostname=skip(EPERM) chroot=ok ptrace=ok
+  run output: this mode does NOT provide: process, network, IPC or mount isolation
+  run output: ⚠ this machine would permit `supervise`; podbox's entry sequence is `chroot` and creates no namespace and mounts nothing
+  run output: podbox run: interpose: declined for "/podbox": /podbox is statically linked (no PT_INTERP), so no loader reads LD_PRELOAD for it
+  run output: podbox: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  run output: podbox: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  run output: podbox: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  run output: podbox: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). ⛔ It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  run output: podbox: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 77 bytes
+  run output: podbox: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  run output: podbox: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. ⛔ podbox REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  run output: podbox: complete: 7 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. ⛔ These are edits podbox made inside somebody else's image and the payload can see them
+  run output: podbox 0.1.0
+ok   B: the decline names the static payload
+ok   B2: the declined payload still ran (exit 0)
+== C. control: a dynamic payload is preloaded, not declined
+ok   C: no decline for a dynamic payload
+ok   C2: the banner names the placed object
+ok   C3: the payload ran
+== verdict
+ok

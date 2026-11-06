@@ -1,0 +1,2 @@
+    Checking podbox-image v0.1.0-beta.12 (C:\Users\AjamX\Downloads\podbox\crates\podbox-image)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.34s

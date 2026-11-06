@@ -1,0 +1,11 @@
+cli: make create own the container directory (T-0810)
+
+The memo rename beside the record fails where the directory is absent,
+so no container with a record reaches created state. The directory is
+made where the container is created, and a refused directory fails the
+creation loudly.
+
+The committed proof is the new unit test, which creates a container,
+asserts the directory, and renames a file beside the record. Row E1 of
+the T-0708 drive on host podman 6.1.2 ran the entry Prove against the
+shipped binary: create succeeds, inspect reads the tally, rm removes it.

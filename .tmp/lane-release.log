@@ -1,0 +1,30 @@
+  instance podbox: distribution wsl-toolkit-podbox, state C:\Users\AjamX\AppData\Local\wsl-toolkit\instances\podbox
+  job 9efb566f7086d819. Follow it with: wsl-toolkit logs 9efb566f7086d819 --follow. Stop it with: wsl-toolkit stop 9efb566f7086d819
+  workspace: 12410 entries, 345.3 MiB copied from C:\Users\AjamX\Downloads\podbox to /home/toolkit/.wsl-toolkit/jobs/9efb566f7086d819/work
+  workspace: 445 files carry the executable bit from the git index, and 343 files from a shebang
+2m00s silent | elapsed 4m04s | out 30 lines 881 B | err 0 lines 0 B | container running | cpu 7591.4% mem 0 B
+the command writes into a pipe rather than a terminal, so a program that block-buffers off a terminal holds its lines and they arrive late, carrying the time they were received. stdbuf -oL in the command asks for line buffering where the image has it
+after 2m00s of silence: nothing can be concluded from what is measurable here. because: the distribution's disk could not be read twice, so there is no second signal
+4m00s silent | elapsed 6m05s | out 30 lines 881 B | err 0 lines 0 B | container running | cpu 4995.1% mem 0 B
+output resumed after 4m24s of silence
+{
+  "label": "docker.io/library/rust:1.98.1-bookworm",
+  "image": "docker.io/library/rust:1.98.1-bookworm",
+  "id": "9efb566f7086d819",
+  "exit": 0,
+  "duration_ns": 395920019200,
+  "started": "2026-10-01T14:48:09.6977934Z",
+  "stdout": "== the machine\nLinux 7.2.0-WSL2-STABLE\n0\nroot\n/work\n== the toolset\n== disk, before anything is written\n  975043 MB and 67011591 inodes available under /work\n\n== components\n\n  ok       rust: 1.99.0, musl target present\n  ok       cc: gcc 12\n  installed tools: jq\n  installed openssh: openssh-server\n  installed zig: 0.16.0 at /opt/zig, linked as /usr/local/bin/zig\n\n== 2 already present, 3 installed, 0 failed\neverything requested is present.\nrustc 1.99.0 (b940084d7 2026-09-28)\ncargo 1.99.0 (5f94df478 2026-08-27)\n== disk, before anything is written\n/dev/sdd       1007G  4.8G  951G   1% /work\n== the job\n== conditions\n2026-10-01T14:50:14+0000\nScope: remote refs, workflow conclusions, and complete asset names.\nSignature content verification uses scripts/verify-release.sh separately.\nlocal commit: 803d48c348eef0c0cc401d25660d928bb295e1b3\ncannot run: required command failed: gh\n== rc=0\n",
+  "artifacts": 26,
+  "artifacts_attempted": 26,
+  "timed_out": false,
+  "unreached": false,
+  "transcript": "C:\\Users\\AjamX\\AppData\\Local\\wsl-toolkit\\instances\\podbox\\jobs\\9efb566f7086d819",
+  "effective_exit": 0,
+  "stdout_bytes": 889,
+  "stderr_bytes": 0,
+  "container_lifecycle": "ephemeral",
+  "platform": "linux/amd64"
+}
+dev-lane: 10 passing suite(s) in evidence.
+dev-lane: green (job rc=0).
