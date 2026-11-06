@@ -499,7 +499,7 @@ The fixup took the Skipped branch, correctly: the pristine image ships no
 `/usr/share/zypp/local/service/` and an empty `/etc/zypp/services.d/`
 (measured read-only on host podman 2026-09-21), so `repos.d` is not
 regenerated and editing it in place holds
-(`crates/podvm-complete/src/pkg.rs:810-851`). The absent `zypper-index`
+(`crates/podvm-complete/src/pkg.rs:186-227`). The absent `zypper-index`
 banner line is the design, not missing evidence: the banner prints one line
 per fixup that changed something
 (`crates/podvm-complete/src/lib.rs:244-252`). The scheme fixup (T-0411)

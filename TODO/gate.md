@@ -1528,8 +1528,8 @@ The warm probe storm alone costs 0.059 s, which bounds every
 flat per-run cost below 0.1 s and refutes a seconds-level
 per-run mechanism. Verdicts: deletion confirmed; page-cache
 warming and one-time steps (rehash `if !linked` at
-`crates/podvm-complete/src/pkg.rs:780`, CA marker at
-`crates/podvm-complete/src/pkg.rs:429`) plausible for the
+`crates/podvm-complete/src/pkg/hash_dir.rs:308`, CA marker at
+`crates/podvm-complete/src/pkg/bundle.rs:263`) plausible for the
 ~1.6 s first-run premium, unsettled between them; the settler
 is a cache-drop run with keeper, which needs privilege the lane
 lacks. The 360 rows reread through this: `run.repeat` stays
