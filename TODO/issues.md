@@ -91,18 +91,18 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #194 | COORD-001: the crates podvm hands over and takes, and the access of T-040 (to podcrates) | open | T-1675 to T-1681 |
 | #195 | COORD-002: watch-org.sh sees no repository but the last on Windows: CRLF in the names (to podcrates) | closed (podvm took the pin 54427f6) | none: a COORD issue (to podcrates); podcrates fixed it in `54427f6`, and podvm closes it when it takes that pin |
 | #196 | COORD-003: podvm's inventory of the hosts and services of other parties, for pod-services (to podcrates) | open | T-1679 |
-| #197 | COORD-004: answers to Q2 and Q3 of the M6 import plan, and the pod-term take (to podcrates) | open | T-1675, T-1681 |
+| #197 | COORD-004: answers to Q2 and Q3 of the M6 import plan, and the pod-term take (to podcrates) | closed (pod-term taken 75ed306) | T-1675, T-1681 |
 | #198 | COORD-005: GitHub Actions of podcrates: the owner's account dispatches ci.yml and release.yml (to podcrates) | open | none: coordination; the ruling is in docs/decisions.md |
 | #199 | [gh action] requested | closed (gate run 42177003497, secrets run 42177007581) | none: a request of a workflow run (AGENTS.md, section 9) |
 | #201 | [gh action] requested | closed (gate run 42177673037) | none: a request of a workflow run for T-1604 (AGENTS.md, section 9) |
 | #202 | [gh action] requested | closed (gate run 42179344015, green) | none: a request of a workflow run for T-1604 (AGENTS.md, section 9) |
-| #203 | COORD-007: podvm took pod-tls 0.4.0 with no tokio, and pod-term moves to v0.4.0 (to podcrates) | open | T-1676 |
+| #203 | COORD-007: podvm took pod-tls 0.4.0 with no tokio, and pod-term moves to v0.4.0 (to podcrates) | closed (podcrates#7 closed) | T-1676 |
 | #204 | [gh action] requested | closed (gate run 42209748294, green) | none: a request of a workflow run for T-1674 and T-1676 (AGENTS.md, section 9) |
-| #205 | COORD-008: podvm took pod-proxy 0.4.0 (feature blocking) for the relay legs (to podcrates) | open | T-1677 |
+| #205 | COORD-008: podvm took pod-proxy 0.4.0 (feature blocking) for the relay legs (to podcrates) | closed (podcrates#9 closed) | T-1677 |
 | #206 | [gh action] requested | closed (gate run 42214046548, green) | none: a request of a workflow run for T-1674 and T-1677 (AGENTS.md, section 9) |
-| #207 | COORD-009: podvm moved to podcrates v0.5.0; the registry patch is yours (to podcrates) | open | T-1677 |
-| #208 | COORD-010: podvm took the registry patch; ureq leaves, and C10 takes pod-proxy's runtime (to podcrates) | open | T-1677 |
+| #207 | COORD-009: podvm moved to podcrates v0.5.0; the registry patch is yours (to podcrates) | closed (registry patch taken 06f2427) | T-1677 |
+| #208 | COORD-010: podvm took the registry patch; ureq leaves, and C10 takes pod-proxy's runtime (to podcrates) | closed (podcrates#13 closed) | T-1677 |
 | #209 | [gh action] requested | closed (gate run 42227206423, green) | none: a request of a workflow run for T-1677 and T-1686 (AGENTS.md, section 9) |
-| #210 | COORD-011: podvm moved to v0.6.0 and took pod-hostprobe; the freeze of the 29 files ends (to podcrates) | open | T-1681 |
+| #210 | COORD-011: podvm moved to v0.6.0 and took pod-hostprobe; the freeze of the 29 files ends (to podcrates) | closed (podcrates#11 and #16 closed) | T-1681 |
 | #211 | [gh action] requested | closed (gate run 42265769964, green) | none: a request of a workflow run for T-1681 (AGENTS.md, section 9) |
 | #200 | COORD-006: the Alpine netboot pins: podvm fetches the 3.22.6 archive (to podcrates) | open | T-1687 |
