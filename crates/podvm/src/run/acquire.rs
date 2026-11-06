@@ -1,0 +1,199 @@
+use super::*;
+
+/// The entry banner of `prepare`: the rung podvm enters with, and the notes
+/// that ride beside it (the alias, the interposer, each device mapping and
+/// the userland account). It answers the banner and the entered rung, which
+/// the caller reuses for `--strict` and the container record.
+pub(super) fn entry_banner(
+    findings: &podvm_probe::Findings,
+    userland: Option<&crate::lifecycle::Userland>,
+    interpose_note: &str,
+    devices: &[podvm_enter::device::Mapping],
+    dropped_preload: Option<&str>,
+    userland_note: &str,
+) -> (String, podvm_probe::select::Rung) {
+    let selection = podvm_probe::select::Selection::choose(findings);
+    // ⭐ T-0804 rule 4. The banner is built from the rung podvm ENTERS with,
+    // not the one the machine would permit: the namespace rung where
+    // selected (T-1339), the chroot sequence, or, where chroot is denied
+    // and a no-chroot family runs, the userland one. One value, so the
+    // banner, the container record and `--strict` cannot disagree.
+    let entered = userland
+        .map(|_| podvm_probe::select::Rung::Userland)
+        .unwrap_or_else(|| podvm_enter::entered_rung(selection.rung));
+    let mut banner = podvm_probe::report::entry_banner(findings, &selection, entered);
+    // ⭐ TODO/cli.md T-0803. Where podvm was reached under somebody else's
+    // name, the banner says which name was used and that this is podvm.
+    // Taking the name is the product requirement; taking it silently is what
+    // TOOL.md section 4.1 forbids.
+    if let Some(note) = crate::names::alias_note() {
+        banner.push_str(&note);
+    }
+    banner.push_str(interpose_note);
+    // ⭐ TODO/enter.md T-0501. Every mapping is named before anything of
+    // the payload's runs: what the guest spelling serves (a duplicate of a
+    // host descriptor opened before the chroot, never a node), where it
+    // serves (where the interposer holds), and what `m` does (nothing).
+    for m in devices {
+        banner.push_str(&podvm_enter::device::banner_line(m));
+    }
+    // ⭐ TODO/enter.md T-1317. The family account joins the banner beside
+    // the mode: what runs the payload and what it does not isolate.
+    if let Some(u) = userland {
+        banner.push_str(&u.banner);
+        banner.push('\n');
+        if let Some(d) = dropped_preload {
+            banner.push_str(&format!(
+                "podvm: userland: caller LD_PRELOAD {d:?} dropped: it names guest \
+                 paths, which resolve on the host without a chroot\n"
+            ));
+        }
+        // ⭐ T-1407 and T-1409: the anchoring (or the opt-out) and the
+        // exe substitution, named once beside the rung account above.
+        banner.push_str(userland_note);
+    }
+    (banner, entered)
+}
+
+/// Make sure the store holds the image, honouring `--pull`.
+///
+/// ⛔ A trust arm still verifies: presence means blobs on disk, not a row
+/// in the store (TODO/image.md T-1419). A record whose blobs are gone
+/// refuses by image name with the remedy, never a raw blob path, and
+/// `--pull always` stays the recovery path.
+fn trust_record(
+    verb: &str,
+    store: &podvm_image::Store,
+    image: &str,
+    r: podvm_image::Record,
+) -> std::result::Result<podvm_image::Record, i32> {
+    // A presence check, not a hash (T-1604): the extraction hashes each
+    // layer before it reads one, and `podvm verify` hashes them all.
+    match store.absent_record_blobs(&r) {
+        Ok(mismatches) if mismatches.is_empty() => Ok(r),
+        Ok(mismatches) => {
+            let digest_list = mismatches
+                .iter()
+                .map(|m| format!("{} (got {})", m.want, m.got))
+                .collect::<Vec<_>>()
+                .join(", ");
+            eprintln!(
+                "podvm {verb}: {image} is in the store but {} of its blob(s) \
+                 are missing: {digest_list}. The store is at {}. \
+                 Re-fetch it with --pull always (TODO/image.md T-1419)",
+                mismatches.len(),
+                store.root().display()
+            );
+            Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+        }
+        Err(e) => {
+            eprintln!("podvm {verb}: {image}: the store's blobs could not be verified: {e}");
+            Err(e.exit_code())
+        }
+    }
+}
+
+/// Make sure the store holds the image, honouring `--pull`.
+pub(super) fn acquire(
+    verb: &str,
+    store: &podvm_image::Store,
+    image: &str,
+    platform: &Platform,
+    policy: &Policy,
+    pull: &str,
+) -> std::result::Result<podvm_image::Record, i32> {
+    let found = store.find_for(image, Some(platform)).unwrap_or_default();
+    let others = found.other_platforms.clone();
+    let have = found.one();
+    match (pull, have) {
+        ("never", Some(r)) => trust_record(verb, store, image, r),
+        ("never", None) => {
+            // ⛔ Two different sentences for two different situations. "held,
+            // for another platform" sends the caller to --platform; "not held"
+            // sends them to a pull. Collapsing them into "no such image" is the
+            // message a caller cannot act on.
+            if others.is_empty() {
+                eprintln!(
+                    "podvm {verb}: {image} is not in the store and --pull never was \
+                     given, so podvm will not fetch it"
+                );
+            } else {
+                eprintln!(
+                    "podvm {verb}: the store holds {image} for {}, and {platform} was \
+                     asked for. --pull never was given, so podvm will not fetch \
+                     the one that was asked for",
+                    others.join(", ")
+                );
+            }
+            Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+        }
+        ("missing", Some(r)) => trust_record(verb, store, image, r),
+        _ => {
+            // ⛔ The transcript goes to STDERR here, unlike `podvm pull` where
+            // it is the output. The payload owns stdout.
+            let mut err = std::io::stderr().lock();
+            match podvm_image::pull::pull(store, image, platform, policy, &mut err) {
+                Ok(done) => Ok(done.record),
+                Err(e) => {
+                    let _ = writeln!(err, "podvm {verb}: {e}");
+                    Err(e.exit_code())
+                }
+            }
+        }
+    }
+}
+
+/// Ensure the record is extracted, holding nothing: the caller holds the
+/// image lock across the check and the extract (T-0204), because the
+/// rootfs below must not be deleted between them. Shared by `run`'s
+/// prepare and `cp`'s image addressing (TODO/cli.md T-1323): one path
+/// for "the extracted rootfs in the store".
+pub(crate) fn extract_now(
+    verb: &str,
+    store: &podvm_image::Store,
+    record: &podvm_image::Record,
+) -> std::result::Result<(), i32> {
+    let d = podvm_image::digest::Digest::parse(&record.manifest_digest).map_err(|e| {
+        eprintln!("podvm {verb}: {e}");
+        e.exit_code()
+    })?;
+    let bytes = store.read_blob(&d).map_err(|e| {
+        eprintln!("podvm {verb}: {e}");
+        e.exit_code()
+    })?;
+    let manifest: podvm_image::oci::Manifest = serde_json::from_slice(&bytes).map_err(|e| {
+        eprintln!("podvm {verb}: the manifest does not parse: {e}");
+        podvm_image::error::EXIT_RUNTIME_ERROR
+    })?;
+    let mut err = std::io::stderr().lock();
+    let done = podvm_extract::extract(store, &manifest, &record.manifest_digest, &mut err)
+        .map_err(|e| {
+            let _ = writeln!(err, "podvm {verb}: {e}");
+            podvm_image::error::EXIT_RUNTIME_ERROR
+        })?;
+    crate::diagnose::report_dropped(&mut err, &done, &podvm_probe::identity::read());
+    Ok(())
+}
+
+/// The image's config blob.
+///
+/// ⚠ `pub(crate)` because `exec` reads the same blob for the same reason, and a
+/// second copy of it is the copy that drifts: `docs/conventions/code.md`.
+pub(crate) fn config_of(
+    verb: &str,
+    store: &podvm_image::Store,
+    record: &podvm_image::Record,
+) -> std::result::Result<podvm_image::oci::Config, i32> {
+    let d = podvm_image::digest::Digest::parse(&record.config_digest).map_err(|e| {
+        eprintln!("podvm {verb}: {e}");
+        e.exit_code()
+    })?;
+    let bytes = store.read_blob(&d).map_err(|e| {
+        eprintln!("podvm {verb}: {e}");
+        e.exit_code()
+    })?;
+    serde_json::from_slice(&bytes).map_err(|e| {
+        eprintln!("podvm {verb}: the image config does not parse: {e}");
+        podvm_image::error::EXIT_RUNTIME_ERROR
+    })
+}

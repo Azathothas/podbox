@@ -255,7 +255,7 @@ anything about resolving the path are 127.
 which `prune` reports as exit 0 naming `skipped:`; `store.remove`
 (`Held::Refuse`) errors `in use`, which `rmi` reports as 125. The script
 (`experiments/160-store-gc.sh:138-139`), the source
-(`crates/podvm/src/images.rs:961-986`), and
+(`crates/podvm/src/images/login_extract.rs:222-247`), and
 `experiments/results/store-gc.txt` (one `skipped:` line) agree. Pinned by
 `rmi_refuses_a_held_image` and `prune_skips_a_held_image` in
 `crates/podvm/src/images.rs`.
@@ -695,7 +695,7 @@ Prove:       `./experiments/325-parity-drive.sh`, which exits 0 only when every
 rows, 199 driven, 0 mismatches, 0 unreachable here
 (`experiments/results/parity-drive.txt`, with the conditions at its head).
 Both figures are historical readings; the table holds 265 rows
-(`crates/podvm/src/parity.rs:232`).
+(`crates/podvm/src/parity.rs:118`).
 The 153-row figure this record carried went stale at T-1302, which added
 5 rows (the two tier rows, the two qemu-arg rows and `podvm`) without
 re-driving, and T-1305 added 2 more (the two `--podvm-mem` rows) with the
@@ -1525,7 +1525,7 @@ the userland rung.
 
 Source:      issues 77 and 79;
              `crates/podvm/src/complete.rs:57`;
-             `crates/podvm/src/run.rs:1212`; [T-0804](cli.md)
+             `crates/podvm/src/run/prepare.rs:210`; [T-0804](cli.md)
 Category:    cli
 Priority:    P2
 Effort:      S
@@ -1580,7 +1580,7 @@ source before implementation.
 
 ### T-1417 Inspect carries the OCI config
 
-Source:      issue 82; `crates/podvm/src/images.rs:1728`;
+Source:      issue 82; `crates/podvm/src/images/inspect.rs:145`;
              `crates/podvm-image/src/oci.rs:141`;
              `crates/podvm-image/src/store.rs:127`; [T-1319](cli.md)
 Category:    cli
@@ -1724,7 +1724,7 @@ then this row is the record, and no entry deletes the script.
 Source:      issue 92; issue 114 section 3.3 and section 6 item 7;
              `crates/podvm/src/lifecycle/entry.rs:317`;
              `crates/podvm-enter/src/memfd.rs:199`;
-             `crates/podvm/src/run.rs:1236`
+             `crates/podvm/src/run/prepare.rs:234`
 Category:    cli
 Priority:    P2
 Effort:      S
@@ -1783,8 +1783,8 @@ HI
 ### T-1650 `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run
 
 Source:      issue 93; issue 114 section 3.7 and section 6 item 8;
-             `crates/podvm/src/complete.rs:251`;
-             `crates/podvm/src/complete.rs:296`;
+             `crates/podvm/src/complete/strict.rs:108`;
+             `crates/podvm/src/complete/strict.rs:153`;
              `crates/podvm/src/lifecycle/entry.rs:422`; [T-1415](cli.md)
 Category:    cli
 Priority:    P1
@@ -1850,7 +1850,7 @@ Problem:     podvm has the docker and podman command line and a tier flag,
              and run it again. sand-net ran 43 shapes from TOML recipes, and
              each command line ran unchanged in every shape.
 Premise:     The parity table is the only description of what `run`
-             accepts (`crates/podvm/src/parity.rs:322-389`). `--podvm-tier`
+             accepts (`crates/podvm/src/parity.rs:208-275`). `--podvm-tier`
              takes `machine` or `chroot` (`crates/podvm/src/tier.rs:22`).
              Resource flags refuse by name (`parity.rs:341`, T-0804). The
              identity calls are virtualised (T-0711, `parity.rs:338`). No
@@ -1992,7 +1992,7 @@ Problem:     A caller cannot run a tool in the shape of its production
 Premise:     Profiles arrive with T-1654. The identity calls are virtualised
              (T-0711), so `id -u` can answer 993 while the real owner of the
              project stays the caller. Resource flags refuse by name on a
-             rootfs tier (`crates/podvm/src/parity.rs:341`, T-0804). The
+             rootfs tier (`crates/podvm/src/parity.rs:227`, T-0804). The
              Lambda and Vercel images are glibc, which the rootfs tier
              declines today (T-1644).
 Approach:    Ship built-in profiles: `lambda-al2023`, `cloudflare-sandbox`,
@@ -2052,7 +2052,7 @@ Problem:     The owner names notebooks in the scope. podvm has no verb that
 Premise:     `run --rm` starts from the stored rootfs, so a fresh root for
              each cycle costs nothing. A kept directory needs a volume,
              which a host with no mount cannot give (T-1653); `cp` copies
-             in and out (T-1323, `crates/podvm/src/parity.rs:268`). The
+             in and out (T-1323, `crates/podvm/src/parity.rs:154`). The
              supervisor holds one pidfd for the direct child
              (`crates/podvm-supervise/src/launcher/supervise.rs:257`, T-0601) and
              starts a session (`launcher.rs:230`). A Jupyter kernel is a

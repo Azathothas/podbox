@@ -690,7 +690,7 @@ Source:      issue 59, beta.7 drive 2026-09-25 (`README.md:56-62`
              promised it, `run` never did); `crates/podvm-enter/src/lib.rs:47-61`
              (`ENTERED_RUNG` is `Chroot` on every machine),
              `crates/podvm-probe/src/select.rs:138-155` (returns
-             `Rung::Namespace`), `crates/podvm/src/system.rs:428-431`
+             `Rung::Namespace`), `crates/podvm/src/system/df_info.rs:213-216`
              (asserts the two differ)
 Category:    enter
 Priority:    P1
@@ -886,7 +886,7 @@ before implementation.
 
 Source:      issue 74; `crates/podvm-interpose/src/lib.rs:1256`;
              `crates/podvm-enter/src/ladder.rs:187`;
-             `crates/podvm/src/run.rs:798`
+             `crates/podvm/src/run/foreground.rs:259`
 Category:    enter
 Priority:    P1
 Effort:      M
@@ -944,8 +944,8 @@ before implementation.
 
 ### T-1410 Exec through the no-chroot family
 
-Source:      issue 80; `crates/podvm/src/exec.rs:444`;
-             `crates/podvm/src/run.rs:1078`; [T-0505](enter.md)
+Source:      issue 80; `crates/podvm/src/exec/command.rs:208`;
+             `crates/podvm/src/run/prepare.rs:76`; [T-0505](enter.md)
 Category:    enter
 Priority:    P1
 Effort:      L
@@ -983,7 +983,7 @@ before implementation.
 
 ### T-1411 A detached launcher for the no-chroot family
 
-Source:      issue 72; `crates/podvm/src/run.rs:1079`;
+Source:      issue 72; `crates/podvm/src/run/prepare.rs:77`;
              `crates/podvm/src/lifecycle.rs:213`; [T-1317](enter.md)
 Category:    enter
 Priority:    P1
@@ -1039,7 +1039,7 @@ before implementation.
 ### T-1412 A missing workdir refuses naming the path
 
 Source:      issue 81; `crates/podvm-enter/src/launch.rs:178`;
-             `crates/podvm/src/run.rs:301`
+             `crates/podvm/src/run/parse.rs:179`
 Category:    enter
 Priority:    P1
 Effort:      S
@@ -1598,7 +1598,7 @@ selector: 0 = SYSCALL_DISPATCH_FILTER_ALLOW, 1 = BLOCK
 ### T-1653 `-v` volumes on a host with no /dev/fuse and no mount
 
 Source:      issue 130 (130 reposts the hidden issue 104); issue 114
-             section 3.6; `crates/podvm/src/parity.rs:335`;
+             section 3.6; `crates/podvm/src/parity.rs:221`;
              `crates/podvm-enter/src/userland.rs:313`;
              `crates/podvm-interpose/src/map.rs:325`
 Category:    enter

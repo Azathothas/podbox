@@ -803,8 +803,8 @@ experiment: a waiter that stops forwarding fails its clauses.
 
 ### T-1421 A foreground run leaves a container record
 
-Source:      issue 84; `crates/podvm/src/run.rs:522`;
-             `crates/podvm/src/run.rs:762`;
+Source:      issue 84; `crates/podvm/src/run/parse.rs:400`;
+             `crates/podvm/src/run/foreground.rs:223`;
              [T-0607](supervise.md)
 Category:    supervise
 Priority:    P1

@@ -1020,7 +1020,7 @@ Prove:       `grep -n "265" TODO/deps.md` names the parity figure once
 other values named as dated readings beside it: 220 from `TODO/cli.md:166`,
 164 from `experiments/results/parity-drive.txt:7`, and 160 from
 `TODO/cli.md:694`. The value is re-derived on this tree rather than copied:
-`TABLE` runs from `crates/podvm/src/parity.rs:232` to `:537` and holds
+`TABLE` runs from `crates/podvm/src/parity.rs:118` to `:422` and holds
 265 `Row {` literals inside that range. A fourth figure, 267, is recorded as
 a whole-file artefact, because `pub struct Row` at `:58` and `impl Row` at
 `:65` both match the same grep; the whole-file count is 267. The Prove grep
@@ -1030,7 +1030,7 @@ entry or the record it wrote.
 **Recorded 2026-10-02.** One figure answers one question: how many rows
 `TABLE` holds. The source reads **265**, and the plan carries the same
 figure with the same range (`refactor/06-entries/PLAN.md:190`). Measured
-on this tree: `TABLE` opens at `crates/podvm/src/parity.rs:232`
+on this tree: `TABLE` opens at `crates/podvm/src/parity.rs:118`
 and closes at `:537`, and 265 `Row {` literals lie between them.
 
 The three other values are readings, not sources, and each says when it
@@ -1038,7 +1038,7 @@ was taken:
 
 | Value | Where | What it is |
 | --- | --- | --- |
-| 265 | `crates/podvm/src/parity.rs:232-537` | the source count, current |
+| 265 | `crates/podvm/src/parity.rs:118-422` | the source count, current |
 | 220 | `TODO/cli.md:166` | T-0801's 2026-09-25 reading |
 | 164 | `experiments/results/parity-drive.txt:7` | the 2026-09-22 drive |
 | 160 | `TODO/cli.md:694` | T-0808's 2026-09-21 reading |

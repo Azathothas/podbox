@@ -1513,7 +1513,7 @@ debug binary, kernel `7.2.0-WSL2-STABLE`):
 `experiments/368-run-decay.sh` exits 0
 (`experiments/results/run-decay-368.txt`), 11 of 11 predictions
 held with 16-to-69-fold separation. The `--rm` arm in
-`crates/podvm/src/run.rs:660-784` deletes the extracted
+`crates/podvm/src/run/foreground.rs:121-245` deletes the extracted
 rootfs where `referencing()`
 (`crates/podvm-supervise/src/lib.rs:305-311`) answers empty, so
 each keeper-less ephemeral run re-pays full extraction (a1
@@ -2718,7 +2718,7 @@ removed. That is recorded on T-0204 itself, where the work now lives.
    comes from `Store::delete`
    (`crates/podvm-image/src/store/records.rs:275`), the `flock(2)` hold check;
    `is referenced by container <names>` comes from
-   `podvm_supervise::referencing` (`crates/podvm/src/images.rs:948`),
+   `podvm_supervise::referencing` (`crates/podvm/src/images/login_extract.rs:209`),
    the container-record table. The `Prove` greps for the second, so it
    asserts the record path and never touches the lock, and it would stay
    green with the inheritance removed. That correction is the entry's
@@ -3095,7 +3095,7 @@ says, and the module holds fifteen tests rather than seven.
 
 ⚠ **The plan's "check E has no test" clause is stale, and the record must
 say so rather than repeat it.** `PLAN.md:123` writes that
-`crates/podvm/src/system.rs:603` "holds 7 tests and none names
+`crates/podvm/src/system.rs:221` "holds 7 tests and none names
 `abi`". Measured on this tree 2026-10-02: `mod tests` opens at `:604`,
 `grep -c "#\[test\]"` over the file returns 8, and
 `abi_reports_unreadable_refused_and_arity` at `:709` names `abi` and

@@ -338,7 +338,7 @@ fixed before it can close.** `podvm image prune` names its two refusals from
 two different sources. The line `is in use by a running container` comes from
 `Store::delete` (`crates/podvm-image/src/store/records.rs:275`), which is the
 `flock(2)` hold check, and the line `is referenced by container <names>` comes
-from `podvm_supervise::referencing` (`crates/podvm/src/images.rs:948`),
+from `podvm_supervise::referencing` (`crates/podvm/src/images/login_extract.rs:209`),
 which is the container-record table. This `Prove` greps for
 `is referenced by container gc-probe`, so it asserts the record path and never
 touches the lock. A detached `podvm run` writes a foreground record before
@@ -2336,7 +2336,7 @@ before implementation.
 
 ### T-1419 Pull-missing verifies the blobs it trusts
 
-Source:      issue 83; `crates/podvm/src/run.rs:1313`;
+Source:      issue 83; `crates/podvm/src/run/prepare.rs:311`;
              `crates/podvm-image/src/health.rs:91`; [T-1321](image.md);
              [T-0805](cli.md)
 Category:    image
