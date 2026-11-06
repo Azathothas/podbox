@@ -498,7 +498,7 @@ fn p_sethostname() -> Outcome {
     // host and nothing else. Without the namespace the row is a `skip`, which
     // the child harness produces from the clone's own errno.
     let name = c("podvm-probe");
-    Outcome::from(unsafe { sys::sys(sys::SYS_SETHOSTNAME, [name.ptr(), 12, 0, 0, 0, 0]) })
+    Outcome::from(unsafe { sys::sys(sys::SYS_SETHOSTNAME, [name.ptr(), 11, 0, 0, 0, 0]) })
 }
 
 fn p_mount_tmpfs() -> Outcome {

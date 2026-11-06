@@ -220,26 +220,28 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
             other if other.starts_with("--user=") => o.user = Some(other[7..].to_string()),
             other if other.starts_with("--workdir=") => o.workdir = Some(other[10..].to_string()),
             other if other.starts_with("--platform=") => o.platform = Some(other[11..].to_string()),
-            other if other.starts_with("--podvm-tier=") => match crate::tier::want(&other[14..]) {
-                Some(w) => o.tier = Some(w),
-                None => {
-                    eprintln!(
-                        "podvm exec: --podvm-tier takes machine or chroot, not {:?}",
-                        &other[14..]
-                    );
-                    return Err(EXIT_FLAG_ERROR);
+            other if other.starts_with("--podvm-tier=") => {
+                match crate::tier::want(&other["--podvm-tier=".len()..]) {
+                    Some(w) => o.tier = Some(w),
+                    None => {
+                        eprintln!(
+                            "podvm exec: --podvm-tier takes machine or chroot, not {:?}",
+                            &other["--podvm-tier=".len()..]
+                        );
+                        return Err(EXIT_FLAG_ERROR);
+                    }
                 }
-            },
-            other if other.starts_with("--podvm-qemu-arg=") => {
-                o.qemu_args.push(other[18..].to_string())
             }
+            other if other.starts_with("--podvm-qemu-arg=") => o
+                .qemu_args
+                .push(other["--podvm-qemu-arg=".len()..].to_string()),
             other if other.starts_with("--podvm-mem=") => {
-                match crate::tier::parse_mem(&other[13..]) {
+                match crate::tier::parse_mem(&other["--podvm-mem=".len()..]) {
                     Some(m) => o.mem = Some(m),
                     None => {
                         eprintln!(
                             "podvm exec: --podvm-mem takes a byte count with an optional K/M/G/T suffix, not {:?}",
-                            &other[13..]
+                            &other["--podvm-mem=".len()..]
                         );
                         return Err(EXIT_FLAG_ERROR);
                     }
