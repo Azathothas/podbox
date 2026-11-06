@@ -75,13 +75,15 @@ caller_id=$(sed -n 's/^  job \([0-9a-f]*\).*/\1/p' "$work/caller.log" | sed -n '
   [ "$one_id" != "$two_id" ] && [ "$one_id" != "$caller_id" ] &&
   [ "$two_id" != "$caller_id" ] || failed=1
 if [ -n "$one_id" ]; then
-  timeout 3m wsl-toolkit --instance podvm gc --job "$one_id" --apply >"$work/gc-one.log" 2>&1 || failed=1
+  # Exit 2: an ephemeral run already removed its record (wsl-toolkit 8+); the
+  # after-gc ledger check below proves nothing is left. 0 or 2 is collected or already gone.
+  timeout 3m wsl-toolkit --instance podvm gc --job "$one_id" --apply >"$work/gc-one.log" 2>&1; case $? in 0|2) ;; *) failed=1 ;; esac
 fi
 if [ -n "$two_id" ]; then
-  timeout 3m wsl-toolkit --instance podvm gc --job "$two_id" --apply >"$work/gc-two.log" 2>&1 || failed=1
+  timeout 3m wsl-toolkit --instance podvm gc --job "$two_id" --apply >"$work/gc-two.log" 2>&1; case $? in 0|2) ;; *) failed=1 ;; esac
 fi
 if [ -n "$caller_id" ]; then
-  timeout 3m wsl-toolkit --instance podvm gc --job "$caller_id" --apply >"$work/gc-caller.log" 2>&1 || failed=1
+  timeout 3m wsl-toolkit --instance podvm gc --job "$caller_id" --apply >"$work/gc-caller.log" 2>&1; case $? in 0|2) ;; *) failed=1 ;; esac
 fi
 timeout 3m wsl-toolkit --instance podvm gc --json >"$work/after-gc.json" 2>>"$work/gc.err"
 after_gc_rc=$?

@@ -15,16 +15,15 @@
 # payload handed to wsl.exe as an argument is expanded before the guest reads
 # it, and the guest then parses the result a second time.
 #
-# ⛔ DO NOT DISABLE PATH CONVERSION FOR THIS CALL. With MSYS_NO_PATHCONV set
-# the wrapper path reaches wsl-toolkit untranslated and the job fails to
-# start naming a C:\tmp path that exists nowhere. The conversion the
-# engine helper carries for podman arguments does not apply here.
+# Path conversion may stay on. wsl-toolkit 8+ also reads MSYS-spelled host
+# paths when MSYS_NO_PATHCONV=1 and MSYS2_ARG_CONV_EXCL='*' are exported.
 #
 # ⚠ The caller's job is an input file. Input bytes are not changed, so this
 # wrapper removes CRLF before it sends the file to the container.
 #
 # ⭐ A JOB HANDS ITS EVIDENCE BACK THROUGH /out. The container is removed when
-# it exits. The host transcript remains until gc removes it. A measurement
+# it exits, and an ephemeral job removes its host record too, so read the
+# answer it printed. A measurement
 # that writes only into the workspace has written into a copy.
 # `PODVM_ARTIFACTS` names a
 # directory on this machine that receives whatever the job leaves in /out.
@@ -152,8 +151,8 @@ if [ -n "$JOB_INPUT" ]; then
 	set -- "$@" --input "job.sh=$JOB_INPUT"
 fi
 
-# ⚠ `--artifacts` is passed only when a caller asked for one, because the flag
-# creates the directory and an empty one beside a checkout is litter.
+# ⚠ `--artifacts` is passed only when a caller asked for one, because a caller
+# who did not ask has no use for it, and an empty one beside a checkout is litter.
 if [ -n "$ARTIFACTS" ]; then
 	mkdir -p "$ARTIFACTS" || {
 		echo "run-in-base: cannot create $ARTIFACTS" >&2
@@ -162,7 +161,11 @@ if [ -n "$ARTIFACTS" ]; then
 	set -- "$@" --artifacts "$ARTIFACTS"
 fi
 
-wsl-toolkit --instance "$INSTANCE" run \
+# --tool-exit 2: wsl-toolkit 8+ answers 125 where it could not run the job;
+# this wrapper keeps 2. --ensure-base=false: a lane call never builds a base
+# silently; `podvm-dev session` is the one place that builds it.
+wsl-toolkit --instance "$INSTANCE" --tool-exit 2 run \
+	--ensure-base=false \
 	--image "$IMAGE" \
 	--workspace . \
 	--container-lifecycle ephemeral \

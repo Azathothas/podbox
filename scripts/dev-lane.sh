@@ -23,9 +23,8 @@
 #
 # What this closes beyond refactor/lane.sh (kept as history, not used):
 #  1. gc uses the full 16-hex id from the `--json` answer and then verifies
-#     the ledger is empty; lane.sh never checked, and the 12-char header
-#     form exits 0 while removing nothing. Measured: bare 16-hex collects
-#     ("ledger compacted to 0 open records").
+#     the ledger is empty; lane.sh never checked. Ephemeral jobs remove their
+#     own record (wsl-toolkit 8+), so the verify is the step that matters.
 #  2. The job file is linted before launch: cargo-into-pipe and stacked
 #     positional cargo-test filters are refused with the line number.
 #  3. With --artifacts, the returned logs are asserted: at least one
@@ -270,7 +269,12 @@ fi
 # Relative workspace after cd: rewrite-proof (run-in-base.sh form).
 cd "$ROOT" || exit 2
 out_file="$work/answer.txt"
-"$TOOL" --instance "$INSTANCE" run \
+# --tool-exit 2: wsl-toolkit 8+ answers 125 where it could not run the job;
+# the lane keeps 2 for that. --ensure-base=false: a lane call never builds a
+# base silently (one once reached 241.7 GiB); `podvm-dev session` is the one
+# place that builds it.
+"$TOOL" --instance "$INSTANCE" --tool-exit 2 run \
+	--ensure-base=false \
 	--image "$IMAGE" \
 	--workspace . \
 	--max-bytes "$MAX_BYTES" \
@@ -288,14 +292,14 @@ rc=$?
 cat "$out_file"
 
 # ------------------------------------------------------------------ run: collect
-# FULL id, then verify. The 12-char form exits 0 and removes nothing.
+# Ephemeral jobs remove their own record (wsl-toolkit 8+); this only verifies nothing is left.
 
 job_id=$(grep -ao '"id"[[:space:]]*:[[:space:]]*"[0-9a-f]\{16\}"' "$out_file" | head -1 | grep -ao '[0-9a-f]\{16\}' | head -1)
 if [ -z "$job_id" ]; then
 	echo "dev-lane: no job id in the answer; nothing to collect." >&2
 	exit 2
 fi
-"$TOOL" --instance "$INSTANCE" gc --job "$job_id" --apply >/dev/null 2>&1
+"$TOOL" --instance "$INSTANCE" gc --job "$job_id" --apply >/dev/null 2>&1 || :  # ephemeral: record usually gone already (exit 2)
 left=$("$TOOL" --instance "$INSTANCE" gc 2>&1 | grep -c "$job_id" || true)
 if [ "$left" -ne 0 ]; then
 	echo "dev-lane: job $job_id still retained after gc; collect it by hand." >&2

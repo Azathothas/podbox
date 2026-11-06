@@ -168,10 +168,10 @@ def wait_for(session, bound):
     """Wait on the session. Returns its exit code, 124 on timeout.
 
     `--instance` is load-bearing, not decoration. Omitted, the global
-    `wsl-toolkit wait` resolves the instance by `auto`, and this machine
-    has seven: acc, base, muse, nobase, pg-toolkit, podvm,
+    `wsl-toolkit wait` reaches the default base wsl-toolkit-jobs (8+), and
+    this machine has seven: acc, base, muse, nobase, pg-toolkit, podvm,
     podvm-migrate. Measured on a live session: without `--instance` the
-    wait answered `no such job` with rc 2 in 0 s, collapsing the whole
+    wait answered `no such job` with rc 2 (125 in 8+) in 0 s, collapsing the whole
     bound; with it, rc 124 after the real timeout elapsed. A watchdog
     whose bound never starts is the one defect this tool exists to prevent.
     """

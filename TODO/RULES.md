@@ -85,7 +85,8 @@ A resource option accepted by an engine does not prove enforcement.
 ### Post-task cleanup, after every task
 
 Save each job's output under `experiments/results/` before collection.
-Then collect that job: `wsl-toolkit --instance podvm gc --job <id> --apply`.
+Then collect a persistent job: `wsl-toolkit --instance podvm gc --job <id> --apply`.
+An ephemeral lane job has already removed its record.
 The report and cleanup record are committed together.
 This order lets the record gate reject retained job resources at commit.
 
@@ -131,7 +132,7 @@ Do not invent a finding to satisfy a review quota.
 | Refuse the docker name beside a reachable daemon unless explicitly selected | T-0803 |
 | Windows route is wsl-toolkit, instance podvm | containers.md |
 | An unattended KVM guest run is permitted on this host, conditional on a watchdog outside the guest that removes an emulator outliving its bound. Reverses the 2026-09-30 operator-present rule. No other host is covered. | Operator, 2026-10-02; T-1609, T-1350, T-1112 |
-| Everything the KVM proof needs is installed into `wsl-toolkit-podvm`. The Windows host qemu is never touched, used, or invoked, even where a host binary would answer the question. | Operator, 2026-10-02; T-1610 |
+| Everything the KVM proof needs is installed into `wsl-toolkit-podvm`. The Windows host qemu is never touched, used, or invoked, even where a host binary would answer the question. The qemu/OVMF installs left with the removed base and must be redone before T-1112 resumes. | Operator, 2026-10-02; T-1610 |
 | ReactOS is descoped, not deferred. Proving podvm against a beta operating system is proving against a moving target, and it is low priority. T-1112 closes on its KVM leg. | Operator, 2026-10-02; T-1112 |
 | Work unattended to completion. Use subagents and swarms where they help; do not stop to ask about anything already settled in section 11 or section 2. Take the work order, finish it, and leave the record green. | Operator, 2026-10-02 |
 | ⭐ **KVM and Windows-guest work is deferred, not cancelled.** T-1641, T-1112 and T-1350 are set aside and no session may start a KVM guest until the operator lifts this. It overrides the "no deferrals" rule above for exactly these three entries and nothing else. **Clearing condition:** the operator says the KVM work resumes. Nothing else clears it, no amount of elapsed time clears it, and a green record does not clear it. Until then each entry stays `partial` and names its remaining acceptance, which is recorded and not lost. | Operator, 2026-10-02 |

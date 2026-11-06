@@ -941,8 +941,8 @@ fn do_session(root: &Path, target: &str, args: &[String]) -> ExitCode {
                         problems += 1;
                     }
                 } else {
-                    // Idempotent. It says ALREADY EXISTS and creates nothing
-                    // when the distribution is already registered.
+                    // Reconciles. It can re-provision and restart the base; from a
+                    // redirected app shell it is refused and installs nothing.
                     let rc = Command::new("wsl-toolkit")
                         .args(["--instance", "podvm", "base", "ensure", "--probe"])
                         .current_dir(root)

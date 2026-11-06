@@ -40,6 +40,10 @@ not report Windows base status.
 
 ## Windows base
 
+The Windows lane is parked since 2026-11-06: work moved to cloud sessions
+(see `docs/decisions/`). It targets wsl-toolkit 9.0.1 and stays correct, but
+no session needs it.
+
 The instance name is `podvm`. The distribution name is
 `wsl-toolkit-podvm`. Every manual command must name the instance.
 
@@ -93,10 +97,10 @@ names what each capture decided rather than citing its lines, so dropping
 the corpus is a later change to this policy and not to the evidence.
 
 `--container-lifecycle ephemeral` removes the container and guest job
-directory after the run. The host job directory keeps the transcript until
-`gc` removes it. The 2026-09-28 drive below found three host job
-directories after two successful jobs and one caller path probe, and none
-after job-specific collection.
+directory after the run. The host record goes too (wsl-toolkit 8+); `wait ID`
+and `logs ID --follow` answer for 10 minutes after. The 2026-09-28 drive
+below, on 6.0.0, found three host job directories after two successful jobs
+and one caller path probe, and none after job-specific collection.
 
 A job writes artifacts into `/out`. Set `PODVM_ARTIFACTS` to copy them
 back to a host directory. A file written only in `/work` stays in the
@@ -123,7 +127,9 @@ wsl-toolkit --instance podvm gc --job JOB_ID --apply
 ```
 
 `gc` reports what it would remove until `--apply` is present. Collect a
-job only after its evidence is saved. Use its ID to leave other jobs alone.
+job only after its evidence is saved. `gc --job JOB_ID --apply` is for a
+persistent job; an ephemeral lane job leaves nothing to collect and the
+command exits 2. Use its ID to leave other jobs alone.
 The report includes containers, guest directories, host directories, and
 ended base sessions. `crates/podvm-gate/src/main.rs` check 29 reads the JSON
 report and refuses a kept item. A running job stays live unless a caller
@@ -136,9 +142,9 @@ the base state and its work before any removal.
 
 ## Host commands and paths
 
-Do not disable Git Bash path conversion for
-`scripts/windows/run-in-base.sh`. The tool must receive the Windows
-path to its wrapper file. A command string that names a guest path can
+Path conversion may stay on for `scripts/windows/run-in-base.sh`.
+wsl-toolkit 8+ also reads MSYS-spelled host paths when
+`MSYS_NO_PATHCONV=1` and `MSYS2_ARG_CONV_EXCL='*'` are exported. A command string that names a guest path can
 be rewritten by Git Bash before the guest reads it. Use `--script` or
 `--command-base64` for a command with paths or quoting.
 

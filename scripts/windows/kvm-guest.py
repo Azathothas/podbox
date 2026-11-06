@@ -93,7 +93,7 @@ def main():
                 # normal path. Without `--unattended` this is the original
                 # synchronous call and no guard runs, which is the
                 # operator-present form.
-                command += ["--detach", "--json"]
+                command += ["--detach", "--json", "--timeout", "65m"]
             if not options.unattended:
                 command += ["--timeout", "65m", "--script", str(script)]
                 result = subprocess.run(
@@ -147,7 +147,7 @@ def main():
         print(report, end="")
         if result.returncode == 0 and "verdict KVM-GUEST-OK" in report:
             return 0
-        return 2 if result.returncode == 2 else 1
+        return 2 if result.returncode in (2, 125) else 1
     except (OSError, ValueError, subprocess.TimeoutExpired) as error:
         print(f"kvm-guest: cannot run: {error}", file=sys.stderr)
         return 2
