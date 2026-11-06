@@ -101,4 +101,6 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #205 | COORD-008: podvm took pod-proxy 0.4.0 (feature blocking) for the relay legs (to podcrates) | open | T-1677 |
 | #206 | [gh action] requested | closed (gate run 42214046548, green) | none: a request of a workflow run for T-1674 and T-1677 (AGENTS.md, section 9) |
 | #207 | COORD-009: podvm moved to podcrates v0.5.0; the registry patch is yours (to podcrates) | open | T-1677 |
+| #208 | COORD-010: podvm took the registry patch; ureq leaves, and C10 takes pod-proxy's runtime (to podcrates) | open | T-1677 |
+| #209 | [gh action] requested | open | none: a request of a workflow run for T-1677 and T-1686 (AGENTS.md, section 9) |
 | #200 | COORD-006: the Alpine netboot pins: podvm fetches the 3.22.6 archive (to podcrates) | open | T-1687 |
