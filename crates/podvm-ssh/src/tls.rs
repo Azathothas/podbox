@@ -44,9 +44,11 @@ impl TlsConfig {
     /// verifies everything.
     pub fn load() -> io::Result<Self> {
         // The words of an unknown issuer name the one place that podvm-ssh
-        // reads a CA from.
+        // reads a CA from. It adds to the compiled-in roots and replaces
+        // nothing, so `replace_roots` is empty (pod-tls 0.5.0, T-068).
         let mut words = Words::new("podvm");
-        words.replace_roots = format!("the first host CA bundle ({})", HOST_BUNDLES[0]);
+        words.replace_roots = String::new();
+        words.add_roots = Some(format!("the first host CA bundle ({})", HOST_BUNDLES[0]));
         let mut settings = Settings::new(words);
         settings.system_bundles = HOST_BUNDLES.iter().map(PathBuf::from).collect();
         let context = Context::new(Arc::new(rustls::crypto::ring::default_provider()), settings);

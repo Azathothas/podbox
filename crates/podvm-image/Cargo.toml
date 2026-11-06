@@ -17,7 +17,7 @@ rustls-pki-types.workspace = true
 # The roots, the PEM reader and the client configuration (`tls.rs`), shared
 # with podssh and podnet through PodUtils/podcrates. No tokio: podvm is
 # synchronous. The provider is podvm's `ring`.
-pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.4.0", default-features = false }
+pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.5.0", default-features = false }
 ureq.workspace = true
 sha2.workspace = true
 serde.workspace = true
