@@ -1326,7 +1326,8 @@ CI, 2026-11-06: gate run 42177673037 at `0496ce7`: the step
 `detached_stdio` included. The steps after it had never run in CI; the
 next commit fixes the two that then failed (`podvm-buildstate` not
 built for experiment 393, and the diagnostics fixture of `podvm-smoke`
-with no stub for `check-build-lane`). Remaining of the Prove: the
+with no stub for `check-build-lane`). Gate run 42179344015 at
+`7f87f24` is green in each of its four jobs. Remaining of the Prove: the
 plant (a failing test in the same binary does not poison its
 neighbours), a second lane run, and the saved lane log.
 ---

@@ -40,7 +40,8 @@ Remove this file when each step below is done.
    no tokio and `pod-proxy` with the feature `blocking` (T-1676, T-1677).
 4. T-1604 stays `partial`: `4c2cb91` makes `run` check the presence of
    the blobs, not their hash, and gate run 42177673037 passed the
-   workspace tests; the plant of its Prove remains. Read the next gate run: its later steps ran for the first time.
+   workspace tests; the plant of its Prove remains. Gate run 42179344015
+   at `7f87f24` is green in each job.
 5. T-1687 is `partial` (COORD-006, #200, to podcrates): the Alpine
    netboot files come from the 3.22.6 archive; a run of
    `podvm-workload` remains.
