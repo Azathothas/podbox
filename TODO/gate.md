@@ -3954,7 +3954,7 @@ Prove:       `sh scripts/common/check-docs.sh` and each other `.sh` check of
 Source:      the migration of 2026-11-06; `crates/podvm-image/src/oci.rs:170`;
              `crates/podvm-extract/src/apply.rs:77`;
              `crates/podvm-image/src/registry/wire.rs:159`;
-             `crates/podvm-enter/src/abi.rs:156`;
+             `crates/podvm-enter/src/abi/elf.rs:9`;
              `vendor/userland-execve/Cargo.toml:3`
 Category:    gate
 Priority:    P2

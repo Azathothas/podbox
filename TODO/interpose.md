@@ -2032,8 +2032,8 @@ static probe: getcwd=/workspace/podvm-ux/store/rootfs/sha256_1667.../rootfs
 Source:      issues 87, 128 and 129 (128 and 129 repost the hidden
              issues 96 and 97); issue 114 section 3.2 and section 6
              item 4; `crates/podvm/src/interpose.rs:281`;
-             `crates/podvm-enter/src/abi.rs:518`;
-             `crates/podvm-enter/src/abi.rs:589`;
+             `crates/podvm-enter/src/abi.rs:293`;
+             `crates/podvm-enter/src/abi/search.rs:43`;
              `crates/podvm-interpose/src/real.rs:44`
 Category:    interpose
 Priority:    P1

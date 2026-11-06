@@ -842,7 +842,7 @@ one acceptance clause per issue.
 
 Source:      issue 73; `crates/podvm-enter/src/userland.rs:191`;
              `crates/podvm-enter/src/memfd.rs:49`;
-             `crates/podvm-enter/src/abi.rs:713`
+             `crates/podvm-enter/src/abi/search.rs:167`
 Category:    enter
 Priority:    P1
 Effort:      S
@@ -1038,7 +1038,7 @@ before implementation.
 
 ### T-1412 A missing workdir refuses naming the path
 
-Source:      issue 81; `crates/podvm-enter/src/lib.rs:1009`;
+Source:      issue 81; `crates/podvm-enter/src/launch.rs:178`;
              `crates/podvm/src/run.rs:301`
 Category:    enter
 Priority:    P1
@@ -1336,7 +1336,7 @@ neighbours), a second lane run, and the saved lane log.
 
 Source:      issue 90; issue 114 section 3.3 and section 6 item 6;
              `crates/podvm-enter/src/ladder.rs:238`;
-             `crates/podvm-enter/src/abi.rs:157`;
+             `crates/podvm-enter/src/abi/elf.rs:10`;
              `crates/podvm-enter/src/memfd.rs:108`
 Category:    enter
 Priority:    P1
