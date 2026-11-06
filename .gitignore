@@ -44,6 +44,10 @@ logs/
 !references/**/logs/
 !references/**/logs/**
 !references/**/*.log
+# experiments/results/ is evidence for the same reason. Measured on
+# 2026-11-06: the two rules above had also hidden three result logs of
+# sweep163 (setup.log, pull-alpine.log, pull-debian.log).
+!experiments/results/**/*.log
 
 # -- coverage and test output -----------------------------------------------
 coverage/
