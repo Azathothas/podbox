@@ -236,7 +236,7 @@ run.
 
 | id | failure | reading |
 | --- | --- | --- |
-| T-1601 | `invalid definition of the runtime `open` symbol` at `crates/podvm-interpose/src/lib.rs:2144`, deny-by-default, takes the static build, the interposer tests, and plants 32e and 32f | T-1601 settles it: allow the lint at the definition. Do not pin the toolchain. |
+| T-1601 | `invalid definition of the runtime `open` symbol` at `crates/podvm-interpose/src/create_calls.rs:88`, deny-by-default, takes the static build, the interposer tests, and plants 32e and 32f | T-1601 settles it: allow the lint at the definition. Do not pin the toolchain. |
 | T-1602 | clippy dead code, `crates/podvm-image/tests/common/registry.rs:30`, four unread fields | T-1602 makes them needed. Do not delete the fields. |
 | T-1603 | `check-no-secrets --public` exits 1 on `scripts/dev-lane.sh:205` `/home/toolkit` | T-1603 removes the check and adds trufflehog. Reproduced locally, not assumed. |
 | T-1604 | `detached_stdio` 1 passed, 2 failed | T-1604: one defect, two symptoms. The `:138` PoisonError is the cascade, not a second defect. The 1-of-3 was the tier: the job built no interposer, so the binary under test declined every payload where `chroot(2)` is denied. Fixed 2026-10-02; the lane run remains. |

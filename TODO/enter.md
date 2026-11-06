@@ -884,7 +884,7 @@ before implementation.
 
 ### T-1409 Answer the payload-visible exe on the loader family
 
-Source:      issue 74; `crates/podvm-interpose/src/lib.rs:1256`;
+Source:      issue 74; `crates/podvm-interpose/src/path_calls.rs:63`;
              `crates/podvm-enter/src/ladder.rs:187`;
              `crates/podvm/src/run/foreground.rs:259`
 Category:    enter
@@ -1600,7 +1600,7 @@ selector: 0 = SYSCALL_DISPATCH_FILTER_ALLOW, 1 = BLOCK
 Source:      issue 130 (130 reposts the hidden issue 104); issue 114
              section 3.6; `crates/podvm/src/parity.rs:221`;
              `crates/podvm-enter/src/userland.rs:313`;
-             `crates/podvm-interpose/src/map.rs:325`
+             `crates/podvm-interpose/src/map/rewrite.rs:75`
 Category:    enter
 Priority:    P2
 Effort:      L

@@ -1433,7 +1433,7 @@ defines no version node; and the SONAME is `libdl.so.2`, not `.6`.
 Source:      the T-1111 nix unpack (the symptom is in
              `experiments/results/tar-symlink-modes-prefix.txt`);
              `crates/podvm-interpose/src/lib.rs:356`,
-             `crates/podvm-interpose/src/lib.rs:1038`
+             `crates/podvm-interpose/src/stat_calls.rs:224`
 Category:    interpose
 Priority:    P1
 Effort:      S
@@ -1451,7 +1451,7 @@ Premise:     Measured 2026-09-21 on host podman, same image, back to back:
              one such error per link; in the plain driver container the same
              commands exit 0. The interposed `fchmodat` is declared with
              three arguments (`crates/podvm-interpose/src/lib.rs:356`) and
-             forwards three (`crates/podvm-interpose/src/lib.rs:1038`),
+             forwards three (`crates/podvm-interpose/src/stat_calls.rs:224`),
              while libc takes four `(dirfd, path, mode, flags)`: the real
              call receives a fourth register the wrapper never set, so any
              caller passing flags gets the wrong answer. Tar's symlink
@@ -1460,7 +1460,7 @@ Premise:     Measured 2026-09-21 on host podman, same image, back to back:
              `faccessat`, `utimensat`, `linkat`, `execveat`, `openat2`,
              `fstatat`), so this is the one truncation, not the pattern.
              An empty path table returns the caller's pointer before any
-             resolution (`crates/podvm-interpose/src/map.rs:448`), which
+             resolution (`crates/podvm-interpose/src/map/rewrite.rs:198`), which
              refutes the rewrite as the cause on runs with no table set.
              The ownership memo never sees `chmod`, which refutes that
              layer.
@@ -1481,7 +1481,7 @@ Prove:       `./experiments/162-tar-symlink-modes.sh` exits 0 on host
 
 **Done 2026-09-21.** The declaration and the wrapper carry `flags`
 (`crates/podvm-interpose/src/lib.rs:356`,
-`crates/podvm-interpose/src/lib.rs:1038`); every other flags-taking
+`crates/podvm-interpose/src/stat_calls.rs:224`); every other flags-taking
 `*at` wrapper already did, so the audit closes with this one. Guard:
 `tests::fchmodat_forwards_flags` compares the interposed entry point
 against libc's own on a symlink with flags 0 and `AT_SYMLINK_NOFOLLOW`.
@@ -1617,7 +1617,7 @@ coverage proof on record here.
 ### T-1601 Unblock the static build under Rust 1.99 `invalid_runtime_symbol_definitions`
 
 Source:      CI run 36894578988, job 110478235939, 2026-10-01;
-             `crates/podvm-interpose/src/lib.rs` `:2139` and `:2144`;
+             `crates/podvm-interpose/src/create_calls.rs` `:83` and `:88`;
              `rust-toolchain.toml`
 Category:    interpose
 Priority:    P0
@@ -1625,7 +1625,7 @@ Effort:      S
 Status:      done
 
 Problem:     Main CI is red on all four jobs. The static build stops at
-             `crates/podvm-interpose/src/lib.rs:2144` with
+             `crates/podvm-interpose/src/create_calls.rs:88` with
              `error: invalid definition of the runtime `open` symbol used
              by the standard library`. The lint is deny-by-default, so it
              fires without `-D warnings`. It takes down the static build,
@@ -1963,8 +1963,8 @@ costs no new crate and no new library target.
 
 Source:      issues 86 and 131 (131 reposts the hidden issue 105);
              issue 114 section 3.1 and section 6 item 5;
-             `crates/podvm-interpose/src/map.rs:506`;
-             `crates/podvm-interpose/src/lib.rs:1151`
+             `crates/podvm-interpose/src/map/rewrite.rs:256`;
+             `crates/podvm-interpose/src/stat_calls.rs:342`
 Category:    interpose
 Priority:    P1
 Effort:      M
@@ -2112,7 +2112,7 @@ decided the result for gcc:13, node:20 and golang:1.22.
 
 Source:      issue 88; issue 114 section 2 item 4 and section 3.2;
              `crates/podvm-interpose/interpose.map:43`;
-             `crates/podvm-interpose/src/lib.rs:1014`;
+             `crates/podvm-interpose/src/stat_calls.rs:200`;
              `crates/podvm-interpose/src/real.rs:44`
 Category:    interpose
 Priority:    P1
@@ -2176,7 +2176,7 @@ same path.
 
 Source:      issues 89 and 127 (127 reposts the hidden issue 95);
              issue 114 section 2 item 2 and section 6 item 3;
-             `crates/podvm-interpose/src/lib.rs:1014-1020`;
+             `crates/podvm-interpose/src/stat_calls.rs:200-206`;
              `crates/podvm/src/lifecycle/entry.rs:422`;
              `experiments/356-no-chroot-rung.sh:376-383`
 Category:    interpose
