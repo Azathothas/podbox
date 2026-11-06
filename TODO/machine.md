@@ -1145,7 +1145,7 @@ Prove:       `grep -n "149-podvm-non-goals" TODO/machine.md` names clause
 `experiments/149-podvm-non-goals.sh:183-193` has no Rust arm while clauses
 0 through 5 are converted and tested at
 `crates/podvm-probe/src/nongoals.rs:252-318` and
-`crates/podvm-probe/src/report.rs:1068` and `:1087`. Clause 6 runs
+`crates/podvm-probe/src/report/tests.rs:312` and `:1087`. Clause 6 runs
 `experiments/361-guest-usernet.sh` under `timeout 1500` and owns that exit
 code alone, so the `149` script is not deletable. The fixture is a booting
 guest with UDP forwarding (`experiments/361-guest-usernet.sh:293-299`), no
@@ -1170,7 +1170,7 @@ clause's own comment says. Clauses 0 through 5 are the converted
 half: they read `podvm probe --json` and its stderr evidence, and
 their tests are
 `crates/podvm-probe/src/nongoals.rs:252-318` (five tests, `mod tests`
-at `:227`) and `crates/podvm-probe/src/report.rs:1068` and `:1087`.
+at `:227`) and `crates/podvm-probe/src/report/tests.rs:312` and `:1087`.
 The audit calls the clause a claim about a different script
 (`refactor/01-audit/group-9.md:117`), and the ledger keeps 149 at
 SPLIT and 361 at KEEP-SHELL

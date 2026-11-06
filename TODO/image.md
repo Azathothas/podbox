@@ -1218,7 +1218,7 @@ oracles, which assert `in_use` after `drop(held)`. Remainder: retarget clause
 2 `must_red` to `the_seventeenth_concurrent_registration_is_refused_by_name`,
 which the quota arm still reddens; give clause 3 a pre-drop or fd-presence
 oracle; correct the independence claim at
-`crates/podvm-image/src/store.rs:2110-2112`.
+`crates/podvm-image/src/store/tests.rs:863-865`.
 
 ### T-0212 The platform is decided at run time, and the store holds more than one
 
@@ -2619,7 +2619,7 @@ Prove:       `grep -n "serve_once" TODO/image.md` names the test-private
              scope and the entry that made the fixture reachable.
 
 **Done.** The entry records `serve_once` at
-`crates/podvm-image/src/registry.rs:955` as a `fn` inside `mod tests`,
+`crates/podvm-image/src/registry/tests.rs:4` as a `fn` inside `mod tests`,
 answering one request on a loopback listener and unreachable from any
 binary, with its two callers at `:989` and `:1014`. The `Premise` that
 T-1602 made the fixture reachable is refuted by the source history, and
@@ -2630,7 +2630,7 @@ T-1602 owns only the fixture fields clippy reported dead. The proof is
 and the fixture that superseded it on 5 lines.
 
 **The state before the fixture, and where the fixture landed.**
-`crates/podvm-image/src/registry.rs:955` `serve_once` is a `fn` inside
+`crates/podvm-image/src/registry/tests.rs:4` `serve_once` is a `fn` inside
 `mod tests` at `:949`, so it is `#[cfg(test)]` code: it answers one
 request on a loopback `TcpListener` bound to `127.0.0.1:0`, writes one
 `HTTP/1.0 200 OK` head with `Content-Length` and `Connection: close`,

@@ -1448,8 +1448,8 @@ runs. The record gate exits 0 on the landed tree.
 ### T-1686 The device tests of a stand-in fail where `mknod` is permitted
 
 Source:      the first Linux cloud session, 2026-11-06 (`cargo test
-             --workspace` as root); `crates/podvm-complete/src/devices.rs:588`;
-             `crates/podvm-complete/src/devices.rs:612`
+             --workspace` as root); `crates/podvm-complete/src/devices/tests.rs:149`;
+             `crates/podvm-complete/src/devices/tests.rs:173`
 Category:    complete
 Priority:    P2
 Effort:      S
