@@ -21,11 +21,6 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #94 | [T-1317] static payloads have no rung: add an emulate tier on a prefix-preserving qemu-user | open | T-1651 |
 | #109 | [T-1317] static payloads can have a native rung with no ptrace and no qemu: userland-execve + Syscall User Dispatch + openat2(RESOLVE_IN_ROOT) | open | T-1652 |
 | #114 | [Reference] Dossier: podbox on the constrained errand host: every limit -> mechanism -> workaround (measured) | open | T-1643 to T-1653 |
-| #118 | ci: bump actions/upload-artifact from 7.0.1 to 7.0.2 in the actions group across 1 directory | open | none: a Dependabot update, applied as its own commit |
-| #119 | deps: bump sha2 from 0.11.0 to 0.11.1 | open | none: a Dependabot update, applied as its own commit |
-| #120 | deps: bump serde_json from 1.0.151 to 1.0.154 | open | none: a Dependabot update, applied as its own commit |
-| #121 | deps: bump ruzstd from 0.9.0 to 0.9.1 | open | none: a Dependabot update, applied as its own commit |
-| #124 | deps: bump rustls from 0.23.45 to 0.23.46 | open | none: a Dependabot update, applied as its own commit |
 | #127 | [Recovered #95] a dynamic grandchild re-enters through the host loader: the loader substitution must cover children | open | T-1646 |
 | #128 | [Recovered #96] the absolute lib64/ld-linux-x86-64.so.2 symlink resolves on the host and decides the libc | open | T-1644 |
 | #129 | [Recovered #97] the libc ABI union omits ld-linux-x86-64.so.2 and libdl.so.2, so every glibc payload is refused | open | T-1644 |
@@ -94,5 +89,5 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #192 | [Reference] ylang-ylang/dockless @ ed35b5d: fail-fast CLI guardrails | open | none: a reference (references/README.md) |
 | #193 | [Scope] podvm does what sand-net does, without root: index | open | T-1654 to T-1668 |
 | #194 | COORD-001: the crates podvm hands over and takes, and the access of T-040 (to podcrates) | open | T-1675 to T-1681 |
-| #195 | COORD-002: watch-org.sh sees no repository but the last on Windows: CRLF in the names (to podcrates) | open | none: a COORD issue (to podcrates); podcrates fixed it in `54427f6`, and podvm closes it when it takes that pin |
+| #195 | COORD-002: watch-org.sh sees no repository but the last on Windows: CRLF in the names (to podcrates) | closed (podvm took the pin 54427f6) | none: a COORD issue (to podcrates); podcrates fixed it in `54427f6`, and podvm closes it when it takes that pin |
 | #196 | COORD-003: podvm's inventory of the hosts and services of other parties, for pod-services (to podcrates) | open | T-1679 |

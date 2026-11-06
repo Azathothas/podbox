@@ -16,11 +16,6 @@
 94 issue open
 109 issue open
 114 issue open
-118 pull open
-119 pull open
-120 pull open
-121 pull open
-124 pull open
 127 issue open
 128 issue open
 129 issue open
@@ -89,5 +84,5 @@
 192 issue open
 193 issue open
 194 issue open
-195 issue open
+195 issue closed
 196 issue open

@@ -41,10 +41,19 @@ Remove this file when each step below is done.
    (PodUtils/podcrates#3, T-054 there); COORD-003 answers it. Watch for the
    import of the seven hand-over crates (wave M6 of podcrates): from the
    import, their files here take fixes only.
-5. T-1604: `detached_start_returns_before_the_payload_ends` fails in CI
+5. podcrates COORD-003 (PodUtils/podcrates#4): take `pod-term` now with
+   `adoption/podvm/pod-term.patch` and `.run` at podcrates `784469a`,
+   pinned to `tag = "v0.3.0"` (v0.4.0 does not exist yet). The patch raises
+   `rust-version` to 1.99 (T-1669) and fixes three clippy findings; run the
+   Linux tests in CI, then write the commit as a COORD issue
+   `(to podcrates)` (T-1675). The synchronous faces of `pod-tls` and
+   `pod-proxy` (feature `blocking`) are on podcrates `main` (v0.5.0).
+   podvm answered its questions Q2 and Q3 of the M6 import plan in
+   COORD-004.
+6. T-1604: `detached_start_returns_before_the_payload_ends` fails in CI
    (`run -d` takes 5 s to detach). It was red on `main` before the
    migration; it keeps the job "workspace and interposer tests" red.
-6. The work order of `TODO/PROGRESS.md`: the errand-host cluster
+7. The work order of `TODO/PROGRESS.md`: the errand-host cluster
    (T-1643 to T-1653) first, then the scope entries.
 
 ## Questions for the owner
