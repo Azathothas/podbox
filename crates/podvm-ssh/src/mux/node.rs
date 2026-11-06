@@ -195,13 +195,17 @@ pub fn backoff_secs(n: u32) -> (u64, Duration) {
 
 // ------------------------------------------------------------ dial
 
-/// Open the relay leg: TCP dial, TLS for `wss`, then the websocket upgrade
+/// Open the relay leg: TCP dial (through the proxy of the environment, if
+/// one applies), TLS for `wss`, then the websocket upgrade
 /// for `path` with the token in `X-Relay-Token`. Every hop names itself on
 /// failure; the token never appears in any of them.
 pub(super) fn dial_ws(origin: &str, path: &str, token: &str) -> Result<Ws, Error> {
     validate_token(token)?;
     let (tls, host, port) = parse_origin(origin)?;
-    let dialer = Dialer::new(Duration::from_secs(10));
+    // ⛔ The relay leg takes the proxy of the environment: `HTTPS_PROXY`,
+    // `ALL_PROXY` and `NO_PROXY` apply, and a loopback relay goes directly.
+    let dialer = Dialer::from_environment(Duration::from_secs(10))
+        .map_err(|e| Error::dial(format!("relay proxy {host}:{port}"), e))?;
     let mut base = dialer.dial(&crate::transport::Target::Tcp {
         host: host.clone(),
         port,

@@ -190,11 +190,40 @@ pub struct Dialer {
     /// How long one dial waits. Every address a name resolves to gets this
     /// long, so a dial is always bounded.
     pub timeout: Duration,
+    /// The proxy of the environment for a TCP dial (`egress.rs`), or `None`:
+    /// each TCP dial goes directly.
+    egress: Option<pod_proxy::blocking::Dialer>,
 }
 
 impl Dialer {
+    /// A dialer that dials each target directly. The `proxy` binary uses it:
+    /// SSH names the target of a `ProxyCommand`, and SSH's own configuration
+    /// chooses a proxy.
     pub fn new(timeout: Duration) -> Self {
-        Dialer { timeout }
+        Dialer {
+            timeout,
+            egress: None,
+        }
+    }
+
+    /// A dialer whose TCP dials take the proxy of the process environment
+    /// (`https_proxy`, `HTTPS_PROXY`, `all_proxy`, `ALL_PROXY`, and the
+    /// `NO_PROXY` list). The relay legs use it.
+    pub fn from_environment(timeout: Duration) -> io::Result<Self> {
+        Dialer::with_environment(
+            timeout,
+            pod_proxy::Environment::read(&|name| std::env::var_os(name)),
+        )
+    }
+
+    /// A dialer whose TCP dials take the proxy of `env`. With no proxy in
+    /// `env`, it is [`Dialer::new`], and no runtime of `pod-proxy` starts.
+    pub fn with_environment(timeout: Duration, env: pod_proxy::Environment) -> io::Result<Self> {
+        let egress = match env.proxy {
+            Some(_) => Some(egress::dialer(env)?),
+            None => None,
+        };
+        Ok(Dialer { timeout, egress })
     }
 
     /// Dial one target. This is the one dispatch: every caller reaches every
@@ -209,6 +238,14 @@ impl Dialer {
 
     fn dial_tcp(&self, host: &str, port: u16) -> Result<Box<dyn Stream>, Error> {
         let op = format!("dial tcp {host}:{port}");
+        // ⛔ The proxy of the environment first. A target that the rules send
+        // directly (loopback, `NO_PROXY`) takes the direct dial below.
+        if let Some(egress) = &self.egress
+            && let Some(s) = egress::through_proxy(egress, host, port, self.timeout)
+                .map_err(|e| Error::dial(op.clone(), e))?
+        {
+            return Ok(s);
+        }
         let mut last = io::Error::new(
             io::ErrorKind::NotFound,
             format!("no address for {host}:{port}"),
@@ -255,6 +292,7 @@ impl Dialer {
 
 mod bounded;
 pub use bounded::*;
+mod egress;
 
 #[cfg(test)]
 mod tests;

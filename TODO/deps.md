@@ -1393,7 +1393,7 @@ Source:      COORD-001, issue 194, row 3; PodUtils podcrates issue 3,
 Category:    deps
 Priority:    P2
 Effort:      L
-Status:      blocked
+Status:      partial
 
 Problem:     podvm dials registries and SSH targets directly
              (`crates/podvm-ssh/src/transport.rs:226`). It reads no
@@ -1420,9 +1420,30 @@ Prove:       `cargo test -p podvm-image` exits 0 in the Linux lane with a
              bypasses it for a `NO_PROXY` host, and
              `./target/release/podvm-gate` exits 0.
 
-**Blocked 2026-11-06.** Blocker: podcrates has not released `pod-proxy`
-with feature `blocking` (podcrates T-063). Clears when: that release and
-its adoption patch exist, and T-1676 is done.
+**Partial, 2026-11-06.** podvm took `pod-proxy` 0.4.0 with feature
+`blocking` by `adoption/podvm/pod-proxy.patch` of PodUtils/podcrates
+(`main` at `d703263`, made at podvm `f9eae80`), applied with `git apply
+--3way` and no conflict. Both relay legs of podvm-ssh dial through
+`Dialer::from_environment` (`crates/podvm-ssh/src/transport/egress.rs`):
+`https_proxy`, `HTTPS_PROXY`, `all_proxy`, `ALL_PROXY` and `NO_PROXY`,
+over HTTP CONNECT or SOCKS5; a loopback or `NO_PROXY` target goes direct
+through podvm's own dial. Each line of `pod-proxy.run` exits 0 in a Linux
+container: podvm-ssh 107 tests (6 new: CONNECT by `HTTPS_PROXY` and by
+`ALL_PROXY`, loopback and `NO_PROXY` direct, an unusable setting refused,
+no runtime with no proxy), `mux_two_client` 15 against sshd, clippy,
+rustfmt, the runtime-state rows, the record gate, the toolchains and the
+static check of `node`, `operator` and `podvm`. `cargo tree -p podvm -e
+normal -i tokio` finds no tokio; podvm-ssh has it through `pod-core`.
+Release sizes: `node` 1,672,024 to 1,913,816 bytes (+236 KiB),
+`operator` 1,635,224 to 1,864,728 (+224 KiB); `podvm` 4,011,064. Call C10
+of `docs/decisions.md` accepts the runtime and the two changes of
+behaviour.
+Remaining: the registry transport through `pod-proxy`, with the Prove's
+pull through a local CONNECT fixture and its `NO_PROXY` bypass. It waits
+for podcrates T-069 (a streamed body in `blocking::Client`); until then
+podvm-image keeps ureq's own `try_proxy_from_env`, so a pull already
+uses a proxy of the environment. The guest image fetch is the same
+remaining clause.
 
 ---
 
