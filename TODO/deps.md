@@ -1590,7 +1590,8 @@ Prove:       `./target/release/podvm-gate` exits 0 with each of the seven
 **Open 2026-11-06.** The blocker cleared for the first crate.
 podcrates imported `pod-hostprobe` (T-055) from podvm at `2c03085`
 (PodUtils/podcrates#11). From that import the 29 files that the block
-`repo PodUtils/podvm` of `crates/pod-hostprobe/SOURCES` lists take fixes
+`repo PodUtils/podvm` of the SOURCES file of `pod-hostprobe` in
+PodUtils/podcrates lists take fixes
 only, each written as a COORD issue `(to podcrates)`:
 `crates/podvm-probe/src/` except `exit.rs`, `json.rs`, `report.rs`,
 `report/` and `nongoals.rs`; `crates/podvm-probe/tests/namespace*.rs`;
