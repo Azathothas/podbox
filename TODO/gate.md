@@ -1513,7 +1513,7 @@ debug binary, kernel `7.2.0-WSL2-STABLE`):
 `experiments/368-run-decay.sh` exits 0
 (`experiments/results/run-decay-368.txt`), 11 of 11 predictions
 held with 16-to-69-fold separation. The `--rm` arm in
-`crates/podvm/src/run.rs:754-784` deletes the extracted
+`crates/podvm/src/run.rs:660-784` deletes the extracted
 rootfs where `referencing()`
 (`crates/podvm-supervise/src/lib.rs:305-311`) answers empty, so
 each keeper-less ephemeral run re-pays full extraction (a1
@@ -2002,7 +2002,7 @@ Approach:    Remove the check and replace it with a real scanner. Call
              repository, scanning the working tree and the history.
              Update `docs/security/secrets.md`, which currently names the
              shell script as the review mechanism. Update the comments
-             at `crates/podvm-ssh/src/mux.rs:1151` and
+             at `crates/podvm-ssh/src/mux/tests.rs:71` and
              `crates/podvm-ssh/tests/mux_two_client.rs:1290`, which
              cite the check as the reason for their placeholder shapes,
              and `experiments/270-multiarch-image.sh:117`.
@@ -3053,7 +3053,7 @@ record also corrects the `Premise` twice: `crates/podvm-enter/src/abi.rs`
 holds 15 `#[test]` functions and not seven, and the plan's "check E has no
 test" clause is stale because
 `abi_reports_unreadable_refused_and_arity` at
-`crates/podvm/src/system.rs:709` already asserts the three exit codes.
+`crates/podvm/src/system/tests.rs:105` already asserts the three exit codes.
 
 **Both stay shell, and what each one needs is the host, not a fixture.**
 The two clauses are named at `refactor/06-entries/PLAN.md:119` and
