@@ -1526,7 +1526,9 @@ fn trust_record(
     image: &str,
     r: podvm_image::Record,
 ) -> std::result::Result<podvm_image::Record, i32> {
-    match store.verify_record_blobs(&r) {
+    // A presence check, not a hash (T-1604): the extraction hashes each
+    // layer before it reads one, and `podvm verify` hashes them all.
+    match store.absent_record_blobs(&r) {
         Ok(mismatches) if mismatches.is_empty() => Ok(r),
         Ok(mismatches) => {
             let digest_list = mismatches
@@ -1536,7 +1538,7 @@ fn trust_record(
                 .join(", ");
             eprintln!(
                 "podvm {verb}: {image} is in the store but {} of its blob(s) \
-                 are missing or corrupt: {digest_list}. The store is at {}. \
+                 are missing: {digest_list}. The store is at {}. \
                  Re-fetch it with --pull always (TODO/image.md T-1419)",
                 mismatches.len(),
                 store.root().display()

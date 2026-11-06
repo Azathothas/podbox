@@ -124,6 +124,37 @@ impl Store {
         let digests: Vec<String> = record.blobs().iter().map(|s| s.to_string()).collect();
         self.verify_blobs(&digests)
     }
+
+    /// Every blob one record needs that has no file in `blobs/`, as a
+    /// mismatch with `got: "absent"`. A `stat` for each blob, no hash.
+    ///
+    /// ⭐ TODO/image.md T-1419 and TODO/gate.md T-1604. `run` calls this
+    /// before it trusts a record. A full hash of each blob on each start
+    /// took 5 s for a 193 MB layer in a debug build, before a detached
+    /// start could hand back its id. A corrupt blob cannot change an
+    /// extracted rootfs, and `podvm_extract::extract` hashes each layer
+    /// again before it writes one byte (T-1315), so the hash stays where
+    /// the bytes are read: `verify` and the extraction.
+    pub fn absent_record_blobs(&self, record: &Record) -> Result<Vec<BlobMismatch>> {
+        let mut absent = Vec::new();
+        for want in record.blobs() {
+            let digest = Digest::parse(want)?;
+            let path = self.blob_path(&digest);
+            match std::fs::metadata(&path) {
+                Ok(m) if m.is_file() => {}
+                Ok(_) => absent.push(BlobMismatch {
+                    want: want.to_string(),
+                    got: "absent".to_string(),
+                }),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => absent.push(BlobMismatch {
+                    want: want.to_string(),
+                    got: "absent".to_string(),
+                }),
+                Err(e) => return Err(Error::io(path.display().to_string(), e)),
+            }
+        }
+        Ok(absent)
+    }
 }
 
 fn append_bytes(path: &PathBuf, bytes: &[u8]) -> Result<()> {
@@ -192,6 +223,26 @@ mod tests {
             created: None,
             pulled_at: "2026-09-30T00:00:00Z".to_string(),
         }
+    }
+
+    /// TODO/gate.md T-1604. The presence check of `run` names a deleted
+    /// layer as absent, is silent where each blob has a file, and does not
+    /// hash: a changed byte is the business of `verify` and the extraction.
+    #[test]
+    fn absent_record_blobs_names_a_deleted_layer_and_does_not_hash() {
+        let s = scratch("absent");
+        let layer = plant(&s, b"layer-a");
+        let config = plant(&s, b"config-b");
+        let r = record_with(&layer, &config);
+        assert!(s.absent_record_blobs(&r).unwrap().is_empty());
+        let path = s.blob_path(&Digest::parse(&layer).unwrap());
+        std::fs::write(&path, b"changed").unwrap();
+        assert!(s.absent_record_blobs(&r).unwrap().is_empty());
+        std::fs::remove_file(&path).unwrap();
+        let absent = s.absent_record_blobs(&r).unwrap();
+        assert_eq!(absent.len(), 1, "{absent:?}");
+        assert_eq!(absent[0].want, layer);
+        assert_eq!(absent[0].got, "absent");
     }
 
     /// The happy path the CLI trusts: every blob present and whole verifies

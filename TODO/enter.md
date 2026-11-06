@@ -1308,6 +1308,21 @@ text-only match would have skipped a start that exited 0 having
 started a container. Adding the exit-code guard turned the plant red
 when removed, which is the direction that matters.
 
+
+**2026-11-06, the first Linux cloud session.** The lane run reproduced the
+failure where chroot is permitted (uid 0): `run -d` exited 0 and took
+5.1 s to 5.3 s, over the 5 s bound. A strace with stack traces put 5.4 s
+of the 6.05 s in `run::trust_record`, which hashed each blob of the
+record (one 193,731,527-byte layer) before each start
+(`Store::verify_record_blobs`, T-1419). `trust_record` now calls
+`Store::absent_record_blobs`, a `stat` for each blob: T-1419 asks for
+presence, `podvm_extract::extract` hashes each layer before it writes
+(T-1315), and `podvm verify` hashes all of them. The refusal says
+"missing" in place of "missing or corrupt". After the change
+`cargo test -p podvm --test detached_stdio` passes, 3 of 3 tests, and
+`absent_record_blobs_names_a_deleted_layer_and_does_not_hash` passes.
+What still owes: the CI run of the same test (the skip path, where
+chroot is denied).
 ---
 
 ### T-1647 Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes
