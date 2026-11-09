@@ -1176,7 +1176,7 @@ Source:      issue 216; T-1305; T-1112
 Category:    windows
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The parity row of `windows --podvm-mem` says that guest memory
              is judged against `RLIMIT_FSIZE`. `windows::run` and
@@ -1198,6 +1198,17 @@ Decision:    Correct the row; do not add the check. T-1305 judges memory
              where a memory backing file exists, and here none exists.
 Prove:       `cargo test -p podvm` exits 0, and the new test fails on a
              planted row.
+
+**Done 2026-11-09.** The `windows --podvm-mem` row now says that
+`RLIMIT_FSIZE` does not gate guest memory on this path (anonymous memory,
+a sparse overlay, no memory backing file) and that the ceiling binds the
+download. The doc comment of `ceiling()` says the same. The `machine ssh`
+row stays: `machine/ssh/qemu.rs` reads the limit. The test
+`a_memory_row_names_rlimit_fsize_only_where_the_verb_reads_it` holds each
+`--podvm-mem` row that claims the judgement to a verb whose guest-start
+source calls `prlimit` on the limit. `cargo test -p podvm` exits 0; with
+the old row planted back, the test fails: "windows --podvm-mem: claims
+true, reads false".
 
 **Filed 2026-11-09.** From issue 216 (an outside account). The triage of
 2026-11-09 confirmed each claim at `2be31b2`.

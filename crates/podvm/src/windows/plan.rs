@@ -82,8 +82,10 @@ fn first_existing(candidates: &[&str]) -> PathBuf {
     PathBuf::from(candidates.last().copied().unwrap_or(""))
 }
 
-/// `RLIMIT_FSIZE`, or the refusal that says it could not be read. The
-/// ceiling `TODO/machine.md` T-1305 already judges guest memory against.
+/// The soft `RLIMIT_FSIZE`, or the refusal that says it could not be read.
+/// Its one caller is the download (`setup::fetch`): guest memory is not
+/// judged against it on this path, because no memory backing file is
+/// written (`run.rs`, and `TODO/milestones.md` T-1692).
 pub(crate) fn ceiling() -> Result<u64, i32> {
     match podvm_probe::sys::prlimit(podvm_probe::sys::RLIMIT_FSIZE) {
         Ok((cur, _)) => Ok(cur),

@@ -425,3 +425,36 @@ fn every_refused_flag_row_refuses_its_first_spelling() {
     }
     assert!(count > 0, "no refused flag rows to pin");
 }
+
+/// T-1692 (issue 216): a row may say that a verb judges guest memory
+/// against `RLIMIT_FSIZE` only where the verb's source reads the limit
+/// where it starts the guest. The windows verb reads it for the download
+/// alone, so its `--podvm-mem` row must not claim the judgement.
+#[test]
+fn a_memory_row_names_rlimit_fsize_only_where_the_verb_reads_it() {
+    let starts_guest = [
+        ("run", include_str!("../tier.rs")),
+        ("exec", include_str!("../tier.rs")),
+        ("machine ssh", include_str!("../machine/ssh/qemu.rs")),
+        (
+            "windows",
+            concat!(
+                include_str!("../windows/run.rs"),
+                include_str!("../windows/dos.rs")
+            ),
+        ),
+    ];
+    for r in TABLE.iter().filter(|r| r.flag == Some("--podvm-mem")) {
+        let claims = r.note.contains("judged against RLIMIT_FSIZE")
+            || r.note.contains("judged against the RLIMIT_FSIZE");
+        let reads = starts_guest
+            .iter()
+            .find(|(v, _)| *v == r.verb)
+            .is_some_and(|(_, src)| src.contains("RLIMIT_FSIZE") && src.contains("prlimit"));
+        assert_eq!(
+            claims, reads,
+            "{} --podvm-mem: claims {claims}, reads {reads}: {}",
+            r.verb, r.note
+        );
+    }
+}

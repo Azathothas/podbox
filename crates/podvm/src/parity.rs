@@ -342,7 +342,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "windows", flag: Some("--url"), status: Native, note: "fetch: the base image to download; nothing is fetched unless this names an origin and no Windows image is ever redistributed" },
     Row { verb: "windows", flag: Some("--sha256"), status: Native, note: "fetch: the pinned digest; without it the download is bounded but unverified, and a mismatch removes the file rather than keeping it" },
     Row { verb: "windows", flag: Some("--max-bytes"), status: Native, note: "fetch: the download ceiling, never above RLIMIT_FSIZE; judged against the declared length before the transfer and against the arriving bytes during it" },
-    Row { verb: "windows", flag: Some("--podvm-mem"), status: Native, note: "guest memory, judged against RLIMIT_FSIZE as the machine tier judges its own (T-1305)" },
+    Row { verb: "windows", flag: Some("--podvm-mem"), status: Native, note: "guest memory in bytes. RLIMIT_FSIZE does not gate it: QEMU's guest memory here is anonymous and the overlay is sparse, so no memory backing file is written; the ceiling binds the download (--max-bytes) (T-1692)" },
     Row { verb: "windows", flag: Some("--podvm-cpus"), status: Native, note: "guest cpus" },
     Row { verb: "windows", flag: Some("--podvm-timeout"), status: Native, note: "how long a run may take before the guest is stopped; a timeout is a refusal, never an empty success" },
     Row { verb: "windows", flag: Some("--podvm-qemu-arg"), status: Native, note: "one extra emulator argument, appended last so a caller can override a default the driver set" },
