@@ -56,24 +56,46 @@ pub fn signal(store: &Store, id: &str, sig: i32) -> Result<()> {
     }
 }
 
+/// Why a wait on a launcher failed.
+///
+/// ⛔ T-1691 (issue 215): only `Gone` means the container already ended. A
+/// failure of the wait itself is passed on, never read as a stop.
+#[derive(Debug)]
+pub enum WaitError {
+    /// No launcher answers: it ended and closed or removed its socket.
+    Gone(Error),
+    /// A launcher listens, and the wait failed for another reason.
+    Failed(Error),
+}
+
 /// Wait for a running container to end, bounded.
 ///
 /// ⛔ T-0602 and `TODO/RULES.md` section 8: `Ok(None)` is the bound being
 /// reached and it is a distinct outcome, never a guess at the exit code.
-pub fn wait(store: &Store, id: &str, timeout_ms: u64) -> Result<Option<i32>> {
-    let s = connect(store, id)?;
+/// A zero bound waits for nothing and answers `Ok(None)` at once: `std`
+/// refuses a zero read timeout (T-1691).
+pub fn wait(
+    store: &Store,
+    id: &str,
+    timeout_ms: u64,
+) -> std::result::Result<Option<i32>, WaitError> {
+    let s = connect(store, id).map_err(WaitError::Gone)?;
+    if timeout_ms == 0 {
+        return Ok(None);
+    }
     s.set_read_timeout(Some(std::time::Duration::from_millis(timeout_ms)))
-        .map_err(|e| Error(format!("bounding the wait: {e}")))?;
+        .map_err(|e| WaitError::Failed(Error(format!("bounding the wait: {e}"))))?;
     let mut w = &s;
-    writeln!(w, "{CTL_WAIT}").map_err(|e| Error(format!("the launcher: {e}")))?;
+    // ⚠ A launcher that closes the connection between the connect and the
+    // write or the read has ended: that is `Gone`, as a failed connect is.
+    writeln!(w, "{CTL_WAIT}").map_err(|e| WaitError::Gone(Error(format!("the launcher: {e}"))))?;
     let mut line = String::new();
     match BufReader::new(&s).read_line(&mut line) {
         Ok(0) => Ok(None),
         Ok(_) => match line.trim().strip_prefix("exit ") {
-            Some(n) => n
-                .parse::<i32>()
-                .map(Some)
-                .map_err(|_| Error(format!("the launcher answered {:?}", line.trim()))),
+            Some(n) => n.parse::<i32>().map(Some).map_err(|_| {
+                WaitError::Failed(Error(format!("the launcher answered {:?}", line.trim())))
+            }),
             None => Ok(None),
         },
         Err(e)
@@ -82,7 +104,7 @@ pub fn wait(store: &Store, id: &str, timeout_ms: u64) -> Result<Option<i32>> {
         {
             Ok(None)
         }
-        Err(e) => Err(Error(format!("the launcher: {e}"))),
+        Err(e) => Err(WaitError::Gone(Error(format!("the launcher: {e}")))),
     }
 }
 

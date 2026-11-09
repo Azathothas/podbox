@@ -167,3 +167,16 @@ fn a_signal_is_taken_by_name_or_number_and_never_defaulted() {
 }
 
 mod fields_and_copy;
+
+/// T-1691 (issue 215, call C12): `stop -t` takes whole seconds; zero is a
+/// valid grace, and an overflow or a non-number is refused.
+#[test]
+fn the_stop_grace_is_checked_seconds_and_zero_is_valid() {
+    assert_eq!(grace_ms("0"), Some(0));
+    assert_eq!(grace_ms("1"), Some(1000));
+    assert_eq!(grace_ms("10"), Some(10_000));
+    assert_eq!(grace_ms(""), None);
+    assert_eq!(grace_ms("abc"), None);
+    assert_eq!(grace_ms("-1"), None);
+    assert_eq!(grace_ms("18446744073709551615"), None);
+}

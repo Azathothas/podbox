@@ -213,3 +213,19 @@ fn append(store: &Store, id: &str, bytes: &[u8]) {
         .unwrap();
     f.write_all(bytes).unwrap();
 }
+
+/// T-1691 (issue 215): only a gone launcher reads as a container that ended.
+#[test]
+fn only_a_gone_launcher_is_a_stopped_container() {
+    assert!(matches!(ended(Ok(Some(3))), Ok(Ended::Code(3))));
+    assert!(matches!(ended(Ok(None)), Ok(Ended::Bound)));
+    let gone = launcher::WaitError::Gone(Error("no launcher".into()));
+    assert!(matches!(ended(Err(gone)), Ok(Ended::LauncherGone)));
+    // ⛔ The defect: a failure to bound the wait read as the launcher gone,
+    // and `stop -t 0` reported a running container as stopped.
+    let failed = launcher::WaitError::Failed(Error("bounding the wait: invalid".into()));
+    match ended(Err(failed)) {
+        Err(e) => assert!(e.0.contains("bounding the wait"), "{e}"),
+        Ok(_) => panic!("a failed wait must reach the caller"),
+    }
+}

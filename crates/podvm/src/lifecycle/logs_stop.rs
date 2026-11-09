@@ -204,8 +204,8 @@ pub fn stop(args: &[String]) -> i32 {
                 println!("usage: podvm stop [-t seconds] <container> [container...]");
                 return 0;
             }
-            "-t" | "--time" | "--timeout" => match it.next().and_then(|v| v.parse::<u64>().ok()) {
-                Some(v) => grace = v * 1000,
+            "-t" | "--time" | "--timeout" => match it.next().and_then(|v| grace_ms(v)) {
+                Some(v) => grace = v,
                 None => {
                     eprintln!("podvm stop: -t takes a number of seconds");
                     return EXIT_FLAG_ERROR;
@@ -241,12 +241,22 @@ pub fn stop(args: &[String]) -> i32 {
     code
 }
 
+/// The grace of `stop -t SECONDS` in milliseconds. `None` for a value that
+/// is not a whole number of seconds or that overflows (T-1691). Zero is
+/// valid: it sends SIGKILL at once, as `docker stop -t 0` does (call C12).
+pub(crate) fn grace_ms(v: &str) -> Option<u64> {
+    v.parse::<u64>().ok()?.checked_mul(1000)
+}
+
 /// Stop one container: the per-name half of `stop`, shared with
 /// `restart` (TODO/cli.md T-1331). Returns the name on success.
 fn stop_one(s: &podvm_image::Store, verb: &str, want: &str, grace: u64) -> Result<String, i32> {
     match podvm_supervise::stop(s, want, grace) {
         Ok((c, killed)) => {
-            if killed {
+            if killed && grace == 0 {
+                // T-1691 (call C12): `-t 0` asked for the SIGKILL, as docker.
+                eprintln!("podvm {verb}: {} was killed at once (-t 0)", c.name);
+            } else if killed {
                 // ⛔ Said, never silent. A caller that asked for a graceful
                 // stop and got a SIGKILL has to be able to tell.
                 eprintln!(

@@ -385,7 +385,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "ps", flag: Some("--format"), status: Native, note: "the same template shape as the other verbs" },
     Row { verb: "ps", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "ps", flag: Some("-f, --filter"), status: Native, note: "caller-side predicate: name=<substring> over name and id prefix, label= matches nothing (records carry no labels) (TODO/cli.md T-1331)" },
-    Row { verb: "stop", flag: Some("-t, --time, --timeout"), status: Native, note: "seconds between SIGTERM and SIGKILL. Default 10, and a kill is reported on stderr" },
+    Row { verb: "stop", flag: Some("-t, --time, --timeout"), status: Native, note: "seconds between SIGTERM and SIGKILL. Default 10; 0 sends SIGKILL at once, as docker does (T-1691); a kill is reported on stderr" },
     Row { verb: "stop", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "kill", flag: Some("-s, --signal"), status: Native, note: "by name or number. refused: An unknown one is refused rather than defaulted: sending the wrong signal is not something a caller can notice" },
     Row { verb: "kill", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },

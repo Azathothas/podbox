@@ -199,14 +199,16 @@ pub fn stop(store: &Store, want: &str, timeout_ms: u64) -> Result<(Container, bo
     // why `wait_or_gone` distinguishes "the launcher answered" from "there is
     // no launcher to answer" from "the bound was reached", and only the last
     // means podvm does not know.
-    match wait_or_gone(store, &c.id, timeout_ms) {
+    // ⛔ T-1691 (issue 215, call C12): a zero grace is `Ended::Bound` at once,
+    // so SIGKILL follows, as `docker stop -t 0` does.
+    match wait_or_gone(store, &c.id, timeout_ms)? {
         Ended::Code(_) | Ended::LauncherGone => return Ok((c, false)),
         Ended::Bound => {}
     }
     // ⚠ The bound was reached, which is a fact rather than a failure, and the
     // caller is told that SIGKILL is what ended it.
     launcher::signal(store, &c.id, 9).ok();
-    let _ = wait_or_gone(store, &c.id, timeout_ms);
+    let _ = wait_or_gone(store, &c.id, timeout_ms.max(KILL_WAIT_MS));
     Ok((c, true))
 }
 
@@ -223,13 +225,24 @@ enum Ended {
     Bound,
 }
 
-fn wait_or_gone(store: &Store, id: &str, timeout_ms: u64) -> Ended {
-    match launcher::wait(store, id, timeout_ms) {
-        Ok(Some(c)) => Ended::Code(c),
-        Ok(None) => Ended::Bound,
-        // ⚠ The only failure `launcher::wait` reports is "nothing is listening",
-        // which is the launcher having gone rather than an error to pass on.
-        Err(_) => Ended::LauncherGone,
+/// How long a wait after SIGKILL may take, when the caller's bound is shorter.
+const KILL_WAIT_MS: u64 = 5_000;
+
+fn wait_or_gone(store: &Store, id: &str, timeout_ms: u64) -> Result<Ended> {
+    ended(launcher::wait(store, id, timeout_ms))
+}
+
+/// The answer of `launcher::wait` as an [`Ended`].
+///
+/// ⛔ T-1691 (issue 215): only "no launcher answers" is the launcher having
+/// gone. Any other failure of the wait is an error for the caller: read as
+/// gone, it made `stop` report a running container as stopped.
+fn ended(r: std::result::Result<Option<i32>, launcher::WaitError>) -> Result<Ended> {
+    match r {
+        Ok(Some(c)) => Ok(Ended::Code(c)),
+        Ok(None) => Ok(Ended::Bound),
+        Err(launcher::WaitError::Gone(_)) => Ok(Ended::LauncherGone),
+        Err(launcher::WaitError::Failed(e)) => Err(e),
     }
 }
 
@@ -238,7 +251,7 @@ pub fn wait(store: &Store, want: &str, timeout_ms: u64) -> Result<(Container, Op
     let table = table::reconcile(store)?;
     let c = table::find(&table, want)?;
     match c.state {
-        State::Running => match wait_or_gone(store, &c.id, timeout_ms) {
+        State::Running => match wait_or_gone(store, &c.id, timeout_ms)? {
             Ended::Code(n) => Ok((c, Some(n))),
             // ⚠ The launcher finished between the reconcile above and this
             // connect. Its last act is to write the exit code into the table,
@@ -272,7 +285,7 @@ pub fn remove(store: &Store, want: &str, force: bool) -> Result<Container> {
             )));
         }
         launcher::signal(store, &c.id, 9).ok();
-        let _ = launcher::wait(store, &c.id, 5_000);
+        let _ = launcher::wait(store, &c.id, KILL_WAIT_MS);
     }
     table::update(store, |t| {
         t.containers.retain(|x| x.id != c.id);

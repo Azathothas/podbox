@@ -853,7 +853,7 @@ Source:      issue 215; T-0602 (bounded waits); call C12
 Category:    supervise
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `podvm stop -t 0 NAME` exits 0, prints NAME and leaves the
              container running. `std` refuses a zero read timeout, so
@@ -881,6 +881,20 @@ Prove:       `cargo test -p podvm -p podvm-supervise` exits 0 with tests for
              the parser and the error mapping, and a drive on the cloud host:
              a container that ignores SIGTERM ends at `podvm stop -t 0` and
              `podvm ps` does not list it as running.
+
+**Done 2026-11-09.** `launcher::wait` returns `WaitError::Gone` when no
+launcher answers and `WaitError::Failed` for any other failure, and
+`ended` maps only `Gone` to `Ended::LauncherGone`. A zero bound answers
+`Ended::Bound` at once, so `stop -t 0` sends SIGKILL (call C12). The grace
+parser `grace_ms` refuses an overflow, and the parity row says what zero
+does. `cargo test -p podvm -p podvm-supervise` exits 0 with
+`only_a_gone_launcher_is_a_stopped_container` and
+`the_stop_grace_is_checked_seconds_and_zero_is_valid`; `cargo test
+--workspace` exits 0. [The drive](../experiments/results/stop-t0.txt): a
+detached alpine container that traps SIGTERM shows `Exited (137)` in
+`podvm ps -a` after `podvm stop -t 0 t0`, which exits 0 and says the
+container was killed at once. The image came from `mirror.gcr.io`,
+because Docker Hub and `public.ecr.aws` answered HTTP 429 that day.
 
 **Filed 2026-11-09.** From issue 215 (an outside account). The triage of
 2026-11-09 confirmed each claim at `2be31b2` and found the unchecked

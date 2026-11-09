@@ -1,0 +1,28 @@
+# T-1691: podvm stop -t 0 against a payload that ignores SIGTERM
+# Drive on the cloud host, 2026-11-09, release build of the change.
+# Before the change, stop exited 0 and the container stayed Up (issue 215).
+
+== 2026-11-09T13:49:04Z podvm 0.1.0-beta.13
+710f3da1112f: Extracted (519 entries, 0 whiteouts)
+podvm: 1 of 519 entries carry an id this machine cannot apply; what the image intended is in /root/.local/share/podvm/rootfs/sha256_9db2934886712d877c932e07249c75a59e6ca27adfbccc05261987a17bef2d63/.meta.jsonl
+podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+  extract without ownership and record the intended ids; intended metadata recorded in /root/.local/share/podvm/rootfs/sha256_9db2934886712d877c932e07249c75a59e6ca27adfbccc05261987a17bef2d63/.meta.jsonl
+fe9095e0f5e56165fd77c212f8c7569124dc372743ddac72aa813c50266ca532
+run rc 0
+CONTAINER ID   IMAGE                               COMMAND                CREATED                STATUS   NAMES
+fe9095e0f5e5   mirror.gcr.io/library/alpine:3.22   sh -c trap "" TER...   2026-11-09T13:49:05Z   Up       t0
+== stop -t 0
+podvm stop: t0 was killed at once (-t 0)
+t0
+
+real	0m0.002s
+user	0m0.002s
+sys	0m0.000s
+stop rc 0
+CONTAINER ID   IMAGE                               COMMAND                CREATED                STATUS         NAMES
+fe9095e0f5e5   mirror.gcr.io/library/alpine:3.22   sh -c trap "" TER...   2026-11-09T13:49:05Z   Exited (137)   t0
+== rm
+t0
+rm rc 0
