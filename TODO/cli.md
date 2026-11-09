@@ -1724,7 +1724,8 @@ then this row is the record, and no entry deletes the script.
 Source:      issue 92; issue 114 section 3.3 and section 6 item 7;
              `crates/podvm/src/lifecycle/entry.rs:317`;
              `crates/podvm-enter/src/memfd.rs:199`;
-             `crates/podvm/src/run/prepare.rs:234`
+             `crates/podvm/src/run/prepare.rs:234`;
+             A-V-04 of PodUtils/podcrates#39
 Category:    cli
 Priority:    P2
 Effort:      S
@@ -1777,6 +1778,12 @@ bash: /state/home/noexec-test/t.sh: /bin/sh: bad interpreter: Permission denied
 $ /tmp/sandhome-memexec /state/home/noexec-test/t.sh
 HI
 ```
+
+**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants a Node CI job to run from an OCI image
+with no root. This entry is one step of that chain: the entrypoint of the
+node image is a `#!` script (T-1661). Its clauses do not change. T-1646
+holds the end-to-end clause.
 
 ---
 
@@ -1908,7 +1915,8 @@ F24: a 0700 project made a rootless keep-id container fail to stat it
 
 ### T-1655 The sandbox hardening line: each `run` flag works on the tier or refuses by name
 
-Source:      issue 167; #193; the owner's ruling of 2026-11-06
+Source:      issue 167; #193; the owner's ruling of 2026-11-06;
+             A-V-07, G-12, G-06 of PodUtils/podcrates#39
 Category:    cli
 Priority:    P2
 Effort:      L
@@ -1953,7 +1961,9 @@ Prove:       `cargo test -p podvm` exits 0 with parity tests for each
              while `/workspace` and `/tmp` stay writable, `--user 993:990`
              reports 993 from `id -u` and writes the project, a write past
              `--ulimit fsize` fails with `EFBIG`, and `--memory 128m`
-             refuses by name on a rootfs tier.
+             refuses by name on a rootfs tier, `--ulimit nofile=64` shows in
+             `ulimit -n` in the payload, and `--timeout 2` on `sh -c 'sleep 100 &
+             wait'` ends the whole tree, with each child gone, within 60 s.
 
 **Filed 2026-11-06.** Quoted from issue 167. The host was Debian 13 in an
 unprivileged Incus container, podman 5.4.2, docker 26.1.5, with egress
@@ -1974,6 +1984,19 @@ F33: a cache-hit rebuild keeps Created, so a stale image looked current
 probe matrix vs the bailey baseline: podman-none 307 same / 92 differ,
      docker-none 305 / 86, most in fs (54)
 ```
+
+**Amended 2026-11-09.** The asks A-V-07, G-12 and G-06 of
+PodUtils/podcrates#39 (COORD-015, a message from a peer session) add four
+clauses. First, `--ulimit` takes `nofile`, `nproc`, `cpu`, `as`, `core` and
+`fsize`, each set with `setrlimit` before the exec. A name that the host
+denies refuses by name. Second, `--timeout SECONDS` (podman's spelling) ends
+the whole process tree of the payload, with SIGTERM and then SIGKILL, and it
+reaches a child that left the process group. Third, the run measures the
+peak resident set and the CPU time of the tree from `wait4` and gives them
+to the report of T-1695. Fourth, a run that ended by timeout or by `stop` is
+gone within 60 s: its record and its store directory are removed (G-12). The
+limits come from one source, the profile of T-1654, and the flags amend it.
+The row of `--ulimit` in the parity table moves with the change.
 
 ---
 
@@ -2099,7 +2122,8 @@ killing the client left the container running; leftover containers were
 
 ### T-1661 Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd
 
-Source:      issue 176; #193; the owner's ruling of 2026-11-06
+Source:      issue 176; #193; the owner's ruling of 2026-11-06;
+             A-V-05 of PodUtils/podcrates#39
 Category:    cli
 Priority:    P2
 Effort:      M
@@ -2133,7 +2157,8 @@ Prove:       `cargo test -p podvm` exits 0 with a test that one profile's
              `/workspace`; `deno-permissions` prints `NotCapable` for the
              outside read and for `Deno.env`; `wasmtime-wasi` prints `hello
              from wasi`; `workerd-test` reports `typeof process =
-             undefined`.
+             undefined` and makes no connection: a `fetch` of a public URL from the
+             worker fails.
 
 **Filed 2026-11-06.** Quoted from issue 176:
 
@@ -2150,6 +2175,207 @@ workerd-test: typeof process = undefined; node:fs and node:child_process
                  cannot be imported; [ PASS ] main
 F25: wasmtime and workerd publish no checksum; recorded by hash on first use
 ```
+
+**Amended 2026-11-09.** The ask A-V-05 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants a workerd profile with no network.
+`workerd-test` gets no outbound service in its generated workerd config, and
+`net.ports = []` for the confine layer of T-1658. Where Landlock is absent,
+the profile refuses by name, as T-1658 says. The Chromium half of the ask is
+T-1694.
+
+---
+
+### T-1694 Headless Chromium of Playwright runs as a proven payload with its flags in one profile
+
+Source:      A-V-05 of PodUtils/podcrates#39 (COORD-015); T-1661 (the
+             runtime profiles); T-1655 (the hardening line);
+             T-1658 (the confine layer)
+Category:    cli
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     A browser test job needs headless Chromium, as Playwright
+             starts it. podvm has no profile that says how to start it on
+             a host that denies namespaces, and no proof that it runs.
+             Chromium starts many children, wants a shared-memory
+             directory, and is a large glibc binary. The table refuses a
+             `--tmpfs` and a `--shm-size`, so the usual answer to the
+             shared-memory need does not work.
+Premise:     Chromium's own sandbox needs user namespaces, which the
+             target host denies. Playwright turns it off with
+             `--no-sandbox`. Then the boundary is the confine layer of
+             T-1658 and not the browser. The parity table refuses
+             `--tmpfs` (`crates/podvm/src/parity.rs:258`) and
+             `--shm-size` (`crates/podvm/src/parity.rs:265`). The chain
+             of entries for a large dynamic payload is T-1643 to T-1646,
+             T-1647 and T-1649. No run of Chromium under podvm was
+             measured when this entry was filed.
+Approach:    Add the built-in profile `playwright-chromium` to the T-1654
+             profile table. It sets `--headless`, `--no-sandbox` and
+             `--disable-dev-shm-usage`, which moves the shared memory to
+             a store directory under a size check. It sets `fs.read` and
+             `fs.write` to the paths that the browser needs, and
+             `net.ports = []` unless the profile asks for a proxy. Pick
+             one image with Playwright's Chromium and record its digest
+             after the first run. Measure the first run, name each
+             failure by its filed entry, and refuse by name until the
+             chain works.
+Decision:    `--no-sandbox` is explicit in the profile and in the banner.
+             The profile refuses where the T-1658 layer is absent: it
+             never runs Chromium unconfined. Chromium under podvm is not
+             a boundary against a hostile page. The profile says so.
+Prove:       `cargo test -p podvm` exits 0 with tests
+             `chromium_profile_flags` and `chromium_profile_refuses_without_confine`.
+             `sh experiments/425-chromium.sh` exits 0 on a chroot-denied
+             fixture with the chain of entries done: headless Chromium
+             from the pinned image prints the DOM of a page in
+             `/workspace` with `--dump-dom`, writes a screenshot of more
+             than zero bytes, makes no network connection, and the run
+             leaves no child process.
+
+**Filed 2026-11-09.** From the ask A-V-05 of PodUtils/podcrates#39
+(COORD-015), a message from a peer session, priority P2: "headless
+Chromium of Playwright; a workerd profile with no network". The workerd
+half is in T-1661. The ask is a new capability and nothing documented is
+broken, so the priority is P2.
+
+---
+
+### T-1695 One JSON report for each run, and real labels on records
+
+Source:      A-V-09, A-V-07 and G-06 of PodUtils/podcrates#39 (COORD-015);
+             T-1655 (the peak resident set and the CPU time);
+             T-1319 (one `inspect` document);
+             `crates/podvm/src/parity.rs:253`
+Category:    cli
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     A caller that runs a job under podvm has no machine-readable
+             record of the run. The mechanism that podvm entered is a
+             banner on stderr. The caller cannot read the exit status,
+             the times and the peak memory from one place. `--label` also
+             does nothing: the container record carries no labels, so
+             `ps --filter label=` matches nothing, and a runner cannot
+             find its own jobs.
+Premise:     The `--label` flag is accepted and dropped
+             (`crates/podvm/src/run/parse.rs:196`). The parity table
+             marks it Stub (`crates/podvm/src/parity.rs:253`). The help
+             of `ps` says that a label filter matches nothing
+             (`crates/podvm/src/lifecycle.rs:41`), and so does the help of
+             `images` (`crates/podvm/src/images.rs:106`). The only JSON
+             that podvm writes for a caller today is `probe --json`
+             (`crates/podvm/src/main.rs:352`). The foreground run knows
+             the exit code at its end (`crates/podvm/src/run/foreground.rs:157`)
+             and its start is `crates/podvm/src/run/foreground.rs:186`.
+             The record that `run` prepares is
+             `crates/podvm/src/lifecycle/entry.rs:24`.
+Approach:    Keep each `--label KEY=VALUE` in the container record. Make
+             `ps --filter label=KEY[=VALUE]` and `inspect` use it. Take
+             the labels of an image from its OCI config for `images
+             --filter label=`. Add `run --report PATH`. The run writes
+             exactly one JSON document to PATH, with a rename, also when
+             it refuses before the start. The document holds: a schema
+             version, the podvm version, the image digest, the rung or
+             tier that the run entered and how it was measured, the
+             argument vector, the exit status or the signal, the start
+             and end times, the wall time, the CPU time and the peak
+             resident set of the tree (T-1655), whether a timeout ended
+             the run, the limits applied, the labels, each degradation,
+             and for each secret (T-1696) its target and mode only. An
+             unknown value is `null`.
+Decision:    The report goes to a file, never to standard output: that
+             belongs to the payload. The report holds no value of an
+             environment variable and no secret. One run writes one
+             report, and a runner that wants one report for each job
+             gives each job its own path (G-06). The `--strict` rule that
+             refuses a Stub no longer applies to `--label`, because the
+             flag works. The parity row moves from Stub to Native.
+Prove:       `cargo test -p podvm` exits 0 with tests
+             `label_reaches_ps_filter`, `label_reaches_inspect`,
+             `report_has_every_field` and `report_written_on_refusal`.
+             `sh experiments/426-run-report.sh` exits 0: a run with
+             `--label job=7 --report R.json` leaves one valid JSON file
+             that names the tier, exit 3 for `sh -c 'exit 3'`, a peak
+             resident set above zero, and the label; `ps -a --filter
+             label=job=7` lists the run.
+
+**Filed 2026-11-09.** From the asks A-V-09 (priority P1), A-V-07 and G-06
+of PodUtils/podcrates#39 (COORD-015), a message from a peer session: "a
+JSON report of each run, and real labels", with peak RSS and CPU in the
+report, and one JSON report for each job. The priority is P1 because
+`--label` is a flag that does nothing (the priority rules of
+`TODO/INDEX.md`). The report half alone would be P2.
+
+---
+
+### T-1696 `--secret` places a file with no argv and no env, and a read-once mode
+
+Source:      A-V-11 and G-03 of PodUtils/podcrates#39 (COORD-015);
+             T-1653 (the volume path map); the ruling of 2026-11-09 on
+             test accounts; `crates/podvm/src/run/parse.rs:74`
+Category:    cli
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     A job needs a credential. Today a caller passes it with `-e`,
+             which puts the value in the environment of the payload and
+             of each child, or in a file that a `-v` volume would place.
+             podvm has no flag that places one file, with a mode, for
+             the first process only.
+Premise:     `--env-file` reads a file at parse time
+             (`crates/podvm/src/run/parse.rs:74`, used at
+             `crates/podvm/src/run/parse.rs:177`) and the values go into
+             the environment (`crates/podvm/src/run/prepare.rs:239`). The
+             userland path map is one pair for the root
+             (`crates/podvm-enter/src/userland.rs:313`); T-1653 adds pairs.
+             A foreground run removes its files at the end
+             (`crates/podvm/src/run/foreground.rs:157`). The parity table
+             has no `--secret` row. The interposer is not a boundary, so
+             a claim about "only the runner process" has a limit that the
+             banner must state.
+Approach:    Add `run --secret src=PATH,target=GUEST,mode=0400[,once]`.
+             podvm reads `src` itself. The value never enters argv or the
+             environment. It stages the bytes under the run directory
+             (mode 0700 for the directory, the given mode for the file)
+             and adds one path-map pair from `target` (T-1653). Refuse a
+             `src` that group or other can read, and name its mode. With
+             `once`, the interposer serves the first `open` of `target`
+             from the first process of the payload (the runner) and
+             removes the staged file at once. A child, and any later
+             `open`, gets `ENOENT`. At the end of the run, also after a
+             failure, podvm removes the staged file. `inspect`, `ps`, the
+             banner, the logs and the report (T-1695) show the target and
+             the mode, never the value. The machine tier refuses
+             `--secret` by name until T-1656 carries a per-run file into
+             the guest.
+Decision:    The credential reaches the runner process through a file and
+             nothing else (G-03). A payload that bypasses the libc
+             interposer with raw system calls can read the staged file if
+             it learns its host path. The host path is in no variable, and
+             the banner names this limit. podvm stores no credential
+             between runs. No test account is a CI secret now (the ruling
+             of 2026-11-09), so a live step that needs one waits.
+Prove:       `cargo test -p podvm` exits 0 with tests
+             `secret_spec_parses`, `secret_refuses_group_readable_src`,
+             `secret_value_absent_from_argv_and_env` and
+             `secret_once_second_open_fails`.
+             `sh experiments/427-secret-flag.sh` exits 0 on a
+             chroot-denied fixture: the runner reads the target with mode
+             0400, `/proc/PID/cmdline` and `/proc/PID/environ` of the
+             payload hold no byte of the value, with `once` a second read
+             and a read from a child fail, and the staged file is gone
+             after the run, also after a payload that exits 1.
+
+**Filed 2026-11-09.** From the asks A-V-11 (priority P2) and G-03 of
+PodUtils/podcrates#39 (COORD-015), a message from a peer session:
+"--secret src=,target=,mode=0400 with no argv and no env", with a
+read-once mode, and "the one-job runner credential reaches only the
+runner process". The peer asks for P0 for G-03. The priority stays P2: no
+behaviour of podvm is wrong today, and the flag is new.
 
 ---
 

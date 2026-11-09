@@ -1116,7 +1116,8 @@ matrix vs errand-bailey: podman-none 307 / 92, docker-none 305 / 86,
 Source:      the migration of 2026-11-06 to cloud sessions; issue 114 (the
              target host); `pod_hostprobe::probes`;
              `pod_hostprobe::probes`;
-             `crates/podvm/src/doctor.rs:149`
+             `crates/podvm/src/doctor.rs:149`;
+             A-V-10 of PodUtils/podcrates#39
 Category:    probe
 Priority:    P1
 Effort:      M
@@ -1152,6 +1153,15 @@ Prove:       `sh experiments/424-cloud-host.sh` exits 0 or 1 in the first
              its output and `podvm probe --json` saved under
              `experiments/results/`, and `./target/release/podvm-gate`
              exits 0 with the result file cited here.
+
+**Amended 2026-11-09.** The ask A-V-10 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants a published JSON schema of `podvm probe
+--json`. The ask does not fit the clauses of this entry. This entry saves
+one document and publishes no schema. The saved `podvm probe --json`
+document is the first sample that the schema must accept. The schema belongs
+to podcrates T-107 (the schema of `pod-hostprobe`). No podvm entry takes the
+schema yet. When podcrates T-107 releases it, podvm needs an entry that adds
+a test that the output of `podvm probe --json` validates.
 
 ### T-1689 The non-goal `remedy` follows the stance in the probe JSON
 

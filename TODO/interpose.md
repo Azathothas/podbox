@@ -1964,7 +1964,8 @@ costs no new crate and no new library target.
 Source:      issues 86 and 131 (131 reposts the hidden issue 105);
              issue 114 section 3.1 and section 6 item 5;
              `crates/podvm-interpose/src/map/rewrite.rs:256`;
-             `crates/podvm-interpose/src/stat_calls.rs:342`
+             `crates/podvm-interpose/src/stat_calls.rs:342`;
+             A-V-04 of PodUtils/podcrates#39
 Category:    interpose
 Priority:    P1
 Effort:      M
@@ -2025,6 +2026,12 @@ FileNotFoundError: [Errno 2] No such file or directory: 'etc/hostname'
 static probe: getcwd=/workspace/podvm-ux/store/rootfs/sha256_1667.../rootfs
 ```
 
+**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants a Node CI job to run from an OCI image
+with no root. This entry is one step of that chain: a Node job runs from
+relative paths. Its clauses do not change. T-1646 holds the end-to-end
+clause.
+
 ---
 
 ### T-1644 Admit a glibc payload against its whole NEEDED closure, read inside the rootfs
@@ -2034,7 +2041,8 @@ Source:      issues 87, 128 and 129 (128 and 129 repost the hidden
              item 4; `crates/podvm/src/interpose.rs:281`;
              `crates/podvm-enter/src/abi.rs:293`;
              `crates/podvm-enter/src/abi/search.rs:43`;
-             `crates/podvm-interpose/src/real.rs:44`
+             `crates/podvm-interpose/src/real.rs:44`;
+             A-V-04 of PodUtils/podcrates#39
 Category:    interpose
 Priority:    P1
 Effort:      M
@@ -2106,6 +2114,11 @@ system abi against libdl.so.2    -> 1, `dlsym` not defined
 Issue 128 adds that the absolute `lib64/ld-linux-x86-64.so.2` link
 decided the result for gcc:13, node:20 and golang:1.22.
 
+**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants a Node CI job to run from an OCI image
+with no root. This entry is one step of that chain for a glibc image. Its
+clauses do not change. T-1646 holds the end-to-end clause.
+
 ---
 
 ### T-1645 Intercept `dlopen` and `dlmopen`
@@ -2113,7 +2126,8 @@ decided the result for gcc:13, node:20 and golang:1.22.
 Source:      issue 88; issue 114 section 2 item 4 and section 3.2;
              `crates/podvm-interpose/interpose.map:43`;
              `crates/podvm-interpose/src/stat_calls.rs:200`;
-             `crates/podvm-interpose/src/real.rs:44`
+             `crates/podvm-interpose/src/real.rs:44`;
+             A-V-04 of PodUtils/podcrates#39
 Category:    interpose
 Priority:    P1
 Effort:      M
@@ -2170,6 +2184,12 @@ ImportError: Error loading shared library
 The object is in the rootfs, 26544 bytes, and `open` reads it by the
 same path.
 
+**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants a Node CI job to run from an OCI image
+with no root. This entry is one step of that chain: Node loads native addons
+with `dlopen`. Its clauses do not change. T-1646 holds the end-to-end
+clause.
+
 ---
 
 ### T-1646 A dynamic grandchild re-enters through the host loader
@@ -2178,7 +2198,8 @@ Source:      issues 89 and 127 (127 reposts the hidden issue 95);
              issue 114 section 2 item 2 and section 6 item 3;
              `crates/podvm-interpose/src/stat_calls.rs:200-206`;
              `crates/podvm/src/lifecycle/entry.rs:422`;
-             `experiments/356-no-chroot-rung.sh:376-383`
+             `experiments/356-no-chroot-rung.sh:376-383`;
+             A-V-04 of PodUtils/podcrates#39
 Category:    interpose
 Priority:    P1
 Effort:      L
@@ -2224,7 +2245,10 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              with clause 17 as a gate: `sh -c 'echo a | /bin/cat'` and
              `sh -c '/bin/busybox echo grandchild-ok'` exit 0 on the
              fixture, and `gcc /tmp/h.c -o /tmp/h && /tmp/h` runs at 0 on
-             the gcc image once T-1644 admits it.
+             the gcc image once T-1644 admits it. The script also exits 0 with a
+             Node clause on the same fixture, as an unprivileged user: from the
+             node image, `node --version` prints, and `npm ci` then `npm test` of
+             a fixture project whose `postinstall` script starts a child exit 0.
 
 **Filed 2026-11-06.** Quoted from issue 89 and its review, measured on
 release 0.1.0-beta.12 on the errand host:
@@ -2243,3 +2267,11 @@ STATIC_HELLO pid=17763                           [exit 0]
 Issue 127 rebuilds the hidden issue 95: the same failure seen from the
 child side, plus absolute in-image link targets and `..` that do not
 resolve in the root.
+
+**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants a Node CI job to run from an OCI image
+with no root. This entry is the last step of that chain: `npm` starts
+children. The Prove gains one clause, a Node job from the node image. The
+other entries of the chain (T-1643, T-1644, T-1645, T-1647 and T-1649) keep
+their own clauses.
+

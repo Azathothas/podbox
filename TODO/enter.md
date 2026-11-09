@@ -1337,7 +1337,8 @@ neighbours), a second lane run, and the saved lane log.
 Source:      issue 90; issue 114 section 3.3 and section 6 item 6;
              `crates/podvm-enter/src/ladder.rs:238`;
              `crates/podvm-enter/src/abi/elf.rs:10`;
-             `crates/podvm-enter/src/memfd.rs:108`
+             `crates/podvm-enter/src/memfd.rs:108`;
+             A-V-04 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P1
 Effort:      M
@@ -1392,6 +1393,12 @@ $ /tmp/sandhome-memexec /state/home/noexec-test/zig env
 error: unable to find zig installation directory '/memfd:sandhome (deleted)'
 ```
 
+**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants a Node CI job to run from an OCI image
+with no root. This entry is one step of that chain: the `node` binary is
+over the read ceiling (T-1661). Its clauses do not change. T-1646 holds the
+end-to-end clause.
+
 ---
 
 ### T-1648 A static Go payload runs into a GOROOT error instead of a named refusal
@@ -1400,7 +1407,8 @@ Source:      issue 91; issue 114 section 3.4;
              `crates/podvm/src/lifecycle/entry.rs:333`;
              `crates/podvm/src/lifecycle/entry.rs:357`;
              `crates/podvm/src/interpose.rs:355`;
-             `experiments/356-no-chroot-rung.sh:481`
+             `experiments/356-no-chroot-rung.sh:481`;
+             A-V-04 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P0
 Effort:      S
@@ -1460,6 +1468,11 @@ go version go1.24.13 linux/amd64          # the host path works
 $ podvm exec ... gb /usr/local/go/bin/go build -o /tmp/gohello main.go
 $ ls -l /tmp/gohello                      # 2238818 bytes on the HOST
 ```
+
+**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants a Node CI job to run from an OCI image
+with no root. This entry serves the static tools of such a job, for example
+`go`. It is not on the Node path. Its clauses do not change.
 
 ---
 
@@ -1539,7 +1552,8 @@ openat2(rootfd, "/no/such/file", RESOLVE_IN_ROOT)        -> -1 ENOENT
 Source:      issue 109; issue 114 section 1, section 4 and section 6
              item 1; `crates/podvm-probe/src/select.rs:35`;
              `pod_hostprobe::probes`;
-             `crates/podvm-enter/src/memfd.rs:108`
+             `crates/podvm-enter/src/memfd.rs:108`;
+             A-V-04, G-09 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P2
 Effort:      XL
@@ -1593,6 +1607,18 @@ SUD-CHROOT traps=1 rewritten=1 fd=4 line=NAME="Alpine Linux"
 selector: 0 = SYSCALL_DISPATCH_FILTER_ALLOW, 1 = BLOCK
 ```
 
+**Amended 2026-11-09.** The asks A-V-04 and G-09 of PodUtils/podcrates#39
+(COORD-015, a message from a peer session) touch this entry. A-V-04: this
+rung serves the static tools of a Node CI job. The `node` binary goes
+through the loader family, and T-1646 holds that end-to-end clause. G-09
+wants a container engine inside a unit, for `services:` and Docker actions.
+No rootfs tier can hold an engine: there is no namespace, no mount and no
+bridge. Inside a unit the names `docker` and `podman` answer podvm itself
+(T-0803), so an action that runs one container can work. A `services:`
+network between containers cannot work on a rootfs tier, because the payload
+shares the host network. A real engine runs only in a machine-tier guest,
+where the guest kernel is root (T-1656). This entry changes no clause.
+
 ---
 
 ### T-1653 `-v` volumes on a host with no /dev/fuse and no mount
@@ -1600,7 +1626,8 @@ selector: 0 = SYSCALL_DISPATCH_FILTER_ALLOW, 1 = BLOCK
 Source:      issue 130 (130 reposts the hidden issue 104); issue 114
              section 3.6; `crates/podvm/src/parity.rs:221`;
              `crates/podvm-enter/src/userland.rs:313`;
-             `crates/podvm-interpose/src/map/rewrite.rs:75`
+             `crates/podvm-interpose/src/map/rewrite.rs:75`;
+             A-V-06, G-07 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P2
 Effort:      L
@@ -1637,7 +1664,8 @@ Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm`
              spelling. `sh experiments/356-no-chroot-rung.sh` exits 0 with
              a volume clause on the fixture: a host file reads back at
              the guest path, and a guest write lands in the host
-             directory.
+             directory. A `:ro` volume gives `EROFS` for a guest write and leaves the
+             host file unchanged, once the read-only layer of T-1655 exists.
 
 **Filed 2026-11-06.** Issue 130 rebuilds the hidden issue 104 from
 issue 114, which states the case in one table row:
@@ -1648,6 +1676,18 @@ two-root view (copy regular executables, symlink data back), not an overlay
 references: containers/fuse-overlayfs (needs /dev/fuse), mpartel/bindfs,
 trapexit/mergerfs; sandhome sh_promote_tree copies execs, links the rest
 ```
+
+**Amended 2026-11-09.** The asks A-V-06 and G-07 of PodUtils/podcrates#39
+(COORD-015, a message from a peer session) want `-v HOST:GUEST` through the
+path map, `:ro` with `EROFS`, and caches kept apart for each trust level.
+The path map is the Approach. One clause changes: `:ro` is refused by name
+only until the read-only layer of T-1655 exists. After that, `:ro` maps to
+it, and a guest write fails with `EROFS`. G-07 needs no cache store in
+podvm. podvm keeps no mutable cache between runs. The runner picks one host
+directory for each trust level. It mounts that directory `:rw` for a trusted
+job and `:ro` for an untrusted job. Two jobs of different trust levels never
+share a writable volume source, and the runner is the actor that enforces
+this.
 
 ---
 
@@ -1715,7 +1755,8 @@ F14: runsc refuses rootless create ("Rootless mode not supported with
 
 ### T-1658 A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier
 
-Source:      issue 170; #193; the owner's ruling of 2026-11-06
+Source:      issue 170; #193; the owner's ruling of 2026-11-06;
+             A-V-01 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P2
 Effort:      L
@@ -1774,6 +1815,17 @@ L4: bailey's port rule refuses bind() to a source port outside net.ports
 reference compare: no capabilities, NoNewPrivs 1, seccomp mode 2, every
       namespace and mount call refused; 382 same, 9 differ
 ```
+
+**Amended 2026-11-09.** The ask A-V-01 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants one profile to build the confine layer:
+Landlock, a seccomp deny filter, `PR_SET_NO_NEW_PRIVS` and rlimits. The
+Approach holds each part. Two clauses are new. The rlimit part reads the
+same profile as T-1655, so the limits have one source. A refusal for a
+missing Landlock names the missing facility: Landlock itself, or the ABI
+level that a network rule needs. The library is `pod-confine` (podcrates
+T-108). The peer asks for P0. The priority stays P2, because nothing in
+podvm is wrong without the layer (the priority rules of `TODO/INDEX.md`).
+The owner can change it.
 
 ### T-1688 The memfd rung measures whether a memfd executes, names `vm.memfd_noexec`, and refuses before staging
 

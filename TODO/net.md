@@ -12,7 +12,7 @@ No other area owns the subject. [machine](machine.md) owns the tier
 that hosts a lab, and [cli](cli.md) owns the verbs. The labs, the
 broker and the capture are a network subject on both tiers, and the
 podcrates crates that serve them (`pod-netlab`, `pod-pcap`, `pod-egress`,
-`pod-netstack`) are network crates.
+`pod-broker`, `pod-netstack`) are network crates.
 
 The target host has no network namespace, no `/dev/net/tun`, no root and
 no `CAP_NET_RAW`. Its only way out is an HTTP CONNECT proxy. A lab
@@ -90,7 +90,8 @@ F21: a wildcard-bound UDP server answers from the route's preferred
 
 ### T-1663 Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs
 
-Source:      issue 180; #193; the owner's ruling of 2026-11-06
+Source:      issue 180; #193; the owner's ruling of 2026-11-06;
+             A-V-02 of PodUtils/podcrates#39
 Category:    net
 Priority:    P2
 Effort:      L
@@ -142,6 +143,12 @@ cfrs 0.3.0-beta.8 on a proxy-only host: `cfrs doctor` 2 of 4 edge legs;
 quick-tunnel provisioning hit 429 with Retry-After: 1379 on the eighth
   provision in about 70 minutes
 ```
+
+**Amended 2026-11-09.** The ask A-V-02 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) wants a payload held to one egress. The hold
+is the shared mechanism of this entry and of T-1665: a Syscall User Dispatch
+handler (T-1652) or podnet's `pod`. podcrates T-109 studies the hold of
+podnet. T-1665 holds the clauses of the ask. This entry changes no clause.
 
 ---
 
@@ -203,7 +210,8 @@ not covered: capture inside a cage's own namespace
 
 ### T-1665 An egress broker, and the guest's view of a loopback-only proxy
 
-Source:      issue 184; #193; the owner's ruling of 2026-11-06
+Source:      issue 184; #193; the owner's ruling of 2026-11-06;
+             A-V-02, A-V-03 of PodUtils/podcrates#39
 Category:    net
 Priority:    P2
 Effort:      L
@@ -220,12 +228,13 @@ Premise:     A rootfs-tier payload shares the host network, so a loopback
              unless `restrict=on`; the usernet experiment routes through
              that gateway (`experiments/361-guest-usernet.sh:223`). The
              tree reads no proxy variable today. The issue names podcrates
-             `pod-proxy` and `pod-tls`; podcrates names `pod-egress` for
-             the broker (PodUtils podcrates issue 3).
+             `pod-proxy` and `pod-tls`; podcrates names `pod-broker` for
+             the broker (podcrates T-099, T-100, call C25). `pod-egress` keeps the
+             roads (podcrates T-035).
 Approach:    On the machine tier, rewrite each proxy variable whose host is
              `127.0.0.1`, `localhost` or `::1` to 10.0.2.2, scheme, port and
              credentials byte for byte. Add `--net broker` with `--ports`
-             and `--allow`, built on `pod-egress` and `pod-proxy`, chained
+             and `--allow`, built on `pod-broker` and `pod-proxy`, chained
              to the host proxy. Hold a payload to the broker with a Syscall
              User Dispatch handler that refuses every other `connect`
              (T-1652), or with podnet's `pod`.
@@ -243,7 +252,9 @@ Prove:       `cargo test -p podvm` exits 0 with rewrite tests: a password
              the gateway with credentials intact, `--net broker --ports 443`
              answers 403 for port 22 and for 127.0.0.1, 407 without the
              session credential and 200 for an allowed host, and a payload
-             that ignores the variables cannot reach the network directly.
+             that ignores the variables cannot reach the network directly. A `connect` to a named upstream
+             reaches the broker on its Unix socket, the name resolves to a fake
+             address, and with no holding mechanism the run refuses by name.
 
 **Filed 2026-11-06.** Quoted from issue 184:
 
@@ -262,3 +273,18 @@ F11: the reference report showed CONNECT answering 200 with no credential,
   while errand's document says 407
 busybox wget sent plain HTTP to the proxy and got 404
 ```
+
+**Amended 2026-11-09.** The asks A-V-02 and A-V-03 of PodUtils/podcrates#39
+(COORD-015, a message from a peer session) and the call C25 of podcrates
+change this entry. C25: the broker is the new crate `pod-broker` (podcrates
+T-099, T-100), not `pod-egress`. The Premise and the Approach now name
+`pod-broker`, and `--net broker` uses it. A-V-03 wants the policy of the
+egress proxy of cfb. That policy is an input of `pod-broker`: the allowed
+hosts and ports, the per-run credential, the rule for public hosts and the
+407, 403, 502 and 504 answers. `--net broker` loads it and does not write a
+second copy. A-V-02 wants a payload held to one egress. Each `connect` to a
+named upstream goes to the broker on a Unix socket. A fake DNS answers each
+name with one stable fake address, and the hold maps that address to the
+upstream. When no holding mechanism works, the run refuses by name before
+the start. The Decision already says this.
+

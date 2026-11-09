@@ -1211,7 +1211,8 @@ assert are hard-coded at `experiments/149-podvm-non-goals.sh:95-100`.
 
 ### T-1656 MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG
 
-Source:      issue 168; #193; the owner's ruling of 2026-11-06
+Source:      issue 168; #193; the owner's ruling of 2026-11-06;
+             A-V-08, G-02 of PodUtils/podcrates#39
 Category:    machine
 Priority:    P2
 Effort:      XL
@@ -1248,10 +1249,10 @@ Approach:    Wire `run --podvm-tier=machine` to boot a guest. Cache the base
 Decision:    The banner names the boundary: the emulator process under TCG,
              never hardware. One boot proves nothing about the next: the
              acceptance counts twenty. vsock needs `/dev/vhost-vsock`, so
-             the second channel is a serial or virtio-console port. A
-             guest run on this host stays under the KVM deferral of
-             `TODO/RULES.md` section 11; the TCG leg and a hosted KVM runner
-             carry the proof.
+             the second channel is a serial or virtio-console port. The
+             owner lifted the KVM deferral on 2026-11-09 (`docs/decisions.md`). A
+             guest runs under KVM where `/dev/kvm` opens, and the TCG leg is the
+             proof where it does not.
 Prove:       `cargo test -p podvm` exits 0 with tests for the archive cache
              key and the exit marker parse.
              `sh experiments/412-microvm-boot.sh` exits 0 on a TCG host:
@@ -1260,7 +1261,8 @@ Prove:       `cargo test -p podvm` exits 0 with tests for the archive cache
              reach the command, a second run reuses the base archive, the
              guest fetches a URL through the host's loopback proxy, and a
              file written to `/workspace` is on the host or the run says it
-             is a copy.
+             is a copy. A run that asks for KVM, with `/dev/kvm` closed to the user,
+             refuses by name and does not boot under TCG.
 
 **Filed 2026-11-06.** Quoted from issue 168, measured on an 8 vCPU Incus
 guest with `/dev/kvm` and QEMU 10.0.13:
@@ -1281,17 +1283,30 @@ not built: Firecracker, Cloud Hypervisor (same kernel boots on QEMU
      microvm), Kata (973 MB bundle), microsandbox and smolvm (need /dev/kvm)
 ```
 
+**Amended 2026-11-09.** The asks A-V-08 and G-02 of PodUtils/podcrates#39
+(COORD-015, a message from a peer session) want a microVM from an OCI image
+through `run`, KVM for a user in the group `kvm`, and a unit kind for each
+label with no fallback to a weaker kind. The Approach holds the microVM
+through `run`. Two clauses are new. A run that asks for the machine tier
+never falls back to a rootfs tier. A run that asks for KVM never falls back
+to TCG: when the user cannot open `/dev/kvm` for read and write, the run
+refuses by name, and the message names the group `kvm`. The spelling of the
+request for KVM is the implementer's choice, recorded in this entry. The
+Decision text about the KVM deferral is corrected in place, because the
+owner lifted the deferral.
+
 ---
 
 ### T-1682 A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner
 
-Source:      the migration of 2026-11-06 to cloud sessions; `TODO/RULES.md:137`
-             (the KVM deferral); `experiments/392-kvm-guest.sh:1`;
-             `crates/podvm/src/tier.rs:105`
+Source:      the migration of 2026-11-06 to cloud sessions; `TODO/RULES.md:138`
+             (the KVM deferral lifted); `experiments/392-kvm-guest.sh:1`;
+             `crates/podvm/src/tier.rs:105`;
+             A-V-08 of PodUtils/podcrates#39
 Category:    machine
 Priority:    P2
 Effort:      M
-Status:      blocked
+Status:      open
 
 Problem:     The KVM proof of the machine tier has run only on the
              operator's host. One run there left an emulator that SIGKILL
@@ -1304,19 +1319,27 @@ Premise:     GitHub's hosted Linux runners expose `/dev/kvm` to a job that
              property, not measured here. The KVM guest experiment is
              `experiments/392-kvm-guest.sh`. The machine tier's entry point
              is `enter_machine` (`crates/podvm/src/tier.rs:105`). The
-             operator deferred KVM work (`TODO/RULES.md:137`).
+             owner lifted the KVM deferral of 2026-10-02 on 2026-11-09
+             (`TODO/RULES.md:138`, `docs/decisions.md`).
 Approach:    Add `.github/workflows/kvm.yml`, dispatched by hand. It checks
              for `/dev/kvm`, builds podvm, runs the Linux guest experiment
              with a job timeout and the T-1609 watchdog, and uploads the
              transcript. A missing `/dev/kvm` exits 2, not red as denied.
-Decision:    The deferral governs this entry: no session adds or runs the
-             workflow before the operator lifts it. A hosted runner is the
-             first choice over any session host once it is lifted.
+Decision:    The owner lifted the deferral on 2026-11-09, so a session can add and
+             run the workflow. A hosted runner is the first choice over any
+             session host.
 Prove:       `gh workflow run kvm.yml` starts a run whose guest experiment
              exits 0, with the transcript saved under
              `experiments/results/`, and `./target/release/podvm-gate`
              exits 0 with the result cited.
 
-**Blocked 2026-11-06.** Blocker: the operator's KVM deferral of
-2026-10-02 (`TODO/RULES.md` section 11). Clears when: the operator says
-the KVM work resumes. Nothing else clears it.
+**Blocked 2026-11-06, cleared 2026-11-09.** The blocker was the KVM
+deferral of 2026-10-02 (`TODO/RULES.md` section 11). The owner lifted it
+on 2026-11-09 (`docs/decisions.md`, row "KVM"). Nothing blocks this entry.
+
+**Amended 2026-11-09.** The ask A-V-08 of PodUtils/podcrates#39 (COORD-015,
+a message from a peer session) names KVM for a user in the group `kvm`. This
+entry proves KVM on a hosted runner, where the udev rule gives the job
+access to `/dev/kvm`. The clauses do not change. The Status moves from
+`blocked` to `open`, because the deferral is lifted.
+
