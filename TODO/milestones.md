@@ -1169,3 +1169,35 @@ because it also sweeps the local Python bytecode cache that
 measurements. The three rows counted here carry no such file, so the 81 does not
 reach the gate's own checks.
 
+
+### T-1692 The `windows --podvm-mem` row says what the verb does about `RLIMIT_FSIZE`
+
+Source:      issue 216; T-1305; T-1112
+Category:    windows
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     The parity row of `windows --podvm-mem` says that guest memory
+             is judged against `RLIMIT_FSIZE`. `windows::run` and
+             `windows::dos` never read the limit, and the comment of
+             `windows::run` says why. The contract and the code disagree.
+Premise:     The row is `crates/podvm/src/parity.rs:345`. The only caller of
+             `ceiling()` of `crates/podvm/src/windows/plan.rs:87` is the
+             download (`crates/podvm/src/windows/setup.rs:105`).
+             `crates/podvm/src/windows/run.rs:24` says that the limit does
+             not gate guest memory. The doc comment at
+             `crates/podvm/src/windows/plan.rs:85` misleads too.
+Approach:    Correct the row: guest memory is not judged on this path
+             (anonymous memory, sparse overlay); the ceiling binds the
+             download (`--max-bytes`). Fix the doc comment. Check the
+             `machine ssh` row the same way. Add a test: each row that
+             names `RLIMIT_FSIZE` belongs to a verb whose source reads the
+             limit.
+Decision:    Correct the row; do not add the check. T-1305 judges memory
+             where a memory backing file exists, and here none exists.
+Prove:       `cargo test -p podvm` exits 0, and the new test fails on a
+             planted row.
+
+**Filed 2026-11-09.** From issue 216 (an outside account). The triage of
+2026-11-09 confirmed each claim at `2be31b2`.

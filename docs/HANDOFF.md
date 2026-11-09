@@ -1,67 +1,43 @@
 # Handoff
 
-The state at the end of the first cloud session of 2026-11-06, after the
-move from podbox to podvm and from one Windows checkout to cloud sessions. Read this file
-first, then `AGENTS.md`, `TODO/PROGRESS.md` and `docs/decisions.md`.
+The state on 2026-11-09, after the restart of the podvm session. Read this
+file first, then `AGENTS.md`, `TODO/PROGRESS.md` and `docs/decisions.md`.
 Remove this file when each step below is done.
 
 ## Where things are
 
 * The repository is PodUtils/podvm. GitHub redirects Azathothas/podbox.
   Nobody may create a new Azathothas/podbox: that ends the redirects.
-* The project, the crates, the binaries, the variables and the flags are
-  named podvm (`CHANGELOG.md`, `## Unreleased`, `### Breaking`). Dated
-  records in `docs/history/` and `experiments/results/` keep podbox.
-* The captured reference trees are gone from the tree. Each one is an
-  issue with the label `reference`; `references/README.md` maps them.
-* The untracked material of the old checkout is on the branch
-  `archive/podbox-worktree` (`docs/history/worktree-archive.md`).
-* GitHub hid 41 issue numbers with their author's account
-  (`docs/history/github-hidden-issues-2026-11-06.md`). Five open ones are
-  reposted with the label `recovered` (#127 to #131).
-* The scope of podvm widens to what sand-net does, without root. The
-  topics are the issues with the label `scope`, index #193.
-* `TODO/github.txt` and `TODO/issues.md` mirror the GitHub numbers from
-  #127 on; `.github/workflows/record-issues.yml` checks them each day.
-* The newest release is `v0.1.0-beta.12` of podbox. No podvm release yet.
+* The newest release is `v0.1.0-beta.13`, the last podbox release. The
+  owner allows a beta when it fits (2026-11-09); no crates.io release.
+* podvm takes the crates of PodUtils/podcrates by git tag. podcrates
+  v0.7.0 is out (PodUtils/podcrates#37). podvm took `pod-hostprobe` at
+  `8899c2e`.
+* KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`.
+* A session dispatches the workflows of this repository itself
+  (`AGENTS.md`, section 9, item 5).
+* A cloud session runs `sh scripts/cloud-setup.sh` and puts
+  `$HOME/.local/podvm/zig-x86_64-linux-0.16.0` on `PATH` before a cargo
+  build of a crate with C code.
 
 ## Next steps, in order
 
-1. The first cloud session ran on 2026-11-06: `sh scripts/cloud-setup.sh`
-   exits 0 (zig 0.16.0, Rust 1.99.1, openssh-server). The host is uid 0
-   with no `/dev/kvm`; it permits chroot and `mknod`. Saving the host
-   measurement is T-1670.
-2. T-1669 is `partial`: the pin `1.99` and edition 2024 are on `main`
-   (`75ed306`, `5085c14`); `cargo test --workspace` still fails on the
-   two device tests of T-1686 where `mknod` is permitted.
-3. T-1675 is done: podvm took `pod-term` at `tag = "v0.3.0"` (`75ed306`,
-   COORD-004, #197). Change the tag to `v0.4.0` when podcrates publishes
-   it. The next hand-offs of podcrates are the trials of `pod-tls` with
-   no tokio and `pod-proxy` with the feature `blocking` (T-1676, T-1677).
-4. T-1604 stays `partial`: `4c2cb91` makes `run` check the presence of
-   the blobs, not their hash, and gate run 42177673037 passed the
-   workspace tests; the plant of its Prove remains. Gate run 42179344015
-   at `7f87f24` is green in each job.
-5. T-1687 is `partial` (COORD-006, #200, to podcrates): the Alpine
-   netboot files come from the 3.22.6 archive; a run of
-   `podvm-workload` remains.
-6. Wave M6: podcrates imported `pod-hostprobe` from podvm at `2c03085`
-   (PodUtils/podcrates#11). The 29 files of T-1681 take fixes only, each
-   as a COORD issue `(to podcrates)`. Watch for the other six imports.
-7. COORD-005 (#198): dispatch podcrates' `ci.yml` and `release.yml` from
-   the owner's account when podcrates asks.
-8. T-1674 is done: each `.rs` file outside `vendor/` has 500 lines or
-   fewer, and `check_rust_file_lines` of the gate holds the limit.
-9. The work order of `TODO/PROGRESS.md`: the errand-host cluster
-   (T-1643 to T-1653) first, then the scope entries.
-
-## A workflow that a session cannot start
-
-`AGENTS.md`, section 9, item 5, gives the procedure: an issue titled
-exactly `[gh action] requested`.
+1. T-1687: one `podvm-workload` run whose fetch step reports the pinned
+   sum. On 2026-11-09 `public.ecr.aws` answered the pull with HTTP 429.
+   Close issue 200 with the run.
+2. Take podcrates v0.7.0: the eight `tag = "v0.6.0"` lines, `Cargo.lock`,
+   and `f.io_cause()` in `crates/podvm-image/src/space.rs:52` (call C11).
+   Write the take as a COORD issue `(to podcrates)`.
+3. T-1691 (issue 215) before podcrates imports `pod-supervise` (its T-060).
+4. T-1693, T-1690, T-1692, T-1689, T-1688 (issues 217, 214, 216, 213, 212).
+5. The asks of PodUtils/podcrates#39 (COORD-015): file them as entries or
+   clauses, and answer with a COORD issue `(to podcrates)`.
+6. The work order of `TODO/PROGRESS.md`: T-1648, then the errand-host
+   cluster T-1643 to T-1653.
+7. Each M6 import of podcrates (pod-guest, pod-enter, pod-supervise,
+   pod-oci, pod-extract, pod-rootfs): apply its patch, run its `.run`,
+   commit, COORD issue. podcrates imports from podvm head.
 
 ## Questions for the owner
 
-`docs/decisions.md`, "Questions for the owner": the synchronous face of
-`pod-proxy` and `pod-tls`, the access of the podcrates session (T-040),
-and the source-file size limit.
+None open. `docs/decisions.md` has the calls C12 and C13 of 2026-11-09.

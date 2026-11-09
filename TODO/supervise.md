@@ -846,3 +846,42 @@ hosts.
 **Open 2026-09-30 (history).** Filed from issue 84. Related to T-1411 but
 distinct: that entry owns detached lifecycle where chroot is denied;
 this one owns foreground records on all hosts.
+
+### T-1691 `stop -t 0` is a stop: no grace sends SIGKILL at once, and a failed bound is not a gone launcher
+
+Source:      issue 215; T-0602 (bounded waits); call C12
+Category:    supervise
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     `podvm stop -t 0 NAME` exits 0, prints NAME and leaves the
+             container running. `std` refuses a zero read timeout, so
+             `launcher::wait` returns an error before it sends WAIT, and
+             `wait_or_gone` maps each error to `LauncherGone`. SIGKILL never
+             comes.
+Premise:     The zero comes from `crates/podvm/src/lifecycle/logs_stop.rs:208`,
+             which also multiplies with no overflow check. The early error
+             is `crates/podvm-supervise/src/launcher.rs:66`. The mapping is
+             `crates/podvm-supervise/src/lib.rs:232`, and the comment above
+             it (`crates/podvm-supervise/src/lib.rs:230`) is false. The
+             parity row is `crates/podvm/src/parity.rs:388`. The files of
+             `podvm-supervise` go to `pod-supervise` (podcrates T-060), which
+             podcrates imports after this fix.
+Approach:    1. `launcher::wait` returns a distinct error for "no launcher"
+             and for any other failure. `wait_or_gone` maps only the first
+             to `LauncherGone`; the other reaches the caller.
+             2. `stop` with a zero grace sends SIGKILL at once and reports
+             `killed` (call C12).
+             3. The grace parser is a function with `checked_mul` and unit
+             tests.
+             4. The parity row says what zero does.
+Decision:    Call C12: `-t 0` means SIGKILL now, as docker does.
+Prove:       `cargo test -p podvm -p podvm-supervise` exits 0 with tests for
+             the parser and the error mapping, and a drive on the cloud host:
+             a container that ignores SIGTERM ends at `podvm stop -t 0` and
+             `podvm ps` does not list it as running.
+
+**Filed 2026-11-09.** From issue 215 (an outside account). The triage of
+2026-11-09 confirmed each claim at `2be31b2` and found the unchecked
+multiply.

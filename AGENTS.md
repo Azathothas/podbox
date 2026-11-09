@@ -37,8 +37,9 @@ everything must be statically compiled." (the owner, 2026-11-05)
   "static build, no PT_INTERP").
 * No compatibility with released binaries. The `podbox` names, the
   `PODBOX_*` variables and the `--podbox-*` flags are gone.
-* KVM and Windows-guest work is deferred: no session starts a KVM guest
-  until the owner lifts it (`TODO/RULES.md`, section 11).
+* KVM is free (the owner, 2026-11-09): a session can start a KVM guest
+  where `/dev/kvm` exists. Bound each guest with a timeout, and make sure
+  that no emulator stays after the run.
 * `docs/decisions.md` and `TODO/RULES.md`, section 11, have each ruling.
 
 ## 3. Git
@@ -103,7 +104,8 @@ The project is 0BSD. Carried material keeps its own terms
   go around it.
 * `podvm-plant` plants defects in the live tree and restores them. Do not
   edit or `git add` while it runs.
-* No subagent starts a KVM guest or an emulator.
+* A subagent starts a KVM guest or an emulator only when its brief says
+  so. One guest runs at a time, with a timeout.
 
 ## 8. The start of a session
 
@@ -117,9 +119,11 @@ The project is 0BSD. Carried material keeps its own terms
    does not know is the first task.
 5. Start the watcher of the organization (section 9) under the Monitor
    tool.
-6. Build the record tools: `cargo build --release -p podvm-gate`
-   (on Windows add `--target x86_64-pc-windows-msvc`), then run
-   `./target/release/podvm-gate`. Read each exit code without a pipe.
+6. Run `sh scripts/cloud-setup.sh` (zig and the toolchain), and put
+   `$HOME/.local/podvm/zig-x86_64-linux-0.16.0` on `PATH`. Build the record
+   tools: `cargo build --release -p podvm-gate -p podvm-release`, then run
+   `./target/x86_64-unknown-linux-musl/release/podvm-gate` (the workspace
+   builds musl, `.cargo/config.toml`). Read each exit code without a pipe.
 
 ## 9. Talk with the other sessions of PodUtils
 
@@ -165,29 +169,11 @@ watches them.
      `taken` line ends the freeze. Write each fix of a frozen file as a
      COORD issue `(to podcrates)`, so that podcrates ports it.
 
-5. To start a workflow that a cloud session cannot start (GitHub Actions is
-   disabled for its pushing account, or it may not push a tag), open a NEW
-   issue in this repository titled exactly `[gh action] requested`, one for
-   each run. The owner's local agent that runs it is a smaller model (the
-   owner, 2026-11-06), so the body holds nothing that needs judgement:
-
-   * one line that says why;
-   * ONE `sh` block: `set -e` first, each `gh` command in full (`-R
-     OWNER/NAME` and every flag), and a last line that echoes the run ids;
-   * the closing sentence: "Run the block as it is, once. Then write here:
-     the output of the last line, or the line where it stopped and its
-     error."
-
-   Never amend the block of an open request, and never add a second block
-   in a comment: close the issue and open a new one. If the block checks
-   the head of `main`, push nothing to `main` until it ran. Example block:
-
-   ```sh
-   set -e
-   gh workflow run gate.yml -R PodUtils/podvm --ref main
-   sleep 10
-   echo "run ids: $(gh run list -R PodUtils/podvm --workflow gate.yml --branch main --limit 1 --json databaseId --jq '.[].databaseId')"
-   ```
+5. A session dispatches the workflows of this repository itself, with the
+   GitHub tool `actions_run_trigger` (the owner's account), and reads the
+   run with `actions_list` and `get_job_logs`. The issues titled
+   `[gh action] requested` are superseded (`docs/decisions.md`,
+   2026-11-09, "Workflow dispatch").
 
 ## 10. Decisions
 
@@ -203,8 +189,8 @@ watches them.
 * `TODO/` is the plan. Each work item is an entry `T-NNNN` in an area
   file. `TODO/RULES.md` gives the format; `TODO/INDEX.md` lists each entry;
   `TODO/PROGRESS.md` gives the state and the only work order.
-* `./target/release/podvm-gate` checks the record and the tree;
-  `./target/release/podvm-count` derives the counts. Do not edit a count
+* `./target/x86_64-unknown-linux-musl/release/podvm-gate` checks the record and the tree;
+  `./target/x86_64-unknown-linux-musl/release/podvm-count` derives the counts. Do not edit a count
   by hand.
 * GitHub issues are an inbox. Each new issue becomes one or more entries;
   `TODO/issues.md` and `TODO/github.txt` map it, in the same commit.
@@ -220,7 +206,7 @@ watches them.
 ```sh
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings      # Linux, or CI
-./target/release/podvm-gate
+./target/x86_64-unknown-linux-musl/release/podvm-gate
 sh scripts/common/check-gate.sh
 ```
 
@@ -242,7 +228,7 @@ Read each named page in full. Read the union when two rows apply.
 | Implement a task | Its `TODO/` entry; [Gate](docs/methodology/gate.md); [Code](docs/conventions/code.md); [Patterns](docs/conventions/forbidden-patterns.md) |
 | Author work or fix a defect | [Authoring](docs/methodology/authoring.md); [TODO rules](TODO/RULES.md) |
 | Take a measurement | [Experiments](docs/methodology/experiments.md); a related experiment |
-| Add a check | [Gate](docs/methodology/gate.md); `./target/release/podvm-plant` |
+| Add a check | [Gate](docs/methodology/gate.md); `./target/x86_64-unknown-linux-musl/release/podvm-plant` |
 | Study another repository | [References](docs/methodology/references.md); [Reference map](TODO/reference-map.md) |
 | Change carried source | [Vendoring](docs/methodology/vendoring.md); [Third-party notice](THIRD_PARTY.md) |
 | Edit a document | [Prose](docs/conventions/prose.md); [Document roles](docs/conventions/docs.md) |

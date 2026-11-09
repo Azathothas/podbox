@@ -361,10 +361,16 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1685](gate.md) | P2 | gate | open | A maintenance page and a development page in the sibling form |
 | [T-1686](complete.md) | P2 | complete | done | The device tests of a stand-in fail where `mknod` is permitted |
 | [T-1687](deps.md) | P2 | deps | partial | Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive |
+| [T-1688](enter.md) | P2 | enter | open | The memfd rung measures whether a memfd executes, names `vm.memfd_noexec`, and refuses before staging |
+| [T-1689](probe.md) | P2 | probe | open | The non-goal `remedy` follows the stance in the probe JSON |
+| [T-1690](cli.md) | P2 | cli | open | The doctor disk-free row judges the soft `RLIMIT_FSIZE` |
+| [T-1691](supervise.md) | P1 | supervise | open | `stop -t 0` is a stop: no grace sends SIGKILL at once, and a failed bound is not a gone launcher |
+| [T-1692](milestones.md) | P2 | windows | open | The `windows --podvm-mem` row says what the verb does about `RLIMIT_FSIZE` |
+| [T-1693](packaging.md) | P2 | packaging | open | README and SECURITY name the last podbox tag that the verifier uses |
 
 ## Counts
 
-296 items: 32 open, 11 partial, 5 blocked, 248 done.
+302 items: 38 open, 11 partial, 5 blocked, 248 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -373,10 +379,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 1 | 1 | 0 | 62 | 64 |
-| P1 | 7 | 8 | 0 | 118 | 133 |
-| P2 | 24 | 2 | 5 | 59 | 90 |
+| P1 | 8 | 8 | 0 | 118 | 134 |
+| P2 | 29 | 2 | 5 | 59 | 95 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **32** | **11** | **5** | **248** | **296** |
+| **All** | **38** | **11** | **5** | **248** | **302** |
 
 ## Work order
 

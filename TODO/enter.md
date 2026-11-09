@@ -1774,3 +1774,48 @@ L4: bailey's port rule refuses bind() to a source port outside net.ports
 reference compare: no capabilities, NoNewPrivs 1, seccomp mode 2, every
       namespace and mount call refused; 382 same, 9 differ
 ```
+
+### T-1688 The memfd rung measures whether a memfd executes, names `vm.memfd_noexec`, and refuses before staging
+
+Source:      issue 212; T-1667 (the doctor row shape); T-1003 (the fd exec)
+Category:    enter
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     `kernel_takes_memfd()` proves that `memfd_create` answers, not
+             that the descriptor executes. Under `vm.memfd_noexec=1` the
+             ladder promises the memfd rung and the launch fails at step 5,
+             "execveat of the memfd". Under `vm.memfd_noexec=2` the entry
+             refuses with a text that does not name the sysctl. `podvm
+             doctor` has no row for it.
+Premise:     The probe is `crates/podvm-enter/src/memfd.rs:90`: it creates
+             and closes a memfd and never executes one. The callers are
+             `crates/podvm/src/ladder.rs:202` and
+             `crates/podvm/src/lifecycle/entry.rs:336`. The late step is
+             `crates/podvm-enter/src/launch.rs:349`. The census row
+             `memfd_create+exec` of `pod_hostprobe::probes` runs a shell
+             script through `/proc/self/fd/N`, not `execveat` of a static
+             payload, and podvm does not read it. Under value 2, `MFD_EXEC`
+             is denied too, so "pass `MFD_EXEC`" (the issue) fixes value 1
+             only.
+Approach:    Add one probe in `podvm-enter`: create a memfd, write a small
+             static trampoline, fork, `execveat` it, read the exit status.
+             It returns `Exec`, `NoExec` (with the sysctl value when
+             `/proc/sys/vm/memfd_noexec` is readable) or `NoMemfd`. The
+             doctor row `memfd_exec`, the ladder and the entry check read
+             this one probe. The refusal comes before staging and names the
+             sysctl, with a fix line for each value: 1 allows `MFD_EXEC`; 2
+             needs the sysctl set to 0 or another rung.
+Decision:    The doctor row and the refusal read one probe, so they cannot
+             disagree. A denial with no readable sysctl reads as "denied,
+             cause unknown", not as the sysctl.
+Prove:       `cargo test -p podvm-enter -p podvm` exits 0 with tests for the
+             pure mapping (measured result and sysctl value to the answer
+             and the fix line), and `podvm doctor` prints the row
+             `memfd_exec` on the cloud host.
+
+**Filed 2026-11-09.** From issue 212 (the owner). The triage of
+2026-11-09 confirmed each claim at `2be31b2` and corrected two: the census
+row exists in `pod-hostprobe` but tests another exec path, and `MFD_EXEC`
+does not help under value 2.

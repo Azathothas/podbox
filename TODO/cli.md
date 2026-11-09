@@ -2208,3 +2208,39 @@ F26: `pasta --version` succeeding does not mean pasta works
 F31: a run failed with "no space left on device" at 188 MiB free; the
      disk guard warns below 1 GiB and refuses below 64 MiB
 ```
+
+### T-1690 The doctor disk-free row judges the soft `RLIMIT_FSIZE`
+
+Source:      issue 214; T-1301 leg 3; T-1305
+Category:    cli
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     `podvm doctor` reads the hard `RLIMIT_FSIZE` in the row "disk
+             free against the file-size ceiling". The kernel raises SIGXFSZ
+             at the soft limit, and each other reader of the limit reads
+             the soft one. With a soft limit of 1 GB and a hard limit of
+             infinity, doctor prints a note and exits 0, and a machine-tier
+             run refuses on the same host.
+Premise:     `crates/podvm/src/doctor.rs:317` keeps the hard limit. The
+             infinity test is at `crates/podvm/src/doctor.rs:329` and the
+             comparison at `crates/podvm/src/doctor.rs:343`. The soft
+             readers are `crates/podvm/src/tier.rs:114`,
+             `crates/podvm/src/machine/ssh/qemu.rs:260`,
+             `crates/podvm/src/windows/plan.rs:88`,
+             `crates/podvm-probe/src/nongoals.rs:190` and
+             `pod_hostprobe::space`. The function reads `prlimit` itself, so
+             a test cannot drive it.
+Approach:    Keep the soft limit and use it for the infinity test and the
+             comparison. Print the hard limit as well when it differs. Move
+             the judgement into a pure function over the soft limit, the
+             hard limit and the free bytes.
+Decision:    The enforced bound is the soft limit. Doctor and the machine
+             tier print the same number on one machine.
+Prove:       `cargo test -p podvm` exits 0 with tests: a soft 1 GB and a
+             hard infinity give the 1 GB ceiling; the same limits with less
+             free space fail with a fix line; both infinite stay a note.
+
+**Filed 2026-11-09.** From issue 214 (an outside account). The triage of
+2026-11-09 confirmed each claim at `2be31b2`.

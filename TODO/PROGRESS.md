@@ -2,13 +2,13 @@
 
 ## State
 
-296 entries: 32 open, 11 partial, 5 blocked, 248 done.
+302 entries: 38 open, 11 partial, 5 blocked, 248 done.
 
 The project was renamed from podbox to podvm on 2026-11-06 (commit
 `rename: podbox is podvm`): entries closed before that commit ran their
 commands under the name podbox, and the record now spells them as podvm.
 
-**Thirty-three entries are `open` and ten are `blocked`.** T-1643
+**The open and blocked entries:** T-1643
 through T-1653 are item 13 of the work order, T-1654 through T-1668
 item 14, and the migration follow-ups T-1669 through T-1685 item 15;
 each blocked entry names its blocker and the condition that clears it.
@@ -150,16 +150,10 @@ keeps its historical scope. It does not establish current reliability.
    T-1612 are done. T-1607 is `partial`: the plan's named 21 are in the
    record, the other 29 are not. T-1606 is `partial`: the map is
    repointed, the `path:line` mechanism citations are not.
-9. ⛔ **THREE ENTRIES ARE DEFERRED BY THE OPERATOR. Do not start a KVM
-   guest, and do not attempt any of this work, until the operator lifts
-   it.** T-1641, T-1112 and T-1350 are set aside. This overrides the
-   "no deferrals" rule in `TODO/RULES.md` section 11 for exactly these
-   three and nothing else. The clearing condition is the operator saying
-   the KVM work resumes: not elapsed time, not a green record, and not
-   an agent's judgement that the work is ready. They stay `partial` and
-   each keeps its remaining acceptance below, so nothing is lost and no
-   session re-derives the state. The other seven partials are the live
-   work order.
+9. The KVM deferral of 2026-10-02 is lifted (the owner, 2026-11-09,
+   `docs/decisions.md`). T-1641, T-1112, T-1350 and T-1682 are free: a
+   session takes them on a host with `/dev/kvm`. The cloud host of
+   2026-11-09 has no `/dev/kvm`; item 11 keeps their state.
 10. The seven live partials are T-0204 (a store GC cannot delete a
     running rootfs), T-0211 (the image lock outlives a forking holder),
     T-1406 (live-relay pairing), T-1604 (the lane run),
@@ -167,7 +161,7 @@ keeps its historical scope. It does not establish current reliability.
     T-1607 (29 unfiled plan rows). T-1604's lane run is the nearest and
     needs no guest: `cargo test -p podvm --test detached_stdio`
     through `sh scripts/dev-lane.sh`.
-11. The three deferred entries carry this state, so a later session does
+11. The three formerly deferred entries carry this state, so a later session does
     not re-derive it. T-1641 implemented all three fixes and had two of
     its stated causes refuted in source; it owes one guarded KVM run,
     whose binary the lane builds in about a minute. T-1350 was driven
@@ -212,10 +206,17 @@ keeps its historical scope. It does not establish current reliability.
     podcrates release, and T-1681 hands over
     the seven generic crates on podcrates' import. T-1672 moves the
     record to the pod-todo format on that crate's release, and T-1682
-    waits for the KVM deferral of item 9 to lift. T-1674 is open and P1
+    is free since the lift of item 9 and needs a runner with `/dev/kvm`. T-1674 is open and P1
     since the owner's ruling of 2026-11-06: split every `.rs` file to
     500 lines, the M6 crates first, before other work, then hold the
     limit in the gate.
+
+16. T-1688 through T-1693 are `open`, filed on 2026-11-09 from the issues
+    212 to 217; the triage confirmed each claim at `2be31b2`. They come
+    before item 13: T-1691 first (P1, the `podvm-supervise` part before
+    podcrates imports `pod-supervise`), then T-1693, T-1690, T-1692,
+    T-1689 and T-1688. Before them: T-1687 (one `podvm-workload` run) and
+    the take of podcrates v0.7.0 (PodUtils/podcrates#37).
 
 An agent may start a KVM guest unattended by passing both
 `--accept-host-risk` and `--unattended`; the driver then holds a T-1609

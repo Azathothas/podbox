@@ -28,8 +28,11 @@ before; they stay in force where no row here supersedes them.
 | 2026-11-06 | GitHub | The protection of `main` is removed, as in the sibling repositories. The repository description and topics follow the scope. Dependabot updates are applied as own commits and their pull requests closed with a link. |
 | 2026-11-06 | File size | Each Rust source file outside `vendor/` has at most 500 lines, with no allowlist, as in podcrates. Every larger file is split now, before other work (the owner: "500, split everything now"). T-1674. |
 | 2026-11-06 | Synchronous face | podvm takes `pod-tls` with `default-features = false` and `pod-proxy` with its feature `blocking`, as podcrates built them (PodUtils/podcrates#4, its call C20); no tokio in podvm's own code. |
-| 2026-11-06 | GitHub Actions of podcrates | GitHub Actions is disabled for the account that the podcrates session pushes with, so a push there starts no workflow. Until the owner resolves it, the owner's account dispatches podcrates' `ci.yml` and `release.yml` by `workflow_dispatch` (COORD-005). |
-| 2026-11-06 | Workflow requests | A session that needs a workflow run it cannot start opens an issue titled `[gh action] requested` with the exact `gh` commands in its body; the owner's local agent runs them and writes back the run ids. |
+| 2026-11-09 | KVM | The owner lifts the KVM deferral of podvm fully: a session can start a KVM guest where `/dev/kvm` exists (podcrates docs/decisions.md, 2026-11-09, Q-A6). T-1112, T-1350, T-1641 and T-1682 are free. |
+| 2026-11-09 | Releases | "everyone can release betas whenever needed/fits, but no crates io release". podvm can cut a beta when it fits; no crate goes to crates.io now. |
+| 2026-11-09 | New projects | Each project that PodUtils/podcrates#35 and #36 propose gets its own repository of PodUtils; `podrunner` runs podvm as a unit kind. podvm does not grow those projects. |
+| 2026-11-09 | Test accounts | "Not now". No Cloudflare, Zero Trust or GitHub test account as a CI secret. A live step that needs one waits; offline tests stay. |
+| 2026-11-09 | Workflow dispatch | A session dispatches the workflows of this repository itself, with the GitHub tool `actions_run_trigger` (the owner's account). The issues `[gh action] requested` and COORD-005 (#198) are superseded. |
 
 ## Calls made without a ruling
 
@@ -48,6 +51,8 @@ Each call stays in force until the owner rules otherwise.
 | 2026-11-06 | C9 | podvm takes `pod-tls` 0.4.0 with `default-features = false` and accepts its three changes of behaviour: podvm-ssh trusts the first usable host bundle and the compiled-in roots together; a bundle with a block that is not valid base64 is skipped whole; the TLS handshake of the relay runs in `Tls::connect`, before the WebSocket upgrade, with the write bound set before it. The hint of `pod-tls` that names a CA file "which replace podvm's roots" is podcrates' known gap (PodUtils/podcrates#7); podvm waits for its fix. |
 | 2026-11-06 | C10 | podvm takes `pod-proxy` with feature `blocking` for each HTTP request and both relay legs (PodUtils/podcrates#9 and #13), under the ruling "Synchronous face": the private current-thread runtime of `pod-proxy` brings tokio into the binaries, never into podvm's own code. ureq leaves; the release `podvm` shrinks by 36 KiB, `node` grows by 236 KiB. An unusable proxy variable fails the dial with a named error; a proxy at a command (`+exec:`) is refused. `HTTP_PROXY` is not read for a plain-HTTP insecure registry until podcrates T-075; each request takes a new connection until podcrates T-077. This call replaced its first form ("never into the `podvm` binary") on the same day, when the registry moved to `pod-proxy`. |
 | 2026-11-06 | C11 | podvm takes `pod-hostprobe` 0.6.0 (PodUtils/podcrates#17): `podvm-probe` keeps its report, `exit`, `json`, `nongoals` and its settings, and re-exports the crate's modules, so each other crate keeps its `podvm_probe::X` paths. podvm accepts that the noexec detail says "move the directory off this filesystem", that `podvm-probe` pulls `pod-core`, and the glue that maps a `Failure` back to podvm's errors by a downcast until podcrates T-081. The workspace pins of `syscalls` and `linux-raw-sys` leave with the syscall layer. |
+| 2026-11-09 | C12 | `podvm stop -t 0` sends SIGKILL at once, as docker does (T-1691, issue 215). A negative value stays refused. |
+| 2026-11-09 | C13 | On an open row of the probe JSON, the non-goal `remedy` is an empty string; the key stays (T-1689, issue 213). |
 
 ## Questions for the owner
 
@@ -62,3 +67,6 @@ face (podcrates gave it, PodUtils/podcrates#4), the access of T-040
 | --- | --- | --- |
 | 2026-10-02 | Windows route is wsl-toolkit, instance podbox (`TODO/RULES.md`, section 11). | Cloud sessions (2026-11-06); the parked lane uses the instance `podvm` (C4). |
 | 2026-10-02 | `references/` stays, and the repoint is filed as work (T-1606). | References (2026-11-06). |
+| 2026-11-06 | GitHub Actions is disabled for the account that the podcrates session pushes with, so a push there starts no workflow. Until the owner resolves it, the owner's account dispatches podcrates' `ci.yml` and `release.yml` by `workflow_dispatch` (COORD-005). | | 2026-11-09, Workflow dispatch. |
+| 2026-11-06 | A session that needs a workflow run it cannot start opens an issue titled `[gh action] requested` with the exact `gh` commands in its body; the owner's local agent runs them and writes back the run ids. | | 2026-11-09, Workflow dispatch. |
+| 2026-10-02 | KVM and Windows-guest work is deferred; no session starts a KVM guest (`TODO/RULES.md`, section 11). | 2026-11-09, KVM. |

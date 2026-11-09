@@ -1689,6 +1689,16 @@ default download timeout is 600 s. The helper gave the two pinned sums
 2026-11-06. `cargo test -p podvm-measure` and its clippy exit 0, and
 each changed script parses with `sh -n`.
 COORD-006 (issue 200) writes the fix of the frozen lines to podcrates.
+
+**Still partial, 2026-11-09.** A fresh download on the cloud host through
+`experiments/lib/alpine-netboot.sh` gave the archive SHA-256
+`74ff3dd7...c267` (301,555,932 bytes) and the two pinned sums,
+`6b58e5d7...5d51` for `vmlinuz-virt` and `9a5252fa...c30f` for
+`modloop-virt`. `podvm-workload` ran with qemu 8.2.2 present; clause 2
+failed before the fetch step, because `public.ecr.aws` answered the pull
+with `HTTP 429: TOOMANYREQUESTS: Data limit exceeded`. Remaining: one
+`podvm-workload` run whose fetch step reports the pinned sum. podcrates
+closed its issue 6 on the evidence of 5209adb.
 Remaining: a run of `podvm-workload` whose fetch step reports the pinned
 kernel sum.
 

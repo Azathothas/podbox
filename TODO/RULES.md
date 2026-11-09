@@ -135,7 +135,7 @@ Do not invent a finding to satisfy a review quota.
 | Everything the KVM proof needs is installed into `wsl-toolkit-podvm`. The Windows host qemu is never touched, used, or invoked, even where a host binary would answer the question. The qemu/OVMF installs left with the removed base and must be redone before T-1112 resumes. | Operator, 2026-10-02; T-1610 |
 | ReactOS is descoped, not deferred. Proving podvm against a beta operating system is proving against a moving target, and it is low priority. T-1112 closes on its KVM leg. | Operator, 2026-10-02; T-1112 |
 | Work unattended to completion. Use subagents and swarms where they help; do not stop to ask about anything already settled in section 11 or section 2. Take the work order, finish it, and leave the record green. | Operator, 2026-10-02 |
-| ⭐ **KVM and Windows-guest work is deferred, not cancelled.** T-1641, T-1112 and T-1350 are set aside and no session may start a KVM guest until the operator lifts this. It overrides the "no deferrals" rule above for exactly these three entries and nothing else. **Clearing condition:** the operator says the KVM work resumes. Nothing else clears it, no amount of elapsed time clears it, and a green record does not clear it. Until then each entry stays `partial` and names its remaining acceptance, which is recorded and not lost. | Operator, 2026-10-02 |
+| KVM is free. The deferral of 2026-10-02 (T-1641, T-1112, T-1350) is lifted fully: a session can start a KVM guest where `/dev/kvm` exists. | Owner, 2026-11-09; `docs/decisions.md` |
 
 ## 12. Subagents and parallel work
 

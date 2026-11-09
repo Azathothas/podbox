@@ -1236,3 +1236,33 @@ Prove:       `gh workflow run release.yml -f version=0.2.0-beta.1` starts a
              run that exits green, and `gh release view v0.2.0-beta.1`
              lists the seven static binaries with their hashes and
              signatures and a `## Breaking` section in its notes.
+
+### T-1693 README and SECURITY name the last podbox tag that the verifier uses
+
+Source:      issue 217; T-1605
+Category:    packaging
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     `README.md` and `SECURITY.md` say "podbox up to beta.13" and
+             then "`podbox-*` assets up to beta.12". The verifier and the
+             changelog use beta.13. An operator who follows the README looks
+             for podvm assets of beta.13 and finds none.
+Premise:     `crates/podvm-release/src/identity.rs:15` sets
+             `LAST_PODBOX_BETA` to 13. The tag `v0.1.0-beta.13` exists and
+             is older than the rename. The wrong lines are `README.md:112`
+             and `SECURITY.md:66`. `CHANGELOG.md:40` agrees with the code.
+Approach:    One sentence in each document: `v0.1.0-beta.13` is the last
+             podbox release, each later tag is a podvm release, and
+             `podvm-verify` decides from the tag. A test of
+             `podvm-release` reads both documents and refuses a tag that is
+             not `LAST_PODBOX_BETA`. The failure line of
+             `crates/podvm-release/src/verify.rs:143` names the identity of
+             the tag.
+Decision:    The code is the source of truth: the tag is published.
+Prove:       `cargo test -p podvm-release` exits 0, and the new test fails
+             on a planted `beta.12`.
+
+**Filed 2026-11-09.** From issue 217 (an outside account). The triage of
+2026-11-09 confirmed each claim at `2be31b2`.

@@ -1152,3 +1152,41 @@ Prove:       `sh experiments/424-cloud-host.sh` exits 0 or 1 in the first
              its output and `podvm probe --json` saved under
              `experiments/results/`, and `./target/release/podvm-gate`
              exits 0 with the result file cited here.
+
+### T-1689 The non-goal `remedy` follows the stance in the probe JSON
+
+Source:      issue 213; T-1306 (the non-goals); call C13
+Category:    probe
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     `podvm probe --json` writes the fixed refusal remedy of each
+             non-goal on every stance. On an open row, "no TCP listener
+             here" and "ptrace denied here" contradict the row's own
+             `stance`. On the ceiling row, an open stance still says "size
+             guests under the ceiling". The stderr block prints `detail`
+             only and is correct. No check reads `remedy`.
+Premise:     `refused`, `open` and `unestablished` copy `def.remedy`
+             (`crates/podvm-probe/src/nongoals.rs:125`,
+             `crates/podvm-probe/src/nongoals.rs:135`,
+             `crates/podvm-probe/src/nongoals.rs:145`), and so does
+             `assess_ceiling` (`crates/podvm-probe/src/nongoals.rs:193`,
+             `crates/podvm-probe/src/nongoals.rs:203`).
+             `crates/podvm-probe/src/report/document.rs:277` writes it for
+             every row. The test at `crates/podvm-probe/src/nongoals.rs:280`
+             reads `detail` only. T-1306 is done and stays done.
+Approach:    The refused row keeps the remedy. The open row has an empty
+             `remedy` (call C13). The unestablished row names what settles
+             it. Rename the field of `DEFS` to `refusal_remedy`. Change
+             `assess_ceiling` the same way. Extend the unit test to the
+             open and the unestablished stances.
+Decision:    A field that a caller reads as advice holds only what the
+             stance supports. The JSON key stays, so a reader keeps working.
+Prove:       `cargo test -p podvm-probe` exits 0 with tests: an open row
+             has an empty remedy, an unestablished row's remedy names a
+             settling step, and a refused row's remedy is in its detail.
+
+**Filed 2026-11-09.** From issue 213 (an outside account). The triage of
+2026-11-09 confirmed each claim at `2be31b2`. The fix is in podvm:
+`pod-hostprobe` has no non-goals.
