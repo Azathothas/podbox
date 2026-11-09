@@ -47,8 +47,11 @@ pub const RUN_OPTIONS: &str = "\
                    podvm's own, userland rung only: opt into the
                    pass-through with no PODVM_MAPS anchoring, so absolute
                    guest paths resolve on the host and a write lands on
-                   the host tree. Banner-named, and --strict refuses
-                   (TODO/enter.md T-1407)
+                   the host tree. Where chroot is denied, a static payload
+                   runs on the memfd family only with this flag, and
+                   refuses at 125 without it (TODO/enter.md T-1648). The
+                   host-root line prints even under -q, and --strict
+                   refuses (TODO/enter.md T-1407)
   -u, --user U:G   run as this identity: numeric uid and gid, or names from
                    the image's own passwd and group files. The requested id
                    is answered through the interposer identity memo for a

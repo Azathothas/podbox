@@ -321,7 +321,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1645](interpose.md) | P1 | interpose | open | Intercept `dlopen` and `dlmopen` |
 | [T-1646](interpose.md) | P1 | interpose | open | A dynamic grandchild re-enters through the host loader |
 | [T-1647](enter.md) | P1 | enter | open | Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes |
-| [T-1648](enter.md) | P0 | enter | open | A static Go payload runs into a GOROOT error instead of a named refusal |
+| [T-1648](enter.md) | P0 | enter | partial | A static Go payload runs into a GOROOT error instead of a named refusal |
 | [T-1649](cli.md) | P2 | cli | open | A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out |
 | [T-1650](cli.md) | P1 | cli | open | `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run |
 | [T-1651](enter.md) | P2 | enter | open | An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads |
@@ -373,7 +373,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-305 items: 36 open, 11 partial, 4 blocked, 254 done.
+305 items: 35 open, 12 partial, 4 blocked, 254 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -381,11 +381,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 1 | 1 | 0 | 62 | 64 |
+| P0 | 0 | 2 | 0 | 62 | 64 |
 | P1 | 8 | 8 | 0 | 119 | 135 |
 | P2 | 27 | 2 | 4 | 64 | 97 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **36** | **11** | **4** | **254** | **305** |
+| **All** | **35** | **12** | **4** | **254** | **305** |
 
 ## Work order
 

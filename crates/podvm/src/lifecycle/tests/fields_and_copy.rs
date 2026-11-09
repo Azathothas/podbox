@@ -188,7 +188,7 @@ fn the_rung_decision_names_its_family_or_its_refusal() {
         podvm_probe::verdict::Outcome::denied(podvm_probe::sys::Errno(1)),
     )]);
     // Chroot usable: the payload is never read.
-    assert!(decide_entry("run", "/nowhere", &[], &[], true, &ok)
+    assert!(decide_entry("run", "/nowhere", &[], &[], true, &ok, false)
         .unwrap()
         .is_none());
     // Static payload, native, memfd kernel: the memfd family.
@@ -199,8 +199,10 @@ fn the_rung_decision_names_its_family_or_its_refusal() {
     let root = d.to_string_lossy().to_string();
     let argv = ["prog".to_string()];
     let env = ["PATH=/bin".to_string()];
+    // T-1648: only under the opt-in; the refusal without it is pinned in
+    // `a_static_payload_refuses_without_the_opt_in` below.
     if podvm_enter::memfd::memfd_exec().runs() {
-        let u = decide_entry("run", &root, &argv, &env, true, &denied)
+        let u = decide_entry("run", &root, &argv, &env, true, &denied, true)
             .unwrap()
             .expect("a static payload decides a family");
         assert_eq!(u.family, podvm_enter::userland::Family::Memfd);
@@ -210,16 +212,65 @@ fn the_rung_decision_names_its_family_or_its_refusal() {
     // file and its `#!` line (T-1413).
     std::fs::write(d.join("bin/tool.sh"), b"#!/bin/sh\necho hi\n").unwrap();
     let argv = ["tool.sh".to_string()];
-    let e = decide_entry("run", &root, &argv, &env, true, &denied).unwrap_err();
+    let e = decide_entry("run", &root, &argv, &env, true, &denied, false).unwrap_err();
     assert_eq!(e, podvm_image::error::EXIT_CANNOT_INVOKE);
     // A name nothing resolves is 127, wherever the rung would run it.
     let argv = ["no-such-prog".to_string()];
-    let e = decide_entry("run", &root, &argv, &env, true, &denied).unwrap_err();
+    let e = decide_entry("run", &root, &argv, &env, true, &denied, false).unwrap_err();
     assert_eq!(e, podvm_image::error::EXIT_NOT_FOUND);
     // A foreign image refuses naming binfmt, at 125: podvm-side.
     let argv = ["prog".to_string()];
-    let e = decide_entry("run", &root, &argv, &env, false, &denied).unwrap_err();
+    let e = decide_entry("run", &root, &argv, &env, false, &denied, false).unwrap_err();
     assert_eq!(e, podvm_image::error::EXIT_RUNTIME_ERROR);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// TODO/enter.md T-1648. Where chroot is denied a static payload refuses
+/// at 125 without `--unsafe-host-paths`, whatever the memfd answers, and
+/// the refusal names the static reason, the host paths and every route.
+/// With the opt-in the same payload enters the memfd family, where a
+/// memfd executes (the T-1688 probe; a sealed memfd refuses at 125 too).
+#[test]
+fn a_static_payload_refuses_without_the_opt_in() {
+    let denied = podvm_probe::Findings {
+        rows: vec![(
+            "chroot(/tmp)",
+            podvm_probe::verdict::Outcome::denied(podvm_probe::sys::Errno(1)),
+        )],
+        identity: podvm_probe::identity::Identity::default(),
+        writable: Vec::new(),
+        self_exe: String::new(),
+    };
+    let d = std::env::temp_dir().join(format!("podvm-static-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(d.join("bin")).unwrap();
+    std::fs::write(d.join("bin/prog"), static_pie()).unwrap();
+    let root = d.to_string_lossy().to_string();
+    let argv = ["prog".to_string()];
+    let env = ["PATH=/bin".to_string()];
+    let e = decide_entry("run", &root, &argv, &env, true, &denied, false).unwrap_err();
+    assert_eq!(e, podvm_image::error::EXIT_RUNTIME_ERROR);
+    for want in [
+        "statically linked",
+        "resolve on the host",
+        "--unsafe-host-paths",
+        "chroot(2) is permitted",
+        "T-1651",
+        "T-1652",
+    ] {
+        assert!(
+            STATIC_HOST_PATHS.contains(want),
+            "{want}: {STATIC_HOST_PATHS}"
+        );
+    }
+    let opted = decide_entry("run", &root, &argv, &env, true, &denied, true);
+    if podvm_enter::memfd::memfd_exec().runs() {
+        let u = opted.unwrap().expect("the opt-in decides a family");
+        assert_eq!(u.family, podvm_enter::userland::Family::Memfd);
+        assert!(u.banner.contains("--unsafe-host-paths"), "{}", u.banner);
+    } else {
+        assert_eq!(opted.unwrap_err(), podvm_image::error::EXIT_RUNTIME_ERROR);
+    }
     let _ = std::fs::remove_dir_all(&d);
 }
 

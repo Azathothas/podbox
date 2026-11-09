@@ -13,6 +13,13 @@ pub const GUEST_EXE_FORCE_VAR: &str = "PODVM_GUEST_EXE_FORCE";
 /// host answer in place.
 pub const GUEST_EXE_FORCE_ON: &str = "1";
 
+/// TODO/enter.md T-1407 and T-1648. The host-root line of the
+/// `--unsafe-host-paths` opt-in, which prints under `-q` too.
+pub const HOST_PATHS_LINE: &str = "podvm: userland: running with \
+     --unsafe-host-paths: absolute guest paths resolve on the host with no \
+     PODVM_MAPS anchoring, and a write lands on the host tree \
+     (TODO/enter.md T-1407, T-1648)";
+
 /// What [`userland_env`] decided: the environment the payload starts with,
 /// one banner account, and the decided opt-out `--strict` classifies on.
 /// The anchoring and the exe-force are banner facts only: the banner names
@@ -42,12 +49,18 @@ pub struct UserlandEnv {
 /// nothing (an empty table on this rung is a silent host write).
 /// `PODVM_GUEST_EXE_FORCE=1` rides only the loader family beside an
 /// already-set `PODVM_GUEST_EXE`; the memfd family never sees it.
+///
+/// ⛔ TODO/enter.md T-1648. The opt-in's host-root line goes to `err` at
+/// once, never into the banner: the quiet default of T-1416 and `-q`
+/// hide the banner, and a host pass-through is never silent. The rest
+/// of the banner stays under `--verbose`.
 pub fn userland_env(
     verb: &str,
     rootfs: &str,
     env: Vec<String>,
     family: podvm_enter::userland::Family,
     unsafe_paths: bool,
+    err: &mut dyn Write,
 ) -> Result<UserlandEnv, i32> {
     use podvm_enter::userland::MAPS_VAR;
     let mut out: Vec<String> = env
@@ -56,11 +69,7 @@ pub fn userland_env(
         .collect();
     let mut banner = String::new();
     if unsafe_paths {
-        banner.push_str(
-            "podvm: userland: running with --unsafe-host-paths: absolute guest \
-             paths resolve on the host with no PODVM_MAPS anchoring, and a \
-             write lands on the host tree (TODO/enter.md T-1407)\n",
-        );
+        let _ = writeln!(err, "{HOST_PATHS_LINE}");
     } else {
         match podvm_enter::userland::userland_maps_table(rootfs) {
             Ok(table) => {

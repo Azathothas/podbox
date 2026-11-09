@@ -166,6 +166,7 @@ pub fn exec(args: &[String]) -> i32 {
         &env,
         support_native,
         &findings,
+        o.unsafe_host_paths,
     ) {
         Ok(u) => u,
         Err(code) => return code,
@@ -201,7 +202,14 @@ pub fn exec(args: &[String]) -> i32 {
     // decided, not the flag beside it.
     let mut strict_unsafe = false;
     if let Some(u) = &userland {
-        match crate::lifecycle::userland_env("exec", &rootfs, env, u.family, o.unsafe_host_paths) {
+        match crate::lifecycle::userland_env(
+            "exec",
+            &rootfs,
+            env,
+            u.family,
+            o.unsafe_host_paths,
+            &mut std::io::stderr(),
+        ) {
             Ok(ue) => {
                 env = ue.env;
                 userland_note = ue.banner;

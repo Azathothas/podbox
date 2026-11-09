@@ -227,6 +227,18 @@ pub(super) fn resolve_code(msg: &str) -> i32 {
     }
 }
 
+/// TODO/enter.md T-1648. Why a static payload refuses where chroot is
+/// denied and `--unsafe-host-paths` is absent, and the routes past the
+/// refusal. A constant, so the tests pin the sentence a caller reads.
+pub const STATIC_HOST_PATHS: &str = "the payload is statically linked, so \
+     it makes raw syscalls past the interposer and podvm rewrites no path: \
+     its absolute paths would resolve on the host, and a write would land \
+     on the host tree. podvm refuses before the exec. Use a host where \
+     chroot(2) is permitted, or `--unsafe-host-paths` to accept this host \
+     pass-through on the memfd family. The planned rungs for static \
+     payloads are the emulate tier (TODO/enter.md T-1651) and the \
+     native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648)";
+
 /// A no-chroot entry this run takes, decided post-extract and pre-fixup.
 #[derive(Debug, Clone)]
 pub struct Userland {
@@ -247,7 +259,7 @@ pub struct Userland {
 /// `None` is the chroot sequence, as before. Where chroot is denied the
 /// loader family runs a dynamic payload the tier reaches (loader present,
 /// libraries present, native image) and the memfd family runs a static
-/// one; where neither runs the refusal names every tried rung with its
+/// one under the opt-in; where neither runs the refusal names every tried rung with its
 /// missing leg: the last resort, never the whole answer. The refusal code
 /// follows the payload status on every rung (T-1414): 127 where the
 /// payload resolved to nothing, 126 where it was found but not invocable,
@@ -256,6 +268,11 @@ pub struct Userland {
 /// Read-only: classification, resolution and ELF reads only. Placement
 /// (`place`) and fixups run after this decides, so a refusal writes
 /// nothing into the image.
+///
+/// ⛔ TODO/enter.md T-1648. A static payload enters the memfd family only
+/// under `unsafe_host_paths`, the decided `--unsafe-host-paths` opt-in:
+/// its absolute paths resolve on the host, so without the opt-in it
+/// refuses at 125 before the exec ([`STATIC_HOST_PATHS`]).
 #[allow(clippy::too_many_arguments)]
 pub fn decide_entry(
     verb: &str,
@@ -264,6 +281,7 @@ pub fn decide_entry(
     env: &[String],
     support_native: bool,
     findings: &podvm_probe::Findings,
+    unsafe_host_paths: bool,
 ) -> Result<Option<Userland>, i32> {
     if podvm_probe::probes::chroot_usable(findings) {
         return Ok(None);
@@ -338,6 +356,11 @@ pub fn decide_entry(
                     .to_string(),
             );
         }
+        // ⛔ T-1648: refusal beats a silent host write. The opt-in is
+        // decided before the memfd probe, so a refusal executes nothing.
+        if !unsafe_host_paths {
+            return no_chroot(EXIT_RUNTIME_ERROR, STATIC_HOST_PATHS.to_string());
+        }
         // ⛔ T-1688: the probe executes a memfd, so a sysctl that seals it
         // refuses here, before staging, and not at the launch's step 5.
         let memfd = podvm_enter::memfd::memfd_exec();
@@ -355,13 +378,13 @@ pub fn decide_entry(
             family: podvm_enter::userland::Family::Memfd,
             loader_argv: Vec::new(),
             lib_dirs: Vec::new(),
-            banner: "entering without chroot on the memfd family: the payload \
-             runs from a staged memfd with the host's root and its working \
+            banner: "entering without chroot on the memfd family under \
+             --unsafe-host-paths: the payload runs from a staged memfd with the host's root and its working \
              directory inside the image; absolute paths resolve on the host \
              because the static payload makes raw syscalls past the interposer, \
              so no path is rewritten, and it reads /proc/self/exe as the staged \
              memfd path, so a self-locating runtime cannot resolve itself here \
-             (TODO/enter.md T-1317, T-1409)"
+             (TODO/enter.md T-1317, T-1409, T-1648)"
                 .to_string(),
         }));
     }

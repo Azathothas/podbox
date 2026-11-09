@@ -41,7 +41,9 @@ usage: podvm exec [options] <image> <command> [arg...]
                    command asked for (TODO/complete.md T-0412)
   --unsafe-host-paths
                    as in run: userland rung only, opt into the pass-through
-                   with no PODVM_MAPS anchoring (TODO/enter.md T-1407)
+                   with no PODVM_MAPS anchoring, and admit a static payload
+                   to the memfd family where chroot is denied
+                   (TODO/enter.md T-1407, T-1648)
   --strict         refused: refuse to re-enter at all where anything about this
                    invocation is Degraded or Stub (TODO/cli.md T-0804).
                    Kind decides (TODO/cli.md T-1415): safety-relevant

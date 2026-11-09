@@ -9,8 +9,11 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
 - A chroot changes paths. It does not provide process or network isolation.
 - The namespace path provides mount behavior only.
 - A userland entry retains the host root and shared host resources.
-- A static userland payload reads its own exe as the staged memfd path,
-  so a self-locating runtime cannot resolve itself there.
+- A static payload on a host that denies chroot refuses at 125, because
+  its absolute paths would resolve on the host (T-1648). Under
+  `--unsafe-host-paths` it runs from a staged memfd with the host root.
+  It then reads its own exe as the staged memfd path, so a self-locating
+  runtime cannot resolve itself there.
 - A userland grandchild that execs an absolute path runs it past the
   loader mapping and fails where the host holds no such file.
 - Interposition covers cooperative library calls, without a security boundary.

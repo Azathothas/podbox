@@ -8,7 +8,9 @@ use super::*;
 fn userland_env_anchors_paths_or_names_the_opt_out() {
     use podvm_enter::userland::{Family, MAPS_VAR};
     let env = vec![format!("{MAPS_VAR}=/:evil"), "PATH=/bin".to_string()];
-    let ue = userland_env("run", "/store/rootfs", env, Family::Loader, false).unwrap();
+    let mut err = Vec::new();
+    let ue = userland_env("run", "/store/rootfs", env, Family::Loader, false, &mut err).unwrap();
+    assert!(err.is_empty(), "{}", String::from_utf8_lossy(&err));
     assert_eq!(
         ue.env
             .iter()
@@ -25,12 +27,16 @@ fn userland_env_anchors_paths_or_names_the_opt_out() {
     );
     assert!(!ue.unsafe_paths);
     assert!(ue.banner.contains("PODVM_MAPS"), "{}", ue.banner);
+    // T-1648: the opt-in's host-root line goes to the writer at once, so
+    // the quiet default cannot hide it, and the banner does not repeat it.
+    let mut err = Vec::new();
     let ue = userland_env(
         "run",
         "/store/rootfs",
         vec!["PATH=/bin".to_string()],
         Family::Memfd,
         true,
+        &mut err,
     )
     .unwrap();
     assert!(
@@ -39,11 +45,22 @@ fn userland_env_anchors_paths_or_names_the_opt_out() {
         ue.env
     );
     assert!(ue.unsafe_paths);
-    assert!(ue.banner.contains("--unsafe-host-paths"), "{}", ue.banner);
+    let err = String::from_utf8(err).unwrap();
+    assert_eq!(err, format!("{HOST_PATHS_LINE}\n"));
+    assert!(err.contains("--unsafe-host-paths"), "{err}");
+    assert!(!ue.banner.contains("--unsafe-host-paths"), "{}", ue.banner);
     // A rootfs the table cannot spell refuses rather than rewriting
     // nothing: an empty table on this rung is a silent host write.
     assert_eq!(
-        userland_env("run", "relative", vec![], Family::Loader, false).unwrap_err(),
+        userland_env(
+            "run",
+            "relative",
+            vec![],
+            Family::Loader,
+            false,
+            &mut std::io::sink()
+        )
+        .unwrap_err(),
         podvm_image::error::EXIT_RUNTIME_ERROR
     );
 }
@@ -62,6 +79,7 @@ fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
         vec![exe.clone(), "PODVM_GUEST_EXE_FORCE=0".to_string()],
         Family::Loader,
         false,
+        &mut std::io::sink(),
     )
     .unwrap();
     assert_eq!(
@@ -80,7 +98,15 @@ fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
     );
     assert!(ue.banner.contains("PODVM_GUEST_EXE"), "{}", ue.banner);
     // No guest exe set: no force, even on the loader family.
-    let ue = userland_env("run", "/store/rootfs", vec![], Family::Loader, false).unwrap();
+    let ue = userland_env(
+        "run",
+        "/store/rootfs",
+        vec![],
+        Family::Loader,
+        false,
+        &mut std::io::sink(),
+    )
+    .unwrap();
     assert!(
         !ue.env
             .iter()
@@ -89,7 +115,15 @@ fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
         ue.env
     );
     // The memfd family never carries it, guest exe or not.
-    let ue = userland_env("run", "/store/rootfs", vec![exe], Family::Memfd, false).unwrap();
+    let ue = userland_env(
+        "run",
+        "/store/rootfs",
+        vec![exe],
+        Family::Memfd,
+        false,
+        &mut std::io::sink(),
+    )
+    .unwrap();
     assert!(
         !ue.env
             .iter()

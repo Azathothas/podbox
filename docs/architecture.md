@@ -27,7 +27,7 @@ Selection reports available mechanisms. Entry reports the mechanism it actually 
 | namespace | A mount namespace and private temporary filesystem, followed by rootfs entry |
 | supervise | Notification mediation where the required argument-reading and descriptor mechanisms hold |
 | chroot | Root change with host kernel and shared process and network resources |
-| userland | Image loader plus interposition for dynamic payloads; staged memfd for eligible static payloads |
+| userland | Image loader plus interposition for dynamic payloads; a staged memfd for a static payload only under `--unsafe-host-paths`, else a refusal at 125 (T-1648) |
 | interpose | Library-call compatibility for payloads that the object reaches |
 | unsupported | Refusal with the missing operation |
 

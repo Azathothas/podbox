@@ -1,0 +1,95 @@
+== conditions
+date              2026-11-09T14:26:55Z
+host kernel       Linux 6.18.44-fc-v310
+podvm             podvm 0.1.0-beta.13 (debug build of the working tree, TODO/enter.md T-1648)
+fixture           unshare -Urm sh $WORK/wrap.sh $WORK $PB ... (the wrap.sh and deny-chroot.c of experiments/356-no-chroot-rung.sh)
+static input      static-hello:1, a cc -static-pie hello imported from a tar (as in experiment 356)
+go input          mirror.gcr.io/library/golang:1.24-alpine@sha256:8bee1901f1e530bfb4a7850aa7a479d17ae3a18beb6e09064ed54cfd245b7191
+scope             a hand drive of the T-1648 clauses of experiment 356 (5, 6, 18), not the script:
+                  the script needs public.ecr.aws pulls (HTTP 429 on this host) and bootstrap-env.sh
+interposer        not built on this host: the loader family is not driven here
+
+== fx-hello-refuse
+command: podvm run --rm static-hello:1 /hello
+exit 125
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload is statically linked, so it makes raw syscalls past the interposer and podvm rewrites no path: its absolute paths would resolve on the host, and a write would land on the host tree. podvm refuses before the exec. Use a host where chroot(2) is permitted, or `--unsafe-host-paths` to accept this host pass-through on the memfd family. The planned rungs for static payloads are the emulate tier (TODO/enter.md T-1651) and the native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+== fx-hello-quiet
+command: podvm run --rm --unsafe-host-paths static-hello:1 /hello
+exit 0
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  static-hi
+== fx-hello-q
+command: podvm run --rm -q --unsafe-host-paths static-hello:1 /hello
+exit 0
+  a9745f677d72: Extracted (1 entries, 0 whiteouts)
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  static-hi
+== fx-hello-verbose
+command: podvm run --rm --verbose --unsafe-host-paths static-hello:1 /hello
+exit 0
+  a9745f677d72: Extracted (1 entries, 0 whiteouts)
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm run: interpose: declined for "/hello": /hello is statically linked (no PT_INTERP), so no loader reads LD_PRELOAD for it
+  entering without chroot on the memfd family under --unsafe-host-paths: the payload runs from a staged memfd with the host's root and its working directory inside the image; absolute paths resolve on the host because the static payload makes raw syscalls past the interposer, so no path is rewritten, and it reads /proc/self/exe as the staged memfd path, so a self-locating runtime cannot resolve itself here (TODO/enter.md T-1317, T-1409, T-1648)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: created etc/hosts (hosts, T-0403): localhost
+  podvm: complete: created etc/passwd (identity, T-0404): the image has no etc/passwd (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podvm synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
+  podvm: complete: created etc/group (identity, T-0404): the image has no etc/group (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podvm synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
+  podvm: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from /root/.ccr/ca-bundle.crt
+  podvm: complete: 14 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=unknown. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  static-hi
+== fx-strict-unsafe
+command: podvm run --rm --strict --unsafe-host-paths static-hello:1 /hello
+exit 125
+  a9745f677d72: Extracted (1 entries, 0 whiteouts)
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+  podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created etc/passwd (T-0404): the image has no etc/passwd (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podvm synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
+  podvm run: --strict warning [substitution]: created etc/group (T-0404): the image has no etc/group (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podvm synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
+  podvm run: --strict warning [substitution]: created etc/mtab (T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm run: --strict, and this run is degraded in 1 safety-relevant way(s). podvm refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415):
+    - [safety] --unsafe-host-paths opts out of path virtualization: absolute guest paths resolve on the host, and a write lands on the host tree (TODO/enter.md T-1407)
+
+== sane-hello (no fixture: chroot permitted)
+exit 0
+  podvm: the image holds no /tmp mount point under $WORK/store/rootfs/sha256_e6b4567c05c1523bc15a6019b08eba6459b2337699dcbab2ac35ec25b41b2092/rootfs; entered chroot instead (TODO/enter.md T-1339)
+  static-hi
+== fx-go-refuse
+command: podvm run --rm mirror.gcr.io/library/golang:1.24-alpine go version
+exit 125
+  589002ba0eae: Extracted (516 entries, 0 whiteouts)
+  8f78851c25d2: Extracted (477 entries, 0 whiteouts)
+  f7bdfd728ac2: Extracted (15741 entries, 0 whiteouts)
+  c95d909b2488: Extracted (3 entries, 0 whiteouts)
+  4f4fb700ef54: Extracted (0 entries, 0 whiteouts)
+  podvm: 1 of 16737 entries carry an id this machine cannot apply; what the image intended is in $WORK/store/rootfs/sha256_757779acac4af1b349a20f357c7296097b4a0b89da4ad0e370b339060077282a/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $WORK/store/rootfs/sha256_757779acac4af1b349a20f357c7296097b4a0b89da4ad0e370b339060077282a/.meta.jsonl
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload is statically linked, so it makes raw syscalls past the interposer and podvm rewrites no path: its absolute paths would resolve on the host, and a write would land on the host tree. podvm refuses before the exec. Use a host where chroot(2) is permitted, or `--unsafe-host-paths` to accept this host pass-through on the memfd family. The planned rungs for static payloads are the emulate tier (TODO/enter.md T-1651) and the native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+== fx-go-unsafe
+command: podvm run --rm -e GOROOT=/nonexistent --unsafe-host-paths mirror.gcr.io/library/golang:1.24-alpine go version
+exit 2
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  can't start telemetry child process: fork/exec /memfd:podvm-payload: no such file or directory
+  go: cannot find GOROOT directory: /nonexistent

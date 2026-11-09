@@ -1722,7 +1722,7 @@ then this row is the record, and no entry deletes the script.
 ### T-1649 A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out
 
 Source:      issue 92; issue 114 section 3.3 and section 6 item 7;
-             `crates/podvm/src/lifecycle/entry.rs:317`;
+             `crates/podvm/src/lifecycle/entry.rs:335`;
              `crates/podvm-enter/src/memfd.rs:199`;
              `crates/podvm/src/run/prepare.rs:234`;
              A-V-04 of PodUtils/podcrates#39
@@ -1792,7 +1792,7 @@ holds the end-to-end clause.
 Source:      issue 93; issue 114 section 3.7 and section 6 item 8;
              `crates/podvm/src/complete/strict.rs:108`;
              `crates/podvm/src/complete/strict.rs:153`;
-             `crates/podvm/src/lifecycle/entry.rs:422`; [T-1415](cli.md)
+             `crates/podvm/src/lifecycle/entry.rs:445`; [T-1415](cli.md)
 Category:    cli
 Priority:    P1
 Effort:      M

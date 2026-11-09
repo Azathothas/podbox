@@ -944,7 +944,7 @@ before implementation.
 
 ### T-1410 Exec through the no-chroot family
 
-Source:      issue 80; `crates/podvm/src/exec/command.rs:208`;
+Source:      issue 80; `crates/podvm/src/exec/command.rs:216`;
              `crates/podvm/src/run/prepare.rs:76`; [T-0505](enter.md)
 Category:    enter
 Priority:    P1
@@ -1353,7 +1353,7 @@ Premise:     Two 128 MiB ceilings read the whole file into memory.
              `Elf::read` (`abi.rs:157`) serves the tier classifier
              (`crates/podvm/src/interpose.rs:184`). `payload_bytes`
              (`ladder.rs:238`) serves `decide_entry`
-             (`crates/podvm/src/lifecycle/entry.rs:297`), so the loader
+             (`crates/podvm/src/lifecycle/entry.rs:315`), so the loader
              family refuses too, though it never stages the bytes.
              `memfd::stage` (`memfd.rs:108`) takes one contiguous buffer.
              `memfd::eligible` (`memfd.rs:262`) reads the ELF header and
@@ -1404,15 +1404,15 @@ end-to-end clause.
 ### T-1648 A static Go payload runs into a GOROOT error instead of a named refusal
 
 Source:      issue 91; issue 114 section 3.4;
-             `crates/podvm/src/lifecycle/entry.rs:333`;
-             `crates/podvm/src/lifecycle/entry.rs:357`;
+             `crates/podvm/src/lifecycle/entry.rs:351`;
+             `crates/podvm/src/lifecycle/entry.rs:380`;
              `crates/podvm/src/interpose.rs:355`;
-             `experiments/356-no-chroot-rung.sh:481`;
+             `experiments/356-no-chroot-rung.sh:505`;
              A-V-04 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P0
 Effort:      S
-Status:      open
+Status:      partial
 
 Problem:     On a chroot-denied host `go version` from the golang image
              exits 2 with the payload's own error: "cannot find GOROOT
@@ -1429,7 +1429,7 @@ Premise:     `decide_entry` sends every static payload to the memfd
              banner note (`crates/podvm/src/interpose.rs:355`),
              which the quiet default also hides. Clause 18 of experiment
              356 pins exit 2 naming GOROOT as the boundary
-             (`356-no-chroot-rung.sh:481`).
+             (`356-no-chroot-rung.sh:505`).
 Approach:    On a chroot-denied host, refuse a static payload at 125
              before the exec, unless `--unsafe-host-paths` opts in. That
              is T-1407's flag for this exact host pass-through. The
@@ -1451,6 +1451,27 @@ Prove:       `cargo test -p podvm` exits 0 with a test: a static
              `sh experiments/356-no-chroot-rung.sh` exits 0 with clause 18
              changed: `go version` from the golang image refuses at 125
              naming the static reason, and never exits 2 naming GOROOT.
+
+**Partial, 2026-11-09.** `decide_entry` takes the decided
+`--unsafe-host-paths`. On a chroot-denied host a static payload refuses at
+125 before the exec without it; the sentence names the static link, the
+host paths, the host write and the routes (a host with chroot, the
+opt-in, T-1651, T-1652). Under the opt-in, `userland_env` writes the
+host-root line to stderr at once, so it prints under the quiet default
+and `-q`. `--strict` still refuses the opt-in. Experiment 356 passes the
+opt-in on its memfd clauses, and clause 18 (`fx-go-refuse`,
+`356-no-chroot-rung.sh:505`) now asks for 125 naming the static reason
+and no GOROOT. `cargo test -p podvm` exits 0 (274 passed) with
+`a_static_payload_refuses_without_the_opt_in`. [A hand drive](../experiments/results/no-chroot-static-refusal.txt)
+through the deny-chroot fixture of experiment 356 gave 125 for the static
+hello and for `go version` (no GOROOT), 0 with the opt-in under the
+quiet default, `-q` and `--verbose`, and 125 for `--strict
+--unsafe-host-paths`. Remaining: one full run of `sh
+experiments/356-no-chroot-rung.sh` (its pulls from `public.ecr.aws`
+answered HTTP 429 on 2026-11-09). Known gaps, outside this entry: on
+`run -d` and `create` the refusal names an opt-in that the detached
+refusal of T-1411 then refuses, and `ensure_entry_possible` lets the pull
+and the extract run before the static refusal.
 
 **Filed 2026-11-06.** Quoted from issue 91 and its comments, measured on
 release 0.1.0-beta.12 on the errand host:
@@ -1844,7 +1865,7 @@ Problem:     `kernel_takes_memfd()` proves that `memfd_create` answers, not
 Premise:     The probe is `crates/podvm-enter/src/memfd.rs:90`: it creates
              and closes a memfd and never executes one. The callers are
              `crates/podvm/src/ladder.rs:202` and
-             `crates/podvm/src/lifecycle/entry.rs:336`. The late step is
+             `crates/podvm/src/lifecycle/entry.rs:354`. The late step is
              `crates/podvm-enter/src/launch.rs:349`. The census row
              `memfd_create+exec` of `pod_hostprobe::probes` runs a shell
              script through `/proc/self/fd/N`, not `execveat` of a static

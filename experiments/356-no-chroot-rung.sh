@@ -3,7 +3,8 @@
 # does one no-chroot family run with the banner naming the rung, and
 # does the -t refusal name ptmx beside the chroot sentence?
 #
-# TODO/enter.md T-0503 (ordering) and T-1317 (no-chroot rung).
+# TODO/enter.md T-0503 (ordering), T-1317 (no-chroot rung) and T-1648
+# (a static payload refuses without --unsafe-host-paths).
 #
 # The fixture is two denials composed: a mount namespace hiding
 # /dev/ptmx behind a directory (open answers EISDIR, the
@@ -25,12 +26,17 @@
 #      naming the rung and PODVM_ACTIVE_MODE userland on payload stdout.
 #   4b. T-1317 loader family (musl): alpine runs at 0 the same way,
 #      through `sh` keeping the invoked name (busybox applet dispatch).
-#   5. T-1317 memfd family: the static hello runs at 0 the same way.
-#   6. strict arm: --strict refuses the userland run at 125.
+#   5. T-1317 memfd family: the static hello runs at 0 the same way,
+#      under --unsafe-host-paths. T-1648: without the opt-in it refuses
+#      at 125 naming the static reason; under the opt-in at the quiet
+#      default the host-root line prints and the banner does not.
+#   6. strict arm: --strict refuses the userland run at 125, and
+#      refuses --unsafe-host-paths on the static hello (T-1415).
 #   7. refusal arm: an unresolvable payload refuses at 125 naming
 #      chroot and the family, with the rootfs byte-identical after.
 #   8. forced ladder: PODVM_MODE=memfd enters the static hello without
-#      chroot at 0; PODVM_MODE=memfd over dynamic alpine refuses
+#      chroot at 0 under --unsafe-host-paths (T-1648);
+#      PODVM_MODE=memfd over dynamic alpine refuses
 #      naming the unforced loader family; PODVM_MODE=fuse refuses
 #      naming the force.
 #   9. detached (T-1411): one container through run -d, ps, logs,
@@ -60,8 +66,9 @@
 #      127 on userland, while the chroot control runs it at 0. It pins
 #      the limit the loader banner names; it is not a regression gate.
 #   18. exe (T-1409): `readlink /proc/self/exe` as a first-level
-#      payload prints the guest path over the fixture; the static go
-#      binary stays a pinned limit (exit 2 naming GOROOT on memfd).
+#      payload prints the guest path over the fixture. T-1648: the
+#      static go binary refuses at 125 naming the static reason, and
+#      never exits 2 naming GOROOT.
 #   19. gcc (T-1408): `gcc --version` runs on the gcc image over the
 #      fixture, proving the loader-symlink fix on a second image.
 #
@@ -270,9 +277,22 @@ grep -q "^userland$" "$WORK/out-fx-alpine.txt" || { echo "musl loader run did no
 grep -q "loader family" "$WORK/out-fx-alpine.txt" || { echo "musl loader banner missing the family" >>"$REPORT"; fail=1; }
 
 # Clause 5 (T-1317 memfd): the static hello runs without chroot at 0.
-step fx-hello 0 $FX "$PB" run --rm --verbose "$HELLO" /hello
+# ⭐ T-1648: the memfd family resolves absolute paths on the host, so it
+# runs only under --unsafe-host-paths; without it the payload refuses
+# at 125 before the exec, naming the static reason and the routes.
+step fx-hello 0 $FX "$PB" run --rm --verbose --unsafe-host-paths "$HELLO" /hello
 grep -q "static-hi" "$WORK/out-fx-hello.txt" || { echo "memfd payload stdout missing" >>"$REPORT"; fail=1; }
 grep -q "memfd family" "$WORK/out-fx-hello.txt" || { echo "memfd banner missing the family" >>"$REPORT"; fail=1; }
+step fx-hello-refuse "$RUN_ERR" $FX "$PB" run --rm "$HELLO" /hello
+grep -q "statically linked" "$WORK/out-fx-hello-refuse.txt" || { echo "static refusal did not name the static reason" >>"$REPORT"; fail=1; }
+grep -q -- "--unsafe-host-paths" "$WORK/out-fx-hello-refuse.txt" || { echo "static refusal did not name the opt-in" >>"$REPORT"; fail=1; }
+grep -q "static-hi" "$WORK/out-fx-hello-refuse.txt" && { echo "static refusal ran the payload" >>"$REPORT"; fail=1; }
+# At the quiet default the opt-in's host-root line still prints, and
+# the rest of the banner stays off.
+step fx-hello-quiet 0 $FX "$PB" run --rm --unsafe-host-paths "$HELLO" /hello
+grep -q "running with --unsafe-host-paths" "$WORK/out-fx-hello-quiet.txt" || { echo "host-root line hidden at the quiet default" >>"$REPORT"; fail=1; }
+grep -q "memfd family" "$WORK/out-fx-hello-quiet.txt" && { echo "quiet opt-in printed the banner" >>"$REPORT"; fail=1; }
+grep -q "static-hi" "$WORK/out-fx-hello-quiet.txt" || { echo "quiet opt-in payload stdout missing" >>"$REPORT"; fail=1; }
 
 # Clause 6 (strict arm, T-1415): kind decides. `--strict` warns on the
 # best-available rung and the dev-shim substitutions and runs at 0;
@@ -281,6 +301,8 @@ step fx-strict 0 $FX "$PB" run --rm --strict "$ALPINE" true
 grep -q "strict warning" "$WORK/out-fx-strict.txt" || { echo "--strict printed no substitution warning" >>"$REPORT"; fail=1; }
 step fx-strict-all "$RUN_ERR" $FX "$PB" run --rm --strict=all "$ALPINE" true
 grep -q "strict=all" "$WORK/out-fx-strict-all.txt" || { echo "--strict=all refusal unnamed" >>"$REPORT"; fail=1; }
+step fx-strict-unsafe "$RUN_ERR" $FX "$PB" run --rm --strict --unsafe-host-paths "$HELLO" /hello
+grep -q "static-hi" "$WORK/out-fx-strict-unsafe.txt" && { echo "--strict ran the opt-in" >>"$REPORT"; fail=1; }
 
 # Clause 7 (refusal arm, T-1414): nothing resolvable refuses naming
 # chroot and the family at 127 (not found follows the payload status
@@ -308,7 +330,7 @@ fi
 # Clause 8 (forced ladder): memfd enters the static payload without
 # chroot; memfd forced over a dynamic payload refuses naming the
 # unforced loader family; fuse refuses naming the force.
-step fx-forced-hello 0 env PODVM_MODE=memfd $FX "$PB" run --rm "$HELLO" /hello
+step fx-forced-hello 0 env PODVM_MODE=memfd $FX "$PB" run --rm --unsafe-host-paths "$HELLO" /hello
 grep -q "static-hi" "$WORK/out-fx-forced-hello.txt" || { echo "forced memfd payload stdout missing" >>"$REPORT"; fail=1; }
 step fx-forced-memfd "$RUN_ERR" env PODVM_MODE=memfd $FX "$PB" run --rm "$ALPINE" echo forced-hi
 grep -q "without PODVM_MODE" "$WORK/out-fx-forced-memfd.txt" || { echo "forced memfd over dynamic did not name the unforced family" >>"$REPORT"; fail=1; }
@@ -461,16 +483,18 @@ grep -q "ul356rm" "$WORK/out-sane-ps2.txt" && { echo "--rm left its record behin
 # mechanism directly.)
 # The entry's go trio is superseded in writing, with the reason. The
 # golang image's `go` binary is statically linked (measured with
-# file(1): ELF static, no INTERP), so the tier enters it on the memfd
-# family, where no interposer loads and the kernel reports the staged
-# memfd path: `go version` answers exit 2 naming GOROOT, and go's own
-# telemetry child fails re-exec'ing the memfd path. Three routes were
-# tested: go-is-dynamic (refuted by file(1)), interpose-the-static
-# payload (refuted: raw syscalls never reach LD_PRELOAD, and the
-# telemetry error quotes the memfd path), and injecting GOROOT for go
-# payloads (refused: payload-specific magic against the entry's own
-# decision). The memfd banner above names the limit; the clause pins
-# go's answer as the boundary rather than as a regression.
+# file(1): ELF static, no INTERP). On the memfd family no interposer
+# loads and the kernel reports the staged memfd path: `go version`
+# answered exit 2 naming GOROOT, and go's own telemetry child failed
+# re-exec'ing the memfd path. Three routes were tested: go-is-dynamic
+# (refuted by file(1)), interpose-the-static payload (refuted: raw
+# syscalls never reach LD_PRELOAD, and the telemetry error quotes the
+# memfd path), and injecting GOROOT for go payloads (refused:
+# payload-specific magic against the entry's own decision).
+# ⭐ TODO/enter.md T-1648: the exit 2 hid a host-path payload behind
+# its own error. Without --unsafe-host-paths podvm now refuses the
+# static payload at 125 before the exec, naming the static reason, and
+# the payload never runs to exit 2 naming GOROOT.
 step fx-exe-readlink 0 $FX "$PB" run --rm "$DEBIAN" readlink /proc/self/exe
 # The answer line is exactly the guest path. An earlier whole-file grep
 # for "rootfs" false-fired on podvm's own extraction diagnostics (lane
@@ -478,10 +502,9 @@ step fx-exe-readlink 0 $FX "$PB" run --rm "$DEBIAN" readlink /proc/self/exe
 # carried store/rootfs/ lines), so the assertion matches the full line:
 # a leaked loader host path would BE the answer and fail this match.
 grep -qx "/usr/bin/readlink" "$WORK/out-fx-exe-readlink.txt" || { echo "readlink did not answer exactly the guest path" >>"$REPORT"; fail=1; }
-step fx-go-limit 2 $FX "$PB" run --rm "$GOLANG" go version
-# want is the payload's own 2 (T-0802: passed through unchanged), not 127:
-# the limit is that go fails naming GOROOT, not that podvm refuses it.
-grep -q "GOROOT" "$WORK/out-fx-go-limit.txt" || { echo "go limit did not name GOROOT" >>"$REPORT"; fail=1; }
+step fx-go-refuse "$RUN_ERR" $FX "$PB" run --rm "$GOLANG" go version
+grep -q "statically linked" "$WORK/out-fx-go-refuse.txt" || { echo "go refusal did not name the static reason" >>"$REPORT"; fail=1; }
+grep -q "GOROOT" "$WORK/out-fx-go-refuse.txt" && { echo "go ran to its own GOROOT error" >>"$REPORT"; fail=1; }
 
 # Clause 19 (T-1408 gcc): the loader symlink resolves inside the rootfs
 # on a second image. Debian's /lib64/ld-linux carries an absolute

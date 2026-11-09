@@ -261,8 +261,17 @@ pub(crate) fn prepare(
     // family (the record carries its argv) and refuse only where the
     // decided family has no detached driver, naming the blocking call
     // and the affected verbs.
-    let userland =
-        crate::lifecycle::decide_entry(verb, &rootfs, &argv, &env, support_native, &findings)?;
+    // ⭐ T-1648: the opt-in rides into the decision, because a static
+    // payload enters the memfd family only under it.
+    let userland = crate::lifecycle::decide_entry(
+        verb,
+        &rootfs,
+        &argv,
+        &env,
+        support_native,
+        &findings,
+        o.unsafe_host_paths,
+    )?;
     if let Some(u) = &userland
         && (o.detach || verb == "create")
         && u.family != podvm_enter::userland::Family::Loader
@@ -337,7 +346,14 @@ pub(crate) fn prepare(
     // flag beside it, so the two cannot disagree.
     let mut strict_unsafe = false;
     if let Some(u) = &userland {
-        let ue = crate::lifecycle::userland_env(verb, &rootfs, env, u.family, o.unsafe_host_paths)?;
+        let ue = crate::lifecycle::userland_env(
+            verb,
+            &rootfs,
+            env,
+            u.family,
+            o.unsafe_host_paths,
+            &mut err,
+        )?;
         env = ue.env;
         userland_note = ue.banner;
         strict_unsafe = ue.unsafe_paths;

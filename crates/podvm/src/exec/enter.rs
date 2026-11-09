@@ -124,6 +124,7 @@ pub(super) fn enter(
         &env,
         support_native,
         &findings,
+        o.unsafe_host_paths,
     ) {
         Ok(u) => u,
         Err(code) => return code,
@@ -162,7 +163,14 @@ pub(super) fn enter(
     // `userland_env` decided, not the flag beside it.
     let mut strict_unsafe = false;
     if let Some(u) = &userland {
-        match crate::lifecycle::userland_env("exec", rootfs, env, u.family, o.unsafe_host_paths) {
+        match crate::lifecycle::userland_env(
+            "exec",
+            rootfs,
+            env,
+            u.family,
+            o.unsafe_host_paths,
+            &mut std::io::stderr(),
+        ) {
             Ok(ue) => {
                 env = ue.env;
                 userland_note = ue.banner;
