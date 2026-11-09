@@ -313,8 +313,12 @@ fn examine_ceiling(report: &mut Doctor) {
         Ok(s) => s.root().display().to_string(),
         Err(_) => ".".to_string(),
     };
-    let max = match podvm_probe::sys::prlimit(podvm_probe::sys::RLIMIT_FSIZE) {
-        Ok((_cur, max)) => max,
+    // ⛔ T-1690 (issue 214): the kernel raises SIGXFSZ at the SOFT limit,
+    // and every other reader (tier.rs, machine/ssh/qemu.rs, windows/plan.rs,
+    // nongoals.rs, pod_hostprobe::space) judges the soft one. The hard limit
+    // is only printed when it differs.
+    let (soft, hard) = match podvm_probe::sys::prlimit(podvm_probe::sys::RLIMIT_FSIZE) {
+        Ok(limits) => limits,
         Err(e) => {
             report.note(
                 NAME,
@@ -326,10 +330,10 @@ fn examine_ceiling(report: &mut Doctor) {
             return;
         }
     };
-    if max == u64::MAX {
+    if soft == u64::MAX {
         report.note(
             NAME,
-            "no file-size ceiling (RLIMIT_FSIZE is infinity)".to_string(),
+            "no file-size ceiling (the soft RLIMIT_FSIZE is infinity)".to_string(),
         );
         return;
     }
@@ -340,25 +344,39 @@ fn examine_ceiling(report: &mut Doctor) {
             return;
         }
     };
-    if free < max {
-        report.fail(
+    match judge_ceiling(soft, hard, free, &at) {
+        Ok(detail) => report.ok(NAME, detail),
+        Err(detail) => report.fail(
             NAME,
-            format!(
-                "free {} at {at} is below the {} file-size ceiling",
-                podvm_image::space::mib(free),
-                podvm_image::space::mib(max)
-            ),
+            detail,
             format!("free disk space at {at} or point PODVM_STORE at a roomier filesystem"),
-        );
+        ),
+    }
+}
+
+/// The free room at `at` against the soft file-size ceiling `soft`. `Ok`
+/// when the room covers the ceiling, `Err` when it is below. Both name the
+/// ceiling, and the hard limit as well when it differs (T-1690).
+fn judge_ceiling(soft: u64, hard: u64, free: u64, at: &str) -> Result<String, String> {
+    let mib = podvm_image::space::mib;
+    let ceiling = if hard == soft {
+        format!("{} file-size ceiling", mib(soft))
+    } else if hard == u64::MAX {
+        format!(
+            "{} file-size ceiling (soft; the hard limit is infinity)",
+            mib(soft)
+        )
     } else {
-        report.ok(
-            NAME,
-            format!(
-                "free {} at {at} covers the {} file-size ceiling",
-                podvm_image::space::mib(free),
-                podvm_image::space::mib(max)
-            ),
-        );
+        format!(
+            "{} file-size ceiling (soft; the hard limit is {})",
+            mib(soft),
+            mib(hard)
+        )
+    };
+    if free < soft {
+        Err(format!("free {} at {at} is below the {ceiling}", mib(free)))
+    } else {
+        Ok(format!("free {} at {at} covers the {ceiling}", mib(free)))
     }
 }
 
@@ -424,5 +442,21 @@ mod tests {
         // Not a directory podvm can write a probe into: an error naming
         // the path, never a "no".
         assert_eq!(store_exec_row_at(&d.join("absent")), 2);
+    }
+
+    /// T-1690 (issue 214): the soft limit is the ceiling. A soft 1 GiB with
+    /// an infinite hard limit is judged at 1 GiB, not passed as "no ceiling".
+    #[test]
+    fn the_ceiling_is_the_soft_limit() {
+        const GIB: u64 = 1 << 30;
+        let ok = judge_ceiling(GIB, u64::MAX, 4 * GIB, "/s").unwrap();
+        assert!(ok.contains("covers the 1.00 GiB"), "{ok}");
+        assert!(ok.contains("hard limit is infinity"), "{ok}");
+        let short = judge_ceiling(GIB, u64::MAX, GIB / 2, "/s").unwrap_err();
+        assert!(short.contains("below the 1.00 GiB"), "{short}");
+        let equal = judge_ceiling(GIB, GIB, 2 * GIB, "/s").unwrap();
+        assert!(!equal.contains("hard"), "{equal}");
+        let both = judge_ceiling(GIB, 2 * GIB, GIB / 2, "/s").unwrap_err();
+        assert!(both.contains("hard limit is 2.00 GiB"), "{both}");
     }
 }

@@ -1,0 +1,12 @@
+# T-1690: the doctor row judges the soft RLIMIT_FSIZE (issue 214)
+# Cloud host, 2026-11-09, release build of the change. The hard limit stays infinity.
+
+$ podvm doctor  (soft and hard infinity)
+note disk free against the file-size ceiling: no file-size ceiling (the soft RLIMIT_FSIZE is infinity)
+
+$ ulimit -S -f 2097152; podvm doctor  (soft 2 GiB)
+ok disk free against the file-size ceiling: free 25.10 GiB at $STORE covers the 2.00 GiB file-size ceiling (soft; the hard limit is infinity)
+
+$ ulimit -S -f 67108864; podvm doctor  (soft 64 GiB, above the free space)
+fail disk free against the file-size ceiling: free 25.10 GiB at $STORE is below the 64.00 GiB file-size ceiling (soft; the hard limit is infinity)
+fix: free disk space at $STORE or point PODVM_STORE at a roomier filesystem

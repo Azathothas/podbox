@@ -2441,7 +2441,7 @@ Source:      issue 214; T-1301 leg 3; T-1305
 Category:    cli
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `podvm doctor` reads the hard `RLIMIT_FSIZE` in the row "disk
              free against the file-size ceiling". The kernel raises SIGXFSZ
@@ -2467,6 +2467,16 @@ Decision:    The enforced bound is the soft limit. Doctor and the machine
 Prove:       `cargo test -p podvm` exits 0 with tests: a soft 1 GB and a
              hard infinity give the 1 GB ceiling; the same limits with less
              free space fail with a fix line; both infinite stay a note.
+
+**Done 2026-11-09.** `examine_ceiling` keeps the soft limit and judges
+it; the comparison is the pure function `judge_ceiling`, which names the
+hard limit when it differs. `cargo test -p podvm` exits 0 with
+`the_ceiling_is_the_soft_limit` (a soft 1 GiB and a hard infinity give
+the 1 GiB ceiling; less free space fails; equal limits print no hard
+limit). [The drive](../experiments/results/doctor-soft-fsize.txt): with
+`ulimit -S -f` at 2 GiB and the hard limit at infinity, `podvm doctor`
+judges the 2 GiB ceiling, where it printed "no file-size ceiling"
+before; at 64 GiB, above the free space, the row fails with its fix line.
 
 **Filed 2026-11-09.** From issue 214 (an outside account). The triage of
 2026-11-09 confirmed each claim at `2be31b2`.
