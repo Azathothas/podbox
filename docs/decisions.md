@@ -33,7 +33,7 @@ before; they stay in force where no row here supersedes them.
 | 2026-11-09 | New projects | Each project that PodUtils/podcrates#35 and #36 propose gets its own repository of PodUtils; `podrunner` runs podvm as a unit kind. podvm does not grow those projects. |
 | 2026-11-09 | Test accounts | "Not now". No Cloudflare, Zero Trust or GitHub test account as a CI secret. A live step that needs one waits; offline tests stay. |
 | 2026-11-09 | Workflow dispatch | A session dispatches the workflows of this repository itself, with the GitHub tool `actions_run_trigger` (the owner's account). The issues `[gh action] requested` and COORD-005 (#198) are superseded. |
-
+| 2026-11-09 | Priority | "priority is first podvm, podnet, podssh projects, cfb & githome can wait". The entries for the asks of cfb and githome (T-1694 to T-1696 and the clauses of PodUtils/podcrates#39) stay, after podvm's own work order. The new repositories of PodUtils stay empty. |
 ## Calls made without a ruling
 
 Each call stays in force until the owner rules otherwise.

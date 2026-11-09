@@ -214,8 +214,11 @@ keeps its historical scope. It does not establish current reliability.
 16. T-1688 through T-1693 were filed on 2026-11-09 from the issues 212
     to 217, and each is done the same day; the issues are closed. T-1687
     owes one `podvm-workload` run (`public.ecr.aws` answered HTTP 429 on
-    2026-11-09). T-1694 to T-1696 are the asks of PodUtils/podcrates#39;
-    they come with item 14. The next work is item 13, T-1648 first.
+    2026-11-09). T-1694 to T-1696 and the clauses of the asks of
+    PodUtils/podcrates#39 come after podvm's own work order (the owner's
+    ruling "Priority", 2026-11-09). The next work is item 13, T-1648
+    first. podcrates imports `pod-supervise` from podvm `27ae993`: the
+    files of `podvm-supervise` take fixes only, each as a COORD issue.
 
 An agent may start a KVM guest unattended by passing both
 `--accept-host-risk` and `--unattended`; the driver then holds a T-1609
