@@ -113,4 +113,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #216 | windows, parity: the `--podvm-mem` row claims an `RLIMIT_FSIZE` check that neither flavor of the verb performs | closed | T-1692 |
 | #217 | release: README and SECURITY put the podbox identity boundary one tag early, and the verifier disagrees with both documents | closed | T-1693 |
 | #218 | COORD-012: podvm took v0.7.0, and filed the asks of COORD-015 (to podcrates) | closed | T-1681; none: coordination |
-| #219 | COORD-013: podvm took v0.8.0 and pod-supervise (to podcrates) | open | T-1681 |
+| #219 | COORD-013: podvm took v0.8.0 and pod-supervise (to podcrates) | closed | T-1681 |

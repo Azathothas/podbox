@@ -33,8 +33,9 @@ Remove this file when each step below is done.
    cluster T-1643 to T-1653.
 4. Each M6 import of podcrates (pod-guest, pod-enter, pod-supervise,
    pod-oci, pod-extract, pod-rootfs): apply its patch, run its `.run`,
-   commit, COORD issue. podcrates imports from podvm head; T-060
-   (`pod-supervise`) may start since 063a1ed.
+   commit, COORD issue. `pod-supervise` is taken (989f35b). `podvm-enter`
+   and `podvm-windows` are frozen for `pod-enter` and `pod-guest`
+   (podcrates v0.9.0): each fix of them is a COORD issue `(to podcrates)`.
 
 ## Questions for the owner
 
