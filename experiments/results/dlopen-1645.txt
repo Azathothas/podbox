@@ -1,0 +1,212 @@
+# T-1645 drive: dlopen and dlmopen route a guest path through the table.
+# Run by hand on the chroot-denying fixture: unshare -Urm, a tmpfs over
+# /dev/pts, and experiments/deny-chroot.c (chroot(2) answers EPERM), as
+# experiments/356-no-chroot-rung.sh builds it. Images come from mirror.gcr.io:
+# Docker Hub and public.ecr.aws answer HTTP 429 on this host, so 356 itself
+# could not pull its pinned inputs. The store path is written as $STORE.
+#
+# Fixture file wrap-hide.sh:
+#   #!/bin/sh
+#   # As wrap.sh, and the host's gconv directory hidden, so a module the
+#   # payload's libc loads by a guest path cannot come from the host.
+#   mount -t tmpfs tmpfs /dev/pts || exit 2
+#   mount -t tmpfs tmpfs /usr/lib/x86_64-linux-gnu/gconv || exit 2
+#   MNT="$1"; shift
+#   exec "$MNT/deny-chroot" "$@"
+
+#### AFTER (this tree): exit 0
+== conditions
+date              2026-11-09T15:36:25Z
+host kernel       Linux 6.18.44-fc-v310
+podvm             podvm 0.1.0-beta.13
+image             mirror.gcr.io/library/python:3-alpine sha256:a0f2e268f2ce8f3709611a90054ec6a8ae31f6251f5896b8648b9bb99835e30a
+fixture           unshare -Urm + experiments/deny-chroot.c (chroot(2) answers EPERM)
+
+== import
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/python:3-alpine python3 -c import subprocess, _posixsubprocess; print("import-ok", _posixsubprocess.__file__)
+exit              0 (want 0)
+output (podvm extraction lines removed):
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (musl object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $STORE/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/rootfs/lib/ld-musl-x86_64.so.1 runs $STORE/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/rootfs/usr/local/bin/python3 with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podvm: userland: absolute guest paths anchor inside $STORE/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/rootfs through PODVM_MAPS=/:$STORE/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/rootfs (TODO/enter.md T-1407)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podvm: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to ../proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: 13 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  import-ok /usr/local/lib/python3.15/lib-dynload/_posixsubprocess.cpython-315-x86_64-linux-musl.so
+ok   import matches '^import-ok /usr/local/lib/python3'
+ok   import matches 'interpose: /.podvm/interpose.so (musl object) is preloaded'
+
+== relative
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /usr/local/lib mirror.gcr.io/library/python:3-alpine python3 -c import ctypes, glob
+n = glob.glob("python3*/lib-dynload/_json*.so")[0]
+ctypes.CDLL("./" + n)
+print("relative-ok ./" + n.split("/")[0] + "/...")
+exit              0 (want 0)
+output (podvm extraction lines removed):
+  relative-ok ./python3.15/...
+ok   relative matches '^relative-ok'
+
+== soname
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/python:3-alpine python3 -c import ctypes; ctypes.CDLL("libffi.so.8"); print("soname-ok")
+exit              0 (want 0)
+output (podvm extraction lines removed):
+  soname-ok
+ok   soname matches '^soname-ok'
+
+== absent
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/python:3-alpine python3 -c import ctypes; ctypes.CDLL("/no/such/lib.so")
+exit              1 (want 1)
+output (podvm extraction lines removed):
+  Traceback (most recent call last):
+    File "<string>", line 1, in <module>
+      import ctypes; ctypes.CDLL("/no/such/lib.so")
+                     ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+    File "/usr/local/lib/python3.15/ctypes/__init__.py", line 422, in __init__
+      self._handle = self._load_library(name, mode, handle, winmode)
+                     ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "/usr/local/lib/python3.15/ctypes/__init__.py", line 464, in _load_library
+      return _dlopen(name, mode)
+  OSError: Error loading shared library $STORE/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/rootfs/no/such/lib.so: No such file or directory
+ok   absent matches 'OSError'
+
+image             mirror.gcr.io/library/python:3-slim sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
+
+== import-glibc
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/python:3-slim python3 -c import subprocess, _posixsubprocess; print("import-ok", _posixsubprocess.__file__)
+exit              0 (want 0)
+output (podvm extraction lines removed):
+  podvm: 14 of 5860 entries carry an id this machine cannot apply; what the image intended is in $STORE/store/rootfs/sha256_fd2aef5e0d8438208de9fe154ab5b331a2428fc0c9838d41611e611fd7a80d85/.meta.jsonl
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (glibc object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $STORE/store/rootfs/sha256_fd2aef5e0d8438208de9fe154ab5b331a2428fc0c9838d41611e611fd7a80d85/rootfs/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 runs $STORE/store/rootfs/sha256_fd2aef5e0d8438208de9fe154ab5b331a2428fc0c9838d41611e611fd7a80d85/rootfs/usr/local/bin/python3 with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podvm: userland: absolute guest paths anchor inside $STORE/store/rootfs/sha256_fd2aef5e0d8438208de9fe154ab5b331a2428fc0c9838d41611e611fd7a80d85/rootfs through PODVM_MAPS=/:$STORE/store/rootfs/sha256_fd2aef5e0d8438208de9fe154ab5b331a2428fc0c9838d41611e611fd7a80d85/rootfs (TODO/enter.md T-1407)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: rewrote etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: created etc/hosts (hosts, T-0403): localhost
+  podvm: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: created etc/apt/apt.conf.d/99podvm (apt-sandbox, T-0407): APT::Sandbox::User root. The _apt user is not mapped on this runtime
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: created etc/ssl/cert.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: rewrote etc/ssl/certs (ca-hash-dir, T-0412): 122 of this machine's 122 announced roots are not in this image's CApath; written as one certificate per file (podvm-host-ca-*.pem), 122 changed, 0 stale one(s) removed. note: A hash-indexed CApath is read by NAME, so they stay invisible until `openssl rehash` links them; this machine's trust is then the container's too
+  podvm: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. refused: The scheme only: the mirror this image chose is the mirror podvm uses
+  podvm: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` (ca-hash-dir, T-0412): /etc/ssl/certs is a hash-indexed CApath and OpenSSL looks a certificate up there by the hash of its subject, so the roots podvm just wrote are invisible until they are linked. libzypp reads this directory and no CAfile at all
+  podvm: complete: 17 fixup(s) applied to this image's rootfs, 9 degraded, 0 failed, 1 step(s) to run inside it; libc=glibc. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  podvm: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` could not be started: the payload could not be started: chroot into the rootfs failed with EPERM (1)
+  import-ok /usr/local/lib/python3.15/lib-dynload/_posixsubprocess.cpython-315-x86_64-linux-gnu.so
+ok   import-glibc matches '^import-ok /usr/local/lib/python3'
+ok   import-glibc matches 'interpose: /.podvm/interpose.so (glibc object) is preloaded'
+
+== gconv-host-visible
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/python:3-slim python3 -c import ctypes
+libc = ctypes.CDLL("libc.so.6")
+libc.iconv_open.restype = ctypes.c_void_p
+cd = libc.iconv_open(b"ISO-8859-15", b"UTF-8")
+print("gconv-open=" + ("fail" if cd in (None, 2**64 - 1) else "ok"))
+exit              0 (want 0)
+output (podvm extraction lines removed):
+  podvm: 14 of 5860 entries carry an id this machine cannot apply; what the image intended is in $STORE/store/rootfs/sha256_fd2aef5e0d8438208de9fe154ab5b331a2428fc0c9838d41611e611fd7a80d85/.meta.jsonl
+  gconv-open=ok
+
+== gconv-host-hidden
+command           unshare -Urm sh $STORE/wrap-hide.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/python:3-slim python3 -c import ctypes
+libc = ctypes.CDLL("libc.so.6")
+libc.iconv_open.restype = ctypes.c_void_p
+cd = libc.iconv_open(b"ISO-8859-15", b"UTF-8")
+print("gconv-open=" + ("fail" if cd in (None, 2**64 - 1) else "ok"))
+exit              0 (want 0)
+output (podvm extraction lines removed):
+  podvm: 14 of 5860 entries carry an id this machine cannot apply; what the image intended is in $STORE/store/rootfs/sha256_fd2aef5e0d8438208de9fe154ab5b331a2428fc0c9838d41611e611fd7a80d85/.meta.jsonl
+  gconv-open=fail
+note: gconv-host-visible prints gconv-open=ok, gconv-host-hidden prints gconv-open=fail (measured, not gated)
+
+verdict           DLOPEN LOADS GUEST PATHS
+
+#### CONTROL (the same driver on HEAD 95541a5, before the change): exit 1
+== import
+exit              1 (want 0)
+  ImportError: Error loading shared library /usr/local/lib/python3.15/lib-dynload/_posixsubprocess.cpython-315-x86_64-linux-musl.so: No such file or directory
+step import: wanted exit 0, got 1
+FAIL import does not match '^import-ok /usr/local/lib/python3'
+ok   import matches 'interpose: /.podvm/interpose.so (musl object) is preloaded'
+== relative
+exit              1 (want 0)
+  ImportError: Error loading shared library /usr/local/lib/python3.15/lib-dynload/_ctypes.cpython-315-x86_64-linux-musl.so: No such file or directory
+step relative: wanted exit 0, got 1
+FAIL relative does not match '^relative-ok'
+== soname
+exit              1 (want 0)
+  ImportError: Error loading shared library /usr/local/lib/python3.15/lib-dynload/_ctypes.cpython-315-x86_64-linux-musl.so: No such file or directory
+step soname: wanted exit 0, got 1
+FAIL soname does not match '^soname-ok'
+== absent
+exit              1 (want 1)
+  ImportError: Error loading shared library /usr/local/lib/python3.15/lib-dynload/_ctypes.cpython-315-x86_64-linux-musl.so: No such file or directory
+FAIL absent does not match 'OSError'
+== import-glibc
+exit              1 (want 0)
+  ImportError: /usr/local/lib/python3.15/lib-dynload/_posixsubprocess.cpython-315-x86_64-linux-gnu.so: cannot open shared object file: No such file or directory
+step import-glibc: wanted exit 0, got 1
+FAIL import-glibc does not match '^import-ok /usr/local/lib/python3'
+ok   import-glibc matches 'interpose: /.podvm/interpose.so (glibc object) is preloaded'
+== gconv-host-visible
+exit              1 (want 0)
+  ImportError: /usr/local/lib/python3.15/lib-dynload/_ctypes.cpython-315-x86_64-linux-gnu.so: cannot open shared object file: No such file or directory
+step gconv-host-visible: wanted exit 0, got 1
+== gconv-host-hidden
+exit              1 (want 0)
+  ImportError: /usr/local/lib/python3.15/lib-dynload/_ctypes.cpython-315-x86_64-linux-gnu.so: cannot open shared object file: No such file or directory
+step gconv-host-hidden: wanted exit 0, got 1
+note: gconv-host-visible prints , gconv-host-hidden prints  (measured, not gated)
+verdict           OPEN
+
+#### HOST CHECK: the trampoline keeps the payload as the caller of the loader
+# app/prog has DT_RUNPATH $ORIGIN/lib and dlopens libfoo.so and $ORIGIN/lib/libfoo.so.
+# The gnu object is this tree's crates/podvm-interpose/target/x86_64-unknown-linux-gnu/release/libpodvm_interpose.so.
+# The naive wrapper calls the next dlopen from its own frame: the loader then reads the
+# wrapper as the caller, and both loads fail. The trampoline jumps, and both loads pass.
+== no preload
+libfoo.so                loaded, foo()=42
+$ORIGIN/lib/libfoo.so    loaded, foo()=42
+exit 0
+== LD_PRELOAD the gnu interposer object (trampoline)
+libfoo.so                loaded, foo()=42
+$ORIGIN/lib/libfoo.so    loaded, foo()=42
+exit 0
+== LD_PRELOAD a naive wrapper that calls the next dlopen
+libfoo.so                FAILED: libfoo.so: cannot open shared object file: No such file or directory
+$ORIGIN/lib/libfoo.so    FAILED: $ORIGIN/lib/libfoo.so: cannot open shared object file: No such file or directory
+exit 0

@@ -316,9 +316,9 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 | [T-1641](gate.md) | P0 | windows | partial | The provisioner writes into the vendor's backing image, and a timed-out run orphans its emulator |
 | [T-1642](deps.md) | P1 | deps | done | Refuse a Linux-target cargo build launched on a Windows host |
-| [T-1643](interpose.md) | P1 | interpose | open | A relative path resolves against the host cwd and gets the rootfs prefix twice |
-| [T-1644](interpose.md) | P1 | interpose | open | Admit a glibc payload against its whole NEEDED closure, read inside the rootfs |
-| [T-1645](interpose.md) | P1 | interpose | open | Intercept `dlopen` and `dlmopen` |
+| [T-1643](interpose.md) | P1 | interpose | done | A relative path resolves against the host cwd and gets the rootfs prefix twice |
+| [T-1644](interpose.md) | P1 | interpose | done | Admit a glibc payload against its whole NEEDED closure, read inside the rootfs |
+| [T-1645](interpose.md) | P1 | interpose | done | Intercept `dlopen` and `dlmopen` |
 | [T-1646](interpose.md) | P1 | interpose | open | A dynamic grandchild re-enters through the host loader |
 | [T-1647](enter.md) | P1 | enter | open | Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes |
 | [T-1648](enter.md) | P0 | enter | partial | A static Go payload runs into a GOROOT error instead of a named refusal |
@@ -373,7 +373,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-305 items: 35 open, 12 partial, 4 blocked, 254 done.
+305 items: 32 open, 12 partial, 4 blocked, 257 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -382,10 +382,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 2 | 0 | 62 | 64 |
-| P1 | 8 | 8 | 0 | 119 | 135 |
+| P1 | 5 | 8 | 0 | 122 | 135 |
 | P2 | 27 | 2 | 4 | 64 | 97 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **35** | **12** | **4** | **254** | **305** |
+| **All** | **32** | **12** | **4** | **257** | **305** |
 
 ## Work order
 

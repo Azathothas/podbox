@@ -358,7 +358,7 @@ pub(super) unsafe fn map_template(
     }
     // Templates are relative to the working directory by construction.
     let mut abs = [0u8; crate::map::OUT];
-    if unsafe { crate::map::absolutize(crate::map::AT_FDCWD, template, &mut abs) } < 0 {
+    if unsafe { crate::map::absolutize(&t, crate::map::AT_FDCWD, template, &mut abs) } < 0 {
         crate::say::line(&[what, b": podvm cannot resolve the path, so the call fails"]);
         set_errno(2);
         return core::ptr::null_mut();

@@ -149,17 +149,23 @@ impl Elf {
                 // version. The high bit is the "hidden" flag and not part of the
                 // index.
                 let key = ndx & 0x7fff;
-                let version = if key < 2 {
-                    None
+                let (version, file) = if key < 2 {
+                    (None, None)
                 } else if shndx == 0 {
-                    need.get(&key).cloned()
+                    match need.get(&key) {
+                        Some((v, f)) => {
+                            (Some(v.clone()), Some(f.clone()).filter(|f| !f.is_empty()))
+                        }
+                        None => (None, None),
+                    }
                 } else {
-                    def.get(&key).cloned()
+                    (def.get(&key).cloned(), None)
                 };
                 let v = Versioned {
                     name,
                     version,
                     weak,
+                    file,
                 };
                 if shndx == 0 {
                     out.imported.push(v);
@@ -209,6 +215,7 @@ impl Elf {
                             name: "__libc_start_main".into(),
                             version: None,
                             weak: false,
+                            file: None,
                         })
                     {
                         Flavour::Musl

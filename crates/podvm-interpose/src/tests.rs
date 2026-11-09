@@ -223,3 +223,81 @@ fn wall_errnos_carry_their_names() {
     assert_eq!(errno_name(38), b" (ENOSYS)");
     assert_eq!(errno_name(99), b"");
 }
+
+unsafe extern "C" {
+    fn dlmopen(lmid: core::ffi::c_long, name: *const c_char, flag: c_int) -> *mut c_void;
+}
+
+/// T-1645: a name with a `/` is a path the table applies to. A bare
+/// soname is a search, and a `$` token is the loader's to expand.
+#[test]
+fn only_a_slash_name_without_a_token_is_mapped() {
+    let cases: &[(&core::ffi::CStr, bool)] = &[
+        (c"/usr/lib/x.so", true),
+        (c"./x.so", true),
+        (c"lib/x.so", true),
+        (c"libc.so.6", false),
+        (c"$ORIGIN/x.so", false),
+        (c"/opt/$LIB/x.so", false),
+    ];
+    for (name, want) in cases {
+        assert_eq!(unsafe { is_mapped_name(name.as_ptr()) }, *want, "{name:?}");
+    }
+    assert!(!unsafe { is_mapped_name(core::ptr::null()) });
+}
+
+/// The directory and the file name of the libc this test process runs
+/// on, read from `/proc/self/maps`.
+fn loaded_libc() -> (String, String) {
+    let maps = std::fs::read_to_string("/proc/self/maps").expect("maps");
+    for line in maps.lines() {
+        let Some(path) = line.split_whitespace().nth(5) else {
+            continue;
+        };
+        let (dir, file) = path.rsplit_once('/').unwrap_or(("", path));
+        if file.starts_with("libc.so") || file.starts_with("libc-") {
+            return (dir.to_string(), file.to_string());
+        }
+    }
+    panic!("no libc in /proc/self/maps");
+}
+
+/// T-1645: `dlopen` and `dlmopen` load a mapped object by its guest
+/// path. The guest directory names nothing on the host, so without the
+/// table each load fails; with `GUEST:REAL` set, each load answers the
+/// handle of the libc already in the process, which the loader finds by
+/// device and inode. The exported trampolines are what the calls enter:
+/// the test binary defines `dlopen` and `dlmopen` itself.
+#[test]
+fn dlopen_loads_a_mapped_object_by_its_guest_path() {
+    const RTLD_NOW: c_int = 2;
+    const LM_ID_BASE: core::ffi::c_long = 0;
+    let (dir, file) = loaded_libc();
+    let guest = CString::new(format!("/podvm-t1645-guest/{file}")).expect("guest path");
+    let soname = CString::new(file.clone()).expect("soname");
+    // The control: a bare soname goes through unchanged and loads.
+    let want = unsafe { dlopen(soname.as_ptr(), RTLD_NOW) };
+    assert!(!want.is_null(), "the bare soname {file} loads");
+    // Without the table the guest path names nothing.
+    // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+    unsafe { std::env::remove_var("PODVM_MAPS") };
+    assert!(unsafe { dlopen(guest.as_ptr(), RTLD_NOW) }.is_null());
+    // SAFETY: as above.
+    unsafe { std::env::set_var("PODVM_MAPS", format!("/podvm-t1645-guest:{dir}")) };
+    // A longer name first: the rewritten name lives in one buffer for
+    // each thread, and the shorter name after it must not keep its tail.
+    let long = CString::new(format!(
+        "/podvm-t1645-guest/{file}-a-longer-name-that-is-absent"
+    ))
+    .expect("long path");
+    assert!(unsafe { dlopen(long.as_ptr(), RTLD_NOW) }.is_null());
+    let got = unsafe { dlopen(guest.as_ptr(), RTLD_NOW) };
+    let got_m = unsafe { dlmopen(LM_ID_BASE, guest.as_ptr(), RTLD_NOW) };
+    // SAFETY: as above.
+    unsafe { std::env::remove_var("PODVM_MAPS") };
+    assert_eq!(got, want, "dlopen of the guest path");
+    assert_eq!(
+        got_m, want,
+        "dlmopen of the guest path in the base namespace"
+    );
+}

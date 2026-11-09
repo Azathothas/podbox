@@ -35,13 +35,11 @@ pub fn libc_beside(rootfs: &str, interp: &str, machine: u16) -> Option<String> {
         Flavour::Glibc => {
             let dir = rel.rsplit_once('/').map(|(d, _)| d).unwrap_or("");
             let root = rootfs.trim_end_matches('/');
-            let p = if dir.is_empty() {
-                format!("{root}/libc.so.6")
-            } else {
-                format!("{root}/{dir}/libc.so.6")
-            };
-            if std::path::Path::new(&p).exists() {
-                return Some(p);
+            // ⭐ T-1644: resolved inside the root, as the musl arm is. A
+            // host `exists()` follows an absolute link onto the host.
+            let guest = format!("/{dir}/libc.so.6");
+            if let Ok(p) = resolve_in(std::path::Path::new(root), &guest) {
+                return Some(p.display().to_string());
             }
             search_file(root, "libc.so.6", Some(machine))
         }

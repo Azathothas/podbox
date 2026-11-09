@@ -1,0 +1,115 @@
+# T-1644 drive: glibc payloads admitted against the link set read inside the image.
+# Run by hand on the chroot-denying fixture: unshare -Urm, a tmpfs over
+# /dev/pts, and experiments/deny-chroot.c (chroot(2) answers EPERM), as
+# experiments/356-no-chroot-rung.sh builds it. Images come from mirror.gcr.io:
+# Docker Hub and public.ecr.aws answer HTTP 429 on this host, so 356 itself
+# could not pull its pinned inputs. The store path is written as $STORE.
+#
+# Fixture file wrap-nold.sh:
+#   #!/bin/sh
+#   # As wrap.sh, and the host's glibc loader replaced last by a static program
+#   # that exits 0, so the image's absolute loader link
+#   # (/lib64/ld-linux-x86-64.so.2 -> /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+#   # names, on the host, a file that is not a loader. A host file must not
+#   # decide the admission. podvm's store exec probe runs a `#!/bin/sh` script
+#   # that is `exit 0`; the host's dash needs the replaced loader, so the same
+#   # static program stands in for /bin/sh. deny-chroot and podvm are static.
+#   mount -t tmpfs tmpfs /dev/pts || exit 2
+#   MNT="$1"; shift
+#   mount --bind "$MNT/exit0" "$(readlink -f /bin/sh)" || exit 2
+#   mount --bind "$MNT/exit0" "$(readlink -f /lib64/ld-linux-x86-64.so.2)" || exit 2
+#   exec "$MNT/deny-chroot" "$@"
+
+#### AFTER (this tree): exit 0
+== conditions
+date              2026-11-09T15:34:10Z
+host kernel       Linux 6.18.44-fc-v310
+host libc         ldd (Ubuntu GLIBC 2.39-0ubuntu8.9) 2.39
+podvm             podvm 0.1.0-beta.13
+debian            mirror.gcr.io/library/debian:bookworm-slim sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
+gcc               mirror.gcr.io/library/gcc:13-bookworm sha256:d47e63a2a4621ff4da4e0825bfe8c52c2e65e957333d7878e5c3a6eee2cd525e
+fixture           unshare -Urm + experiments/deny-chroot.c (chroot(2) answers EPERM)
+
+== debian-echo
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/debian:bookworm-slim echo hi
+exit              0 (want 0)
+output (interpose lines and the payload's own lines):
+  podvm: interpose: /.podvm/interpose.so (glibc object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-tabl
+  hi
+ok   debian-echo matches '^hi$'
+ok   debian-echo matches 'interpose.so (glibc object) is preloaded'
+
+== gcc-version
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/gcc:13-bookworm gcc --version
+exit              0 (want 0)
+output (interpose lines and the payload's own lines):
+  podvm: interpose: /.podvm/interpose.so (glibc object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-tabl
+  gcc (GCC) 13.5.0
+ok   gcc-version matches '^gcc (GCC) 13'
+ok   gcc-version matches 'interpose.so (glibc object) is preloaded'
+
+== nold-probe
+command           unshare -Urm sh $STORE/wrap-nold.sh $STORE /lib64/ld-linux-x86-64.so.2 --version
+exit              0 (want 0)
+output (interpose lines and the payload's own lines):
+ok   nold-probe: the host loader path answers no ld.so banner
+
+== debian-echo-nold
+command           unshare -Urm sh $STORE/wrap-nold.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/debian:bookworm-slim echo hi
+exit              0 (want 0)
+output (interpose lines and the payload's own lines):
+  podvm: interpose: /.podvm/interpose.so (glibc object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-tabl
+  hi
+ok   debian-echo-nold matches '^hi$'
+ok   debian-echo-nold matches 'interpose.so (glibc object) is preloaded'
+
+== gcc-version-nold
+command           unshare -Urm sh $STORE/wrap-nold.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/gcc:13-bookworm gcc --version
+exit              0 (want 0)
+output (interpose lines and the payload's own lines):
+  podvm: interpose: /.podvm/interpose.so (glibc object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-tabl
+  gcc (GCC) 13.5.0
+ok   gcc-version-nold matches '^gcc (GCC) 13'
+ok   gcc-version-nold matches 'interpose.so (glibc object) is preloaded'
+
+verdict           GLIBC PAYLOADS ADMITTED WITH THE GLIBC OBJECT
+
+#### CONTROL (the same driver on HEAD 95541a5, before the change): exit 1
+== debian-echo
+exit              0 (want 0)
+ok   debian-echo matches '^hi$'
+ok   debian-echo matches 'interpose.so (glibc object) is preloaded'
+== gcc-version
+exit              0 (want 0)
+ok   gcc-version matches '^gcc (GCC) 13'
+ok   gcc-version matches 'interpose.so (glibc object) is preloaded'
+== nold-probe
+exit              0 (want 0)
+ok   nold-probe: the host loader path answers no ld.so banner
+== debian-echo-nold
+exit              126 (want 0)
+step debian-echo-nold: wanted exit 0, got 126
+FAIL debian-echo-nold does not match '^hi$'
+FAIL debian-echo-nold does not match 'interpose.so (glibc object) is preloaded'
+== gcc-version-nold
+exit              126 (want 0)
+step gcc-version-nold: wanted exit 0, got 126
+FAIL gcc-version-nold does not match '^gcc (GCC) 13'
+FAIL gcc-version-nold does not match 'interpose.so (glibc object) is preloaded'
+verdict           OPEN
+# The control's debian-echo-nold stderr, taken from the same run (the drive
+# prints only interpose lines and payload lines, so it is quoted here):
+#   podvm run: chroot(2) is denied on this machine, and no no-chroot family
+#   runs this payload: the loader family declines the payload: the embedded
+#   glibc object imports `__tls_get_addr`, which
+#   $STORE/store/rootfs/sha256_c67e92c8...f018/rootfs/usr/lib/x86_64-linux-gnu/libc.so.6
+#   does not define. note: Read from .dynsym: a shipped libc is stripped and
+#   its .symtab defines nothing. The probe's chroot leg reports the denial
+#   (see `podvm probe`) (TODO/enter.md T-1317)
+# That is the decline that issue 87 measured on beta.12 for bookworm-slim and
+# gcc:13-bookworm. With the host's loader in place HEAD admits, because it
+# reads the host file that the image's absolute link names.

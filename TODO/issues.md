@@ -10,9 +10,9 @@ before #127; their text is on GitHub, and the hidden ones are in
 
 | Issue | Subject | State | Entries |
 | --- | --- | --- | --- |
-| #86 | [T-1317] userland: relative paths are not virtualised, so every relative open/stat/exec fails ENOENT | open | T-1643 |
-| #87 | [T-1317] every glibc payload is refused: the ABI check resolves imports against libc alone, not the payload's NEEDED set | open | T-1644 |
-| #88 | [T-1317] interposer does not intercept dlopen/dlmopen, so a dynamic payload cannot load guest shared objects | open | T-1645 |
+| #86 | [T-1317] userland: relative paths are not virtualised, so every relative open/stat/exec fails ENOENT | closed | T-1643 |
+| #87 | [T-1317] every glibc payload is refused: the ABI check resolves imports against libc alone, not the payload's NEEDED set | closed | T-1644 |
+| #88 | [T-1317] interposer does not intercept dlopen/dlmopen, so a dynamic payload cannot load guest shared objects | closed | T-1645 |
 | #89 | [T-1317] interposer execve maps the path but not the loader, so every dynamic grandchild fails 127: promote clause 17 to a gate | open | T-1646 |
 | #90 | [T-1317] a 128 MiB payload-read ceiling refuses node:alpine (149 MB) and any large runtime | open | T-1647 |
 | #91 | [T-1409] a static Go payload is declined and then run into a GOROOT error instead of a named refusal | open | T-1648 |
@@ -22,10 +22,10 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #109 | [T-1317] static payloads can have a native rung with no ptrace and no qemu: userland-execve + Syscall User Dispatch + openat2(RESOLVE_IN_ROOT) | open | T-1652 |
 | #114 | [Reference] Dossier: podbox on the constrained errand host: every limit -> mechanism -> workaround (measured) | open | T-1643 to T-1653 |
 | #127 | [Recovered #95] a dynamic grandchild re-enters through the host loader: the loader substitution must cover children | open | T-1646 |
-| #128 | [Recovered #96] the absolute lib64/ld-linux-x86-64.so.2 symlink resolves on the host and decides the libc | open | T-1644 |
-| #129 | [Recovered #97] the libc ABI union omits ld-linux-x86-64.so.2 and libdl.so.2, so every glibc payload is refused | open | T-1644 |
+| #128 | [Recovered #96] the absolute lib64/ld-linux-x86-64.so.2 symlink resolves on the host and decides the libc | closed | T-1644 |
+| #129 | [Recovered #97] the libc ABI union omits ld-linux-x86-64.so.2 and libdl.so.2, so every glibc payload is refused | closed | T-1644 |
 | #130 | [Recovered #104] no -v volumes on a host with no /dev/fuse and no mount: a two-root view, not an overlay | open | T-1653 |
-| #131 | [Recovered #105] a relative path gets the rootfs prefix twice when the cwd is already inside the rootfs | open | T-1643 |
+| #131 | [Recovered #105] a relative path gets the rootfs prefix twice when the cwd is already inside the rootfs | closed | T-1643 |
 | #132 | [Reference] 89luca89/lilipod @ 872755a: precheck and exec lessons; refused as seed | open | none: a reference (references/README.md) |
 | #133 | [Reference] Azathothas/TEMPLATE @ 6206166: methodology docs, notice retained | open | none: a reference (references/README.md) |
 | #134 | [Reference] Azathothas/bit-cli @ cce8131: the TODO work model | open | none: a reference (references/README.md) |

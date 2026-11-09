@@ -394,3 +394,97 @@ fn a_reachable_payload_without_a_memo_is_refused_not_declined() {
     assert_eq!(memo_fd_env(), "PODVM_MEMO_FD=17");
     assert_eq!(MEMO_CHILD_FD, 17);
 }
+
+// ------------------------------------------- T-1644: the link set
+
+/// The real glibc libraries this host keeps under the triplet directory,
+/// or `None` where it keeps them elsewhere. The fixture copies them into a
+/// rootfs, so the set is real ELF read by the production reader.
+fn host_glibc() -> Option<Vec<&'static str>> {
+    let names = vec![
+        "libc.so.6",
+        "libdl.so.2",
+        "libgcc_s.so.1",
+        "ld-linux-x86-64.so.2",
+    ];
+    names
+        .iter()
+        .all(|n| std::path::Path::new(&format!("/lib/x86_64-linux-gnu/{n}")).exists())
+        .then_some(names)
+}
+
+/// A Debian-shaped rootfs: the four libraries under the triplet directory
+/// (the loader only where `with_loader`), and `/lib64`'s absolute link to
+/// the loader there, as bookworm ships it.
+fn debian_rootfs(tag: &str, with_loader: bool) -> Option<std::path::PathBuf> {
+    let names = host_glibc()?;
+    let root = std::env::temp_dir().join(format!("podvm-t1644-{tag}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let lib = root.join("lib/x86_64-linux-gnu");
+    std::fs::create_dir_all(&lib).unwrap();
+    std::fs::create_dir_all(root.join("lib64")).unwrap();
+    for n in names {
+        if with_loader || n != "ld-linux-x86-64.so.2" {
+            std::fs::copy(format!("/lib/x86_64-linux-gnu/{n}"), lib.join(n)).unwrap();
+        }
+    }
+    std::os::unix::fs::symlink(
+        "/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+        root.join("lib64/ld-linux-x86-64.so.2"),
+    )
+    .unwrap();
+    Some(root)
+}
+
+/// The embedded glibc object, or `None` where this binary carries none.
+fn gnu_objects() -> Option<Parsed> {
+    let p = parsed();
+    p.gnu.elf.is_some().then_some(p)
+}
+
+/// T-1644: the embedded glibc object admits against the set read from a
+/// fixture closure. The object imports `__tls_get_addr`, `dlsym` and
+/// `_Unwind_Resume`, and the set holds each provider: the loader,
+/// `libdl.so.2` beside libc, and `libgcc_s.so.1`.
+#[test]
+fn the_glibc_object_admits_against_its_closure_read_inside_the_image() {
+    let (Some(objs), Some(root)) = (gnu_objects(), debian_rootfs("admit", true)) else {
+        eprintln!("SKIP: no embedded glibc object, or no glibc under /lib/x86_64-linux-gnu");
+        return;
+    };
+    let obj = objs.gnu.elf.as_ref().unwrap();
+    for name in ["__tls_get_addr", "dlsym", "_Unwind_Resume"] {
+        assert!(
+            obj.imported.iter().any(|i| i.name == name),
+            "the object imports {name}"
+        );
+    }
+    let payload = elf(Some("/lib64/ld-linux-x86-64.so.2"), &[], X86_64);
+    let reach = classify_elf("payload", &payload, &root.display().to_string(), &objs);
+    let _ = std::fs::remove_dir_all(&root);
+    match reach {
+        Reach::Preload { libc, .. } => assert_eq!(libc, Libc::Gnu),
+        Reach::Declined(why) => panic!("declined: {why}"),
+    }
+}
+
+/// T-1644: a loader link that resolves only on the host is not read. The
+/// rootfs holds no loader, and `/lib64`'s absolute link names the host's
+/// own. A host join read that file and admitted; the set is read inside
+/// the image, so the decline names the interpreter.
+#[test]
+fn a_loader_link_that_resolves_only_on_the_host_is_not_read() {
+    let (Some(objs), Some(root)) = (gnu_objects(), debian_rootfs("hostonly", false)) else {
+        eprintln!("SKIP: no embedded glibc object, or no glibc under /lib/x86_64-linux-gnu");
+        return;
+    };
+    let payload = elf(Some("/lib64/ld-linux-x86-64.so.2"), &[], X86_64);
+    let why = declined_name(classify_elf(
+        "payload",
+        &payload,
+        &root.display().to_string(),
+        &objs,
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    assert!(why.contains("interpreter"), "{why}");
+}

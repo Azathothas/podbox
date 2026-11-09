@@ -5,9 +5,9 @@
 # The list holds each number from 127 on, and each open number before 127.
 # TODO/issues.md maps each issue of the list to its entries.
 # scripts/check-github-numbers.py holds this list to GitHub.
-86 issue open
-87 issue open
-88 issue open
+86 issue closed
+87 issue closed
+88 issue closed
 89 issue open
 90 issue open
 91 issue open
@@ -17,10 +17,10 @@
 109 issue open
 114 issue open
 127 issue open
-128 issue open
-129 issue open
+128 issue closed
+129 issue closed
 130 issue open
-131 issue open
+131 issue closed
 132 issue open
 133 issue open
 134 issue open

@@ -243,98 +243,67 @@ pub unsafe fn unrewrite(t: &Table, path: *const u8, path_n: usize, out: &mut [u8
     }
 }
 
-/// Absolutize `path` for `dirfd` into `out`, T-0703's `*at` rule.
+/// Absolutize `path` for `dirfd` into `out` as a guest path, T-0703, T-1643.
 ///
 /// An absolute path is copied. `AT_FDCWD` resolves through the real `getcwd`,
 /// which needs no `/proc`. Any other descriptor resolves through
-/// `/proc/self/fd/<n>`; where that read fails there is no answer, only an
-/// absence. Returns the length, or `-1` where it cannot be answered.
-///
+/// `/proc/self/fd/<n>`. The base is a host path, so `guest_base` reverse-maps
+/// it before the join, and `normalise` folds the result. Returns the length,
+/// or `-1` where it cannot be answered. The output carries a NUL after it.
 /// # Safety
-/// `path` must be readable up to its NUL within `OUT` bytes and `out` must
-/// hold `OUT` writable bytes, which is what every entry point passes.
-pub unsafe fn absolutize(dirfd: c_int, path: *const c_char, out: &mut [u8; OUT]) -> isize {
-    let getcwd = match next_getcwd() {
-        Some(f) => f,
-        None => return -1,
-    };
-    let readlink = match next_readlink() {
-        Some(f) => f,
-        None => return -1,
-    };
+/// `path` must be readable up to its NUL within `OUT` bytes, `out` must hold
+/// `OUT` writable bytes, which is what every entry point passes.
+pub unsafe fn absolutize(
+    t: &Table,
+    dirfd: c_int,
+    path: *const c_char,
+    out: &mut [u8; OUT],
+) -> isize {
     let n = strnlen(path, OUT);
     if n == 0 || n >= OUT {
         return -1;
     }
-    if unsafe { *(path as *const u8) } == b'/' {
-        unsafe {
-            core::ptr::copy_nonoverlapping(path as *const u8, out.as_mut_ptr(), n);
-        }
-        return n as isize;
+    let path = unsafe { core::slice::from_raw_parts(path as *const u8, n) };
+    if path[0] == b'/' {
+        out[..n].copy_from_slice(path);
+        let m = normalise(out, n);
+        out[m] = 0;
+        return m as isize;
     }
-    // The base: the working directory, or the descriptor's target.
+    // The base: the working directory, or the descriptor's target. Both
+    // are host paths here.
     let mut base = [0u8; OUT];
-    let base_n: usize = if dirfd == AT_FDCWD {
-        if unsafe { getcwd(base.as_mut_ptr() as *mut c_char, OUT) }.is_null() {
+    let base_n = if dirfd == AT_FDCWD {
+        let Some(getcwd) = next_getcwd() else {
             return -1;
-        }
-        strnlen(base.as_ptr() as *const c_char, OUT)
-    } else {
-        // `/proc/self/fd/<n>` in a 64-byte stack buffer: the longest `c_int`
-        // is 11 digits plus the sign.
-        let mut link = [0u8; 64];
-        let head = b"/proc/self/fd/";
-        unsafe {
-            core::ptr::copy_nonoverlapping(head.as_ptr(), link.as_mut_ptr(), head.len());
-        }
-        let mut num = [0u8; 12];
-        let neg = dirfd < 0;
-        let mut v = (dirfd as i64).unsigned_abs();
-        let mut d = 0usize;
-        loop {
-            num[d] = b'0' + (v % 10) as u8;
-            v /= 10;
-            d += 1;
-            if v == 0 {
-                break;
-            }
-        }
-        let mut at = head.len();
-        if neg {
-            link[at] = b'-';
-            at += 1;
-        }
-        while d > 0 {
-            d -= 1;
-            link[at] = num[d];
-            at += 1;
-        }
-        link[at] = 0;
-        let r = unsafe {
-            readlink(
-                link.as_ptr() as *const c_char,
-                base.as_mut_ptr() as *mut c_char,
-                OUT - 1,
-            )
         };
-        if r <= 0 || r as usize >= OUT {
+        if unsafe { getcwd(base.as_mut_ptr() as *mut c_char, OUT) }.is_null() || base[0] != b'/' {
             return -1;
         }
-        r as usize
+        strnlen(base.as_ptr() as *const c_char, OUT) as isize
+    } else {
+        let Some(readlink) = next_readlink() else {
+            return -1;
+        };
+        unsafe { fd_base(readlink, dirfd, &mut base) }
     };
-    if base_n == 0 || base_n + 1 + n >= OUT {
+    if base_n <= 0 {
         return -1;
     }
-    unsafe {
-        core::ptr::copy_nonoverlapping(base.as_ptr(), out.as_mut_ptr(), base_n);
-        let mut at = base_n;
-        if out[at - 1] != b'/' {
-            out[at] = b'/';
-            at += 1;
-        }
-        core::ptr::copy_nonoverlapping(path as *const u8, out.as_mut_ptr().add(at), n);
-        (at + n) as isize
+    // ⭐ T-1643: the input to `rewrite` is always a guest path. A base that
+    // carries the rootfs prefix goes back to guest names first, or the
+    // `/` pair adds that prefix a second time.
+    let base_n = unsafe { guest_base(t, &mut base, base_n as usize) };
+    if base_n <= 0 || base_n as usize + 1 + n >= OUT {
+        return -1;
     }
+    let base_n = base_n as usize;
+    out[..base_n].copy_from_slice(&base[..base_n]);
+    out[base_n] = b'/';
+    out[base_n + 1..base_n + 1 + n].copy_from_slice(path);
+    let m = normalise(out, base_n + 1 + n);
+    out[m] = 0;
+    m as isize
 }
 
 /// The pointer one path-taking call passes on.
@@ -351,7 +320,8 @@ pub unsafe fn absolutize(dirfd: c_int, path: *const c_char, out: &mut [u8; OUT])
 /// and failing it would break every tool that walks with `openat`, like `tar`
 /// and `ls -R`, on any run with a table set. Only `AT_FDCWD`, which resolves
 /// through the working directory, can fail here, and only where `getcwd`
-/// itself fails.
+/// itself fails or its guest name does not fit. T-1643: that failure never
+/// falls back to the unmapped relative path.
 ///
 /// Three fast paths that never touch the table: a null pointer reaches the
 /// real call (which answers `EFAULT` as it always did), an empty table
@@ -378,7 +348,7 @@ pub unsafe fn prepare(
     }
     let relative = unsafe { *(path as *const u8) } != b'/';
     let mut abs = [0u8; OUT];
-    if unsafe { absolutize(dirfd, path, &mut abs) } < 0 {
+    if unsafe { absolutize(&t, dirfd, path, &mut abs) } < 0 {
         // ⭐ Unresolvable against a descriptor: forward, per above. Unresolvable
         // against the working directory: the process is genuinely lost, fail it.
         if relative && dirfd != AT_FDCWD {
@@ -393,13 +363,19 @@ pub unsafe fn prepare(
         // ⭐ Unmatched resolves back to the caller's own pointer, never the
         // absolutized copy: the bytes the kernel sees stay exactly the
         // payload's, including any symlinks in the working directory prefix.
+        // The kernel then resolves a relative path against the real base.
         -1 => path,
         -2 => {
             crate::say::line(&[what, b": the mapped path does not fit, so the call fails"]);
             crate::set_errno(ENAMETOOLONG);
             core::ptr::null()
         }
-        _ => out.as_ptr() as *const c_char,
+        // The NUL ends the name here: a buffer used again (the per-thread
+        // buffer of `dlopen`, T-1645) holds the tail of a longer name.
+        n => {
+            out[n as usize] = 0;
+            out.as_ptr() as *const c_char
+        }
     }
 }
 
@@ -433,6 +409,9 @@ pub unsafe fn prepare_literal(
             crate::set_errno(ENAMETOOLONG);
             core::ptr::null()
         }
-        _ => out.as_ptr() as *const c_char,
+        n => {
+            out[n as usize] = 0;
+            out.as_ptr() as *const c_char
+        }
     }
 }

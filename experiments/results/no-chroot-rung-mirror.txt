@@ -1,0 +1,980 @@
+# experiments/356-no-chroot-rung.sh with clauses 20-22 (T-1643, T-1645, T-1644),
+# run from a scratch copy that changes only the inputs: the five images come
+# from mirror.gcr.io by tag (Docker Hub and public.ecr.aws answer HTTP 429 on
+# this host), the bootstrap step is skipped (the toolchain is present), and
+# the report is not copied over experiments/results/no-chroot-rung.txt.
+# Exit 1. The one disagreement is clause 1: this host enters the namespace
+# rung where the lane enters chroot ("EnteredRung is not chroot here").
+# Each of the 64 steps exits as wanted, clauses 20, 21 and 22 among them.
+# The repository path is written as $REPO, the home directory as $STORE.
+
+== conditions
+date              2026-11-09T15:38:52Z
+host kernel       Linux 6.18.44-fc-v310
+static input      mirror.gcr.io/library/alpine:3.20
+dynamic input     mirror.gcr.io/library/debian:bookworm-slim
+bootstrap         ok
+interpose         ok
+build             ok
+podvm            podvm 0.1.0-beta.13
+3.20: Pulling from library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for mirror.gcr.io/library/alpine:3.20
+podvm: probed this machine rather than using the cache: $REPO/experiments/.sweep356-work/store/probe.json does not exist yet
+bookworm-slim: Pulling from library/debian
+dd051e1b8c92: Pull complete
+Digest: sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
+Status: Downloaded newer image for mirror.gcr.io/library/debian:bookworm-slim
+1.24.7-bookworm: Pulling from library/golang
+c6b11972fd12: Pull complete
+db3dba6026a3: Pull complete
+5fb1b35a6fc1: Pull complete
+ced1197f5fb6: Pull complete
+72e8fc27da55: Pull complete
+50d0fe3dca54: Pull complete
+4f4fb700ef54: Pull complete
+Digest: sha256:b8bae5bd9ba9b1f89b635c91c24cc75cea335a16fb5076310f38566fc674b1ec
+Status: Downloaded newer image for mirror.gcr.io/library/golang:1.24.7-bookworm
+13-bookworm: Pulling from library/gcc
+69245854ad58: Pull complete
+338554e9113f: Pull complete
+d6c30932f8d3: Pull complete
+9bab93d346cd: Pull complete
+f7cb732562a7: Pull complete
+b6d8a682fbc5: Pull complete
+6ce4a5bb14a1: Pull complete
+917b78dd206c: Pull complete
+Digest: sha256:d47e63a2a4621ff4da4e0825bfe8c52c2e65e957333d7878e5c3a6eee2cd525e
+Status: Downloaded newer image for mirror.gcr.io/library/gcc:13-bookworm
+3-alpine: Pulling from library/python
+881fc932939e: Pull complete
+2d2b30fc2d84: Pull complete
+55d6aff20023: Pull complete
+912101e0eb18: Pull complete
+Digest: sha256:a0f2e268f2ce8f3709611a90054ec6a8ae31f6251f5896b8648b9bb99835e30a
+Status: Downloaded newer image for mirror.gcr.io/library/python:3-alpine
+golang digest     sha256:b8bae5bd9ba9b1f89b635c91c24cc75cea335a16fb5076310f38566fc674b1ec
+gcc digest        sha256:d47e63a2a4621ff4da4e0825bfe8c52c2e65e957333d7878e5c3a6eee2cd525e
+python digest     sha256:a0f2e268f2ce8f3709611a90054ec6a8ae31f6251f5896b8648b9bb99835e30a
+static hello      static-pie
+static tar        ok
+Loaded image: docker.io/library/static-hello:1
+static import     ok
+Loaded image: docker.io/library/script-img:1
+script import     ok
+
+== sane-run
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/alpine:3.20 echo capable-hi
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  capable-hi
+
+== sane-tty
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm -t mirror.gcr.io/library/alpine:3.20 true
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+EnteredRung is not chroot here:
+namespace
+fixture           static
+fixture           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $PB ...
+
+== fx-smoke
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work true
+exit              0
+output:
+
+== fx-probe
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm probe --rows
+exit              0
+output:
+  unshare(CLONE_NEWNS)               OK
+  unshare(CLONE_NEWUSER)             OK
+  unshare(CLONE_NEWPID)              OK
+  clone(CLONE_NEWNS)                 OK
+  clone(CLONE_NEWUTS|NEWNS)          OK
+  clone(CLONE_NEWUSER)               OK
+  clone(CLONE_NEWUTS)                OK
+  sethostname(in NEWUTS)             OK
+  mount(tmpfs,/mnt)                  OK
+  mount(tmpfs,/mnt) in clone(NEWNS)  OK
+  mount(MS_SLAVE,/) in clone(NEWNS)  OK
+  pivot_root(/tmp,/tmp)              FAIL errno=22 EINVAL
+  ptrace(PTRACE_TRACEME)             OK
+  mknod(chr 1:3 /tmp/nodprobe)       FAIL errno=1 EPERM
+  mknod(chr 0:0 = whiteout)          OK
+  setuid(1000)                       FAIL errno=22 EINVAL
+  setuid(0)                          OK
+  setgid(0)                          OK
+  setgroups(0,NULL)                  FAIL errno=1 EPERM
+  chown(f,0,0)                       OK
+  chown(f,0,42)                      FAIL errno=22 EINVAL
+  lchown(f,0,42)                     FAIL errno=22 EINVAL
+  chown(f,1000,0)                    FAIL errno=22 EINVAL
+  chroot(/tmp)                       FAIL errno=1 EPERM
+  memfd_create                       OK
+  memfd_create+exec                  OK
+  setsid                             OK
+  prctl(PR_SET_PDEATHSIG)            OK
+  exec(/tmp/execprobe)               OK
+  getrandom                          OK
+  write(/etc/probe)                  OK
+  write into uid-1000-owned dir      SKIP no fixture directory owned by an unmapped id: neither /workspace/.fixtures/squash-probe nor /tmp/squash-probe exists. Create one as another uid outside the confinement.
+  stat(/dev/ptmx)                    OK
+  open(/dev/ptmx, O_RDWR)            FAIL errno=19 ENODEV
+  open(/dev/fuse, O_RDWR)            OK
+  readdir(/)                         OK
+  open(/bin, O_RDONLY) by name       OK
+  creat(/, O_CREAT|O_EXCL)           OK
+  bind(127.0.0.1:0)+listen           OK
+  mount(2) bogus target              FAIL errno=2 ENOENT
+  umount2(2) bogus target            FAIL errno=2 ENOENT
+  pivot_root(2) bogus paths          FAIL errno=2 ENOENT
+  process_vm_readv(bogus pid)        FAIL errno=3 ESRCH
+  pidfd_getfd(-1,-1) [control]       FAIL errno=9 EBADF
+  kcmp(-1,-1,...) [control]          FAIL errno=3 ESRCH
+  fsopen(tmpfs)                      OK
+  fsmount(tmpfs)                     OK
+  open_tree(/tmp, CLONE)             OK
+  move_mount(-> bogus dest)          FAIL errno=2 ENOENT
+  move_mount(-> /tmp/mm-probe)       OK
+  openat(detached tmpfs, O_DIRECTORY) OK
+  seccomp(NEW_LISTENER)              OK
+  open /proc/self/mem O_RDONLY       OK
+  open /proc/self/mem O_RDWR         OK
+  landlock_create_ruleset(VERSION)   OK
+  qemu-system-x86_64 --version       OK
+  open(/dev/kvm, O_RDWR)             FAIL errno=2 ENOENT
+  prlimit(RLIMIT_FSIZE)              OK
+  open(/dev/net/tun, O_RDWR)         OK
+  image space (statfs .)             OK
+  qemu-system-x86_64 -accel help     OK
+  seccomp(NEW_LISTENER) [supervise]  OK
+  process_vm_readv(own pid) [supervise] OK
+  ptrace(PTRACE_TRACEME) [supervise] OK
+  pidfd_open(own pid) [supervise]    OK
+  waitid(P_PIDFD, child) [supervise] OK
+
+== fx-tty
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm -t mirror.gcr.io/library/alpine:3.20 true
+exit              125
+output:
+  podvm run: -t was asked for and /dev/ptmx is not usable on this machine, so podvm cannot allocate a pty. It refuses rather than running without one and letting the payload discover it (TODO/enter.md T-0503)
+  podvm run: chroot(2) is denied on this machine as well (see `podvm probe`) (TODO/enter.md T-1317)
+
+== fx-debian
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/debian:bookworm-slim sh -c echo $PODVM_ACTIVE_MODE
+exit              0
+output:
+  dd051e1b8c92: Extracted (4226 entries, 0 whiteouts)
+  podvm: 10 of 4225 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
+  podvm: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (glibc object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 runs $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs/usr/bin/sh with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podvm: userland: absolute guest paths anchor inside $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs through PODVM_MAPS=/:$REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs (TODO/enter.md T-1407)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: rewrote etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: created etc/hosts (hosts, T-0403): localhost
+  podvm: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: created etc/apt/apt.conf.d/99podvm (apt-sandbox, T-0407): APT::Sandbox::User root. The _apt user is not mapped on this runtime
+  podvm: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from $STORE/.ccr/ca-bundle.crt
+  podvm: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. refused: The scheme only: the mirror this image chose is the mirror podvm uses
+  podvm: complete: 14 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  userland
+
+== fx-alpine
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/alpine:3.20 sh -c echo $PODVM_ACTIVE_MODE
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (musl object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "sh" rides as the applet the resolved busybox file selects; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podvm: userland: absolute guest paths anchor inside $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs through PODVM_MAPS=/:$REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs (TODO/enter.md T-1407)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podvm: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: 13 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  userland
+
+== fx-hello
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose --unsafe-host-paths static-hello:1 /hello
+exit              0
+output:
+  0a39777e481c: Extracted (1 entries, 0 whiteouts)
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm run: interpose: declined for "/hello": /hello is statically linked (no PT_INTERP), so no loader reads LD_PRELOAD for it
+  entering without chroot on the memfd family under --unsafe-host-paths: the payload runs from a staged memfd with the host's root and its working directory inside the image; absolute paths resolve on the host because the static payload makes raw syscalls past the interposer, so no path is rewritten, and it reads /proc/self/exe as the staged memfd path, so a self-locating runtime cannot resolve itself here (TODO/enter.md T-1317, T-1409, T-1648)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: created etc/hosts (hosts, T-0403): localhost
+  podvm: complete: created etc/passwd (identity, T-0404): the image has no etc/passwd (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podvm synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
+  podvm: complete: created etc/group (identity, T-0404): the image has no etc/group (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podvm synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
+  podvm: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from $STORE/.ccr/ca-bundle.crt
+  podvm: complete: 14 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=unknown. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  static-hi
+
+== fx-hello-refuse
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm static-hello:1 /hello
+exit              125
+output:
+  0a39777e481c: Extracted (1 entries, 0 whiteouts)
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload is statically linked, so it makes raw syscalls past the interposer and podvm rewrites no path: its absolute paths would resolve on the host, and a write would land on the host tree. podvm refuses before the exec. Use a host where chroot(2) is permitted, or `--unsafe-host-paths` to accept this host pass-through on the memfd family. The planned rungs for static payloads are the emulate tier (TODO/enter.md T-1651) and the native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+
+== fx-hello-quiet
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --unsafe-host-paths static-hello:1 /hello
+exit              0
+output:
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  static-hi
+
+== fx-strict
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict mirror.gcr.io/library/alpine:3.20 true
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+  podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+
+== fx-strict-all
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict=all mirror.gcr.io/library/alpine:3.20 true
+exit              125
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm run: --strict=all, and this run is degraded in 8 way(s). podvm refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415):
+    - [substitution] the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+    - [substitution] created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+    - [substitution] created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+    - [substitution] created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+    - [substitution] created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+    - [substitution] rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+    - [substitution] rewrote etc/ssl/certs/ca-certificates.crt (T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+    - [substitution] created etc/ssl/ca-bundle.pem (T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+
+== fx-strict-unsafe
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict --unsafe-host-paths static-hello:1 /hello
+exit              125
+output:
+  0a39777e481c: Extracted (1 entries, 0 whiteouts)
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+  podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created etc/passwd (T-0404): the image has no etc/passwd (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podvm synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
+  podvm run: --strict warning [substitution]: created etc/group (T-0404): the image has no etc/group (absent), so tooling that calls getpwuid(0) dies before reaching any syscall wall. podvm synthesized a minimal one. note: Only 0:0 is a real id on this machine; every other id in it is the image's convention
+  podvm run: --strict warning [substitution]: created etc/mtab (T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm run: --strict, and this run is degraded in 1 safety-relevant way(s). podvm refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415):
+    - [safety] --unsafe-host-paths opts out of path virtualization: absolute guest paths resolve on the host, and a write lands on the host tree (TODO/enter.md T-1407)
+rootfs files      95
+
+== fx-refuse
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/alpine:3.20 /nonexistent-probe-target
+exit              127
+output:
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: /nonexistent-probe-target resolves to nothing runnable: /nonexistent-probe-target names no file in the image. The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+refusal mutation   none
+
+== fx-forced-hello
+command           env PODVM_MODE=memfd unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --unsafe-host-paths static-hello:1 /hello
+exit              0
+output:
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  podvm run: entering on the memfd rung at PODVM_MODE's request (TODO/packaging.md T-1003)
+  static-hi
+
+== fx-forced-memfd
+command           env PODVM_MODE=memfd unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/alpine:3.20 echo forced-hi
+exit              125
+output:
+  podvm run: entering on the memfd rung at PODVM_MODE's request (TODO/packaging.md T-1003)
+  podvm run: PODVM_MODE=memfd was forced but dynamically linked against /lib/ld-musl-x86_64.so.1: a memfd exec never puts its libraries on disk, so the loader would fail on the first one it cannot find: without chroot(2) only a static payload enters, through the unforced loader family where the tier reaches it: run without PODVM_MODE (TODO/enter.md T-1317)
+
+== fx-forced-fuse
+command           env PODVM_MODE=fuse unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/alpine:3.20 true
+exit              125
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm run: entering on the fuse rung at PODVM_MODE's request (TODO/packaging.md T-1003)
+  podvm run: PODVM_MODE=fuse was forced but chroot(2) is denied on this machine, and only the memfd rung enters without it (TODO/enter.md T-1317)
+
+== fx-detached
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run -d --name ul356d mirror.gcr.io/library/alpine:3.20 sh -c echo detached-hi; while :; do :; done
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  67a4cc5ad43223fdeb7982b948b09320ff38d7125283bdc37ab625c111995b0e
+
+== fx-ps
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm ps
+exit              0
+output:
+  CONTAINER ID   IMAGE                               COMMAND                CREATED                STATUS   NAMES
+  67a4cc5ad432   mirror.gcr.io/library/alpine:3.20   sh -c echo detach...   2026-11-09T15:39:46Z   Up       ul356d
+
+== fx-logs
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm logs ul356d
+exit              0
+output:
+  detached-hi
+
+== fx-stop
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm stop ul356d
+exit              0
+output:
+  ul356d
+
+== fx-rm
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm rm ul356d
+exit              0
+output:
+  ul356d
+
+== fx-create
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm create --name ul356c mirror.gcr.io/library/alpine:3.20 sh -c echo created-hi; while :; do :; done
+exit              0
+output:
+  2a264a4203cdd6e8f81613d9ecc815c47ac1c55d1e01534be3baf390313d1179
+
+== fx-start
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm start ul356c
+exit              0
+output:
+  ul356c
+
+== fx-ps2
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm ps
+exit              0
+output:
+  CONTAINER ID   IMAGE                               COMMAND                CREATED                STATUS   NAMES
+  2a264a4203cd   mirror.gcr.io/library/alpine:3.20   sh -c echo create...   2026-11-09T15:39:46Z   Up       ul356c
+
+== fx-logs2
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm logs ul356c
+exit              0
+output:
+  created-hi
+
+== fx-stop2
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm stop ul356c
+exit              0
+output:
+  ul356c
+
+== fx-rm2
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm rm ul356c
+exit              0
+output:
+  ul356c
+
+== fx-workdir
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /no/such/dir mirror.gcr.io/library/alpine:3.20 true
+exit              125
+output:
+  podvm run: the working directory "/no/such/dir" for image "mirror.gcr.io/library/alpine:3.20" is not a directory in the image: docker creates it, and podvm refuses it instead, naming it (TODO/enter.md T-1412)
+
+== fx-workdir-tmp
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /tmp mirror.gcr.io/library/alpine:3.20 pwd
+exit              0
+output:
+  /tmp
+
+== sane-workdir
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /no/such/dir mirror.gcr.io/library/alpine:3.20 true
+exit              125
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm run: the working directory "/no/such/dir" for image "mirror.gcr.io/library/alpine:3.20" is not a directory in the image: docker creates it, and podvm refuses it instead, naming it (TODO/enter.md T-1412)
+
+== fx-maps
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/alpine:3.20 sh -c read rel < /etc/alpine-release && echo "release=$rel"
+exit              0
+output:
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (musl object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "sh" rides as the applet the resolved busybox file selects; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podvm: userland: absolute guest paths anchor inside $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs through PODVM_MAPS=/:$REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs (TODO/enter.md T-1407)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podvm: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: 13 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  release=3.20.10
+
+== fx-maps-scrub
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm -e PODVM_MAPS=/:evil mirror.gcr.io/library/alpine:3.20 sh -c echo "maps=$PODVM_MAPS"
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  maps=/:$REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs
+
+== fx-tmpwrite
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/alpine:3.20 sh -c echo probe > /tmp/ul356-probe && echo wrote-tmp
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  wrote-tmp
+host tmp stayed clean ok
+
+== fx-unsafe
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose --unsafe-host-paths mirror.gcr.io/library/alpine:3.20 true
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (musl object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "true" rides as the applet the resolved busybox file selects; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podvm: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: 13 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podvm made inside somebody else's image and the payload can see them
+
+== fx-grandchild
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/alpine:3.20 sh -c /bin/busybox echo grandchild-ok
+exit              127
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  sh: /bin/busybox: not found
+
+== sane-grandchild
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/alpine:3.20 sh -c /bin/busybox echo grandchild-ok
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  grandchild-ok
+
+== fx-exeforce
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose -e PODVM_GUEST_EXE=/bin/echo mirror.gcr.io/library/debian:bookworm-slim echo exeforce-hi
+exit              0
+output:
+  dd051e1b8c92: Extracted (4226 entries, 0 whiteouts)
+  podvm: 10 of 4225 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
+  podvm: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (glibc object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 runs $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs/usr/bin/echo with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podvm: userland: absolute guest paths anchor inside $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs through PODVM_MAPS=/:$REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs (TODO/enter.md T-1407)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: rewrote etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: created etc/hosts (hosts, T-0403): localhost
+  podvm: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: created etc/apt/apt.conf.d/99podvm (apt-sandbox, T-0407): APT::Sandbox::User root. The _apt user is not mapped on this runtime
+  podvm: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from $STORE/.ccr/ca-bundle.crt
+  podvm: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. refused: The scheme only: the mirror this image chose is the mirror podvm uses
+  podvm: complete: 14 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  exeforce-hi
+
+== fx-script
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm script-img:1 /hello.sh
+exit              126
+output:
+  ec7bda7b2e8d: Extracted (1 entries, 0 whiteouts)
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload $REPO/experiments/.sweep356-work/store/rootfs/sha256_569d2d6706bf470c02f8dd11768ad5db4fc3f5d323933934b0be30714cb9ab6d/rootfs/hello.sh is a #! script (#!/bin/sh), whose interpreter path resolves on the host root without a chroot: the image's script would run under the host's interpreter (TODO/enter.md T-1413). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+
+== fx-quiet
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/alpine:3.20 true
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+
+== fx-quiet-off
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose -q mirror.gcr.io/library/alpine:3.20 true
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+
+== fx-extract
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm extract mirror.gcr.io/library/alpine:3.20
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 layers, 517 entries, 0 removed by whiteouts, 7.7 MiB uncompressed
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs
+
+== fx-exec-img
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm exec mirror.gcr.io/library/alpine:3.20 echo exec-img-hi
+exit              0
+output:
+  exec-img-hi
+
+== sane-exec-create
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm create --name ul356e mirror.gcr.io/library/alpine:3.20 sleep 60
+exit              0
+output:
+  2b248cfec645fd1f12fdb0b7f003d314e2d5f9cc407f4973035ab625634d5210
+
+== sane-exec
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm exec ul356e echo exec-ctr-hi
+exit              0
+output:
+  podvm exec: ul356e has been created and never started, so its rootfs              is there and nothing is running in it. note: podvm will enter it anyway,              because a fresh chroot shares only the filesystem and needs nothing to              be running (TODO/enter.md T-0505)
+  exec-ctr-hi
+
+== sane-exec-rm
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm rm -f ul356e
+exit              0
+output:
+  ul356e
+
+== sane-named
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --name ul356fg mirror.gcr.io/library/alpine:3.20 echo fg-hi
+exit              0
+output:
+  fg-hi
+
+== sane-dup
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --name ul356fg mirror.gcr.io/library/alpine:3.20 echo dup-hi
+exit              125
+output:
+  podvm run: --name "ul356fg": the run could not be recorded: the name "ul356fg" is already used by a container. Remove it, or give this one another name
+
+== sane-ps
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm ps -a
+exit              0
+output:
+  CONTAINER ID   IMAGE                               COMMAND      CREATED                STATUS       NAMES
+  31f5c85e183f   mirror.gcr.io/library/alpine:3.20   echo fg-hi   2026-11-09T15:40:07Z   Exited (0)   ul356fg
+
+== sane-logs
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm logs ul356fg
+exit              0
+output:
+  fg-hi
+
+== sane-rmnamed
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm rm -f ul356fg
+exit              0
+output:
+  ul356fg
+
+== sane-gone
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --name ul356rm mirror.gcr.io/library/alpine:3.20 true
+exit              0
+output:
+
+== sane-ps2
+command           $REPO/target/x86_64-unknown-linux-musl/debug/podvm ps -a
+exit              0
+output:
+  CONTAINER ID   IMAGE   COMMAND   CREATED   STATUS   NAMES
+
+== fx-exe-readlink
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/debian:bookworm-slim readlink /proc/self/exe
+exit              0
+output:
+  dd051e1b8c92: Extracted (4226 entries, 0 whiteouts)
+  podvm: 10 of 4225 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
+  podvm: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
+  /usr/bin/readlink
+
+== fx-go-refuse
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/golang:1.24.7-bookworm go version
+exit              125
+output:
+  c6b11972fd12: Extracted (6660 entries, 0 whiteouts)
+  db3dba6026a3: Extracted (1680 entries, 0 whiteouts)
+  5fb1b35a6fc1: Extracted (6481 entries, 0 whiteouts)
+  ced1197f5fb6: Extracted (3632 entries, 0 whiteouts)
+  72e8fc27da55: Extracted (15737 entries, 0 whiteouts)
+  50d0fe3dca54: Extracted (3 entries, 0 whiteouts)
+  4f4fb700ef54: Extracted (0 entries, 0 whiteouts)
+  podvm: 17 of 34192 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_40b223522c211e882863245ddbc812cbac8460b63b9112f4feee85c4514b6e41/.meta.jsonl
+  podvm: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_40b223522c211e882863245ddbc812cbac8460b63b9112f4feee85c4514b6e41/.meta.jsonl
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload is statically linked, so it makes raw syscalls past the interposer and podvm rewrites no path: its absolute paths would resolve on the host, and a write would land on the host tree. podvm refuses before the exec. Use a host where chroot(2) is permitted, or `--unsafe-host-paths` to accept this host pass-through on the memfd family. The planned rungs for static payloads are the emulate tier (TODO/enter.md T-1651) and the native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+
+== fx-gcc-version
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/gcc:13-bookworm gcc --version
+exit              0
+output:
+  69245854ad58: Extracted (6662 entries, 0 whiteouts)
+  338554e9113f: Extracted (1694 entries, 0 whiteouts)
+  d6c30932f8d3: Extracted (6481 entries, 0 whiteouts)
+  9bab93d346cd: Extracted (13350 entries, 0 whiteouts)
+  f7cb732562a7: Extracted (77 entries, 0 whiteouts)
+  b6d8a682fbc5: Extracted (2007 entries, 0 whiteouts)
+  6ce4a5bb14a1: Extracted (8 entries, 0 whiteouts)
+  917b78dd206c: Extracted (18 entries, 2 whiteouts)
+  podvm: 21 of 30294 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_e2b2e6c645719241ee25ed8f5e6c1f8cc6e5c41d9f5b1fd38d9940120f12957f/.meta.jsonl
+  podvm: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_e2b2e6c645719241ee25ed8f5e6c1f8cc6e5c41d9f5b1fd38d9940120f12957f/.meta.jsonl
+  gcc (GCC) 13.5.0
+  Copyright (C) 2023 Free Software Foundation, Inc.
+  This is free software; see the source for copying conditions.  There is NO
+  warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  
+
+== fx-relread
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /etc mirror.gcr.io/library/alpine:3.20 sh -c read r < alpine-release && echo "rel=$r"
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  rel=3.20.10
+
+== fx-relwrite
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /tmp mirror.gcr.io/library/alpine:3.20 sh -c echo w356 > ul356-relw.txt && read y < /tmp/ul356-relw.txt && echo "back=$y"
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  back=w356
+
+== fx-dirfd
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/python:3-alpine python3 -c import os
+d = os.open("/tmp", os.O_RDONLY | os.O_DIRECTORY)
+h = os.open("ul356-dirfd.txt", os.O_WRONLY | os.O_CREAT, 0o644, dir_fd=d)
+os.write(h, b"d356"); os.close(h)
+print("dirfd-back=" + open("/tmp/ul356-dirfd.txt").read())
+exit              0
+output:
+  881fc932939e: Extracted (515 entries, 0 whiteouts)
+  2d2b30fc2d84: Extracted (1011 entries, 0 whiteouts)
+  55d6aff20023: Extracted (2018 entries, 0 whiteouts)
+  912101e0eb18: Extracted (8 entries, 0 whiteouts)
+  podvm: 1 of 3552 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/.meta.jsonl
+  dirfd-back=d356
+
+== fx-cdroot
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /tmp mirror.gcr.io/library/alpine:3.20 sh -c cd / && echo x356 > rel.txt && read z < /rel.txt && echo "root=$z"
+exit              0
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  root=x356
+
+== fx-dlopen
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/python:3-alpine python3 -c import subprocess, _posixsubprocess; print("import-ok")
+exit              0
+output:
+  881fc932939e: Extracted (515 entries, 0 whiteouts)
+  2d2b30fc2d84: Extracted (1011 entries, 0 whiteouts)
+  55d6aff20023: Extracted (2018 entries, 0 whiteouts)
+  912101e0eb18: Extracted (8 entries, 0 whiteouts)
+  podvm: 1 of 3552 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/.meta.jsonl
+  import-ok
+
+== fx-dlopen-soname
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/python:3-alpine python3 -c import ctypes; ctypes.CDLL("libffi.so.8"); print("soname-ok")
+exit              0
+output:
+  881fc932939e: Extracted (515 entries, 0 whiteouts)
+  2d2b30fc2d84: Extracted (1011 entries, 0 whiteouts)
+  55d6aff20023: Extracted (2018 entries, 0 whiteouts)
+  912101e0eb18: Extracted (8 entries, 0 whiteouts)
+  podvm: 1 of 3552 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/.meta.jsonl
+  soname-ok
+
+== fx-glibc-echo
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/debian:bookworm-slim echo hi
+exit              0
+output:
+  dd051e1b8c92: Extracted (4226 entries, 0 whiteouts)
+  podvm: 10 of 4225 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
+  podvm: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (glibc object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 runs $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs/usr/bin/echo with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podvm: userland: absolute guest paths anchor inside $REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs through PODVM_MAPS=/:$REPO/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/rootfs (TODO/enter.md T-1407)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: rewrote etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: created etc/hosts (hosts, T-0403): localhost
+  podvm: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: created etc/apt/apt.conf.d/99podvm (apt-sandbox, T-0407): APT::Sandbox::User root. The _apt user is not mapped on this runtime
+  podvm: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image carries no TLS directory at all; installed this machine's bundle at the conventional path, from $STORE/.ccr/ca-bundle.crt
+  podvm: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. refused: The scheme only: the mirror this image chose is the mirror podvm uses
+  podvm: complete: 14 fixup(s) applied to this image's rootfs, 5 degraded, 0 failed, 0 step(s) to run inside it; libc=glibc. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  hi
+
+== fx-glibc-gcc
+command           unshare -Urm sh $REPO/experiments/.sweep356-work/wrap.sh $REPO/experiments/.sweep356-work $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/gcc:13-bookworm gcc --version
+exit              0
+output:
+  69245854ad58: Extracted (6662 entries, 0 whiteouts)
+  338554e9113f: Extracted (1694 entries, 0 whiteouts)
+  d6c30932f8d3: Extracted (6481 entries, 0 whiteouts)
+  9bab93d346cd: Extracted (13350 entries, 0 whiteouts)
+  f7cb732562a7: Extracted (77 entries, 0 whiteouts)
+  b6d8a682fbc5: Extracted (2007 entries, 0 whiteouts)
+  6ce4a5bb14a1: Extracted (8 entries, 0 whiteouts)
+  917b78dd206c: Extracted (18 entries, 2 whiteouts)
+  podvm: 21 of 30294 entries carry an id this machine cannot apply; what the image intended is in $REPO/experiments/.sweep356-work/store/rootfs/sha256_e2b2e6c645719241ee25ed8f5e6c1f8cc6e5c41d9f5b1fd38d9940120f12957f/.meta.jsonl
+  podvm: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in $REPO/experiments/.sweep356-work/store/rootfs/sha256_e2b2e6c645719241ee25ed8f5e6c1f8cc6e5c41d9f5b1fd38d9940120f12957f/.meta.jsonl
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (glibc object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $REPO/experiments/.sweep356-work/store/rootfs/sha256_e2b2e6c645719241ee25ed8f5e6c1f8cc6e5c41d9f5b1fd38d9940120f12957f/rootfs/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 runs $REPO/experiments/.sweep356-work/store/rootfs/sha256_e2b2e6c645719241ee25ed8f5e6c1f8cc6e5c41d9f5b1fd38d9940120f12957f/rootfs/usr/local/bin/gcc with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; a grandchild that execs an absolute path runs it on the host past the loader mapping and fails 127 where the host holds no such file (TODO/enter.md T-1317, T-1407, T-1411)
+  podvm: userland: absolute guest paths anchor inside $REPO/experiments/.sweep356-work/store/rootfs/sha256_e2b2e6c645719241ee25ed8f5e6c1f8cc6e5c41d9f5b1fd38d9940120f12957f/rootfs through PODVM_MAPS=/:$REPO/experiments/.sweep356-work/store/rootfs/sha256_e2b2e6c645719241ee25ed8f5e6c1f8cc6e5c41d9f5b1fd38d9940120f12957f/rootfs (TODO/enter.md T-1407)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: rewrote etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: created etc/hosts (hosts, T-0403): localhost
+  podvm: complete: created etc/mtab (mtab, T-0405): it was absent. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: created etc/apt/apt.conf.d/99podvm (apt-sandbox, T-0407): APT::Sandbox::User root. The _apt user is not mapped on this runtime
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: created etc/ssl/cert.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (184636 bytes, announced in $SSL_CERT_FILE as $STORE/.ccr/ca-bundle.crt). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: rewrote etc/ssl/certs (ca-hash-dir, T-0412): 122 of this machine's 122 announced roots are not in this image's CApath; written as one certificate per file (podvm-host-ca-*.pem), 122 changed, 0 stale one(s) removed. note: A hash-indexed CApath is read by NAME, so they stay invisible until `openssl rehash` links them; this machine's trust is then the container's too
+  podvm: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. refused: The scheme only: the mirror this image chose is the mirror podvm uses
+  podvm: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` (ca-hash-dir, T-0412): /etc/ssl/certs is a hash-indexed CApath and OpenSSL looks a certificate up there by the hash of its subject, so the roots podvm just wrote are invisible until they are linked. libzypp reads this directory and no CAfile at all
+  podvm: complete: 17 fixup(s) applied to this image's rootfs, 9 degraded, 0 failed, 1 step(s) to run inside it; libc=glibc. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  podvm: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` could not be started: the payload could not be started: chroot into the rootfs failed with EPERM (1)
+  gcc (GCC) 13.5.0
+  Copyright (C) 2023 Free Software Foundation, Inc.
+  This is free software; see the source for copying conditions.  There is NO
+  warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  
+
+verdict           NO-CHROOT FAMILY OPEN

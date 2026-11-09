@@ -108,6 +108,11 @@ pub struct Versioned {
     /// a reader that treated them as requirements refuses **every object gcc
     /// produces**, which reads exactly like a check that works.
     pub weak: bool,
+    /// For a versioned import: the file that `.gnu.version_r` names as the
+    /// provider of the version (`vn_file`), such as `libdl.so.2` for
+    /// `dlsym@GLIBC_2.2.5`. The loader checks the version against that
+    /// file, T-1644. `None` for a definition and for an unversioned import.
+    pub file: Option<String>,
 }
 
 /// Why an ELF file could not be read.
@@ -209,34 +214,8 @@ impl Verdict {
 /// 4. every **imported version** is one the libc declares.
 pub fn admits(object: &Elf, libc: &Elf) -> Verdict {
     let refuse = |s: String| Verdict::Refused(s);
-    if object.machine != libc.machine {
-        return refuse(format!(
-            "{} is ELF machine 0x{:x} and this rootfs's C library {} is 0x{:x}. \
-             podvm refuses to preload an object of another architecture",
-            object.path, object.machine, libc.path, libc.machine
-        ));
-    }
-    let (want, have) = (Flavour::of_needed(&object.needed), libc.flavour());
-    if have == Flavour::Unknown {
-        return refuse(format!(
-            "podvm could not identify the C library in {}: it declares no \
-             SONAME podvm recognises and its name is not one either. refused: podvm \
-             refuses rather than preloading an object it cannot check",
-            libc.path
-        ));
-    }
-    if want != have {
-        return refuse(format!(
-            "{} names {} in DT_NEEDED, so it was built against {}, and this \
-             rootfs carries {} ({}). refused: A preloaded object is loaded by the \
-             payload's OWN loader and resolves its imports against the payload's \
-             libc, so this one cannot serve it",
-            object.path,
-            object.needed.join(", "),
-            want.word(),
-            have.word(),
-            libc.path
-        ));
+    if let Some(v) = pair_gates(object, libc) {
+        return v;
     }
     for want in &object.imported {
         // ⛔ A WEAK undefined symbol is not a requirement: the loader binds it
@@ -282,23 +261,42 @@ pub fn admits(object: &Elf, libc: &Elf) -> Verdict {
     Verdict::Admitted
 }
 
-/// The link set the loader resolves against, as one [`Elf`].
+/// Gates 1 and 2 of [`admits`]: the architecture, then the libc family.
 ///
-/// `primary` carries the identity (path, machine, interpreter); `rest`
-/// contributes their definitions and declarations. The caller reads the
-/// runtime libraries beside the libc -- today `libgcc_s.so.1`, which every
-/// gcc-built object imports `_Unwind_Resume@GCC_3.0` from and which no
-/// `libc.so.6` declares -- so a pair the loader accepts is a pair this
-/// admits. A version the whole set lacks still refuses, naming it.
-pub fn union(primary: &Elf, rest: &[Elf]) -> Elf {
-    let mut out = primary.clone();
-    for r in rest {
-        out.defined.extend(r.defined.iter().cloned());
-        out.declares.extend(r.declares.iter().cloned());
+/// `None` where both pass. [`admits_set`] runs the same two gates against
+/// the C library of a link set, so the two paths cannot disagree on them.
+fn pair_gates(object: &Elf, libc: &Elf) -> Option<Verdict> {
+    let refuse = |s: String| Some(Verdict::Refused(s));
+    if object.machine != libc.machine {
+        return refuse(format!(
+            "{} is ELF machine 0x{:x} and this rootfs's C library {} is 0x{:x}. \
+             podvm refuses to preload an object of another architecture",
+            object.path, object.machine, libc.path, libc.machine
+        ));
     }
-    out.declares.sort();
-    out.declares.dedup();
-    out
+    let (want, have) = (Flavour::of_needed(&object.needed), libc.flavour());
+    if have == Flavour::Unknown {
+        return refuse(format!(
+            "podvm could not identify the C library in {}: it declares no \
+             SONAME podvm recognises and its name is not one either. refused: podvm \
+             refuses rather than preloading an object it cannot check",
+            libc.path
+        ));
+    }
+    if want != have {
+        return refuse(format!(
+            "{} names {} in DT_NEEDED, so it was built against {}, and this \
+             rootfs carries {} ({}). refused: A preloaded object is loaded by the \
+             payload's OWN loader and resolves its imports against the payload's \
+             libc, so this one cannot serve it",
+            object.path,
+            object.needed.join(", "),
+            want.word(),
+            have.word(),
+            libc.path
+        ));
+    }
+    None
 }
 
 /// The highest version among `declares`, for the message.
@@ -323,6 +321,9 @@ fn newest(declares: &[String]) -> String {
 
 mod search;
 pub use search::*;
+
+mod closure;
+pub use closure::*;
 
 mod bytes;
 use bytes::*;

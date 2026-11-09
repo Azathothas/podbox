@@ -71,6 +71,13 @@
 #      never exits 2 naming GOROOT.
 #   19. gcc (T-1408): `gcc --version` runs on the gcc image over the
 #      fixture, proving the loader-symlink fix on a second image.
+#   20. relative paths (T-1643): a relative read, a relative write
+#      under -w /tmp, a dirfd-relative openat and `cd /; echo x >
+#      rel.txt` land inside the rootfs, and none reaches the host.
+#   21. dlopen (T-1645): `python3 -c 'import subprocess'` runs at 0 on
+#      the python image, and a bare soname still loads.
+#   22. glibc closure (T-1644): debian `echo hi` and gcc `gcc --version`
+#      run at 0 with the glibc object preloaded.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -92,6 +99,9 @@ GOLANG='public.ecr.aws/docker/library/golang:1.24.7-bookworm'
 # T-1408 tracks the entry letter (tag, not digest); the pulled digest is
 # recorded below beside the run so the input stays auditable.
 GCC='public.ecr.aws/docker/library/gcc:13-bookworm'
+# T-1643 and T-1645 track the entry letter (tag, not digest); the pulled
+# digest is recorded below beside the run so the input stays auditable.
+PYTHON='public.ecr.aws/docker/library/python:3-alpine'
 
 {
 echo "== conditions"
@@ -164,7 +174,7 @@ step() {
 
 # The pulls happen outside the fixture. Either failing is the lane,
 # not the binary.
-for img in "$ALPINE" "$DEBIAN" "$GOLANG" "$GCC"; do
+for img in "$ALPINE" "$DEBIAN" "$GOLANG" "$GCC" "$PYTHON"; do
 	if ! timeout 600 "$PB" pull "$img" >>"$REPORT" 2>&1; then
 		echo "pull $img FAILED: COULD NOT RUN" | tee -a "$REPORT"
 		exit 2
@@ -172,6 +182,7 @@ for img in "$ALPINE" "$DEBIAN" "$GOLANG" "$GCC"; do
 done
 echo "golang digest     $("$PB" inspect --format '{{.Digest}}' "$GOLANG")" >>"$REPORT"
 echo "gcc digest        $("$PB" inspect --format '{{.Digest}}' "$GCC")" >>"$REPORT"
+echo "python digest     $("$PB" inspect --format '{{.Digest}}' "$PYTHON")" >>"$REPORT"
 
 # The static hello for the memfd family. Built locally: no registry
 # payload on the lane is static, and a local build pins the family to
@@ -512,6 +523,51 @@ grep -q "GOROOT" "$WORK/out-fx-go-refuse.txt" && { echo "go ran to its own GOROO
 # resolve_in path as clause 4 with its own loader and libraries.
 step fx-gcc-version 0 $FX "$PB" run --rm "$GCC" gcc --version
 grep -q "gcc" "$WORK/out-fx-gcc-version.txt" || { echo "gcc --version did not answer" >>"$REPORT"; fail=1; }
+
+# Clause 20 (T-1643 relative paths): a relative read, a relative write
+# under -w /tmp, a dirfd-relative openat and `cd /; echo x > rel.txt`
+# each land inside the rootfs. Each payload reads its write back by the
+# absolute guest path, and the host keeps none of the files. Before
+# T-1643 each step missed with ENOENT: the join kept the host cwd, and
+# the `/` pair added the rootfs prefix a second time.
+rm -f /rel.txt /tmp/ul356-relw.txt /tmp/ul356-dirfd.txt
+step fx-relread 0 $FX "$PB" run --rm -w /etc "$ALPINE" sh -c 'read r < alpine-release && echo "rel=$r"'
+grep -q "^rel=3\.20" "$WORK/out-fx-relread.txt" || { echo "relative read did not see the image release" >>"$REPORT"; fail=1; }
+step fx-relwrite 0 $FX "$PB" run --rm -w /tmp "$ALPINE" sh -c 'echo w356 > ul356-relw.txt && read y < /tmp/ul356-relw.txt && echo "back=$y"'
+grep -qx "back=w356" "$WORK/out-fx-relwrite.txt" || { echo "relative write under -w /tmp did not read back" >>"$REPORT"; fail=1; }
+step fx-dirfd 0 $FX "$PB" run --rm "$PYTHON" python3 -c 'import os
+d = os.open("/tmp", os.O_RDONLY | os.O_DIRECTORY)
+h = os.open("ul356-dirfd.txt", os.O_WRONLY | os.O_CREAT, 0o644, dir_fd=d)
+os.write(h, b"d356"); os.close(h)
+print("dirfd-back=" + open("/tmp/ul356-dirfd.txt").read())'
+grep -qx "dirfd-back=d356" "$WORK/out-fx-dirfd.txt" || { echo "dirfd-relative openat did not land in the rootfs" >>"$REPORT"; fail=1; }
+step fx-cdroot 0 $FX "$PB" run --rm -w /tmp "$ALPINE" sh -c 'cd / && echo x356 > rel.txt && read z < /rel.txt && echo "root=$z"'
+grep -qx "root=x356" "$WORK/out-fx-cdroot.txt" || { echo "cd / then a relative write did not read back" >>"$REPORT"; fail=1; }
+for f in /rel.txt /tmp/ul356-relw.txt /tmp/ul356-dirfd.txt; do
+	[ -e "$f" ] && { echo "relative write escaped to host $f" >>"$REPORT"; fail=1; }
+done
+rm -f /rel.txt /tmp/ul356-relw.txt /tmp/ul356-dirfd.txt
+
+# Clause 21 (T-1645 dlopen): a C extension loads by its guest path. The
+# interposer's `dlopen` routes a name with a `/` through the table, so
+# `import subprocess` loads `_posixsubprocess` from the rootfs. A bare
+# soname stays a search in the loader list.
+step fx-dlopen 0 $FX "$PB" run --rm "$PYTHON" python3 -c 'import subprocess, _posixsubprocess; print("import-ok")'
+grep -qx "import-ok" "$WORK/out-fx-dlopen.txt" || { echo "python could not import subprocess through dlopen" >>"$REPORT"; fail=1; }
+step fx-dlopen-soname 0 $FX "$PB" run --rm "$PYTHON" python3 -c 'import ctypes; ctypes.CDLL("libffi.so.8"); print("soname-ok")'
+grep -qx "soname-ok" "$WORK/out-fx-dlopen-soname.txt" || { echo "a bare soname did not load through dlopen" >>"$REPORT"; fail=1; }
+
+# Clause 22 (T-1644 glibc closure): debian and gcc run at 0 with the glibc
+# object preloaded. The admission reads the object's whole DT_NEEDED
+# closure and the interpreter inside the rootfs, so the image's absolute
+# /lib64 loader link never reads a host file. beta.12 declined both at 126
+# naming `__tls_get_addr`.
+step fx-glibc-echo 0 $FX "$PB" run --rm --verbose "$DEBIAN" echo hi
+grep -qx "hi" "$WORK/out-fx-glibc-echo.txt" || { echo "debian echo hi did not answer" >>"$REPORT"; fail=1; }
+grep -q "interpose.so (glibc object) is preloaded" "$WORK/out-fx-glibc-echo.txt" || { echo "debian ran without the glibc object" >>"$REPORT"; fail=1; }
+step fx-glibc-gcc 0 $FX "$PB" run --rm --verbose "$GCC" gcc --version
+grep -q "^gcc" "$WORK/out-fx-glibc-gcc.txt" || { echo "gcc --version did not answer with the object" >>"$REPORT"; fail=1; }
+grep -q "interpose.so (glibc object) is preloaded" "$WORK/out-fx-glibc-gcc.txt" || { echo "gcc ran without the glibc object" >>"$REPORT"; fail=1; }
 
 {
 echo ""

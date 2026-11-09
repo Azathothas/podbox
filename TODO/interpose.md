@@ -1969,7 +1969,7 @@ Source:      issues 86 and 131 (131 reposts the hidden issue 105);
 Category:    interpose
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     On the userland rung every relative path fails with
              `ENOENT`. A relative read, a relative write with or without
@@ -2006,6 +2006,17 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              relative read, a relative write under `-w /tmp`, a
              dirfd-relative `openat` and `cd /; echo x > rel.txt` each
              land inside the rootfs.
+
+**Done 2026-11-09.** `absolutize` (the new `map/absolute.rs`) reverse-maps
+the real cwd and a descriptor base with `unrewrite` before the join and
+normalises `.`, `..` and `//`, so `rewrite` adds the prefix once. The
+interposer tests exit 0 (54 passed), with
+`a_cwd_inside_the_target_gets_the_prefix_once` and
+`normalise_folds_dots_and_doubled_slashes`. [The drive](../experiments/results/relative-paths-1643.txt)
+on the chroot-denying fixture: a relative read under `-w /etc`, a
+relative write under `-w /tmp`, a dirfd-relative `openat` and a
+relative write after `cd /` each land inside the rootfs. Clause 20 of
+experiment 356 holds the four. `sh experiments/356-no-chroot-rung.sh` ran from a scratch copy that takes its five images from `mirror.gcr.io` (Docker Hub and `public.ecr.aws` answered HTTP 429 on 2026-11-09): each of its 64 steps exits as wanted, clauses 20, 21 and 22 among them, and the script exits 1 only on clause 1, because this host enters the namespace rung where the lane enters chroot ([the run](../experiments/results/no-chroot-rung-mirror.txt)).
 
 **Filed 2026-11-06.** The measured facts below are quoted from issue 86
 and its review, so the entry stands if GitHub hides the issue. They were
@@ -2046,7 +2057,7 @@ Source:      issues 87, 128 and 129 (128 and 129 repost the hidden
 Category:    interpose
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     On a chroot-denied host the loader family declined every
              glibc payload in release 0.1.0-beta.12. Each image failed on
@@ -2093,6 +2104,18 @@ Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm`
              `gcc --version` on the gcc image at 0, each with the glibc
              object preloaded.
 
+**Done 2026-11-09.** `abi/closure.rs` reads the whole `DT_NEEDED`
+closure of the object inside the rootfs, plus the interpreter, with
+`resolve_in`, and matches each version against its provider file
+(`GLIBC_*` against libc and the loader, `GCC_*` against
+`libgcc_s.so.1`). A loader link that resolves only on the host is not
+read. `cargo test --workspace` exits 0 (985 passed), with
+`a_closure_read_inside_the_image_admits_the_three_imports` and
+`a_loader_link_that_resolves_only_on_the_host_is_not_read`. [The drive](../experiments/results/glibc-closure-1644.txt):
+`echo hi` from debian:bookworm-slim and `gcc --version` from the gcc
+image exit 0 with the glibc object preloaded, with the host loader
+replaced by a stand-in. Clause 22 of experiment 356 holds them. `sh experiments/356-no-chroot-rung.sh` ran from a scratch copy that takes its five images from `mirror.gcr.io` (Docker Hub and `public.ecr.aws` answered HTTP 429 on 2026-11-09): each of its 64 steps exits as wanted, clauses 20, 21 and 22 among them, and the script exits 1 only on clause 1, because this host enters the namespace rung where the lane enters chroot ([the run](../experiments/results/no-chroot-rung-mirror.txt)).
+
 **Filed 2026-11-06.** Quoted from issue 87 and its review, measured on
 release 0.1.0-beta.12 with the embedded `interpose-gnu` object at file
 offset 2353803 (sha256 `6159c1aa...`). No single object admits it:
@@ -2131,7 +2154,7 @@ Source:      issue 88; issue 114 section 2 item 4 and section 3.2;
 Category:    interpose
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     A dynamic payload on the userland rung cannot load a guest
              shared object at run time. `python3 -c 'import subprocess'`
@@ -2165,6 +2188,16 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              `sh experiments/356-no-chroot-rung.sh` exits 0 with a clause
              that runs `python3 -c 'import subprocess'` from the python
              image at 0 on the fixture.
+
+**Done 2026-11-09.** `dl_calls.rs` defines `dlopen` and `dlmopen`: a
+name with a `/` goes through the table as `open` does, a bare soname
+stays, and `dlmopen` keeps its namespace. Both names are in
+`interpose.map`, and both built objects (glibc and musl) export them
+(`nm -D`). The interposer tests exit 0 with
+`dlopen_loads_a_mapped_object_by_its_guest_path` and
+`only_a_slash_name_without_a_token_is_mapped`. [The drive](../experiments/results/dlopen-1645.txt):
+`python3 -c 'import subprocess'` from the python image exits 0 on the
+fixture. Clause 21 of experiment 356 holds it. `sh experiments/356-no-chroot-rung.sh` ran from a scratch copy that takes its five images from `mirror.gcr.io` (Docker Hub and `public.ecr.aws` answered HTTP 429 on 2026-11-09): each of its 64 steps exits as wanted, clauses 20, 21 and 22 among them, and the script exits 1 only on clause 1, because this host enters the namespace rung where the lane enters chroot ([the run](../experiments/results/no-chroot-rung-mirror.txt)).
 
 **Filed 2026-11-06.** Quoted from issue 88, measured on release
 0.1.0-beta.12 with the embedded musl object (file offset 2687787):

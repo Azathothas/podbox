@@ -125,6 +125,8 @@
     getgroups;
     getresuid;
     getresgid;
+    dlopen;
+    dlmopen;
   local:
     *;
 };

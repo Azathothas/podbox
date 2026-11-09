@@ -186,8 +186,9 @@ impl Bytes<'_> {
         out
     }
 
-    /// `.gnu.version_r`: version index -> the name required at it.
-    pub(super) fn verneed(&self, body: &[u8], strs: &[u8]) -> BTreeMap<u16, String> {
+    /// `.gnu.version_r`: version index -> the name required at it, and the
+    /// file (`vn_file`) the reference names as its provider, T-1644.
+    pub(super) fn verneed(&self, body: &[u8], strs: &[u8]) -> BTreeMap<u16, (String, String)> {
         let mut out = BTreeMap::new();
         let mut at = 0usize;
         for _ in 0..1024 {
@@ -203,6 +204,10 @@ impl Bytes<'_> {
                 (Some(a), Some(b), Some(c)) => (a as usize, b as usize, c as usize),
                 _ => break,
             };
+            let file = n
+                .u32(4)
+                .and_then(|off| cstr(strs, off as usize))
+                .unwrap_or_default();
             let mut a = aux;
             for _ in 0..cnt.min(1024) {
                 let x = Bytes {
@@ -218,7 +223,7 @@ impl Bytes<'_> {
                     _ => break,
                 };
                 if let Some(s) = cstr(strs, name) {
-                    out.insert(other & 0x7fff, s);
+                    out.insert(other & 0x7fff, (s, file.clone()));
                 }
                 if anext == 0 {
                     break;

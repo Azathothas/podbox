@@ -239,14 +239,115 @@ fn unrewrite_never_maps_the_memo_directory() {
 
 #[test]
 fn absolutize_copies_absolute_paths_and_joins_the_cwd() {
+    let t = unsafe { parse(core::ptr::null()) };
     let mut out = [0u8; OUT];
-    let n = unsafe { absolutize(AT_FDCWD, c"/x/y".as_ptr(), &mut out) };
+    let n = unsafe { absolutize(&t, AT_FDCWD, c"/x/y".as_ptr(), &mut out) };
     assert_eq!(&out[..n as usize], b"/x/y");
     // Relative joins the working directory this test runs in.
-    let n = unsafe { absolutize(AT_FDCWD, c"rel".as_ptr(), &mut out) };
+    let n = unsafe { absolutize(&t, AT_FDCWD, c"rel".as_ptr(), &mut out) };
     assert!(n > 4, "{n}");
     assert_eq!(&out[n as usize - 4..n as usize], b"/rel");
     // A descriptor with nothing behind it has no answer.
-    let n = unsafe { absolutize(9173, c"rel".as_ptr(), &mut out) };
+    let n = unsafe { absolutize(&t, 9173, c"rel".as_ptr(), &mut out) };
     assert_eq!(n, -1);
+}
+
+/// `normalise` over a byte string, so the cases read as cases.
+fn norm(path: &[u8]) -> Vec<u8> {
+    let mut buf = [0u8; OUT];
+    buf[..path.len()].copy_from_slice(path);
+    let n = normalise(&mut buf, path.len());
+    buf[..n].to_vec()
+}
+
+/// T-1643: `.`, `..` and `//` fold before the match. A `..` at the root
+/// stays at the root, so a relative path cannot name the parent of the
+/// rootfs, and `/tmp/..` no longer matches a `/tmp` pair.
+#[test]
+fn normalise_folds_dots_and_doubled_slashes() {
+    let cases: &[(&[u8], &[u8])] = &[
+        (b"/", b"/"),
+        (b"//", b"/"),
+        (b"/a/b", b"/a/b"),
+        (b"//a//b", b"/a/b"),
+        (b"/a/./b/.", b"/a/b/"),
+        (b"/a/b/..", b"/a/"),
+        (b"/a/b/../c", b"/a/c"),
+        (b"/..", b"/"),
+        (b"/../../etc/x", b"/etc/x"),
+        (b"/tmp/../etc", b"/etc"),
+        (b"/a/b/", b"/a/b/"),
+        (b"/a/.b/..c", b"/a/.b/..c"),
+        (b"/./", b"/"),
+    ];
+    for (input, want) in cases {
+        assert_eq!(
+            norm(input),
+            want.to_vec(),
+            "{}",
+            String::from_utf8_lossy(input)
+        );
+    }
+}
+
+/// A table `/:<TO>`, with `TO` read at run time. The table borrows its
+/// text for the life of the process, as it borrows environ, so the test
+/// leaks the one string.
+fn root_table(to: &std::path::Path) -> Table {
+    use std::os::unix::ffi::OsStrExt;
+    let mut s = b"PODVM_MAPS=/:".to_vec();
+    s.extend_from_slice(to.as_os_str().as_bytes());
+    s.push(0);
+    let s: &'static [u8] = Box::leak(s.into_boxed_slice());
+    let env: &'static [*const c_char] =
+        Box::leak(vec![s.as_ptr() as *const c_char, core::ptr::null()].into_boxed_slice());
+    unsafe { parse(env.as_ptr()) }
+}
+
+/// Absolutize, then rewrite, the way `prepare` does it.
+fn resolve(t: &Table, dirfd: c_int, path: &core::ffi::CStr) -> Vec<u8> {
+    let mut abs = [0u8; OUT];
+    let n = unsafe { absolutize(t, dirfd, path.as_ptr(), &mut abs) };
+    assert!(n > 0, "absolutize {path:?} answered {n}");
+    let mut out = [0u8; OUT];
+    let m = rw(t, &abs[..n as usize], &mut out);
+    assert!(m > 0, "rewrite {path:?} answered {m}");
+    out[..m as usize].to_vec()
+}
+
+/// T-1643: a cwd inside the table target absolutizes to a guest path,
+/// and the rewrite then adds the TO prefix one time. The test's own
+/// working directory lies under its parent, which is the TO side here,
+/// as the rootfs is the TO side of the `/` pair on the userland rung.
+/// Before the fix the join kept the host base, and the result carried
+/// the prefix two times.
+#[test]
+fn a_cwd_inside_the_target_gets_the_prefix_once() {
+    use std::os::unix::ffi::OsStrExt;
+    let cwd = std::env::current_dir().expect("cwd");
+    let parent = cwd.parent().expect("a cwd below the root");
+    let leaf = cwd.file_name().expect("leaf").as_bytes();
+    let t = root_table(parent);
+    // The guest base: the leaf under `/`, with no host prefix.
+    let mut abs = [0u8; OUT];
+    let n = unsafe { absolutize(&t, AT_FDCWD, c"rel".as_ptr(), &mut abs) };
+    let mut want = b"/".to_vec();
+    want.extend_from_slice(leaf);
+    want.extend_from_slice(b"/rel");
+    assert_eq!(&abs[..n as usize], &want[..]);
+    // `AT_FDCWD`: one prefix.
+    let mut host = cwd.as_os_str().as_bytes().to_vec();
+    host.extend_from_slice(b"/rel");
+    assert_eq!(resolve(&t, AT_FDCWD, c"rel"), host);
+    // `..` stays inside the target, and `./` folds.
+    let mut up = parent.as_os_str().as_bytes().to_vec();
+    up.extend_from_slice(b"/etc/x");
+    assert_eq!(resolve(&t, AT_FDCWD, c"../../.././etc//x"), up);
+    // A descriptor: `/proc/self/fd/<n>` names a host path too, and it
+    // gets the same one prefix.
+    let dir = std::fs::File::open(cwd.join("src")).expect("open src");
+    let fd = std::os::fd::AsRawFd::as_raw_fd(&dir);
+    let mut host = cwd.as_os_str().as_bytes().to_vec();
+    host.extend_from_slice(b"/src/x");
+    assert_eq!(resolve(&t, fd, c"x"), host);
 }

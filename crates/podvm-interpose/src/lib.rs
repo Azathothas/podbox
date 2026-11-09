@@ -427,5 +427,8 @@ pub use create_calls::*;
 mod identity_calls;
 pub use identity_calls::*;
 
+mod dl_calls;
+pub use dl_calls::*;
+
 #[cfg(test)]
 mod tests;

@@ -1,0 +1,96 @@
+# T-1643 drive: relative paths on the userland rung, chroot denied.
+# Run by hand on the chroot-denying fixture: unshare -Urm, a tmpfs over
+# /dev/pts, and experiments/deny-chroot.c (chroot(2) answers EPERM), as
+# experiments/356-no-chroot-rung.sh builds it. Images come from mirror.gcr.io:
+# Docker Hub and public.ecr.aws answer HTTP 429 on this host, so 356 itself
+# could not pull its pinned inputs. The store path is written as $STORE.
+
+#### AFTER (this tree): exit 0
+== conditions
+date              2026-11-09T15:37:43Z
+host kernel       Linux 6.18.44-fc-v310
+podvm             podvm 0.1.0-beta.13
+image             mirror.gcr.io/library/python:3-alpine sha256:a0f2e268f2ce8f3709611a90054ec6a8ae31f6251f5896b8648b9bb99835e30a
+fixture           unshare -Urm + experiments/deny-chroot.c (chroot(2) answers EPERM)
+
+== relread
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /etc mirror.gcr.io/library/python:3-alpine sh -c read r < alpine-release && echo "rel=$r"; pwd
+exit              0 (want 0)
+output (podvm banner lines removed):
+  rel=3.24.4
+  /etc
+ok   relread reads the image release
+ok   relread prints '/etc'
+
+== relwrite
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /tmp mirror.gcr.io/library/python:3-alpine sh -c echo w1643 > relw.txt && read y < /tmp/relw.txt && echo "back=$y"
+exit              0 (want 0)
+output (podvm banner lines removed):
+  back=w1643
+ok   relwrite prints 'back=w1643'
+
+== dirfd
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/python:3-alpine python3 -c import os
+fd = os.open("/etc", os.O_RDONLY | os.O_DIRECTORY)
+g = os.open("alpine-release", os.O_RDONLY, dir_fd=fd)
+print("dirfd=" + os.read(g, 64).decode().strip()[:2])
+h = os.open("dirfd-w.txt", os.O_WRONLY | os.O_CREAT, 0o644, dir_fd=os.open("/tmp", os.O_RDONLY | os.O_DIRECTORY))
+os.write(h, b"d1643
+"); os.close(h)
+print("dirfd-back=" + open("/tmp/dirfd-w.txt").read().strip())
+exit              0 (want 0)
+output (podvm banner lines removed):
+  dirfd=3.
+  dirfd-back=d1643
+ok   dirfd prints 'dirfd=3.'
+ok   dirfd prints 'dirfd-back=d1643'
+
+== cdroot
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /tmp mirror.gcr.io/library/python:3-alpine sh -c cd / && echo x1643 > rel.txt && read z < /rel.txt && echo "root=$z" && pwd
+exit              0 (want 0)
+output (podvm banner lines removed):
+  root=x1643
+  /
+ok   cdroot prints 'root=x1643'
+ok   cdroot prints '/'
+
+== dotdot
+command           unshare -Urm sh $STORE/wrap.sh $STORE /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /tmp mirror.gcr.io/library/python:3-alpine sh -c read r < ../../../../etc/alpine-release && echo "up=$r"
+exit              0 (want 0)
+output (podvm banner lines removed):
+  up=3.24.4
+ok   dotdot stays inside the rootfs
+ok   host /rel.txt absent
+ok   host /tmp/relw.txt absent
+ok   host /tmp/dirfd-w.txt absent
+
+verdict           RELATIVE PATHS LAND INSIDE THE ROOTFS
+
+#### CONTROL (the same driver on HEAD 95541a5, before the change): exit 1
+== relread
+exit              0 (want 0)
+FAIL relread
+ok   relread prints '/etc'
+== relwrite
+exit              1 (want 0)
+step relwrite: wanted exit 0, got 1
+FAIL relwrite does not print 'back=w1643'
+== dirfd
+exit              1 (want 0)
+  FileNotFoundError: [Errno 2] No such file or directory: 'alpine-release'
+step dirfd: wanted exit 0, got 1
+FAIL dirfd does not print 'dirfd=3.'
+FAIL dirfd does not print 'dirfd-back=d1643'
+== cdroot
+exit              1 (want 0)
+step cdroot: wanted exit 0, got 1
+FAIL cdroot does not print 'root=x1643'
+FAIL cdroot does not print '/'
+== dotdot
+exit              1 (want 0)
+step dotdot: wanted exit 0, got 1
+FAIL dotdot
+ok   host /rel.txt absent
+ok   host /tmp/relw.txt absent
+ok   host /tmp/dirfd-w.txt absent
+verdict           OPEN

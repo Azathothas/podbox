@@ -249,43 +249,49 @@ fn classify_elf(name: &str, elf: &podvm_enter::abi::Elf, rootfs: &str, objs: &Pa
             "{interp} names no C library podvm can find in the image"
         ));
     };
-    let libc_elf = match podvm_enter::abi::Elf::read(&libc_path) {
-        Ok(l) => l,
-        Err(e) => return Reach::Declined(format!("{e}")),
-    };
     // ⭐ T-0709's assertion, through T-0706's channel: select and assert,
-    // never try. A version predicate the pair fails is a decline that names
-    // the version, not a relocation error inside the payload. The check runs
-    // against the LINK SET, not the libc alone: the loader resolves every
-    // NEEDED library, and an import `libgcc_s.so.1` satisfies is not the
-    // libc's to define.
-    let mut rest = Vec::new();
-    if let Some(dir) = libc_path.rsplit_once('/').map(|(d, _)| d) {
-        let sib = format!("{dir}/libgcc_s.so.1");
-        if sib != libc_path
-            && let Ok(e) = podvm_enter::abi::Elf::read(&sib)
-        {
-            rest.push(e);
-        }
-    }
-    let interp_path = format!(
-        "{}/{rel}",
-        rootfs.trim_end_matches('/'),
-        rel = interp.trim_start_matches('/')
-    );
-    if interp_path != libc_path
-        && let Ok(e) = podvm_enter::abi::Elf::read(&interp_path)
+    // never try. A version predicate the set fails is a decline that names
+    // the version, not a relocation error inside the payload. T-1644: the
+    // check runs against the LINK SET the loader resolves, read inside the
+    // rootfs: the interpreter and the object's whole DT_NEEDED closure. The
+    // libc's own directory joins the search, for a layout the standard list
+    // does not name.
+    let root = std::path::Path::new(rootfs);
+    let mut dirs = podvm_enter::abi::guest_lib_dirs(rootfs, interp);
+    if let Some(dir) = guest_dir_of(rootfs, &libc_path)
+        && !dirs.contains(&dir)
     {
-        rest.push(e);
+        dirs.push(dir);
     }
-    let set = podvm_enter::abi::union(&libc_elf, &rest);
-    match podvm_enter::abi::admits(obj, &set) {
+    let read = |p: &str| podvm_enter::abi::Elf::read(p);
+    let set = match podvm_enter::abi::link_set(root, obj, interp, &dirs, &read) {
+        Ok(s) => s,
+        Err(why) => return Reach::Declined(why),
+    };
+    match podvm_enter::abi::admits_set(obj, &set) {
         podvm_enter::abi::Verdict::Admitted => Reach::Preload {
             libc,
             object: bytes,
         },
         podvm_enter::abi::Verdict::Refused(why) => Reach::Declined(why),
     }
+}
+
+/// The guest directory of a host path under `rootfs`, T-1644.
+///
+/// The libc search can answer a canonical path, so the canonical root is
+/// tried after the given one. `None` where the path lies under neither.
+fn guest_dir_of(rootfs: &str, host: &str) -> Option<String> {
+    let dir = host.rsplit_once('/').map(|(d, _)| d)?;
+    let base = rootfs.trim_end_matches('/');
+    let rel = match dir.strip_prefix(base) {
+        Some(r) => r.to_string(),
+        None => {
+            let canon = std::fs::canonicalize(base).ok()?;
+            dir.strip_prefix(canon.to_str()?)?.to_string()
+        }
+    };
+    (rel.is_empty() || rel.starts_with('/')).then(|| format!("/{}", rel.trim_start_matches('/')))
 }
 
 /// Write the object inside the rootfs, where the payload's loader sees it.

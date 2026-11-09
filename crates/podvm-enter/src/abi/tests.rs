@@ -164,6 +164,7 @@ fn a_shipped_libc_defines_its_symbols_in_dynsym() {
         name: "open".into(),
         version: None,
         weak: false,
+        file: None,
     }));
     assert_ne!(libc.flavour(), Flavour::Unknown, "{p}");
 }
@@ -231,38 +232,6 @@ fn a_matching_object_and_libc_are_admitted() {
     assert_eq!(admits(&obj, &libc), Verdict::Admitted);
 }
 
-/// ⭐ The `_Unwind_Resume@GCC_3.0` case, measured on a Debian rootfs: every
-/// gcc-built object imports it, no `libc.so.6` declares it, and the loader
-/// takes it from `libgcc_s.so.1` beside the libc. Against the libc alone
-/// the pair refuses; against the union it admits, which is the loader's
-/// own answer in both cases.
-#[test]
-fn an_import_from_the_runtimes_beside_libc_admits_against_their_union() {
-    let libc = fake(
-        "/lib/x86_64-linux-gnu/libc.so.6",
-        Some("libc.so.6"),
-        &[],
-        &[("open", None)],
-        &["GLIBC_2.4"],
-    );
-    let libgcc = fake(
-        "/lib/x86_64-linux-gnu/libgcc_s.so.1",
-        Some("libgcc_s.so.1"),
-        &[],
-        &[("_Unwind_Resume", Some("GCC_3.0"))],
-        &["GCC_3.0"],
-    );
-    let obj = fake_import(
-        "/i.so",
-        &["libgcc_s.so.1", "libc.so.6"],
-        &[("open", None), ("_Unwind_Resume", Some("GCC_3.0"))],
-    );
-    let Verdict::Refused(_) = admits(&obj, &libc) else {
-        panic!("a libgcc import admitted against the libc alone");
-    };
-    assert_eq!(admits(&obj, &union(&libc, &[libgcc])), Verdict::Admitted);
-}
-
 /// ⛔ A symbol the libc does not define at all is refused before the version
 /// question is asked, and the message names the symbol.
 #[test]
@@ -313,7 +282,7 @@ fn the_libc_is_found_beside_the_interpreter() {
     let _ = std::fs::remove_dir_all(&d);
 }
 
-fn tiny_elf(machine: u16) -> Vec<u8> {
+pub(super) fn tiny_elf(machine: u16) -> Vec<u8> {
     let mut b = vec![0u8; 64];
     b[0..4].copy_from_slice(b"\x7fELF");
     b[4] = 2;
@@ -392,7 +361,7 @@ fn a_file_that_is_not_elf_is_a_named_refusal_and_not_a_panic() {
 
 // ------------------------------------------------------------ fixtures
 
-fn fake(
+pub(super) fn fake(
     path: &str,
     soname: Option<&str>,
     needed: &[&str],
@@ -412,7 +381,7 @@ fn fake(
     }
 }
 
-fn fake_import(path: &str, needed: &[&str], imported: &[(&str, Option<&str>)]) -> Elf {
+pub(super) fn fake_import(path: &str, needed: &[&str], imported: &[(&str, Option<&str>)]) -> Elf {
     let mut e = fake(path, None, needed, &[], &[]);
     e.imported = imported.iter().map(|(n, v)| ver(n, *v)).collect();
     e
@@ -423,5 +392,6 @@ fn ver(name: &str, version: Option<&str>) -> Versioned {
         name: name.to_string(),
         version: version.map(str::to_string),
         weak: false,
+        file: None,
     }
 }

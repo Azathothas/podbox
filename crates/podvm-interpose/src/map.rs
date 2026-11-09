@@ -250,6 +250,9 @@ fn prefix(from_p: *const u8, from_n: usize, path: *const u8, path_n: usize) -> b
     path_n == from_n || unsafe { *path.add(from_n) } == b'/'
 }
 
+mod absolute;
+pub use absolute::normalise;
+use absolute::{fd_base, guest_base};
 mod rewrite;
 pub use rewrite::*;
 
