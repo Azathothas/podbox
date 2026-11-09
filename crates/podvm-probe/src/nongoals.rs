@@ -38,7 +38,9 @@ pub struct NonGoal {
     pub name: &'static str,
     /// The spec experiment that measured the mechanism, e.g. `E-75`.
     pub spec: &'static str,
-    /// What to do instead, from the spec where it names one.
+    /// What to do, as the stance supports it: the refusal remedy on a
+    /// refused row, nothing on an open row, and the step that settles an
+    /// unestablished row (T-1689, call C13).
     pub remedy: &'static str,
     pub stance: Stance,
     /// The legs and errnos behind the stance, or why it cannot be told.
@@ -52,7 +54,8 @@ pub struct NonGoal {
 struct Def {
     name: &'static str,
     spec: &'static str,
-    remedy: &'static str,
+    /// What to do where the mechanism is refused; only a refused row says it.
+    refusal_remedy: &'static str,
     rows: &'static [&'static str],
 }
 
@@ -60,20 +63,20 @@ const DEFS: &[Def] = &[
     Def {
         name: "tcp listener",
         spec: "E-75",
-        remedy:
+        refusal_remedy:
             "no TCP listener here; guests talk UDP hostfwd, control over unix sockets and FIFOs",
         rows: &["bind(127.0.0.1:0)+listen"],
     },
     Def {
         name: "kvm acceleration",
         spec: "E-30/60",
-        remedy: "no KVM here; the machine tier runs TCG",
+        refusal_remedy: "no KVM here; the machine tier runs TCG",
         rows: &["open(/dev/kvm, O_RDWR)"],
     },
     Def {
         name: "runc-style oci",
         spec: "E-43",
-        remedy: "namespaces denied here; podvm runs the chroot rung instead",
+        refusal_remedy: "namespaces denied here; podvm runs the chroot rung instead",
         rows: &[
             "clone(CLONE_NEWUTS)",
             "unshare(CLONE_NEWUSER)",
@@ -83,22 +86,27 @@ const DEFS: &[Def] = &[
     Def {
         name: "user-mode linux guest",
         spec: "E-50",
-        remedy: "ptrace denied here; the machine tier runs qemu TCG instead",
+        refusal_remedy: "ptrace denied here; the machine tier runs qemu TCG instead",
         rows: &["ptrace(PTRACE_TRACEME)"],
     },
     Def {
         name: "uid_map identity switch",
         spec: "E-70",
-        remedy: "switch ids outside the container; inside, the interposer memo answers (T-0711)",
+        refusal_remedy:
+            "switch ids outside the container; inside, the interposer memo answers (T-0711)",
         rows: &["setuid(1000)", "setgroups(0,NULL)"],
     },
     Def {
         name: "guest file over the ceiling",
         spec: "E-34",
-        remedy: "size guests under the ceiling (--podvm-mem, T-1305)",
+        refusal_remedy: "size guests under the ceiling (--podvm-mem, T-1305)",
         rows: &["prlimit(RLIMIT_FSIZE)"],
     },
 ];
+
+/// The remedy of an unestablished row: the step that settles the stance.
+const SETTLE: &str =
+    "run `podvm probe` where the cited legs can answer; the stance is unknown until then";
 
 /// Read the cited rows back: the denied legs with their errnos, and the
 /// legs that cannot say.
@@ -126,9 +134,14 @@ fn refused(def: &Def, denied: &[String]) -> NonGoal {
     NonGoal {
         name: def.name,
         spec: def.spec,
-        remedy: def.remedy,
+        remedy: def.refusal_remedy,
         stance: Stance::Refused,
-        detail: format!("{} refused: {}; {}", def.name, denied.join(" "), def.remedy),
+        detail: format!(
+            "{} refused: {}; {}",
+            def.name,
+            denied.join(" "),
+            def.refusal_remedy
+        ),
     }
 }
 
@@ -136,7 +149,9 @@ fn open(def: &Def, rows: &[&str]) -> NonGoal {
     NonGoal {
         name: def.name,
         spec: def.spec,
-        remedy: def.remedy,
+        // ⛔ T-1689 (issue 213): a refusal remedy on an open row contradicts
+        // the row's own stance. Call C13: an open row has no remedy.
+        remedy: "",
         stance: Stance::Open,
         detail: format!("{} open here: {} permitted", def.name, rows.join(" ")),
     }
@@ -146,7 +161,7 @@ fn unestablished(def: &Def, unknown: &[String]) -> NonGoal {
     NonGoal {
         name: def.name,
         spec: def.spec,
-        remedy: def.remedy,
+        remedy: SETTLE,
         stance: Stance::Unestablished,
         detail: format!("{} unestablished: {}", def.name, unknown.join(" ")),
     }
@@ -190,17 +205,17 @@ fn assess_ceiling(f: &Findings, def: &Def) -> NonGoal {
         Ok((cur, _)) if cur != u64::MAX => NonGoal {
             name: def.name,
             spec: def.spec,
-            remedy: def.remedy,
+            remedy: def.refusal_remedy,
             stance: Stance::Refused,
             detail: format!(
                 "{} refused: RLIMIT_FSIZE ceiling {cur} bytes, guests above it refused (T-1305); {}",
-                def.name, def.remedy
+                def.name, def.refusal_remedy
             ),
         },
         Ok(_) => NonGoal {
             name: def.name,
             spec: def.spec,
-            remedy: def.remedy,
+            remedy: "",
             stance: Stance::Open,
             detail: format!(
                 "{} open here: no per-file ceiling on this machine",
@@ -315,5 +330,34 @@ mod tests {
             }
             Err(_) => assert_eq!(g.stance, Stance::Unestablished),
         }
+    }
+
+    /// T-1689 (issue 213, call C13): the remedy follows the stance. A refused
+    /// row keeps its remedy, an open row has none, and an unestablished row
+    /// names the step that settles it.
+    #[test]
+    fn the_remedy_follows_the_stance() {
+        let goals = assess(&findings(&all_ok()));
+        for g in goals.iter().filter(|g| g.stance == Stance::Open) {
+            assert_eq!(g.remedy, "", "{}: an open row has no remedy", g.name);
+        }
+        let mut rows = all_ok();
+        for (n, o) in rows.iter_mut() {
+            if *n == "ptrace(PTRACE_TRACEME)" {
+                *o = Outcome::denied(sys::EPERM);
+            }
+        }
+        let goals = assess(&findings(&rows));
+        let g = goal(&goals, "user-mode linux guest");
+        assert_eq!(g.stance, Stance::Refused);
+        assert!(g.remedy.contains("ptrace denied here"), "{}", g.remedy);
+        assert!(g.detail.contains(g.remedy), "{}", g.detail);
+        let mut rows = all_ok();
+        rows.retain(|(n, _)| *n != "open(/dev/kvm, O_RDWR)");
+        let goals = assess(&findings(&rows));
+        let g = goal(&goals, "kvm acceleration");
+        assert_eq!(g.stance, Stance::Unestablished);
+        assert!(g.remedy.contains("podvm probe"), "{}", g.remedy);
+        assert!(!g.remedy.contains("no KVM here"), "{}", g.remedy);
     }
 }

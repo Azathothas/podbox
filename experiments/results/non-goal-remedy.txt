@@ -1,0 +1,9 @@
+# T-1689: the non-goal remedy follows the stance (issue 213, call C13)
+# Cloud host, 2026-11-09, release build of the change: podvm probe --json, the non_goals rows.
+# stance, name, remedy
+open           tcp listener                 ''
+refused        kvm acceleration             'no KVM here; the machine tier runs TCG'
+open           runc-style oci               ''
+open           user-mode linux guest        ''
+open           uid_map identity switch      ''
+open           guest file over the ceiling  ''

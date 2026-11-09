@@ -1169,7 +1169,7 @@ Source:      issue 213; T-1306 (the non-goals); call C13
 Category:    probe
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `podvm probe --json` writes the fixed refusal remedy of each
              non-goal on every stance. On an open row, "no TCP listener
@@ -1196,6 +1196,15 @@ Decision:    A field that a caller reads as advice holds only what the
 Prove:       `cargo test -p podvm-probe` exits 0 with tests: an open row
              has an empty remedy, an unestablished row's remedy names a
              settling step, and a refused row's remedy is in its detail.
+
+**Done 2026-11-09.** The field of `DEFS` is `refusal_remedy`. A refused
+row keeps it as `remedy`, an open row has an empty `remedy` (call C13),
+and an unestablished row names the step that settles it (`SETTLE`).
+`assess_ceiling` follows the same rule. `cargo test -p podvm-probe` exits
+0 with `the_remedy_follows_the_stance`. [The drive](../experiments/results/non-goal-remedy.txt):
+`podvm probe --json` on the cloud host gives five open rows with an
+empty remedy and the refused `kvm acceleration` row with "no KVM here;
+the machine tier runs TCG".
 
 **Filed 2026-11-09.** From issue 213 (an outside account). The triage of
 2026-11-09 confirmed each claim at `2be31b2`. The fix is in podvm:
