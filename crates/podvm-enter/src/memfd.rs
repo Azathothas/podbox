@@ -22,6 +22,9 @@
 
 use std::path::Path;
 
+pub mod probe;
+pub use probe::{memfd_exec, MemfdExec};
+
 use podvm_probe::sys::{self, Sysres};
 
 /// Close-on-exec, from `linux/memfd.h`. Unconditional: every call below sets
@@ -31,6 +34,16 @@ pub const MFD_CLOEXEC: u64 = 0x0001;
 /// Allow seals, from `linux/memfd.h`. Added only when the caller asks for
 /// sealing and the kernel accepts it.
 pub const MFD_ALLOW_SEALING: u64 = 0x0002;
+
+/// Seal the memfd against exec, from `linux/memfd.h` (Linux 6.3). podvm
+/// never sets it; the T-1688 test sets it to prove the denial path.
+pub const MFD_NOEXEC_SEAL: u64 = 0x0008;
+
+/// Keep the memfd executable, from `linux/memfd.h` (Linux 6.3). T-1688:
+/// under `vm.memfd_noexec=1` a memfd without this flag is sealed against
+/// exec, so podvm passes it on each `memfd_create`. A kernel before 6.3
+/// answers `EINVAL` to it, and the call is retried without it.
+pub const MFD_EXEC: u64 = 0x0010;
 
 /// Whether these bytes route past fd-exec: a `#!` script fails through it,
 /// so the ladder execs scripts by path instead of through the memfd.
@@ -65,39 +78,34 @@ pub fn is_executable(path: &Path) -> bool {
 
 /// `memfd_create(2)` with [`MFD_CLOEXEC`] always set.
 ///
-/// When `allow_sealing` is set the call first tries with
-/// [`MFD_ALLOW_SEALING`]; a kernel without sealing answers `EINVAL`, and the
-/// call is retried on the unconditional base rather than failed. The image
-/// still runs, it just stays unsealed.
+/// The call first tries with [`MFD_EXEC`] and, when `allow_sealing` is
+/// set, [`MFD_ALLOW_SEALING`]. An `EINVAL` drops one flag and retries:
+/// first `MFD_EXEC` (a kernel before 6.3), then sealing (a kernel without
+/// it). The image still runs, it just stays unsealed. Each other error
+/// is the answer: under `vm.memfd_noexec=2` the kernel refuses
+/// `MFD_EXEC` with `EACCES`, and no retry may hide that (T-1688).
 ///
 /// # Safety
 ///
 /// Issues a raw syscall, like every other `podvm_probe::sys` caller.
 pub unsafe fn memfd_create(name: &sys::CBuf, allow_sealing: bool) -> Sysres {
-    let flags = MFD_CLOEXEC | if allow_sealing { MFD_ALLOW_SEALING } else { 0 };
-    match unsafe { sys::sys(sys::SYS_MEMFD_CREATE, [name.ptr(), flags, 0, 0, 0, 0]) } {
-        Err(e) if allow_sealing && e == sys::EINVAL => unsafe {
-            sys::sys(sys::SYS_MEMFD_CREATE, [name.ptr(), MFD_CLOEXEC, 0, 0, 0, 0])
-        },
-        answered => answered,
-    }
-}
-
-/// Whether the kernel takes `memfd_create`: create one and close it.
-///
-/// The ladder asks this before promising the memfd rung, so a forced mode
-/// refuses with the kernel as the reason rather than failing mid-launch.
-pub fn kernel_takes_memfd() -> bool {
-    let Some(name) = sys::CBuf::new("podvm-probe") else {
-        return false;
-    };
-    match unsafe { memfd_create(&name, false) } {
-        Ok(fd) => {
-            let _ = sys::close(fd);
-            true
+    let seal = if allow_sealing { MFD_ALLOW_SEALING } else { 0 };
+    let tries = [
+        MFD_CLOEXEC | MFD_EXEC | seal,
+        MFD_CLOEXEC | seal,
+        MFD_CLOEXEC,
+    ];
+    let mut answered = Err(sys::EINVAL);
+    for (i, flags) in tries.into_iter().enumerate() {
+        if i > 0 && flags == tries[i - 1] {
+            continue;
         }
-        Err(_) => false,
+        answered = unsafe { sys::sys(sys::SYS_MEMFD_CREATE, [name.ptr(), flags, 0, 0, 0, 0]) };
+        if answered != Err(sys::EINVAL) {
+            break;
+        }
     }
+    answered
 }
 
 /// Write `bytes` to a new memfd, sealed where the kernel accepts it.
@@ -106,21 +114,36 @@ pub fn kernel_takes_memfd() -> bool {
 /// copy past the fork (see `run_ladder`): a parent copy held past that is a
 /// leak, and the child execs from its own.
 pub fn stage(bytes: &[u8]) -> crate::Result<i64> {
-    let name = sys::CBuf::new("podvm-payload").expect("a literal carries no NUL");
-    let fd = unsafe { memfd_create(&name, true) }.map_err(|e| {
+    stage_raw(bytes).map_err(|f| {
         crate::Error::Runtime(format!(
-            "memfd_create for the payload failed: {} ({})",
-            e.name(),
-            e.0
+            "{} failed: {} ({})",
+            f.step,
+            f.errno.name(),
+            f.errno.0
         ))
-    })?;
+    })
+}
+
+/// The step of [`stage_raw`] that creates the memfd.
+pub(crate) const STEP_CREATE: &str = "memfd_create for the payload";
+
+/// The step of [`stage_raw`] that failed, with its errno.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct StageFail {
+    pub step: &'static str,
+    pub errno: sys::Errno,
+}
+
+/// [`stage`] with the errno kept. ⛔ One staging path: the T-1688 probe
+/// stages its trampoline here, so the probe and the launch use the same
+/// flags and seals.
+pub(crate) fn stage_raw(bytes: &[u8]) -> Result<i64, StageFail> {
+    let fail = |step, errno| StageFail { step, errno };
+    let name = sys::CBuf::new("podvm-payload").expect("a literal carries no NUL");
+    let fd = unsafe { memfd_create(&name, true) }.map_err(|e| fail(STEP_CREATE, e))?;
     if let Err(e) = unsafe { write_full(fd, bytes) } {
         let _ = sys::close(fd);
-        return Err(crate::Error::Runtime(format!(
-            "writing the payload to its memfd failed: {} ({})",
-            e.name(),
-            e.0
-        )));
+        return Err(fail("writing the payload to its memfd", e));
     }
     match seal(fd) {
         Ok(_) => {}
@@ -129,15 +152,12 @@ pub fn stage(bytes: &[u8]) -> crate::Result<i64> {
         Err(e) if e == sys::EINVAL => {}
         Err(e) => {
             let _ = sys::close(fd);
-            return Err(crate::Error::Runtime(format!(
-                "sealing the payload memfd failed: {} ({})",
-                e.name(),
-                e.0
-            )));
+            return Err(fail("sealing the payload memfd", e));
         }
     }
     Ok(fd)
 }
+
 /// Why bytes cannot go through fd-exec, naming what they take instead.
 ///
 /// ⛔ Named rather than a boolean, for the ladder's refusal: a caller told only

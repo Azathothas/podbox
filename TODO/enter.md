@@ -1833,7 +1833,7 @@ Source:      issue 212; T-1667 (the doctor row shape); T-1003 (the fd exec)
 Category:    enter
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     `kernel_takes_memfd()` proves that `memfd_create` answers, not
              that the descriptor executes. Under `vm.memfd_noexec=1` the
@@ -1866,6 +1866,23 @@ Prove:       `cargo test -p podvm-enter -p podvm` exits 0 with tests for the
              pure mapping (measured result and sysctl value to the answer
              and the fix line), and `podvm doctor` prints the row
              `memfd_exec` on the cloud host.
+
+**Done 2026-11-09.** `memfd::probe::memfd_exec` stages a static
+132-byte trampoline (x86_64 and aarch64) the way the launch stages a
+payload, executes it through `execveat(AT_EMPTY_PATH)` in a forked child,
+and answers `Exec`, `NoExec`, `NoMemfd` or `Unmeasured`, each with the
+value of `vm.memfd_noexec`. The ladder, the entry check and the new doctor
+row `memfd_exec` read this one probe, and `kernel_takes_memfd` is gone.
+`memfd_create` passes `MFD_EXEC`, so value 1 no longer blocks the rung;
+under value 2 the refusal comes before staging and names the sysctl. The
+pure function `probe::answer` gives the text and the fix line. `cargo
+test -p podvm-enter -p podvm` exits 0 (404 passed), with
+`the_mapping_names_the_sysctl_only_where_it_is_the_cause` and
+`a_memfd_sealed_against_exec_reads_as_no_exec`. [The drive](../experiments/results/memfd-exec.txt):
+`podvm doctor` prints `ok memfd_exec` at value 0 and 1, and the note with
+the fix at value 2, each value set in a child pid namespace. Limits: the
+forced-memfd refusal was not driven end to end (no static image in the
+store), and the aarch64 trampoline was assembled and compiled, not run.
 
 **Filed 2026-11-09.** From issue 212 (the owner). The triage of
 2026-11-09 confirmed each claim at `2be31b2` and corrected two: the census

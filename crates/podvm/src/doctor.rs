@@ -28,8 +28,9 @@ pub const DOCTOR_USAGE: &str = "\
 usage: podvm doctor [store_exec]
 
   Check what this machine can run and say how to fix what it cannot:
-  the machine legs with one fix line per missing piece, and the disk
-  free against the file-size ceiling. kvm or tun missing alone is a
+  the machine legs with one fix line per missing piece, the disk free
+  against the file-size ceiling, and whether a memfd executes
+  (memfd_exec, TODO/enter.md T-1688). kvm or tun missing alone is a
   note, not a failure: that is the TCG profile, not a refusal
   (TODO/machine.md T-1301, T-1306).
 
@@ -196,6 +197,11 @@ pub fn doctor(verb: &str, args: &[String]) -> i32 {
     let mut report = Doctor::default();
     examine_legs(&assessed, &mut report);
     examine_ceiling(&mut report);
+    examine_memfd_exec(
+        podvm_probe::probes::chroot_usable(&findings),
+        podvm_enter::memfd::memfd_exec(),
+        &mut report,
+    );
     print!("{}", report.render(profile));
     report.exit_code()
 }
@@ -380,83 +386,33 @@ fn judge_ceiling(soft: u64, hard: u64, free: u64, at: &str) -> Result<String, St
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn doctor_usage_is_plain_ascii() {
-        // TODO/cli.md T-1336: usages print on a constrained host.
-        let bad = DOCTOR_USAGE.bytes().filter(|b| *b > 0x7F).count();
-        assert_eq!(bad, 0, "doctor usage carries {bad} non-ASCII bytes");
-    }
-
-    /// The winquick shape, held: a fail carries exactly one fix, health
-    /// agrees with the problem list, and the incomplete assessment
-    /// outranks a failed one.
-    #[test]
-    fn health_agrees_with_the_problem_list() {
-        let mut d = Doctor::default();
-        assert_eq!(d.exit_code(), 0);
-        d.ok("emu", "qemu=ok".to_string());
-        d.note("kvm", "missing under tcg".to_string());
-        assert_eq!(d.exit_code(), 0);
-        d.fail("accel", "denied".to_string(), "install QEMU".to_string());
-        assert_eq!(d.exit_code(), 1);
-        let text = d.render("tcg");
-        assert!(text.contains("fail accel: denied\n"));
-        assert!(text.contains("fix: install QEMU\n"));
-        assert!(text.contains("profile: tcg\n"));
-        assert_eq!(d.fixes.len(), 1);
-        d.unrunnable("prlimit(RLIMIT_FSIZE)");
-        assert_eq!(d.exit_code(), 2);
-        assert!(d.render("refused").contains("unmeasured: "));
-    }
-
-    /// TODO/cli.md T-1337: doctor decides its arguments before it
-    /// probes, so `--help` prints and a bad flag refuses hermetic.
-    #[test]
-    fn doctor_help_and_bad_flag_need_no_probe() {
-        assert_eq!(doctor("doctor", &["--help".to_string()]), 0);
-        assert_eq!(
-            doctor("doctor", &["--bogus".to_string()]),
-            podvm_image::error::EXIT_FLAG_ERROR
-        );
-        assert_eq!(
-            doctor("doctor", &["some-thing".to_string()]),
-            podvm_image::error::EXIT_FLAG_ERROR
-        );
-    }
-
-    /// TODO/image.md T-1418. The `store_exec` row answers from the
-    /// directory, not the process store: `yes` with a 0 on a writable
-    /// directory, and a refusal naming the path where nothing can probe.
-    #[test]
-    #[cfg(unix)]
-    fn store_exec_row_reports_yes_on_a_writable_directory() {
-        let d = std::env::temp_dir().join(format!("podvm-doctor-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(&d).unwrap();
-        assert_eq!(store_exec_row_at(&d), 0);
-        let _ = std::fs::remove_dir_all(&d);
-        // Not a directory podvm can write a probe into: an error naming
-        // the path, never a "no".
-        assert_eq!(store_exec_row_at(&d.join("absent")), 2);
-    }
-
-    /// T-1690 (issue 214): the soft limit is the ceiling. A soft 1 GiB with
-    /// an infinite hard limit is judged at 1 GiB, not passed as "no ceiling".
-    #[test]
-    fn the_ceiling_is_the_soft_limit() {
-        const GIB: u64 = 1 << 30;
-        let ok = judge_ceiling(GIB, u64::MAX, 4 * GIB, "/s").unwrap();
-        assert!(ok.contains("covers the 1.00 GiB"), "{ok}");
-        assert!(ok.contains("hard limit is infinity"), "{ok}");
-        let short = judge_ceiling(GIB, u64::MAX, GIB / 2, "/s").unwrap_err();
-        assert!(short.contains("below the 1.00 GiB"), "{short}");
-        let equal = judge_ceiling(GIB, GIB, 2 * GIB, "/s").unwrap();
-        assert!(!equal.contains("hard"), "{equal}");
-        let both = judge_ceiling(GIB, 2 * GIB, GIB / 2, "/s").unwrap_err();
-        assert!(both.contains("hard limit is 2.00 GiB"), "{both}");
+/// TODO/enter.md T-1688. The row `memfd_exec`: whether a memfd executes
+/// through `execveat(AT_EMPTY_PATH)`, read from the one probe that the
+/// ladder and the entry check read, so the row and a refusal cannot
+/// disagree.
+///
+/// ⚠ A denial fails only where chroot(2) is denied too: there the static
+/// no-chroot family needs the memfd. Where chroot holds, only a forced
+/// `PODVM_MODE=memfd` needs it, so the denial is a note with its fix in
+/// the detail, as kvm missing is a note under TCG. An unmeasured probe is
+/// a note: it never reads as "no".
+fn examine_memfd_exec(chroot_ok: bool, probe: &podvm_enter::memfd::MemfdExec, report: &mut Doctor) {
+    use podvm_enter::memfd::probe::{answer, Standing};
+    const NAME: &str = "memfd_exec";
+    let a = answer(probe);
+    match (a.standing, a.fix) {
+        (Standing::Holds, _) => report.ok(NAME, a.detail),
+        (Standing::Denied, Some(fix)) if !chroot_ok => report.fail(NAME, a.detail, fix),
+        (Standing::Denied, Some(fix)) => report.note(
+            NAME,
+            format!(
+                "{}; chroot(2) holds, so only PODVM_MODE=memfd needs it; fix: {fix}",
+                a.detail
+            ),
+        ),
+        _ => report.note(NAME, a.detail),
     }
 }
+
+#[cfg(test)]
+mod tests;

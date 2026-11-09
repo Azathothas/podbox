@@ -2,7 +2,7 @@
 
 ## State
 
-305 entries: 37 open, 11 partial, 4 blocked, 253 done.
+305 entries: 36 open, 11 partial, 4 blocked, 254 done.
 
 The project was renamed from podbox to podvm on 2026-11-06 (commit
 `rename: podbox is podvm`): entries closed before that commit ran their
@@ -212,11 +212,10 @@ keeps its historical scope. It does not establish current reliability.
     limit in the gate.
 
 16. T-1688 through T-1693 were filed on 2026-11-09 from the issues 212
-    to 217; the triage confirmed each claim at `2be31b2`. T-1691 (P1,
-    `stop -t 0`) is done, so podcrates can import `pod-supervise`. Then
-    T-1693, T-1690, T-1692, T-1689 and T-1688, before item 13. T-1687
-    owes one `podvm-workload` run. T-1694 to T-1696 are the asks of
-    PodUtils/podcrates#39; they come with item 14.
+    to 217, and each is done the same day; the issues are closed. T-1687
+    owes one `podvm-workload` run (`public.ecr.aws` answered HTTP 429 on
+    2026-11-09). T-1694 to T-1696 are the asks of PodUtils/podcrates#39;
+    they come with item 14. The next work is item 13, T-1648 first.
 
 An agent may start a KVM guest unattended by passing both
 `--accept-host-risk` and `--unattended`; the driver then holds a T-1609

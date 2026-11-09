@@ -106,7 +106,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #210 | COORD-011: podvm moved to v0.6.0 and took pod-hostprobe; the freeze of the 29 files ends (to podcrates) | closed (podcrates#11 and #16 closed) | T-1681 |
 | #211 | [gh action] requested | closed (gate run 42265769964, green) | none: a request of a workflow run for T-1681 (AGENTS.md, section 9) |
 | #200 | COORD-006: the Alpine netboot pins: podvm fetches the 3.22.6 archive (to podcrates) | open | T-1687 |
-| #212 | doctor: no row answers whether a memfd can be executed (vm.memfd_noexec), and the memfd rung refuses late | open | T-1688 |
+| #212 | doctor: no row answers whether a memfd can be executed (vm.memfd_noexec), and the memfd rung refuses late | closed | T-1688 |
 | #213 | probe: the non-goal `remedy` field contradicts the `stance` in the same JSON object | closed | T-1689 |
 | #214 | doctor: the disk-free row reads the hard `RLIMIT_FSIZE` while every other consumer reads the soft one | closed | T-1690 |
 | #215 | supervise: `stop -t 0` reports a container as stopped while it is still running, because a bound-setting failure reads as the launcher having gone | closed | T-1691 |

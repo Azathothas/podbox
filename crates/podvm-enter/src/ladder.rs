@@ -80,8 +80,8 @@ impl Mode {
 /// cannot create, and an ephemeral tmpfs needs a mount: both rungs are refused
 /// by probe, not omitted, so the same binary uses them where they exist.
 pub struct Availability {
-    /// The kernel takes `memfd_create` and the payload is static-PIE with no
-    /// `PT_INTERP` ([`crate::memfd::eligible`]).
+    /// A memfd executes ([`crate::memfd::memfd_exec`], T-1688) and the
+    /// payload is static-PIE with no `PT_INTERP` ([`crate::memfd::eligible`]).
     pub memfd: bool,
     /// `/dev/fuse` opens.
     pub fuse: bool,

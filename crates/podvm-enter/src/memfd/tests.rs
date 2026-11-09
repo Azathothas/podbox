@@ -123,7 +123,6 @@ fn written_bytes_seal_where_accepted() {
 /// the lane's Prove; this pins the create, write and seal path runs.
 #[test]
 fn staging_hands_back_a_live_cloexec_descriptor() {
-    assert!(kernel_takes_memfd(), "memfd_create runs here");
     let fd = stage(&static_pie()).expect("staging runs here");
     assert!(fd >= 0);
     let flags = sys::fcntl(fd, sys::F_GETFD, 0).expect("the staged fd answers fcntl");

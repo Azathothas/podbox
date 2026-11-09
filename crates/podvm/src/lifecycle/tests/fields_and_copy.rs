@@ -199,7 +199,7 @@ fn the_rung_decision_names_its_family_or_its_refusal() {
     let root = d.to_string_lossy().to_string();
     let argv = ["prog".to_string()];
     let env = ["PATH=/bin".to_string()];
-    if podvm_enter::memfd::kernel_takes_memfd() {
+    if podvm_enter::memfd::memfd_exec().runs() {
         let u = decide_entry("run", &root, &argv, &env, true, &denied)
             .unwrap()
             .expect("a static payload decides a family");

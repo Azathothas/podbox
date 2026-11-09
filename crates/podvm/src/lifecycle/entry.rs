@@ -131,8 +131,8 @@ pub(super) fn entry_possible(chroot_ok: bool, memfd_ok: bool, objects: bool) -> 
 /// where nothing could run.
 ///
 /// The exact rung needs the payload, which is post-extract, so this gate
-/// admits where chroot holds, where the kernel takes a memfd (the static
-/// no-chroot family may run), or where this binary embeds an interposer
+/// admits where chroot holds, where a memfd executes (the static no-chroot
+/// family may run; T-1688), or where this binary embeds an interposer
 /// object (the loader no-chroot family may run). Refusal names all three
 /// misses at 125, fetching nothing.
 ///
@@ -147,20 +147,28 @@ pub fn ensure_entry_possible(
     findings: &podvm_probe::Findings,
     store_root: &std::path::Path,
 ) -> Result<(), i32> {
+    // T-1688: the memfd leg is measured only where chroot is denied; where
+    // chroot holds the answer cannot change the result.
+    let chroot_ok = podvm_probe::probes::chroot_usable(findings);
+    let memfd = (!chroot_ok).then(podvm_enter::memfd::memfd_exec);
     if entry_possible(
-        podvm_probe::probes::chroot_usable(findings),
-        podvm_enter::memfd::kernel_takes_memfd(),
+        chroot_ok,
+        memfd.is_some_and(|m| m.runs()),
         crate::interpose::object(crate::interpose::Libc::Gnu).is_some()
             || crate::interpose::object(crate::interpose::Libc::Musl).is_some(),
     ) {
         return ensure_store_exec(verb, store_root);
     }
+    let memfd_text = memfd
+        .map(|m| podvm_enter::memfd::probe::answer(m).sentence())
+        .unwrap_or_default();
     eprintln!(
         "podvm {verb}: chroot(2) is denied on this machine, and no no-chroot \
-         family can run either: the kernel takes no memfd, and this podvm \
-         binary embeds no interposer object for the loader family (see \
-         `podvm probe`, and ./scripts/build-interpose.sh builds them) \
-         (TODO/enter.md T-1317)"
+         family can run either: a memfd does not execute ({memfd_text}), and \
+         this podvm binary embeds no interposer object for the loader family \
+         (see `podvm probe` and `podvm doctor`, and \
+         ./scripts/build-interpose.sh builds them) (TODO/enter.md T-1317, \
+         T-1688)"
     );
     Err(podvm_image::error::EXIT_RUNTIME_ERROR)
 }
@@ -321,7 +329,7 @@ pub fn decide_entry(
         Err(podvm_enter::memfd::MemfdRefusal::HasInterp(interp)) => Some(interp),
     };
     if interp.is_none() {
-        // Static: the memfd family, where the kernel takes one.
+        // Static: the memfd family, where a memfd executes.
         if !support_native {
             return no_chroot(
                 EXIT_RUNTIME_ERROR,
@@ -330,12 +338,17 @@ pub fn decide_entry(
                     .to_string(),
             );
         }
-        if !podvm_enter::memfd::kernel_takes_memfd() {
+        // ⛔ T-1688: the probe executes a memfd, so a sysctl that seals it
+        // refuses here, before staging, and not at the launch's step 5.
+        let memfd = podvm_enter::memfd::memfd_exec();
+        if !memfd.runs() {
             return no_chroot(
                 EXIT_RUNTIME_ERROR,
-                "the payload is statically linked but the kernel takes no \
-                 memfd on this machine"
-                    .to_string(),
+                format!(
+                    "the payload is statically linked but a memfd does not \
+                     execute on this machine: {} (TODO/enter.md T-1688)",
+                    podvm_enter::memfd::probe::answer(memfd).sentence()
+                ),
             );
         }
         return Ok(Some(Userland {

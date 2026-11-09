@@ -199,8 +199,20 @@ pub(crate) fn enter_forced(
     if mode == Mode::Memfd {
         let (bytes, why) = memfd_payload(rootfs, argv0, path_dirs)?;
         memfd_why = why;
-        memfd_up = memfd_why.is_none() && memfd::kernel_takes_memfd();
-        if memfd_up {
+        // ⛔ TODO/enter.md T-1688: the rung is up only where a memfd
+        // EXECUTES, measured by the one probe the doctor row reads. The
+        // forced rung refuses here, before `memfd::stage`, and names the
+        // sysctl where it is the cause.
+        if memfd_why.is_none() {
+            let probe = memfd::memfd_exec();
+            if !probe.runs() {
+                return Err(podvm_enter::Error::Runtime(format!(
+                    "PODVM_MODE=memfd was forced but memfd mode is unavailable: \
+                     {} (TODO/enter.md T-1688)",
+                    memfd::probe::answer(probe).sentence()
+                )));
+            }
+            memfd_up = true;
             staged = Some(bytes);
         }
     }

@@ -1,0 +1,65 @@
+TODO/enter.md T-1688 (issue 212): the drive of the row memfd_exec of
+`podvm doctor`. The probe stages a static trampoline in a memfd, forks,
+and executes it through execveat(fd, "", argv, envp, AT_EMPTY_PATH).
+
+== conditions
+binary            target/x86_64-unknown-linux-musl/release/podvm (static-pie, built from the work tree on 27ae993)
+host              cloud session; chroot(2) holds
+
+== 1. the host value (vm.memfd_noexec=0)
+$ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-11-09T14:16:01Z
+$ uname -r
+6.18.44-fc-v310
+$ git rev-parse --short HEAD
+27ae993
+$ cat /proc/sys/vm/memfd_noexec
+0
+exit=0
+$ target/x86_64-unknown-linux-musl/release/podvm --version
+podvm 0.1.0-beta.13
+$ target/x86_64-unknown-linux-musl/release/podvm doctor
+ok qemu-system-x86_64 --version: qemu-system-x86_64 --version=ok
+note open(/dev/kvm, O_RDWR): open(/dev/kvm, O_RDWR)=ENOENT: guests run under TCG without hardware acceleration
+ok prlimit(RLIMIT_FSIZE): prlimit(RLIMIT_FSIZE)=ok
+ok open(/dev/net/tun, O_RDWR): open(/dev/net/tun, O_RDWR)=ok
+ok image space (statfs .): image space (statfs .)=ok
+ok qemu-system-x86_64 -accel help: qemu-system-x86_64 -accel help=ok
+note disk free against the file-size ceiling: no file-size ceiling (the soft RLIMIT_FSIZE is infinity)
+ok memfd_exec: a memfd executes through execveat(AT_EMPTY_PATH) (vm.memfd_noexec=0)
+profile: tcg
+exit=0
+
+== 2. values 1 and 2, each set in a child pid namespace
+The sysctl is per pid namespace, and a child namespace may only raise it.
+The drive sets it in a child of `unshare -pf`, so the host value stays 0
+(the last line). Under 1, podvm passes MFD_EXEC, so the memfd executes.
+Under 2, memfd_create with MFD_EXEC fails with EACCES; chroot(2) holds on
+this host, so the row is a note with its fix, not a fail.
+
+$ unshare -pf sh -c 'echo 1 > /proc/sys/vm/memfd_noexec; cat /proc/sys/vm/memfd_noexec; target/x86_64-unknown-linux-musl/release/podvm doctor; echo exit=$?'
+1
+ok qemu-system-x86_64 --version: qemu-system-x86_64 --version=ok
+note open(/dev/kvm, O_RDWR): open(/dev/kvm, O_RDWR)=ENOENT: guests run under TCG without hardware acceleration
+ok prlimit(RLIMIT_FSIZE): prlimit(RLIMIT_FSIZE)=ok
+ok open(/dev/net/tun, O_RDWR): open(/dev/net/tun, O_RDWR)=ok
+ok image space (statfs .): image space (statfs .)=ok
+ok qemu-system-x86_64 -accel help: qemu-system-x86_64 -accel help=ok
+note disk free against the file-size ceiling: no file-size ceiling (the soft RLIMIT_FSIZE is infinity)
+ok memfd_exec: a memfd executes through execveat(AT_EMPTY_PATH): vm.memfd_noexec=1 seals a memfd against exec by default, and podvm passes MFD_EXEC on its own memfd_create
+profile: tcg
+exit=0
+$ unshare -pf sh -c 'echo 2 > /proc/sys/vm/memfd_noexec; cat /proc/sys/vm/memfd_noexec; target/x86_64-unknown-linux-musl/release/podvm doctor; echo exit=$?'
+2
+ok qemu-system-x86_64 --version: qemu-system-x86_64 --version=ok
+note open(/dev/kvm, O_RDWR): open(/dev/kvm, O_RDWR)=ENOENT: guests run under TCG without hardware acceleration
+ok prlimit(RLIMIT_FSIZE): prlimit(RLIMIT_FSIZE)=ok
+ok open(/dev/net/tun, O_RDWR): open(/dev/net/tun, O_RDWR)=ok
+ok image space (statfs .): image space (statfs .)=ok
+ok qemu-system-x86_64 -accel help: qemu-system-x86_64 -accel help=ok
+note disk free against the file-size ceiling: no file-size ceiling (the soft RLIMIT_FSIZE is infinity)
+note memfd_exec: denied by vm.memfd_noexec=2: the kernel refuses each memfd that is not sealed against exec, so memfd_create with MFD_EXEC fails with EACCES (13); chroot(2) holds, so only PODVM_MODE=memfd needs it; fix: set vm.memfd_noexec to 0 (`sysctl -w vm.memfd_noexec=0` as root, in this pid namespace or a parent one), or use another rung: run with chroot(2) allowed, or with PODVM_MODE unset
+profile: tcg
+exit=0
+$ cat /proc/sys/vm/memfd_noexec   (the host value after the drive)
+0

@@ -23,20 +23,18 @@ Remove this file when each step below is done.
 ## Next steps, in order
 
 1. T-1687: one `podvm-workload` run whose fetch step reports the pinned
-   sum. On 2026-11-09 `public.ecr.aws` answered the pull with HTTP 429.
-   Close issue 200 with the run.
-2. Take podcrates v0.7.0: the eight `tag = "v0.6.0"` lines, `Cargo.lock`,
-   and `f.io_cause()` in `crates/podvm-image/src/space.rs:52` (call C11).
-   Write the take as a COORD issue `(to podcrates)`.
-3. T-1691 (issue 215) before podcrates imports `pod-supervise` (its T-060).
-4. T-1693, T-1690, T-1692, T-1689, T-1688 (issues 217, 214, 216, 213, 212).
-5. The asks of PodUtils/podcrates#39 (COORD-015): file them as entries or
-   clauses, and answer with a COORD issue `(to podcrates)`.
-6. The work order of `TODO/PROGRESS.md`: T-1648, then the errand-host
+   sum. On 2026-11-09 `public.ecr.aws` answered the pull with HTTP 429
+   twice; `mirror.gcr.io` served Docker Hub images. Close issue 200 with
+   the run.
+2. Done on 2026-11-09: the take of podcrates v0.7.0 (35df7f7, COORD-012
+   #218), the asks of PodUtils/podcrates#39 (67feade), and T-1688 to
+   T-1693 (issues 212 to 217, closed).
+3. The work order of `TODO/PROGRESS.md`: T-1648, then the errand-host
    cluster T-1643 to T-1653.
-7. Each M6 import of podcrates (pod-guest, pod-enter, pod-supervise,
+4. Each M6 import of podcrates (pod-guest, pod-enter, pod-supervise,
    pod-oci, pod-extract, pod-rootfs): apply its patch, run its `.run`,
-   commit, COORD issue. podcrates imports from podvm head.
+   commit, COORD issue. podcrates imports from podvm head; T-060
+   (`pod-supervise`) may start since 063a1ed.
 
 ## Questions for the owner
 
