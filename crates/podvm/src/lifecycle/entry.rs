@@ -444,9 +444,10 @@ pub fn decide_entry(
              image's libraries; absolute guest paths anchor inside the rootfs \
              through PODVM_MAPS, and host pass-through happens only under \
              --unsafe-host-paths, and argv[0] keeps the invoked name{}; \
-             a grandchild that execs an absolute path runs it on the host past \
-             the loader mapping and fails 127 where the host holds no such file \
-             (TODO/enter.md T-1317, T-1407, T-1411)",
+             a child that execs a dynamic program or a #! script enters \
+             through the image's loader inside the rootfs, with the image's \
+             libraries from PODVM_LIB_PATH (TODO/enter.md T-1317, T-1407, \
+             T-1411; TODO/interpose.md T-1646)",
             plan.loader_host,
             plan.payload_host,
             if applet {

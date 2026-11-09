@@ -41,6 +41,7 @@ pub unsafe extern "C" fn statx(
     if p.is_null() {
         return -1;
     }
+    let (guest_fd, guest) = (dirfd, path);
     let (dirfd, path) = if p == path {
         (dirfd, path)
     } else {
@@ -50,15 +51,16 @@ pub unsafe extern "C" fn statx(
     // that did not ask for `STATX_UID` gets it anyway, which `statx(2)` permits
     // -- the kernel may return more than was asked for -- and without it podvm
     // would have no uid to overwrite and no `stx_ino` to key the memo on.
-    let rc = unsafe {
-        f(
-            dirfd,
-            path,
-            flags,
-            mask | STATX_UID | STATX_GID | 0x0000_0100,
-            st,
-        )
-    };
+    let wide = mask | STATX_UID | STATX_GID | 0x0000_0100;
+    let mut rc = unsafe { f(dirfd, path, flags, wide, st) };
+    // T-1646: a miss that follows the last link tries the rootfs walk once.
+    let mut walked = [0u8; crate::map::OUT];
+    if rc != 0
+        && flags & 0x100 == 0
+        && let Some(q) = unsafe { crate::exec::lookup::again(guest_fd, guest, p, &mut walked) }
+    {
+        rc = unsafe { f(crate::map::AT_FDCWD, q, flags, wide, st) };
+    }
     if rc == 0 {
         unsafe { report_statx(st) };
     }
@@ -179,6 +181,77 @@ macro_rules! path_at_int {
     };
 }
 
+/// The `access` shapes, T-0703 and T-1646: a miss tries the rootfs walk
+/// once, because a shell tests a command with `access` before its exec.
+macro_rules! access_int {
+    ($name:ident, $real:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn $name(path: *const c_char, mode: c_int) -> c_int {
+            let call = |p: *const c_char| $real().map(|f| unsafe { f(p, mode) });
+            unsafe {
+                faccess(
+                    stringify!($name).as_bytes(),
+                    crate::map::AT_FDCWD,
+                    path,
+                    0,
+                    call,
+                )
+            }
+        }
+    };
+}
+
+/// The shared body of the `access` shapes. `call` is the real call with
+/// the path to try, or `None` where the libc has no such symbol.
+unsafe fn faccess(
+    what: &[u8],
+    dirfd: c_int,
+    path: *const c_char,
+    flags: c_int,
+    call: impl Fn(*const c_char) -> Option<c_int>,
+) -> c_int {
+    let mut buf = [0u8; crate::map::OUT];
+    let p = unsafe { crate::map::prepare(what, dirfd, path, &mut buf) };
+    if p.is_null() {
+        return -1;
+    }
+    let Some(mut rc) = call(p) else {
+        set_errno(EINVAL);
+        return -1;
+    };
+    let mut walked = [0u8; crate::map::OUT];
+    if rc != 0
+        && flags & 0x100 == 0
+        && let Some(q) = unsafe { crate::exec::lookup::again(dirfd, path, p, &mut walked) }
+    {
+        rc = call(q).unwrap_or(-1);
+    }
+    rc
+}
+
+/// # Safety
+/// The payload's own contract for `faccessat(2)`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn faccessat(
+    dirfd: c_int,
+    path: *const c_char,
+    mode: c_int,
+    flags: c_int,
+) -> c_int {
+    // Where the rewrite moved the path the call goes with an absolute one.
+    let call = |p: *const c_char| {
+        let fd = if p == path {
+            dirfd
+        } else {
+            crate::map::AT_FDCWD
+        };
+        next_faccessat().map(|f| unsafe { f(fd, p, mode, flags) })
+    };
+    unsafe { faccess(b"faccessat", dirfd, path, flags, call) }
+}
+
 path_int!(chdir, next_chdir, (path: *const c_char), path);
 path_int!(unlink, next_unlink, (path: *const c_char), path);
 path_int!(rmdir, next_rmdir, (path: *const c_char), path);
@@ -188,22 +261,15 @@ path_int!(chmod, next_chmod, (path: *const c_char, mode: c_uint), path);
 path_int!(truncate, next_truncate, (path: *const c_char, len: i64), path);
 path_int!(utime, next_utime, (path: *const c_char, times: *const c_void), path);
 path_int!(utimes, next_utimes, (path: *const c_char, times: *const c_void), path);
-path_int!(access, next_access, (path: *const c_char, mode: c_int), path);
-path_int!(eaccess, next_eaccess, (path: *const c_char, mode: c_int), path);
-path_int!(euidaccess, next_euidaccess, (path: *const c_char, mode: c_int), path);
+access_int!(access, next_access);
+access_int!(eaccess, next_eaccess);
+access_int!(euidaccess, next_euidaccess);
 path_int!(statfs, next_statfs, (path: *const c_char, buf: *mut c_void), path);
 path_int!(statvfs, next_statvfs, (path: *const c_char, buf: *mut c_void), path);
 path_int!(setxattr, next_setxattr, (path: *const c_char, name: *const c_char, value: *const c_void, size: usize, flags: c_int), path);
 path_int!(lsetxattr, next_lsetxattr, (path: *const c_char, name: *const c_char, value: *const c_void, size: usize, flags: c_int), path);
 path_int!(removexattr, next_removexattr, (path: *const c_char, name: *const c_char), path);
 path_int!(lremovexattr, next_lremovexattr, (path: *const c_char, name: *const c_char), path);
-path_int!(execve, next_execve, (path: *const c_char, argv: *const *const c_char, envp: *const *const c_char), path);
-path_int!(execv, next_execv, (path: *const c_char, argv: *const *const c_char), path);
-path_int!(execvp, next_execvp, (path: *const c_char, argv: *const *const c_char), path);
-path_int!(execvpe, next_execvpe, (path: *const c_char, argv: *const *const c_char, envp: *const *const c_char), path);
-path_at_int!(execveat, next_execveat, (dirfd: c_int, path: *const c_char, argv: *const *const c_char, envp: *const *const c_char, flags: c_int), dirfd, path);
-path_int!(posix_spawn, next_posix_spawn, (pid: *mut c_int, path: *const c_char, fa: *const c_void, attr: *const c_void, argv: *const *const c_char, envp: *const *const c_char), path);
-path_int!(posix_spawnp, next_posix_spawnp, (pid: *mut c_int, path: *const c_char, fa: *const c_void, attr: *const c_void, argv: *const *const c_char, envp: *const *const c_char), path);
 path_int!(glob, next_glob, (pattern: *const c_char, flags: c_int, errfunc: ErrFunc, pglob: *mut c_void), pattern);
 path_int!(glob64, next_glob64, (pattern: *const c_char, flags: c_int, errfunc: ErrFunc, pglob: *mut c_void), pattern);
 path_int!(ftw, next_ftw, (path: *const c_char, func: FtwFunc, nfds: c_int), path);
@@ -228,7 +294,6 @@ path_ptr!(freopen64, next_freopen64, (path: *const c_char, mode: *const c_char, 
 path_at_int!(mkdirat, next_mkdirat, (dirfd: c_int, path: *const c_char, mode: c_uint), dirfd, path);
 path_at_int!(unlinkat, next_unlinkat, (dirfd: c_int, path: *const c_char, flags: c_int), dirfd, path);
 path_at_int!(fchmodat, next_fchmodat, (dirfd: c_int, path: *const c_char, mode: c_uint, flags: c_int), dirfd, path);
-path_at_int!(faccessat, next_faccessat, (dirfd: c_int, path: *const c_char, mode: c_int, flags: c_int), dirfd, path);
 path_at_int!(utimensat, next_utimensat, (dirfd: c_int, path: *const c_char, times: *const c_void, flags: c_int), dirfd, path);
 path_at_int!(openat2, next_openat2, (dirfd: c_int, path: *const c_char, how: *const c_void, size: usize), dirfd, path);
 

@@ -1,0 +1,129 @@
+# T-1646 drive: a dynamic or #! grandchild enters through the image's loader.
+# Run by hand on the chroot-denying fixture: unshare -Urm, a tmpfs over
+# /dev/pts, and experiments/deny-chroot.c (chroot(2) answers EPERM), as
+# experiments/356-no-chroot-rung.sh builds it. Images come from mirror.gcr.io:
+# Docker Hub and public.ecr.aws answer HTTP 429 on this host, so 356 itself
+# could not pull its pinned inputs. The scratch home is written as $STORE.
+#
+# The commands are those of clause 17 (now a gate) and clause 23 of
+# experiments/356-no-chroot-rung.sh, each under:
+#   unshare -Urm sh $STORE/wrap.sh $STORE <podvm> run --rm ...
+# A step matches where the exit is the wanted one and, where a line is
+# named, the output holds exactly that line. The last four output lines
+# are kept; podvm's extraction lines are removed.
+#
+# BEFORE is the debug binary of 6cd3442 (T-1643, T-1645, T-1644). AFTER is
+# this tree. The BEFORE debian line is the Premise's second case, which
+# the entry recorded as "not measured": the guest /bin/ls ran under the
+# host loader with the image's libraries and aborted (134).
+
+== conditions
+date              2026-11-09T21:49:08Z
+host kernel       Linux 6.18.44-fc-v310
+podvm             podvm 0.1.0-beta.13
+alpine            mirror.gcr.io/library/alpine:3.22 sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f
+debian            mirror.gcr.io/library/debian:bookworm-slim sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
+node              mirror.gcr.io/library/node:22-alpine sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202
+python            mirror.gcr.io/library/python:3-alpine
+fixture           unshare -Urm + experiments/deny-chroot.c (chroot(2) answers EPERM)
+drive exit        0
+
+######## BEFORE: podvm 0.1.0-beta.13
+== before-gc-debian
+want exit 134, line ''; got exit 134: ok
+  | *** stack smashing detected ***: terminated
+  | Aborted
+== before-gc-alpine
+want exit 127, line ''; got exit 127: ok
+  | sh: /bin/ls: not found
+== before-grandchild
+want exit 127, line ''; got exit 127: ok
+  | sh: /bin/busybox: not found
+== before-node-execsync
+want exit 1, line ''; got exit 1: ok
+  | Error: spawnSync /bin/sh ENOENT
+  | }
+  | 
+  | Node.js v22.23.4
+######## AFTER: podvm 0.1.0-beta.13
+== fx-grandchild
+want exit 0, line 'grandchild-ok'; got exit 0: ok
+  | grandchild-ok
+== fx-gc-debian
+want exit 0, line 'etc'; got exit 0: ok
+  | sys
+  | tmp
+  | usr
+  | var
+== fx-gc-alpine
+want exit 0, line 'pipe-ok'; got exit 0: ok
+  | tmp
+  | usr
+  | var
+  | pipe-ok
+== fx-gc-bare
+want exit 0, line '/bin'; got exit 0: ok
+  | /etc
+  | /bin
+== fx-gc-script
+want exit 0, line 'script-ok /tmp/s.sh arg1'; got exit 0: ok
+  | script-ok /tmp/s.sh arg1
+== fx-gc-envscript
+want exit 0, line 'env-script-ok arg1'; got exit 0: ok
+  | env-script-ok arg1
+== fx-gc-exe
+want exit 0, line '/usr/bin/readlink'; got exit 0: ok
+  | /usr/bin/readlink
+== fx-node-version
+want exit 0, line ''; got exit 0: ok
+  | v22.23.4
+== fx-node-execsync
+want exit 0, line 'etc'; got exit 0: ok
+  | sys
+  | tmp
+  | usr
+  | var
+== fx-node-spawn-self
+want exit 0, line '/usr/local/bin/node'; got exit 0: ok
+  | /usr/local/bin/node
+== fx-debug-line
+want exit 0, line ''; got exit 0: ok
+  | podvm: interpose: execve: /bin/busybox enters through the guest loader /lib/ld-musl-x86_64.so.1
+  | /
+== sane-grandchild
+want exit 0, line 'grandchild-ok'; got exit 0: ok
+  | grandchild-ok
+verdict: ALL MATCHED
+
+== regression of earlier clauses (AFTER), each exit 0
+python3 subprocess.run(['ls','-d','/etc'])            rc 0 /etc
+python3 import subprocess, _posixsubprocess (T-1645)   import-ok
+alpine read /etc/alpine-release (clause 11)            release=3.22.8
+alpine -w /tmp relative write, read back (T-1643)      back=w356, host /tmp has no file
+debian echo hi (T-1644)                                hi
+debian readlink /proc/self/exe (clause 18)             /usr/bin/readlink
+
+== commands of the steps (AFTER)
+fx-grandchild        alpine sh -c '/bin/busybox echo grandchild-ok'
+fx-gc-debian         debian sh -c '/bin/ls /'
+fx-gc-alpine         alpine sh -c '/bin/ls / && echo pipe-ok | /bin/cat'
+fx-gc-bare           alpine sh -c 'ls -d /etc && env -- ls -d /bin'
+fx-gc-script         alpine: a /tmp/s.sh with `#!/bin/sh -e`, run as /tmp/s.sh arg1
+fx-gc-envscript      debian: a /tmp/s.sh with `#!/usr/bin/env sh`, run as /tmp/s.sh arg1
+fx-gc-exe            debian sh -c 'readlink /proc/self/exe'
+fx-node-version      node --entrypoint node --version
+fx-node-execsync     node --entrypoint node -e "process.stdout.write(require('child_process').execSync('ls /').toString())"
+fx-node-spawn-self   node --entrypoint node -e (spawnSync of process.execPath, which prints its own execPath)
+fx-debug-line        alpine -e PODVM_INTERPOSE_DEBUG=1 sh -c '/bin/ls -d /'
+sane-grandchild      alpine sh -c '/bin/busybox echo grandchild-ok', no fixture (chroot rung)
+
+== not proved here: the npm clause of the Prove
+command           node --entrypoint sh -c 'cd /tmp/proj && npm ci ... && npm test'
+exit              1
+output            Error: ENOENT: no such file or directory, lstat '/usr/local/lib/node_modules'
+The `#!/usr/bin/env node` script of npm runs through the route; node then
+misses its own files. A probe on the same fixture:
+  node -e: fs.readFileSync('/etc/alpine-release') -> 3.24.4
+  node -e: fs.statSync('/etc/alpine-release')     -> ENOENT
+libuv makes `statx` a raw syscall, so no LD_PRELOAD object sees it, while
+`open` goes through libc and is mapped. No TODO entry names this limit.

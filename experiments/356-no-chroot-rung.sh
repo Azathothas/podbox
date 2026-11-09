@@ -44,8 +44,8 @@
 #      one. The launcher drives the userland loader family with pidfd
 #      supervision as today; the record carries the loader argv with the
 #      libraries, the PODVM_MAPS table and PODVM_GUEST_EXE inside it.
-#      Detached payloads stay builtin-only (no grandchild exec, clause
-#      17): `while :` keeps the container up for ps and stop.
+#      Detached payloads stay builtin-only: `while :` keeps the
+#      container up for ps and stop.
 #   10. workdir (T-1412): -w to a missing directory refuses naming
 #      the path and the image at 125, on the fixture and sane; -w /tmp
 #      prints exactly /tmp (the //tmp read-back is fixed, T-1411).
@@ -61,10 +61,9 @@
 #      fixture through the loader family.
 #   16. records (T-1421): a --name foreground run leaves an Exited
 #      record with logs; a duplicate --name refuses; --rm removes it.
-#   17. grandchild limit (T-1411, informational): a shell grandchild
-#      exec'ing an absolute path bypasses the loader mapping and fails
-#      127 on userland, while the chroot control runs it at 0. It pins
-#      the limit the loader banner names; it is not a regression gate.
+#   17. grandchild (T-1411, a gate since T-1646): a shell grandchild
+#      exec'ing an absolute path runs at 0 on userland through the
+#      image's loader, and the chroot control runs it at 0.
 #   18. exe (T-1409): `readlink /proc/self/exe` as a first-level
 #      payload prints the guest path over the fixture. T-1648: the
 #      static go binary refuses at 125 naming the static reason, and
@@ -78,6 +77,12 @@
 #      the python image, and a bare soname still loads.
 #   22. glibc closure (T-1644): debian `echo hi` and gcc `gcc --version`
 #      run at 0 with the glibc object preloaded.
+#   23. grandchild exec (T-1646): `sh -c '/bin/ls /'` runs at 0 on
+#      debian and alpine (busybox applet), a pipeline and a bare name
+#      through alpine's absolute links run, a `#!` script grandchild
+#      runs (direct and through `/usr/bin/env`), a grandchild reads its
+#      own guest path from /proc/self/exe, and node:22-alpine runs
+#      `node -e "execSync('ls /')"` (A-V-04 of PodUtils/podcrates#39).
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -102,6 +107,9 @@ GCC='public.ecr.aws/docker/library/gcc:13-bookworm'
 # T-1643 and T-1645 track the entry letter (tag, not digest); the pulled
 # digest is recorded below beside the run so the input stays auditable.
 PYTHON='public.ecr.aws/docker/library/python:3-alpine'
+# T-1646 tracks the entry letter (tag, not digest); the pulled digest is
+# recorded below beside the run so the input stays auditable.
+NODE='public.ecr.aws/docker/library/node:22-alpine'
 
 {
 echo "== conditions"
@@ -174,7 +182,7 @@ step() {
 
 # The pulls happen outside the fixture. Either failing is the lane,
 # not the binary.
-for img in "$ALPINE" "$DEBIAN" "$GOLANG" "$GCC" "$PYTHON"; do
+for img in "$ALPINE" "$DEBIAN" "$GOLANG" "$GCC" "$PYTHON" "$NODE"; do
 	if ! timeout 600 "$PB" pull "$img" >>"$REPORT" 2>&1; then
 		echo "pull $img FAILED: COULD NOT RUN" | tee -a "$REPORT"
 		exit 2
@@ -183,6 +191,7 @@ done
 echo "golang digest     $("$PB" inspect --format '{{.Digest}}' "$GOLANG")" >>"$REPORT"
 echo "gcc digest        $("$PB" inspect --format '{{.Digest}}' "$GCC")" >>"$REPORT"
 echo "python digest     $("$PB" inspect --format '{{.Digest}}' "$PYTHON")" >>"$REPORT"
+echo "node digest       $("$PB" inspect --format '{{.Digest}}' "$NODE")" >>"$REPORT"
 
 # The static hello for the memfd family. Built locally: no registry
 # payload on the lane is static, and a local build pins the family to
@@ -406,12 +415,12 @@ rm -f /tmp/ul356-probe
 step fx-unsafe 0 $FX "$PB" run --rm --verbose --unsafe-host-paths "$ALPINE" true
 grep -q -- "--unsafe-host-paths" "$WORK/out-fx-unsafe.txt" || { echo "opt-out banner missing" >>"$REPORT"; fail=1; }
 
-# Clause 17 (T-1411 grandchild limit, informational): a shell
-# grandchild exec'ing an absolute path bypasses the loader mapping and
-# fails 127 on userland, while the chroot control runs it at 0. It pins
-# the limit the loader banner names above; it is not a regression gate.
-step fx-grandchild "$NOTFOUND" $FX "$PB" run --rm "$ALPINE" sh -c '/bin/busybox echo grandchild-ok'
-grep -q "not found" "$WORK/out-fx-grandchild.txt" || { echo "grandchild limit did not read as not-found" >>"$REPORT"; fail=1; }
+# Clause 17 (T-1411, a gate since T-1646): a shell grandchild exec'ing
+# an absolute path runs at 0 on userland. The interposer's exec family
+# runs it through the image's loader inside the rootfs; before T-1646
+# it failed 127 here. The chroot control runs it at 0.
+step fx-grandchild 0 $FX "$PB" run --rm "$ALPINE" sh -c '/bin/busybox echo grandchild-ok'
+grep -qx "grandchild-ok" "$WORK/out-fx-grandchild.txt" || { echo "userland grandchild did not run" >>"$REPORT"; fail=1; }
 step sane-grandchild 0 "$PB" run --rm "$ALPINE" sh -c '/bin/busybox echo grandchild-ok'
 grep -q "grandchild-ok" "$WORK/out-sane-grandchild.txt" || { echo "chroot control did not run the grandchild" >>"$REPORT"; fail=1; }
 
@@ -568,6 +577,32 @@ grep -q "interpose.so (glibc object) is preloaded" "$WORK/out-fx-glibc-echo.txt"
 step fx-glibc-gcc 0 $FX "$PB" run --rm --verbose "$GCC" gcc --version
 grep -q "^gcc" "$WORK/out-fx-glibc-gcc.txt" || { echo "gcc --version did not answer with the object" >>"$REPORT"; fail=1; }
 grep -q "interpose.so (glibc object) is preloaded" "$WORK/out-fx-glibc-gcc.txt" || { echo "gcc ran without the glibc object" >>"$REPORT"; fail=1; }
+
+# Clause 23 (T-1646 grandchild exec): a dynamic grandchild enters
+# through the image's loader inside the rootfs, never the host's. Before
+# T-1646 debian's `/bin/ls` grandchild ran under the host loader and
+# aborted (`stack smashing detected`, 134), and alpine's failed 127.
+step fx-gc-debian 0 $FX "$PB" run --rm "$DEBIAN" sh -c '/bin/ls /'
+grep -qx "etc" "$WORK/out-fx-gc-debian.txt" || { echo "debian /bin/ls grandchild did not list /" >>"$REPORT"; fail=1; }
+step fx-gc-alpine 0 $FX "$PB" run --rm "$ALPINE" sh -c '/bin/ls / && echo pipe-ok | /bin/cat'
+grep -qx "etc" "$WORK/out-fx-gc-alpine.txt" || { echo "alpine /bin/ls applet did not list /" >>"$REPORT"; fail=1; }
+grep -qx "pipe-ok" "$WORK/out-fx-gc-alpine.txt" || { echo "alpine pipeline did not run" >>"$REPORT"; fail=1; }
+# A bare name: ash finds it with stat, through `/bin/chmod -> /bin/busybox`.
+step fx-gc-bare 0 $FX "$PB" run --rm "$ALPINE" sh -c 'ls -d /etc && env -- ls -d /bin'
+grep -qx "/etc" "$WORK/out-fx-gc-bare.txt" || { echo "a bare-name grandchild did not run" >>"$REPORT"; fail=1; }
+grep -qx "/bin" "$WORK/out-fx-gc-bare.txt" || { echo "env did not find ls on PATH" >>"$REPORT"; fail=1; }
+step fx-gc-script 0 $FX "$PB" run --rm "$ALPINE" sh -c 'printf "#!/bin/sh -e\necho script-ok \"\$0\" \"\$1\"\n" > /tmp/s.sh && chmod +x /tmp/s.sh && /tmp/s.sh arg1'
+grep -qx "script-ok /tmp/s.sh arg1" "$WORK/out-fx-gc-script.txt" || { echo "a #! script grandchild did not run" >>"$REPORT"; fail=1; }
+step fx-gc-envscript 0 $FX "$PB" run --rm "$DEBIAN" sh -c 'printf "#!/usr/bin/env sh\necho env-script-ok \"\$1\"\n" > /tmp/s.sh && chmod +x /tmp/s.sh && /tmp/s.sh arg1'
+grep -qx "env-script-ok arg1" "$WORK/out-fx-gc-envscript.txt" || { echo "a #!/usr/bin/env script did not run" >>"$REPORT"; fail=1; }
+step fx-gc-exe 0 $FX "$PB" run --rm "$DEBIAN" sh -c 'readlink /proc/self/exe'
+grep -qx "/usr/bin/readlink" "$WORK/out-fx-gc-exe.txt" || { echo "a grandchild did not read its own guest exe" >>"$REPORT"; fail=1; }
+# A-V-04: node starts a shell, and the shell starts ls. `--entrypoint`,
+# because the image's entrypoint is a #! script (T-1413, T-1649).
+step fx-node-version 0 $FX "$PB" run --rm --entrypoint node "$NODE" --version
+grep -q "^v22\." "$WORK/out-fx-node-version.txt" || { echo "node --version did not print" >>"$REPORT"; fail=1; }
+step fx-node-execsync 0 $FX "$PB" run --rm --entrypoint node "$NODE" -e "process.stdout.write(require('child_process').execSync('ls /').toString())"
+grep -qx "etc" "$WORK/out-fx-node-execsync.txt" || { echo "node execSync('ls /') did not list /" >>"$REPORT"; fail=1; }
 
 {
 echo ""

@@ -1433,7 +1433,7 @@ defines no version node; and the SONAME is `libdl.so.2`, not `.6`.
 Source:      the T-1111 nix unpack (the symptom is in
              `experiments/results/tar-symlink-modes-prefix.txt`);
              `crates/podvm-interpose/src/lib.rs:356`,
-             `crates/podvm-interpose/src/stat_calls.rs:224`
+             `crates/podvm-interpose/src/stat_calls.rs:296`
 Category:    interpose
 Priority:    P1
 Effort:      S
@@ -1451,7 +1451,7 @@ Premise:     Measured 2026-09-21 on host podman, same image, back to back:
              one such error per link; in the plain driver container the same
              commands exit 0. The interposed `fchmodat` is declared with
              three arguments (`crates/podvm-interpose/src/lib.rs:356`) and
-             forwards three (`crates/podvm-interpose/src/stat_calls.rs:224`),
+             forwards three (`crates/podvm-interpose/src/stat_calls.rs:296`),
              while libc takes four `(dirfd, path, mode, flags)`: the real
              call receives a fourth register the wrapper never set, so any
              caller passing flags gets the wrong answer. Tar's symlink
@@ -1481,7 +1481,7 @@ Prove:       `./experiments/162-tar-symlink-modes.sh` exits 0 on host
 
 **Done 2026-09-21.** The declaration and the wrapper carry `flags`
 (`crates/podvm-interpose/src/lib.rs:356`,
-`crates/podvm-interpose/src/stat_calls.rs:224`); every other flags-taking
+`crates/podvm-interpose/src/stat_calls.rs:296`); every other flags-taking
 `*at` wrapper already did, so the audit closes with this one. Guard:
 `tests::fchmodat_forwards_flags` compares the interposed entry point
 against libc's own on a symlink with flags 0 and `AT_SYMLINK_NOFOLLOW`.
@@ -1964,7 +1964,7 @@ costs no new crate and no new library target.
 Source:      issues 86 and 131 (131 reposts the hidden issue 105);
              issue 114 section 3.1 and section 6 item 5;
              `crates/podvm-interpose/src/map/rewrite.rs:256`;
-             `crates/podvm-interpose/src/stat_calls.rs:342`;
+             `crates/podvm-interpose/src/stat_calls.rs:407`;
              A-V-04 of PodUtils/podcrates#39
 Category:    interpose
 Priority:    P1
@@ -2148,7 +2148,7 @@ clauses do not change. T-1646 holds the end-to-end clause.
 
 Source:      issue 88; issue 114 section 2 item 4 and section 3.2;
              `crates/podvm-interpose/interpose.map:43`;
-             `crates/podvm-interpose/src/stat_calls.rs:200`;
+             `crates/podvm-interpose/src/exec/calls.rs:20`;
              `crates/podvm-interpose/src/real.rs:44`;
              A-V-04 of PodUtils/podcrates#39
 Category:    interpose
@@ -2229,14 +2229,14 @@ clause.
 
 Source:      issues 89 and 127 (127 reposts the hidden issue 95);
              issue 114 section 2 item 2 and section 6 item 3;
-             `crates/podvm-interpose/src/stat_calls.rs:200-206`;
+             `crates/podvm-interpose/src/exec/calls.rs:20-195`;
              `crates/podvm/src/lifecycle/entry.rs:445`;
-             `experiments/356-no-chroot-rung.sh:376-383`;
+             `experiments/356-no-chroot-rung.sh:418-424`;
              A-V-04 of PodUtils/podcrates#39
 Category:    interpose
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      partial
 
 Problem:     On the userland rung `run` runs one dynamic process. A
              dynamic grandchild fails 127: `sh -c 'echo a | /bin/cat'`
@@ -2283,6 +2283,29 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              node image, `node --version` prints, and `npm ci` then `npm test` of
              a fixture project whose `postinstall` script starts a child exit 0.
 
+**Partial, 2026-11-09.** The exec family (the new `exec` module of the
+interposer) resolves a guest path inside the rootfs one link at a time
+and reads the file head with its own bounded reader. A dynamic ELF runs
+through the guest loader with `--library-path` (from the new
+`PODVM_LIB_PATH`) and `--argv0`; a `#!` script runs its interpreter
+resolved inside the rootfs, in the kernel's argument order; a static ELF
+keeps the direct exec. An interpreter that does not resolve in the image
+fails with `ENOENT`, never on the host. A `stat` or `access` miss retries
+once through the walk, so a shell finds bare commands. The objects stay
+under the size ceiling with the same 114 exports. The interposer tests
+exit 0 (62 passed), and `cargo test --workspace` exits 0. [The drive](../experiments/results/grandchild-exec-1646.txt)
+on the chroot-denying fixture: before, debian `sh -c '/bin/ls /'` exited
+134 (the host loader ran the guest binary), alpine exited 127 and node
+`execSync` failed with ENOENT; after, each of these exits 0, with
+`#!/bin/sh -e` and `#!/usr/bin/env sh` scripts, a grandchild's
+`/proc/self/exe`, and node:22-alpine `execSync('ls /')`. Clause 17 of
+experiment 356 is a gate now, and clause 23 is new. Remaining: `npm ci`
+and `npm test` (T-1697: libuv calls `statx` as a raw syscall), the gcc
+`/tmp/h` clause, and the full experiment 356 run (`public.ecr.aws`
+answered HTTP 429 on 2026-11-09). Not routed: `fexecve` and `execveat`
+with flags, a non-x86_64 ELF, and `system()` and `popen()`, which spawn
+inside libc past the interposer.
+
 **Filed 2026-11-06.** Quoted from issue 89 and its review, measured on
 release 0.1.0-beta.12 on the errand host:
 
@@ -2307,4 +2330,45 @@ with no root. This entry is the last step of that chain: `npm` starts
 children. The Prove gains one clause, a Node job from the node image. The
 other entries of the chain (T-1643, T-1644, T-1645, T-1647 and T-1649) keep
 their own clauses.
+
+### T-1697 A raw `statx` of libuv misses the path table, so npm cannot find its modules
+
+Source:      T-1646 (its drive of 2026-11-09); A-V-04 of
+             PodUtils/podcrates#39; issue 114
+Category:    interpose
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     On the userland rung, `npm ci` from node:22-alpine fails:
+             node cannot `lstat` `/usr/local/lib/node_modules` (ENOENT).
+             `readFileSync` of a guest file works, and `statSync` of the
+             same file gives ENOENT. libuv calls `statx` as a raw
+             syscall, so the preload never sees the path, and the kernel
+             resolves it on the host.
+Premise:     The interposer maps library calls only
+             (`crates/podvm-interpose/src/exec/calls.rs:20` is the
+             exec family; the stat family is in
+             `crates/podvm-interpose/src/stat_calls.rs:296`). A raw
+             syscall passes it. T-1652 plans Syscall User Dispatch for
+             static payloads, which also catches a raw syscall of a
+             dynamic one.
+Approach:    Measure which raw syscalls node and libuv make on the path
+             (`statx`, `openat2`, `io_uring` setup). Then choose: catch
+             them with Syscall User Dispatch (T-1652) where the kernel
+             has it, or turn off the raw path of libuv where it has a
+             switch (`UV_USE_IO_URING=0` covers io_uring only), and say
+             which in the banner. Refuse by name where neither works.
+Decision:    A raw syscall that the table cannot see is a host access.
+             The fix catches it or refuses it; it never lets it pass
+             quietly.
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+             exits 0 with a test that a raw `statx` of a guest path
+             answers from the rootfs, and a drive on the chroot-denying
+             fixture runs `npm ci` and `npm test` of a small project from
+             node:22-alpine at 0.
+
+**Filed 2026-11-09.** Found by the drive of T-1646: a probe in node
+showed `readFileSync` of a guest file at 0 and `statSync` of the same file
+at ENOENT.
 

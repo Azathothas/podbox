@@ -235,8 +235,11 @@ macro_rules! stat_entry {
 /// The path-taking `stat` shapes: rewrite first, then the real call, then
 /// the memo. The memo is keyed by inode, so it answers for the rewritten
 /// file, which is the file the kernel just stated.
+///
+/// T-1646: a shape that follows the last link (`$follow`) tries the rootfs
+/// walk once where the mapped path misses ([`crate::exec::lookup::again`]).
 macro_rules! stat_path_entry {
-    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* $(,)? ), $st:ident, $path:ident) => {
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* $(,)? ), $st:ident, $path:ident, $follow:expr) => {
         /// # Safety
         /// The payload's own contract for this entry point.
         #[unsafe(no_mangle)]
@@ -274,8 +277,19 @@ macro_rules! stat_path_entry {
             if p.is_null() {
                 return -1;
             }
+            let guest = $path;
             let $path = p;
-            let rc = unsafe { f($($arg),*) };
+            let mut rc = unsafe { f($($arg),*) };
+            let mut walked = [0u8; crate::map::OUT];
+            if rc != 0
+                && $follow
+                && let Some(q) = unsafe {
+                    crate::exec::lookup::again(crate::map::AT_FDCWD, guest, p, &mut walked)
+                }
+            {
+                let $path = q;
+                rc = unsafe { f($($arg),*) };
+            }
             if rc == 0 {
                 unsafe { report($st) };
             }
@@ -287,8 +301,11 @@ macro_rules! stat_path_entry {
 /// The `*at` `stat` shapes: resolve the descriptor pair first. Where the
 /// rewrite moved the path the call goes with an absolute one; where it did
 /// not, the original descriptor and path go through untouched.
+///
+/// T-1646: `$follow` is false where the flags hold `AT_SYMLINK_NOFOLLOW`;
+/// otherwise a miss tries the rootfs walk once, as the path shapes do.
 macro_rules! stat_at_entry {
-    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* $(,)? ), $st:ident, $dirfd:ident, $path:ident) => {
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* $(,)? ), $st:ident, $dirfd:ident, $path:ident, $follow:expr) => {
         /// # Safety
         /// The payload's own contract for this entry point.
         #[unsafe(no_mangle)]
@@ -318,12 +335,22 @@ macro_rules! stat_at_entry {
             if p.is_null() {
                 return -1;
             }
+            let follow = $follow;
+            let (guest_fd, guest) = ($dirfd, $path);
             let ($dirfd, $path) = if p == $path {
                 ($dirfd, $path)
             } else {
                 (crate::map::AT_FDCWD, p)
             };
-            let rc = unsafe { f($($arg),*) };
+            let mut rc = unsafe { f($($arg),*) };
+            let mut walked = [0u8; crate::map::OUT];
+            if rc != 0
+                && follow
+                && let Some(q) = unsafe { crate::exec::lookup::again(guest_fd, guest, p, &mut walked) }
+            {
+                let ($dirfd, $path) = (crate::map::AT_FDCWD, q);
+                rc = unsafe { f($($arg),*) };
+            }
             if rc == 0 {
                 unsafe { report($st) };
             }
@@ -332,8 +359,8 @@ macro_rules! stat_at_entry {
     };
 }
 
-stat_path_entry!(stat, next_stat, (path: *const c_char, st: *mut c_void), st, path);
-stat_path_entry!(lstat, next_lstat, (path: *const c_char, st: *mut c_void), st, path);
+stat_path_entry!(stat, next_stat, (path: *const c_char, st: *mut c_void), st, path, true);
+stat_path_entry!(lstat, next_lstat, (path: *const c_char, st: *mut c_void), st, path, false);
 stat_entry!(fstat, next_fstat, (fd: c_int, st: *mut c_void), st);
 stat_at_entry!(
     fstatat,
@@ -341,14 +368,15 @@ stat_at_entry!(
     (dirfd: c_int, path: *const c_char, st: *mut c_void, flags: c_int),
     st,
     dirfd,
-    path
+    path,
+    flags & 0x100 == 0
 );
 // ⭐ THE `64` NAMES ARE NOT DUPLICATES, and T-0703 measured why: all four
 // `libpython3.*` and `libglib-2.0.so.0` import only `stat64`, `lstat64` and
 // `fstatat64`, while `libarchive` and `libdbus-1` import the plain names. Both
 // sets are live in one process.
-stat_path_entry!(stat64, next_stat64, (path: *const c_char, st: *mut c_void), st, path);
-stat_path_entry!(lstat64, next_lstat64, (path: *const c_char, st: *mut c_void), st, path);
+stat_path_entry!(stat64, next_stat64, (path: *const c_char, st: *mut c_void), st, path, true);
+stat_path_entry!(lstat64, next_lstat64, (path: *const c_char, st: *mut c_void), st, path, false);
 stat_entry!(fstat64, next_fstat64, (fd: c_int, st: *mut c_void), st);
 stat_at_entry!(
     fstatat64,
@@ -356,7 +384,8 @@ stat_at_entry!(
     (dirfd: c_int, path: *const c_char, st: *mut c_void, flags: c_int),
     st,
     dirfd,
-    path
+    path,
+    flags & 0x100 == 0
 );
 // ⭐ AND THE `__xstat` SHAPE, which is glibc's pre-2.33 one and which glibc 2.39
 // still exports at `GLIBC_2.2.5`. The PAYLOAD's libc decides which shape its
@@ -366,14 +395,16 @@ stat_path_entry!(
     next_xstat,
     (ver: c_int, path: *const c_char, st: *mut c_void),
     st,
-    path
+    path,
+    true
 );
 stat_path_entry!(
     __lxstat,
     next_lxstat,
     (ver: c_int, path: *const c_char, st: *mut c_void),
     st,
-    path
+    path,
+    false
 );
 // ⭐ AND THEIR `64` SHAPE, which the completeness command counts as reached.
 // Same contract as above: define it, forward it, let the loader decide.
@@ -382,14 +413,16 @@ stat_path_entry!(
     next_xstat64,
     (ver: c_int, path: *const c_char, st: *mut c_void),
     st,
-    path
+    path,
+    true
 );
 stat_path_entry!(
     __lxstat64,
     next_lxstat64,
     (ver: c_int, path: *const c_char, st: *mut c_void),
     st,
-    path
+    path,
+    false
 );
 stat_entry!(__fxstat, next_fxstat, (ver: c_int, fd: c_int, st: *mut c_void), st);
 stat_at_entry!(
@@ -398,7 +431,8 @@ stat_at_entry!(
     (ver: c_int, dirfd: c_int, path: *const c_char, st: *mut c_void, flags: c_int),
     st,
     dirfd,
-    path
+    path,
+    flags & 0x100 == 0
 );
 stat_at_entry!(
     __fxstatat64,
@@ -406,5 +440,6 @@ stat_at_entry!(
     (ver: c_int, dirfd: c_int, path: *const c_char, st: *mut c_void, flags: c_int),
     st,
     dirfd,
-    path
+    path,
+    flags & 0x100 == 0
 );

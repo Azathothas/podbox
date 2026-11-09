@@ -226,6 +226,10 @@ pub fn loader_plan(
 ///   loader resolves the payload's `DT_NEEDED` from the image and not
 ///   the host. Later wins, like every other `*_for` here: the caller's
 ///   own value, if any, is dropped in favour of the image's.
+/// * [`LIB_PATH_VAR`] carries the same list (TODO/interpose.md T-1646).
+///   The payload can change `LD_LIBRARY_PATH`; the interposer's exec
+///   family reads this variable for the `--library-path` of the guest
+///   loader that runs each dynamic grandchild.
 ///
 /// `guest_preload` is the path the tier was placed under as the payload
 /// sees it (`LD_PRELOAD`'s first element where the tier loaded). Where
@@ -265,15 +269,21 @@ pub fn host_env(
                 joined.push_str(p);
             }
             out.push(format!("LD_PRELOAD={joined}"));
-        } else if k == "LD_LIBRARY_PATH" {
+        } else if k == "LD_LIBRARY_PATH" || k == LIB_PATH_VAR {
             continue;
         } else {
             out.push(e.clone());
         }
     }
     out.push(format!("LD_LIBRARY_PATH={}", lib_dirs.join(":")));
+    out.push(format!("{LIB_PATH_VAR}={}", lib_dirs.join(":")));
     (out, dropped)
 }
+
+/// The variable carrying the image's library directories to the
+/// interposer, TODO/interpose.md T-1646. Duplicate by value of the
+/// interposer's `exec::launch::LIB_PATH_VAR`, as [`MAPS_VAR`] is.
+pub const LIB_PATH_VAR: &str = "PODVM_LIB_PATH";
 
 /// The variable carrying the root-anchoring table, TODO/enter.md T-1407.
 ///

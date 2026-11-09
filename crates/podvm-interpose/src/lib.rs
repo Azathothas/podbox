@@ -430,5 +430,8 @@ pub use identity_calls::*;
 mod dl_calls;
 pub use dl_calls::*;
 
+mod exec;
+pub use exec::calls::*;
+
 #[cfg(test)]
 mod tests;

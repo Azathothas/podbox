@@ -354,7 +354,7 @@ pub(super) unsafe fn proc_readlink_fd(fdno: u32, buf: *mut c_char, n: usize) -> 
 /// The caller-resolved guest path, validated: a leading slash, no interior
 /// NUL, short enough to hand on. Anything else is no variable rather than a
 /// guess at one.
-unsafe fn proc_exe_value(out: &mut [u8; crate::map::OUT]) -> Option<usize> {
+pub(crate) unsafe fn proc_exe_value(out: &mut [u8; crate::map::OUT]) -> Option<usize> {
     let (p, n) = unsafe { crate::map::lookup_env(crate::procfs::GUEST_EXE_VAR) }?;
     if n == 0 || n + 1 >= crate::map::OUT {
         return None;

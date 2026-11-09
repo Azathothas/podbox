@@ -14,8 +14,12 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   `--unsafe-host-paths` it runs from a staged memfd with the host root.
   It then reads its own exe as the staged memfd path, so a self-locating
   runtime cannot resolve itself there.
-- A userland grandchild that execs an absolute path runs it past the
-  loader mapping and fails where the host holds no such file.
+- A userland grandchild that execs a dynamic ELF or a `#!` script enters
+  through the image's own loader or interpreter, resolved inside the
+  rootfs (T-1646). `fexecve`, `execveat` with flags, a non-x86_64 ELF,
+  and `system()` or `popen()` (which spawn inside libc) are not routed.
+- A raw syscall passes the interposer: libuv's `statx` resolves on the
+  host, so node's `npm ci` cannot find its modules (T-1697).
 - Interposition covers cooperative library calls, without a security boundary.
 - The embedded interposer pair is x86_64. Other payload architectures need another execution path.
 - A foreign architecture needs the host interpreter support required by the selected path.

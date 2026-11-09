@@ -102,6 +102,7 @@ fn host_env_rewrites_preload_and_sets_lib_path() {
     let env = [
         "LD_PRELOAD=/.podvm/interpose.so /mine.so".to_string(),
         "LD_LIBRARY_PATH=/caller".to_string(),
+        "PODVM_LIB_PATH=/caller".to_string(),
         "PATH=/bin".to_string(),
     ];
     let (got, dropped) = host_env(
@@ -116,6 +117,15 @@ fn host_env_rewrites_preload_and_sets_lib_path() {
     );
     assert!(
         got.contains(&"LD_LIBRARY_PATH=/store/rootfs/lib".to_string()),
+        "{got:?}"
+    );
+    // T-1646: the same list for the interposer, and the caller's value
+    // loses as the caller's `LD_LIBRARY_PATH` does.
+    assert_eq!(
+        got.iter()
+            .filter(|e| e.starts_with("PODVM_LIB_PATH="))
+            .collect::<Vec<_>>(),
+        ["PODVM_LIB_PATH=/store/rootfs/lib"],
         "{got:?}"
     );
     assert!(

@@ -104,7 +104,7 @@ fn eq(a: *const u8, b: *const u8, len: usize) -> bool {
 /// The value of one `NAME=VALUE` entry, or `None` where the entry is some
 /// other variable. The length check runs first so the compare never reads
 /// past a short string's NUL.
-fn match_var(e: *const c_char, name: &[u8]) -> Option<*const u8> {
+pub(crate) fn match_var(e: *const c_char, name: &[u8]) -> Option<*const u8> {
     if strnlen(e, name.len()) == name.len()
         && eq(e as *const u8, name.as_ptr(), name.len())
         && unsafe { *(e as *const u8).add(name.len()) } == b'='

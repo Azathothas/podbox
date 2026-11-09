@@ -319,7 +319,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1643](interpose.md) | P1 | interpose | done | A relative path resolves against the host cwd and gets the rootfs prefix twice |
 | [T-1644](interpose.md) | P1 | interpose | done | Admit a glibc payload against its whole NEEDED closure, read inside the rootfs |
 | [T-1645](interpose.md) | P1 | interpose | done | Intercept `dlopen` and `dlmopen` |
-| [T-1646](interpose.md) | P1 | interpose | open | A dynamic grandchild re-enters through the host loader |
+| [T-1646](interpose.md) | P1 | interpose | partial | A dynamic grandchild re-enters through the host loader |
 | [T-1647](enter.md) | P1 | enter | open | Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes |
 | [T-1648](enter.md) | P0 | enter | partial | A static Go payload runs into a GOROOT error instead of a named refusal |
 | [T-1649](cli.md) | P2 | cli | open | A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out |
@@ -370,10 +370,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1694](cli.md) | P2 | cli | open | Headless Chromium of Playwright runs as a proven payload with its flags in one profile |
 | [T-1695](cli.md) | P1 | cli | open | One JSON report for each run, and real labels on records |
 | [T-1696](cli.md) | P2 | cli | open | `--secret` places a file with no argv and no env, and a read-once mode |
+| [T-1697](interpose.md) | P1 | interpose | open | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
 
 ## Counts
 
-305 items: 32 open, 12 partial, 4 blocked, 257 done.
+306 items: 32 open, 13 partial, 4 blocked, 257 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -382,10 +383,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 2 | 0 | 62 | 64 |
-| P1 | 5 | 8 | 0 | 122 | 135 |
+| P1 | 5 | 9 | 0 | 122 | 136 |
 | P2 | 27 | 2 | 4 | 64 | 97 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **32** | **12** | **4** | **257** | **305** |
+| **All** | **32** | **13** | **4** | **257** | **306** |
 
 ## Work order
 
