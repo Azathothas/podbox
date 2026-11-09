@@ -49,7 +49,7 @@ pub fn require(
 /// others, no space or an unknown free space is `NoSpace`, and the rest
 /// (a path with a NUL) is `Store`.
 pub(crate) fn host_error(f: Failure) -> Error {
-    let io = std::error::Error::source(&f).and_then(|e| e.downcast_ref::<std::io::Error>());
+    let io = f.io_cause();
     match (io, f.class) {
         (Some(e), _) => {
             let cause = format!(": {e}");

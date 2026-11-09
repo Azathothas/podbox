@@ -52,11 +52,11 @@ Separate crate: `crates/podvm-interpose`.
 | --- | --- |
 | `base64` | `0.23.1` |
 | `flate2` | `1.1.10` |
-| `pod-core` | `0.6.0` |
-| `pod-hostprobe` | `0.6.0` |
-| `pod-proxy` | `0.6.0` |
-| `pod-term` | `0.6.0` |
-| `pod-tls` | `0.6.0` |
+| `pod-core` | `0.7.0` |
+| `pod-hostprobe` | `0.7.0` |
+| `pod-proxy` | `0.7.0` |
+| `pod-term` | `0.7.0` |
+| `pod-tls` | `0.7.0` |
 | `rustls` | `0.23.46` |
 | `rustls-pki-types` | `1.15.1` |
 | `ruzstd` | `0.9.1` |
