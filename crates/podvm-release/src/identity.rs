@@ -73,4 +73,44 @@ mod tests {
             );
         }
     }
+
+    /// Each `v0.1.0-beta.N` that `text` names on a line about podbox.
+    fn podbox_betas(text: &str) -> Vec<u32> {
+        let mut out = Vec::new();
+        for line in text.lines().filter(|l| l.contains("podbox")) {
+            for part in line.split("v0.1.0-beta.").skip(1) {
+                let n: String = part.chars().take_while(char::is_ascii_digit).collect();
+                if let Ok(n) = n.parse() {
+                    out.push(n);
+                }
+            }
+        }
+        out
+    }
+
+    /// T-1693 (issue 217): README and SECURITY name the boundary that the
+    /// verifier uses, and no other beta, on each line about podbox.
+    #[test]
+    fn the_documents_name_the_last_podbox_beta_of_the_verifier() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        for doc in ["README.md", "SECURITY.md"] {
+            let text = std::fs::read_to_string(root.join(doc)).expect(doc);
+            let betas = podbox_betas(&text);
+            assert!(!betas.is_empty(), "{doc} names no podbox tag");
+            for n in betas {
+                assert_eq!(
+                    n, LAST_PODBOX_BETA,
+                    "{doc} names v0.1.0-beta.{n} as a podbox boundary"
+                );
+            }
+        }
+    }
+
+    /// The check of the documents fails on the defect of issue 217.
+    #[test]
+    fn a_planted_beta_12_boundary_is_found() {
+        let planted = "Releases up to `v0.1.0-beta.12` carry `podbox-*` assets";
+        assert_eq!(podbox_betas(planted), vec![12]);
+        assert_ne!(podbox_betas(planted), vec![LAST_PODBOX_BETA]);
+    }
 }

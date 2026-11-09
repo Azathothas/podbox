@@ -1243,7 +1243,7 @@ Source:      issue 217; T-1605
 Category:    packaging
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `README.md` and `SECURITY.md` say "podbox up to beta.13" and
              then "`podbox-*` assets up to beta.12". The verifier and the
@@ -1263,6 +1263,18 @@ Approach:    One sentence in each document: `v0.1.0-beta.13` is the last
 Decision:    The code is the source of truth: the tag is published.
 Prove:       `cargo test -p podvm-release` exits 0, and the new test fails
              on a planted `beta.12`.
+
+**Done 2026-11-09.** `README.md` and `SECURITY.md` say that
+`v0.1.0-beta.13` is the last podbox release and that its assets are
+`podbox-*`; the README adds that each later tag is a podvm release and
+that `podvm-verify` decides from the tag. The test
+`the_documents_name_the_last_podbox_beta_of_the_verifier` of
+`podvm-release` reads both documents and holds each beta they name on a
+line about podbox to `LAST_PODBOX_BETA`. `cargo test -p podvm-release`
+exits 0. With `v0.1.0-beta.12` planted back into the README, the test
+fails: "README.md names v0.1.0-beta.12 as a podbox boundary". The failure
+line of `verify.rs` now names the asset prefix and the signing identity
+of the tag.
 
 **Filed 2026-11-09.** From issue 217 (an outside account). The triage of
 2026-11-09 confirmed each claim at `2be31b2`.

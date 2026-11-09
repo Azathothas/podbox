@@ -108,8 +108,9 @@ Binary `podvm-verify` owns that verification, and the two lines above
 are an exec shim.
 The verifier requires `gh` and `cosign`.
 It checks the tag's workflow identity.
-The project was named podbox up to `v0.1.0-beta.13`.
-Releases up to `v0.1.0-beta.12` carry `podbox-*` assets and are signed by the nightly workflow of `Azathothas/podbox`, and the verifier checks those tags against that identity.
+The project was named podbox up to `v0.1.0-beta.13`, the last podbox release.
+Releases up to `v0.1.0-beta.13` carry `podbox-*` assets and are signed by the nightly workflow of `Azathothas/podbox`, and the verifier checks those tags against that identity.
+Each later tag is a podvm release with `podvm-*` assets; `podvm-verify` decides the identity from the tag.
 `Azathothas/podbox` redirects to this repository, so nobody may create a new repository of that name: it would break the redirect and the old identity with it.
 The server endpoint also needs the SSH server named by its configuration.
 

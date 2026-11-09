@@ -140,7 +140,13 @@ fn main() {
         120,
     ) != RunEnd::Ok
     {
-        eprintln!("verify-release: the nightly has no {asset} assets for {tag}");
+        // T-1693: name the identity the tag was looked up under, so an
+        // operator sees which side of the podbox boundary the tag is on.
+        eprintln!(
+            "verify-release: the nightly has no {asset} assets for {tag} (a {} release, signed by {})",
+            identity::asset_prefix(&tag),
+            identity::signing_identity(&repo, &tag)
+        );
         std::process::exit(2);
     }
     let bundle = work.join(format!("{asset}.sigstore"));

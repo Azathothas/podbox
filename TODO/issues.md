@@ -109,7 +109,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #212 | doctor: no row answers whether a memfd can be executed (vm.memfd_noexec), and the memfd rung refuses late | open | T-1688 |
 | #213 | probe: the non-goal `remedy` field contradicts the `stance` in the same JSON object | open | T-1689 |
 | #214 | doctor: the disk-free row reads the hard `RLIMIT_FSIZE` while every other consumer reads the soft one | open | T-1690 |
-| #215 | supervise: `stop -t 0` reports a container as stopped while it is still running, because a bound-setting failure reads as the launcher having gone | open | T-1691 |
+| #215 | supervise: `stop -t 0` reports a container as stopped while it is still running, because a bound-setting failure reads as the launcher having gone | closed | T-1691 |
 | #216 | windows, parity: the `--podvm-mem` row claims an `RLIMIT_FSIZE` check that neither flavor of the verb performs | open | T-1692 |
-| #217 | release: README and SECURITY put the podbox identity boundary one tag early, and the verifier disagrees with both documents | open | T-1693 |
+| #217 | release: README and SECURITY put the podbox identity boundary one tag early, and the verifier disagrees with both documents | closed | T-1693 |
 | #218 | COORD-012: podvm took v0.7.0, and filed the asks of COORD-015 (to podcrates) | open | T-1681; none: coordination |
