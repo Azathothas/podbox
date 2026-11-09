@@ -2026,7 +2026,7 @@ FileNotFoundError: [Errno 2] No such file or directory: 'etc/hostname'
 static probe: getcwd=/workspace/podvm-ux/store/rootfs/sha256_1667.../rootfs
 ```
 
-**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+**Amended 2026-11-09.** For T-1643, the ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
 a message from a peer session) wants a Node CI job to run from an OCI image
 with no root. This entry is one step of that chain: a Node job runs from
 relative paths. Its clauses do not change. T-1646 holds the end-to-end
@@ -2114,7 +2114,7 @@ system abi against libdl.so.2    -> 1, `dlsym` not defined
 Issue 128 adds that the absolute `lib64/ld-linux-x86-64.so.2` link
 decided the result for gcc:13, node:20 and golang:1.22.
 
-**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+**Amended 2026-11-09.** For T-1644, the ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
 a message from a peer session) wants a Node CI job to run from an OCI image
 with no root. This entry is one step of that chain for a glibc image. Its
 clauses do not change. T-1646 holds the end-to-end clause.
@@ -2184,7 +2184,7 @@ ImportError: Error loading shared library
 The object is in the rootfs, 26544 bytes, and `open` reads it by the
 same path.
 
-**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+**Amended 2026-11-09.** For T-1645, the ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
 a message from a peer session) wants a Node CI job to run from an OCI image
 with no root. This entry is one step of that chain: Node loads native addons
 with `dlopen`. Its clauses do not change. T-1646 holds the end-to-end
@@ -2268,7 +2268,7 @@ Issue 127 rebuilds the hidden issue 95: the same failure seen from the
 child side, plus absolute in-image link targets and `..` that do not
 resolve in the root.
 
-**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+**Amended 2026-11-09.** For T-1646, the ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
 a message from a peer session) wants a Node CI job to run from an OCI image
 with no root. This entry is the last step of that chain: `npm` starts
 children. The Prove gains one clause, a Node job from the node image. The

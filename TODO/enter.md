@@ -1393,7 +1393,7 @@ $ /tmp/sandhome-memexec /state/home/noexec-test/zig env
 error: unable to find zig installation directory '/memfd:sandhome (deleted)'
 ```
 
-**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+**Amended 2026-11-09.** For T-1647, the ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
 a message from a peer session) wants a Node CI job to run from an OCI image
 with no root. This entry is one step of that chain: the `node` binary is
 over the read ceiling (T-1661). Its clauses do not change. T-1646 holds the
@@ -1469,7 +1469,7 @@ $ podvm exec ... gb /usr/local/go/bin/go build -o /tmp/gohello main.go
 $ ls -l /tmp/gohello                      # 2238818 bytes on the HOST
 ```
 
-**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+**Amended 2026-11-09.** For T-1648, the ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
 a message from a peer session) wants a Node CI job to run from an OCI image
 with no root. This entry serves the static tools of such a job, for example
 `go`. It is not on the Node path. Its clauses do not change.

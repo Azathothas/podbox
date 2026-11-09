@@ -1779,7 +1779,7 @@ $ /tmp/sandhome-memexec /state/home/noexec-test/t.sh
 HI
 ```
 
-**Amended 2026-11-09.** The ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
+**Amended 2026-11-09.** For T-1649, the ask A-V-04 of PodUtils/podcrates#39 (COORD-015,
 a message from a peer session) wants a Node CI job to run from an OCI image
 with no root. This entry is one step of that chain: the entrypoint of the
 node image is a `#!` script (T-1661). Its clauses do not change. T-1646
