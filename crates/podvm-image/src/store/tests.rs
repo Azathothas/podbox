@@ -29,7 +29,7 @@ fn last_refusal() -> String {
     LAST_REFUSAL.with(|c| c.borrow().clone())
 }
 
-/// ⭐ **Called from `Lock::try_acquire`'s `EWOULDBLOCK` arm, so it runs
+/// ⭐ **Called from `Lock::try_acquire_noting`'s `EWOULDBLOCK` arm, so it runs
 /// before the refusal is even returned to the caller.**
 ///
 /// ⛔ Every instrument before this one ran from the failing assertion and
@@ -237,7 +237,7 @@ fn who_holds(path: &Path) -> String {
     // takes the lock and drops it at once. ⛔ It is the same call `in_use`
     // makes, so it observes nothing `in_use` did not already do, and it
     // runs only after an assertion has already failed.
-    match Lock::try_acquire(path, sys::LOCK_EX) {
+    match try_lock_at(path, sys::LOCK_EX) {
         Ok(Some(_)) => out.push_str(
             "\n  a second attempt SUCCEEDED, so the refusal did not outlive the assertion",
         ),
@@ -272,7 +272,7 @@ fn hunt_the_holder(path: &Path, ino: u64) -> String {
     let mut attempts: u64 = 0;
     loop {
         attempts += 1;
-        match Lock::try_acquire(path, sys::LOCK_EX) {
+        match try_lock_at(path, sys::LOCK_EX) {
             Ok(Some(_)) => {
                 return format!(
                     "{}the hunt: the refusal cleared after {} us and {attempts} \

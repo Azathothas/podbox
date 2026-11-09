@@ -862,9 +862,9 @@ Problem:     `podvm stop -t 0 NAME` exits 0, prints NAME and leaves the
              comes.
 Premise:     The zero comes from `crates/podvm/src/lifecycle/logs_stop.rs:208`,
              which also multiplies with no overflow check. The early error
-             is `crates/podvm-supervise/src/launcher.rs:66`. The mapping is
-             `crates/podvm-supervise/src/lib.rs:232`, and the comment above
-             it (`crates/podvm-supervise/src/lib.rs:230`) is false. The
+             is in `launcher::wait`. The mapping is `wait_or_gone`, and the
+             comment above it is false. Both are `pod_supervise::launcher`
+             and `pod_supervise` of PodUtils/podcrates since T-060. The
              parity row is `crates/podvm/src/parity.rs:388`. The files of
              `podvm-supervise` go to `pod-supervise` (podcrates T-060), which
              podcrates imports after this fix.

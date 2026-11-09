@@ -63,7 +63,7 @@ pub struct Prepared {
 /// unusual one.
 pub fn rootfs_of(s: &podvm_image::Store, want: &str) -> Option<(String, State)> {
     let c = podvm_supervise::get(s, want).ok()?;
-    Some((c.rootfs, c.state))
+    Some((c.of.rootfs, c.state))
 }
 
 /// TODO/milestones.md T-1112. Refuse a guest that is not Linux by name,

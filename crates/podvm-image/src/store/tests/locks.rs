@@ -373,7 +373,7 @@ fn releasing_a_lock_frees_it_even_while_a_duplicate_descriptor_lives() {
     // ⭐ A second reference to the SAME open file description, which is
     // what a `fork` hands a child. `F_DUPFD_CLOEXEC` and not `dup`, because
     // every descriptor in this tree is close-on-exec.
-    let twin = sys::dup_cloexec(held.fd).expect("dup the lock descriptor");
+    let twin = sys::dup_cloexec(held.fd()).expect("dup the lock descriptor");
 
     drop(held);
 

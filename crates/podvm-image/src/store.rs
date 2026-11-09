@@ -78,7 +78,7 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use podvm_probe::sys::{self, CBuf};
+use podvm_probe::sys;
 use serde::{Deserialize, Serialize};
 
 use crate::clock;
@@ -98,12 +98,6 @@ const BLOBS: &str = "blobs";
 const LOCKS: &str = "locks";
 const STAGING: &str = "staging";
 const STORE_LOCK: &str = "lock";
-
-/// How long the index lock is waited for before podvm says who is holding it.
-/// ⚠ Bounded, per `RULES.md` section 8: a runtime whose audience is automated
-/// may not wait unbounded.
-const LOCK_ATTEMPTS: u32 = 100;
-const LOCK_SLEEP: std::time::Duration = std::time::Duration::from_millis(50);
 
 /// ⛔ Invariant I6. What makes a staging name unique per CALL rather than per
 /// process, which is the difference `TODO/probe.md` T-0113 cost one crate over.

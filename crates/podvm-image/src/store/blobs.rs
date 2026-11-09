@@ -54,7 +54,7 @@ impl Store {
             };
             // ⭐ The whole test: a live writer holds this file, so a lock this
             // process can take means nobody is writing it.
-            match Lock::try_acquire(&resolved, sys::LOCK_EX) {
+            match try_lock_at(&resolved, sys::LOCK_EX) {
                 Ok(Some(_held)) => {
                     if std::fs::remove_file(&resolved).is_ok() {
                         swept.push(resolved);
@@ -116,7 +116,7 @@ impl Store {
 
     /// The store-wide lock, held across an index read-modify-write.
     pub fn lock(&self) -> Result<Lock> {
-        Lock::acquire(&self.root.join(STORE_LOCK), sys::LOCK_EX)
+        lock_at(&self.root.join(STORE_LOCK), sys::LOCK_EX)
     }
 
     pub(super) fn image_lock_path(&self, record: &Record) -> Result<PathBuf> {
@@ -153,7 +153,7 @@ impl Store {
         // AND the lock file it was holding. Both take index-then-image, so
         // neither can wait on the other.
         let _index = self.lock()?;
-        Lock::acquire(&path, sys::LOCK_SH)
+        lock_at(&path, sys::LOCK_SH)
     }
 
     /// Whether any process holds [`Store::hold`] on this image.
@@ -167,7 +167,7 @@ impl Store {
         if !path.exists() {
             return Ok(false);
         }
-        match Lock::try_acquire(&path, sys::LOCK_EX) {
+        match try_lock_at(&path, sys::LOCK_EX) {
             Ok(Some(_probe)) => Ok(false),
             Ok(None) => Ok(true),
             Err(e) => Err(e),

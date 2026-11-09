@@ -1837,7 +1837,7 @@ Premise:     ⭐ **The figures above are inherited, not measured here.** They co
              once by inspection: one image lock plus transient index or staging
              locks. The spawn path is asserted single-threaded
              (`nothing_on_the_spawn_path_can_spawn_a_thread`,
-             `crates/podvm-supervise/src/launcher.rs:257`). `pull` resolves the
+             `crates/podvm-supervise/src/launcher/tests.rs:15`). `pull` resolves the
              probe before it stages anything
              (`crates/podvm-image/src/pull.rs:93`, and [T-0211](image.md)'s
              premise). So no production shape on record reaches sixteen. Only

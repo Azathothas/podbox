@@ -2077,8 +2077,8 @@ Premise:     `run --rm` starts from the stored rootfs, so a fresh root for
              which a host with no mount cannot give (T-1653); `cp` copies
              in and out (T-1323, `crates/podvm/src/parity.rs:154`). The
              supervisor holds one pidfd for the direct child
-             (`crates/podvm-supervise/src/launcher/supervise.rs:257`, T-0601) and
-             starts a session (`launcher.rs:230`). A Jupyter kernel is a
+             (`pod_supervise::launcher` of PodUtils/podcrates, T-0601) and
+             starts a session (`setsid` in the same launcher). A Jupyter kernel is a
              grandchild, which T-1646 must reach. python:3.13-slim is
              glibc (T-1644).
 Approach:    Add `podvm notebook NB --persist DIR [--cycles N] [--kill-after

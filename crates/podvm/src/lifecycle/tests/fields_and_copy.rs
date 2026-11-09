@@ -9,9 +9,6 @@ fn the_declared_container_fields_are_the_built_ones() {
     let c = Container {
         id: "a".repeat(64),
         name: "n".into(),
-        image: "img".into(),
-        manifest_digest: "sha256:0".into(),
-        rootfs: "/tmp".into(),
         argv: vec!["true".into()],
         env: Vec::new(),
         working_dir: "/".into(),
@@ -23,10 +20,15 @@ fn the_declared_container_fields_are_the_built_ones() {
         launcher_pid: None,
         exit_code: None,
         noticed: None,
-        rung: "chroot".into(),
-        userland_exec: Vec::new(),
-        completion: vec!["created dev/null (dev-shim, T-0401)".into()],
-        completion_degraded: 1,
+        of: podvm_supervise::table::Detail {
+            image: "img".into(),
+            manifest_digest: "sha256:0".into(),
+            rootfs: "/tmp".into(),
+            rung: "chroot".into(),
+            userland_exec: Vec::new(),
+            completion: vec!["created dev/null (dev-shim, T-0401)".into()],
+            completion_degraded: 1,
+        },
     };
     let built: Vec<&str> = container_fields(&s, &c).iter().map(|(k, _)| *k).collect();
     assert_eq!(built, CONTAINER_INSPECT_FIELDS);
@@ -72,9 +74,6 @@ fn the_ps_fields_are_the_ones_the_template_check_allows() {
     let c = Container {
         id: "b".repeat(64),
         name: "n".into(),
-        image: "img".into(),
-        manifest_digest: "sha256:0".into(),
-        rootfs: "/tmp".into(),
         argv: vec!["sleep".into(), "1".into()],
         env: Vec::new(),
         working_dir: "/".into(),
@@ -86,10 +85,15 @@ fn the_ps_fields_are_the_ones_the_template_check_allows() {
         launcher_pid: Some(6),
         exit_code: None,
         noticed: None,
-        rung: "chroot".into(),
-        userland_exec: Vec::new(),
-        completion: vec!["created dev/null (dev-shim, T-0401)".into()],
-        completion_degraded: 1,
+        of: podvm_supervise::table::Detail {
+            image: "img".into(),
+            manifest_digest: "sha256:0".into(),
+            rootfs: "/tmp".into(),
+            rung: "chroot".into(),
+            userland_exec: Vec::new(),
+            completion: vec!["created dev/null (dev-shim, T-0401)".into()],
+            completion_degraded: 1,
+        },
     };
     let built: Vec<&str> = ps_fields(&c, false).iter().map(|(k, _)| *k).collect();
     assert_eq!(built, ps_field_names());

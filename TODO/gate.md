@@ -1515,7 +1515,7 @@ debug binary, kernel `7.2.0-WSL2-STABLE`):
 held with 16-to-69-fold separation. The `--rm` arm in
 `crates/podvm/src/run/foreground.rs:121-245` deletes the extracted
 rootfs where `referencing()`
-(`crates/podvm-supervise/src/lib.rs:305-311`) answers empty, so
+(`crates/podvm-supervise/src/lib.rs:171`) answers empty, so
 each keeper-less ephemeral run re-pays full extraction (a1
 1.746 s with the tree present; a2 4.776 s and a3 4.778 s
 re-extracting; rootfs absent after each). `create` re-extracts
@@ -3434,7 +3434,7 @@ Prove:       `grep -n "check-todo.py" TODO/gate.md` names the Python
 commit `996cb98` deleted the file, while the tracked replacement landed in
 the same commit at `gate.yml:61-62`. The `Decision` is recorded as
 satisfied by a plant other than the plan expected: the anchor at
-`crates/podvm-image/src/store/files.rs:185` is still current and the plant
+`crates/podvm-image/src/store/files.rs` was current (now `pod_supervise::lock`) and the plant
 landed as `podvm-prove-t0211`, whose binary carries it as
 `FORK_PATTERN` and tests the match at `prove_t0211.rs:604`, leaving
 `experiments/157-lock-inheritance-prove.sh` a 28-line exec shim. The
@@ -3460,7 +3460,7 @@ plan's clause at `refactor/06-entries/PLAN.md:140` is that "a plant
 encoding the current source must land first, or wave 1's plant passes
 vacuously", and its subject is `157`: the sed the plan quotes sits at
 `PLAN.md:140` and was to be re-anchored to
-`crates/podvm-image/src/store/files.rs:185`. Two facts close it:
+`crates/podvm-image/src/store/files.rs` (now `pod_supervise::lock`). Two facts close it:
 
 1. The anchor the plan names is still current. `store.rs:1083` reads
    `if !sys::close_in_children(fd) {` on this tree, inside

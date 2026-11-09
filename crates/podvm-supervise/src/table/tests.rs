@@ -1,70 +1,5 @@
 use super::*;
 
-fn c(id: &str, name: &str, state: State) -> Container {
-    Container {
-        id: id.to_string(),
-        name: name.to_string(),
-        image: "img".into(),
-        manifest_digest: "sha256:0".into(),
-        rootfs: "/tmp".into(),
-        argv: vec!["true".into()],
-        env: Vec::new(),
-        working_dir: "/".into(),
-        created_at: "now".into(),
-        started_at: None,
-        finished_at: None,
-        state,
-        pid: None,
-        launcher_pid: None,
-        exit_code: None,
-        noticed: None,
-        rung: "chroot".into(),
-        userland_exec: Vec::new(),
-        completion: Vec::new(),
-        completion_degraded: 0,
-    }
-}
-
-#[test]
-fn a_name_a_full_id_and_a_prefix_all_resolve() {
-    let t = Table {
-        podvm_containers: TABLE_VERSION,
-        containers: vec![c("abcdef0123", "one", State::Created)],
-    };
-    assert_eq!(find(&t, "one").unwrap().id, "abcdef0123");
-    assert_eq!(find(&t, "abcdef0123").unwrap().id, "abcdef0123");
-    assert_eq!(find(&t, "abc").unwrap().id, "abcdef0123");
-    assert!(find(&t, "nope").is_err());
-}
-
-/// ⛔ Never the first match. A caller that gets the wrong container from an
-/// ambiguous prefix has no way to find out.
-#[test]
-fn an_ambiguous_prefix_is_an_error_and_names_the_candidates() {
-    let t = Table {
-        podvm_containers: TABLE_VERSION,
-        containers: vec![
-            c("abcdef0123", "one", State::Created),
-            c("abcff09999", "two", State::Created),
-        ],
-    };
-    let e = find(&t, "abc").unwrap_err().0;
-    assert!(e.contains("names 2 containers"), "{e}");
-    assert!(e.contains("abcdef0123"), "{e}");
-    // ⚠ And an exact name still wins over a prefix that would be ambiguous.
-    assert_eq!(find(&t, "two").unwrap().id, "abcff09999");
-}
-
-#[test]
-fn the_status_column_never_invents_an_exit_code() {
-    let mut x = c("a", "n", State::Dead);
-    assert!(x.status().contains("not watching"), "{}", x.status());
-    x.state = State::Exited;
-    assert_eq!(x.status(), "Exited");
-    x.exit_code = Some(3);
-    assert_eq!(x.status(), "Exited (3)");
-}
-
 /// ⭐ T-0710: the memo lives beside the container record, on the host, and
 /// the environment names the constant descriptor number for it.
 #[test]
@@ -91,7 +26,7 @@ fn the_memo_lives_beside_the_container_record() {
 /// `spawn_selected` exactly as before.
 #[test]
 fn a_table_without_the_userland_drive_still_parses() {
-    let t: Table = serde_json::from_value(serde_json::json!({
+    let bytes = serde_json::to_vec(&serde_json::json!({
         "podvm_containers": TABLE_VERSION,
         "containers": [{
             "id": "abc",
@@ -114,6 +49,9 @@ fn a_table_without_the_userland_drive_still_parses() {
         }]
     }))
     .unwrap();
+    let t: Table =
+        pod_supervise::table::decode(&crate::settings_at(std::path::Path::new("/store")), &bytes)
+            .unwrap();
     assert!(t.containers[0].userland_exec.is_empty());
 }
 

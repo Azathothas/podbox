@@ -1643,6 +1643,16 @@ for their imports (podcrates T-056 to T-061).
 
 ---
 
+**Still partial, 2026-11-09.** podvm took `pod-supervise` 0.8.0
+(PodUtils/podcrates#41, its T-060): `adoption/podvm/pod-supervise.patch`
+of the tag applied with no conflict at podvm `284f429`. `podvm-supervise`
+keeps podvm's glue (its settings, the record fields, the verbs with a
+`&Store`, the launcher entry and the memo); `launcher/supervise.rs`
+leaves podvm, and `podvm-image` re-exports the crate's `Lock`. Each line
+of `pod-supervise.run` exits 0, and `cargo test --workspace` exits 0.
+Remaining: the imports of pod-guest, pod-enter, pod-oci, pod-extract and
+pod-rootfs.
+
 ### T-1687 Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive
 
 Source:      PodUtils podcrates issue 6 (COORD-004 of podcrates);
