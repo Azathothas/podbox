@@ -288,3 +288,19 @@ name with one stable fake address, and the hold maps that address to the
 upstream. When no holding mechanism works, the run refuses by name before
 the start. The Decision already says this.
 
+**Amended 2026-11-10, for podrunner.** The podrunner design review (the
+owner's design review of PodUtils/podcrates#47; the ruling "podrunner",
+2026-11-10; SPEC sections 9.1, 9.5 and its unknown U9) holds a podvm unit with
+`podnet pod` around `podvm run`, and calls that hold advisory. podnet owns
+the measurement of the pod with the runner (COORD-022, issue 228). One
+clause is podvm's: the experiment adds a run of `podnet pod
+--default-action reject -x http://unix:/PATH -- podvm run IMAGE`, where
+the payload's TCP reaches the Unix upstream, a direct connect is refused,
+podvm's own pull before the payload works or refuses by name, and the
+banner names the rung. The review writes the upstream as
+`socks5://unix:PATH`; `pod-broker` speaks HTTP CONNECT only, and podnet
+parses `http://unix:/PATH` (COORD-021, issue 227, section 0, item 4).
+Under the seccomp listener of the pod the kernel refuses a second
+listener, so the probe rejects `supervise` there (Inferred, not run); the
+experiment records the rung that it selects. The report of T-1695 names an
+outer hold only where podvm measures it, else `null`.

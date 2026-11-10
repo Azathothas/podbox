@@ -899,3 +899,112 @@ because Docker Hub and `public.ecr.aws` answered HTTP 429 that day.
 **Filed 2026-11-09.** From issue 215 (an outside account). The triage of
 2026-11-09 confirmed each claim at `2be31b2` and found the unchecked
 multiply.
+
+### T-1708 `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper
+
+Source:      issue 233; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), SPEC section 10.4, WP-C2 and
+             WP-V4, its measurement M2 (`05-lifecycle.log`); G-12 and
+             A-V-07 of PodUtils/podcrates#39; ask 2.3 of COORD-021 (issue
+             227); T-0601 (the pidfd decision); T-1655 (`--timeout`);
+             `src/launcher.rs` of `pod-supervise` (PodUtils/podcrates);
+             `crates/podvm/src/parity.rs:287`
+Category:    supervise
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     `stop`, `kill` and `rm -f` signal the payload only. A
+             grandchild that the payload's exit orphaned, or that left the
+             process group, keeps running with parent pid 1. `rm -f` exits
+             0 and removes the record, so podvm forgets processes that
+             still run in the container's rootfs. M2: for `sh -c 'sleep N
+             & sleep N.5 & wait'` under `run -d`, both sleeps stay after
+             `stop -t 1` and after `rm -f`, 6 of 6 runs.
+Premise:     The launcher signals one pid (`kill(pid, sig)` in
+             `src/launcher.rs` of `pod-supervise` v0.12.0, line 351).
+             T-0601 states that a pidfd does not contain descendants. The
+             `--init` row says that orphans reparent to the host init
+             (`crates/podvm/src/parity.rs:287`). No code sets
+             `PR_SET_CHILD_SUBREAPER` (grep of the tree and of podcrates
+             v0.12.0). The launcher is double-forked: its parent is pid 1
+             before a stop (M2). A subreaper needs no privilege.
+Approach:    The launcher sets `PR_SET_CHILD_SUBREAPER` before it forks
+             the payload, so that orphans of the payload reparent to it. A
+             stop or a kill signals the payload, then each descendant that
+             the parent chain of `/proc/PID/stat` finds, and repeats until
+             the walk is empty or the grace ends; then it sends SIGKILL to
+             each process that stays, reaps and counts. The foreground run
+             does the same in podvm's own process. `rm -f` and `--rm`
+             remove the record when the count is zero; a process that
+             stays after SIGKILL past the bound makes the verb exit 125
+             and name the pids. `inspect` gives the count that the end
+             killed. The code is in `pod-supervise`: send it to podcrates
+             as a COORD issue (`AGENTS.md`, section 9, item 4; ask 2.3 of
+             COORD-021 asks podcrates for the same mechanism), take the
+             tag, and correct the ⛔ text of T-0601 and the `--init` note
+             in place.
+Decision:    The launcher reaches each process of the container that did
+             not reparent above it. A process that reparents above it (to
+             an outer subreaper, or to init before the launcher existed)
+             stays out of reach, and `inspect` says so. No cgroup and no
+             PID namespace. Under a caller's subreaper the launcher is a
+             descendant of it, so the caller's walk also sees each
+             process.
+Prove:       `cargo test -p podvm` exits 0 with tests
+             `stop_ends_an_orphaned_grandchild` and
+             `rm_force_counts_the_tree`. `sh experiments/429-tree-kill.sh`
+             exits 0 on the chroot-denying fixture and on the chroot rung:
+             the M2 payload under `run -d`, then `stop -t 1`, leaves no
+             process after 60 s, 20 of 20; the same with a grandchild
+             that calls `setsid`, after `rm -f`, and for a foreground run
+             that gets SIGTERM; under an outer subreaper the launcher's
+             parent is that subreaper.
+
+**Filed 2026-11-10.** From issue 233 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), WP-C2: "tree kill, timeout,
+rusage. The mechanism of section 10.4 placed in podvm's launcher". T-1655 keeps
+the flags; this entry is the mechanism. `rm -f` reports a removed
+container while its processes run, so the entry is P1.
+
+### T-1715 The container table keeps `-e` values in a file that other users can read
+
+Source:      issue 240; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), its R1:1.6 and SPEC section 9.1;
+             `src/table.rs` of `pod-supervise` (PodUtils/podcrates);
+             `crates/podvm-image/src/store.rs:253`; T-1696 (`--secret`);
+             T-1708 (the same COORD batch)
+Category:    supervise
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     `run -e K=V` and `--env-file` store each value in the
+             container record. The table writer uses the process umask,
+             and the store directory gets no mode, so with umask 022 the
+             table is 0644 in a 0755 directory. Each local user can read a
+             credential passed with `-e` while the record exists.
+             podrunner passes the egress token in the environment where
+             the hold is `none` (SPEC section 9.1).
+Premise:     `write` in `src/table.rs` of `pod-supervise` v0.12.0 writes
+             a staging file with `std::fs::write` and renames it; no mode.
+             `crates/podvm-image/src/store.rs:253` calls `create_dir_all`
+             with no mode. The record keeps `env`, and `exec` reads the
+             volume table from it. The modes on disk are Inferred from the
+             source, not run.
+Approach:    Create the store root and each container directory with mode
+             0700, and write the table and its staging file with mode 0600.
+             At store open, a root that group or other can read gets a
+             banner note and a doctor row. Send the `pod-supervise` part
+             to podcrates as a COORD issue, in one batch with T-1708; the
+             store root is podvm's.
+Decision:    podvm keeps `env` in the record, because `exec` needs it, and
+             protects the file. A secret belongs in `--secret` (T-1696),
+             and the help of `-e` says so.
+Prove:       `cargo test -p podvm` exits 0 with tests that the store root
+             is 0700 and the table is 0600 under umask 022.
+
+**Filed 2026-11-10.** From issue 240 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), R1:1.6: "A credential given with
+`-e` or `--env-file` is therefore at rest in the table, in a file created
+with default modes".

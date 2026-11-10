@@ -1960,12 +1960,16 @@ Problem:     sand-net ran podman and docker with one fixed hardening line.
              podvm refuses most of that line with status None, so the same
              command cannot run under podvm. Some of the refused flags have
              an unprivileged equivalent that podvm does not use.
-Premise:     The parity table refuses `--read-only` (`parity.rs:370`),
-             `--tmpfs` (`parity.rs:372`), `--ulimit` (`parity.rs:385`),
-             `--cap-add, --cap-drop` (`parity.rs:340`), `--security-opt`
-             (`parity.rs:389`), `--runtime` (`parity.rs:389`) and `--userns`
-             (`parity.rs:386`). `-u, --user` is Degraded through the
-             interposer identity (`parity.rs:338`). `setrlimit`,
+Premise:     The parity table refuses `--read-only`
+             (`crates/podvm/src/parity.rs:257`), `--tmpfs`
+             (`crates/podvm/src/parity.rs:259`), `--ulimit`
+             (`crates/podvm/src/parity.rs:272`), `--cap-add, --cap-drop`
+             (`crates/podvm/src/parity.rs:227`), `--security-opt`
+             (`crates/podvm/src/parity.rs:276`), `--runtime`
+             (`crates/podvm/src/parity.rs:275`) and `--userns`
+             (`crates/podvm/src/parity.rs:273`). `-u, --user` is Degraded
+             through the interposer identity
+             (`crates/podvm/src/parity.rs:225`). `setrlimit`,
              `PR_SET_NO_NEW_PRIVS` and a seccomp filter need no privilege;
              the probe already sets `PR_SET_NO_NEW_PRIVS` in a child
              (`pod_hostprobe::probes`).
@@ -2031,6 +2035,22 @@ to the report of T-1695. Fourth, a run that ended by timeout or by `stop` is
 gone within 60 s: its record and its store directory are removed (G-12). The
 limits come from one source, the profile of T-1654, and the flags amend it.
 The row of `--ulimit` in the parity table moves with the change.
+
+**Amended 2026-11-10, for podrunner.** The podrunner design review (the
+owner's design review of PodUtils/podcrates#47; the ruling "podrunner",
+2026-11-10; SPEC section 10.4, its measurements M1 and M2) adds four clauses.
+First, the mechanism of the `--timeout` clause and of the 60 s clause is
+T-1708 (the launcher as a subreaper); this entry takes the flags. Second,
+`--ulimit fsize` below 2 TiB kills a .NET payload that runs with the
+default `DOTNET_EnableWriteXorExecute`: the runtime calls `ftruncate` on a
+memfd with 2 TiB, then gets SIGXFSZ and exits 153 (M1: under 20 GiB, 1
+GiB, 128 MiB and 1 MiB). The parity note of `--ulimit` and the profiles of
+T-1654 say so, and the experiment adds a .NET case (T-1706). Third, the
+read-only layer serves a `:ro` volume beside `:rw` volumes and `:rw`
+volumes nested in a `:rw` volume, as the runner's job-container table
+needs (`/__e` read-only beside `/__w` and `/__w/_temp`, T-1711); the Prove
+adds that table. Fourth, the Premise cited parity lines that moved; they
+are corrected in place.
 
 ---
 
@@ -2343,6 +2363,20 @@ report, and one JSON report for each job. The priority is P1 because
 `--label` is a flag that does nothing (the priority rules of
 `TODO/INDEX.md`). The report half alone would be P2.
 
+**Amended 2026-11-10, for podrunner.** The podrunner design review (the
+owner's design review of PodUtils/podcrates#47; the ruling "podrunner",
+2026-11-10; SPEC section 11.4 and the `wait` answer of its unit contract) reads
+this report as the podvm half of its run report. Four clauses are new.
+First, a detached run (`run -d`, `start`) writes its report too: the
+launcher writes it with a rename when it reaps the payload, and `podvm
+wait` returns after the rename. Second, the report names the entered rung
+with the word of `.EnteredRung` (T-1713) and lists the volume table with
+the mode of each pair. Third, the report gives the count of processes of
+the tree that the end killed (T-1708, the subreaper), or `null` where
+podvm cannot count. Fourth, an end by a signal names the signal (for
+example `SIGXFSZ`) beside the number. Bytes in and out are not podvm's to
+measure; the report does not carry them.
+
 ---
 
 ### T-1696 `--secret` places a file with no argv and no env, and a read-once mode
@@ -2410,6 +2444,22 @@ PodUtils/podcrates#39 (COORD-015), a message from a peer session:
 read-once mode, and "the one-job runner credential reaches only the
 runner process". The peer asks for P0 for G-03. The priority stays P2: no
 behaviour of podvm is wrong today, and the flag is new.
+
+**Amended 2026-11-10, for podrunner.** The podrunner design review (the
+owner's design review of PodUtils/podcrates#47; the ruling "podrunner",
+2026-11-10; SPEC section 8.2, its measurement M1 with runner v2.338.2) measured
+the official runner: its credential is three files (`.runner`,
+`.credentials`, `.credentials_rsaparams`) in its root; it keeps them for
+its life and does not write them again; its Worker child reads `.runner`
+from disk again. Four clauses are new. First, `--secret` is repeatable,
+and several targets can be in one guest directory that the payload also
+writes. Second, `once` breaks a payload whose child reads the file again;
+the help of `once` says so, and the experiment adds a child that reads a
+target a second time without `once`. Third, `--secret` works with `run -d`
+and `start`: the staged files stay until the launcher reaps the payload,
+and `rm` removes them also when the launcher is gone. Fourth, the staging
+directory is mode 0700 whatever the umask (T-1715, the store modes), and
+the tests use mode 0600 as well as 0400.
 
 ---
 
@@ -2514,3 +2564,235 @@ before; at 64 GiB, above the free space, the row fails with its fix line.
 
 **Filed 2026-11-09.** From issue 214 (an outside account). The triage of
 2026-11-09 confirmed each claim at `2be31b2`.
+
+---
+
+### T-1706 The unmodified official `actions/runner` starts on the userland rung
+
+Source:      issue 231; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), SPEC sections 10.4, 10.5, WP-V1
+             and milestone M-B, its measurements M1 and M2; A-V-04 of
+             PodUtils/podcrates#39; T-1704 (`realpath` of
+             `/proc/self/exe`); T-1705 (the doubled prefix); T-1707 (a
+             first program relative to `-w`); T-1655 (`--ulimit`);
+             `crates/podvm/src/tier.rs:114`
+Category:    cli
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     The official runner (linux-x64, glibc, .NET) does not start
+             under podvm on a chroot-denied host: exit 154, then 137 after
+             a workaround. It runs only under `--unsafe-host-paths` with
+             the runner at its real host path, which is not isolation. A
+             .NET payload also dies at start with SIGXFSZ (exit 153) under
+             each soft `RLIMIT_FSIZE` below 2 TiB, and podvm says only "the
+             payload died on signal 25".
+Premise:     M2 at `36b15ec`, one host, runner v2.338.2, 3 runs for each
+             case. Blocker 1 is the `realpath` answer (T-1704), blocker 2
+             the doubled prefix (T-1705). A third layer after `--help` is
+             possible: no job ran. M1: the runtime calls `ftruncate` on a
+             memfd with 2199023255552 bytes; under a smaller limit that
+             is `EFBIG` and SIGXFSZ, in the listener, in `config.sh` and in
+             the Worker; with `DOTNET_EnableWriteXorExecute=0` it starts.
+             M2: a `prlimit` on the podvm process reaches the payload. M1:
+             the runner needs ICU or
+             `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`, `libssl.so.3`, and
+             a glibc loader with symbols up to `GLIBC_2.28`. podvm reads
+             the soft limit for guests (`crates/podvm/src/tier.rs:114`)
+             and not for a payload. No podvm record names .NET.
+Approach:    Build a test image:
+             `public.ecr.aws/debian/debian:bookworm-slim`, the runner's
+             libraries, and the runner tarball checked against a pinned
+             SHA-256; build it where chroot is permitted and `podvm
+             import` it. Close T-1704, T-1705 and T-1707. Then drive, on
+             the chroot-denying fixture: `Runner.Listener --version`,
+             `config.sh --help`, and `run.sh` with the three credential
+             files of a synthetic blob pre-staged at mode 0600 against a
+             loopback stand-in that serves `POST /oauth/token`, `POST
+             /session` and `GET /message` (the shape of M1). File each new
+             blocker as an entry. When a payload dies on SIGXFSZ, print
+             the soft `RLIMIT_FSIZE`; for a payload with a `.dll` beside
+             it or a `DOTNET_` variable, also name
+             `DOTNET_EnableWriteXorExecute=0`.
+Decision:    The runner is a payload, not a special case: podvm adds no
+             runner flag and ships no runner. `--unsafe-host-paths` is not
+             a pass. podvm does not raise or drop the caller's
+             `RLIMIT_FSIZE`; it names it. The stand-in server is test code.
+Prove:       `sh experiments/428-actions-runner.sh` exits 0 on the
+             chroot-denying fixture with no `--unsafe-host-paths`:
+             `--version` prints the pinned version, `config.sh --help`
+             exits 0, `run.sh` with the pre-staged files reaches the long
+             poll of the stand-in and ends within 30 s of SIGTERM, and
+             under `prlimit --fsize=1073741824` a run with W^X on exits
+             153 with a message that names `RLIMIT_FSIZE`, while the same
+             run with `-e DOTNET_EnableWriteXorExecute=0` exits 0.
+
+**Filed 2026-11-10.** From issue 231 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), WP-V1: "Official runner starts on
+the userland rung without `--unsafe-host-paths` (exit 154, then 137)".
+The entry is a new proven payload, so it is P2; its defects T-1704,
+T-1705 and T-1707 are P1 and are podvm's own.
+
+---
+
+### T-1711 The calls of the four container-hook commands run through podvm verbs on the userland rung
+
+Source:      issue 236; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), SPEC sections 7.2, 10.1, its
+             unknown U19 and its hook contract; its R4:2.6 (the official
+             docker hook); G-09 of PodUtils/podcrates#39; T-1653
+             (volumes); T-1655 (`:ro`); T-1707; T-1709; T-1710;
+             `crates/podvm/src/parity.rs:222`;
+             `crates/podvm/src/exec/enter.rs:203`
+Category:    cli
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     A container job of the official runner calls its container
+             hook. podrunner's hook asks the host to start a job container,
+             run each step in it, run a container action, read logs and
+             exit codes, and remove the containers. On a podvm unit those
+             are podvm verbs. No test drives that sequence, so nobody knows
+             which call fails first.
+Premise:     `run -d`, `--entrypoint`, `-e`, `-w`, `--name` and
+             `--add-host` are Native (`crates/podvm/src/parity.rs:210` to
+             `crates/podvm/src/parity.rs:235`); `-v` is Degraded and
+             refuses `:ro` (`crates/podvm/src/parity.rs:222`); `exec -e`
+             and `-w` are Native, `exec -d` is None
+             (`crates/podvm/src/parity.rs:289` to
+             `crates/podvm/src/parity.rs:295`); `logs` is one interleaved
+             file (`crates/podvm/src/parity.rs:153`); `network` and `-p`
+             are None. `exec` checks its workdir through the container's
+             volume table (`crates/podvm/src/exec/enter.rs:203`), not yet
+             driven. The official docker hook calls `network create`,
+             `port` and `exec -i`, so it cannot run over podvm (Inferred).
+             Each `exec` runs the probe and completion again; the cost is
+             not measured.
+Approach:    Write an experiment that replays the podvm calls of the
+             hook for a job with `container:` and one container action:
+             a job container with `run -d --entrypoint tail` and the seven
+             mounts of the job-container table (`/__w`, `/__w/_temp`,
+             `/__w/_actions`, `/__w/_tool`, `/__e` read-only,
+             `/github/home`, `/github/workflow`) from directories under a
+             runner root; a step with `exec -e K=V -w /__w/repo J sh -e
+             /__w/_temp/step.sh`; a container action with `run --rm`, the
+             five mounts of the container-action table and `-w
+             /github/workspace`; `logs`; `wait`; `rm -f`. Use a job image
+             that differs from the runner's image. Record each call as
+             passed or refused by name, and file each defect. Measure the
+             time of 20 `exec` steps.
+Decision:    podvm stays a command line. It adds no hook, no socket
+             server and no word of podrunner (the ruling "New projects",
+             2026-11-09). The hook and its control socket belong to
+             podrunner.
+Prove:       `sh experiments/431-hook-verbs.sh` exits 0 on the
+             chroot-denying fixture: each call of the sequence exits as
+             the experiment records, a step sees its `-e` value and its
+             workdir, a write to `/__e` fails with `EROFS`, a write to
+             `/__w` lands in the runner root, the container action reads
+             `/github/workspace`, `rm -f` leaves no process, and the time
+             of 20 steps is printed.
+
+**Filed 2026-11-10.** From issue 236 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), section 7.2: the hook relays to a host
+socket, and the host-side server calls podvm. A new use with nothing
+wrong without it is P2.
+
+---
+
+### T-1712 `--podvm-tier=chroot` does nothing: it runs the ladder
+
+Source:      issue 237; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), SPEC section 10.1, its measurement
+             M2 (`01-probe-rung.log`); T-1302; call C2 of
+             `docs/decisions.md`; `crates/podvm/src/tier.rs:86`;
+             `crates/podvm/src/parity.rs:245`
+Category:    cli
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     The parity row says that `--podvm-tier=chroot` selects the
+             chroot tier. It runs the ladder. On a chroot-denied host it
+             enters the userland rung with exit 0; where the probe selects
+             the namespace rung it enters that. A caller that asks for one
+             mechanism gets another, and only the banner says so.
+Premise:     `resolve` maps the value to `Tier::Chroot`
+             (`crates/podvm/src/tier.rs:86`). Each caller compares the tier
+             with `Tier::Machine` only
+             (`crates/podvm/src/run/prepare.rs:25`,
+             `crates/podvm/src/exec/command.rs:42`). T-1302 made `chroot`
+             the override of the argv0 default `podvm` = machine. Call C2
+             (2026-11-06) removed that default, so the value has no effect
+             now. M2 observed exit 0 and `mode=userland`.
+Approach:    Take one of two forms and record it. (a) Remove the value
+             `chroot`; `--podvm-tier` takes `machine` only, and the ladder
+             is the default. (b) Make `chroot` enter the chroot sequence
+             and nothing else: where chroot is denied, refuse at 125 with
+             the T-1317 text; where the probe selects the namespace rung,
+             enter chroot without the namespace. The recommendation is
+             (a): a caller reads the entered rung from the report
+             (T-1695) and from `.EnteredRung` (T-1713), and needs no force.
+             Correct the parity row in the same change.
+Decision:    A flag that names a tier selects it or refuses by name. No
+             compatibility is kept (the ruling "Compatibility",
+             2026-11-05).
+Prove:       `cargo test -p podvm` exits 0 with a test of the chosen form.
+             `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a new clause: on the fixture,
+             `--podvm-tier=chroot public.ecr.aws/docker/library/alpine:3.20
+             true` is refused by name (form a: an unknown value; form b:
+             chroot denied).
+
+**Filed 2026-11-10.** From issue 237 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), M2 surprise 7: "`--podvm-tier=chroot`
+on a chroot-denied host silently enters userland". The cause is wider:
+the value has no effect on any host. A flag that does nothing is P1.
+
+---
+
+### T-1713 `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied
+
+Source:      issue 238; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), SPEC section 10.1, its measurement
+             M2 (`01-probe-rung.log`); T-0804 rule 4; T-1317;
+             `crates/podvm/src/system/df_info.rs:307`;
+             `crates/podvm/src/run/acquire.rs:23`
+Category:    cli
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     On a host where the probe selects `supervise` (the listener,
+             the argument channel and ptrace work) and chroot is denied,
+             `system info` gives `.EnteredRung` = `chroot`. `run` enters
+             the userland rung there. A caller that reads the field before
+             a run reads the wrong mechanism.
+Premise:     `crates/podvm/src/system/df_info.rs:307` takes the word from
+             `entered_word` of `pod-enter`, which maps each selection but
+             `interpose` and `namespace` to `chroot` (`src/lib.rs` of
+             `pod-enter` v0.12.0). `run` adds its own userland decision
+             (`crates/podvm/src/run/acquire.rs:23`). The help of `system
+             info` says that the field reads `userland` where chroot is
+             denied. The tests cover the `interpose` and `namespace`
+             selections only. M2 observed `.Rung`=`supervise`,
+             `.EnteredRung`=`chroot` and the banner `mode=userland`. The
+             errand host denies ptrace, so it selects `interpose` and reads
+             correctly.
+Approach:    Derive `.EnteredRung` from the same facts that `run` uses:
+             where the `chroot(/tmp)` finding is denied, the word is
+             `userland`, whatever the selection. If the rule belongs in
+             `pod-enter`, send it to podcrates as a COORD issue
+             (`AGENTS.md`, section 9, item 4); else keep it in
+             `df_info.rs`.
+Decision:    The field names what `run` enters, never what the probe
+             selected (T-0804 rule 4).
+Prove:       `cargo test -p podvm` exits 0 with a test that a `supervise`
+             selection with a denied chroot reads `userland`.
+
+**Filed 2026-11-10.** From issue 238 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), M2 question Q1: "`system info`
+gives `.Rung`=`supervise`, `.EnteredRung`=`chroot`; the first `run`
+banner says `mode=userland`". A wrong answer is P1.

@@ -2524,3 +2524,169 @@ T-1650; the gap needs an open owner, and the test
 gate run 42771484085 at `36b15ec` failed on it, because dfb93ba closed
 T-1646 and left the gap under it.
 
+### T-1704 `realpath` of `/proc/self/exe` names the image's loader, while `readlink` names the program
+
+Source:      issue 229; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), SPEC section 10.5 and WP-V1, its
+             measurement M2 (`03-runner-payload.log`); A-V-04 of
+             PodUtils/podcrates#39; T-0413 (the `/proc/self/exe` answers);
+             `crates/podvm-interpose/src/path_calls.rs:25`;
+             `crates/podvm-interpose/src/path_calls.rs:371`
+Category:    interpose
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     On the userland rung, `realpath("/proc/self/exe")` gives the
+             guest path of the image's dynamic loader. `readlink` of the
+             same name gives the program. A runtime that finds its own
+             directory with `realpath` looks for its files beside the
+             loader. The .NET apphost of the official runner exits 154:
+             "The application to execute does not exist:
+             '/usr/lib/x86_64-linux-gnu/Runner.Listener.dll'".
+Premise:     The interposer serves `readlink` and `open` of
+             `/proc/self/exe` from the guest name of the program
+             (`crates/podvm-interpose/src/path_calls.rs:371`,
+             `crates/podvm-interpose/src/path_calls.rs:386`). Its
+             `realpath` (`crates/podvm-interpose/src/path_calls.rs:25`)
+             and `canonicalize_file_name`
+             (`crates/podvm-interpose/src/path_calls.rs:74`) call the next
+             function and reverse-map the answer. podvm does not rewrite
+             `/proc`, so libc follows the kernel link to the loader that
+             podvm started. M2 measured the split in one image, 3 runs
+             each. That the apphost calls `realpath` is Inferred. The
+             interposer exports no fortified `_chk` variant; glibc calls
+             its internal function from them, so a fortified caller can go
+             past the table (Inferred, not run).
+Approach:    In `realpath` and `canonicalize_file_name`, answer an input
+             of exactly `/proc/self/exe` from the guest name of T-0413,
+             then resolve that name inside the table, so the answer is
+             what `readlink` gives after the image's own symlinks. Build a
+             test program with `-D_FORTIFY_SOURCE=2` and measure whether
+             `__realpath_chk`, `__readlink_chk`, `__readlinkat_chk` or
+             `__getcwd_chk` reach libc past the interposer. Export each
+             variant that the measurement finds, keep glibc's length
+             check, and route it through the same code.
+Decision:    `readlink`, `open` and `realpath` of `/proc/self/exe` give
+             one answer: the program, never the loader. The answer is a
+             guest path.
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+             exits 0 with a test that `realpath` and `readlink` of
+             `/proc/self/exe` agree. `PODVM_356_MIRROR=1 sh
+             experiments/356-no-chroot-rung.sh` exits 0 with a new clause:
+             in `public.ecr.aws/debian/debian:bookworm-slim`, `realpath
+             /proc/self/exe` prints
+             `/usr/bin/realpath`, and a fortified test program prints its
+             own guest path from `realpath` and from `readlink`.
+
+**Filed 2026-11-10.** From issue 229 and the podrunner design review
+(the ruling "podrunner", 2026-11-10): blocker 1 of the official runner on
+the userland rung, M2 at `36b15ec`. No file of `crates/podvm-interpose`
+changed between `36b15ec` and the filing. A wrong answer of a served call
+is P1.
+
+### T-1705 A host path that a loaded object reports gets the rootfs prefix a second time
+
+Source:      issue 230; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), SPEC section 10.5 and WP-V1, its
+             measurement M2 (`03-runner-payload.log`); A-V-04 of
+             PodUtils/podcrates#39; T-1643 (the cwd base);
+             `crates/podvm-interpose/src/map/rewrite.rs:111`;
+             `crates/podvm-interpose/src/map/rewrite.rs:294`
+Category:    interpose
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     A runtime that opens a file by a path that the loader gave
+             it (`dladdr`, the link map, `/proc/self/maps`) gets a host
+             path inside the rootfs. The interposer adds the rootfs prefix
+             to it again, and the open fails with `ENOENT`. CoreCLR of the
+             official runner fails this way: exit 137, "Failed to create
+             CoreCLR, HRESULT: 0x8007045A".
+Premise:     M2 strace: the first open of `libcoreclr.so` is correct, and
+             a later open carries the rootfs prefix twice. `rewrite`
+             (`crates/podvm-interpose/src/map/rewrite.rs:111`) treats each
+             absolute input as a guest path. T-1643 reverse-maps a cwd or
+             a descriptor base that carries the prefix
+             (`crates/podvm-interpose/src/map/rewrite.rs:294`), not an
+             absolute input. The interposer has no `dladdr`,
+             `dl_iterate_phdr` or `/proc/self/maps` handling. podvm starts
+             the image's loader with host library directories, so the link
+             map holds host paths (Inferred). That CoreCLR takes the path
+             from the loader is Inferred.
+Approach:    Measure first with a test program that calls `dladdr` on its
+             own function and opens the answer. Then take one of two
+             forms and record the choice: (a) in `prepare`, an absolute
+             input that lies under the host side of a pair of the table
+             (the root or a volume) passes unchanged after the component
+             checks; (b) the answers of `dladdr`, `dl_iterate_phdr` and
+             `/proc/self/maps` are reverse-mapped to guest paths. Form (a)
+             covers each source of such a path at once.
+Decision:    A rewrite is idempotent: the interposer does not rewrite a
+             second time a path that already names a place under a host
+             side of the table. Only such a path passes, so the rule gives
+             no reach outside the rootfs and the volumes. The interposer
+             stays not a boundary.
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+             exits 0 with a test that a host path under the root pair does
+             not get the prefix again and a guest path still does.
+             `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a new clause: the `dladdr` test program in a
+             glibc image opens its own object at 0.
+
+**Filed 2026-11-10.** From issue 230 and the podrunner design review
+(the ruling "podrunner", 2026-11-10): blocker 2 of the official runner on
+the userland rung, M2 at `36b15ec`. The cause is the T-1643 class for an
+absolute input.
+
+### T-1710 A Unix socket path in `connect` and `bind` passes the path table
+
+Source:      issue 235; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), SPEC sections 7.2, 9.5 and its
+             unknown U21; its R2:1.2 (a host socket reached from a held
+             payload); T-1652 (a raw `syscall`);
+             `crates/podvm-interpose/src/path_calls.rs:25`
+Category:    interpose
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     On the userland rung a payload names a Unix socket by a
+             guest path. The interposer does not rewrite
+             `sockaddr_un.sun_path`, so the kernel resolves the path on the
+             host root. A `bind` creates the socket on the host, outside
+             the rootfs. A `connect` reaches a host socket by its guest
+             name. A `-v` pair does not apply to a socket path, so a
+             caller cannot put a host socket at a guest path.
+Premise:     `crates/podvm-interpose/src` holds no `connect`, `bind`,
+             `sun_path` or `AF_UNIX` code (grep, 2026-11-10); the path
+             calls start at `crates/podvm-interpose/src/path_calls.rs:25`.
+             The behaviour is Inferred from that absence and not run.
+             `sun_path` holds 108 bytes, and a host path under the store
+             can be longer. A raw `syscall` goes past the interposer
+             (T-1652).
+Approach:    Measure the current behaviour on the fixture first. Then
+             interpose `connect`, `bind`, `sendto` and `sendmsg` with a
+             path address: rewrite the path through the table; where the
+             result is longer than `sun_path`, open the parent directory
+             with `O_PATH` and use `/proc/self/fd/N/NAME`. Reverse-map the
+             answers of `getsockname`, `getpeername`, `accept` and
+             `recvfrom`. Leave abstract and unnamed addresses unchanged.
+Decision:    A socket path is a path, and the table applies to it as to
+             `open`. An abstract name is not a path. The interposer stays
+             not a boundary.
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+             exits 0 with tests for the rewrite and the long-path form.
+             `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a new clause: a test program binds
+             `/tmp/t.sock`, the socket is inside the rootfs and not at the
+             host `/tmp/t.sock`, a second `exec` connects to it, and with
+             `-v HOSTDIR:/run/ctl` a connect to `/run/ctl/s.sock` reaches a
+             host listener.
+
+**Filed 2026-11-10.** From issue 235 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), U21: "`curl` under the interposer,
+and the visibility of a host socket inside the unit, are Unverified". A
+path call that misses the table is P1; the first measurement confirms or
+corrects the premise.

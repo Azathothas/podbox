@@ -1181,6 +1181,12 @@ to podcrates T-107 (the schema of `pod-hostprobe`). No podvm entry takes the
 schema yet. When podcrates T-107 releases it, podvm needs an entry that adds
 a test that the output of `podvm probe --json` validates.
 
+**Amended 2026-11-10, for podrunner.** T-1714 (issue 239) is the entry
+that the amendment of 2026-11-09 asked for: it validates `podvm probe
+--json` against the schema of podcrates T-107, and it is blocked until
+that schema has a release. The podvm driver of podrunner reads `probe
+--json` (the podrunner design review, SPEC section 10.1).
+
 ### T-1689 The non-goal `remedy` follows the stance in the probe JSON
 
 Source:      issue 213; T-1306 (the non-goals); call C13
@@ -1227,3 +1233,38 @@ the machine tier runs TCG".
 **Filed 2026-11-09.** From issue 213 (an outside account). The triage of
 2026-11-09 confirmed each claim at `2be31b2`. The fix is in podvm:
 `pod-hostprobe` has no non-goals.
+
+### T-1714 `podvm probe --json` validates against the published schema of `pod-hostprobe`
+
+Source:      issue 239; A-V-10 of PodUtils/podcrates#39; T-1670 (its
+             amendment of 2026-11-09); podcrates T-107; ask 2.7 of
+             COORD-021 (issue 227); the podrunner design review (the
+             owner's design review of PodUtils/podcrates#47), SPEC section 10.1;
+             `crates/podvm/src/main.rs:352`
+Category:    probe
+Priority:    P2
+Effort:      S
+Status:      blocked
+
+Problem:     A caller reads `podvm probe --json` to decide what a host
+             can run. No schema states its shape, so a change of a field
+             breaks the caller and nothing tells it.
+Premise:     podcrates T-107 owns the schema of `pod-hostprobe`. T-1670
+             saved the first sample
+             (`experiments/results/cloud-host-probe.json`) and said that
+             podvm needs this entry when T-107 releases the schema. The
+             `--json` switch of `probe` is `crates/podvm/src/main.rs:352`.
+Approach:    Take the podcrates release that carries the schema. Add a
+             test that validates the saved sample and a fresh `probe
+             --json` against it.
+Decision:    The schema belongs to podcrates; podvm tests its output
+             against it and keeps no copy.
+Prove:       `cargo test -p podvm` exits 0 with a test that the output of
+             `probe --json` validates against the schema of the taken tag.
+
+**Blocked 2026-11-10.** Blocker: podcrates T-107 has no release.
+Clears when: a podcrates tag carries the schema of `pod-hostprobe`.
+
+**Filed 2026-11-10.** From issue 239, the amendment of T-1670 and the
+podrunner design review (the ruling "podrunner", 2026-11-10): the podvm
+driver of podrunner reads `probe --json`.

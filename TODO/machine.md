@@ -1295,6 +1295,25 @@ request for KVM is the implementer's choice, recorded in this entry. The
 Decision text about the KVM deferral is corrected in place, because the
 owner lifted the deferral.
 
+**Amended 2026-11-10, for podrunner.** The podrunner design review (the
+owner's design review of PodUtils/podcrates#47; the ruling "podrunner",
+2026-11-10; SPEC sections 6.6, 9.1, 10.1 and its question DR-5) uses a microVM
+as the only unit that serves an untrusted job. Five clauses are new.
+First, a guest can run with no network device and one host channel, a Unix
+socket on the host bridged to a guest port (a virtio-console or serial
+port; vsock where `/dev/vhost-vsock` opens), so a host broker is the only
+way out. Second, `--secret` files (T-1696) reach the guest's tmpfs, and no
+per-run archive on disk keeps them after the boot. Third, a volume on this
+tier is read-only 9p or a block image where the caller asks for read-only.
+Fourth, `--timeout` and `rm -f` end the emulator, and no emulator stays
+after the run (`AGENTS.md`, section 2). Fifth, the report of T-1695 names
+the boundary (`kvm` or `tcg`) and the boot id of the guest. The acceptance
+adds a guest that runs `--version` of a glibc .NET payload. The KVM leg
+runs where `/dev/kvm` opens (T-1682). The position of this entry in the
+work order stays as it is: if the owner answers DR-5 with "wait", this
+entry blocks the `untrusted` tier of podrunner, and its place is a
+question for the owner after DR-1 and DR-2.
+
 ---
 
 ### T-1682 A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner

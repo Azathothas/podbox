@@ -377,10 +377,22 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1701](interpose.md) | P2 | interpose | done | `mkstemp64`, `mkostemp64`, `mkstemps` and `mkostemps` pass the path table |
 | [T-1702](machine.md) | P2 | machine | done | The TCG guest of `podvm-workload` prints no console byte in 600 s on the cloud host |
 | [T-1703](interpose.md) | P2 | interpose | open | The exec routes that T-1646 does not take still enter through the host |
+| [T-1704](interpose.md) | P1 | interpose | open | `realpath` of `/proc/self/exe` names the image's loader, while `readlink` names the program |
+| [T-1705](interpose.md) | P1 | interpose | open | A host path that a loaded object reports gets the rootfs prefix a second time |
+| [T-1706](cli.md) | P2 | cli | open | The unmodified official `actions/runner` starts on the userland rung |
+| [T-1707](enter.md) | P1 | enter | open | A relative first program resolves against the image root, not against `-w` |
+| [T-1708](supervise.md) | P1 | supervise | open | `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper |
+| [T-1709](image.md) | P1 | image | open | Each container gets its own rootfs: a write in one container is not read by another |
+| [T-1710](interpose.md) | P1 | interpose | open | A Unix socket path in `connect` and `bind` passes the path table |
+| [T-1711](cli.md) | P2 | cli | open | The calls of the four container-hook commands run through podvm verbs on the userland rung |
+| [T-1712](cli.md) | P1 | cli | open | `--podvm-tier=chroot` does nothing: it runs the ladder |
+| [T-1713](cli.md) | P1 | cli | open | `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied |
+| [T-1714](probe.md) | P2 | probe | blocked | `podvm probe --json` validates against the published schema of `pod-hostprobe` |
+| [T-1715](supervise.md) | P2 | supervise | open | The container table keeps `-e` values in a file that other users can read |
 
 ## Counts
 
-312 items: 28 open, 8 partial, 2 blocked, 274 done.
+324 items: 39 open, 8 partial, 3 blocked, 274 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -390,10 +402,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 1 | 6 | 0 | 130 | 137 |
-| P2 | 27 | 1 | 2 | 71 | 101 |
+| P1 | 9 | 6 | 0 | 130 | 145 |
+| P2 | 30 | 1 | 3 | 71 | 105 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **28** | **8** | **2** | **274** | **312** |
+| **All** | **39** | **8** | **3** | **274** | **324** |
 
 ## Work order
 

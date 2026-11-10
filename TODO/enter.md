@@ -1770,6 +1770,19 @@ job and `:ro` for an untrusted job. Two jobs of different trust levels never
 share a writable volume source, and the runner is the actor that enforces
 this.
 
+**Amended 2026-11-10, for podrunner.** The podrunner design review (the
+owner's design review of PodUtils/podcrates#47; the ruling "podrunner",
+2026-11-10; SPEC section 10.1 and its WP-V6) says that podvm refuses a workdir
+inside a volume. That is stale since podcrates v0.12.0 (5e5629a8): the
+`-v` row says that a working directory or a first program in a volume
+resolves through the table (`crates/podvm/src/parity.rs:222`), and `exec`
+checks its workdir through the container's table
+(`crates/podvm/src/exec/enter.rs:203`). One clause is new: the drive adds
+`exec -w` into a volume of a `run -d` container. The remaining clause,
+`:ro` with `EROFS`, is the one podvm gap of the runner's job-container
+table (`/__e` read-only, T-1655, T-1711). A relative first program in a
+volume workdir is T-1707.
+
 ---
 
 ### T-1657 A syscall-interpreting tier: the gVisor capability without user namespaces
@@ -1908,6 +1921,21 @@ T-108). The peer asks for P0. The priority stays P2, because nothing in
 podvm is wrong without the layer (the priority rules of `TODO/INDEX.md`).
 The owner can change it.
 
+**Amended 2026-11-10, for podrunner.** The podrunner design review (the
+owner's design review of PodUtils/podcrates#47; the ruling "podrunner",
+2026-11-10; SPEC sections 4.2, 6.5, 10.1 and its question DR-4) puts a trusted
+job only on a unit whose boundary is at least `confined`, unless the owner
+accepts `redirect`; no podvm rung is `confined` today. This layer is the
+route by which a podvm rung can be `confined` on a host with no namespaces
+(ask 2.7 of COORD-021, issue 227, names `pod-confine`, podcrates T-108).
+Two clauses are new. First, the report of T-1695 and `podvm probe --json`
+state whether the layer was applied, with the Landlock ABI, the seccomp
+mode and `NoNewPrivs`, so that a caller reads it and does not infer it.
+Second, the experiment adds a canary file outside `fs.read` that the
+payload cannot read, a host loopback TCP listener that it cannot reach
+(Landlock ABI 4 or later), and records whether a host Unix socket is
+reachable.
+
 ### T-1688 The memfd rung measures whether a memfd executes, names `vm.memfd_noexec`, and refuses before staging
 
 Source:      issue 212; T-1667 (the doctor row shape); T-1003 (the fd exec)
@@ -2017,3 +2045,46 @@ of 200 on the fixture).
 
 **Filed 2026-11-10.** Found by the drive of T-1653.
 
+### T-1707 A relative first program resolves against the image root, not against `-w`
+
+Source:      issue 232; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), its measurement M2
+             (`03-runner-payload.log`); `src/ladder.rs` of `pod-enter`
+             (PodUtils/podcrates); `src/userland.rs` of `pod-enter`
+             (PodUtils/podcrates); T-1653 (the table);
+             `crates/podvm/src/parity.rs:211`
+Category:    enter
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     `podvm run -w /opt/runner IMAGE ./bin/Runner.Listener` exits
+             127 with "./bin/Runner.Listener names no file in the image".
+             docker runs `/opt/runner/bin/Runner.Listener`: the kernel
+             resolves a relative path against the working directory. An
+             image with a `WORKDIR` and a relative command fails the same
+             way. The runner starts as `./run.sh` from its root.
+Premise:     `resolve_payload` in `src/ladder.rs` of `pod-enter` v0.12.0
+             (line 147) resolves an argv0 that holds a `/` from the image
+             root. `src/userland.rs` of `pod-enter` v0.12.0 (line 128) has
+             the same shape. The `-w` row says "chdir inside the new root"
+             (`crates/podvm/src/parity.rs:211`), so the working directory
+             exists before the exec. M2 observed exit 127, 3 of 3.
+Approach:    Join a relative argv0 that holds a `/` to the working
+             directory before the resolution, on each rung and through
+             the T-1653 table, so that a workdir in a volume works too.
+             Send the change to podcrates as a COORD issue (`AGENTS.md`,
+             section 9, item 4), take the release, and add the podvm test.
+Decision:    docker's rule: a relative program is relative to the working
+             directory. A bare name still searches `PATH`.
+Prove:       `cargo test -p podvm` exits 0 with a test that `-w /opt/x
+             ./prog` resolves to `/opt/x/prog`.
+             `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a new clause: `-w /bin ./busybox true` exits 0
+             on the userland rung, and a relative program in a volume
+             workdir runs.
+
+**Filed 2026-11-10.** From issue 232 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), M2 surprise 9: "the first program
+of `run` is resolved against the image root, not `-w`". docker's `-w`
+with a relative program does not work, so the entry is P1.

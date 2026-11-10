@@ -123,3 +123,15 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #226 | COORD-020: podvm took v0.12.0, the Maps API of pod-enter (to podcrates) | closed (the asks are podcrates T-155) | T-1653 |
 | #227 | COORD-021: podrunner: the design review of #47, what the crates must give before podrunner starts (to podcrates) | open | none: the hand-off of the podrunner plan to podcrates ([decisions](../docs/decisions.md), 2026-11-10, "podrunner") |
 | #228 | COORD-022: podrunner: podnet pod with the official runner, and the pod-hold hand-off (to podnet) | open | none: the asks of the podrunner plan to podnet ([decisions](../docs/decisions.md), 2026-11-10, "podrunner") |
+| #229 | [podrunner] interpose: realpath of /proc/self/exe names the image's loader, while readlink names the program, so the .NET runner exits 154 | open | T-1704 |
+| #230 | [podrunner] interpose: a host path that a loaded object reports gets the rootfs prefix a second time, so CoreCLR exits 137 | open | T-1705 |
+| #231 | [podrunner] the userland rung runs the unmodified actions/runner: it exits 154, then 137, and it dies on SIGXFSZ under a finite RLIMIT_FSIZE | open | T-1706; T-1655 (amended) |
+| #232 | [podrunner] enter: a relative first program resolves against the image root, not against -w, so -w /opt/runner ./run.sh exits 127 | open | T-1707 |
+| #233 | [podrunner] supervise: stop and rm -f signal the payload only, so orphaned grandchildren keep running after the container is gone | open | T-1708; T-1655 (amended) |
+| #234 | [podrunner] image: all containers of one image share one mutable rootfs, so a write in one container is read by another and --rm is not a fresh start | open | T-1709 |
+| #235 | [podrunner] interpose: a Unix socket path in connect and bind passes the path table, so bind creates the socket on the host and a -v pair does not apply | open | T-1710 |
+| #236 | [podrunner] cli: drive the podvm calls of the four container-hook commands on the userland rung, with the runner's mount table | open | T-1711; T-1653 and T-1655 (amended) |
+| #237 | [podrunner] cli: --podvm-tier=chroot does nothing; it runs the ladder, and on a chroot-denied host it enters the userland rung with exit 0 | open | T-1712 |
+| #238 | [podrunner] system: .EnteredRung reads chroot where the probe selects supervise and chroot is denied, while run enters the userland rung | open | T-1713 |
+| #239 | [podrunner] probe: podvm probe --json validates against the published schema of pod-hostprobe (blocked on podcrates T-107) | open | T-1714; T-1670 (amended) |
+| #240 | [podrunner] supervise: the container table keeps -e values in a file that the umask leaves readable to other users | open | T-1715; T-1696 (amended) |

@@ -2730,3 +2730,69 @@ would reopen the question: a host where the race is chased again, where
 clause 7 does not skip because the two paths differ in filesystem
 type.
 
+### T-1709 Each container gets its own rootfs: a write in one container is not read by another
+
+Source:      issue 234; the podrunner design review (the owner's design
+             review of PodUtils/podcrates#47), its correction C30, SPEC
+             section 10.1, WP-V5 and conformance test 2, its measurement M2
+             (`06-shared-rootfs.log`); T-1322 (the reference query);
+             T-1421 (a foreground record); T-0204; T-0211;
+             `crates/podvm/src/run/prepare.rs:156`;
+             `crates/podvm/src/run/prepare.rs:396`
+Category:    image
+Priority:    P1
+Effort:      L
+Status:      open
+
+Problem:     All containers of one image run in one mutable tree,
+             `<store>/rootfs/<manifest digest>/`. A concurrent container
+             and later runs read a file that one container writes.
+             Completion rewrites `/etc/hosts` in that tree on each run, so
+             two concurrent runs with different `--add-host` values for one
+             name read one value. `--rm` deletes the tree only where no
+             record references it, and each foreground run leaves a record,
+             so a run with `--rm` is not a fresh start. docker gives each
+             container its own writable layer. `docs/limits.md` does not
+             say this.
+Premise:     `crates/podvm/src/run/prepare.rs:156` takes the rootfs path
+             from the manifest digest, and completion runs there
+             (`crates/podvm/src/run/prepare.rs:396`). The `--rm` row
+             (`crates/podvm/src/parity.rs:209`) and T-1322 keep a
+             referenced tree. M2: a concurrent reader saw the write of
+             another container in three scenarios; a later run read it in
+             four sequential combinations while records existed (14 to 24
+             records); two concurrent `--add-host svc:` runs read one
+             value. M2 also saw a tree stay after `rmi` and a new pull
+             (whether that is the intended behaviour is Unverified). The
+             host has no mount and no `/dev/fuse`, so an overlay is not
+             available (T-1653 Decision).
+Approach:    Key the tree of a container by its id, under the
+             container's directory, filled from the extracted image: by
+             `FICLONE` where the store's filesystem supports it, else by a
+             fresh extraction from the verified blobs. Never by hard links,
+             which share the inode. Run completion in the container's own
+             tree. `exec` enters it again. `rm` and `--rm` remove it. Keep
+             the extracted image as a source keyed by digest, under T-1322
+             and T-0204. Measure the time and the disk of each form for
+             alpine and for an image of more than 700 MiB, and print them.
+             State the model in `docs/limits.md`; move the old text to
+             history.
+Decision:    A container's filesystem is its own. podvm pays the copy and
+             reports its cost; it does not share mutable state between
+             containers. No overlay, because the host has no mount. The
+             image source is read-only by convention: the interposer is
+             not a boundary.
+Prove:       `cargo test -p podvm` exits 0 with tests
+             `two_containers_of_one_image_have_two_trees` and
+             `rm_removes_the_container_tree`.
+             `sh experiments/430-container-rootfs.sh` exits 0 on the
+             chroot-denying fixture: a concurrent reader does not see the
+             write of the other container, a later run does not see it,
+             two concurrent `--add-host svc:` runs each read their own
+             value, and the cost of each form is printed.
+
+**Filed 2026-11-10.** From issue 234 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), correction C30 and WP-V5: "one
+rootfs per container". M2 confirmed finding 2 of the review's R1.
+docker's per-container filesystem does not hold and the sharing is not
+documented, so the entry is P1.
