@@ -21,6 +21,11 @@ name: nightly
 
 on:
   workflow_dispatch:
+    inputs:
+      trial:
+        description: "Build, smoke and package each arch on a branch, and publish nothing"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -68,7 +73,12 @@ jobs:
       # and test refuse before one arch builds anything. A dispatch on a
       # branch refuses here too (T-1671): only a tag ref publishes.
       - name: the tag names the workspace version
+        env:
+          TRIAL: ${{ inputs.trial }}
         run: |
+          # A trial run builds the branch head and publishes nothing, so a
+          # release defect shows before release.yml creates a tag.
+          if [ "$TRIAL" = true ]; then echo "nightly: trial on $GITHUB_REF_TYPE $GITHUB_REF_NAME"; exit 0; fi
           [ "$GITHUB_REF_TYPE" = tag ] || { echo "nightly: dispatch this workflow on a v* tag, not on the $GITHUB_REF_TYPE $GITHUB_REF_NAME" >&2; exit 1; }
           tag="${GITHUB_REF_NAME#v}"
           manifest="$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)"
@@ -162,6 +172,7 @@ jobs:
   publish:
     name: publish the nightly pre-release
     needs: build
+    if: ${{ !inputs.trial }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
