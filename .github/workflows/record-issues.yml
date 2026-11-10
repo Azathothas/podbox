@@ -33,12 +33,14 @@ jobs:
       - name: TODO/github.txt against GitHub
         run: python3 -I scripts/check-github-numbers.py
       # A check that cannot fail proves nothing: a number dropped from the
-      # list must fail it.
+      # list must fail it. The check reads each number from #127 on, open or
+      # closed, so the plant takes #127; a closed number before it, such as
+      # #86, changes nothing.
       - name: A planted drop fails the check
         run: |
           set -u
           rc=0
-          python3 -I scripts/check-github-numbers.py --plant-drop 86 > plant.log 2>&1 || rc=$?
+          python3 -I scripts/check-github-numbers.py --plant-drop 127 > plant.log 2>&1 || rc=$?
           cat plant.log
           test "$rc" -eq 1 || { echo "the check exited $rc on a planted drop, not 1"; exit 1; }
-          grep -q '#86 on GitHub' plant.log
+          grep -q '#127 on GitHub' plant.log

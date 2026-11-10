@@ -67,7 +67,7 @@ An external policy change can invalidate a cached observation.
 
 `v0.1.0-beta.12` is the last podbox release.
 The tag `v0.1.0-beta.13` has no release, because its build failed.
-Releases up to `v0.1.0-beta.12` carry `podbox-*` assets and are signed by the nightly workflow of `Azathothas/podbox`.
+Tags up to `v0.1.0-beta.13` keep the podbox identity: their releases carry `podbox-*` assets and are signed by the nightly workflow of `Azathothas/podbox`.
 `podvm-verify` checks those tags against that identity and every later tag against this repository's.
 `Azathothas/podbox` redirects here; nobody may create a new repository of that name, because it would take over the redirect.
 

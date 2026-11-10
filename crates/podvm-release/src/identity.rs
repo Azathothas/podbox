@@ -74,10 +74,16 @@ mod tests {
         }
     }
 
-    /// Each `v0.1.0-beta.N` that `text` names on a line about podbox.
+    /// Each `v0.1.0-beta.N` that `text` names on a line that states the
+    /// podbox boundary ("up to" a tag). A line that only names the last
+    /// podbox release is not a boundary: the tag `v0.1.0-beta.13` has no
+    /// release, so the last release is `v0.1.0-beta.12`.
     fn podbox_betas(text: &str) -> Vec<u32> {
         let mut out = Vec::new();
-        for line in text.lines().filter(|l| l.contains("podbox")) {
+        for line in text
+            .lines()
+            .filter(|l| l.contains("podbox") && l.contains("up to"))
+        {
             for part in line.split("v0.1.0-beta.").skip(1) {
                 let n: String = part.chars().take_while(char::is_ascii_digit).collect();
                 if let Ok(n) = n.parse() {
@@ -89,7 +95,7 @@ mod tests {
     }
 
     /// T-1693 (issue 217): README and SECURITY name the boundary that the
-    /// verifier uses, and no other beta, on each line about podbox.
+    /// verifier uses, and no other beta, on each boundary line about podbox.
     #[test]
     fn the_documents_name_the_last_podbox_beta_of_the_verifier() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
