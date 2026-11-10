@@ -535,7 +535,7 @@ Prove:       `test -f vendor/userland-execve/LICENSE && grep -q '^license = "MIT
 hold on this tree, and `110-bloat-delta.sh memfd` exits 0 with
 `experiments/results/bloat-memfd.txt` committed. Five answers:
 
-1. What it replaces. `crates/podvm-enter/src/memfd.rs`: `MFD_CLOEXEC` as
+1. What it replaces. `src/memfd.rs` of `pod-enter` (PodUtils/podcrates): `MFD_CLOEXEC` as
    the unconditional base, `MFD_ALLOW_SEALING` with an `EINVAL` fallback to
    the base, the `has_shebang` router predicate, the `is_executable` probe
    (mode bits plus `faccessat` `X_OK`), and `memfd_create`, with four unit
@@ -1650,8 +1650,21 @@ keeps podvm's glue (its settings, the record fields, the verbs with a
 `&Store`, the launcher entry and the memo); `launcher/supervise.rs`
 leaves podvm, and `podvm-image` re-exports the crate's `Lock`. Each line
 of `pod-supervise.run` exits 0, and `cargo test --workspace` exits 0.
-Remaining: the imports of pod-guest, pod-enter, pod-oci, pod-extract and
-pod-rootfs.
+Remaining then: the imports of pod-guest, pod-enter, pod-oci,
+pod-extract and pod-rootfs.
+
+**Still partial, 2026-11-10.** podvm took `pod-guest` and `pod-enter`
+0.9.0 (PodUtils/podcrates#43, its T-061 and T-059):
+`adoption/podvm/pod-guest.patch`, then `pod-enter.patch`, applied with
+`git apply --3way` at podvm `e37decf`. The code applied cleanly; three
+record conflicts were joined by hand (two TODO citations that both sides
+moved, and the added rows of `docs/runtime-state.md`). `podvm-enter` and
+`podvm-windows` keep podvm's glue and call the crates. `run/prepare.rs`
+reached 501 lines, so the detached check moved to
+`lifecycle::refuse_detached_userland`. Each line of both `.run` files
+exits 0, and `cargo test --workspace` exits 0. The freeze of
+`podvm-enter` and `podvm-windows` ends. Remaining: the imports of
+pod-oci, pod-extract and pod-rootfs.
 
 ### T-1687 Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive
 

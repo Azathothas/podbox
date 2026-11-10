@@ -405,8 +405,8 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pod-core"
-version = "0.8.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.8.0#f6801133552b0b343154bd3f9e608a4f966d0be4"
+version = "0.9.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.9.0#b7c3e6a00e14a47c87c413ff36625f89bd621467"
 dependencies = [
  "libc",
  "rand",
@@ -415,9 +415,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "pod-enter"
+version = "0.9.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.9.0#b7c3e6a00e14a47c87c413ff36625f89bd621467"
+dependencies = [
+ "pod-core",
+ "pod-hostprobe",
+]
+
+[[package]]
+name = "pod-guest"
+version = "0.9.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.9.0#b7c3e6a00e14a47c87c413ff36625f89bd621467"
+dependencies = [
+ "pod-core",
+ "pod-hostprobe",
+ "sha2",
+]
+
+[[package]]
 name = "pod-hostprobe"
-version = "0.8.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.8.0#f6801133552b0b343154bd3f9e608a4f966d0be4"
+version = "0.9.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.9.0#b7c3e6a00e14a47c87c413ff36625f89bd621467"
 dependencies = [
  "linux-raw-sys",
  "pod-core",
@@ -426,8 +445,8 @@ dependencies = [
 
 [[package]]
 name = "pod-proxy"
-version = "0.8.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.8.0#f6801133552b0b343154bd3f9e608a4f966d0be4"
+version = "0.9.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.9.0#b7c3e6a00e14a47c87c413ff36625f89bd621467"
 dependencies = [
  "base64",
  "libc",
@@ -442,8 +461,8 @@ dependencies = [
 
 [[package]]
 name = "pod-supervise"
-version = "0.8.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.8.0#f6801133552b0b343154bd3f9e608a4f966d0be4"
+version = "0.9.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.9.0#b7c3e6a00e14a47c87c413ff36625f89bd621467"
 dependencies = [
  "pod-core",
  "pod-hostprobe",
@@ -453,16 +472,16 @@ dependencies = [
 
 [[package]]
 name = "pod-term"
-version = "0.8.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.8.0#f6801133552b0b343154bd3f9e608a4f966d0be4"
+version = "0.9.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.9.0#b7c3e6a00e14a47c87c413ff36625f89bd621467"
 dependencies = [
  "unicode-width",
 ]
 
 [[package]]
 name = "pod-tls"
-version = "0.8.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.8.0#f6801133552b0b343154bd3f9e608a4f966d0be4"
+version = "0.9.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.9.0#b7c3e6a00e14a47c87c413ff36625f89bd621467"
 dependencies = [
  "base64",
  "p256",
@@ -510,6 +529,8 @@ dependencies = [
 name = "podvm-enter"
 version = "0.1.0-beta.13"
 dependencies = [
+ "pod-core",
+ "pod-enter",
  "podvm-probe",
 ]
 
@@ -595,8 +616,7 @@ dependencies = [
 name = "podvm-windows"
 version = "0.1.0-beta.13"
 dependencies = [
- "podvm-probe",
- "sha2",
+ "pod-guest",
 ]
 
 [[package]]

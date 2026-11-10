@@ -11,7 +11,7 @@
 | `crates/podvm-complete` | Device and account data, package configuration, resolver and CA data |
 | `crates/podvm-enter` | Rootfs entry, ELF classification, launch modes, userland entry |
 | `crates/podvm-supervise` | Launcher state, pidfds, logs, signals, lifecycle |
-| `crates/podvm-windows` | Guest mailbox, agent, disk fetch, QMP, boot plan |
+| `crates/podvm-windows` | podvm's names and places for `pod-guest` (guest mailbox, agent, disk fetch, QMP, boot plan); the base caches; docker's exit range |
 | `crates/podvm-ssh` | SSH transport, relay frames, multiplexing, server and interactive session |
 | `crates/podvm-interpose` | Separate glibc and musl objects |
 | `crates/podvm-gate` | Task, citation and source-state gate; count writer, plant, and `podvm-dev` host commands |

@@ -3049,7 +3049,7 @@ probe confined and read the boot id from inside the driver.
 `grep -n "80-interposer-abi" TODO/gate.md` returns 9 lines and
 `grep -n "170-probe-cache" TODO/gate.md` returns 7, both exit 0 and each
 counting this paragraph twice. The
-record also corrects the `Premise` twice: `crates/podvm-enter/src/abi.rs`
+record also corrects the `Premise` twice: `src/abi.rs` of `pod-enter` (PodUtils/podcrates)
 holds 15 `#[test]` functions and not seven, and the plan's "check E has no
 test" clause is stale because
 `abi_reports_unreadable_refused_and_arity` at
@@ -3085,7 +3085,7 @@ exist in a unit test.
    A unit test has no confined process, so it has nothing to compare.
 
 ⚠ **The `Premise` says seven relevant tests and the tree holds fifteen,
-and the direction of the error matters.** `crates/podvm-enter/src/abi.rs`
+and the direction of the error matters.** `src/abi.rs` of `pod-enter` (PodUtils/podcrates)
 carries 15 `#[test]` functions, counted with `grep -c "#\[test\]"`, and
 `:1168-1170` marks the first of them as check A of
 `experiments/results/interposer-abi.txt` in a predicate form. The plan
@@ -3541,10 +3541,10 @@ Approach records the arithmetic that found them.
 Source:      KVM diagnosis 2026-10-02, run against the saved results
              `experiments/results/kvm-guest-2026-10-02.txt` and
              `-third.txt` and against the live failing run;
-             `crates/podvm-windows/src/lib.rs` `:239-244`, `:279-294`;
-             `crates/podvm-windows/src/emulator.rs` `:3-6`, `:67-100`;
-             `crates/podvm-windows/src/plan.rs` `:195-207`;
-             `crates/podvm-windows/src/agent.rs` `:91`;
+             `crates/podvm-windows/src/lib.rs` and its `emulator.rs`,
+             `plan.rs` and `agent.rs` of that day (now `pod_guest::run`,
+             `pod_guest::emulator`, `pod_guest::plan` and
+             `pod_guest::agent` of PodUtils/podcrates);
              `experiments/lib/kvm-guest-base.sh` `:182-189`
 Category:    windows
 Priority:    P0
@@ -3981,7 +3981,7 @@ Prove:       `sh scripts/common/check-docs.sh` and each other `.sh` check of
 Source:      the migration of 2026-11-06; `crates/podvm-image/src/oci.rs:170`;
              `crates/podvm-extract/src/apply.rs:77`;
              `crates/podvm-image/src/registry/wire.rs:159`;
-             `crates/podvm-enter/src/abi/elf.rs:9`;
+             `src/abi/elf.rs` of `pod-enter` (PodUtils/podcrates);
              `vendor/userland-execve/Cargo.toml:3`
 Category:    gate
 Priority:    P2

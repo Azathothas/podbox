@@ -1,4 +1,5 @@
 use super::*;
+use podvm_enter::ExitCode as _;
 use podvm_probe::verdict::Outcome;
 
 fn findings_with(rows: Vec<(&'static str, Outcome)>) -> Findings {
@@ -147,6 +148,7 @@ fn a_forced_rundir_over_a_missing_payload_names_it() {
         fds: podvm_enter::Fds::default(),
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
+        names: podvm_enter::NAMES,
     };
     let mut sink = Vec::new();
     let usable = findings_with(vec![("chroot(/tmp)", Outcome::ok())]);
@@ -207,6 +209,7 @@ fn a_forced_tmpfs_over_a_missing_payload_names_it() {
         fds: podvm_enter::Fds::default(),
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
+        names: podvm_enter::NAMES,
     };
     let mut sink = Vec::new();
     let usable = findings_with(vec![
@@ -251,6 +254,7 @@ fn a_forced_fuse_over_a_missing_payload_names_it() {
         fds: podvm_enter::Fds::default(),
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
+        names: podvm_enter::NAMES,
     };
     let mut sink = Vec::new();
     let usable = findings_with(vec![
@@ -296,6 +300,7 @@ fn a_forced_fuse_rung_without_chroot_names_the_denial() {
         fds: podvm_enter::Fds::default(),
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
+        names: podvm_enter::NAMES,
     };
     let mut sink = Vec::new();
     let denied = findings_with(vec![(
@@ -340,6 +345,7 @@ fn a_forced_memfd_over_a_missing_payload_names_it() {
         fds: podvm_enter::Fds::default(),
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
+        names: podvm_enter::NAMES,
     };
     let mut sink = Vec::new();
     let store = store_dir("m");
@@ -381,6 +387,7 @@ fn a_forced_memfd_over_a_script_refuses_naming_both() {
         fds: podvm_enter::Fds::default(),
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
+        names: podvm_enter::NAMES,
     };
     let mut sink = Vec::new();
     let store = store_dir("s");

@@ -1,4 +1,5 @@
 use super::*;
+use podvm_enter::ExitCode as _;
 
 /// One foreground run's record-in-progress.
 ///
@@ -311,6 +312,7 @@ pub fn run(args: &[String]) -> i32 {
         // after it and every one of them has to be named before it runs.
         banner: String::new(),
         path_dirs: Plan::path_from(&p.env),
+        names: podvm_enter::NAMES,
     };
     // ⭐ T-0204 and T-0211. The lock is handed to the payload immediately
     // before the fork that leads to its exec, and to nothing else.

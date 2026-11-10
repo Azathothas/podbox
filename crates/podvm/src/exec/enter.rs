@@ -1,4 +1,5 @@
 use super::*;
+use podvm_enter::ExitCode as _;
 
 /// Open the device spec where one rides the plan's environment, T-0501.
 ///
@@ -39,7 +40,7 @@ pub(super) fn enter(
     // ⚠ The container's own environment is not inherited: T-0505's whole
     // subject is that this shares the filesystem and NOTHING else, and silently
     // copying the original's environment would be the implication it refuses.
-    let mut env = podvm_enter::Plan::env_for(&[], &o.env);
+    let mut env = podvm_enter::Plan::env_for(&podvm_enter::NAMES, &[], &o.env);
     // ⭐ T-0711: the requested identity, resolved against the re-entered
     // rootfs exactly as `run` resolves it against the extracted one.
     if let Err(code) = crate::lifecycle::apply_user("exec", rootfs, o.user.as_ref(), &mut env) {
@@ -301,6 +302,7 @@ pub(super) fn enter(
         // ⚠ Empty: the banner was printed above, before the steps.
         banner: String::new(),
         path_dirs,
+        names: podvm_enter::NAMES,
     };
     if let Err(c) = serve_devices(&mut plan, &mut err) {
         return c;

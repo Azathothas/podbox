@@ -1,4 +1,5 @@
 use super::*;
+use podvm_enter::ExitCode as _;
 
 /// Everything `run` and `create` both need: the image in the store, extracted,
 /// its plan resolved and the rung selected, with nothing entered yet.
@@ -236,7 +237,7 @@ pub(crate) fn prepare(
         );
         return Err(EXIT_FLAG_ERROR);
     }
-    let mut env = Plan::env_for(&cfg.config.env, &o.env);
+    let mut env = Plan::env_for(&podvm_enter::NAMES, &cfg.config.env, &o.env);
     // ⭐ T-0711: the requested identity travels in the environment, resolved
     // against the image, before anything classifies the payload: the object
     // reads it on first use in every process, which is what survives fork
@@ -273,16 +274,7 @@ pub(crate) fn prepare(
         o.unsafe_host_paths,
         o.retry_word(cfg.config.entrypoint.as_deref()),
     )?;
-    if let Some(u) = &userland
-        && (o.detach || verb == "create")
-        && u.family != podvm_enter::userland::Family::Loader
-    {
-        eprintln!(
-            "{}",
-            crate::lifecycle::detached_userland_refusal(verb, u.family.name())
-        );
-        return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
-    }
+    crate::lifecycle::refuse_detached_userland(verb, userland.as_ref(), o.detach)?;
     // ⭐ T-0702 and T-0706: classify the payload and place the object BEFORE
     // the banner is built, so the banner names the write before anything of
     // the payload's runs. The note joins the banner below. T-1649: a `#!`

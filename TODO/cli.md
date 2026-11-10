@@ -1242,7 +1242,7 @@ Prove:       `./experiments/352-ascii-output.sh` exits 0, with the
 
 **Done 2026-09-23.** Words, not glyphs, as decided: every printed
 string across `crates/podvm/src`, `crates/podvm-probe/src`,
-`crates/podvm-image/src/tls.rs`, `crates/podvm-enter/src/abi.rs`
+`crates/podvm-image/src/tls.rs`, `src/abi.rs` of `pod-enter` (PodUtils/podcrates)
 and `crates/podvm-complete/src` carries bytes `0x00`-`0x7F` only.
 U+26D4 reads `refused:`, U+26A0 reads `note:`, U+2B50 is deleted;
 source comments stay as they are. Twenty-two files, 84 insertions
@@ -1723,7 +1723,7 @@ then this row is the record, and no entry deletes the script.
 
 Source:      issue 92; issue 114 section 3.3 and section 6 item 7;
              `crates/podvm/src/lifecycle/script.rs:148`;
-             `crates/podvm-enter/src/memfd.rs:199`;
+             `src/memfd.rs` of `pod-enter` (PodUtils/podcrates);
              `crates/podvm/src/run/prepare.rs:234`;
              A-V-04 of PodUtils/podcrates#39
 Category:    cli
@@ -2362,7 +2362,7 @@ Premise:     `--env-file` reads a file at parse time
              `crates/podvm/src/run/parse.rs:191`) and the values go into
              the environment (`crates/podvm/src/run/prepare.rs:239`). The
              userland path map is one pair for the root
-             (`crates/podvm-enter/src/userland.rs:323`); T-1653 adds pairs.
+             (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.
              A foreground run removes its files at the end
              (`crates/podvm/src/run/foreground.rs:157`). The parity table
              has no `--secret` row. The interposer is not a boundary, so

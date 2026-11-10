@@ -179,17 +179,6 @@ pub(super) fn run_pins(plant: &mut Plant, root: &Path, scratch: &str) {
         &|| pin_test(root, "crates/podvm/tests/store_gates.rs", test),
     );
 
-    let test = "refusal_triggers_only_where_the_open_row_is_denied";
-    plant.case_rust_test(
-        "33e tty_refusal",
-        "crates/podvm-enter/tests/tty_refusal.rs",
-        test,
-        &cargo_test("podvm-enter", "tty_refusal", test),
-        &none,
-        scratch,
-        &|| pin_test(root, "crates/podvm-enter/tests/tty_refusal.rs", test),
-    );
-
     let test = "pull_the_fixture_then_pull_it_again_for_up_to_date";
     plant.case_rust_test(
         "33f acquisition",

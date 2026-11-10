@@ -35,7 +35,7 @@ Separate crate: `crates/podvm-interpose`.
 
 `Tier` in [crates/podvm/src/tier.rs](../crates/podvm/src/tier.rs): `Ladder`, `Chroot`, `Machine`.
 
-`Mode` in [crates/podvm-enter/src/ladder.rs](../crates/podvm-enter/src/ladder.rs): `Memfd`, `Fuse`, `Tmpfs`, `RunDir`, `Cache`.
+`Mode` is `pod_enter::ladder::Mode` (PodUtils/podcrates), re-exported by [crates/podvm-enter/src/lib.rs](../crates/podvm-enter/src/lib.rs).
 
 ## SSH helper sources
 
@@ -52,12 +52,14 @@ Separate crate: `crates/podvm-interpose`.
 | --- | --- |
 | `base64` | `0.23.1` |
 | `flate2` | `1.1.10` |
-| `pod-core` | `0.8.0` |
-| `pod-hostprobe` | `0.8.0` |
-| `pod-proxy` | `0.8.0` |
-| `pod-supervise` | `0.8.0` |
-| `pod-term` | `0.8.0` |
-| `pod-tls` | `0.8.0` |
+| `pod-core` | `0.9.0` |
+| `pod-enter` | `0.9.0` |
+| `pod-guest` | `0.9.0` |
+| `pod-hostprobe` | `0.9.0` |
+| `pod-proxy` | `0.9.0` |
+| `pod-supervise` | `0.9.0` |
+| `pod-term` | `0.9.0` |
+| `pod-tls` | `0.9.0` |
 | `rustls` | `0.23.46` |
 | `rustls-pki-types` | `1.15.1` |
 | `ruzstd` | `0.9.1` |

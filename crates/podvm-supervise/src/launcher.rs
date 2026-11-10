@@ -85,6 +85,7 @@ fn enter_in_launcher(
         // would put it in the container's LOG.
         banner: String::new(),
         path_dirs: Plan::path_from(&env),
+        names: podvm_enter::NAMES,
     };
 
     // ⭐ TODO/image.md T-0204 and T-0211. The image lock is taken here and

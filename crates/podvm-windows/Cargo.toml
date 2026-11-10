@@ -7,15 +7,9 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-# ⚠ The machine tier's own profile, reused rather than re-derived: the
-# accelerator this driver runs is the one the tier already established, so a
-# machine podvm refuses a Linux guest on is not quietly a machine it boots a
-# Windows guest on. `podvm-probe` is the workspace's lightest crate.
-podvm-probe = { path = "../podvm-probe" }
-
-# ⚠ TODO/deps.md T-0911's rule, applied here: a pin is justified by the entry
-# that measured it, and this one adds no crate. `sha2` is already in the
-# resolve graph through `podvm-image`'s digest verification, at exactly this
-# version, so the acquisition path in `src/fetch.rs` hashes with the crate the
-# store already trusts rather than a second implementation of the same seam.
-sha2.workspace = true
+# The disposable guest: the boot plan on the machine tier's own profile, the
+# overlay, the FAT16 mailbox, the cmd.exe and DOS agents, QMP, the bounded
+# stop and the bounded store of a base image with its digest, shared through
+# PodUtils/podcrates. This crate gives podvm's names and places to it, and
+# keeps the base caches and docker's range of exit codes.
+pod-guest = { git = "https://github.com/PodUtils/podcrates", tag = "v0.9.0" }

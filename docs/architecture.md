@@ -47,7 +47,7 @@ reuse a cache, or enter by path. These modes describe storage and launch.
 They do not add an isolation claim.
 
 The vendored userland loader is not linked into the runtime.
-The current userland entry lives in `crates/podvm-enter/src/userland.rs`.
+The current userland entry lives in `src/userland.rs` of `pod-enter` (PodUtils/podcrates).
 [THIRD_PARTY](../THIRD_PARTY.md) records the carried loader's actual patch state.
 
 ## Interposer

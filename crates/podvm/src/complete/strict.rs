@@ -404,7 +404,7 @@ fn one_step(
     // handing `(1, 2)` to the child's `dup2`-then-close loop would close the
     // child's own stderr with it.
     let mirror = podvm_probe::sys::dup_cloexec(2)
-        .map_err(|e| podvm_enter::Error::Runtime(format!("dup of stderr: {}", e.name())))?;
+        .map_err(|e| podvm_enter::runtime(format!("dup of stderr: {}", e.name())))?;
     let mut pass = vec![(1, mirror)];
     // ⭐ T-0710: steps share the entry's memo, where one was handed. Without
     // it a fixup's `chown` would fail real where the payload's succeeds
@@ -431,6 +431,7 @@ fn one_step(
         // ⚠ Empty: the banner named this step before podvm got here.
         banner: String::new(),
         path_dirs: Vec::new(),
+        names: podvm_enter::NAMES,
     };
     let mut sink = std::io::sink();
     let spawned = podvm_enter::spawn(root, &plan, &mut sink);

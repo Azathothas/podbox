@@ -105,7 +105,6 @@ const FILES: &[&str] = &[
     "crates/podvm/tests/detached_stdio.rs",
     "crates/podvm/tests/qol.rs",
     "crates/podvm/tests/store_gates.rs",
-    "crates/podvm-enter/tests/tty_refusal.rs",
     "crates/podvm-image/tests/acquisition.rs",
     "crates/podvm-image/tests/across_distributions.rs",
     "crates/podvm-image/tests/common/mod.rs",

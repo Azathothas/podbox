@@ -41,7 +41,7 @@ Private path substitutions in a published result must be stated explicitly.
 | `crates/podvm-ssh/shims/fakepwd.c` | sandssh `4fc7f8c` | MIT; adjacent LICENSE retained | Source retained. No current workspace build compiles or links it. Restricted-server use remains proof work in T-1401. |
 
 Do not describe retained source as the active userland loader.
-The native loader is in `crates/podvm-enter/src/userland.rs`.
+The native loader is in `src/userland.rs` of `pod-enter` (PodUtils/podcrates).
 
 ## Build dependencies
 

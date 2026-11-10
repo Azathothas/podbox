@@ -1,4 +1,5 @@
 use super::*;
+use podvm_enter::ExitCode as _;
 
 /// The interposer's opt-in beside [`podvm_enter::ladder::GUEST_EXE_VAR`].
 ///
@@ -194,6 +195,26 @@ pub fn detached_drive(userland: Option<&Userland>) -> Vec<String> {
         .filter(|u| u.family == podvm_enter::userland::Family::Loader)
         .map(|u| u.loader_argv.clone())
         .unwrap_or_default()
+}
+
+/// Refuse a detached entry (`run -d`, `create`) on a userland family with
+/// no detached driver: only the loader family has one (TODO/enter.md
+/// T-1411). The refusal goes to stderr, and the code is 125.
+pub fn refuse_detached_userland(
+    verb: &str,
+    userland: Option<&super::Userland>,
+    detach: bool,
+) -> Result<(), i32> {
+    match userland {
+        Some(u)
+            if (detach || verb == "create")
+                && u.family != podvm_enter::userland::Family::Loader =>
+        {
+            eprintln!("{}", detached_userland_refusal(verb, u.family.name()));
+            Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+        }
+        _ => Ok(()),
+    }
 }
 
 /// TODO/enter.md T-1411. The detached refusal, naming the blocking call.

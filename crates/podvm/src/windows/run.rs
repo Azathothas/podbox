@@ -48,9 +48,17 @@ pub(crate) fn run(verb: &str, a: &Args) -> i32 {
     } else {
         a.command.clone()
     };
+    let token = match podvm_windows::agent::nonce() {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("podvm {verb}: {e}");
+            podvm_windows::cleanup(&plan);
+            return EXIT_RUNTIME_ERROR;
+        }
+    };
     let request = Request {
         command,
-        token: podvm_windows::agent::nonce(),
+        token,
         // 0 is refused at the flag surface; the default still applies where
         // the flag is absent.
         timeout: super::request_timeout(a.timeout, DEFAULT_TIMEOUT),

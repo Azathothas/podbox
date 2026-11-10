@@ -109,7 +109,14 @@ pub(crate) fn dos_run(
     // removes the per-run directory on unwind.
     let _run_guard = podvm_windows::RunGuard::arm(&plan);
     let batch = line_from_command(command);
-    let token = podvm_windows::agent::nonce();
+    let token = match podvm_windows::agent::nonce() {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("podvm {verb}: {e}");
+            podvm_windows::cleanup(&plan);
+            return EXIT_RUNTIME_ERROR;
+        }
+    };
     let timeout = super::request_timeout(timeout, DOS_TIMEOUT);
     eprintln!(
         "podvm {verb}: machine tier {} (the emulator process is the boundary, not hardware \
@@ -147,19 +154,17 @@ pub(crate) fn dos_run(
                 }
             }
         }
-        Err(podvm_windows::Error::Timeout(d, stop)) => {
-            eprintln!(
-                "podvm {verb}: DEADLINE: no completion line with the run token within {} s. \
-                 The guest never wrote WQCODE.TXT, so there is no status to return \
-                 (TODO/milestones.md T-1112). {stop}",
-                d.as_secs()
-            );
-            podvm_windows::cleanup(&plan);
-            kept(&plan);
-            EXIT_RUNTIME_ERROR
-        }
         Err(e) => {
-            eprintln!("podvm {verb}: {e}");
+            match podvm_windows::timeout_of(&e) {
+                Some(t) => eprintln!(
+                    "podvm {verb}: DEADLINE: no completion line with the run token within {} s. \
+                     The guest never wrote WQCODE.TXT, so there is no status to return \
+                     (TODO/milestones.md T-1112). {}",
+                    t.after.as_secs(),
+                    t.stop
+                ),
+                None => eprintln!("podvm {verb}: {e}"),
+            }
             podvm_windows::cleanup(&plan);
             kept(&plan);
             EXIT_RUNTIME_ERROR

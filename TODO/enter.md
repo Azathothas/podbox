@@ -79,7 +79,7 @@ mapping a host device and reading it inside, with the refusal arm
 naming status None) beside it.
 
 **Done 2026-09-26.** `--device HOST[:GUEST[:PERMS]]` maps through
-the device plan both halves name: `crates/podvm-enter/src/device.rs`
+the device plan both halves name: `src/device.rs` of `pod-enter` (PodUtils/podcrates)
 parses (both paths absolute, perms from r, w and m) and opens the
 host paths before the root changes (child descriptors from 41, host
 descriptors relocated clear of them), and
@@ -433,7 +433,7 @@ Decision:    Report and refuse before falling back. A runtime that guesses which
              of them.
 Prove:       `podvm run --rm --platform linux/arm64 <image> /bin/true` succeeds where an interpreter is registered and exits 125 naming both platforms where none is, and `podvm probe --json` run inside it carries the interpreter in `measured_by`
 
-**Done 2026-09-09.** `crates/podvm-enter/src/binfmt.rs` and the `run` verb,
+**Done 2026-09-09.** `src/binfmt.rs` of `pod-enter` (PodUtils/podcrates) and the `run` verb,
 driven by `experiments/300-run.sh` clause 5 and
 `experiments/260-multiarch.sh` clause 5.
 
@@ -787,7 +787,7 @@ the drives.
 
 ### T-1407 Anchor userland paths inside the rootfs or refuse
 
-Source:      issues 69 and 70; `crates/podvm-enter/src/userland.rs`;
+Source:      issues 69 and 70; `src/userland.rs` of `pod-enter` (PodUtils/podcrates);
              `crates/podvm-interpose/src/map.rs`
 Category:    enter
 Priority:    P0
@@ -840,9 +840,9 @@ one acceptance clause per issue.
 
 ### T-1408 Resolve the loader symlink inside the rootfs
 
-Source:      issue 73; `crates/podvm-enter/src/userland.rs:191`;
-             `crates/podvm-enter/src/memfd.rs:49`;
-             `crates/podvm-enter/src/abi/search.rs:167`
+Source:      issue 73; `src/userland.rs` of `pod-enter` (PodUtils/podcrates);
+             `src/memfd.rs` of `pod-enter` (PodUtils/podcrates);
+             `src/abi/search.rs` of `pod-enter` (PodUtils/podcrates)
 Category:    enter
 Priority:    P1
 Effort:      S
@@ -885,7 +885,7 @@ before implementation.
 ### T-1409 Answer the payload-visible exe on the loader family
 
 Source:      issue 74; `crates/podvm-interpose/src/path_calls.rs:63`;
-             `crates/podvm-enter/src/ladder.rs:187`;
+             `src/ladder.rs` of `pod-enter` (PodUtils/podcrates);
              `crates/podvm/src/run/foreground.rs:259`
 Category:    enter
 Priority:    P1
@@ -1038,7 +1038,7 @@ before implementation.
 
 ### T-1412 A missing workdir refuses naming the path
 
-Source:      issue 81; `crates/podvm-enter/src/launch.rs:178`;
+Source:      issue 81; `src/launch.rs` of `pod-enter` (PodUtils/podcrates);
              `crates/podvm/src/run/parse.rs:193`
 Category:    enter
 Priority:    P1
@@ -1081,8 +1081,8 @@ before implementation.
 ### T-1413 A script refusal names the file and its shebang
 
 Source:      issue 78; `crates/podvm/src/lifecycle/entry.rs:217`;
-             `crates/podvm-enter/src/memfd.rs:147`;
-             `crates/podvm-enter/src/ladder.rs:148`
+             `src/memfd.rs` of `pod-enter` (PodUtils/podcrates);
+             `src/ladder.rs` of `pod-enter` (PodUtils/podcrates)
 Category:    enter
 Priority:    P2
 Effort:      S
@@ -1335,9 +1335,9 @@ neighbours), a second lane run, and the saved lane log.
 ### T-1647 Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes
 
 Source:      issue 90; issue 114 section 3.3 and section 6 item 6;
-             `crates/podvm-enter/src/ladder.rs:238`;
-             `crates/podvm-enter/src/abi/elf.rs:10`;
-             `crates/podvm-enter/src/memfd.rs:108`;
+             `src/ladder.rs` of `pod-enter` (PodUtils/podcrates);
+             `src/abi/elf.rs` of `pod-enter` (PodUtils/podcrates);
+             `src/memfd.rs` of `pod-enter` (PodUtils/podcrates);
              A-V-04 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P1
@@ -1573,7 +1573,7 @@ openat2(rootfd, "/no/such/file", RESOLVE_IN_ROOT)        -> -1 ENOENT
 Source:      issue 109; issue 114 section 1, section 4 and section 6
              item 1; `crates/podvm-probe/src/select.rs:35`;
              `pod_hostprobe::probes`;
-             `crates/podvm-enter/src/memfd.rs:108`;
+             `src/memfd.rs` of `pod-enter` (PodUtils/podcrates);
              A-V-04, G-09 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P2
@@ -1646,7 +1646,7 @@ where the guest kernel is root (T-1656). This entry changes no clause.
 
 Source:      issue 130 (130 reposts the hidden issue 104); issue 114
              section 3.6; `crates/podvm/src/parity.rs:221`;
-             `crates/podvm-enter/src/userland.rs:323`;
+             `src/userland.rs` of `pod-enter` (PodUtils/podcrates);
              `crates/podvm-interpose/src/map/rewrite.rs:75`;
              A-V-06, G-07 of PodUtils/podcrates#39
 Category:    enter
@@ -1862,11 +1862,11 @@ Problem:     `kernel_takes_memfd()` proves that `memfd_create` answers, not
              "execveat of the memfd". Under `vm.memfd_noexec=2` the entry
              refuses with a text that does not name the sysctl. `podvm
              doctor` has no row for it.
-Premise:     The probe is `crates/podvm-enter/src/memfd.rs:90`: it creates
+Premise:     The probe is `src/memfd.rs` of `pod-enter` (PodUtils/podcrates): it creates
              and closes a memfd and never executes one. The callers are
              `crates/podvm/src/ladder.rs:202` and
              `crates/podvm/src/lifecycle/entry.rs:346`. The late step is
-             `crates/podvm-enter/src/launch.rs:349`. The census row
+             `src/launch.rs` of `pod-enter` (PodUtils/podcrates). The census row
              `memfd_create+exec` of `pod_hostprobe::probes` runs a shell
              script through `/proc/self/fd/N`, not `execveat` of a static
              payload, and podvm does not read it. Under value 2, `MFD_EXEC`

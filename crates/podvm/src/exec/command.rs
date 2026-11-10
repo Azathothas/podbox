@@ -1,4 +1,5 @@
 use super::*;
+use podvm_enter::ExitCode as _;
 
 /// The `-t` refusal, with T-0503's entry named. The usability predicate
 /// lives in `podvm-probe`, beside the rows it reads; `run` asks the same
@@ -123,7 +124,7 @@ pub fn exec(args: &[String]) -> i32 {
     // command given and nothing around it, and an entrypoint that wraps a
     // second entry is a process the caller did not write.
     let argv = o.command.clone();
-    let mut env = Plan::env_for(&cfg.config.env, &o.env);
+    let mut env = Plan::env_for(&podvm_enter::NAMES, &cfg.config.env, &o.env);
     // ⭐ T-0711: the one call, as on the container path above: a second
     // spelling of the same resolve-and-set would be the second copy
     // `docs/conventions/code.md` refuses.
@@ -348,6 +349,7 @@ pub fn exec(args: &[String]) -> i32 {
         // ⚠ Empty: the banner was printed above, before the steps.
         banner: String::new(),
         path_dirs,
+        names: podvm_enter::NAMES,
     };
     if let Err(c) = serve_devices(&mut plan, &mut err) {
         drop(memo);

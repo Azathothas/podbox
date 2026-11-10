@@ -287,19 +287,22 @@ fn render(root: &Path) -> Result<String, String> {
             .to_string(),
     );
     lines.push(String::new());
-    for (path, name) in [
-        ("crates/podvm/src/tier.rs", "Tier"),
-        ("crates/podvm-enter/src/ladder.rs", "Mode"),
-    ] {
-        let text = read_text(&root.join(path))?;
-        let values = enumeration(&text, path, name)?;
-        let rendered: Vec<String> = values.iter().map(|value| format!("`{value}`")).collect();
-        lines.push(format!(
-            "`{name}` in [{path}](../{path}): {}.",
-            rendered.join(", ")
-        ));
-        lines.push(String::new());
-    }
+    let (path, name) = ("crates/podvm/src/tier.rs", "Tier");
+    let text = read_text(&root.join(path))?;
+    let values = enumeration(&text, path, name)?;
+    let rendered: Vec<String> = values.iter().map(|value| format!("`{value}`")).collect();
+    lines.push(format!(
+        "`{name}` in [{path}](../{path}): {}.",
+        rendered.join(", ")
+    ));
+    lines.push(String::new());
+    // The launch rungs are declared in pod-enter, outside this tree.
+    lines.push(
+        "`Mode` is `pod_enter::ladder::Mode` (PodUtils/podcrates), \
+         re-exported by [crates/podvm-enter/src/lib.rs](../crates/podvm-enter/src/lib.rs)."
+            .to_string(),
+    );
+    lines.push(String::new());
     lines.push("## SSH helper sources".to_string());
     lines.push(String::new());
     lines.push("| Executable | Source |".to_string());

@@ -15,7 +15,7 @@ use podvm_probe::Findings;
 /// the chroot by path, and the ladder only engages on a request. An unknown
 /// word refuses with the rung list, never a guess.
 pub(crate) fn forced_mode() -> Result<Option<Mode>, podvm_enter::Error> {
-    parse_request(&std::env::var(Plan::MODE_REQUEST_VAR).unwrap_or_default())
+    parse_request(&std::env::var(podvm_enter::NAMES.mode_request).unwrap_or_default())
 }
 
 /// The pure half of [`forced_mode`], over the value rather than the process
@@ -25,7 +25,7 @@ fn parse_request(raw: &str) -> Result<Option<Mode>, podvm_enter::Error> {
     if req.is_empty() {
         return Ok(None);
     }
-    ladder::Mode::parse(req).map(Some)
+    ladder::parse_mode(req).map(Some)
 }
 
 /// Refuse a request the verb cannot honor. Only foreground `run` drives the
@@ -63,7 +63,7 @@ pub(crate) fn refuse_where_undriven(
     detach: bool,
     machine_tier: bool,
 ) -> Result<(), String> {
-    let raw = std::env::var(Plan::MODE_REQUEST_VAR).unwrap_or_default();
+    let raw = std::env::var(podvm_enter::NAMES.mode_request).unwrap_or_default();
     if verb == "run" && !detach && !machine_tier {
         return Ok(());
     }
@@ -123,10 +123,9 @@ fn stage_rundir(
     store_root: &std::path::Path,
     rootfs: &str,
 ) -> Result<std::path::PathBuf, podvm_enter::Error> {
-    use podvm_enter::Error;
     let base = store_root.join("runs");
     std::fs::create_dir_all(&base).map_err(|e| {
-        Error::Runtime(format!(
+        podvm_enter::runtime(format!(
             "PODVM_MODE=rundir was forced but {} could not be prepared: {e}",
             base.display()
         ))
@@ -137,7 +136,7 @@ fn stage_rundir(
         .unwrap_or(0);
     let dir = base.join(format!("run-{}-{nanos}", std::process::id()));
     podvm_enter::stage::copy_tree(std::path::Path::new(rootfs), &dir)
-        .map_err(|r| Error::Runtime(format!("PODVM_MODE=rundir was forced but {r}")))?;
+        .map_err(|r| podvm_enter::runtime(format!("PODVM_MODE=rundir was forced but {r}")))?;
     Ok(dir)
 }
 
@@ -170,9 +169,8 @@ fn memfd_payload(
     argv0: &str,
     path_dirs: &[String],
 ) -> Result<(Vec<u8>, Option<MemfdRefusal>), podvm_enter::Error> {
-    use podvm_enter::Error;
     let bytes = ladder::payload_bytes(rootfs, argv0, path_dirs)
-        .map_err(|e| Error::Runtime(format!("PODVM_MODE=memfd was forced but {e}")))?;
+        .map_err(|e| podvm_enter::runtime(format!("PODVM_MODE=memfd was forced but {e}")))?;
     let why = memfd::eligible(&bytes).err();
     Ok((bytes, why))
 }
@@ -206,7 +204,7 @@ pub(crate) fn enter_forced(
         if memfd_why.is_none() {
             let probe = memfd::memfd_exec();
             if !probe.runs() {
-                return Err(podvm_enter::Error::Runtime(format!(
+                return Err(podvm_enter::runtime(format!(
                     "PODVM_MODE=memfd was forced but memfd mode is unavailable: \
                      {} (TODO/enter.md T-1688)",
                     memfd::probe::answer(probe).sentence()
@@ -237,7 +235,7 @@ pub(crate) fn enter_forced(
                     );
                 }
                 None => {
-                    return Err(podvm_enter::Error::Runtime(format!(
+                    return Err(podvm_enter::runtime(format!(
                         "PODVM_MODE=memfd was forced but {}: without chroot(2) \
                          only a static payload enters, through the unforced \
                          loader family where the tier reaches it: run without \
@@ -250,7 +248,7 @@ pub(crate) fn enter_forced(
                 }
             }
         }
-        return Err(podvm_enter::Error::Runtime(format!(
+        return Err(podvm_enter::runtime(format!(
             "PODVM_MODE={} was forced but chroot(2) is denied on this machine, \
              and only the memfd rung enters without it (TODO/enter.md T-1317)",
             mode.name()
@@ -266,7 +264,7 @@ pub(crate) fn enter_forced(
             // Admission staged the bytes it chose on. Reaching here means the
             // choice and the staging disagreed, which is a defect rather than
             // a rung, and it refuses as one.
-            None => Err(podvm_enter::Error::Runtime(
+            None => Err(podvm_enter::runtime(
                 "the ladder chose the memfd rung it had just refused: this is a podvm defect, not a payload one (TODO/packaging.md T-1003)".to_string(),
             )),
         }
@@ -274,22 +272,20 @@ pub(crate) fn enter_forced(
         // ⭐ TODO/packaging.md T-1003. The private per-run root: resolved
         // first (no rung runs what nothing resolved), staged from the
         // extracted tree, entered by path, removed on exit.
-        ladder::resolve_payload(rootfs, argv0, path_dirs).map_err(|e| {
-            podvm_enter::Error::Runtime(format!("PODVM_MODE=rundir was forced but {e}"))
-        })?;
+        ladder::resolve_payload(rootfs, argv0, path_dirs)
+            .map_err(|e| podvm_enter::runtime(format!("PODVM_MODE=rundir was forced but {e}")))?;
         let staged = stage_rundir(store_root, rootfs)?;
         enter_staged(&staged, plan, Mode::RunDir, false, err)
     } else if chosen == Mode::Cache {
         // ⭐ TODO/packaging.md T-1003. The persistent per-image root:
         // copied once under the digest, reused while its marker names
         // it, kept when the payload exits.
-        ladder::resolve_payload(rootfs, argv0, path_dirs).map_err(|e| {
-            podvm_enter::Error::Runtime(format!("PODVM_MODE=cache was forced but {e}"))
-        })?;
+        ladder::resolve_payload(rootfs, argv0, path_dirs)
+            .map_err(|e| podvm_enter::runtime(format!("PODVM_MODE=cache was forced but {e}")))?;
         let staged =
             podvm_enter::stage::stage_cache(store_root, cache_digest, std::path::Path::new(rootfs))
                 .map_err(|r| {
-                    podvm_enter::Error::Runtime(format!("PODVM_MODE=cache was forced but {r}"))
+                    podvm_enter::runtime(format!("PODVM_MODE=cache was forced but {r}"))
                 })?;
         enter_staged(&staged, plan, Mode::Cache, true, err)
     } else if chosen == Mode::Tmpfs {
@@ -298,13 +294,10 @@ pub(crate) fn enter_forced(
         // from the extracted tree, entered by path, unmounted and removed
         // on exit. Where the mount is refused the staging names it, after
         // the ladder's own attach verdict already refused it above.
-        ladder::resolve_payload(rootfs, argv0, path_dirs).map_err(|e| {
-            podvm_enter::Error::Runtime(format!("PODVM_MODE=tmpfs was forced but {e}"))
-        })?;
+        ladder::resolve_payload(rootfs, argv0, path_dirs)
+            .map_err(|e| podvm_enter::runtime(format!("PODVM_MODE=tmpfs was forced but {e}")))?;
         let staged = podvm_enter::stage::stage_tmpfs(store_root, std::path::Path::new(rootfs))
-            .map_err(|r| {
-                podvm_enter::Error::Runtime(format!("PODVM_MODE=tmpfs was forced but {r}"))
-            })?;
+            .map_err(|r| podvm_enter::runtime(format!("PODVM_MODE=tmpfs was forced but {r}")))?;
         let staged_str = staged.to_string_lossy().into_owned();
         let code = (|| {
             let staged_root = RootDir::open(&staged_str)?;
@@ -319,13 +312,10 @@ pub(crate) fn enter_forced(
         // mount, killed, unmounted and removed on exit. Where the node
         // does not open or the mount is refused the staging names it,
         // after the ladder's own open row already refused it above.
-        ladder::resolve_payload(rootfs, argv0, path_dirs).map_err(|e| {
-            podvm_enter::Error::Runtime(format!("PODVM_MODE=fuse was forced but {e}"))
-        })?;
+        ladder::resolve_payload(rootfs, argv0, path_dirs)
+            .map_err(|e| podvm_enter::runtime(format!("PODVM_MODE=fuse was forced but {e}")))?;
         let mounted = podvm_enter::fuse::serve_tree(store_root, std::path::Path::new(rootfs))
-            .map_err(|r| {
-                podvm_enter::Error::Runtime(format!("PODVM_MODE=fuse was forced but {r}"))
-            })?;
+            .map_err(|r| podvm_enter::runtime(format!("PODVM_MODE=fuse was forced but {r}")))?;
         let mounted_str = mounted.dir.to_string_lossy().into_owned();
         let code = (|| {
             let mounted_root = RootDir::open(&mounted_str)?;
@@ -337,7 +327,7 @@ pub(crate) fn enter_forced(
         // Admission staged what it chose on. Reaching here means the
         // choice and the staging disagreed, which is a defect rather
         // than a rung, and it refuses as one.
-        Err(podvm_enter::Error::Runtime(
+        Err(podvm_enter::runtime(
             "the ladder chose a rung no arm drives: this is a podvm defect, not a payload one (TODO/packaging.md T-1003)".to_string(),
         ))
     }

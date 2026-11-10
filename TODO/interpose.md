@@ -860,7 +860,7 @@ Decision:    Select and assert, never try. The assertion is cheap, it runs
 Prove:       `./experiments/80-interposer-abi.sh` exits 0, and its check E is this reader answering what the loader answered in A, B and C
 
 
-**Done 2026-09-09.** `crates/podvm-enter/src/abi.rs`, driven by
+**Done 2026-09-09.** `src/abi.rs` of `pod-enter` (PodUtils/podcrates), driven by
 `podvm system abi <object> <libc>` and asserted by check E of
 `experiments/80-interposer-abi.sh`.
 
@@ -2050,8 +2050,8 @@ clause.
 Source:      issues 87, 128 and 129 (128 and 129 repost the hidden
              issues 96 and 97); issue 114 section 3.2 and section 6
              item 4; `crates/podvm/src/interpose.rs:281`;
-             `crates/podvm-enter/src/abi.rs:293`;
-             `crates/podvm-enter/src/abi/search.rs:43`;
+             `src/abi.rs` of `pod-enter` (PodUtils/podcrates);
+             `src/abi/search.rs` of `pod-enter` (PodUtils/podcrates);
              `crates/podvm-interpose/src/real.rs:44`;
              A-V-04 of PodUtils/podcrates#39
 Category:    interpose
@@ -2254,7 +2254,7 @@ Premise:     The exec family (`lib.rs:1014-1020`: `execve`, `execv`,
              libc mixing T-1407 refused at the top level. That second case
              follows from the mechanism and is not measured. The top
              level avoids both through the loader family (`loader_plan`,
-             `crates/podvm-enter/src/userland.rs:187`). The banner names
+             `src/userland.rs` of `pod-enter` (PodUtils/podcrates)). The banner names
              the limit (`lifecycle.rs:1984`), and clause 17 of experiment
              356 pins the 127 as informational, not as a gate.
 Approach:    In the exec family, read the head of the mapped file. For

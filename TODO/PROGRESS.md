@@ -219,10 +219,10 @@ keeps its historical scope. It does not establish current reliability.
     ruling "Priority", 2026-11-09). The next work is item 13, T-1648
     first. podcrates imports `pod-supervise` from podvm `27ae993`: the
     files of `podvm-supervise` are free again: podvm took `pod-supervise`
-    0.8.0 at `989f35b`. `podvm-enter` and `podvm-windows` are frozen
-    since 2026-11-09 for the imports of `pod-enter` and `pod-guest`
-    (podcrates v0.9.0): they take fixes only, each as a COORD issue
-    `(to podcrates)`. T-1647 and T-1697 touch them.
+    0.8.0 at `989f35b`. podvm took `pod-guest` and `pod-enter`
+    0.9.0 on 2026-11-10, so `podvm-enter` and `podvm-windows` are free
+    again; a change of the moved code goes to podcrates as a COORD
+    issue. T-1647 and T-1697 touch it.
 
 An agent may start a KVM guest unattended by passing both
 `--accept-host-risk` and `--unattended`; the driver then holds a T-1609
