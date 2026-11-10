@@ -260,7 +260,7 @@ pub(super) fn drive_inner(
         }
     }
     if !report.failed {
-        let init = "#!/bin/sh\necho VMR-BENCH-READY\ncd /\nfor b in bench-int bench-sys bench-mem bench-io; do\n\tfor i in 1 2 3; do\n\t\t/bench/$b\n\tdone\ndone\necho VMR-BENCH-DONE\npoweroff -f\n";
+        let init = GUEST_INIT;
         let extras = extras_archive(init.as_bytes());
         if fs::write(scratch.join("extras.cpio"), &extras).is_err() || extras.is_empty() {
             report.miss("the extras archive did not build");
@@ -349,26 +349,23 @@ pub(super) fn drive_inner(
             "console=ttyS0 panic=-1",
         ]);
         let boot = scratch.join("boot.log");
-        match run_capture("qemu-system-x86_64", &argv, root, &[], boot_timeout) {
-            Some((ok, stdout, stderr)) => {
-                fs::write(&boot, format!("{stdout}{stderr}")).ok();
-                boot_log = format!("{stdout}{stderr}");
-                report.say(&format!(
-                    "  qemu exited {} with {} console bytes",
-                    if ok { "0" } else { "nonzero" },
-                    boot_log.len()
-                ));
-            }
-            None => {
-                boot_log = fs::read_to_string(&boot).unwrap_or_default();
-                report.say(&format!(
-                    "  qemu did not return in {boot_timeout}s or failed to spawn; {} console bytes on file",
-                    boot_log.len()
-                ));
-            }
+        let ran = run_to_file("qemu-system-x86_64", &argv, root, &boot, boot_timeout);
+        boot_log = fs::read(&boot)
+            .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+            .unwrap_or_default();
+        match ran {
+            Some(ok) => report.say(&format!(
+                "  qemu exited {} with {} console bytes",
+                if ok { "0" } else { "nonzero" },
+                boot_log.len()
+            )),
+            None => report.say(&format!(
+                "  qemu did not return in {boot_timeout}s (killed) or failed to spawn; {} console bytes on file",
+                boot_log.len()
+            )),
         }
-        // The script records the rc without asserting on it: 124 is the
-        // halt the spec records, because poweroff halts on pc,acpi=off.
+        // The guest ends with `reboot -f`: with -no-reboot qemu then exits
+        // (T-1702). `poweroff -f` halts on pc,acpi=off and qemu stays up.
         report.say("  qemu ran to the boot log");
         if boot_log.contains("VMR-BENCH-DONE") {
             report.pass("the guest ran the batch to VMR-BENCH-DONE");

@@ -1,0 +1,16 @@
+T-1702 hand boot of the pinned kernel under TCG, 2026-11-10 (qemu 8.2.2, no /dev/kvm).
+Command: qemu-system-x86_64 -M pc,acpi=off -m 256 -nographic -no-reboot -accel tcg,thread=multi -kernel vmlinuz-virt -initrd TRIVIAL.cpio -append "console=ttyS0 panic=-1"
+Result: exit 0 after 2.7 s; 16536 console bytes (the kernel panics: the trivial initramfs has no init). Console path and flags are good.
+First kernel lines:
+[    0.000000] Command line: console=ttyS0 panic=-1
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable
+[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff] reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x000000000fffffff] usable
+
+Full guest, tool argv, killed at 240 s with the console kept (first run): 17812 console bytes, the guest printed
+VMR-BENCH-DONE at 37.9 s of guest time, then "reboot: Power off not available: System halted instead".
+qemu stayed up because poweroff halts on pc,acpi=off. The 0 bytes of the old run came from the tool: at the timeout it
+dropped the pipes, kept no console, and left qemu running.
+After the fix (init ends with reboot -f; qemu exits 0 by -no-reboot): the whole podvm-workload run took 61 s, exit 0.

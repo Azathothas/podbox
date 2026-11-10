@@ -51,6 +51,11 @@ fn alpine_ref() -> &'static str {
 // The netboot archive of 3.22.6, not `netboot/vmlinuz-virt`: that directory
 // follows each point release, and the pinned kernel is the one of 3.22.6
 // (T-1687, PodUtils/podcrates#6).
+/// The init script of the guest. It ends with `reboot -f`, not `poweroff
+/// -f`: on `-M pc,acpi=off` the kernel cannot power off and halts, so qemu
+/// never exits; a reset with `-no-reboot` makes qemu exit at once (T-1702).
+const GUEST_INIT: &str = "#!/bin/sh\necho VMR-BENCH-READY\ncd /\nfor b in bench-int bench-sys bench-mem bench-io; do\n\tfor i in 1 2 3; do\n\t\t/bench/$b\n\tdone\ndone\necho VMR-BENCH-DONE\nreboot -f\n";
+
 const KURL: &str = "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-netboot-3.22.6-x86_64.tar.gz";
 const KARCHIVE_MEMBER: &str = "boot/vmlinuz-virt";
 const KERNEL_SHA256: &str = "6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51";
@@ -100,6 +105,39 @@ fn run_capture(
             String::from_utf8_lossy(&output.stderr).into_owned(),
         )),
         _ => None,
+    }
+}
+
+/// Runs a long guest with its console in a file, so that a timeout keeps
+/// what the guest printed (T-1702). The child dies at the timeout: before
+/// this the tool dropped the pipes of a child that kept running, which
+/// showed as 0 console bytes and left the emulator alive. Returns the exit
+/// success, or `None` where the child did not spawn or was killed at the
+/// timeout.
+fn run_to_file(prog: &str, args: &[&str], cwd: &Path, log: &Path, secs: u64) -> Option<bool> {
+    let out = fs::File::create(log).ok()?;
+    let err = out.try_clone().ok()?;
+    let mut child = Command::new(prog)
+        .args(args)
+        .current_dir(cwd)
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(out))
+        .stderr(Stdio::from(err))
+        .spawn()
+        .ok()?;
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => return Some(status.success()),
+            Ok(None) if start.elapsed() < Duration::from_secs(secs) => {
+                std::thread::sleep(Duration::from_millis(200));
+            }
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
     }
 }
 

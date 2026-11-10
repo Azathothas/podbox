@@ -1350,7 +1350,7 @@ Source:      T-1687 (its run of 2026-11-10);
 Category:    machine
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     On the cloud host (no `/dev/kvm`), clause 3 of
              `podvm-workload` boots the pinned Alpine kernel under TCG with
@@ -1371,6 +1371,24 @@ Decision:    A guest that prints nothing is not a slow guest; the tool
 Prove:       `PODVM_WORKLOAD_MIRROR=1 podvm-workload` on the cloud host
              reaches the done marker of clause 3 and exits 0, or the
              entry records the measured host condition that stops it.
+
+**Done 2026-11-10.** The Premise is refuted: the arguments were right,
+and the kernel printed to the console within seconds (16536 bytes in
+2.7 s by hand). Two faults of the tool hid it. The guest init ended with
+`poweroff -f`, which halts on `-M pc,acpi=off` ("Power off not
+available: System halted instead"), so qemu never exited. And
+`run_capture` ran qemu through `wait_with_output`: at the timeout it
+dropped the pipes, so the console was lost, and it never killed qemu.
+Now `GUEST_INIT` ends with `reboot -f`, so `-no-reboot` makes qemu exit 0,
+and the new `run_to_file` writes the console to `boot.log` and kills the
+child at the timeout. `cargo test -p podvm-measure` exits 0 with
+`guest_init_resets_so_qemu_exits` and
+`run_to_file_keeps_output_and_kills_at_the_timeout`.
+`PODVM_WORKLOAD_MIRROR=1 podvm-workload` exits 0 in 61 s: the guest
+reaches `VMR-BENCH-DONE`, clause 4 has 14 driven and 0 mismatches, and
+the checksums of all four classes agree ([the run](../experiments/results/tcg-workload-spread.txt),
+[the hand boot](../experiments/results/tcg-console-1702.txt)). No qemu
+process stays after either run.
 
 **Filed 2026-11-10.** Found by the run of T-1687.
 

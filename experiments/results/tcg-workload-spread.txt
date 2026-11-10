@@ -1,18 +1,18 @@
 == conditions
-date              2026-10-01T15:41:04Z
-host kernel       7.2.0-WSL2-STABLE
-podbox            podbox 0.1.0-beta.12
-qemu              QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)
-gcc               gcc (Debian 12.2.0-14+deb12u1) 12.2.0
-image             public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
-kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/netboot/vmlinuz-virt (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
+date              2026-11-10T06:50:21Z
+host kernel       6.18.44-fc-v338
+podvm            podvm 0.1.0-beta.13
+qemu              QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)
+gcc               gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+image             mirror.gcr.io/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-netboot-3.22.6-x86_64.tar.gz (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
 qemu flags        -M pc,acpi=off -m 256 -nographic -no-reboot -accel tcg,thread=multi
 payload cflags    gcc -O2 -static
-host io backing   overlay        overlay 1055762868 5389072 996670324   1% /
-payload bench-int  aa9b927bac7da5b6f1506e103cf0c064362d92ca0d72ad0064a470cac97de832
-payload bench-sys  e8dcf374ed6f1689704025a0b8d9037542038fe4d044c55fd8a39461d0c1f8ba
-payload bench-mem  46c25638962e625eb14690962ab1112127fb8fc86ea0049ae78326ea62bc79e4
-payload bench-io  1c3dbbb5dd7c136c10b5238d59a4d42b735bc82b41a3c17b737d675fa66903bf
+host io backing   /dev/vda       ext4 264212084 30791276   9524676  77% /
+payload bench-int  a00271ed59d25ede3cd8d6c0ce571f7ed012a5b758fba7d8bc27d8086ce114a2
+payload bench-sys  2a3650e23ad8cc3b3697ffbb9fd2ea2eaa98d08c5fb5a20be6efefb6c99d2577
+payload bench-mem  2e1a50643aed00533dbad3e466c501c43695c02fa1c20b858a40699ce1574c61
+payload bench-io  3ab3212fd15d724b0eb7dc2850642b657d8e94825392c6f6c18365c2eb255548
 
 == 1. host runs
   ok: host bench-int ran three times
@@ -20,21 +20,25 @@ payload bench-io  1c3dbbb5dd7c136c10b5238d59a4d42b735bc82b41a3c17b737d675fa66903
   ok: host bench-mem ran three times
   ok: host bench-io ran three times
 
-== 2. chroot runs through podbox
-chroot io backing overlay        overlay 1055762868 5404664 996654732   1% /
-  FAIL: chroot bench-int ran 1 of 3 times
-
-  FAIL: chroot bench-sys ran 2 of 3 times
-
-  ok: chroot bench-mem ran through podbox three times
-  ok: chroot bench-io ran through podbox three times
+== 2. chroot runs through podvm
+chroot io backing /dev/vda       ext4 264212084 30806944   9509008  77% /
+  ok: chroot bench-int ran through podvm three times
+  ok: chroot bench-sys ran through podvm three times
+  ok: chroot bench-mem ran through podvm three times
+  ok: chroot bench-io ran through podvm three times
 
 == 3. guest assembly and batch boot
+  base archive built
+  ok: assembly 11883652 bytes
+  kernel hash matches the pin
+  qemu exited 0 with 16726 console bytes
+  qemu ran to the boot log
+  ok: the guest ran the batch to VMR-BENCH-DONE
 
 == 4. one row per class
-  FAIL: int: host=[0.184/ebb92308acb7eace] chroot=[/ebb92308acb7eace] guest=[/]
-  FAIL: sys: host=[0.373/4f24f178e189eea5] chroot=[/4f24f178e189eea5] guest=[/]
-  FAIL: mem: host=[1.314/1d3fea76c4222325] chroot=[1.328/1d3fea76c4222325] guest=[/]
-  FAIL: io: host=[0.113/7168c26550222325] chroot=[0.113/7168c26550222325] guest=[/]
+  ok: int: host 0.251s chroot 0.264s (1.1x) guest 1.564s (6.2x) checksum ebb92308acb7eace
+  ok: sys: host 0.507s chroot 0.493s (1.0x) guest 4.452s (8.8x) checksum 4f24f178e189eea5
+  ok: mem: host 1.891s chroot 1.817s (1.0x) guest 3.185s (1.7x) checksum 1d3fea76c4222325
+  ok: io: host 0.159s chroot 0.141s (0.9x) guest 0.713s (4.5x) checksum 7168c26550222325
 
-== counts: 6 driven, 6 mismatches
+== counts: 14 driven, 0 mismatches
