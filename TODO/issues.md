@@ -116,6 +116,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #219 | COORD-013: podvm took v0.8.0 and pod-supervise (to podcrates) | closed | T-1681 |
 | #220 | COORD-014: podvm took v0.9.0, pod-guest and pod-enter (to podcrates) | closed | T-1681 |
 | #221 | COORD-015: the whiteout escape is fixed in podvm-extract (T-1698) (to podcrates) | open | T-1698 |
-| #222 | COORD-016: pod-enter: classify and stage a payload over 128 MiB (T-1647) (to podcrates) | open | T-1647 |
+| #222 | COORD-016: pod-enter: classify and stage a payload over 128 MiB (T-1647) (to podcrates) | closed | T-1647 |
 | #223 | COORD-017: podvm took v0.10.0 and pod-oci (to podcrates) | closed | T-1681 |
 | #224 | COORD-018: pod-enter and pod-hostprobe: volume pairs, workdir and first program through the table (T-1653) (to podcrates) | open | T-1653 |
+| #225 | COORD-019: podvm took v0.11.0, pod-extract and pod-rootfs (to podcrates) | open | T-1681, T-1647 |
