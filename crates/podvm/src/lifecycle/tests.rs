@@ -9,7 +9,16 @@ fn userland_env_anchors_paths_or_names_the_opt_out() {
     use podvm_enter::userland::{Family, MAPS_VAR};
     let env = vec![format!("{MAPS_VAR}=/:evil"), "PATH=/bin".to_string()];
     let mut err = Vec::new();
-    let ue = userland_env("run", "/store/rootfs", env, Family::Loader, false, &mut err).unwrap();
+    let ue = userland_env(
+        "run",
+        "/store/rootfs",
+        env,
+        Family::Loader,
+        false,
+        &[],
+        &mut err,
+    )
+    .unwrap();
     assert!(err.is_empty(), "{}", String::from_utf8_lossy(&err));
     assert_eq!(
         ue.env
@@ -36,6 +45,7 @@ fn userland_env_anchors_paths_or_names_the_opt_out() {
         vec!["PATH=/bin".to_string()],
         Family::Memfd,
         true,
+        &[],
         &mut err,
     )
     .unwrap();
@@ -58,10 +68,60 @@ fn userland_env_anchors_paths_or_names_the_opt_out() {
             vec![],
             Family::Loader,
             false,
+            &[],
             &mut std::io::sink()
         )
         .unwrap_err(),
         podvm_image::error::EXIT_RUNTIME_ERROR
+    );
+}
+
+/// TODO/enter.md T-1653. Each volume joins the table after the root
+/// pair, and under `--unsafe-host-paths` the table keeps the volumes
+/// without the root pair. The banner names each volume as a rewrite.
+#[test]
+fn userland_env_adds_one_pair_for_each_volume() {
+    use podvm_enter::userland::{Family, Volume};
+    let vols = [Volume {
+        guest: "/data".to_string(),
+        host: "/host/dir".to_string(),
+    }];
+    let ue = userland_env(
+        "run",
+        "/store/rootfs",
+        vec![],
+        Family::Loader,
+        false,
+        &vols,
+        &mut std::io::sink(),
+    )
+    .unwrap();
+    assert!(
+        ue.env
+            .iter()
+            .any(|e| e == "PODVM_MAPS=/:/store/rootfs,/data:/host/dir"),
+        "{:?}",
+        ue.env
+    );
+    assert!(
+        ue.banner.contains("-v /host/dir:/data is a path rewrite"),
+        "{}",
+        ue.banner
+    );
+    let ue = userland_env(
+        "run",
+        "/store/rootfs",
+        vec![],
+        Family::Loader,
+        true,
+        &vols,
+        &mut std::io::sink(),
+    )
+    .unwrap();
+    assert!(
+        ue.env.iter().any(|e| e == "PODVM_MAPS=/data:/host/dir"),
+        "{:?}",
+        ue.env
     );
 }
 
@@ -79,6 +139,7 @@ fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
         vec![exe.clone(), "PODVM_GUEST_EXE_FORCE=0".to_string()],
         Family::Loader,
         false,
+        &[],
         &mut std::io::sink(),
     )
     .unwrap();
@@ -104,6 +165,7 @@ fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
         vec![],
         Family::Loader,
         false,
+        &[],
         &mut std::io::sink(),
     )
     .unwrap();
@@ -121,6 +183,7 @@ fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
         vec![exe],
         Family::Memfd,
         false,
+        &[],
         &mut std::io::sink(),
     )
     .unwrap();

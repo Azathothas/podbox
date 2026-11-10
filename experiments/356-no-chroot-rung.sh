@@ -98,6 +98,11 @@
 #      libc's `syscall()`), and `npm ci` then `npm test` of a project
 #      with no dependencies and a `postinstall` child exit 0 from the
 #      node image, with no registry.
+#   26. volumes (T-1653): `-v HOSTDIR:/data` reads a host file at the
+#      guest path, a guest write and a relative write after `cd /data`
+#      land in HOSTDIR, a shell grandchild reads the volume, `:ro` refuses
+#      at 125 naming T-1655, the memfd family refuses a volume at 125,
+#      and the banner names a source on a noexec mount.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -722,6 +727,39 @@ fi
 step fx-npm-ci 0 $FX "$PB" run --rm -w /app -e PATH=/usr/local/bin:/usr/bin:/bin -e HOME=/root -e npm_config_update_notifier=false node-app:1697 /bin/sh -c 'npm ci --no-audit --no-fund && npm test'
 grep -qx "postinstall-child-ok" "$WORK/out-fx-npm-ci.txt" || { echo "npm ci did not run the postinstall child" >>"$REPORT"; fail=1; }
 grep -qx "npm-test-ok true" "$WORK/out-fx-npm-ci.txt" || { echo "npm test did not run" >>"$REPORT"; fail=1; }
+
+# Clause 26 (T-1653 volumes): each -v is one GUEST:HOST pair of the
+# PODVM_MAPS table beside the root pair, served by the loader family.
+# Before T-1653 each -v refused with status None. The noexec wrap mounts a
+# noexec tmpfs on its second argument inside the namespace first.
+VOL="$WORK/vol-host"; NX="$WORK/vol-nx"
+rm -rf "$VOL" "$NX"; mkdir -p "$VOL" "$NX" || exit 2
+printf 'vol-in\n' >"$VOL/in.txt" || exit 2
+cat >"$WORK/wrap-nx.sh" <<'EOF'
+#!/bin/sh
+# As wrap.sh, with a noexec tmpfs on $2 holding one file.
+mount -t tmpfs tmpfs /dev/pts || exit 2
+mount -t tmpfs -o noexec tmpfs "$2" || exit 2
+printf 'nx-data\n' >"$2/in.txt" || exit 2
+MNT="$1"; shift 2
+exec "$MNT/deny-chroot" "$@"
+EOF
+step fx-vol-read 0 $FX "$PB" run --rm --verbose -v "$VOL:/data" "$ALPINE" cat /data/in.txt
+grep -qx "vol-in" "$WORK/out-fx-vol-read.txt" || { echo "a volume read did not see the host file" >>"$REPORT"; fail=1; }
+grep -q "is a path rewrite through PODVM_MAPS" "$WORK/out-fx-vol-read.txt" || { echo "the banner did not name the volume" >>"$REPORT"; fail=1; }
+step fx-vol-write 0 $FX "$PB" run --rm -w /tmp -v "$VOL:/data" "$ALPINE" sh -c 'echo w356 > /data/out.txt && cd /data && echo r356 > rel.txt && pwd && sh -c "cat /data/in.txt"'
+grep -qx "w356" "$VOL/out.txt" 2>/dev/null || { echo "a guest write did not land in the host directory" >>"$REPORT"; fail=1; }
+grep -qx "r356" "$VOL/rel.txt" 2>/dev/null || { echo "a relative write in the volume did not land in the host directory" >>"$REPORT"; fail=1; }
+grep -qx "/data" "$WORK/out-fx-vol-write.txt" || { echo "pwd in the volume did not read /data" >>"$REPORT"; fail=1; }
+grep -qx "vol-in" "$WORK/out-fx-vol-write.txt" || { echo "a shell grandchild did not read the volume" >>"$REPORT"; fail=1; }
+step fx-vol-ro "$FLAG" $FX "$PB" run --rm -v "$VOL:/data:ro" "$ALPINE" cat /data/in.txt
+grep -q "T-1655" "$WORK/out-fx-vol-ro.txt" || { echo ":ro was not refused naming T-1655" >>"$REPORT"; fail=1; }
+step fx-vol-memfd "$RUN_ERR" $FX "$PB" run --rm --unsafe-host-paths -v "$VOL:/data" script-alpine:1 /hello
+grep -q "memfd family" "$WORK/out-fx-vol-memfd.txt" || { echo "the memfd family did not refuse the volume" >>"$REPORT"; fail=1; }
+grep -q "static-hi" "$WORK/out-fx-vol-memfd.txt" && { echo "the memfd family ran with a volume" >>"$REPORT"; fail=1; }
+step fx-vol-noexec 0 unshare -Urm sh "$WORK/wrap-nx.sh" "$WORK" "$NX" "$PB" run --rm --verbose -v "$NX:/nx" "$ALPINE" cat /nx/in.txt
+grep -qx "nx-data" "$WORK/out-fx-vol-noexec.txt" || { echo "the noexec volume did not read" >>"$REPORT"; fail=1; }
+grep -q "is on a noexec mount" "$WORK/out-fx-vol-noexec.txt" || { echo "the banner did not name the noexec source" >>"$REPORT"; fail=1; }
 
 {
 echo ""

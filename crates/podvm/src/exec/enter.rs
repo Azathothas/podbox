@@ -81,6 +81,16 @@ pub(super) fn enter(
         }
     };
     podvm_enter::device::push_spec(&mut env, &exec_devices);
+    // ⭐ TODO/enter.md T-1653. The container's volumes are configuration
+    // too: docker's `exec` sees the mounts of the container, so the pairs
+    // come from the table in the record, and the table is built again.
+    let volumes = podvm_enter::userland::volumes_of(&container.env);
+    let working_dir = o.workdir.clone().unwrap_or_else(|| "/".to_string());
+    if let Err(code) =
+        crate::lifecycle::volume::refuse_paths("exec", &volumes, &o.command, &working_dir)
+    {
+        return code;
+    }
     let findings = podvm_probe::run();
     // ⭐ TODO/enter.md T-1410. The image record behind the container, read
     // for the architecture the entry decision needs: a refusal here names
@@ -121,6 +131,11 @@ pub(super) fn enter(
         Ok(u) => u,
         Err(code) => return code,
     };
+    if let Err(code) =
+        crate::lifecycle::volume::refuse_unserved("exec", &volumes, userland.as_ref(), None)
+    {
+        return code;
+    }
     // ⭐ T-0702 and T-0706, as in `run`: a fresh chroot re-entry is a fresh
     // payload, so it is classified and placed again rather than inheriting
     // the first entry's answer. After the decision, so a refusal writes
@@ -172,6 +187,7 @@ pub(super) fn enter(
             env,
             u.family,
             o.unsafe_host_paths,
+            &volumes,
             &mut std::io::stderr(),
         ) {
             Ok(ue) => {
@@ -182,7 +198,6 @@ pub(super) fn enter(
             Err(code) => return code,
         }
     }
-    let working_dir = o.workdir.clone().unwrap_or_else(|| "/".to_string());
     // ⭐ TODO/enter.md T-1412, as in `run`'s `prepare`: the workdir is
     // checked before the fork and before any fixup mutates the rootfs. The
     // image named is the container's own, read from its record above.

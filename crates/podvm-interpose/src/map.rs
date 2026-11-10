@@ -7,10 +7,12 @@
 //! ⭐ **The table comes from the environment, as one variable.** `PODVM_MAPS`
 //! carries `FROM:TO[,FROM:TO...]` pairs, which mirrors pathmap's `PATH_MAPPING`
 //! syntax without sharing its name: one word, one meaning, and podvm never
-//! reads another tool's variable. No `-v` exists yet, so nothing sets it and
-//! every call takes the empty-table fast path below. T-0707's never-rewrite
-//! paths ride beside it: the built-in `/proc` tree in code, plus a
-//! colon-separated user list in `PODVM_EXCLUDE_PATH`.
+//! reads another tool's variable. The userland rung sets it: the root pair
+//! of T-1407, then one pair for each `-v HOST:GUEST` (TODO/enter.md T-1653),
+//! which the longest match below prefers to the root pair. Where it is
+//! unset, every call takes the empty-table fast path below. T-0707's
+//! never-rewrite paths ride beside it: the built-in `/proc` tree in code,
+//! plus a colon-separated user list in `PODVM_EXCLUDE_PATH`.
 //!
 //! ⛔ **No allocation and no locks on this path.** The table borrows the
 //! process's own environ memory as `(pointer, length)` pairs on the caller's

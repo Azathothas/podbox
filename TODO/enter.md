@@ -944,8 +944,8 @@ before implementation.
 
 ### T-1410 Exec through the no-chroot family
 
-Source:      issue 80; `crates/podvm/src/exec/command.rs:220`;
-             `crates/podvm/src/run/prepare.rs:76`; [T-0505](enter.md)
+Source:      issue 80; `crates/podvm/src/exec/command.rs:221`;
+             `crates/podvm/src/run/prepare.rs:46`; [T-0505](enter.md)
 Category:    enter
 Priority:    P1
 Effort:      L
@@ -983,7 +983,7 @@ before implementation.
 
 ### T-1411 A detached launcher for the no-chroot family
 
-Source:      issue 72; `crates/podvm/src/run/prepare.rs:77`;
+Source:      issue 72; `crates/podvm/src/run/prepare.rs:47`;
              `crates/podvm/src/lifecycle.rs:213`; [T-1317](enter.md)
 Category:    enter
 Priority:    P1
@@ -1039,7 +1039,7 @@ before implementation.
 ### T-1412 A missing workdir refuses naming the path
 
 Source:      issue 81; `src/launch.rs` of `pod-enter` (PodUtils/podcrates);
-             `crates/podvm/src/run/parse.rs:193`
+             `crates/podvm/src/run/parse.rs:205`
 Category:    enter
 Priority:    P1
 Effort:      S
@@ -1415,7 +1415,7 @@ Source:      issue 91; issue 114 section 3.4;
              `crates/podvm/src/lifecycle/entry.rs:343`;
              `crates/podvm/src/lifecycle/entry.rs:374`;
              `crates/podvm/src/interpose.rs:355`;
-             `experiments/356-no-chroot-rung.sh:569`;
+             `experiments/356-no-chroot-rung.sh:574`;
              A-V-04 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P0
@@ -1437,7 +1437,7 @@ Premise:     `decide_entry` sends every static payload to the memfd
              banner note (`crates/podvm/src/interpose.rs:355`),
              which the quiet default also hides. Clause 18 of experiment
              356 pins exit 2 naming GOROOT as the boundary
-             (`356-no-chroot-rung.sh:569`).
+             (`356-no-chroot-rung.sh:574`).
 Approach:    On a chroot-denied host, refuse a static payload at 125
              before the exec, unless `--unsafe-host-paths` opts in. That
              is T-1407's flag for this exact host pass-through. The
@@ -1468,7 +1468,7 @@ opt-in, T-1651, T-1652). Under the opt-in, `userland_env` writes the
 host-root line to stderr at once, so it prints under the quiet default
 and `-q`. `--strict` still refuses the opt-in. Experiment 356 passes the
 opt-in on its memfd clauses, and clause 18 (`fx-go-refuse`,
-`356-no-chroot-rung.sh:569`) now asks for 125 naming the static reason
+`356-no-chroot-rung.sh:574`) now asks for 125 naming the static reason
 and no GOROOT. `cargo test -p podvm` exits 0 (274 passed) with
 `a_static_payload_refuses_without_the_opt_in`. [A hand drive](../experiments/results/no-chroot-static-refusal.txt)
 through the deny-chroot fixture of experiment 356 gave 125 for the static
@@ -1653,14 +1653,14 @@ where the guest kernel is root (T-1656). This entry changes no clause.
 ### T-1653 `-v` volumes on a host with no /dev/fuse and no mount
 
 Source:      issue 130 (130 reposts the hidden issue 104); issue 114
-             section 3.6; `crates/podvm/src/parity.rs:221`;
+             section 3.6; `crates/podvm/src/parity.rs:222`;
              `src/userland.rs` of `pod-enter` (PodUtils/podcrates);
              `crates/podvm-interpose/src/map/rewrite.rs:75`;
              A-V-06, G-07 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      partial
 
 Problem:     `run -v` is refused on every rung. The errand host has no
              `/dev/fuse` and denies `mount(2)`, so podvm can make neither
@@ -1695,6 +1695,25 @@ Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm`
              the guest path, and a guest write lands in the host
              directory. A `:ro` volume gives `EROFS` for a guest write and leaves the
              host file unchanged, once the read-only layer of T-1655 exists.
+
+**Partial, 2026-11-10.** On the loader family each `-v HOST:GUEST[:rw]`
+becomes a `GUEST:HOST` pair in `PODVM_MAPS` after the root pair
+(`lifecycle/volume.rs`); the host side is canonical, so the reverse map
+holds after a `cd` into the volume. The T-1407 spelling checks run on
+both sides in podvm-enter's glue. Refused by name: `:ro` (T-1655), other
+options, named volumes, the memfd family (T-1652), the chroot rung, the
+machine tier, and `-w` or a first program inside a volume (pod-enter
+resolves those inside the rootfs; COORD-018). A container record keeps
+the table for `exec`. The banner names each volume and a noexec source.
+The parity row is Degraded and names the loader family. `cargo test
+--workspace` exits 0 (737 passed) and the interposer tests exit 0.
+[The drive](../experiments/results/volumes-1653.txt): before, each `-v`
+exited 125; after, a read, a write that lands in HOST, a relative write
+after `cd /data`, grandchildren from the volume, and `run -d` then `exec`
+work, and each refusal above exits 125. Clause 26 of experiment 356 holds
+it. Remaining: `:ro` with EROFS (T-1655), `-w` and a first program inside
+a volume (COORD-018), and the full experiment 356 run (`public.ecr.aws`
+answered HTTP 429).
 
 **Filed 2026-11-06.** Issue 130 rebuilds the hidden issue 104 from
 issue 114, which states the case in one table row:
@@ -1917,3 +1936,34 @@ store), and the aarch64 trampoline was assembled and compiled, not run.
 2026-11-09 confirmed each claim at `2be31b2` and corrected two: the census
 row exists in `pod-hostprobe` but tests another exec path, and `MFD_EXEC`
 does not help under value 2.
+
+### T-1700 A run on the userland rung sometimes exits 0 with no output
+
+Source:      T-1653 (its drive of 2026-11-10)
+Category:    enter
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     On the userland rung (chroot denied), `podvm run --rm alpine
+             cat /etc/alpine-release` sometimes exits 0 and prints
+             nothing. It lost its output in 1 of 20 runs on `e99fc9b`
+             and in 2 of 15 runs after T-1653. The chroot rung (0 of 20)
+             and the deny-chroot fixture alone (0 of 60) never lost it.
+             A run that loses its output and exits 0 is a wrong answer
+             with no error.
+Premise:     The defect is older than T-1653. Experiment 356 saw the same
+             shape once before (`fx-gc-script` exited 0 with no output,
+             recorded with T-1650). The cause is not measured.
+Approach:    Reproduce in a loop on the fixture, then trace the payload's
+             stdout from the loader family's launch to the caller: the
+             descriptor podvm gives the payload, a close or a flush before
+             exit, and the exit path of the launcher. Fix the cause, not
+             the symptom.
+Decision:    A lost output is a defect even when the exit code is 0.
+Prove:       A loop of 200 runs of `cat /etc/alpine-release` on the
+             chroot-denying fixture prints the release each time, and
+             `cargo test --workspace` exits 0 with a test of the cause.
+
+**Filed 2026-11-10.** Found by the drive of T-1653.
+

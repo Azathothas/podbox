@@ -803,7 +803,7 @@ experiment: a waiter that stops forwarding fails its clauses.
 
 ### T-1421 A foreground run leaves a container record
 
-Source:      issue 84; `crates/podvm/src/run/parse.rs:414`;
+Source:      issue 84; `crates/podvm/src/run/parse.rs:429`;
              `crates/podvm/src/run/foreground.rs:223`;
              [T-0607](supervise.md)
 Category:    supervise
@@ -865,7 +865,7 @@ Premise:     The zero comes from `crates/podvm/src/lifecycle/logs_stop.rs:208`,
              is in `launcher::wait`. The mapping is `wait_or_gone`, and the
              comment above it is false. Both are `pod_supervise::launcher`
              and `pod_supervise` of PodUtils/podcrates since T-060. The
-             parity row is `crates/podvm/src/parity.rs:388`. The files of
+             parity row is `crates/podvm/src/parity.rs:389`. The files of
              `podvm-supervise` go to `pod-supervise` (podcrates T-060), which
              podcrates imports after this fix.
 Approach:    1. `launcher::wait` returns a distinct error for "no launcher"

@@ -57,6 +57,9 @@ pub(super) struct Opts {
     /// `--unsafe-host-paths`. Opts into the userland pass-through with no
     /// `PODVM_MAPS` anchoring. TODO/enter.md T-1407.
     pub(super) unsafe_host_paths: bool,
+    /// `-v`. Parsed now, so a shape podvm cannot serve is a flag error
+    /// before anything is fetched. TODO/enter.md T-1653.
+    pub(super) volumes: Vec<podvm_enter::userland::Volume>,
     /// M5 and T-0804. ⚠ Carried in one struct so `run`, `create` and the
     /// launcher cannot each grow their own copy of the same three answers.
     pub(super) ask: crate::complete::Ask,
@@ -140,6 +143,14 @@ fn read_env_file(verb: &str, path: &str) -> std::result::Result<Vec<String>, i32
     Ok(out)
 }
 
+/// One `-v` value, TODO/enter.md T-1653: a flag error names the value.
+fn volume(verb: &str, spec: &str) -> std::result::Result<podvm_enter::userland::Volume, i32> {
+    crate::lifecycle::volume::parse(spec).map_err(|why| {
+        eprintln!("podvm {verb}: -v {spec:?}: {why}");
+        EXIT_FLAG_ERROR
+    })
+}
+
 /// ⛔ Parsing stops at the image name: everything after it is the payload's.
 /// `podvm run alpine ls -l` must pass `-l` to `ls` and not read it as podvm's,
 /// which is docker's rule and the one thing a caller cannot work around.
@@ -179,6 +190,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
         mem: None,
         devices: Vec::new(),
         unsafe_host_paths: false,
+        volumes: Vec::new(),
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -236,6 +248,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
                         return Err(EXIT_FLAG_ERROR);
                     }
                 },
+                "-v" => o.volumes.push(volume(verb, a)?),
                 "--device" => match podvm_enter::device::parse(a) {
                     Ok(_) => o.devices.push(a.clone()),
                     Err(why) => {
@@ -300,6 +313,8 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
             }
             "-w" | "--workdir" => expecting = Some("-w"),
             "--device" => expecting = Some("--device"),
+            "-v" | "--volume" => expecting = Some("-v"),
+            other if other.starts_with("--volume=") => o.volumes.push(volume(verb, &other[9..])?),
             "-u" | "--user" => expecting = Some("--user"),
             "--entrypoint" => expecting = Some("--entrypoint"),
             "--platform" => expecting = Some("--platform"),
@@ -420,6 +435,11 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
     if o.image.is_none() {
         eprint!("{}", usage(verb));
         return Err(EXIT_CLI_ERROR);
+    }
+    // ⭐ TODO/enter.md T-1653: the table checks of the pairs, up front.
+    if let Err(why) = podvm_enter::userland::userland_maps_table(None, &o.volumes) {
+        eprintln!("podvm {verb}: -v: {why}");
+        return Err(EXIT_FLAG_ERROR);
     }
     if !matches!(o.pull.as_str(), "never" | "missing" | "always") {
         eprintln!(

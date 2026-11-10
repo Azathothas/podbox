@@ -87,6 +87,7 @@ pub const CLUSTER_VALUES: &[(&str, char)] = &[
     ("run", 'e'),
     ("run", 'w'),
     ("run", 'u'),
+    ("run", 'v'),
     ("exec", 'e'),
     ("exec", 'w'),
     ("exec", 'u'),
@@ -218,7 +219,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "run", flag: Some("-d, --detach"), status: Native, note: "starts a detached launcher and prints the container id, returning when the payload is running" },
     Row { verb: "run", flag: Some("--name"), status: Native, note: "names the container. A name already in use is refused rather than making the second one unreachable. A foreground run leaves a record under it: `ps -a` lists it as Exited with `logs` reading its output (TODO/supervise.md T-1421)" },
-    Row { verb: "run", flag: Some("-v, --volume"), status: NoneStatus, note: "podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount" },
+    Row { verb: "run", flag: Some("-v, --volume"), status: Degraded, note: "HOST:GUEST[:rw], repeatable: a path rewrite through PODVM_MAPS on the userland rung's loader family, never a mount or a copy. A write lands in HOST, as with a bind mount; a static program or a raw syscall instruction sees the image's path; /proc/mounts does not list it. Refused by name: on the chroot rung, the memfd family, a forced PODVM_MODE and the machine tier; :ro, until the read-only layer of T-1655; a named or anonymous volume; a working directory or a first program inside a volume. The banner names a noexec source, and --strict refuses (TODO/enter.md T-1653, T-1655)" },
     Row { verb: "run", flag: Some("-p, --publish"), status: NoneStatus, note: "the payload shares this machine's network namespace, so a published port is already this machine's port" },
     Row { verb: "run", flag: Some("--network"), status: NoneStatus, note: "there is no network namespace to select" },
     Row { verb: "run", flag: Some("-u, --user"), status: Degraded, note: "uid[:gid] or a name from the image's own passwd, answered through the interposer identity memo for a reachable payload, which the banner names and --strict refuses (T-0711)" },
@@ -237,7 +238,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("--no-steps"), status: Native, note: "podvm's own: run no command inside the rootfs before the payload. Two fixups cannot be made from outside the chroot -- pacman-key for an empty keyring and openssl rehash for a hash-indexed CA directory -- and this refuses both (T-0412)" },
     Row { verb: "run", flag: Some("--strict"), status: Native, note: "podvm's own: refuse rather than run where anything safety-relevant about this invocation is Degraded or Stub: a flag, the selected rung, a failed fixup, a step, or the userland opt-outs. Dev-shim substitutions warn; --strict=all refuses every difference (T-0804, T-1415)" },
     Row { verb: "run", flag: Some("-q, --quiet"), status: Native, note: "podvm's own: force the banner off. Runs are already quiet by default; this forces silence under --verbose too (TODO/cli.md T-1416)" },
-    Row { verb: "run", flag: Some("--verbose"), status: Native, note: "podvm's own: print the banner. Long-only: -v is docker's --volume, refused with status None, so reclaiming it would turn a volume refusal into a banner switch (TODO/cli.md T-1416)" },
+    Row { verb: "run", flag: Some("--verbose"), status: Native, note: "podvm's own: print the banner. Long-only: -v is docker's --volume (TODO/enter.md T-1653), so the banner switch cannot take it (TODO/cli.md T-1416)" },
     // ⭐ TODO/machine.md T-1302. Two flags podvm's own tools do not have, and
     // the prefix is the rule: neither docker nor podman uses `--podvm-`, so
     // no flag here can mean one thing here and another there.
@@ -390,7 +391,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "kill", flag: Some("-s, --signal"), status: Native, note: "by name or number. refused: An unknown one is refused rather than defaulted: sending the wrong signal is not something a caller can notice" },
     Row { verb: "kill", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "rm", flag: Some("-f, --force"), status: Native, note: "kill a running container before removing it" },
-    Row { verb: "rm", flag: Some("-v, --volumes"), status: Stub, note: "accepted for parity: podvm has no volumes, so there are none to remove" },
+    Row { verb: "rm", flag: Some("-v, --volumes"), status: Stub, note: "accepted for parity: podvm has no named or anonymous volumes, so there are none to remove; a -v HOST:GUEST source is the host's own directory, which docker's rm -v keeps too (TODO/enter.md T-1653)" },
     Row { verb: "rm", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "logs", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "logs", flag: Some("-f, --follow"), status: Native, note: "follows the container's log file with a bounded poll and exits after the container ends" },

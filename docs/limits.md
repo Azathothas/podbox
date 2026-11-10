@@ -23,6 +23,13 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   the table cannot map, and `io_uring_setup`, answer `ENOSYS`. A program
   that issues the `syscall` instruction itself (a static program, Go,
   liburing) passes the interposer (T-1652).
+- A volume (`-v HOST:GUEST`) on a host that denies chroot is a path
+  rewrite of the userland loader family, not a mount (T-1653). A write
+  lands in HOST. A static program or a raw `syscall` instruction sees
+  the image path, and `/proc/mounts` does not list the volume. podvm
+  refuses a volume on the chroot rung, the memfd family and the machine
+  tier, `:ro` until T-1655, and a working directory or a first program
+  inside a volume.
 - Interposition covers cooperative library calls, without a security boundary.
 - The embedded interposer pair is x86_64. Other payload architectures need another execution path.
 - A foreign architecture needs the host interpreter support required by the selected path.

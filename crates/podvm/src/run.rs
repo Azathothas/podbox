@@ -43,6 +43,13 @@ pub const RUN_OPTIONS: &str = "\
                    descriptor where the interposer holds. Repeatable.
                    P takes r, w and m; m parses and grants nothing
                    (TODO/enter.md T-0501)
+  -v, --volume H:G[:rw]
+                   show the host path H at the guest path G. Repeatable. A
+                   path rewrite through PODVM_MAPS on the userland loader
+                   family, not a mount: a write lands in H. Refused by name
+                   on every other rung, for :ro until TODO/enter.md T-1655,
+                   and for a -w or a first program inside G
+                   (TODO/enter.md T-1653)
   --unsafe-host-paths
                    podvm's own, userland rung only: opt into the
                    pass-through with no PODVM_MAPS anchoring, so absolute
@@ -91,8 +98,8 @@ pub const RUN_OPTIONS: &str = "\
                    default; this forces silence under --verbose too
                    (TODO/cli.md T-1416)
   --verbose        print the banner. note: -v is NOT this flag: -v is
-                   docker's --volume, refused with status None, so the
-                   verbose switch is long-only (TODO/cli.md T-1416)
+                   docker's --volume, so the verbose switch is long-only
+                   (TODO/cli.md T-1416)
   --platform P     which platform of a multi-platform image to run
   --pull WHEN      never | missing (default) | always
   --insecure-registry HOST, --tls-verify=B

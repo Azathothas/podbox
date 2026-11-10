@@ -695,7 +695,7 @@ Prove:       `./experiments/325-parity-drive.sh`, which exits 0 only when every
 rows, 199 driven, 0 mismatches, 0 unreachable here
 (`experiments/results/parity-drive.txt`, with the conditions at its head).
 Both figures are historical readings; the table holds 265 rows
-(`crates/podvm/src/parity.rs:118`).
+(`crates/podvm/src/parity.rs:119`).
 The 153-row figure this record carried went stale at T-1302, which added
 5 rows (the two tier rows, the two qemu-arg rows and `podvm`) without
 re-driving, and T-1305 added 2 more (the two `--podvm-mem` rows) with the
@@ -1888,7 +1888,7 @@ Problem:     podvm has the docker and podman command line and a tier flag,
              and run it again. sand-net ran 43 shapes from TOML recipes, and
              each command line ran unchanged in every shape.
 Premise:     The parity table is the only description of what `run`
-             accepts (`crates/podvm/src/parity.rs:208-275`). `--podvm-tier`
+             accepts (`crates/podvm/src/parity.rs:209-275`). `--podvm-tier`
              takes `machine` or `chroot` (`crates/podvm/src/tier.rs:22`).
              Resource flags refuse by name (`parity.rs:341`, T-0804). The
              identity calls are virtualised (T-0711, `parity.rs:338`). No
@@ -1960,7 +1960,7 @@ Problem:     sand-net ran podman and docker with one fixed hardening line.
 Premise:     The parity table refuses `--read-only` (`parity.rs:370`),
              `--tmpfs` (`parity.rs:372`), `--ulimit` (`parity.rs:385`),
              `--cap-add, --cap-drop` (`parity.rs:340`), `--security-opt`
-             (`parity.rs:389`), `--runtime` (`parity.rs:388`) and `--userns`
+             (`parity.rs:389`), `--runtime` (`parity.rs:389`) and `--userns`
              (`parity.rs:386`). `-u, --user` is Degraded through the
              interposer identity (`parity.rs:338`). `setrlimit`,
              `PR_SET_NO_NEW_PRIVS` and a seccomp filter need no privilege;
@@ -2046,7 +2046,7 @@ Problem:     A caller cannot run a tool in the shape of its production
 Premise:     Profiles arrive with T-1654. The identity calls are virtualised
              (T-0711), so `id -u` can answer 993 while the real owner of the
              project stays the caller. Resource flags refuse by name on a
-             rootfs tier (`crates/podvm/src/parity.rs:227`, T-0804). The
+             rootfs tier (`crates/podvm/src/parity.rs:228`, T-0804). The
              Lambda and Vercel images are glibc, which the rootfs tier
              declines today (T-1644).
 Approach:    Ship built-in profiles: `lambda-al2023`, `cloudflare-sandbox`,
@@ -2106,7 +2106,7 @@ Problem:     The owner names notebooks in the scope. podvm has no verb that
 Premise:     `run --rm` starts from the stored rootfs, so a fresh root for
              each cycle costs nothing. A kept directory needs a volume,
              which a host with no mount cannot give (T-1653); `cp` copies
-             in and out (T-1323, `crates/podvm/src/parity.rs:154`). The
+             in and out (T-1323, `crates/podvm/src/parity.rs:155`). The
              supervisor holds one pidfd for the direct child
              (`pod_supervise::launcher` of PodUtils/podcrates, T-0601) and
              starts a session (`setsid` in the same launcher). A Jupyter kernel is a
@@ -2237,8 +2237,8 @@ Premise:     Chromium's own sandbox needs user namespaces, which the
              target host denies. Playwright turns it off with
              `--no-sandbox`. Then the boundary is the confine layer of
              T-1658 and not the browser. The parity table refuses
-             `--tmpfs` (`crates/podvm/src/parity.rs:258`) and
-             `--shm-size` (`crates/podvm/src/parity.rs:265`). The chain
+             `--tmpfs` (`crates/podvm/src/parity.rs:259`) and
+             `--shm-size` (`crates/podvm/src/parity.rs:266`). The chain
              of entries for a large dynamic payload is T-1643 to T-1646,
              T-1647 and T-1649. No run of Chromium under podvm was
              measured when this entry was filed.
@@ -2278,7 +2278,7 @@ broken, so the priority is P2.
 Source:      A-V-09, A-V-07 and G-06 of PodUtils/podcrates#39 (COORD-015);
              T-1655 (the peak resident set and the CPU time);
              T-1319 (one `inspect` document);
-             `crates/podvm/src/parity.rs:253`
+             `crates/podvm/src/parity.rs:254`
 Category:    cli
 Priority:    P1
 Effort:      L
@@ -2292,8 +2292,8 @@ Problem:     A caller that runs a job under podvm has no machine-readable
              `ps --filter label=` matches nothing, and a runner cannot
              find its own jobs.
 Premise:     The `--label` flag is accepted and dropped
-             (`crates/podvm/src/run/parse.rs:210`). The parity table
-             marks it Stub (`crates/podvm/src/parity.rs:253`). The help
+             (`crates/podvm/src/run/parse.rs:222`). The parity table
+             marks it Stub (`crates/podvm/src/parity.rs:254`). The help
              of `ps` says that a label filter matches nothing
              (`crates/podvm/src/lifecycle.rs:41`), and so does the help of
              `images` (`crates/podvm/src/images.rs:106`). The only JSON
@@ -2346,7 +2346,7 @@ report, and one JSON report for each job. The priority is P1 because
 
 Source:      A-V-11 and G-03 of PodUtils/podcrates#39 (COORD-015);
              T-1653 (the volume path map); the ruling of 2026-11-09 on
-             test accounts; `crates/podvm/src/run/parse.rs:88`
+             test accounts; `crates/podvm/src/run/parse.rs:91`
 Category:    cli
 Priority:    P2
 Effort:      M
@@ -2358,8 +2358,8 @@ Problem:     A job needs a credential. Today a caller passes it with `-e`,
              podvm has no flag that places one file, with a mode, for
              the first process only.
 Premise:     `--env-file` reads a file at parse time
-             (`crates/podvm/src/run/parse.rs:88`, used at
-             `crates/podvm/src/run/parse.rs:191`) and the values go into
+             (`crates/podvm/src/run/parse.rs:91`, used at
+             `crates/podvm/src/run/parse.rs:203`) and the values go into
              the environment (`crates/podvm/src/run/prepare.rs:239`). The
              userland path map is one pair for the root
              (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.

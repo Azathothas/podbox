@@ -40,6 +40,17 @@ pub(crate) fn prepare(
         &o.insecure,
         o.tls_verify,
     )?;
+    if tier == crate::tier::Tier::Machine && !(o.devices.is_empty() && o.volumes.is_empty()) {
+        // ⛔ Refused rather than silently dropped: the guest boots behind
+        // an emulator the host cannot hand descriptors or paths to, so a
+        // mapping the caller believes is set would serve nothing.
+        // TODO/enter.md T-0501 and T-1653.
+        eprintln!(
+            "podvm {verb}: --device and -v need the chroot tier: the machine \
+             tier boots a guest no host descriptor or host path reaches"
+        );
+        return Err(EXIT_FLAG_ERROR);
+    }
     // ⭐ TODO/milestones.md T-1112. A Windows guest on the machine tier is
     // the one platform where the OCI path below has nothing to do: the
     // positional is a disk image, the accelerator comes from the same probe
@@ -70,17 +81,6 @@ pub(crate) fn prepare(
     // driver has not arrived for yet) or pulling bytes no tier runs.
     crate::lifecycle::ensure_linux_guest(verb, &platform.os, &platform.arch)?;
     if tier == crate::tier::Tier::Machine {
-        if !o.devices.is_empty() {
-            // ⛔ Refused rather than silently dropped: the guest boots
-            // behind an emulator the host cannot hand descriptors to, so
-            // a mapping the caller believes is set would serve nothing.
-            // TODO/enter.md T-0501.
-            eprintln!(
-                "podvm {verb}: --device needs the chroot tier: the machine \
-                 tier boots a guest no host descriptor reaches"
-            );
-            return Err(EXIT_FLAG_ERROR);
-        }
         return Err(crate::tier::enter_machine(verb, o.mem));
     }
     if !o.qemu_args.is_empty() {
@@ -237,6 +237,12 @@ pub(crate) fn prepare(
         );
         return Err(EXIT_FLAG_ERROR);
     }
+    let working_dir = o
+        .workdir
+        .clone()
+        .unwrap_or_else(|| cfg.config.working_dir.clone());
+    // ⭐ TODO/enter.md T-1653: refuse a -w or a first program in a volume.
+    crate::lifecycle::volume::refuse_paths(verb, &o.volumes, &argv, &working_dir)?;
     let mut env = Plan::env_for(&podvm_enter::NAMES, &cfg.config.env, &o.env);
     // ⭐ T-0711: the requested identity travels in the environment, resolved
     // against the image, before anything classifies the payload: the object
@@ -275,6 +281,8 @@ pub(crate) fn prepare(
         o.retry_word(cfg.config.entrypoint.as_deref()),
     )?;
     crate::lifecycle::refuse_detached_userland(verb, userland.as_ref(), o.detach)?;
+    // ⭐ TODO/enter.md T-1653: only the loader family serves a volume.
+    crate::lifecycle::volume::refuse_unserved(verb, &o.volumes, userland.as_ref(), ladder)?;
     // ⭐ T-0702 and T-0706: classify the payload and place the object BEFORE
     // the banner is built, so the banner names the write before anything of
     // the payload's runs. The note joins the banner below. T-1649: a `#!`
@@ -347,16 +355,13 @@ pub(crate) fn prepare(
             env,
             u.family,
             o.unsafe_host_paths,
+            &o.volumes,
             &mut err,
         )?;
         env = ue.env;
         userland_note = ue.banner;
         strict_unsafe = ue.unsafe_paths;
     }
-    let working_dir = o
-        .workdir
-        .clone()
-        .unwrap_or_else(|| cfg.config.working_dir.clone());
     // ⭐ TODO/enter.md T-1412. The workdir is checked here, before the fork
     // and before any fixup mutates the rootfs, on both rungs: a missing
     // directory refuses naming the path and the image at 125, rather than

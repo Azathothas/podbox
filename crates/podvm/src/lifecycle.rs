@@ -402,5 +402,7 @@ pub use userland::*;
 
 mod script;
 
+pub mod volume;
+
 #[cfg(test)]
 mod tests;

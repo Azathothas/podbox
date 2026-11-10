@@ -5,7 +5,8 @@ fn v(xs: &[&str]) -> Vec<String> {
 }
 
 /// ⭐ TODO/cli.md T-1416, as in `run`: `-q` forces the banner off,
-/// `--verbose` prints it, and `-v` stays the refused volume flag.
+/// `--verbose` prints it, and `-v` is no flag of `exec`, as docker's
+/// `exec` takes no volume (TODO/enter.md T-1653).
 #[test]
 fn quiet_and_verbose_parse() {
     let o = parse(&v(&["-q", "img", "true"])).unwrap();

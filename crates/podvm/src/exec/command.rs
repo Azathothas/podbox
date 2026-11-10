@@ -213,6 +213,7 @@ pub fn exec(args: &[String]) -> i32 {
             env,
             u.family,
             o.unsafe_host_paths,
+            &[],
             &mut std::io::stderr(),
         ) {
             Ok(ue) => {

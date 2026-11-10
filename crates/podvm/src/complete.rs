@@ -69,11 +69,11 @@ pub const BANNER_KEY: &str = "banner";
 /// untouched by this switch: it silences a notice, never a refusal. The
 /// store config's `banner = quiet` still forces off, as before.
 ///
-/// ⛔ `-v` is NOT the verbose switch: `run -v` is docker's `--volume`,
-/// refused by the parity table with status None, and bundled clusters
-/// expand before admission, so reclaiming `-v` would turn a volume
-/// refusal into a banner switch. The verbose switch is long-only
-/// `--verbose`, and `-q`/`--quiet` is the force-off.
+/// ⛔ `-v` is NOT the verbose switch: `run -v` is docker's `--volume`
+/// (TODO/enter.md T-1653), and bundled clusters expand before admission,
+/// so reclaiming `-v` would turn a volume into a banner switch. The
+/// verbose switch is long-only `--verbose`, and `-q`/`--quiet` is the
+/// force-off.
 pub fn banner_loud(store: &podvm_image::Store, ask: &Ask) -> bool {
     if ask.quiet || banner_quiet(store) {
         return false;

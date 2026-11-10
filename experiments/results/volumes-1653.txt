@@ -1,0 +1,307 @@
+# T-1653 drive: `-v HOST:GUEST` on a host with no /dev/fuse and no
+# mount(2), as one GUEST:HOST pair of the PODVM_MAPS table beside the root
+# pair, served by the loader family of the userland rung. Run by hand on
+# the chroot-denying fixture of experiments/356-no-chroot-rung.sh ($FX
+# below; its wrap mounts a noexec tmpfs on $NX first where NX is set).
+# Images come from mirror.gcr.io (Docker Hub and public.ecr.aws answer
+# HTTP 429 here). The scratch store is written as $STORE, the scratch
+# directory as $WORK. cap-alpine:1 is the alpine 3.20 rootfs plus
+# /hello-static, a static-pie hello built with cc. $WORK/host holds
+# in.txt, s.sh (#!/bin/sh) and a copy of alpine's busybox.
+#
+# BEFORE is the debug binary of e99fc9b: each -v refuses with status
+# None. AFTER is this tree. podvm's completion lines (`podvm: complete:`)
+# are removed from the AFTER banner of clauses 1 and 7.
+#
+# One AFTER attempt of this drive lost the stdout of one run (exit 0, no
+# output); the second attempt is below. The loss is not of the volume:
+# `cat /etc/alpine-release` with no -v on the userland rung loses its
+# stdout too, 1 of 20 runs on the BEFORE binary and 2 of 15 on this tree;
+# 0 of 20 on the chroot rung and 0 of 60 for the fixture alone.
+
+######## BEFORE: podvm 0.1.0-beta.13 at e99fc9b
+
+== conditions
+date    2026-11-10T02:52:21Z
+kernel  Linux 6.18.44-fc-v338
+podvm   podvm 0.1.0-beta.13, binary podvm-before-1653
+fixture unshare -Urm, tmpfs over /dev/pts, experiments/deny-chroot.c (chroot(2) EPERM)
+alpine  mirror.gcr.io/library/alpine:3.20 sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+host    $WORK/host holds in.txt, s.sh (#!/bin/sh) and busybox (alpine's)
+
+== 0. fixture probe: chroot denied
+chroot(/tmp)                       FAIL errno=1 EPERM
+
+== 1. a volume read: the host file reads back at the guest path
+$ $FX podvm run --verbose -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 cat /data/in.txt
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+== 2. a guest write lands in the host directory
+$ $FX podvm run -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 sh -c echo w1653 > /data/out.txt && cat /data/out.txt
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+$ cat $WORK/host/out.txt
+sed: can't read $WORK/host/out.txt: No such file or directory
+
+== 3. relative paths inside the volume (T-1643): cd, a relative write, pwd
+$ $FX podvm run -w /tmp -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 sh -c cd /data && echo r1653 > rel.txt && cat rel.txt && pwd && ls
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+$ cat $WORK/host/rel.txt
+sed: can't read $WORK/host/rel.txt: No such file or directory
+
+== 4. grandchildren (T-1646 route): an absolute exec, a nested shell, a
+==    #! script and an ELF from the volume
+$ $FX podvm run -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 sh -c /bin/cat /data/in.txt; sh -c "cat /data/in.txt"; /data/s.sh arg1; /data/busybox echo elf-from-volume
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+== 5. :ro is refused by name until T-1655
+$ $FX podvm run -v $WORK/host:/data:ro mirror.gcr.io/library/alpine:3.20 cat /data/in.txt
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+== 6. the memfd family keeps the refusal (static payload, --unsafe-host-paths)
+$ $FX podvm run --unsafe-host-paths -v $WORK/host:/data cap-alpine:1 /hello-static
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+== 6b. control: the same static payload without -v runs
+$ $FX podvm run --unsafe-host-paths cap-alpine:1 /hello-static
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  static-hi
+  [exit 0]
+
+== 7. a noexec source: the banner names it, and an ELF there does not exec
+$ env NX=$WORK/nx BB=$WORK/host/busybox $FX podvm run --verbose -v $WORK/nx:/nx mirror.gcr.io/library/alpine:3.20 sh -c cat /nx/in.txt; /nx/busybox echo ran; echo "rc=$?"
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+== 8. a working directory or a first program inside a volume is refused
+$ $FX podvm run -w /data -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 pwd
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+$ $FX podvm run -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 /data/busybox echo hi
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+== 9. --strict refuses the Degraded flag
+$ $FX podvm run --strict -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 cat /data/in.txt
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+== 10. shapes with no meaning here are flag errors
+$ podvm run -v cache:/data mirror.gcr.io/library/alpine:3.20 true
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+$ podvm run -v /data mirror.gcr.io/library/alpine:3.20 true
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+$ podvm run -v $WORK/host:/data -v $WORK/host:/data/ mirror.gcr.io/library/alpine:3.20 true
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+$ podvm run -v $WORK/host:/proc/x mirror.gcr.io/library/alpine:3.20 true
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+== 11. detached: run -d keeps the table in the record; exec of the
+==     container reads the volume from it
+$ $FX podvm run -d --name v1653 -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 sh -c echo detached > /data/det.txt; while :; do :; done
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+$ $FX podvm exec v1653 cat /data/in.txt /data/det.txt
+  podvm exec: v1653 is not in the store. `podvm exec` never pulls: `podvm run v1653 ...` is what puts it there
+  [exit 125]
+
+$ $FX podvm stop -t 0 v1653
+  podvm stop: no such container: v1653. `podvm ps -a` lists what there is
+  [exit 125]
+
+$ podvm rm -f v1653
+  podvm rm: no such container: v1653. `podvm ps -a` lists what there is
+  [exit 125]
+
+== 12. capable host control: the chroot rung refuses a volume by name
+$ podvm run -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 cat /data/in.txt
+  podvm run: -v, --volume is in the parity table with status None: podvm cannot mount(2) on this runtime, so a volume would be a copy pretending to be a mount
+  [exit 125]
+
+== 13. host files after the runs
+$ ls $WORK/host
+  busybox
+  in.txt
+  s.sh
+
+######## AFTER: podvm 0.1.0-beta.13, e99fc9b plus the T-1653 tree
+
+== conditions
+date    2026-11-10T03:11:40Z
+kernel  Linux 6.18.44-fc-v338
+podvm   podvm 0.1.0-beta.13, binary podvm-after-1653
+fixture unshare -Urm, tmpfs over /dev/pts, experiments/deny-chroot.c (chroot(2) EPERM)
+alpine  mirror.gcr.io/library/alpine:3.20 sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+host    $WORK/host holds in.txt, s.sh (#!/bin/sh) and busybox (alpine's)
+
+== 0. fixture probe: chroot denied
+chroot(/tmp)                       FAIL errno=1 EPERM
+
+== 1. a volume read: the host file reads back at the guest path
+$ $FX podvm run --verbose -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 cat /data/in.txt
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (musl object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "cat" rides as the applet the resolved busybox file selects; a child that execs a dynamic program or a #! script enters through the image's loader inside the rootfs, with the image's libraries from PODVM_LIB_PATH; a raw call through libc's syscall() takes the same table, and a raw call with a path that the table cannot map, or io_uring_setup, answers ENOSYS, so libuv uses its thread pool (TODO/enter.md T-1317, T-1407, T-1411; TODO/interpose.md T-1646, T-1697)
+  podvm: userland: absolute guest paths anchor inside $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs through PODVM_MAPS=/:$STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs,/data:$WORK/host (TODO/enter.md T-1407)
+  podvm: userland: -v $WORK/host:/data is a path rewrite through PODVM_MAPS, not a mount: a write lands in $WORK/host, and a call that does not pass the interposer (a static program, a raw syscall instruction) sees the image's /data (TODO/enter.md T-1653)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  vol-in
+  [exit 0]
+
+== 2. a guest write lands in the host directory
+$ $FX podvm run -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 sh -c echo w1653 > /data/out.txt && cat /data/out.txt
+  w1653
+  [exit 0]
+
+$ cat $WORK/host/out.txt
+  w1653
+
+== 3. relative paths inside the volume (T-1643): cd, a relative write, pwd
+$ $FX podvm run -w /tmp -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 sh -c cd /data && echo r1653 > rel.txt && cat rel.txt && pwd && ls
+  r1653
+  /data
+  busybox
+  in.txt
+  out.txt
+  rel.txt
+  s.sh
+  [exit 0]
+
+$ cat $WORK/host/rel.txt
+  r1653
+
+== 4. grandchildren (T-1646 route): an absolute exec, a nested shell, a
+==    #! script and an ELF from the volume
+$ $FX podvm run -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 sh -c /bin/cat /data/in.txt; sh -c "cat /data/in.txt"; /data/s.sh arg1; /data/busybox echo elf-from-volume
+  vol-in
+  vol-in
+  script-from-volume arg1
+  elf-from-volume
+  [exit 0]
+
+== 5. :ro is refused by name until T-1655
+$ $FX podvm run -v $WORK/host:/data:ro mirror.gcr.io/library/alpine:3.20 cat /data/in.txt
+  podvm run: -v "$WORK/host:/data:ro": `:ro` is refused: podvm cannot enforce a read-only volume yet, and a volume that reads as read-only and takes writes would be a lie. The read-only layer of TODO/enter.md T-1655 serves it with EROFS; until then, drop `:ro` (TODO/enter.md T-1653)
+  [exit 125]
+
+== 6. the memfd family keeps the refusal (static payload, --unsafe-host-paths)
+$ $FX podvm run --unsafe-host-paths -v $WORK/host:/data cap-alpine:1 /hello-static
+  podvm run: -v $WORK/host:/data: the memfd family runs a static payload with no interposer, so no path rewrite reaches it, until TODO/enter.md T-1652 maps a volume to a host directory descriptor (TODO/enter.md T-1653)
+  [exit 125]
+
+== 6b. control: the same static payload without -v runs
+$ $FX podvm run --unsafe-host-paths cap-alpine:1 /hello-static
+  podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
+  static-hi
+  [exit 0]
+
+== 7. a noexec source: the banner names it, and an ELF there does not exec
+$ env NX=$WORK/nx BB=$WORK/host/busybox $FX podvm run --verbose -v $WORK/nx:/nx mirror.gcr.io/library/alpine:3.20 sh -c cat /nx/in.txt; /nx/busybox echo ran; echo "rc=$?"
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (musl object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "sh" rides as the applet the resolved busybox file selects; a child that execs a dynamic program or a #! script enters through the image's loader inside the rootfs, with the image's libraries from PODVM_LIB_PATH; a raw call through libc's syscall() takes the same table, and a raw call with a path that the table cannot map, or io_uring_setup, answers ENOSYS, so libuv uses its thread pool (TODO/enter.md T-1317, T-1407, T-1411; TODO/interpose.md T-1646, T-1697)
+  podvm: userland: absolute guest paths anchor inside $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs through PODVM_MAPS=/:$STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs,/nx:$WORK/nx (TODO/enter.md T-1407)
+  podvm: userland: -v $WORK/nx:/nx is a path rewrite through PODVM_MAPS, not a mount: a write lands in $WORK/nx, and a call that does not pass the interposer (a static program, a raw syscall instruction) sees the image's /nx (TODO/enter.md T-1653)
+  podvm: userland: the volume source $WORK/nx is on a noexec mount, so a program in /nx cannot exec from it (TODO/enter.md T-1653)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  nx-data
+  sh: /nx/busybox: Permission denied
+  rc=126
+  [exit 0]
+
+== 8. a working directory or a first program inside a volume is refused
+$ $FX podvm run -w /data -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 pwd
+  podvm run: -v $WORK/host:/data: the working directory /data is inside the volume at /data, and the entry starts it in the image's rootfs, not through the table: use `cd /data` in the command (TODO/enter.md T-1653)
+  [exit 125]
+
+$ $FX podvm run -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 /data/busybox echo hi
+  podvm run: -v $WORK/host:/data: the program /data/busybox is inside the volume at /data, and the entry resolves the first program in the image's rootfs, not through the table: start it from a shell of the image, as `sh -c /data/busybox` (TODO/enter.md T-1653)
+  [exit 125]
+
+== 9. --strict refuses the Degraded flag
+$ $FX podvm run --strict -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 cat /data/in.txt
+  podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+  podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1646)
+  podvm run: --strict warning [capability]: a statically linked child keeps the direct exec, and a dynamic program can issue the syscall instruction itself (Go, liburing) instead of a call of libc: those raw syscalls pass the interposer, so their absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
+  podvm run: --strict, and this run is degraded in 1 safety-relevant way(s). podvm refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415, T-1650):
+    - [safety] -v, --volume is Degraded in the parity table: HOST:GUEST[:rw], repeatable: a path rewrite through PODVM_MAPS on the userland rung's loader family, never a mount or a copy. A write lands in HOST, as with a bind mount; a static program or a raw syscall instruction sees the image's path; /proc/mounts does not list it. Refused by name: on the chroot rung, the memfd family, a forced PODVM_MODE and the machine tier; :ro, until the read-only layer of T-1655; a named or anonymous volume; a working directory or a first program inside a volume. The banner names a noexec source, and --strict refuses (TODO/enter.md T-1653, T-1655)
+  [exit 125]
+
+== 10. shapes with no meaning here are flag errors
+$ podvm run -v cache:/data mirror.gcr.io/library/alpine:3.20 true
+  podvm run: -v "cache:/data": "cache" is a named volume, which needs a volume store, and podvm keeps none: name a host path that starts with `/` or `.`
+  [exit 125]
+
+$ podvm run -v /data mirror.gcr.io/library/alpine:3.20 true
+  podvm run: -v "/data": an anonymous volume needs a volume store, and podvm keeps none: name a host path, as HOST:GUEST
+  [exit 125]
+
+$ podvm run -v $WORK/host:/data -v $WORK/host:/data/ mirror.gcr.io/library/alpine:3.20 true
+  podvm run: -v: the volume $WORK/host:/data/: a second volume at the guest path /data
+  [exit 125]
+
+$ podvm run -v $WORK/host:/proc/x mirror.gcr.io/library/alpine:3.20 true
+  podvm run: -v: the volume $WORK/host:/proc/x: the interposer never rewrites a path under /proc, so this volume would serve nothing
+  [exit 125]
+
+== 11. detached: run -d keeps the table in the record; exec of the
+==     container reads the volume from it
+$ $FX podvm run -d --name v1653 -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 sh -c echo detached > /data/det.txt; while :; do :; done
+  3d03301ef2c0686061e3a681a4145df69542503b70ade060e7c0964e07c62842
+  [exit 0]
+
+$ $FX podvm exec v1653 cat /data/in.txt /data/det.txt
+  vol-in
+  detached
+  [exit 0]
+
+$ $FX podvm stop -t 0 v1653
+  podvm stop: v1653 was killed at once (-t 0)
+  v1653
+  [exit 0]
+
+$ podvm rm -f v1653
+  v1653
+  [exit 0]
+
+== 12. capable host control: the chroot rung refuses a volume by name
+$ podvm run -v $WORK/host:/data mirror.gcr.io/library/alpine:3.20 cat /data/in.txt
+  podvm run: -v $WORK/host:/data: this host permits chroot(2), so podvm enters the chroot rung, where a host path is out of reach and podvm cannot mount(2) one in. Only the userland loader family serves a volume, where chroot is denied (TODO/enter.md T-1653)
+  [exit 125]
+
+== 13. host files after the runs
+$ ls $WORK/host
+  busybox
+  det.txt
+  in.txt
+  out.txt
+  rel.txt
+  s.sh

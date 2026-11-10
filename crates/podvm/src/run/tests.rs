@@ -69,7 +69,8 @@ fn strict_all_parses_and_anything_else_is_a_flag_error() {
 
 /// ⭐ TODO/cli.md T-1416: `-q`/`--quiet` forces the banner off and
 /// `--verbose` prints it, including bundled with `-i`. `-v` is NOT
-/// among them: it stays docker's `--volume`, refused by the table.
+/// among them: it is docker's `--volume` (TODO/enter.md T-1653), and it
+/// takes the next argument as its value.
 #[test]
 fn quiet_and_verbose_parse() {
     let o = parse("run", &v(&["-q", "img"])).unwrap();
@@ -83,6 +84,42 @@ fn quiet_and_verbose_parse() {
         parse("run", &v(&["-v", "img"])).unwrap_err(),
         EXIT_FLAG_ERROR
     );
+}
+
+/// ⭐ TODO/enter.md T-1653. `-v`, `--volume`, `--volume=` and a cluster
+/// each give one pair with the canonical host path; `:ro` and a second
+/// pair at one guest path are flag errors before anything is fetched.
+#[test]
+fn volumes_parse_in_each_spelling() {
+    let d = std::env::temp_dir().join(format!("podvm-runvol-{}", std::process::id()));
+    std::fs::create_dir_all(&d).unwrap();
+    let h = std::fs::canonicalize(&d)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+    let a = format!("{h}:/a");
+    let b = format!("--volume={h}:/b");
+    let c = format!("-iv{h}:/c");
+    let o = parse(
+        "run",
+        &v(&["-v", &a, "--volume", &format!("{h}:/d"), &b, &c, "img"]),
+    )
+    .unwrap();
+    let guests: Vec<_> = o.volumes.iter().map(|x| x.guest.as_str()).collect();
+    assert_eq!(guests, ["/a", "/d", "/b", "/c"]);
+    assert!(o.volumes.iter().all(|x| x.host == h), "{:?}", o.volumes);
+    assert!(!o.ask.verbose);
+    let ro = format!("{h}:/a:ro");
+    assert_eq!(
+        parse("run", &v(&["-v", &ro, "img"])).unwrap_err(),
+        EXIT_FLAG_ERROR
+    );
+    assert_eq!(
+        parse("run", &v(&["-v", &a, "-v", &a, "img"])).unwrap_err(),
+        EXIT_FLAG_ERROR
+    );
+    let _ = std::fs::remove_dir_all(&d);
 }
 
 /// ⭐ TODO/supervise.md T-1421. The foreground record shape this verb

@@ -326,7 +326,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1650](cli.md) | P1 | cli | partial | `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run |
 | [T-1651](enter.md) | P2 | enter | open | An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads |
 | [T-1652](enter.md) | P2 | enter | open | A native-static rung: userland execve, Syscall User Dispatch and openat2(RESOLVE_IN_ROOT) |
-| [T-1653](enter.md) | P2 | enter | open | `-v` volumes on a host with no /dev/fuse and no mount |
+| [T-1653](enter.md) | P2 | enter | partial | `-v` volumes on a host with no /dev/fuse and no mount |
 | [T-1654](cli.md) | P2 | cli | open | Profiles: strict TOML recipes with `extends` and `-s` overrides |
 | [T-1655](cli.md) | P2 | cli | open | The sandbox hardening line: each `run` flag works on the tier or refuses by name |
 | [T-1656](machine.md) | P2 | machine | open | MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG |
@@ -373,10 +373,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1697](interpose.md) | P1 | interpose | partial | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
 | [T-1698](extract.md) | P0 | extract | done | A whiteout of `..` deletes outside the destination |
 | [T-1699](interpose.md) | P2 | interpose | open | `mkostemp` of a mapped template answers ERANGE, and npm prints a line for each cache entry |
+| [T-1700](enter.md) | P1 | enter | open | A run on the userland rung sometimes exits 0 with no output |
 
 ## Counts
 
-308 items: 29 open, 16 partial, 5 blocked, 258 done.
+309 items: 29 open, 17 partial, 5 blocked, 258 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -385,10 +386,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 2 | 0 | 63 | 65 |
-| P1 | 2 | 11 | 1 | 122 | 136 |
-| P2 | 27 | 3 | 4 | 64 | 98 |
+| P1 | 3 | 11 | 1 | 122 | 137 |
+| P2 | 26 | 4 | 4 | 64 | 98 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **29** | **16** | **5** | **258** | **308** |
+| **All** | **29** | **17** | **5** | **258** | **309** |
 
 ## Work order
 

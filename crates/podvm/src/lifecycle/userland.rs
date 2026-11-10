@@ -55,12 +55,18 @@ pub struct UserlandEnv {
 /// once, never into the banner: the quiet default of T-1416 and `-q`
 /// hide the banner, and a host pass-through is never silent. The rest
 /// of the banner stays under `--verbose`.
+///
+/// ⭐ TODO/enter.md T-1653. Each volume is one more pair of the table,
+/// also under the opt-in, which drops only the root pair. The caller
+/// refused the volumes on each entry that cannot serve them
+/// (`crate::lifecycle::volume::refuse_unserved`).
 pub fn userland_env(
     verb: &str,
     rootfs: &str,
     env: Vec<String>,
     family: podvm_enter::userland::Family,
     unsafe_paths: bool,
+    volumes: &[podvm_enter::userland::Volume],
     err: &mut dyn Write,
 ) -> Result<UserlandEnv, i32> {
     use podvm_enter::userland::MAPS_VAR;
@@ -69,16 +75,23 @@ pub fn userland_env(
         .filter(|e| e.split('=').next().unwrap_or("") != MAPS_VAR)
         .collect();
     let mut banner = String::new();
-    if unsafe_paths {
+    let root = if unsafe_paths {
         let _ = writeln!(err, "{HOST_PATHS_LINE}");
+        None
     } else {
-        match podvm_enter::userland::userland_maps_table(rootfs) {
+        Some(rootfs)
+    };
+    if root.is_some() || !volumes.is_empty() {
+        match podvm_enter::userland::userland_maps_table(root, volumes) {
             Ok(table) => {
                 out.push(format!("{MAPS_VAR}={table}"));
-                banner.push_str(&format!(
-                    "podvm: userland: absolute guest paths anchor inside {rootfs} \
-                     through {MAPS_VAR}={table} (TODO/enter.md T-1407)\n"
-                ));
+                if root.is_some() {
+                    banner.push_str(&format!(
+                        "podvm: userland: absolute guest paths anchor inside {rootfs} \
+                         through {MAPS_VAR}={table} (TODO/enter.md T-1407)\n"
+                    ));
+                }
+                banner.push_str(&crate::lifecycle::volume::banner(volumes));
             }
             Err(why) => {
                 eprintln!("podvm {verb}: userland: {why}");

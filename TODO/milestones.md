@@ -1182,7 +1182,7 @@ Problem:     The parity row of `windows --podvm-mem` says that guest memory
              is judged against `RLIMIT_FSIZE`. `windows::run` and
              `windows::dos` never read the limit, and the comment of
              `windows::run` says why. The contract and the code disagree.
-Premise:     The row is `crates/podvm/src/parity.rs:345`. The only caller of
+Premise:     The row is `crates/podvm/src/parity.rs:346`. The only caller of
              `ceiling()` of `crates/podvm/src/windows/plan.rs:87` is the
              download (`crates/podvm/src/windows/setup.rs:105`).
              `crates/podvm/src/windows/run.rs:24` says that the limit does
