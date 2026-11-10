@@ -7,15 +7,17 @@ Read the license before you copy source.
 A repository is read-only unless the operator explicitly names it as a write target.
 For podvm, other repositories remain read-only.
 
-Use the repository fetcher for a remote capture:
+Use the repository fetcher for a remote capture, into a directory outside
+the repository. The fetcher refuses a directory that an ignore rule of the
+repository covers.
 
 ```sh
-sh scripts/common/mine-repo.sh OWNER/REPO --out references
+sh scripts/common/mine-repo.sh OWNER/REPO --out "${TMPDIR:-/tmp}/references"
 ```
 
 For a local study, read the current tree and record its Git state.
-Keep a selected source capture when the findings depend on those bytes.
-State every trim and the reading depth.
+Record the commit read and the cited lines in the reference issue
+([Corpus](#corpus)). State every trim and the reading depth.
 Do not run another project's setup or gate when the task authorizes reading only.
 
 ## Code passes
@@ -47,7 +49,7 @@ Do not send credentials to a proxy.
 
 ## Corpus
 
-Since 2026-11-06 the corpus is not kept on `main` (the operator's ruling).
+Since 2026-11-06 the corpus is not kept on `main` (the owner's ruling, [decisions](../decisions.md)).
 Each studied repository is tracked in a GitHub issue with the label
 `reference`. The issue names the upstream, the commit read, the licence
 determination, what podvm took from it, and the entries that cite it.

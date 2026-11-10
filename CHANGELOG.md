@@ -41,8 +41,8 @@ The version moves to 0.2 because the rename breaks each caller.
   `wsl-toolkit-podvm`), not `podbox`.
 - The releases up to `v0.1.0-beta.12` keep their `podbox-*` asset names and
   their signing identity, the nightly workflow of `Azathothas/podbox`;
-  `podvm-verify` checks each tag against the identity it was published
-  under.
+  `podvm-verify` checks each tag through `v0.1.0-beta.13` against that
+  identity, and each later tag against the identity of `PodUtils/podvm`.
 - The repository is `PodUtils/podvm`. From this release, the assets are
   `podvm-ARCH` and `podvm-ssh-ARCH.tar.gz`, and the nightly workflow of
   `PodUtils/podvm` at the tag signs each one.
@@ -117,9 +117,10 @@ Deployed: version 0.2.0-beta.2.
 Record: T-1681, T-1677, T-1669, T-1671; the commits `deps: podcrates ...`.
 Deployed: version 0.2.0-beta.2.
 
-- podvm takes the shared crates of `PodUtils/podcrates` at tag `v0.12.0`:
-  `pod-hostprobe`, `pod-tls`, `pod-proxy`, `pod-term`, `pod-supervise`,
-  `pod-guest`, `pod-enter`, `pod-oci`, `pod-extract` and `pod-rootfs`.
+- podvm takes the 11 shared crates of `PodUtils/podcrates` at tag `v0.12.0`:
+  `pod-core`, `pod-hostprobe`, `pod-tls`, `pod-proxy`, `pod-term`,
+  `pod-supervise`, `pod-guest`, `pod-enter`, `pod-oci`, `pod-extract` and
+  `pod-rootfs`.
   Each HTTP request goes through `pod-proxy`, and `ureq` is gone. With
   `v0.12.0`, the table of a run (`pod-enter`'s `Maps`) resolves each guest
   path, the `#!` parser is `pod-enter`'s, and one `statfs` names a
@@ -136,6 +137,9 @@ build failed before the publish (run 42800606497). Version 0.2.0-beta.2
 carries each change of that version.
 
 ## 0.1.0-beta.13
+
+The tag `v0.1.0-beta.13` has no release: its build failed. Version
+0.2.0-beta.2 carries each change below.
 
 - The static build compiles under Rust 1.99: the `open` family's fixed
   third argument is deliberate, so the deny-by-default

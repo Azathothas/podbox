@@ -1,8 +1,35 @@
 # Container lanes
 
-This page gives the procedure for the Linux and Windows lanes. The
-`wsl-toolkit` binary owns its command reference. Read its installed manual
-before you use a command that this page does not show:
+This page gives the procedure for the Linux lane and the parked Windows
+lane. A cloud session is the Linux lane ([decisions](decisions.md),
+2026-11-06). The Windows lane is parked: it stays correct for
+wsl-toolkit 9, and no session needs it.
+
+## Select the lane
+
+Run the session entry point from the repository root:
+
+```sh
+sh scripts/cloud-setup.sh
+cargo build --release -p podvm-gate
+./target/x86_64-unknown-linux-musl/release/podvm-dev session
+```
+
+It detects the host and selects one lane. Do not select a lane from memory.
+
+| Host | Work location |
+| --- | --- |
+| Cloud session or Linux host | The checkout. `podvm-dev` starts the environment and build. |
+| Linux container | The checkout. Setup runs again because the container can be new. |
+| Windows (parked) | Record checks run on the host. Linux builds and tests run in a job container in `wsl-toolkit-podvm`. |
+
+Use `sh scripts/common/check-gate.sh --fast` for an early host check.
+Use `--strict` for the final host gate, including the platform twins.
+`podvm-dev status` reports the native Linux background build. It does
+not report Windows base status.
+
+The `wsl-toolkit` binary owns its command reference. Read its installed
+manual before you use a command that this page does not show:
 
 ```powershell
 wsl-toolkit version
@@ -13,36 +40,10 @@ The earlier Windows procedure is in
 [`history/containers-before-toolkit-6.txt`](history/containers-before-toolkit-6.txt).
 It records earlier tool behavior and is not a current instruction.
 
-## Select the lane
-
-Run the session entry point from the repository root:
-
-```sh
-cargo build --release -p podvm-gate
-./target/release/podvm-dev session
-```
-
-It detects the host and selects one lane. Do not select a lane from memory.
-The Windows call waits for `base ensure --probe` to finish. A new base can
-take longer than a warm one.
-
-| Host | Work location |
-| --- | --- |
-| Linux host | The checkout. `podvm-dev` starts the environment and build. |
-| Linux container | The checkout. Setup runs again because the container can be new. |
-| Windows | Record checks run on the host. Linux builds and tests run in a job container in `wsl-toolkit-podvm`. |
-
-Use `sh scripts/common/check-gate.sh --fast` for an early host check.
-Use `--strict` for the final host gate, including the platform twins.
-Use `sh scripts/windows/run-in-base.sh` for the full Linux check.
-`podvm-dev status` reports the native Linux background build. It does
-not report Windows base status.
-
 ## Windows base
 
-The Windows lane is parked since 2026-11-06: work moved to cloud sessions
-(see [the decisions](decisions.md)). It targets wsl-toolkit 9.0.1 and stays correct, but
-no session needs it.
+The rest of this page applies to the parked Windows lane. It targets
+wsl-toolkit 9.0.1.
 
 The instance name is `podvm`. The distribution name is
 `wsl-toolkit-podvm`. Every manual command must name the instance.
@@ -57,8 +58,8 @@ distribution from an image. Record the state of the host engine before you
 start it. Restore that state when the session ends. Keep the base: it holds
 the image cache and the job records across sessions.
 
-The base status command reports drive access and cgroup support. On this
-host, the 2026-09-28 probe reported read-only Windows drive automounts and
+The base status command reports drive access and cgroup support. On the
+recorded Windows host, the 2026-09-28 probe reported read-only drive automounts and
 no cgroup delegation for the base account. The engine accepted memory and
 CPU limits but did not enforce them. Read the current probe before you make
 a limit claim on another host. An explicit `base grant --mode rw` can give a
@@ -90,11 +91,9 @@ must still have its intended mode in git before commit.
 
 The wrapper excludes `codegraph.db`, its sidecars, `daemon.log`,
 `daemon.pid`, `target`, `.dev`, and `.tmp`. It keeps `.git` and
-`references/`: checks read the index and cited source lines. Do not
-exclude every log file; tracked reference logs are evidence. The corpus is
-retained until [T-1606](../TODO/machine.md) closes, and the reference map
-names what each capture decided rather than citing its lines, so dropping
-the corpus is a later change to this policy and not to the evidence.
+`references/`: checks read the index and `references/MANIFEST.tsv`.
+Do not exclude every log file; tracked result logs are evidence. The
+captured corpus left the tree on 2026-11-06 ([T-1606](../TODO/machine.md)).
 
 `--container-lifecycle ephemeral` removes the container and guest job
 directory after the run. The host record goes too (wsl-toolkit 8+); `wait ID`
@@ -148,7 +147,7 @@ wsl-toolkit 8+ also reads MSYS-spelled host paths when
 be rewritten by Git Bash before the guest reads it. Use `--script` or
 `--command-base64` for a command with paths or quoting.
 
-On this Windows host, `python3` resolves to a Store stub. Run host Python
+On the recorded Windows host, `python3` resolves to a Store stub. Run host Python
 checks with `py`. Inside a Linux job, use the installed Linux interpreter.
 PowerShell can give a generated script CRLF endings. Write an LF script, or
 send it through the wrapper's job-file path.

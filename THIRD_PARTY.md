@@ -37,8 +37,8 @@ Private path substitutions in a published result must be stated explicitly.
 
 | Path | Captured source | Licence | Current state |
 | --- | --- | --- | --- |
-| `vendor/userland-execve` | io12/userland-execve-rust `02ef0e0` | MIT; LICENSE retained | Source retained. Its manifest has removed dependencies. It is not a workspace member or an enter dependency and is not linked. |
-| `crates/podvm-ssh/shims/fakepwd.c` | sandssh `4fc7f8c` | MIT; adjacent LICENSE retained | Source retained. No current workspace build compiles or links it. Restricted-server use remains proof work in T-1401. |
+| `vendor/userland-execve` | io12/userland-execve-rust `02ef0e0` | MIT; LICENSE retained | Source retained. Its manifest has removed dependencies. It is not a workspace member or a dependency of `podvm-enter` or `pod-enter`, and is not linked. |
+| `crates/podvm-ssh/shims/fakepwd.c` | sandssh `4fc7f8c` | MIT; adjacent LICENSE retained | Source retained. `experiments/382-restricted-sshd.sh` compiles it on a glibc-dynamic lane for the restricted-server proof of T-1401 (done). No workspace or release build compiles or links it. |
 
 Do not describe retained source as the active userland loader.
 The native loader is in `src/userland.rs` of `pod-enter` (PodUtils/podcrates).

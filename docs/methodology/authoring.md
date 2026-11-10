@@ -62,5 +62,5 @@ A partial task names the clauses that remain.
 ## Numbering
 
 Use a free task ID.
-Use `./target/release/podvm-count` to update status and counts.
+Use `./target/x86_64-unknown-linux-musl/release/podvm-count` to update status and counts.
 Do not reuse an experiment number.

@@ -1,14 +1,19 @@
 # podvm
 
-podvm runs Linux payloads on hosts that can deny namespaces, mounts,
-device creation, and ownership changes. It accepts Docker and Podman commands
-and reports the behavior it can provide.
+podvm runs Linux payloads on hosts that can deny namespaces, mounts, chroot,
+device creation, ownership changes, or ptrace. It takes Docker and Podman
+commands, selects a mechanism from the host probes, and names that
+mechanism in its output. Each released binary is static musl.
 
 ## Current behavior
 
 The runtime has image acquisition, layer extraction, rootfs completion,
 payload entry, lifecycle control, interposition, and a machine tier.
 The CLI also provides remote and machine SSH commands.
+Most mechanisms are shared crates of
+[PodUtils/podcrates](https://github.com/PodUtils/podcrates); [the code map](docs/code-map.md) names them.
+The machine tier boots Windows, DOS, and `machine ssh` guests. It does not
+yet boot a Linux guest from an OCI image.
 
 Read [the architecture](docs/architecture.md) for the execution paths.
 Read [the limits](docs/limits.md) before you select a path.
@@ -18,32 +23,26 @@ Read [the limits](docs/limits.md) before you select a path.
 ## Build on Linux
 
 ```sh
-./scripts/common/bootstrap-env.sh rust cc zig tools openssh
-./target/release/podvm-dev build
+sh scripts/cloud-setup.sh
+export PATH="$HOME/.local/podvm/zig-x86_64-linux-0.16.0:$PATH"
+cargo build --release -p podvm-gate
+./target/x86_64-unknown-linux-musl/release/podvm-dev build
 ./target/x86_64-unknown-linux-musl/release/podvm probe
 ./target/x86_64-unknown-linux-musl/release/podvm run alpine:latest /bin/echo hello
 ```
 
-The build script builds both interposer objects before the CLI embeds them.
+`scripts/cloud-setup.sh` installs zig, the Rust toolchain and the musl
+target, and reports the host. The workspace builds static musl binaries
+under `target/x86_64-unknown-linux-musl/release/`.
+`podvm-dev build` builds both interposer objects before the CLI embeds them.
 The build status verifies input and output bytes.
 
-For repository work, start with `./target/release/podvm-dev session`.
-Use `./target/release/podvm-dev check` for the complete Linux check.
+For repository work, read [AGENTS.md](AGENTS.md) first.
+`podvm-dev session` reports the host, and `podvm-dev check` runs the
+complete Linux check ([the gate](docs/methodology/gate.md)).
 
-## Build from Windows
-
-```powershell
-cargo build --release -p podvm-gate
-./target/release/podvm-dev session
-./target/release/podvm-gate
-$env:PODVM_ARTIFACTS = '.dev/artifacts'
-sh scripts/windows/run-in-base.sh
-```
-
-The Linux job copies this checkout into the `podvm` base.
-It returns requested artifacts through `/out`.
-The [Windows procedure](docs/containers.md) gives setup and cleanup steps.
-The produced executable runs on Linux.
+The Windows lane on wsl-toolkit is parked. [Container procedures](docs/containers.md)
+keep its steps.
 
 ## Run a payload
 
@@ -59,7 +58,8 @@ The probe measures this host. The banner reports the selected mechanism.
 
 A chroot changes path resolution. The namespace path creates a mount namespace
 and private temporary filesystem. It does not create user, PID, or network isolation.
-Where chroot is denied, the userland path can use the image loader or memfd.
+Where chroot is denied, the userland path enters a dynamic payload through the image loader.
+A static payload there needs `--unsafe-host-paths` and runs from a memfd.
 Read the named refusal when a required mechanism is absent.
 
 ## Windows and DOS guests
@@ -87,13 +87,14 @@ podvm machine ssh --help
 
 The remote commands use the `node`, `operator`, and `proxy` helper executables.
 Place compatible helpers beside podvm or on PATH.
-A source workspace build produces them. Read the release limits before you
-use a downloaded standalone binary for remote SSH.
+A source workspace build produces them. Read [the SSH limits](docs/limits.md#ssh)
+before you use a downloaded standalone binary for remote SSH.
 
 The release workflow also packages all four helpers in an archive for each
 architecture. Keep the CLI and helpers from the same release in one directory.
 Use the archive's licence directory with the distributed executables.
 The archive does not include an external SSH server.
+The server endpoint also needs the SSH server named by its configuration.
 
 Select a verified tag and architecture from
 [the release assets](https://github.com/PodUtils/podvm/releases).
@@ -108,12 +109,11 @@ Binary `podvm-verify` owns that verification, and the two lines above
 are an exec shim.
 The verifier requires `gh` and `cosign`.
 It checks the tag's workflow identity.
-`v0.1.0-beta.12` is the last podbox release.
-The tag `v0.1.0-beta.13` has no release, because its build failed.
+`v0.1.0-beta.12` is the last podbox release, and `v0.2.0-beta.2` is the first podvm release.
+The tags `v0.1.0-beta.13` and `v0.2.0-beta.1` have no release, because their builds failed.
 Tags up to `v0.1.0-beta.13` keep the podbox identity: their releases carry `podbox-*` assets and are signed by the nightly workflow of `Azathothas/podbox`, and the verifier checks those tags against that identity.
-Each later tag is a podvm release with `podvm-*` assets; `podvm-verify` decides the identity from the tag.
+Each later tag carries the podvm identity, and its release has `podvm-*` assets; `podvm-verify` decides the identity from the tag.
 `Azathothas/podbox` redirects to this repository, so nobody may create a new repository of that name: it would break the redirect and the old identity with it.
-The server endpoint also needs the SSH server named by its configuration.
 
 ## Documents and evidence
 

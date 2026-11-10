@@ -30,6 +30,8 @@ A manifest patch does not establish that the source is linked.
 
 Fix a carried defect in this tree.
 Do not write to another repository.
+A defect in a `pod-*` crate goes to PodUtils/podcrates as a COORD issue
+of this repository (`AGENTS.md`, section 9).
 [Remote rules](../security/remote-ops.md) define that boundary.
 
 ## Reconciliation

@@ -34,6 +34,7 @@ before; they stay in force where no row here supersedes them.
 | 2026-11-09 | Test accounts | "Not now". No Cloudflare, Zero Trust or GitHub test account as a CI secret. A live step that needs one waits; offline tests stay. |
 | 2026-11-09 | Workflow dispatch | A session dispatches the workflows of this repository itself, with the GitHub tool `actions_run_trigger` (the owner's account). The issues `[gh action] requested` and COORD-005 (#198) are superseded. |
 | 2026-11-09 | Priority | "priority is first podvm, podnet, podssh projects, cfb & githome can wait". The entries for the asks of cfb and githome (T-1694 to T-1696 and the clauses of PodUtils/podcrates#39) stay, after podvm's own work order. The new repositories of PodUtils stay empty. |
+
 ## Calls made without a ruling
 
 Each call stays in force until the owner rules otherwise.
@@ -67,6 +68,7 @@ face (podcrates gave it, PodUtils/podcrates#4), the access of T-040
 | --- | --- | --- |
 | 2026-10-02 | Windows route is wsl-toolkit, instance podbox (`TODO/RULES.md`, section 11). | Cloud sessions (2026-11-06); the parked lane uses the instance `podvm` (C4). |
 | 2026-10-02 | `references/` stays, and the repoint is filed as work (T-1606). | References (2026-11-06). |
-| 2026-11-06 | GitHub Actions is disabled for the account that the podcrates session pushes with, so a push there starts no workflow. Until the owner resolves it, the owner's account dispatches podcrates' `ci.yml` and `release.yml` by `workflow_dispatch` (COORD-005). | | 2026-11-09, Workflow dispatch. |
-| 2026-11-06 | A session that needs a workflow run it cannot start opens an issue titled `[gh action] requested` with the exact `gh` commands in its body; the owner's local agent runs them and writes back the run ids. | | 2026-11-09, Workflow dispatch. |
+| 2026-11-06 | GitHub Actions is disabled for the account that the podcrates session pushes with, so a push there starts no workflow. Until the owner resolves it, the owner's account dispatches podcrates' `ci.yml` and `release.yml` by `workflow_dispatch` (COORD-005). | 2026-11-09, Workflow dispatch. |
+| 2026-11-06 | A session that needs a workflow run it cannot start opens an issue titled `[gh action] requested` with the exact `gh` commands in its body; the owner's local agent runs them and writes back the run ids. | 2026-11-09, Workflow dispatch. |
 | 2026-10-02 | KVM and Windows-guest work is deferred; no session starts a KVM guest (`TODO/RULES.md`, section 11). | 2026-11-09, KVM. |
+| 2026-10-02 | An unattended KVM guest run is permitted on one host only, with a watchdog outside the guest that removes an emulator that outlives its bound (`TODO/RULES.md`, section 11). | 2026-11-09, KVM. |

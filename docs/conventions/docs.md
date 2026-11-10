@@ -8,6 +8,8 @@ Source and verified runs establish behavior.
 | Document | Owns |
 | --- | --- |
 | `AGENTS.md` | Session entry point and required reading |
+| `docs/HANDOFF.md` | The state at the end of a session and the next steps, while it exists |
+| `docs/decisions.md` | Rulings of the owner since 2026-11-06, calls made without a ruling, and open questions |
 | `README.md` | Product entry point and build start |
 | `HUMAN.md` | Operator procedure and supplied input |
 | `SECURITY.md` | Trust model and report route |
@@ -21,6 +23,8 @@ Source and verified runs establish behavior.
 | `docs/code-map.md` | Source ownership |
 | `docs/limits.md` | Current constraints and proof gaps |
 | `docs/runtime-state.md` | Generated source declarations |
+| `docs/agent-tooling.md` | Tools and source discovery |
+| `docs/containers.md` | Lane procedures |
 | `CHANGELOG.md` | Shipped changes and publication state |
 | `experiments/results/` | Captured measurements |
 | `docs/history/` | Superseded wording, research depth, and reviews |

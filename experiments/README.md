@@ -32,7 +32,7 @@ Later scripts test podvm behavior. Their owning task gives the acceptance.
 
 | Script | Required conditions and result |
 | --- | --- |
-| `392-kvm-guest.sh` | Windows toolkit base, explicit Linux binary, pinned operator disk; guest version, exit 42, run path, and cleanup. NOT PASSING: the 2026-09-30 KVM runs failed (`TODO/PROGRESS.md`); this row is historical until an operator-present run re-takes it |
+| `392-kvm-guest.sh` | Windows host of the parked lane (`py`), Windows toolkit base, explicit Linux binary, pinned operator disk; guest version, exit 42, run path, and cleanup. NOT PASSING: the 2026-09-30 KVM runs failed; T-1350 and T-1112 own the next guarded run |
 | `393-build-freshness.py` | Python; fixed fixture changes with equal size and time, changed output, and missing output |
 | `394-ssh-package.sh` | A native static release build; complete archive and named missing-helper and ELF refusals |
 | `395-reconcile-repository.py` | Git refs; patch identity, range comparison, and optional deleted-branch check |
@@ -42,7 +42,7 @@ Later scripts test podvm behavior. Their owning task gives the acceptance.
 | `399-publication.py` | Current main commit, deleted branch, release workflow, and complete asset set |
 | `400-kvm-cleanup.py` | Linux controlled processes; select the owned emulator, exclude the observer, and preserve another process |
 
-For Windows builds, set `PODVM_ARTIFACTS` and run
+On the parked Windows lane, set `PODVM_ARTIFACTS` and run
 `sh scripts/windows/run-in-base.sh`. This runs the full check in a copy and
 returns `linux-check.txt`, five binaries, and their build record on success.
 The explicit KVM command is:
@@ -52,11 +52,11 @@ sh experiments/392-kvm-guest.sh --accept-host-risk --binary BINARY --image IMAGE
 ```
 
 Nested KVM stopped the Windows host on 2026-09-30, so `--accept-host-risk`
-is required and was for a long time operator-only. The operator permitted
-an unattended run on 2026-10-02: pass `--unattended` as well, and the
-driver holds a T-1609 watchdog on the session, refusing to start unless
-that watchdog answers first. The driver also refuses to start beside
-another emulator or with less than 6144 MiB available in the base.
+is required. With `--unattended` as well, the driver holds a T-1609
+watchdog on the session and refuses to start unless that watchdog answers
+first. The driver also refuses to start beside another emulator or with
+less than 6144 MiB available in the base. [Limits](../docs/limits.md#guests)
+gives the KVM ruling of 2026-11-09.
 The image length and digest are checked by the tracked driver. Keep the
 licensed disk outside Git. Save the report before collecting the owned job.
 Do not make a future test depend on `.tmp` or an expired toolkit transcript.

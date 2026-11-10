@@ -1,7 +1,7 @@
 # references/
 
 This directory held 46 captured upstream trees until 2026-11-06. On that
-date the operator ruled that the corpus leaves the live tree and that each
+date the owner ruled that the corpus leaves the live tree and that each
 reference is tracked in a GitHub issue with the label `reference` (T-1606).
 
 | File | What |

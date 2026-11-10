@@ -5,15 +5,15 @@ A chat summary does not establish a result.
 
 ## Start
 
-1. Run the repository's session entry point.
-2. Read the live progress record.
-3. Read the resume file.
-4. Read the task's required documents.
-5. Run the starting record and host checks.
-6. Inspect local changes before you edit them.
-7. Read the current remote refs when the task involves publication.
-8. Record the session start in UTC.
-9. Rewrite the resume file before implementation.
+`AGENTS.md`, section 8, gives the start procedure and its order:
+the session hook, `docs/HANDOFF.md` when it exists, the progress record,
+the decisions, the tree state, the CI runs and open issues, the watcher of
+the organization, and the toolchain with the record tools. Then:
+
+1. Read the task's required documents (`AGENTS.md`, section 13).
+2. Inspect local changes before you edit them.
+3. Read the current remote refs when the task involves publication.
+4. Record the session start in UTC.
 
 The session entry point selects the host procedure.
 Do not select a base or container procedure from memory.
@@ -31,7 +31,7 @@ State the depth reached during new research.
 
 ## Resume file
 
-Overwrite `TODO/RESUME.md` at the start and when the next action changes.
+Overwrite `TODO/RESUME.md` when the next action changes.
 It carries the assigned scope, next action, work in progress, tree state, and paste prompt.
 It does not duplicate the progress work order.
 
@@ -71,10 +71,10 @@ Before a normal close:
 5. Commit coherent work and perform authorized publication.
 6. Verify checks on the published commit.
 7. Save evidence before resource collection.
-8. Collect this session's ended jobs by ID.
-9. Restore any engine state that the session changed.
+8. Make sure that no guest emulator of this session still runs.
+9. On the parked Windows lane, collect this session's ended jobs by ID,
+   restore any engine state that the session changed, and keep the base.
 
-Keep the persistent base.
 Do not remove another session's live resources.
 
 ## Summary

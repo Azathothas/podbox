@@ -3,29 +3,31 @@
 [PROGRESS](TODO/PROGRESS.md) gives the current work order.
 [RESUME](TODO/RESUME.md) gives unfinished work.
 [INDEX](TODO/INDEX.md) gives each acceptance command and status.
+[The decisions](docs/decisions.md) give each ruling of the owner and the open questions.
 
-## Windows session
+## Cloud or Linux session
 
-Run the session entry point from the checkout.
-It selects the `podvm` base and waits for its probe.
+podvm is worked in Claude Code cloud sessions. `AGENTS.md`, section 8,
+gives the start procedure.
 
-```powershell
-cargo build --release -p podvm-gate
-./target/release/podvm-dev session
-./target/release/podvm-gate
-wsl-toolkit --instance podvm base status --probe
-sh scripts/windows/run-in-base.sh
+```sh
+sh scripts/cloud-setup.sh
+export PATH="$HOME/.local/podvm/zig-x86_64-linux-0.16.0:$PATH"
+cargo build --release -p podvm-gate -p podvm-release
+./target/x86_64-unknown-linux-musl/release/podvm-gate
 ```
 
-[Container procedures](docs/containers.md) describe artifact return and job collection.
+Run `./target/x86_64-unknown-linux-musl/release/podvm-dev session` for the host report.
+Run `podvm-dev status` before using the build.
+Run the checks of `AGENTS.md`, section 12, before commit.
 Read each exit code. A skipped check does not prove its subject.
 
-## Linux session
+## Windows session (parked)
 
-Run `./target/release/podvm-dev session`.
-The environment and build start while you read the task.
-Run `./target/release/podvm-dev status` before using the build.
-Run `./target/release/podvm-dev check` before commit.
+The Windows lane on wsl-toolkit is parked since 2026-11-06. It stays
+correct for wsl-toolkit 9.
+[Container procedures](docs/containers.md) describe the base, artifact
+return, and job collection.
 
 ## Decisions and input
 
@@ -33,7 +35,12 @@ The operator controls image terms, credentials, remote publication, and
 changes to shared host resources. Existing session authorization remains valid.
 Task entries carry accepted choices. Do not ask for a choice that an entry settles.
 
-For the KVM proof, supply a current Linux binary and a local licensed image:
+KVM is free since 2026-11-09 (`AGENTS.md`, section 2, gives the guest rules).
+The cloud host has no `/dev/kvm`.
+
+The KVM proof of the Windows guest (`experiments/392-kvm-guest.sh`) runs
+only on the Windows host of the parked lane: it needs the `py` launcher
+and a local licensed image, and elsewhere it exits 2.
 
 ```powershell
 py scripts/windows/kvm-guest.py --accept-host-risk --binary .dev/artifacts/podvm --image IMAGE.vhdx
@@ -41,9 +48,11 @@ py scripts/windows/kvm-guest.py --accept-host-risk --binary .dev/artifacts/podvm
 
 The image stays outside the repository. The proof validates its pinned digest.
 The script reports a missing input as exit 2.
-On 2026-09-30 a KVM proof run left a guest emulator that SIGKILL did not
-remove, and the Windows host then failed. Run the proof only while you are
-present. Without `--accept-host-risk`, the driver refuses with exit 2.
+On 2026-09-30 a KVM proof run on the Windows base left a guest emulator
+that SIGKILL did not remove, and the Windows host then failed. Without
+`--accept-host-risk`, the driver refuses with exit 2.
+[Limits](docs/limits.md) gives the watchdog and the other guards.
+T-1682 owns a hosted-runner workflow for the KVM leg of the Linux guest.
 
 ## Check a result
 

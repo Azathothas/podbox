@@ -10,7 +10,8 @@ The chroot, userland, and interpose paths share host resources.
 They do not isolate an untrusted payload from the invoking account.
 The namespace path supplies the mount behavior stated in
 [the architecture](docs/architecture.md), without user, PID, or network isolation.
-The machine tier boots a guest through the selected emulator.
+The Windows, DOS, and `machine ssh` guests run in QEMU on KVM or TCG.
+Under TCG the emulator process is the boundary, not hardware isolation.
 
 ## Credentials
 
@@ -33,11 +34,11 @@ TLS verification remains enabled on the relay path.
 | Credential storage | `pod-oci` (PodUtils/podcrates); `crates/podvm-image/src/credentials.rs` |
 | Store names and mutations | `crates/podvm-image/src/store.rs`, `contain.rs` |
 | Archive names and links | `src/safety.rs`, `src/layer.rs` of `pod-extract` (PodUtils/podcrates) |
-| Host operation probes | `crates/podvm-probe/src/` |
-| Entry and process lifecycle | `crates/podvm-enter/src/`, `crates/podvm-supervise/src/` |
+| Host operation probes | `pod-hostprobe` (PodUtils/podcrates); `crates/podvm-probe/src/` |
+| Entry and process lifecycle | `pod-enter`, `pod-supervise` (PodUtils/podcrates); `crates/podvm-enter/src/`, `crates/podvm-supervise/src/` |
 | Root completion writes | `crates/podvm-complete/src/`; `src/write.rs`, `src/write/follow.rs` of `pod-rootfs` (PodUtils/podcrates) |
-| Relay framing and sessions | `crates/podvm-ssh/src/` |
-| Guest disk and mailbox | `crates/podvm-windows/src/` |
+| Relay framing and sessions | `crates/podvm-ssh/src/`; `pod-tls`, `pod-proxy`, `pod-term` (PodUtils/podcrates) |
+| Guest disk and mailbox | `pod-guest` (PodUtils/podcrates); `crates/podvm-windows/src/` |
 
 ## Invariants
 
@@ -65,8 +66,8 @@ An external policy change can invalidate a cached observation.
 
 ## Release identity
 
-`v0.1.0-beta.12` is the last podbox release.
-The tag `v0.1.0-beta.13` has no release, because its build failed.
+`v0.1.0-beta.12` is the last podbox release, and `v0.2.0-beta.2` is the first podvm release.
+The tags `v0.1.0-beta.13` and `v0.2.0-beta.1` have no release, because their builds failed.
 Tags up to `v0.1.0-beta.13` keep the podbox identity: their releases carry `podbox-*` assets and are signed by the nightly workflow of `Azathothas/podbox`.
 `podvm-verify` checks those tags against that identity and every later tag against this repository's.
 `Azathothas/podbox` redirects here; nobody may create a new repository of that name, because it would take over the redirect.

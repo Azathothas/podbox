@@ -5,24 +5,27 @@ Each part detects a different defect class.
 
 ## Automated checks
 
-On Linux:
+Run these before each push (`AGENTS.md`, section 12):
 
 ```sh
-./target/release/podvm-dev check
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
+./target/x86_64-unknown-linux-musl/release/podvm-gate
+sh scripts/common/check-gate.sh
 ```
 
-On Windows:
+The workspace builds the target `x86_64-unknown-linux-musl`, so the
+binaries are under `./target/x86_64-unknown-linux-musl/release/`.
+`gate.yml` repeats the build, the tests, and the static probe in CI.
 
-```sh
-./target/release/podvm-gate
-sh scripts/common/check-gate.sh --strict
-sh scripts/windows/run-in-base.sh
-```
-
-The Linux check builds the interposer before the CLI.
+`./target/x86_64-unknown-linux-musl/release/podvm-dev check` is the complete local check.
+It builds the interposer before the CLI.
 It runs formatting, lint, workspace tests, interposer tests, and repository checks.
-The host strict check also exercises the available PowerShell halves.
-[Containers](../containers.md) gives job transport and collection.
+It reads `podvm-smoke` and `podvm-gate` under `./target/release/`; copy them
+there from the musl directory first, as `gate.yml` does.
+`sh scripts/common/check-gate.sh --strict` also exercises the available PowerShell halves.
+On the parked Windows lane, `sh scripts/windows/run-in-base.sh` runs the Linux check;
+[containers](../containers.md) gives job transport and collection.
 
 Read each process exit code without a pipe.
 A skip is not a pass.
@@ -51,7 +54,7 @@ The plant must change its subject.
 It must report the check's own failure message.
 It must restore the tree.
 It must pass on the clean control.
-Run the full `./target/release/podvm-plant` suite after a check change.
+Run the full `./target/x86_64-unknown-linux-musl/release/podvm-plant` suite after a check change.
 
 ## Reviews
 
