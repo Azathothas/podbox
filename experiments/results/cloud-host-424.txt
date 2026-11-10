@@ -1,0 +1,55 @@
+# experiments/424-cloud-host.sh on the host of a Claude Code cloud session, after
+# sh scripts/cloud-setup.sh (exit 0). TODO/probe.md T-1670.
+
+== conditions
+date                               2026-11-10T05:36:38Z
+kernel                             6.18.44-fc-v338 x86_64
+uid                                0
+cc                                 cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+podvm                              podvm 0.1.0-beta.13
+egress                             through HTTPS_PROXY
+
+== 1. devices and kernel switches
+/dev/kvm                           absent
+/dev/fuse                          present
+/dev/ptmx                          present
+/dev/net/tun                       present
+seccomp (this shell)               0
+/proc/sys/kernel/unprivileged_userns_clone -
+/proc/sys/user/max_user_namespaces 64267
+/proc/sys/vm/memfd_noexec          0
+/proc/sys/kernel/yama/ptrace_scope -
+
+== 2. namespaces and chroot
+unshare -U                         allowed
+unshare -Urm                       allowed
+chroot / (this uid)                allowed
+
+== 3. Syscall User Dispatch and openat2(RESOLVE_IN_ROOT)
+prctl(SYSCALL_USER_DISPATCH)       allowed
+openat2(RESOLVE_IN_ROOT)           allowed
+
+== 4. registries through the egress (GET /v2/; 200 or 401 is reachable)
+public.ecr.aws                     401
+ghcr.io                            401
+quay.io                            401
+registry.opensuse.org              200
+registry-1.docker.io               401
+mirror.gcr.io                      401
+
+== 5. space
+blocks at the repository           10807240 KiB free of 264212084
+inodes at the repository           16429042 free of 16777216
+
+== 6. podvm doctor
+ok qemu-system-x86_64 --version: qemu-system-x86_64 --version=ok
+note open(/dev/kvm, O_RDWR): open(/dev/kvm, O_RDWR)=ENOENT: guests run under TCG without hardware acceleration
+ok prlimit(RLIMIT_FSIZE): prlimit(RLIMIT_FSIZE)=ok
+ok open(/dev/net/tun, O_RDWR): open(/dev/net/tun, O_RDWR)=ok
+ok image space (statfs .): image space (statfs .)=ok
+ok qemu-system-x86_64 -accel help: qemu-system-x86_64 -accel help=ok
+note disk free against the file-size ceiling: no file-size ceiling (the soft RLIMIT_FSIZE is infinity)
+ok memfd_exec: a memfd executes through execveat(AT_EMPTY_PATH) (vm.memfd_noexec=0)
+profile: tcg
+doctor exit                        0
+exit 0

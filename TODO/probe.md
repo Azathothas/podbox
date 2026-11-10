@@ -1121,7 +1121,7 @@ Source:      the migration of 2026-11-06 to cloud sessions; issue 114 (the
 Category:    probe
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     From 2026-11-06 podvm is worked in cloud sessions, not on the
              operator's Windows host. No record says what a cloud session's
@@ -1153,6 +1153,24 @@ Prove:       `sh experiments/424-cloud-host.sh` exits 0 or 1 in the first
              its output and `podvm probe --json` saved under
              `experiments/results/`, and `./target/release/podvm-gate`
              exits 0 with the result file cited here.
+
+**Done 2026-11-10.** `sh scripts/cloud-setup.sh` exits 0, and `sh
+experiments/424-cloud-host.sh` exits 0 with [its output](../experiments/results/cloud-host-424.txt);
+`podvm probe --json` is [saved beside it](../experiments/results/cloud-host-probe.json).
+The cloud host (kernel 6.18.44, x86_64, uid 0, seccomp 0) has no
+`/dev/kvm`, and has `/dev/fuse`, `/dev/ptmx` and `/dev/net/tun`. It
+permits user namespaces, mount namespaces, chroot, Syscall User Dispatch
+and `openat2(RESOLVE_IN_ROOT)`; `vm.memfd_noexec` is 0. Each registry of
+`DISTRO_ROWS_M5`, Docker Hub and `mirror.gcr.io` answer `/v2/` through the
+egress proxy (200 or 401); the request limit is separate: on 2026-11-09
+and 2026-11-10 `public.ecr.aws` and Docker Hub answered image pulls with
+HTTP 429, and `mirror.gcr.io` served them. Compared with issue 114 (the
+errand host): the errand host denies chroot, user namespaces, mount and
+ptrace and has no `/dev/fuse`; the cloud host permits each of them. So a
+cloud session reaches the no-chroot rungs only through the seccomp fixture
+of experiment 356 (`experiments/deny-chroot.c`), and an entry that needs
+the errand host's denials proves them there. `podvm doctor` exits 0 with
+the TCG profile.
 
 **Amended 2026-11-09.** The ask A-V-10 of PodUtils/podcrates#39 (COORD-015,
 a message from a peer session) wants a published JSON schema of `podvm probe

@@ -343,7 +343,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1667](cli.md) | P2 | cli | open | Doctor and installers: one check per scope capability, verified downloads, a space floor |
 | [T-1668](gate.md) | P2 | gate | open | A findings page for the scope: observed or inferred, with host conditions per row |
 | [T-1669](deps.md) | P1 | deps | done | Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate |
-| [T-1670](probe.md) | P1 | probe | open | The first cloud session measures its host and saves the result |
+| [T-1670](probe.md) | P1 | probe | done | The first cloud session measures its host and saves the result |
 | [T-1671](packaging.md) | P2 | packaging | open | Release `v0.2.0-beta.1` with `## Breaking` notes, from a dispatched `release.yml` |
 | [T-1672](gate.md) | P2 | gate | blocked | Move the record to the format of `pod-todo`, with a `podvm-todo` wrapper and a todo.toml |
 | [T-1673](gate.md) | P2 | gate | open | File the 29 plan rows that T-1607 owns, read from the archive branch |
@@ -378,7 +378,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-310 items: 27 open, 17 partial, 4 blocked, 262 done.
+310 items: 26 open, 17 partial, 4 blocked, 263 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -387,10 +387,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 2 | 0 | 63 | 65 |
-| P1 | 2 | 12 | 0 | 123 | 137 |
+| P1 | 1 | 12 | 0 | 124 | 137 |
 | P2 | 25 | 3 | 4 | 67 | 99 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **27** | **17** | **4** | **262** | **310** |
+| **All** | **26** | **17** | **4** | **263** | **310** |
 
 ## Work order
 
