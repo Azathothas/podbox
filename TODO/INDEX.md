@@ -319,11 +319,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1643](interpose.md) | P1 | interpose | done | A relative path resolves against the host cwd and gets the rootfs prefix twice |
 | [T-1644](interpose.md) | P1 | interpose | done | Admit a glibc payload against its whole NEEDED closure, read inside the rootfs |
 | [T-1645](interpose.md) | P1 | interpose | done | Intercept `dlopen` and `dlmopen` |
-| [T-1646](interpose.md) | P1 | interpose | partial | A dynamic grandchild re-enters through the host loader |
-| [T-1647](enter.md) | P1 | enter | partial | Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes |
-| [T-1648](enter.md) | P0 | enter | partial | A static Go payload runs into a GOROOT error instead of a named refusal |
-| [T-1649](cli.md) | P2 | cli | partial | A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out |
-| [T-1650](cli.md) | P1 | cli | partial | `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run |
+| [T-1646](interpose.md) | P1 | interpose | done | A dynamic grandchild re-enters through the host loader |
+| [T-1647](enter.md) | P1 | enter | done | Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes |
+| [T-1648](enter.md) | P0 | enter | done | A static Go payload runs into a GOROOT error instead of a named refusal |
+| [T-1649](cli.md) | P2 | cli | done | A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out |
+| [T-1650](cli.md) | P1 | cli | done | `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run |
 | [T-1651](enter.md) | P2 | enter | open | An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads |
 | [T-1652](enter.md) | P2 | enter | open | A native-static rung: userland execve, Syscall User Dispatch and openat2(RESOLVE_IN_ROOT) |
 | [T-1653](enter.md) | P2 | enter | partial | `-v` volumes on a host with no /dev/fuse and no mount |
@@ -370,7 +370,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1694](cli.md) | P2 | cli | open | Headless Chromium of Playwright runs as a proven payload with its flags in one profile |
 | [T-1695](cli.md) | P1 | cli | open | One JSON report for each run, and real labels on records |
 | [T-1696](cli.md) | P2 | cli | open | `--secret` places a file with no argv and no env, and a read-once mode |
-| [T-1697](interpose.md) | P1 | interpose | partial | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
+| [T-1697](interpose.md) | P1 | interpose | done | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
 | [T-1698](extract.md) | P0 | extract | done | A whiteout of `..` deletes outside the destination |
 | [T-1699](interpose.md) | P2 | interpose | done | `mkostemp` of a mapped template answers ERANGE, and npm prints a line for each cache entry |
 | [T-1700](enter.md) | P1 | enter | done | A run on the userland rung sometimes exits 0 with no output |
@@ -378,7 +378,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-310 items: 26 open, 17 partial, 4 blocked, 263 done.
+310 items: 26 open, 11 partial, 4 blocked, 269 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -386,11 +386,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 2 | 0 | 63 | 65 |
-| P1 | 1 | 12 | 0 | 124 | 137 |
-| P2 | 25 | 3 | 4 | 67 | 99 |
+| P0 | 0 | 1 | 0 | 64 | 65 |
+| P1 | 1 | 8 | 0 | 128 | 137 |
+| P2 | 25 | 2 | 4 | 68 | 99 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **26** | **17** | **4** | **263** | **310** |
+| **All** | **26** | **11** | **4** | **269** | **310** |
 
 ## Work order
 

@@ -130,6 +130,21 @@ PYTHON='public.ecr.aws/docker/library/python:3-alpine'
 # T-1646 tracks the entry letter (tag, not digest); the pulled digest is
 # recorded below beside the run so the input stays auditable.
 NODE='public.ecr.aws/docker/library/node:22-alpine'
+# ⚠ PODVM_356_MIRROR=1 takes the Docker-library images from mirror.gcr.io,
+# for a host where public.ecr.aws answers image pulls with HTTP 429 (the
+# cloud host of 2026-11-09 and 2026-11-10, TODO/probe.md T-1670). The
+# alpine digest is the same there. ECR's debian repository is not the
+# Docker library image, so DEBIAN becomes library/debian:bookworm-slim by
+# tag; the conditions print each pulled digest, so the input stays
+# auditable. Without the switch the pinned inputs above are unchanged.
+if [ "${PODVM_356_MIRROR:-0}" = 1 ]; then
+	ALPINE='mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
+	DEBIAN='mirror.gcr.io/library/debian:bookworm-slim'
+	GOLANG='mirror.gcr.io/library/golang:1.24.7-bookworm'
+	GCC='mirror.gcr.io/library/gcc:13-bookworm'
+	PYTHON='mirror.gcr.io/library/python:3-alpine'
+	NODE='mirror.gcr.io/library/node:22-alpine'
+fi
 
 {
 echo "== conditions"
@@ -208,6 +223,13 @@ for img in "$ALPINE" "$DEBIAN" "$GOLANG" "$GCC" "$PYTHON" "$NODE"; do
 		exit 2
 	fi
 done
+if [ "${PODVM_356_MIRROR:-0}" = 1 ]; then
+	echo "image source      mirror.gcr.io (PODVM_356_MIRROR=1)" >>"$REPORT"
+else
+	echo "image source      the pinned inputs" >>"$REPORT"
+fi
+echo "alpine digest     $("$PB" inspect --format '{{.Digest}}' "$ALPINE")" >>"$REPORT"
+echo "debian digest     $("$PB" inspect --format '{{.Digest}}' "$DEBIAN")" >>"$REPORT"
 echo "golang digest     $("$PB" inspect --format '{{.Digest}}' "$GOLANG")" >>"$REPORT"
 echo "gcc digest        $("$PB" inspect --format '{{.Digest}}' "$GCC")" >>"$REPORT"
 echo "python digest     $("$PB" inspect --format '{{.Digest}}' "$PYTHON")" >>"$REPORT"
@@ -275,7 +297,11 @@ step sane-run 0 "$PB" run --rm "$ALPINE" echo capable-hi
 grep -q "capable-hi" "$WORK/out-sane-run.txt" || { echo "capable payload stdout missing" >>"$REPORT"; fail=1; }
 step sane-tty 0 "$PB" run --rm -t "$ALPINE" true
 "$PB" system info --format '{{.EnteredRung}}' >"$WORK/entered.txt" 2>&1
-grep -q "^chroot$" "$WORK/entered.txt" || { echo "EnteredRung is not chroot here:" >>"$REPORT"; cat "$WORK/entered.txt" >>"$REPORT"; fail=1; }
+# ⚠ A capable host enters a rung with a root change: chroot, or namespace
+# where the host permits user and mount namespaces (the cloud host of
+# TODO/probe.md T-1670 does). Either is the control; the run records which.
+grep -qE "^(chroot|namespace)$" "$WORK/entered.txt" || { echo "EnteredRung is not a capable rung here:" >>"$REPORT"; cat "$WORK/entered.txt" >>"$REPORT"; fail=1; }
+echo "capable rung      $(cat "$WORK/entered.txt")" >>"$REPORT"
 
 # Clause 2: the fixture. A directory over /dev/ptmx inside a mount
 # namespace, and the seccomp launcher denying chroot(2).
@@ -580,6 +606,10 @@ grep -q "GOROOT" "$WORK/out-fx-go-refuse.txt" && { echo "go ran to its own GOROO
 # target dangling on the host; the gcc image exercises the same
 # resolve_in path as clause 4 with its own loader and libraries.
 step fx-gcc-version 0 $FX "$PB" run --rm "$GCC" gcc --version
+# T-1646: gcc compiles and the output runs, with cc1 and ld as children
+# that the exec family routes through the image's loader.
+step fx-gcc-build 0 $FX "$PB" run --rm "$GCC" sh -c 'printf "#include <stdio.h>\nint main(void){puts(\"h-ok\");return 0;}\n" > /tmp/h.c && gcc /tmp/h.c -o /tmp/h && /tmp/h'
+grep -q "^h-ok$" "$WORK/out-fx-gcc-build.txt" || { echo "gcc build did not run its output" >>"$REPORT"; fail=1; }
 grep -q "gcc" "$WORK/out-fx-gcc-version.txt" || { echo "gcc --version did not answer" >>"$REPORT"; fail=1; }
 
 # Clause 20 (T-1643 relative paths): a relative read, a relative write

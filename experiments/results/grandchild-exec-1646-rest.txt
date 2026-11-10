@@ -1,0 +1,42 @@
+# T-1646, the two clauses that experiment 356 did not hold on 2026-11-10.
+# Fixture: unshare -Urm and experiments/deny-chroot.c, as experiment 356 builds it.
+# Images from mirror.gcr.io. Paths: $WORK is the scratch directory.
+
+== gcc on the gcc image: gcc /tmp/h.c -o /tmp/h && /tmp/h
+13-bookworm: Pulling from library/gcc
+69245854ad58: Pull complete
+338554e9113f: Pull complete
+d6c30932f8d3: Pull complete
+9bab93d346cd: Pull complete
+f7cb732562a7: Pull complete
+b6d8a682fbc5: Pull complete
+6ce4a5bb14a1: Pull complete
+917b78dd206c: Pull complete
+Digest: sha256:d47e63a2a4621ff4da4e0825bfe8c52c2e65e957333d7878e5c3a6eee2cd525e
+Status: Downloaded newer image for mirror.gcr.io/library/gcc:13-bookworm
+h-ok
+exit 0
+
+== as an unprivileged user (setpriv --reuid=65534 --regid=65534 --clear-groups), node:22-alpine
+== node --version
+node v22.23.4 uid-outside undefined
+exit 0
+== npm ci (postinstall starts a child) then npm test, a project with no dependencies
+65534
+881fc932939e: Extracted (515 entries, 0 whiteouts)
+2a9491572f6e: Extracted (3073 entries, 0 whiteouts)
+df11f9b3da94: Extracted (36 entries, 0 whiteouts)
+071409a40254: Extracted (4 entries, 0 whiteouts)
+
+> app1646@1.0.0 postinstall
+> node -e "require(\"child_process\").execSync(\"echo postinstall-child-ok\",{stdio:\"inherit\"})"
+
+postinstall-child-ok
+
+up to date in 592ms
+
+> app1646@1.0.0 test
+> node -e "console.log(\"test-ok\")"
+
+test-ok
+exit 0

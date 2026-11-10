@@ -2236,7 +2236,7 @@ Source:      issues 89 and 127 (127 reposts the hidden issue 95);
 Category:    interpose
 Priority:    P1
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     On the userland rung `run` runs one dynamic process. A
              dynamic grandchild fails 127: `sh -c 'echo a | /bin/cat'`
@@ -2282,6 +2282,8 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              Node clause on the same fixture, as an unprivileged user: from the
              node image, `node --version` prints, and `npm ci` then `npm test` of
              a fixture project whose `postinstall` script starts a child exit 0.
+
+**Done 2026-11-10.** For T-1646, the last clause of the partial record below is run. T-1648 in `TODO/enter.md` holds the full run of experiment 356 of 2026-11-10 ([the run](../experiments/results/no-chroot-rung.txt)). The two clauses that the script did not hold ran by hand on the same fixture ([the drive](../experiments/results/grandchild-exec-1646-rest.txt)): `gcc /tmp/h.c -o /tmp/h && /tmp/h` on the gcc image prints `h-ok` at 0 (clause 19 now holds it as `fx-gcc-build`), and as uid 65534 `node --version` and `npm ci` (whose `postinstall` starts a child) then `npm test` exit 0. The routes that T-1646 does not take stay named as gaps in `--strict` (T-1650).
 
 **Partial, 2026-11-09.** The exec family (the new `exec` module of the
 interposer) resolves a guest path inside the rootfs one link at a time
@@ -2338,7 +2340,7 @@ Source:      T-1646 (its drive of 2026-11-09); A-V-04 of
 Category:    interpose
 Priority:    P1
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     On the userland rung, `npm ci` from node:22-alpine fails:
              node cannot `lstat` `/usr/local/lib/node_modules` (ENOENT).
@@ -2367,6 +2369,8 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              answers from the rootfs, and a drive on the chroot-denying
              fixture runs `npm ci` and `npm test` of a small project from
              node:22-alpine at 0.
+
+**Done 2026-11-10.** For T-1697, the last clause of the partial record below is run. T-1648 in `TODO/enter.md` holds the full run of experiment 356 of 2026-11-10 ([the run](../experiments/results/no-chroot-rung.txt)).
 
 **Partial, 2026-11-10.** Measured with strace on the chroot-denying
 fixture (node 22.23.4, libuv 1.51.0, musl 1.2.6): node imports `syscall`

@@ -1342,7 +1342,7 @@ Source:      issue 90; issue 114 section 3.3 and section 6 item 6;
 Category:    enter
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     On a chroot-denied host podvm refuses a payload over
              134217728 bytes at 125 before it runs. `node` in node:alpine
@@ -1375,6 +1375,8 @@ Prove:       `cargo test -p podvm-enter` exits 0 with a test that
              `sh experiments/356-no-chroot-rung.sh` exits 0 with a clause
              that runs `node -e 'console.log(1)'` from the node image
              with `--entrypoint node`, past the size check.
+
+**Done 2026-11-10.** For T-1647, the last clause of the partial record below is run. `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 on the cloud host, verdict "NO-CHROOT FAMILY RUNS" ([the run](../experiments/results/no-chroot-rung.txt)): the images come from `mirror.gcr.io` by the switch of 2026-11-10, each pulled digest is in the conditions, and the capable host enters the namespace rung.
 
 **Partial, 2026-11-10.** The block cleared: podvm took pod-enter 0.11.0
 (podcrates T-139, PodUtils/podcrates#46). pod-enter classifies from a
@@ -1433,7 +1435,7 @@ Source:      issue 91; issue 114 section 3.4;
 Category:    enter
 Priority:    P0
 Effort:      S
-Status:      partial
+Status:      done
 
 Problem:     On a chroot-denied host `go version` from the golang image
              exits 2 with the payload's own error: "cannot find GOROOT
@@ -1472,6 +1474,8 @@ Prove:       `cargo test -p podvm` exits 0 with a test: a static
              `sh experiments/356-no-chroot-rung.sh` exits 0 with clause 18
              changed: `go version` from the golang image refuses at 125
              naming the static reason, and never exits 2 naming GOROOT.
+
+**Done 2026-11-10.** For T-1648, the last clause of the partial record below is run. `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 on the cloud host, verdict "NO-CHROOT FAMILY RUNS" ([the run](../experiments/results/no-chroot-rung.txt)): the images come from `mirror.gcr.io` by the switch of 2026-11-10, each pulled digest is in the conditions, and the capable host enters the namespace rung.
 
 **Partial, 2026-11-09.** `decide_entry` takes the decided
 `--unsafe-host-paths`. On a chroot-denied host a static payload refuses at
@@ -1708,6 +1712,12 @@ Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm`
              the guest path, and a guest write lands in the host
              directory. A `:ro` volume gives `EROFS` for a guest write and leaves the
              host file unchanged, once the read-only layer of T-1655 exists.
+
+**Still partial, 2026-11-10.** `PODVM_356_MIRROR=1 sh
+experiments/356-no-chroot-rung.sh` exits 0 with clause 26
+([the run](../experiments/results/no-chroot-rung.txt)). Remaining: `:ro`
+with EROFS (T-1655), and `-w` and a first program inside a volume, which
+wait for the pod-enter of podcrates v0.12.0 (COORD-018, #224).
 
 **Partial, 2026-11-10.** On the loader family each `-v HOST:GUEST[:rw]`
 becomes a `GUEST:HOST` pair in `PODVM_MAPS` after the root pair

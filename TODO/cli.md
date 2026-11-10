@@ -1728,7 +1728,7 @@ Source:      issue 92; issue 114 section 3.3 and section 6 item 7;
 Category:    cli
 Priority:    P2
 Effort:      S
-Status:      partial
+Status:      done
 
 Problem:     On a chroot-denied host this run exits 126:
              `run node:alpine node -e 'console.log(1)'`. The entrypoint
@@ -1760,6 +1760,8 @@ Prove:       `cargo test -p podvm` exits 0 with a test: the script
              image runs at 0, and the node image run with a caller
              command either reaches the payload or refuses naming
              `--entrypoint`.
+
+**Done 2026-11-10.** For T-1649, the last clause of the partial record below is run. Experiment 356 exits 0 in full on 2026-11-10 ([the run](../experiments/results/no-chroot-rung.txt); T-1648 in `TODO/enter.md` records its inputs).
 
 **Partial, 2026-11-10.** On the no-chroot path `decide_entry` follows
 a `#!` payload through `script::follow` (`lifecycle/script.rs`): it reads
@@ -1810,7 +1812,7 @@ Source:      issue 93; issue 114 section 3.7 and section 6 item 8;
 Category:    cli
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     No strictness level means "refuse a rung that cannot run
              this command". `run --strict` of `sh -c '/bin/ls /'` warns,
@@ -1842,6 +1844,8 @@ Prove:       `cargo test -p podvm` exits 0 with `classify_strict`
              of `sh -c '/bin/ls /'` exits 125 naming the exec gap, or 0
              with the listing once T-1646 is done, and `run --strict` of
              `/bin/echo hi` exits 0.
+
+**Done 2026-11-10.** For T-1650, the last clause of the partial record below is run. Experiment 356 exits 0 in full on 2026-11-10 ([the run](../experiments/results/no-chroot-rung.txt); T-1648 in `TODO/enter.md` records its inputs).
 
 **Partial, 2026-11-10.** `--strict` knows a third kind, a capability gap
 of the loader family (`complete/capability.rs`). The list holds what is
