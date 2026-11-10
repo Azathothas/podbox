@@ -7,7 +7,7 @@ start.
 
 ## State
 
-324 entries: 39 open, 8 partial, 3 blocked, 274 done.
+325 entries: 39 open, 8 partial, 4 blocked, 274 done.
 
 The state on 2026-11-10:
 
@@ -24,6 +24,13 @@ The state on 2026-11-10:
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`.
   The KVM legs of T-1112, T-1350 and T-1641 need a host with `/dev/kvm`.
   T-1682 gives them a hosted runner.
+* podcrates `v0.14.0` is the last tag and needs no podvm change
+  (PodUtils/podcrates#50). `v0.15.0` will carry the `pod-enter` change
+  of podcrates T-155; podvm takes it with [T-1716](enter.md).
+* PodUtils/podrunner is planned (the ruling "podrunner", 2026-11-10):
+  its issues are under PodUtils/podrunner#1; podvm's part is T-1704 to
+  T-1715 (issues 229 to 240); the crate asks are podcrates T-160 to T-165
+  and podnet T-229 to T-232. All wait for the owner's DR-1 and DR-2.
 
 Each partial entry names its remaining clauses. Each blocked entry names
 its blocker and the condition that clears it.
@@ -82,6 +89,8 @@ commit as the work.
 12. Blocked on podcrates: [T-1678](deps.md) waits for a `pod-relay`
     release. [T-1406](podssh.md), partial, proves live-relay pairing
     after it. [T-1714](probe.md) waits for the schema of podcrates T-107.
+    [T-1716](enter.md) waits for the podcrates tag with T-155 (planned
+    `v0.15.0`); take it as soon as that tag exists.
 13. After podvm's own order (the owner's ruling "Priority",
     2026-11-09): the asks of cfb, [T-1694](cli.md); the podrunner part
     (issues 229 to 240), [T-1706](cli.md) (the official runner, after

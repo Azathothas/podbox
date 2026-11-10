@@ -389,10 +389,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1713](cli.md) | P1 | cli | open | `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied |
 | [T-1714](probe.md) | P2 | probe | blocked | `podvm probe --json` validates against the published schema of `pod-hostprobe` |
 | [T-1715](supervise.md) | P2 | supervise | open | The container table keeps `-e` values in a file that other users can read |
+| [T-1716](enter.md) | P2 | enter | blocked | Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w` |
 
 ## Counts
 
-324 items: 39 open, 8 partial, 3 blocked, 274 done.
+325 items: 39 open, 8 partial, 4 blocked, 274 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -403,9 +404,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 9 | 6 | 0 | 130 | 145 |
-| P2 | 30 | 1 | 3 | 71 | 105 |
+| P2 | 30 | 1 | 4 | 71 | 106 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **39** | **8** | **3** | **274** | **324** |
+| **All** | **39** | **8** | **4** | **274** | **325** |
 
 ## Work order
 

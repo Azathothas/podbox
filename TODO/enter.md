@@ -2088,3 +2088,48 @@ Prove:       `cargo test -p podvm` exits 0 with a test that `-w /opt/x
 (the ruling "podrunner", 2026-11-10), M2 surprise 9: "the first program
 of `run` is resolved against the image root, not `-w`". docker's `-w`
 with a relative program does not work, so the entry is P1.
+
+### T-1716 Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w`
+
+Source:      PodUtils/podcrates#52 (COORD-027, the answer to issue 226);
+             podcrates T-155 (commit d8b77b5, no tag on 2026-11-10);
+             PodUtils/podcrates#53 (COORD-028: `v0.15.0` carries it);
+             `crates/podvm-enter/src/lib.rs:26`,
+             `crates/podvm-enter/src/lib.rs:169`,
+             `crates/podvm-enter/src/lib.rs:174`,
+             `crates/podvm-enter/src/lib.rs:185`
+Category:    enter
+Priority:    P2
+Effort:      S
+Status:      blocked
+
+Problem:     podvm keeps its own volume rules in `podvm-enter`
+             (`volume_maps`, `MAX_VOLUMES`, `NEVER_MAPPED`), while
+             `pod-enter` now refuses a reserved guest path and an
+             oversize volume count itself, and names the volume of a
+             missing `-w` directory. Two copies of one rule can drift.
+Premise:     COORD-027 gives the change: `Maps::new(&names, rootfs,
+             &volumes)` takes `&Names` first; `Names::reserved` is new;
+             `GuestRoot::volume_label` is new; `check_workdir` names the
+             volume `HOST:GUEST` of a missing `-w`. podvm uses podcrates
+             `v0.12.0` (5e5629a); `v0.14.0` is the last tag on
+             2026-11-10 and needs no podvm change (podcrates#50).
+Approach:    At the podcrates tag that carries d8b77b5 (planned
+             `v0.15.0`): set `NAMES.reserved` to `["/proc", "/.podvm"]`
+             and `NAMES.product` to `podvm`, call `Maps::new(&NAMES,
+             rootfs, &volumes)`, drop `volume_maps`, `MAX_VOLUMES`,
+             `NEVER_MAPPED` and `under`, and keep `volumes_of`. Follow
+             the adoption map of the `pod-enter` README. Move each pin of
+             the 11 crates to that tag in one commit.
+Decision:    The volume rules live in `pod-enter` only; podvm fills the
+             names.
+Prove:       `cargo test --workspace` exits 0 with a test that a `-v`
+             pair to `/proc` is refused by name and that a missing `-w`
+             inside a volume names the volume; `rg -n "NEVER_MAPPED|
+             MAX_VOLUMES" crates/` prints nothing.
+
+**Blocked 2026-11-10.** Blocker: no podcrates tag carries d8b77b5.
+Clears when: a podcrates tag (planned `v0.15.0`) carries podcrates T-155.
+
+**Filed 2026-11-10.** From COORD-027 (PodUtils/podcrates#52), the answer
+of podcrates to the two asks of issue 226 (T-1653).
