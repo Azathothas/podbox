@@ -10,16 +10,20 @@ The cold start of a session, on 2026-11-10. This page gives no work order:
    the last CI runs, the watcher of the organization and
    `sh scripts/cloud-setup.sh`.
 2. Build the record tools and run the gate. The workspace builds the
-   target `x86_64-unknown-linux-musl` (`.cargo/config.toml`):
+   target `x86_64-unknown-linux-musl` (`.cargo/config.toml`), and the C
+   code builds with zig from `sh scripts/cloud-setup.sh`:
 
    ```sh
+   export PATH="$HOME/.local/podvm/zig-x86_64-linux-0.16.0:$PATH"
    cargo build --release -p podvm-gate -p podvm-release
    ./target/x86_64-unknown-linux-musl/release/podvm-gate
    ```
 
    The gate also runs `document-state` of `podvm-release`. Without that
    binary, it reports that `docs/runtime-state.md` differs.
-3. Take item 1 of the work order in [PROGRESS](PROGRESS.md).
+3. Read the questions for the owner in `docs/decisions.md`. Then take
+   item 1 of the work order in [PROGRESS](PROGRESS.md), when the owner
+   resumes podvm (the ruling "podvm paused").
 
 ## Unfinished state
 

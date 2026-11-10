@@ -25,6 +25,10 @@ podvm is one of the projects of PodUtils:
   its generic crates to podcrates and takes `pod-*` crates by git tag.
   COORD-001 (#194) and PodUtils/podcrates#1 have the list.
 * PodUtils/podssh and PodUtils/podnet are the sibling consumers.
+* PodUtils/podrunner (planned, 2026-11-10) will run the official GitHub
+  Actions runner in the safest unit a host gives, with podvm as one unit
+  kind. Its issues are under PodUtils/podrunner#1; podvm's part is T-1704
+  to T-1715. Each waits for the owner's DR-1 and DR-2.
 
 ## 2. The rules of the owner
 
