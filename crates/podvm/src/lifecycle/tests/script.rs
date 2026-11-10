@@ -24,10 +24,12 @@ fn words(w: &[&str]) -> Vec<String> {
 
 /// The `#!` line parses as `fs/binfmt_script.c` parses it, the cases of
 /// `head::shebang` in the interposer: one interpreter, the remainder of
-/// the line as ONE argument, the outer blanks off.
+/// the line as ONE argument, the outer blanks off. The parser is
+/// `pod-enter`'s `memfd::shebang_parts` (T-137 of PodUtils/podcrates);
+/// these cases pin it beside the copy of the interposer.
 #[test]
 fn a_shebang_line_parses_as_the_kernel_parses_it() {
-    use crate::lifecycle::script::shebang;
+    use podvm_enter::memfd::shebang_parts as shebang;
     let s = |i: &str, a: Option<&str>| Some((i.to_string(), a.map(str::to_string)));
     assert_eq!(shebang(b"#!/bin/sh\necho\n"), s("/bin/sh", None));
     assert_eq!(shebang(b"#! /bin/sh -e \necho\n"), s("/bin/sh", Some("-e")));
@@ -155,5 +157,43 @@ fn an_entrypoint_script_refusal_names_the_entrypoint_flag() {
     };
     assert!(!routed);
     assert!(!no_chroot_message("run", &note, routed, Some("node")).contains("--entrypoint"));
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// TODO/enter.md T-1653. A first program in a volume is the file of the
+/// volume: the route reads the script from the host directory of the
+/// volume, runs its interpreter from the image, and gives the script its
+/// guest path. A bare name on a `PATH` directory in the volume gives the
+/// unresolved join, as the kernel gives it.
+#[test]
+fn a_script_in_a_volume_runs_from_the_volume() {
+    use crate::lifecycle::script::follow;
+    let d = rootfs(
+        "volume",
+        &[
+            ("rootfs/bin/sh", b"\x7fELF-not-read-here"),
+            ("host/tool.sh", b"#!/bin/sh -e\necho hi\n"),
+        ],
+    );
+    let root = d.join("rootfs").to_string_lossy().to_string();
+    let host = d.join("host").to_string_lossy().to_string();
+    let vols = [podvm_enter::userland::Volume {
+        guest: "/data".to_string(),
+        host: host.clone(),
+    }];
+    let maps = podvm_enter::userland::volume_maps(&root, &vols).unwrap();
+    let path = vec!["/bin".to_string(), "/data".to_string()];
+    // The image has no /data/tool.sh: without the table it is absent.
+    let Err((code, _, _)) = follow(&root, &words(&["/data/tool.sh"]), &path) else {
+        panic!("the rootfs alone resolved a file of the volume");
+    };
+    assert_eq!(code, EXIT_NOT_FOUND);
+    let f =
+        follow(&maps, &words(&["/data/tool.sh", "a"]), &path).unwrap_or_else(|e| panic!("{}", e.1));
+    assert_eq!(f.argv, words(&["/bin/sh", "-e", "/data/tool.sh", "a"]));
+    assert_eq!(f.resolved, format!("{root}/bin/sh"));
+    assert_eq!(f.scripts[0].0, format!("{host}/tool.sh"));
+    let f = follow(&maps, &words(&["tool.sh"]), &path).unwrap_or_else(|e| panic!("{}", e.1));
+    assert_eq!(f.argv, words(&["/bin/sh", "-e", "/data/tool.sh"]));
     let _ = std::fs::remove_dir_all(&d);
 }

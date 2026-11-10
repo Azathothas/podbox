@@ -56,36 +56,39 @@ pub struct UserlandEnv {
 /// hide the banner, and a host pass-through is never silent. The rest
 /// of the banner stays under `--verbose`.
 ///
-/// ⭐ TODO/enter.md T-1653. Each volume is one more pair of the table,
-/// also under the opt-in, which drops only the root pair. The caller
-/// refused the volumes on each entry that cannot serve them
+/// ⭐ TODO/enter.md T-1653. `maps` holds the rootfs and the volumes. Each
+/// volume is one more pair of the table, also under the opt-in, which
+/// drops only the root pair (`pod-enter`'s `userland_volume_table`). The
+/// caller refused the volumes on each entry that cannot serve them
 /// (`crate::lifecycle::volume::refuse_unserved`).
 pub fn userland_env(
     verb: &str,
-    rootfs: &str,
+    maps: &podvm_enter::userland::Maps,
     env: Vec<String>,
     family: podvm_enter::userland::Family,
     unsafe_paths: bool,
-    volumes: &[podvm_enter::userland::Volume],
     err: &mut dyn Write,
 ) -> Result<UserlandEnv, i32> {
-    use podvm_enter::userland::MAPS_VAR;
+    use podvm_enter::userland::{userland_maps_table, userland_volume_table, MAPS_VAR};
+    let (rootfs, volumes) = (maps.rootfs(), maps.volumes());
     let mut out: Vec<String> = env
         .into_iter()
         .filter(|e| e.split('=').next().unwrap_or("") != MAPS_VAR)
         .collect();
     let mut banner = String::new();
-    let root = if unsafe_paths {
+    if unsafe_paths {
         let _ = writeln!(err, "{HOST_PATHS_LINE}");
-        None
-    } else {
-        Some(rootfs)
-    };
-    if root.is_some() || !volumes.is_empty() {
-        match podvm_enter::userland::userland_maps_table(root, volumes) {
+    }
+    if !unsafe_paths || !volumes.is_empty() {
+        let table = if unsafe_paths {
+            userland_volume_table(&podvm_enter::NAMES, maps)
+        } else {
+            userland_maps_table(&podvm_enter::NAMES, maps)
+        };
+        match table {
             Ok(table) => {
                 out.push(format!("{MAPS_VAR}={table}"));
-                if root.is_some() {
+                if !unsafe_paths {
                     banner.push_str(&format!(
                         "podvm: userland: absolute guest paths anchor inside {rootfs} \
                          through {MAPS_VAR}={table} (TODO/enter.md T-1407)\n"
@@ -134,13 +137,13 @@ pub struct UserlandOutcome {
 /// the two verbs cannot diverge on the rung they share: the loader argv
 /// execs directly, the memfd family stages post-fixup bytes first (and
 /// refuses where the fixups changed what the decision read, rather than
-/// entering something unjudged). Messages name the calling verb.
+/// entering something unjudged). Messages name the calling verb. The
+/// payload and the working directory resolve through `userland.maps`.
 pub fn enter_userland(
     verb: &str,
     root: &podvm_enter::RootDir,
     plan: &podvm_enter::Plan,
     userland: &Userland,
-    rootfs: &str,
     err: &mut dyn Write,
 ) -> UserlandOutcome {
     let failed = |code: i32| UserlandOutcome {
@@ -154,13 +157,14 @@ pub fn enter_userland(
             // T-1649: the guest argv, so a `#!` payload stages its
             // interpreter, the program that the decision read.
             let argv0 = userland.guest_argv.first().cloned().unwrap_or_default();
-            let payload = match podvm_enter::ladder::payload_head(rootfs, &argv0, &plan.path_dirs) {
-                Ok(p) => p,
-                Err(e) => {
-                    let _ = writeln!(err, "podvm {verb}: {e}");
-                    return failed(e.exit_code());
-                }
-            };
+            let payload =
+                match podvm_enter::ladder::payload_head(&userland.maps, &argv0, &plan.path_dirs) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        let _ = writeln!(err, "podvm {verb}: {e}");
+                        return failed(e.exit_code());
+                    }
+                };
             if podvm_enter::memfd::eligible(&payload.head).is_err() {
                 // Fixups changed what the decision read: loud, never
                 // silent, and the fixups stay (they are the image's now,
@@ -182,7 +186,9 @@ pub fn enter_userland(
             }
         }
     };
-    match podvm_enter::run_userland(root, plan, exec_argv, active, fd, err) {
+    // ⭐ TODO/enter.md T-1653: the child enters the working directory that
+    // the walk through the table resolved, also one in a volume.
+    match podvm_enter::run_userland(root, plan, &userland.maps, exec_argv, active, fd, err) {
         Ok(c) => UserlandOutcome {
             code: c,
             entered: true,

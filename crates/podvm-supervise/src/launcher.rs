@@ -109,9 +109,15 @@ fn enter_in_launcher(
         let selection = podvm_probe::select::Selection::choose(&findings);
         podvm_enter::spawn_selected(&root, &plan, selection.rung, log).map_err(|e| e.to_string())?
     } else {
+        // ⭐ TODO/enter.md T-1653: the volumes of the record join the root
+        // pair, so a working directory in a volume resolves in the volume.
+        let volumes = podvm_enter::userland::volumes_of(&container.env);
+        let maps = podvm_enter::userland::volume_maps(&container.rootfs, &volumes)
+            .map_err(|why| format!("starting with -v: {why}"))?;
         podvm_enter::spawn_userland(
             &root,
             &plan,
+            &maps,
             container.userland_exec.clone(),
             podvm_probe::select::Rung::Userland.word(),
             None,

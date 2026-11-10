@@ -225,9 +225,12 @@ pub(crate) fn enter_forced(
             match staged {
                 Some(payload) => {
                     let fd = memfd::stage_file(payload.file())?;
+                    // A forced rung serves no volume (the refusal of
+                    // TODO/enter.md T-1653), so the table is the root pair.
                     return podvm_enter::run_userland(
                         root,
                         plan,
+                        &podvm_enter::userland::Maps::of_root(rootfs),
                         plan.argv.clone(),
                         podvm_probe::select::Rung::Userland.word(),
                         Some(fd),

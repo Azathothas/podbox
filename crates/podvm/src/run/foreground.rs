@@ -388,8 +388,7 @@ pub fn run(args: &[String]) -> i32 {
             // enter through the one shared drive beside the chroot
             // sequence below, so `run` and `exec` cannot diverge on it.
             if let Some(u) = &p.userland {
-                let outcome =
-                    crate::lifecycle::enter_userland("run", &root, &plan, u, &p.rootfs, &mut err);
+                let outcome = crate::lifecycle::enter_userland("run", &root, &plan, u, &mut err);
                 if !outcome.entered {
                     fg_end(&store, fg, outcome.code);
                     drop(memo);
@@ -470,15 +469,17 @@ pub fn run(args: &[String]) -> i32 {
 /// `podvm run` would inherit the outer payload's path. Nothing is pushed
 /// where nothing resolves, and the interposer prefers a real answer where
 /// one exists, so the variable can ride every entry including the no-chroot
-/// ones without poisoning them.
-pub(crate) fn push_guest_exe(
+/// ones without poisoning them. `root` is the rootfs, or the table of the
+/// run, where a payload in a volume has its guest path in the volume
+/// (TODO/enter.md T-1653).
+pub(crate) fn push_guest_exe<G: podvm_enter::abi::GuestRoot + ?Sized>(
     env: &mut Vec<String>,
-    rootfs: &str,
+    root: &G,
     argv0: &str,
     path_dirs: &[String],
 ) {
     env.retain(|e| e.split('=').next().unwrap_or("") != podvm_enter::ladder::GUEST_EXE_VAR);
-    if let Some(g) = podvm_enter::ladder::guest_exe(rootfs, argv0, path_dirs) {
+    if let Some(g) = podvm_enter::ladder::guest_exe(root, argv0, path_dirs) {
         env.push(format!("{}={g}", podvm_enter::ladder::GUEST_EXE_VAR));
     }
 }

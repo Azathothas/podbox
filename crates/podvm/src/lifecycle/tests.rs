@@ -1,4 +1,5 @@
 use super::*;
+use podvm_enter::userland::Maps;
 
 /// TODO/enter.md T-1407. The maps table is set on a userland run, a
 /// caller-supplied value is scrubbed first, and the banner names the
@@ -11,11 +12,10 @@ fn userland_env_anchors_paths_or_names_the_opt_out() {
     let mut err = Vec::new();
     let ue = userland_env(
         "run",
-        "/store/rootfs",
+        &Maps::of_root("/store/rootfs"),
         env,
         Family::Loader,
         false,
-        &[],
         &mut err,
     )
     .unwrap();
@@ -41,11 +41,10 @@ fn userland_env_anchors_paths_or_names_the_opt_out() {
     let mut err = Vec::new();
     let ue = userland_env(
         "run",
-        "/store/rootfs",
+        &Maps::of_root("/store/rootfs"),
         vec!["PATH=/bin".to_string()],
         Family::Memfd,
         true,
-        &[],
         &mut err,
     )
     .unwrap();
@@ -64,11 +63,10 @@ fn userland_env_anchors_paths_or_names_the_opt_out() {
     assert_eq!(
         userland_env(
             "run",
-            "relative",
+            &Maps::of_root("relative"),
             vec![],
             Family::Loader,
             false,
-            &[],
             &mut std::io::sink()
         )
         .unwrap_err(),
@@ -88,11 +86,10 @@ fn userland_env_adds_one_pair_for_each_volume() {
     }];
     let ue = userland_env(
         "run",
-        "/store/rootfs",
+        &Maps::new("/store/rootfs", &vols).unwrap(),
         vec![],
         Family::Loader,
         false,
-        &vols,
         &mut std::io::sink(),
     )
     .unwrap();
@@ -110,11 +107,10 @@ fn userland_env_adds_one_pair_for_each_volume() {
     );
     let ue = userland_env(
         "run",
-        "/store/rootfs",
+        &Maps::new("/store/rootfs", &vols).unwrap(),
         vec![],
         Family::Loader,
         true,
-        &vols,
         &mut std::io::sink(),
     )
     .unwrap();
@@ -135,11 +131,10 @@ fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
     let exe = format!("{}=/bin/prog", podvm_enter::ladder::GUEST_EXE_VAR);
     let ue = userland_env(
         "run",
-        "/store/rootfs",
+        &Maps::of_root("/store/rootfs"),
         vec![exe.clone(), "PODVM_GUEST_EXE_FORCE=0".to_string()],
         Family::Loader,
         false,
-        &[],
         &mut std::io::sink(),
     )
     .unwrap();
@@ -161,11 +156,10 @@ fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
     // No guest exe set: no force, even on the loader family.
     let ue = userland_env(
         "run",
-        "/store/rootfs",
+        &Maps::of_root("/store/rootfs"),
         vec![],
         Family::Loader,
         false,
-        &[],
         &mut std::io::sink(),
     )
     .unwrap();
@@ -179,11 +173,10 @@ fn userland_env_forces_the_guest_exe_only_beside_the_loader() {
     // The memfd family never carries it, guest exe or not.
     let ue = userland_env(
         "run",
-        "/store/rootfs",
+        &Maps::of_root("/store/rootfs"),
         vec![exe],
         Family::Memfd,
         false,
-        &[],
         &mut std::io::sink(),
     )
     .unwrap();

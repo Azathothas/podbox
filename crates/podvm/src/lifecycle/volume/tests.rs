@@ -54,45 +54,61 @@ fn a_volume_spelling_podvm_cannot_serve_is_refused() {
     let _ = std::fs::remove_dir_all(&d);
 }
 
-/// The mount of a path is the longest mount point over it, the mount on
-/// top where two share a point, and an escaped point reads unescaped.
-#[test]
-fn the_mount_of_a_path_is_the_longest_point_over_it() {
-    let mi = "\
-22 1 0:21 / / rw,relatime - ext4 /dev/vda rw
-30 22 0:30 / /srv rw,nosuid - tmpfs tmpfs rw
-31 30 0:31 / /srv/nx rw,noexec - tmpfs tmpfs rw
-32 31 0:32 / /srv/nx rw,nodev - tmpfs tmpfs rw
-33 22 0:33 / /my\\040dir rw,noexec - tmpfs tmpfs rw
-";
-    assert_eq!(mount_options(mi, "/home/u").as_deref(), Some("rw,relatime"));
-    assert_eq!(mount_options(mi, "/srv/a").as_deref(), Some("rw,nosuid"));
-    assert_eq!(mount_options(mi, "/srv/nxa").as_deref(), Some("rw,nosuid"));
-    assert_eq!(mount_options(mi, "/srv/nx/b").as_deref(), Some("rw,nodev"));
-    assert_eq!(mount_options(mi, "/my dir/x").as_deref(), Some("rw,noexec"));
-    assert_eq!(mount_options("", "/x"), None);
-}
-
 /// TODO/enter.md T-1653. The banner names each volume as a rewrite, a
-/// noexec source, and a source whose mount podvm cannot read.
+/// noexec source, and a source whose mount flags podvm cannot read.
 #[test]
 fn the_banner_names_a_noexec_source() {
     let v = |h: &str| Volume {
         guest: "/data".to_string(),
         host: h.to_string(),
     };
-    let mi = "1 0 0:1 / / rw - ext4 r rw\n2 1 0:2 / /nx rw,noexec - tmpfs t rw\n";
-    let b = banner_with(&[v("/home/d")], Some(mi));
+    let flags = |h: &str| match h {
+        "/nx/d" => Some(true),
+        "/home/d" => Some(false),
+        _ => None,
+    };
+    let b = banner_with(&[v("/home/d")], flags);
     assert!(b.contains("-v /home/d:/data is a path rewrite"), "{b}");
     assert!(!b.contains("noexec"), "{b}");
-    let b = banner_with(&[v("/nx/d")], Some(mi));
+    let b = banner_with(&[v("/nx/d")], flags);
     assert!(b.contains("/nx/d is on a noexec mount"), "{b}");
-    let b = banner_with(&[v("/home/d")], None);
+    let b = banner_with(&[v("/gone/d")], flags);
     assert!(b.contains("cannot tell whether a program in /data"), "{b}");
 }
 
-fn v(xs: &[&str]) -> Vec<String> {
-    xs.iter().map(|s| (*s).to_string()).collect()
+/// TODO/enter.md T-1653. One `statfs(2)` answers the noexec flag of a
+/// source: the answer agrees with the options of the mount table where
+/// both name the same mount, and a missing path has no answer.
+#[test]
+fn statfs_answers_the_noexec_flag() {
+    assert_eq!(noexec("/podvm-no-such-path/x"), None);
+    assert_eq!(noexec("/a\0b"), None);
+    let Ok(table) = std::fs::read_to_string("/proc/self/mountinfo") else {
+        eprintln!("skipping, /proc/self/mountinfo cannot be read");
+        return;
+    };
+    for line in table.lines() {
+        let f: Vec<&str> = line.split(' ').collect();
+        let (Some(point), Some(opts)) = (f.get(4), f.get(5)) else {
+            continue;
+        };
+        // One mount at the point, with no escape in it: the answer of
+        // statfs is the answer of that mount.
+        if point.contains('\\')
+            || table
+                .lines()
+                .filter(|l| l.split(' ').nth(4) == Some(*point))
+                .count()
+                != 1
+        {
+            continue;
+        }
+        let Some(got) = noexec(point) else {
+            continue;
+        };
+        let want = opts.split(',').any(|o| o == "noexec");
+        assert_eq!(got, want, "{point}: {opts}");
+    }
 }
 
 fn userland(family: Family) -> Userland {
@@ -103,12 +119,12 @@ fn userland(family: Family) -> Userland {
         banner: String::new(),
         guest_argv: Vec::new(),
         gaps: Vec::new(),
+        maps: podvm_enter::userland::Maps::of_root("/r"),
     }
 }
 
 /// TODO/enter.md T-1653. The loader family serves a volume; the chroot
-/// rung, the memfd family and a forced rung refuse it, and so does a
-/// working directory or a first program inside the volume.
+/// rung, the memfd family and a forced rung refuse it.
 #[test]
 fn only_the_loader_family_serves_a_volume() {
     let vs = [Volume {
@@ -131,10 +147,33 @@ fn only_the_loader_family_serves_a_volume() {
         ),
         err
     );
-    assert_eq!(refuse_paths("run", &vs, &v(&["/bin/sh"]), "/"), Ok(()));
-    assert_eq!(refuse_paths("run", &vs, &v(&["sh"]), "/datax"), Ok(()));
-    assert_eq!(refuse_paths("run", &vs, &v(&["data/x"]), "/"), Ok(()));
-    assert_eq!(refuse_paths("run", &[], &v(&["/data/x"]), "/data"), Ok(()));
-    assert_eq!(refuse_paths("run", &vs, &v(&["/bin/sh"]), "/data/sub"), err);
-    assert_eq!(refuse_paths("run", &vs, &v(&["/data/prog"]), "/"), err);
+}
+
+/// TODO/enter.md T-1653. The table of a run holds the volumes beside the
+/// root pair, and a `-w` in a volume passes the check of the working
+/// directory, which the image alone refuses; a volume that the table
+/// cannot hold refuses at 125.
+#[test]
+fn a_workdir_in_a_volume_passes_through_the_table() {
+    let d = tmp("workdir");
+    std::fs::create_dir_all(d.join("rootfs/bin")).unwrap();
+    std::fs::create_dir_all(d.join("host/sub")).unwrap();
+    let root = d.join("rootfs").to_string_lossy().to_string();
+    let vs = [Volume {
+        guest: "/data".to_string(),
+        host: d.join("host").to_string_lossy().to_string(),
+    }];
+    let m = maps("run", &root, &vs).unwrap();
+    assert_eq!(m.volumes(), &vs[..]);
+    assert!(podvm_enter::check_workdir(root.as_str(), "/data/sub", "img").is_err());
+    podvm_enter::check_workdir(&m, "/data/sub", "img").unwrap();
+    let bad = [Volume {
+        guest: "/proc/x".to_string(),
+        host: "/h".to_string(),
+    }];
+    assert_eq!(
+        maps("run", &root, &bad).unwrap_err(),
+        podvm_image::error::EXIT_RUNTIME_ERROR
+    );
+    let _ = std::fs::remove_dir_all(&d);
 }

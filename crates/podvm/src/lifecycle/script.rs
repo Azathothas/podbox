@@ -9,21 +9,21 @@
 //! (TODO/interpose.md T-1646). An interpreter that does not resolve inside
 //! the image refuses at 126; podvm never looks for it on the host.
 //!
-//! ⚠ The `#!` parser below duplicates `head::shebang` of the interposer by
-//! value. The interposer takes no dependency, and the host-side owner of
-//! the payload bytes (`podvm_enter::memfd`) is frozen for pod-enter, so the
-//! parser lives here until pod-enter carries one. The tests pin the same
-//! cases.
+//! ⭐ T-137 of PodUtils/podcrates (COORD-018). The `#!` parser is
+//! `podvm_enter::memfd::shebang_parts` of `pod-enter`, and the `$0` of the
+//! script is `podvm_enter::ladder::guest_invoked`. `head::shebang` of the
+//! interposer stays a copy by value, because the interposer takes no
+//! dependency; the tests pin the same cases on both.
+//!
+//! ⭐ TODO/enter.md T-1653. Each guest path resolves through the table of
+//! the run (`abi::GuestRoot`), so a script or an interpreter in a volume is
+//! the file of the volume.
 
 use super::*;
 
 /// How many `#!` levels one entry follows: the bound of the kernel
 /// (`BINPRM_MAX_RECURSION`) and of the exec family of the interposer.
 pub(super) const DEPTH: usize = 4;
-
-/// The bytes of a file head that the kernel reads for a `#!` line
-/// (`BINPRM_BUF_SIZE`).
-const HEAD: usize = 256;
 
 /// The payload that the entry decides on, after the `#!` route.
 pub(super) struct Followed {
@@ -43,47 +43,6 @@ pub(super) struct Followed {
 /// sentence, and whether a `#!` script was followed before it.
 pub(super) type Refusal = (i32, String, bool);
 
-/// Parse a `#!` line as `fs/binfmt_script.c` parses it: the interpreter
-/// name and the optional argument.
-///
-/// The line ends at the first newline, inside the first [`HEAD`] bytes.
-/// Blanks (space and tab) before the name are skipped, and the name ends at
-/// a blank. The remainder of the line, without its outer blanks, is ONE
-/// argument, or none where it is empty. Where the head holds no newline,
-/// the name must end at a blank inside the head, or the kernel refuses with
-/// `ENOEXEC`; a long argument is cut at the end of the head. `None` is that
-/// refusal, and also a name that is not UTF-8.
-pub(super) fn shebang(bytes: &[u8]) -> Option<(String, Option<String>)> {
-    if !podvm_enter::memfd::has_shebang(bytes) {
-        return None;
-    }
-    let whole = bytes.len() < HEAD;
-    let head = &bytes[..bytes.len().min(HEAD)];
-    let blank = |c: u8| c == b' ' || c == b'\t';
-    let nl = head.iter().position(|&c| c == b'\n');
-    let mut end = nl.unwrap_or(head.len());
-    while end > 2 && blank(head[end - 1]) {
-        end -= 1;
-    }
-    let mut at = 2usize;
-    while at < end && blank(head[at]) {
-        at += 1;
-    }
-    let start = at;
-    while at < end && !blank(head[at]) && head[at] != 0 {
-        at += 1;
-    }
-    if at == start || (nl.is_none() && at == head.len() && !whole) {
-        return None;
-    }
-    let interp = std::str::from_utf8(&head[start..at]).ok()?.to_string();
-    while at < end && blank(head[at]) {
-        at += 1;
-    }
-    let arg = (at < end).then(|| String::from_utf8_lossy(&head[at..end]).to_string());
-    Some((interp, arg))
-}
-
 /// The argv that the kernel builds for a script: the interpreter, its
 /// optional argument, the script path as invoked, then the arguments.
 pub(super) fn kernel_argv(
@@ -100,29 +59,27 @@ pub(super) fn kernel_argv(
     v
 }
 
-/// The script path that the interpreter receives.
-///
-/// A name with a `/` is given as invoked, as the kernel gives it. A bare
-/// name is the guest path that the `PATH` search found
-/// ([`podvm_enter::ladder::guest_exe`], the one search). ⚠ That path has
-/// its links followed, where the kernel gives the unresolved join: a script
-/// reached through a link reads the target directory in `$0`.
-fn invoked_path(rootfs: &str, argv0: &str, path_dirs: &[String]) -> String {
-    if argv0.contains('/') {
-        return argv0.to_string();
-    }
-    podvm_enter::ladder::guest_exe(rootfs, argv0, path_dirs).unwrap_or_else(|| argv0.to_string())
+/// The script path that the interpreter receives: as invoked where it has
+/// a `/`, else the unresolved join of the `PATH` directory where the name
+/// resolves, as the kernel gives it ([`podvm_enter::ladder::guest_invoked`]).
+fn invoked_path<G: podvm_enter::abi::GuestRoot + ?Sized>(
+    root: &G,
+    argv0: &str,
+    path_dirs: &[String],
+) -> String {
+    podvm_enter::ladder::guest_invoked(root, argv0, path_dirs).unwrap_or_else(|| argv0.to_string())
 }
 
 /// Resolve the payload, read it, and follow each `#!` level to the program
-/// that runs, inside the rootfs only.
+/// that runs, inside `root` only: the rootfs, or the table of the run with
+/// its volumes.
 ///
 /// ⭐ T-1413 and T-1414. The path and the bytes are read once: the path
 /// rides the refusals, the resolution sentences decide the code (127
 /// absent, 126 found but not invocable), and the loader arm reuses them.
 /// Read-only: a refusal writes nothing into the image.
-pub(super) fn follow(
-    rootfs: &str,
+pub(super) fn follow<G: podvm_enter::abi::GuestRoot + ?Sized>(
+    root: &G,
     argv: &[String],
     path_dirs: &[String],
 ) -> Result<Followed, Refusal> {
@@ -131,7 +88,7 @@ pub(super) fn follow(
     loop {
         let routed = !scripts.is_empty();
         let argv0 = argv.first().cloned().unwrap_or_default();
-        let resolved = match podvm_enter::ladder::resolve_payload(rootfs, &argv0, path_dirs) {
+        let resolved = match podvm_enter::ladder::resolve_payload(root, &argv0, path_dirs) {
             Ok(p) => p,
             Err(e) => {
                 return Err(match scripts.last() {
@@ -156,7 +113,7 @@ pub(super) fn follow(
                 });
             }
         };
-        let bytes = match podvm_enter::ladder::payload_head(rootfs, &argv0, path_dirs) {
+        let bytes = match podvm_enter::ladder::payload_head(root, &argv0, path_dirs) {
             Ok(p) => p.head,
             Err(e) => {
                 // ⚠ T-0802's errno split: a directory is found-but-not-
@@ -194,7 +151,7 @@ pub(super) fn follow(
                  which the kernel also refuses"
             ));
         }
-        let Some((interp, arg)) = shebang(&bytes) else {
+        let Some((interp, arg)) = podvm_enter::memfd::shebang_parts(&bytes) else {
             return refuse("its #! line names no interpreter that the kernel would run");
         };
         if !interp.starts_with('/') {
@@ -204,7 +161,7 @@ pub(super) fn follow(
                  image"
             ));
         }
-        let script = invoked_path(rootfs, &argv0, path_dirs);
+        let script = invoked_path(root, &argv0, path_dirs);
         argv = kernel_argv(&interp, arg.as_deref(), &script, &argv[1..]);
         scripts.push((resolved, line));
     }

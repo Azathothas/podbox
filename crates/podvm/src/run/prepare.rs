@@ -241,8 +241,10 @@ pub(crate) fn prepare(
         .workdir
         .clone()
         .unwrap_or_else(|| cfg.config.working_dir.clone());
-    // ⭐ TODO/enter.md T-1653: refuse a -w or a first program in a volume.
-    crate::lifecycle::volume::refuse_paths(verb, &o.volumes, &argv, &working_dir)?;
+    // ⭐ TODO/enter.md T-1653: the table of the run. The payload, the
+    // working directory and each guest path below resolve through it, so
+    // a -w or a first program in a volume is the file of the volume.
+    let maps = crate::lifecycle::volume::maps(verb, &rootfs, &o.volumes)?;
     let mut env = Plan::env_for(&podvm_enter::NAMES, &cfg.config.env, &o.env);
     // ⭐ T-0711: the requested identity travels in the environment, resolved
     // against the image, before anything classifies the payload: the object
@@ -272,7 +274,7 @@ pub(crate) fn prepare(
     // word that a refusal of an Entrypoint script names ride in.
     let userland = crate::lifecycle::decide_entry(
         verb,
-        &rootfs,
+        &maps,
         &argv,
         &env,
         support_native,
@@ -289,7 +291,7 @@ pub(crate) fn prepare(
     // payload on the userland rung runs, and so classifies, its interpreter.
     let gargv = userland.as_ref().map_or(&argv, |u| &u.guest_argv);
     let mut interpose_note = String::new();
-    if let Err(e) = crate::interpose::apply(verb, &rootfs, gargv, &mut env, &mut interpose_note) {
+    if let Err(e) = crate::interpose::apply(verb, &maps, gargv, &mut env, &mut interpose_note) {
         eprintln!("{e}");
         return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
     }
@@ -334,7 +336,7 @@ pub(crate) fn prepare(
     // cannot survive into a nested run. Unset where nothing resolves.
     push_guest_exe(
         &mut env,
-        &rootfs,
+        &maps,
         gargv.first().map(String::as_str).unwrap_or(""),
         &path_dirs,
     );
@@ -351,11 +353,10 @@ pub(crate) fn prepare(
     if let Some(u) = &userland {
         let ue = crate::lifecycle::userland_env(
             verb,
-            &rootfs,
+            &maps,
             env,
             u.family,
             o.unsafe_host_paths,
-            &o.volumes,
             &mut err,
         )?;
         env = ue.env;
@@ -368,7 +369,7 @@ pub(crate) fn prepare(
     // starting the payload in the wrong directory with exit 0. docker
     // creates the directory; podvm refuses and says so, and `-w /tmp`
     // prints `/tmp` as the passing control.
-    if let Err(e) = podvm_enter::check_workdir(&rootfs, &working_dir, &image) {
+    if let Err(e) = podvm_enter::check_workdir(&maps, &working_dir, &image) {
         eprintln!("podvm {verb}: {e}");
         return Err(e.exit_code());
     }

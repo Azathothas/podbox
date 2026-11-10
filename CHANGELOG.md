@@ -79,8 +79,10 @@ Deployed: version 0.2.0-beta.1.
   classify it and stages it in bounded parts. Before, podvm refused
   `node:alpine` and other large runtimes. T-1647, #90.
 - On the loader family, `-v HOST:GUEST` and `-v HOST:GUEST:rw` work with
-  no mount and no `/dev/fuse`. podvm refuses `:ro`, named volumes and the
-  other rungs by name. T-1653 (partial), #130.
+  no mount and no `/dev/fuse`. A working directory (`-w`) and a first
+  program inside a volume work: each resolves to the file of the volume.
+  podvm refuses `:ro`, named volumes and the other rungs by name. T-1653
+  (partial), #130.
 - On a host that denies `chroot`: a relative path gets the rootfs prefix
   once; a glibc payload is admitted against its full `NEEDED` closure,
   read inside the rootfs; `dlopen` and `dlmopen` load guest objects; and a
@@ -103,10 +105,13 @@ Deployed: version 0.2.0-beta.1.
 Record: T-1681, T-1677, T-1669, T-1671; the commits `deps: podcrates ...`.
 Deployed: version 0.2.0-beta.1.
 
-- podvm takes the shared crates of `PodUtils/podcrates` at tag `v0.11.0`:
+- podvm takes the shared crates of `PodUtils/podcrates` at tag `v0.12.0`:
   `pod-hostprobe`, `pod-tls`, `pod-proxy`, `pod-term`, `pod-supervise`,
   `pod-guest`, `pod-enter`, `pod-oci`, `pod-extract` and `pod-rootfs`.
-  Each HTTP request goes through `pod-proxy`, and `ureq` is gone.
+  Each HTTP request goes through `pod-proxy`, and `ureq` is gone. With
+  `v0.12.0`, the table of a run (`pod-enter`'s `Maps`) resolves each guest
+  path, the `#!` parser is `pod-enter`'s, and one `statfs` names a
+  `noexec` volume source.
 - The workspace builds with Rust 1.99 and edition 2024.
 - A release starts from the dispatched workflow `release.yml`, which
   creates the tag and then starts the nightly workflow on it. A pushed tag

@@ -2336,7 +2336,7 @@ before implementation.
 
 ### T-1419 Pull-missing verifies the blobs it trusts
 
-Source:      issue 83; `crates/podvm/src/run/prepare.rs:331`;
+Source:      issue 83; `crates/podvm/src/run/prepare.rs:333`;
              `crates/podvm-image/src/health.rs:91`; [T-1321](image.md);
              [T-0805](cli.md)
 Category:    image

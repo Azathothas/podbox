@@ -944,7 +944,7 @@ before implementation.
 
 ### T-1410 Exec through the no-chroot family
 
-Source:      issue 80; `crates/podvm/src/exec/command.rs:221`;
+Source:      issue 80; `crates/podvm/src/exec/command.rs:222`;
              `crates/podvm/src/run/prepare.rs:46`; [T-0505](enter.md)
 Category:    enter
 Priority:    P1
@@ -1351,9 +1351,9 @@ Problem:     On a chroot-denied host podvm refuses a payload over
              image is pulled first and the run fails after.
 Premise:     Two 128 MiB ceilings read the whole file into memory.
              `Elf::read` (`abi.rs:157`) serves the tier classifier
-             (`crates/podvm/src/interpose.rs:184`). `payload_bytes`
+             (`crates/podvm/src/interpose.rs:194`). `payload_bytes`
              (`ladder.rs:238`) serves `decide_entry`
-             (`crates/podvm/src/lifecycle/script.rs:160`), so the loader
+             (`crates/podvm/src/lifecycle/script.rs:117`), so the loader
              family refuses too, though it never stages the bytes.
              `memfd::stage` (`memfd.rs:108`) takes one contiguous buffer.
              `memfd::eligible` (`memfd.rs:262`) reads the ELF header and
@@ -1427,9 +1427,9 @@ end-to-end clause.
 ### T-1648 A static Go payload runs into a GOROOT error instead of a named refusal
 
 Source:      issue 91; issue 114 section 3.4;
-             `crates/podvm/src/lifecycle/entry.rs:343`;
-             `crates/podvm/src/lifecycle/entry.rs:374`;
-             `crates/podvm/src/interpose.rs:355`;
+             `crates/podvm/src/lifecycle/entry.rs:351`;
+             `crates/podvm/src/lifecycle/entry.rs:382`;
+             `crates/podvm/src/interpose.rs:365`;
              `experiments/356-no-chroot-rung.sh:574`;
              A-V-04 of PodUtils/podcrates#39
 Category:    enter
@@ -1449,7 +1449,7 @@ Premise:     `decide_entry` sends every static payload to the memfd
              banner says that absolute paths resolve on the host
              (`lifecycle.rs:1919`), and the quiet default of T-1416 hides
              the banner. `interpose::apply` records the Go decline as a
-             banner note (`crates/podvm/src/interpose.rs:355`),
+             banner note (`crates/podvm/src/interpose.rs:365`),
              which the quiet default also hides. Clause 18 of experiment
              356 pins exit 2 naming GOROOT as the boundary
              (`356-no-chroot-rung.sh:574`).
@@ -1713,6 +1713,16 @@ Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm`
              directory. A `:ro` volume gives `EROFS` for a guest write and leaves the
              host file unchanged, once the read-only layer of T-1655 exists.
 
+**Still partial, 2026-11-10 (podcrates v0.12.0).** podvm takes the 11
+crates at v0.12.0; one `pod_enter::userland::Maps` carries the root and
+each volume through the workdir check, the entry, the `#!` follow and the
+interposer. `-w` and a first program inside a volume now run.
+`cargo test --workspace` exits 0 (649 passed), the interposer tests exit
+0 (69 passed), and `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+exits 0 with the steps fx-vol-workdir, fx-vol-copy and fx-vol-prog
+([the drive](../experiments/results/volumes-1653-v0120.txt)). Remaining:
+`:ro` with EROFS (T-1655).
+
 **Still partial, 2026-11-10.** `PODVM_356_MIRROR=1 sh
 experiments/356-no-chroot-rung.sh` exits 0 with clause 26
 ([the run](../experiments/results/no-chroot-rung.txt)). Remaining: `:ro`
@@ -1915,7 +1925,7 @@ Problem:     `kernel_takes_memfd()` proves that `memfd_create` answers, not
 Premise:     The probe is `src/memfd.rs` of `pod-enter` (PodUtils/podcrates): it creates
              and closes a memfd and never executes one. The callers are
              `crates/podvm/src/ladder.rs:202` and
-             `crates/podvm/src/lifecycle/entry.rs:346`. The late step is
+             `crates/podvm/src/lifecycle/entry.rs:354`. The late step is
              `src/launch.rs` of `pod-enter` (PodUtils/podcrates). The census row
              `memfd_create+exec` of `pod_hostprobe::probes` runs a shell
              script through `/proc/self/fd/N`, not `execveat` of a static

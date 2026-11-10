@@ -259,6 +259,10 @@ pub struct Userland {
     /// TODO/cli.md T-1650. The capability gaps of the family for this
     /// payload, which `--strict` reads.
     pub gaps: Vec<crate::complete::Gap>,
+    /// TODO/enter.md T-1653. The table of the run: the rootfs and the
+    /// volumes. The entry resolves the payload and the working directory
+    /// through it, so either can be in a volume.
+    pub maps: podvm_enter::userland::Maps,
 }
 
 /// TODO/cli.md T-1650. The capability gaps that `--strict` reads: those of
@@ -288,6 +292,10 @@ pub fn gaps_of(userland: Option<&Userland>) -> Vec<crate::complete::Gap> {
 /// its absolute paths resolve on the host, so without the opt-in it
 /// refuses at 125 before the exec ([`STATIC_HOST_PATHS`]).
 ///
+/// ⭐ TODO/enter.md T-1653. `maps` is the table of the run (the rootfs and
+/// the volumes): each guest path resolves through it, so a first program
+/// in a volume is the file of the volume.
+///
 /// ⭐ TODO/cli.md T-1649. A `#!` payload runs its interpreter, resolved
 /// inside the rootfs, with the script path as its argument
 /// ([`script::follow`]). `retry` is the first word of the caller where
@@ -297,7 +305,7 @@ pub fn gaps_of(userland: Option<&Userland>) -> Vec<crate::complete::Gap> {
 #[allow(clippy::too_many_arguments)]
 pub fn decide_entry(
     verb: &str,
-    rootfs: &str,
+    maps: &podvm_enter::userland::Maps,
     argv: &[String],
     env: &[String],
     support_native: bool,
@@ -316,7 +324,7 @@ pub fn decide_entry(
         );
         Err(code)
     };
-    let f = match script::follow(rootfs, argv, &path_dirs) {
+    let f = match script::follow(maps, argv, &path_dirs) {
         Ok(f) => f,
         Err((code, note, routed)) => return no_chroot(code, note, routed),
     };
@@ -383,6 +391,7 @@ pub fn decide_entry(
             ),
             guest_argv: f.argv.clone(),
             gaps: Vec::new(),
+            maps: maps.clone(),
         }));
     };
     // Dynamic: the loader family, where the tier reaches the payload.
@@ -401,15 +410,14 @@ pub fn decide_entry(
     // which dangles on the host side, so the resolved file is what opens
     // and `loader_argv_for` below carries the invoked name as the applet.
     // A relative link (debian's `/bin/sh`) opens as invoked.
-    let payload_host =
-        podvm_enter::userland::invocation_path(rootfs, argv0, &path_dirs, &f.resolved);
-    let plan = match podvm_enter::userland::loader_plan(rootfs, &interp, &payload_host) {
+    let payload_host = podvm_enter::userland::invocation_path(maps, argv0, &path_dirs, &f.resolved);
+    let plan = match podvm_enter::userland::loader_plan(maps, &interp, &payload_host) {
         Ok(p) => p,
         // ⚠ Found, but the loader cannot run it: 126, never 125.
         Err(why) => return no_chroot(EXIT_CANNOT_INVOKE, why, routed),
     };
     if let crate::interpose::Reach::Declined(why) =
-        crate::interpose::classify(rootfs, argv0, &path_dirs)
+        crate::interpose::classify(maps, argv0, &path_dirs)
     {
         // ⚠ Found, but the tier cannot virtualize it (Go markers, an
         // unknown libc, an unreadable ELF): without the interposer no
@@ -458,7 +466,8 @@ pub fn decide_entry(
                 String::new()
             },
         ),
-        gaps: crate::complete::loader_gaps(rootfs, argv, routed, &path_dirs),
+        gaps: crate::complete::loader_gaps(maps, argv, routed, &path_dirs),
         guest_argv: f.argv,
+        maps: maps.clone(),
     }))
 }

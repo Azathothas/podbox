@@ -83,14 +83,14 @@ pub(super) fn enter(
     podvm_enter::device::push_spec(&mut env, &exec_devices);
     // ⭐ TODO/enter.md T-1653. The container's volumes are configuration
     // too: docker's `exec` sees the mounts of the container, so the pairs
-    // come from the table in the record, and the table is built again.
+    // come from the table in the record, and the table is built again. The
+    // payload and the working directory resolve through it.
     let volumes = podvm_enter::userland::volumes_of(&container.env);
+    let maps = match crate::lifecycle::volume::maps("exec", rootfs, &volumes) {
+        Ok(m) => m,
+        Err(code) => return code,
+    };
     let working_dir = o.workdir.clone().unwrap_or_else(|| "/".to_string());
-    if let Err(code) =
-        crate::lifecycle::volume::refuse_paths("exec", &volumes, &o.command, &working_dir)
-    {
-        return code;
-    }
     let findings = podvm_probe::run();
     // ⭐ TODO/enter.md T-1410. The image record behind the container, read
     // for the architecture the entry decision needs: a refusal here names
@@ -120,7 +120,7 @@ pub(super) fn enter(
     // records). A refusal names the blocking call.
     let userland = match crate::lifecycle::decide_entry(
         "exec",
-        rootfs,
+        &maps,
         &o.command,
         &env,
         support_native,
@@ -143,7 +143,7 @@ pub(super) fn enter(
     // interpreter.
     let gargv = userland.as_ref().map_or(&o.command, |u| &u.guest_argv);
     let mut interpose_note = String::new();
-    if let Err(e) = crate::interpose::apply("exec", rootfs, gargv, &mut env, &mut interpose_note) {
+    if let Err(e) = crate::interpose::apply("exec", &maps, gargv, &mut env, &mut interpose_note) {
         eprintln!("{e}");
         return podvm_image::error::EXIT_RUNTIME_ERROR;
     }
@@ -169,7 +169,7 @@ pub(super) fn enter(
     // `run`'s `prepare`. A fresh chroot re-entry is a fresh payload.
     crate::run::push_guest_exe(
         &mut env,
-        rootfs,
+        &maps,
         gargv.first().map(String::as_str).unwrap_or(""),
         &path_dirs,
     );
@@ -183,11 +183,10 @@ pub(super) fn enter(
     if let Some(u) = &userland {
         match crate::lifecycle::userland_env(
             "exec",
-            rootfs,
+            &maps,
             env,
             u.family,
             o.unsafe_host_paths,
-            &volumes,
             &mut std::io::stderr(),
         ) {
             Ok(ue) => {
@@ -201,7 +200,7 @@ pub(super) fn enter(
     // ⭐ TODO/enter.md T-1412, as in `run`'s `prepare`: the workdir is
     // checked before the fork and before any fixup mutates the rootfs. The
     // image named is the container's own, read from its record above.
-    if let Err(e) = podvm_enter::check_workdir(rootfs, &working_dir, &container.image) {
+    if let Err(e) = podvm_enter::check_workdir(&maps, &working_dir, &container.image) {
         eprintln!("podvm exec: {e}");
         return e.exit_code();
     }
@@ -335,8 +334,7 @@ pub(super) fn enter(
     // ephemeral is removed on any path out.
     match &userland {
         Some(u) => {
-            let outcome =
-                crate::lifecycle::enter_userland("exec", &root, &plan, u, rootfs, &mut err);
+            let outcome = crate::lifecycle::enter_userland("exec", &root, &plan, u, &mut err);
             drop(memo);
             outcome.code
         }

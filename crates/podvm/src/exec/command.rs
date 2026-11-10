@@ -152,9 +152,11 @@ pub fn exec(args: &[String]) -> i32 {
         podvm_enter::binfmt::support_for(&record.architecture, &host.arch),
         podvm_enter::binfmt::Support::Native
     );
+    // The image path has no volume: the table is the root pair alone.
+    let maps = podvm_enter::userland::Maps::of_root(&rootfs);
     let userland = match crate::lifecycle::decide_entry(
         "exec",
-        &rootfs,
+        &maps,
         &argv,
         &env,
         support_native,
@@ -209,11 +211,10 @@ pub fn exec(args: &[String]) -> i32 {
     if let Some(u) = &userland {
         match crate::lifecycle::userland_env(
             "exec",
-            &rootfs,
+            &maps,
             env,
             u.family,
             o.unsafe_host_paths,
-            &[],
             &mut std::io::stderr(),
         ) {
             Ok(ue) => {
@@ -380,9 +381,7 @@ pub fn exec(args: &[String]) -> i32 {
     // sequence as before. The ephemeral memo is removed on every path
     // out, as before.
     let code = match &userland {
-        Some(u) => {
-            crate::lifecycle::enter_userland("exec", &root, &plan, u, &rootfs, &mut err).code
-        }
+        Some(u) => crate::lifecycle::enter_userland("exec", &root, &plan, u, &mut err).code,
         None => match podvm_enter::run(&root, &plan, &mut err) {
             Ok(c) => c,
             Err(e) => {

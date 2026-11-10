@@ -18,6 +18,8 @@
 //! will see. `run`, `exec` and `create` all call that one function, so the
 //! three verbs cannot disagree about whether a payload is reachable.
 
+use podvm_enter::abi::GuestRoot;
+
 /// Which libc an object is linked against.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Libc {
@@ -133,12 +135,20 @@ fn is_go(elf: &podvm_enter::abi::Elf) -> bool {
 ///
 /// An argument with a `/` in it names a path under the rootfs. A bare name is
 /// looked for along `path_dirs` and the first file wins, which is the order
-/// the child tries after the chroot.
-fn resolve(rootfs: &str, argv0: &str, path_dirs: &[String]) -> Result<String, String> {
+/// the child tries after the chroot. `root` is the rootfs, or the table of
+/// a run with its volumes, so a payload in a volume is the file of the
+/// volume (TODO/enter.md T-1653).
+fn resolve<G: GuestRoot + ?Sized>(
+    root: &G,
+    argv0: &str,
+    path_dirs: &[String],
+) -> Result<String, String> {
     use podvm_enter::abi::{resolve_in, ResolveKind};
-    let root = std::path::Path::new(rootfs);
-    if !root.is_dir() {
-        return Err(format!("{rootfs}: not a directory podvm can read"));
+    if !root.root().is_dir() {
+        return Err(format!(
+            "{}: not a directory podvm can read",
+            root.root().display()
+        ));
     }
     // ⭐ One walker for both readers: `podvm_enter::abi::resolve_in` owns
     // the guest-kernel symlink walk, and this maps its kinds to sentences.
@@ -176,8 +186,8 @@ fn resolve(rootfs: &str, argv0: &str, path_dirs: &[String]) -> Result<String, St
 /// ⭐ Advisory, and the safe direction on every doubt. A wrong decline costs
 /// one stderr line; a wrong preload hands the payload's loader an object it
 /// cannot load, which fails the payload for the tier's sake.
-pub fn classify(rootfs: &str, argv0: &str, path_dirs: &[String]) -> Reach {
-    let path = match resolve(rootfs, argv0, path_dirs) {
+pub fn classify<G: GuestRoot + ?Sized>(root: &G, argv0: &str, path_dirs: &[String]) -> Reach {
+    let path = match resolve(root, argv0, path_dirs) {
         Ok(p) => p,
         Err(why) => return Reach::Declined(why),
     };
@@ -185,7 +195,7 @@ pub fn classify(rootfs: &str, argv0: &str, path_dirs: &[String]) -> Reach {
         Ok(e) => e,
         Err(e) => return Reach::Declined(format!("{e}")),
     };
-    classify_elf(argv0, &elf, rootfs, &parsed())
+    classify_elf(argv0, &elf, &root.root().to_string_lossy(), &parsed())
 }
 
 fn classify_elf(name: &str, elf: &podvm_enter::abi::Elf, rootfs: &str, objs: &Parsed) -> Reach {
@@ -377,9 +387,9 @@ fn decline(note: &mut String, verb: &str, argv0: &str, why: String) {
 /// and contradicts the first. A declined tier carries no memo and needs none.
 /// Nothing on the host reads the memo to decide anything; it is the payload's
 /// own view, not evidence.
-pub fn apply(
+pub fn apply<G: GuestRoot + ?Sized>(
     verb: &str,
-    rootfs: &str,
+    root: &G,
     argv: &[String],
     env: &mut Vec<String>,
     note: &mut String,
@@ -395,7 +405,8 @@ pub fn apply(
         (k == IDENTITY_VAR && !v.is_empty()).then(|| v.to_string())
     });
     let path_dirs = podvm_enter::Plan::path_from(env);
-    match classify(rootfs, first, &path_dirs) {
+    let rootfs = root.root().to_string_lossy();
+    match classify(root, first, &path_dirs) {
         Reach::Preload { libc, object } => {
             // ⛔ The memo before the preload: without it the tier would start
             // with no ownership record. Refuse, do not decline.
@@ -408,7 +419,7 @@ pub fn apply(
                      (TODO/interpose.md T-0710)"
                 ));
             }
-            match place(rootfs, object) {
+            match place(&rootfs, object) {
                 Ok(()) => {
                     let merged = merge_preload(env);
                     // ⭐ Later wins and the earlier is removed, which is

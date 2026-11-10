@@ -72,7 +72,12 @@ pub struct Gap {
 /// The gaps of the loader family for this payload. `argv` is the argv of
 /// the caller; `routed` tells that it named a `#!` script, which runs its
 /// arguments as a command (an entrypoint script ends in `exec "$@"`).
-pub fn loader_gaps(rootfs: &str, argv: &[String], routed: bool, path_dirs: &[String]) -> Vec<Gap> {
+pub fn loader_gaps<G: podvm_enter::abi::GuestRoot + ?Sized>(
+    root: &G,
+    argv: &[String],
+    routed: bool,
+    path_dirs: &[String],
+) -> Vec<Gap> {
     let cmds = commands(argv, routed);
     LOADER_GAPS
         .iter()
@@ -81,7 +86,7 @@ pub fn loader_gaps(rootfs: &str, argv: &[String], routed: bool, path_dirs: &[Str
             text: g.text,
             hit: match g.probe {
                 Probe::Unknown => None,
-                Probe::StaticChild => static_hit(rootfs, &cmds, path_dirs),
+                Probe::StaticChild => static_hit(root, &cmds, path_dirs),
             },
         })
         .collect()
@@ -220,7 +225,13 @@ fn split_commands(s: &str) -> Vec<Vec<String>> {
 
 /// A command after the first that names a statically linked program of
 /// the image. The first command is the payload, which the entry decided.
-fn static_hit(rootfs: &str, cmds: &[Vec<String>], path_dirs: &[String]) -> Option<String> {
+/// `root` is the table of the run, so a program in a volume is read from
+/// the volume (TODO/enter.md T-1653).
+fn static_hit<G: podvm_enter::abi::GuestRoot + ?Sized>(
+    root: &G,
+    cmds: &[Vec<String>],
+    path_dirs: &[String],
+) -> Option<String> {
     for cmd in cmds.iter().skip(1) {
         let words = program_words(cmd);
         let Some(name) = words.first() else {
@@ -229,7 +240,7 @@ fn static_hit(rootfs: &str, cmds: &[Vec<String>], path_dirs: &[String]) -> Optio
         if name.contains('$') {
             continue;
         }
-        let Ok(path) = podvm_enter::ladder::resolve_payload(rootfs, name, path_dirs) else {
+        let Ok(path) = podvm_enter::ladder::resolve_payload(root, name, path_dirs) else {
             continue;
         };
         if static_file(&path) == Some(true) {

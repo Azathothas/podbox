@@ -28,8 +28,8 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   lands in HOST. A static program or a raw `syscall` instruction sees
   the image path, and `/proc/mounts` does not list the volume. podvm
   refuses a volume on the chroot rung, the memfd family and the machine
-  tier, `:ro` until T-1655, and a working directory or a first program
-  inside a volume.
+  tier, and `:ro` until T-1655. A working directory or a first program
+  in a volume resolves through the same table, to the file of the volume.
 - Interposition covers cooperative library calls, without a security boundary.
 - The embedded interposer pair is x86_64. Other payload architectures need another execution path.
 - A foreign architecture needs the host interpreter support required by the selected path.

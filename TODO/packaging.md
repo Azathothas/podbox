@@ -438,7 +438,7 @@ the change, and `nightly.yml` parses under a real parser (7 legs, trigger
 Every per-arch binary carries the x86_64 interposer pair: the crate is
 x86_64-only by design (`crates/podvm-interpose/src/lib.rs:50-61`), and
 off-arch payloads decline naming both machines
-(`crates/podvm/src/interpose.rs:238-246`). Per-arch objects belong to
+(`crates/podvm/src/interpose.rs:248-256`). Per-arch objects belong to
 the T-0704 family, not to this entry.
 
 Prove run 2026-09-23: `git push origin v0.1.0-beta.2` ran the workflow as

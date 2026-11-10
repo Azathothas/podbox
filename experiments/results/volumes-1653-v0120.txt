@@ -1,0 +1,110 @@
+# T-1653 drive for podcrates v0.12.0: `-w` and a first program inside a
+# volume. pod-enter of v0.12.0 resolves each guest path through the table
+# of the run (`Maps`, the root pair and the volume pairs), so podvm drops
+# its refusal of both (`refuse_paths` of `lifecycle/volume.rs`). Run by
+# hand on the chroot-denying fixture of experiments/356-no-chroot-rung.sh
+# ($FX below: unshare -Urm, tmpfs over /dev/pts, deny-chroot), after a run
+# of that experiment left the fixture and the store. Images come from
+# mirror.gcr.io. The scratch store is written as $STORE, the scratch
+# directory as $WORK, the volume source as $HOST, the noexec source as
+# $NX (a noexec tmpfs that wrap-nx-drive.sh mounts in the namespace), and
+# the CA bundle of the host as $CA.
+#
+# BEFORE is the drive of experiments/results/volumes-1653.txt, clause 8:
+# at a46f595 `-w /data` and `/data/busybox` each refused at 125. AFTER is
+# this tree. The extraction lines and podvm's completion lines
+# (`podvm: complete:`) are removed from each run.
+
+== conditions
+date    2026-11-10T10:10:51Z
+kernel  Linux 6.18.44-fc-v338
+podvm   podvm 0.2.0-beta.1
+tree    a46f595 with the podcrates v0.12.0 change (uncommitted)
+fixture unshare -Urm, tmpfs over /dev/pts, experiments/deny-chroot.c (chroot(2) EPERM)
+alpine  mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+host    $HOST holds in.txt, sub/, s.sh (#!/bin/sh) and hello-static (static-pie)
+
+== 0. fixture probe: chroot denied
+        clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+
+== 1. -w in a volume: pwd prints /data, a relative write lands in HOST
+$ $FX podvm run --rm -w /data -v $HOST:/data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc pwd
+  /data
+  [exit 0]
+
+$ $FX podvm run --rm -w /data/sub -v $HOST:/data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c pwd && echo wd1653 > w.txt && cat ../in.txt
+  /data/sub
+  in-1653
+  [exit 0]
+
+$ cat $HOST/sub/w.txt
+  wd1653
+
+== 2. a first program in a volume: a dynamic program copied from the image
+$ $FX podvm run --rm -v $HOST:/data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cp /bin/busybox /sbin/apk /data/
+  [exit 0]
+
+$ $FX podvm run --rm -v $HOST:/data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc /data/busybox echo elf-from-volume
+  elf-from-volume
+  [exit 0]
+
+$ $FX podvm run --rm -v $HOST:/data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc /data/apk --version
+  apk-tools 2.14.4, compiled for x86_64.
+  [exit 0]
+
+$ $FX podvm run --rm --verbose -v $HOST:/data -w /data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc /data/s.sh a1
+  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (musl object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "/bin/sh" rides as the applet the resolved busybox file selects; a child that execs a dynamic program or a #! script enters through the image's loader inside the rootfs, with the image's libraries from PODVM_LIB_PATH; a raw call through libc's syscall() takes the same table, and a raw call with a path that the table cannot map, or io_uring_setup, answers ENOSYS, so libuv uses its thread pool (TODO/enter.md T-1317, T-1407, T-1411; TODO/interpose.md T-1646, T-1697); the payload $HOST/s.sh is a #! script (#!/bin/sh), so podvm runs its interpreter /bin/sh from the image with the script path as its argument, as the kernel would (TODO/cli.md T-1649)
+  podvm: userland: absolute guest paths anchor inside $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs through PODVM_MAPS=/:$STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs,/data:$HOST (TODO/enter.md T-1407)
+  podvm: userland: -v $HOST:/data is a path rewrite through PODVM_MAPS, not a mount: a write lands in $HOST, and a call that does not pass the interposer (a static program, a raw syscall instruction) sees the image's /data (TODO/enter.md T-1653)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  script /data/s.sh a1
+  [exit 0]
+
+== 3. a bare name on a PATH directory in the volume
+$ $FX podvm run --rm -e PATH=/data:/bin -v $HOST:/data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc s.sh a2
+  script /data/s.sh a2
+  [exit 0]
+
+== 4. the noexec source is named in the banner (one statfs)
+$ unshare -Urm sh $WORK/wrap-nx-drive.sh $WORK $NX podvm run --rm --verbose -v $NX:/nx -w /nx mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cat in.txt
+  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (musl object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/lib/ld-musl-x86_64.so.1 runs $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "cat" rides as the applet the resolved busybox file selects; a child that execs a dynamic program or a #! script enters through the image's loader inside the rootfs, with the image's libraries from PODVM_LIB_PATH; a raw call through libc's syscall() takes the same table, and a raw call with a path that the table cannot map, or io_uring_setup, answers ENOSYS, so libuv uses its thread pool (TODO/enter.md T-1317, T-1407, T-1411; TODO/interpose.md T-1646, T-1697)
+  podvm: userland: absolute guest paths anchor inside $STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs through PODVM_MAPS=/:$STORE/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/rootfs,/nx:$NX (TODO/enter.md T-1407)
+  podvm: userland: -v $NX:/nx is a path rewrite through PODVM_MAPS, not a mount: a write lands in $NX, and a call that does not pass the interposer (a static program, a raw syscall instruction) sees the image's /nx (TODO/enter.md T-1653)
+  podvm: userland: the volume source $NX is on a noexec mount, so a program in /nx cannot exec from it (TODO/enter.md T-1653)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  nx-data
+  [exit 0]
+
+== 5. the refusals that stay
+$ $FX podvm run --rm -w /data/missing -v $HOST:/data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc pwd
+  podvm run: the working directory "/data/missing" for image "mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc" is not a directory in the image: docker creates it, and the entry refuses it instead
+  [exit 125]
+
+$ $FX podvm run --rm -v $HOST:/data:ro mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc cat /data/in.txt
+  podvm run: -v "$HOST:/data:ro": `:ro` is refused: podvm cannot enforce a read-only volume yet, and a volume that reads as read-only and takes writes would be a lie. The read-only layer of TODO/enter.md T-1655 serves it with EROFS; until then, drop `:ro` (TODO/enter.md T-1653)
+  [exit 125]
+
+$ $FX podvm run --rm -v $HOST:/data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc /data/hello-static
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload is statically linked, so it makes raw syscalls past the interposer and podvm rewrites no path: its absolute paths would resolve on the host, and a write would land on the host tree. podvm refuses before the exec. Use a host where chroot(2) is permitted, or `--unsafe-host-paths` to accept this host pass-through on the memfd family. The planned rungs for static payloads are the emulate tier (TODO/enter.md T-1651) and the native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+  [exit 125]
+
+$ $FX podvm run --rm --unsafe-host-paths -v $HOST:/data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc /data/hello-static
+  podvm run: -v $HOST:/data: the memfd family runs a static payload with no interposer, so no path rewrite reaches it, until TODO/enter.md T-1652 maps a volume to a host directory descriptor (TODO/enter.md T-1653)
+  [exit 125]
+

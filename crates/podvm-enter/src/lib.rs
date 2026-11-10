@@ -163,38 +163,26 @@ pub mod userland {
         pod_enter::userland::host_env(&super::NAMES, rootfs, guest_preload, env, lib_dirs)
     }
 
-    /// One `-v HOST:GUEST` pair of the table, TODO/enter.md T-1653: the
-    /// guest path and the host path that serves it. The CLI gives the host
-    /// side as a canonical path, so the reverse map of the interposer
-    /// finds it in a working directory that the kernel reports.
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct Volume {
-        pub guest: String,
-        pub host: String,
-    }
-
     /// The most volumes one table holds: the bound of the interposer
-    /// (`podvm-interpose`'s `map::MAX_PAIRS`, 32) less the root pair. The
-    /// interposer ignores a pair past its bound, so the builder refuses a
-    /// table that would hold one.
-    pub const MAX_VOLUMES: usize = 31;
+    /// (`MAX_MAP_PAIRS`, the `map::MAX_PAIRS` of `podvm-interpose`) less
+    /// the root pair, TODO/enter.md T-1653.
+    pub const MAX_VOLUMES: usize = MAX_MAP_PAIRS - 1;
 
     /// The guest prefixes that the interposer never rewrites
-    /// (`podvm-interpose`'s `map::longest`): a pair there is dead, so the
-    /// builder refuses it by name.
-    const NEVER_MAPPED: [&str; 2] = ["/proc", "/.podvm"];
+    /// (`podvm-interpose`'s `map::longest`): a pair there is dead, so
+    /// [`volume_maps`] refuses it by name.
+    pub const NEVER_MAPPED: [&str; 2] = ["/proc", "/.podvm"];
 
-    /// The `PODVM_MAPS` table for a userland run: the root pair where
-    /// `rootfs` is given (none under `--unsafe-host-paths`), then one pair
+    /// The table of a userland run: the root pair of `rootfs` and one pair
     /// for each volume, TODO/enter.md T-1407 and T-1653.
     ///
-    /// Each side takes the T-1407 spelling checks of `pod-enter`'s builder,
-    /// so one rule set decides what a table can spell. The guest side must
-    /// also be a normal absolute path that is not `/`, not under a prefix
-    /// that the interposer never rewrites, and not a second pair for one
-    /// guest path: the interposer matches the normal form of a path, and a
-    /// pair that never matches is a volume that silently does nothing.
-    pub fn userland_maps_table(rootfs: Option<&str>, volumes: &[Volume]) -> Result<String, String> {
+    /// `pod-enter`'s [`Maps::new`] checks the shape of each side. podvm
+    /// adds its bound of [`MAX_VOLUMES`] and refuses a guest side under a
+    /// prefix of [`NEVER_MAPPED`]: a pair that never matches is a volume
+    /// that silently does nothing. The spelling of each side in the
+    /// variable is checked when the table is spelled
+    /// ([`userland_maps_table`], [`userland_volume_table`]).
+    pub fn volume_maps(rootfs: &str, volumes: &[Volume]) -> Result<Maps, String> {
         if volumes.len() > MAX_VOLUMES {
             return Err(format!(
                 "{} volumes, over the {MAX_VOLUMES} that one {MAPS_VAR} table holds beside \
@@ -202,75 +190,22 @@ pub mod userland {
                 volumes.len()
             ));
         }
-        let mut pairs = Vec::with_capacity(volumes.len() + 1);
-        if let Some(r) = rootfs {
-            pairs.push(pod_enter::userland::userland_maps_table(&super::NAMES, r)?);
-        }
-        for (i, v) in volumes.iter().enumerate() {
-            let at = format!("the volume {}:{}", v.host, v.guest);
-            if !v.guest.starts_with('/') {
-                return Err(format!("{at}: the guest side must be an absolute path"));
-            }
-            if v.guest.trim_end_matches('/').is_empty() {
-                return Err(format!("{at}: a volume cannot replace the guest root `/`"));
-            }
-            let guest = side(&at, "guest", &v.guest)?;
-            if !normal(&guest) {
+        let maps = Maps::new(rootfs, volumes)?;
+        for v in maps.volumes() {
+            if let Some(p) = NEVER_MAPPED.iter().find(|p| under(&v.guest, p)) {
                 return Err(format!(
-                    "{at}: the guest side must be a normal path, with no `.`, `..` or \
-                     empty component, because the interposer matches the normal form"
+                    "the volume {}:{}: the interposer never rewrites a path under {p}, so \
+                     this volume would serve nothing",
+                    v.host, v.guest
                 ));
             }
-            if let Some(p) = NEVER_MAPPED.iter().find(|p| under(&guest, p)) {
-                return Err(format!(
-                    "{at}: the interposer never rewrites a path under {p}, so this \
-                     volume would serve nothing"
-                ));
-            }
-            if volumes[..i]
-                .iter()
-                .any(|w| w.guest.trim_end_matches('/') == guest)
-            {
-                return Err(format!("{at}: a second volume at the guest path {guest}"));
-            }
-            let host = if v.host == "/" {
-                "/".to_string()
-            } else {
-                side(&at, "host", &v.host)?
-            };
-            pairs.push(format!("{guest}:{host}"));
         }
-        Ok(pairs.join(","))
-    }
-
-    /// One side of a volume pair through the T-1407 checks of `pod-enter`,
-    /// which spell it as the root pair `/:SIDE`.
-    fn side(at: &str, what: &str, path: &str) -> Result<String, String> {
-        let pair = pod_enter::userland::userland_maps_table(&super::NAMES, path)
-            .map_err(|why| format!("{at}: the {what} side cannot go in the table: {why}"))?;
-        Ok(pair.trim_start_matches("/:").to_string())
-    }
-
-    /// True for an absolute path with no `.`, `..` or empty component.
-    fn normal(p: &str) -> bool {
-        p.starts_with('/')
-            && p[1..]
-                .split('/')
-                .all(|c| !c.is_empty() && c != "." && c != "..")
+        Ok(maps)
     }
 
     /// True where `p` is `prefix` or a path under it.
     fn under(p: &str, prefix: &str) -> bool {
         p == prefix || p.strip_prefix(prefix).is_some_and(|r| r.starts_with('/'))
-    }
-
-    /// The volume whose guest side holds the guest path `p`, matched at a
-    /// component boundary as the interposer matches it: the longest one.
-    pub fn volume_at<'a>(volumes: &'a [Volume], p: &str) -> Option<&'a Volume> {
-        volumes
-            .iter()
-            .filter(|v| under(p, v.guest.trim_end_matches('/')))
-            .max_by_key(|v| v.guest.trim_end_matches('/').len())
     }
 
     /// The volume pairs of the table that `env` carries: each pair but the
@@ -351,13 +286,19 @@ mod tests {
         }
     }
 
+    /// The table of `maps` as `PODVM_MAPS` spells it.
+    fn table(maps: &userland::Maps) -> String {
+        userland::userland_maps_table(&NAMES, maps).unwrap()
+    }
+
     /// TODO/enter.md T-1653. A volume is one `GUEST:HOST` pair after the
     /// root pair, and `volumes_of` reads the same pairs back from the
     /// environment that carries the table, without the root pair.
     #[test]
     fn a_volume_is_a_pair_beside_the_root_pair() {
         let vs = [vol("/host/dir", "/data/"), vol("/", "/hostroot")];
-        let t = userland::userland_maps_table(Some("/store/rootfs/"), &vs).unwrap();
+        let maps = userland::volume_maps("/store/rootfs/", &vs).unwrap();
+        let t = table(&maps);
         assert_eq!(t, "/:/store/rootfs,/data:/host/dir,/hostroot:/");
         let env = [format!("PODVM_MAPS={t}"), "PATH=/bin".to_string()];
         assert_eq!(
@@ -365,7 +306,8 @@ mod tests {
             vec![vol("/host/dir", "/data"), vol("/", "/hostroot")]
         );
         // --unsafe-host-paths: no root pair, the volumes stay.
-        let t = userland::userland_maps_table(None, &vs[..1]).unwrap();
+        let maps = userland::volume_maps("/store/rootfs", &vs[..1]).unwrap();
+        let t = userland::userland_volume_table(&NAMES, &maps).unwrap();
         assert_eq!(t, "/data:/host/dir");
         assert!(userland::volumes_of(&["PATH=/bin".to_string()]).is_empty());
     }
@@ -375,11 +317,13 @@ mod tests {
     #[test]
     fn a_volume_the_table_cannot_spell_is_refused() {
         let refused = |host: &str, guest: &str, want: &str| {
-            let e = userland::userland_maps_table(Some("/r"), &[vol(host, guest)]).unwrap_err();
+            let e = userland::volume_maps("/r", &[vol(host, guest)])
+                .and_then(|m| userland::userland_maps_table(&NAMES, &m))
+                .unwrap_err();
             assert!(e.contains(want), "{host}:{guest}: {e}");
         };
-        refused("/a,b", "/data", "the host side cannot go in the table");
-        refused("/a", "/d,e", "the guest side cannot go in the table");
+        refused("/a,b", "/data", "the host side");
+        refused("/a", "/d,e", "the guest side");
         refused("/a", "data", "must be an absolute path");
         refused("/a", "/", "cannot replace the guest root");
         refused("/a", "/x/../etc", "normal path");
@@ -387,14 +331,46 @@ mod tests {
         refused("/a", "/proc/self", "never rewrites a path under /proc");
         refused("/a", "/.podvm", "never rewrites a path under /.podvm");
         let two = [vol("/a", "/data"), vol("/b", "/data/")];
-        let e = userland::userland_maps_table(Some("/r"), &two).unwrap_err();
+        let e = userland::volume_maps("/r", &two).unwrap_err();
         assert!(e.contains("a second volume at the guest path /data"), "{e}");
         let many: Vec<_> = (0..=userland::MAX_VOLUMES)
             .map(|i| vol("/a", &format!("/v{i}")))
             .collect();
-        let e = userland::userland_maps_table(Some("/r"), &many).unwrap_err();
+        let e = userland::volume_maps("/r", &many).unwrap_err();
         assert!(e.contains("over the 31"), "{e}");
-        assert!(userland::userland_maps_table(Some("/r"), &many[1..]).is_ok());
+        let maps = userland::volume_maps("/r", &many[1..]).unwrap();
+        assert!(userland::userland_maps_table(&NAMES, &maps).is_ok());
+    }
+
+    /// TODO/enter.md T-1653. A working directory and a first program in a
+    /// volume resolve to the files of the volume, not to the files of the
+    /// image at the same guest path.
+    #[test]
+    fn a_guest_path_in_a_volume_resolves_in_the_volume() {
+        use std::os::unix::fs::PermissionsExt;
+        let d = std::env::temp_dir().join(format!("podvm-enter-vol-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let (root, host) = (d.join("rootfs"), d.join("host"));
+        std::fs::create_dir_all(root.join("data")).unwrap();
+        std::fs::create_dir_all(host.join("sub")).unwrap();
+        let prog = host.join("prog");
+        std::fs::write(&prog, b"\x7fELF").unwrap();
+        std::fs::set_permissions(&prog, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let (r, h) = (root.to_str().unwrap(), host.to_str().unwrap());
+        let maps = userland::volume_maps(r, &[vol(h, "/data")]).unwrap();
+        // The image has no /data/sub; the volume has it.
+        assert!(check_workdir(r, "/data/sub", "img").is_err());
+        check_workdir(&maps, "/data/sub", "img").unwrap();
+        check_workdir(&maps, "/data", "img").unwrap();
+        let path = ["/bin".to_string()];
+        assert!(ladder::resolve_payload(r, "/data/prog", &path).is_err());
+        let got = ladder::resolve_payload(&maps, "/data/prog", &path).unwrap();
+        assert_eq!(std::path::Path::new(&got), prog.as_path());
+        assert_eq!(
+            ladder::guest_exe(&maps, "/data/prog", &path).as_deref(),
+            Some("/data/prog")
+        );
+        let _ = std::fs::remove_dir_all(&d);
     }
 
     /// A runtime error exits 125; a payload that did not start 126 or 127.
