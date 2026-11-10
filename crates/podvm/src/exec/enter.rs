@@ -80,16 +80,6 @@ pub(super) fn enter(
         }
     };
     podvm_enter::device::push_spec(&mut env, &exec_devices);
-    // ⭐ T-0702 and T-0706, as in `run`: a fresh chroot re-entry is a fresh
-    // payload, so it is classified and placed again rather than inheriting
-    // the first entry's answer.
-    let mut interpose_note = String::new();
-    if let Err(e) =
-        crate::interpose::apply("exec", rootfs, &o.command, &mut env, &mut interpose_note)
-    {
-        eprintln!("{e}");
-        return podvm_image::error::EXIT_RUNTIME_ERROR;
-    }
     let findings = podvm_probe::run();
     // ⭐ TODO/enter.md T-1410. The image record behind the container, read
     // for the architecture the entry decision needs: a refusal here names
@@ -125,10 +115,22 @@ pub(super) fn enter(
         support_native,
         &findings,
         o.unsafe_host_paths,
+        None,
     ) {
         Ok(u) => u,
         Err(code) => return code,
     };
+    // ⭐ T-0702 and T-0706, as in `run`: a fresh chroot re-entry is a fresh
+    // payload, so it is classified and placed again rather than inheriting
+    // the first entry's answer. After the decision, so a refusal writes
+    // nothing; T-1649: a `#!` payload on the userland rung classifies its
+    // interpreter.
+    let gargv = userland.as_ref().map_or(&o.command, |u| &u.guest_argv);
+    let mut interpose_note = String::new();
+    if let Err(e) = crate::interpose::apply("exec", rootfs, gargv, &mut env, &mut interpose_note) {
+        eprintln!("{e}");
+        return podvm_image::error::EXIT_RUNTIME_ERROR;
+    }
     // ⭐ The loader transform, mirroring `run`'s `prepare`: without a
     // chroot the loader resolves guest paths on the host root, so the
     // preload becomes the host path and the libraries come from the
@@ -152,7 +154,7 @@ pub(super) fn enter(
     crate::run::push_guest_exe(
         &mut env,
         rootfs,
-        o.command.first().map(String::as_str).unwrap_or(""),
+        gargv.first().map(String::as_str).unwrap_or(""),
         &path_dirs,
     );
     // ⭐ TODO/enter.md T-1407 and T-1409, as in `run`'s `prepare`: the
@@ -249,6 +251,7 @@ pub(super) fn enter(
             chroot_usable: podvm_probe::probes::chroot_usable(&findings),
             unsafe_host_paths: strict_unsafe,
             preload_dropped: dropped_preload.is_some(),
+            gaps: crate::lifecycle::gaps_of(userland.as_ref()),
         },
     ) {
         return code;

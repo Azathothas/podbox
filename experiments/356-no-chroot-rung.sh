@@ -53,8 +53,12 @@
 #      caller table is scrubbed; --unsafe-host-paths opts out; an
 #      absolute-path read sees the image; a /tmp write stays off host.
 #   12. exe-force (T-1409): the loader banner names PODVM_GUEST_EXE.
-#   13. script (T-1413): an imported script refuses at 126 naming the
-#      resolved path and its #! line.
+#   13. script (T-1413, T-1649): an imported script with no /bin/sh in
+#      its image refuses at 126 naming the resolved path and its #!
+#      line; the same #!/bin/sh script beside the alpine rootfs runs at 0
+#      through the interpreter of the image; the node image with a caller
+#      command and no --entrypoint runs through its #! entrypoint, or
+#      refuses naming `--entrypoint node`.
 #   14. quiet (T-1416): default runs silent; --verbose prints; -q
 #      silences; refusals still print.
 #   15. exec (T-1410): image and container exec drive at 0, the
@@ -83,6 +87,11 @@
 #      runs (direct and through `/usr/bin/env`), a grandchild reads its
 #      own guest path from /proc/self/exe, and node:22-alpine runs
 #      `node -e "execSync('ls /')"` (A-V-04 of PodUtils/podcrates#39).
+#   24. strict capability (T-1650): `--strict` of `sh -c '/bin/ls /'`
+#      runs at 0 with the listing and warns [capability] naming T-1646;
+#      `--strict` of `/bin/echo hi` runs at 0; `--strict` of a shell
+#      that runs a static program of the image refuses at 125 naming
+#      T-1652, and of `npm --version` at 125 naming T-1697.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -225,7 +234,7 @@ HELLO='static-hello:1'
 # it, imported the same way. The lane never runs it unfiltered, only
 # the fixture refuses it at 126.
 mkdir -p "$WORK/script-root" || exit 2
-printf '#!/bin/sh\necho script-hi\n' >"$WORK/script-root/hello.sh"
+printf '#!/bin/sh\necho script-hi "$0" "$1"\n' >"$WORK/script-root/hello.sh"
 chmod +x "$WORK/script-root/hello.sh"
 (cd "$WORK/script-root" && tar -cf "$WORK/script-img.tar" hello.sh) 2>>"$REPORT" \
 	|| { echo "script tar        FAILED" | tee -a "$REPORT"; exit 2; }
@@ -233,6 +242,20 @@ if timeout 120 "$PB" import "$WORK/script-img.tar" script-img:1 >>"$REPORT" 2>&1
 	echo "script import     ok" >>"$REPORT"
 else
 	echo "script import     FAILED" | tee -a "$REPORT"
+	exit 1
+fi
+# T-1649 and T-1650: the same script and the static hello beside the
+# alpine rootfs, so /bin/sh of the image runs the script, and a shell
+# of the image can start a static program.
+timeout 600 "$PB" extract "$ALPINE" >>"$REPORT" 2>&1 || { echo "alpine extract FAILED" | tee -a "$REPORT"; exit 1; }
+AROOT=$("$PB" inspect --format '{{.RootfsPath}}' "$ALPINE" 2>/dev/null) || AROOT=""
+[ -d "$AROOT" ] || { echo "alpine rootfs missing: FAILED" | tee -a "$REPORT"; exit 1; }
+tar -cf "$WORK/script-alpine.tar" -C "$AROOT" . -C "$WORK/script-root" hello.sh -C "$WORK/static-root" hello 2>>"$REPORT" \
+	|| { echo "script-alpine tar FAILED" | tee -a "$REPORT"; exit 2; }
+if timeout 120 "$PB" import "$WORK/script-alpine.tar" script-alpine:1 >>"$REPORT" 2>&1; then
+	echo "script-alpine     ok" >>"$REPORT"
+else
+	echo "script-alpine     FAILED" | tee -a "$REPORT"
 	exit 1
 fi
 
@@ -287,7 +310,8 @@ grep -q "chroot(2) is denied" "$WORK/out-fx-tty.txt" || { echo "-t refusal maske
 step fx-debian 0 $FX "$PB" run --rm --verbose "$DEBIAN" sh -c 'echo $PODVM_ACTIVE_MODE'
 grep -q "^userland$" "$WORK/out-fx-debian.txt" || { echo "loader run did not report userland" >>"$REPORT"; fail=1; }
 grep -q "loader family" "$WORK/out-fx-debian.txt" || { echo "loader banner missing the family" >>"$REPORT"; fail=1; }
-grep -q "grandchild" "$WORK/out-fx-debian.txt" || { echo "loader banner missing the grandchild limit" >>"$REPORT"; fail=1; }
+# T-1646 reworded the banner: a child enters through the image's loader.
+grep -q "a child that execs" "$WORK/out-fx-debian.txt" || { echo "loader banner missing the child route" >>"$REPORT"; fail=1; }
 
 # Clause 4b (T-1317 loader, musl): alpine runs without chroot at 0
 # through the invoked name. Busybox dispatches on argv[0]'s basename,
@@ -431,11 +455,25 @@ step fx-exeforce 0 $FX "$PB" run --rm --verbose -e PODVM_GUEST_EXE=/bin/echo "$D
 grep -q "PODVM_GUEST_EXE" "$WORK/out-fx-exeforce.txt" || { echo "exe-force banner missing" >>"$REPORT"; fail=1; }
 grep -q "exeforce-hi" "$WORK/out-fx-exeforce.txt" || { echo "exe-force payload stdout missing" >>"$REPORT"; fail=1; }
 
-# Clause 13 (T-1413 script): an imported script refuses at 126 naming
-# the resolved path and its `#!` line.
+# Clause 13 (T-1413, T-1649 script): a top-level `#!` payload runs its
+# interpreter from the image, with the script path as its argument. An
+# image with no /bin/sh refuses at 126 naming the resolved path and its
+# `#!` line; podvm never takes the interpreter from the host.
 step fx-script "$NOINVOKE" $FX "$PB" run --rm script-img:1 /hello.sh
 grep -q "/hello.sh" "$WORK/out-fx-script.txt" || { echo "script refusal did not name the path" >>"$REPORT"; fail=1; }
 grep -q "#!/bin/sh" "$WORK/out-fx-script.txt" || { echo "script refusal did not name the shebang" >>"$REPORT"; fail=1; }
+step fx-script-run 0 $FX "$PB" run --rm script-alpine:1 /hello.sh arg1
+grep -qx "script-hi /hello.sh arg1" "$WORK/out-fx-script-run.txt" || { echo "a #!/bin/sh script of the image did not run" >>"$REPORT"; fail=1; }
+# The node image with a caller command and no --entrypoint (issue 92):
+# the #! entrypoint runs, or the refusal names `--entrypoint node`.
+timeout 120 $FX "$PB" run --rm "$NODE" node -e 'console.log("entry-ok")' >"$WORK/out-fx-node-entry.txt" 2>&1
+rc=$?
+{ echo ""; echo "== fx-node-entry"; echo "exit              $rc"; sed 's/^/  /' "$WORK/out-fx-node-entry.txt"; } >>"$REPORT"
+if [ "$rc" -eq 0 ]; then
+	grep -qx "entry-ok" "$WORK/out-fx-node-entry.txt" || { echo "the node entrypoint run did not reach the payload" >>"$REPORT"; fail=1; }
+else
+	grep -q -- "--entrypoint node" "$WORK/out-fx-node-entry.txt" || { echo "the entrypoint refusal did not name --entrypoint node" >>"$REPORT"; fail=1; }
+fi
 
 # Clause 14 (T-1416 quiet): the banner never prints at default and stays
 # off under `-q`; a refusal still prints. Split streams per case: stdout
@@ -597,12 +635,28 @@ step fx-gc-envscript 0 $FX "$PB" run --rm "$DEBIAN" sh -c 'printf "#!/usr/bin/en
 grep -qx "env-script-ok arg1" "$WORK/out-fx-gc-envscript.txt" || { echo "a #!/usr/bin/env script did not run" >>"$REPORT"; fail=1; }
 step fx-gc-exe 0 $FX "$PB" run --rm "$DEBIAN" sh -c 'readlink /proc/self/exe'
 grep -qx "/usr/bin/readlink" "$WORK/out-fx-gc-exe.txt" || { echo "a grandchild did not read its own guest exe" >>"$REPORT"; fail=1; }
-# A-V-04: node starts a shell, and the shell starts ls. `--entrypoint`,
-# because the image's entrypoint is a #! script (T-1413, T-1649).
+# A-V-04: node starts a shell, and the shell starts ls. `--entrypoint`
+# keeps this clause on node alone; clause 13 drives the #! entrypoint
+# of the image (T-1649).
 step fx-node-version 0 $FX "$PB" run --rm --entrypoint node "$NODE" --version
 grep -q "^v22\." "$WORK/out-fx-node-version.txt" || { echo "node --version did not print" >>"$REPORT"; fail=1; }
 step fx-node-execsync 0 $FX "$PB" run --rm --entrypoint node "$NODE" -e "process.stdout.write(require('child_process').execSync('ls /').toString())"
 grep -qx "etc" "$WORK/out-fx-node-execsync.txt" || { echo "node execSync('ls /') did not list /" >>"$REPORT"; fail=1; }
+
+# Clause 24 (T-1650 strict capability): `--strict` names each gap of
+# the loader family. It refuses a gap that the command hits and warns
+# on a gap that podvm cannot tell; `--strict=all` (clause 6) refuses
+# each. T-1646 routes the shell grandchild, so issue 93's command runs.
+step fx-strict-ls 0 $FX "$PB" run --rm --strict "$ALPINE" /bin/sh -c '/bin/ls /'
+grep -qx "etc" "$WORK/out-fx-strict-ls.txt" || { echo "--strict sh -c '/bin/ls /' did not list /" >>"$REPORT"; fail=1; }
+grep -q "strict warning \[capability\].*T-1646" "$WORK/out-fx-strict-ls.txt" || { echo "--strict did not warn on the T-1646 gap" >>"$REPORT"; fail=1; }
+step fx-strict-echo 0 $FX "$PB" run --rm --strict "$ALPINE" /bin/echo hi
+grep -qx "hi" "$WORK/out-fx-strict-echo.txt" || { echo "--strict /bin/echo hi did not print" >>"$REPORT"; fail=1; }
+step fx-strict-static "$RUN_ERR" $FX "$PB" run --rm --strict script-alpine:1 /bin/sh -c '/hello'
+grep -q "\[capability\].*T-1652.*This command hits it" "$WORK/out-fx-strict-static.txt" || { echo "--strict did not refuse the static child naming T-1652" >>"$REPORT"; fail=1; }
+grep -q "static-hi" "$WORK/out-fx-strict-static.txt" && { echo "--strict ran the static child" >>"$REPORT"; fail=1; }
+step fx-strict-npm "$RUN_ERR" $FX "$PB" run --rm --strict "$NODE" npm --version
+grep -q "\[capability\].*T-1697.*This command hits it" "$WORK/out-fx-strict-npm.txt" || { echo "--strict did not refuse npm naming T-1697" >>"$REPORT"; fail=1; }
 
 {
 echo ""

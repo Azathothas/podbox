@@ -141,14 +141,6 @@ pub fn exec(args: &[String]) -> i32 {
     }
     env.retain(|e| e.split('=').next().unwrap_or("") != podvm_supervise::table::MEMO_FD_VAR);
     env.push(podvm_supervise::table::memo_fd_env());
-    // ⭐ T-0702 and T-0706, as on the container path above: the image path is
-    // a second way to reach the same entry, not a second answer to it.
-    let mut interpose_note = String::new();
-    if let Err(e) = crate::interpose::apply("exec", &rootfs, &argv, &mut env, &mut interpose_note) {
-        eprintln!("{e}");
-        let _ = std::fs::remove_file(&memo_host_path);
-        return podvm_image::error::EXIT_RUNTIME_ERROR;
-    }
     let findings = podvm_probe::run();
     // ⭐ TODO/enter.md T-1410. The image path shares the entry decision
     // with `run` and with the container path above: where chroot is
@@ -167,10 +159,22 @@ pub fn exec(args: &[String]) -> i32 {
         support_native,
         &findings,
         o.unsafe_host_paths,
+        None,
     ) {
         Ok(u) => u,
         Err(code) => return code,
     };
+    // ⭐ T-0702 and T-0706, as on the container path above: the image path is
+    // a second way to reach the same entry, not a second answer to it. Placed
+    // after the decision, so a refusal writes nothing into the image; T-1649:
+    // a `#!` payload on the userland rung classifies its interpreter.
+    let gargv = userland.as_ref().map_or(&argv, |u| &u.guest_argv);
+    let mut interpose_note = String::new();
+    if let Err(e) = crate::interpose::apply("exec", &rootfs, gargv, &mut env, &mut interpose_note) {
+        eprintln!("{e}");
+        let _ = std::fs::remove_file(&memo_host_path);
+        return podvm_image::error::EXIT_RUNTIME_ERROR;
+    }
     // ⭐ The loader transform and the maps/exe-force, as on the container
     // path above and in `run`'s `prepare`.
     let mut dropped_preload: Option<String> = None;
@@ -192,7 +196,7 @@ pub fn exec(args: &[String]) -> i32 {
     crate::run::push_guest_exe(
         &mut env,
         &rootfs,
-        argv.first().map(String::as_str).unwrap_or(""),
+        gargv.first().map(String::as_str).unwrap_or(""),
         &path_dirs,
     );
     // ⭐ TODO/enter.md T-1407 and T-1409, as above: the table and the
@@ -290,6 +294,7 @@ pub fn exec(args: &[String]) -> i32 {
             chroot_usable: podvm_probe::probes::chroot_usable(&findings),
             unsafe_host_paths: strict_unsafe,
             preload_dropped: dropped_preload.is_some(),
+            gaps: crate::lifecycle::gaps_of(userland.as_ref()),
         },
     ) {
         return code;

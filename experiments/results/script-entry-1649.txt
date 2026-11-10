@@ -1,0 +1,105 @@
+# T-1649 drive: a top-level #! payload runs its interpreter from the image.
+# Run by hand on the chroot-denying fixture: unshare -Urm, a tmpfs over
+# /dev/pts, and experiments/deny-chroot.c (chroot(2) answers EPERM), as
+# experiments/356-no-chroot-rung.sh builds it ($FX below). Images come from
+# mirror.gcr.io: Docker Hub and public.ecr.aws answer HTTP 429 on this
+# host. The scratch store is written as $STORE, and $STORE2 is a copy of
+# it whose node rootfs has no /bin/sh (step 8 and 9 only).
+#
+# script-img:1 is clause 13's import: /hello.sh, `#!/bin/sh`, and nothing
+# else. script-alpine:1 is the same script beside the alpine 3.20 rootfs.
+# BEFORE is issue 92 (release 0.1.0-beta.12): the node run exited 126,
+# and the refusal named no remedy. AFTER is this tree. podvm's extraction
+# and ownership lines are removed.
+
+== conditions
+date    2026-11-09T23:53:29Z
+kernel  Linux 6.18.44-fc-v338
+podvm   podvm 0.1.0-beta.13 at e8e5beb plus the T-1649 and T-1650 tree
+fixture unshare -Urm, tmpfs over /dev/pts, experiments/deny-chroot.c (chroot(2) EPERM)
+node    sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202
+
+== fixture probe: chroot denied
+chroot(/tmp)                       FAIL errno=1 EPERM
+== 1. node image, caller command, no --entrypoint (issue 92): the #! entrypoint runs
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/node:22-alpine node -e console.log(1)
+  1
+  [exit 0]
+
+== 2. the same under --verbose: the banner names the #! route
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/node:22-alpine node -e console.log(1+1)
+  podvm 0.1.0-beta.13: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm: interpose: /.podvm/interpose.so (musl object) is preloaded for this payload. refused: podvm WROTE that file into the image's own rootfs and the payload can see it
+  podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  entering without chroot on the loader family: $STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs/lib/ld-musl-x86_64.so.1 runs $STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs/bin/busybox with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; the invoked name "/bin/sh" rides as the applet the resolved busybox file selects; a child that execs a dynamic program or a #! script enters through the image's loader inside the rootfs, with the image's libraries from PODVM_LIB_PATH (TODO/enter.md T-1317, T-1407, T-1411; TODO/interpose.md T-1646); the payload $STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs/usr/local/bin/docker-entrypoint.sh is a #! script (#!/bin/sh), so podvm runs its interpreter /bin/sh from the image with the script path as its argument, as the kernel would (TODO/cli.md T-1649)
+  podvm: userland: absolute guest paths anchor inside $STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs through PODVM_MAPS=/:$STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs (TODO/enter.md T-1407)
+  podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd: the T-0413 emulation resolves this spelling through it
+  podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): this machine's /etc/resolv.conf, 67 bytes
+  podvm: complete: rewrote etc/hosts (hosts, T-0403): localhost
+  podvm: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to ../proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm: complete: 13 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  2
+  [exit 0]
+
+== 3. the entrypoint script passes a non-command through node (its own rule)
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/node:22-alpine -e console.log(3)
+  3
+  [exit 0]
+
+== 4. --entrypoint node still works
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --entrypoint node mirror.gcr.io/library/node:22-alpine -e console.log(4)
+  4
+  [exit 0]
+
+== 5. a top-level #!/bin/sh script whose interpreter is in the image runs at 0
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm script-alpine:1 /hello.sh arg1
+  script-hi /hello.sh arg1
+  [exit 0]
+
+== 6. a script whose interpreter is not in the image refuses at 126
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm script-img:1 /hello.sh
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload $STORE/rootfs/sha256_52107eb550fb56bf2c8debe8efd19b8e28adf0477d4a2df30c2facd8cf99ddd0/rootfs/hello.sh is a #! script (#!/bin/sh), and its interpreter does not resolve inside the image: /bin/sh names no file in the image. podvm runs the interpreter of a script from the image only, never from the host (TODO/enter.md T-1413; TODO/cli.md T-1649). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+  [exit 126]
+
+== 7. image exec of the script, the second verb on the same decision
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm extract script-alpine:1
+  podvm: 1 layers, 519 entries, 0 removed by whiteouts, 7.7 MiB uncompressed
+  podvm: 1 entries were not materialised (ArchiveRoot). podvm cannot mknod on this class of runtime, which is the premise of the whole tool rather than a defect here
+  $STORE/rootfs/sha256_af14f459ef1fcc52ac39b5e19193b1ee5e08e22a4af5f55074ed404bd4802dee/rootfs
+  [exit 0]
+
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm exec script-alpine:1 /hello.sh exec-arg
+  script-hi /hello.sh exec-arg
+  [exit 0]
+
+== 8. a store copy whose node rootfs has no /bin/sh: the Entrypoint
+==    script refuses and names --entrypoint with the caller's first word
+$ env PODVM_STORE=$STORE2 $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run mirror.gcr.io/library/node:22-alpine node -e console.log(8)
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload $STORE2/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs/usr/local/bin/docker-entrypoint.sh is a #! script (#!/bin/sh), and its interpreter does not resolve inside the image: /bin/sh names no file in the image. podvm runs the interpreter of a script from the image only, never from the host (TODO/enter.md T-1413; TODO/cli.md T-1649). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317). This script is the Entrypoint of the image, and by docker's rule your command became its arguments. To run your command without the script, retry with `--entrypoint node` and put the remainder of your command after the image (TODO/cli.md T-1649)
+  [exit 126]
+
+== 9. the same without a caller command: no remedy line
+$ env PODVM_STORE=$STORE2 $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run mirror.gcr.io/library/node:22-alpine
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload $STORE2/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs/usr/local/bin/docker-entrypoint.sh is a #! script (#!/bin/sh), and its interpreter does not resolve inside the image: /bin/sh names no file in the image. podvm runs the interpreter of a script from the image only, never from the host (TODO/enter.md T-1413; TODO/cli.md T-1649). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+  [exit 126]
+
+== 10. capable host control (no fixture): the chroot rung is unchanged
+$ $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/node:22-alpine node -e console.log(10)
+  10
+  [exit 0]
+

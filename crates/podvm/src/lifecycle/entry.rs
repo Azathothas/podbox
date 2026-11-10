@@ -251,6 +251,20 @@ pub struct Userland {
     pub lib_dirs: Vec<String>,
     /// The rung account lines for the banner.
     pub banner: String,
+    /// TODO/cli.md T-1649. The guest argv that runs: the caller's, or for
+    /// a `#!` payload the argv of the kernel (interpreter, its argument,
+    /// the script path, then the arguments). The interposer classifies,
+    /// and `/proc/self/exe` names, its first word.
+    pub guest_argv: Vec<String>,
+    /// TODO/cli.md T-1650. The capability gaps of the family for this
+    /// payload, which `--strict` reads.
+    pub gaps: Vec<crate::complete::Gap>,
+}
+
+/// TODO/cli.md T-1650. The capability gaps that `--strict` reads: those of
+/// the decided family, none on the chroot rung.
+pub fn gaps_of(userland: Option<&Userland>) -> Vec<crate::complete::Gap> {
+    userland.map(|u| u.gaps.clone()).unwrap_or_default()
 }
 
 /// TODO/enter.md T-1317. The exact rung, post-extract and pre-fixup: the
@@ -273,6 +287,13 @@ pub struct Userland {
 /// under `unsafe_host_paths`, the decided `--unsafe-host-paths` opt-in:
 /// its absolute paths resolve on the host, so without the opt-in it
 /// refuses at 125 before the exec ([`STATIC_HOST_PATHS`]).
+///
+/// ⭐ TODO/cli.md T-1649. A `#!` payload runs its interpreter, resolved
+/// inside the rootfs, with the script path as its argument
+/// ([`script::follow`]). `retry` is the first word of the caller where
+/// `argv[0]` is the Entrypoint of the image and the caller gave a
+/// command: a refusal after a followed script then names
+/// `--entrypoint` with that word.
 #[allow(clippy::too_many_arguments)]
 pub fn decide_entry(
     verb: &str,
@@ -282,71 +303,42 @@ pub fn decide_entry(
     support_native: bool,
     findings: &podvm_probe::Findings,
     unsafe_host_paths: bool,
+    retry: Option<&str>,
 ) -> Result<Option<Userland>, i32> {
     if podvm_probe::probes::chroot_usable(findings) {
         return Ok(None);
     }
-    let argv0 = argv.first().map(String::as_str).unwrap_or("");
     let path_dirs = podvm_enter::Plan::path_from(env);
-    let no_chroot = |code: i32, family_note: String| {
+    let no_chroot = |code: i32, family_note: String, routed: bool| {
         eprintln!(
-            "podvm {verb}: chroot(2) is denied on this machine, and no \
-             no-chroot family runs this payload: {family_note}. The probe's \
-             chroot leg reports the denial (see `podvm probe`) \
-             (TODO/enter.md T-1317)"
+            "{}",
+            script::no_chroot_message(verb, &family_note, routed, retry)
         );
         Err(code)
     };
-    // ⭐ T-1413 and T-1414. Resolved once, up front: the path rides the
-    // script refusal below, the resolution sentences decide the refusal
-    // code (127 absent, 126 found-but-not-invocable), and the loader arm
-    // reuses the same path rather than resolving twice.
-    let resolved = match podvm_enter::ladder::resolve_payload(rootfs, argv0, &path_dirs) {
-        Ok(p) => p,
-        Err(e) => {
-            let code = resolve_code(&e.to_string());
-            return no_chroot(code, format!("{argv0} resolves to nothing runnable: {e}"));
-        }
+    let f = match script::follow(rootfs, argv, &path_dirs) {
+        Ok(f) => f,
+        Err((code, note, routed)) => return no_chroot(code, note, routed),
     };
-    // The payload bytes decide the family. Read-only: classification and
-    // ELF reads only, so a refusal writes nothing into the image.
-    let bytes = match podvm_enter::ladder::payload_bytes(rootfs, argv0, &path_dirs) {
-        Ok(b) => b,
-        Err(e) => {
-            let msg = e.to_string();
-            // ⚠ T-0802's errno split: a directory is found-but-not-
-            // invocable (EISDIR is a 126), while an unreadable file or an
-            // over-ceiling one is a genuine podvm-side failure (125).
-            let code = if msg.contains("Is a directory") {
-                EXIT_CANNOT_INVOKE
-            } else {
-                EXIT_RUNTIME_ERROR
-            };
-            return no_chroot(
-                code,
-                format!("{argv0} resolved but its bytes could not be read: {e}"),
-            );
-        }
-    };
-    let interp = match podvm_enter::memfd::eligible(&bytes) {
+    let routed = !f.scripts.is_empty();
+    let script_note = script::banner_note(&f);
+    let argv0 = f.argv.first().map(String::as_str).unwrap_or("");
+    let interp = match podvm_enter::memfd::eligible(&f.bytes) {
         Ok(()) => None,
-        Err(podvm_enter::memfd::MemfdRefusal::RoutePastScript) => {
-            // ⭐ T-1413. The refusal names the exact payload path and its
-            // `#!` line, resolved and read above: an anonymous refusal is
-            // a defect in the message. Longer term the interpreter routes
-            // inside the rootfs where the T-1407 map table covers it.
-            let refusal = podvm_enter::memfd::script_refusal(&resolved, &bytes);
-            return no_chroot(EXIT_CANNOT_INVOKE, refusal.message());
-        }
-        Err(podvm_enter::memfd::MemfdRefusal::NotElf(why)) => {
+        // `follow` returns no script, so the first arm reads as not ELF.
+        Err(
+            why @ (podvm_enter::memfd::MemfdRefusal::RoutePastScript
+            | podvm_enter::memfd::MemfdRefusal::NotElf(_)),
+        ) => {
             return no_chroot(
                 EXIT_CANNOT_INVOKE,
                 format!("the payload is not an ELF file: {why}"),
+                routed,
             );
         }
         Err(podvm_enter::memfd::MemfdRefusal::HasInterp(interp)) => Some(interp),
     };
-    if interp.is_none() {
+    let Some(interp) = interp else {
         // Static: the memfd family, where a memfd executes.
         if !support_native {
             return no_chroot(
@@ -354,12 +346,13 @@ pub fn decide_entry(
                 "the payload is statically linked but the image is foreign: \
                  binfmt resolution without a chroot is refused (T-0506)"
                     .to_string(),
+                routed,
             );
         }
         // ⛔ T-1648: refusal beats a silent host write. The opt-in is
         // decided before the memfd probe, so a refusal executes nothing.
         if !unsafe_host_paths {
-            return no_chroot(EXIT_RUNTIME_ERROR, STATIC_HOST_PATHS.to_string());
+            return no_chroot(EXIT_RUNTIME_ERROR, STATIC_HOST_PATHS.to_string(), routed);
         }
         // ⛔ T-1688: the probe executes a memfd, so a sysctl that seals it
         // refuses here, before staging, and not at the launch's step 5.
@@ -372,30 +365,34 @@ pub fn decide_entry(
                      execute on this machine: {} (TODO/enter.md T-1688)",
                     podvm_enter::memfd::probe::answer(memfd).sentence()
                 ),
+                routed,
             );
         }
         return Ok(Some(Userland {
             family: podvm_enter::userland::Family::Memfd,
             loader_argv: Vec::new(),
             lib_dirs: Vec::new(),
-            banner: "entering without chroot on the memfd family under \
-             --unsafe-host-paths: the payload runs from a staged memfd with the host's root and its working \
-             directory inside the image; absolute paths resolve on the host \
-             because the static payload makes raw syscalls past the interposer, \
-             so no path is rewritten, and it reads /proc/self/exe as the staged \
-             memfd path, so a self-locating runtime cannot resolve itself here \
-             (TODO/enter.md T-1317, T-1409, T-1648)"
-                .to_string(),
+            banner: format!(
+                "entering without chroot on the memfd family under \
+                 --unsafe-host-paths: the payload runs from a staged memfd with the host's root and its working \
+                 directory inside the image; absolute paths resolve on the host \
+                 because the static payload makes raw syscalls past the interposer, \
+                 so no path is rewritten, and it reads /proc/self/exe as the staged \
+                 memfd path, so a self-locating runtime cannot resolve itself here \
+                 (TODO/enter.md T-1317, T-1409, T-1648){script_note}"
+            ),
+            guest_argv: f.argv.clone(),
+            gaps: Vec::new(),
         }));
-    }
+    };
     // Dynamic: the loader family, where the tier reaches the payload.
-    let interp = interp.unwrap_or_default();
     if !support_native {
         return no_chroot(
             EXIT_RUNTIME_ERROR,
             "the payload is dynamically linked but the image is foreign: binfmt \
              resolution without a chroot is refused (T-0506)"
                 .to_string(),
+            routed,
         );
     }
     // ⭐ Resolved once above and reused here: the invocation keeps the
@@ -404,25 +401,24 @@ pub fn decide_entry(
     // which dangles on the host side, so the resolved file is what opens
     // and `loader_argv_for` below carries the invoked name as the applet.
     // A relative link (debian's `/bin/sh`) opens as invoked.
-    let payload_host = podvm_enter::userland::invocation_path(rootfs, argv0, &path_dirs, &resolved);
+    let payload_host =
+        podvm_enter::userland::invocation_path(rootfs, argv0, &path_dirs, &f.resolved);
     let plan = match podvm_enter::userland::loader_plan(rootfs, &interp, &payload_host) {
         Ok(p) => p,
-        Err(why) => {
-            // ⚠ Found, but the loader cannot run it: 126, never 125.
-            return no_chroot(EXIT_CANNOT_INVOKE, why);
-        }
+        // ⚠ Found, but the loader cannot run it: 126, never 125.
+        Err(why) => return no_chroot(EXIT_CANNOT_INVOKE, why, routed),
     };
-    match crate::interpose::classify(rootfs, argv0, &path_dirs) {
-        crate::interpose::Reach::Declined(why) => {
-            // ⚠ Found, but the tier cannot virtualize it (Go markers, an
-            // unknown libc, an unreadable ELF): without the interposer no
-            // path is rewritten, so 126, never a silent host run.
-            return no_chroot(
-                EXIT_CANNOT_INVOKE,
-                format!("the loader family declines the payload: {why}"),
-            );
-        }
-        crate::interpose::Reach::Preload { .. } => {}
+    if let crate::interpose::Reach::Declined(why) =
+        crate::interpose::classify(rootfs, argv0, &path_dirs)
+    {
+        // ⚠ Found, but the tier cannot virtualize it (Go markers, an
+        // unknown libc, an unreadable ELF): without the interposer no
+        // path is rewritten, so 126, never a silent host run.
+        return no_chroot(
+            EXIT_CANNOT_INVOKE,
+            format!("the loader family declines the payload: {why}"),
+            routed,
+        );
     }
     // The loader consumes argv[0] (its own path) and argv[1] (the program):
     // the payload sees its own arguments with argv[0] as the host path.
@@ -433,7 +429,7 @@ pub fn decide_entry(
         &plan.loader_host,
         &plan.payload_host,
         argv0,
-        argv.get(1..).unwrap_or(&[]),
+        f.argv.get(1..).unwrap_or(&[]),
     );
     Ok(Some(Userland {
         family: podvm_enter::userland::Family::Loader,
@@ -447,7 +443,7 @@ pub fn decide_entry(
              a child that execs a dynamic program or a #! script enters \
              through the image's loader inside the rootfs, with the image's \
              libraries from PODVM_LIB_PATH (TODO/enter.md T-1317, T-1407, \
-             T-1411; TODO/interpose.md T-1646)",
+             T-1411; TODO/interpose.md T-1646){script_note}",
             plan.loader_host,
             plan.payload_host,
             if applet {
@@ -459,5 +455,7 @@ pub fn decide_entry(
                 String::new()
             },
         ),
+        gaps: crate::complete::loader_gaps(rootfs, argv, routed, &path_dirs),
+        guest_argv: f.argv,
     }))
 }

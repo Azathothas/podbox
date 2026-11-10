@@ -9,6 +9,9 @@ use super::*;
 /// carries its class (see [`classify_strict`]). `--strict` refuses the
 /// safety class and warns on the substitution class; `--strict=all` keeps
 /// the T-0804 behavior and refuses every reason.
+///
+/// ⭐ TODO/cli.md T-1650. `--strict` refuses a capability gap that the
+/// payload hits and warns on a gap where podvm cannot tell.
 pub fn strict_refusal(
     verb: &str,
     ask: &Ask,
@@ -29,7 +32,7 @@ pub fn strict_refusal(
             err,
             "podvm {verb}: --strict=all, and this run is degraded in {} way(s). \
              podvm refuses rather than running and letting the payload discover \
-             them (TODO/cli.md T-0804, T-1415):",
+             them (TODO/cli.md T-0804, T-1415, T-1650):",
             reasons.len()
         );
         for (kind, r) in &reasons {
@@ -37,11 +40,10 @@ pub fn strict_refusal(
         }
         return Err(EXIT_RUNTIME_ERROR);
     }
-    let (safety, substitution): (Vec<_>, Vec<_>) = reasons
-        .into_iter()
-        .partition(|(kind, _)| *kind == StrictKind::Safety);
-    for (_, r) in &substitution {
-        let _ = writeln!(err, "podvm {verb}: --strict warning [substitution]: {r}");
+    let (safety, warned): (Vec<_>, Vec<_>) =
+        reasons.into_iter().partition(|(kind, _)| kind.refuses());
+    for (kind, r) in &warned {
+        let _ = writeln!(err, "podvm {verb}: --strict warning [{}]: {r}", kind.word());
     }
     if safety.is_empty() {
         return Ok(());
@@ -50,11 +52,11 @@ pub fn strict_refusal(
         err,
         "podvm {verb}: --strict, and this run is degraded in {} safety-relevant \
          way(s). podvm refuses rather than running and letting the payload \
-         discover them (TODO/cli.md T-0804, T-1415):",
+         discover them (TODO/cli.md T-0804, T-1415, T-1650):",
         safety.len()
     );
-    for (_, r) in &safety {
-        let _ = writeln!(err, "  - [safety] {r}");
+    for (kind, r) in &safety {
+        let _ = writeln!(err, "  - [{}] {r}", kind.word());
     }
     Err(EXIT_RUNTIME_ERROR)
 }
@@ -73,6 +75,9 @@ pub struct StrictCtx {
     /// paths in it would resolve on the host, which is host and libc
     /// mixing, and safety-relevant.
     pub preload_dropped: bool,
+    /// TODO/cli.md T-1650. The capability gaps of the selected family for
+    /// this payload (`Userland::gaps`); empty on the chroot rung.
+    pub gaps: Vec<Gap>,
 }
 
 /// One `--strict` reason's class. The refusal line names it, so a caller
@@ -85,6 +90,11 @@ pub enum StrictKind {
     /// A dev-shim substitution and its kin: warns under `--strict`,
     /// refuses under `--strict=all`.
     Substitution,
+    /// TODO/cli.md T-1650. A gap of the selected family: a thing that the
+    /// payload cannot do on this rung. `hit` where podvm can tell that the
+    /// payload hits it: that refuses under `--strict`, because it decides
+    /// whether the command runs at all. Else it warns.
+    Capability { hit: bool },
 }
 
 impl StrictKind {
@@ -92,7 +102,16 @@ impl StrictKind {
         match self {
             StrictKind::Safety => "safety",
             StrictKind::Substitution => "substitution",
+            StrictKind::Capability { .. } => "capability",
         }
+    }
+
+    /// Whether `--strict` refuses this kind (`--strict=all` refuses each).
+    pub fn refuses(self) -> bool {
+        matches!(
+            self,
+            StrictKind::Safety | StrictKind::Capability { hit: true }
+        )
     }
 }
 
@@ -105,6 +124,8 @@ impl StrictKind {
 /// a dropped caller preload. Substitution (warns): a stand-in podvm put
 /// where the real thing cannot be made (dev-shim files and their kin);
 /// the userland rung where chroot is denied and nothing better exists.
+/// Capability (T-1650): each gap of the selected family, which refuses
+/// where the payload hits it and warns elsewhere.
 pub fn classify_strict(
     verb: &str,
     ask: &Ask,
@@ -112,7 +133,7 @@ pub fn classify_strict(
     report: &podvm_complete::Report,
     ctx: &StrictCtx,
 ) -> Vec<(StrictKind, String)> {
-    use StrictKind::{Safety, Substitution};
+    use StrictKind::{Capability, Safety, Substitution};
     let mut reasons: Vec<(StrictKind, String)> = Vec::new();
 
     // 1. the flags this invocation passed.
@@ -206,6 +227,22 @@ pub fn classify_strict(
              without a chroot: host and guest libc mix (TODO/enter.md T-1317)"
                 .to_string(),
         ));
+    }
+
+    // 6. ⭐ T-1650. The capability gaps of the selected family. A gap that
+    // the payload hits names a rung that runs the command.
+    for g in &ctx.gaps {
+        let text = match &g.hit {
+            None => g.text.to_string(),
+            Some(why) => format!(
+                "{}. This command hits it: {why}. The chroot rung runs this \
+                 command on a host that permits chroot(2); this host has no \
+                 rung that runs it yet (TODO/enter.md T-1651, T-1652)",
+                g.text
+            ),
+        };
+        let hit = g.hit.is_some();
+        reasons.push((Capability { hit }, text));
     }
 
     reasons

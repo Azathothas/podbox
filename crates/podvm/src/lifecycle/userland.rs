@@ -137,7 +137,9 @@ pub fn enter_userland(
     let (exec_argv, fd) = match userland.family {
         podvm_enter::userland::Family::Loader => (userland.loader_argv.clone(), None),
         podvm_enter::userland::Family::Memfd => {
-            let argv0 = plan.argv.first().cloned().unwrap_or_default();
+            // T-1649: the guest argv, so a `#!` payload stages its
+            // interpreter, the program that the decision read.
+            let argv0 = userland.guest_argv.first().cloned().unwrap_or_default();
             let bytes = match podvm_enter::ladder::payload_bytes(rootfs, &argv0, &plan.path_dirs) {
                 Ok(b) => b,
                 Err(e) => {
@@ -158,7 +160,7 @@ pub fn enter_userland(
                 return failed(podvm_image::error::EXIT_RUNTIME_ERROR);
             }
             match podvm_enter::memfd::stage(&bytes) {
-                Ok(f) => (plan.argv.clone(), Some(f)),
+                Ok(f) => (userland.guest_argv.clone(), Some(f)),
                 Err(e) => {
                     let _ = writeln!(err, "podvm {verb}: {e}");
                     return failed(e.exit_code());

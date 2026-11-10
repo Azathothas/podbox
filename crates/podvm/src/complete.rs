@@ -146,5 +146,8 @@ pub fn prepare(
 mod strict;
 pub use strict::*;
 
+mod capability;
+pub use capability::*;
+
 #[cfg(test)]
 mod tests;

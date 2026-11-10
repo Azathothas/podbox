@@ -261,8 +261,8 @@ pub(crate) fn prepare(
     // family (the record carries its argv) and refuse only where the
     // decided family has no detached driver, naming the blocking call
     // and the affected verbs.
-    // ⭐ T-1648: the opt-in rides into the decision, because a static
-    // payload enters the memfd family only under it.
+    // ⭐ T-1648 and T-1649: the opt-in (a static payload needs it) and the
+    // word that a refusal of an Entrypoint script names ride in.
     let userland = crate::lifecycle::decide_entry(
         verb,
         &rootfs,
@@ -271,6 +271,7 @@ pub(crate) fn prepare(
         support_native,
         &findings,
         o.unsafe_host_paths,
+        o.retry_word(cfg.config.entrypoint.as_deref()),
     )?;
     if let Some(u) = &userland
         && (o.detach || verb == "create")
@@ -284,9 +285,11 @@ pub(crate) fn prepare(
     }
     // ⭐ T-0702 and T-0706: classify the payload and place the object BEFORE
     // the banner is built, so the banner names the write before anything of
-    // the payload's runs. The note joins the banner below.
+    // the payload's runs. The note joins the banner below. T-1649: a `#!`
+    // payload on the userland rung runs, and so classifies, its interpreter.
+    let gargv = userland.as_ref().map_or(&argv, |u| &u.guest_argv);
     let mut interpose_note = String::new();
-    if let Err(e) = crate::interpose::apply(verb, &rootfs, &argv, &mut env, &mut interpose_note) {
+    if let Err(e) = crate::interpose::apply(verb, &rootfs, gargv, &mut env, &mut interpose_note) {
         eprintln!("{e}");
         return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
     }
@@ -332,7 +335,7 @@ pub(crate) fn prepare(
     push_guest_exe(
         &mut env,
         &rootfs,
-        argv.first().map(String::as_str).unwrap_or(""),
+        gargv.first().map(String::as_str).unwrap_or(""),
         &path_dirs,
     );
     // ⭐ TODO/enter.md T-1407 and T-1409. On a userland entry the
@@ -437,6 +440,7 @@ pub(crate) fn prepare(
             chroot_usable: podvm_probe::probes::chroot_usable(&findings),
             unsafe_host_paths: strict_unsafe,
             preload_dropped: dropped_preload.is_some(),
+            gaps: crate::lifecycle::gaps_of(userland.as_ref()),
         },
     )?;
     // ⭐ T-0412 and T-0710. The steps share this entry's host memo: a fixup's

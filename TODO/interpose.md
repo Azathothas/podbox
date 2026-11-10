@@ -2230,8 +2230,8 @@ clause.
 Source:      issues 89 and 127 (127 reposts the hidden issue 95);
              issue 114 section 2 item 2 and section 6 item 3;
              `crates/podvm-interpose/src/exec/calls.rs:20-195`;
-             `crates/podvm/src/lifecycle/entry.rs:445`;
-             `experiments/356-no-chroot-rung.sh:418-424`;
+             `crates/podvm/src/lifecycle/entry.rs:441`;
+             `experiments/356-no-chroot-rung.sh:441-447`;
              A-V-04 of PodUtils/podcrates#39
 Category:    interpose
 Priority:    P1

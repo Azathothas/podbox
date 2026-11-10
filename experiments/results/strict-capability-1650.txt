@@ -1,0 +1,168 @@
+# T-1650 drive: --strict gives each gap of the loader family the
+# capability kind; it refuses a gap that the command hits and warns on a
+# gap that podvm cannot tell. Run by hand on the chroot-denying fixture of
+# experiments/356-no-chroot-rung.sh ($FX below). Images come from
+# mirror.gcr.io (Docker Hub and public.ecr.aws answer HTTP 429 here). The
+# scratch store is written as $STORE. cap-alpine:1 is the alpine 3.20
+# rootfs plus /hello-static, a static-pie hello built with cc.
+#
+# BEFORE is issue 93 (release 0.1.0-beta.12): --strict of
+# `sh -c '/bin/ls /'` warned and the shell failed 127, and no reason
+# named a gap of the family. T-1646 now routes that grandchild, so it
+# runs; the gaps that stay (T-1646 partial, T-1652, T-1697) are listed.
+# AFTER is this tree. podvm's extraction and ownership lines are removed.
+
+== conditions
+date    2026-11-09T23:54:40Z
+kernel  Linux 6.18.44-fc-v338
+podvm   podvm 0.1.0-beta.13 at e8e5beb plus the T-1649 and T-1650 tree
+fixture unshare -Urm, tmpfs over /dev/pts, experiments/deny-chroot.c (chroot(2) EPERM)
+node    sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202
+
+== fixture probe: chroot denied
+chroot(/tmp)                       FAIL errno=1 EPERM
+
+== 1. issue 93: --strict of a shell grandchild. T-1646 routes it, so it
+==    runs at 0 with the listing; each gap of the loader family warns
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict mirror.gcr.io/library/alpine:3.20 /bin/sh -c /bin/ls /
+  podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+  podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1646)
+  podvm run: --strict warning [capability]: a statically linked child keeps the direct exec: its raw syscalls pass the interposer, so its absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
+  podvm run: --strict warning [capability]: libuv calls statx as a raw syscall, which passes the interposer: node, npm and the other tools on node stat guest paths on the host, so module resolution fails or reads host files (TODO/interpose.md T-1697)
+  bin
+  dev
+  etc
+  home
+  lib
+  media
+  mnt
+  opt
+  proc
+  root
+  run
+  sbin
+  srv
+  sys
+  tmp
+  usr
+  var
+  [exit 0]
+
+== 2. --strict of /bin/echo hi runs at 0
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict mirror.gcr.io/library/alpine:3.20 /bin/echo hi
+  podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+  podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1646)
+  podvm run: --strict warning [capability]: a statically linked child keeps the direct exec: its raw syscalls pass the interposer, so its absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
+  podvm run: --strict warning [capability]: libuv calls statx as a raw syscall, which passes the interposer: node, npm and the other tools on node stat guest paths on the host, so module resolution fails or reads host files (TODO/interpose.md T-1697)
+  [exit 0]
+
+== 3. --strict=all keeps its rule: every reason refuses, capability included
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict=all mirror.gcr.io/library/alpine:3.20 /bin/echo hi
+  podvm run: --strict=all, and this run is degraded in 11 way(s). podvm refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415, T-1650):
+    - [substitution] the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+    - [substitution] created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+    - [substitution] created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+    - [substitution] created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+    - [substitution] created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+    - [substitution] rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+    - [substitution] rewrote etc/ssl/certs/ca-certificates.crt (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+    - [substitution] created etc/ssl/ca-bundle.pem (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+    - [capability] a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1646)
+    - [capability] a statically linked child keeps the direct exec: its raw syscalls pass the interposer, so its absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
+    - [capability] libuv calls statx as a raw syscall, which passes the interposer: node, npm and the other tools on node stat guest paths on the host, so module resolution fails or reads host files (TODO/interpose.md T-1697)
+  [exit 125]
+
+== 4. the T-1652 gap is real: a static child runs on the host root
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm cap-alpine:1 /bin/sh -c /hello-static
+  static-hi
+  [exit 0]
+
+== 5. --strict refuses it: the -c string names a static program of the image
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict cap-alpine:1 /bin/sh -c /hello-static
+  podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+  podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1646)
+  podvm run: --strict warning [capability]: libuv calls statx as a raw syscall, which passes the interposer: node, npm and the other tools on node stat guest paths on the host, so module resolution fails or reads host files (TODO/interpose.md T-1697)
+  podvm run: --strict, and this run is degraded in 1 safety-relevant way(s). podvm refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415, T-1650):
+    - [capability] a statically linked child keeps the direct exec: its raw syscalls pass the interposer, so its absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651). This command hits it: `/hello-static` is a statically linked program of the image. The chroot rung runs this command on a host that permits chroot(2); this host has no rung that runs it yet (TODO/enter.md T-1651, T-1652)
+  [exit 125]
+
+== 6. --strict refuses a tool on node (T-1697), through the #! entrypoint
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict mirror.gcr.io/library/node:22-alpine npm --version
+  podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+  podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to ../proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1646)
+  podvm run: --strict warning [capability]: a statically linked child keeps the direct exec: its raw syscalls pass the interposer, so its absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
+  podvm run: --strict, and this run is degraded in 1 safety-relevant way(s). podvm refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415, T-1650):
+    - [capability] libuv calls statx as a raw syscall, which passes the interposer: node, npm and the other tools on node stat guest paths on the host, so module resolution fails or reads host files (TODO/interpose.md T-1697). This command hits it: `npm` runs on node, whose module loader stats each path. The chroot rung runs this command on a host that permits chroot(2); this host has no rung that runs it yet (TODO/enter.md T-1651, T-1652)
+  [exit 125]
+
+== 6b. without --strict the same command meets the T-1697 gap
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/node:22-alpine npm --version
+  node:fs:2801
+        const stats = binding.lstat(base, true, undefined, true /* throwIfNoEntry */);
+                              ^
+  
+  Error: ENOENT: no such file or directory, lstat '/usr/local/lib/node_modules'
+      at Object.realpathSync (node:fs:2801:29)
+      at toRealPath (node:internal/modules/helpers:61:13)
+      at Function._findPath (node:internal/modules/cjs/loader:760:22)
+      at resolveMainPath (node:internal/modules/run_main:39:23)
+      at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:163:20)
+      at node:internal/main/run_main_module:36:49 {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'lstat',
+    path: '/usr/local/lib/node_modules'
+  }
+  
+  Node.js v22.23.4
+  [exit 1]
+
+== 7. node -e reads no module path: --strict warns and runs it
+$ $FX $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict mirror.gcr.io/library/node:22-alpine node -e console.log(7)
+  podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
+  podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: writes are kept until the next run rather than discarded, and reads give EOF
+  podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read once from the host's getrandom(2). refused: It ENDS: a read past 1048576 bytes gives EOF where the device would not
+  podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to ../proc/mounts, and /proc is not mounted inside a chroot, so the link does not resolve. refused: podvm REPLACED the link rather than writing through it: an absolute target would have put this write on the host. One line, generated from this machine's own mount table for the filesystem the rootfs is on
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): APPENDED this machine's CA bundle (186636 bytes, announced in $SSL_CERT_FILE as <the CA bundle>). The image's own roots are kept and the added block is marked. note: This machine's trust is now the container's too; --no-host-cas refuses it
+  podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1646)
+  podvm run: --strict warning [capability]: a statically linked child keeps the direct exec: its raw syscalls pass the interposer, so its absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
+  podvm run: --strict warning [capability]: libuv calls statx as a raw syscall, which passes the interposer: node, npm and the other tools on node stat guest paths on the host, so module resolution fails or reads host files (TODO/interpose.md T-1697)
+  7
+  [exit 0]
+
+== 8. capable host control: the chroot rung has no capability gap
+$ $REPO/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict mirror.gcr.io/library/alpine:3.20 /bin/echo hi
+  hi
+  [exit 0]
+

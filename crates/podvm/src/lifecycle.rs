@@ -400,5 +400,7 @@ pub use entry::*;
 mod userland;
 pub use userland::*;
 
+mod script;
+
 #[cfg(test)]
 mod tests;

@@ -1722,14 +1722,14 @@ then this row is the record, and no entry deletes the script.
 ### T-1649 A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out
 
 Source:      issue 92; issue 114 section 3.3 and section 6 item 7;
-             `crates/podvm/src/lifecycle/entry.rs:335`;
+             `crates/podvm/src/lifecycle/script.rs:148`;
              `crates/podvm-enter/src/memfd.rs:199`;
              `crates/podvm/src/run/prepare.rs:234`;
              A-V-04 of PodUtils/podcrates#39
 Category:    cli
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      partial
 
 Problem:     On a chroot-denied host this run exits 126:
              `run node:alpine node -e 'console.log(1)'`. The entrypoint
@@ -1762,6 +1762,21 @@ Prove:       `cargo test -p podvm` exits 0 with a test: the script
              command either reaches the payload or refuses naming
              `--entrypoint`.
 
+**Partial, 2026-11-10.** On the no-chroot path `decide_entry` follows
+a `#!` payload through `script::follow` (`lifecycle/script.rs`): it reads
+the `#!` line as the kernel does, resolves the interpreter inside the
+rootfs (four levels), and runs the kernel's argv `interp [arg] script
+args` on the family of the interpreter. An interpreter outside the image
+refuses at 126, never on the host. Where the image Entrypoint is the
+refused script and the caller gave a command, the refusal adds "retry
+with `--entrypoint <first word>`". Both `exec` paths apply the
+interposer after the decision and run the same argv. `cargo test
+--workspace` exits 0 (989 passed) with
+`an_entrypoint_script_refusal_names_the_entrypoint_flag`. [The drive](../experiments/results/script-entry-1649.txt):
+`run node:22-alpine node -e 'console.log(1)'` prints 1 at 0 on the
+chroot-denying fixture; an image without `/bin/sh` refuses at 126 with
+the retry line. Clause 13 of experiment 356 holds it. Remaining: one full run of the committed `sh experiments/356-no-chroot-rung.sh` (its pulls from `public.ecr.aws` answered HTTP 429 on 2026-11-09 and 2026-11-10; a copy with `mirror.gcr.io` images passed each step of the clause).
+
 **Filed 2026-11-06.** Quoted from issue 92 and its comments, measured on
 release 0.1.0-beta.12 on the errand host:
 
@@ -1790,13 +1805,13 @@ holds the end-to-end clause.
 ### T-1650 `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run
 
 Source:      issue 93; issue 114 section 3.7 and section 6 item 8;
-             `crates/podvm/src/complete/strict.rs:108`;
-             `crates/podvm/src/complete/strict.rs:153`;
-             `crates/podvm/src/lifecycle/entry.rs:445`; [T-1415](cli.md)
+             `crates/podvm/src/complete/strict.rs:129`;
+             `crates/podvm/src/complete/strict.rs:174`;
+             `crates/podvm/src/lifecycle/entry.rs:441`; [T-1415](cli.md)
 Category:    cli
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      partial
 
 Problem:     No strictness level means "refuse a rung that cannot run
              this command". `run --strict` of `sh -c '/bin/ls /'` warns,
@@ -1828,6 +1843,22 @@ Prove:       `cargo test -p podvm` exits 0 with `classify_strict`
              of `sh -c '/bin/ls /'` exits 125 naming the exec gap, or 0
              with the listing once T-1646 is done, and `run --strict` of
              `/bin/echo hi` exits 0.
+
+**Partial, 2026-11-10.** `--strict` knows a third kind, a capability gap
+of the loader family (`complete/capability.rs`). The list holds what is
+true now, each gap with its entry: the routes T-1646 does not take
+(`fexecve`, `execveat` with flags, `system()` and `popen()`, a foreign
+child ELF; podvm cannot tell, so a warning), a static child on the host
+root (T-1652; refused where a shell `-c` string or an entrypoint
+argument names a static ELF of the image), and the raw `statx` of
+libuv (T-1697; refused for npm, npx, yarn, pnpm, corepack and node given
+a script). A test fails while a listed entry is `done`. `--strict=all`
+keeps its rule. `cargo test --workspace` exits 0 with
+`strict_refuses_a_capability_gap_that_the_payload_hits`. [The drive](../experiments/results/strict-capability-1650.txt):
+issue 93's `--strict sh -c '/bin/ls /'` now runs at 0 (T-1646 routes the
+grandchild), `--strict npm --version` refuses at 125 naming T-1697, and
+`--strict=all /bin/echo hi` refuses at 125. Clause 24 of experiment 356
+holds it. Remaining: one full run of the committed `sh experiments/356-no-chroot-rung.sh` (its pulls from `public.ecr.aws` answered HTTP 429 on 2026-11-09 and 2026-11-10; a copy with `mirror.gcr.io` images passed each step of the clause).
 
 **Filed 2026-11-06.** Quoted from issue 93, measured on release
 0.1.0-beta.12 on the errand host with the exit codes read unpiped:
@@ -2261,7 +2292,7 @@ Problem:     A caller that runs a job under podvm has no machine-readable
              `ps --filter label=` matches nothing, and a runner cannot
              find its own jobs.
 Premise:     The `--label` flag is accepted and dropped
-             (`crates/podvm/src/run/parse.rs:196`). The parity table
+             (`crates/podvm/src/run/parse.rs:210`). The parity table
              marks it Stub (`crates/podvm/src/parity.rs:253`). The help
              of `ps` says that a label filter matches nothing
              (`crates/podvm/src/lifecycle.rs:41`), and so does the help of
@@ -2315,7 +2346,7 @@ report, and one JSON report for each job. The priority is P1 because
 
 Source:      A-V-11 and G-03 of PodUtils/podcrates#39 (COORD-015);
              T-1653 (the volume path map); the ruling of 2026-11-09 on
-             test accounts; `crates/podvm/src/run/parse.rs:74`
+             test accounts; `crates/podvm/src/run/parse.rs:88`
 Category:    cli
 Priority:    P2
 Effort:      M
@@ -2327,8 +2358,8 @@ Problem:     A job needs a credential. Today a caller passes it with `-e`,
              podvm has no flag that places one file, with a mode, for
              the first process only.
 Premise:     `--env-file` reads a file at parse time
-             (`crates/podvm/src/run/parse.rs:74`, used at
-             `crates/podvm/src/run/parse.rs:177`) and the values go into
+             (`crates/podvm/src/run/parse.rs:88`, used at
+             `crates/podvm/src/run/parse.rs:191`) and the values go into
              the environment (`crates/podvm/src/run/prepare.rs:239`). The
              userland path map is one pair for the root
              (`crates/podvm-enter/src/userland.rs:323`); T-1653 adds pairs.

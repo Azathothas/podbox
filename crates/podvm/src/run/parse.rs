@@ -62,6 +62,20 @@ pub(super) struct Opts {
     pub(super) ask: crate::complete::Ask,
 }
 
+impl Opts {
+    /// TODO/cli.md T-1649. The first word of the caller where `argv[0]`
+    /// is the Entrypoint of the image and the caller gave a command: the
+    /// word that a refusal of that script names after `--entrypoint`.
+    /// `None` under `--entrypoint`, with no command, or with no
+    /// Entrypoint (the command is then `argv` itself).
+    pub(super) fn retry_word(&self, image_entrypoint: Option<&[String]>) -> Option<&str> {
+        if self.entrypoint.is_some() || image_entrypoint.is_none_or(<[String]>::is_empty) {
+            return None;
+        }
+        self.command.first().map(String::as_str)
+    }
+}
+
 /// `--env-file`: docker's file of `KEY=VALUE` lines, loaded at the flag's
 /// position so a later `-e` wins over the file and a later file over an
 /// earlier flag, the same rule `-e` already documents. TODO/cli.md T-0801.

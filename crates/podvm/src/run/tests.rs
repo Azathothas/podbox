@@ -431,3 +431,19 @@ fn device_collects_in_both_spellings_and_refuses_shapes() {
         EXIT_FLAG_ERROR
     );
 }
+
+/// TODO/cli.md T-1649. The word that a refusal of an Entrypoint script
+/// names: the first word of the caller, only where the Entrypoint of the
+/// image runs and the caller gave a command.
+#[test]
+fn the_retry_word_is_the_first_word_of_a_caller_command() {
+    let ep = v(&["docker-entrypoint.sh"]);
+    let o = parse("run", &v(&["node:22-alpine", "node", "-e", "x"])).unwrap();
+    assert_eq!(o.retry_word(Some(&ep)), Some("node"));
+    assert_eq!(o.retry_word(None), None);
+    assert_eq!(o.retry_word(Some(&[])), None);
+    let o = parse("run", &v(&["--entrypoint", "node", "img", "-e", "x"])).unwrap();
+    assert_eq!(o.retry_word(Some(&ep)), None);
+    let o = parse("run", &v(&["img"])).unwrap();
+    assert_eq!(o.retry_word(Some(&ep)), None);
+}

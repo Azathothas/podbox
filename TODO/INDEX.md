@@ -322,8 +322,8 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1646](interpose.md) | P1 | interpose | partial | A dynamic grandchild re-enters through the host loader |
 | [T-1647](enter.md) | P1 | enter | open | Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes |
 | [T-1648](enter.md) | P0 | enter | partial | A static Go payload runs into a GOROOT error instead of a named refusal |
-| [T-1649](cli.md) | P2 | cli | open | A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out |
-| [T-1650](cli.md) | P1 | cli | open | `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run |
+| [T-1649](cli.md) | P2 | cli | partial | A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out |
+| [T-1650](cli.md) | P1 | cli | partial | `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run |
 | [T-1651](enter.md) | P2 | enter | open | An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads |
 | [T-1652](enter.md) | P2 | enter | open | A native-static rung: userland execve, Syscall User Dispatch and openat2(RESOLVE_IN_ROOT) |
 | [T-1653](enter.md) | P2 | enter | open | `-v` volumes on a host with no /dev/fuse and no mount |
@@ -374,7 +374,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-306 items: 32 open, 13 partial, 4 blocked, 257 done.
+306 items: 30 open, 15 partial, 4 blocked, 257 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -383,10 +383,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 2 | 0 | 62 | 64 |
-| P1 | 5 | 9 | 0 | 122 | 136 |
-| P2 | 27 | 2 | 4 | 64 | 97 |
+| P1 | 4 | 10 | 0 | 122 | 136 |
+| P2 | 26 | 3 | 4 | 64 | 97 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **32** | **13** | **4** | **257** | **306** |
+| **All** | **30** | **15** | **4** | **257** | **306** |
 
 ## Work order
 
