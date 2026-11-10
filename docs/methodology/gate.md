@@ -21,8 +21,8 @@ binaries are under `./target/x86_64-unknown-linux-musl/release/`.
 `./target/x86_64-unknown-linux-musl/release/podvm-dev check` is the complete local check.
 It builds the interposer before the CLI.
 It runs formatting, lint, workspace tests, interposer tests, and repository checks.
-It reads `podvm-smoke` and `podvm-gate` under `./target/release/`; copy them
-there from the musl directory first, as `gate.yml` does.
+It runs `podvm-smoke` and `podvm-gate` from the musl directory.
+`gate.yml` copies them to `./target/release/` and runs them there.
 `sh scripts/common/check-gate.sh --strict` also exercises the available PowerShell halves.
 On the parked Windows lane, `sh scripts/windows/run-in-base.sh` runs the Linux check;
 [containers](../containers.md) gives job transport and collection.
