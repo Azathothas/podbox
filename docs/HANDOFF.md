@@ -8,8 +8,11 @@ Remove this file when each step below is done.
 
 * The repository is PodUtils/podvm. GitHub redirects Azathothas/podbox.
   Nobody may create a new Azathothas/podbox: that ends the redirects.
-* The newest release is `v0.1.0-beta.13`, the last podbox release. The
-  owner allows a beta when it fits (2026-11-09); no crates.io release.
+* The newest release is `v0.2.0-beta.2` (2026-11-10), the first with the
+  name podvm. The tags `v0.1.0-beta.13` and `v0.2.0-beta.1` have no
+  release: their builds failed. A release starts from `release.yml`;
+  dispatch `nightly.yml` with `trial=true` on main first. The owner allows
+  a beta when it fits (2026-11-09); no crates.io release.
 * podvm takes the crates of PodUtils/podcrates by git tag. podvm uses
   each of the 11 crates at v0.12.0 (5e5629a, COORD-020 #226).
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`.
@@ -21,12 +24,9 @@ Remove this file when each step below is done.
 
 ## Next steps, in order
 
-1. T-1671: when the gate of the head is green, dispatch `release.yml` on
-   `main` with the input `version=0.2.0-beta.2`. Check that the release
-   has `podvm-ARCH`, its `.sha256` and its `.sigstore` for each arch.
-2. The work order of `TODO/PROGRESS.md`: T-1652, T-1651, T-1655 (the last
+1. The work order of `TODO/PROGRESS.md`: T-1652, T-1651, T-1655 (the last
    clause of T-1653), T-1703.
-3. T-1694 to T-1696 (the asks of cfb) wait for the work of podvm itself
+2. T-1694 to T-1696 (the asks of cfb) wait for the work of podvm itself
    (the owner, 2026-11-09, "Priority").
 
 ## Questions for the owner

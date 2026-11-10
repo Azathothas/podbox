@@ -39,7 +39,7 @@ The version moves to 0.2 because the rename breaks each caller.
   `podbox`. Nothing migrates existing state.
 - The WSL instance is `podvm` (`wsl-toolkit --instance podvm`,
   `wsl-toolkit-podvm`), not `podbox`.
-- Releases up to `v0.1.0-beta.13` keep their `podbox-*` asset names and
+- The releases up to `v0.1.0-beta.12` keep their `podbox-*` asset names and
   their signing identity, the nightly workflow of `Azathothas/podbox`;
   `podvm-verify` checks each tag against the identity it was published
   under.
@@ -109,7 +109,7 @@ Deployed: version 0.2.0-beta.2.
   `vm.memfd_noexec`; the disk-free row reads the soft `RLIMIT_FSIZE`. The
   probe remedy agrees with its stance. `stop -t 0` sends SIGKILL at once.
   The `windows --podvm-mem` row states what the verb does. README and
-  SECURITY name `v0.1.0-beta.13` as the last podbox release. T-1688 to
+  SECURITY name `v0.1.0-beta.12` as the last podbox release. T-1688 to
   T-1693, #212 to #217.
 
 ### Changed, 2026-11-10

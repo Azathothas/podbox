@@ -282,7 +282,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1602](image.md) | P0 | image | done | The registry fixture fields are read by their consumer tests |
 | [T-1603](gate.md) | P0 | gate | done | Remove `check-no-secrets` and add a pinned trufflehog scan workflow |
 | [T-1604](enter.md) | P1 | enter | partial | Fix the detached-stdio serial mutex and the 1-of-3 detached start failure |
-| [T-1605](packaging.md) | P1 | packaging | partial | Push a version tag and prove the nightly release-notes wiring live |
+| [T-1605](packaging.md) | P1 | packaging | done | Push a version tag and prove the nightly release-notes wiring live |
 | [T-1606](machine.md) | P2 | machine | done | Repoint all 47 `references/` citations before deleting the corpus |
 | [T-1607](gate.md) | P1 | gate | partial | File the 21 unbatched plan tasks as a later queue |
 | [T-1608](gate.md) | P2 | gate | done | Reword the Batch 3 Done paragraphs so one-home passes |
@@ -344,7 +344,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1668](gate.md) | P2 | gate | open | A findings page for the scope: observed or inferred, with host conditions per row |
 | [T-1669](deps.md) | P1 | deps | done | Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate |
 | [T-1670](probe.md) | P1 | probe | done | The first cloud session measures its host and saves the result |
-| [T-1671](packaging.md) | P2 | packaging | partial | Release the first podvm beta with `## Breaking` notes, from a dispatched `release.yml` |
+| [T-1671](packaging.md) | P2 | packaging | done | Release the first podvm beta with `## Breaking` notes, from a dispatched `release.yml` |
 | [T-1672](gate.md) | P2 | gate | blocked | Move the record to the format of `pod-todo`, with a `podvm-todo` wrapper and a todo.toml |
 | [T-1673](gate.md) | P2 | gate | open | File the 29 plan rows that T-1607 owns, read from the archive branch |
 | [T-1674](gate.md) | P1 | gate | done | Split every Rust source file to 500 lines, then hold the limit in the gate |
@@ -380,7 +380,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-312 items: 26 open, 11 partial, 4 blocked, 271 done.
+312 items: 26 open, 9 partial, 4 blocked, 273 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -389,10 +389,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 1 | 8 | 0 | 128 | 137 |
-| P2 | 25 | 2 | 4 | 70 | 101 |
+| P1 | 1 | 7 | 0 | 129 | 137 |
+| P2 | 25 | 1 | 4 | 71 | 101 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **26** | **11** | **4** | **271** | **312** |
+| **All** | **26** | **9** | **4** | **273** | **312** |
 
 ## Work order
 

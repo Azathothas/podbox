@@ -992,7 +992,7 @@ Source:      T-1565; `.github/workflows/nightly.yml`;
 Category:    packaging
 Priority:    P1
 Effort:      S
-Status:      partial
+Status:      done
 
 Problem:     T-1565 ported `scripts/release-notes.sh` to the
              `release-notes` binary and the nightly job runs the
@@ -1022,6 +1022,16 @@ Prove:       `git tag --list` shows the new tag on the landed commit; the
              binary rather than by the retired shell; the run log names
              the binary path it executed;
              `./target/release/podvm-gate` exits 0.
+
+**Done 2026-11-10.** The dispatched `release.yml` (run 42809429283)
+created the tag `v0.2.0-beta.2` on `508c53c`, the head of main, and
+started nightly run 42809531320 on it. That run exits 0 with each of the
+seven legs and the publish job. The published release carries the notes
+that the `release-notes` binary made: the `CHANGELOG.md` section of the
+version with `##` headings, then the build text with the commit and its
+gate run. The publish step runs `./dist/release-notes-x86_64`, which the
+log names. `podvm-gate` exits 0. A cloud session cannot push a tag, so a
+dispatched workflow creates it (T-1671).
 
 **Partial 2026-10-02. The tag is pushed and the nightly ran; it is red,
 and the cause is a shim, not the wiring.** `git tag --list` shows
@@ -1207,7 +1217,7 @@ Source:      the rename of 2026-11-06 (`CHANGELOG.md:11`, "Breaking: podbox
 Category:    packaging
 Priority:    P2
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     No release carries the name podvm: the changelog says the
              rename is "not deployed". A release starts only from a pushed
@@ -1236,6 +1246,19 @@ Prove:       `gh workflow run release.yml -f version=0.2.0-beta.2` starts a
              run that exits green, and `gh release view v0.2.0-beta.2`
              lists the seven static binaries with their hashes and
              signatures and a `## Breaking` section in its notes.
+
+**Done 2026-11-10.** A trial run of `nightly.yml` on main (run
+42805574557, `trial=true`) built, smoked and packaged the seven arches and
+published nothing. Then `release.yml` with `version=0.2.0-beta.2` (run
+42809429283) passed its checks, created the tag `v0.2.0-beta.2` on
+`508c53c`, and its nightly run 42809531320 on the tag exited 0. The
+release (published 2026-11-10 12:01 UTC) has 42 assets: `podvm-ARCH`,
+`.sha256` and `.sigstore` for each of the seven arches, and the same three
+for each `podvm-ssh-ARCH.tar.gz`. Its notes start with `## Breaking:
+podbox is podvm`. The downloaded `podvm-x86_64` matches its `.sha256` and
+prints `podvm 0.2.0-beta.2`. `podvm-verify` did not check the signature
+here, because this host has no `cosign`; the release job checked that
+each signature file is present.
 
 **Partial, 2026-11-10.** `release.yml` (a46f595) is on main. The dispatch
 of 0.2.0-beta.1 (run 42800267302) passed its checks and created the tag
