@@ -176,7 +176,8 @@ pub(super) fn do_startup(root: &Path, _target: &str) -> ExitCode {
     // 5. the driver returns immediately rather than blocking.
     push("");
     push("== 5. podvm-dev returns immediately rather than blocking");
-    let exe = env::current_exe().unwrap_or_else(|_| root.join("target/release/podvm-dev"));
+    let exe = env::current_exe()
+        .unwrap_or_else(|_| root.join("target/x86_64-unknown-linux-musl/release/podvm-dev"));
     let t0 = epoch_secs();
     let _ = Command::new(&exe)
         .arg("start")

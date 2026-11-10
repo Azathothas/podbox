@@ -382,9 +382,10 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 312 items: 28 open, 8 partial, 2 blocked, 274 done.
 
-Counted from the rows above by `./target/release/podvm-count` and asserted
-independently by `./target/release/podvm-gate`, which is the gate. A number here
-that disagrees with the rows cannot reach a commit.
+Counted from the rows above by
+`./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
+independently by `./target/x86_64-unknown-linux-musl/release/podvm-gate`, which is
+the gate. A number here that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |

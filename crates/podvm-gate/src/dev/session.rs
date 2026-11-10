@@ -326,8 +326,9 @@ pub(super) fn do_session(root: &Path, target: &str, args: &[String]) -> ExitCode
             } else {
                 // In the background on purpose. It compiles behind the
                 // reading, and the reading needs no toolchain.
-                let exe =
-                    env::current_exe().unwrap_or_else(|_| root.join("target/release/podvm-dev"));
+                let exe = env::current_exe().unwrap_or_else(|_| {
+                    root.join("target/x86_64-unknown-linux-musl/release/podvm-dev")
+                });
                 let rc = Command::new(exe)
                     .arg("start")
                     .env("PODVM_TARGET", target)

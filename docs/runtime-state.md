@@ -4,8 +4,8 @@ This page is generated from the tracked manifests and source declarations.
 It records the build surface. Runtime proof and limits live in
 [PROGRESS](../TODO/PROGRESS.md) and [Limits](limits.md).
 
-Regenerate with `py scripts/document-state.py --write` on Windows.
-Use `python3` on Linux. The record gate rejects a changed snapshot.
+Regenerate with `python3 scripts/document-state.py --write`.
+The record gate rejects a changed snapshot.
 
 ## Workspace
 

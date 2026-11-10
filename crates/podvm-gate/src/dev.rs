@@ -63,9 +63,9 @@ const CHECK_STEPS: &[&str] = &[
     "cargo test --workspace",
     "RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu",
     "python3 experiments/393-build-freshness.py",
-    "./target/release/podvm-smoke --diagnostics",
+    "./target/x86_64-unknown-linux-musl/release/podvm-smoke --diagnostics",
     "python3 experiments/400-kvm-cleanup.py",
-    "./target/release/podvm-gate",
+    "./target/x86_64-unknown-linux-musl/release/podvm-gate",
     "./scripts/common/check-gate.sh --fast",
 ];
 

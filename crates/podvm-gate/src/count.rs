@@ -357,10 +357,11 @@ fn run(argv: &[String]) -> ExitCode {
             total, derived[0], derived[1], derived[2], derived[3]
         ),
         String::new(),
-        "Counted from the rows above by `./target/release/podvm-count` and asserted".to_string(),
-        "independently by `./target/release/podvm-gate`, which is the gate. A number here"
+        "Counted from the rows above by".to_string(),
+        "`./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted".to_string(),
+        "independently by `./target/x86_64-unknown-linux-musl/release/podvm-gate`, which is"
             .to_string(),
-        "that disagrees with the rows cannot reach a commit.".to_string(),
+        "the gate. A number here that disagrees with the rows cannot reach a commit.".to_string(),
         String::new(),
         "| Priority | Open | Partial | Blocked | Done | Total |".to_string(),
         "| --- | --- | --- | --- | --- | --- |".to_string(),

@@ -97,8 +97,8 @@ pub fn resolve(flag: Option<Want>) -> Tier {
 /// configured, and where the ceiling cannot be read the refusal names that
 /// instead of running a guest no bound was checked against.
 ///
-/// Where a profile holds there is still nothing that runs a guest: that
-/// arrives with `TODO/machine.md` T-1303 and T-1304, and this says so rather
+/// Where a profile holds, `run` still boots no guest from an OCI image: that
+/// arrives with `TODO/machine.md` T-1656, and this says so rather
 /// than running something else. Either way the command cannot run, which is
 /// docker's 125. Under TCG the message states the boundary honestly: the
 /// emulator process, never hardware isolation.
@@ -137,7 +137,7 @@ pub fn enter_machine(verb: &str, mem: Option<u64>) -> i32 {
         Some(podvm_probe::machine::Profile::Full) => {
             eprintln!(
                 "podvm {verb}: the machine tier holds on this machine; running \
-                 a guest arrives with TODO/machine.md T-1303 and T-1304"
+                 an OCI image as a guest arrives with T-1656"
             );
             EXIT_RUNTIME_ERROR
         }
@@ -153,8 +153,8 @@ pub fn enter_machine(verb: &str, mem: Option<u64>) -> i32 {
             eprintln!(
                 "podvm {verb}: the machine tier runs TCG on this machine: \
                  the emulator process is the boundary, not hardware \
-                 isolation. {net}. Running a guest arrives with \
-                 TODO/machine.md T-1303 and T-1304"
+                 isolation. {net}. Running an OCI image as a guest \
+                 arrives with T-1656"
             );
             EXIT_RUNTIME_ERROR
         }
