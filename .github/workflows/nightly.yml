@@ -3,16 +3,24 @@ name: nightly
 # TODO/packaging.md T-1314. One tag builds and smoke-tests every supported arch.
 #
 # Nothing in gate.yml moves: that workflow answers pushes to main and pull
-# requests, and this one answers version tags alone. Every `v*` tag publishes
-# a pre-release named nightly with the seven static binaries and their hashes
-# beside it. Stable releases stay manual and are not designed here.
+# requests, and this one answers version tags alone. Each run on a `v*` tag
+# publishes a pre-release named nightly with the seven static binaries and
+# their hashes beside it. Stable releases stay manual and are not designed
+# here.
+#
+# TODO/packaging.md T-1671. release.yml starts this workflow: it creates the
+# tag, then dispatches this workflow on the tag. A tag push no longer starts
+# it. A run on the tag ref keeps the signing identity that podvm-verify
+# requires, `nightly.yml@refs/tags/TAG`, and the run that podvm-publish reads
+# (head branch TAG). A reusable workflow called from release.yml signs as
+# the ref of the caller, `refs/heads/main`, so this file is not one. An
+# operator can dispatch it on an existing tag to build that tag again.
 #
 # A tag that builds red publishes nothing: the publish job needs every matrix
 # leg, so one red arch skips the release instead of shipping six binaries.
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -57,9 +65,11 @@ jobs:
       # The tag names the workspace version, or the binary reports the
       # wrong release. v0.1.0-beta.11 published beta.10 bytes because the
       # manifest still read beta.10 (T-1423). No toolchain here: grep
-      # and test refuse before one arch builds anything.
+      # and test refuse before one arch builds anything. A dispatch on a
+      # branch refuses here too (T-1671): only a tag ref publishes.
       - name: the tag names the workspace version
         run: |
+          [ "$GITHUB_REF_TYPE" = tag ] || { echo "nightly: dispatch this workflow on a v* tag, not on the $GITHUB_REF_TYPE $GITHUB_REF_NAME" >&2; exit 1; }
           tag="${GITHUB_REF_NAME#v}"
           manifest="$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)"
           [ "$manifest" = "$tag" ] || { echo "nightly: tag v$tag does not match Cargo.toml version $manifest" >&2; exit 1; }

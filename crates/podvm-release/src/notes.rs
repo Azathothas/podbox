@@ -1,15 +1,18 @@
 //! release-notes: the nightly release notes TODO/packaging.md T-1334 needs.
 //!
-//! A behaviour-preserving port of scripts/release-notes.sh (T-1565). The
-//! script stays as a compat shim that execs this binary; the logic lives
-//! here. The notes carry the two facts a downloader otherwise cannot get:
-//! the gate state of the commit TAG names, and the reproducibility boundary
-//! of the bytes beside them. Both are computed, never copied.
+//! A port of scripts/release-notes.sh (T-1565). The script stays as a compat
+//! shim that execs this binary; the logic lives here. The notes carry the two
+//! facts a downloader otherwise cannot get: the gate state of the commit TAG
+//! names, and the reproducibility boundary of the bytes beside them. Both are
+//! computed, never copied. Before them, the notes carry the `CHANGELOG.md`
+//! section of the version that TAG names, read from the tagged commit
+//! (T-1671). Each entry heading of that section becomes a `## ` heading, so
+//! a `### Breaking` entry is `## Breaking` in the notes.
 //!
 //! Usage: release-notes TAG
 //!
-//! Exit: 0 the notes printed, 2 the exact-commit gate or required read is
-//! absent. `gh` and the network are required, so a machine without them is
+//! Exit: 0 the notes printed, 2 the exact-commit gate, the changelog
+//! section of the version, or a required read is absent. `gh` and the network are required, so a machine without them is
 //! exit 2: "could not run" is the third state, never a pass and never a
 //! failure.
 
@@ -17,6 +20,7 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::time::Duration;
 
+mod changelog;
 mod identity;
 
 fn run_to_string(prog: &str, args: &[&str], secs: u64) -> Option<(bool, String, String)> {
@@ -103,6 +107,24 @@ fn main() {
         eprintln!("release-notes: no successful main gate for the exact build commit");
         std::process::exit(2);
     }
+    // The changelog of the tagged commit, not of the working tree: the notes
+    // describe the bytes of TAG.
+    let version = tag.strip_prefix('v').unwrap_or(&tag);
+    let changelog = match run_to_string("git", &["show", &format!("{commit}:CHANGELOG.md")], 60) {
+        Some((true, stdout, _)) => stdout,
+        _ => {
+            eprintln!("release-notes: CHANGELOG.md of {commit} could not be read");
+            std::process::exit(2);
+        }
+    };
+    let Some(section) = changelog::release_section(&changelog, version) else {
+        eprintln!("release-notes: CHANGELOG.md of {commit} has no `## {version}` section");
+        std::process::exit(2);
+    };
+    println!("{section}");
+    println!();
+    println!("## Build");
+    println!();
     println!(
         "Nightly pre-release: seven static CLI binaries passed their architecture smoke checks."
     );

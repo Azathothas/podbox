@@ -536,7 +536,7 @@ dependencies = [
 
 [[package]]
 name = "podvm"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 dependencies = [
  "podvm-complete",
  "podvm-enter",
@@ -551,11 +551,11 @@ dependencies = [
 
 [[package]]
 name = "podvm-buildstate"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 
 [[package]]
 name = "podvm-complete"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 dependencies = [
  "pod-rootfs",
  "podvm-image",
@@ -565,7 +565,7 @@ dependencies = [
 
 [[package]]
 name = "podvm-enter"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 dependencies = [
  "pod-core",
  "pod-enter",
@@ -574,7 +574,7 @@ dependencies = [
 
 [[package]]
 name = "podvm-extract"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 dependencies = [
  "pod-core",
  "pod-extract",
@@ -584,11 +584,11 @@ dependencies = [
 
 [[package]]
 name = "podvm-gate"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 
 [[package]]
 name = "podvm-image"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 dependencies = [
  "pod-core",
  "pod-hostprobe",
@@ -607,22 +607,22 @@ dependencies = [
 
 [[package]]
 name = "podvm-measure"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 
 [[package]]
 name = "podvm-probe"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 dependencies = [
  "pod-hostprobe",
 ]
 
 [[package]]
 name = "podvm-release"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 
 [[package]]
 name = "podvm-ssh"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 dependencies = [
  "base64",
  "pod-proxy",
@@ -635,7 +635,7 @@ dependencies = [
 
 [[package]]
 name = "podvm-supervise"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 dependencies = [
  "pod-core",
  "pod-supervise",
@@ -648,7 +648,7 @@ dependencies = [
 
 [[package]]
 name = "podvm-windows"
-version = "0.1.0-beta.13"
+version = "0.2.0-beta.1"
 dependencies = [
  "pod-guest",
 ]

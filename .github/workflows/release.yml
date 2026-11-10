@@ -1,0 +1,165 @@
+name: release
+
+# TODO/packaging.md T-1671. A dispatch of this workflow releases one version.
+# A cloud session cannot push a tag, so this workflow creates it.
+#
+#   gh workflow run release.yml --ref main -f version=0.2.0-beta.1
+#
+# The job `check` refuses before any write: the dispatch is on main, the
+# input names the workspace version, CHANGELOG.md has a section for it, the
+# tag does not exist, and the gate on the commit is green. The job `release`
+# creates the annotated tag on the dispatched commit, then dispatches
+# nightly.yml on the tag and waits for that run.
+#
+# A tag that GITHUB_TOKEN pushes starts no workflow, but a workflow_dispatch
+# that GITHUB_TOKEN sends does. nightly.yml is not a reusable workflow: a
+# called workflow signs with the ref of its caller (`refs/heads/main`), and
+# podvm-verify requires `nightly.yml@refs/tags/TAG`. The dispatch on the tag
+# keeps that identity, and podvm-publish finds the run by its head branch.
+#
+# This run ends green only when the nightly run ends green and the release
+# has each binary of the matrix with its hash and its signature bundle.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The version to release, without the v (for example 0.2.0-beta.1)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: check the version, the changelog, the tag and the gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The input goes through the environment, never into the script text.
+      - name: the input names the workspace version and a changelog section
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          [ "$GITHUB_REF" = refs/heads/main ] || { echo "release: dispatch on main, not on $GITHUB_REF" >&2; exit 1; }
+          printf '%s\n' "$VERSION" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?' || { echo "release: the version $VERSION is not N.N.N or N.N.N-beta.N" >&2; exit 1; }
+          manifest="$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)"
+          [ "$manifest" = "$VERSION" ] || { echo "release: the input $VERSION does not match Cargo.toml version $manifest" >&2; exit 1; }
+          # The rule of release-notes (crates/podvm-release/src/changelog.rs):
+          # the first two words of the heading are `##` and the version.
+          awk -v v="$VERSION" '$1 == "##" && $2 == v { found = 1 } END { exit !found }' CHANGELOG.md || { echo "release: CHANGELOG.md has no '## $VERSION' section" >&2; exit 1; }
+
+      - name: the tag does not exist
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          refs="$(git ls-remote --tags origin "refs/tags/v$VERSION")"
+          [ -z "$refs" ] || { echo "release: the tag v$VERSION exists: $refs" >&2; exit 1; }
+
+      # The same read as release-notes in the publish job of nightly.yml: the
+      # newest completed gate run on main for this commit. Without a green
+      # gate the publish job refuses, so this check refuses before the tag.
+      - name: the gate on the commit is green
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gate="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow gate.yml --branch main --status completed --limit 20 \
+            --json headSha,conclusion,url \
+            --jq "[.[] | select(.headSha == \"$GITHUB_SHA\")][0] | \"\(.conclusion // \"none\") \(.url // \"\")\"")"
+          echo "gate on $GITHUB_SHA: $gate"
+          case "$gate" in
+            "success "*) ;;
+            *) echo "release: no successful gate run on main for $GITHUB_SHA" >&2; exit 1 ;;
+          esac
+
+  release:
+    name: tag, build, sign and publish
+    needs: check
+    runs-on: ubuntu-latest
+    # nightly.yml: 60 minutes for the build legs and 15 for publish, and
+    # time in the queue.
+    timeout-minutes: 150
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # An annotated tag, as each earlier release tag. A re-run of this job
+      # accepts the tag where it already names this commit, and refuses
+      # where it names another one.
+      - name: create the tag on the dispatched commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          tag="v$VERSION"
+          if [ -n "$(git ls-remote --tags origin "refs/tags/$tag")" ]; then
+            commit="$(gh api "repos/$GITHUB_REPOSITORY/commits/$tag" --jq .sha)"
+            [ "$commit" = "$GITHUB_SHA" ] || { echo "release: $tag names $commit, not $GITHUB_SHA" >&2; exit 1; }
+            echo "release: $tag already names $GITHUB_SHA"
+            exit 0
+          fi
+          object="$(gh api "repos/$GITHUB_REPOSITORY/git/tags" -f tag="$tag" -f message="podvm $tag" \
+            -f object="$GITHUB_SHA" -f type=commit --jq .sha)"
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$object" --jq .ref
+          echo "release: $tag names $GITHUB_SHA (tag object $object)"
+
+      # A re-run of this job finds the nightly run of the first attempt and
+      # waits for it; it does not start a second one. To repeat a red
+      # nightly run, re-run that run, then re-run this job.
+      - name: dispatch nightly.yml on the tag and wait for it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          tag="v$VERSION"
+          find_run() {
+            gh run list --repo "$GITHUB_REPOSITORY" --workflow nightly.yml --event workflow_dispatch \
+              --branch "$tag" --limit 5 --json databaseId,headSha \
+              --jq "[.[] | select(.headSha == \"$GITHUB_SHA\")][0].databaseId // empty"
+          }
+          run="$(find_run)"
+          if [ -z "$run" ]; then
+            gh workflow run nightly.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
+            # The dispatch returns before the run exists. Bounded: 20 reads, 15 s apart.
+            for _ in $(seq 1 20); do
+              sleep 15
+              run="$(find_run)"
+              [ -z "$run" ] || break
+            done
+          fi
+          [ -n "$run" ] || { echo "release: no nightly run started on $tag" >&2; exit 1; }
+          echo "release: nightly run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run"
+          gh run watch "$run" --repo "$GITHUB_REPOSITORY" --interval 60 --exit-status > /dev/null
+          gh run view "$run" --repo "$GITHUB_REPOSITORY"
+
+      # The arches come from the matrix of nightly.yml, as podvm-publish
+      # reads them, so this list cannot drift from the build.
+      - name: the release has each binary with its hash and signature
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          tag="v$VERSION"
+          assets="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          arches="$(sed -n 's/^ *- arch: *//p' .github/workflows/nightly.yml)"
+          [ -n "$arches" ] || { echo "release: no arch in nightly.yml" >&2; exit 1; }
+          missing=0
+          for arch in $arches; do
+            for name in "podvm-$arch" "podvm-$arch.sha256" "podvm-$arch.sigstore"; do
+              printf '%s\n' "$assets" | grep -qx "$name" || { echo "release: $tag has no $name" >&2; missing=1; }
+            done
+          done
+          [ "$missing" = 0 ]
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json body --jq .body

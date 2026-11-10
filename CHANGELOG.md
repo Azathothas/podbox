@@ -6,13 +6,15 @@ Earlier repository change records are retained in
 [the captured changelog](docs/history/CHANGELOG.md-before-2026-09-30.txt).
 They describe their recorded revision, not the current build.
 
-## Unreleased
+## 0.2.0-beta.1 (2026-11-10)
 
-### Breaking: podbox is podvm, 2026-11-06
+### Breaking: podbox is podvm, 2026-11-10
 
 Record: the owner's ruling of 2026-11-05, a clean break with no
-compatibility with the released binaries; commit `rename: podbox is podvm`.
-Deployed: not deployed; no release carries it yet.
+compatibility with the released binaries; commit `98112cb`
+(`rename: podbox is podvm`, 2026-11-06); T-1671.
+Deployed: version 0.2.0-beta.1 is the first release with the name podvm.
+The version moves to 0.2 because the rename breaks each caller.
 
 - The binary is `podvm`, not `podbox`, and there is no `podbox` alias.
   The crates are `podvm` (was `podbox-cli`), `podvm-probe`, `podvm-image`,
@@ -41,6 +43,74 @@ Deployed: not deployed; no release carries it yet.
   their signing identity, the nightly workflow of `Azathothas/podbox`;
   `podvm-verify` checks each tag against the identity it was published
   under.
+- The repository is `PodUtils/podvm`. From this release, the assets are
+  `podvm-ARCH` and `podvm-ssh-ARCH.tar.gz`, and the nightly workflow of
+  `PodUtils/podvm` at the tag signs each one.
+
+### Security: a layer whiteout cannot delete outside the rootfs, 2026-11-10
+
+Record: T-1698; commit `c89b769`.
+Deployed: version 0.2.0-beta.1. Each earlier podbox and podvm release has
+the defect.
+
+- A whiteout entry of an image layer skipped the path check that every
+  other layer entry gets. A whiteout of `..` at the root of a layer
+  deleted the contents of the directory above the destination. On a
+  kernel with no `openat2`, `../.wh.NAME` reached past the destination.
+  Thus a crafted image could delete files outside its rootfs.
+- Now podvm refuses such a layer, and the refusal names the layer digest
+  and the entry. Do not pull an image that you do not trust with an
+  earlier release.
+
+### Fixed, 2026-11-10
+
+Record: the task and the issue on each line, done on 2026-11-09 and
+2026-11-10.
+Deployed: version 0.2.0-beta.1.
+
+- A foreground run sometimes exited 0 with no output. podvm closed the
+  saved standard output before its copy thread wrote the last bytes. Each
+  rung had the defect. T-1700, commit `72523d7`.
+- npm can find its modules on the loader family. The interposer now sends
+  a raw `syscall` of a path through the path table, because libuv calls
+  `statx` that way. The `mkstemp` family keeps the guest name. T-1697,
+  T-1699, T-1701.
+- A payload larger than 128 MiB runs: podvm reads a bounded head to
+  classify it and stages it in bounded parts. Before, podvm refused
+  `node:alpine` and other large runtimes. T-1647, #90.
+- On the loader family, `-v HOST:GUEST` and `-v HOST:GUEST:rw` work with
+  no mount and no `/dev/fuse`. podvm refuses `:ro`, named volumes and the
+  other rungs by name. T-1653 (partial), #130.
+- On a host that denies `chroot`: a relative path gets the rootfs prefix
+  once; a glibc payload is admitted against its full `NEEDED` closure,
+  read inside the rootfs; `dlopen` and `dlmopen` load guest objects; and a
+  dynamic child program runs through the image's loader. T-1643 to T-1646,
+  #86 to #89, #127 to #129, #131.
+- A static payload on a host that denies `chroot` refuses at exit 125 and
+  names the opt-in `--unsafe-host-paths`. Before, a static Go payload ran
+  into a `GOROOT` error. T-1648, #91.
+- A `#!` payload runs its interpreter from the image, and `--strict` knows
+  the capability gaps of the loader family. T-1649, T-1650, #92, #93.
+- `doctor` measures whether a memfd can execute and names
+  `vm.memfd_noexec`; the disk-free row reads the soft `RLIMIT_FSIZE`. The
+  probe remedy agrees with its stance. `stop -t 0` sends SIGKILL at once.
+  The `windows --podvm-mem` row states what the verb does. README and
+  SECURITY name `v0.1.0-beta.13` as the last podbox release. T-1688 to
+  T-1693, #212 to #217.
+
+### Changed, 2026-11-10
+
+Record: T-1681, T-1677, T-1669, T-1671; the commits `deps: podcrates ...`.
+Deployed: version 0.2.0-beta.1.
+
+- podvm takes the shared crates of `PodUtils/podcrates` at tag `v0.11.0`:
+  `pod-hostprobe`, `pod-tls`, `pod-proxy`, `pod-term`, `pod-supervise`,
+  `pod-guest`, `pod-enter`, `pod-oci`, `pod-extract` and `pod-rootfs`.
+  Each HTTP request goes through `pod-proxy`, and `ureq` is gone.
+- The workspace builds with Rust 1.99 and edition 2024.
+- A release starts from the dispatched workflow `release.yml`, which
+  creates the tag and then starts the nightly workflow on it. A pushed tag
+  no longer starts a release.
 
 ## 0.1.0-beta.13
 
