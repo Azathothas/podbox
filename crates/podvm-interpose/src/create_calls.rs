@@ -305,79 +305,82 @@ pub unsafe extern "C" fn symlinkat(
     unsafe { f(tp, newdirfd, lp) }
 }
 
-/// A `mk*` template is rewritten in place, because the caller reads the
-/// chosen name back out of the same buffer.
-///
-/// ⛔ The mapped name lands only where it fits in the bytes the template
-/// already occupies. Writing past them would overflow a buffer whose size
-/// the caller never states, so a longer mapping is `ERANGE` rather than a
-/// truncation. That is T-0705's decision, applied early.
-unsafe fn place_template(what: &[u8], template: *mut c_char, rewritten: *const c_char) -> bool {
-    let mut n = 0usize;
-    while n < crate::map::OUT {
-        if unsafe { *(rewritten as *const u8).add(n) } == 0 {
-            break;
-        }
-        n += 1;
-    }
-    let mut cap = 0usize;
-    while cap < crate::map::OUT {
-        if unsafe { *(template as *const u8).add(cap) } == 0 {
-            break;
-        }
-        cap += 1;
-    }
-    if n > cap {
-        crate::say::line(&[what, b": the mapped name does not fit the template"]);
-        set_errno(ERANGE);
-        return false;
-    }
-    unsafe {
-        core::ptr::copy_nonoverlapping(rewritten as *const u8, template as *mut u8, n + 1);
-    }
-    true
-}
+/// The length of the `X` run that `mk*temp` replaces. glibc and musl both
+/// require exactly six `X` at the end of the template.
+const X_RUN: usize = 6;
 
-/// Rewrite `template` through the table where it matches, leaving it alone
-/// where it does not. Returns the pointer to call with, or null on failure.
-pub(super) unsafe fn map_template(
+/// Run one `mk*temp` call on a mapped copy of `template`, T-1699.
+///
+/// ⭐ The real call gets a mapped copy in `out`, so the file lands in the
+/// rootfs. After a success, this writes back only the chosen `X` run into
+/// the caller's template. The caller's buffer thus keeps a guest name of its
+/// own length, and no host path goes back to the payload. This replaces the
+/// T-0705 rule of 2026-09-22, which wrote the mapped name into the caller's
+/// buffer and answered `ERANGE` when the mapped name was longer.
+///
+/// ⛔ A template whose last six bytes are not `X` answers `EINVAL`, as libc
+/// does. The check runs on the guest template, because normalisation of the
+/// mapped copy can remove a trailing slash that libc would refuse. A mapped
+/// path past the stack buffer answers `ENAMETOOLONG`, never a truncation.
+///
+/// `ok` tells a success of the real call from a failure, and `fail` is the
+/// answer when the call does not run.
+///
+/// # Safety
+/// `template` must be null or a writable NUL-terminated string, which is
+/// the payload's own contract for `mk*temp`.
+pub(super) unsafe fn on_template<R: Copy>(
     what: &[u8],
     template: *mut c_char,
-    out: &mut [u8; crate::map::OUT],
-) -> *mut c_char {
+    fail: R,
+    ok: impl Fn(R) -> bool,
+    call: impl FnOnce(*mut c_char) -> R,
+) -> R {
     if template.is_null() {
-        return template;
+        return call(template);
     }
     let t = unsafe { crate::map::table() };
     if t.n == 0 {
-        return template;
+        return call(template);
     }
     let n = crate::map::strnlen(template, crate::map::OUT);
     if n >= crate::map::OUT {
-        return template;
+        return call(template);
     }
     // Templates are relative to the working directory by construction.
     let mut abs = [0u8; crate::map::OUT];
     if unsafe { crate::map::absolutize(&t, crate::map::AT_FDCWD, template, &mut abs) } < 0 {
         crate::say::line(&[what, b": podvm cannot resolve the path, so the call fails"]);
         set_errno(2);
-        return core::ptr::null_mut();
+        return fail;
     }
     let abs_n = crate::map::strnlen(abs.as_ptr() as *const c_char, crate::map::OUT);
-    match unsafe { crate::map::rewrite(&t, abs.as_ptr(), abs_n, out) } {
-        -1 => template,
+    let mut out = [0u8; crate::map::OUT];
+    let m = match unsafe { crate::map::rewrite(&t, abs.as_ptr(), abs_n, &mut out) } {
+        -1 => return call(template),
         -2 => {
             crate::say::line(&[what, b": the mapped path does not fit"]);
             set_errno(ENAMETOOLONG);
-            core::ptr::null_mut()
+            return fail;
         }
-        _ => {
-            if !unsafe { place_template(what, template, out.as_ptr() as *const c_char) } {
-                return core::ptr::null_mut();
-            }
-            template
-        }
+        m => m as usize,
+    };
+    let guest = unsafe { core::slice::from_raw_parts_mut(template as *mut u8, n) };
+    if n < X_RUN || m < X_RUN || !x_run(&guest[n - X_RUN..]) || !x_run(&out[m - X_RUN..m]) {
+        set_errno(EINVAL);
+        return fail;
     }
+    // `rewrite` writes no NUL, and `out` starts zeroed with `m < OUT`.
+    let r = call(out.as_mut_ptr() as *mut c_char);
+    if ok(r) {
+        guest[n - X_RUN..].copy_from_slice(&out[m - X_RUN..m]);
+    }
+    r
+}
+
+/// Are all bytes of `s` the template letter `X`?
+fn x_run(s: &[u8]) -> bool {
+    s.iter().all(|&b| b == b'X')
 }
 
 /// # Safety
@@ -388,12 +391,7 @@ pub unsafe extern "C" fn mkstemp(template: *mut c_char) -> c_int {
         set_errno(EINVAL);
         return -1;
     };
-    let mut buf = [0u8; crate::map::OUT];
-    let t = unsafe { map_template(b"mkstemp", template, &mut buf) };
-    if t.is_null() {
-        return -1;
-    }
-    unsafe { f(t) }
+    unsafe { on_template(b"mkstemp", template, -1, |fd| fd >= 0, |t| f(t)) }
 }
 
 /// # Safety
@@ -404,10 +402,5 @@ pub unsafe extern "C" fn mkostemp(template: *mut c_char, flags: c_int) -> c_int 
         set_errno(EINVAL);
         return -1;
     };
-    let mut buf = [0u8; crate::map::OUT];
-    let t = unsafe { map_template(b"mkostemp", template, &mut buf) };
-    if t.is_null() {
-        return -1;
-    }
-    unsafe { f(t, flags) }
+    unsafe { on_template(b"mkostemp", template, -1, |fd| fd >= 0, |t| f(t, flags)) }
 }

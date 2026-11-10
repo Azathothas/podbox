@@ -1,0 +1,72 @@
+# T-1699 drive: `mkostemp` of a mapped template, and node's compile cache.
+# Run by hand on the chroot-denying fixture: unshare -Urm, a tmpfs over
+# /dev/pts, and experiments/deny-chroot.c (chroot(2) answers EPERM), as
+# experiments/356-no-chroot-rung.sh builds it. The image comes from
+# mirror.gcr.io: Docker Hub and public.ecr.aws answer HTTP 429 on this
+# host. The scratch home is written as $STORE.
+#
+# Each command runs under:
+#   unshare -Urm sh $STORE/wrap.sh $STORE <podvm> run --rm ...
+# podvm enters the userland rung (the banner says mode=userland), and
+# PODVM_MAPS=/:$STORE/rootfs/<id>/rootfs maps each guest path.
+#
+# BEFORE is the debug binary of f8514b2, with the interposer of that tree
+# (sh scripts/build-interpose.sh, then cargo build -p podvm). AFTER is
+# the same tree with the T-1699 change: crates/podvm-interpose/src/
+# create_calls.rs runs the real mk*temp on a mapped copy of the template
+# and writes back only the six chosen characters into the guest template.
+
+== conditions
+date              2026-11-10T05:11:15Z
+host kernel       Linux 6.18.44-fc-v338
+podvm             podvm 0.1.0-beta.13
+node              mirror.gcr.io/library/node:22-alpine sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202 (npm 10.9.9)
+fixture           unshare -Urm + experiments/deny-chroot.c (static, chroot(2) answers EPERM)
+rung              mode=userland (namespaces: uts-only; mounts: none; devices: shimmed)
+
+######## BEFORE: podvm of f8514b2
+
+== npm --version
+command           run --rm --verbose mirror.gcr.io/library/node:22-alpine npm --version
+exit              0
+mkostemp lines    69
+first line        podvm: interpose: mkostemp: the mapped name does not fit the template
+stdout            10.9.9
+
+== the cache, inside one container
+command           run --rm mirror.gcr.io/library/node:22-alpine sh -c 'npm --version; find /tmp/node-compile-cache -type f | wc -l; npm --version; find ... | wc -l'
+exit              0
+mkostemp lines    138 (69 for each npm run)
+stdout            10.9.9
+                  cache files after one run: 0
+                  cache files after two runs: 0
+
+######## AFTER: podvm of f8514b2 with the T-1699 change
+
+== npm --version
+command           run --rm --verbose mirror.gcr.io/library/node:22-alpine npm --version
+exit              0
+mkostemp lines    0
+stdout            10.9.9
+
+== the cache, inside one container
+command           as BEFORE
+exit              0
+mkostemp lines    0
+stdout            10.9.9
+                  cache files after one run: 69
+                  cache files after two runs: 69
+                  (entries such as /tmp/node-compile-cache/<version>/0535d717)
+
+# Result: AFTER prints no mkostemp line and exits 0. The 69 entries land
+# in the rootfs, and the second npm run reads them and writes no new
+# entry. The host /tmp/node-compile-cache did not change in either run
+# (its newest entry is older than the two binaries).
+#
+# The interposer tests (cargo test --manifest-path
+# crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu)
+# hold the same rule:
+#   tests::mkostemp_creates_in_the_rootfs_and_keeps_the_guest_name
+#   tests::mkdtemp_answers_the_guest_template_and_refuses_no_x_run
+# Both fail on the BEFORE source (ERANGE, "the mapped name does not fit
+# the template") and pass on AFTER.

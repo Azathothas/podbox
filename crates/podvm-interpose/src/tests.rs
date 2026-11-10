@@ -301,3 +301,106 @@ fn dlopen_loads_a_mapped_object_by_its_guest_path() {
         "dlmopen of the guest path in the base namespace"
     );
 }
+
+type MkostempFn = unsafe extern "C" fn(*mut c_char, c_int) -> c_int;
+type MkdtempFn = unsafe extern "C" fn(*mut c_char) -> *mut c_char;
+
+/// A rootfs whose path is longer than each guest template below, so the
+/// mapped name does not fit the template that the payload gives.
+fn deep_rootfs(tag: &str) -> std::path::PathBuf {
+    let mut dir = std::env::temp_dir().join(format!("podvm-{tag}-{}", std::process::id()));
+    for _ in 0..4 {
+        dir.push("a-deep-rootfs-directory-name");
+    }
+    std::fs::create_dir_all(dir.join("tmp")).expect("rootfs");
+    dir
+}
+
+/// The guest name in `buf` up to its NUL.
+fn guest_name(buf: &[u8]) -> &str {
+    let n = buf.iter().position(|&b| b == 0).expect("NUL");
+    std::str::from_utf8(&buf[..n]).expect("utf-8")
+}
+
+/// T-1699: `mkostemp` of a guest template in a deep rootfs creates the
+/// file in the rootfs. The buffer keeps a guest name of its own length,
+/// and its `X` run names the created file. The old T-0705 rule answered
+/// `ERANGE` here, because the mapped name is longer than the template.
+#[test]
+fn mkostemp_creates_in_the_rootfs_and_keeps_the_guest_name() {
+    const GUEST: &str = "/podvm-t1699-guest";
+    let root = deep_rootfs("t1699");
+    let template = format!("{GUEST}/tmp/entry-XXXXXX");
+    assert!(root.as_os_str().len() > GUEST.len(), "the fixture is deep");
+    let mut buf = template.clone().into_bytes();
+    buf.push(0);
+    let f: MkostempFn = lookup(RTLD_DEFAULT, "mkostemp");
+    // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+    unsafe { std::env::set_var("PODVM_MAPS", format!("{GUEST}:{}", root.display())) };
+    clear_errno();
+    let fd = unsafe { f(buf.as_mut_ptr() as *mut c_char, 0) };
+    let e = errno();
+    // SAFETY: as above.
+    unsafe { std::env::remove_var("PODVM_MAPS") };
+    assert!(fd >= 0, "mkostemp answers a descriptor, errno {e}");
+    let got = guest_name(&buf).to_string();
+    assert_eq!(got.len(), template.len(), "the guest name keeps its length");
+    let run = &got[template.len() - 6..];
+    assert_eq!(&got[..template.len() - 6], &template[..template.len() - 6]);
+    assert_ne!(run, "XXXXXX", "the X run is replaced");
+    let file = root.join("tmp").join(format!("entry-{run}"));
+    assert!(
+        file.is_file(),
+        "the file is in the rootfs: {}",
+        file.display()
+    );
+    let mut st = std::fs::File::from(unsafe {
+        <std::os::fd::OwnedFd as std::os::fd::FromRawFd>::from_raw_fd(fd)
+    });
+    std::io::Write::write_all(&mut st, b"cache").expect("write");
+    assert_eq!(
+        std::fs::read(&file).expect("read"),
+        b"cache",
+        "fd and file agree"
+    );
+    std::fs::remove_dir_all(
+        std::env::temp_dir().join(format!("podvm-t1699-{}", std::process::id())),
+    )
+    .ok();
+}
+
+/// T-1699: `mkdtemp` makes the directory in the rootfs and answers the
+/// caller's own buffer with a guest name. A template with no `X` run
+/// answers `EINVAL`, as libc does, also where the mapped copy loses its
+/// trailing slash to normalisation and would end in six `X`.
+#[test]
+fn mkdtemp_answers_the_guest_template_and_refuses_no_x_run() {
+    const GUEST: &str = "/podvm-t1699d-guest";
+    let root = deep_rootfs("t1699d");
+    let template = format!("{GUEST}/tmp/dir-XXXXXX");
+    let mut buf = template.clone().into_bytes();
+    buf.push(0);
+    let mut bad = format!("{GUEST}/tmp/dir-XXXXXX/").into_bytes();
+    bad.push(0);
+    let f: MkdtempFn = lookup(RTLD_DEFAULT, "mkdtemp");
+    // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
+    unsafe { std::env::set_var("PODVM_MAPS", format!("{GUEST}:{}", root.display())) };
+    let r = unsafe { f(buf.as_mut_ptr() as *mut c_char) };
+    clear_errno();
+    let r_bad = unsafe { f(bad.as_mut_ptr() as *mut c_char) };
+    let e_bad = errno();
+    // SAFETY: as above.
+    unsafe { std::env::remove_var("PODVM_MAPS") };
+    assert_eq!(r, buf.as_mut_ptr() as *mut c_char, "the caller's buffer");
+    let got = guest_name(&buf).to_string();
+    assert_eq!(got.len(), template.len());
+    let run = &got[template.len() - 6..];
+    assert_ne!(run, "XXXXXX");
+    assert!(root.join("tmp").join(format!("dir-{run}")).is_dir());
+    assert!(r_bad.is_null(), "no X run is refused");
+    assert_eq!(e_bad, EINVAL);
+    std::fs::remove_dir_all(
+        std::env::temp_dir().join(format!("podvm-t1699d-{}", std::process::id())),
+    )
+    .ok();
+}

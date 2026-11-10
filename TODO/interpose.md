@@ -2395,11 +2395,11 @@ at ENOENT.
 ### T-1699 `mkostemp` of a mapped template answers ERANGE, and npm prints a line for each cache entry
 
 Source:      T-1697 (its drive of 2026-11-10);
-             `crates/podvm-interpose/src/create_calls.rs:343`; T-0705
+             `crates/podvm-interpose/src/create_calls.rs:332`; T-0705
 Category:    interpose
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     On the userland rung, each npm run prints many lines of
              "podvm: interpose: mkostemp: the mapped name does not fit the
@@ -2425,5 +2425,47 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              name in the buffer, and `npm --version` on the
              chroot-denying fixture prints no mkostemp line.
 
+**Done 2026-11-10.** `on_template` (`create_calls.rs`) maps the
+template into a buffer the interposer owns, runs the real `mk*temp` on
+the copy, and writes back only the six chosen characters into the
+caller's guest template; `mkstemp`, `mkostemp` and `mkdtemp` use it, and
+`mkdtemp` returns the caller's own buffer. A template whose last six bytes
+are not `X` answers EINVAL, as libc does. The interposer tests exit 0 (67
+passed) with `mkostemp_creates_in_the_rootfs_and_keeps_the_guest_name`
+and `mkdtemp_answers_the_guest_template_and_refuses_no_x_run`; both fail
+with the old rule. [The drive](../experiments/results/mkostemp-1699.txt)
+on the chroot-denying fixture: `npm --version` exits 0 and prints no
+mkostemp line (69 before), and node's compile cache holds 69 entries after
+one run (0 before); the host's `/tmp/node-compile-cache` does not change.
+
 **Filed 2026-11-10.** Found by the drive of T-1697.
+
+### T-1701 `mkstemp64`, `mkostemp64`, `mkstemps` and `mkostemps` pass the path table
+
+Source:      T-1699 (its review of 2026-11-10);
+             `crates/podvm-interpose/src/create_calls.rs:332`
+Category:    interpose
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     The interposer exports `mkstemp`, `mkostemp` and `mkdtemp`
+             only. A glibc program built with `_FILE_OFFSET_BITS=64` calls
+             `mkstemp64` and `mkostemp64`, and a program that needs a
+             suffix calls `mkstemps` or `mkostemps`. Each of these
+             resolves its template on the host, past the path table.
+Premise:     `on_template` already maps a template and writes back the
+             chosen characters; the suffix forms put the `X` run before
+             the suffix of the given length.
+Approach:    Export the four names through `on_template`, with the X run
+             found before the suffix for the `s` forms, and add them to
+             `interpose.map` with the export comparison and the size
+             ceiling.
+Decision:    Each libc entry point that takes a path goes through the
+             table, or it is named as a gap.
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+             exits 0 with a test for each of the four names in a deep
+             rootfs, and the built objects export them.
+
+**Filed 2026-11-10.** Found by the work on T-1699.
 
