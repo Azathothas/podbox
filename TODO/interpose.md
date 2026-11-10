@@ -2485,3 +2485,42 @@ The interposer tests exit 0 (69 passed) with
 
 **Filed 2026-11-10.** Found by the work on T-1699.
 
+### T-1703 The exec routes that T-1646 does not take still enter through the host
+
+Source:      T-1646 (its Done record); T-1650 (the capability gap);
+             `crates/podvm/src/complete/capability.rs:42`
+Category:    interpose
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     On the userland rung a child that the payload starts through
+             `fexecve`, through `execveat` with flags, or through
+             `system()` or `popen()` inside libc, or a child ELF of another
+             machine, does not enter through the image's loader: the
+             kernel reads its loader or its `#!` interpreter on the host
+             root. `--strict` names it as a capability gap and warns,
+             because podvm cannot tell from the argv.
+Premise:     T-1646 routes `execve`, `execv*`, `execle`, the `p` forms and
+             `posix_spawn*` through the image's loader. `system()` and
+             `popen()` call `posix_spawn` inside libc, past the preload.
+             `fexecve` uses `execveat` with `AT_EMPTY_PATH`, which the
+             exec family keeps on the old path.
+Approach:    Route `fexecve` and `execveat` with flags by reading the
+             descriptor's head as T-1646 reads a path. For `system()` and
+             `popen()`, export them and run `/bin/sh` through the routed
+             spawn. A foreign ELF stays a refusal by name. The gap leaves
+             the list of T-1650 for each route that this entry closes.
+Decision:    Each route that runs a payload's child is either routed or
+             named as a gap; none passes quietly.
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+             exits 0 with a test for each route, and a drive on the
+             chroot-denying fixture runs a child through `system()` and
+             through `fexecve` from the image at 0.
+
+**Filed 2026-11-10.** T-1646 closed with these routes named as a gap of
+T-1650; the gap needs an open owner, and the test
+`each_listed_gap_names_an_entry_that_is_not_done` holds that rule. The
+gate run 42771484085 at `36b15ec` failed on it, because dfb93ba closed
+T-1646 and left the gap under it.
+

@@ -39,12 +39,12 @@ pub struct GapDef {
 /// The open gaps of the loader family, as of the entries they name.
 pub const LOADER_GAPS: &[GapDef] = &[
     GapDef {
-        entry: "T-1646",
+        entry: "T-1703",
         text: "a child that the payload starts through fexecve, through execveat \
                with flags, or through system() or popen() inside libc, or a child \
                ELF of another machine, does not enter through the image's loader: \
                the kernel reads its loader or its #! interpreter on the host root \
-               (TODO/interpose.md T-1646)",
+               (TODO/interpose.md T-1703)",
         probe: Probe::Unknown,
     },
     GapDef {

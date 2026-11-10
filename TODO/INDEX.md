@@ -376,10 +376,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1700](enter.md) | P1 | enter | done | A run on the userland rung sometimes exits 0 with no output |
 | [T-1701](interpose.md) | P2 | interpose | done | `mkstemp64`, `mkostemp64`, `mkstemps` and `mkostemps` pass the path table |
 | [T-1702](machine.md) | P2 | machine | done | The TCG guest of `podvm-workload` prints no console byte in 600 s on the cloud host |
+| [T-1703](interpose.md) | P2 | interpose | open | The exec routes that T-1646 does not take still enter through the host |
 
 ## Counts
 
-311 items: 26 open, 10 partial, 4 blocked, 271 done.
+312 items: 27 open, 10 partial, 4 blocked, 271 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -389,9 +390,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 8 | 0 | 128 | 137 |
-| P2 | 25 | 1 | 4 | 70 | 100 |
+| P2 | 26 | 1 | 4 | 70 | 101 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **26** | **10** | **4** | **271** | **311** |
+| **All** | **27** | **10** | **4** | **271** | **312** |
 
 ## Work order
 

@@ -690,7 +690,7 @@ grep -qx "etc" "$WORK/out-fx-node-execsync.txt" || { echo "node execSync('ls /')
 # each. T-1646 routes the shell grandchild, so issue 93's command runs.
 step fx-strict-ls 0 $FX "$PB" run --rm --strict "$ALPINE" /bin/sh -c '/bin/ls /'
 grep -qx "etc" "$WORK/out-fx-strict-ls.txt" || { echo "--strict sh -c '/bin/ls /' did not list /" >>"$REPORT"; fail=1; }
-grep -q "strict warning \[capability\].*T-1646" "$WORK/out-fx-strict-ls.txt" || { echo "--strict did not warn on the T-1646 gap" >>"$REPORT"; fail=1; }
+grep -q "strict warning \[capability\].*T-1703" "$WORK/out-fx-strict-ls.txt" || { echo "--strict did not warn on the T-1703 gap" >>"$REPORT"; fail=1; }
 step fx-strict-echo 0 $FX "$PB" run --rm --strict "$ALPINE" /bin/echo hi
 grep -qx "hi" "$WORK/out-fx-strict-echo.txt" || { echo "--strict /bin/echo hi did not print" >>"$REPORT"; fail=1; }
 step fx-strict-static "$RUN_ERR" $FX "$PB" run --rm --strict script-alpine:1 /bin/sh -c '/hello'

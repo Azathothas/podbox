@@ -71,7 +71,7 @@ fn a_static_head_is_told_from_its_program_headers() {
 }
 
 /// The gaps of the loader family for one payload: a static program that
-/// a `-c` string runs hits T-1652, a dynamic one does not, and T-1646
+/// a `-c` string runs hits T-1652, a dynamic one does not, and T-1703
 /// cannot be told from the argv.
 #[test]
 fn the_loader_gaps_name_their_entries_and_their_hits() {
@@ -89,7 +89,7 @@ fn the_loader_gaps_name_their_entries_and_their_hits() {
         &path,
     );
     let entries: Vec<_> = gaps.iter().map(|g| g.entry).collect();
-    assert_eq!(entries, vec!["T-1646", "T-1652"]);
+    assert_eq!(entries, vec!["T-1703", "T-1652"]);
     assert!(gaps[0].hit.is_none());
     assert!(
         gaps[1].hit.as_deref().unwrap().contains("`stat`"),
@@ -116,7 +116,7 @@ fn strict_refuses_a_capability_gap_that_the_payload_hits() {
         hit: hit.map(str::to_string),
     };
     let warned = StrictCtx {
-        gaps: vec![gap("T-1646", None)],
+        gaps: vec![gap("T-1703", None)],
         ..StrictCtx::default()
     };
     let strict = Ask {
