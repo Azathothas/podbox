@@ -117,4 +117,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #220 | COORD-014: podvm took v0.9.0, pod-guest and pod-enter (to podcrates) | closed | T-1681 |
 | #221 | COORD-015: the whiteout escape is fixed in podvm-extract (T-1698) (to podcrates) | open | T-1698 |
 | #222 | COORD-016: pod-enter: classify and stage a payload over 128 MiB (T-1647) (to podcrates) | open | T-1647 |
-| #223 | COORD-017: podvm took v0.10.0 and pod-oci (to podcrates) | open | T-1681 |
+| #223 | COORD-017: podvm took v0.10.0 and pod-oci (to podcrates) | closed | T-1681 |

@@ -112,4 +112,4 @@
 220 issue closed
 221 issue open
 222 issue open
-223 issue open
+223 issue closed
