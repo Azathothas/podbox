@@ -94,6 +94,12 @@ pub mod memfd {
         pod_enter::memfd::stage(&super::NAMES, bytes)
     }
 
+    /// Copy the payload `file` into a new memfd labelled `podvm-payload`,
+    /// in chunks of [`STAGE_CHUNK`]: no step holds the whole file.
+    pub fn stage_file(file: &std::fs::File) -> crate::Result<i64> {
+        pod_enter::memfd::stage_file(&super::NAMES, file)
+    }
+
     /// The memfd probe, worded for podvm.
     pub mod probe {
         pub use pod_enter::memfd::probe::*;

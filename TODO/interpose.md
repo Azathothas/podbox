@@ -480,7 +480,7 @@ enters, which is
 identity half of the `Approach`.
 
 ⛔ **THE SIDECAR CANNOT BE THE MEMO, and this `Approach` said it would be.**
-`crates/podvm-extract/src/sidecar.rs` writes JSONL **beside the rootfs in the
+`src/sidecar.rs` of `pod-extract` (PodUtils/podcrates) writes JSONL **beside the rootfs in the
 store**, and this object runs after the `chroot`, where the store does not exist.
 It is also JSON, and parsing it would allocate on an interposed path, which
 [T-0701](#t-0701-the-cdylib-build-constraints) constraint 2 forbids. The memo is
@@ -886,7 +886,7 @@ ok   E: the reader's answer is the loader's, on every arm that ran
 `lib/x86_64-linux-gnu/libc.so.6` in the reader: the payload's own `PT_INTERP`
 names the loader that will run it, and on musl that file IS the C library while
 on glibc the libc sits in the loader's own directory. A table would be a list of
-the distributions somebody thought of, and `crates/podvm-complete/src/identity.rs`
+the distributions somebody thought of, and `src/identity.rs` of `pod-rootfs` (PodUtils/podcrates)
 already carries one for a coarser question.
 
 Four things the implementation had to get right, and three of them were found by

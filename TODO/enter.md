@@ -1342,7 +1342,7 @@ Source:      issue 90; issue 114 section 3.3 and section 6 item 6;
 Category:    enter
 Priority:    P1
 Effort:      M
-Status:      blocked
+Status:      partial
 
 Problem:     On a chroot-denied host podvm refuses a payload over
              134217728 bytes at 125 before it runs. `node` in node:alpine
@@ -1375,6 +1375,19 @@ Prove:       `cargo test -p podvm-enter` exits 0 with a test that
              `sh experiments/356-no-chroot-rung.sh` exits 0 with a clause
              that runs `node -e 'console.log(1)'` from the node image
              with `--entrypoint node`, past the size check.
+
+**Partial, 2026-11-10.** The block cleared: podvm took pod-enter 0.11.0
+(podcrates T-139, PodUtils/podcrates#46). pod-enter classifies from a
+bounded head (`payload_head`, `interp_of_file`) and stages the memfd
+family's payload from the open file in bounded chunks (`stage_file`);
+the 128 MiB refusal is gone, and the crate tests a sparse 200 MiB fixture.
+podvm's three call sites (`ladder.rs`, `lifecycle/userland.rs`,
+`lifecycle/script.rs`) use the head. `cargo test --workspace` exits 0.
+[The drive](../experiments/results/payload-over-128mib-1647.txt) on the
+chroot-denying fixture: `node -e` runs at 0 three times, and node padded
+to 161523528 bytes, above the old ceiling of 134217728, runs at 0.
+Remaining: the full run of experiment 356 (`public.ecr.aws` answered
+HTTP 429).
 
 **Blocked 2026-11-10.** Blocker: the code of the two ceilings and of
 `memfd::stage` moved to pod-enter with podcrates v0.9.0 (podvm `423e817`),
@@ -1510,7 +1523,7 @@ with no root. This entry serves the static tools of such a job, for example
 Source:      issue 94; issue 114 section 3.1 and section 4;
              `crates/podvm/src/tier.rs:26`;
              `crates/podvm-probe/src/report/document.rs:23`;
-             `crates/podvm-extract/src/safety.rs:261`; [T-0506](enter.md)
+             `src/safety.rs` of `pod-extract` (PodUtils/podcrates); [T-0506](enter.md)
 Category:    enter
 Priority:    P2
 Effort:      XL

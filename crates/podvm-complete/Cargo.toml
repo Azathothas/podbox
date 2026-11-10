@@ -6,13 +6,13 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 
-# ⛔ No new pin. Every dependency here is already in the artefact: the HTTP
-# transport (`podvm_image::net`) and the TLS stack come with `podvm-image`
-# (TODO/deps.md T-0905), and the
-# containment-checked writes are `podvm-extract`'s own `safety` module rather
-# than a second implementation of it (TODO/complete.md T-0405).
+# The completion is `pod-rootfs` of PodUtils/podcrates (T-0401 to T-0415).
+# This crate gives it podvm's names, flags and CA bundle, answers its mirror
+# probe over the HTTP transport of `podvm-image` (`podvm_image::net`), and
+# keeps podvm's banner and JSON. `podvm-probe` gives the settings of
+# `pod-hostprobe`, so the space message names `$PODVM_STORE`.
 [dependencies]
+pod-rootfs = { git = "https://github.com/PodUtils/podcrates", tag = "v0.11.0" }
 podvm-probe = { path = "../podvm-probe" }
 podvm-image = { path = "../podvm-image" }
-podvm-extract = { path = "../podvm-extract" }
 serde_json.workspace = true

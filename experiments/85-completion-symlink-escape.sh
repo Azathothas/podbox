@@ -8,7 +8,7 @@
 # ../run/systemd/resolve/stub-resolv.conf`, and the next one nobody has met.
 #
 # ⭐ WHY THIS IS A MEASUREMENT AND NOT A UNIT TEST. The unit tests in
-# `crates/podvm-complete/src/write.rs` drive one function. This drives the
+# `src/write.rs` of `pod-rootfs` (PodUtils/podcrates) drive one function. This drives the
 # SHIPPED BINARY through the path a real container start takes: a real image,
 # extracted into a real store, tampered with the way an image could ship, and
 # then run. A containment check that is right in the library and not reached by

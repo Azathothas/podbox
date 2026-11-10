@@ -32,9 +32,10 @@ TLS verification remains enabled on the relay path.
 | Registry transport and bodies | `pod-oci` (PodUtils/podcrates); `crates/podvm-image/src/registry.rs`, `tls.rs`, `pull.rs` |
 | Credential storage | `pod-oci` (PodUtils/podcrates); `crates/podvm-image/src/credentials.rs` |
 | Store names and mutations | `crates/podvm-image/src/store.rs`, `contain.rs` |
-| Archive names and links | `crates/podvm-extract/src/safety.rs`, `layer.rs` |
+| Archive names and links | `src/safety.rs`, `src/layer.rs` of `pod-extract` (PodUtils/podcrates) |
 | Host operation probes | `crates/podvm-probe/src/` |
 | Entry and process lifecycle | `crates/podvm-enter/src/`, `crates/podvm-supervise/src/` |
+| Root completion writes | `crates/podvm-complete/src/`; `src/write.rs`, `src/write/follow.rs` of `pod-rootfs` (PodUtils/podcrates) |
 | Relay framing and sessions | `crates/podvm-ssh/src/` |
 | Guest disk and mailbox | `crates/podvm-windows/src/` |
 
@@ -44,6 +45,7 @@ TLS verification remains enabled on the relay path.
 - The runtime does not select plain HTTP as an automatic fallback.
 - Blob digests must match before the store accepts their bytes.
 - Layer paths and symlink resolution remain beneath the extraction root.
+- Completion reads and writes remain beneath the root, and a fifo or a device of the image does not stop them.
 - Intended ownership metadata does not change kernel permission checks.
 - Runtime output states the mechanism entered.
 - A missing or unmeasured mechanism does not become a successful isolation claim.

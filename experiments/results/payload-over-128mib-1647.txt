@@ -1,0 +1,27 @@
+# T-1647: node (149 MB) runs on the chroot-denying fixture after the take of pod-enter 0.11.0 (bounded classify and staging).
+# 2026-11-10T05:01:57Z, podvm 0.1.0-beta.13
+== run 1: podvm run --rm --entrypoint node mirror.gcr.io/library/node:22-alpine -e 'console.log(1)'
+1
+exit 0
+== run 2: podvm run --rm --entrypoint node mirror.gcr.io/library/node:22-alpine -e 'console.log(1)'
+1
+exit 0
+== run 3: podvm run --rm --entrypoint node mirror.gcr.io/library/node:22-alpine -e 'console.log(1)'
+1
+exit 0
+== size of node in the image
+130066248
+
+== a payload over 128 MiB (134217728 bytes): node with 30 MiB of trailing zero bytes, written by node
+run -d exit 0
+bytes 161523528
+pad exit 0
+big-ok v22.23.4
+exec bignode exit 0
+
+# Note: node of node:22-alpine is 130066248 bytes, under the old ceiling,
+# so the second drive pads it past 134217728 bytes. /dev/zero on this rung
+# is the dev-shim regular file of T-0401, so node writes the padding.
+# Before pod-enter 0.11.0, a payload over 134217728 bytes refused at 125
+# (issue 90). Fixture: unshare -Urm and experiments/deny-chroot.c, as
+# experiments/356-no-chroot-rung.sh builds it.

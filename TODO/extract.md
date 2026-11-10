@@ -50,7 +50,7 @@ Decision:    In-process over a Rust tar reader, rather than a vendored C
 Prove:       `./experiments/220-extract-path-safety.sh` exits 0, and
              `strace -f -e trace=execve -o /tmp/e.txt podvm extract --force public.ecr.aws/docker/library/alpine:3.20; grep -c 'execve.*"tar"' /tmp/e.txt` prints 0
 
-**Done, 2026-09-08.** `crates/podvm-extract/src/apply.rs` drives
+**Done, 2026-09-08.** `src/apply.rs` of `pod-extract` (PodUtils/podcrates) drives
 `tar::Archive::entries()` and makes every decision itself. 515 entries out of a
 real `alpine`, 4,664 out of a two-layer `voidlinux-musl`.
 
@@ -123,8 +123,8 @@ Decision:    A sidecar, not `--no-same-owner` semantics alone. The alternative
              about podman, which is T-0205.
 Prove:       `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 && jq -e 'select(.path=="etc/shadow") | .uid==0 and .gid==42 and .applied.gid==0' "$(podvm inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/../.meta.jsonl"`
 
-**Done, 2026-09-08.** `crates/podvm-extract/src/sidecar.rs`, written per entry
-by `crates/podvm-extract/src/apply.rs`. The `Prove` above runs and exits 0
+**Done, 2026-09-08.** `src/sidecar.rs` of `pod-extract` (PodUtils/podcrates), written per entry
+by `src/apply.rs` of `pod-extract` (PodUtils/podcrates). The `Prove` above runs and exits 0
 against a real `alpine`, and the row it reads is, verbatim:
 
 ```
@@ -184,7 +184,7 @@ Decision:    Basename matching over any glob. A glob is what produced the
              archive and a bare one.
 Prove:       `./experiments/70-whiteout-contract.sh` exits 0
 
-**Done, 2026-09-08.** `crates/podvm-extract/src/whiteout.rs`.
+**Done, 2026-09-08.** `src/whiteout.rs` of `pod-extract` (PodUtils/podcrates).
 
 ⭐ **Mutation-proved against the defect it exists for.** Replacing the basename
 test with udocker's own slash-anchored selector (`path.contains("/.wh.")`) turns
@@ -236,7 +236,7 @@ Decision:    Refuse rather than sanitize. Rewriting a hostile path to something
              clean one.
 Prove:       `./experiments/220-extract-path-safety.sh` exits 0
 
-**Done, 2026-09-08.** `crates/podvm-extract/src/safety.rs`, and the script
+**Done, 2026-09-08.** `src/safety.rs` of `pod-extract` (PodUtils/podcrates), and the script
 exits 0 with six checks. `experiments/results/extract-path-safety.txt` is the
 reading; the refusal it captures names the layer digest and the entry:
 
@@ -398,7 +398,7 @@ Decision:    Whiteouts before the layer's own entries, per udocker. The opposite
              order deletes what the same layer just wrote.
 Prove:       `./experiments/70-whiteout-contract.sh` exits 0 and `cargo test -p podvm-extract a_layer_may_delete_a_path_and_recreate_it_in_the_same_layer` passes
 
-**Done, 2026-09-08.** `crates/podvm-extract/src/remove.rs` collects a layer's
+**Done, 2026-09-08.** `src/remove.rs` of `pod-extract` (PodUtils/podcrates) collects a layer's
 whiteouts and applies them to the accumulated tree **before** that layer's own
 entries, per
 `references/indigo-dc__udocker/tree/udocker/container/structure.py:279`.
@@ -428,8 +428,8 @@ is asserted directly there.
 ### T-1315 Extract re-verifies the blob digest against the manifest
 
 Source:      issue 10, client beta testing 2026-09-22 (tampered store blob
-             extracts cleanly); `crates/podvm-extract/src/layer.rs:50`,
-             `crates/podvm-extract/src/layer.rs:105`,
+             extracts cleanly); `src/layer.rs` of `pod-extract` (PodUtils/podcrates),
+             `src/layer.rs` of `pod-extract` (PodUtils/podcrates),
              `crates/podvm-image/src/store/blobs.rs:48`
 Category:    extract
 Priority:    P1
@@ -471,10 +471,10 @@ Prove:       `cargo test -p podvm-extract` with a new test that commits
 
 **Done 2026-09-23.** Stream-and-compare, as decided, with one widening
 the Decision left open: two passes, not one. `layer::open_hashed`
-(`crates/podvm-extract/src/layer.rs`) returns the decompressor over a
+(`src/layer.rs` of `pod-extract` (PodUtils/podcrates)) returns the decompressor over a
 reader that hashes every raw byte delivered (`Rc<RefCell<Sha256>>` inside
 the file reader, so no decoder `into_inner` is needed), and
-`extract_layers` (`crates/podvm-extract/src/lib.rs`) verifies both
+`extract_layers` (`src/lib.rs` of `pod-extract` (PodUtils/podcrates)) verifies both
 passes through the store's own `DigestMismatch` shape. The first pass is
 the gate: whiteouts are collected in memory and the digest is compared
 before `remove::apply` or `apply_layer` touches the tree, so a blob
@@ -519,8 +519,8 @@ is no read path left that trusts stored bytes.
 ### T-1698 A whiteout of `..` deletes outside the destination
 
 Source:      PodUtils/podcrates (the import of pod-extract, its T-057,
-             podcrates `a40d45a`); `crates/podvm-extract/src/remove.rs:37`;
-             `crates/podvm-extract/src/whiteout.rs:46`
+             podcrates `a40d45a`); `src/remove.rs` of `pod-extract` (PodUtils/podcrates);
+             `src/whiteout.rs` of `pod-extract` (PodUtils/podcrates)
 Category:    extract
 Priority:    P0
 Effort:      S
@@ -541,7 +541,7 @@ Approach:    `remove::collect` gives each whiteout the rule of
              layer digest and the entry, as T-0304 refuses any entry.
 Decision:    Refuse the layer, never skip the whiteout (T-0304's rule). The
              same check lives in pod-extract (podcrates `a40d45a`), which
-             podvm takes with podcrates v0.10.0.
+             podvm takes with podcrates v0.11.0.
 Prove:       `cargo test -p podvm-extract` exits 0 with the three tests of
              `drive/whiteouts.rs`, and each of them fails with the check
              turned off.

@@ -320,7 +320,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1644](interpose.md) | P1 | interpose | done | Admit a glibc payload against its whole NEEDED closure, read inside the rootfs |
 | [T-1645](interpose.md) | P1 | interpose | done | Intercept `dlopen` and `dlmopen` |
 | [T-1646](interpose.md) | P1 | interpose | partial | A dynamic grandchild re-enters through the host loader |
-| [T-1647](enter.md) | P1 | enter | blocked | Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes |
+| [T-1647](enter.md) | P1 | enter | partial | Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes |
 | [T-1648](enter.md) | P0 | enter | partial | A static Go payload runs into a GOROOT error instead of a named refusal |
 | [T-1649](cli.md) | P2 | cli | partial | A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out |
 | [T-1650](cli.md) | P1 | cli | partial | `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run |
@@ -354,7 +354,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1678](deps.md) | P2 | deps | blocked | Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1` |
 | [T-1679](deps.md) | P2 | deps | blocked | Take `pod-services` for the third-party hosts compiled into podvm |
 | [T-1680](deps.md) | P2 | deps | blocked | Take `pod-todo` for the record half of `podvm-gate` |
-| [T-1681](deps.md) | P2 | deps | partial | Hand the seven generic crates to podcrates and freeze their files |
+| [T-1681](deps.md) | P2 | deps | done | Hand the seven generic crates to podcrates and freeze their files |
 | [T-1682](machine.md) | P2 | machine | open | A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner |
 | [T-1683](gate.md) | P2 | gate | open | Retire the PowerShell twins of `scripts/common/` and `check-twins.sh` |
 | [T-1684](gate.md) | P2 | gate | open | Fuzz the parsers that read untrusted input, and watch `vendor/` upstream |
@@ -377,7 +377,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-309 items: 28 open, 17 partial, 5 blocked, 259 done.
+309 items: 28 open, 17 partial, 4 blocked, 260 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -386,10 +386,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 2 | 0 | 63 | 65 |
-| P1 | 2 | 11 | 1 | 123 | 137 |
-| P2 | 26 | 4 | 4 | 64 | 98 |
+| P1 | 2 | 12 | 0 | 123 | 137 |
+| P2 | 26 | 3 | 4 | 65 | 98 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **28** | **17** | **5** | **259** | **309** |
+| **All** | **28** | **17** | **4** | **260** | **309** |
 
 ## Work order
 

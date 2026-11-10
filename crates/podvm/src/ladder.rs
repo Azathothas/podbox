@@ -161,18 +161,18 @@ fn enter_staged(
     code
 }
 
-/// Resolve the payload for the memfd rung: the bytes with the eligibility
-/// answer beside them. A payload that is not there is a refusal naming it,
+/// Resolve the payload for the memfd rung: the head and the open file, with
+/// the eligibility answer of the head beside them. A payload that is not there is a refusal naming it,
 /// not a rung decision: no rung can run what nothing resolved.
 fn memfd_payload(
     rootfs: &str,
     argv0: &str,
     path_dirs: &[String],
-) -> Result<(Vec<u8>, Option<MemfdRefusal>), podvm_enter::Error> {
-    let bytes = ladder::payload_bytes(rootfs, argv0, path_dirs)
+) -> Result<(ladder::Payload, Option<MemfdRefusal>), podvm_enter::Error> {
+    let payload = ladder::payload_head(rootfs, argv0, path_dirs)
         .map_err(|e| podvm_enter::runtime(format!("PODVM_MODE=memfd was forced but {e}")))?;
-    let why = memfd::eligible(&bytes).err();
-    Ok((bytes, why))
+    let why = memfd::eligible(&payload.head).err();
+    Ok((payload, why))
 }
 
 /// Choose the forced rung and drive it. Admission (is the rung up?) and
@@ -193,9 +193,9 @@ pub(crate) fn enter_forced(
 ) -> podvm_enter::Result<i32> {
     let mut memfd_up = false;
     let mut memfd_why: Option<MemfdRefusal> = None;
-    let mut staged: Option<Vec<u8>> = None;
+    let mut staged: Option<ladder::Payload> = None;
     if mode == Mode::Memfd {
-        let (bytes, why) = memfd_payload(rootfs, argv0, path_dirs)?;
+        let (payload, why) = memfd_payload(rootfs, argv0, path_dirs)?;
         memfd_why = why;
         // ⛔ TODO/enter.md T-1688: the rung is up only where a memfd
         // EXECUTES, measured by the one probe the doctor row reads. The
@@ -211,7 +211,7 @@ pub(crate) fn enter_forced(
                 )));
             }
             memfd_up = true;
-            staged = Some(bytes);
+            staged = Some(payload);
         }
     }
     let avail = availability(findings, memfd_up, cache_requested(), store_root);
@@ -223,8 +223,8 @@ pub(crate) fn enter_forced(
     if !podvm_probe::probes::chroot_usable(findings) {
         if mode == Mode::Memfd {
             match staged {
-                Some(bytes) => {
-                    let fd = memfd::stage(&bytes)?;
+                Some(payload) => {
+                    let fd = memfd::stage_file(payload.file())?;
                     return podvm_enter::run_userland(
                         root,
                         plan,
@@ -257,8 +257,8 @@ pub(crate) fn enter_forced(
     let chosen = ladder::choose(Some(mode), &avail, memfd_why.as_ref())?;
     if chosen == Mode::Memfd {
         match staged {
-            Some(bytes) => {
-                let fd = memfd::stage(&bytes)?;
+            Some(payload) => {
+                let fd = memfd::stage_file(payload.file())?;
                 podvm_enter::run_ladder(root, plan, Mode::Memfd, Some(fd), err)
             }
             // Admission staged the bytes it chose on. Reaching here means the

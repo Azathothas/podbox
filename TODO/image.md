@@ -212,7 +212,7 @@ Prove:       `./experiments/140-space-precheck.sh` exits 0
 
 **Done, 2026-09-08.** `crates/podvm-image/src/space.rs`, called before any
 download from `crates/podvm-image/src/pull.rs` and before any extraction from
-`crates/podvm-extract/src/lib.rs`.
+`src/lib.rs` of `pod-extract` (PodUtils/podcrates).
 `experiments/140-space-precheck.sh` exits 0, on two real tmpfs mounts rather
 than fixtures, and the two refusals it drove are:
 
@@ -228,7 +228,7 @@ written before either refusal, which is the whole point of a precheck: a
 partial store has to be cleaned up on a filesystem that is already full.
 
 ⭐ **CLOSED, 2026-09-08, by M2.** The second call site exists:
-`crates/podvm-extract/src/lib.rs` calls the same `space::require` before the
+`src/lib.rs` of `pod-extract` (PodUtils/podcrates) calls the same `space::require` before the
 first layer is read. That was the only reason this was `partial`.
 
 ⛔ **It is before the layer LOOP, not inside it, and the placement is the
@@ -2538,7 +2538,7 @@ Prove:       `grep -n "whiteout" TODO/image.md` names the fixture the
 pinned `alpine` layer, pulled with `docker pull` and unpacked from
 `docker save` at `:61-67`, with the saved reading naming `etc/shadow` as
 uid 0 and gid 42. It records that no Rust test reads such a layer:
-`crates/podvm-extract/src/drive/records.rs:34` and `:62` both build their tar
+two tests of `src/drive/records.rs` of `pod-extract` (PodUtils/podcrates) build their tar
 in memory. The `Premise` that the crate asserts the opposite outcome is
 refuted by the current source, and the record stands on that correction:
 both tests agree with the contract, and what is missing is the real
@@ -2563,7 +2563,7 @@ save` output at `:61-67`, reads one layer path per line out of
 is uid 0 gid 42, the section 9.1 wall`.
 
 No Rust test reads a real pinned layer. The tests that cover the wall
-build their tar in memory: `crates/podvm-extract/src/drive/records.rs:34`
+build their tar in memory: `src/drive/records.rs` of `pod-extract` (PodUtils/podcrates)
 `the_shadow_file_extracts_and_its_dropped_gid_is_recorded` calls
 `layer(&[E::Dir("etc/", 0o755), E::Owned("etc/shadow", b"root:!::\n", 0,
 42)])`, and `run` at `:131` writes that crafted layer into the store

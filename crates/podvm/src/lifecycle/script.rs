@@ -32,7 +32,8 @@ pub(super) struct Followed {
     pub argv: Vec<String>,
     /// The program file by host path.
     pub resolved: String,
-    /// The bytes of that file.
+    /// The head of that file (`podvm_enter::abi::HEAD_BYTES`): the `#!`
+    /// line and the ELF headers are there.
     pub bytes: Vec<u8>,
     /// Each script followed: its host path and its `#!` line.
     pub scripts: Vec<(String, String)>,
@@ -155,12 +156,12 @@ pub(super) fn follow(
                 });
             }
         };
-        let bytes = match podvm_enter::ladder::payload_bytes(rootfs, &argv0, path_dirs) {
-            Ok(b) => b,
+        let bytes = match podvm_enter::ladder::payload_head(rootfs, &argv0, path_dirs) {
+            Ok(p) => p.head,
             Err(e) => {
                 // ⚠ T-0802's errno split: a directory is found-but-not-
-                // invocable (EISDIR is a 126), while an unreadable file or an
-                // over-ceiling one is a genuine podvm-side failure (125).
+                // invocable (EISDIR is a 126), while an unreadable file is a
+                // genuine podvm-side failure (125).
                 let msg = e.to_string();
                 let code = if msg.contains("Is a directory") {
                     EXIT_CANNOT_INVOKE

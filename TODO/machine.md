@@ -446,7 +446,7 @@ and blocks otherwise, so the parent holds both ends O_RDWR before qemu
 starts. `od` reads to EOF and urandom has none, so the nonce reader
 takes `-N16`: without it the first handshake hung unboundedly, which
 is the shell form of the urandom trap
-`crates/podvm-complete/src/devices.rs:218` records. A bare `exit 3`
+`src/devices.rs:218` of `pod-rootfs` (PodUtils/podcrates) records. A bare `exit 3`
 ends the very shell that must print the end marker, so the command
 runs in a subshell and the reporter outlives it. The end-marker
 pattern accepts the exact line and rejects six forgery shapes,

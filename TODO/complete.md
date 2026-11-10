@@ -49,7 +49,7 @@ Decision:    A regular file, not a fifo. A fifo blocks a writer with no reader,
 Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo x >/dev/null && test ! -s /dev/null'`
 
 
-**Done 2026-09-09.** `crates/podvm-complete/src/devices.rs`, and the shape
+**Done 2026-09-09.** `src/devices.rs` of `pod-rootfs` (PodUtils/podcrates), and the shape
 changed while it was being built.
 
 ⭐ **`mknod` IS TRIED FIRST and the shim is the fallback.** The entry assumed
@@ -126,7 +126,7 @@ Decision:    Always, not "if empty". An image with a wrong resolver is
 Prove:       `podvm run --rm quay.io/rockylinux/rockylinux:9 cat /etc/resolv.conf | diff -q - /etc/resolv.conf`
 
 
-**Done 2026-09-09.** `crates/podvm-complete/src/net.rs`, and unconditionally,
+**Done 2026-09-09.** `src/net.rs` of `pod-rootfs` (PodUtils/podcrates), and unconditionally,
 as the Decision says: an image with a wrong resolver is indistinguishable from
 one with a right one without resolving something.
 
@@ -175,7 +175,7 @@ Decision:    Write the file rather than intercept the resolver. The interposer
 Prove:       `podvm run --rm --name hostprobe --add-host foo:10.0.0.1 public.ecr.aws/docker/library/alpine:3.20 sh -c 'getent hosts foo && getent hosts hostprobe'`
 
 
-**Done 2026-09-09.** `crates/podvm-complete/src/net.rs`, `hosts`.
+**Done 2026-09-09.** `src/net.rs` of `pod-rootfs` (PodUtils/podcrates), `hosts`.
 `127.0.0.1 localhost <container-name>`, `::1 localhost ip6-localhost
 ip6-loopback`, and one line per `--add-host`.
 
@@ -236,7 +236,7 @@ Decision:    Synthesize into the rootfs rather than interpose `getpwuid`.
 Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 python3 -c 'import pwd; print(pwd.getpwuid(0).pw_name)' | grep -qx root && podvm run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'useradd -r svc && grep -q ^svc: /etc/passwd'`
 
 
-**Done 2026-09-09.** `crates/podvm-complete/src/identity.rs`, and it lands
+**Done 2026-09-09.** `src/identity.rs` of `pod-rootfs` (PodUtils/podcrates), and it lands
 with [T-0410](#t-0410-supply-etcnsswitchconf-or-the-supplied-etcpasswd-is-a-no-op)
 as the entry says it must.
 
@@ -298,7 +298,7 @@ Decision:    `O_NOFOLLOW` plus unlink-then-create for every completion write,
 Prove:       `./experiments/85-completion-symlink-escape.sh` exits 0
 
 
-**Done 2026-09-09.** `crates/podvm-complete/src/write.rs` is the mechanism and
+**Done 2026-09-09.** `src/write.rs` of `pod-rootfs` (PodUtils/podcrates) is the mechanism and
 the Decision's shape: **one door**, and no special case for `mtab`.
 
 Every completion write resolves each component through
@@ -359,7 +359,7 @@ Decision:    Edit `pacman.conf` rather than create the `alpm` user. Creating it
 Prove:       `podvm run --rm ghcr.io/pkgforge-dev/archlinux:latest sh -c 'pacman -Sy --noconfirm gcc >/dev/null && gcc --version'`
 
 
-**Done 2026-09-09.** `crates/podvm-complete/src/pkg.rs`, and the two halves
+**Done 2026-09-09.** `src/pkg.rs` of `pod-rootfs` (PodUtils/podcrates), and the two halves
 landed differently because only one of them can be done from outside the chroot.
 
 ⭐ **`DownloadUser` is commented out**, matched on the line's FIRST WORD rather
@@ -421,7 +421,7 @@ Decision:    A drop-in file rather than editing `apt.conf`, so the fixup is
 Prove:       `podvm run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gcc >/dev/null && gcc --version'`
 
 
-**Done 2026-09-09.** `crates/podvm-complete/src/pkg.rs`, and the entry named
+**Done 2026-09-09.** `src/pkg.rs` of `pod-rootfs` (PodUtils/podcrates), and the entry named
 two failures where the measurement found **three**.
 
 1. **`APT::Sandbox::User "root"`**, in a drop-in at
@@ -499,10 +499,10 @@ The fixup took the Skipped branch, correctly: the pristine image ships no
 `/usr/share/zypp/local/service/` and an empty `/etc/zypp/services.d/`
 (measured read-only on host podman 2026-09-21), so `repos.d` is not
 regenerated and editing it in place holds
-(`crates/podvm-complete/src/pkg.rs:186-227`). The absent `zypper-index`
+(`src/pkg.rs:186-227` of `pod-rootfs` (PodUtils/podcrates)). The absent `zypper-index`
 banner line is the design, not missing evidence: the banner prints one line
 per fixup that changed something
-(`crates/podvm-complete/src/lib.rs:244-252`). The scheme fixup (T-0411)
+(`src/lib.rs:244-252` of `pod-rootfs` (PodUtils/podcrates)). The scheme fixup (T-0411)
 rewrote fourteen `repos.d` entries `http://` to `https://`, `zypper refresh`
 and `install gcc glibc-devel` exited 0, and the built program ran (`42`).
 
@@ -564,7 +564,7 @@ install hit a fatal ownership wall, with extraction ownership-neutral
 ([T-0302](extract.md)).
 
 
-**Done 2026-09-09.** `crates/podvm-complete/src/pkg.rs`, and the reading is
+**Done 2026-09-09.** `src/pkg.rs` of `pod-rootfs` (PodUtils/podcrates), and the reading is
 that this rootfs regenerates or it does not, rather than that it always does.
 
 The RIS index is looked for at `/usr/share/zypp/local/service` and
@@ -636,7 +636,7 @@ Decision:    Edit rather than replace. A rootfs whose `nsswitch.conf` names
 Prove:       `./experiments/90-nsswitch-contract.sh` exits 0 and `podvm run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'id podvmsupplied'`
 
 
-**Done 2026-09-09.** `crates/podvm-complete/src/identity.rs`, `nsswitch`, and
+**Done 2026-09-09.** `src/identity.rs` of `pod-rootfs` (PodUtils/podcrates), `nsswitch`, and
 all four cases the Approach lists are arms of one `match`:
 
 1. no `nsswitch.conf` and no glibc: musl, and nothing is written;
@@ -729,7 +729,7 @@ Decision:    Rewrite in the extracted rootfs at `run` time rather than at
              conservative one and the disclosure is per file.
 Prove:       `podvm run --rm public.ecr.aws/debian/debian:bookworm-slim sh -c 'apt-get update' ` completes rather than hanging, the banner names each file rewritten, and `--no-source-fixup` leaves every source file byte-identical to the extracted tree
 
-**Done 2026-09-09.** `crates/podvm-complete/src/sources.rs`, and all four
+**Done 2026-09-09.** `src/sources.rs` of `pod-rootfs` (PodUtils/podcrates), and all four
 rules of the Approach are enforced:
 
 1. ⛔ **the scheme and nothing else.** `http://deb.debian.org` becomes
@@ -857,7 +857,7 @@ Prove:       `./experiments/240-distro-sweep.sh opensuse-leap` reports `built_an
 
 
 **Done 2026-09-09.** `crates/podvm-complete/src/lib.rs` carries the `Step`,
-`crates/podvm-complete/src/pkg.rs` produces them, `podvm_enter::Child::wait_bounded`
+`src/pkg.rs` of `pod-rootfs` (PodUtils/podcrates) produces them, `podvm_enter::Child::wait_bounded`
 runs one under a bound and `crates/podvm/src/complete.rs` orders them.
 ⭐ **openSUSE installs a C toolchain under podvm now, and the M5 sweep is 10 of
 10.**
@@ -948,7 +948,7 @@ Status:      done 2026-09-26
 
 Problem:     A chroot has no `/proc` unless something mounts one, and `mount` is
              refused on every runtime podvm targets. podvm already knows this
-             in one place: `crates/podvm-complete/src/net.rs` says so while
+             in one place: `src/net.rs` of `pod-rootfs` (PodUtils/podcrates) says so while
              resolving a symlink. ⛔ **Nothing tells the payload**, and the
              failure it produces does not name `/proc`.
 Premise:     ⭐ **Measured by somebody driving a real payload to completion.**
@@ -1235,7 +1235,7 @@ Priority:    P1
 Effort:      S
 Status:      done 2026-09-26
 
-Problem:     `crates/podvm-complete/src/devices.rs` writes regular-file
+Problem:     `src/devices.rs` of `pod-rootfs` (PodUtils/podcrates) writes regular-file
              stand-ins where `mknod` is refused. **Nothing checks afterwards
              what those paths actually are**, and the failure mode when one is
              missing is silent and unbounded.
@@ -1285,7 +1285,7 @@ Prove:       `cargo test -p podvm-complete devices` green: a directory
              `strict_names_every_reason_at_once`.
 
 **Done 2026-09-22.** `run` reads each device path's shape before the
-`mknod` attempt (`crates/podvm-complete/src/devices.rs`). A directory
+`mknod` attempt (`src/devices.rs` of `pod-rootfs` (PodUtils/podcrates)). A directory
 becomes a named `Failed` row and stays a directory. A symlink is
 removed so the attempt cannot follow it outside the rootfs, then
 becomes the shim with its target named. A fifo, socket or
@@ -1313,19 +1313,19 @@ stays future work only as a drive, and no claim about it rides here.
 
 **Partial, 2026-09-25.** Issue 49 reopens this entry on its own
 two gaps: the unlink-failure refusal arm
-(`crates/podvm-complete/src/devices.rs:129`,
+(`src/devices.rs:129` of `pod-rootfs` (PodUtils/podcrates),
 `remove_file(...).is_err()`) carries no test, and the planted live
 image stays future work. Add a unit test that drives the
 unlink-failure arm with the link stated and then unremovable. Add
 the planted live-image arm, or drop the claim from the Done. Point
 the Prove at a clause that exists. Fix area is
-`crates/podvm-complete/src/devices.rs`. Risk if wrong is refusal
+`src/devices.rs` of `pod-rootfs` (PodUtils/podcrates). Risk if wrong is refusal
 wiring that regresses with the suite still green. Prove is the new
 unit test green beside the devices suite, and the live-image arm or
 the dropped claim.
 
 **Done 2026-09-26.** The unlink arm is extracted as
-`displace_link` (`crates/podvm-complete/src/devices.rs`) with no
+`displace_link` (`src/devices.rs` of `pod-rootfs` (PodUtils/podcrates)) with no
 behaviour change on the wired path, and two unit tests pin both its
 arms: the unremovable link reads back the named refusal (path, target,
 `mknod` risk, `--strict`), the removable link reads back displaced with
@@ -1448,8 +1448,8 @@ runs. The record gate exits 0 on the landed tree.
 ### T-1686 The device tests of a stand-in fail where `mknod` is permitted
 
 Source:      the first Linux cloud session, 2026-11-06 (`cargo test
-             --workspace` as root); `crates/podvm-complete/src/devices/tests.rs:149`;
-             `crates/podvm-complete/src/devices/tests.rs:173`
+             --workspace` as root); `src/devices/tests.rs:149` of `pod-rootfs` (PodUtils/podcrates);
+             `src/devices/tests.rs:173` of `pod-rootfs` (PodUtils/podcrates)
 Category:    complete
 Priority:    P2
 Effort:      S

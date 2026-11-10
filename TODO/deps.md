@@ -1372,7 +1372,7 @@ Prove:       `cargo test -p podvm-image` and `cargo test -p podvm-ssh` exit
 `default-features = false` by `adoption/podvm/pod-tls.patch` of
 PodUtils/podcrates (`main` at `deacfef`, made at podvm `b5473a2`). The
 patch applied with `git apply --3way`; its one hunk of
-`crates/podvm-complete/src/pkg.rs` is a comment of a test that T-1674 had
+`src/pkg.rs` of `pod-rootfs` (PodUtils/podcrates) is a comment of a test that T-1674 had
 moved to `pkg/tests.rs`, and was applied there by hand. `pod-term` moves
 to `v0.4.0`; `rustls-pemfile` and podvm's own `webpki-roots` are gone, and
 `cargo update -p webpki-roots@1.0.9` gives the lock 1.0.11. Each line of
@@ -1572,7 +1572,7 @@ Source:      COORD-001, issue 194, "What podvm hands to podcrates";
 Category:    deps
 Priority:    P2
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     The owner ruled on 2026-11-06 that each generic crate of podvm
              moves to podcrates as `pod-*`. Until podcrates imports them and
@@ -1603,6 +1603,17 @@ Decision:    One entry tracks the hand-over of all seven, because each step
 Prove:       `./target/release/podvm-gate` exits 0 with each of the seven
              podvm crates replaced by its `pod-*` dependency, and
              `cargo test --workspace` exits 0 in the Linux lane.
+
+**Done 2026-11-10.** podvm took `pod-extract` and `pod-rootfs` 0.11.0
+(PodUtils/podcrates#46, its T-057, T-058, T-141, T-139):
+`adoption/podvm/pod-extract.patch`, then `pod-rootfs.patch`, applied with
+`git apply --3way` at podvm `72523d7`, with no conflict. pod-extract
+carries the T-1698 sentinel tests; pod-rootfs fixes eleven defects of the
+old `podvm-complete`; the pod-enter of the tag stages a payload over
+128 MiB (T-1647). Each line of both `.run` files exits 0, and `cargo test
+--workspace` and the interposer tests exit 0. The seven generic crates of
+this entry are with podcrates now; `podvm-extract` and `podvm-complete`
+keep podvm's glue.
 
 **Partial, 2026-11-06.** The first of the seven crates is taken:
 podvm took `pod-hostprobe` 0.6.0 by `adoption/podvm/pod-hostprobe.patch`
@@ -1675,6 +1686,7 @@ at 0.10.0), and two citation lines of T-1684 in `TODO/gate.md` (both kept,
 in the form that names the crates). Each line of `pod-oci.run` exits 0,
 and `cargo test --workspace` exits 0. Remaining: pod-extract and
 pod-rootfs (podcrates v0.11.0); `podvm-extract` stays frozen until then.
+
 
 ### T-1687 Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive
 

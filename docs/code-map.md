@@ -8,7 +8,7 @@
 | `crates/podvm-probe` | Disposable probes, host findings, rung selection, shared exit codes |
 | `crates/podvm-image` | Registry, credentials, content verification, platforms, store |
 | `crates/podvm-extract` | Ordered layers, whiteouts, path containment, metadata |
-| `crates/podvm-complete` | Device and account data, package configuration, resolver and CA data |
+| `crates/podvm-complete` | Device and account data, package configuration, resolver and CA data: podvm's names, flags, banner and mirror probe over `pod-rootfs` (PodUtils/podcrates) |
 | `crates/podvm-enter` | Rootfs entry, ELF classification, launch modes, userland entry |
 | `crates/podvm-supervise` | Launcher state, pidfds, logs, signals, lifecycle |
 | `crates/podvm-windows` | podvm's names and places for `pod-guest` (guest mailbox, agent, disk fetch, QMP, boot plan); the base caches; docker's exit range |

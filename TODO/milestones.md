@@ -747,7 +747,7 @@ Premise:     ⭐ **Somebody already did this by hand, on a runtime of this class
              with regular-file device stand-ins, a host CA bundle and
              ownership-neutral extraction.
              ⭐ **podvm already ships every one of those pieces.**
-             `crates/podvm-complete/src/devices.rs:50` fills `/dev/urandom`
+             `src/devices.rs:50` of `pod-rootfs` (PodUtils/podcrates) fills `/dev/urandom`
              with `FILLED_BYTES`, one MiB read once from the host's
              `getrandom(2)`. [complete.md](complete.md) T-0407 is the CA bundle,
              [extract.md](extract.md) is the ownership sidecar, and

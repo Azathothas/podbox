@@ -154,14 +154,14 @@ pub fn enter_userland(
             // T-1649: the guest argv, so a `#!` payload stages its
             // interpreter, the program that the decision read.
             let argv0 = userland.guest_argv.first().cloned().unwrap_or_default();
-            let bytes = match podvm_enter::ladder::payload_bytes(rootfs, &argv0, &plan.path_dirs) {
-                Ok(b) => b,
+            let payload = match podvm_enter::ladder::payload_head(rootfs, &argv0, &plan.path_dirs) {
+                Ok(p) => p,
                 Err(e) => {
                     let _ = writeln!(err, "podvm {verb}: {e}");
                     return failed(e.exit_code());
                 }
             };
-            if podvm_enter::memfd::eligible(&bytes).is_err() {
+            if podvm_enter::memfd::eligible(&payload.head).is_err() {
                 // Fixups changed what the decision read: loud, never
                 // silent, and the fixups stay (they are the image's now,
                 // not this run's).
@@ -173,7 +173,7 @@ pub fn enter_userland(
                 );
                 return failed(podvm_image::error::EXIT_RUNTIME_ERROR);
             }
-            match podvm_enter::memfd::stage(&bytes) {
+            match podvm_enter::memfd::stage_file(payload.file()) {
                 Ok(f) => (userland.guest_argv.clone(), Some(f)),
                 Err(e) => {
                     let _ = writeln!(err, "podvm {verb}: {e}");

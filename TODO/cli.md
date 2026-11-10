@@ -509,8 +509,7 @@ the first dropped entry from the sidecar, the map contents T-0105 reads,
 and the sidecar path as the remedy. `report_dropped` prints the counts line
 and the note. Both `extract` and `run` call it, so one extraction reads one
 way on both verbs. The sidecar remembers the first dropped entry and
-`Extracted` carries it (`crates/podvm-extract/src/sidecar.rs`,
-`crates/podvm-extract/src/lib.rs`).
+`Extracted` carries it (`src/sidecar.rs` and `src/lib.rs` of `pod-extract` (PodUtils/podcrates)).
 
 The entry first named `pull` alone in Prove. Pull performs no extraction
 (`crates/podvm-image/src/pull.rs:17`), so no pull output can name a dropped
@@ -1652,7 +1651,7 @@ Prove:       `grep -n "85-completion-symlink-escape" TODO/cli.md` names
 **Done 2026-10-02.** Recorded the converted state of
 `experiments/85-completion-symlink-escape.sh` and the condition that
 clears its deletion. The six doors the script plants are carried by two
-tests in `crates/podvm-complete/src/write.rs`:
+tests in `src/write.rs` of `pod-rootfs` (PodUtils/podcrates):
 `a_write_replaces_an_out_link_with_a_regular_file` (`write.rs:752`) for
 clauses A to E, and
 `a_write_follows_a_directory_link_that_stays_inside` (`write.rs:779`)
@@ -1674,7 +1673,7 @@ doors, five out of the rootfs and one legitimate internal link
 (`:28`), D `/etc/ssl/certs` (`:29`), F `/etc/apt -> /var/aptreal` (`:30`).
 
 The converted tests are the two in
-`crates/podvm-complete/src/write.rs` `mod tests` that name the script's
+`src/write.rs` of `pod-rootfs` (PodUtils/podcrates) `mod tests` that name the script's
 clauses. `a_write_replaces_an_out_link_with_a_regular_file`
 (`write.rs:752`) carries clauses A through E: the out-link is replaced by
 a regular file inside the rootfs, so a later reader does not follow it
@@ -1687,7 +1686,7 @@ that stays inside is followed and the drop-in lands at its target
 **The deletion condition, and what clears it.** The script is deletable
 when the plan's library-test row lands. That row sits at
 `refactor/recon-c.md:110`, and it reads
-`Write the two library tests into crates/podvm-complete/src/write.rs mod
+`Write the two library tests into src/write.rs of pod-rootfs (PodUtils/podcrates) mod
 tests (:640)`. Its id is a plan id, not a tracked entry: no `TODO/*.md`
 carries a heading for it. The only place that id appears in the tracked
 tree is the two doc comments in `write.rs` (`:748`, `:775`) that name the

@@ -91,17 +91,6 @@ pub(super) fn run_pins(plant: &mut Plant, root: &Path, scratch: &str) {
         &|| pin_test(root, "crates/podvm/src/parity/tests.rs", test),
     );
 
-    let test = "a_write_through_an_absolute_symlink_does_not_escape";
-    plant.case_rust_test(
-        "32d write",
-        "crates/podvm-complete/src/write/tests.rs",
-        test,
-        &cargo_lib("podvm-complete", test),
-        &none,
-        scratch,
-        &|| pin_test(root, "crates/podvm-complete/src/write/tests.rs", test),
-    );
-
     let test = "a_decimal_fd_parses_and_anything_else_does_not";
     plant.case_rust_test(
         "32e memo",
