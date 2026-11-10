@@ -19,7 +19,7 @@ up, a missing field, a `Prove` that is not a command, a reference that does not
 resolve, a dead link, and a cited path or line that does not exist.
 
 ```sh
-./target/release/podvm-gate
+./target/x86_64-unknown-linux-musl/release/podvm-gate
 ```
 
 ## Priority
@@ -284,7 +284,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1604](enter.md) | P1 | enter | partial | Fix the detached-stdio serial mutex and the 1-of-3 detached start failure |
 | [T-1605](packaging.md) | P1 | packaging | done | Push a version tag and prove the nightly release-notes wiring live |
 | [T-1606](machine.md) | P2 | machine | done | Repoint all 47 `references/` citations before deleting the corpus |
-| [T-1607](gate.md) | P1 | gate | partial | File the 21 unbatched plan tasks as a later queue |
+| [T-1607](gate.md) | P1 | gate | done | File the 21 unbatched plan tasks as a later queue |
 | [T-1608](gate.md) | P2 | gate | done | Reword the Batch 3 Done paragraphs so one-home passes |
 | [T-1609](gate.md) | P0 | gate | done | Build the KVM watchdog that makes an unattended guest run safe |
 | [T-1610](gate.md) | P0 | gate | done | Repair the base's stale podman state and settle which qemu the proof uses |
@@ -345,14 +345,14 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1669](deps.md) | P1 | deps | done | Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate |
 | [T-1670](probe.md) | P1 | probe | done | The first cloud session measures its host and saves the result |
 | [T-1671](packaging.md) | P2 | packaging | done | Release the first podvm beta with `## Breaking` notes, from a dispatched `release.yml` |
-| [T-1672](gate.md) | P2 | gate | blocked | Move the record to the format of `pod-todo`, with a `podvm-todo` wrapper and a todo.toml |
+| [T-1672](gate.md) | P2 | gate | open | Move the record to the format of `pod-todo`, with a `podvm-todo` wrapper and a todo.toml |
 | [T-1673](gate.md) | P2 | gate | open | File the 29 plan rows that T-1607 owns, read from the archive branch |
 | [T-1674](gate.md) | P1 | gate | done | Split every Rust source file to 500 lines, then hold the limit in the gate |
 | [T-1675](deps.md) | P2 | deps | done | Take `pod-term` for the SSH line discipline |
 | [T-1676](deps.md) | P2 | deps | done | Take `pod-tls` for both TLS stacks, with its synchronous face |
 | [T-1677](deps.md) | P2 | deps | done | Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial |
 | [T-1678](deps.md) | P2 | deps | blocked | Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1` |
-| [T-1679](deps.md) | P2 | deps | blocked | Take `pod-services` for the third-party hosts compiled into podvm |
+| [T-1679](deps.md) | P2 | deps | open | Take `pod-services` for the third-party hosts compiled into podvm |
 | [T-1680](deps.md) | P2 | deps | blocked | Take `pod-todo` for the record half of `podvm-gate` |
 | [T-1681](deps.md) | P2 | deps | done | Hand the seven generic crates to podcrates and freeze their files |
 | [T-1682](machine.md) | P2 | machine | open | A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner |
@@ -380,7 +380,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-312 items: 26 open, 9 partial, 4 blocked, 273 done.
+312 items: 28 open, 8 partial, 2 blocked, 274 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -389,10 +389,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 1 | 7 | 0 | 129 | 137 |
-| P2 | 25 | 1 | 4 | 71 | 101 |
+| P1 | 1 | 6 | 0 | 130 | 137 |
+| P2 | 27 | 1 | 2 | 71 | 101 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **26** | **9** | **4** | **273** | **312** |
+| **All** | **28** | **8** | **2** | **274** | **312** |
 
 ## Work order
 

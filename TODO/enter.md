@@ -1167,7 +1167,7 @@ Prove:       `cargo test -p podvm --test detached_stdio` passes in
              the same binary does not poison its neighbours (the plant
              this task owes); the saved lane log shows all three
              detached starts running;
-             `./target/release/podvm-gate` exits 0.
+             `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
 
 **Partial 2026-10-02.** The cascade is fixed and measured; the
 one-of-three failure is not reproduced and is not root-caused, and the

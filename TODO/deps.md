@@ -1491,11 +1491,16 @@ Decision:    The wire protocol does not change in this entry. A protocol
              change is its own entry with a version bump.
 Prove:       `cargo test -p podvm-ssh` exits 0 in the Linux lane with the
              mux and relay tests passing through `pod-relay`, and
-             `./target/release/podvm-gate` exits 0.
+             `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
 
 **Blocked 2026-11-06.** Blocker: podcrates' wave M2 and a `pod-relay`
 release with feature `blocking`. Clears when: that release and its
 adoption patch exist, and T-1677 is done.
+**Still blocked, 2026-11-10.** T-1677 is `done`. podcrates `v0.14.0` has
+no crate `pod-relay`. Its `v0.13.0` adds `pod-ws`, with the client of the
+relay, for podssh and podnet; the notes of that release say "podvm needs
+no code change". The blocker stays: a `pod-relay` release, or a podcrates
+hand-off that names the crate podvm takes for its relay.
 
 ---
 
@@ -1506,7 +1511,7 @@ Source:      COORD-001, issue 194, row 5; PodUtils podcrates issue 3, "One
 Category:    deps
 Priority:    P2
 Effort:      M
-Status:      blocked
+Status:      open
 
 Problem:     The relay URL, the registry endpoints and the guest image
              sources are compiled into podvm in several places. A changed
@@ -1524,11 +1529,18 @@ Decision:    A host podvm contacts and the crate does not list is a defect
              of the inventory, reported to podcrates. podvm does not keep a
              second list.
 Prove:       `cargo test -p podvm` exits 0 with the host-list test, and
-             `./target/release/podvm-gate` exits 0.
+             `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
 
 **Blocked 2026-11-06.** Blocker: podcrates has not released
 `pod-services` with podvm's inventory (podcrates T-054). Clears when:
 that release exists, and T-1678 is done.
+**Unblocked 2026-11-10.** `pod-services` at podcrates `v0.10.0` and later
+carries podvm's inventory: its README lists each compiled host of podvm
+with the data file that holds it, and `tests/podvm.rs` reads podvm's
+constants back from the files. podvm takes podcrates at `v0.12.0`. The
+second condition is dropped: the README says that podvm has no default
+relay, so the relay row needs no data file and this entry does not wait
+for T-1678. The status moves from `blocked` to `open`.
 
 ---
 
@@ -1555,12 +1567,14 @@ Approach:    After T-1672, remove the record checks from `podvm-gate` and
              taken commit.
 Decision:    No record check is lost: each one is in `pod-todo`, in the
              wrapper, or recorded as retired with its reason.
-Prove:       `./target/release/podvm-gate` exits 0, and
-             `./target/release/podvm-plant` exits 0 with every record plant
+Prove:       `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0, and
+             `./target/x86_64-unknown-linux-musl/release/podvm-plant` exits 0 with every record plant
              caught through the wrapper.
 
 **Blocked 2026-11-06.** Blocker: podcrates has not released `pod-todo`.
 Clears when: that release exists, and T-1672 is done.
+**Still blocked, 2026-11-10.** The first condition holds: `pod-todo` is in
+podcrates `v0.12.0`. The blocker is now T-1672 alone, which is `open`.
 
 ---
 

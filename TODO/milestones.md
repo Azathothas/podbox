@@ -905,13 +905,13 @@ Do not treat a reachable desktop as a command channel.
 Earlier landing details are retained in
 [the captured entry](../docs/history/audit-before-2026-09-30/TODO/milestones.txt).
 
-⛔ **DEFERRED BY THE OPERATOR, 2026-10-02.** The ReactOS clause was
-already descoped on 2026-10-02 and is not deferred; this is the KVM leg
-that is set aside. Do not start a KVM guest for this entry until the
-operator lifts it. `TODO/RULES.md` section 11 carries the decision and
-its clearing condition: the operator saying the KVM work resumes. The
-entry stays `partial` with the acceptance above recorded, so no session
-re-derives it.
+**Free again, 2026-11-09.** The KVM deferral of 2026-10-02 set the KVM
+leg of this entry aside. The owner lifted it on 2026-11-09
+(`docs/decisions.md`, row "KVM"). The ReactOS clause stays descoped. The
+entry stays `partial`: its remaining acceptance is the KVM leg, one
+bounded run of `experiments/392-kvm-guest.sh` on a host with `/dev/kvm`
+(T-1350 and T-1641 ride the same run). T-1682 adds a hosted runner
+with `/dev/kvm`.
 
 ### T-1623 Record the 29 KEEP-SHELL rows as the retained set, re-derived from the ledger
 

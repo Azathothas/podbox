@@ -24,6 +24,8 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 | [`upstream-tool-shape.md`](upstream-tool-shape.md) | Retired two-product wording for `wsl-toolkit`, kept verbatim with what took it away |
 | [`containers-before-toolkit-6.txt`](containers-before-toolkit-6.txt) | Windows lane procedure before `wsl-toolkit` 6.0.0, kept verbatim |
 | [`progress-before-2026-09-28.txt`](progress-before-2026-09-28.txt) | Superseded session state and work order, kept verbatim |
+| [`progress-before-2026-11-10.txt`](progress-before-2026-11-10.txt) | `TODO/PROGRESS.md` at `2148874`, verbatim: the session layers, the CI remainder of 2026-10-01, the host failure, the publication of beta.10 to beta.12, the reconciliation and the work order before the rewrite of 2026-11-10 |
+| [`resume-before-2026-11-10.txt`](resume-before-2026-11-10.txt) | `TODO/RESUME.md` at `2148874`, verbatim: the cold start of the 2026-10-02 session on the Windows host, with the KVM deferral |
 | [`progress-before-t1403.txt`](progress-before-t1403.txt) | Superseded lane, source-capture, and partial record displaced by the T-1403 relay landing, kept verbatim |
 | [`index-order-before-2026-09-28.txt`](index-order-before-2026-09-28.txt) | Superseded priority argument, kept verbatim |
 | [`reference-discussion-gap-before-2026-09-28.txt`](reference-discussion-gap-before-2026-09-28.txt) | Superseded claim that no reference had Discussions data, kept verbatim |
@@ -36,6 +38,7 @@ files explain earlier states; they do not override `README.md`, `AGENTS.md`, or
 | [Hidden issues of 2026-11-06](github-hidden-issues-2026-11-06.md) | The 41 issue and pull request numbers GitHub hid with their author, and what came back |
 | [`reviews/`](reviews/) | Focused review outcomes for migrated changes |
 | [Session summary 2026-09-28](sessions/2026-09-28.md) and [SSH session summary](sessions/2026-09-28-SSH.md) | Final checks, change size, remote and machine state; the SSH reconcile, partial, machine arm, and KVM unblock |
+| [Unattended session 2026-10-02](sessions/2026-10-02-UNATTENDED.md) and [KVM correction 2026-10-02](sessions/2026-10-02-KVM-CORRECTION.md) | The summaries that the session tables of `progress-before-2026-11-10.txt` linked: commits, CI runs, the three KVM runs, T-1641 and T-1604 |
 
 ---
 

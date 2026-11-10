@@ -1330,7 +1330,7 @@ Decision:    The owner lifted the deferral on 2026-11-09, so a session can add a
              session host.
 Prove:       `gh workflow run kvm.yml` starts a run whose guest experiment
              exits 0, with the transcript saved under
-             `experiments/results/`, and `./target/release/podvm-gate`
+             `experiments/results/`, and `./target/x86_64-unknown-linux-musl/release/podvm-gate`
              exits 0 with the result cited.
 
 **Blocked 2026-11-06, cleared 2026-11-09.** The blocker was the KVM

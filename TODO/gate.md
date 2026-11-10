@@ -1886,16 +1886,15 @@ emulator, or with less than 6144 MiB available. The operator permitted an
 unattended run on 2026-10-02, so the next run adds `--unattended` and holds
 a T-1609 watchdog on the session rather than needing a person in the room.
 
-⛔ **DEFERRED BY THE OPERATOR, 2026-10-02. Do not start a KVM guest for
-this entry until the operator lifts it.** The driver, the watchdog, the
-base and the image are all in place and stay in place; what is set aside
-is driving them again. `TODO/RULES.md` section 11 carries the decision
-and its clearing condition: the operator saying the KVM work resumes.
-Not elapsed time, and not a green record. The entry stays `partial` with
-its measured state above: three runs on 2026-10-02, `setup` completing
-with `INSTALLED D:`, and `run ver` hanging after the firmware handoff,
-which no fix has yet been shown to explain. T-1641 and T-1112 are
-deferred with it.
+**Free again, 2026-11-09.** The KVM deferral of 2026-10-02 set this
+entry aside. The owner lifted it on 2026-11-09 (`docs/decisions.md`, row
+"KVM"): a session can start a KVM guest where `/dev/kvm` exists, with a
+bound and with no emulator left after the run. The entry stays `partial`
+with its measured state above: three runs on 2026-10-02, `setup`
+completing with `INSTALLED D:`, and `run ver` hanging after the firmware
+handoff, which no fix has yet been shown to explain. The cloud host has
+no `/dev/kvm`. The guest code is `pod_guest` of PodUtils/podcrates since
+T-1681. A hosted runner with `/dev/kvm` is T-1682.
 
 ----
 
@@ -2088,7 +2087,7 @@ Source:      Operator decision 2026-10-02, "no deferrals from now on";
 Category:    gate
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     Twenty-one rows of the refactor plan name no batch. The
              plan bars taking them, and the previous session recorded
@@ -2166,6 +2165,12 @@ already done, their scripts deleted by Batch 3, so filing those as open
 would report finished work as pending. The remaining 21 need each row
 re-derived from current source before it is filed. That is the other
 half of this work and it is not done.
+**Closed 2026-11-10.** The acceptance of this entry is the 21 rows that
+the plan names, and the record above proves them. The 29 other rows are
+outside the title. [T-1673](gate.md) owns them since 2026-11-06, as a
+linked open successor, and reads them from the branch
+`archive/podbox-worktree`. The status moves from `partial` to `done`.
+No clause is lost: each of the 29 rows is a clause of T-1673.
 
 ### T-1608 Reword the Batch 3 Done paragraphs so one-home passes
 
@@ -2416,8 +2421,8 @@ Premise:     `/dev/kvm` and `vmx` are both present and 30 GiB is
              which returns nothing. The pacman database is present at
              `/var/lib/pacman` and the package cache holds neither, so
              nothing is staged locally either.
-Premise:     A qemu DOES exist on the Windows host, at
-             `C:\Users\AjamX\scoop\apps\qemu\current\qemu-system-x86_64.exe`.
+Premise:     A qemu DOES exist on the Windows host, installed by the
+             scoop package `qemu` in the user profile.
              An earlier report of this session said qemu was absent and
              named only the base; that was an incomplete measurement, not
              a wrong one, and it matters because a Windows-host qemu beside
@@ -2770,7 +2775,7 @@ returns clean, so each is judged here against its owning row.
 Source:      `refactor/recon-c.md:88-187`, the 100-row task table, read
              off disk on this machine 2026-10-02;
              `refactor/PLAN.md:261` and `:263`; `refactor/DEFERRALS.md:47-55`;
-             `TODO/gate.md:1957`; `TODO/RESUME.md:116-123`
+             `TODO/gate.md:1957`; `docs/history/resume-before-2026-11-10.txt:129-132`
 Category:    gate
 Priority:    P1
 Effort:      S
@@ -3657,7 +3662,7 @@ useful to the next reader than a silent rewrite would be.
 | the seam step swallows a non-zero exit and leaves `fail` untouched | refuted | `experiments/lib/kvm-guest-base.sh:191` calls `miss`, and `miss` sets `fail=1` at `:21` |
 | `scode=$?` is dead | confirmed | `experiments/lib/kvm-guest-base.sh:183`: `$?` inside `then` is the status of the `if` test, so `scode` is always 0 |
 | the seam step is silently skipped after an earlier failure | confirmed | `experiments/lib/kvm-guest-base.sh:181` and [the 2026-09-30 third result](../experiments/results/kvm-guest-2026-09-30-third.txt) lines 49-50, where `== the podvm run seam` is followed directly by `== residue` |
-| the orphan ran 8m43s with `commandline` and `parent` NULL in `/proc` | not verifiable | appears only in prose in this entry and in `TODO/RESUME.md:75-78`; no result file under `experiments/results/` records it |
+| the orphan ran 8m43s with `commandline` and `parent` NULL in `/proc` | not verifiable | appears only in prose in this entry and in `docs/history/resume-before-2026-11-10.txt:90-94`; no result file under `experiments/results/` records it |
 
 The orphan survives for a reason the record did not name. The selectors
 are sound; the kill is what failed. The 2026-09-30 third result shows
@@ -3720,22 +3725,19 @@ through the lane on 2026-10-02, the same build finishes in 55 s on
 `target/x86_64-unknown-linux-musl/release/podvm`, 3277880 bytes, exit
 0. So the blocker was the lane this session skipped, not the toolchain.
 
-The image is present and correct at
-`/c/Users/AjamX/podvm-images/ValidationOS.vhdx`, 910163968 bytes, the
-pinned length. The binaries under `.dev/artifacts*` are from 2026-09-30
+The image was present and correct on the KVM host of 2026-10-02,
+910163968 bytes, the pinned length. The binaries under `.dev/artifacts*` are from 2026-09-30
 and predate every change here, so a run with any of them would prove
 nothing; the run needs the binary this lane builds.
 
-⛔ **DEFERRED BY THE OPERATOR, 2026-10-02. Do not start a KVM guest for
-this entry until the operator lifts it.** It stays `partial` and its
-remaining acceptance is the one paragraph above, which is recorded
-rather than lost. `TODO/RULES.md` section 11 carries the decision and
-its clearing condition: the operator saying the KVM work resumes. Elapsed
-time does not clear it and a green record does not clear it. The code is
-in place and compiles; only the live run is deferred. The nine tracked
-records written alongside it, including `scripts/build-interpose.sh`, the
-CI interposer step and the `detached_stdio` tier skip, are NOT deferred
-and stay live under T-1604.
+**Free again, 2026-11-09.** The KVM deferral of 2026-10-02 set the live
+run of this entry aside. The owner lifted it on 2026-11-09
+(`docs/decisions.md`, row "KVM"). The entry stays `partial`, and its
+remaining acceptance is the one paragraph above: one bounded KVM run
+with the binary of the current tree. The three fixes are code of
+`pod_guest` (PodUtils/podcrates) since T-1681, so a defect that the run
+finds goes to podcrates as a COORD issue. The cloud host has no
+`/dev/kvm`; a hosted runner with `/dev/kvm` is T-1682.
 
 The plant this entry owes is also still open: none of the three fixes
 carries one, because a plant that fails without them needs the guest or
@@ -3776,8 +3778,8 @@ Decision:    A result from the target host class is never a property of
              The rules of issue 189 carry over: probe by doing, a zero exit
              of a pipeline proves nothing, a timestamp is not a build
              identity, an auth check is not a working credential.
-Prove:       `./target/release/podvm-gate` exits 0 with the findings page in
-             the tree, and `./target/release/podvm-plant` exits 0 with a new
+Prove:       `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 with the findings page in
+             the tree, and `./target/x86_64-unknown-linux-musl/release/podvm-plant` exits 0 with a new
              plant: a findings row with no command and no result file turns
              the gate red.
 
@@ -3810,7 +3812,7 @@ Source:      call C6 of the decisions page of 2026-11-06 (the main session
 Category:    gate
 Priority:    P2
 Effort:      L
-Status:      blocked
+Status:      open
 
 Problem:     podvm's record format is its own: ten fields, a row table and
              a Counts block that `podvm-count` rewrites. The sibling
@@ -3835,11 +3837,18 @@ Decision:    The conversion is one commit, made by a script, never by hand.
              entry stays readable through git.
 Prove:       `cargo test -p podvm-todo` exits 0, the conversion script
              exits 0 and prints that 0 fields were lost, and
-             `./target/release/podvm-gate` exits 0 on the converted record.
+             `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 on the converted record.
 
 **Blocked 2026-11-06.** Blocker: podcrates has not released `pod-todo`,
 so its format has no fixed version to convert to. Clears when: a
 `pod-todo` release exists and T-1669 is done.
+**Unblocked 2026-11-10.** Both conditions hold. The crate `pod-todo` is in
+each podcrates tag from `v0.1.0` to `v0.14.0`; podvm takes the other
+crates at `v0.12.0`, so the conversion reads the format of that tag.
+T-1669 is `done`. The status moves from `blocked` to `open`. The
+README of `pod-todo` at `v0.14.0` gives the shape of a consumer: a small
+member crate that calls `pod_todo::main()`, and a todo.toml in the
+record directory.
 
 ---
 
@@ -3872,7 +3881,7 @@ Decision:    A row is filed from current source, never copied from the plan
              removed is recorded as obsolete with the reason.
 Prove:       `git show origin/archive/podbox-worktree:refactor/recon-c.md`
              exits 0 in the session that reads the plan, and
-             `./target/release/podvm-gate` exits 0 with each of the 29 rows
+             `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 with each of the 29 rows
              filed as an entry or named in T-1607 as done or obsolete.
 
 ---
@@ -3971,7 +3980,7 @@ Decision:    One implementation of each check. A Windows session runs the
 Prove:       `sh scripts/common/check-docs.sh` and each other `.sh` check of
              `scripts/common/` exit 0 under Git Bash on Windows and on
              Linux, with the transcript saved under `experiments/results/`;
-             `./target/release/podvm-gate` exits 0 with no `.ps1` file left
+             `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 with no `.ps1` file left
              in `scripts/common/`.
 
 ---
@@ -4044,5 +4053,5 @@ Decision:    Each fact moves to one home. No rule changes in the move; a
              rule change is its own entry.
 Prove:       `sh scripts/common/check-docs.sh` and
              `sh scripts/common/check-one-home.sh` exit 0, and
-             `./target/release/podvm-gate` exits 0 with the two pages in
+             `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 with the two pages in
              the tree.
