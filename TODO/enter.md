@@ -1342,7 +1342,7 @@ Source:      issue 90; issue 114 section 3.3 and section 6 item 6;
 Category:    enter
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      blocked
 
 Problem:     On a chroot-denied host podvm refuses a payload over
              134217728 bytes at 125 before it runs. `node` in node:alpine
@@ -1375,6 +1375,14 @@ Prove:       `cargo test -p podvm-enter` exits 0 with a test that
              `sh experiments/356-no-chroot-rung.sh` exits 0 with a clause
              that runs `node -e 'console.log(1)'` from the node image
              with `--entrypoint node`, past the size check.
+
+**Blocked 2026-11-10.** Blocker: the code of the two ceilings and of
+`memfd::stage` moved to pod-enter with podcrates v0.9.0 (podvm `423e817`),
+so the fix belongs to podcrates. COORD-016 (issue 222) asks for it. The
+condition that clears the block: a podcrates tag whose pod-enter
+classifies from a bounded read and stages in bounded chunks, taken by
+podvm. Then the clause of experiment 356 (`node -e` past the size check)
+proves it here.
 
 **Filed 2026-11-06.** Quoted from issue 90 and its comments, measured on
 release 0.1.0-beta.12 on the errand host:

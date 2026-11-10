@@ -320,7 +320,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1644](interpose.md) | P1 | interpose | done | Admit a glibc payload against its whole NEEDED closure, read inside the rootfs |
 | [T-1645](interpose.md) | P1 | interpose | done | Intercept `dlopen` and `dlmopen` |
 | [T-1646](interpose.md) | P1 | interpose | partial | A dynamic grandchild re-enters through the host loader |
-| [T-1647](enter.md) | P1 | enter | open | Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes |
+| [T-1647](enter.md) | P1 | enter | blocked | Stream a payload into a memfd: the 128 MiB read ceiling refuses large runtimes |
 | [T-1648](enter.md) | P0 | enter | partial | A static Go payload runs into a GOROOT error instead of a named refusal |
 | [T-1649](cli.md) | P2 | cli | partial | A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out |
 | [T-1650](cli.md) | P1 | cli | partial | `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run |
@@ -375,7 +375,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-307 items: 30 open, 15 partial, 4 blocked, 258 done.
+307 items: 29 open, 15 partial, 5 blocked, 258 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -384,10 +384,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 2 | 0 | 63 | 65 |
-| P1 | 4 | 10 | 0 | 122 | 136 |
+| P1 | 3 | 10 | 1 | 122 | 136 |
 | P2 | 26 | 3 | 4 | 64 | 97 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **30** | **15** | **4** | **258** | **307** |
+| **All** | **29** | **15** | **5** | **258** | **307** |
 
 ## Work order
 
