@@ -119,4 +119,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #222 | COORD-016: pod-enter: classify and stage a payload over 128 MiB (T-1647) (to podcrates) | closed | T-1647 |
 | #223 | COORD-017: podvm took v0.10.0 and pod-oci (to podcrates) | closed | T-1681 |
 | #224 | COORD-018: pod-enter and pod-hostprobe: volume pairs, workdir and first program through the table (T-1653) (to podcrates) | open | T-1653 |
-| #225 | COORD-019: podvm took v0.11.0, pod-extract and pod-rootfs (to podcrates) | open | T-1681, T-1647 |
+| #225 | COORD-019: podvm took v0.11.0, pod-extract and pod-rootfs (to podcrates) | closed | T-1681, T-1647 |
