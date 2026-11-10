@@ -306,7 +306,8 @@ pub unsafe extern "C" fn symlinkat(
 }
 
 /// The length of the `X` run that `mk*temp` replaces. glibc and musl both
-/// require exactly six `X` at the end of the template.
+/// require exactly six `X`, at the end of the template or, for the `s`
+/// forms, before the suffix.
 const X_RUN: usize = 6;
 
 /// Run one `mk*temp` call on a mapped copy of `template`, T-1699.
@@ -318,10 +319,16 @@ const X_RUN: usize = 6;
 /// T-0705 rule of 2026-09-22, which wrote the mapped name into the caller's
 /// buffer and answered `ERANGE` when the mapped name was longer.
 ///
-/// ⛔ A template whose last six bytes are not `X` answers `EINVAL`, as libc
-/// does. The check runs on the guest template, because normalisation of the
-/// mapped copy can remove a trailing slash that libc would refuse. A mapped
-/// path past the stack buffer answers `ENAMETOOLONG`, never a truncation.
+/// `suffix` is the suffix length of `mkstemps` and `mkostemps` (T-1701),
+/// and 0 for the other forms. The `X` run sits just before the suffix.
+///
+/// ⛔ A negative suffix length, a suffix length past the template, or six
+/// bytes before the suffix that are not all `X` answers `EINVAL`, as libc
+/// does. The check runs on the guest template. The mapped copy must end in
+/// the same run and suffix: normalisation can remove a trailing slash, and
+/// then the copy names a different file, so that also answers `EINVAL`. A
+/// mapped path past the stack buffer answers `ENAMETOOLONG`, never a
+/// truncation.
 ///
 /// `ok` tells a success of the real call from a failure, and `fail` is the
 /// answer when the call does not run.
@@ -332,6 +339,7 @@ const X_RUN: usize = 6;
 pub(super) unsafe fn on_template<R: Copy>(
     what: &[u8],
     template: *mut c_char,
+    suffix: c_int,
     fail: R,
     ok: impl Fn(R) -> bool,
     call: impl FnOnce(*mut c_char) -> R,
@@ -366,14 +374,25 @@ pub(super) unsafe fn on_template<R: Copy>(
         m => m as usize,
     };
     let guest = unsafe { core::slice::from_raw_parts_mut(template as *mut u8, n) };
-    if n < X_RUN || m < X_RUN || !x_run(&guest[n - X_RUN..]) || !x_run(&out[m - X_RUN..m]) {
+    // The tail is the run and the suffix: its length, where it fits.
+    let tail = match usize::try_from(suffix) {
+        Ok(s) if n >= X_RUN && s <= n - X_RUN => s + X_RUN,
+        _ => {
+            set_errno(EINVAL);
+            return fail;
+        }
+    };
+    if m < tail
+        || !x_run(&guest[n - tail..n - tail + X_RUN])
+        || guest[n - tail..] != out[m - tail..m]
+    {
         set_errno(EINVAL);
         return fail;
     }
     // `rewrite` writes no NUL, and `out` starts zeroed with `m < OUT`.
     let r = call(out.as_mut_ptr() as *mut c_char);
     if ok(r) {
-        guest[n - X_RUN..].copy_from_slice(&out[m - X_RUN..m]);
+        guest[n - tail..n - tail + X_RUN].copy_from_slice(&out[m - tail..m - tail + X_RUN]);
     }
     r
 }
@@ -383,24 +402,29 @@ fn x_run(s: &[u8]) -> bool {
     s.iter().all(|&b| b == b'X')
 }
 
-/// # Safety
-/// The payload's own contract for `mkstemp(3)`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn mkstemp(template: *mut c_char) -> c_int {
-    let Some(f) = next_mkstemp() else {
-        set_errno(EINVAL);
-        return -1;
+/// One `mk*stemp` entry point that answers a descriptor. The `64` forms
+/// resolve their own real name first, and the plain name where the libc
+/// has no `64` name (musl 1.2.4 and later): both open with the same flags
+/// on a 64-bit target, T-1701.
+macro_rules! mkstemp_fd {
+    ($name:ident, $($real:ident),+ ; ( $($arg:ident : $ty:ty),* ), $suffix:expr) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn $name(template: *mut c_char $(, $arg: $ty)*) -> c_int {
+            let Some(f) = None $(.or_else($real))+ else {
+                set_errno(EINVAL);
+                return -1;
+            };
+            let what = stringify!($name).as_bytes();
+            unsafe { on_template(what, template, $suffix, -1, |fd| fd >= 0, |t| f(t $(, $arg)*)) }
+        }
     };
-    unsafe { on_template(b"mkstemp", template, -1, |fd| fd >= 0, |t| f(t)) }
 }
 
-/// # Safety
-/// The payload's own contract for `mkostemp(3)`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn mkostemp(template: *mut c_char, flags: c_int) -> c_int {
-    let Some(f) = next_mkostemp() else {
-        set_errno(EINVAL);
-        return -1;
-    };
-    unsafe { on_template(b"mkostemp", template, -1, |fd| fd >= 0, |t| f(t, flags)) }
-}
+mkstemp_fd!(mkstemp, next_mkstemp; (), 0);
+mkstemp_fd!(mkostemp, next_mkostemp; (flags: c_int), 0);
+mkstemp_fd!(mkstemp64, next_mkstemp64, next_mkstemp; (), 0);
+mkstemp_fd!(mkostemp64, next_mkostemp64, next_mkostemp; (flags: c_int), 0);
+mkstemp_fd!(mkstemps, next_mkstemps; (suffixlen: c_int), suffixlen);
+mkstemp_fd!(mkostemps, next_mkostemps; (suffixlen: c_int, flags: c_int), suffixlen);

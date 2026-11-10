@@ -9,7 +9,7 @@ pub unsafe extern "C" fn mkdtemp(template: *mut c_char) -> *mut c_char {
         return core::ptr::null_mut();
     };
     let null: *mut c_char = core::ptr::null_mut();
-    let r = unsafe { on_template(b"mkdtemp", template, null, |p| !p.is_null(), |t| f(t)) };
+    let r = unsafe { on_template(b"mkdtemp", template, 0, null, |p| !p.is_null(), |t| f(t)) };
     // T-1699: the real call answers the mapped copy, which dies with the
     // stack frame. The caller gets its own template, as libc answers.
     if r.is_null() {

@@ -2395,7 +2395,7 @@ at ENOENT.
 ### T-1699 `mkostemp` of a mapped template answers ERANGE, and npm prints a line for each cache entry
 
 Source:      T-1697 (its drive of 2026-11-10);
-             `crates/podvm-interpose/src/create_calls.rs:332`; T-0705
+             `crates/podvm-interpose/src/create_calls.rs:339`; T-0705
 Category:    interpose
 Priority:    P2
 Effort:      S
@@ -2443,11 +2443,11 @@ one run (0 before); the host's `/tmp/node-compile-cache` does not change.
 ### T-1701 `mkstemp64`, `mkostemp64`, `mkstemps` and `mkostemps` pass the path table
 
 Source:      T-1699 (its review of 2026-11-10);
-             `crates/podvm-interpose/src/create_calls.rs:332`
+             `crates/podvm-interpose/src/create_calls.rs:339`
 Category:    interpose
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The interposer exports `mkstemp`, `mkostemp` and `mkdtemp`
              only. A glibc program built with `_FILE_OFFSET_BITS=64` calls
@@ -2466,6 +2466,18 @@ Decision:    Each libc entry point that takes a path goes through the
 Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
              exits 0 with a test for each of the four names in a deep
              rootfs, and the built objects export them.
+
+**Done 2026-11-10.** `on_template` takes a suffix length, and the macro
+`mkstemp_fd!` defines the six descriptor entry points: `mkstemp`,
+`mkostemp`, `mkstemp64`, `mkostemp64`, `mkstemps` and `mkostemps`. For the
+`s` forms the six `X` sit before the suffix, which stays; a bad suffix
+length answers EINVAL with the buffer unchanged, as libc does. The 64
+forms look up their own name first, then the plain one. `interpose.map`
+names the four, and both objects export 119 names under the size ceiling.
+The interposer tests exit 0 (69 passed) with
+`mkstemps_keeps_the_suffix_and_the_guest_name` and
+`mkstemps_refuses_a_bad_suffix_length`, and the T-1699 test now covers the
+64 forms; `nm -D --defined-only` of both objects shows the four names.
 
 **Filed 2026-11-10.** Found by the work on T-1699.
 

@@ -83,6 +83,10 @@
     clone;
     mkstemp;
     mkostemp;
+    mkstemp64;
+    mkostemp64;
+    mkstemps;
+    mkostemps;
     mkdtemp;
     access;
     eaccess;

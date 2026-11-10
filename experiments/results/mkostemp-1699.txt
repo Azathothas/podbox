@@ -66,7 +66,7 @@ stdout            10.9.9
 # The interposer tests (cargo test --manifest-path
 # crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu)
 # hold the same rule:
-#   tests::mkostemp_creates_in_the_rootfs_and_keeps_the_guest_name
-#   tests::mkdtemp_answers_the_guest_template_and_refuses_no_x_run
+#   tests::template::mkostemp_creates_in_the_rootfs_and_keeps_the_guest_name
+#   tests::template::mkdtemp_answers_the_guest_template_and_refuses_no_x_run
 # Both fail on the BEFORE source (ERANGE, "the mapped name does not fit
 # the template") and pass on AFTER.
