@@ -360,7 +360,38 @@ pub(super) struct Package {
     pub(super) licence_file: Option<String>,
 }
 
+/// The triples of the release matrix (`.github/workflows/nightly.yml`). The
+/// inventory holds the packages that one of them builds; a package that only
+/// another platform pulls in, such as `r-efi` for UEFI, is in no released
+/// binary. A test keeps this list equal to the matrix.
+pub(super) const RELEASE_TRIPLES: &[&str] = &[
+    "x86_64-unknown-linux-musl",
+    "aarch64-unknown-linux-musl",
+    "riscv64gc-unknown-linux-musl",
+    "loongarch64-unknown-linux-musl",
+    "armv7-unknown-linux-musleabihf",
+    "i686-unknown-linux-musl",
+    "powerpc64le-unknown-linux-musl",
+];
+
+/// The registry and git packages that `manifest` builds for each triple of
+/// [`RELEASE_TRIPLES`], once each.
 pub(super) fn metadata_packages(root: &Path, manifest: &str) -> Result<Vec<Package>, String> {
+    let mut out: Vec<Package> = Vec::new();
+    for triple in RELEASE_TRIPLES {
+        for package in triple_packages(root, manifest, triple)? {
+            if !out
+                .iter()
+                .any(|p| p.name == package.name && p.version == package.version)
+            {
+                out.push(package);
+            }
+        }
+    }
+    Ok(out)
+}
+
+fn triple_packages(root: &Path, manifest: &str, triple: &str) -> Result<Vec<Package>, String> {
     let text = run_captured(
         "cargo",
         &[
@@ -368,13 +399,15 @@ pub(super) fn metadata_packages(root: &Path, manifest: &str) -> Result<Vec<Packa
             "--locked",
             "--format-version",
             "1",
+            "--filter-platform",
+            triple,
             "--manifest-path",
             manifest,
         ],
         root,
         180,
     )
-    .map_err(|e| format!("cargo metadata for {manifest}: {e}"))?;
+    .map_err(|e| format!("cargo metadata for {manifest} ({triple}): {e}"))?;
     let parsed = parse_json(&text)
         .ok_or_else(|| format!("cargo metadata for {manifest}: unreadable output"))?;
     let list = match parsed.get("packages") {

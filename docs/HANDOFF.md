@@ -22,7 +22,7 @@ Remove this file when each step below is done.
 ## Next steps, in order
 
 1. T-1671: when the gate of the head is green, dispatch `release.yml` on
-   `main` with the input `version=0.2.0-beta.1`. Check that the release
+   `main` with the input `version=0.2.0-beta.2`. Check that the release
    has `podvm-ARCH`, its `.sha256` and its `.sigstore` for each arch.
 2. The work order of `TODO/PROGRESS.md`: T-1652, T-1651, T-1655 (the last
    clause of T-1653), T-1703.

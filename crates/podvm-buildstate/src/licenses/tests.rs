@@ -68,3 +68,20 @@ fn licence_stems_match_case_insensitively() {
     assert!(licence_hit("Notice.md"));
     assert!(!licence_hit("README.md"));
 }
+
+/// The inventory reads the packages of the release matrix: each triple of
+/// `nightly.yml` is in `RELEASE_TRIPLES`, and no other one is.
+#[test]
+fn the_release_triples_are_the_nightly_matrix() {
+    let yml = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.github/workflows/nightly.yml");
+    let text = std::fs::read_to_string(&yml).unwrap();
+    let mut matrix: Vec<&str> = text
+        .lines()
+        .filter_map(|l| l.trim().strip_prefix("triple: "))
+        .collect();
+    let mut listed = super::inventory::RELEASE_TRIPLES.to_vec();
+    matrix.sort_unstable();
+    listed.sort_unstable();
+    assert_eq!(matrix, listed);
+}

@@ -1198,7 +1198,7 @@ are found together and neither closes alone.
 
 ---
 
-### T-1671 Release `v0.2.0-beta.1` with `## Breaking` notes, from a dispatched `release.yml`
+### T-1671 Release the first podvm beta with `## Breaking` notes, from a dispatched `release.yml`
 
 Source:      the rename of 2026-11-06 (`CHANGELOG.md:11`, "Breaking: podbox
              is podvm"); `.github/workflows/nightly.yml:13-15`; the
@@ -1207,7 +1207,7 @@ Source:      the rename of 2026-11-06 (`CHANGELOG.md:11`, "Breaking: podbox
 Category:    packaging
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      partial
 
 Problem:     No release carries the name podvm: the changelog says the
              rename is "not deployed". A release starts only from a pushed
@@ -1232,10 +1232,22 @@ Decision:    The version moves to 0.2 because the rename breaks every
              caller. The release workflow creates the tag; no session pushes
              one. T-1605's publish-path proof closes on this release if the
              same jobs publish it.
-Prove:       `gh workflow run release.yml -f version=0.2.0-beta.1` starts a
-             run that exits green, and `gh release view v0.2.0-beta.1`
+Prove:       `gh workflow run release.yml -f version=0.2.0-beta.2` starts a
+             run that exits green, and `gh release view v0.2.0-beta.2`
              lists the seven static binaries with their hashes and
              signatures and a `## Breaking` section in its notes.
+
+**Partial, 2026-11-10.** `release.yml` (a46f595) is on main. The dispatch
+of 0.2.0-beta.1 (run 42800267302) passed its checks and created the tag
+`v0.2.0-beta.1` at `16c9ec6`, but its nightly run 42800606497 failed
+before the publish, so that tag has no release. Two defects: the licence
+inventory read the packages of each platform and refused `r-efi` (a UEFI
+crate with no licence file), and Ubuntu 26.04 has `qemu-user-static` only
+as a virtual package. The fix reads the packages of the seven release
+triples (`RELEASE_TRIPLES`, a test keeps it equal to the matrix) and
+installs `qemu-user-binfmt`. A tag is never deleted (`AGENTS.md`, section
+3), so the release is 0.2.0-beta.2. Remaining: the dispatch of
+0.2.0-beta.2 and the Prove clause.
 
 ### T-1693 README and SECURITY name the last podbox tag that the verifier uses
 

@@ -6,14 +6,14 @@ Earlier repository change records are retained in
 [the captured changelog](docs/history/CHANGELOG.md-before-2026-09-30.txt).
 They describe their recorded revision, not the current build.
 
-## 0.2.0-beta.1 (2026-11-10)
+## 0.2.0-beta.2 (2026-11-10)
 
 ### Breaking: podbox is podvm, 2026-11-10
 
 Record: the owner's ruling of 2026-11-05, a clean break with no
 compatibility with the released binaries; commit `98112cb`
 (`rename: podbox is podvm`, 2026-11-06); T-1671.
-Deployed: version 0.2.0-beta.1 is the first release with the name podvm.
+Deployed: version 0.2.0-beta.2 is the first release with the name podvm.
 The version moves to 0.2 because the rename breaks each caller.
 
 - The binary is `podvm`, not `podbox`, and there is no `podbox` alias.
@@ -50,7 +50,7 @@ The version moves to 0.2 because the rename breaks each caller.
 ### Security: a layer whiteout cannot delete outside the rootfs, 2026-11-10
 
 Record: T-1698; commit `c89b769`.
-Deployed: version 0.2.0-beta.1. Each earlier podbox and podvm release has
+Deployed: version 0.2.0-beta.2. Each earlier podbox and podvm release has
 the defect.
 
 - A whiteout entry of an image layer skipped the path check that every
@@ -64,9 +64,21 @@ the defect.
 
 ### Fixed, 2026-11-10
 
+Record: the release run 42800267302 and its nightly run 42800606497 on the
+tag `v0.2.0-beta.1`; T-1671.
+Deployed: version 0.2.0-beta.2.
+
+- The licence inventory of a release lists only the packages that a
+  release triple builds. Before, it read the packages of each platform and
+  refused `r-efi`, a UEFI crate with no licence file.
+- The nightly build installs `qemu-user-binfmt` on Ubuntu 26.04, where
+  `qemu-user-static` is only a virtual package.
+
+### Fixed in the code, 2026-11-10
+
 Record: the task and the issue on each line, done on 2026-11-09 and
 2026-11-10.
-Deployed: version 0.2.0-beta.1.
+Deployed: version 0.2.0-beta.2.
 
 - A foreground run sometimes exited 0 with no output. podvm closed the
   saved standard output before its copy thread wrote the last bytes. Each
@@ -103,7 +115,7 @@ Deployed: version 0.2.0-beta.1.
 ### Changed, 2026-11-10
 
 Record: T-1681, T-1677, T-1669, T-1671; the commits `deps: podcrates ...`.
-Deployed: version 0.2.0-beta.1.
+Deployed: version 0.2.0-beta.2.
 
 - podvm takes the shared crates of `PodUtils/podcrates` at tag `v0.12.0`:
   `pod-hostprobe`, `pod-tls`, `pod-proxy`, `pod-term`, `pod-supervise`,
@@ -116,6 +128,12 @@ Deployed: version 0.2.0-beta.1.
 - A release starts from the dispatched workflow `release.yml`, which
   creates the tag and then starts the nightly workflow on it. A pushed tag
   no longer starts a release.
+
+## 0.2.0-beta.1 (2026-11-10)
+
+The tag `v0.2.0-beta.1` is at `16c9ec6` and has no release: its nightly
+build failed before the publish (run 42800606497). Version 0.2.0-beta.2
+carries each change of that version.
 
 ## 0.1.0-beta.13
 

@@ -9,7 +9,7 @@ Use `python3` on Linux. The record gate rejects a changed snapshot.
 
 ## Workspace
 
-Declared version: `0.2.0-beta.1`.
+Declared version: `0.2.0-beta.2`.
 
 | Member | Manifest |
 | --- | --- |

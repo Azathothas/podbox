@@ -107,8 +107,18 @@ jobs:
       - name: emulator
         if: matrix.qemu != ''
         run: |
+          # Ubuntu 26.04 has qemu-user-static only as a virtual package;
+          # qemu-user-binfmt provides it. Where only the plain name
+          # (qemu-aarch64) exists, a link gives the matrix name.
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qemu-user-static
+          sudo apt-get install -y --no-install-recommends qemu-user-binfmt \
+            || sudo apt-get install -y --no-install-recommends qemu-user-static
+          q=${{ matrix.qemu }}
+          if ! command -v "$q" >/dev/null 2>&1; then
+            plain=$(command -v "${q%-static}") || { echo "no $q and no ${q%-static}" >&2; exit 1; }
+            sudo ln -s "$plain" "/usr/local/bin/$q"
+          fi
+          "$q" --version | head -n 1
 
       # The per-arch smoke: version runs, the verbose document names this
       # triple, both interposer digests are present, crt-static reads yes,
