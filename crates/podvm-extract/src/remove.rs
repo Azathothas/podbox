@@ -34,7 +34,7 @@ pub enum Op {
 }
 
 /// First pass: read the layer and collect its whiteouts, extracting nothing.
-pub fn collect(stream: &mut dyn Read) -> Result<Vec<Op>> {
+pub fn collect(stream: &mut dyn Read, digest: &str) -> Result<Vec<Op>> {
     let mut ops = Vec::new();
     let mut ar = tar::Archive::new(stream);
     for entry in ar.entries()? {
@@ -46,21 +46,47 @@ pub fn collect(stream: &mut dyn Read) -> Result<Vec<Op>> {
         match whiteout::classify(&path) {
             Kind::Normal => {}
             Kind::Remove(name) => ops.push(Op::Remove {
-                dir: whiteout::dirname_parts(&path)
-                    .iter()
-                    .map(|s| (*s).to_string())
-                    .collect(),
+                dir: checked_dir(digest, &path, Some(&name))?,
                 name,
             }),
             Kind::Opaque => ops.push(Op::Opaque {
-                dir: whiteout::dirname_parts(&path)
-                    .iter()
-                    .map(|s| (*s).to_string())
-                    .collect(),
+                dir: checked_dir(digest, &path, None)?,
             }),
         }
     }
     Ok(ops)
+}
+
+/// The directory of a whiteout, after the lexical rule of every other entry.
+///
+/// ⛔ T-1698 (a security defect, found by the import of pod-extract). A
+/// whiteout skipped the lexical check: `.wh...` at the layer root removed
+/// `..`, the directory ABOVE the destination, and `../.wh.x` reached past
+/// it where the kernel has no `openat2`. Now the directory takes the rule of
+/// [`safety::components`] (no absolute path, no NUL, no `..`), and a name of
+/// `.` or `..` refuses the layer, as an entry of that name does.
+fn checked_dir(digest: &str, path: &str, name: Option<&str>) -> Result<Vec<String>> {
+    let refuse = |r: safety::Refusal| crate::error::Error::Refused {
+        layer: digest.to_string(),
+        entry: path.to_string(),
+        why: r.why(),
+    };
+    if path.contains('\0') {
+        return Err(refuse(safety::Refusal::NulByte));
+    }
+    if path.starts_with('/') {
+        return Err(refuse(safety::Refusal::Absolute));
+    }
+    let dir = whiteout::dirname_parts(path);
+    if let Some(c) = dir.iter().find(|c| **c == "..") {
+        return Err(refuse(safety::Refusal::Component((*c).to_string())));
+    }
+    if let Some(n) = name
+        && (n == "." || n == "..")
+    {
+        return Err(refuse(safety::Refusal::Component(n.to_string())));
+    }
+    Ok(dir.iter().map(|s| (*s).to_string()).collect())
 }
 
 /// Second half: apply them.

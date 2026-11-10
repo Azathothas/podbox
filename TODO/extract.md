@@ -515,3 +515,45 @@ not applied tamper; a re-pull plus extract restores it. The guard that
 stops recurrence is the per-extract hash: every layer of every extract is
 hashed against the manifest before its entries touch the tree, so there
 is no read path left that trusts stored bytes.
+
+### T-1698 A whiteout of `..` deletes outside the destination
+
+Source:      PodUtils/podcrates (the import of pod-extract, its T-057,
+             podcrates `a40d45a`); `crates/podvm-extract/src/remove.rs:37`;
+             `crates/podvm-extract/src/whiteout.rs:46`
+Category:    extract
+Priority:    P0
+Effort:      S
+Status:      done
+
+Problem:     A whiteout skipped the lexical check of every other entry.
+             `.wh...` at the root of a layer named `..`, and its removal
+             deleted the contents of the directory above the destination.
+             `../.wh.x` reached past the destination where the kernel has
+             no `openat2`. A crafted image could delete files outside its
+             rootfs. Each released podvm and podbox binary has the defect.
+Premise:     `whiteout::classify` takes the basename, and `remove::collect`
+             took `dirname_parts` as it was: `..` stayed a component, and a
+             name of `..` or `.` went to `remove_at`.
+Approach:    `remove::collect` gives each whiteout the rule of
+             `safety::components`: no absolute path, no NUL, no `..` in the
+             directory, and a name of `.` or `..` refuses the layer with the
+             layer digest and the entry, as T-0304 refuses any entry.
+Decision:    Refuse the layer, never skip the whiteout (T-0304's rule). The
+             same check lives in pod-extract (podcrates `a40d45a`), which
+             podvm takes with podcrates v0.10.0.
+Prove:       `cargo test -p podvm-extract` exits 0 with the three tests of
+             `drive/whiteouts.rs`, and each of them fails with the check
+             turned off.
+
+**Done 2026-11-10.** `remove::checked_dir` holds the rule; `collect` takes
+the layer digest for the refusal. `cargo test -p podvm-extract` exits 0
+(50 passed) with `a_whiteout_of_dotdot_at_the_root_refuses_the_layer`,
+`a_whiteout_that_climbs_out_refuses_the_layer` and
+`a_whiteout_of_dot_refuses_the_layer`. With the check turned off, each of
+the three fails, and the `..` case reached the directory above the
+destination ([the plant](../experiments/results/whiteout-escape-1698.txt)).
+
+**Filed 2026-11-10.** Reported by the podcrates session, which found the
+defect while it imported `podvm-extract` into pod-extract.
+

@@ -371,10 +371,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1695](cli.md) | P1 | cli | open | One JSON report for each run, and real labels on records |
 | [T-1696](cli.md) | P2 | cli | open | `--secret` places a file with no argv and no env, and a read-once mode |
 | [T-1697](interpose.md) | P1 | interpose | open | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
+| [T-1698](extract.md) | P0 | extract | done | A whiteout of `..` deletes outside the destination |
 
 ## Counts
 
-306 items: 30 open, 15 partial, 4 blocked, 257 done.
+307 items: 30 open, 15 partial, 4 blocked, 258 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -382,11 +383,11 @@ that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 2 | 0 | 62 | 64 |
+| P0 | 0 | 2 | 0 | 63 | 65 |
 | P1 | 4 | 10 | 0 | 122 | 136 |
 | P2 | 26 | 3 | 4 | 64 | 97 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **30** | **15** | **4** | **257** | **306** |
+| **All** | **30** | **15** | **4** | **258** | **307** |
 
 ## Work order
 

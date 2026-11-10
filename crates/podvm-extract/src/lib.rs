@@ -224,7 +224,7 @@ fn extract_layers(
         // The second pass re-checks, so a change between the two reads is
         // still caught (the error path below removes the partial tree).
         let (mut first, hash1) = layer::open_hashed(blob, *c)?;
-        let ops = remove::collect(&mut first)?;
+        let ops = remove::collect(&mut first, ld)?;
         drop(first);
         verified(&hash1, ld, blob)?;
         total.removed += remove::apply(root, &ops)?;

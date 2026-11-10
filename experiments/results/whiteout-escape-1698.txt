@@ -1,0 +1,16 @@
+# T-1698: a whiteout escaped the destination (a security defect).
+# Cloud host, 2026-11-10. `cargo test -p podvm-extract whiteout`, the three
+# tests of crates/podvm-extract/src/drive/whiteouts.rs. Each test extracts
+# into a directory one level below its scratch directory, beside a sentinel.
+
+== with the check off (the code before T-1698), planted by hand
+drive::whiteouts::a_whiteout_that_climbs_out_refuses_the_layer
+  ../.wh.sentinel was not refused: Ok(0)
+drive::whiteouts::a_whiteout_of_dot_refuses_the_layer
+  failed at whiteouts.rs:59 (the layer was not refused)
+drive::whiteouts::a_whiteout_of_dotdot_at_the_root_refuses_the_layer
+  a whiteout of `..` was not refused: Err(Extract("cannot remove the directory \"..\": ENOTEMPTY"))
+  (the removal of `..` descended into the directory above the destination)
+
+== with the check (this tree)
+test result: ok. 9 passed; 0 failed (the whiteout tests of podvm-extract)
