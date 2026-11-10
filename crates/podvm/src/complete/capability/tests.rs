@@ -57,23 +57,6 @@ fn the_commands_of_a_payload_are_read_from_its_argv() {
     );
 }
 
-/// node and its tools hit T-1697 where podvm can tell: a tool of node, or
-/// node given a script. `node -e` and `node --version` read no module
-/// path, so they stay a warning.
-#[test]
-fn a_command_on_node_hits_the_libuv_gap() {
-    let hit = |argv: &[&str], routed: bool| libuv_hit(&commands(&words(argv), routed));
-    assert!(hit(&["npm", "ci"], false).is_some());
-    assert!(hit(&["/usr/local/bin/node", "app.js"], false).is_some());
-    assert!(hit(&["sh", "-c", "cd /app && npm test"], false).is_some());
-    assert!(hit(&["env", "-i", "FOO=1", "npx", "x"], false).is_some());
-    assert!(hit(&["docker-entrypoint.sh", "yarn", "build"], true).is_some());
-    assert!(hit(&["node", "-e", "console.log(1)"], false).is_none());
-    assert!(hit(&["node", "--version"], false).is_none());
-    assert!(hit(&["docker-entrypoint.sh", "node", "-e", "x"], true).is_none());
-    assert!(hit(&["/bin/echo", "npm"], false).is_none());
-}
-
 /// A head tells static only where the whole program header table is in
 /// it; a truncated table or another format cannot tell.
 #[test]
@@ -106,13 +89,12 @@ fn the_loader_gaps_name_their_entries_and_their_hits() {
         &path,
     );
     let entries: Vec<_> = gaps.iter().map(|g| g.entry).collect();
-    assert_eq!(entries, vec!["T-1646", "T-1652", "T-1697"]);
+    assert_eq!(entries, vec!["T-1646", "T-1652"]);
     assert!(gaps[0].hit.is_none());
     assert!(
         gaps[1].hit.as_deref().unwrap().contains("`stat`"),
         "{gaps:?}"
     );
-    assert!(gaps[2].hit.is_none());
     let gaps = loader_gaps(&root, &words(&["sh", "-c", "/bin/dyn"]), false, &path);
     assert!(gaps.iter().all(|g| g.hit.is_none()), "{gaps:?}");
     // The payload itself is decided by the entry: no hit from argv[0].
@@ -152,7 +134,10 @@ fn strict_refuses_a_capability_gap_that_the_payload_hits() {
     assert!(s.contains("--strict warning [capability]: a gap"), "{s}");
     // A hit refuses at 125, naming the gap, why, and a rung.
     let hit = StrictCtx {
-        gaps: vec![gap("T-1697", Some("`npm` runs on node"))],
+        gaps: vec![gap(
+            "T-1652",
+            Some("`stat` is a statically linked program of the image"),
+        )],
         ..StrictCtx::default()
     };
     let mut out = Vec::new();
@@ -160,7 +145,7 @@ fn strict_refuses_a_capability_gap_that_the_payload_hits() {
     assert_eq!(e, podvm_image::error::EXIT_RUNTIME_ERROR);
     let s = String::from_utf8(out).unwrap();
     assert!(s.contains("  - [capability] a gap"), "{s}");
-    assert!(s.contains("`npm` runs on node"), "{s}");
+    assert!(s.contains("`stat` is a statically linked program"), "{s}");
     assert!(s.contains("chroot rung runs this command"), "{s}");
     assert!(s.contains("T-1651, T-1652"), "{s}");
     // `--strict=all` refuses the warned gap too.
@@ -176,7 +161,7 @@ fn strict_refuses_a_capability_gap_that_the_payload_hits() {
 
 /// A gap leaves the list in the change that closes its entry: each listed
 /// entry is open, partial or blocked in `TODO/INDEX.md`, and the entries
-/// that closed their gaps (T-1643, T-1645) are not listed.
+/// that closed their gaps (T-1643, T-1645, T-1697) are not listed.
 #[test]
 fn each_listed_gap_names_an_entry_that_is_not_done() {
     let index = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../TODO/INDEX.md");
@@ -194,7 +179,7 @@ fn each_listed_gap_names_an_entry_that_is_not_done() {
         );
         assert!(g.text.contains(g.entry), "{}: {}", g.entry, g.text);
     }
-    for closed in ["T-1643", "T-1645"] {
+    for closed in ["T-1643", "T-1645", "T-1697"] {
         assert!(LOADER_GAPS.iter().all(|g| g.entry != closed), "{closed}");
     }
 }

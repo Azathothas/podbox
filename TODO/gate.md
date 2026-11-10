@@ -2552,7 +2552,7 @@ Problem:     The source-discovery pages still describe the world before
              each file is an exec shim and says so in its own header.
              `README.md:103` and `scripts/README.md:21` still name
              `verify-release.sh` as the verifier where the logic is now
-             `podvm-verify`. `docs/limits.md:33` points T-1405 at
+             `podvm-verify`. `docs/limits.md:36` points T-1405 at
              release packaging for helpers that beta.10 already ships.
 Premise:     Every claim above was read in the source, not inferred.
              `docs/runtime-state.md:14` and `Cargo.toml:3` already list
@@ -2700,7 +2700,7 @@ removed. That is recorded on T-0204 itself, where the work now lives.
    record knows the hazard. No task owns it and no tool can repair it;
    `base ensure --repair` says so itself. This is a permanent limit on
    this host unless the toolkit changes. Record it as a limit, not work.
-4. `docs/limits.md:29` assigns the live-entry prover and the
+4. `docs/limits.md:32` assigns the live-entry prover and the
    binary-appended footer to T-1003, which is `done`. A closed entry
    cannot own future work. Decide where it goes or drop it.
 

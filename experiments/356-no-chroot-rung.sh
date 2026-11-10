@@ -91,7 +91,13 @@
 #      runs at 0 with the listing and warns [capability] naming T-1646;
 #      `--strict` of `/bin/echo hi` runs at 0; `--strict` of a shell
 #      that runs a static program of the image refuses at 125 naming
-#      T-1652, and of `npm --version` at 125 naming T-1697.
+#      T-1652. T-1697 closed its gap: `--strict` of `npm --version`
+#      runs at 0 and names no T-1697 gap.
+#   25. raw statx (T-1697): node's `fs.statSync` and `fs.lstatSync` of
+#      guest paths answer from the rootfs (libuv calls `statx` through
+#      libc's `syscall()`), and `npm ci` then `npm test` of a project
+#      with no dependencies and a `postinstall` child exit 0 from the
+#      node image, with no registry.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -655,8 +661,67 @@ grep -qx "hi" "$WORK/out-fx-strict-echo.txt" || { echo "--strict /bin/echo hi di
 step fx-strict-static "$RUN_ERR" $FX "$PB" run --rm --strict script-alpine:1 /bin/sh -c '/hello'
 grep -q "\[capability\].*T-1652.*This command hits it" "$WORK/out-fx-strict-static.txt" || { echo "--strict did not refuse the static child naming T-1652" >>"$REPORT"; fail=1; }
 grep -q "static-hi" "$WORK/out-fx-strict-static.txt" && { echo "--strict ran the static child" >>"$REPORT"; fail=1; }
-step fx-strict-npm "$RUN_ERR" $FX "$PB" run --rm --strict "$NODE" npm --version
-grep -q "\[capability\].*T-1697.*This command hits it" "$WORK/out-fx-strict-npm.txt" || { echo "--strict did not refuse npm naming T-1697" >>"$REPORT"; fail=1; }
+step fx-strict-npm 0 $FX "$PB" run --rm --strict "$NODE" npm --version
+grep -qx "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*" "$WORK/out-fx-strict-npm.txt" || { echo "--strict npm --version did not print a version" >>"$REPORT"; fail=1; }
+grep -q "T-1697" "$WORK/out-fx-strict-npm.txt" && { echo "--strict still names the closed T-1697 gap" >>"$REPORT"; fail=1; }
+
+# Clause 25 (T-1697 raw statx): libuv stats a path through libc's
+# `syscall()`, and the interposer maps that number through the table.
+# Before T-1697, `statSync` and `lstatSync` of a guest path missed with
+# ENOENT on the host, and npm could not find its own modules. The
+# project has no dependencies, so `npm ci` needs no registry. The image
+# is the node rootfs with the project at /app, imported as clause 13
+# imports its script image.
+step fx-node-stat 0 $FX "$PB" run --rm --entrypoint node "$NODE" -e 'const fs = require("fs"); console.log("stat=" + fs.statSync("/etc/alpine-release").isFile()); console.log("lstat=" + fs.lstatSync("/usr/local/lib/node_modules").isDirectory())'
+grep -qx "stat=true" "$WORK/out-fx-node-stat.txt" || { echo "node statSync of a guest file did not answer from the rootfs" >>"$REPORT"; fail=1; }
+grep -qx "lstat=true" "$WORK/out-fx-node-stat.txt" || { echo "node lstatSync of a guest directory did not answer from the rootfs" >>"$REPORT"; fail=1; }
+timeout 600 "$PB" extract "$NODE" >>"$REPORT" 2>&1 || { echo "node extract FAILED" | tee -a "$REPORT"; exit 1; }
+NROOT=$("$PB" inspect --format '{{.RootfsPath}}' "$NODE" 2>/dev/null) || NROOT=""
+[ -d "$NROOT" ] || { echo "node rootfs missing: FAILED" | tee -a "$REPORT"; exit 1; }
+mkdir -p "$WORK/npm-root/app" || exit 2
+cat >"$WORK/npm-root/app/package.json" <<'EOF'
+{
+  "name": "p1697",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "node -e \"process.stdout.write(require('child_process').execSync('echo postinstall-child-ok').toString())\"",
+    "test": "node test.js"
+  }
+}
+EOF
+cat >"$WORK/npm-root/app/package-lock.json" <<'EOF'
+{
+  "name": "p1697",
+  "version": "1.0.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "p1697",
+      "version": "1.0.0",
+      "hasInstallScript": true
+    }
+  }
+}
+EOF
+cat >"$WORK/npm-root/app/test.js" <<'EOF'
+const fs = require("fs");
+const s = fs.statSync("/usr/local/lib/node_modules/npm/package.json");
+fs.lstatSync("/usr/local/lib/node_modules");
+console.log("npm-test-ok " + (s.size > 0));
+EOF
+tar -cf "$WORK/node-app.tar" -C "$NROOT" . -C "$WORK/npm-root" app 2>>"$REPORT" \
+	|| { echo "node-app tar      FAILED" | tee -a "$REPORT"; exit 2; }
+if timeout 600 "$PB" import "$WORK/node-app.tar" node-app:1697 >>"$REPORT" 2>&1; then
+	echo "node-app import   ok" >>"$REPORT"
+else
+	echo "node-app import   FAILED" | tee -a "$REPORT"
+	exit 1
+fi
+step fx-npm-ci 0 $FX "$PB" run --rm -w /app -e PATH=/usr/local/bin:/usr/bin:/bin -e HOME=/root -e npm_config_update_notifier=false node-app:1697 /bin/sh -c 'npm ci --no-audit --no-fund && npm test'
+grep -qx "postinstall-child-ok" "$WORK/out-fx-npm-ci.txt" || { echo "npm ci did not run the postinstall child" >>"$REPORT"; fail=1; }
+grep -qx "npm-test-ok true" "$WORK/out-fx-npm-ci.txt" || { echo "npm test did not run" >>"$REPORT"; fail=1; }
 
 {
 echo ""

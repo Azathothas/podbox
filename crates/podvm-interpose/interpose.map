@@ -127,6 +127,7 @@
     getresgid;
     dlopen;
     dlmopen;
+    syscall;
   local:
     *;
 };

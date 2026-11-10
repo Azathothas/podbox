@@ -1,0 +1,167 @@
+# T-1697 drive: a raw `statx` of libuv takes the path table.
+# Run by hand on the chroot-denying fixture: unshare -Urm, a tmpfs over
+# /dev/pts, and experiments/deny-chroot.c (chroot(2) answers EPERM), as
+# experiments/356-no-chroot-rung.sh builds it. Images come from mirror.gcr.io:
+# Docker Hub and public.ecr.aws answer HTTP 429 on this host, so 356 itself
+# could not pull its pinned inputs. The scratch home is written as $STORE.
+#
+# The commands are those of clauses 24 and 25 of
+# experiments/356-no-chroot-rung.sh, each under:
+#   unshare -Urm sh $STORE/wrap.sh $STORE <podvm> run --rm ...
+# node-app:1697 is the node:22-alpine rootfs with the project of clause 25
+# at /app (package.json with a `postinstall` child and a `test` script,
+# package-lock.json with no dependencies), imported as clause 13 imports
+# its script image. `npm ci --no-audit --no-fund` needs no registry.
+# A step matches where the exit is the wanted one and, where a line is
+# named, the output holds exactly that line. The last four output lines
+# are kept; podvm's extraction and fixup lines are removed.
+#
+# BEFORE is the debug binary of 0dc335d. AFTER is this tree: the
+# interposer exports `syscall` (crates/podvm-interpose/src/raw_calls.rs).
+
+== conditions
+date              2026-11-10T01:44:03Z
+host kernel       Linux 6.18.44-fc-v338
+podvm             podvm 0.1.0-beta.13
+node              mirror.gcr.io/library/node:22-alpine sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202 (node v22.23.4, libuv 1.51.0, musl 1.2.6, npm 10.9.9)
+alpine            mirror.gcr.io/library/alpine:3.22 sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f
+debian            mirror.gcr.io/library/debian:bookworm-slim sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
+python            mirror.gcr.io/library/python:3-alpine sha256:a0f2e268f2ce8f3709611a90054ec6a8ae31f6251f5896b8648b9bb99835e30a
+fixture           unshare -Urm + experiments/deny-chroot.c (chroot(2) answers EPERM)
+strace            strace -- version 6.8
+
+######## THE CAUSE, MEASURED BEFORE THE FIX
+# 1. The node binary of the image imports `syscall` from musl and no
+#    `statx` (readelf -W --dyn-syms, the undefined names that take a path
+#    or issue a call):
+#      readlink realpath fstatfs open stat syscall opendir fstat lstat statfs
+#    libuv 1.51.0 stats through `syscall(__NR_statx, ...)` (uv__statx), so
+#    no libc `statx` entry point is called that the interposer could map.
+# 2. strace -f of the BEFORE binary, `node -e` with readFileSync, statSync
+#    and lstatSync: the read goes through the interposed `open` and lands
+#    in the rootfs; both stats reach the kernel with the guest path, which
+#    the kernel resolves on the host.
+  10246 open("$STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs/etc/alpine-release", O_RDONLY|O_LARGEFILE|O_CLOEXEC) = 22
+  10246 statx(AT_FDCWD, "/etc/alpine-release", AT_STATX_SYNC_AS_STAT, STATX_ALL, 0x7ffea5d69090) = -1 ENOENT (No such file or directory)
+  10246 statx(AT_FDCWD, "/usr/local/lib/node_modules", AT_STATX_SYNC_AS_STAT|AT_SYMLINK_NOFOLLOW, STATX_ALL, 0x7ffea5d69090) = -1 ENOENT (No such file or directory)
+# 3. An async `fs.stat` runs on a thread-pool thread as the same raw
+#    `statx` (ENOENT); `fs.promises.open` and `mkdir` go through the
+#    interposed `open` and `mkdir`. That is also true with
+#    UV_USE_IO_URING=1: libuv 1.51 opens only its epoll_ctl ring
+#    (io_uring_setup(256, IORING_SETUP_NO_SQARRAY), io_uring_enter(fd, 2,
+#    2, ...)) in node 22, so no file call of this drive went through
+#    io_uring. A ring could carry IORING_OP_STATX or IORING_OP_OPENAT,
+#    which the table never sees, so the fix refuses io_uring_setup too.
+
+######## AFTER: the same stats, strace -f of the AFTER binary
+  statx(AT_FDCWD, "$STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs/etc/alpine-release", AT_STATX_SYNC_AS_STAT, STATX_ALL, {stx_mask=STATX_ALL|STATX_MNT_ID, stx_mode=S_IFREG|0644, stx_size=7, ...}) = 0
+  statx(AT_FDCWD, "$STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs/usr/local/lib/node_modules", AT_STATX_SYNC_AS_STAT|AT_SYMLINK_NOFOLLOW, STATX_ALL, {stx_mask=STATX_ALL|STATX_MNT_ID, stx_mode=S_IFDIR|0755, stx_size=4096, ...}) = 0
+# node issued no io_uring_setup in the AFTER run: the interposer answered
+# ENOSYS (a note under PODVM_INTERPOSE_DEBUG=1:
+#   podvm: interpose: syscall 425 (io_uring_setup): a raw call that the
+#   path table cannot map, so podvm answers ENOSYS (TODO/interpose.md T-1697)
+# three times, one for each loop), and libuv used epoll_ctl.
+
+######## BEFORE: podvm 0.1.0-beta.13
+== before-node-stat
+want exit 1, line ''; got exit 1: ok
+  | Error: ENOENT: no such file or directory, stat '/etc/alpine-release'
+  | }
+  | 
+  | Node.js v22.23.4
+== before-npm-version
+want exit 1, line ''; got exit 1: ok
+  | Error: ENOENT: no such file or directory, lstat '/usr/local/lib/node_modules'
+  | }
+  | 
+  | Node.js v22.23.4
+== before-npm-ci
+want exit 1, line ''; got exit 1: ok
+  | Error: ENOENT: no such file or directory, lstat '/usr/local/lib/node_modules'
+  | }
+  | 
+  | Node.js v22.23.4
+== before-strict-npm
+want exit 125, line ''; got exit 125: ok
+  | podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+  | podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1646)
+  | podvm run: --strict warning [capability]: a statically linked child keeps the direct exec: its raw syscalls pass the interposer, so its absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
+  | podvm run: --strict, and this run is degraded in 1 safety-relevant way(s). podvm refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415, T-1650):
+  (the refusal names T-1697)
+######## AFTER: podvm 0.1.0-beta.13
+== fx-node-stat
+want exit 0, line 'lstat=true'; got exit 0: ok
+  | stat=true
+  | lstat=true
+== fx-npm-version
+want exit 0, line ''; got exit 0: ok
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  (and 69 lines 'podvm: interpose: mkostemp: the mapped name does not fit the template', above)
+== fx-npm-ci
+want exit 0, line 'npm-test-ok true'; got exit 0: ok
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  (and 648 lines 'podvm: interpose: mkostemp: the mapped name does not fit the template', above)
+  (the postinstall child printed postinstall-child-ok)
+== fx-strict-npm
+want exit 0, line ''; got exit 0: ok
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  | podvm: interpose: mkostemp: the mapped name does not fit the template
+  (and 69 lines 'podvm: interpose: mkostemp: the mapped name does not fit the template', above)
+== fx-banner
+want exit 0, line ''; got exit 0: ok
+  | podvm: interpose: emulating mknod, mount, unshare and clone flag-strip for this payload: each is counted and `inspect` carries the tally under Interpose.Emulated (TODO/interpose.md T-0708). /proc/self/fd, /proc/self/exe and the mount-table files are emulated where exactly answerable and refused elsewhere, counted under Interpose.Emulated.procfs (TODO/complete.md T-0413)
+  | entering without chroot on the loader family: $STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs/lib/ld-musl-x86_64.so.1 runs $STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs/usr/local/bin/node with the image's libraries; absolute guest paths anchor inside the rootfs through PODVM_MAPS, and host pass-through happens only under --unsafe-host-paths, and argv[0] keeps the invoked name; a child that execs a dynamic program or a #! script enters through the image's loader inside the rootfs, with the image's libraries from PODVM_LIB_PATH; a raw call through libc's syscall() takes the same table, and a raw call with a path that the table cannot map, or io_uring_setup, answers ENOSYS, so libuv uses its thread pool (TODO/enter.md T-1317, T-1407, T-1411; TODO/interpose.md T-1646, T-1697)
+  | podvm: userland: absolute guest paths anchor inside $STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs through PODVM_MAPS=/:$STORE/rootfs/sha256_947e5454e08bfe0b8ddda604915ad76275276c774f47da90d0137252c793a778/rootfs (TODO/enter.md T-1407)
+  | podvm: userland: /proc/self/exe answers the payload's own path from PODVM_GUEST_EXE rather than the loader's (TODO/enter.md T-1409)
+  (the banner names the syscall() route and the io_uring refusal)
+######## AFTER: regressions of clauses 17, 21, 22 and 23
+== fx-grandchild
+want exit 0, line 'grandchild-ok'; got exit 0: ok
+  | podvm: 1 of 519 entries carry an id this machine cannot apply; what the image intended is in $STORE/rootfs/sha256_9db2934886712d877c932e07249c75a59e6ca27adfbccc05261987a17bef2d63/.meta.jsonl
+  | podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+  | grandchild-ok
+== fx-gc-alpine
+want exit 0, line 'pipe-ok'; got exit 0: ok
+  | tmp
+  | usr
+  | var
+  | pipe-ok
+== fx-gc-debian
+want exit 0, line 'var'; got exit 0: ok
+  | sys
+  | tmp
+  | usr
+  | var
+== fx-glibc-echo
+want exit 0, line 'hi'; got exit 0: ok
+  | podvm: 10 of 4225 entries carry an id this machine cannot apply; what the image intended is in $STORE/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
+  | podvm: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+  | hi
+== fx-dlopen
+want exit 0, line 'import-ok'; got exit 0: ok
+  | podvm: 1 of 3552 entries carry an id this machine cannot apply; what the image intended is in $STORE/rootfs/sha256_a943ed02f4e22d024d2b4fc5083619497dfb9bc1c64c193861f3bc6d3074f5b1/.meta.jsonl
+  | podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+  | import-ok
+== fx-node-execsync
+want exit 0, line 'etc'; got exit 0: ok
+  | sys
+  | tmp
+  | usr
+  | var
+drive exit        0
+
+# The mkostemp lines of the AFTER npm runs are a separate defect, which
+# this drive exposed and did not cause: npm turns on node's compile cache
+# under /tmp/node-compile-cache, node writes each entry through
+# `mkostemp`, and the mapped template is longer than the guest one, so
+# the interposer answers ERANGE (`map_template`, T-0705). node skips the
+# cache entry, and npm exits 0. With NODE_DISABLE_COMPILE_CACHE=1, the
+# AFTER `npm --version` printed none of these lines and exited 0.

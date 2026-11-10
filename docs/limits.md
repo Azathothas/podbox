@@ -18,8 +18,11 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   through the image's own loader or interpreter, resolved inside the
   rootfs (T-1646). `fexecve`, `execveat` with flags, a non-x86_64 ELF,
   and `system()` or `popen()` (which spawn inside libc) are not routed.
-- A raw syscall passes the interposer: libuv's `statx` resolves on the
-  host, so node's `npm ci` cannot find its modules (T-1697).
+- A raw call through libc's `syscall()` takes the path table, so libuv's
+  `statx` resolves inside the rootfs (T-1697). A raw call with a path that
+  the table cannot map, and `io_uring_setup`, answer `ENOSYS`. A program
+  that issues the `syscall` instruction itself (a static program, Go,
+  liburing) passes the interposer (T-1652).
 - Interposition covers cooperative library calls, without a security boundary.
 - The embedded interposer pair is x86_64. Other payload architectures need another execution path.
 - A foreign architecture needs the host interpreter support required by the selected path.

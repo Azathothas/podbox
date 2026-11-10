@@ -1415,7 +1415,7 @@ Source:      issue 91; issue 114 section 3.4;
              `crates/podvm/src/lifecycle/entry.rs:343`;
              `crates/podvm/src/lifecycle/entry.rs:374`;
              `crates/podvm/src/interpose.rs:355`;
-             `experiments/356-no-chroot-rung.sh:562`;
+             `experiments/356-no-chroot-rung.sh:569`;
              A-V-04 of PodUtils/podcrates#39
 Category:    enter
 Priority:    P0
@@ -1437,7 +1437,7 @@ Premise:     `decide_entry` sends every static payload to the memfd
              banner note (`crates/podvm/src/interpose.rs:355`),
              which the quiet default also hides. Clause 18 of experiment
              356 pins exit 2 naming GOROOT as the boundary
-             (`356-no-chroot-rung.sh:562`).
+             (`356-no-chroot-rung.sh:569`).
 Approach:    On a chroot-denied host, refuse a static payload at 125
              before the exec, unless `--unsafe-host-paths` opts in. That
              is T-1407's flag for this exact host pass-through. The
@@ -1468,7 +1468,7 @@ opt-in, T-1651, T-1652). Under the opt-in, `userland_env` writes the
 host-root line to stderr at once, so it prints under the quiet default
 and `-q`. `--strict` still refuses the opt-in. Experiment 356 passes the
 opt-in on its memfd clauses, and clause 18 (`fx-go-refuse`,
-`356-no-chroot-rung.sh:562`) now asks for 125 naming the static reason
+`356-no-chroot-rung.sh:569`) now asks for 125 naming the static reason
 and no GOROOT. `cargo test -p podvm` exits 0 (274 passed) with
 `a_static_payload_refuses_without_the_opt_in`. [A hand drive](../experiments/results/no-chroot-static-refusal.txt)
 through the deny-chroot fixture of experiment 356 gave 125 for the static

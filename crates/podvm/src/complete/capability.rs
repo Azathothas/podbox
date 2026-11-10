@@ -9,7 +9,9 @@
 //! starts.
 //!
 //! Not in the list, because their entries closed them: a `dlopen` of a
-//! guest path (T-1645) and a relative path (T-1643). A static payload
+//! guest path (T-1645), a relative path (T-1643), and a raw call through
+//! libc's `syscall()`, such as the `statx` of libuv under node and npm
+//! (T-1697). A static payload
 //! refuses before the exec without `--unsafe-host-paths` (T-1648), so it
 //! is no gap of the loader family; a static child is.
 
@@ -23,8 +25,6 @@ enum Probe {
     /// A command of the payload names a statically linked program of the
     /// image.
     StaticChild,
-    /// A command of the payload runs on node.
-    Libuv,
 }
 
 /// One gap of the loader family, and the entry that closes it.
@@ -49,19 +49,13 @@ pub const LOADER_GAPS: &[GapDef] = &[
     },
     GapDef {
         entry: "T-1652",
-        text: "a statically linked child keeps the direct exec: its raw syscalls \
-               pass the interposer, so its absolute paths resolve on the host and \
-               a write lands on the host tree; T-1648 refuses only a static \
+        text: "a statically linked child keeps the direct exec, and a dynamic \
+               program can issue the syscall instruction itself (Go, liburing) \
+               instead of a call of libc: those raw syscalls pass the \
+               interposer, so their absolute paths resolve on the host and a \
+               write lands on the host tree; T-1648 refuses only a static \
                top-level payload (TODO/enter.md T-1652, T-1651)",
         probe: Probe::StaticChild,
-    },
-    GapDef {
-        entry: "T-1697",
-        text: "libuv calls statx as a raw syscall, which passes the interposer: \
-               node, npm and the other tools on node stat guest paths on the \
-               host, so module resolution fails or reads host files \
-               (TODO/interpose.md T-1697)",
-        probe: Probe::Libuv,
     },
 ];
 
@@ -88,7 +82,6 @@ pub fn loader_gaps(rootfs: &str, argv: &[String], routed: bool, path_dirs: &[Str
             hit: match g.probe {
                 Probe::Unknown => None,
                 Probe::StaticChild => static_hit(rootfs, &cmds, path_dirs),
-                Probe::Libuv => libuv_hit(&cmds),
             },
         })
         .collect()
@@ -105,9 +98,6 @@ const PREFIXES: &[&str] = &[
     "exec", "command", "env", "nohup", "nice", "time", "then", "do", "else", "elif", "if", "while",
     "until", "!", "{",
 ];
-
-/// The tools that run on node, from their name.
-const NODE_TOOLS: &[&str] = &["npm", "npx", "yarn", "pnpm", "corepack"];
 
 fn basename(w: &str) -> &str {
     w.rsplit('/').next().unwrap_or(w)
@@ -226,47 +216,6 @@ fn split_commands(s: &str) -> Vec<Vec<String>> {
         out.push(cmd);
     }
     out
-}
-
-/// A command that runs on node: a tool of [`NODE_TOOLS`], or `node` given
-/// a script. `node -e`, `-p`, `--version` and `--help` read no module
-/// path, so podvm cannot tell that they hit the gap.
-fn libuv_hit(cmds: &[Vec<String>]) -> Option<String> {
-    for cmd in cmds {
-        let words = program_words(cmd);
-        let Some(first) = words.first() else {
-            continue;
-        };
-        let name = basename(first);
-        if NODE_TOOLS.contains(&name) {
-            return Some(format!(
-                "`{name}` runs on node, whose module loader stats each path"
-            ));
-        }
-        if name != "node" && name != "nodejs" {
-            continue;
-        }
-        let args = &words[1..];
-        let inline = [
-            "-e",
-            "--eval",
-            "-p",
-            "--print",
-            "-v",
-            "--version",
-            "-h",
-            "--help",
-        ];
-        if args.iter().any(|a| inline.contains(&a.as_str())) {
-            continue;
-        }
-        if let Some(script) = args.iter().find(|a| !a.starts_with('-')) {
-            return Some(format!(
-                "`{name}` runs the script {script}, and its module loader stats each path"
-            ));
-        }
-    }
-    None
 }
 
 /// A command after the first that names a statically linked program of

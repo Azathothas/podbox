@@ -370,12 +370,13 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1694](cli.md) | P2 | cli | open | Headless Chromium of Playwright runs as a proven payload with its flags in one profile |
 | [T-1695](cli.md) | P1 | cli | open | One JSON report for each run, and real labels on records |
 | [T-1696](cli.md) | P2 | cli | open | `--secret` places a file with no argv and no env, and a read-once mode |
-| [T-1697](interpose.md) | P1 | interpose | open | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
+| [T-1697](interpose.md) | P1 | interpose | partial | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
 | [T-1698](extract.md) | P0 | extract | done | A whiteout of `..` deletes outside the destination |
+| [T-1699](interpose.md) | P2 | interpose | open | `mkostemp` of a mapped template answers ERANGE, and npm prints a line for each cache entry |
 
 ## Counts
 
-307 items: 29 open, 15 partial, 5 blocked, 258 done.
+308 items: 29 open, 16 partial, 5 blocked, 258 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -384,10 +385,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 2 | 0 | 63 | 65 |
-| P1 | 3 | 10 | 1 | 122 | 136 |
-| P2 | 26 | 3 | 4 | 64 | 97 |
+| P1 | 2 | 11 | 1 | 122 | 136 |
+| P2 | 27 | 3 | 4 | 64 | 98 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **29** | **15** | **5** | **258** | **307** |
+| **All** | **29** | **16** | **5** | **258** | **308** |
 
 ## Work order
 

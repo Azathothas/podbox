@@ -442,8 +442,11 @@ pub fn decide_entry(
              --unsafe-host-paths, and argv[0] keeps the invoked name{}; \
              a child that execs a dynamic program or a #! script enters \
              through the image's loader inside the rootfs, with the image's \
-             libraries from PODVM_LIB_PATH (TODO/enter.md T-1317, T-1407, \
-             T-1411; TODO/interpose.md T-1646){script_note}",
+             libraries from PODVM_LIB_PATH; a raw call through libc's \
+             syscall() takes the same table, and a raw call with a path that \
+             the table cannot map, or io_uring_setup, answers ENOSYS, so \
+             libuv uses its thread pool (TODO/enter.md T-1317, T-1407, \
+             T-1411; TODO/interpose.md T-1646, T-1697){script_note}",
             plan.loader_host,
             plan.payload_host,
             if applet {

@@ -2231,7 +2231,7 @@ Source:      issues 89 and 127 (127 reposts the hidden issue 95);
              issue 114 section 2 item 2 and section 6 item 3;
              `crates/podvm-interpose/src/exec/calls.rs:20-195`;
              `crates/podvm/src/lifecycle/entry.rs:441`;
-             `experiments/356-no-chroot-rung.sh:441-447`;
+             `experiments/356-no-chroot-rung.sh:448-454`;
              A-V-04 of PodUtils/podcrates#39
 Category:    interpose
 Priority:    P1
@@ -2338,7 +2338,7 @@ Source:      T-1646 (its drive of 2026-11-09); A-V-04 of
 Category:    interpose
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      partial
 
 Problem:     On the userland rung, `npm ci` from node:22-alpine fails:
              node cannot `lstat` `/usr/local/lib/node_modules` (ENOENT).
@@ -2368,7 +2368,62 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              fixture runs `npm ci` and `npm test` of a small project from
              node:22-alpine at 0.
 
+**Partial, 2026-11-10.** Measured with strace on the chroot-denying
+fixture (node 22.23.4, libuv 1.51.0, musl 1.2.6): node imports `syscall`
+and no `statx`, and libuv stats through `syscall(__NR_statx, ...)`, so the
+kernel got the guest path; io_uring carried no file operation. The
+interposer now exports `syscall` (`raw_calls.rs`): 51 path-taking numbers
+go to the existing entry points in the kernel's argument order, 25
+path-taking numbers with no route answer `ENOSYS` with a line when a table
+is set, `io_uring_setup` answers `ENOSYS` (libuv falls back to epoll), and
+every other number goes to the kernel unchanged. The objects stay under
+the ceiling, with 115 exports. The T-1697 gap leaves the capability list
+of T-1650. The interposer tests exit 0 (65 passed) with a raw `statx` of a
+guest file that answers from the rootfs; `cargo test --workspace` exits 0.
+[The drive](../experiments/results/raw-statx-1697.txt): before, node
+`statSync`, `npm --version` and `npm ci && npm test` exited 1; after, each
+exits 0, and the earlier clauses stay at 0. Clause 25 of experiment 356
+holds it. Remaining: the full experiment 356 run (`public.ecr.aws`
+answered HTTP 429). A program that issues the `syscall` instruction
+itself still passes the interposer (T-1652). npm now prints a line for
+each compile-cache entry (T-1699).
+
 **Filed 2026-11-09.** Found by the drive of T-1646: a probe in node
 showed `readFileSync` of a guest file at 0 and `statSync` of the same file
 at ENOENT.
+
+### T-1699 `mkostemp` of a mapped template answers ERANGE, and npm prints a line for each cache entry
+
+Source:      T-1697 (its drive of 2026-11-10);
+             `crates/podvm-interpose/src/create_calls.rs:343`; T-0705
+Category:    interpose
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     On the userland rung, each npm run prints many lines of
+             "podvm: interpose: mkostemp: the mapped name does not fit the
+             template" (69 for `npm --version`, 648 for `npm ci` and
+             `npm test`). npm turns on node's compile cache under
+             `/tmp/node-compile-cache`, and node writes each entry with
+             `mkostemp`. The mapped template is longer than the guest one,
+             so the T-0705 rule answers ERANGE. node skips the entry and
+             npm exits 0, but the cache never works and the output is
+             noise.
+Premise:     The T-0705 rule maps the template and refuses when the mapped
+             name does not fit the caller's buffer. With
+             `NODE_DISABLE_COMPILE_CACHE=1` the lines stop.
+Approach:    Run the real `mk*temp` on a mapped copy of the template, then
+             write back only the chosen `XXXXXX` characters into the
+             caller's guest template, so the caller sees a guest name of
+             its own length.
+Decision:    This changes the T-0705 decision: the caller's buffer keeps
+             the guest name, and the file lands in the rootfs.
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu`
+             exits 0 with a test that `mkostemp` of a guest template in a
+             deep rootfs creates the file in the rootfs and leaves a guest
+             name in the buffer, and `npm --version` on the
+             chroot-denying fixture prints no mkostemp line.
+
+**Filed 2026-11-10.** Found by the drive of T-1697.
 

@@ -2,7 +2,7 @@
 
 ## State
 
-307 entries: 29 open, 15 partial, 5 blocked, 258 done.
+308 entries: 29 open, 16 partial, 5 blocked, 258 done.
 
 The project was renamed from podbox to podvm on 2026-11-06 (commit
 `rename: podbox is podvm`): entries closed before that commit ran their
