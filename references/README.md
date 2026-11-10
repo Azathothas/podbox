@@ -21,6 +21,13 @@ took from the tree, and the entries that cite it. Study a new source at its
 upstream and record it in an issue; do not capture it here
 ([the method](../docs/methodology/references.md)).
 
+A reference issue stays open only while open work of podvm needs it. It
+closes when podvm or a sibling project (PodUtils/podcrates, podssh or
+podnet) takes its lesson, or when it has no remaining use (the owner,
+2026-11-10). Its closing comment names where the lesson went.
+[The issue map](../TODO/issues.md) gives the state of each issue and why
+an open one stays open.
+
 | Tree | Issue | Upstream on 2026-11-06 |
 | --- | --- | --- |
 | `89luca89__lilipod` | [#132](https://github.com/PodUtils/podvm/issues/132) | 200 |
