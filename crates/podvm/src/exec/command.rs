@@ -25,7 +25,7 @@ pub fn exec(args: &[String]) -> i32 {
     // before the store is touched, so a machine-tier refusal names the legs
     // with nothing pulled for a tier that cannot run.
     let tier = crate::tier::resolve(o.tier);
-    let platform = match Platform::wanted(o.platform.as_deref()) {
+    let platform = match podvm_image::platform::wanted(o.platform.as_deref()) {
         Ok(p) => p,
         Err(e) => {
             eprintln!("podvm exec: {e}");

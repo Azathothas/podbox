@@ -58,6 +58,30 @@ pub enum Error {
     },
     /// A reference that named nothing this store holds.
     NoSuchImage(String),
+    /// A failure of `pod-oci` (PodUtils/podcrates): a reference, a digest,
+    /// a platform, a host, a registry or a document, with its stage and its
+    /// class. ⚠ A value the caller wrote (`Class::Usage`) is docker's 1, as
+    /// `Reference` and `Usage` are; anything else is a runtime error.
+    Image(pod_core::Failure),
+}
+
+/// The typed causes of `pod-oci` keep their variants here: `pull -a` skips
+/// a tag on `NoPlatform`, and a digest mismatch names both digests.
+impl From<pod_core::Failure> for Error {
+    fn from(f: pod_core::Failure) -> Error {
+        match pod_oci::refusal(&f) {
+            Some(pod_oci::Refusal::NoPlatform { want, offered }) => Error::NoPlatform {
+                want: want.clone(),
+                offered: offered.clone(),
+            },
+            Some(pod_oci::Refusal::Digest { what, want, got }) => Error::DigestMismatch {
+                what: what.clone(),
+                want: want.clone(),
+                got: got.clone(),
+            },
+            None => Error::Image(f),
+        }
+    }
 }
 
 impl Error {
@@ -89,6 +113,7 @@ impl Error {
             | Error::Reference(_)
             | Error::PlainHttpRefused(_)
             | Error::NoSuchImage(_) => EXIT_CLI_ERROR,
+            Error::Image(f) if f.class == pod_core::Class::Usage => EXIT_CLI_ERROR,
             _ => EXIT_RUNTIME_ERROR,
         }
     }
@@ -120,6 +145,7 @@ impl fmt::Display for Error {
             Error::Store(m) => write!(f, "store: {m}"),
             Error::Io { path, source } => write!(f, "{path}: {source}"),
             Error::NoSuchImage(r) => write!(f, "no such image: {r}"),
+            Error::Image(failure) => write!(f, "{failure}"),
         }
     }
 }
@@ -128,6 +154,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Error::Io { source, .. } => Some(source),
+            Error::Image(failure) => Some(failure),
             _ => None,
         }
     }

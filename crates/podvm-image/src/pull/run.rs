@@ -37,11 +37,11 @@ pub fn pull(
     // ⛔ Announced once, before anything is fetched. An agent cannot notice a
     // downgraded transport the way a person might.
     if let Some(said) = policy.disclosure(reference.endpoint()) {
-        let _ = writeln!(std::io::stderr(), "{said}");
+        let _ = writeln!(std::io::stderr(), "podvm: {said}");
     }
     let probe = crate::probe_cache::resolve(store);
 
-    let mut client = Client::with_policy(policy.clone());
+    let mut client = crate::registry::client(policy.clone())?;
     let endpoint = reference.endpoint().to_string();
     let repository = reference.repository.clone();
 
@@ -201,7 +201,7 @@ pub fn pull(
         if cancel.load(std::sync::atomic::Ordering::Acquire) {
             return Ok(FetchStep::Skipped(file));
         }
-        let mut client = Client::with_policy(policy.clone());
+        let mut client = crate::registry::client(policy.clone())?;
         let back = client.blob(
             &endpoint,
             &repository,
@@ -332,7 +332,7 @@ pub fn pull_all(
     policy: &Policy,
     out: &mut dyn Write,
 ) -> Result<Vec<Pulled>> {
-    let mut client = Client::with_policy(policy.clone());
+    let mut client = crate::registry::client(policy.clone())?;
     let mut tags = client.tags(endpoint, repository)?;
     tags.sort();
     if tags.is_empty() {

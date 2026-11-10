@@ -246,11 +246,11 @@ pub fn platform_and_policy(
     insecure: &[String],
     tls_verify: Option<bool>,
 ) -> Result<(Platform, Policy), i32> {
-    let p = Platform::wanted(platform).map_err(|e| {
+    let p = podvm_image::platform::wanted(platform).map_err(|e| {
         eprintln!("podvm {verb}: {e}");
         e.exit_code()
     })?;
-    let pol = Policy::resolve(insecure, tls_verify).map_err(|e| {
+    let pol = podvm_image::transport::resolve(insecure, tls_verify).map_err(|e| {
         eprintln!("podvm {verb}: {e}");
         e.exit_code()
     })?;

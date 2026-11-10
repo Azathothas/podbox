@@ -24,22 +24,9 @@ pub struct Saved {
     pub bytes: u64,
 }
 
-const OCI_LAYOUT: &str = r#"{"imageLayoutVersion":"1.0.0"}"#;
-const REF_ANNOTATION: &str = "org.opencontainers.image.ref.name";
-const MEDIA_UNTAR: &str = "application/vnd.oci.image.layer.v1.tar";
-
-/// The tarball entries `load` accepts, and nothing else. An allowlist
-/// rather than a traversal check: a foreign tarball with extra paths is
-/// refused by name instead of partially read.
-fn allowed_entry(name: &str) -> bool {
-    if name == "oci-layout" || name == "index.json" {
-        return true;
-    }
-    let Some(hex) = name.strip_prefix("blobs/sha256/") else {
-        return false;
-    };
-    hex.len() == 64 && hex.bytes().all(|b| b.is_ascii_hexdigit())
-}
+// ⭐ The constants of the OCI layout, the entry filter and the shape of
+// `index.json` are `pod_oci::layout` (PodUtils/podcrates).
+use pod_oci::layout::{allowed_entry, MEDIA_UNTAR, OCI_LAYOUT, REF_ANNOTATION};
 
 /// `podvm save`: the record's blobs as an OCI-layout tarball on `out`.
 /// Blobs come from `read_blob`, so they are verified on the way out the
@@ -67,18 +54,12 @@ pub fn save(store: &Store, want: &str, out: &mut dyn Write) -> Result<Saved> {
         Some(tag) => format!("{}:{tag}", record.repository),
         None => record.repository.clone(),
     };
-    let index = serde_json::json!({
-        "schemaVersion": 2,
-        "mediaType": oci::MEDIA_OCI_INDEX,
-        "manifests": [{
-            "mediaType": manifest.media_type,
-            "digest": manifest_digest.to_string(),
-            "size": manifest_len,
-            "annotations": { REF_ANNOTATION: refname },
-        }],
-    });
-    let index_bytes = serde_json::to_vec(&index)
-        .map_err(|e| Error::Oci(format!("the save index does not render: {e}")))?;
+    let index_bytes = pod_oci::layout::index_json(
+        &manifest.media_type,
+        &manifest_digest,
+        manifest_len,
+        &refname,
+    )?;
 
     let mut archive = tar::Builder::new(out);
     append(&mut archive, "oci-layout", OCI_LAYOUT.as_bytes())?;
@@ -417,7 +398,7 @@ fn stream_file_hashed(path: &Path, out: &mut dyn Write) -> Result<Digest> {
             .map_err(|e| Error::io(path.display().to_string(), e))?;
     }
     let hex = crate::digest::hex_of(&hasher.finalize());
-    Digest::parse(&format!("sha256:{hex}"))
+    Ok(Digest::parse(&format!("sha256:{hex}"))?)
 }
 
 #[cfg(test)]

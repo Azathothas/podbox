@@ -155,7 +155,7 @@ pub(crate) fn extract_now(
 ) -> std::result::Result<(), i32> {
     let d = podvm_image::digest::Digest::parse(&record.manifest_digest).map_err(|e| {
         eprintln!("podvm {verb}: {e}");
-        e.exit_code()
+        podvm_image::Error::from(e).exit_code()
     })?;
     let bytes = store.read_blob(&d).map_err(|e| {
         eprintln!("podvm {verb}: {e}");
@@ -186,7 +186,7 @@ pub(crate) fn config_of(
 ) -> std::result::Result<podvm_image::oci::Config, i32> {
     let d = podvm_image::digest::Digest::parse(&record.config_digest).map_err(|e| {
         eprintln!("podvm {verb}: {e}");
-        e.exit_code()
+        podvm_image::Error::from(e).exit_code()
     })?;
     let bytes = store.read_blob(&d).map_err(|e| {
         eprintln!("podvm {verb}: {e}");

@@ -108,7 +108,7 @@ Decision:    One store shared by images and containers, with a lock, rather than
 Prove:       `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm pull public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -qi 'already' && sha256sum "$(podvm inspect --format '{{.Store}}' public.ecr.aws/docker/library/alpine:3.20)"/blobs/sha256/* >/dev/null`
 
 **Done 2026-09-08.** `crates/podvm-image/src/store.rs` and
-`crates/podvm-image/src/digest.rs`, driven by
+`src/digest.rs` of `pod-oci` (PodUtils/podcrates), driven by
 `experiments/150-image-acquisition.sh` clauses 2 and 3, which is the `Prove`
 above as a script: the second pull prints `55afa1ecc21d: Already exists` and
 fetches nothing, and all 4 stored blobs hash to the name they are stored under.
@@ -747,7 +747,7 @@ Problem:     podvm resolves an index to `linux/amd64` and records the platform
              `linux/arm64` would therefore either be refused or would overwrite
              the amd64 record under the same name.
 Premise:     ⭐ **Read at file and line, and the corpus names the failure.**
-             `crates/podvm-image/src/oci.rs` hard-codes `OS` and `ARCH`, and
+             `src/spec.rs` of `pod-oci` (PodUtils/podcrates) hard-codes `OS` and `ARCH`, and
              `crates/podvm-image/src/store.rs`'s `put_record` retains on
              `repository` and `tag` alone. `docs/conventions/forbidden-patterns.md`
              carries the incident: `podman run --platform linux/riscv64 alpine`
@@ -1222,7 +1222,7 @@ oracle; correct the independence claim at
 
 ### T-0212 The platform is decided at run time, and the store holds more than one
 
-Source:      Found by the operator on 2026-09-09, reading `crates/podvm-image/src/oci.rs`
+Source:      Found by the operator on 2026-09-09, reading `src/spec.rs` of `pod-oci` (PodUtils/podcrates)
 Category:    image
 Priority:    P0
 Effort:      M
@@ -1466,8 +1466,8 @@ Premise:     ⭐ **Measured, and it reproduces the same way twice: it fails, and
              cutting a transfer rather than a registry ending one. The same pull,
              run again by hand with no other change, completed: `419b79a05f4b:
              Pull complete`.
-             ⚠ `crates/podvm-image/src/registry.rs:236-250` is the loop that
-             gives up; `crates/podvm-image/src/registry.rs:255-268` is the
+             ⚠ `src/registry.rs` of `pod-oci` (PodUtils/podcrates) is the loop that
+             gives up; `src/registry/http.rs` of `pod-oci` (PodUtils/podcrates) is the
              bounded retry, and it is one level too high to see this.
 Approach:    Put the retry around the whole of one blob rather than around the
              request that starts it.
@@ -2383,7 +2383,7 @@ re-fetch. This extends T-1321.
 
 ### T-1420 Transport errors name the host once
 
-Source:      issue 85; `crates/podvm-image/src/registry/wire.rs:53`;
+Source:      issue 85; `src/registry/wire.rs` of `pod-oci` (PodUtils/podcrates);
              `crates/podvm-image/src/error.rs:104`; [T-0805](cli.md)
 Category:    image
 Priority:    P2
@@ -2619,7 +2619,7 @@ Prove:       `grep -n "serve_once" TODO/image.md` names the test-private
              scope and the entry that made the fixture reachable.
 
 **Done.** The entry records `serve_once` at
-`crates/podvm-image/src/registry/tests.rs:4` as a `fn` inside `mod tests`,
+`src/registry/tests.rs` of `pod-oci` (PodUtils/podcrates) as a `fn` inside `mod tests`,
 answering one request on a loopback listener and unreachable from any
 binary, with its two callers at `:989` and `:1014`. The `Premise` that
 T-1602 made the fixture reachable is refuted by the source history, and
@@ -2630,7 +2630,7 @@ T-1602 owns only the fixture fields clippy reported dead. The proof is
 and the fixture that superseded it on 5 lines.
 
 **The state before the fixture, and where the fixture landed.**
-`crates/podvm-image/src/registry/tests.rs:4` `serve_once` is a `fn` inside
+`src/registry/tests.rs` of `pod-oci` (PodUtils/podcrates) `serve_once` is a `fn` inside
 `mod tests` at `:949`, so it is `#[cfg(test)]` code: it answers one
 request on a loopback `TcpListener` bound to `127.0.0.1:0`, writes one
 `HTTP/1.0 200 OK` head with `Content-Length` and `Connection: close`,

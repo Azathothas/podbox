@@ -243,13 +243,13 @@ pub fn pull(verb: &str, args: &[String]) -> i32 {
     };
     // ⛔ Resolved before the store is opened, so a malformed --platform is a
     // usage error and not a runtime one. TODO/probe.md T-0110's contract.
-    let platform = match podvm_image::platform::Platform::wanted(platform_flag.as_deref()) {
+    let platform = match podvm_image::platform::wanted(platform_flag.as_deref()) {
         Ok(p) => p,
         Err(e) => return fail(e),
     };
     // ⛔ Also before the store is opened: a bad host in the config file or the
     // environment is invalid input and exits 2, not 125.
-    let policy = match podvm_image::transport::Policy::resolve(&insecure, tls_verify) {
+    let policy = match podvm_image::transport::resolve(&insecure, tls_verify) {
         Ok(p) => p,
         Err(e) => return fail(e),
     };
@@ -273,7 +273,7 @@ pub fn pull(verb: &str, args: &[String]) -> i32 {
         }
         let reference = match podvm_image::reference::Reference::parse(want) {
             Ok(r) => r,
-            Err(e) => return fail(e),
+            Err(e) => return fail(e.into()),
         };
         let mut out: Box<dyn std::io::Write> = if quiet {
             Box::new(std::io::sink())

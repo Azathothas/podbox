@@ -313,7 +313,7 @@ pub fn extract(verb: &str, args: &[String]) -> i32 {
     let platform = match platform_flag.as_deref() {
         Some(p) => match podvm_image::platform::Platform::parse(p) {
             Ok(p) => Some(p),
-            Err(e) => return fail(e),
+            Err(e) => return fail(e.into()),
         },
         None => None,
     };
@@ -345,7 +345,7 @@ pub fn extract(verb: &str, args: &[String]) -> i32 {
 
     let manifest_digest = match podvm_image::digest::Digest::parse(&record.manifest_digest) {
         Ok(d) => d,
-        Err(e) => return fail(e),
+        Err(e) => return fail(e.into()),
     };
     let bytes = match store.read_blob(&manifest_digest) {
         Ok(b) => b,

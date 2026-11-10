@@ -171,11 +171,15 @@ fn unreachable_rows_count_apart_from_broken_ones() {
                     "row {tag} pulled but resolved away from the seed"
                 );
             }
-            Err(podvm_image::Error::Http { what, detail }) => {
+            // A registry's refusal is `pod-oci`'s failure, with its class:
+            // an unknown tag is `NotFound`.
+            Err(podvm_image::Error::Image(refused))
+                if refused.class == pod_core::Class::NotFound =>
+            {
                 nopull += 1;
                 assert!(
-                    what.contains(tag) || detail.contains(tag),
-                    "row {tag} was refused without naming the row: {what}: {detail}"
+                    refused.to_string().contains(tag),
+                    "row {tag} was refused without naming the row: {refused}"
                 );
                 let records = store.list().expect("the index reads after a refusal");
                 if !records.is_empty() {

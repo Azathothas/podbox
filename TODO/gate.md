@@ -3978,9 +3978,9 @@ Prove:       `sh scripts/common/check-docs.sh` and each other `.sh` check of
 
 ### T-1684 Fuzz the parsers that read untrusted input, and watch `vendor/` upstream
 
-Source:      the migration of 2026-11-06; `crates/podvm-image/src/oci.rs:170`;
+Source:      the migration of 2026-11-06; `src/spec.rs` of `pod-oci` (PodUtils/podcrates);
              `crates/podvm-extract/src/apply.rs:77`;
-             `crates/podvm-image/src/registry/wire.rs:159`;
+             `src/registry/wire.rs` of `pod-oci` (PodUtils/podcrates);
              `src/abi/elf.rs` of `pod-enter` (PodUtils/podcrates);
              `vendor/userland-execve/Cargo.toml:3`
 Category:    gate

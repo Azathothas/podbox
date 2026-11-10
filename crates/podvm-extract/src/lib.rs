@@ -121,7 +121,7 @@ pub fn extract(
     let mut plan = Vec::new();
     for d in &manifest.layers {
         let c = layer::Compression::of(&d.media_type)?;
-        let parsed = d.parsed_digest().map_err(Error::Image)?;
+        let parsed = d.parsed_digest().map_err(|e| Error::Image(e.into()))?;
         let blob = store.blob_path(&parsed);
         let (n, est) = layer::uncompressed_size(&blob, c, d.size);
         need_bytes = need_bytes.saturating_add(n);

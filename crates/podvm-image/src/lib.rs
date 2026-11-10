@@ -22,21 +22,24 @@
 //! instrument. Adding one that was not measured is not a small change.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+// ⭐ The registry client is `pod-oci` (PodUtils/podcrates): the reference,
+// the digest and the OCI documents are its modules, and podvm's
+// `credentials`, `platform`, `registry`, `tls` and `transport` give it
+// podvm's paths, variables and trust.
+pub use pod_oci::{digest, reference, spec as oci};
+
 pub mod clock;
 pub mod contain;
 pub mod credentials;
-pub mod digest;
 pub mod error;
 #[cfg(unix)]
 pub mod exec_probe;
 pub mod health;
 pub mod layout;
 pub mod net;
-pub mod oci;
 pub mod platform;
 pub mod probe_cache;
 pub mod pull;
-pub mod reference;
 pub mod registry;
 pub mod space;
 pub mod store;

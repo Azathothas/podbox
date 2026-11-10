@@ -17,7 +17,8 @@ The machine tier boots a guest through the selected emulator.
 Registry login uses the Docker configuration format or a credential helper.
 The caller supplies a password through stdin.
 Logout removes the selected record.
-The [credential module](crates/podvm-image/src/credentials.rs) owns this path.
+The [credential module](crates/podvm-image/src/credentials.rs) gives podvm's paths to
+`pod_oci::credentials` (PodUtils/podcrates), which reads and writes the records.
 
 SSH server configuration, relay tokens, and private keys confer separate authority.
 Keep them outside the tree. Do not publish them in result captures.
@@ -28,8 +29,8 @@ TLS verification remains enabled on the relay path.
 | Boundary | Source |
 | --- | --- |
 | CLI arguments and dispatch | `crates/podvm/src/` |
-| Registry transport and bodies | `crates/podvm-image/src/registry.rs`, `tls.rs`, `pull.rs` |
-| Credential storage | `crates/podvm-image/src/credentials.rs` |
+| Registry transport and bodies | `pod-oci` (PodUtils/podcrates); `crates/podvm-image/src/registry.rs`, `tls.rs`, `pull.rs` |
+| Credential storage | `pod-oci` (PodUtils/podcrates); `crates/podvm-image/src/credentials.rs` |
 | Store names and mutations | `crates/podvm-image/src/store.rs`, `contain.rs` |
 | Archive names and links | `crates/podvm-extract/src/safety.rs`, `layer.rs` |
 | Host operation probes | `crates/podvm-probe/src/` |

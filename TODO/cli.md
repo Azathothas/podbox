@@ -1581,7 +1581,7 @@ source before implementation.
 ### T-1417 Inspect carries the OCI config
 
 Source:      issue 82; `crates/podvm/src/images/inspect.rs:145`;
-             `crates/podvm-image/src/oci.rs:141`;
+             `src/spec.rs` of `pod-oci` (PodUtils/podcrates);
              `crates/podvm-image/src/store.rs:127`; [T-1319](cli.md)
 Category:    cli
 Priority:    P2

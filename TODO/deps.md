@@ -1663,8 +1663,18 @@ moved, and the added rows of `docs/runtime-state.md`). `podvm-enter` and
 reached 501 lines, so the detached check moved to
 `lifecycle::refuse_detached_userland`. Each line of both `.run` files
 exits 0, and `cargo test --workspace` exits 0. The freeze of
-`podvm-enter` and `podvm-windows` ends. Remaining: the imports of
+`podvm-enter` and `podvm-windows` ends. Remaining then: the imports of
 pod-oci, pod-extract and pod-rootfs.
+
+**Still partial, 2026-11-10.** podvm took `pod-oci` 0.10.0
+(PodUtils/podcrates#45, its T-056): `adoption/podvm/pod-oci.patch`
+applied with `git apply --3way` at podvm `2971410`. The code applied
+cleanly; the conflicts were the ones podcrates named: the tag lines (all
+at v0.10.0), the `pod-*` rows of `docs/runtime-state.md` (each row kept,
+at 0.10.0), and two citation lines of T-1684 in `TODO/gate.md` (both kept,
+in the form that names the crates). Each line of `pod-oci.run` exits 0,
+and `cargo test --workspace` exits 0. Remaining: pod-extract and
+pod-rootfs (podcrates v0.11.0); `podvm-extract` stays frozen until then.
 
 ### T-1687 Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive
 

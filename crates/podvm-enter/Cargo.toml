@@ -11,6 +11,6 @@ podvm-probe = { path = "../podvm-probe" }
 # The entry of a payload (the chroot sequence, the namespace rung, the
 # entry with no chroot, the launch ladder, the reader of ELF files), shared
 # through PodUtils/podcrates. This crate gives podvm's names to it.
-pod-enter = { git = "https://github.com/PodUtils/podcrates", tag = "v0.9.0" }
+pod-enter = { git = "https://github.com/PodUtils/podcrates", tag = "v0.10.0" }
 # The class of a runtime error that podvm makes (`runtime`).
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.9.0", default-features = false }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.10.0", default-features = false }
