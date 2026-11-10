@@ -114,6 +114,6 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #217 | release: README and SECURITY put the podbox identity boundary one tag early, and the verifier disagrees with both documents | closed | T-1693 |
 | #218 | COORD-012: podvm took v0.7.0, and filed the asks of COORD-015 (to podcrates) | closed | T-1681; none: coordination |
 | #219 | COORD-013: podvm took v0.8.0 and pod-supervise (to podcrates) | closed | T-1681 |
-| #220 | COORD-014: podvm took v0.9.0, pod-guest and pod-enter (to podcrates) | open | T-1681 |
+| #220 | COORD-014: podvm took v0.9.0, pod-guest and pod-enter (to podcrates) | closed | T-1681 |
 | #221 | COORD-015: the whiteout escape is fixed in podvm-extract (T-1698) (to podcrates) | open | T-1698 |
 | #222 | COORD-016: pod-enter: classify and stage a payload over 128 MiB (T-1647) (to podcrates) | open | T-1647 |
