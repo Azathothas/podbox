@@ -67,7 +67,7 @@ pub(super) fn drive_inner(
             .map(|(_, t, _)| t.lines().next().unwrap_or("").trim().to_string())
             .unwrap_or_default()
     ));
-    report.say(&format!("image             {ALPINE_REF}"));
+    report.say(&format!("image             {}", alpine_ref()));
     report.say(&format!(
         "kernel            {KURL} (sha256 {KERNEL_SHA256})"
     ));
@@ -131,7 +131,7 @@ pub(super) fn drive_inner(
     // operator's store.
     let store = scratch.join("store").to_string_lossy().into_owned();
     let store_env = [("PODVM_STORE", store.as_str())];
-    match run_capture(binary, &["pull", ALPINE_REF], root, &store_env, 900) {
+    match run_capture(binary, &["pull", alpine_ref()], root, &store_env, 900) {
         Some((true, _, _)) => {}
         Some((false, stdout, stderr)) => {
             report.miss("the pull failed");
@@ -152,7 +152,7 @@ pub(super) fn drive_inner(
     }
     let mut rootfs = String::new();
     if !report.failed {
-        match run_capture(binary, &["extract", ALPINE_REF], root, &store_env, 900) {
+        match run_capture(binary, &["extract", alpine_ref()], root, &store_env, 900) {
             Some((true, stdout, _))
                 if !stdout.trim().is_empty() && Path::new(stdout.trim()).is_dir() =>
             {
@@ -201,7 +201,7 @@ pub(super) fn drive_inner(
                 // lines, so a short log fails the row below, not here.
                 match run_capture(
                     binary,
-                    &["run", "--pull=never", ALPINE_REF, &guest_path],
+                    &["run", "--pull=never", alpine_ref(), &guest_path],
                     &scratch.join("chroot"),
                     &store_env,
                     RUN_TIMEOUT,

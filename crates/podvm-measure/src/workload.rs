@@ -34,6 +34,20 @@ use std::time::Duration;
 
 // Every input pinned, as in the script's 146 shape.
 const ALPINE_REF: &str = "public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764";
+/// The same digest from mirror.gcr.io, for a host where public.ecr.aws
+/// answers image pulls with HTTP 429 (TODO/deps.md T-1687, the cloud host
+/// of 2026-11-09 and 2026-11-10). `PODVM_WORKLOAD_MIRROR=1` selects it; the
+/// digest is the pin, so the image is the same.
+const ALPINE_MIRROR_REF: &str = "mirror.gcr.io/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764";
+
+/// The image reference of this run: the pin, from the mirror when
+/// `PODVM_WORKLOAD_MIRROR=1`.
+fn alpine_ref() -> &'static str {
+    match std::env::var("PODVM_WORKLOAD_MIRROR").as_deref() {
+        Ok("1") => ALPINE_MIRROR_REF,
+        _ => ALPINE_REF,
+    }
+}
 // The netboot archive of 3.22.6, not `netboot/vmlinuz-virt`: that directory
 // follows each point release, and the pinned kernel is the one of 3.22.6
 // (T-1687, PodUtils/podcrates#6).

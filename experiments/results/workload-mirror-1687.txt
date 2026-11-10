@@ -1,0 +1,54 @@
+# T-1687: podvm-workload with PODVM_WORKLOAD_MIRROR=1 on the cloud host, 2026-11-10.
+# The clause of T-1687 is the fetch step: 'kernel hash matches the pin' from
+# a fresh download of the 3.22.6 netboot archive. The guest boot (clause 3)
+# printed no console byte in 600 s under TCG; T-1702 owns that.
+
+== conditions
+date              2026-11-10T06:31:02Z
+host kernel       6.18.44-fc-v338
+podvm            podvm 0.1.0-beta.13
+qemu              QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)
+gcc               gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+image             mirror.gcr.io/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+kernel            https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-netboot-3.22.6-x86_64.tar.gz (sha256 6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51)
+qemu flags        -M pc,acpi=off -m 256 -nographic -no-reboot -accel tcg,thread=multi
+payload cflags    gcc -O2 -static
+host io backing   /dev/vda       ext4 264212084 30474276   9841676  76% /
+payload bench-int  a00271ed59d25ede3cd8d6c0ce571f7ed012a5b758fba7d8bc27d8086ce114a2
+payload bench-sys  2a3650e23ad8cc3b3697ffbb9fd2ea2eaa98d08c5fb5a20be6efefb6c99d2577
+payload bench-mem  2e1a50643aed00533dbad3e466c501c43695c02fa1c20b858a40699ce1574c61
+payload bench-io  3ab3212fd15d724b0eb7dc2850642b657d8e94825392c6f6c18365c2eb255548
+
+== 1. host runs
+  ok: host bench-int ran three times
+  ok: host bench-sys ran three times
+  ok: host bench-mem ran three times
+  ok: host bench-io ran three times
+
+== 2. chroot runs through podvm
+chroot io backing /dev/vda       ext4 264212084 30489956   9825996  76% /
+  ok: chroot bench-int ran through podvm three times
+  ok: chroot bench-sys ran through podvm three times
+  ok: chroot bench-mem ran through podvm three times
+  ok: chroot bench-io ran through podvm three times
+
+== 3. guest assembly and batch boot
+  base archive built
+  ok: assembly 11883652 bytes
+  kernel hash matches the pin
+  qemu did not return in 600s or failed to spawn; 0 console bytes on file
+  qemu ran to the boot log
+  FAIL: no done marker in the boot log
+
+
+== 4. one row per class
+  FAIL: int: host=[0.267/ebb92308acb7eace] chroot=[0.241/ebb92308acb7eace] guest=[/]
+  FAIL: sys: host=[0.508/4f24f178e189eea5] chroot=[0.484/4f24f178e189eea5] guest=[/]
+  FAIL: mem: host=[1.710/1d3fea76c4222325] chroot=[1.768/1d3fea76c4222325] guest=[/]
+  FAIL: io: host=[0.167/7168c26550222325] chroot=[0.146/7168c26550222325] guest=[/]
+
+== counts: 9 driven, 5 mismatches
+
+written to experiments/results/tcg-workload-spread.txt (restored to the committed run; this file is the record)
+exit 1
+qemu left: 0

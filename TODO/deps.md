@@ -1700,7 +1700,7 @@ Source:      PodUtils podcrates issue 6 (COORD-004 of podcrates);
 Category:    deps
 Priority:    P2
 Effort:      S
-Status:      partial
+Status:      done
 
 Problem:     podvm pins `vmlinuz-virt` and `modloop-virt` of Alpine v3.22 by
              SHA-256 and fetches them from `netboot/`. That directory follows
@@ -1723,6 +1723,17 @@ Decision:    Way 1 of podcrates issue 6: the pinned files stay, and a point
 Prove:       `cargo test -p podvm-measure` exits 0, and the fetch step of
              `podvm-workload` reports the two pinned sums from a fresh
              download.
+
+**Done 2026-11-10.** `PODVM_WORKLOAD_MIRROR=1` makes `podvm-workload`
+take the same pinned alpine digest from `mirror.gcr.io`, because
+`public.ecr.aws` answered its pull with HTTP 429; the conditions print the
+reference. [The run](../experiments/results/workload-mirror-1687.txt):
+the fetch step downloaded the 3.22.6 netboot archive afresh, extracted
+`boot/vmlinuz-virt`, and reported "kernel hash matches the pin"
+(`6b58e5d7...`); the helper of the experiments gave the modloop sum
+(`9a5252fa...`) from a fresh download on 2026-11-09 (below). `cargo test
+-p podvm-measure` and its clippy exit 0. The run exits 1 on a later
+clause: the TCG guest printed no console byte in 600 s, which T-1702 owns.
 
 **Partial, 2026-11-06.** `experiments/lib/alpine-netboot.sh` downloads
 the 3.22.6 archive once, checks its SHA-256 and copies one member out;

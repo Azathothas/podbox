@@ -360,7 +360,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1684](gate.md) | P2 | gate | open | Fuzz the parsers that read untrusted input, and watch `vendor/` upstream |
 | [T-1685](gate.md) | P2 | gate | open | A maintenance page and a development page in the sibling form |
 | [T-1686](complete.md) | P2 | complete | done | The device tests of a stand-in fail where `mknod` is permitted |
-| [T-1687](deps.md) | P2 | deps | partial | Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive |
+| [T-1687](deps.md) | P2 | deps | done | Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive |
 | [T-1688](enter.md) | P2 | enter | done | The memfd rung measures whether a memfd executes, names `vm.memfd_noexec`, and refuses before staging |
 | [T-1689](probe.md) | P2 | probe | done | The non-goal `remedy` follows the stance in the probe JSON |
 | [T-1690](cli.md) | P2 | cli | done | The doctor disk-free row judges the soft `RLIMIT_FSIZE` |
@@ -375,10 +375,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1699](interpose.md) | P2 | interpose | done | `mkostemp` of a mapped template answers ERANGE, and npm prints a line for each cache entry |
 | [T-1700](enter.md) | P1 | enter | done | A run on the userland rung sometimes exits 0 with no output |
 | [T-1701](interpose.md) | P2 | interpose | done | `mkstemp64`, `mkostemp64`, `mkstemps` and `mkostemps` pass the path table |
+| [T-1702](machine.md) | P2 | machine | open | The TCG guest of `podvm-workload` prints no console byte in 600 s on the cloud host |
 
 ## Counts
 
-310 items: 26 open, 11 partial, 4 blocked, 269 done.
+311 items: 27 open, 10 partial, 4 blocked, 270 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -388,9 +389,9 @@ that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 8 | 0 | 128 | 137 |
-| P2 | 25 | 2 | 4 | 68 | 99 |
+| P2 | 26 | 1 | 4 | 69 | 100 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **26** | **11** | **4** | **269** | **310** |
+| **All** | **27** | **10** | **4** | **270** | **311** |
 
 ## Work order
 

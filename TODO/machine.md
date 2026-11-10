@@ -1343,3 +1343,34 @@ entry proves KVM on a hosted runner, where the udev rule gives the job
 access to `/dev/kvm`. The clauses do not change. The Status moves from
 `blocked` to `open`, because the deferral is lifted.
 
+### T-1702 The TCG guest of `podvm-workload` prints no console byte in 600 s on the cloud host
+
+Source:      T-1687 (its run of 2026-11-10);
+             `crates/podvm-measure/src/workload/drive.rs:352`
+Category:    machine
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     On the cloud host (no `/dev/kvm`), clause 3 of
+             `podvm-workload` boots the pinned Alpine kernel under TCG with
+             the assembled initramfs. qemu did not return in 600 s, and
+             the console file held 0 bytes, so no row of the guest
+             column was measured. A kernel under TCG prints its first
+             console lines in seconds, so 0 bytes points at the console
+             path or the qemu arguments, not at speed.
+Premise:     The flags are `-M pc,acpi=off -m 256 -nographic -no-reboot
+             -accel tcg,thread=multi`; the kernel hash matched the pin and
+             the assembly was 11883652 bytes. qemu 8.2.2 of Ubuntu 24.04.
+Approach:    Boot the same kernel and initramfs by hand with the same
+             flags and `console=ttyS0`, read what reaches the console, and
+             compare with the arguments the tool passes. Fix the cause in
+             the tool, or record the host condition that stops it.
+Decision:    A guest that prints nothing is not a slow guest; the tool
+             names the cause before it reports a time.
+Prove:       `PODVM_WORKLOAD_MIRROR=1 podvm-workload` on the cloud host
+             reaches the done marker of clause 3 and exits 0, or the
+             entry records the measured host condition that stops it.
+
+**Filed 2026-11-10.** Found by the run of T-1687.
+

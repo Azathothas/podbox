@@ -89,7 +89,7 @@
 197 issue closed
 198 issue closed
 199 issue closed
-200 issue open
+200 issue closed
 201 issue closed
 202 issue closed
 203 issue closed
