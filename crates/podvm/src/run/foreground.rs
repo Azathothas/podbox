@@ -30,11 +30,20 @@ struct Foreground {
 /// stated here rather than hidden: docker pays it too, for the same
 /// reason.
 struct Tee {
+    /// The descriptor the tee took over: fd 1 for a run.
+    fd: i64,
     saved: i64,
     handle: std::thread::JoinHandle<()>,
 }
 
 fn tee_stdout_to(log_path: &std::path::Path) -> Result<Tee, String> {
+    tee_fd_to(1, log_path)
+}
+
+/// The tee of [`tee_stdout_to`] on any descriptor `fd`. The run tees fd
+/// 1; the tests tee a pipe of their own, so they never take the stdout
+/// of the test process.
+fn tee_fd_to(fd: i64, log_path: &std::path::Path) -> Result<Tee, String> {
     use std::os::unix::io::FromRawFd;
     let mut pipe = [0i32; 2];
     podvm_probe::sys::pipe2(&mut pipe, podvm_probe::sys::O_CLOEXEC)
@@ -44,7 +53,7 @@ fn tee_stdout_to(log_path: &std::path::Path) -> Result<Tee, String> {
     // would never see EOF), and the saved stdout must not leak into it
     // either. `dup2` below clears the flag on fd 1 itself, which is the
     // one descriptor the payload is meant to keep.
-    let saved = podvm_probe::sys::dup_cloexec(1)
+    let saved = podvm_probe::sys::dup_cloexec(fd)
         .map_err(|e| format!("dup of stdout: {} ({})", e.name(), e.0))?;
     let log = std::fs::OpenOptions::new()
         .create(true)
@@ -56,7 +65,7 @@ fn tee_stdout_to(log_path: &std::path::Path) -> Result<Tee, String> {
     // fd 1 carries the pipe.
     let reader = unsafe { std::fs::File::from_raw_fd(pipe[0]) };
     let writer = pipe[1] as i64;
-    if let Err(e) = podvm_probe::sys::dup2(writer, 1) {
+    if let Err(e) = podvm_probe::sys::dup2(writer, fd) {
         let _ = podvm_probe::sys::close(writer);
         let _ = podvm_probe::sys::close(saved);
         return Err(format!("dup2 of stdout: {} ({})", e.name(), e.0));
@@ -64,10 +73,11 @@ fn tee_stdout_to(log_path: &std::path::Path) -> Result<Tee, String> {
     let _ = podvm_probe::sys::close(writer);
     // SAFETY: as above; wrapped so the pump never closes it (the restore
     // below owns that close, and a double close would take an unrelated
-    // reused descriptor with it).
+    // reused descriptor with it). ⛔ TODO/enter.md T-1700: the restore
+    // closes it only after the pump ends.
     let out = unsafe { std::mem::ManuallyDrop::new(std::fs::File::from_raw_fd(saved as i32)) };
     let handle = std::thread::spawn(move || pump(reader, out, log));
-    Ok(Tee { saved, handle })
+    Ok(Tee { fd, saved, handle })
 }
 
 /// The pump behind [`tee_stdout_to`]: every byte to the saved stdout and
@@ -97,10 +107,18 @@ fn pump(
 
 /// Restore stdout and join the pump. Runs before the record is
 /// finalized, so `logs` never races bytes still in flight.
+///
+/// ⛔ TODO/enter.md T-1700. The order is the contract: the `dup2` closes
+/// the last writer of the pipe that podvm holds, so the pump reads the
+/// bytes that remain and then EOF; the join waits for those writes; the
+/// close of the saved descriptor comes last. The pump writes to the saved
+/// descriptor. A close before the join made each write after it fail
+/// with EBADF, which the pump ignores: a payload that wrote and exited
+/// just before the restore lost its output, and the run exited 0.
 fn untee(tee: Tee) {
-    let _ = podvm_probe::sys::dup2(tee.saved, 1);
-    let _ = podvm_probe::sys::close(tee.saved);
+    let _ = podvm_probe::sys::dup2(tee.saved, tee.fd);
     let _ = tee.handle.join();
+    let _ = podvm_probe::sys::close(tee.saved);
 }
 
 /// Create the foreground record and start the stdout tee, before the
@@ -464,3 +482,6 @@ pub(crate) fn push_guest_exe(
         env.push(format!("{}={g}", podvm_enter::ladder::GUEST_EXE_VAR));
     }
 }
+
+#[cfg(test)]
+mod tee_tests;

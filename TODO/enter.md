@@ -886,7 +886,7 @@ before implementation.
 
 Source:      issue 74; `crates/podvm-interpose/src/path_calls.rs:63`;
              `src/ladder.rs` of `pod-enter` (PodUtils/podcrates);
-             `crates/podvm/src/run/foreground.rs:259`
+             `crates/podvm/src/run/foreground.rs:277`
 Category:    enter
 Priority:    P1
 Effort:      M
@@ -1943,7 +1943,7 @@ Source:      T-1653 (its drive of 2026-11-10)
 Category:    enter
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     On the userland rung (chroot denied), `podvm run --rm alpine
              cat /etc/alpine-release` sometimes exits 0 and prints
@@ -1964,6 +1964,23 @@ Decision:    A lost output is a defect even when the exit code is 0.
 Prove:       A loop of 200 runs of `cat /etc/alpine-release` on the
              chroot-denying fixture prints the release each time, and
              `cargo test --workspace` exits 0 with a test of the cause.
+
+**Done 2026-11-10.** The cause is podvm's own `untee`
+(`crates/podvm/src/run/foreground.rs`), and it touches every foreground
+run on every rung, not only the userland rung. `untee` closed the saved
+stdout before it joined the pump thread. When the payload wrote and exited
+just before the restore, the pump wrote the bytes after the close: the
+write to stdout failed with EBADF, the bytes went to the container log
+only, and podvm exited 0. A trace of the losing runs (strace
+`--seccomp-bpf`, write and sendfile only) shows the payload's `sendfile`,
+its exit, then `write(8, ...) = -1 EBADF` and `write(9, ...) = 8`. The fix
+restores fd 1, joins the pump, then closes the saved descriptor. The test
+`untee_delivers_every_byte_before_the_saved_descriptor_closes` fails 20 of
+20 times with the old order and passes 20 of 20 with the fix; `cargo test
+--workspace` exits 0. [The loop](../experiments/results/lost-output-1700.txt)
+lost 1 to 12 runs in 150 before (the userland rung with stdout a file, a
+pipe or a tty, the memfd family, the namespace rung) and none after (200
+of 200 on the fixture).
 
 **Filed 2026-11-10.** Found by the drive of T-1653.
 

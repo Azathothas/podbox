@@ -1,0 +1,87 @@
+# T-1700: a foreground run sometimes exits 0 with no output.
+#
+# Run by hand on 2026-11-10 (UTC) on the chroot-denying fixture of
+# experiments/356-no-chroot-rung.sh: `unshare -Urm sh wrap.sh`, a tmpfs
+# over /dev/pts, then experiments/deny-chroot.c (chroot(2) EPERM). The
+# scratch store is written as $STORE, the scratch directory as $WORK.
+# The image is mirror.gcr.io/library/alpine:3.20
+# (sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc);
+# Docker Hub and public.ecr.aws answer HTTP 429 here. static-hello:1 is a
+# static-pie hello (cc -static-pie) imported with `podvm import`.
+#
+# BEFORE is the release binary of 4ef187e. AFTER is the same tree with
+# the fix of crates/podvm/src/run/foreground.rs (untee joins the pump
+# before it closes the saved stdout).
+#
+# Kernel 6.18.44-fc-v338, 4 CPUs, podvm 0.1.0-beta.13.
+
+== the loop
+One run: PODVM_STORE=$STORE timeout 60 unshare -Urm sh $WORK/wrap.sh $WORK \
+  podvm run --rm [ARGS] IMAGE cat /etc/alpine-release >out 2>err
+A run is LOST when out does not hold "3.20." (static-hello: "static-hi").
+Each lost run exited 0. No run printed other output. Each run extracts
+the rootfs again: --rm removes it, and no other record holds it.
+
+== rates
+variant                                          BEFORE        AFTER
+userland, stdout a file, quiet                   1/50, 12/150  0/200
+userland, stdout a pipe                          7/150         0/150
+userland, stdout a file, --verbose               12/150        0/150
+userland, stdout a tty (script -qec)             9/150         0/150
+memfd family, static-hello, --unsafe-host-paths  1/150         0/150
+  (no interposer preload)
+userland, strace -f --seccomp-bpf, trace=write,sendfile   9/200   0/150
+userland, strace -f, trace of 13 calls (main thread stopped often)  0/150  -
+namespace rung, no fixture (unfiltered host)     1/150         0/150
+
+The loss is not of the userland rung: the namespace rung outside the
+fixture lost one run too, and the memfd family with no interposer lost
+one. The full strace (each call stopped) hid the race: 0 of 60 and 0 of
+150.
+
+== the losing run, BEFORE (strace -f --seccomp-bpf -e trace=write,sendfile)
+pid 16340 is the main thread of podvm, 16418 the pump thread of the tee,
+16419 the payload (busybox cat). fd 8 is the saved stdout, fd 9 the
+container log.
+
+16419 04:26:15.586693 sendfile(1, 3, NULL, 16777216) = 8
+16419 04:26:15.586798 sendfile(1, 3, NULL, 16777216) = 0
+16419 04:26:15.586904 +++ exited with 0 +++
+16418 04:26:15.586967 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=16419, si_uid=0, si_status=0, si_utime=0, si_stime=0} ---
+16418 04:26:15.587353 write(8, "3.20.10\n", 8) = -1 EBADF (Bad file descriptor)
+16418 04:26:15.587434 write(9, "3.20.10\n", 8) = 8
+16418 04:26:15.587607 +++ exited with 0 +++
+16340 04:26:15.588283 write(7, "{\n  \"podvm_containers\": 1,\n  \"containers\": [\n    {\n      \"id"..., 3523) = 3523
+16340 04:26:15.611936 +++ exited with 0 +++
+
+Each of the 9 lost runs of that loop has the same line: the pump's write
+of "3.20.10\n" to the saved stdout fails with EBADF, and its write to the
+log succeeds. Four of the nine show the write as <unfinished ...> and
+then `<... write resumed>) = -1 EBADF`.
+
+== the cause
+crates/podvm/src/run/foreground.rs, fn untee (4ef187e lines 100-104):
+
+    let _ = podvm_probe::sys::dup2(tee.saved, 1);
+    let _ = podvm_probe::sys::close(tee.saved);
+    let _ = tee.handle.join();
+
+The pump thread writes each byte it reads from the tee pipe to the saved
+stdout (`tee.saved`), and ignores a write error. untee closed the saved
+stdout before it joined the pump. When the payload wrote and exited just
+before the restore, the pump read the bytes after the close: the write
+failed with EBADF and the bytes went to the log only. The exit code is
+the payload's own, so the run exited 0. Each foreground run takes this
+path (T-1421), on each rung.
+
+== the fix
+untee restores fd 1, joins the pump, and closes the saved stdout last.
+tee_stdout_to is tee_fd_to(1, ...), so a test can tee a pipe of its own.
+
+== the test of the cause
+run::foreground::tee_tests::untee_delivers_every_byte_before_the_saved_descriptor_closes
+tees a pipe whose reader starts 200 ms late, writes 160 KiB, restores,
+and counts the bytes at the target and in the log.
+  old order (close before join): failed 20 of 20,
+    "the target got 131072 of 163840 bytes"
+  new order: passed 20 of 20

@@ -2299,8 +2299,8 @@ Premise:     The `--label` flag is accepted and dropped
              `images` (`crates/podvm/src/images.rs:106`). The only JSON
              that podvm writes for a caller today is `probe --json`
              (`crates/podvm/src/main.rs:352`). The foreground run knows
-             the exit code at its end (`crates/podvm/src/run/foreground.rs:157`)
-             and its start is `crates/podvm/src/run/foreground.rs:186`.
+             the exit code at its end (`crates/podvm/src/run/foreground.rs:175`)
+             and its start is `crates/podvm/src/run/foreground.rs:204`.
              The record that `run` prepares is
              `crates/podvm/src/lifecycle/entry.rs:24`.
 Approach:    Keep each `--label KEY=VALUE` in the container record. Make
@@ -2364,7 +2364,7 @@ Premise:     `--env-file` reads a file at parse time
              userland path map is one pair for the root
              (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.
              A foreground run removes its files at the end
-             (`crates/podvm/src/run/foreground.rs:157`). The parity table
+             (`crates/podvm/src/run/foreground.rs:175`). The parity table
              has no `--secret` row. The interposer is not a boundary, so
              a claim about "only the runner process" has a limit that the
              banner must state.

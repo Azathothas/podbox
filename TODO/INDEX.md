@@ -373,11 +373,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1697](interpose.md) | P1 | interpose | partial | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
 | [T-1698](extract.md) | P0 | extract | done | A whiteout of `..` deletes outside the destination |
 | [T-1699](interpose.md) | P2 | interpose | open | `mkostemp` of a mapped template answers ERANGE, and npm prints a line for each cache entry |
-| [T-1700](enter.md) | P1 | enter | open | A run on the userland rung sometimes exits 0 with no output |
+| [T-1700](enter.md) | P1 | enter | done | A run on the userland rung sometimes exits 0 with no output |
 
 ## Counts
 
-309 items: 29 open, 17 partial, 5 blocked, 258 done.
+309 items: 28 open, 17 partial, 5 blocked, 259 done.
 
 Counted from the rows above by `./target/release/podvm-count` and asserted
 independently by `./target/release/podvm-gate`, which is the gate. A number here
@@ -386,10 +386,10 @@ that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 2 | 0 | 63 | 65 |
-| P1 | 3 | 11 | 1 | 122 | 137 |
+| P1 | 2 | 11 | 1 | 123 | 137 |
 | P2 | 26 | 4 | 4 | 64 | 98 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **29** | **17** | **5** | **258** | **309** |
+| **All** | **28** | **17** | **5** | **259** | **309** |
 
 ## Work order
 
