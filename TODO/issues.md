@@ -90,7 +90,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #193 | [Scope] podvm does what sand-net does, without root: index | open | T-1654 to T-1668 |
 | #194 | COORD-001: the crates podvm hands over and takes, and the access of T-040 (to podcrates) | open | T-1675 to T-1681 |
 | #195 | COORD-002: watch-org.sh sees no repository but the last on Windows: CRLF in the names (to podcrates) | closed (podvm took the pin 54427f6) | none: a COORD issue (to podcrates); podcrates fixed it in `54427f6`, and podvm closes it when it takes that pin |
-| #196 | COORD-003: podvm's inventory of the hosts and services of other parties, for pod-services (to podcrates) | open | T-1679 |
+| #196 | COORD-003: podvm's inventory of the hosts and services of other parties, for pod-services (to podcrates) | closed (podcrates T-054 and T-066 done; the data of podvm is in pod-services from v0.5.0) | T-1679; the take stays under #194 |
 | #197 | COORD-004: answers to Q2 and Q3 of the M6 import plan, and the pod-term take (to podcrates) | closed (pod-term taken 75ed306) | T-1675, T-1681 |
 | #198 | COORD-005: GitHub Actions of podcrates: the owner's account dispatches ci.yml and release.yml (to podcrates) | closed | none: coordination; the ruling is in docs/decisions.md |
 | #199 | [gh action] requested | closed (gate run 42177003497, secrets run 42177007581) | none: a request of a workflow run (AGENTS.md, section 9) |
@@ -115,9 +115,9 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #218 | COORD-012: podvm took v0.7.0, and filed the asks of COORD-015 (to podcrates) | closed | T-1681; none: coordination |
 | #219 | COORD-013: podvm took v0.8.0 and pod-supervise (to podcrates) | closed | T-1681 |
 | #220 | COORD-014: podvm took v0.9.0, pod-guest and pod-enter (to podcrates) | closed | T-1681 |
-| #221 | COORD-015: the whiteout escape is fixed in podvm-extract (T-1698) (to podcrates) | open | T-1698 |
+| #221 | COORD-015: the whiteout escape is fixed in podvm-extract (T-1698) (to podcrates) | closed (pod-extract carries the tests, podcrates T-141; taken 0682c0c) | T-1698 |
 | #222 | COORD-016: pod-enter: classify and stage a payload over 128 MiB (T-1647) (to podcrates) | closed | T-1647 |
 | #223 | COORD-017: podvm took v0.10.0 and pod-oci (to podcrates) | closed | T-1681 |
 | #224 | COORD-018: pod-enter and pod-hostprobe: volume pairs, workdir and first program through the table (T-1653) (to podcrates) | closed | T-1653 |
 | #225 | COORD-019: podvm took v0.11.0, pod-extract and pod-rootfs (to podcrates) | closed | T-1681, T-1647 |
-| #226 | COORD-020: podvm took v0.12.0, the Maps API of pod-enter (to podcrates) | open | T-1653 |
+| #226 | COORD-020: podvm took v0.12.0, the Maps API of pod-enter (to podcrates) | closed (the asks are podcrates T-155) | T-1653 |
