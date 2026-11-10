@@ -5,12 +5,17 @@ A name on PATH can resolve to a shim or an alias. Run its version or help comman
 
 ## Source discovery
 
-Run `codegraph sync` in podvm before source discovery.
-Ask `codegraph explore` for a code area.
+Use CodeGraph before a source search when a `.codegraph/` exists.
+Run `codegraph sync`, then ask `codegraph explore` for a code area.
 Use `query` for a symbol and `node` for source and callers.
+Without an index, use `rg` and the [code map](code-map.md).
 Read command help before an unfamiliar option.
-Use `rg` after the index identifies the source.
 Prose is not indexed source and can be searched directly.
+
+The mechanism of most runtime parts is in a `pod-*` crate of
+PodUtils/podcrates. Cargo keeps its source under
+`~/.cargo/git/checkouts/` at the commit that `Cargo.lock` names.
+Read it there; do not edit it there.
 
 Do not sync or initialize another repository during a read-only review.
 Use its existing index, or index a captured copy inside podvm.
@@ -18,31 +23,35 @@ Verify source against the captured commit.
 
 ## Repository tools
 
+The workspace builds the target `x86_64-unknown-linux-musl`
+(`.cargo/config.toml`), so a release binary is under
+`./target/x86_64-unknown-linux-musl/release/`.
+
 | Tool | Purpose |
 | --- | --- |
-| podvm-dev session and check | Discover the host, build and check on Linux |
-| [Windows job wrapper](../scripts/windows/run-in-base.sh) | Copy the checkout and run a Linux job |
-| [lane proof runner](../scripts/dev-lane.sh) | Run one proof on the lane: lint, toolset, gc, evidence |
+| [cloud setup](../scripts/cloud-setup.sh) | Install zig and the toolchain, and report the host |
+| `podvm-dev` `session`, `build`, `check` | Discover the host, build and check on Linux |
 | [record gate](../crates/podvm-gate/src/main.rs) | Check task and document consistency |
 | [count writer](../crates/podvm-gate/src/count.rs) | Derive task counts |
 | [plant](../crates/podvm-gate/src/plant.rs) | Demonstrate gate refusals |
-| [common checks](../scripts/common/) | Documents, markers, attribution, and paired checks. The secret-shape scan was retired; the [secrets workflow](../.github/workflows/secrets.yml) owns that subject |
+| [common checks](../scripts/common/) | Documents, markers, attribution, and paired checks. The [secrets workflow](../.github/workflows/secrets.yml) owns the credential scan |
 | [doctor](../scripts/doctor/) | Environment report |
 | [build state](../scripts/build-state.py) | An exec shim; the `podvm-buildstate` binary owns the logic |
 | [document state](../scripts/document-state.py) | An exec shim; the `document-state` binary owns the logic |
 | [experiment map](../experiments/README.md) | Repeatable runtime evidence |
+| [Windows job wrapper](../scripts/windows/run-in-base.sh) | Parked lane: copy the checkout and run a Linux job |
+| [lane proof runner](../scripts/dev-lane.sh) | Parked lane: run one proof with lint, toolset, gc, and evidence |
 
 ## External tools
 
-Use `gh` first for this repository's GitHub reads.
-Use `curl` for a URL or a read-only proxy when that route fails.
-The proxy requires curl's own user agent.
-[Remote rules](security/remote-ops.md) govern both routes.
+Use shell tools (`git`, `curl`, `cargo`, `gh`) before MCP tools.
+For a read-only query of GitHub, use a mirror that `AGENTS.md`, section 4, names.
+Dispatch a workflow of this repository with the GitHub tool
+`actions_run_trigger` (`AGENTS.md`, section 9, item 5).
+[Remote rules](security/remote-ops.md) govern each route.
 
-Use `wsl-toolkit --instance podvm` from PowerShell for manual base commands.
+For the parked Windows lane, use `wsl-toolkit --instance podvm` from
+PowerShell and `py` for Python.
 [Container procedures](containers.md) define the project wrapper.
-The installed tool manual owns its flags.
-
-On Windows, use `py` for Python.
 Read [shell rules](conventions/shell.md) before a payload crosses shells.
 [Historical tool changes](history/upstream-tool-shape.md) are evidence, not current instructions.

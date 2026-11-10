@@ -3,15 +3,25 @@
 podvm has a rootfs execution path and a machine execution path.
 The CLI selects the path from arguments and runtime probes.
 [The generated state](runtime-state.md) lists the source-defined mechanisms.
+[The code map](code-map.md) names the crate that owns each part.
+
+## Shared crates
+
+Most mechanisms are crates of PodUtils/podcrates (prefix `pod-`).
+podvm takes them by git tag; [the code map](code-map.md) names the tag.
+Each local `podvm-*` crate gives podvm's names, paths and settings to its
+`pod-*` crate and keeps the parts that only podvm needs.
+A change to the mechanism of a `pod-*` crate goes to podcrates as a COORD
+issue (`AGENTS.md`, section 9).
 
 ## Rootfs execution
 
-1. The probe runs operations in disposable children.
-2. The image client selects a platform and verifies registry content.
-3. The extractor applies ordered layers and whiteouts.
-4. The completion layer prepares devices, account files, resolver data, and package configuration.
-5. The entry layer resolves the payload in the selected execution context.
-6. The supervisor manages process state, logs, signals, and exit status.
+1. The probe runs operations in disposable children (`pod-hostprobe`).
+2. The image client selects a platform and verifies registry content (`pod-oci`).
+3. The extractor applies ordered layers and whiteouts (`pod-extract`).
+4. The completion layer prepares devices, account files, resolver data, and package configuration (`pod-rootfs`).
+5. The entry layer resolves the payload in the selected execution context (`pod-enter`).
+6. The supervisor manages process state, logs, signals, and exit status (`pod-supervise`).
 
 Extraction stores intended ownership in a sidecar.
 It restores mapped ownership only where the selected path permits it.
@@ -19,7 +29,8 @@ The sidecar does not change the kernel's ownership checks.
 
 ## Selection and entry
 
-`crates/podvm-probe/src/select.rs` defines runtime rungs.
+`pod_hostprobe::select` defines the runtime rungs.
+`crates/podvm-probe/src/select.rs` re-exports it and keeps podvm's banner cells.
 Selection reports available mechanisms. Entry reports the mechanism it actually enters.
 
 | Path | Behavior |
@@ -47,30 +58,42 @@ reuse a cache, or enter by path. These modes describe storage and launch.
 They do not add an isolation claim.
 
 The vendored userland loader is not linked into the runtime.
-The current userland entry lives in `src/userland.rs` of `pod-enter` (PodUtils/podcrates).
+The current userland entry lives in `src/userland.rs` of `pod-enter`.
 [THIRD_PARTY](../THIRD_PARTY.md) records the carried loader's actual patch state.
 
 ## Interposer
 
 The interposer is a separate crate outside the Cargo workspace.
-The build produces one object for glibc and one for musl.
-The CLI build script embeds the produced objects and reports absent inputs.
+`podvm-interpose-build` produces one object for glibc and one for musl.
+The CLI build script embeds the produced objects.
+An absent object becomes an empty placeholder, and the runtime then refuses the payload by name.
 
 It supplies path, ownership, identity, device, and proc compatibility.
 It cannot cover every syscall or static payload.
-The embedded pair targets x86_64.
+The embedded pair targets x86_64 on each release architecture.
 The runtime checks payload and object architecture before use.
 
 ## Machine execution
 
-`--podvm-tier=machine` selects a guest rather than rootfs entry.
+`--podvm-tier=machine` selects the machine tier; `--podvm-tier=chroot` selects the chroot tier.
 With no flag the ladder selects, under every name the binary answers to.
+`crates/podvm/src/tier.rs` owns the flag.
 
-The Linux guest path uses kernel and initramfs inputs, serial execution,
-bounded waits, and a per-run guest.
-The Windows path uses a disk overlay, FAT mailbox, guest agent, and QMP.
-The DOS path supplies its own guest preparation and command protocol.
+For an OCI image, the machine tier assesses the machine legs and exits 125.
+The message names the profile it found (KVM or TCG) or each missing leg.
+`run` does not boot a Linux guest yet; T-1656 in [the machine tasks](../TODO/machine.md) owns that work.
+
+Three commands boot a guest now:
+
+| Command | Guest |
+| --- | --- |
+| `podvm machine ssh` | A Linux guest from a named kernel and initramfs, with a serial transport and a real SSH client |
+| `podvm windows run`, or foreground `run --podvm-tier=machine --platform windows/amd64` | A Windows disk with a per-run overlay, a FAT mailbox, a guest agent, and QMP (`pod-guest`) |
+| `podvm windows run --guest dos` | FreeDOS from its base cache, with its own guest preparation and command protocol (`pod-guest`) |
+
 The machine probe selects KVM, TCG, or a named refusal from measured host operations.
+Under TCG the emulator process is the boundary, not hardware isolation.
+Each guest run has bounded waits.
 
 ## SSH
 
