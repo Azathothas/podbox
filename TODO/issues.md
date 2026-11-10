@@ -121,3 +121,5 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #224 | COORD-018: pod-enter and pod-hostprobe: volume pairs, workdir and first program through the table (T-1653) (to podcrates) | closed | T-1653 |
 | #225 | COORD-019: podvm took v0.11.0, pod-extract and pod-rootfs (to podcrates) | closed | T-1681, T-1647 |
 | #226 | COORD-020: podvm took v0.12.0, the Maps API of pod-enter (to podcrates) | closed (the asks are podcrates T-155) | T-1653 |
+| #227 | COORD-021: podrunner: the design review of #47, what the crates must give before podrunner starts (to podcrates) | open | none: the hand-off of the podrunner plan to podcrates ([decisions](../docs/decisions.md), 2026-11-10, "podrunner") |
+| #228 | COORD-022: podrunner: podnet pod with the official runner, and the pod-hold hand-off (to podnet) | open | none: the asks of the podrunner plan to podnet ([decisions](../docs/decisions.md), 2026-11-10, "podrunner") |
