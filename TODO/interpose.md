@@ -2535,7 +2535,7 @@ Source:      issue 229; the podrunner design review (the owner's design
 Category:    interpose
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     On the userland rung, `realpath("/proc/self/exe")` gives the
              guest path of the image's dynamic loader. `readlink` of the
@@ -2578,6 +2578,35 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              /proc/self/exe` prints
              `/usr/bin/realpath`, and a fortified test program prints its
              own guest path from `realpath` and from `readlink`.
+
+**Done 2026-11-11.** `realpath` and `canonicalize_file_name` start from
+the guest name of the program where their input is the exe link under the
+override (`exe_input` in `crates/podvm-interpose/src/path_calls.rs`), and
+resolve it through the table, so the answer is the program after the
+image's links. The exe link is `/proc/self/exe` and, since this entry,
+`/proc/PID/exe` for the process's own pid (`is_pid_exe` in
+`crates/podvm-interpose/src/procfs/exe.rs`): GNU `realpath(1)` follows
+`/proc/self` to `/proc/PID` and reads `exe` there, so it named the loader
+with the self spelling alone. The fortified variants were measured on the
+cloud host (glibc 2.39, a program built with `-D_FORTIFY_SOURCE=2` under the
+gnu object): `__realpath_chk`, `__readlink_chk`, `__readlinkat_chk` and
+`__getcwd_chk` each gave the host path where the plain call gave the guest
+path. The interposer now exports the four (`crates/podvm-interpose/src/chk_calls.rs`,
+`crates/podvm-interpose/interpose.map`), keeps glibc's length check
+(`__chk_fail`, or `abort` where none resolves), and takes the route of the
+plain call; the same measurement then gives the guest path for each. The
+Prove, on the cloud host, 2026-11-11: `cargo test --manifest-path
+crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --
+--test-threads=1` exits 0 (71 tests), with
+`realpath_of_self_exe_names_the_program_as_readlink_does` (`realpath`, a
+buffer `realpath`, `canonicalize_file_name`, `readlink` and the four `_chk`
+variants agree; with `exe_input` disabled the test fails on `realpath`,
+which then names the test binary) and `the_own_pid_spelling_is_the_exe`.
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 with
+clause 28 ([the run](../experiments/results/no-chroot-rung.txt)): in
+debian `realpath /proc/self/exe` prints `/usr/bin/realpath`, and the
+fortified program from a volume prints `realpath /fort/fort` and
+`readlink /fort/fort`.
 
 **Filed 2026-11-10.** From issue 229 and the podrunner design review
 (the ruling "podrunner", 2026-11-10): blocker 1 of the official runner on

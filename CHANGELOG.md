@@ -8,6 +8,21 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: realpath of the exe on the userland rung, 2026-11-11
+
+Record: T-1704; issue 229.
+Deployed: not deployed; no version change.
+
+- On the userland rung, `realpath` and `canonicalize_file_name` of
+  `/proc/self/exe` gave the image's loader, while `readlink` gave the
+  program; the .NET apphost of the official runner exited 154. Both now
+  give the program. `/proc/PID/exe` with the process's own pid is the same
+  link, so GNU `realpath /proc/self/exe` prints the program too.
+- A program built with `_FORTIFY_SOURCE=2` called `__realpath_chk`,
+  `__readlink_chk`, `__readlinkat_chk` and `__getcwd_chk` past the
+  interposer and read host paths. The interposer exports the four, with
+  glibc's length check.
+
 ### Breaking and fixed: the entered rung, 2026-11-11
 
 Record: T-1712, T-1713, call C14 of `docs/decisions.md`; issues 237 and

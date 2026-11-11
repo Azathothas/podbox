@@ -59,6 +59,22 @@ fn the_exe_override_needs_its_flag_and_its_spelling() {
     assert!(!should_override_exe(true, b"/proc/self/exe"));
 }
 
+/// TODO/interpose.md T-1704. The process's own pid names the same link as
+/// `self`; another pid, a sibling leaf or a spelling with a leading zero
+/// does not.
+#[test]
+fn the_own_pid_spelling_is_the_exe() {
+    assert!(is_pid_exe(&z(b"/proc/4242/exe"), 4242));
+    assert!(!is_pid_exe(&z(b"/proc/4243/exe"), 4242));
+    assert!(!is_pid_exe(&z(b"/proc/04242/exe"), 4242));
+    assert!(!is_pid_exe(&z(b"/proc/4242/cwd"), 4242));
+    assert!(!is_pid_exe(&z(b"/proc/4242/exe/"), 4242));
+    assert!(!is_pid_exe(&z(b"/proc//exe"), 4242));
+    assert!(!is_pid_exe(&z(b"/proc/self/exe"), 4242));
+    assert!(!is_pid_exe(b"/proc/4242/exe", 4242));
+    assert!(!is_pid_exe(&z(b"/proc/99999999999/exe"), 4242));
+}
+
 #[test]
 fn mount_files_sort_into_two_renderings() {
     assert_eq!(mount_file(&z(b"/proc/mounts")), Some(MountFile::Mounts));

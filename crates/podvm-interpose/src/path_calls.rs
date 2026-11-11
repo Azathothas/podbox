@@ -27,6 +27,8 @@ pub unsafe extern "C" fn realpath(path: *const c_char, resolved: *mut c_char) ->
         set_errno(EINVAL);
         return core::ptr::null_mut();
     };
+    let mut exe = [0u8; crate::map::OUT];
+    let path = unsafe { exe_input(path, &mut exe) };
     let mut buf = [0u8; crate::map::OUT];
     let p = unsafe { crate::map::prepare(b"realpath", crate::map::AT_FDCWD, path, &mut buf) };
     if p.is_null() {
@@ -76,6 +78,8 @@ pub unsafe extern "C" fn canonicalize_file_name(path: *const c_char) -> *mut c_c
         set_errno(EINVAL);
         return core::ptr::null_mut();
     };
+    let mut exe = [0u8; crate::map::OUT];
+    let path = unsafe { exe_input(path, &mut exe) };
     let mut buf = [0u8; crate::map::OUT];
     let p = unsafe {
         crate::map::prepare(
@@ -366,6 +370,27 @@ pub(crate) unsafe fn proc_exe_value(out: &mut [u8; crate::map::OUT]) -> Option<u
     out[..n].copy_from_slice(bytes);
     out[n] = 0;
     Some(n)
+}
+
+/// The input of `realpath` and `canonicalize_file_name`: the guest name of
+/// the program in `out` where `path` is `/proc/self/exe` under the
+/// override, else `path`.
+///
+/// ⛔ T-1704. libc follows the kernel link of `/proc/self/exe`, which names
+/// the image's loader that podvm started, while `readlink` answers the
+/// program (T-1409). A runtime that finds its own directory with
+/// `realpath` then looks beside the loader (the .NET apphost exits 154). So
+/// both calls start from the name that `readlink` gives and resolve it
+/// through the table: the answer is the program after the image's links.
+pub(super) unsafe fn exe_input(
+    path: *const c_char,
+    out: &mut [u8; crate::map::OUT],
+) -> *const c_char {
+    if unsafe { crate::procfs::exe_override_hit(path) } && unsafe { proc_exe_value(out) }.is_some()
+    {
+        return out.as_ptr() as *const c_char;
+    }
+    path
 }
 
 /// Serve `readlink` of `/proc/self/exe`, T-0413.

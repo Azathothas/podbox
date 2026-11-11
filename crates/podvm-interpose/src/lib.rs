@@ -420,6 +420,9 @@ pub use stat_calls::*;
 mod path_calls;
 pub use path_calls::*;
 
+mod chk_calls;
+pub use chk_calls::*;
+
 mod proc_mounts;
 pub use proc_mounts::*;
 

@@ -56,6 +56,10 @@
     readlinkat;
     realpath;
     canonicalize_file_name;
+    __realpath_chk;
+    __readlink_chk;
+    __readlinkat_chk;
+    __getcwd_chk;
     getxattr;
     lgetxattr;
     setxattr;

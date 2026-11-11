@@ -7,7 +7,7 @@ start.
 
 ## State
 
-327 entries: 35 open, 9 partial, 5 blocked, 278 done.
+327 entries: 34 open, 9 partial, 5 blocked, 279 done.
 
 The state on 2026-11-11:
 
@@ -50,10 +50,10 @@ that is not done. Read its Prove before you start. Set its status with
    [T-1655](cli.md): each flag of the hardening line works on the tier or
    refuses by name. Its read-only layer closes the last clause of
    [T-1653](enter.md), `-v HOST:GUEST:ro` with `EROFS` (issue 130).
-2. [T-1703](interpose.md): `fexecve`, `execveat` with flags, `system()`
-   and `popen()` enter through the image's loader. Then the interposer
-   entries [T-1704](interpose.md), [T-1705](interpose.md) and
-   [T-1710](interpose.md), [T-1707](enter.md) (a COORD issue for
+2. [T-1705](interpose.md) (P1: a host path that a loaded object reports
+   gets the rootfs prefix again), then [T-1703](interpose.md):
+   `fexecve`, `execveat` with flags, `system()` and `popen()` enter
+   through the image's loader. Then [T-1710](interpose.md), [T-1707](enter.md) (a COORD issue for
    `pod-enter`), and [T-1706](cli.md) (the official runner on the
    userland rung, after T-1704, T-1705 and T-1707).
 3. [T-1682](machine.md): `kvm.yml`, the Linux guest of the machine tier

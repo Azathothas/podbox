@@ -5,7 +5,8 @@ use super::*;
 ///
 /// Pure over the flag and the spelling, so the wrappers and the unit test
 /// read the same words: exactly `/proc/self/exe` with the flag on, and
-/// nothing else. No mapping can win over this spelling: the `/proc` leaves
+/// nothing else. [`is_pid_exe`] adds the spelling with the process's own
+/// pid, which [`exe_override_hit`] reads. No mapping can win over this spelling: the `/proc` leaves
 /// never rewrite (the builtin exclusion), so the wrappers ask before
 /// consulting the table.
 pub fn should_override_exe(override_on: bool, path_with_nul: &[u8]) -> bool {
@@ -33,7 +34,10 @@ pub(crate) unsafe fn exe_override_hit(path: *const c_char) -> bool {
         return false;
     }
     let bytes = unsafe { core::slice::from_raw_parts(path as *const u8, n + 1) };
-    should_override_exe(true, bytes)
+    unsafe extern "C" {
+        fn getpid() -> c_int;
+    }
+    should_override_exe(true, bytes) || is_pid_exe(bytes, unsafe { getpid() })
 }
 
 unsafe extern "C" {
@@ -253,6 +257,35 @@ pub fn fd_number(path: &[u8]) -> Option<u32> {
 /// sibling leaf) falls through to the honest failure.
 pub fn is_self_exe(path: &[u8]) -> bool {
     path == b"/proc/self/exe\0"
+}
+
+/// Exactly `/proc/PID/exe` for the pid `pid`, NUL-terminated.
+///
+/// ⛔ TODO/interpose.md T-1704. It is the same link as `/proc/self/exe` for
+/// the process itself. GNU `realpath(1)` reads it: gnulib's canonicalize
+/// follows `/proc/self` to `/proc/PID` and then reads `exe` there, so with
+/// the self spelling alone it named the image's loader (measured with the
+/// loader of the host and `realpath` of coreutils). Another pid is another
+/// process, and its link stays the kernel's.
+pub fn is_pid_exe(path: &[u8], pid: c_int) -> bool {
+    let Some(rest) = path.strip_prefix(b"/proc/") else {
+        return false;
+    };
+    let Some(digits) = rest.strip_suffix(b"/exe\0") else {
+        return false;
+    };
+    if pid <= 0 || digits.is_empty() || digits[0] == b'0' || !digits.iter().all(u8::is_ascii_digit)
+    {
+        return false;
+    }
+    let mut v: i64 = 0;
+    for c in digits {
+        v = v * 10 + (c - b'0') as i64;
+        if v > c_int::MAX as i64 {
+            return false;
+        }
+    }
+    v == pid as i64
 }
 
 /// Which mount-table file a path names, if any.

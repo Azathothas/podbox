@@ -304,3 +304,6 @@ fn dlopen_loads_a_mapped_object_by_its_guest_path() {
 
 /// T-1699 and T-1701: the `mk*temp` family in a deep rootfs.
 mod template;
+
+// TODO/interpose.md T-1704.
+mod exe_realpath;

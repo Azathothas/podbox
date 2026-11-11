@@ -42,6 +42,8 @@ file when each step below is done.
 
 ## Next steps, in order
 
-1. The work order of `TODO/PROGRESS.md`, from item 1 (T-1708 and
-   T-1715, the needs of podrunner first). T-1716, T-1712 and T-1713 are
-   done on 2026-11-11.
+1. The work order of `TODO/PROGRESS.md`. Item 1 waits for podcrates
+   (T-1708 for a tag with T-162, T-1715 and T-1655 for COORD-026 and
+   COORD-027); T-1655's own parts can go on. Item 2 is next: T-1705 (P1),
+   then T-1703. T-1716, T-1712, T-1713 and T-1704 are done on
+   2026-11-11.

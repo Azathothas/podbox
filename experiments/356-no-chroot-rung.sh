@@ -113,6 +113,10 @@
 #      enters, whatever `.Rung` the probe selects; a `-v` pair under
 #      /proc refuses at 125 naming /proc; a missing `-w` inside a volume
 #      refuses at 125 naming the volume, not the image.
+#   28. the exe of realpath (T-1704): GNU `realpath /proc/self/exe` in
+#      debian prints /usr/bin/realpath, not the loader; a program built
+#      with _FORTIFY_SOURCE=2 (it calls __realpath_chk and __readlink_chk)
+#      prints its own guest path from realpath and from readlink.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -820,6 +824,35 @@ step fx-vol-proc "$FLAG" $FX "$PB" run --rm -v "$VOL:/proc/x" "$ALPINE" true
 grep -q "never rewrites a path under /proc" "$WORK/out-fx-vol-proc.txt" || { echo "a volume under /proc was not refused by name" >>"$REPORT"; fail=1; }
 step fx-vol-wd-missing "$RUN_ERR" $FX "$PB" run --rm -w /data/none -v "$VOL:/data" "$ALPINE" true
 grep -q ":/data is not a directory in the volume" "$WORK/out-fx-vol-wd-missing.txt" || { echo "a missing -w in a volume did not name the volume" >>"$REPORT"; fail=1; }
+
+# Clause 28 (T-1704): realpath of the exe names the program, as readlink
+# does. coreutils reads /proc/PID/exe after it follows /proc/self.
+step fx-realpath-exe 0 $FX "$PB" run --rm "$DEBIAN" realpath /proc/self/exe
+grep -qx "/usr/bin/realpath" "$WORK/out-fx-realpath-exe.txt" || { echo "realpath of /proc/self/exe did not name the program" >>"$REPORT"; fail=1; }
+mkdir -p "$WORK/fort" || exit 2
+cat >"$WORK/fort.c" <<'FORT'
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+int main(int argc, char **argv) {
+	size_t n = (size_t)atoi(argc > 1 ? argv[1] : "4000");
+	char rp[PATH_MAX], rl[PATH_MAX];
+	char *r = realpath("/proc/self/exe", rp);
+	ssize_t k = readlink("/proc/self/exe", rl, n);
+	if (k >= 0) rl[k] = 0;
+	printf("realpath %s\nreadlink %s\n", r ? r : "(null)", k >= 0 ? rl : "(err)");
+	return 0;
+}
+FORT
+if cc -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -o "$WORK/fort/fort" "$WORK/fort.c" 2>>"$REPORT"; then
+	echo "fortified program $(nm -D "$WORK/fort/fort" | grep -oE '__(realpath|readlink)_chk' | sort -u | tr '\n' ' ')" >>"$REPORT"
+	step fx-fortified 0 $FX "$PB" run --rm -v "$WORK/fort:/fort" "$DEBIAN" /fort/fort
+	grep -qx "realpath /fort/fort" "$WORK/out-fx-fortified.txt" || { echo "a fortified realpath did not name the program" >>"$REPORT"; fail=1; }
+	grep -qx "readlink /fort/fort" "$WORK/out-fx-fortified.txt" || { echo "a fortified readlink did not name the program" >>"$REPORT"; fail=1; }
+else
+	echo "fortified program COMPILE FAILED" | tee -a "$REPORT"; fail=1
+fi
 
 {
 echo ""
