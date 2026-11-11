@@ -54,16 +54,20 @@ file when each step below is done.
 1. At podcrates `v0.23.0`: take it, then finish T-1658 (`pod-confine`),
    the lambda clause of T-1659, `workerd-test` of T-1661, and T-1679
    (empty the `WAITING` list of `crates/podvm/src/hosts_tests.rs`).
-2. The work order of `TODO/PROGRESS.md`, step 9: T-1680 (partial: the remaining
-   problems of `podvm-todo check`, then the record checks move to
-   pod-todo), T-1673, T-1683, T-1684, T-1685.
-3. Done on 2026-11-11 after the first handoff: T-1659 (partial),
-   T-1661 (partial), T-1660, T-1668, T-1672, T-1732, T-1679 (partial).
-   Defects fixed on the way: the hard links of a container tree and of the
-   guest's base archive, the removal of a read-only tree by a user that is
-   not root, a partial tree of a killed run, `--argv0` on the first exec
-   of the loader family, `lstat` of a volume's mount point.
+2. The work order of `TODO/PROGRESS.md`, step 3: T-1680 (the record checks
+   of `podvm-gate` that pod-todo holds go; `podvm-todo check` finds 0
+   problems, and check 35 of the gate runs it), T-1735, T-1737, T-1684,
+   T-1685.
+3. Done on 2026-11-11 after the first handoff: T-1660, T-1668, T-1672,
+   T-1673, T-1683, T-1732, T-1733, T-1734, T-1736; partial: T-1659,
+   T-1661, T-1679, T-1680. Defects fixed on the way: the hard links of a
+   container tree and of the guest's base archive, the removal of a
+   read-only tree by a user that is not root, a partial tree of a killed
+   run, `--argv0` on the first exec of the loader family, `lstat` of a
+   volume's mount point.
 4. Before an entry is set done, run `cargo test -p podvm`: the test
    `each_listed_gap_names_an_entry_that_is_not_done` reads the record.
+   pod-todo's reader reads the files on disk: an untracked directory can
+   hide a citation that a clone of CI refuses (CI run 400).
 5. CI: each push cancels the run before it. Let one run finish between
    pushes where it can.
