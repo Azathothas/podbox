@@ -1992,21 +1992,29 @@ record checks of `podvm-gate` to pod-todo once they are 0.
 
 ## Done
 
-**Partial 2026-11-11.** `podvm-todo check` reports 49 problems, from
-356 after the move of T-1672. `references/` is no directory of a citation
-for pod-todo (`TODO/todo.toml`): the captured trees are in the history,
-and `podvm-gate` checks them against `references/MANIFEST.tsv`.
-`scripts/todo/qualify-foreign-ids.py` wrote each id of a sibling's record
-as `REPO@T-NNN` (88 ids: 85 of podcrates, 2 of podnet, 1 by hand), and
-two recorded `grep -E` patterns name the same ids as `T-15(5|7)[0-9]`.
-The work order of `TODO/PROGRESS.md` names no done entry.
+**Partial 2026-11-11.** `podvm-todo check` finds 0 problems ("the record
+agrees: 341 entries"), from 356 after the move of T-1672:
 
-Remaining: 35 line citations of a past tree (`:N` past the end of the
-file today, or "line N" as plain text), each to be written as "line N at
-`COMMIT`"; seven paths that are gone; the counts line and the All row of
-`TODO/INDEX.md` in the form of pod-todo; the four-digit id in the title of T-1631,
-an id that no row holds; two uses of "yet"; then the record checks of
-`podvm-gate` move to the wrapper, with their plants.
+* `references/` is no directory of a citation for pod-todo
+  (`TODO/todo.toml`): the captured trees are in the history, and
+  `podvm-gate` checks them against `references/MANIFEST.tsv`.
+* `scripts/todo/qualify-foreign-ids.py` wrote each id of a sibling's record
+  as `REPO@T-NNN` (88 ids: 85 of podcrates, 2 of podnet, 1 by hand); two
+  recorded `grep -E` patterns name the same ids as `T-15(5|7)[0-9]`.
+* The work order of `TODO/PROGRESS.md` names no done entry.
+* `scripts/todo/pin-past-lines.py` read 33 line numbers of past trees at
+  the commit that wrote them ("line N at `COMMIT`"); the counts line of the
+  index reads `N entries` and its All row holds plain numbers; six paths
+  that are gone are named as text; a quote and its lines agree again; the
+  title of T-1631 names its decision entry, not an id with no row.
+
+`cargo test -p podvm-todo` exits 0 with
+`pod_todo_finds_no_problem_in_the_record`, so CI runs pod-todo's whole
+reader on each push.
+
+Remaining: the record checks of `podvm-gate` move to the wrapper, with
+their plants, and each check that pod-todo does not hold is kept in the
+wrapper or retired with its reason.
 
 # T-1681: Hand the seven generic crates to podcrates and freeze their files
 

@@ -63,9 +63,9 @@ that is not done. Read its Prove before you start. Set its status with
    [T-1661](cli.md) (partial: wasmtime-wasi waits for a first-use asset
    record, workerd-test for T-1658).
 3. The record and the tree: [T-1679](deps.md) (`pod-services`; partial:
-   COORD-044, issue 263), [T-1680](deps.md) (partial: the 49 problems of `podvm-todo
-   check` that are not of form, then the record checks move to
-   pod-todo), [T-1673](gate.md) (the 29 plan rows), [T-1683](gate.md)
+   COORD-044, issue 263), [T-1680](deps.md) (partial: `podvm-todo check` finds 0
+   problems; the record checks of `podvm-gate` move to pod-todo next),
+   [T-1673](gate.md) (the 29 plan rows), [T-1683](gate.md)
    (retire the PowerShell twins), [T-1684](gate.md) (fuzzing and the
    vendor watch) and [T-1685](gate.md) (the two pages in the sibling
    form).

@@ -58,3 +58,19 @@ fn the_record_has_no_problem_of_form_for_pod_todo() {
         report.counts.total()
     );
 }
+
+/// TODO/deps.md T-1680: pod-todo's reader finds no problem at all in the
+/// record: the form, the citations and their lines, the ids, the work
+/// order and the words.
+#[test]
+fn pod_todo_finds_no_problem_in_the_record() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let report = pod_todo::check::check_with(&root, Some(Vec::new()), &|_: &str| Ok(None), "HEAD");
+    let all: Vec<String> = report.problems.iter().map(|p| p.to_string()).collect();
+    assert!(
+        all.is_empty(),
+        "{} problems:\n{}",
+        all.len(),
+        all.join("\n")
+    );
+}
