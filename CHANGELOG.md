@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.3 (2026-11-11)
+
 ### Changed: a binary embeds no interposer of another machine, 2026-11-11
 
 Record: T-1721; PodUtils/podrunner#52.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - `podvm-aarch64` embedded the two x86_64 interposer objects, so the
   userland rung declined each arm64 payload with a machine mismatch. A
@@ -21,7 +23,7 @@ Deployed: not deployed; no version change.
 ### Fixed: the loader finds the image's library directories, 2026-11-11
 
 Record: T-1719; issue 247.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - On the userland rung the image's loader searches `/usr/local/lib`, each
   directory of the image's `/etc/ld.so.conf` or `ld-musl-ARCH.path`, and
@@ -31,7 +33,7 @@ Deployed: not deployed; no version change.
 ### Added: a microVM from an OCI image, 2026-11-11
 
 Record: T-1656 (partial), T-1682 (in progress); issue 168.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - `run --podvm-tier=machine IMAGE CMD` boots a disposable guest from the
   image and exits with the command's code: under KVM where `/dev/kvm`
@@ -49,7 +51,7 @@ Deployed: not deployed; no version change.
 ### Fixed: a relative program runs from `-w`, and SIGXFSZ has a reason, 2026-11-11
 
 Record: T-1707, T-1706; issues 232 and 231.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - `run -w /opt/x ./bin/prog` runs `/opt/x/bin/prog`, as docker does, on
   each rung; `argv[0]` stays `./bin/prog`. On the userland rung the
@@ -65,7 +67,7 @@ Deployed: not deployed; no version change.
 ### Fixed: children that libc starts on the userland rung, 2026-11-11
 
 Record: T-1703, T-1710; issue 235.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - On the userland loader family, a child that the payload starts through
   `system()`, `popen()`, `fexecve()` or `execveat()` with flags enters
@@ -82,7 +84,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `wait` of a payload that ends at once, 2026-11-11
 
 Record: T-1720; PodUtils/podrunner#49.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - `wait` reads the record again, for up to 10 s, where the launcher went
   before the record had the exit code, so it no longer answers "it is Up"
@@ -91,7 +93,7 @@ Deployed: not deployed; no version change.
 ### Added: `--read-only`, `:ro` volumes and `--tmpfs`, 2026-11-11
 
 Record: T-1655, T-1653; issue 130.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - On the userland loader family, `run --read-only` and a `-v
   HOST:GUEST:ro` volume make a write under the read-only guest path fail
@@ -105,7 +107,7 @@ Deployed: not deployed; no version change.
 ### Added: `--timeout`, `--ulimit` and `--security-opt no-new-privileges`, 2026-11-11
 
 Record: T-1655 (partial); PodUtils/podcrates#58.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - podvm takes the 11 crates at podcrates `v0.17.0`. `run --ulimit
   NAME=SOFT[:HARD]` sets a resource limit of the payload, and
@@ -120,7 +122,7 @@ Deployed: not deployed; no version change.
 ### Fixed: the tree of a payload, 2026-11-11
 
 Record: T-1708; issue 233; call C15.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - `stop`, `kill`, `rm -f` and the end of a foreground `run` end each
   process of the payload's tree, also a grandchild that called `setsid`.
@@ -134,7 +136,7 @@ Deployed: not deployed; no version change.
 ### Changed: podcrates v0.16.0, 2026-11-11
 
 Record: T-1708 (partial), T-1715; PodUtils/podcrates#57.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - podvm takes the 11 crates at `v0.16.0`. The launcher of a detached run
   is the subreaper of the payload's tree and kills each process of the
@@ -145,7 +147,7 @@ Deployed: not deployed; no version change.
 ### Fixed: the paths that the loader gives, 2026-11-11
 
 Record: T-1705; issue 230.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - On the userland rung, a path that the loader gives (`dladdr`, the link
   map, `/proc/self/maps`) is a host path under the rootfs, and the
@@ -156,7 +158,7 @@ Deployed: not deployed; no version change.
 ### Fixed: realpath of the exe on the userland rung, 2026-11-11
 
 Record: T-1704; issue 229.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - On the userland rung, `realpath` and `canonicalize_file_name` of
   `/proc/self/exe` gave the image's loader, while `readlink` gave the
@@ -172,7 +174,7 @@ Deployed: not deployed; no version change.
 
 Record: T-1712, T-1713, call C14 of `docs/decisions.md`; issues 237 and
 238.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - `--podvm-tier` of `run`, `create` and `exec` takes `machine` only.
   `--podvm-tier=chroot` had no effect: it ran the ladder, and on a
@@ -187,7 +189,7 @@ Deployed: not deployed; no version change.
 ### Changed, 2026-11-11
 
 Record: T-1716; PodUtils/podcrates#52 and #54.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.3.
 
 - podvm takes the 11 shared crates of `PodUtils/podcrates` at tag
   `v0.15.0`. The volume rules live in `pod-enter` only: a `-v` pair under
