@@ -119,7 +119,7 @@
 227 issue closed
 228 issue closed
 229 issue closed
-230 issue open
+230 issue closed
 231 issue open
 232 issue open
 233 issue open
@@ -133,5 +133,5 @@
 241 issue closed
 242 issue open
 243 issue open
-244 issue open
+244 issue closed
 245 issue open
