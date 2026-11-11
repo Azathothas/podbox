@@ -120,6 +120,9 @@ pub const RUN_OPTIONS: &str = "\
   --security-opt no-new-privileges
                    PR_SET_NO_NEW_PRIVS in the payload; each other option is
                    refused by name (TODO/cli.md T-1655)
+  --read-only      a write outside a writable volume fails with EROFS, through
+                   the interposer of the userland loader family; elsewhere it
+                   is refused by name (TODO/cli.md T-1655)
   --cap-drop ALL   the same bit; a named capability is refused
                    (TODO/cli.md T-1655)
   --timeout S      podman's: at S seconds the payload and its tree are

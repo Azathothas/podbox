@@ -372,6 +372,22 @@ pub unsafe fn prepare(
     path: *const c_char,
     out: &mut [u8; OUT],
 ) -> *const c_char {
+    unsafe { prepare_mode(what, dirfd, path, is_write_call(what), out) }
+}
+
+/// [`prepare`] where the caller says whether the call writes: `open` and
+/// `fopen` write only with some flags. A write under a read-only prefix of
+/// `PODVM_RO` answers `EROFS` (TODO/cli.md T-1655).
+///
+/// # Safety
+/// As [`prepare`].
+pub unsafe fn prepare_mode(
+    what: &[u8],
+    dirfd: c_int,
+    path: *const c_char,
+    writes: bool,
+    out: &mut [u8; OUT],
+) -> *const c_char {
     if path.is_null() {
         return path;
     }
@@ -395,6 +411,10 @@ pub unsafe fn prepare(
         return core::ptr::null();
     }
     let abs_n = strnlen(abs.as_ptr() as *const c_char, OUT);
+    if writes && unsafe { denied(abs.as_ptr(), abs_n) } {
+        crate::set_errno(EROFS);
+        return core::ptr::null();
+    }
     match unsafe { rewrite(&t, abs.as_ptr(), abs_n, out) } {
         // ⭐ Unmatched resolves back to the caller's own pointer, never the
         // absolutized copy: the bytes the kernel sees stay exactly the

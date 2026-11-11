@@ -378,3 +378,46 @@ fn a_host_path_under_a_host_side_is_not_prefixed_again() {
     let n = rw(&t, b"/hostroot/etc/hostname", &mut out);
     assert_eq!(&out[..n as usize], b"/etc/hostname");
 }
+
+/// TODO/cli.md T-1655. The longest prefix of `PODVM_RO` decides; a path
+/// under no entry is writable; a malformed entry is skipped.
+#[test]
+fn the_read_only_table_takes_the_longest_prefix() {
+    let t = b"ro:/,rw:/tmp,rw:/workspace/,ro:/workspace/locked";
+    assert!(denied_in(t, b"/etc/passwd"));
+    assert!(denied_in(t, b"/"));
+    assert!(!denied_in(t, b"/tmp/x"));
+    assert!(!denied_in(t, b"/tmp"));
+    assert!(denied_in(t, b"/tmpx"));
+    assert!(!denied_in(t, b"/workspace/a"));
+    assert!(denied_in(t, b"/workspace/locked/a"));
+    assert!(!denied_in(b"ro:/data", b"/etc/x"));
+    assert!(denied_in(b"ro:/data", b"/data/x"));
+    assert!(!denied_in(b"", b"/etc/x"));
+    assert!(!denied_in(b"xx:/,ro:relative", b"/etc/x"));
+}
+
+/// TODO/cli.md T-1655. `open` writes with a write access mode, a create, a
+/// truncate or an append; `fopen` with `w`, `a` or `+`.
+#[test]
+fn open_flags_and_fopen_modes_that_write() {
+    assert!(!open_writes(0));
+    assert!(open_writes(1));
+    assert!(open_writes(2));
+    assert!(open_writes(0o100));
+    assert!(open_writes(0o1000));
+    assert!(open_writes(0o2000));
+    assert!(!open_writes(0o2000000)); // O_CLOEXEC alone reads
+    for (m, w) in [
+        (c"r", false),
+        (c"rb", false),
+        (c"r+", true),
+        (c"w", true),
+        (c"a", true),
+        (c"re", false),
+    ] {
+        assert_eq!(unsafe { mode_writes(m.as_ptr()) }, w, "{m:?}");
+    }
+    assert!(is_write_call(b"mkdir"));
+    assert!(!is_write_call(b"stat"));
+}

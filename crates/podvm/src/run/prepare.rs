@@ -75,8 +75,7 @@ pub(crate) fn prepare(
         ));
     }
     // ⭐ TODO/milestones.md T-1112. The OS gate sits before the tier dispatch
-    // and the fetch: a platform no tier can enter refuses naming it, rather
-    // than a misreport of the machine tier's legs or a pull no tier runs.
+    // and the fetch: a platform no tier can enter refuses naming it.
     crate::lifecycle::ensure_linux_guest(verb, &platform.os, &platform.arch)?;
     if tier == crate::tier::Tier::Machine {
         return Err(crate::tier::enter_machine(verb, o.mem));
@@ -361,12 +360,13 @@ pub(crate) fn prepare(
         userland_note = ue.banner;
         strict_unsafe = ue.unsafe_paths;
     }
-    // ⭐ TODO/enter.md T-1412. The workdir is checked here, before the fork
-    // and before any fixup mutates the rootfs, on both rungs: a missing
-    // directory refuses naming the path and the image at 125, rather than
-    // starting the payload in the wrong directory with exit 0. docker
-    // creates the directory; podvm refuses and says so, and `-w /tmp`
-    // prints `/tmp` as the passing control.
+    ro_env(verb, &o, userland.as_ref(), &mut env)?; // TODO/cli.md T-1655
+                                                    // ⭐ TODO/enter.md T-1412. The workdir is checked here, before the fork
+                                                    // and before any fixup mutates the rootfs, on both rungs: a missing
+                                                    // directory refuses naming the path and the image at 125, rather than
+                                                    // starting the payload in the wrong directory with exit 0. docker
+                                                    // creates the directory; podvm refuses and says so, and `-w /tmp`
+                                                    // prints `/tmp` as the passing control.
     if let Err(e) = podvm_enter::check_workdir(&maps, &working_dir, &image) {
         eprintln!("podvm {verb}: {e}");
         return Err(e.exit_code());

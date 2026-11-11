@@ -1677,7 +1677,7 @@ Source:      issue 130 (130 reposts the hidden issue 104); issue 114
 Category:    enter
 Priority:    P2
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     `run -v` is refused on every rung. The errand host has no
              `/dev/fuse` and denies `mount(2)`, so podvm can make neither
@@ -1712,6 +1712,17 @@ Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm`
              the guest path, and a guest write lands in the host
              directory. A `:ro` volume gives `EROFS` for a guest write and leaves the
              host file unchanged, once the read-only layer of T-1655 exists.
+
+**Done 2026-11-11.** The read-only layer of T-1655 exists (the record of
+T-1655), and a `:ro` volume uses it: `-v HOST:GUEST:ro` puts `ro:GUEST` in
+`PODVM_RO`, and the interposer answers `EROFS` for a write under GUEST.
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0
+([the run](../experiments/results/no-chroot-rung.txt)): clause 26 on the
+chroot-denied fixture reads `vol-in` from a `:ro` volume, `touch` in it
+prints "Read-only file system", and no file appears in the host
+directory; the other volume clauses hold as before. `cargo test -p podvm`
+exits 0 with `the_read_only_table_names_each_volume` and the parse of
+`:ro` in `volumes_parse_in_each_spelling`.
 
 **Still partial, 2026-11-10 (podcrates v0.12.0).** podvm takes the 11
 crates at v0.12.0; one `pod_enter::userland::Maps` carries the root and

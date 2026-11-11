@@ -137,6 +137,32 @@ macro_rules! path_nonneg {
 }
 
 macro_rules! path_ptr {
+    // TODO/cli.md T-1655: `fopen` and `freopen` write where their mode
+    // does, so the read-only layer reads the mode.
+    ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $path:ident, mode = $mode:ident) => {
+        /// # Safety
+        /// The payload's own contract for this entry point.
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn $name($($arg: $ty),*) -> *mut c_void {
+            let Some(f) = $real() else { set_errno(EINVAL); return core::ptr::null_mut(); };
+            let mut buf = [0u8; crate::map::OUT];
+            let writes = unsafe { crate::map::mode_writes($mode) };
+            let p = unsafe {
+                crate::map::prepare_mode(
+                    stringify!($name).as_bytes(),
+                    crate::map::AT_FDCWD,
+                    $path,
+                    writes,
+                    &mut buf,
+                )
+            };
+            if p.is_null() {
+                return core::ptr::null_mut();
+            }
+            let $path = p;
+            unsafe { f($($arg),*) }
+        }
+    };
     ($name:ident, $real:ident, ( $($arg:ident : $ty:ty),* ), $path:ident) => {
         /// # Safety
         /// The payload's own contract for this entry point.
@@ -286,10 +312,10 @@ path_nonneg!(listxattr, next_listxattr, (path: *const c_char, list: *mut c_char,
 path_nonneg!(llistxattr, next_llistxattr, (path: *const c_char, list: *mut c_char, size: usize), path, isize);
 
 path_ptr!(opendir, next_opendir, (path: *const c_char), path);
-path_ptr!(fopen, next_fopen, (path: *const c_char, mode: *const c_char), path);
-path_ptr!(fopen64, next_fopen64, (path: *const c_char, mode: *const c_char), path);
-path_ptr!(freopen, next_freopen, (path: *const c_char, mode: *const c_char, stream: *mut c_void), path);
-path_ptr!(freopen64, next_freopen64, (path: *const c_char, mode: *const c_char, stream: *mut c_void), path);
+path_ptr!(fopen, next_fopen, (path: *const c_char, mode: *const c_char), path, mode = mode);
+path_ptr!(fopen64, next_fopen64, (path: *const c_char, mode: *const c_char), path, mode = mode);
+path_ptr!(freopen, next_freopen, (path: *const c_char, mode: *const c_char, stream: *mut c_void), path, mode = mode);
+path_ptr!(freopen64, next_freopen64, (path: *const c_char, mode: *const c_char, stream: *mut c_void), path, mode = mode);
 
 path_at_int!(mkdirat, next_mkdirat, (dirfd: c_int, path: *const c_char, mode: c_uint), dirfd, path);
 path_at_int!(unlinkat, next_unlinkat, (dirfd: c_int, path: *const c_char, flags: c_int), dirfd, path);

@@ -137,6 +137,24 @@ pub(super) fn end_tree(reaper: bool, err: &mut dyn std::io::Write) {
     }
 }
 
+/// The read-only table of the run in `env`, or a refusal by name where the
+/// entry has no read-only layer. TODO/cli.md T-1655.
+pub(super) fn ro_env(
+    verb: &str,
+    o: &Opts,
+    userland: Option<&crate::lifecycle::Userland>,
+    env: &mut Vec<String>,
+) -> Result<(), i32> {
+    crate::lifecycle::volume::read_only_env(
+        verb,
+        o.read_only,
+        &o.ro_volumes,
+        &o.volumes,
+        userland,
+        env,
+    )
+}
+
 /// Make sure the store holds the image, honouring `--pull`.
 pub(super) fn acquire(
     verb: &str,

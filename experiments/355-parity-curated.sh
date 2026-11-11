@@ -80,8 +80,8 @@ fail=0
 refused=0
 admitted=0
 
-# Clause 1: the 38 refused flags (`--ulimit` and `--security-opt` work
-# since TODO/cli.md T-1655). Each must exit with the flag-error
+# Clause 1: the 37 refused flags (`--ulimit`, `--security-opt` and
+# `--read-only` work since TODO/cli.md T-1655). Each must exit with the flag-error
 # code and name status None, before any image work happens.
 # (`--log-driver` is not among them: it takes `json-file`, clause 3.
 # `--device` is not among them either: it maps since T-0501, clause 5.)
@@ -90,7 +90,7 @@ for f in --blkio-weight --cgroup-parent --cidfile --cpu-period \
     --device-cgroup-rule --disable-content-trust --dns --dns-option \
     --dns-search --domainname --gpus --group-add --health-cmd --init \
     --ipc --isolation --link --log-opt --mac-address \
-    --mount --oom-kill-disable --pid --pids-limit --read-only --runtime \
+    --mount --oom-kill-disable --pid --pids-limit --runtime \
     --shm-size --stop-signal --stop-timeout --sysctl \
     --tmpfs --userns --uts --volume-driver --volumes-from; do
 	out="$WORK/refusal.txt"
@@ -104,7 +104,7 @@ for f in --blkio-weight --cgroup-parent --cidfile --cpu-period \
 		fail=1
 	fi
 done
-echo "clause-1 refused-with-reason  $refused/38" >>"$REPORT"
+echo "clause-1 refused-with-reason  $refused/37" >>"$REPORT"
 
 # Clause 2: the 10 verbs. Each must exit with the runtime-error code
 # and print its row's note.
@@ -177,7 +177,7 @@ grep -q "takes json-file" "$WORK/out-log-driver-syslog.txt" || { echo "--log-dri
 # Clause 4: create is served by run's parser, so it inherits the rows.
 step create-env-file 0 "$PB" create --name c355 --env-file "$WORK/t.env" "$ALPINE" true
 step create-label 0 "$PB" create --name c355b --label k=v "$ALPINE" true
-step create-refused "$FLAG" "$PB" create --name c355c --read-only "$ALPINE" true
+step create-refused "$FLAG" "$PB" create --name c355c --tmpfs /x "$ALPINE" true
 step rm-c355 0 "$PB" rm c355
 step rm-c355b 0 "$PB" rm c355b
 

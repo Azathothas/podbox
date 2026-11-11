@@ -257,6 +257,8 @@ pub use absolute::normalise;
 use absolute::{fd_base, guest_base};
 mod rewrite;
 pub use rewrite::*;
+mod readonly;
+pub use readonly::*;
 
 #[cfg(test)]
 mod tests;

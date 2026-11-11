@@ -2097,10 +2097,21 @@ exits 0 with `a_ulimit_reads_as_docker_writes_it` and
 bit (row Degraded: podvm does not change the capability sets), a named
 capability and `--cap-add` are refused by name (`cap_drop` in
 `crates/podvm/src/run/parse/values.rs`). `--memory`, `--cpus` and
-`--pids-limit` stay refused by name on a rootfs tier. Remaining:
-`--read-only` with `:ro` volumes,
+`--pids-limit` stay refused by name on a rootfs tier. The read-only layer
+works: `PODVM_RO` (`ro:PREFIX`/`rw:PREFIX`, the longest prefix decides)
+makes the interposer answer `EROFS` for a write-class call, an `open` that
+writes and an `fopen` mode that writes under a read-only guest path
+(`crates/podvm-interpose/src/map/readonly.rs`); `--read-only` gives
+`ro:/` with `rw:/dev` and an `rw:` entry for each writable volume, and a
+`-v HOST:GUEST:ro` volume gives `ro:GUEST` (`read_only_env` in
+`crates/podvm/src/lifecycle/volume.rs`). Each entry with no interposer
+table refuses both by name; the rows are Degraded, because a raw system
+call passes. Interposer tests: 75 passed, with
+`a_write_under_a_read_only_prefix_answers_erofs`; experiment 356 clauses
+26 and 30 drive both. Remaining:
 `--tmpfs`, the guest resources of the machine tier (T-1656), the report of
 T-1695, and experiment 411.
+
 ---
 
 ### T-1659 Provider shapes and bare userlands as built-in profiles

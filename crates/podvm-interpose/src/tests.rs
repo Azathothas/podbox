@@ -307,3 +307,6 @@ mod template;
 
 // TODO/interpose.md T-1704.
 mod exe_realpath;
+
+// TODO/cli.md T-1655.
+mod readonly;

@@ -28,12 +28,19 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   lands in HOST. A static program or a raw `syscall` instruction sees
   the image path, and `/proc/mounts` does not list the volume. podvm
   refuses a volume on the chroot rung, the memfd family and the machine
-  tier, and `:ro` until T-1655. A working directory or a first program
-  in a volume resolves through the same table, to the file of the volume.
+  tier. A working directory or a first program in a volume resolves
+  through the same table, to the file of the volume.
+- `:ro` and `--read-only` are a read-only layer of the same interposer
+  (T-1655): a write through libc under a read-only guest path fails with
+  `EROFS`, and `/dev` stays writable. A raw `syscall` instruction passes
+  the layer. Each entry with no interposer table refuses both by name.
 - Interposition covers cooperative library calls, without a security boundary.
 - The embedded interposer pair is x86_64. Other payload architectures need another execution path.
 - A foreign architecture needs the host interpreter support required by the selected path.
-- A pidfd addresses a direct child. It does not contain all descendants.
+- A pidfd addresses a direct child. The launcher, and podvm for a foreground
+  run, is the child subreaper of the payload's tree and kills each
+  descendant at the end (T-1708); a process that reparents above it stays
+  out of reach.
 - A denied terminal operation produces a named refusal.
 - Host CA completion changes payload trust data and can be disabled.
 

@@ -117,6 +117,9 @@
 #      debian prints /usr/bin/realpath, not the loader; a program built
 #      with _FORTIFY_SOURCE=2 (it calls __realpath_chk and __readlink_chk)
 #      prints its own guest path from realpath and from readlink.
+#   30. read-only (T-1655): under --read-only on the fixture a write to the
+#      image fails with EROFS and a write to a volume lands in the host
+#      directory; on the capable rung --read-only refuses at 125 by name.
 #   29. the loader's paths (T-1705): a program of a debian image opens the
 #      path that dladdr gives for its own library (a host path under the
 #      rootfs, from the loader) at 0, and the path is not prefixed again.
@@ -807,8 +810,12 @@ grep -qx "wd356" "$VOL/wd.txt" 2>/dev/null || { echo "a relative write under -w 
 step fx-vol-copy 0 $FX "$PB" run --rm -v "$VOL:/data" "$ALPINE" cp /bin/busybox /data/busybox
 step fx-vol-prog 0 $FX "$PB" run --rm -v "$VOL:/data" "$ALPINE" /data/busybox echo vol-prog
 grep -qx "vol-prog" "$WORK/out-fx-vol-prog.txt" || { echo "a first program in the volume did not run" >>"$REPORT"; fail=1; }
-step fx-vol-ro "$FLAG" $FX "$PB" run --rm -v "$VOL:/data:ro" "$ALPINE" cat /data/in.txt
-grep -q "T-1655" "$WORK/out-fx-vol-ro.txt" || { echo ":ro was not refused naming T-1655" >>"$REPORT"; fail=1; }
+# T-1655: a `:ro` volume reads, and a write in it fails with EROFS and
+# makes no host file.
+step fx-vol-ro 0 $FX "$PB" run --rm -v "$VOL:/data:ro" "$ALPINE" sh -c 'cat /data/in.txt; touch /data/ro356 2>&1; echo done'
+grep -qx "vol-in" "$WORK/out-fx-vol-ro.txt" || { echo "a :ro volume did not read" >>"$REPORT"; fail=1; }
+grep -q "Read-only file system" "$WORK/out-fx-vol-ro.txt" || { echo "a write in a :ro volume did not fail with EROFS" >>"$REPORT"; fail=1; }
+[ -e "$VOL/ro356" ] && { echo "a write in a :ro volume reached the host" >>"$REPORT"; fail=1; }
 step fx-vol-memfd "$RUN_ERR" $FX "$PB" run --rm --unsafe-host-paths -v "$VOL:/data" script-alpine:1 /hello
 grep -q "memfd family" "$WORK/out-fx-vol-memfd.txt" || { echo "the memfd family did not refuse the volume" >>"$REPORT"; fail=1; }
 grep -q "static-hi" "$WORK/out-fx-vol-memfd.txt" && { echo "the memfd family ran with a volume" >>"$REPORT"; fail=1; }
@@ -888,6 +895,15 @@ if [ -d "$DROOT" ] &&
 else
 	echo "dladdr image     BUILD FAILED" | tee -a "$REPORT"; fail=1
 fi
+
+# Clause 30 (T-1655): the read-only layer of the interposer.
+step fx-read-only 0 $FX "$PB" run --rm --read-only -v "$VOL:/workspace" "$ALPINE" sh -c 'touch /etc/ro356 2>&1; echo w > /workspace/rw356 && echo rw-ok; cat /etc/hostname >/dev/null && echo read-ok'
+grep -q "Read-only file system" "$WORK/out-fx-read-only.txt" || { echo "a write to the image under --read-only did not fail with EROFS" >>"$REPORT"; fail=1; }
+grep -qx "rw-ok" "$WORK/out-fx-read-only.txt" || { echo "a write to a volume under --read-only failed" >>"$REPORT"; fail=1; }
+grep -qx "read-ok" "$WORK/out-fx-read-only.txt" || { echo "a read under --read-only failed" >>"$REPORT"; fail=1; }
+grep -qx "w" "$VOL/rw356" 2>/dev/null || { echo "the volume write did not land in the host directory" >>"$REPORT"; fail=1; }
+step sane-read-only "$RUN_ERR" "$PB" run --rm --read-only "$ALPINE" true
+grep -q "read-only layer" "$WORK/out-sane-read-only.txt" || { echo "--read-only on the capable rung was not refused by name" >>"$REPORT"; fail=1; }
 
 {
 echo ""

@@ -25,13 +25,21 @@ fn a_volume_parses_to_the_canonical_host_path() {
     };
     let link = d.join("link");
     let link = link.to_str().unwrap();
-    assert_eq!(parse(&format!("{link}:/data")).unwrap(), want);
-    assert_eq!(parse(&format!("{link}:/data:rw")).unwrap(), want);
+    assert_eq!(
+        parse(&format!("{link}:/data")).unwrap(),
+        (want.clone(), false)
+    );
+    assert_eq!(
+        parse(&format!("{link}:/data:rw")).unwrap(),
+        (want.clone(), false)
+    );
+    // TODO/cli.md T-1655: `ro` reads, served by the read-only layer.
+    assert_eq!(parse(&format!("{link}:/data:ro")).unwrap(), (want, true));
     let _ = std::fs::remove_dir_all(&d);
 }
 
-/// TODO/enter.md T-1653. `:ro` is refused by name until T-1655, and each
-/// shape with no meaning here is refused with its reason.
+/// TODO/enter.md T-1653. Each shape with no meaning here is refused with
+/// its reason.
 #[test]
 fn a_volume_spelling_podvm_cannot_serve_is_refused() {
     let d = tmp("refuse");
@@ -40,8 +48,6 @@ fn a_volume_spelling_podvm_cannot_serve_is_refused() {
         let e = parse(spec).unwrap_err();
         assert!(e.contains(want), "{spec}: {e}");
     };
-    refused(&format!("{h}:/data:ro"), "T-1655");
-    refused(&format!("{h}:/data:rw,ro"), "T-1655");
     refused(&format!("{h}:/data:z"), "has nothing to act on");
     refused("/data", "anonymous volume");
     refused("cache:/data", "named volume");
@@ -176,4 +182,36 @@ fn a_workdir_in_a_volume_passes_through_the_table() {
         podvm_image::error::EXIT_RUNTIME_ERROR
     );
     let _ = std::fs::remove_dir_all(&d);
+}
+
+/// TODO/cli.md T-1655. The read-only table: `--read-only` makes `/`
+/// read-only with each writable volume as an exception; a `:ro` volume is
+/// read-only; no flag gives no table, and a caller's own value is dropped.
+#[test]
+fn the_read_only_table_names_each_volume() {
+    let v = |g: &str| Volume {
+        guest: g.to_string(),
+        host: "/h".to_string(),
+    };
+    let vols = [v("/workspace"), v("/state")];
+    let ro = ["/state".to_string()];
+    assert_eq!(
+        read_only_table(true, &[], &vols),
+        "ro:/,rw:/dev,rw:/workspace,rw:/state"
+    );
+    assert_eq!(
+        read_only_table(true, &ro, &vols),
+        "ro:/,rw:/dev,rw:/workspace,ro:/state"
+    );
+    assert_eq!(read_only_table(false, &ro, &vols), "ro:/state");
+    let mut env = vec!["PODVM_RO=rw:/".to_string()];
+    assert_eq!(
+        read_only_env("run", false, &[], &vols, None, &mut env),
+        Ok(())
+    );
+    assert!(env.is_empty(), "{env:?}");
+    assert_eq!(
+        read_only_env("run", true, &[], &vols, None, &mut env),
+        Err(podvm_image::error::EXIT_RUNTIME_ERROR)
+    );
 }

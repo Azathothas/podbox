@@ -22,12 +22,6 @@ use podvm_enter::userland::{Family, Volume};
 
 use crate::lifecycle::Userland;
 
-/// The refusal of `:ro` until T-1655 gives a read-only layer.
-pub const RO_REFUSAL: &str = "`:ro` is refused: podvm cannot enforce a read-only \
-     volume yet, and a volume that reads as read-only and takes writes would be a \
-     lie. The read-only layer of TODO/enter.md T-1655 serves it with EROFS; until \
-     then, drop `:ro` (TODO/enter.md T-1653)";
-
 /// Parse one `-v` value: `HOST:GUEST[:OPTIONS]`.
 ///
 /// The host side is an absolute path, or a relative one that starts with
@@ -37,10 +31,13 @@ pub const RO_REFUSAL: &str = "`:ro` is refused: podvm cannot enforce a read-only
 /// resolved, and the reverse map of the interposer matches that form
 /// (T-1643). A bare name is a named volume and a single path is an
 /// anonymous volume: both need a volume store, and podvm keeps none.
-/// `rw` is the default and is accepted; `ro` and each other option are
-/// refused by name. The table checks of the pair run in
-/// `pod-enter`'s `Maps::new` (with `podvm_enter::NAMES`) and its table builders.
-pub fn parse(spec: &str) -> Result<Volume, String> {
+/// `rw` is the default; `ro` makes the volume read-only through the layer
+/// of the interposer (TODO/cli.md T-1655); each other option is refused by
+/// name. The table checks of the pair run in `pod-enter`'s `Maps::new`
+/// (with `podvm_enter::NAMES`) and its table builders.
+///
+/// The answer is the pair and true where the options hold `ro`.
+pub fn parse(spec: &str) -> Result<(Volume, bool), String> {
     let parts: Vec<&str> = spec.split(':').collect();
     let (host, guest, opts) = match parts.as_slice() {
         [_] => {
@@ -60,15 +57,15 @@ pub fn parse(spec: &str) -> Result<Volume, String> {
             )
         }
     };
+    let mut ro = false;
     for o in opts.split(',') {
         match o {
             "" | "rw" => {}
-            "ro" => return Err(RO_REFUSAL.to_string()),
+            "ro" => ro = true,
             other => {
                 return Err(format!(
                     "the option {other:?} has nothing to act on: a volume here is a \
-                     path rewrite, not a mount. podvm takes rw, and refuses ro until \
-                     TODO/enter.md T-1655"
+                     path rewrite, not a mount. podvm takes rw and ro (TODO/cli.md T-1655)"
                 ))
             }
         }
@@ -91,10 +88,13 @@ pub fn parse(spec: &str) -> Result<Volume, String> {
     let Some(host) = canon.to_str() else {
         return Err(format!("the host path {canon:?} is not UTF-8"));
     };
-    Ok(Volume {
-        guest: guest.to_string(),
-        host: host.to_string(),
-    })
+    Ok((
+        Volume {
+            guest: guest.to_string(),
+            host: host.to_string(),
+        },
+        ro,
+    ))
 }
 
 /// Refuse the volumes on each entry that cannot serve them: only the
@@ -202,3 +202,54 @@ pub fn banner_with(volumes: &[Volume], noexec: impl Fn(&str) -> Option<bool>) ->
 
 #[cfg(test)]
 mod tests;
+
+/// The read-only table of a run (`PODVM_RO`, read by the interposer): `ro:/`
+/// under `--read-only`, with `rw:` for each writable volume, and `ro:` for
+/// each `:ro` volume. ⛔ TODO/cli.md T-1655: only the loader family of the
+/// userland rung has the interposer that reads it, so each other entry
+/// refuses by name, as a volume does. A caller's own `PODVM_RO` is dropped
+/// first.
+pub fn read_only_env(
+    verb: &str,
+    read_only: bool,
+    ro_guests: &[String],
+    volumes: &[Volume],
+    userland: Option<&Userland>,
+    env: &mut Vec<String>,
+) -> Result<(), i32> {
+    env.retain(|e| !e.starts_with("PODVM_RO="));
+    if !read_only && ro_guests.is_empty() {
+        return Ok(());
+    }
+    if !matches!(userland.map(|u| u.family), Some(Family::Loader)) {
+        eprintln!(
+            "podvm {verb}: --read-only and :ro need the read-only layer of the \
+             interposer, which only the userland loader family has; this entry \
+             cannot make the rootfs read-only without mount(2) (TODO/cli.md T-1655)"
+        );
+        return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
+    }
+    env.push(format!(
+        "PODVM_RO={}",
+        read_only_table(read_only, ro_guests, volumes)
+    ));
+    Ok(())
+}
+
+/// The value of `PODVM_RO`.
+pub fn read_only_table(read_only: bool, ro_guests: &[String], volumes: &[Volume]) -> String {
+    let mut entries = Vec::new();
+    if read_only {
+        // `/dev` stays writable, as docker's tmpfs on `/dev` is: a shell
+        // writes to `/dev/null`, which is a file of the rootfs here (T-0401).
+        entries.push("ro:/".to_string());
+        entries.push("rw:/dev".to_string());
+        for v in volumes {
+            if !ro_guests.contains(&v.guest) {
+                entries.push(format!("rw:{}", v.guest));
+            }
+        }
+    }
+    entries.extend(ro_guests.iter().map(|g| format!("ro:{g}")));
+    entries.join(",")
+}

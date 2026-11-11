@@ -2,7 +2,7 @@
 //! unimplemented verbs, driven through the built binary.
 //!
 //! Script: experiments/355-parity-curated.sh. This file covers the refusal
-//! half: clause 1 (the 38 refused `run` flags), clause 2 (the 10 refused
+//! half: clause 1 (the 37 refused `run` flags), clause 2 (the 10 refused
 //! verbs), clause 4 (`create` inherits the surface through `run`'s parser),
 //! clause 5 (malformed `--device` shapes), and the flag-error halves of
 //! clause 3 (`--env-file` and `--log-driver` refusals). Every check here
@@ -85,8 +85,8 @@ fn run(args: &[&str], store: &Path) -> Output {
     child.wait_with_output().expect("collect the podvm output")
 }
 
-/// Clause 1: the 38 refused flags (`--ulimit` and `--security-opt` work
-/// since TODO/cli.md T-1655). Each `run --rm <flag>` exits with the
+/// Clause 1: the 37 refused flags (`--ulimit`, `--security-opt` and
+/// `--read-only` work since TODO/cli.md T-1655). Each `run --rm <flag>` exits with the
 /// flag-error code and names status None, before any image work happens.
 /// `--log-driver` is not among them (it takes `json-file`) and `--device`
 /// is not either (it maps; clause 5 covers its malformed shapes).
@@ -101,14 +101,14 @@ fn refused_run_flags_exit_125_naming_status_none() {
         "--device-cgroup-rule", "--disable-content-trust", "--dns", "--dns-option",
         "--dns-search", "--domainname", "--gpus", "--group-add", "--health-cmd", "--init",
         "--ipc", "--isolation", "--link", "--log-opt", "--mac-address",
-        "--mount", "--oom-kill-disable", "--pid", "--pids-limit", "--read-only", "--runtime",
+        "--mount", "--oom-kill-disable", "--pid", "--pids-limit", "--runtime",
         "--shm-size", "--stop-signal", "--stop-timeout", "--sysctl",
         "--tmpfs", "--userns", "--uts", "--volume-driver", "--volumes-from",
     ];
     assert_eq!(
         flags.len(),
-        38,
-        "the script refuses exactly 38 flags, not {}",
+        37,
+        "the script refuses exactly 37 flags, not {}",
         flags.len()
     );
     let mut bad = Vec::new();
@@ -174,7 +174,7 @@ fn create_inherits_run_refusals() {
             "create",
             "--name",
             "c-refused",
-            "--read-only",
+            "--tmpfs",
             DUMMY_IMAGE,
             "true",
         ],
@@ -184,12 +184,12 @@ fn create_inherits_run_refusals() {
     assert_eq!(
         out.status.code(),
         Some(EXIT_FLAG_ERROR),
-        "create --read-only exited {:?}, stderr {err:?}",
+        "create --tmpfs exited {:?}, stderr {err:?}",
         out.status.code()
     );
     assert!(
         err.contains("status None"),
-        "create --read-only did not name status None: {err:?}"
+        "create --tmpfs did not name status None: {err:?}"
     );
     let _ = std::fs::remove_dir_all(&store);
 }

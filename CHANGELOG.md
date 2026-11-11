@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: `--read-only` and `:ro` volumes, 2026-11-11
+
+Record: T-1655 (partial), T-1653; issue 130.
+Deployed: not deployed; no version change.
+
+- On the userland loader family, `run --read-only` and a `-v
+  HOST:GUEST:ro` volume make a write under the read-only guest path fail
+  with `EROFS`, through the interposer; `/dev` and each writable volume
+  stay writable. A raw system call passes the layer. Each other entry
+  refuses both by name.
+
 ### Added: `--timeout`, `--ulimit` and `--security-opt no-new-privileges`, 2026-11-11
 
 Record: T-1655 (partial); PodUtils/podcrates#58.

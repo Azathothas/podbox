@@ -110,10 +110,11 @@ macro_rules! open_fixed {
             }
             let mut buf = [0u8; crate::map::OUT];
             let p = unsafe {
-                crate::map::prepare(
+                crate::map::prepare_mode(
                     stringify!($name).as_bytes(),
                     crate::map::AT_FDCWD,
                     $path,
+                    crate::map::open_writes($flags),
                     &mut buf,
                 )
             };
@@ -163,7 +164,13 @@ macro_rules! open_fixed {
             }
             let mut buf = [0u8; crate::map::OUT];
             let p = unsafe {
-                crate::map::prepare(stringify!($name).as_bytes(), $dirfd, $path, &mut buf)
+                crate::map::prepare_mode(
+                    stringify!($name).as_bytes(),
+                    $dirfd,
+                    $path,
+                    crate::map::open_writes($flags),
+                    &mut buf,
+                )
             };
             if p.is_null() {
                 return -1;
@@ -363,6 +370,11 @@ pub(super) unsafe fn on_template<R: Copy>(
         return fail;
     }
     let abs_n = crate::map::strnlen(abs.as_ptr() as *const c_char, crate::map::OUT);
+    // TODO/cli.md T-1655: a template under a read-only prefix makes no file.
+    if unsafe { crate::map::denied(abs.as_ptr(), abs_n) } {
+        set_errno(crate::map::EROFS);
+        return fail;
+    }
     let mut out = [0u8; crate::map::OUT];
     let m = match unsafe { crate::map::rewrite(&t, abs.as_ptr(), abs_n, &mut out) } {
         -1 => return call(template),

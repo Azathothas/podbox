@@ -87,8 +87,9 @@ fn quiet_and_verbose_parse() {
 }
 
 /// ⭐ TODO/enter.md T-1653. `-v`, `--volume`, `--volume=` and a cluster
-/// each give one pair with the canonical host path; `:ro` and a second
-/// pair at one guest path are flag errors before anything is fetched.
+/// each give one pair with the canonical host path; `:ro` marks its guest
+/// path read-only (TODO/cli.md T-1655); a second pair at one guest path is
+/// a flag error before anything is fetched.
 #[test]
 fn volumes_parse_in_each_spelling() {
     let d = std::env::temp_dir().join(format!("podvm-runvol-{}", std::process::id()));
@@ -111,10 +112,9 @@ fn volumes_parse_in_each_spelling() {
     assert!(o.volumes.iter().all(|x| x.host == h), "{:?}", o.volumes);
     assert!(!o.ask.verbose);
     let ro = format!("{h}:/a:ro");
-    assert_eq!(
-        parse("run", &v(&["-v", &ro, "img"])).unwrap_err(),
-        EXIT_FLAG_ERROR
-    );
+    let o = parse("run", &v(&["-v", &ro, "--read-only", "img"])).unwrap();
+    assert_eq!(o.ro_volumes, ["/a"]);
+    assert!(o.read_only);
     assert_eq!(
         parse("run", &v(&["-v", &a, "-v", &a, "img"])).unwrap_err(),
         EXIT_FLAG_ERROR
