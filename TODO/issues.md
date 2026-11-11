@@ -154,3 +154,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #257 | COORD-038: podvm takes podcrates v0.21.0 and pod-incus (the answer to PodUtils/podcrates#63) (to podcrates) | open | T-1727 |
 | #258 | COORD-039: each container has its own rootfs (T-1709, issue 234) (to podrunner) | open | T-1709 |
 | #259 | COORD-040: ask for pod-confine and a confine step of pod-enter's child (podvm T-1658, issue 170) (to podcrates) | open | T-1658 |
+| #260 | COORD-041: ask for pod-netlab, and who reads the guest's modloop (podvm T-1662, issues 178, 180, 182) (to podcrates) | open | T-1662 |

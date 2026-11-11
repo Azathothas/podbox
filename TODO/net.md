@@ -29,7 +29,7 @@ Source:      issue 178; #193; the owner's ruling of 2026-11-06
 Category:    net
 Priority:    P2
 Effort:      XL
-Status:      open
+Status:      blocked
 
 Problem:     sand-net built 39 lab scenarios from three network namespaces
              and checked each with a self-check that derived every expected
@@ -64,6 +64,17 @@ Prove:       `cargo test -p podvm` exits 0 with tests that derive the
              `podvm lab try dual-nat` prints PASS rows, `podvm lab matrix`
              runs every offline scenario with its time, and a flushed
              policy chain inside the guest makes the check fail.
+
+**Blocked 2026-11-11 on podcrates.** The Decision takes `pod-netlab`,
+which podcrates lists under M7 after a study, with no date. COORD-041
+(issue 260) asks for it, and asks who reads the guest's modules. Measured
+here: the pinned guest kernel (`6.12.110-0-virt`) has `NET_NS` and
+`IPV6` built in, and nf_tables, nft_nat, sch_netem, wireguard, tun, veth
+and nf_nat as modules; they are in `boot/modloop-virt` (a squashfs with
+xz, 21 MB), and `squashfs.ko` is in the modloop only, so the host must
+read it and give the guest a module set with its `modules.dep`. The
+condition that clears the block: podcrates's answer on the crate and on
+the reader. T-1663 and T-1664 run in this lab guest.
 
 **Filed 2026-11-06.** Quoted from issue 178:
 
