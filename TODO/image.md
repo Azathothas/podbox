@@ -1399,7 +1399,7 @@ oracle; correct the independence claim at
 
 The three remaining clauses of the note of 2026-10-01 are closed this way:
 
-* The two defences are in `pod_supervise::lock` (podcrates T-060), not in
+* The two defences are in `pod_supervise::lock` (podcrates podcrates@T-060), not in
   this tree. The proof copies the podcrates checkout that cargo builds,
   plants each mutation in the copy, and points each podcrates package of
   `Cargo.lock` at the copy with `--config patch`

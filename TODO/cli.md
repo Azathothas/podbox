@@ -2511,7 +2511,7 @@ writes, and `PR_SET_NO_NEW_PRIVS` cannot be undone). The child-side part
 (`Plan::limits`, `Plan::no_new_privs`, set after the `chdir` and before
 the exec in each entry, a refused call named by its step) is asked of
 podcrates by COORD-027 (issue 245). The `--timeout` clause waits for
-T-1708 (podcrates T-162). The parts in podvm alone: experiment 411, the
+T-1708 (podcrates podcrates@T-162). The parts in podvm alone: experiment 411, the
 parse and the parity rows of each flag, the `--read-only` layer of the
 interposer with the `:ro` volumes, and `--tmpfs` as a store directory
 under a size check.
@@ -2555,7 +2555,7 @@ ends at 2 s with 137 and leaves no process; the same under `run -d` reads
 {{.End.RunMs}} {{.End.Residual}}'`; `--timeout 0` exits 125.
 `cargo test -p podvm` exits 0 with `the_timeout_takes_whole_seconds_over_zero`.
 `--ulimit` and `--security-opt no-new-privileges` work since podvm takes
-podcrates `v0.17.0` (`4da8fb3`, its T-176, PodUtils/podcrates#58):
+podcrates `v0.17.0` (`4da8fb3`, its podcrates@T-176, PodUtils/podcrates#58):
 `podvm_enter::ulimit` reads docker's `NAME=SOFT[:HARD]` (`-1` for no
 limit), the run puts the limits and the bit in `Plan::limits` and
 `Plan::no_new_privs`, and a detached run keeps them in its record

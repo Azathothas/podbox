@@ -1601,7 +1601,7 @@ podssh and podvm keep one copy.
 COORD-001 puts `pod-term` first because it needs no tokio.
 podcrates recorded the order in its answer (podcrates issue 3)
 and hands each crate over as `adoption/podvm/CRATE.patch` and
-`.run` at the tag of its release (podcrates T-040). The pinned
+`.run` at the tag of its release (podcrates podcrates@T-040). The pinned
 toolchain comes first (T-1669).
 
 ## Approach
@@ -1711,7 +1711,7 @@ Call C9 of `docs/decisions.md` accepts the three changes of behaviour.
 # T-1677: Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial
 
 **Source:** COORD-001, issue 194, row 3; PodUtils podcrates issue 3,
-  question 1 (podcrates T-063); `crates/podvm-image/src/transport.rs:1`;
+  question 1 (podcrates podcrates@T-063); `crates/podvm-image/src/transport.rs:1`;
   `crates/podvm-ssh/src/transport.rs:226`
 **Category:** deps
 **Milestone:** none
@@ -1734,7 +1734,7 @@ blocking `Dialer` and `Client` over a private current-thread
 runtime, on the same code as the async ones (call C20). Where
 podvm's measurement asks for no tokio, the protocol parts
 become state machines that a synchronous driver runs.
-podcrates records that as T-063, before podvm takes the crate.
+podcrates records that as podcrates@T-063, before podvm takes the crate.
 
 ## Approach
 
@@ -1749,7 +1749,7 @@ threads during a pull. Report the taken commit.
 The proxy credential never appears in argv, in a log line or in
 an error message. Whether the private runtime is acceptable is
 decided by the measurement: where it is not, podvm waits for the
-state-machine form of podcrates T-063.
+state-machine form of podcrates podcrates@T-063.
 
 ## Prove
 
@@ -1777,7 +1777,7 @@ rows, `./target/release/podvm-gate`, the toolchains, ureq absent, and
 the static check of `node` and `podvm`. Release sizes: `podvm` 4,011,064
 to 3,974,296 bytes (-36 KiB), `node` 1,913,816, `operator` 1,868,824.
 Call C10 of `docs/decisions.md` takes the runtime into the binaries and
-the two known gaps (podcrates T-075, T-077). The count of threads during
+the two known gaps (podcrates podcrates@T-075, podcrates@T-077). The count of threads during
 a pull was not measured: the runtime is current-thread.
 Gate run 42227206423 at `826bb86` is green in each job.
 
@@ -1857,7 +1857,7 @@ hand-off that names the crate podvm takes for its relay.
 # T-1679: Take `pod-services` for the third-party hosts compiled into podvm
 
 **Source:** COORD-001, issue 194, row 5; PodUtils podcrates issue 3, "One
-  ask of podvm" (podcrates T-054); COORD-003, issue 196
+  ask of podvm" (podcrates podcrates@T-054); COORD-003, issue 196
 **Category:** deps
 **Milestone:** none
 **Priority:** P2
@@ -1875,7 +1875,7 @@ hosts podvm contacts.
 
 podcrates' `pod-services` holds the hosts of other parties for
 each consumer. podcrates asked for podvm's inventory of those
-hosts; COORD-003, issue 196, sends it. podcrates T-054 takes
+hosts; COORD-003, issue 196, sends it. podcrates podcrates@T-054 takes
 that inventory into the crate.
 
 ## Approach
@@ -1899,7 +1899,7 @@ second list.
 ## Correction
 
 **Blocked 2026-11-06.** Blocker: podcrates has not released
-`pod-services` with podvm's inventory (podcrates T-054). Clears when:
+`pod-services` with podvm's inventory (podcrates podcrates@T-054). Clears when:
 that release exists, and T-1678 is done.
 **Unblocked 2026-11-10.** `pod-services` at podcrates `v0.10.0` and later
 carries podvm's inventory: its README lists each compiled host of podvm
@@ -1942,7 +1942,7 @@ crate, and this entry closes.
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -1990,11 +1990,28 @@ other repositories with no `REPO@`, done entries that the work order
 names, and line citations past the end of a file. This entry moves the
 record checks of `podvm-gate` to pod-todo once they are 0.
 
+## Done
+
+**Partial 2026-11-11.** `podvm-todo check` reports 49 problems, from
+356 after the move of T-1672. `references/` is no directory of a citation
+for pod-todo (`TODO/todo.toml`): the captured trees are in the history,
+and `podvm-gate` checks them against `references/MANIFEST.tsv`.
+`scripts/todo/qualify-foreign-ids.py` wrote each id of a sibling's record
+as `REPO@T-NNN` (88 ids: 85 of podcrates, 2 of podnet, 1 by hand), and
+two recorded `grep -E` patterns name the same ids as `T-15(5|7)[0-9]`.
+The work order of `TODO/PROGRESS.md` names no done entry.
+
+Remaining: 35 line citations of a past tree (`:N` past the end of the
+file today, or "line N" as plain text), each to be written as "line N at
+`COMMIT`"; seven paths that are gone; the counts line and the All row of
+`TODO/INDEX.md` in the form of pod-todo; the four-digit id in the title of T-1631,
+an id that no row holds; two uses of "yet"; then the record checks of
+`podvm-gate` move to the wrapper, with their plants.
 
 # T-1681: Hand the seven generic crates to podcrates and freeze their files
 
 **Source:** COORD-001, issue 194, "What podvm hands to podcrates";
-  PodUtils podcrates issue 3, wave M6 (podcrates T-055 to T-061);
+  PodUtils podcrates issue 3, wave M6 (podcrates podcrates@T-055 to podcrates@T-061);
   PodUtils podcrates issue 1
 **Category:** deps
 **Milestone:** none
@@ -2049,7 +2066,7 @@ podvm crates replaced by its `pod-*` dependency, and
 ## Correction
 
 **Open 2026-11-06.** The blocker cleared for the first crate.
-podcrates imported `pod-hostprobe` (T-055) from podvm at `2c03085`
+podcrates imported `pod-hostprobe` (podcrates@T-055) from podvm at `2c03085`
 (PodUtils/podcrates#11). From that import the 29 files that the block
 `repo PodUtils/podvm` of the SOURCES file of `pod-hostprobe` in
 PodUtils/podcrates lists take fixes
@@ -2059,17 +2076,17 @@ only, each written as a COORD issue `(to podcrates)`:
 and `crates/podvm-image/src/space.rs`, `exec_probe.rs` and
 `tests/space_precheck.rs`. Two fixes are podcrates': `sys::statfs` reads
 the narrow struct on i686 and arm through a `statfs64`-shaped buffer
-(podcrates T-072), and `exec::try_exec` retries `ETXTBSY`, which is the
+(podcrates podcrates@T-072), and `exec::try_exec` retries `ETXTBSY`, which is the
 cause of the flake of `exec_probe::two_probes_in_one_process_take_two_names`
 seen at `cec4bcb`. podvm takes them with the crate; the trial
 `adoption/podvm/pod-hostprobe.patch` comes with the next podcrates
 release, after the registry trial of T-1677. The other six crates wait
-for their imports (podcrates T-056 to T-061).
+for their imports (podcrates podcrates@T-056 to podcrates@T-061).
 
 ---
 
 **Still partial, 2026-11-09.** podvm took `pod-supervise` 0.8.0
-(PodUtils/podcrates#41, its T-060): `adoption/podvm/pod-supervise.patch`
+(PodUtils/podcrates#41, its podcrates@T-060): `adoption/podvm/pod-supervise.patch`
 of the tag applied with no conflict at podvm `284f429`. `podvm-supervise`
 keeps podvm's glue (its settings, the record fields, the verbs with a
 `&Store`, the launcher entry and the memo); `launcher/supervise.rs`
@@ -2079,7 +2096,7 @@ Remaining then: the imports of pod-guest, pod-enter, pod-oci,
 pod-extract and pod-rootfs.
 
 **Still partial, 2026-11-10.** podvm took `pod-guest` and `pod-enter`
-0.9.0 (PodUtils/podcrates#43, its T-061 and T-059):
+0.9.0 (PodUtils/podcrates#43, its podcrates@T-061 and podcrates@T-059):
 `adoption/podvm/pod-guest.patch`, then `pod-enter.patch`, applied with
 `git apply --3way` at podvm `e37decf`. The code applied cleanly; three
 record conflicts were joined by hand (two TODO citations that both sides
@@ -2092,7 +2109,7 @@ exits 0, and `cargo test --workspace` exits 0. The freeze of
 pod-oci, pod-extract and pod-rootfs.
 
 **Still partial, 2026-11-10.** podvm took `pod-oci` 0.10.0
-(PodUtils/podcrates#45, its T-056): `adoption/podvm/pod-oci.patch`
+(PodUtils/podcrates#45, its podcrates@T-056): `adoption/podvm/pod-oci.patch`
 applied with `git apply --3way` at podvm `2971410`. The code applied
 cleanly; the conflicts were the ones podcrates named: the tag lines (all
 at v0.10.0), the `pod-*` rows of `docs/runtime-state.md` (each row kept,
@@ -2104,7 +2121,7 @@ pod-rootfs (podcrates v0.11.0); `podvm-extract` stays frozen until then.
 ## Done
 
 **Done 2026-11-10.** podvm took `pod-extract` and `pod-rootfs` 0.11.0
-(PodUtils/podcrates#46, its T-057, T-058, T-141, T-139):
+(PodUtils/podcrates#46, its podcrates@T-057, podcrates@T-058, podcrates@T-141, podcrates@T-139):
 `adoption/podvm/pod-extract.patch`, then `pod-rootfs.patch`, applied with
 `git apply --3way` at podvm `72523d7`, with no conflict. pod-extract
 carries the T-1698 sentinel tests; pod-rootfs fixes eleven defects of the
@@ -2122,16 +2139,16 @@ v0.6.0 that podvm had made the same day, and its side was taken. 26
 files leave podvm; `podvm-probe` keeps its report and re-exports the
 crate, and `space.rs` and `exec_probe.rs` of podvm-image wrap it. The
 freeze of the 29 files ends, and with it the two 32-bit faults of
-`sys/` (podcrates T-072 and T-080). Each line of `pod-hostprobe.run`
+`sys/` (podcrates podcrates@T-072 and podcrates@T-080). Each line of `pod-hostprobe.run`
 exits 0 in a Linux container (about 866 tests, none failed;
 `podvm probe --rows` gives 66 rows; the wire is `pod-hostprobe/1`),
 `mux_two_client` 15 passes against sshd, and the test the `.run` skips,
 `abi::tests::resolve_past_a_denied_listing`, passes as uid 0. Call C11
 of `docs/decisions.md` accepts the four points of podcrates#17.
 Gate run 42265769964 at `8899c2e` is green in each job; podcrates
-recorded the take (its T-055 done) and closed PodUtils/podcrates#11.
+recorded the take (its podcrates@T-055 done) and closed PodUtils/podcrates#11.
 Remaining: the other six crates, each on its import and trial
-(podcrates T-056 to T-061).
+(podcrates podcrates@T-056 to podcrates@T-061).
 
 # T-1687: Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive
 

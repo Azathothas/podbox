@@ -1697,7 +1697,7 @@ end-to-end clause.
 **Done 2026-11-10.** For T-1647, the last clause of the partial record below is run. `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 on the cloud host, verdict "NO-CHROOT FAMILY RUNS" ([the run](../experiments/results/no-chroot-rung.txt)): the images come from `mirror.gcr.io` by the switch of 2026-11-10, each pulled digest is in the conditions, and the capable host enters the namespace rung.
 
 **Partial, 2026-11-10.** The block cleared: podvm took pod-enter 0.11.0
-(podcrates T-139, PodUtils/podcrates#46). pod-enter classifies from a
+(podcrates podcrates@T-139, PodUtils/podcrates#46). pod-enter classifies from a
 bounded head (`payload_head`, `interp_of_file`) and stages the memfd
 family's payload from the open file in bounded chunks (`stage_file`);
 the 128 MiB refusal is gone, and the crate tests a sparse 200 MiB fixture.
@@ -2450,7 +2450,7 @@ Approach holds each part. Two clauses are new. The rlimit part reads the
 same profile as T-1655, so the limits have one source. A refusal for a
 missing Landlock names the missing facility: Landlock itself, or the ABI
 level that a network rule needs. The library is `pod-confine` (podcrates
-T-108). The peer asks for P0. The priority stays P2, because nothing in
+podcrates@T-108). The peer asks for P0. The priority stays P2, because nothing in
 podvm is wrong without the layer (the priority rules of `TODO/INDEX.md`).
 The owner can change it.
 
@@ -2460,7 +2460,7 @@ owner's design review of PodUtils/podcrates#47; the ruling "podrunner",
 job only on a unit whose boundary is at least `confined`, unless the owner
 accepts `redirect`; no podvm rung is `confined` today. This layer is the
 route by which a podvm rung can be `confined` on a host with no namespaces
-(ask 2.7 of COORD-021, issue 227, names `pod-confine`, podcrates T-108).
+(ask 2.7 of COORD-021, issue 227, names `pod-confine`, podcrates podcrates@T-108).
 Two clauses are new. First, the report of T-1695 and `podvm probe --json`
 state whether the layer was applied, with the Landlock ABI, the seccomp
 mode and `NoNewPrivs`, so that a caller reads it and does not infer it.
@@ -2702,10 +2702,10 @@ clause 31 ([the run](../experiments/results/no-chroot-rung.txt)):
 file, and `-w /data ./tool356.sh` runs a script of a volume workdir.
 Experiment 428 runs `-w /opt/runner ./bin/Runner.Listener --version`.
 
-# T-1716: Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w`
+# T-1716: Take the `pod-enter` change of podcrates podcrates@T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w`
 
 **Source:** PodUtils/podcrates#52 (COORD-027, the answer to issue 226);
-  podcrates T-155 (commit d8b77b5, no tag on 2026-11-10);
+  podcrates podcrates@T-155 (commit d8b77b5, no tag on 2026-11-10);
   PodUtils/podcrates#53 (COORD-028: `v0.15.0` carries it);
   `crates/podvm-enter/src/lib.rs:26`,
   `crates/podvm-enter/src/lib.rs:169`,
@@ -2759,9 +2759,9 @@ MAX_VOLUMES" crates/` prints nothing.
 ## Correction
 
 **Blocked 2026-11-10.** Blocker: no podcrates tag carries d8b77b5.
-Clears when: a podcrates tag (planned `v0.15.0`) carries podcrates T-155.
+Clears when: a podcrates tag (planned `v0.15.0`) carries podcrates podcrates@T-155.
 
-**Unblocked 2026-11-11.** podcrates `v0.15.0` (`27a4ccd`) carries T-155
+**Unblocked 2026-11-11.** podcrates `v0.15.0` (`27a4ccd`) carries podcrates@T-155
 (PodUtils/podcrates#54, COORD-029).
 
 **Filed 2026-11-10.** From COORD-027 (PodUtils/podcrates#52), the answer
@@ -2862,7 +2862,7 @@ takes the tag and adds the clause of the Prove.
 ## Done
 
 **Done 2026-11-11.** podvm takes the 11 crates of podcrates at `v0.19.0`
-(`9a11bbd`, PodUtils/podcrates#62), which carries its T-182 for COORD-029
+(`9a11bbd`, PodUtils/podcrates#62), which carries its podcrates@T-182 for COORD-029
 (issue 247). `lib_dirs` of `pod-enter` now gives `/usr/local/lib`,
 `/usr/local/lib64` and their multiarch forms, then each directory of the
 image's `/etc/ld.so.conf` (with `include`) or `/etc/ld-musl-ARCH.path`,
@@ -3021,7 +3021,7 @@ asks for it by name.
 # T-1732: Take podcrates v0.22.0: a detached payload ends with its launcher
 
 **Source:** PodUtils/podcrates#71 (COORD-046, a message from a peer
-  session); podcrates T-205 and T-202; podrunner's test 26;
+  session); podcrates podcrates@T-205 and podcrates@T-202; podrunner's test 26;
   `crates/podvm-supervise/src/launcher.rs:78`
 **Category:** enter
 **Milestone:** none

@@ -88,9 +88,9 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #191 | [Reference] talaria0101/vm-research @ 7697b9b: machine tier and TCG benchmarks | closed (lesson taken in T-1301 to T-1306, T-1308) | none: a reference (references/README.md) |
 | #192 | [Reference] ylang-ylang/dockless @ ed35b5d: fail-fast CLI guardrails | closed (lesson taken in T-0801, T-0804) | none: a reference (references/README.md) |
 | #193 | [Scope] podvm does what sand-net does, without root: index | open | T-1654 to T-1668 |
-| #194 | COORD-001: the crates podvm hands over and takes, and the access of T-040 (to podcrates) | open | T-1675 to T-1681 |
+| #194 | COORD-001: the crates podvm hands over and takes, and the access of podcrates@T-040 (to podcrates) | open | T-1675 to T-1681 |
 | #195 | COORD-002: watch-org.sh sees no repository but the last on Windows: CRLF in the names (to podcrates) | closed (podvm took the pin 54427f6) | none: a COORD issue (to podcrates); podcrates fixed it in `54427f6`, and podvm closes it when it takes that pin |
-| #196 | COORD-003: podvm's inventory of the hosts and services of other parties, for pod-services (to podcrates) | closed (podcrates T-054 and T-066 done; the data of podvm is in pod-services from v0.5.0) | T-1679; the take stays under #194 |
+| #196 | COORD-003: podvm's inventory of the hosts and services of other parties, for pod-services (to podcrates) | closed (podcrates podcrates@T-054 and podcrates@T-066 done; the data of podvm is in pod-services from v0.5.0) | T-1679; the take stays under #194 |
 | #197 | COORD-004: answers to Q2 and Q3 of the M6 import plan, and the pod-term take (to podcrates) | closed (pod-term taken 75ed306) | T-1675, T-1681 |
 | #198 | COORD-005: GitHub Actions of podcrates: the owner's account dispatches ci.yml and release.yml (to podcrates) | closed | none: coordination; the ruling is in docs/decisions.md |
 | #199 | [gh action] requested | closed (gate run 42177003497, secrets run 42177007581) | none: a request of a workflow run (AGENTS.md, section 9) |
@@ -115,13 +115,13 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #218 | COORD-012: podvm took v0.7.0, and filed the asks of COORD-015 (to podcrates) | closed | T-1681; none: coordination |
 | #219 | COORD-013: podvm took v0.8.0 and pod-supervise (to podcrates) | closed | T-1681 |
 | #220 | COORD-014: podvm took v0.9.0, pod-guest and pod-enter (to podcrates) | closed | T-1681 |
-| #221 | COORD-015: the whiteout escape is fixed in podvm-extract (T-1698) (to podcrates) | closed (pod-extract carries the tests, podcrates T-141; taken 0682c0c) | T-1698 |
+| #221 | COORD-015: the whiteout escape is fixed in podvm-extract (T-1698) (to podcrates) | closed (pod-extract carries the tests, podcrates podcrates@T-141; taken 0682c0c) | T-1698 |
 | #222 | COORD-016: pod-enter: classify and stage a payload over 128 MiB (T-1647) (to podcrates) | closed | T-1647 |
 | #223 | COORD-017: podvm took v0.10.0 and pod-oci (to podcrates) | closed | T-1681 |
 | #224 | COORD-018: pod-enter and pod-hostprobe: volume pairs, workdir and first program through the table (T-1653) (to podcrates) | closed | T-1653 |
 | #225 | COORD-019: podvm took v0.11.0, pod-extract and pod-rootfs (to podcrates) | closed | T-1681, T-1647 |
-| #226 | COORD-020: podvm took v0.12.0, the Maps API of pod-enter (to podcrates) | closed (the asks are podcrates T-155) | T-1653 |
-| #227 | COORD-021: podrunner: the design review of #47, what the crates must give before podrunner starts (to podcrates) | closed (podcrates#51: T-160 to T-165) | none: the hand-off of the podrunner plan to podcrates ([decisions](../docs/decisions.md), 2026-11-10, "podrunner") |
+| #226 | COORD-020: podvm took v0.12.0, the Maps API of pod-enter (to podcrates) | closed (the asks are podcrates podcrates@T-155) | T-1653 |
+| #227 | COORD-021: podrunner: the design review of #47, what the crates must give before podrunner starts (to podcrates) | closed (podcrates#51: podcrates@T-160 to podcrates@T-165) | none: the hand-off of the podrunner plan to podcrates ([decisions](../docs/decisions.md), 2026-11-10, "podrunner") |
 | #228 | COORD-022: podrunner: podnet pod with the official runner, and the pod-hold hand-off (to podnet) | closed (podnet#422) | none: the asks of the podrunner plan to podnet ([decisions](../docs/decisions.md), 2026-11-10, "podrunner") |
 | #229 | [podrunner] interpose: realpath of /proc/self/exe names the image's loader, while readlink names the program, so the .NET runner exits 154 | closed | T-1704 |
 | #230 | [podrunner] interpose: a host path that a loaded object reports gets the rootfs prefix a second time, so CoreCLR exits 137 | closed | T-1705 |
@@ -133,12 +133,12 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #236 | [podrunner] cli: drive the podvm calls of the four container-hook commands on the userland rung, with the runner's mount table | open | T-1711; T-1653 and T-1655 (amended) |
 | #237 | [podrunner] cli: --podvm-tier=chroot does nothing; it runs the ladder, and on a chroot-denied host it enters the userland rung with exit 0 | closed | T-1712 |
 | #238 | [podrunner] system: .EnteredRung reads chroot where the probe selects supervise and chroot is denied, while run enters the userland rung | closed | T-1713 |
-| #239 | [podrunner] probe: podvm probe --json validates against the published schema of pod-hostprobe (blocked on podcrates T-107) | open | T-1714; T-1670 (amended) |
+| #239 | [podrunner] probe: podvm probe --json validates against the published schema of pod-hostprobe (blocked on podcrates podcrates@T-107) | open | T-1714; T-1670 (amended) |
 | #240 | [podrunner] supervise: the container table keeps -e values in a file that the umask leaves readable to other users | closed | T-1715; T-1696 (amended, then dropped 2026-11-11) |
-| #241 | COORD-023: podvm resumes; fuzz targets for pod-oci, pod-extract and pod-enter; T-1696 is dropped (to podcrates) | closed (podcrates#56: T-173) | T-1684 (amended), T-1696 |
-| #242 | COORD-024: podvm took v0.15.0 and the pod-enter change of T-155 (to podcrates) | open | T-1716 |
+| #241 | COORD-023: podvm resumes; fuzz targets for pod-oci, pod-extract and pod-enter; T-1696 is dropped (to podcrates) | closed (podcrates#56: podcrates@T-173) | T-1684 (amended), T-1696 |
+| #242 | COORD-024: podvm took v0.15.0 and the pod-enter change of podcrates@T-155 (to podcrates) | open | T-1716 |
 | #243 | COORD-025: the answer to COORD-031: T-1656 moves up for podrunner; incus is a study (T-1717), then an API back end (T-1718) (to podcrates) | open | T-1656 (amended), T-1717, T-1718 |
-| #244 | COORD-026: pod-supervise: private modes for the table, the logs and each container directory (T-1715); a tag with T-162 for T-1708 (to podcrates) | closed (podcrates v0.16.0, taken 894cf13) | T-1708, T-1715 |
+| #244 | COORD-026: pod-supervise: private modes for the table, the logs and each container directory (T-1715); a tag with podcrates@T-162 for T-1708 (to podcrates) | closed (podcrates v0.16.0, taken 894cf13) | T-1708, T-1715 |
 | #245 | COORD-027: pod-enter: resource limits and no_new_privs in the child before the exec (T-1655) (to podcrates) | closed (podcrates v0.17.0, taken 522b437) | T-1655 (amended) |
 | #246 | COORD-028: the answer to PodUtils/podrunner#49: wait reads the record again until it has the exit code (to podrunner) | open | T-1720 |
 | #247 | COORD-029: pod-enter: lib_dirs takes /usr/local/lib and the image's loader configuration (T-1719) (to podcrates) | closed | T-1719 |

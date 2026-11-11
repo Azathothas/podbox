@@ -2610,7 +2610,7 @@ which when it opens the queue.
 ## Prove
 
 `sh scripts/common/check-twins.sh` exits 0; `grep -cE
-"T-155[0-9]|T-157[0-9]|T-1[6-9][0-9][0-9]" TODO/INDEX.md`
+"T-15(5|7)[0-9]|T-1[6-9][0-9][0-9]" TODO/INDEX.md`
 shows every planned row now has an index row or a recorded
 decision naming where it went; `./target/release/podvm-gate`
 exits 0 with no row naming an id that is not an entry.
@@ -3434,7 +3434,7 @@ alone would try the queue shape again.
 
 `./target/x86_64-pc-windows-msvc/debug/podvm-gate.exe` exits 0
 with no row naming an id that is not an entry;
-`grep -cE "T-155[0-9]|T-157[0-9]|T-1[6-9][0-9][0-9]"
+`grep -cE "T-15(5|7)[0-9]|T-1[6-9][0-9][0-9]"
 TODO/INDEX.md` returns 37, re-derived 2026-10-02 after this
 session added rows; the clause first read 36 and the figure
 drifts as the index grows, so treat it as a live count and

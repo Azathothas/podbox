@@ -638,7 +638,7 @@ is no read path left that trusts stored bytes.
 
 # T-1698: A whiteout of `..` deletes outside the destination
 
-**Source:** PodUtils/podcrates (the import of pod-extract, its T-057,
+**Source:** PodUtils/podcrates (the import of pod-extract, its podcrates@T-057,
   podcrates `a40d45a`); `src/remove.rs` of `pod-extract` (PodUtils/podcrates);
   `src/whiteout.rs` of `pod-extract` (PodUtils/podcrates)
 **Category:** extract

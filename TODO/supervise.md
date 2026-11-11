@@ -1039,9 +1039,9 @@ The zero comes from `crates/podvm/src/lifecycle/logs_stop.rs:208`,
 which also multiplies with no overflow check. The early error
 is in `launcher::wait`. The mapping is `wait_or_gone`, and the
 comment above it is false. Both are `pod_supervise::launcher`
-and `pod_supervise` of PodUtils/podcrates since T-060. The
+and `pod_supervise` of PodUtils/podcrates since podcrates@T-060. The
 parity row is `crates/podvm/src/parity.rs:389`. The files of
-`podvm-supervise` go to `pod-supervise` (podcrates T-060), which
+`podvm-supervise` go to `pod-supervise` (podcrates podcrates@T-060), which
 podcrates imports after this fix.
 
 ## Approach
@@ -1166,13 +1166,13 @@ parent is that subreaper.
 
 ## Correction
 
-**Blocked 2026-11-11.** podcrates did the mechanism as its T-162 (on its
+**Blocked 2026-11-11.** podcrates did the mechanism as its podcrates@T-162 (on its
 `main`, after `v0.15.0`): the launcher is the subreaper of the payload's
 tree, reaps each descendant, kills the tree at the end of the payload, and
 writes the end with the count of residual processes (a number, or
 `unknown`) and a wall bound (`set_wall`). `stop` and `kill` still signal
 the payload; the tree kill follows its end. Blocker: no podcrates tag
-carries T-162. Clears when: a podcrates tag carries T-162 (COORD-026,
+carries podcrates@T-162. Clears when: a podcrates tag carries podcrates@T-162 (COORD-026,
 issue 244). Then podvm moves the pins, gives `inspect` the count, makes
 `rm -f` exit 125 with the pids where the count is not 0, and runs the
 Prove.
@@ -1186,7 +1186,7 @@ container while its processes run, so the entry is P1.
 ## Done
 
 **Done 2026-11-11.** The mechanism is `pod-supervise` of podcrates
-`v0.16.0` (its T-162; the record below). podvm's part: `inspect` gives the
+`v0.16.0` (its podcrates@T-162; the record below). podvm's part: `inspect` gives the
 end of the last run (`End.Reason`, `End.RunMs`, `End.UserMs`,
 `End.SystemMs`, `End.MaxRssKiB`, `End.Residual`; a dash where no run
 ended) and `.Contains` says what the launcher reaches; `rm -f` of a running
@@ -1215,7 +1215,7 @@ outer subreaper the launcher's parent is that subreaper. `--timeout` is
 T-1655's flag over `set_wall`.
 
 **Partial, 2026-11-11.** podcrates `v0.16.0` (`60a675c`,
-PodUtils/podcrates#57) carries T-162, and podvm takes it: the launcher of
+PodUtils/podcrates#57) carries podcrates@T-162, and podvm takes it: the launcher of
 each detached run is the child subreaper of the payload's tree
 (`Settings::kill_tree`, on by default), kills each descendant at the end of
 the payload, and writes `Container::end` (the reason, the times, the peak
@@ -1288,7 +1288,7 @@ with default modes".
 
 ## Done
 
-**Done 2026-11-11.** podcrates `v0.16.0` (`60a675c`, its T-175,
+**Done 2026-11-11.** podcrates `v0.16.0` (`60a675c`, its podcrates@T-175,
 PodUtils/podcrates#57) writes the table and each log 0600 from the first
 byte and creates each container directory and `staging/` 0700; podvm takes
 it with the pins of its 11 crates. The record below gives podvm's part.
@@ -1345,7 +1345,7 @@ launcher is gone; a record that still says running there
 gives no code. In `v0.12.0` (the crates of beta.2) the
 launcher can go between its answer and its write of the
 record (Inferred); since `v0.16.0` it writes the record
-first (its T-162).
+first (its podcrates@T-162).
 
 ## Approach
 

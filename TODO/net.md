@@ -175,7 +175,7 @@ grants a live run.
 
 **Blocked 2026-11-11 with T-1662.** Each clause of the Prove runs in the
 lab guest of T-1662, which waits for `pod-guest`'s reader of the modloop
-(podcrates T-206) and `pod-netlab` (podcrates T-207); podcrates answered
+(podcrates podcrates@T-206) and `pod-netlab` (podcrates podcrates@T-207); podcrates answered
 COORD-041 (issue 260) on PodUtils/podcrates#70 that this entry waits with
 it. The parts with no lab are in place: the kill switch of a rootfs-tier
 payload is the hold of T-1665 (the handler refuses each `connect` but the
@@ -202,7 +202,7 @@ quick-tunnel provisioning hit 429 with Retry-After: 1379 on the eighth
 **Amended 2026-11-09.** The ask A-V-02 of PodUtils/podcrates#39 (COORD-015,
 a message from a peer session) wants a payload held to one egress. The hold
 is the shared mechanism of this entry and of T-1665: a Syscall User Dispatch
-handler (T-1652) or podnet's `pod`. podcrates T-109 studies the hold of
+handler (T-1652) or podnet's `pod`. podcrates podcrates@T-109 studies the hold of
 podnet. T-1665 holds the clauses of the ask. This entry changes no clause.
 
 # T-1664: Observability: capture, counters and connection logs without `CAP_NET_RAW`
@@ -264,7 +264,7 @@ errno.
 
 **Blocked 2026-11-11 with T-1662.** Each clause of the Prove runs in the
 lab guest of T-1662, which waits for `pod-guest`'s reader of the modloop
-(podcrates T-206) and `pod-netlab` (podcrates T-207); podcrates answered
+(podcrates podcrates@T-206) and `pod-netlab` (podcrates podcrates@T-207); podcrates answered
 COORD-041 (issue 260) on PodUtils/podcrates#70 that this entry waits with
 it. The host-side pcap and the connection log at the syscall layer need no
 lab and come with the entry.
@@ -312,8 +312,8 @@ unless `restrict=on`; the usernet experiment routes through
 that gateway (`experiments/361-guest-usernet.sh:223`). The
 tree reads no proxy variable today. The issue names podcrates
 `pod-proxy` and `pod-tls`; podcrates names `pod-broker` for
-the broker (podcrates T-099, T-100, call C25). `pod-egress` keeps the
-roads (podcrates T-035).
+the broker (podcrates podcrates@T-099, podcrates@T-100, call C25). `pod-egress` keeps the
+roads (podcrates podcrates@T-035).
 
 ## Approach
 
@@ -371,7 +371,7 @@ busybox wget sent plain HTTP to the proxy and got 404
 **Amended 2026-11-09.** The asks A-V-02 and A-V-03 of PodUtils/podcrates#39
 (COORD-015, a message from a peer session) and the call C25 of podcrates
 change this entry. C25: the broker is the new crate `pod-broker` (podcrates
-T-099, T-100), not `pod-egress`. The Premise and the Approach now name
+podcrates@T-099, podcrates@T-100), not `pod-egress`. The Premise and the Approach now name
 `pod-broker`, and `--net broker` uses it. A-V-03 wants the policy of the
 egress proxy of cfb. That policy is an input of `pod-broker`: the allowed
 hosts and ports, the per-run credential, the rule for public hosts and the

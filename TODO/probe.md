@@ -1461,13 +1461,13 @@ a message from a peer session) wants a published JSON schema of `podvm probe
 --json`. The ask does not fit the clauses of this entry. This entry saves
 one document and publishes no schema. The saved `podvm probe --json`
 document is the first sample that the schema must accept. The schema belongs
-to podcrates T-107 (the schema of `pod-hostprobe`). No podvm entry takes the
-schema yet. When podcrates T-107 releases it, podvm needs an entry that adds
+to podcrates podcrates@T-107 (the schema of `pod-hostprobe`). No podvm entry takes the
+schema yet. When podcrates podcrates@T-107 releases it, podvm needs an entry that adds
 a test that the output of `podvm probe --json` validates.
 
 **Amended 2026-11-10, for podrunner.** T-1714 (issue 239) is the entry
 that the amendment of 2026-11-09 asked for: it validates `podvm probe
---json` against the schema of podcrates T-107, and it is blocked until
+--json` against the schema of podcrates@T-107, and it is blocked until
 that schema has a release. The podvm driver of podrunner reads `probe
 --json` (the podrunner design review, SPEC section 10.1).
 
@@ -1560,7 +1560,7 @@ the machine tier runs TCG".
 # T-1714: `podvm probe --json` validates against the published schema of `pod-hostprobe`
 
 **Source:** issue 239; A-V-10 of PodUtils/podcrates#39; T-1670 (its
-  amendment of 2026-11-09); podcrates T-107; ask 2.7 of
+  amendment of 2026-11-09); podcrates podcrates@T-107; ask 2.7 of
   COORD-021 (issue 227); the podrunner design review (the
   owner's design review of PodUtils/podcrates#47), SPEC section 10.1;
   `crates/podvm/src/main.rs:352`
@@ -1578,10 +1578,10 @@ breaks the caller and nothing tells it.
 
 ## Premise
 
-podcrates T-107 owns the schema of `pod-hostprobe`. T-1670
+podcrates podcrates@T-107 owns the schema of `pod-hostprobe`. T-1670
 saved the first sample
 (`experiments/results/cloud-host-probe.json`) and said that
-podvm needs this entry when T-107 releases the schema. The
+podvm needs this entry when podcrates@T-107 releases the schema. The
 `--json` switch of `probe` is `crates/podvm/src/main.rs:352`.
 
 ## Approach
@@ -1602,7 +1602,7 @@ against it and keeps no copy.
 
 ## Blocker
 
-**Blocked 2026-11-10.** Blocker: podcrates T-107 has no release.
+**Blocked 2026-11-10.** Blocker: podcrates podcrates@T-107 has no release.
 Clears when: a podcrates tag carries the schema of `pod-hostprobe`.
 
 ## Correction
