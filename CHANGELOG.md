@@ -8,11 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
-### Added: `--timeout`, 2026-11-11
+### Added: `--timeout`, `--ulimit` and `--security-opt no-new-privileges`, 2026-11-11
 
-Record: T-1655 (partial).
+Record: T-1655 (partial); PodUtils/podcrates#58.
 Deployed: not deployed; no version change.
 
+- podvm takes the 11 crates at podcrates `v0.17.0`. `run --ulimit
+  NAME=SOFT[:HARD]` sets a resource limit of the payload, and
+  `--security-opt no-new-privileges` sets `PR_SET_NO_NEW_PRIVS` in it, on
+  each rung, for a foreground and a detached run. Each other
+  `--security-opt` is refused by name.
 - `run --timeout SECONDS` (podman's spelling) kills the payload and its
   tree with SIGKILL at the bound, in a detached run and in a foreground
   run; `.End.Reason` reads `wall`.

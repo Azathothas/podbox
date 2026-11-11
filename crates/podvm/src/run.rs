@@ -114,6 +114,12 @@ pub const RUN_OPTIONS: &str = "\
                    selects, under every name the binary answers to, and
                    `system info` names the entered rung (TODO/machine.md
                    T-1302, TODO/cli.md T-1712)
+  --ulimit N=S[:H] a resource limit of the payload (nofile, nproc, fsize,
+                   cpu, as, core, ...), -1 for none; repeatable
+                   (TODO/cli.md T-1655)
+  --security-opt no-new-privileges
+                   PR_SET_NO_NEW_PRIVS in the payload; each other option is
+                   refused by name (TODO/cli.md T-1655)
   --timeout S      podman's: at S seconds the payload and its tree are
                    killed with SIGKILL; `.End.Reason` reads wall
                    (TODO/cli.md T-1655)

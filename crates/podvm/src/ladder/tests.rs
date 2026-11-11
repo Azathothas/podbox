@@ -149,6 +149,8 @@ fn a_forced_rundir_over_a_missing_payload_names_it() {
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
         names: podvm_enter::NAMES,
+        limits: Vec::new(),
+        no_new_privs: false,
     };
     let mut sink = Vec::new();
     let usable = findings_with(vec![("chroot(/tmp)", Outcome::ok())]);
@@ -210,6 +212,8 @@ fn a_forced_tmpfs_over_a_missing_payload_names_it() {
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
         names: podvm_enter::NAMES,
+        limits: Vec::new(),
+        no_new_privs: false,
     };
     let mut sink = Vec::new();
     let usable = findings_with(vec![
@@ -255,6 +259,8 @@ fn a_forced_fuse_over_a_missing_payload_names_it() {
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
         names: podvm_enter::NAMES,
+        limits: Vec::new(),
+        no_new_privs: false,
     };
     let mut sink = Vec::new();
     let usable = findings_with(vec![
@@ -301,6 +307,8 @@ fn a_forced_fuse_rung_without_chroot_names_the_denial() {
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
         names: podvm_enter::NAMES,
+        limits: Vec::new(),
+        no_new_privs: false,
     };
     let mut sink = Vec::new();
     let denied = findings_with(vec![(
@@ -346,6 +354,8 @@ fn a_forced_memfd_over_a_missing_payload_names_it() {
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
         names: podvm_enter::NAMES,
+        limits: Vec::new(),
+        no_new_privs: false,
     };
     let mut sink = Vec::new();
     let store = store_dir("m");
@@ -388,6 +398,8 @@ fn a_forced_memfd_over_a_script_refuses_naming_both() {
         banner: String::new(),
         path_dirs: vec!["/bin".to_string()],
         names: podvm_enter::NAMES,
+        limits: Vec::new(),
+        no_new_privs: false,
     };
     let mut sink = Vec::new();
     let store = store_dir("s");

@@ -17,17 +17,15 @@ The state on 2026-11-11:
 * podvm takes 11 crates of PodUtils/podcrates (`pod-core`, `pod-tls`,
   `pod-proxy`, `pod-term`, `pod-hostprobe`, `pod-supervise`, `pod-guest`,
   `pod-enter`, `pod-oci`, `pod-extract`, `pod-rootfs`) at the tag
-  `v0.16.0` (T-1675 to T-1677, T-1681, T-1716, T-1708). A change of moved code
+  `v0.17.0` (T-1675 to T-1677, T-1681, T-1716, T-1708, T-1655). A change of moved code
   goes to podcrates as a COORD issue.
 * The errand-host entries T-1643 to T-1650 are done. Their issues are
   closed. Issue 114 is the dossier behind the open rungs T-1651 to T-1653.
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`.
   The KVM legs of T-1112, T-1350 and T-1641 need a host with `/dev/kvm`.
   T-1682 gives them a hosted runner.
-* podcrates `v0.16.0` (2026-11-11) is the last tag, and podvm takes it
-  (the tree kill of T-1708, the modes of T-1715, PodUtils/podcrates#57).
-  `v0.17.0` will carry `Plan::limits` and `no_new_privs` of `pod-enter`
-  (podcrates T-176) for T-1655.
+* podcrates `v0.17.0` (2026-11-11) is the last tag, and podvm takes it
+  (the child limits of T-1655, PodUtils/podcrates#58).
 * PodUtils/podrunner has a lead session since 2026-11-11 (the ruling
   "podrunner online"): DR-1 and DR-2 are yes. Its issues are under
   PodUtils/podrunner#1; podvm's part is T-1704 to T-1715 (issues 229 to

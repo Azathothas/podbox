@@ -2,7 +2,7 @@
 //! unimplemented verbs, driven through the built binary.
 //!
 //! Script: experiments/355-parity-curated.sh. This file covers the refusal
-//! half: clause 1 (the 40 refused `run` flags), clause 2 (the 10 refused
+//! half: clause 1 (the 38 refused `run` flags), clause 2 (the 10 refused
 //! verbs), clause 4 (`create` inherits the surface through `run`'s parser),
 //! clause 5 (malformed `--device` shapes), and the flag-error halves of
 //! clause 3 (`--env-file` and `--log-driver` refusals). Every check here
@@ -85,7 +85,8 @@ fn run(args: &[&str], store: &Path) -> Output {
     child.wait_with_output().expect("collect the podvm output")
 }
 
-/// Clause 1: the 40 refused flags. Each `run --rm <flag>` exits with the
+/// Clause 1: the 38 refused flags (`--ulimit` and `--security-opt` work
+/// since TODO/cli.md T-1655). Each `run --rm <flag>` exits with the
 /// flag-error code and names status None, before any image work happens.
 /// `--log-driver` is not among them (it takes `json-file`) and `--device`
 /// is not either (it maps; clause 5 covers its malformed shapes).
@@ -101,13 +102,13 @@ fn refused_run_flags_exit_125_naming_status_none() {
         "--dns-search", "--domainname", "--gpus", "--group-add", "--health-cmd", "--init",
         "--ipc", "--isolation", "--link", "--log-opt", "--mac-address",
         "--mount", "--oom-kill-disable", "--pid", "--pids-limit", "--read-only", "--runtime",
-        "--security-opt", "--shm-size", "--stop-signal", "--stop-timeout", "--sysctl",
-        "--tmpfs", "--ulimit", "--userns", "--uts", "--volume-driver", "--volumes-from",
+        "--shm-size", "--stop-signal", "--stop-timeout", "--sysctl",
+        "--tmpfs", "--userns", "--uts", "--volume-driver", "--volumes-from",
     ];
     assert_eq!(
         flags.len(),
-        40,
-        "the script refuses exactly 40 flags, not {}",
+        38,
+        "the script refuses exactly 38 flags, not {}",
         flags.len()
     );
     let mut bad = Vec::new();

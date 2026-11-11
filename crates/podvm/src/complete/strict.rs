@@ -432,6 +432,8 @@ fn one_step(
         banner: String::new(),
         path_dirs: Vec::new(),
         names: podvm_enter::NAMES,
+        limits: Vec::new(),
+        no_new_privs: false,
     };
     let mut sink = std::io::sink();
     let spawned = podvm_enter::spawn(root, &plan, &mut sink);

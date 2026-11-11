@@ -113,6 +113,7 @@ pub fn create(
         userland_exec,
         completion,
         completion_degraded,
+        hardening: table::Hardening::default(),
     };
     Ok(pod_supervise::create(
         &settings(store),
@@ -150,6 +151,20 @@ pub fn stop(store: &Store, want: &str, timeout_ms: u64) -> Result<(Container, bo
 /// T-1655, `--timeout`).
 pub fn set_wall(store: &Store, want: &str, wall_ms: Option<u64>) -> Result<Container> {
     Ok(pod_supervise::set_wall(&settings(store), want, wall_ms)?)
+}
+
+/// Keep the limits of a run in its record before its start (TODO/cli.md
+/// T-1655): the launcher sets them in the child.
+pub fn set_hardening(store: &Store, want: &str, h: table::Hardening) -> Result<()> {
+    let s = settings(store);
+    let c: Container = pod_supervise::get(&s, want)?;
+    pod_supervise::table::update(&s, |t: &mut pod_supervise::table::Table<Detail>| {
+        if let Some(x) = t.containers.iter_mut().find(|x| x.id == c.id) {
+            x.of.hardening = h;
+        }
+        Ok::<_, pod_core::Failure>(())
+    })?;
+    Ok(())
 }
 
 /// Wait for a container to end. `None` is the bound, never a guess.

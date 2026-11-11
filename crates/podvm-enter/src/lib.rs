@@ -39,6 +39,45 @@ pub const NAMES: Names = Names {
     reserved: &["/proc", "/.podvm"],
 };
 
+pub use pod_enter::{Limit, Resource};
+
+/// One docker `--ulimit NAME=SOFT[:HARD]` as a limit of the payload.
+///
+/// TODO/cli.md T-1655. `NAME` is a word of `pod-enter`'s [`Resource`]
+/// (`nofile`, `nproc`, `fsize`, ...); each value is a whole number or `-1`
+/// / `unlimited` for no limit; a missing `HARD` is `SOFT`, as docker reads
+/// it. A soft value over the hard one is refused here; a hard value over
+/// the caller's own hard limit is refused by the child, by name.
+pub fn ulimit(spec: &str) -> std::result::Result<Limit, String> {
+    let (name, values) = spec
+        .split_once('=')
+        .ok_or_else(|| format!("{spec:?} is not NAME=SOFT[:HARD]"))?;
+    let resource = Resource::from_word(name).ok_or_else(|| {
+        format!("{name:?} names no resource limit (nofile, nproc, fsize, cpu, as, core, ...)")
+    })?;
+    let value = |v: &str| match v {
+        "-1" | "unlimited" => Ok(pod_enter::limits::INFINITY),
+        n => n
+            .parse::<u64>()
+            .map_err(|_| format!("{v:?} in {spec:?} is not a whole number or -1")),
+    };
+    let (soft, hard) = match values.split_once(':') {
+        Some((s, h)) => (value(s)?, value(h)?),
+        None => {
+            let v = value(values)?;
+            (v, v)
+        }
+    };
+    if soft > hard {
+        return Err(format!("{spec:?}: the soft value is over the hard one"));
+    }
+    Ok(Limit {
+        resource,
+        soft,
+        hard,
+    })
+}
+
 /// A runtime error with podvm's text. Exits 125.
 pub fn runtime(text: impl Into<String>) -> Error {
     Error::runtime(pod_core::Class::Unavailable, text)
@@ -344,6 +383,26 @@ mod tests {
             Some("/data/prog")
         );
         let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// TODO/cli.md T-1655. docker's `--ulimit` spellings, and each one that
+    /// cannot be a limit refused with its reason.
+    #[test]
+    fn a_ulimit_reads_as_docker_writes_it() {
+        let l = ulimit("nofile=64").unwrap();
+        assert_eq!((l.resource, l.soft, l.hard), (Resource::Nofile, 64, 64));
+        let l = ulimit("nproc=10:20").unwrap();
+        assert_eq!((l.resource, l.soft, l.hard), (Resource::Nproc, 10, 20));
+        let l = ulimit("core=-1").unwrap();
+        assert_eq!(l.soft, pod_enter::limits::INFINITY);
+        let l = ulimit("fsize=1024:unlimited").unwrap();
+        assert_eq!((l.soft, l.hard), (1024, pod_enter::limits::INFINITY));
+        assert!(ulimit("nofile").unwrap_err().contains("NAME=SOFT"));
+        assert!(ulimit("files=1").unwrap_err().contains("names no resource"));
+        assert!(ulimit("nofile=a").unwrap_err().contains("whole number"));
+        assert!(ulimit("nofile=20:10")
+            .unwrap_err()
+            .contains("over the hard"));
     }
 
     /// A runtime error exits 125; a payload that did not start 126 or 127.

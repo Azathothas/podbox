@@ -55,6 +55,34 @@ pub struct Detail {
     pub completion: Vec<String>,
     #[serde(default)]
     pub completion_degraded: usize,
+    /// TODO/cli.md T-1655: the `--ulimit` specs and the no-new-privileges
+    /// bit of the run, which the launcher sets in the child before the exec.
+    #[serde(default)]
+    pub hardening: Hardening,
+}
+
+/// The limits that a run asked for, kept in its record so that the
+/// launcher of a detached run sets them as a foreground run does.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Hardening {
+    /// Each `--ulimit NAME=SOFT[:HARD]` as the caller wrote it, checked at
+    /// the parse (`podvm_enter::ulimit`).
+    #[serde(default)]
+    pub ulimits: Vec<String>,
+    /// `--security-opt no-new-privileges`.
+    #[serde(default)]
+    pub no_new_privs: bool,
+}
+
+impl Hardening {
+    /// The limits of the specs. A spec that no longer parses (a record of
+    /// another podvm) is left out: the parse at `run` refused each bad one.
+    pub fn limits(&self) -> Vec<podvm_enter::Limit> {
+        self.ulimits
+            .iter()
+            .filter_map(|s| podvm_enter::ulimit(s).ok())
+            .collect()
+    }
 }
 
 impl Detail {

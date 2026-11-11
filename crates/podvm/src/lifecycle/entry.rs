@@ -39,6 +39,8 @@ pub struct Prepared {
     /// `--timeout` in milliseconds: the wall bound of the run, or `None`.
     /// TODO/cli.md T-1655.
     pub wall_ms: Option<u64>,
+    /// `--ulimit` and `--security-opt no-new-privileges`, for the child.
+    pub hardening: podvm_supervise::table::Hardening,
     /// ⭐ T-0710: the host memo file this entry hands the payload, beside the
     /// container record once the container exists. For `prepare` itself this is
     /// an ephemeral file under staging; `create` and `run -d` move it to

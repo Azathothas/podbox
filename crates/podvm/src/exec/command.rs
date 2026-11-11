@@ -352,6 +352,8 @@ pub fn exec(args: &[String]) -> i32 {
         banner: String::new(),
         path_dirs,
         names: podvm_enter::NAMES,
+        limits: Vec::new(),
+        no_new_privs: false,
     };
     if let Err(c) = serve_devices(&mut plan, &mut err) {
         drop(memo);

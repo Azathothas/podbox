@@ -31,6 +31,7 @@ fn the_declared_container_fields_are_the_built_ones() {
             userland_exec: Vec::new(),
             completion: vec!["created dev/null (dev-shim, T-0401)".into()],
             completion_degraded: 1,
+            hardening: Default::default(),
         },
     };
     let built: Vec<&str> = container_fields(&s, &c).iter().map(|(k, _)| *k).collect();
@@ -98,6 +99,7 @@ fn the_ps_fields_are_the_ones_the_template_check_allows() {
             userland_exec: Vec::new(),
             completion: vec!["created dev/null (dev-shim, T-0401)".into()],
             completion_degraded: 1,
+            hardening: Default::default(),
         },
     };
     let built: Vec<&str> = ps_fields(&c, false).iter().map(|(k, _)| *k).collect();
@@ -122,10 +124,8 @@ fn a_non_linux_guest_is_refused_by_name() {
     assert!(ensure_linux_guest("start", "linux", "arm64").is_ok());
 }
 
-/// ⭐ TODO/milestones.md T-1112. The guest arm exists now, and it does not
-/// live on the OCI path: a Windows guest is routed to its own verb by
-/// name, so a caller who asked here is told where it is rather than that
-/// it does not exist. An OS with no driver is still refused outright.
+/// ⭐ TODO/milestones.md T-1112. A Windows guest is routed to its own verb
+/// by name, not the OCI path; an OS with no driver is still refused.
 #[test]
 fn a_guest_that_is_not_linux_is_routed_to_its_own_verb_when_one_exists() {
     assert_eq!(guest_verb("windows"), Some("podvm windows run"));

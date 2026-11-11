@@ -2076,8 +2076,25 @@ ends at 2 s with 137 and leaves no process; the same under `run -d` reads
 `exited wall 2001 0` in `inspect --format '{{.State}} {{.End.Reason}}
 {{.End.RunMs}} {{.End.Residual}}'`; `--timeout 0` exits 125.
 `cargo test -p podvm` exits 0 with `the_timeout_takes_whole_seconds_over_zero`.
-Remaining: `--ulimit` and `--security-opt no-new-privileges` (podcrates
-`v0.17.0` carries the child limits), `--read-only` with `:ro` volumes,
+`--ulimit` and `--security-opt no-new-privileges` work since podvm takes
+podcrates `v0.17.0` (`4da8fb3`, its T-176, PodUtils/podcrates#58):
+`podvm_enter::ulimit` reads docker's `NAME=SOFT[:HARD]` (`-1` for no
+limit), the run puts the limits and the bit in `Plan::limits` and
+`Plan::no_new_privs`, and a detached run keeps them in its record
+(`Detail::hardening`) for the launcher. Each other `--security-opt` is
+refused by name. Drive on the cloud host, 2026-11-11, the pinned alpine
+digest: `--ulimit nofile=64` reads 64 from `ulimit -n` in a foreground run
+on the namespace rung and on the chroot-denied fixture (userland), and 77
+in a detached run; with `--ulimit fsize=1024` and SIGXFSZ ignored, `dd` of
+4096 bytes fails with "File too large" on both rungs; the payload of a
+detached run with `--security-opt no-new-privileges` has `NoNewPrivs: 1`
+and 0 without it (namespace rung; the fixture sets the bit for its own
+filter); `--ulimit nofile=99999999:99999999` refuses with
+`setrlimit(RLIMIT_NOFILE): EPERM`. `cargo test -p podvm -p podvm-enter`
+exits 0 with `a_ulimit_reads_as_docker_writes_it` and
+`the_limits_of_the_hardening_line_parse`; experiment 355 and
+`curated_refusals` refuse 38 flags now. Remaining: `--cap-drop ALL`,
+`--read-only` with `:ro` volumes,
 `--tmpfs`, the refusals of `--memory`, `--cpus` and `--pids-limit` by name,
 the report of T-1695, and experiment 411.
 ---

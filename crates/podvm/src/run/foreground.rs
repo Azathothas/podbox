@@ -143,7 +143,9 @@ pub fn run(args: &[String]) -> i32 {
                 return podvm_image::error::EXIT_RUNTIME_ERROR;
             }
         };
-        if let Err(e) = podvm_supervise::set_wall(&store, &c.id, p.wall_ms) {
+        let kept = podvm_supervise::set_wall(&store, &c.id, p.wall_ms)
+            .and_then(|_| podvm_supervise::set_hardening(&store, &c.id, p.hardening.clone()));
+        if let Err(e) = kept {
             eprintln!("podvm run: {e}");
             let _ = podvm_supervise::remove(&store, &c.id, true);
             return podvm_image::error::EXIT_RUNTIME_ERROR;
@@ -235,6 +237,8 @@ pub fn run(args: &[String]) -> i32 {
         banner: String::new(),
         path_dirs: Plan::path_from(&p.env),
         names: podvm_enter::NAMES,
+        limits: p.hardening.limits(),
+        no_new_privs: p.hardening.no_new_privs,
     };
     // ⭐ T-0204 and T-0211. The lock is handed to the payload immediately
     // before the fork that leads to its exec, and to nothing else.

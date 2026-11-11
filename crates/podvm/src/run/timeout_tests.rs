@@ -28,3 +28,40 @@ fn the_timeout_takes_whole_seconds_over_zero() {
         );
     }
 }
+
+/// TODO/cli.md T-1655. `--ulimit` and `--security-opt no-new-privileges`
+/// reach the record of the run; a bad limit and each other security option
+/// are flag errors.
+#[test]
+fn the_limits_of_the_hardening_line_parse() {
+    let o = parse(
+        "run",
+        &v(&[
+            "--ulimit",
+            "nofile=64",
+            "--ulimit=fsize=1024:2048",
+            "--security-opt",
+            "no-new-privileges",
+            "img",
+        ]),
+    )
+    .unwrap();
+    assert_eq!(o.hardening.ulimits, v(&["nofile=64", "fsize=1024:2048"]));
+    assert!(o.hardening.no_new_privs);
+    assert_eq!(o.hardening.limits().len(), 2);
+    let o = parse("run", &v(&["--security-opt=no-new-privileges:true", "img"])).unwrap();
+    assert!(o.hardening.no_new_privs);
+    assert!(!parse("run", &v(&["img"])).unwrap().hardening.no_new_privs);
+    for bad in [
+        &["--ulimit", "files=1", "img"][..],
+        &["--ulimit", "nofile=2:1", "img"][..],
+        &["--security-opt", "seccomp=unconfined", "img"][..],
+        &["--security-opt", "label=disable", "img"][..],
+    ] {
+        assert_eq!(
+            parse("run", &v(bad)).unwrap_err(),
+            EXIT_FLAG_ERROR,
+            "{bad:?}"
+        );
+    }
+}

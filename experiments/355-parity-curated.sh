@@ -80,7 +80,8 @@ fail=0
 refused=0
 admitted=0
 
-# Clause 1: the 40 refused flags. Each must exit with the flag-error
+# Clause 1: the 38 refused flags (`--ulimit` and `--security-opt` work
+# since TODO/cli.md T-1655). Each must exit with the flag-error
 # code and name status None, before any image work happens.
 # (`--log-driver` is not among them: it takes `json-file`, clause 3.
 # `--device` is not among them either: it maps since T-0501, clause 5.)
@@ -90,8 +91,8 @@ for f in --blkio-weight --cgroup-parent --cidfile --cpu-period \
     --dns-search --domainname --gpus --group-add --health-cmd --init \
     --ipc --isolation --link --log-opt --mac-address \
     --mount --oom-kill-disable --pid --pids-limit --read-only --runtime \
-    --security-opt --shm-size --stop-signal --stop-timeout --sysctl \
-    --tmpfs --ulimit --userns --uts --volume-driver --volumes-from; do
+    --shm-size --stop-signal --stop-timeout --sysctl \
+    --tmpfs --userns --uts --volume-driver --volumes-from; do
 	out="$WORK/refusal.txt"
 	timeout 120 "$PB" run --rm "$f" "$ALPINE" true >"$out" 2>&1
 	rc=$?
@@ -103,7 +104,7 @@ for f in --blkio-weight --cgroup-parent --cidfile --cpu-period \
 		fail=1
 	fi
 done
-echo "clause-1 refused-with-reason  $refused/40" >>"$REPORT"
+echo "clause-1 refused-with-reason  $refused/38" >>"$REPORT"
 
 # Clause 2: the 10 verbs. Each must exit with the runtime-error code
 # and print its row's note.

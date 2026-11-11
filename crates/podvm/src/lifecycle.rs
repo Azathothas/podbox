@@ -122,7 +122,10 @@ pub fn create(args: &[String]) -> i32 {
                 detached_drive(p.userland.as_ref()),
             ) {
                 Ok(c) => {
-                    if let Err(e) = podvm_supervise::set_wall(&s, &c.id, p.wall_ms) {
+                    let kept = podvm_supervise::set_wall(&s, &c.id, p.wall_ms).and_then(|_| {
+                        podvm_supervise::set_hardening(&s, &c.id, p.hardening.clone())
+                    });
+                    if let Err(e) = kept {
                         let _ = podvm_supervise::remove(&s, &c.id, true);
                         let _ = std::fs::remove_file(&p.memo_host_path);
                         return fail("create", e);

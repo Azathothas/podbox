@@ -74,11 +74,9 @@ pub(crate) fn prepare(
             &o.qemu_args,
         ));
     }
-    // ⭐ TODO/milestones.md T-1112. The OS gate sits before the tier
-    // dispatch and the fetch: a platform no tier can enter refuses
-    // naming it, rather than reaching the machine tier's leg refusal
-    // (which would misreport a Windows request as a Linux guest the
-    // driver has not arrived for yet) or pulling bytes no tier runs.
+    // ⭐ TODO/milestones.md T-1112. The OS gate sits before the tier dispatch
+    // and the fetch: a platform no tier can enter refuses naming it, rather
+    // than a misreport of the machine tier's legs or a pull no tier runs.
     crate::lifecycle::ensure_linux_guest(verb, &platform.os, &platform.arch)?;
     if tier == crate::tier::Tier::Machine {
         return Err(crate::tier::enter_machine(verb, o.mem));
@@ -477,6 +475,7 @@ pub(crate) fn prepare(
         detach: o.detach,
         rm: o.rm,
         wall_ms: o.timeout.map(|s| s * 1000),
+        hardening: o.hardening.clone(),
         memo_host_path,
         ladder,
         findings,

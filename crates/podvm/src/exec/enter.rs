@@ -317,6 +317,8 @@ pub(super) fn enter(
         banner: String::new(),
         path_dirs,
         names: podvm_enter::NAMES,
+        limits: Vec::new(),
+        no_new_privs: false,
     };
     if let Err(c) = serve_devices(&mut plan, &mut err) {
         return c;

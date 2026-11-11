@@ -52,7 +52,7 @@ clauses in its own record:
   cloud session does not need it.
 * The files that podcrates imported are frozen until podvm takes the
   crate (`AGENTS.md`, section 9, item 4). podvm took each of its 11 crates
-  at `v0.16.0` (T-1708). A fix of moved code goes to podcrates as a
+  at `v0.17.0` (T-1655). A fix of moved code goes to podcrates as a
   COORD issue.
 * `refactor/` is not on `main`. It is on the branch
   `archive/podbox-worktree` (`docs/history/worktree-archive.md`). T-1673

@@ -86,6 +86,8 @@ fn enter_in_launcher(
         banner: String::new(),
         path_dirs: Plan::path_from(&env),
         names: podvm_enter::NAMES,
+        limits: container.of.hardening.limits(),
+        no_new_privs: container.of.hardening.no_new_privs,
     };
 
     // ⭐ TODO/image.md T-0204 and T-0211. The image lock is taken here and
