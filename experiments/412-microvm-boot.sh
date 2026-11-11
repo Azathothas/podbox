@@ -28,6 +28,9 @@
 #   8. stdin: 100000 random bytes piped in give the same SHA-256 in the
 #      guest; stdin from /dev/null reads its end at once.
 #   9. no emulator stays after the runs.
+#  10. without -t, the command's stdout and stderr are not terminals
+#      (T-1728): `[ -t 1 ]` and `[ -t 2 ]` are false, and `ls` writes no
+#      colour escape.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (no build, no pull, no qemu).
@@ -160,6 +163,15 @@ eof=$(timeout 300 "$PB" run --podvm-tier=machine "$ALPINE" sh -c 'cat; echo eof-
 { echo ""; echo "== 8. stdin"; echo "host sha256       $want"; echo "guest sha256      $got"; echo "from /dev/null    $eof"; } >>"$REPORT"
 [ -n "$got" ] && [ "$got" = "$want" ] || { note "8: the guest read other bytes"; fail=1; }
 [ "$eof" = "eof-ok" ] || { note "8: stdin from /dev/null did not end"; fail=1; }
+
+# Clause 10: no terminal without -t (T-1728).
+timeout 300 "$PB" run --podvm-tier=machine "$ALPINE" sh -c '[ -t 1 ] && echo out-tty || echo out-pipe; [ -t 2 ] && echo err-tty >&2 || echo err-pipe >&2; ls /' </dev/null >"$WORK/c10.out" 2>"$WORK/c10.err"
+rc=$?
+{ echo ""; echo "== 10. no terminal"; echo "exit              $rc"; echo "  stdout line 1:   $(head -1 "$WORK/c10.out")"; echo "  stderr:          $(grep -x 'err-[a-z]*' "$WORK/c10.err")"; } >>"$REPORT"
+[ "$rc" -eq 0 ] || { note "10: wanted exit 0, got $rc"; fail=1; }
+[ "$(head -1 "$WORK/c10.out")" = "out-pipe" ] || { note "10: stdout is a terminal"; fail=1; }
+grep -qx "err-pipe" "$WORK/c10.err" || { note "10: stderr is a terminal"; fail=1; }
+grep -q "$(printf '\033')" "$WORK/c10.out" && { note "10: ls wrote a colour escape"; fail=1; }
 
 # Clause 9.
 if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "9: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi

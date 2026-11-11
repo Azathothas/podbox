@@ -36,13 +36,21 @@ pub fn script(nonce: &str, argv: &[String], env: &[String], workdir: &str, net: 
     if net {
         s.push_str("/podvm/podvm guest-net\n");
     }
-    // stderr on the second serial port (T-1656), where the node is there.
-    s.push_str("[ -c /dev/ttyS1 ] && exec 2>/dev/ttyS1\n");
     // stdin: the bytes of podvm's stdin where there were some, else none.
     s.push_str("if [ -f /podvm/stdin ]; then exec 0</podvm/stdin; else exec 0</dev/null; fi\n");
     let words: Vec<String> = argv.iter().map(|a| sh_quote(a)).collect();
     s.push_str(&format!("set -- {}\n", words.join(" ")));
-    s.push_str("\"$@\"\nrc=$?\n");
+    // TODO/machine.md T-1728. The command's stdout and stderr are FIFOs, as
+    // docker's are without -t: a serial port is a terminal, so `ls` coloured
+    // its output and `[ -t 1 ]` was true. One `cat` copies each FIFO to its
+    // port: stdout to the console, stderr to the second port (T-1656) where
+    // the node is there.
+    s.push_str("mkfifo /podvm-out /podvm-err\n");
+    s.push_str("cat /podvm-out & o=$!\n");
+    s.push_str(
+        "if [ -c /dev/ttyS1 ]; then cat /podvm-err >/dev/ttyS1 & else cat /podvm-err >&2 & fi\ne=$!\n",
+    );
+    s.push_str("\"$@\" >/podvm-out 2>/podvm-err\nrc=$?\nwait $o $e\n");
     s.push_str(&format!("echo; echo PODVM-EXIT-{nonce} $rc\n"));
     s.push_str("sync\nreboot -f 2>/dev/null\necho b > /proc/sysrq-trigger\n");
     s

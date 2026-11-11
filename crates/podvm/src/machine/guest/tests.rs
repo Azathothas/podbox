@@ -186,7 +186,21 @@ fn stderr_has_its_own_port() {
     assert!(a.contains("server=on,wait=on") && a.ends_with("-serial chardev:podvmerr"));
     assert_eq!(stderr::strip_cr(b"e1\r\ne2\r\n"), b"e1\ne2\n");
     let s = init::script("n", &["true".into()], &[], "/", false);
-    assert!(s.contains("exec 2>/dev/ttyS1"));
+    assert!(s.contains("cat /podvm-err >/dev/ttyS1"));
+}
+
+/// TODO/machine.md T-1728: the command's stdout and stderr are FIFOs, not
+/// the serial terminals, and the script waits for both copies before it
+/// writes the exit marker.
+#[test]
+fn the_command_writes_to_fifos_not_to_a_terminal() {
+    let s = init::script("n", &["true".into()], &[], "/", false);
+    assert!(s.contains("mkfifo /podvm-out /podvm-err"), "{s}");
+    assert!(s.contains("\"$@\" >/podvm-out 2>/podvm-err"), "{s}");
+    let wait = s
+        .find("wait $o $e")
+        .expect("the script waits for the copies");
+    assert!(wait < s.find("PODVM-EXIT-n").unwrap(), "{s}");
 }
 
 /// stdin of the guest: the bytes ride in the run archive, and the script

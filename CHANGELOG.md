@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: no terminal in a guest without -t, 2026-11-11
+
+Record: T-1728.
+Deployed: not deployed; no version change.
+
+- On the machine tier, the command's stdout and stderr are pipes, as
+  docker's are without `-t`. Before, they were the serial terminals, and
+  `ls` wrote colour escapes into podvm's stdout.
+
 ### Changed: each container has its own rootfs, 2026-11-11
 
 Record: T-1709; issue 234.

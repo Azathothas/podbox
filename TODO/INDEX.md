@@ -401,10 +401,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1725](interpose.md) | P1 | interpose | done | An absolute symlink in the rootfs resolves on the host for each path call |
 | [T-1726](cli.md) | P1 | cli | done | `exec` into a container ignores its `:ro` volumes and `--read-only` |
 | [T-1727](machine.md) | P2 | machine | done | Take podcrates v0.21.0: `pod-incus` replaces the incus client of T-1718 |
+| [T-1728](machine.md) | P2 | machine | done | Without `-t`, a command of the machine tier writes to a terminal |
 
 ## Counts
 
-336 items: 25 open, 4 partial, 3 blocked, 304 done.
+337 items: 25 open, 4 partial, 3 blocked, 305 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -415,9 +416,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 144 | 148 |
-| P2 | 22 | 0 | 3 | 87 | 112 |
+| P2 | 22 | 0 | 3 | 88 | 113 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **25** | **4** | **3** | **304** | **336** |
+| **All** | **25** | **4** | **3** | **305** | **337** |
 
 ## Work order
 

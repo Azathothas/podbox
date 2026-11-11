@@ -1783,3 +1783,41 @@ ten clauses). The `--strict` gap of the loader family names T-1651 now: a
 static child takes the native-static rung where it arms (T-1724).
 
 **Filed 2026-11-11.** From PodUtils/podcrates#65.
+
+---
+
+### T-1728 Without `-t`, a command of the machine tier writes to a terminal
+
+Source:      Found by T-1654 (experiment 410 compares `ls /workspace` across the profiles)
+Category:    machine
+Priority:    P2
+Effort:      S
+Status:      done 2026-11-11
+
+Problem:     The guest init ran the command with stdout on the console
+             (`/dev/ttyS0`) and stderr on `/dev/ttyS1`. A serial port is a
+             terminal, so `[ -t 1 ]` was true without `-t`, and busybox `ls`
+             wrote colour escapes into podvm's stdout. docker without `-t`
+             gives a pipe, and a script that reads the output gets other
+             bytes.
+Premise:     `crates/podvm/src/machine/guest/init.rs`, `script`: `exec
+             2>/dev/ttyS1` and the command with no redirection of stdout.
+             Measured on 2026-11-11: `run --podvm-tier=machine alpine sh -c
+             '[ -t 1 ] && echo tty'` printed `tty` with podvm's stdout on a
+             pipe.
+Approach:    The init makes two FIFOs. The command writes to them, and one
+             `cat` copies each FIFO to its serial port. The script waits for
+             both copies before it writes the exit marker.
+Decision:    A FIFO and not a pipe of the shell: the shell keeps the exit
+             code of the command without `pipefail`.
+Prove:       `sh experiments/412-microvm-boot.sh` exits 0 with clause 10: `[ -t 1 ]` and `[ -t 2 ]` are false in the guest, and `ls` writes no colour escape
+
+**Done 2026-11-11.** `PODVM_412_MIRROR=1 sh experiments/412-microvm-boot.sh`
+exits 0 under TCG on the cloud host, each of its ten clauses
+([the run](../experiments/results/microvm-boot.txt)): clause 10 reads
+`out-pipe` and `err-pipe`, and clause 7 still reads stderr apart and exit
+4. The unit test `the_command_writes_to_fifos_not_to_a_terminal` checks
+the script.
+
+**Filed 2026-11-11.** Found while T-1654 compared the output of the
+profiles.
