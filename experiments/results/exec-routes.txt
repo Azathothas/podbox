@@ -1,0 +1,33 @@
+== conditions
+date              2026-11-11T04:39:57Z
+host kernel       Linux 6.18.44-fc-v378
+input             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+build             ok
+podvm             podvm 0.2.0-beta.2
+host musl loader  absent
+3.20: Pulling from library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+podvm: probed this machine rather than using the cache: /workspace/podvm/experiments/.sweep432-work/store/probe.json does not exist yet
+fixture rung      userland
+
+== sys
+exit              0
+  sys-42
+  system-status 3
+
+== popen
+exit              0
+  popen-42
+  pclose-status 0
+
+== fexecve
+exit              0
+  fexecve-ok
+
+== memfd
+exit              0
+  memfd-ok
+
+verdict           EACH CHILD ENTERS THROUGH THE IMAGE

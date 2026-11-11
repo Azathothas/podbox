@@ -30,9 +30,11 @@ use core::ffi::{c_char, c_int};
 
 use crate::map::{Table, AT_FDCWD, OUT};
 
+mod descriptor;
 pub mod head;
 mod launch;
 pub(crate) mod lookup;
+mod shell;
 mod walk;
 
 pub(crate) mod calls;
@@ -113,7 +115,7 @@ pub enum Route {
 
 /// Does the table anchor guest `/`? Only then is the host root not the
 /// guest root, and only then does the route change an exec.
-fn anchored(t: &Table) -> bool {
+pub(crate) fn anchored(t: &Table) -> bool {
     t.pairs[..t.n]
         .iter()
         .any(|p| p.from_n == 1 && unsafe { *p.from_p } == b'/')
@@ -171,7 +173,7 @@ pub unsafe fn route(
                 return Route::Fail;
             }
         };
-        unsafe { plan(what, &t, gn, path, argv, envp, s) }
+        unsafe { plan(what, &t, gn, path, argv, envp, s, false) }
     };
     match planned {
         Ok(l) => Route::Launch(l),
@@ -242,6 +244,7 @@ unsafe fn search_path(
                 argv,
                 envp,
                 s,
+                false,
             )
         } {
             Ok(l) => return Ok(l),
@@ -254,9 +257,12 @@ unsafe fn search_path(
 }
 
 /// Plan the exec of the guest path in `s.guest[..gn]`. `file0` is the name
-/// the caller gave, which a script receives as its own path.
+/// the caller gave, which a script receives as its own path. With `pre`,
+/// the first level is already resolved: `s.resolved` and `s.host` hold
+/// the same NUL-terminated name, a `/proc/self/fd/N` of a descriptor that
+/// has no guest name (T-1703).
 #[allow(clippy::too_many_arguments)]
-unsafe fn plan(
+pub(crate) unsafe fn plan(
     what: &[u8],
     t: &Table,
     mut gn: usize,
@@ -264,13 +270,18 @@ unsafe fn plan(
     argv: *const *const c_char,
     envp: *const *const c_char,
     s: &mut Scratch,
+    pre: bool,
 ) -> Result<Launch, c_int> {
     let access = crate::next_access().ok_or(EINVAL)?;
     // Each `#!` level: its interpreter name and its argument (or null).
     let mut levels = [(core::ptr::null::<c_char>(), core::ptr::null::<c_char>()); DEPTH];
     let mut depth = 0usize;
     let (rn, tail) = loop {
-        let (rn, _) = unsafe { walk::resolve(t, &s.guest[..gn], &mut s.resolved, &mut s.host) }?;
+        let rn = if pre && depth == 0 {
+            crate::map::strnlen(s.resolved.as_ptr() as *const c_char, OUT)
+        } else {
+            unsafe { walk::resolve(t, &s.guest[..gn], &mut s.resolved, &mut s.host) }?.0
+        };
         let host = s.host.as_ptr() as *const c_char;
         if unsafe { access(host, X_OK) } != 0 {
             return Err(crate::errno());
@@ -304,6 +315,17 @@ unsafe fn plan(
             }
             head::File::Dynamic => break (rn, Tail::Loader),
             head::File::Direct => break (rn, Tail::Direct),
+            head::File::Foreign => {
+                // T-1703: the kernel would read the loader of another
+                // machine, or its binfmt handler, on the host root.
+                crate::say::line(&[
+                    what,
+                    b": ",
+                    &s.resolved[..rn],
+                    b" is an ELF file of another machine or class, which the image's loader cannot run, so the exec fails (TODO/interpose.md T-1703)",
+                ]);
+                return Err(ENOEXEC);
+            }
         }
     };
     let mut no_argv0 = false;
@@ -360,3 +382,5 @@ unsafe fn plan(
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_t1703;

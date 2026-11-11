@@ -2492,7 +2492,7 @@ Source:      T-1646 (its Done record); T-1650 (the capability gap);
 Category:    interpose
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     On the userland rung a child that the payload starts through
              `fexecve`, through `execveat` with flags, or through
@@ -2517,6 +2517,46 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              exits 0 with a test for each route, and a drive on the
              chroot-denying fixture runs a child through `system()` and
              through `fexecve` from the image at 0.
+
+**Done 2026-11-11.** The interposer exports `fexecve`, `system`, `popen`
+and `pclose`, and `execveat` takes each flag of the kernel:
+
+* `execveat` with `AT_EMPTY_PATH` and an empty path (the form of
+  `fexecve`) reads the guest name of the descriptor's file
+  (`fd_guest` in `crates/podvm-interpose/src/map/absolute.rs`) and takes
+  the route of that name. A file with no guest name (a `memfd`, a deleted
+  file) takes the route of `/proc/self/fd/N`; the descriptor loses
+  `FD_CLOEXEC` for the exec, so the guest loader can open it, and gets it
+  back where the exec fails (`crates/podvm-interpose/src/exec/descriptor.rs`).
+  `AT_SYMLINK_NOFOLLOW` answers `ELOOP` for a link and then routes the
+  name. musl exports no `execveat`; there the real call is the system
+  call.
+* `system` and `popen` start `sh -c` through the routed `posix_spawn`, so
+  the image's `/bin/sh` enters through the image's loader. `system` keeps
+  the signal rule of POSIX; `pclose` waits for the shell of each stream
+  that `popen` opened (`crates/podvm-interpose/src/exec/shell.rs`). With
+  no anchored table each one is the real call.
+* A child ELF of another machine or class fails its exec with `ENOEXEC`
+  and one line that names T-1703: the image's loader cannot run it, and
+  the kernel would read its loader on the host root.
+
+The gap of T-1703 left `LOADER_GAPS`
+(`crates/podvm/src/complete/capability.rs`); experiment 356, clause 24,
+now finds the `--strict` warning of T-1652.
+
+Proof: `cargo test --manifest-path crates/podvm-interpose/Cargo.toml
+--target x86_64-unknown-linux-gnu -- --test-threads=1` passed 78 tests,
+with `a_descriptor_enters_through_the_guest_loader` (a named file and a
+`memfd`), `a_foreign_elf_refuses_and_nofollow_sees_a_link`, and
+`system_and_popen_start_the_image_shell` (the running shell's exe is the
+inode of the rootfs loader, not of the host loader).
+`PODVM_432_MIRROR=1 sh experiments/432-exec-routes.sh` exited 0 on the
+chroot-denying fixture (`experiments/results/exec-routes.txt`): a dynamic
+musl probe in alpine 3.20 ran `system()` (`sys-42`, status 3),
+`popen()` (`popen-42`, `pclose` 0), `fexecve()` of `/bin/busybox` and
+`fexecve()` of a `memfd` copy of it, each at 0, on a host with no
+`/lib/ld-musl-x86_64.so.1`. `scripts/build-interpose.sh` found 127
+exports, exactly what `interpose.map` declares.
 
 **Filed 2026-11-10.** T-1646 closed with these routes named as a gap of
 T-1650; the gap needs an open owner, and the test

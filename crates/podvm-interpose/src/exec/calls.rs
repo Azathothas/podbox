@@ -97,9 +97,11 @@ pub unsafe extern "C" fn execvpe(
     unsafe { exec_env(b"execvpe", path, argv, envp, true, |p| f(p, argv, envp)) }
 }
 
-/// `execveat(2)`. A call with flags (`AT_EMPTY_PATH` for `fexecve`,
-/// `AT_SYMLINK_NOFOLLOW`) keeps the earlier behaviour: it names a
-/// descriptor or forbids the link walk that the route makes.
+/// `execveat(2)`, T-1646 and T-1703. `AT_EMPTY_PATH` with an empty path
+/// (the form of `fexecve`) takes the route of the descriptor's file;
+/// `AT_SYMLINK_NOFOLLOW` refuses a link with `ELOOP` and then takes the
+/// route of the name. Another flag reaches the real call, which answers
+/// `EINVAL` for it.
 ///
 /// # Safety
 /// The payload's own contract for `execveat(2)`.
@@ -111,23 +113,41 @@ pub unsafe extern "C" fn execveat(
     envp: *const *const c_char,
     flags: c_int,
 ) -> c_int {
-    let Some(f) = crate::next_execveat() else {
+    use super::descriptor::{AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW};
+    let f = real_execveat;
+    let Some(exec) = crate::next_execve() else {
         set_errno(EINVAL);
         return -1;
     };
     let mut buf = [0u8; OUT];
-    if flags != 0 {
+    let mut s = Scratch::new();
+    if flags & !(AT_EMPTY_PATH | AT_SYMLINK_NOFOLLOW) != 0 {
         let p = unsafe { crate::map::prepare(b"execveat", dirfd, path, &mut buf) };
         if p.is_null() {
             return -1;
         }
         return unsafe { f(dirfd, p, argv, envp, flags) };
     }
-    let Some(exec) = crate::next_execve() else {
-        set_errno(EINVAL);
+    if flags & AT_EMPTY_PATH != 0 && !path.is_null() && unsafe { *path } == 0 {
+        let mut n = super::descriptor::Names::new();
+        return match unsafe {
+            super::descriptor::route_fd(b"fexecve", dirfd, argv, envp, &mut s, &mut n)
+        } {
+            Route::Pass(_) => unsafe { f(dirfd, path, argv, envp, flags) },
+            Route::Fail => -1,
+            Route::Launch(l) => {
+                let r = unsafe { exec(l.path, l.argv, l.envp) };
+                n.exec_failed();
+                r
+            }
+        };
+    }
+    if flags & AT_SYMLINK_NOFOLLOW != 0
+        && unsafe { super::descriptor::is_link(dirfd, path, &mut buf) }
+    {
+        set_errno(ELOOP);
         return -1;
-    };
-    let mut s = Scratch::new();
+    }
     match unsafe {
         route(
             b"execveat",
@@ -143,6 +163,54 @@ pub unsafe extern "C" fn execveat(
         Route::Pass(p) => unsafe { f(dirfd, p, argv, envp, flags) },
         Route::Fail => -1,
         Route::Launch(l) => unsafe { exec(l.path, l.argv, l.envp) },
+    }
+}
+
+/// The real `execveat`. musl exports none (its `fexecve` makes the system
+/// call itself), so there the call goes to the kernel directly.
+unsafe extern "C" fn real_execveat(
+    dirfd: c_int,
+    path: *const c_char,
+    argv: *const *const c_char,
+    envp: *const *const c_char,
+    flags: c_int,
+) -> c_int {
+    if let Some(f) = crate::next_execveat() {
+        return unsafe { f(dirfd, path, argv, envp, flags) };
+    }
+    let a = [
+        dirfd as core::ffi::c_long,
+        path as core::ffi::c_long,
+        argv as core::ffi::c_long,
+        envp as core::ffi::c_long,
+        flags as core::ffi::c_long,
+        0,
+    ];
+    unsafe { crate::raw_calls::forward(SYS_EXECVEAT, a) as c_int }
+}
+
+/// `SYS_execveat` on x86_64.
+const SYS_EXECVEAT: core::ffi::c_long = 322;
+
+/// `fexecve(3)`: glibc and musl call `execveat` inside libc, past the
+/// preload, so podvm exports it and takes the descriptor route (T-1703).
+///
+/// # Safety
+/// The payload's own contract for `fexecve(3)`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn fexecve(
+    fd: c_int,
+    argv: *const *const c_char,
+    envp: *const *const c_char,
+) -> c_int {
+    unsafe {
+        execveat(
+            fd,
+            c"".as_ptr(),
+            argv,
+            envp,
+            super::descriptor::AT_EMPTY_PATH,
+        )
     }
 }
 

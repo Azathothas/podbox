@@ -376,7 +376,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1700](enter.md) | P1 | enter | done | A run on the userland rung sometimes exits 0 with no output |
 | [T-1701](interpose.md) | P2 | interpose | done | `mkstemp64`, `mkostemp64`, `mkstemps` and `mkostemps` pass the path table |
 | [T-1702](machine.md) | P2 | machine | done | The TCG guest of `podvm-workload` prints no console byte in 600 s on the cloud host |
-| [T-1703](interpose.md) | P2 | interpose | open | The exec routes that T-1646 does not take still enter through the host |
+| [T-1703](interpose.md) | P2 | interpose | done | The exec routes that T-1646 does not take still enter through the host |
 | [T-1704](interpose.md) | P1 | interpose | done | `realpath` of `/proc/self/exe` names the image's loader, while `readlink` names the program |
 | [T-1705](interpose.md) | P1 | interpose | done | A host path that a loaded object reports gets the rootfs prefix a second time |
 | [T-1706](cli.md) | P2 | cli | open | The unmodified official `actions/runner` starts on the userland rung |
@@ -397,7 +397,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-329 items: 33 open, 7 partial, 4 blocked, 285 done.
+329 items: 32 open, 7 partial, 4 blocked, 286 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -408,9 +408,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 4 | 6 | 0 | 136 | 146 |
-| P2 | 29 | 0 | 4 | 76 | 109 |
+| P2 | 28 | 0 | 4 | 77 | 109 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **33** | **7** | **4** | **285** | **329** |
+| **All** | **32** | **7** | **4** | **286** | **329** |
 
 ## Work order
 

@@ -221,8 +221,10 @@ pub enum File {
     Script(usize),
     /// An ELF file with `PT_INTERP`; the name is in the `phdrs` buffer.
     Dynamic,
-    /// The kernel runs it as it is: static, foreign, or not ELF.
+    /// The kernel runs it as it is: static, or not ELF.
     Direct,
+    /// An ELF file of another class, byte order or machine (T-1703).
+    Foreign,
 }
 
 /// Read the head of `host` and say what the kernel does with it.
@@ -251,7 +253,8 @@ pub unsafe fn read_head(
             Kind::Script => Ok(File::Script(got)),
             Kind::Elf { phoff, phnum } => unsafe { read_interp(fd, phoff, phnum, phdrs) }
                 .map(|dynamic| if dynamic { File::Dynamic } else { File::Direct }),
-            Kind::Foreign | Kind::Other => Ok(File::Direct),
+            Kind::Foreign => Ok(File::Foreign),
+            Kind::Other => Ok(File::Direct),
         }
     };
     unsafe { close(fd) };

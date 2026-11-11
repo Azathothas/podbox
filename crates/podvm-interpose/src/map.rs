@@ -253,8 +253,8 @@ fn prefix(from_p: *const u8, from_n: usize, path: *const u8, path_n: usize) -> b
 }
 
 mod absolute;
-pub use absolute::normalise;
 use absolute::{fd_base, guest_base};
+pub use absolute::{fd_guest, normalise};
 mod rewrite;
 pub use rewrite::*;
 mod readonly;

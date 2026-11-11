@@ -16,8 +16,11 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   runtime cannot resolve itself there.
 - A userland grandchild that execs a dynamic ELF or a `#!` script enters
   through the image's own loader or interpreter, resolved inside the
-  rootfs (T-1646). `fexecve`, `execveat` with flags, a non-x86_64 ELF,
-  and `system()` or `popen()` (which spawn inside libc) are not routed.
+  rootfs (T-1646). `fexecve`, `execveat` with flags, `system()` and
+  `popen()` take the same route (T-1703). A `memfd` enters through
+  `/proc/self/fd/N`, so the started program keeps that descriptor. A
+  child ELF of another machine or class (also i386) fails its exec with
+  `ENOEXEC` and one line.
 - A raw call through libc's `syscall()` takes the path table, so libuv's
   `statx` resolves inside the rootfs (T-1697). A raw call with a path that
   the table cannot map, and `io_uring_setup`, answer `ENOSYS`. A program

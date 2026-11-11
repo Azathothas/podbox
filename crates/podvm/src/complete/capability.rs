@@ -9,9 +9,11 @@
 //! starts.
 //!
 //! Not in the list, because their entries closed them: a `dlopen` of a
-//! guest path (T-1645), a relative path (T-1643), and a raw call through
+//! guest path (T-1645), a relative path (T-1643), a raw call through
 //! libc's `syscall()`, such as the `statx` of libuv under node and npm
-//! (T-1697). A static payload
+//! (T-1697), and a child that `fexecve`, `execveat` with flags,
+//! `system()` or `popen()` starts (T-1703). A child ELF of another
+//! machine fails its exec by name (T-1703). A static payload
 //! refuses before the exec without `--unsafe-host-paths` (T-1648), so it
 //! is no gap of the loader family; a static child is.
 
@@ -20,8 +22,6 @@ use std::io::Read;
 /// What podvm reads to tell that a payload hits a gap.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Probe {
-    /// Nothing tells it: the gap is a warning on each run.
-    Unknown,
     /// A command of the payload names a statically linked program of the
     /// image.
     StaticChild,
@@ -37,27 +37,16 @@ pub struct GapDef {
 }
 
 /// The open gaps of the loader family, as of the entries they name.
-pub const LOADER_GAPS: &[GapDef] = &[
-    GapDef {
-        entry: "T-1703",
-        text: "a child that the payload starts through fexecve, through execveat \
-               with flags, or through system() or popen() inside libc, or a child \
-               ELF of another machine, does not enter through the image's loader: \
-               the kernel reads its loader or its #! interpreter on the host root \
-               (TODO/interpose.md T-1703)",
-        probe: Probe::Unknown,
-    },
-    GapDef {
-        entry: "T-1652",
-        text: "a statically linked child keeps the direct exec, and a dynamic \
+pub const LOADER_GAPS: &[GapDef] = &[GapDef {
+    entry: "T-1652",
+    text: "a statically linked child keeps the direct exec, and a dynamic \
                program can issue the syscall instruction itself (Go, liburing) \
                instead of a call of libc: those raw syscalls pass the \
                interposer, so their absolute paths resolve on the host and a \
                write lands on the host tree; T-1648 refuses only a static \
                top-level payload (TODO/enter.md T-1652, T-1651)",
-        probe: Probe::StaticChild,
-    },
-];
+    probe: Probe::StaticChild,
+}];
 
 /// A gap of the selected family for one payload.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -85,7 +74,6 @@ pub fn loader_gaps<G: podvm_enter::abi::GuestRoot + ?Sized>(
             entry: g.entry,
             text: g.text,
             hit: match g.probe {
-                Probe::Unknown => None,
                 Probe::StaticChild => static_hit(root, &cmds, path_dirs),
             },
         })

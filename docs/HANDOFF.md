@@ -38,8 +38,7 @@ file when each step below is done.
 
 ## Next steps, in order
 
-1. The work order of `TODO/PROGRESS.md`, from item 1 (T-1703, then the
-   interposer and `pod-enter` entries of the runner). T-1708, T-1715,
-   T-1655, T-1653 and T-1720 are done. Item 2 is next: T-1703,
-   then T-1710, T-1707 and T-1719. T-1716, T-1712, T-1713, T-1704 and
-   T-1705 are done on 2026-11-11.
+1. The work order of `TODO/PROGRESS.md`, from item 1 (T-1710, then the
+   `pod-enter` entries of the runner, T-1707 and T-1719, then T-1706).
+   T-1716, T-1712, T-1713, T-1704, T-1705, T-1708, T-1715, T-1655,
+   T-1653, T-1720 and T-1703 are done on 2026-11-11.

@@ -45,6 +45,10 @@
     execvp;
     execvpe;
     execveat;
+    fexecve;
+    system;
+    popen;
+    pclose;
     posix_spawn;
     posix_spawnp;
     chdir;

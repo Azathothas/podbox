@@ -147,3 +147,36 @@ pub fn normalise(p: &mut [u8; OUT], n: usize) -> usize {
     }
     w
 }
+
+/// The guest name of the file that descriptor `fd` names, T-1703.
+///
+/// `fexecve` gives a descriptor, not a name. The exec route needs the
+/// guest name to read the file as T-1646 reads a path. Writes the name
+/// with a NUL into `out` and returns its length, or `-1` where the file
+/// has no guest name: a `memfd`, a deleted file, a pipe, or a host file
+/// under no TO side.
+///
+/// # Safety
+/// `readlink` of the table module must be the real call.
+pub unsafe fn fd_guest(t: &Table, fd: c_int, out: &mut [u8; OUT]) -> isize {
+    let Some(readlink) = next_readlink() else {
+        return -1;
+    };
+    let n = unsafe { fd_base(readlink, fd, out) };
+    if n <= 0 {
+        return -1;
+    }
+    let n = n as usize;
+    if out[..n].ends_with(b" (deleted)") {
+        return -1;
+    }
+    let mut guest = [0u8; OUT];
+    let g = unsafe { unrewrite(t, out.as_ptr(), n, &mut guest) };
+    if g <= 0 || g as usize >= OUT {
+        return -1;
+    }
+    let g = g as usize;
+    out[..g].copy_from_slice(&guest[..g]);
+    out[g] = 0;
+    g as isize
+}

@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: children that libc starts on the userland rung, 2026-11-11
+
+Record: T-1703.
+Deployed: not deployed; no version change.
+
+- On the userland loader family, a child that the payload starts through
+  `system()`, `popen()`, `fexecve()` or `execveat()` with flags enters
+  through the image's loader, as an `execve` child does. Before, libc
+  started these past the interposer, and the kernel read the loader of
+  the host.
+- A child ELF of another machine fails its exec with `ENOEXEC` and a
+  line that names it, not a run through the host.
+
 ### Fixed: `wait` of a payload that ends at once, 2026-11-11
 
 Record: T-1720; PodUtils/podrunner#49.

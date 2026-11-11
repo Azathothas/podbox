@@ -6,7 +6,7 @@ use std::path::Path;
 
 /// A 64-bit x86_64 ELF header with one program header at offset 64 of
 /// type `ty`, and, where `interp` is given, the name at offset 120.
-fn elf(ty: u32, interp: &[u8]) -> Vec<u8> {
+pub(super) fn elf(ty: u32, interp: &[u8]) -> Vec<u8> {
     let mut b = vec![0u8; 120];
     b[..4].copy_from_slice(b"\x7fELF");
     b[4] = 2;
@@ -93,7 +93,7 @@ fn only_a_glibc_loader_before_2_33_lacks_argv0() {
     assert_eq!(basename(b"ld.so"), b"ld.so");
 }
 
-fn tree(tag: &str) -> std::path::PathBuf {
+pub(super) fn tree(tag: &str) -> std::path::PathBuf {
     let d = std::env::temp_dir().join(format!("podvm-t1646-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&d);
     for sub in ["lib", "lib64", "usr/bin", "bin"] {
@@ -102,7 +102,7 @@ fn tree(tag: &str) -> std::path::PathBuf {
     d
 }
 
-fn put(p: &Path, bytes: &[u8]) {
+pub(super) fn put(p: &Path, bytes: &[u8]) {
     std::fs::write(p, bytes).unwrap();
     std::fs::set_permissions(p, std::fs::Permissions::from_mode(0o755)).unwrap();
 }
@@ -165,7 +165,7 @@ fn the_walk_follows_links_inside_the_rootfs() {
 }
 
 /// The strings of a launch vector.
-fn strings(v: *const *const c_char) -> Vec<String> {
+pub(super) fn strings(v: *const *const c_char) -> Vec<String> {
     let mut out = Vec::new();
     let mut i = 0;
     while !unsafe { *v.add(i) }.is_null() {

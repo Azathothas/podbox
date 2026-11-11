@@ -71,8 +71,7 @@ fn a_static_head_is_told_from_its_program_headers() {
 }
 
 /// The gaps of the loader family for one payload: a static program that
-/// a `-c` string runs hits T-1652, a dynamic one does not, and T-1703
-/// cannot be told from the argv.
+/// a `-c` string runs hits T-1652, and a dynamic one does not.
 #[test]
 fn the_loader_gaps_name_their_entries_and_their_hits() {
     let d = std::env::temp_dir().join(format!("podvm-gaps-{}", std::process::id()));
@@ -89,17 +88,16 @@ fn the_loader_gaps_name_their_entries_and_their_hits() {
         &path,
     );
     let entries: Vec<_> = gaps.iter().map(|g| g.entry).collect();
-    assert_eq!(entries, vec!["T-1703", "T-1652"]);
-    assert!(gaps[0].hit.is_none());
+    assert_eq!(entries, vec!["T-1652"]);
     assert!(
-        gaps[1].hit.as_deref().unwrap().contains("`stat`"),
+        gaps[0].hit.as_deref().unwrap().contains("`stat`"),
         "{gaps:?}"
     );
     let gaps = loader_gaps(&root, &words(&["sh", "-c", "/bin/dyn"]), false, &path);
     assert!(gaps.iter().all(|g| g.hit.is_none()), "{gaps:?}");
     // The payload itself is decided by the entry: no hit from argv[0].
     let gaps = loader_gaps(&root, &words(&["/bin/stat"]), false, &path);
-    assert!(gaps[1].hit.is_none());
+    assert!(gaps[0].hit.is_none());
     let _ = std::fs::remove_dir_all(&d);
 }
 
@@ -116,7 +114,7 @@ fn strict_refuses_a_capability_gap_that_the_payload_hits() {
         hit: hit.map(str::to_string),
     };
     let warned = StrictCtx {
-        gaps: vec![gap("T-1703", None)],
+        gaps: vec![gap("T-1652", None)],
         ..StrictCtx::default()
     };
     let strict = Ask {

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-329 entries: 33 open, 7 partial, 4 blocked, 285 done.
+329 entries: 32 open, 7 partial, 4 blocked, 286 done.
 
 The state on 2026-11-11:
 
@@ -43,11 +43,9 @@ podrunner first ("podrunner first", the same day). Take the first entry
 that is not done. Read its Prove before you start. Set its status with
 `podvm-count` in the same commit as the work.
 
-1. [T-1703](interpose.md): `fexecve`, `execveat` with flags, `system()`
-   and `popen()` enter through the image's loader. Then
-   [T-1710](interpose.md), [T-1707](enter.md) and [T-1719](enter.md)
+1. [T-1710](interpose.md), [T-1707](enter.md) and [T-1719](enter.md)
    (COORD issues for `pod-enter`), and [T-1706](cli.md) (the official
-   runner on the userland rung, after T-1707; T-1704 and T-1705 are done).
+   runner on the userland rung, after T-1707; T-1703 to T-1705 are done).
 2. [T-1682](machine.md): `kvm.yml`, the Linux guest of the machine tier
    on a hosted runner with `/dev/kvm`. Then [T-1656](machine.md)
    (microVMs from `run`; podrunner's `microvm` unit waits for it, DR-5).
