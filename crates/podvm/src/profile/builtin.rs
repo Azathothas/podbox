@@ -1,5 +1,5 @@
 //! The built-in profiles. TODO/cli.md T-1654, and the provider shapes of
-//! T-1659 (issue 172).
+//! T-1659 (issue 172), and the language runtimes of T-1661 (issue 176).
 //!
 //! Each is TOML, checked by the same code as a user's file. A user file of
 //! the same name under the profile directory takes the place of one. Each
@@ -18,6 +18,9 @@ pub const NAMES: &[&str] = &[
     "busybox-bare",
     "distroless-static",
     "node-shell",
+    "node-permission",
+    "deno-permissions",
+    "bun-runtime",
 ];
 
 /// The text of a built-in profile.
@@ -144,6 +147,50 @@ extends = "workspace"
 leaves_out = ["curl: the image has none"]
 [fs]
 image = "public.ecr.aws/docker/library/node:lts-slim"
+"#
+        }
+        // TODO/cli.md T-1661: language runtimes with their own permission
+        // model. `fs.read` and `fs.write` give the runtime's flags; the
+        // workspace volume and the image give podvm's path map.
+        "node-permission" => {
+            r#"description = "node --permission: reads and writes in /workspace only, no child process"
+extends = "workspace"
+runtime = "node"
+leaves_out = [
+  "the network: Node's permission model has no network rule (net.mode = broker on a tier that holds it)",
+  "a native addon: --permission refuses each one",
+]
+[fs]
+image = "public.ecr.aws/docker/library/node:lts-slim"
+read = ["/workspace"]
+write = ["/workspace"]
+"#
+        }
+        "deno-permissions" => {
+            r#"description = "deno run --no-prompt: reads and writes in /workspace only; env, net, run and ffi denied"
+extends = "workspace"
+runtime = "deno"
+leaves_out = ["a grant of env, net, run or ffi: give it with fs.wrap and no runtime"]
+[fs]
+image = "docker.io/denoland/deno:debian"
+read = ["/workspace"]
+write = ["/workspace"]
+"#
+        }
+        "bun-runtime" => {
+            r#"description = "bun in a guest of the machine tier: Bun has no permission model, and the guest is the boundary"
+extends = "workspace"
+runtime = "bun"
+leaves_out = [
+  "a permission model: Bun has none, so each path of the guest is open to the payload",
+  "a rootfs tier: Bun makes its own system calls, past the interposer, so the path map does not hold it (measured: /workspace/b.js named the host's /workspace)",
+  "a write to /workspace: the guest has a copy",
+]
+[fs]
+image = "docker.io/oven/bun:slim"
+backend = "machine"
+[limits]
+memory = "1g"
 "#
         }
         _ => return None,

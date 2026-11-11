@@ -444,3 +444,24 @@ fn an_empty_path_passes_unchanged() {
     unsafe { std::env::remove_var("PODVM_MAPS") };
     assert_eq!(p, empty.as_ptr());
 }
+
+/// TODO/cli.md T-1661. A call that does not follow its last link keeps the
+/// last name under the resolved parent, except on a mount point: the guest
+/// path of a volume answers with the volume's host path.
+#[test]
+fn a_nofollow_call_on_a_volume_root_takes_the_host_path() {
+    let env = env_of([b"PODVM_MAPS=/:/nonexistent-rootfs-t1661,/workspace:/\0"]);
+    let t = unsafe { parse(env.as_ptr()) };
+    assert_eq!(t.n, 2);
+    let mut out = [0u8; OUT];
+    let n = unsafe { super::links::resolve_links(&t, b"/workspace", false, &mut out) }
+        .expect("resolve");
+    assert_eq!(&out[..n], b"/");
+    let n = unsafe { super::links::resolve_links(&t, b"/workspace/", false, &mut out) }
+        .expect("resolve");
+    assert_eq!(&out[..n], b"/");
+    // A sibling of the volume keeps its name under the rootfs.
+    let n = unsafe { super::links::resolve_links(&t, b"/workspacex", false, &mut out) }
+        .expect("resolve");
+    assert_eq!(&out[..n], b"/nonexistent-rootfs-t1661/workspacex");
+}

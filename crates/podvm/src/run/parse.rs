@@ -51,6 +51,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
     }
     let mut o = parse_flags(verb, &flags)?;
     o.wrap = shape.wrap;
+    o.drops = shape.drops;
     o.needs = shape.needs;
     Ok(o)
 }

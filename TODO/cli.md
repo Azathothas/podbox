@@ -2338,7 +2338,7 @@ Source:      issue 176; #193; the owner's ruling of 2026-11-06;
 Category:    cli
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      partial 2026-11-11
 
 Problem:     For a language runtime with its own permission model, the
              runtime is the boundary. podvm cannot start such a runtime
@@ -2393,6 +2393,40 @@ a message from a peer session) wants a workerd profile with no network.
 `net.ports = []` for the confine layer of T-1658. Where Landlock is absent,
 the profile refuses by name, as T-1658 says. The Chromium half of the ask is
 T-1694.
+
+**Partial 2026-11-11.** `cargo test -p podvm` exits 0 with
+`one_profile_gives_the_runtime_flags_and_the_path_map` (the paths of
+`node-permission` give both `node --permission --allow-fs-read=/workspace
+--allow-fs-write=/workspace` and the `-v` of the path map),
+`each_runtime_gets_its_flags_from_the_paths` and
+`a_repeated_program_is_not_given_twice`. `PODVM_417_MIRROR=1 sh
+experiments/417-runtime-profiles.sh` exits 0
+(`experiments/results/runtime-profiles.txt`): on the chroot-denying
+fixture, `node-permission` prints `permission on`, ERR_ACCESS_DENIED for a
+read of `/etc/hostname` and a write of `/tmp/out.txt`, allows a write of
+`/workspace/out.txt`, and `lstat` of `/workspace` answers a directory;
+`deno-permissions` prints `NotCapable` for the read of `/etc/hostname`, the
+write of `/tmp/out.txt` and `Deno.env`, and reads `/workspace`;
+`bun-runtime` runs a script of `/workspace` in a TCG guest, and no emulator
+stays; `profile show` prints the runtime's flags beside the run flags.
+
+The parts of the build: the top-level key `runtime` (node, deno, bun,
+wasmtime) and the keys `fs.read` and `fs.write`; the runtime and its flags
+prefix the command, and a command that repeats the program (`node a.js`)
+does not give it twice; a runtime profile clears the image's entrypoint
+(`--entrypoint=`, which `run` now takes as docker does). Two defects were
+found and fixed: the interposer answered `lstat("/workspace")` from the
+rootfs, not from the volume (a mount point is never a link, so a call that
+does not follow takes the volume's host path); and the guest's base archive
+copied each hard link in full (busybox:musl took 500 MB).
+
+Measured: on the userland rung, Bun read `/workspace/b.js` of the host's
+own `/workspace`. Bun makes its own system calls, past the interposer, so
+`bun-runtime` runs on the machine tier with 1 GiB.
+
+Remaining: `wasmtime-wasi` (wasmtime needs a download, recorded by hash on
+first use, F25 of issue 176) and `workerd-test` (it needs the confine layer
+of T-1658, which is blocked on COORD-040).
 
 ---
 

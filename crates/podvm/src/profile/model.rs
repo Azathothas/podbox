@@ -13,6 +13,7 @@ const TOP: &[&str] = &[
     "description",
     "leaves_out",
     "needs",
+    "runtime",
     "fs",
     "limits",
     "net",
@@ -28,6 +29,8 @@ const FS: &[&str] = &[
     "workdir",
     "volumes",
     "tmpfs",
+    "read",
+    "write",
 ];
 const LIMITS: &[&str] = &["file_max", "memory", "cpus", "timeout"];
 const NET: &[&str] = &["mode", "ports", "allow"];
@@ -44,6 +47,11 @@ pub struct Checked {
     pub leaves_out: Vec<String>,
     /// The programs that the image must have, or the run refuses.
     pub needs: Vec<String>,
+    /// The language runtime whose flags come from `fs.read` and
+    /// `fs.write` (TODO/cli.md T-1661).
+    pub runtime: Option<String>,
+    pub read: Vec<String>,
+    pub write: Vec<String>,
     /// The image of the shape.
     pub image: Option<String>,
     pub backend: Option<String>,
@@ -240,6 +248,7 @@ pub fn check(t: &Table) -> Result<Checked, String> {
         },
         leaves_out: strings(t, "", "leaves_out")?,
         needs: strings(t, "", "needs")?,
+        runtime: string(t, "", "runtime")?,
         ..Checked::default()
     };
     if let Some(fs) = want_table(t, "fs")? {
@@ -265,6 +274,8 @@ pub fn check(t: &Table) -> Result<Checked, String> {
         c.workdir = string(fs, "fs", "workdir")?;
         c.volumes = strings(fs, "fs", "volumes")?;
         c.tmpfs = strings(fs, "fs", "tmpfs")?;
+        c.read = strings(fs, "fs", "read")?;
+        c.write = strings(fs, "fs", "write")?;
     }
     if let Some(l) = want_table(t, "limits")? {
         only(l, "limits", LIMITS)?;
@@ -319,7 +330,26 @@ pub fn check(t: &Table) -> Result<Checked, String> {
             }
         }
     }
+    runtime_check(&c)?;
     Ok(c)
+}
+
+/// TODO/cli.md T-1661: `fs.read` and `fs.write` give the flags of a
+/// runtime, so each needs one; a runtime and `fs.wrap` both prefix the
+/// command, so a profile has one of them.
+fn runtime_check(c: &Checked) -> Result<(), String> {
+    match &c.runtime {
+        None if !c.read.is_empty() || !c.write.is_empty() => Err(
+            "`fs.read` and `fs.write` give the flags of a runtime, and the profile names \
+             no `runtime` (TODO/cli.md T-1661)"
+                .to_string(),
+        ),
+        Some(_) if !c.wrap.is_empty() => {
+            Err("`runtime` and `fs.wrap` both prefix the command: give one of them".to_string())
+        }
+        Some(r) => super::runtime::prefix(r, &c.read, &c.write).map(|_| ()),
+        None => Ok(()),
+    }
 }
 
 /// The `run` flags of a checked profile. `cwd` resolves a relative
@@ -334,6 +364,11 @@ pub fn run_args(c: &Checked, cwd: &Path) -> Result<Vec<String>, String> {
     }
     if let Some(u) = &c.user {
         a.push(format!("--user={u}"));
+    }
+    // TODO/cli.md T-1661: the runtime is the command; the image's
+    // entrypoint (a `#!` script of most runtime images) does not run.
+    if c.runtime.is_some() {
+        a.push("--entrypoint=".into());
     }
     if c.read_only {
         a.push("--read-only".into());

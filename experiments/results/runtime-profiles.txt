@@ -1,0 +1,37 @@
+== conditions
+date              2026-11-11T13:22:40Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.3
+fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied (clauses 1 and 2)
+machine tier      TCG (clause 3)
+
+== clause 1  node-permission
+  exit 0
+    Status: Downloaded newer image for mirror.gcr.io/library/node:lts-slim
+    permission on
+    read /etc/hostname ERR_ACCESS_DENIED
+    write /tmp/out.txt ERR_ACCESS_DENIED
+    write /workspace/out.txt allowed
+    lstat /workspace directory
+
+== clause 2  deno-permissions
+  exit 0
+    read /etc/hostname NotCapable
+    write /tmp/out.txt NotCapable
+    env HOME NotCapable
+    read /workspace/perm.ts allowed
+
+== clause 3  bun-runtime (machine tier)
+  exit 0
+    bun 1.4.4 95
+
+== clause 4  the runtime's flags beside podvm's path map
+    # profile node-permission (built-in)
+    # run flags: --entrypoint= -v $REPO/experiments/.sweep417-work/proj:/workspace --workdir=/workspace
+    # the runtime enforces: node --permission --allow-fs-read=/workspace --allow-fs-write=/workspace
+    # podvm enforces: the path map of the run flags (-v, --read-only, --tmpfs)
+
+== clause 5  wasmtime-wasi and workerd-test
+  WAITS: wasmtime needs a download recorded by hash on first use (F25); workerd needs T-1658
+
+verdict: THE RUNTIME PROFILES HOLD (a WAITS clause aside)

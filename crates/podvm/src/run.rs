@@ -175,13 +175,24 @@ pub(crate) use prepare::*;
 mod tree;
 pub(crate) use tree::drop_unrecorded;
 
-/// The command under the profile's `fs.wrap` (TODO/cli.md T-1654). An empty
-/// command stays empty, so that its refusal names the image.
-fn wrapped(wrap: &[String], argv: Vec<String>) -> Vec<String> {
-    if wrap.is_empty() || argv.is_empty() {
-        return argv;
+/// The image's entrypoint and `--entrypoint` for `Plan::argv_for`.
+/// docker's `--entrypoint ""` clears the image's entrypoint: the command
+/// (or the image's `Cmd`) runs alone (TODO/cli.md T-1661).
+fn entrypoints<'a>(
+    image: Option<&'a [String]>,
+    o: &'a Opts,
+) -> (Option<&'a [String]>, Option<&'a str>) {
+    match o.entrypoint.as_deref() {
+        Some("") => (None, None),
+        given => (image, given),
     }
-    wrap.iter().cloned().chain(argv).collect()
+}
+
+/// The command under the profile's `fs.wrap` (TODO/cli.md T-1654) or its
+/// runtime (T-1661). An empty command stays empty, so that its refusal
+/// names the image.
+fn wrapped(o: &Opts, argv: Vec<String>) -> Vec<String> {
+    crate::profile::runtime::under(&o.wrap, &o.drops, argv)
 }
 
 mod acquire;

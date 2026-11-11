@@ -53,13 +53,9 @@ fn prepare_image(
     }
     let (rootfs, _) = podvm_extract::paths(store, &record.manifest_digest);
     let cfg = config_of(verb, store, &record)?;
-    let argv = Plan::argv_for(
-        cfg.config.entrypoint.as_deref(),
-        cfg.config.cmd.as_deref(),
-        &o.command,
-        o.entrypoint.as_deref(),
-    );
-    let argv = super::wrapped(&o.wrap, argv); // T-1654: `fs.wrap`
+    let (image_entry, entry) = super::entrypoints(cfg.config.entrypoint.as_deref(), o);
+    let argv = Plan::argv_for(image_entry, cfg.config.cmd.as_deref(), &o.command, entry);
+    let argv = super::wrapped(o, argv); // T-1654: `fs.wrap`
     if argv.is_empty() {
         eprintln!(
             "podvm {verb}: {image} declares neither an Entrypoint nor a Cmd, and no \

@@ -13,6 +13,7 @@
 
 pub mod builtin;
 pub mod model;
+pub mod runtime;
 mod values;
 
 #[cfg(test)]
@@ -47,6 +48,8 @@ pub fn effective(
 pub struct Shape {
     pub flags: Vec<String>,
     pub wrap: Vec<String>,
+    /// The words of the command that `wrap` already holds (T-1661).
+    pub drops: Vec<String>,
     pub image: Option<String>,
     pub needs: Vec<String>,
 }
@@ -62,9 +65,15 @@ pub fn run_args(verb: &str, name: &str, sets: &[String]) -> Result<Shape, i32> {
     let cwd = std::env::current_dir()
         .map_err(|e| fail(format!("profile {name}: the current directory: {e}")))?;
     let flags = model::run_args(&c, &cwd).map_err(|e| fail(format!("profile {name}: {e}")))?;
+    let (wrap, drops) = match &c.runtime {
+        Some(r) => runtime::prefix(r, &c.read, &c.write)
+            .map_err(|e| fail(format!("profile {name}: {e}")))?,
+        None => (c.wrap, Vec::new()),
+    };
     Ok(Shape {
         flags,
-        wrap: c.wrap,
+        wrap,
+        drops,
         image: c.image,
         needs: c.needs,
     })
@@ -202,6 +211,15 @@ fn show(args: &[String]) -> i32 {
             println!("\n# run flags: {}", a.join(" "));
             if !c.wrap.is_empty() {
                 println!("# the command runs under: {}", c.wrap.join(" "));
+            }
+            // TODO/cli.md T-1661: the runtime's flags beside podvm's map.
+            if let Some(r) = &c.runtime
+                && let Ok((p, _)) = runtime::prefix(r, &c.read, &c.write)
+            {
+                println!("# the runtime enforces: {}", p.join(" "));
+                println!(
+                    "# podvm enforces: the path map of the run flags (-v, --read-only, --tmpfs)"
+                );
             }
             0
         }

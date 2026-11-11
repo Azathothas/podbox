@@ -71,7 +71,11 @@ pub unsafe fn resolve_links(
     }
     let cut = g[..end].iter().rposition(|&c| c == b'/').unwrap_or(0);
     let last = &g[cut + 1..end];
-    if follow || last.is_empty() || last == b"." || last == b".." {
+    // A mount point is never a link: the guest path of a volume names the
+    // volume's own host path, also for a call that does not follow
+    // (`lstat("/workspace")` of node --permission, T-1661).
+    let mount = is_mount_point(t, &g[..end]);
+    if follow || mount || last.is_empty() || last == b"." || last == b".." {
         let (_, hn) = unsafe { walk::resolve(t, g, &mut guest, out) }?;
         return Ok(hn);
     }
@@ -89,4 +93,17 @@ pub unsafe fn resolve_links(
     at += last.len();
     out[at] = 0;
     Ok(at)
+}
+
+/// Whether `g` is the guest side of a pair other than `/`.
+fn is_mount_point(t: &Table, g: &[u8]) -> bool {
+    t.pairs[..t.n.min(MAX_PAIRS)].iter().any(|p| {
+        // SAFETY: each pair borrows environ memory, valid for the process.
+        let from = unsafe { core::slice::from_raw_parts(p.from_p, p.from_n) };
+        let mut n = from.len();
+        while n > 1 && from[n - 1] == b'/' {
+            n -= 1;
+        }
+        n > 1 && &from[..n] == g
+    })
 }

@@ -38,6 +38,9 @@ pub(crate) struct Opts {
     pub(crate) sets: Vec<String>,
     /// `fs.wrap` of the profile: a prefix of the command.
     pub(crate) wrap: Vec<String>,
+    /// The words of the command that `wrap` already holds: the runtime of
+    /// the profile (TODO/cli.md T-1661).
+    pub(crate) drops: Vec<String>,
     /// `needs` of the profile: the programs that the image must have
     /// (TODO/cli.md T-1659).
     pub(crate) needs: Vec<String>,
@@ -113,6 +116,7 @@ impl Opts {
             profile: None,
             sets: Vec::new(),
             wrap: Vec::new(),
+            drops: Vec::new(),
             needs: Vec::new(),
             broker: false,
             ports: Vec::new(),

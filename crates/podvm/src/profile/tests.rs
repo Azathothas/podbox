@@ -219,3 +219,27 @@ fn a_provider_shape_names_its_image_and_its_identity() {
     set(&mut t, "needs=[\"curl\"]").unwrap();
     assert_eq!(check(&t).unwrap().needs, vec!["curl".to_string()]);
 }
+
+/// TODO/cli.md T-1661: one profile's paths give both the runtime's flags
+/// and podvm's path map.
+#[test]
+fn one_profile_gives_the_runtime_flags_and_the_path_map() {
+    let (_, c, _) = super::effective("node-permission", &[]).unwrap();
+    let cwd = std::env::current_dir().unwrap();
+    let flags = run_args(&c, &cwd).unwrap();
+    assert!(
+        flags.iter().any(|f| f.ends_with(":/workspace")),
+        "{flags:?}"
+    );
+    assert!(flags.contains(&"--entrypoint=".to_string()), "{flags:?}");
+    let (p, d) = super::runtime::prefix(c.runtime.as_deref().unwrap(), &c.read, &c.write).unwrap();
+    assert_eq!(p[..2], ["node".to_string(), "--permission".to_string()]);
+    assert!(p.contains(&"--allow-fs-read=/workspace".to_string()));
+    assert!(p.contains(&"--allow-fs-write=/workspace".to_string()));
+    assert_eq!(d, ["node".to_string()]);
+    // A path without a runtime, and a runtime beside fs.wrap, refuse.
+    let e = super::effective("workspace", &["fs.read=[\"/x\"]".into()]).unwrap_err();
+    assert!(e.contains("runtime"), "{e}");
+    let e = super::effective("node-permission", &["fs.wrap=[\"env\"]".into()]).unwrap_err();
+    assert!(e.contains("fs.wrap"), "{e}");
+}

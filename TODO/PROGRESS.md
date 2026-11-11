@@ -7,7 +7,7 @@ start.
 
 ## State
 
-340 entries: 17 open, 7 partial, 7 blocked, 309 done.
+340 entries: 16 open, 8 partial, 7 blocked, 309 done.
 
 The state on 2026-11-11:
 
@@ -94,7 +94,7 @@ that is not done. Read its Prove before you start. Set its status with
    wait with it),
    [T-1663](net.md) and [T-1664](net.md) (on T-1656), the profiles
    [T-1659](cli.md) (partial: the lambda-al2023 clause waits for
-   COORD-042, issue 261), [T-1661](cli.md) and [T-1660](cli.md), and
+   COORD-042, issue 261), [T-1661](cli.md) (partial: wasmtime-wasi waits for a first-use asset record, workerd-test for T-1658) and [T-1660](cli.md), and
    [T-1668](gate.md) beside them.
 9. The record and the tree: [T-1679](deps.md) (`pod-services`),
     [T-1672](gate.md) (the record in the format of `pod-todo`), then
