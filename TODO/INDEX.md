@@ -381,14 +381,14 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1705](interpose.md) | P1 | interpose | done | A host path that a loaded object reports gets the rootfs prefix a second time |
 | [T-1706](cli.md) | P2 | cli | open | The unmodified official `actions/runner` starts on the userland rung |
 | [T-1707](enter.md) | P1 | enter | open | A relative first program resolves against the image root, not against `-w` |
-| [T-1708](supervise.md) | P1 | supervise | blocked | `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper |
+| [T-1708](supervise.md) | P1 | supervise | partial | `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper |
 | [T-1709](image.md) | P1 | image | open | Each container gets its own rootfs: a write in one container is not read by another |
 | [T-1710](interpose.md) | P1 | interpose | open | A Unix socket path in `connect` and `bind` passes the path table |
 | [T-1711](cli.md) | P2 | cli | open | The calls of the four container-hook commands run through podvm verbs on the userland rung |
 | [T-1712](cli.md) | P1 | cli | done | `--podvm-tier=chroot` does nothing: it runs the ladder |
 | [T-1713](cli.md) | P1 | cli | done | `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied |
 | [T-1714](probe.md) | P2 | probe | blocked | `podvm probe --json` validates against the published schema of `pod-hostprobe` |
-| [T-1715](supervise.md) | P2 | supervise | partial | The container table keeps `-e` values in a file that other users can read |
+| [T-1715](supervise.md) | P2 | supervise | done | The container table keeps `-e` values in a file that other users can read |
 | [T-1716](enter.md) | P2 | enter | done | Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w` |
 | [T-1717](machine.md) | P2 | machine | open | Study incus without root and without heavy overhead, with errand-box, before an incus back end |
 | [T-1718](machine.md) | P2 | machine | blocked | An incus back end: podvm drives incus over its REST API |
@@ -396,7 +396,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-328 items: 34 open, 9 partial, 5 blocked, 280 done.
+328 items: 34 open, 9 partial, 4 blocked, 281 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -406,10 +406,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 4 | 6 | 1 | 134 | 145 |
-| P2 | 30 | 2 | 4 | 73 | 109 |
+| P1 | 4 | 7 | 0 | 134 | 145 |
+| P2 | 30 | 1 | 4 | 74 | 109 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **34** | **9** | **5** | **280** | **328** |
+| **All** | **34** | **9** | **4** | **281** | **328** |
 
 ## Work order
 

@@ -15,9 +15,10 @@ file when each step below is done.
 * The newest release is `v0.2.0-beta.2` (2026-11-10). A release starts
   from `release.yml`; dispatch `nightly.yml` with `trial=true` on `main`
   first.
-* podvm takes 11 crates of PodUtils/podcrates at `v0.15.0` (`27a4ccd`),
-  the last podcrates tag, with the `pod-enter` change of podcrates T-155
-  (T-1716; PodUtils/podcrates#52, #54).
+* podvm takes 11 crates of PodUtils/podcrates at `v0.16.0` (`60a675c`),
+  the last podcrates tag (the tree kill and the private modes,
+  PodUtils/podcrates#57). `v0.17.0` will carry the child limits of
+  T-1655 (podcrates T-176, COORD-027).
 * PodUtils/podrunner has a lead session since 2026-11-11 (DR-1 and DR-2
   are yes). It writes to podvm by a COORD issue of podrunner titled
   `(to podvm)`; the watcher of the organization reads it.
@@ -29,8 +30,6 @@ file when each step below is done.
   blocked: no release), `pod-services` (T-1679, open) and `pod-todo`
   (T-1680, blocked on T-1672).
 * COORD-024 (#242, to podcrates): the take of `v0.15.0` (T-1716).
-* COORD-026 (#244, to podcrates): a tag with T-162 (T-1708) and the
-  private modes of `pod-supervise` (T-1715).
 * COORD-027 (#245, to podcrates): resource limits and `no_new_privs` in
   the child of `pod-enter` (T-1655).
 * COORD-025 (#243, to podcrates): the answer to PodUtils/podcrates#56
@@ -42,8 +41,8 @@ file when each step below is done.
 
 ## Next steps, in order
 
-1. The work order of `TODO/PROGRESS.md`. Item 1 waits for podcrates
-   (T-1708 for a tag with T-162, T-1715 and T-1655 for COORD-026 and
-   COORD-027); T-1655's own parts can go on. Item 2 is next: T-1703,
+1. The work order of `TODO/PROGRESS.md`. Item 1: T-1708 (partial: its
+   `inspect`, `rm -f` and experiment 429), then T-1655 (its limits wait
+   for podcrates `v0.17.0`). Item 2 is next: T-1703,
    then T-1710, T-1707 and T-1719. T-1716, T-1712, T-1713, T-1704 and
    T-1705 are done on 2026-11-11.

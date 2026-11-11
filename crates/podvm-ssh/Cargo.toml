@@ -15,15 +15,15 @@ podvm-probe = { path = "../podvm-probe" }
 # control frames. The websocket framing itself is hand-rolled in `ws.rs`: the opcode
 # travels with the frame, which no byte-pipe websocket API preserves.
 rustls.workspace = true
-pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.15.0", default-features = false }
+pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.16.0", default-features = false }
 # The proxy of a relay leg (`transport/egress.rs`): the rules of `HTTPS_PROXY`,
 # `ALL_PROXY` and `NO_PROXY`, and the dial through an HTTP CONNECT or SOCKS5
 # proxy, shared with podssh and podnet through PodUtils/podcrates. The
 # blocking face runs on a private runtime of one thread; podvm's own code
 # stays synchronous.
-pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.15.0", default-features = false, features = ["blocking"] }
+pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.16.0", default-features = false, features = ["blocking"] }
 serde_json.workspace = true
 base64.workspace = true
 # The line discipline of a session with no pty (`session.rs`), shared with
 # podssh through PodUtils/podcrates.
-pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.15.0" }
+pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.16.0" }

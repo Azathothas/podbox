@@ -21,6 +21,8 @@ fn the_declared_container_fields_are_the_built_ones() {
         launcher_pid: None,
         exit_code: None,
         noticed: None,
+        wall_ms: None,
+        end: None,
         of: podvm_supervise::table::Detail {
             image: "img".into(),
             manifest_digest: "sha256:0".into(),
@@ -86,6 +88,8 @@ fn the_ps_fields_are_the_ones_the_template_check_allows() {
         launcher_pid: Some(6),
         exit_code: None,
         noticed: None,
+        wall_ms: None,
+        end: None,
         of: podvm_supervise::table::Detail {
             image: "img".into(),
             manifest_digest: "sha256:0".into(),
@@ -103,8 +107,7 @@ fn the_ps_fields_are_the_ones_the_template_check_allows() {
 }
 
 /// TODO/milestones.md T-1112. A guest that is not Linux is refused by
-/// name with the missing leg, on every entry path, rather than pulled
-/// and failed inside.
+/// name with the missing leg, on every entry path, not pulled and failed.
 #[test]
 fn a_non_linux_guest_is_refused_by_name() {
     assert_eq!(

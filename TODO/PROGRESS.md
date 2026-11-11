@@ -7,7 +7,7 @@ start.
 
 ## State
 
-328 entries: 34 open, 9 partial, 5 blocked, 280 done.
+328 entries: 34 open, 9 partial, 4 blocked, 281 done.
 
 The state on 2026-11-11:
 
@@ -17,16 +17,17 @@ The state on 2026-11-11:
 * podvm takes 11 crates of PodUtils/podcrates (`pod-core`, `pod-tls`,
   `pod-proxy`, `pod-term`, `pod-hostprobe`, `pod-supervise`, `pod-guest`,
   `pod-enter`, `pod-oci`, `pod-extract`, `pod-rootfs`) at the tag
-  `v0.15.0` (T-1675 to T-1677, T-1681, T-1716). A change of moved code
+  `v0.16.0` (T-1675 to T-1677, T-1681, T-1716, T-1708). A change of moved code
   goes to podcrates as a COORD issue.
 * The errand-host entries T-1643 to T-1650 are done. Their issues are
   closed. Issue 114 is the dossier behind the open rungs T-1651 to T-1653.
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`.
   The KVM legs of T-1112, T-1350 and T-1641 need a host with `/dev/kvm`.
   T-1682 gives them a hosted runner.
-* podcrates `v0.15.0` (2026-11-10) is the last tag. podvm took it with
-  [T-1716](enter.md), with the `pod-enter` change of podcrates T-155
-  (PodUtils/podcrates#54).
+* podcrates `v0.16.0` (2026-11-11) is the last tag, and podvm takes it
+  (the tree kill of T-1708, the modes of T-1715, PodUtils/podcrates#57).
+  `v0.17.0` will carry `Plan::limits` and `no_new_privs` of `pod-enter`
+  (podcrates T-176) for T-1655.
 * PodUtils/podrunner has a lead session since 2026-11-11 (the ruling
   "podrunner online"): DR-1 and DR-2 are yes. Its issues are under
   PodUtils/podrunner#1; podvm's part is T-1704 to T-1715 (issues 229 to
@@ -44,9 +45,8 @@ podrunner first ("podrunner first", the same day). Take the first entry
 that is not done. Read its Prove before you start. Set its status with
 `podvm-count` in the same commit as the work.
 
-1. [T-1708](supervise.md) (blocked: a podcrates tag with T-162) and
-   [T-1715](supervise.md) (partial: the modes of `pod-supervise`), one
-   COORD batch to podcrates (COORD-026, issue 244). Then
+1. [T-1708](supervise.md), partial: podcrates `v0.16.0` carries the tree
+   kill; podvm's `inspect`, `rm -f` and experiment 429 remain. Then
    [T-1655](cli.md): each flag of the hardening line works on the tier or
    refuses by name. Its read-only layer closes the last clause of
    [T-1653](enter.md), `-v HOST:GUEST:ro` with `EROFS` (issue 130).

@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.16.0, 2026-11-11
+
+Record: T-1708 (partial), T-1715; PodUtils/podcrates#57.
+Deployed: not deployed; no version change.
+
+- podvm takes the 11 crates at `v0.16.0`. The launcher of a detached run
+  is the subreaper of the payload's tree and kills each process of the
+  tree at the end of the payload, also a grandchild that left the process
+  group. The container table and each log are 0600, and each container
+  directory is 0700.
+
 ### Fixed: the paths that the loader gives, 2026-11-11
 
 Record: T-1705; issue 230.

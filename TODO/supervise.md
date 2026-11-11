@@ -912,7 +912,7 @@ Source:      issue 233; the podrunner design review (the owner's design
 Category:    supervise
 Priority:    P1
 Effort:      M
-Status:      blocked
+Status:      partial
 
 Problem:     `stop`, `kill` and `rm -f` signal the payload only. A
              grandchild that the payload's exit orphaned, or that left the
@@ -972,6 +972,18 @@ issue 244). Then podvm moves the pins, gives `inspect` the count, makes
 `rm -f` exit 125 with the pids where the count is not 0, and runs the
 Prove.
 
+**Partial, 2026-11-11.** podcrates `v0.16.0` (`60a675c`,
+PodUtils/podcrates#57) carries T-162, and podvm takes it: the launcher of
+each detached run is the child subreaper of the payload's tree
+(`Settings::kill_tree`, on by default), kills each descendant at the end of
+the payload, and writes `Container::end` (the reason, the times, the peak
+resident set and `residual_processes`, a number or `unknown`).
+`cargo test --workspace` exits 0 at the take. Remaining: `inspect` and
+`ps` show the end and the count, `rm -f` exits 125 and names the pids
+where the count is not 0, the foreground run does the same in podvm's own
+process, `--timeout` over `set_wall` (T-1655), and the new experiment 429 under
+`experiments/` (`429-tree-kill.sh`) with the runs of the Prove.
+
 **Filed 2026-11-10.** From issue 233 and the podrunner design review
 (the ruling "podrunner", 2026-11-10), WP-C2: "tree kill, timeout,
 rusage. The mechanism of section 10.4 placed in podvm's launcher". T-1655 keeps
@@ -988,7 +1000,7 @@ Source:      issue 240; the podrunner design review (the owner's design
 Category:    supervise
 Priority:    P2
 Effort:      S
-Status:      partial
+Status:      done
 
 Problem:     `run -e K=V` and `--env-file` store each value in the
              container record. The table writer uses the process umask,
@@ -1015,6 +1027,16 @@ Decision:    podvm keeps `env` in the record, because `exec` needs it, and
              runner, PodUtils/podrunner#6), and the help of `-e` says so.
 Prove:       `cargo test -p podvm` exits 0 with tests that the store root
              is 0700 and the table is 0600 under umask 022.
+
+**Done 2026-11-11.** podcrates `v0.16.0` (`60a675c`, its T-175,
+PodUtils/podcrates#57) writes the table and each log 0600 from the first
+byte and creates each container directory and `staging/` 0700; podvm takes
+it with the pins of its 11 crates. The record below gives podvm's part.
+Proof, on the cloud host, 2026-11-11: `cargo test -p podvm-supervise`
+exits 0 with `the_record_of_an_env_value_is_private_under_umask_022` (a
+record with an `-e` value under umask 022: the store root and the
+container directory 0700, the table 0600), beside the tests of the record
+below.
 
 **Partial, 2026-11-11.** podvm's part is done. `Store::open` creates a
 store root that does not exist with mode 0700 (`create_private_root` in

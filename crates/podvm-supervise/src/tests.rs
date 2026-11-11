@@ -103,3 +103,40 @@ fn referencing_finds_records_by_manifest_digest() {
     assert!(e.0.contains("`podvm ps -a` lists what there is"), "{e}");
     let _ = std::fs::remove_dir_all(&d);
 }
+
+/// TODO/supervise.md T-1715. Under umask 022 the record of a container that
+/// keeps an `-e` value is private: the store root and the container's
+/// directory are 0700, the table 0600 (`pod-supervise` v0.16.0, its T-175;
+/// the root is podvm's).
+#[test]
+fn the_record_of_an_env_value_is_private_under_umask_022() {
+    use std::os::unix::fs::PermissionsExt;
+    unsafe extern "C" {
+        fn umask(mask: u32) -> u32;
+    }
+    // The usual default; other tests of this binary expect no other.
+    unsafe { umask(0o022) };
+    let mode = |p: &std::path::Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+    let d = std::env::temp_dir().join(format!("podvm-modes-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    let s = Store::open(&d).unwrap();
+    let c = create(
+        &s,
+        Some("m1"),
+        "img",
+        "sha256:0",
+        "/tmp",
+        vec!["true".into()],
+        vec!["K1715=value".into()],
+        "/".into(),
+        "chroot",
+        Vec::new(),
+        0,
+        Vec::new(),
+    )
+    .unwrap();
+    assert_eq!(mode(&d), 0o700, "store root");
+    assert_eq!(mode(&table::dir(&s, &c.id)), 0o700, "container directory");
+    assert_eq!(mode(&d.join(table::TABLE_FILE)), 0o600, "table");
+    let _ = std::fs::remove_dir_all(&d);
+}
