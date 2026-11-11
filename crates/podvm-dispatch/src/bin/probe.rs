@@ -28,6 +28,7 @@ unsafe extern "C" {
     fn signal(sig: i32, h: extern "C" fn(i32)) -> usize;
     fn raise(sig: i32) -> i32;
     fn _exit(c: i32) -> !;
+    fn uname(buf: *mut u8) -> i32;
 }
 
 fn main() {
@@ -117,6 +118,41 @@ fn main() {
                 ),
                 Err(e) => println!("ERR {e}"),
             }
+        }
+        // T-1657: the release of uname(2).
+        "uname" => {
+            let mut u = [0u8; 390];
+            // SAFETY: uname writes 390 bytes.
+            let r = unsafe { uname(u.as_mut_ptr()) };
+            let rel = &u[130..195];
+            let end = rel.iter().position(|&c| c == 0).unwrap_or(rel.len());
+            println!("{r} {}", String::from_utf8_lossy(&rel[..end]));
+        }
+        // T-1657: the cap of /tmp, in one process tree: a file of N bytes,
+        // a second of M bytes from a child, the first removed, the second
+        // again.
+        "tmpcap" => {
+            let n: usize = arg(2).parse().unwrap_or(0);
+            let m: usize = arg(3).parse().unwrap_or(0);
+            let put = |p: &str, k: usize| match std::fs::write(p, vec![b'x'; k]) {
+                Ok(()) => "ok".to_string(),
+                Err(e) => format!("{}", e.raw_os_error().unwrap_or(-1)),
+            };
+            let a = put("/tmp/a", n);
+            // SAFETY: the child writes and exits with no other thread.
+            let pid = unsafe { fork() };
+            if pid == 0 {
+                let b = put("/tmp/b", m);
+                // SAFETY: exit the child.
+                unsafe { _exit(if b == "ok" { 0 } else { b.parse().unwrap_or(1) }) };
+            }
+            let mut st = 0;
+            // SAFETY: st lives for the call.
+            unsafe { waitpid(pid, &mut st, 0) };
+            let b = (st >> 8) & 0xff;
+            let rm = std::fs::remove_file("/tmp/a").is_ok();
+            let b2 = put("/tmp/b", m);
+            println!("a={a} b={b} rm={rm} b2={b2}");
         }
         "alloc" => {
             let v: Vec<u8> = vec![7; 64 << 20];

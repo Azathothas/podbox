@@ -124,5 +124,6 @@ pub fn decide(
         maps: maps.clone(),
         dispatch_exe: Some(guest.to_string()),
         emulator: Some(format!("{machine}:{}", qemu.display())),
+        syscall: false,
     })
 }

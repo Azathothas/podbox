@@ -8,6 +8,18 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the syscall tier, 2026-11-11
+
+Record: T-1657; issue 169.
+Deployed: not deployed; no version change.
+
+- `run --podvm-tier=syscall` runs a static program on the native-static
+  rung with the view of a syscall-interpreting tier: `uname -r` names the
+  tier, `/tmp` is a directory of the run with a cap (`--tmpfs
+  /tmp:size=`, 256 MiB by default), `/proc/self` names guest paths, and a
+  `-v` volume writes through. It needs no ptrace, no qemu and no user
+  namespace. It is a compatibility layer, not a boundary.
+
 ### Added: profiles, 2026-11-11
 
 Record: T-1654; issue 166.

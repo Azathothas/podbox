@@ -39,6 +39,8 @@ mod signals;
 mod state;
 #[cfg(target_arch = "x86_64")]
 mod sys;
+#[cfg(target_arch = "x86_64")]
+pub mod tier;
 
 #[cfg(all(test, target_arch = "x86_64"))]
 mod tests;
@@ -55,6 +57,12 @@ pub const EXE_VAR: &str = "PODVM_DISPATCH_EXE";
 pub const EMU_VAR: &str = "PODVM_DISPATCH_EMU";
 /// The argument after [`ENTER_ARG`] that names the emulator.
 pub const EMU_ARG: &str = "--podvm-dispatch-emu=";
+/// The variable that turns on the syscall tier (TODO/enter.md T-1657):
+/// `CAP` (the bytes of `/tmp`) at the first entry, `CAP:FD` across an
+/// `execve`.
+pub const TIER_VAR: &str = "PODVM_DISPATCH_TIER";
+/// The release that `uname` gives on the syscall tier (T-1657).
+pub const TIER_RELEASE: &str = "6.1.0-podvm-syscall";
 
 /// The variable that names podvm itself (its host path) for the
 /// interposer: a static child of the loader family enters this rung
@@ -133,6 +141,7 @@ pub const ENTER_ARG: &str = "--podvm-dispatch-enter";
 pub fn main_if_entered(product: &str) {
     let mut args: Vec<OsString> = std::env::args_os().collect();
     let mut emu: Option<OsString> = std::env::var_os(EMU_VAR);
+    let tier: Option<OsString> = std::env::var_os(TIER_VAR);
     if args.get(1).is_some_and(|a| a == ENTER_ARG)
         && let Some(spec) = args
             .get(2)
@@ -154,6 +163,7 @@ pub fn main_if_entered(product: &str) {
         std::env::remove_var(ROOT_VAR);
         std::env::remove_var(EXE_VAR);
         std::env::remove_var(EMU_VAR);
+        std::env::remove_var(TIER_VAR);
     }
     let envp: Vec<OsString> = std::env::vars_os()
         .map(|(k, v)| {
@@ -167,6 +177,7 @@ pub fn main_if_entered(product: &str) {
         std::path::Path::new(&root),
         exe.as_bytes(),
         emu.as_ref().map(|e| e.as_bytes()),
+        tier.as_ref().map(|t| t.as_bytes()),
         argv,
         envp,
     );
@@ -179,9 +190,19 @@ fn run(
     root: &std::path::Path,
     exe: &[u8],
     emu: Option<&[u8]>,
+    tier: Option<&[u8]>,
     argv: Vec<OsString>,
     envp: Vec<OsString>,
 ) -> String {
+    if let Some(spec) = tier
+        && !tier::set(spec)
+    {
+        return format!(
+            "the syscall tier {:?} is not CAP or CAP:FD, or its count cannot be mapped \
+             (TODO/enter.md T-1657)",
+            String::from_utf8_lossy(spec)
+        );
+    }
     enter::enter(root, exe, emu, argv, envp)
 }
 
@@ -189,6 +210,7 @@ fn run(
 fn run(
     _: &std::path::Path,
     _: &[u8],
+    _: Option<&[u8]>,
     _: Option<&[u8]>,
     _: Vec<OsString>,
     _: Vec<OsString>,

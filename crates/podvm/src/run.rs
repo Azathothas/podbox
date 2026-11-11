@@ -113,7 +113,10 @@ pub const RUN_OPTIONS: &str = "\
                    the image in an incusd that answers on INCUS_DIR's
                    socket (run only, TODO/machine.md T-1718), emulate runs
                    it under a static qemu-user of PATH on the native-static
-                   rung (run only, TODO/enter.md T-1651), and each
+                   rung (run only, TODO/enter.md T-1651), syscall runs a
+                   static program on that rung with a fixed uname, a
+                   capped /tmp of the run and guest paths in /proc/self
+                   (a foreground run only, TODO/enter.md T-1657), and each
                    other value is a flag error. With no flag the ladder
                    selects, under every name the binary answers to, and
                    `system info` names the entered rung (TODO/machine.md

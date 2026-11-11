@@ -177,9 +177,40 @@ fn open(dirfd: i64, p: i64, flags: i64, mode: i64) -> i64 {
             if f & sys::O_PATH != 0 {
                 f &= sys::O_PATH | sys::O_DIRECTORY | sys::O_NOFOLLOW | sys::O_CLOEXEC;
             }
-            path::open_in(buf, n, f, mode, 0)
+            let fd = path::open_in(buf, n, f, mode, 0);
+            // T-1657: a descriptor of the sized `/tmp`.
+            if fd >= 0 && crate::tier::on() && crate::tier::under_tmp(&buf[..n]) {
+                crate::tier::mark(fd, true);
+            }
+            fd
         }
     }
+}
+
+/// T-1657: `unlinkat` that gives back the bytes of a file under the sized
+/// `/tmp`.
+fn unlink(dirfd: i64, p: i64, flags: i64) -> i64 {
+    let mut freed = 0;
+    if crate::tier::on()
+        && flags & AT_REMOVEDIR == 0
+        && let (Ok(path), Some(mut g)) = (arg(p), crate::pool::Buf::get())
+    {
+        let buf = g.buf();
+        if let Ok(Target::Root(n)) = target(dirfd, path, buf)
+            && crate::tier::under_tmp(&buf[..n])
+        {
+            let fd = path::open_in(buf, n, sys::O_PATH | sys::O_NOFOLLOW | sys::O_CLOEXEC, 0, 0);
+            if fd >= 0 {
+                freed = crate::tier::freed_by_unlink(fd);
+                sys::close(fd);
+            }
+        }
+    }
+    let r = on_parent(nr::UNLINKAT, dirfd, p, flags, 0, 0);
+    if r == 0 && freed > 0 {
+        crate::tier::unlinked(freed);
+    }
+    r
 }
 
 /// `readlinkat`, with the answers of `/proc/self` in guest paths.
@@ -341,9 +372,9 @@ pub fn path_call(n: i64, a: [i64; 6]) -> Option<i64> {
         nr::MKDIRAT => on_parent(n, a[0], a[1], a[2], 0, 0),
         nr::MKNOD => on_parent(nr::MKNODAT, f, a[0], a[1], a[2], 0),
         nr::MKNODAT => on_parent(n, a[0], a[1], a[2], a[3], 0),
-        nr::UNLINK => on_parent(nr::UNLINKAT, f, a[0], 0, 0, 0),
+        nr::UNLINK => unlink(f, a[0], 0),
         nr::RMDIR => on_parent(nr::UNLINKAT, f, a[0], AT_REMOVEDIR, 0, 0),
-        nr::UNLINKAT => on_parent(n, a[0], a[1], a[2], 0, 0),
+        nr::UNLINKAT => unlink(a[0], a[1], a[2]),
         nr::SYMLINK => symlink(a[0], f, a[1]),
         nr::SYMLINKAT => symlink(a[0], a[1], a[2]),
         nr::RENAME => two(nr::RENAMEAT2, f, a[0], f, a[1], 0),

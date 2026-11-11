@@ -50,7 +50,17 @@ fn root(name: &str) -> Option<Root> {
 
 /// Run `/bin/probe VERB ARGS` in the root: its stdout and exit code.
 fn probe(r: &Root, args: &[&str]) -> (String, i32) {
-    let out = Command::new(env!("CARGO_BIN_EXE_podvm-dispatch-run"))
+    probe_with(r, args, None)
+}
+
+/// As [`probe`], on the syscall tier where `tier` is `Some(CAP)` (T-1657).
+fn probe_with(r: &Root, args: &[&str], tier: Option<&str>) -> (String, i32) {
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_podvm-dispatch-run"));
+    match tier {
+        Some(t) => cmd.env(podvm_dispatch::TIER_VAR, t),
+        None => cmd.env_remove(podvm_dispatch::TIER_VAR),
+    };
+    let out = cmd
         .arg(&r.0)
         .arg("/bin/probe")
         .arg("probe")
@@ -191,4 +201,44 @@ fn the_emulator_runs_the_program_and_its_children_in_the_root() {
         run(&["spawn", "/bin/probe", "cat", "/etc/podvm-marker"]),
         "spawn 0 inroot"
     );
+}
+
+/// T-1657: on the syscall tier, `uname` names the tier; off it, the host's
+/// release.
+#[test]
+fn the_syscall_tier_answers_uname_with_its_release() {
+    let Some(r) = root("uname") else { return };
+    let (on, code) = probe_with(&r, &["uname"], Some("1048576"));
+    assert_eq!(code, 0);
+    assert_eq!(on, "0 6.1.0-podvm-syscall");
+    let (off, _) = probe(&r, &["uname"]);
+    assert!(off.starts_with("0 ") && !off.contains("podvm"), "{off}");
+}
+
+/// T-1657: the cap of `/tmp` holds across a fork, an unlink gives the
+/// space back, and a write over the cap fails with ENOSPC (28).
+#[test]
+fn the_syscall_tier_caps_tmp_across_a_fork() {
+    let Some(r) = root("tmpcap") else { return };
+    let (got, code) = probe_with(&r, &["tmpcap", "800", "400"], Some("1000"));
+    assert_eq!(code, 0);
+    assert_eq!(got, "a=ok b=28 rm=true b2=ok");
+    // With no tier, no cap.
+    let (got, _) = probe(&r, &["tmpcap", "800", "400"]);
+    assert_eq!(got, "a=ok b=0 rm=true b2=ok");
+}
+
+/// T-1657: resolution fails closed: a missing file of the root is ENOENT
+/// even where the host has one.
+#[test]
+fn a_missing_file_of_the_root_is_enoent_and_not_the_hosts() {
+    let Some(r) = root("missing") else { return };
+    assert!(
+        std::path::Path::new("/etc/passwd").exists(),
+        "the host has one"
+    );
+    let (got, _) = probe_with(&r, &["cat", "/etc/passwd"], Some("1048576"));
+    assert!(got.starts_with("ERR No such file"), "{got}");
+    let (got, _) = probe(&r, &["cat", "/bin/../../etc/passwd"]);
+    assert!(got.starts_with("ERR No such file"), "{got}");
 }

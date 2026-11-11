@@ -13,6 +13,7 @@ use crate::sys::{self, nr, sc, sc6, AT_EMPTY_PATH, AT_FDCWD};
 pub const ROOT_VAR: &[u8] = b"PODVM_DISPATCH_ROOT=";
 pub const EXE_VAR: &[u8] = b"PODVM_DISPATCH_EXE=";
 pub const EMU_VAR: &[u8] = b"PODVM_DISPATCH_EMU=";
+pub const TIER_VAR: &[u8] = b"PODVM_DISPATCH_TIER=";
 const X_OK: i64 = 1;
 const MAP_PRIVATE_ANON: i64 = 0x22;
 
@@ -124,8 +125,24 @@ pub fn execveat(dirfd: i64, p: i64, argv: i64, envp: i64, flags: i64) -> i64 {
     } else {
         EMU_VAR.len() + 6 + emu.len() + 1
     };
-    let strings = ROOT_VAR.len() + root.len() + 1 + EXE_VAR.len() + n + 1 + emu_spec_len;
-    let size = ((count + 4) * 8 + strings + 4095) & !4095;
+    // T-1657: the syscall tier and its count, as `CAP:FD`.
+    let mut tier = [0u8; 48];
+    let tier_len = if crate::tier::on() {
+        crate::tier::spec(&mut tier)
+    } else {
+        0
+    };
+    let strings = ROOT_VAR.len()
+        + root.len()
+        + 1
+        + EXE_VAR.len()
+        + n
+        + 1
+        + emu_spec_len
+        + TIER_VAR.len()
+        + tier_len
+        + 1;
+    let size = ((count + 5) * 8 + strings + 4095) & !4095;
     // SAFETY: an anonymous map for the new array; it ends with the exec.
     let mem = unsafe { sc6(nr::MMAP, 0, size as i64, 3, MAP_PRIVATE_ANON, -1, 0) };
     if mem < 0 {
@@ -138,14 +155,18 @@ pub fn execveat(dirfd: i64, p: i64, argv: i64, envp: i64, flags: i64) -> i64 {
         for i in 0..count {
             let e = *(envp as *const i64).add(i);
             let s = sys::cstr(e, 1 << 20).unwrap_or(&[]);
-            if s.starts_with(ROOT_VAR) || s.starts_with(EXE_VAR) || s.starts_with(EMU_VAR) {
+            if s.starts_with(ROOT_VAR)
+                || s.starts_with(EXE_VAR)
+                || s.starts_with(EMU_VAR)
+                || s.starts_with(TIER_VAR)
+            {
                 continue;
             }
             *arr.add(k) = e;
             k += 1;
         }
         let mut at = mem as *mut u8;
-        at = at.add((count + 4) * 8);
+        at = at.add((count + 5) * 8);
         for (name, value) in [(ROOT_VAR, root), (EXE_VAR, &buf[..n])] {
             *arr.add(k) = at as i64;
             k += 1;
@@ -182,6 +203,16 @@ pub fn execveat(dirfd: i64, p: i64, argv: i64, envp: i64, flags: i64) -> i64 {
             at = at.add(1);
             core::ptr::copy_nonoverlapping(emu.as_ptr(), at, emu.len());
             at = at.add(emu.len());
+            *at = 0;
+            at = at.add(1);
+        }
+        if tier_len > 0 {
+            *arr.add(k) = at as i64;
+            k += 1;
+            core::ptr::copy_nonoverlapping(TIER_VAR.as_ptr(), at, TIER_VAR.len());
+            at = at.add(TIER_VAR.len());
+            core::ptr::copy_nonoverlapping(tier.as_ptr(), at, tier_len);
+            at = at.add(tier_len);
             *at = 0;
         }
         *arr.add(k) = 0;

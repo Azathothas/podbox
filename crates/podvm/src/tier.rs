@@ -22,6 +22,8 @@ pub enum Want {
     Incus,
     /// TODO/enter.md T-1651: a static qemu-user on the native-static rung.
     Emulate,
+    /// TODO/enter.md T-1657: the syscall tier on the native-static rung.
+    Syscall,
 }
 
 /// The validated value of one `--podvm-tier` spelling, or `None` where the
@@ -31,6 +33,7 @@ pub fn want(s: &str) -> Option<Want> {
         "machine" => Some(Want::Machine),
         "incus" => Some(Want::Incus),
         "emulate" => Some(Want::Emulate),
+        "syscall" => Some(Want::Syscall),
         _ => None,
     }
 }
@@ -41,7 +44,7 @@ pub fn want(s: &str) -> Option<Want> {
 /// value that selected nothing gave a caller another mechanism with exit 0.
 pub fn refusal(verb: &str, value: &str) -> String {
     format!(
-        "podvm {verb}: --podvm-tier takes machine, incus or emulate, not {value:?}: with no flag the \
+        "podvm {verb}: --podvm-tier takes machine, incus, emulate or syscall, not {value:?}: with no flag the \
          ladder selects the rung, and `podvm system info --format \
          '{{{{.EnteredRung}}}}'` names the rung that a run enters (TODO/cli.md T-1712)"
     )
@@ -95,6 +98,9 @@ pub enum Tier {
     /// `--podvm-tier=emulate`: `run` runs the payload under a static
     /// qemu-user on the native-static rung (T-1651).
     Emulate,
+    /// `--podvm-tier=syscall`: the handler of the native-static rung
+    /// answers `uname`, sizes `/tmp` and serves the paths (T-1657).
+    Syscall,
 }
 
 /// Resolve the flag to the tier that runs.
@@ -108,6 +114,7 @@ pub fn resolve(flag: Option<Want>) -> Tier {
         Some(Want::Machine) => Tier::Machine,
         Some(Want::Incus) => Tier::Incus,
         Some(Want::Emulate) => Tier::Emulate,
+        Some(Want::Syscall) => Tier::Syscall,
     }
 }
 
@@ -223,13 +230,15 @@ mod tests {
         assert_eq!(want("machine"), Some(Want::Machine));
         assert_eq!(want("incus"), Some(Want::Incus));
         assert_eq!(want("emulate"), Some(Want::Emulate));
+        assert_eq!(want("syscall"), Some(Want::Syscall));
+        assert_eq!(resolve(Some(Want::Syscall)), Tier::Syscall);
         assert_eq!(want("chroot"), None);
         assert_eq!(want("sandbox"), None);
         assert_eq!(want(""), None);
         let r = refusal("run", "chroot");
         assert!(
             r.starts_with(
-                "podvm run: --podvm-tier takes machine, incus or emulate, not \"chroot\""
+                "podvm run: --podvm-tier takes machine, incus, emulate or syscall, not \"chroot\""
             ),
             "{r}"
         );

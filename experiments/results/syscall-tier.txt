@@ -1,0 +1,36 @@
+== conditions
+date              2026-11-11T12:08:38Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.3
+fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
+busybox           mirror.gcr.io/library/busybox:musl sha256:cf45b89a82faa51019b265765895a5d6c064b568a90c9a7ddd33ce704458da24
+image             podvm413:1 (busybox:musl and an /etc/os-release of its own)
+
+== one run: clauses 1 to 5
+  exit 0  (want 0)
+    ID=podvm413
+    PRETTY_NAME="the image of experiment 413"
+    TracerPid:	0
+    6.1.0-podvm-syscall
+== clause 1  /etc/os-release of the image
+== clause 2  no ptrace, no qemu
+  qemu processes during the run: 0
+  rung named by the banner: entering on the syscall tier
+== clause 3  /workspace writes through
+  host file: written-by-413
+== clause 4  uname -r
+  release: 6.1.0-podvm-syscall
+== clause 5  the banner
+  The handler shares the payload's address space: it is a compatibility layer, not a boundary 
+
+== clause 6  the cap of /tmp
+  exit 0
+    dd: error writing '/tmp/big': No space left on device
+    1048576
+  directories of /tmp left in the store: none
+
+== clause 7  refusals by name
+  dynamic: exit 125: podvm run: --podvm-tier=syscall: the tier runs a statically linked x86_64 program, and WORK/store/trees/ceb3931ff62fec3dddd381fb8cf24a46/rootfs/bin/busybox: a dynamic program (it names an interpreter). --podvm-tier=emulate runs a dynamic one (TODO/enter.md T-1657)
+  run -d:  exit 125: podvm run: --podvm-tier=syscall serves a foreground run: its /tmp is a directory of the run, removed when the run ends (TODO/enter.md T-1657)
+
+verdict: THE SYSCALL TIER GIVES THE VIEW AND SAYS IT IS NOT A BOUNDARY

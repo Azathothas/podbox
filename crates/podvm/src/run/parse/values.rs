@@ -77,6 +77,13 @@ pub(super) fn tmpfs(verb: &str, spec: &str, o: &mut Opts) -> Result<(), i32> {
     let path = path.trim_end_matches('/').to_string();
     for opt in opts.split(',').filter(|x| !x.is_empty()) {
         match opt.split_once('=').map_or(opt, |(k, _)| k) {
+            "size" if path == "/tmp" => match opt
+                .split_once('=')
+                .and_then(|(_, v)| crate::tier::parse_mem(v))
+            {
+                Some(n) => o.tmp_size = Some(n),
+                None => return Err(refuse(format!("{opt:?} is not a size"))),
+            },
             "rw" | "nosuid" | "nodev" | "exec" | "noexec" | "size" | "mode" => {}
             "ro" => o.ro_volumes.push(path.clone()),
             other => return Err(refuse(format!("the option {other:?} is not taken"))),

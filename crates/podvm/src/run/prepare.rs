@@ -188,6 +188,20 @@ pub(crate) fn prepare(
     // ⭐ TODO/enter.md T-1653: the table of the run. The payload, the
     // working directory and each guest path below resolve through it, so
     // a -w or a first program in a volume is the file of the volume.
+    // ⭐ TODO/enter.md T-1657: the syscall tier gives `/tmp` as a directory
+    // of the run, with a cap that its handler enforces.
+    let syscall = tier == crate::tier::Tier::Syscall;
+    if syscall && (o.detach || verb == "create") {
+        eprintln!(
+            "podvm {verb}: --podvm-tier=syscall serves a foreground run: its /tmp is a \
+             directory of the run, removed when the run ends (TODO/enter.md T-1657)"
+        );
+        return Err(EXIT_FLAG_ERROR);
+    }
+    if syscall && !o.tmpfs.iter().any(|t| t == "/tmp") {
+        o.tmpfs.push("/tmp".to_string());
+    }
+    let tmp_cap = o.tmp_size.unwrap_or(crate::lifecycle::syscall::TMP_CAP);
     add_tmpfs(verb, store, &mut o)?; // TODO/cli.md T-1655
     let maps = crate::lifecycle::volume::maps(verb, &rootfs, &o.volumes)?;
     let mut env = Plan::env_for(&podvm_enter::NAMES, &cfg.config.env, &o.env);
@@ -208,6 +222,10 @@ pub(crate) fn prepare(
     }
     env.retain(|e| e.split('=').next().unwrap_or("") != crate::interpose::MEMO_FD_VAR);
     env.push(crate::interpose::memo_fd_env());
+    env.retain(|e| e.split('=').next().unwrap_or("") != podvm_dispatch::TIER_VAR);
+    if syscall {
+        env.push(format!("{}={tmp_cap}", podvm_dispatch::TIER_VAR));
+    }
     // ⭐ TODO/enter.md T-1411. The exact rung, decided here: the rootfs
     // exists and nothing has been written into it yet (`place` and the
     // fixups run below). This reverses T-1317's last-resort decision for
@@ -216,7 +234,16 @@ pub(crate) fn prepare(
     // decided family has no detached driver, naming the blocking call
     // and the affected verbs.
     // ⭐ T-1648, T-1649, T-1707: the opt-in, the word of a refusal, the workdir.
-    let userland = if emulate {
+    let userland = if syscall {
+        Some(crate::lifecycle::syscall::decide(
+            verb,
+            &maps,
+            &argv,
+            &working_dir,
+            &env,
+            tmp_cap,
+        )?)
+    } else if emulate {
         let a = &record.architecture;
         Some(crate::lifecycle::emulate::decide(
             verb,

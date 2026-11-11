@@ -330,7 +330,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1654](cli.md) | P2 | cli | done | Profiles: strict TOML recipes with `extends` and `-s` overrides |
 | [T-1655](cli.md) | P2 | cli | done | The sandbox hardening line: each `run` flag works on the tier or refuses by name |
 | [T-1656](machine.md) | P2 | machine | done | MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG |
-| [T-1657](enter.md) | P2 | enter | open | A syscall-interpreting tier: the gVisor capability without user namespaces |
+| [T-1657](enter.md) | P2 | enter | done | A syscall-interpreting tier: the gVisor capability without user namespaces |
 | [T-1658](enter.md) | P2 | enter | blocked | A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier |
 | [T-1659](cli.md) | P2 | cli | open | Provider shapes and bare userlands as built-in profiles |
 | [T-1660](cli.md) | P2 | cli | open | `podvm notebook`: Jupyter and marimo cycles that keep one directory |
@@ -402,10 +402,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1726](cli.md) | P1 | cli | done | `exec` into a container ignores its `:ro` volumes and `--read-only` |
 | [T-1727](machine.md) | P2 | machine | done | Take podcrates v0.21.0: `pod-incus` replaces the incus client of T-1718 |
 | [T-1728](machine.md) | P2 | machine | done | Without `-t`, a command of the machine tier writes to a terminal |
+| [T-1729](enter.md) | P3 | enter | open | An optional `runsc` backend where a host grants user namespaces |
 
 ## Counts
 
-337 items: 23 open, 4 partial, 4 blocked, 306 done.
+338 items: 23 open, 4 partial, 4 blocked, 307 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -416,9 +417,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 144 | 148 |
-| P2 | 20 | 0 | 4 | 89 | 113 |
-| P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **23** | **4** | **4** | **306** | **337** |
+| P2 | 19 | 0 | 4 | 90 | 113 |
+| P3 | 3 | 0 | 0 | 9 | 12 |
+| **All** | **23** | **4** | **4** | **307** | **338** |
 
 ## Work order
 

@@ -1896,7 +1896,7 @@ Source:      issue 169; #193; the owner's ruling of 2026-11-06
 Category:    enter
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done 2026-11-11
 
 Problem:     gVisor's `runsc` answers a payload's syscalls in user space, so
              the payload does not reach the host kernel for files. On the
@@ -1935,6 +1935,43 @@ Prove:       `cargo test -p podvm-enter` exits 0 with tests for the `uname`
              from the image with no ptrace and no qemu, its write to
              `/workspace` is on the host after the run, `uname -r` names the
              tier, and the banner says the layer is not a boundary.
+
+**Done 2026-11-11.** `cargo test -p podvm-dispatch` exits 0 with
+`the_syscall_tier_answers_uname_with_its_release`,
+`the_syscall_tier_caps_tmp_across_a_fork` (a cap of 1000 bytes: 800 bytes
+fit, 400 more from a child fail with ENOSPC, an unlink gives the space
+back), `a_missing_file_of_the_root_is_enoent_and_not_the_hosts`, the unit
+test `the_tier_counts_growth_and_names_its_release`, and the resolution
+of `..` and an absolute link of T-1652.
+`PODVM_413_MIRROR=1 sh experiments/413-syscall-tier.sh` exits 0 on the
+chroot-denying fixture (`experiments/results/syscall-tier.txt`):
+
+| clause | reading |
+| --- | --- |
+| 1 | the static busybox of `busybox:musl` reads `ID=podvm413` from the image's `/etc/os-release` |
+| 2 | `TracerPid: 0`, no qemu process, the banner names the syscall tier |
+| 3 | the write to `/workspace` is on the host after the run |
+| 4 | `uname -r` prints `6.1.0-podvm-syscall` |
+| 5 | the banner: "The handler shares the payload's address space: it is a compatibility layer, not a boundary" |
+| 6 | `--tmpfs /tmp:size=1m`: `dd` stops with "No space left on device" at 1048576 bytes, and no directory of `/tmp` stays |
+| 7 | a dynamic program and `run -d` refuse by name (exit 125) |
+
+Decisions and deviations:
+
+* The tier is built in `podvm-dispatch` (`tier.rs`), as T-1652 built the
+  rung: podcrates has no `pod-sud`, and the handler is podvm's. The tests
+  are in `podvm-dispatch`, where the handler is, not in `podvm-enter`.
+* `/tmp` is a directory of the run (the `--tmpfs` of T-1655). The handler
+  counts the growth of each file that a descriptor opened under `/tmp`
+  writes, in a shared page of a memfd, so the count holds across `fork`
+  and `execve`. `docs/limits.md` names what the count does not see.
+* The private `/proc` view is the links of `/proc/self` in guest paths
+  (T-1652). The entries of other processes stay the host's.
+* The tier runs a static x86_64 program; a dynamic one refuses and names
+  the emulate tier. A detached run refuses, because `/tmp` belongs to a
+  foreground run.
+* The optional `runsc` backend of the Approach is T-1729: the Decision
+  says it is not the answer for the target host.
 
 **Filed 2026-11-06.** Quoted from issue 169:
 
@@ -2445,3 +2482,33 @@ read and wrote a file of `-v HOST:/data`, the write landed in HOST, and
 clause 33.
 
 **Filed 2026-11-11.** From the measurement of T-1652.
+
+---
+
+### T-1729 An optional `runsc` backend where a host grants user namespaces
+
+Source:      T-1657 (its Approach, the part that it did not take)
+Category:    enter
+Priority:    P3
+Effort:      M
+Status:      open
+
+Problem:     gVisor's `runsc` answers a payload's system calls in its own
+             kernel. podvm cannot offer it on the target host, which denies
+             user namespaces, mount and ptrace. A host that grants user
+             namespaces could run it from the namespace rung.
+Premise:     Issue 169 quotes `runsc --rootless --network=none|host
+             --ignore-cgroups --platform=systrap run`, and F14: `runsc do
+             -volume` wrote into gVisor's overlay, and rootless `create` is
+             refused. The syscall tier of T-1657 gives the view on the
+             target host.
+Approach:    Where the probe reports user namespaces and a `runsc` on
+             `PATH`, `--podvm-tier=runsc` builds an OCI bundle from the
+             container's own tree (T-1709) and runs it, with `/workspace`
+             as a bind mount of the bundle (F14).
+Decision:    Optional, and never a fallback of the syscall tier: a caller
+             asks for it by name.
+Prove:       `sh experiments/436-runsc.sh` exits 0 on a host with user namespaces and `runsc`: `uname -r` names gVisor, a write to `/workspace` is on the host after the run, and on a host without them the tier refuses by name
+
+**Filed 2026-11-11.** Split from T-1657.
+

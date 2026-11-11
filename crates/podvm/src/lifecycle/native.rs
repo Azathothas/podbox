@@ -68,6 +68,7 @@ pub(super) fn decide(
         maps: maps.clone(),
         dispatch_exe: Some(guest.to_string()),
         emulator: None,
+        syscall: false,
     })
 }
 
@@ -101,6 +102,8 @@ pub(super) fn enter(
     argv.extend(userland.guest_argv.iter().cloned());
     let word = if userland.emulator.is_some() {
         super::emulate::WORD
+    } else if userland.syscall {
+        super::syscall::WORD
     } else {
         WORD
     };

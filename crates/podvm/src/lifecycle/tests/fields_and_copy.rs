@@ -154,6 +154,7 @@ fn the_record_carries_the_loader_drive_and_nothing_else() {
         maps: Maps::of_root("/r"),
         dispatch_exe: None,
         emulator: None,
+        syscall: false,
     };
     assert_eq!(
         detached_drive(Some(&loader)),

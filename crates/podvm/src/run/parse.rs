@@ -78,6 +78,9 @@ pub(super) struct Opts {
     pub(super) ro_volumes: Vec<String>,
     /// The guest paths of `--tmpfs`, made writable directories of the run.
     pub(super) tmpfs: Vec<String>,
+    /// `size=` of `--tmpfs /tmp`: the cap of `/tmp` on the syscall tier
+    /// (TODO/enter.md T-1657); no other tier enforces it.
+    pub(super) tmp_size: Option<u64>,
     /// `--ulimit` and `--security-opt no-new-privileges`. TODO/cli.md T-1655.
     pub(super) hardening: podvm_supervise::table::Hardening,
     /// M5 and T-0804. ⚠ Carried in one struct so `run`, `create` and the
@@ -166,6 +169,7 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
         read_only: false,
         ro_volumes: Vec::new(),
         tmpfs: Vec::new(),
+        tmp_size: None,
         hardening: Default::default(),
         ask: crate::complete::Ask::default(),
     };

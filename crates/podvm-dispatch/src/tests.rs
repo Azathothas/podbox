@@ -56,3 +56,26 @@ fn the_check_takes_a_static_program_and_refuses_a_dynamic_one() {
     }
     assert!(elf::static_x86_64(b"#!/bin/sh\n", |_, _| 0).is_err());
 }
+
+/// T-1657: the pure parts of the syscall tier.
+#[test]
+fn the_tier_counts_growth_and_names_its_release() {
+    use crate::tier::*;
+    assert!(under_tmp(b"/tmp") && under_tmp(b"/tmp/a/b"));
+    assert!(!under_tmp(b"/tmpx") && !under_tmp(b"/var/tmp"));
+    assert_eq!(growth(0, 10, 0), 10);
+    assert_eq!(
+        growth(5, 10, 20),
+        0,
+        "an overwrite inside the file grows nothing"
+    );
+    assert_eq!(growth(15, 10, 20), 5);
+    assert!(fits(990, 10, 1000) && !fits(991, 10, 1000));
+    assert!(fits(5000, 10, 0), "no cap");
+    assert!(fits(5000, -10, 1000), "a shrink always fits");
+    let mut u = [b'z'; 390];
+    fill_uname(&mut u);
+    assert_eq!(&u[130..130 + RELEASE.len()], RELEASE);
+    assert_eq!(u[130 + RELEASE.len()], 0);
+    assert_eq!(&u[0..5], b"zzzzz", "the other fields stay the host's");
+}

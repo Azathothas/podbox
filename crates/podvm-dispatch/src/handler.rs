@@ -217,6 +217,15 @@ fn clone(a: [i64; 6], g: *mut i64) -> i64 {
 
 /// Keep the root's descriptor out of reach of close, dup2 and close_range.
 fn guard_fd(n: i64, a: [i64; 6]) -> Option<i64> {
+    // T-1657: the memfd of the count of `/tmp` is kept as the root's is.
+    let count = crate::tier::FD.load(core::sync::atomic::Ordering::Relaxed);
+    if count >= 0 {
+        match n {
+            nr::CLOSE if a[0] == count => return Some(-sys::EBADF),
+            nr::DUP2 | nr::DUP3 if a[1] == count => return Some(-sys::EBUSY),
+            _ => {}
+        }
+    }
     let root = state::root_fd();
     match n {
         nr::CLOSE if a[0] == root => Some(-sys::EBADF),
@@ -264,6 +273,9 @@ pub unsafe extern "C" fn on_sigsys(_sig: i32, info: *mut u8, uc: *mut u8) {
 
 fn call(n: i64, a: [i64; 6], g: *mut i64) -> i64 {
     if let Some(r) = guard_fd(n, a) {
+        return r;
+    }
+    if let Some(r) = crate::tier::call(n, a) {
         return r;
     }
     match n {

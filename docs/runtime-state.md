@@ -34,7 +34,7 @@ Separate crate: `crates/podvm-interpose`.
 
 `Rung` is `pod_hostprobe::select::Rung` (PodUtils/podcrates), re-exported by [crates/podvm-probe/src/select.rs](../crates/podvm-probe/src/select.rs).
 
-`Tier` in [crates/podvm/src/tier.rs](../crates/podvm/src/tier.rs): `Ladder`, `Machine`, `Incus`, `Emulate`.
+`Tier` in [crates/podvm/src/tier.rs](../crates/podvm/src/tier.rs): `Ladder`, `Machine`, `Incus`, `Emulate`, `Syscall`.
 
 `Mode` is `pod_enter::ladder::Mode` (PodUtils/podcrates), re-exported by [crates/podvm-enter/src/lib.rs](../crates/podvm-enter/src/lib.rs).
 

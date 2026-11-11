@@ -128,6 +128,7 @@ fn userland(family: Family) -> Userland {
         maps: podvm_enter::userland::Maps::of_root("/r"),
         dispatch_exe: None,
         emulator: None,
+        syscall: false,
     }
 }
 

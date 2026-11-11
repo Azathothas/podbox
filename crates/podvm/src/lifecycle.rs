@@ -420,6 +420,7 @@ mod script;
 mod native;
 
 pub mod emulate;
+pub mod syscall;
 
 pub mod volume;
 

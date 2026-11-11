@@ -63,7 +63,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #166 | [Scope] Cage recipes: podvm profiles in strict TOML with extends and -s overrides | closed | T-1654 |
 | #167 | [Scope] Container cages: docker/podman run parity for the sandbox hardening flags | open | T-1655 |
 | #168 | [Scope] MicroVMs: fast disposable guests from an OCI image, on KVM or TCG | open | T-1656 |
-| #169 | [Scope] User-space kernels (gVisor): a syscall-interpreting tier without user namespaces | open | T-1657 |
+| #169 | [Scope] User-space kernels (gVisor): a syscall-interpreting tier without user namespaces | closed | T-1657, T-1729 |
 | #170 | [Scope] Wrapper sandboxes (bwrap, landrun, bailey): unprivileged Landlock and seccomp confinement | open | T-1658 |
 | #171 | [Reference] pkgforge-dev/cross-libc-dlopen @ 34482c7: cross-libc loading rules | closed (lesson taken in T-0701, T-0702, T-0706) | none: a reference (references/README.md) |
 | #172 | [Scope] Provider shapes and bare userlands: Lambda, Cloudflare, Vercel, Nimbus, busybox, distroless profiles | open | T-1659 |

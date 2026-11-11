@@ -262,12 +262,12 @@ pub struct Userland {
     /// volumes. The entry resolves the payload and the working directory
     /// through it, so either can be in a volume.
     pub maps: podvm_enter::userland::Maps,
-    /// TODO/enter.md T-1652. The guest path of the program on the
-    /// native-static rung; None on each other entry.
+    /// TODO/enter.md T-1652. The guest path of the program on the native-static rung.
     pub dispatch_exe: Option<String>,
-    /// TODO/enter.md T-1651. The emulator of the emulate tier
-    /// (`MACHINE:HOSTPATH`); None on each other entry.
+    /// TODO/enter.md T-1651. The emulator of the emulate tier (`MACHINE:HOSTPATH`).
     pub emulator: Option<String>,
+    /// TODO/enter.md T-1657. The syscall tier on the native-static rung.
+    pub syscall: bool,
 }
 
 /// TODO/cli.md T-1650. The capability gaps that `--strict` reads: those of
@@ -408,6 +408,7 @@ pub fn decide_entry(
             maps: maps.clone(),
             dispatch_exe: None,
             emulator: None,
+            syscall: false,
         }));
     };
     // Dynamic: the loader family, where the tier reaches the payload.
@@ -494,5 +495,6 @@ pub fn decide_entry(
         maps: maps.clone(),
         dispatch_exe: None,
         emulator: None,
+        syscall: false,
     }))
 }

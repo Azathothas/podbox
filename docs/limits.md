@@ -60,6 +60,17 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   out of reach.
 - A denied terminal operation produces a named refusal.
 - Host CA completion changes payload trust data and can be disabled.
+- `--podvm-tier=syscall` (T-1657) runs a static x86_64 program on the
+  native-static rung, and the handler also answers `uname` with the
+  release `6.1.0-podvm-syscall`, gives `/tmp` as a directory of the run
+  with a cap (`--tmpfs /tmp:size=`, 256 MiB by default; a write over it
+  fails with `ENOSPC`), and names guest paths in the links of
+  `/proc/self`. The entries of other processes in `/proc` are the
+  host's. The cap counts the writes of a descriptor opened under `/tmp`;
+  a write through `mmap`, `sendfile`, `splice` or `copy_file_range`, and a
+  rename into `/tmp`, are not counted. A dynamic program and a detached
+  run refuse by name. The handler shares the payload's address space, so
+  the tier is a compatibility layer, not a boundary.
 - Each container has its own rootfs (T-1709): `run` and `create` copy
   the extracted image into `<store>/trees/<id>/`, and completion and the
   payload write only in that copy. A write in one container is not read
