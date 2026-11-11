@@ -397,14 +397,14 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1721](interpose.md) | P2 | interpose | open | An interposer for aarch64: the userland rung runs no arm64 payload |
 | [T-1722](machine.md) | P3 | machine | open | The incus back end: the verbs of an instance that stays, volumes and the ladder |
 | [T-1723](machine.md) | P3 | machine | open | The microVM of run: the microvm machine, a shared /workspace and an interactive stdin |
-| [T-1724](enter.md) | P2 | enter | partial | A static child of the loader family, and a volume, on the native-static rung |
-| [T-1725](interpose.md) | P1 | interpose | partial | An absolute symlink in the rootfs resolves on the host for each path call |
-| [T-1726](cli.md) | P1 | cli | partial | `exec` into a container ignores its `:ro` volumes and `--read-only` |
+| [T-1724](enter.md) | P2 | enter | done | A static child of the loader family, and a volume, on the native-static rung |
+| [T-1725](interpose.md) | P1 | interpose | done | An absolute symlink in the rootfs resolves on the host for each path call |
+| [T-1726](cli.md) | P1 | cli | done | `exec` into a container ignores its `:ro` volumes and `--read-only` |
 | [T-1727](machine.md) | P2 | machine | open | Take podcrates v0.21.0: `pod-incus` replaces the incus client of T-1718 |
 
 ## Counts
 
-336 items: 28 open, 10 partial, 3 blocked, 295 done.
+336 items: 28 open, 7 partial, 3 blocked, 298 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -414,10 +414,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 2 | 8 | 0 | 138 | 148 |
-| P2 | 24 | 1 | 3 | 84 | 112 |
+| P1 | 2 | 6 | 0 | 140 | 148 |
+| P2 | 24 | 0 | 3 | 85 | 112 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **28** | **10** | **3** | **295** | **336** |
+| **All** | **28** | **7** | **3** | **298** | **336** |
 
 ## Work order
 

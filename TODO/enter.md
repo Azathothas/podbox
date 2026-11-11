@@ -2323,7 +2323,7 @@ Source:      T-1652 (measured on the cloud host, 2026-11-11);
 Category:    enter
 Priority:    P2
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     A dynamic shell of the golang image on the loader family ran
              `go build` as its child: the interposer executes a static
@@ -2352,6 +2352,15 @@ Prove:       `RUSTFLAGS="-C target-feature=-crt-static" cargo test --manifest-pa
              runs `go build`, the output is in the rootfs and not on the host,
              and a clause where a static payload reads a file of a `-v`
              volume on the native-static rung.
+
+**Done 2026-11-11.** The interposer's tests exit 0 (85) with
+`a_static_child_enters_the_native_static_rung_through_podvm`, and
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 on the cloud
+host ([the run](../experiments/results/no-chroot-rung.txt), verdict "NO-CHROOT FAMILY RUNS"): in clause 33 the golang
+image's `sh` runs `go build` and the program it built prints `g724-ok`, with
+no `/tmp/g724` and no `/go` on the host; a static payload on the
+native-static rung reads and writes a file of `-v HOST:/data` (the write lands
+in HOST), and `-w /data` reads back as `/data`.
 
 **Partial, 2026-11-11.** The static child: the interposer reads a static
 ELF of the machine as `File::Static`, and where podvm names itself in

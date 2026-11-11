@@ -2872,7 +2872,7 @@ Source:      PodUtils/podrunner#61 (COORD-007 of podrunner, a message from
 Category:    interpose
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     On the loader family of the userland rung, `cat /home/link` of
              the alpine image, where `/home/link -> /opt/abs/f` and the
@@ -2904,6 +2904,12 @@ Prove:       `RUSTFLAGS="-C target-feature=-crt-static" cargo test --manifest-pa
              exits 0 with a clause where `cat` of an absolute link of the
              image reads the rootfs file on the fixture, and a link whose
              target exists only on the host gives ENOENT.
+
+**Done 2026-11-11.** The interposer's tests exit 0 (85) with `tests/links.rs`, and
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 ([the run](../experiments/results/no-chroot-rung.txt)): in clause 34 alpine's `cat` of
+`/home/l734 -> /opt/l734/f` and of `/home/d734/f` (a directory link) reads the
+file of the rootfs, `ls -l` still shows the link, and a link whose target only
+the host has exits 1 and reads nothing of the host.
 
 **Partial, 2026-11-11.** The funnel of each path call (`prepare_mode` in
 `crates/podvm-interpose/src/map/rewrite.rs`) resolves a path in the table

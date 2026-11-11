@@ -10,7 +10,7 @@ They describe their recorded revision, not the current build.
 
 ### Fixed: absolute links of the image, and exec under :ro, 2026-11-11
 
-Record: T-1725, T-1726 (partial); PodUtils/podrunner#61 and #62.
+Record: T-1725, T-1726; PodUtils/podrunner#61 and #62.
 Deployed: not deployed; no version change.
 
 - On the loader family, a path call resolves each link of the image in
@@ -21,7 +21,7 @@ Deployed: not deployed; no version change.
 
 ### Added: a native-static rung, 2026-11-11
 
-Record: T-1652, T-1724 (partial); issue 109.
+Record: T-1652, T-1724; issue 109.
 Deployed: not deployed; no version change.
 
 - Where chroot is denied, a static x86_64 payload runs in a podvm process

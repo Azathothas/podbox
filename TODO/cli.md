@@ -2965,7 +2965,7 @@ Source:      PodUtils/podrunner#62 (COORD-008 of podrunner, a message from
 Category:    cli
 Priority:    P1
 Effort:      S
-Status:      partial
+Status:      done
 
 Problem:     On the loader family, `podvm run --rm -v DIR:/e:ro IMAGE sh -c
              'echo x > /e/r.txt'` fails the write (EROFS), but after `podvm
@@ -2988,6 +2988,11 @@ Prove:       `cargo test -p podvm` exits 0 with a test of the exec
              exits 0 with a clause where `exec` into a container with a
              `:ro` volume fails a write there with EROFS and leaves no file
              in the host directory.
+
+**Done 2026-11-11.** `cargo test -p podvm` exits 0 with
+`an_exec_takes_the_read_only_table_of_its_container`, and
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 ([the run](../experiments/results/no-chroot-rung.txt)): in clause 35 `exec` into a container with
+`-v DIR:/e:ro` fails its write with exit 1, and DIR has no file.
 
 **Partial, 2026-11-11.** The record of a detached run keeps `PODVM_RO` in its
 environment; `exec` now takes it (`lifecycle::volume::container_read_only`,
