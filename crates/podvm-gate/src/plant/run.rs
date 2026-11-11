@@ -172,9 +172,12 @@ pub(super) fn run() -> i32 {
 
     println!("== plants");
 
+    // TODO/deps.md T-1680: plants 1 to 4 and 10 are caught by pod-todo's
+    // reader through check 35, and their words are pod-todo's.
+
     plant.case_plant(
         "1 row without an entry",
-        "has a row and no entry",
+        "has a row and no entry in TODO/probe.md",
         scratch,
         &|| {
             append_file(
@@ -188,7 +191,7 @@ pub(super) fn run() -> i32 {
 
     plant.case_plant(
         "2 entry without a row",
-        "has an entry and no row",
+        "has no row in the index",
         scratch,
         &|| {
             append_file(
@@ -204,7 +207,7 @@ pub(super) fn run() -> i32 {
     // A plant must mutate whatever status is there.
     plant.case_plant(
         "3 status disagreement",
-        "disagrees with the index",
+        "the entry says Status",
         scratch,
         &|| {
             let text = read_file(&root, "TODO/probe.md");
@@ -249,7 +252,7 @@ pub(super) fn run() -> i32 {
     // Count-agnostic. A plant must mutate whatever number is there.
     plant.case_plant(
         "4 count block is stale",
-        "the totals line is not the rows",
+        "the counts line says",
         scratch,
         &|| {
             let text = read_file(&root, "TODO/INDEX.md");
@@ -367,7 +370,7 @@ pub(super) fn run() -> i32 {
 
     plant.case_plant(
         "10 PROGRESS count is stale",
-        "the count line is not the rows",
+        "the counts line says",
         scratch,
         &|| {
             let text = read_file(&root, "TODO/PROGRESS.md");

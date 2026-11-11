@@ -56,7 +56,6 @@ impl Gate {
             "rows",
             "entries",
             "fields",
-            "counts",
             "corpus",
             "todo_citations",
             "todo_links",

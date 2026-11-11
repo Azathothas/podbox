@@ -27,7 +27,7 @@
 
 mod grammar;
 
-use grammar::{parse_entry_heading, parse_index_row, FIELDS, PRIORITIES, STATUSES};
+use grammar::{parse_entry_heading, parse_index_row, STATUSES};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;

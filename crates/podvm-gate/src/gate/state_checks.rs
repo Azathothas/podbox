@@ -57,19 +57,9 @@ pub(super) fn check_document_state(gate: &mut Gate, root: &Path) {
     }
 }
 
-// Render a word list the way the reference output renders one.
-pub(super) fn py_list(words: &[&str]) -> String {
-    let inner: Vec<String> = words.iter().map(|word| format!("'{word}'")).collect();
-    format!("[{}]", inner.join(", "))
-}
-
+/// The part of a row that the gate reads: its status, for the summary line.
 pub(super) struct IndexRow {
-    pub(super) target: String,
-    pub(super) prio: String,
-    pub(super) category: String,
     pub(super) status: String,
-    pub(super) title: String,
-    pub(super) line: usize,
 }
 
 pub(super) fn find_root() -> Option<PathBuf> {
@@ -204,65 +194,14 @@ pub(super) fn check_reference_map(gate: &mut Gate, todo: &Path, corpus: &BTreeMa
 /// The totals line, the row of each priority and the All row of
 /// `TODO/INDEX.md`, each against the rows. Answers the count of each status,
 /// which `PROGRESS.md`'s state line is checked against too.
-pub(super) fn check_index_counts<'a>(
-    gate: &mut Gate,
-    rows: &'a BTreeMap<String, IndexRow>,
-    index: &str,
-) -> BTreeMap<&'a str, usize> {
-    let mut derived: BTreeMap<&str, usize> = BTreeMap::new();
-    for status in STATUSES {
-        derived.insert(status, 0);
-    }
-    let mut per_prio: BTreeMap<&str, BTreeMap<&str, usize>> = BTreeMap::new();
-    for prio in PRIORITIES {
-        let mut inner = BTreeMap::new();
-        for status in STATUSES {
-            inner.insert(status, 0);
-        }
-        per_prio.insert(prio, inner);
-    }
+/// The rows of each status, for the summary line. pod-todo checks the counts
+/// of the index and of the progress record (TODO/deps.md T-1680).
+pub(super) fn status_counts(rows: &BTreeMap<String, IndexRow>) -> BTreeMap<&'static str, usize> {
+    let mut derived: BTreeMap<&'static str, usize> = STATUSES.iter().map(|s| (*s, 0)).collect();
     for row in rows.values() {
-        *derived.entry(row.status.as_str()).or_insert(0) += 1;
-        if let Some(inner) = per_prio.get_mut(row.prio.as_str()) {
-            *inner.entry(row.status.as_str()).or_insert(0) += 1;
+        if let Some(n) = STATUSES.iter().find(|s| **s == row.status) {
+            *derived.entry(n).or_insert(0) += 1;
         }
-    }
-    let total = rows.len();
-
-    *gate.seen.entry("counts").or_insert(0) = 1 + PRIORITIES.len() as u64;
-    let want = format!(
-        "{total} entries: {} open, {} partial, {} blocked, {} done.",
-        derived["open"], derived["partial"], derived["blocked"], derived["done"]
-    );
-    if !index.contains(&want) {
-        gate.err(
-            "TODO/INDEX.md",
-            format!("the totals line is not the rows. Expected exactly:\n    {want}"),
-        );
-    }
-    for prio in PRIORITIES {
-        let counts = &per_prio[prio];
-        let prio_total: usize = counts.values().sum();
-        let want_row = format!(
-            "| {prio} | {} | {} | {} | {} | {prio_total} |",
-            counts["open"], counts["partial"], counts["blocked"], counts["done"]
-        );
-        if !index.contains(&want_row) {
-            gate.err(
-                "TODO/INDEX.md",
-                format!("the {prio} count row is not the rows. Expected exactly:\n    {want_row}"),
-            );
-        }
-    }
-    let want_all = format!(
-        "| **All** | {} | {} | {} | {} | {total} |",
-        derived["open"], derived["partial"], derived["blocked"], derived["done"]
-    );
-    if !index.contains(&want_all) {
-        gate.err(
-            "TODO/INDEX.md",
-            format!("the All count row is not the rows. Expected exactly:\n    {want_all}"),
-        );
     }
     derived
 }

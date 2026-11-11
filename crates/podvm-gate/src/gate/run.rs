@@ -23,41 +23,10 @@ pub(super) fn run_gate(root: &Path) -> i32 {
             continue;
         };
         let tid = parsed.id.clone();
-        if rows.contains_key(&tid) {
-            gate.err(
-                &format!("TODO/INDEX.md:{}", index_no + 1),
-                format!("{tid} appears twice"),
-            );
-        }
-        if !STATUSES.contains(&parsed.status.as_str()) {
-            gate.err(
-                &format!("TODO/INDEX.md:{}", index_no + 1),
-                format!(
-                    "{tid} status {} is not one of {}",
-                    quote_repr(&parsed.status),
-                    py_list(&STATUSES)
-                ),
-            );
-        }
-        if !PRIORITIES.contains(&parsed.priority.as_str()) {
-            gate.err(
-                &format!("TODO/INDEX.md:{}", index_no + 1),
-                format!(
-                    "{tid} priority {} is not one of {}",
-                    quote_repr(&parsed.priority),
-                    py_list(&PRIORITIES)
-                ),
-            );
-        }
         rows.insert(
             tid,
             IndexRow {
-                target: parsed.file,
-                prio: parsed.priority,
-                category: parsed.category,
                 status: parsed.status,
-                title: parsed.item,
-                line: index_no + 1,
             },
         );
         gate.bump("rows");
@@ -96,12 +65,6 @@ pub(super) fn run_gate(root: &Path) -> i32 {
             // TODO/gate.md T-1672: the checks read the old layout of the
             // entry, built from its text in the format of pod-todo.
             let body = view(tid, title, &lines[*line_no..end]);
-            if entries.contains_key(tid) {
-                gate.err(
-                    &format!("TODO/{name}:{}", line_no + 1),
-                    format!("{tid} is defined twice"),
-                );
-            }
             entries.insert(
                 tid.clone(),
                 Entry {
@@ -115,119 +78,15 @@ pub(super) fn run_gate(root: &Path) -> i32 {
         }
     }
 
-    for (tid, row) in rows.iter() {
-        match entries.get(tid) {
-            None => {
-                gate.err(
-                    &format!("TODO/INDEX.md:{}", row.line),
-                    format!("{tid} has a row and no entry"),
-                );
-            }
-            Some(entry) => {
-                if entry.file != row.target {
-                    gate.err(
-                        &format!("TODO/INDEX.md:{}", row.line),
-                        format!(
-                            "{tid} row links to {} and the entry is in {}",
-                            row.target, entry.file
-                        ),
-                    );
-                }
-                if entry.title != row.title {
-                    gate.err(
-                        &format!("TODO/INDEX.md:{}", row.line),
-                        format!(
-                            "{tid} row title {} != entry title {}",
-                            quote_repr(&row.title),
-                            quote_repr(&entry.title)
-                        ),
-                    );
-                }
-            }
-        }
-    }
-    for (tid, entry) in entries.iter() {
-        if !rows.contains_key(tid) {
-            gate.err(
-                &format!("TODO/{}:{}", entry.file, entry.line),
-                format!("{tid} has an entry and no row"),
-            );
-        }
-    }
-
     for (tid, entry) in entries.iter() {
         let where_ = format!("TODO/{}:{}", entry.file, entry.line);
-        for field in FIELDS {
-            let Some(value) = find_field(&entry.body, field) else {
-                gate.err(&where_, format!("{tid} has no `{field}:` field"));
-                continue;
-            };
+        // TODO/deps.md T-1680: pod-todo checks each other field, and its
+        // agreement with the row. A Decision is podvm's own rule: pod-todo
+        // does not require one.
+        if find_field(&entry.body, "Decision").is_none() {
+            gate.err(&where_, format!("{tid} has no `Decision:` field"));
+        } else {
             gate.bump("fields");
-            if field == "Status" {
-                match status_word(value) {
-                    Some(status) if STATUSES.contains(&status.as_str()) => {
-                        if let Some(row) = rows.get(tid)
-                            && status != row.status
-                        {
-                            gate.err(
-                                &where_,
-                                format!(
-                                    "{tid} entry status {} disagrees with the index \
-                                         row's {}",
-                                    quote_repr(&status),
-                                    quote_repr(&row.status)
-                                ),
-                            );
-                        }
-                    }
-                    Some(status) => {
-                        gate.err(
-                            &where_,
-                            format!(
-                                "{tid} Status {} is not one of {}",
-                                quote_repr(&status),
-                                py_list(&STATUSES)
-                            ),
-                        );
-                    }
-                    None => {
-                        gate.err(
-                            &where_,
-                            format!(
-                                "{tid} Status {} is not one of {}",
-                                quote_repr(value),
-                                py_list(&STATUSES)
-                            ),
-                        );
-                    }
-                }
-            }
-            if field == "Category"
-                && let Some(row) = rows.get(tid)
-                && value != row.category
-            {
-                gate.err(
-                    &where_,
-                    format!(
-                        "{tid} Category {} disagrees with the row's {}",
-                        quote_repr(value),
-                        quote_repr(&row.category)
-                    ),
-                );
-            }
-            if field == "Priority"
-                && let Some(row) = rows.get(tid)
-                && value != row.prio
-            {
-                gate.err(
-                    &where_,
-                    format!(
-                        "{tid} Priority {} disagrees with the row's {}",
-                        quote_repr(value),
-                        quote_repr(&row.prio)
-                    ),
-                );
-            }
         }
         if let Some(remainder) = prove_first_line(&entry.body)
             && !remainder.contains("```")
@@ -242,8 +101,7 @@ pub(super) fn run_gate(root: &Path) -> i32 {
         }
     }
 
-    let derived = check_index_counts(&mut gate, &rows, &index);
-    let total = rows.len();
+    let derived = status_counts(&rows);
 
     check_reference_map(&mut gate, &todo, &corpus);
     for name in &names {
@@ -355,22 +213,6 @@ pub(super) fn run_gate(root: &Path) -> i32 {
                     );
                 }
             }
-        }
-    }
-
-    let prog_path = todo.join("PROGRESS.md");
-    if !prog_path.is_file() {
-        gate.err("TODO/PROGRESS.md", "does not exist".to_string());
-    } else if let Ok(prog) = read_text(&prog_path) {
-        let want_prog = format!(
-            "{total} entries: {} open, {} partial, {} blocked, {} done.",
-            derived["open"], derived["partial"], derived["blocked"], derived["done"]
-        );
-        if !prog.contains(&want_prog) {
-            gate.err(
-                "TODO/PROGRESS.md",
-                format!("the count line is not the rows. Expected exactly:\n    {want_prog}"),
-            );
         }
     }
 

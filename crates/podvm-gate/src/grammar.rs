@@ -34,17 +34,8 @@ pub struct EntryHeading {
     pub title: String,
 }
 
-/// The ten entry fields the record gate (`podvm-gate`) requires, in order.
-pub const FIELDS: [&str; 10] = [
-    "Source", "Category", "Priority", "Effort", "Status", "Problem", "Premise", "Approach",
-    "Decision", "Prove",
-];
-
 /// The four row and entry states the record gate admits.
 pub const STATUSES: [&str; 4] = ["open", "partial", "blocked", "done"];
-
-/// The four priorities the record gate admits.
-pub const PRIORITIES: [&str; 4] = ["P0", "P1", "P2", "P3"];
 
 fn is_task_id(text: &str) -> bool {
     let bytes = text.as_bytes();
@@ -271,14 +262,6 @@ mod tests {
     // The shared vocabulary both binaries parse against.
     #[test]
     fn vocabulary_matches_the_gate() {
-        assert_eq!(
-            FIELDS,
-            [
-                "Source", "Category", "Priority", "Effort", "Status", "Problem", "Premise",
-                "Approach", "Decision", "Prove",
-            ]
-        );
         assert_eq!(STATUSES, ["open", "partial", "blocked", "done"]);
-        assert_eq!(PRIORITIES, ["P0", "P1", "P2", "P3"]);
     }
 }
