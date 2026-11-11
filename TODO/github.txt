@@ -154,6 +154,6 @@
 262 issue closed
 263 issue closed
 264 issue open
-265 issue open
+265 issue closed
 266 issue open
 267 issue open

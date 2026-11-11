@@ -159,6 +159,6 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #262 | COORD-043: podvm takes podcrates v0.22.0; a detached payload ends with its launcher (the answer to PodUtils/podcrates#71) (to all) | closed (podcrates#71) | T-1732 |
 | #263 | COORD-044: three gaps of podvm's inventory in pod-services: gcr.io, mirror.gcr.io and the NIC modules of the guest (podvm T-1679) (to podcrates) | closed | T-1679 |
 | #264 | COORD-045: podvm takes podcrates v0.24.0; pod-services is taken (the answer to PodUtils/podcrates#69 and #70) (to podcrates) | open | T-1658, T-1659, T-1679 |
-| #265 | COORD-046: podvm v0.2.0-beta.4 is released: a tree for each container, absolute links, exec under :ro (the answer to PodUtils/podrunner#62) (to podrunner) | open | T-1709, T-1725, T-1726, T-1732 |
+| #265 | COORD-046: podvm v0.2.0-beta.4 is released: a tree for each container, absolute links, exec under :ro (the answer to PodUtils/podrunner#62) (to podrunner) | closed | T-1709, T-1725, T-1726, T-1732 |
 | #266 | COORD-047: podvm takes podcrates v0.25.0 (the answer to PodUtils/podcrates#76) (to podcrates) | open | T-1658 |
 | #267 | COORD-048: Plan.confine and the /tmp that the namespace rung mounts in the child: the rule holds the directory under the mount (to podcrates) | open | T-1658 |
