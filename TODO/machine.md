@@ -1313,9 +1313,17 @@ the host, as the Prove allows. The 9p modules are not in
 experiment 412 passes: the guest reads a host file in `/workspace`, the
 run names the copy, and the guest's write is not on the host.
 
-Remaining: a second channel for stderr; stdin; the cold and warm times
-under KVM (on the runner of T-1682); the `microvm` machine type; a shared
-`/workspace` (9p or virtiofs).
+stderr, the same day: a second serial port (`ttyS1`) is a socket
+chardev with `server=on,wait=on` under the temporary directory, so QEMU
+starts the guest only when podvm has connected; `/podvm-init` sends the
+command's stderr there, and podvm copies it to its own stderr without the
+tty's `\r` (`crates/podvm/src/machine/guest/stderr.rs`). Clause 7 of
+experiment 412 passes: `echo out; echo err >&2; exit 4` gives `out` on
+stdout alone, `err` on stderr, and exit 4.
+
+Remaining: stdin; the cold and warm times under KVM (kvm.yml runs 412
+now); the `microvm` machine type; a shared `/workspace` (9p or
+virtiofs).
 
 **Filed 2026-11-06.** Quoted from issue 168, measured on an 8 vCPU Incus
 guest with `/dev/kvm` and QEMU 10.0.13:

@@ -23,8 +23,9 @@
 #   6. `-v HOSTDIR:/workspace`: the guest reads a host file there, the
 #      banner says that the volume is a copy, and a file that the guest
 #      writes there is not on the host.
-#   7. no emulator stays after the runs.
-# Not here yet (T-1656 keeps it): a second channel for stderr.
+#   7. stderr comes back apart from stdout: `echo out; echo err >&2`
+#      gives `out` on podvm's stdout and `err` on its stderr only.
+#   8. no emulator stays after the runs.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (no build, no pull, no qemu).
@@ -141,9 +142,17 @@ grep -qx "wrote" "$WORK/c6.out" || { note "6: the guest did not write"; fail=1; 
 grep -q "is a copy into the guest" "$WORK/c6.err" || { note "6: the run did not say that the volume is a copy"; fail=1; }
 [ -e "$WORK/ws/out.txt" ] && { note "6: the guest's write is on the host, and the run said copy"; fail=1; }
 
-# Clause 7.
-if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "7: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi
-ls -d "$WORK"/store/machine/run-* >/dev/null 2>&1 && { note "7: a run directory stayed"; fail=1; }
+# Clause 7: stderr on its own port.
+timeout 300 "$PB" run --podvm-tier=machine "$ALPINE" sh -c 'echo out-412; echo err-412 >&2; exit 4' >"$WORK/c7.out" 2>"$WORK/c7.err"
+rc=$?
+{ echo ""; echo "== 7. stderr apart"; echo "exit              $rc"; echo "  stdout:"; sed 's/^/    /' "$WORK/c7.out"; echo "  stderr:"; grep -v "machine tier: a guest" "$WORK/c7.err" | sed 's/^/    /'; } >>"$REPORT"
+[ "$rc" -eq 4 ] || { note "7: wanted exit 4, got $rc"; fail=1; }
+[ "$(cat "$WORK/c7.out")" = "out-412" ] || { note "7: stdout is not out-412 alone"; fail=1; }
+grep -qx "err-412" "$WORK/c7.err" || { note "7: err-412 is not on stderr"; fail=1; }
+
+# Clause 8.
+if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "8: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi
+ls -d "$WORK"/store/machine/run-* >/dev/null 2>&1 && { note "8: a run directory stayed"; fail=1; }
 
 {
 echo ""

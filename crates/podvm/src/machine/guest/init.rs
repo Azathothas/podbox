@@ -36,6 +36,8 @@ pub fn script(nonce: &str, argv: &[String], env: &[String], workdir: &str, net: 
     if net {
         s.push_str("/podvm/podvm guest-net\n");
     }
+    // stderr on the second serial port (T-1656), where the node is there.
+    s.push_str("[ -c /dev/ttyS1 ] && exec 2>/dev/ttyS1\n");
     let words: Vec<String> = argv.iter().map(|a| sh_quote(a)).collect();
     s.push_str(&format!("set -- {}\n", words.join(" ")));
     s.push_str("\"$@\"\nrc=$?\n");

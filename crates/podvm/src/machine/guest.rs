@@ -18,6 +18,7 @@ pub(crate) mod cpio;
 pub(crate) mod init;
 pub(crate) mod kernel;
 pub(crate) mod net;
+pub(crate) mod stderr;
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -277,20 +278,25 @@ pub fn boot(r: &Request) -> i32 {
             host.display()
         );
     }
+    let sock = stderr::socket_path(&nonce);
+    let _ = std::fs::remove_file(&sock);
+    let mut extra = stderr::argv(&sock);
+    extra.extend(r.qemu_args.iter().cloned());
     let argv = qemu_argv(
         accel,
         r.mem.unwrap_or(DEFAULT_MEM),
         &kernel,
         &initrd,
-        &r.qemu_args,
+        &extra,
     );
-    let code = drive(r, &qemu, &argv, &nonce, &dir);
+    let code = drive(r, &qemu, &argv, &nonce, &dir, &sock);
+    let _ = std::fs::remove_file(&sock);
     let _ = std::fs::remove_dir_all(&dir);
     code
 }
 
 /// Spawn the emulator and read its console to the exit marker.
-fn drive(r: &Request, qemu: &Path, argv: &[String], nonce: &str, dir: &Path) -> i32 {
+fn drive(r: &Request, qemu: &Path, argv: &[String], nonce: &str, dir: &Path, sock: &Path) -> i32 {
     use std::os::unix::process::CommandExt;
     let errlog = dir.join("qemu.err");
     let mut child = match Command::new(qemu)
@@ -312,6 +318,9 @@ fn drive(r: &Request, qemu: &Path, argv: &[String], nonce: &str, dir: &Path) -> 
         }
     };
     let pid = child.id() as i32;
+    let deadline = Instant::now() + r.timeout.unwrap_or(DEFAULT_TIMEOUT);
+    let gone = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let errs = stderr::pump(sock.to_path_buf(), deadline, gone.clone());
     let out = child.stdout.take().expect("piped");
     let (tx, rx) = std::sync::mpsc::channel::<String>();
     std::thread::spawn(move || {
@@ -324,7 +333,6 @@ fn drive(r: &Request, qemu: &Path, argv: &[String], nonce: &str, dir: &Path) -> 
             }
         }
     });
-    let deadline = Instant::now() + r.timeout.unwrap_or(DEFAULT_TIMEOUT);
     let mut console = init::Console::new(nonce);
     let mut blanks = 0usize;
     let mut code: Option<i32> = None;
@@ -373,6 +381,9 @@ fn drive(r: &Request, qemu: &Path, argv: &[String], nonce: &str, dir: &Path) -> 
         unsafe { kill(-pid, 9) };
         let _ = child.wait();
     }
+    // The port closed with the emulator: the pump has each byte now.
+    gone.store(true, std::sync::atomic::Ordering::Release);
+    let _ = errs.join();
     match code {
         Some(c) => c,
         None => {

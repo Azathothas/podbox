@@ -171,3 +171,18 @@ fn a_volume_is_a_copy_at_its_guest_path() {
     );
     let _ = std::fs::remove_dir_all(&d);
 }
+
+/// The second serial port: a socket that QEMU holds the guest for, and the
+/// tty's `\r` taken out of the bytes.
+#[test]
+fn stderr_has_its_own_port() {
+    let sock = stderr::socket_path("0123456789abcdef0123");
+    assert!(sock
+        .to_string_lossy()
+        .ends_with("podvm-guest-0123456789abcdef.err"));
+    let a = stderr::argv(&sock).join(" ");
+    assert!(a.contains("server=on,wait=on") && a.ends_with("-serial chardev:podvmerr"));
+    assert_eq!(stderr::strip_cr(b"e1\r\ne2\r\n"), b"e1\ne2\n");
+    let s = init::script("n", &["true".into()], &[], "/", false);
+    assert!(s.contains("exec 2>/dev/ttyS1"));
+}
