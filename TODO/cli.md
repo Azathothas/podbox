@@ -2191,7 +2191,7 @@ Source:      issue 172; #193; the owner's ruling of 2026-11-06
 Category:    cli
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      partial 2026-11-11
 
 Problem:     A caller cannot run a tool in the shape of its production
              host: the provider's user, limits and variables. sand-net had
@@ -2226,6 +2226,32 @@ Prove:       `cargo test -p podvm` exits 0 with a test that every built-in
              runs `wget`; `distroless-static` runs a static binary and
              refuses `sh -c true` by name; the memory limit refuses by name
              on a rootfs tier.
+
+**Partial 2026-11-11.** `cargo test -p podvm` exits 0 with
+`each_built_in_profile_checks_and_gives_its_flags` (each built-in profile
+loads and lists what it leaves out), `a_provider_shape_names_its_image_and_its_identity`
+and `a_profile_with_an_image_takes_the_words_as_the_command`.
+`PODVM_415_MIRROR=1 sh experiments/415-provider-shapes.sh` exits 0 on the
+chroot-denying fixture (`experiments/results/provider-shapes.txt`):
+`busybox-bare` has `wget`; `distroless-static` refuses `sh -c true` by
+name (exit 127) and runs a static program of the project; `vercel-sandbox`
+(the glibc amazonlinux:2023) prints 1000 and `USER=vercel-sandbox`;
+`cloudflare-sandbox` answers `touch /x` with "Read-only file system" and
+leaves the project writable; `-s limits.memory=128m` and `-s
+'needs=["curl"]'` refuse by name (exit 125); each of the eleven built-in
+profiles lists what it leaves out.
+
+The parts of the build: a profile names its image (`fs.image`), and each
+positional word of the command line is then the command; `--` ends
+podvm's flags; `leaves_out` and `needs` are top-level keys; `needs`
+refuses a run whose image lacks a program on its PATH, so `curl ... | sh`
+is never trusted to an exit code. A static program in a volume now takes
+the native-static rung (its guest path maps back through the volume).
+
+Remaining clause: `lambda-al2023`. `pod-extract` refuses a layer of
+`public.ecr.aws/lambda/provided:al2023` whose root directory entry has an
+empty name; COORD-042 (issue 261) asks podcrates for the fix of that
+frozen code. The clause runs again with the tag that has it.
 
 **Filed 2026-11-06.** Quoted from issue 172:
 

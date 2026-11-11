@@ -152,6 +152,11 @@ fn each_built_in_profile_checks_and_gives_its_flags() {
         assert_eq!(source, Source::BuiltIn);
         let c = check(&t).unwrap_or_else(|e| panic!("{n}: {e}"));
         assert!(!c.description.is_empty(), "{n} has no description");
+        // T-1659: each built-in profile lists what it leaves out.
+        assert!(
+            !c.leaves_out.is_empty(),
+            "{n} lists nothing that it leaves out"
+        );
         run_args(&c, &cwd).unwrap_or_else(|e| panic!("{n}: {e}"));
     }
     let (t, _) = resolve("machine", None).unwrap();
@@ -192,4 +197,25 @@ fn a_name_outside_the_alphabet_or_absent_refuses() {
     assert!(set(&mut toml::Table::new(), "novalue")
         .unwrap_err()
         .contains("KEY=VALUE"));
+}
+
+/// T-1659: a provider shape names its image, user and variables.
+#[test]
+fn a_provider_shape_names_its_image_and_its_identity() {
+    let (t, _) = resolve("lambda-al2023", None).unwrap();
+    let c = check(&t).unwrap();
+    assert_eq!(
+        c.image.as_deref(),
+        Some("public.ecr.aws/lambda/provided:al2023")
+    );
+    assert_eq!(c.user.as_deref(), Some("993:990"));
+    assert!(c.read_only);
+    assert!(c.env.iter().any(|(k, _)| k == "AWS_LAMBDA_FUNCTION_NAME"));
+    assert!(c.leaves_out.iter().any(|l| l.contains("memory 128m")));
+    let a = run_args(&c, &std::env::temp_dir()).unwrap();
+    assert!(a.contains(&"--user=993:990".to_string()), "{a:?}");
+    assert!(a.contains(&"--tmpfs=/tmp:size=512m".to_string()), "{a:?}");
+    let (mut t, _) = resolve("busybox-bare", None).unwrap();
+    set(&mut t, "needs=[\"curl\"]").unwrap();
+    assert_eq!(check(&t).unwrap().needs, vec!["curl".to_string()]);
 }

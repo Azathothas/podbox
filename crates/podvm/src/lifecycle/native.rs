@@ -42,16 +42,28 @@ pub(super) fn decide(
 ) -> Result<Userland, String> {
     podvm_dispatch::available()?;
     let root = maps.rootfs().to_string();
-    let guest = f
+    // The guest path of the program: in the rootfs, or in a volume, whose
+    // host path the handler maps back (TODO/cli.md T-1659: a static program
+    // of the project runs in a distroless image).
+    let in_volume = maps.volumes().iter().find_map(|v| {
+        let host = v.host.trim_end_matches('/');
+        let rest = f.resolved.strip_prefix(host)?;
+        (rest.is_empty() || rest.starts_with('/'))
+            .then(|| format!("{}{rest}", v.guest.trim_end_matches('/')))
+    });
+    let guest = match f
         .resolved
         .strip_prefix(&root)
         .filter(|g| g.starts_with('/'))
-        .ok_or_else(|| {
+    {
+        Some(g) => g.to_string(),
+        None => in_volume.ok_or_else(|| {
             format!(
-                "the program {} is not in the image's rootfs (a volume?)",
+                "the program {} is in neither the image's rootfs nor a volume",
                 f.resolved
             )
-        })?;
+        })?,
+    };
     Ok(Userland {
         family: podvm_enter::userland::Family::Memfd,
         loader_argv: Vec::new(),

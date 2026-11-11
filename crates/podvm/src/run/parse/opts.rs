@@ -38,6 +38,9 @@ pub(crate) struct Opts {
     pub(crate) sets: Vec<String>,
     /// `fs.wrap` of the profile: a prefix of the command.
     pub(crate) wrap: Vec<String>,
+    /// `needs` of the profile: the programs that the image must have
+    /// (TODO/cli.md T-1659).
+    pub(crate) needs: Vec<String>,
     /// `--network broker` with `--ports` and `--allow`: the egress broker
     /// of the run (TODO/net.md T-1665).
     pub(crate) broker: bool,
@@ -110,6 +113,7 @@ impl Opts {
             profile: None,
             sets: Vec::new(),
             wrap: Vec::new(),
+            needs: Vec::new(),
             broker: false,
             ports: Vec::new(),
             allow: Vec::new(),

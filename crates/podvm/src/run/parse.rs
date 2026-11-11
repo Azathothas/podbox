@@ -34,10 +34,24 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
         }
         return Ok(o);
     };
-    let (mut flags, wrap) = crate::profile::run_args(verb, &name, &o.sets)?;
-    flags.extend(args.iter().cloned());
+    let shape = crate::profile::run_args(verb, &name, &o.sets)?;
+    let mut flags = shape.flags;
+    match &shape.image {
+        // TODO/cli.md T-1659: the profile names the image, so each word of
+        // the command line after the flags is the command.
+        Some(image) => {
+            let positional = 1 + o.command.len();
+            let cut = args.len().saturating_sub(positional);
+            flags.extend(args[..cut].iter().filter(|a| *a != "--").cloned());
+            flags.push("--".into());
+            flags.push(image.clone());
+            flags.extend(args[cut..].iter().cloned());
+        }
+        None => flags.extend(args.iter().cloned()),
+    }
     let mut o = parse_flags(verb, &flags)?;
-    o.wrap = wrap;
+    o.wrap = shape.wrap;
+    o.needs = shape.needs;
     Ok(o)
 }
 
@@ -62,6 +76,7 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
     };
     let mut o = Opts::new();
     let mut expecting: Option<&'static str> = None;
+    let mut ended = false;
     let mut i = 0;
     while i < args.len() {
         let a = &args[i];
@@ -146,6 +161,18 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             // ⛔ Past the image name. Everything from here is the payload's,
             // dashes and all.
             o.command.push(a.clone());
+            i += 1;
+            continue;
+        }
+        // `--` ends podvm's flags: the next word is the image (docker's
+        // rule), even where it starts with a dash. TODO/cli.md T-1659.
+        if a == "--" && !ended {
+            ended = true;
+            i += 1;
+            continue;
+        }
+        if ended {
+            o.image = Some(a.clone());
             i += 1;
             continue;
         }

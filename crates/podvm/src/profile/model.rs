@@ -8,8 +8,18 @@ use toml::{Table, Value};
 use super::values::*;
 
 /// The keys of each table. A key outside these is an error that names it.
-const TOP: &[&str] = &["extends", "description", "fs", "limits", "net", "env"];
+const TOP: &[&str] = &[
+    "extends",
+    "description",
+    "leaves_out",
+    "needs",
+    "fs",
+    "limits",
+    "net",
+    "env",
+];
 const FS: &[&str] = &[
+    "image",
     "backend",
     "user",
     "wrap",
@@ -30,6 +40,12 @@ const MAX_DEPTH: usize = 8;
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Checked {
     pub description: String,
+    /// What the shape does not model (TODO/cli.md T-1659).
+    pub leaves_out: Vec<String>,
+    /// The programs that the image must have, or the run refuses.
+    pub needs: Vec<String>,
+    /// The image of the shape.
+    pub image: Option<String>,
     pub backend: Option<String>,
     pub user: Option<String>,
     pub wrap: Vec<String>,
@@ -222,10 +238,13 @@ pub fn check(t: &Table) -> Result<Checked, String> {
                 ))
             }
         },
+        leaves_out: strings(t, "", "leaves_out")?,
+        needs: strings(t, "", "needs")?,
         ..Checked::default()
     };
     if let Some(fs) = want_table(t, "fs")? {
         only(fs, "fs", FS)?;
+        c.image = string(fs, "fs", "image")?;
         c.backend = string(fs, "fs", "backend")?;
         if let Some(b) = &c.backend
             && !BACKENDS.contains(&b.as_str())

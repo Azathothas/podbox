@@ -42,12 +42,17 @@ pub fn effective(
     Ok((table, checked, source))
 }
 
-/// The `run` flags of `--profile name` with `sets`, and its `fs.wrap`.
-pub fn run_args(
-    verb: &str,
-    name: &str,
-    sets: &[String],
-) -> Result<(Vec<String>, Vec<String>), i32> {
+/// What a profile gives a run: its flags, the prefix of the command, the
+/// image where the profile names one, and the programs that it needs.
+pub struct Shape {
+    pub flags: Vec<String>,
+    pub wrap: Vec<String>,
+    pub image: Option<String>,
+    pub needs: Vec<String>,
+}
+
+/// The shape of `--profile name` with `sets`.
+pub fn run_args(verb: &str, name: &str, sets: &[String]) -> Result<Shape, i32> {
     // Each message starts `profile NAME:`, so the line reads `--profile NAME: ...`.
     let fail = |e: String| {
         eprintln!("podvm {verb}: --{e}");
@@ -56,8 +61,48 @@ pub fn run_args(
     let (_, c, _) = effective(name, sets).map_err(fail)?;
     let cwd = std::env::current_dir()
         .map_err(|e| fail(format!("profile {name}: the current directory: {e}")))?;
-    let args = model::run_args(&c, &cwd).map_err(|e| fail(format!("profile {name}: {e}")))?;
-    Ok((args, c.wrap))
+    let flags = model::run_args(&c, &cwd).map_err(|e| fail(format!("profile {name}: {e}")))?;
+    Ok(Shape {
+        flags,
+        wrap: c.wrap,
+        image: c.image,
+        needs: c.needs,
+    })
+}
+
+/// TODO/cli.md T-1659: each program that the profile needs, on the PATH of
+/// the image in `rootfs`, or a refusal that names the missing ones. A
+/// pipeline such as `curl ... | sh` exits 0 where curl is absent, so the
+/// absence is detected, never inferred from an exit code.
+pub fn check_needs(verb: &str, rootfs: &str, env: &[String], needs: &[String]) -> Result<(), i32> {
+    if needs.is_empty() {
+        return Ok(());
+    }
+    let path = env
+        .iter()
+        .find_map(|e| e.strip_prefix("PATH="))
+        .unwrap_or("/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
+    let root = std::path::Path::new(rootfs);
+    let missing: Vec<&str> = needs
+        .iter()
+        .map(String::as_str)
+        .filter(|n| {
+            !path.split(':').any(|d| {
+                let p = root.join(d.trim_start_matches('/')).join(n);
+                std::fs::symlink_metadata(&p).is_ok()
+            })
+        })
+        .collect();
+    if missing.is_empty() {
+        return Ok(());
+    }
+    eprintln!(
+        "podvm {verb}: --profile: the image has no {} on its PATH ({path}), and the \
+         profile needs it; a pipeline that pipes it would exit 0 and do nothing \
+         (TODO/cli.md T-1659)",
+        missing.join(", ")
+    );
+    Err(podvm_image::error::EXIT_RUNTIME_ERROR)
 }
 
 /// `podvm profile ...`.

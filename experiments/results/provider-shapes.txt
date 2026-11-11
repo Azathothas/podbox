@@ -1,0 +1,42 @@
+== conditions
+date              2026-11-11T13:01:58Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.3
+fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
+
+== clause 1  lambda-al2023
+  WAITS: pod-extract refuses a layer of the image (the root entry has an empty name); COORD-042, issue 261
+
+== clause 2  busybox-bare
+    BusyBox v1.38.0 (2026-05-13 02:21:49 UTC) multi-call binary.
+
+== clause 3  distroless-static
+  sh -c true: exit 127: sh names no file in the image
+  a static program of the project: usage: deny-chroot [--deny-dispatch] cmd [arg...]
+
+== clause 4  vercel-sandbox
+    1000
+    user=vercel-sandbox
+
+== clause 5  cloudflare-sandbox
+    touch: /x: Read-only file system
+    project-writable
+
+== clause 6  refusals by name
+  memory: exit 125: `limits.memory` needs fs.backend = "machine"
+  needs curl: exit 125: the image has no curl
+
+== clause 7  what each profile leaves out
+  default: leaves_out = ["each limit that needs a cgroup (memory, cpus, pids) on a rootfs tier"]
+  workspace: leaves_out = ["each limit that needs a cgroup (memory, cpus, pids) on a rootfs tier"]
+  readonly: leaves_out = ["the size of /tmp (enforced on the syscall tier only)", "a raw system call past the interposer"]
+  machine: leaves_out = ["a write of the guest to /workspace: it is a copy"]
+  incus: leaves_out = ["volumes and the network of the instance (T-1718)"]
+  lambda-al2023: leaves_out = ["Lambda's invocation protocol (the Runtime Interface Emulator)", "its 15-minute limit and its ne
+  vercel-sandbox: leaves_out = ["Vercel's own isolation (a microVM), replaced by the host's"]
+  cloudflare-sandbox: leaves_out = ["the sandbox-shim of cloudflare/sandbox:1.0.3", "Cloudflare's own isolation (a container of its 
+  busybox-bare: leaves_out = ["TLS validation of busybox wget: expired, self-signed and wrong-host certificates exit 0", "curl
+  distroless-static: leaves_out = ["a shell: sh -c refuses by name; a static program of /workspace runs"]
+  node-shell: leaves_out = ["curl: the image has none"]
+
+verdict: THE PROVIDER SHAPES RUN AS PROFILES (a WAITS clause aside)

@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: provider shapes as profiles, 2026-11-11
+
+Record: T-1659; issue 172.
+Deployed: not deployed; no version change.
+
+- Six built-in profiles put a tool in the shape of its production host:
+  `lambda-al2023`, `vercel-sandbox`, `cloudflare-sandbox`, `busybox-bare`,
+  `distroless-static` and `node-shell`. A profile names its image
+  (`podvm run --profile busybox-bare -- sh`), its user and its variables,
+  and lists what it leaves out. `needs` refuses an image that lacks a
+  program. `--` ends podvm's flags.
+- A static program of a volume runs on the native-static rung.
+
 ### Added: the egress broker, 2026-11-11
 
 Record: T-1665; issue 184.

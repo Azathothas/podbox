@@ -210,10 +210,11 @@ pub(crate) fn prepare(
     let maps = crate::lifecycle::volume::maps(verb, &rootfs, &o.volumes)?;
     let mut env = Plan::env_for(&podvm_enter::NAMES, &cfg.config.env, &o.env);
     env.extend(crate::sandprobe::host_env(store.root())); // T-1666
-                                                          // ⭐ T-0711: the requested identity travels in the environment, resolved
-                                                          // against the image, before anything classifies the payload: the object
-                                                          // reads it on first use in every process, which is what survives fork
-                                                          // and exec where a file descriptor would need re-handing.
+    crate::profile::check_needs(verb, &rootfs, &env, &o.needs)?; // T-1659
+                                                                 // ⭐ T-0711: the requested identity travels in the environment, resolved
+                                                                 // against the image, before anything classifies the payload: the object
+                                                                 // reads it on first use in every process, which is what survives fork
+                                                                 // and exec where a file descriptor would need re-handing.
     crate::lifecycle::apply_user(verb, &rootfs, o.user.as_ref(), &mut env)?;
     // ⭐ T-0710: the host memo, beside the container record once it exists.
     // Ephemeral here under staging; `create` and `run -d` move it to

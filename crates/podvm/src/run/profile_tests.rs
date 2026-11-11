@@ -164,3 +164,39 @@ fn the_retry_word_is_the_first_word_of_a_caller_command() {
     let o = parse("run", &v(&["img"])).unwrap();
     assert_eq!(o.retry_word(Some(&ep)), None);
 }
+
+/// T-1659: `--` ends podvm's flags, and a profile that names its image
+/// takes each positional word as the command.
+#[test]
+fn a_profile_with_an_image_takes_the_words_as_the_command() {
+    let o = parse("run", &v(&["--rm", "--", "img", "true"])).unwrap();
+    assert_eq!(
+        (o.image.as_deref(), o.command.clone()),
+        (Some("img"), vec!["true".to_string()])
+    );
+    let bb = "public.ecr.aws/docker/library/busybox:musl";
+    let o = parse(
+        "run",
+        &v(&["--profile", "busybox-bare", "--", "sh", "-c", "true"]),
+    )
+    .unwrap();
+    assert_eq!(o.image.as_deref(), Some(bb));
+    assert_eq!(o.command, ["sh", "-c", "true"]);
+    let o = parse("run", &v(&["--profile", "busybox-bare", "wget", "-q", "x"])).unwrap();
+    assert_eq!(o.image.as_deref(), Some(bb));
+    assert_eq!(o.command, ["wget", "-q", "x"]);
+    // `-s fs.image=` takes another image for the shape.
+    let o = parse(
+        "run",
+        &v(&[
+            "--profile",
+            "busybox-bare",
+            "-s",
+            "fs.image=mirror/x:1",
+            "--",
+            "id",
+        ]),
+    )
+    .unwrap();
+    assert_eq!(o.image.as_deref(), Some("mirror/x:1"));
+}
