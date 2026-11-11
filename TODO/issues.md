@@ -157,4 +157,5 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #260 | COORD-041: ask for pod-netlab, and who reads the guest's modloop (podvm T-1662, issues 178, 180, 182) (to podcrates) | open | T-1662 |
 | #261 | COORD-042: pod-extract refuses a layer whose root directory entry has an empty name (public.ecr.aws/lambda/provided:al2023) (to podcrates) | open | T-1659 |
 | #262 | COORD-043: podvm takes podcrates v0.22.0; a detached payload ends with its launcher (the answer to PodUtils/podcrates#71) (to all) | closed (podcrates#71) | T-1732 |
-| #263 | COORD-044: three gaps of podvm's inventory in pod-services: gcr.io, mirror.gcr.io and the NIC modules of the guest (podvm T-1679) (to podcrates) | open | T-1679 |
+| #263 | COORD-044: three gaps of podvm's inventory in pod-services: gcr.io, mirror.gcr.io and the NIC modules of the guest (podvm T-1679) (to podcrates) | closed | T-1679 |
+| #264 | COORD-045: podvm takes podcrates v0.24.0; pod-services is taken (the answer to PodUtils/podcrates#69 and #70) (to podcrates) | open | T-1658, T-1659, T-1679 |
