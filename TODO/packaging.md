@@ -1615,7 +1615,7 @@ for podvm assets of beta.13 and finds none.
 
 `crates/podvm-release/src/identity.rs:15` sets
 `LAST_PODBOX_BETA` to 13. The tag `v0.1.0-beta.13` exists and
-is older than the rename. The wrong lines are `README.md:115`
+is older than the rename. The wrong lines are `README.md:118`
 and `SECURITY.md:66`. `CHANGELOG.md:40` agrees with the code.
 
 ## Approach

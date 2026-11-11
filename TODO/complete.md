@@ -1566,7 +1566,7 @@ to the four new `dev-fd-link` rows; workspace 564 passed 0 failed.
 
 **Source:** issues 18 and 22, client beta testing 2026-09-22 (quick
   start declines dynamic payloads; status and limits lines
-  false); `README.md:12-15`, `README.md:62`
+  false); `README.md:12-15`, `README.md:65`
 **Category:** complete
 **Milestone:** none
 **Priority:** P2

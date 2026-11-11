@@ -15,6 +15,9 @@ Most mechanisms are shared crates of
 The machine tier boots a Linux guest from an OCI image (`run
 --podvm-tier=machine`, TODO/machine.md T-1656), and Windows, DOS, and
 `machine ssh` guests.
+`--podvm-tier` also selects `incus` (an incusd over its REST API,
+T-1718), `emulate` (a static qemu-user, T-1651) and `syscall` (a static
+program on the native-static rung, T-1657).
 
 Read [the architecture](docs/architecture.md) for the execution paths.
 Read [the limits](docs/limits.md) before you select a path.
