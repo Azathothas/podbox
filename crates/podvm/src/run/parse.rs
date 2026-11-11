@@ -439,7 +439,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
     // ⭐ TODO/enter.md T-1653: the table checks of the pairs, up front. The
     // rootfs is not known yet, so `/` stands for it: the root pair is
     // checked when the run builds its table.
-    if let Err(why) = podvm_enter::userland::volume_maps("/", &o.volumes)
+    if let Err(why) = podvm_enter::userland::Maps::new(&podvm_enter::NAMES, "/", &o.volumes)
         .and_then(|m| podvm_enter::userland::userland_volume_table(&podvm_enter::NAMES, &m))
     {
         eprintln!("podvm {verb}: -v: {why}");

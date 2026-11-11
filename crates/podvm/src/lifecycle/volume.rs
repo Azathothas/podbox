@@ -39,7 +39,7 @@ pub const RO_REFUSAL: &str = "`:ro` is refused: podvm cannot enforce a read-only
 /// anonymous volume: both need a volume store, and podvm keeps none.
 /// `rw` is the default and is accepted; `ro` and each other option are
 /// refused by name. The table checks of the pair run in
-/// `podvm_enter::userland::volume_maps` and `pod-enter`'s table builders.
+/// `pod-enter`'s `Maps::new` (with `podvm_enter::NAMES`) and its table builders.
 pub fn parse(spec: &str) -> Result<Volume, String> {
     let parts: Vec<&str> = spec.split(':').collect();
     let (host, guest, opts) = match parts.as_slice() {
@@ -147,7 +147,7 @@ pub fn maps(
     rootfs: &str,
     volumes: &[Volume],
 ) -> Result<podvm_enter::userland::Maps, i32> {
-    podvm_enter::userland::volume_maps(rootfs, volumes).map_err(|why| {
+    podvm_enter::userland::Maps::new(&podvm_enter::NAMES, rootfs, volumes).map_err(|why| {
         eprintln!("podvm {verb}: -v: {why} (TODO/enter.md T-1653)");
         podvm_image::error::EXIT_RUNTIME_ERROR
     })

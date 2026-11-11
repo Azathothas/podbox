@@ -181,7 +181,7 @@ fn a_script_in_a_volume_runs_from_the_volume() {
         guest: "/data".to_string(),
         host: host.clone(),
     }];
-    let maps = podvm_enter::userland::volume_maps(&root, &vols).unwrap();
+    let maps = podvm_enter::userland::Maps::new(&podvm_enter::NAMES, &root, &vols).unwrap();
     let path = vec!["/bin".to_string(), "/data".to_string()];
     // The image has no /data/tool.sh: without the table it is absent.
     let Err((code, _, _)) = follow(&root, &words(&["/data/tool.sh"]), &path) else {

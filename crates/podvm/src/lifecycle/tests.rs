@@ -86,7 +86,7 @@ fn userland_env_adds_one_pair_for_each_volume() {
     }];
     let ue = userland_env(
         "run",
-        &Maps::new("/store/rootfs", &vols).unwrap(),
+        &Maps::new(&podvm_enter::NAMES, "/store/rootfs", &vols).unwrap(),
         vec![],
         Family::Loader,
         false,
@@ -107,7 +107,7 @@ fn userland_env_adds_one_pair_for_each_volume() {
     );
     let ue = userland_env(
         "run",
-        &Maps::new("/store/rootfs", &vols).unwrap(),
+        &Maps::new(&podvm_enter::NAMES, "/store/rootfs", &vols).unwrap(),
         vec![],
         Family::Loader,
         true,

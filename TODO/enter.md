@@ -2101,7 +2101,7 @@ Source:      PodUtils/podcrates#52 (COORD-027, the answer to issue 226);
 Category:    enter
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     podvm keeps its own volume rules in `podvm-enter`
              (`volume_maps`, `MAX_VOLUMES`, `NEVER_MAPPED`), while
@@ -2127,6 +2127,27 @@ Prove:       `cargo test --workspace` exits 0 with a test that a `-v`
              pair to `/proc` is refused by name and that a missing `-w`
              inside a volume names the volume; `rg -n "NEVER_MAPPED|
              MAX_VOLUMES" crates/` prints nothing.
+
+**Done 2026-11-11.** podvm takes the 11 crates of PodUtils/podcrates at
+`v0.15.0` (`27a4ccd`). Each pin of `crates/*/Cargo.toml` moves from
+`v0.12.0` in one commit, and `Cargo.lock` changes only the version and
+the git revision of each `pod-*` package (no new package). `NAMES.reserved` is `["/proc", "/.podvm"]`;
+`NAMES.product` was `podvm` before. Each caller builds the table with
+`Maps::new(&NAMES, rootfs, &volumes)` (`run/parse.rs`,
+`lifecycle/volume.rs`, the launcher of `podvm-supervise`, and the tests),
+and `volume_maps`, `MAX_VOLUMES`, `NEVER_MAPPED` and `under` are gone;
+`volumes_of` stays. podvm had no volume rule for `-w` left in its own code
+since T-1653 (the take of `v0.12.0`), so `check_workdir` alone names the
+volume now. The Prove, on the cloud host, 2026-11-11: `cargo test
+--workspace` exits 0 (650 tests in 53 suites, 0 failed), with
+`a_volume_the_table_cannot_spell_is_refused` (a `-v` pair to
+`/proc/self` and to `/.podvm` is refused by name: "podvm never rewrites a
+path under /proc") and `a_guest_path_in_a_volume_resolves_in_the_volume`
+(a missing `-w /data/none` inside a volume says "in the volume
+HOST:/data is not a directory in the volume"; a missing `-w /none` still
+names the image). `rg -n "NEVER_MAPPED|MAX_VOLUMES" crates/` prints
+nothing (exit 1). `cargo clippy --workspace --all-targets -- -D
+warnings` and `cargo fmt --all --check` exit 0.
 
 **Blocked 2026-11-10.** Blocker: no podcrates tag carries d8b77b5.
 Clears when: a podcrates tag (planned `v0.15.0`) carries podcrates T-155.

@@ -112,8 +112,9 @@ fn enter_in_launcher(
         // ⭐ TODO/enter.md T-1653: the volumes of the record join the root
         // pair, so a working directory in a volume resolves in the volume.
         let volumes = podvm_enter::userland::volumes_of(&container.env);
-        let maps = podvm_enter::userland::volume_maps(&container.rootfs, &volumes)
-            .map_err(|why| format!("starting with -v: {why}"))?;
+        let maps =
+            podvm_enter::userland::Maps::new(&podvm_enter::NAMES, &container.rootfs, &volumes)
+                .map_err(|why| format!("starting with -v: {why}"))?;
         podvm_enter::spawn_userland(
             &root,
             &plan,

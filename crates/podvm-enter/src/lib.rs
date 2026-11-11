@@ -34,6 +34,9 @@ pub const NAMES: Names = Names {
     device_fds: "PODVM_DEVICE_FDS",
     cache_marker: ".podvm-cache-complete",
     memfd_label: "podvm-payload",
+    // The guest prefixes that `podvm-interpose` never rewrites
+    // (`map::longest`): `Maps::new` refuses a volume under one by name.
+    reserved: &["/proc", "/.podvm"],
 };
 
 /// A runtime error with podvm's text. Exits 125.
@@ -163,51 +166,6 @@ pub mod userland {
         pod_enter::userland::host_env(&super::NAMES, rootfs, guest_preload, env, lib_dirs)
     }
 
-    /// The most volumes one table holds: the bound of the interposer
-    /// (`MAX_MAP_PAIRS`, the `map::MAX_PAIRS` of `podvm-interpose`) less
-    /// the root pair, TODO/enter.md T-1653.
-    pub const MAX_VOLUMES: usize = MAX_MAP_PAIRS - 1;
-
-    /// The guest prefixes that the interposer never rewrites
-    /// (`podvm-interpose`'s `map::longest`): a pair there is dead, so
-    /// [`volume_maps`] refuses it by name.
-    pub const NEVER_MAPPED: [&str; 2] = ["/proc", "/.podvm"];
-
-    /// The table of a userland run: the root pair of `rootfs` and one pair
-    /// for each volume, TODO/enter.md T-1407 and T-1653.
-    ///
-    /// `pod-enter`'s [`Maps::new`] checks the shape of each side. podvm
-    /// adds its bound of [`MAX_VOLUMES`] and refuses a guest side under a
-    /// prefix of [`NEVER_MAPPED`]: a pair that never matches is a volume
-    /// that silently does nothing. The spelling of each side in the
-    /// variable is checked when the table is spelled
-    /// ([`userland_maps_table`], [`userland_volume_table`]).
-    pub fn volume_maps(rootfs: &str, volumes: &[Volume]) -> Result<Maps, String> {
-        if volumes.len() > MAX_VOLUMES {
-            return Err(format!(
-                "{} volumes, over the {MAX_VOLUMES} that one {MAPS_VAR} table holds beside \
-                 the root pair",
-                volumes.len()
-            ));
-        }
-        let maps = Maps::new(rootfs, volumes)?;
-        for v in maps.volumes() {
-            if let Some(p) = NEVER_MAPPED.iter().find(|p| under(&v.guest, p)) {
-                return Err(format!(
-                    "the volume {}:{}: the interposer never rewrites a path under {p}, so \
-                     this volume would serve nothing",
-                    v.host, v.guest
-                ));
-            }
-        }
-        Ok(maps)
-    }
-
-    /// True where `p` is `prefix` or a path under it.
-    fn under(p: &str, prefix: &str) -> bool {
-        p == prefix || p.strip_prefix(prefix).is_some_and(|r| r.starts_with('/'))
-    }
-
     /// The volume pairs of the table that `env` carries: each pair but the
     /// root pair, TODO/enter.md T-1653. A container record carries the
     /// table of its entry, and `exec` takes the volumes of the container
@@ -297,7 +255,7 @@ mod tests {
     #[test]
     fn a_volume_is_a_pair_beside_the_root_pair() {
         let vs = [vol("/host/dir", "/data/"), vol("/", "/hostroot")];
-        let maps = userland::volume_maps("/store/rootfs/", &vs).unwrap();
+        let maps = userland::Maps::new(&NAMES, "/store/rootfs/", &vs).unwrap();
         let t = table(&maps);
         assert_eq!(t, "/:/store/rootfs,/data:/host/dir,/hostroot:/");
         let env = [format!("PODVM_MAPS={t}"), "PATH=/bin".to_string()];
@@ -306,7 +264,7 @@ mod tests {
             vec![vol("/host/dir", "/data"), vol("/", "/hostroot")]
         );
         // --unsafe-host-paths: no root pair, the volumes stay.
-        let maps = userland::volume_maps("/store/rootfs", &vs[..1]).unwrap();
+        let maps = userland::Maps::new(&NAMES, "/store/rootfs", &vs[..1]).unwrap();
         let t = userland::userland_volume_table(&NAMES, &maps).unwrap();
         assert_eq!(t, "/data:/host/dir");
         assert!(userland::volumes_of(&["PATH=/bin".to_string()]).is_empty());
@@ -317,7 +275,7 @@ mod tests {
     #[test]
     fn a_volume_the_table_cannot_spell_is_refused() {
         let refused = |host: &str, guest: &str, want: &str| {
-            let e = userland::volume_maps("/r", &[vol(host, guest)])
+            let e = userland::Maps::new(&NAMES, "/r", &[vol(host, guest)])
                 .and_then(|m| userland::userland_maps_table(&NAMES, &m))
                 .unwrap_err();
             assert!(e.contains(want), "{host}:{guest}: {e}");
@@ -331,14 +289,14 @@ mod tests {
         refused("/a", "/proc/self", "never rewrites a path under /proc");
         refused("/a", "/.podvm", "never rewrites a path under /.podvm");
         let two = [vol("/a", "/data"), vol("/b", "/data/")];
-        let e = userland::volume_maps("/r", &two).unwrap_err();
+        let e = userland::Maps::new(&NAMES, "/r", &two).unwrap_err();
         assert!(e.contains("a second volume at the guest path /data"), "{e}");
-        let many: Vec<_> = (0..=userland::MAX_VOLUMES)
+        let many: Vec<_> = (0..userland::MAX_MAP_PAIRS)
             .map(|i| vol("/a", &format!("/v{i}")))
             .collect();
-        let e = userland::volume_maps("/r", &many).unwrap_err();
+        let e = userland::Maps::new(&NAMES, "/r", &many).unwrap_err();
         assert!(e.contains("over the 31"), "{e}");
-        let maps = userland::volume_maps("/r", &many[1..]).unwrap();
+        let maps = userland::Maps::new(&NAMES, "/r", &many[1..]).unwrap();
         assert!(userland::userland_maps_table(&NAMES, &maps).is_ok());
     }
 
@@ -357,11 +315,26 @@ mod tests {
         std::fs::write(&prog, b"\x7fELF").unwrap();
         std::fs::set_permissions(&prog, std::fs::Permissions::from_mode(0o755)).unwrap();
         let (r, h) = (root.to_str().unwrap(), host.to_str().unwrap());
-        let maps = userland::volume_maps(r, &[vol(h, "/data")]).unwrap();
+        let maps = userland::Maps::new(&NAMES, r, &[vol(h, "/data")]).unwrap();
         // The image has no /data/sub; the volume has it.
         assert!(check_workdir(r, "/data/sub", "img").is_err());
         check_workdir(&maps, "/data/sub", "img").unwrap();
         check_workdir(&maps, "/data", "img").unwrap();
+        // TODO/enter.md T-1716: a missing directory inside a volume names
+        // the volume, not the image.
+        let e = check_workdir(&maps, "/data/none", "img")
+            .unwrap_err()
+            .to_string();
+        assert!(
+            e.contains(&format!(
+                "in the volume {h}:/data is not a directory in the volume"
+            )),
+            "{e}"
+        );
+        let e = check_workdir(&maps, "/none", "img")
+            .unwrap_err()
+            .to_string();
+        assert!(e.contains("is not a directory in the image"), "{e}");
         let path = ["/bin".to_string()];
         assert!(ladder::resolve_payload(r, "/data/prog", &path).is_err());
         let got = ladder::resolve_payload(&maps, "/data/prog", &path).unwrap();

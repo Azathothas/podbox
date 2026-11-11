@@ -6,6 +6,18 @@ Earlier repository change records are retained in
 [the captured changelog](docs/history/CHANGELOG.md-before-2026-09-30.txt).
 They describe their recorded revision, not the current build.
 
+## Unreleased
+
+### Changed, 2026-11-11
+
+Record: T-1716; PodUtils/podcrates#52 and #54.
+Deployed: not deployed; no version change.
+
+- podvm takes the 11 shared crates of `PodUtils/podcrates` at tag
+  `v0.15.0`. The volume rules live in `pod-enter` only: a `-v` pair under
+  `/proc` or `/.podvm` is refused by name, and a missing `-w` directory
+  inside a volume names the volume `HOST:GUEST`, not the image.
+
 ## 0.2.0-beta.2 (2026-11-10)
 
 ### Breaking: podbox is podvm, 2026-11-10

@@ -15,10 +15,9 @@ file when each step below is done.
 * The newest release is `v0.2.0-beta.2` (2026-11-10). A release starts
   from `release.yml`; dispatch `nightly.yml` with `trial=true` on `main`
   first.
-* podvm takes 11 crates of PodUtils/podcrates at `v0.12.0` (5e5629a).
-  `v0.15.0` (`27a4ccd`) is the last podcrates tag and carries the
-  `pod-enter` change of podcrates T-155: podvm takes it with T-1716
-  (PodUtils/podcrates#52, #54).
+* podvm takes 11 crates of PodUtils/podcrates at `v0.15.0` (`27a4ccd`),
+  the last podcrates tag, with the `pod-enter` change of podcrates T-155
+  (T-1716; PodUtils/podcrates#52, #54).
 * PodUtils/podrunner has a lead session since 2026-11-11 (DR-1 and DR-2
   are yes). It writes to podvm by a COORD issue of podrunner titled
   `(to podvm)`; the watcher of the organization reads it.
@@ -32,11 +31,9 @@ file when each step below is done.
 * COORD-023 (#241, to podcrates): podvm resumes, the fuzz targets of the
   podcrates parsers (T-1684), T-1696 dropped.
 * From podcrates to podvm: PodUtils/podcrates#52 (COORD-027) and #54
-  (COORD-029): podvm's part is T-1716.
+  (COORD-029): podvm's part is T-1716, done; COORD-024 gives the take.
 
 ## Next steps, in order
 
-1. T-1716: take podcrates `v0.15.0`; write the take as a COORD issue
-   `(to podcrates)`.
-2. The work order of `TODO/PROGRESS.md`, from item 1 (T-1712 and
+1. The work order of `TODO/PROGRESS.md`, from item 1 (T-1712 and
    T-1713).
