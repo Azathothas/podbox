@@ -341,6 +341,7 @@ pub(super) fn enter(
         names: podvm_enter::NAMES,
         limits: Vec::new(),
         no_new_privs: false,
+        die_with_parent: false,
     };
     if let Err(c) = serve_devices(&mut plan, &mut err) {
         return c;

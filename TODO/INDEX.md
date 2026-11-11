@@ -405,10 +405,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1729](enter.md) | P3 | enter | open | An optional `runsc` backend where a host grants user namespaces |
 | [T-1730](enter.md) | P1 | enter | done | A detached thread of a static payload ends with SIGSEGV on the native-static rung |
 | [T-1731](enter.md) | P2 | enter | open | A dynamic program on the native-static rung: its loader under the handler |
+| [T-1732](enter.md) | P1 | enter | done | Take podcrates v0.22.0: a detached payload ends with its launcher |
 
 ## Counts
 
-340 items: 16 open, 8 partial, 7 blocked, 309 done.
+341 items: 16 open, 8 partial, 7 blocked, 310 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -418,10 +419,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 1 | 3 | 0 | 145 | 149 |
+| P1 | 1 | 3 | 0 | 146 | 150 |
 | P2 | 12 | 4 | 7 | 91 | 114 |
 | P3 | 3 | 0 | 0 | 9 | 12 |
-| **All** | **16** | **8** | **7** | **309** | **340** |
+| **All** | **16** | **8** | **7** | **310** | **341** |
 
 ## Work order
 

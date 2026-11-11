@@ -2517,6 +2517,50 @@ Prove:       `sh experiments/436-runsc.sh` exits 0 on a host with user namespace
 
 ---
 
+### T-1732 Take podcrates v0.22.0: a detached payload ends with its launcher
+
+Source:      PodUtils/podcrates#71 (COORD-046, a message from a peer
+             session); podcrates T-205 and T-202; podrunner's test 26;
+             `crates/podvm-supervise/src/launcher.rs:78`
+Category:    enter
+Priority:    P1
+Effort:      S
+Status:      done 2026-11-11
+
+Problem:     A payload of `podvm run -d` outlived a launcher that was
+             killed. The container then ran with no supervisor: no wall
+             bound, no log, no exit code.
+Premise:     podcrates `v0.22.0` (`93de04a`) gives `Plan.die_with_parent`:
+             the child sets `PR_SET_PDEATHSIG(SIGKILL)` first after the
+             fork, and ends where its parent ended before the call. The
+             signal fires at the exit of the thread that forked, so it is
+             opt-in. The launcher forks from its one thread.
+Approach:    Move each pin of `crates/*/Cargo.toml` from `v0.21.0` to
+             `v0.22.0` in one commit. Set `die_with_parent: true` in the
+             plan of the launcher, and `false` at each other site, where
+             the behaviour does not change.
+Decision:    Only the launcher opts in. A foreground run keeps its
+             behaviour: a docker client that is killed does not stop its
+             container either.
+Prove:       `sh experiments/437-payload-dies-with-launcher.sh` exits 0:
+             after SIGKILL to the launcher of `podvm run -d
+             public.ecr.aws/docker/library/busybox:musl sleep N`, the
+             payload is gone or a zombie within 5 s, and `ps -a` names
+             the container Dead.
+
+**Done 2026-11-11.** The 9 manifests name `v0.22.0`, and `Cargo.lock`
+changes only the version and the git revision of each `pod-*` package.
+`PODVM_437_IMAGE=mirror.gcr.io/library/busybox:musl sh
+experiments/437-payload-dies-with-launcher.sh` exits 0 on the cloud host
+(`experiments/results/payload-dies-with-launcher.txt`): the payload is a
+child of the launcher, it is a zombie (state Z) right after the launcher's
+SIGKILL, and `ps -a` says "Dead (exited while the launcher was not
+watching)". The control, the same build with `die_with_parent: false` in
+the launcher, leaves the payload alive (state S), and the experiment
+exits 1.
+
+---
+
 ### T-1731 A dynamic program on the native-static rung: its loader under the handler
 
 Source:      T-1657 (the syscall tier refuses a dynamic program); the `--strict` gap of the loader family (T-1650)

@@ -88,6 +88,10 @@ fn enter_in_launcher(
         names: podvm_enter::NAMES,
         limits: container.of.hardening.limits(),
         no_new_privs: container.of.hardening.no_new_privs,
+        // podcrates v0.22.0 (COORD-046, T-205): the payload gets SIGKILL
+        // when this launcher dies, so it never outlives a killed
+        // supervisor. The launcher forks from its one thread.
+        die_with_parent: true,
     };
 
     // ⭐ TODO/image.md T-0204 and T-0211. The image lock is taken here and
